@@ -1,6 +1,12 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import type { Project, Shot, WorkflowGraph, WorkflowNode, WorkflowNodeParams } from '@shared/types'
-import { getLayerDisplayName } from '../../project/workflowV2Engine'
+import {
+  getCompatibleLogicCatalogForNode,
+  getLayerDisplayName,
+  spawnTimedFollowupNodeV2,
+  syncWorkflowV2NodeToProject
+} from '../../project/workflowV2Engine'
+import { useEditor } from '../../store/editor'
 import { IconTrash } from '../icons'
 import { WorkflowTimeRangeBar } from './WorkflowTimeRangeBar'
 import { WorkflowV2DirectStagePreview } from './WorkflowV2DirectStagePreview'
@@ -13,7 +19,6 @@ import { WorkflowV2Logic25DPreview } from './WorkflowV2Logic25DPreview'
 import { WorkflowV2NodeParams } from './WorkflowV2NodeParams'
 import { isDeletableV2Node, summarizeV2Node } from './WorkflowNodeCardV2'
 import {
-  WORKFLOW_V2_SPAWN_CATALOG,
   cleanV2NodeTitle,
   resolveV2NodeLevel,
   resolveV2NodeTheme,
@@ -40,11 +45,19 @@ export interface WorkflowV2InspectorProps {
   onUpdateParams: (nodeId: string, patch: Partial<WorkflowNodeParams>, nextTitle?: string) => void
   onToggleEnable: (nodeId: string) => void
   onDeleteNode: (nodeId: string) => void
-  onAttachLogic: (layerNodeId: string, category: WorkflowV2SpawnCategory) => void
+  onAttachLogic: (
+    layerNodeId: string,
+    category: WorkflowV2SpawnCategory,
+    presetId?: string,
+    extraParams?: Partial<WorkflowNodeParams>,
+    customTitle?: string
+  ) => void
   onSpawnCameraWaypoint?: (shotId: string, mode: 'pan' | 'zoom-in' | 'zoom-out' | 'hold', fromWaypointTime?: number) => void
   onSelectNode?: (nodeId: string) => void
-  /** Nối thêm một Layer vào Node Logic (ví dụ chọn Layer B cho Node Va chạm) */
+  /** Nối thêm một Layer vào Node Logic hoặc Khoá Cụm */
   onConnectLayer: (layerNodeId: string, logicNodeId: string) => void
+  onDisconnectEdge?: (edgeId: string) => void
+  onToggleEdgeDisable?: (edgeId: string) => void
   onScrubTime: (t: number) => void
 }
 
@@ -110,7 +123,9 @@ const TimeField: React.FC<{ label: string; value: number; min: number; max: numb
 
 function linkedLayerNames(node: WorkflowNode, project: Project): string[] {
   const ids = node.params?.targetLayerIds ?? []
-  const names = project.layers.filter((l) => ids.includes(l.id) && (!l.composite || l.composite.isRoot)).map(getLayerDisplayName)
+  const matched = project.layers.filter((l) => ids.includes(l.id))
+  const roots = matched.filter((l) => !l.composite || l.composite.isRoot)
+  const names = (roots.length > 0 ? roots : matched).map(getLayerDisplayName)
   return Array.from(new Set(names))
 }
 
@@ -136,6 +151,13 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
   const [logicPadOpen, setLogicPadOpen] = useState(() => localStorage.getItem(LOGIC_PAD_KEY) !== '0')
 
   const activeLayer = resolveActiveLayerForInspector(project, node, props.selectedLayerId ?? null)
+  const compat = useMemo(
+    () =>
+      node
+        ? getCompatibleLogicCatalogForNode(node, project)
+        : { parentKind: 'other' as const, categories: [], dynamicParts: [] },
+    [node, project]
+  )
 
   const toggleDirectStage = (): void => {
     setDirectStageOpen((prev) => {
@@ -250,6 +272,7 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
         {activeLayer && props.onSelectNode && (
           <WorkflowV2NodeSwitcherBar
             workflow={workflow}
+            project={project}
             layer={activeLayer}
             activeNode={null}
             onSelectNode={props.onSelectNode}
@@ -265,9 +288,20 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
 
   const theme = resolveV2NodeTheme(node)
   const level = resolveV2NodeLevel(node)
-  const isClusterLock = node.params?.logicCategory === 'cluster_lock'
-  const isLayerOrCamBboxNode = level === 'layer' || isClusterLock || node.type === 'camera_director' || Boolean(node.params?.isCameraWaypoint)
+  const logicCat = node.params?.logicCategory
+  const isClusterLock = logicCat === 'cluster_lock'
+  const isLayerOrCamBboxNode =
+    level === 'layer' ||
+    isClusterLock ||
+    logicCat === 'action' ||
+    logicCat === 'collision' ||
+    node.type === 'camera_director' ||
+    Boolean(node.params?.isCameraWaypoint)
   const isLayerLogicNode = level === 'logic' && !isClusterLock && node.type !== 'camera_director' && !node.params?.isCameraWaypoint
+  const show25DPreview =
+    isLayerLogicNode && Boolean(logicCat && ['light', 'cave', 'material', 'fx'].includes(logicCat))
+  const canChainTimedStep =
+    Boolean(node.params?.isPartChild) || logicCat === 'anim_fx' || logicCat === 'action'
   const duration = Math.max(1, project.comp.duration || 5)
   const tStart = node.params?.timeStart ?? 0
   const tEnd = node.params?.timeEnd ?? duration
@@ -275,6 +309,27 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
   const childCount = workflow.edges.filter((e) => e.fromNode === node.id).length
   const linked = level === 'logic' ? linkedLayerNames(node, project) : []
   const update = (patch: Partial<WorkflowNodeParams>, title?: string): void => props.onUpdateParams(node.id, patch, title)
+
+  const handleSpawnFollowup = (stepDur = 3.0): void => {
+    let createdId: string | null = null
+    let nextStart = tEnd
+    useEditor.getState().update((draft) => {
+      const wf = (draft.workflow ?? workflow) as WorkflowGraph
+      const res = spawnTimedFollowupNodeV2(wf, node.id, stepDur)
+      if (!res) return
+      draft.workflow = res.workflow
+      createdId = res.createdNodeId
+      const createdNode = res.workflow.nodes.find((n) => n.id === res.createdNodeId)
+      if (createdNode) {
+        nextStart = createdNode.params?.timeStart ?? tEnd
+        syncWorkflowV2NodeToProject(draft as Project, createdNode)
+      }
+    }, 'wf-v2-spawn-followup')
+    if (createdId) {
+      props.onScrubTime(nextStart)
+      props.onSelectNode?.(createdId)
+    }
+  }
 
   return (
     <aside
@@ -301,7 +356,7 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
             🎯 BBox
           </button>
         )}
-        {isLayerLogicNode && (
+        {show25DPreview && (
           <button
             type="button"
             className={`wf-v2-insp-bbox-toggle${logicPadOpen ? ' active' : ''}`}
@@ -333,6 +388,7 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
       {activeLayer && props.onSelectNode && (
         <WorkflowV2NodeSwitcherBar
           workflow={workflow}
+          project={project}
           layer={activeLayer}
           activeNode={node}
           onSelectNode={props.onSelectNode}
@@ -341,7 +397,7 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
       )}
 
       {/* Vùng ghim cố định (không cuộn theo danh sách thông số bên dưới) cho Khung BBox 2D & Khung chỉnh 2.5D */}
-      {(isLayerOrCamBboxNode || isLayerLogicNode) && (
+      {(isLayerOrCamBboxNode || show25DPreview) && (
         <div className="wf-v2-insp-pinned-preview">
           {isLayerOrCamBboxNode && (
             <WorkflowV2DirectStagePreview
@@ -357,7 +413,7 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
             />
           )}
 
-          {isLayerLogicNode && (
+          {show25DPreview && (
             <WorkflowV2Logic25DPreview
               node={node}
               project={project}
@@ -374,14 +430,71 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
       <div className="wf-v2-insp-body">
         <section className="wf-v2-insp-sec">
           <div className="wf-v2-insp-sec-title">
-            Khoảng thời gian
-            {timeLocked && <span className="wf-v2-insp-note">theo phạm vi cảnh</span>}
+            <span>Tiến trình Thời gian</span>
+            {timeLocked ? (
+              <span className="wf-v2-insp-note">theo phạm vi cảnh</span>
+            ) : linked.length > 0 ? (
+              <span className="wf-v2-insp-target-badge" title={`Áp dụng cho: ${linked.join(', ')}`}>
+                🎯 {linked[0]}{linked.length > 1 ? ` +${linked.length - 1}` : ''}
+              </span>
+            ) : null}
           </div>
           <div className="wf-v2-time-fields">
-            <TimeField label="Bắt đầu" value={tStart} min={0} max={tEnd - 0.1} disabled={timeLocked} onCommit={(v) => update({ timeStart: v })} />
-            <TimeField label="Kết thúc" value={tEnd} min={tStart + 0.1} max={duration} disabled={timeLocked} onCommit={(v) => update({ timeEnd: v })} />
+            <TimeField label="Từ" value={tStart} min={0} max={tEnd - 0.1} disabled={timeLocked} onCommit={(v) => update({ timeStart: v })} />
+            <TimeField label="Đến" value={tEnd} min={tStart + 0.1} max={duration} disabled={timeLocked} onCommit={(v) => update({ timeEnd: v })} />
             <span className="wf-v2-time-dur">{(tEnd - tStart).toFixed(2)}s</span>
           </div>
+          {!timeLocked && (
+            <div className="wf-v2-time-quick-row">
+              <button
+                type="button"
+                className="wf-v2-time-quick-btn"
+                title={`Đặt mốc bắt đầu tại vị trí Playhead hiện tại (${currentTime.toFixed(2)}s)`}
+                onClick={() => {
+                  const span = Math.max(0.5, Number((tEnd - tStart).toFixed(2)))
+                  const s = Number(Math.max(0, Math.min(duration - 0.2, currentTime)).toFixed(2))
+                  const e = Number(Math.min(duration, s + span).toFixed(2))
+                  update({ timeStart: s, timeEnd: Math.max(s + 0.2, e) })
+                }}
+              >
+                📍 Từ Playhead
+              </button>
+              <button
+                type="button"
+                className={`wf-v2-time-quick-btn${Math.abs(tEnd - tStart - 1.5) < 0.08 ? ' active' : ''}`}
+                title="Đặt thời lượng hành động 1.5 giây"
+                onClick={() => update({ timeEnd: Number(Math.min(duration, tStart + 1.5).toFixed(2)) })}
+              >
+                1.5s
+              </button>
+              <button
+                type="button"
+                className={`wf-v2-time-quick-btn${Math.abs(tEnd - tStart - 3.0) < 0.08 ? ' active' : ''}`}
+                title="Đặt thời lượng hành động 3.0 giây (ví dụ: 15s – 18s)"
+                onClick={() => update({ timeEnd: Number(Math.min(duration, tStart + 3.0).toFixed(2)) })}
+              >
+                3.0s
+              </button>
+              <button
+                type="button"
+                className={`wf-v2-time-quick-btn${tStart <= 0.05 && tEnd >= duration - 0.05 ? ' active' : ''}`}
+                title="Kéo dài xuyên suốt toàn cảnh"
+                onClick={() => update({ timeStart: 0, timeEnd: duration })}
+              >
+                ↔ Toàn cảnh
+              </button>
+              {canChainTimedStep && (
+                <button
+                  type="button"
+                  className="wf-v2-time-quick-btn chain-cta"
+                  title="Tạo nối tiếp một Node hành động 3s ngay sau mốc hiện tại (ví dụ: 15s–18s)"
+                  onClick={() => handleSpawnFollowup(3.0)}
+                >
+                  + Chặng tiếp (+3s)
+                </button>
+              )}
+            </div>
+          )}
           <WorkflowTimeRangeBar
             timeStart={tStart}
             timeEnd={tEnd}
@@ -394,7 +507,10 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
           />
         </section>
 
-        {level === 'logic' && node.type !== 'camera_director' && (
+        {level === 'logic' &&
+          node.type !== 'camera_director' &&
+          !node.params?.isPartChild &&
+          (logicCat === 'collision' || linked.length === 0 || linked.length > 1) && (
           <section className="wf-v2-insp-sec">
             <div className="wf-v2-insp-sec-title">Áp dụng cho</div>
             <div className="wf-v2-linked">
@@ -441,23 +557,33 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
             <WorkflowV2NodeParams
               node={node}
               project={project}
+              workflow={workflow}
               onUpdate={update}
               onScrubTime={props.onScrubTime}
+              onSelectNode={props.onSelectNode}
+              onAttachLogic={props.onAttachLogic}
+              onSpawnFollowupNode={handleSpawnFollowup}
               onSpawnCameraWaypoint={props.onSpawnCameraWaypoint}
+              onConnectLayer={props.onConnectLayer}
+              onDisconnectEdge={props.onDisconnectEdge}
+              onToggleEdgeDisable={props.onToggleEdgeDisable}
             />
           </section>
         )}
 
-        {level === 'layer' && (
+        {(level === 'layer' || isClusterLock) && (
           <section className="wf-v2-insp-sec">
-            <div className="wf-v2-insp-sec-title">Gắn thêm logic</div>
+            <div className="wf-v2-insp-sec-title">
+              Gắn thêm Node Logic con ({compat.parentKind === 'composite_25d' ? 'Cụm 2.5D' : compat.parentKind === 'model_3d' ? 'Khối 3D' : 'Layer 2.5D'})
+            </div>
             <div className="wf-v2-chip-grid">
-              {WORKFLOW_V2_SPAWN_CATALOG.map((item) => (
+              {compat.categories.map((item) => (
                 <button
                   key={item.id}
                   type="button"
                   className="wf-v2-spawn-chip"
                   style={{ ['--wf-v2-accent' as string]: item.accent }}
+                  title={item.hint}
                   onClick={() => props.onAttachLogic(node.id, item.id)}
                 >
                   <span aria-hidden="true">{item.icon}</span> {item.label}

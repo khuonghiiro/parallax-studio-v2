@@ -165,7 +165,15 @@ export interface LayerClusterInstanceInfo {
   rootLayer: Layer
   memberLayers: Layer[]
   memberIds: string[]
+  /** Danh sách ID các layer con đang thực sự kết nối (khoá theo cụm `lockedGroup !== false`) tới Node Khoá Cụm */
+  lockedMemberIds: string[]
   lockedGroup: boolean
+}
+
+function isLayerLockedToCluster(l: Layer): boolean {
+  if (l.composite) return l.composite.lockedGroup !== false
+  if (l.model3d) return l.model3d.lockedGroup !== false
+  return true
 }
 
 /** Thu thập danh sách các Cụm 2.5D (`composite.instanceId`) và Mô hình 3D (`model3d.instanceId`) từ tập Layer */
@@ -174,15 +182,17 @@ export function collectClusterInstances(layers: Layer[]): LayerClusterInstanceIn
   for (const l of layers) {
     const instId = l.composite?.instanceId || l.model3d?.instanceId
     if (!instId) continue
+    const isLocked = isLayerLockedToCluster(l)
     const existing = map.get(instId)
     if (existing) {
       existing.memberLayers.push(l)
       existing.memberIds.push(l.id)
+      if (isLocked) existing.lockedMemberIds.push(l.id)
+      existing.lockedGroup = existing.lockedMemberIds.length > 0
       if (l.composite?.isRoot) existing.rootLayer = l
     } else {
       const kind: 'composite' | 'model3d' = l.model3d ? 'model3d' : 'composite'
       const name = getClusterDisplayName(l)
-      const lockedGroup = l.composite ? l.composite.lockedGroup !== false : l.model3d ? l.model3d.lockedGroup !== false : true
       map.set(instId, {
         instanceId: instId,
         kind,
@@ -190,7 +200,8 @@ export function collectClusterInstances(layers: Layer[]): LayerClusterInstanceIn
         rootLayer: l,
         memberLayers: [l],
         memberIds: [l.id],
-        lockedGroup
+        lockedMemberIds: isLocked ? [l.id] : [],
+        lockedGroup: isLocked
       })
     }
   }

@@ -120,7 +120,11 @@ export function useWorkflowV2CanvasInteractions(
             const theme = resolveV2NodeTheme(hit)
             if (isOutput) handlersRef.current.onConnectNodes(nodeId, port, hit.id, theme.portIn)
             else handlersRef.current.onConnectNodes(hit.id, theme.portOut, nodeId, port)
-          } else if (isOutput && resolveV2NodeLevel(src) === 'layer' && Math.hypot(drop.x - sx, drop.y - sy) > 36) {
+          } else if (
+            isOutput &&
+            (resolveV2NodeLevel(src) === 'layer' || src.params?.logicCategory === 'cluster_lock') &&
+            Math.hypot(drop.x - sx, drop.y - sy) > 36
+          ) {
             setSpawnMenu({ layerNodeId: nodeId, clientX: ev.clientX, clientY: ev.clientY })
           }
         }

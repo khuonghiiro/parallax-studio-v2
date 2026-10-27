@@ -83,6 +83,7 @@ export const WorkflowStudioPanel: React.FC = () => {
       <div className="wf-v2-body">
         <WorkflowV2Sidebar
           workflow={workflow}
+          project={project}
           collapsed={sidebarCollapsed}
           selectedNodeId={selectedNodeId}
           activeShotId={activeShotId}
@@ -94,9 +95,9 @@ export const WorkflowStudioPanel: React.FC = () => {
             handleFocusShot(shotId, rootId, follow)
           }}
           onToggleGroup={(id, collapsed) => actions.updateParams(id, { collapsedGroup: collapsed })}
-          onSpawn={(cat) => {
+          onSpawn={(cat, presetId, extraParams, customTitle) => {
             if (spawnTarget) {
-              actions.attachLogic(spawnTarget.id, cat)
+              actions.attachLogic(spawnTarget.id, cat, presetId, extraParams, customTitle)
               if (inspectorTab !== 'json') setInspectorTab('node')
             }
           }}
@@ -117,12 +118,13 @@ export const WorkflowStudioPanel: React.FC = () => {
           onToggleNodeEnable={actions.toggleEnable}
           onDeleteNode={actions.deleteNode}
           onUpdateNodeParams={actions.updateParams}
-          onAttachLogicToLayer={(layerNodeId, cat) => {
-            actions.attachLogic(layerNodeId, cat)
+          onAttachLogicToLayer={(layerNodeId, cat, presetId, extraParams, customTitle) => {
+            actions.attachLogic(layerNodeId, cat, presetId, extraParams, customTitle)
             if (inspectorTab !== 'json') setInspectorTab('node')
           }}
           onConnectNodes={actions.connect}
           onDisconnectEdge={actions.disconnect}
+          onToggleEdgeDisable={actions.toggleEdgeDisable}
         />
       </div>
     </div>

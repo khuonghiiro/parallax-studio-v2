@@ -3,11 +3,16 @@ import type { Project, WorkflowGraph, WorkflowNode, WorkflowNodeParams } from '@
 import { evaluateScene } from '../../engine/evaluateScene'
 import { assetStore } from '../../project/assets'
 import {
+  evaluateCleanLayerPos,
+  evaluateCleanLayerScale
+} from '../../project/workflowV2BboxMotionAndCollision'
+import {
   getClusterDisplayName,
   getClusterMemberLayers,
   getClusterPartShortName,
   getClusterRootLayer,
   scaleClusterAroundRoot,
+  syncWorkflowV2NodeToProject,
   translateClusterToRootPos,
   v2ClusterLockId,
   v2LayerNodeId
@@ -28,6 +33,10 @@ import {
   updateCameraWaypoint
 } from '../viewer/animateCamera/animateCameraRouteLogic'
 import { Layer2DLightOverlay } from '../viewer/animateCamera/AnimateShotPlane2D'
+import {
+  resolveActiveMotionNode,
+  WorkflowV2StageBboxMotionOverlay
+} from './WorkflowV2StageBboxMotionOverlay'
 import { resolveV2NodeLevel, resolveV2NodeTheme } from './workflowV2Theme'
 
 export interface WorkflowV2DirectStagePreviewProps {
@@ -65,10 +74,20 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
   const update = useEditor((s) => s.update)
   const selectLayer = useEditor((s) => s.selectLayer)
   const setPlaying = useEditor((s) => s.setPlaying)
+  const playing = useEditor((s) => s.playing)
   const wrapRef = useRef<HTMLDivElement>(null)
-  const [boxWidth, setBoxWidth] = useState(276)
+  const [boxWidth, setBoxWidth] = useState(320)
   const [, setAssetTick] = useState(0)
   const [scopeOverride, setScopeOverride] = useState<'cluster' | 'part' | null>(null)
+  const [customStageH, setCustomStageH] = useState<number | null>(() => {
+    try {
+      const saved = Number(localStorage.getItem('pxs:wf-stage-h'))
+      return Number.isFinite(saved) && saved >= 160 && saved <= 520 ? saved : null
+    } catch {
+      return null
+    }
+  })
+  const [stageZoomBoost, setStageZoomBoost] = useState<number>(1)
 
   useEffect(() => {
     setScopeOverride(null)
@@ -126,8 +145,9 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
 
   const sampleTime = useMemo(() => {
     if (isWaypointNode && typeof node.params?.timeStart === 'number') return node.params.timeStart
+    if (playing) return Math.round(currentTime * 12) / 12
     return currentTime
-  }, [isWaypointNode, node.params?.timeStart, currentTime])
+  }, [isWaypointNode, node.params?.timeStart, playing, currentTime])
 
   const stageLayout = useMemo(() => computeShotStageLayout(project, 0), [project])
   const frames = useMemo(() => extractCameraFrames2D(project, stageLayout), [project, stageLayout])
@@ -196,14 +216,41 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
 
   const compW = Math.max(100, project.comp.width || 1920)
   const compH = Math.max(100, project.comp.height || 1080)
-  const padScale = 0.84
-  const stageW = Math.max(160, boxWidth)
-  const stageH = Math.max(104, Math.min(168, Math.round(stageW * (compH / compW))))
-  const zoom = (stageW / compW) * padScale
+  const padScale = 0.96
+  const stageW = Math.max(200, boxWidth)
+  const naturalH = Math.max(195, Math.min(340, Math.round(((stageW * padScale) * compH) / compW) + 12))
+  const stageH = customStageH ?? naturalH
+  const baseZoom = Math.min((stageW * padScale) / compW, (stageH * padScale) / compH)
+  const zoom = baseZoom * stageZoomBoost
   const shotScreenW = compW * zoom
   const shotScreenH = compH * zoom
   const shotLeft = (stageW - shotScreenW) / 2
   const shotTop = (stageH - shotScreenH) / 2
+
+  const startStageResizeDrag = useCallback(
+    (e: React.PointerEvent): void => {
+      e.stopPropagation()
+      e.preventDefault()
+      const startY = e.clientY
+      const startH = stageH
+      const onMove = (pev: PointerEvent): void => {
+        const nextH = Math.max(165, Math.min(480, Math.round(startH + (pev.clientY - startY))))
+        setCustomStageH(nextH)
+        try {
+          localStorage.setItem('pxs:wf-stage-h', String(nextH))
+        } catch {
+          // ignore storage error
+        }
+      }
+      const onUp = (): void => {
+        window.removeEventListener('pointermove', onMove)
+        window.removeEventListener('pointerup', onUp)
+      }
+      window.addEventListener('pointermove', onMove)
+      window.addEventListener('pointerup', onUp)
+    },
+    [stageH]
+  )
 
   const startLayerDrag = useCallback(
     (e: React.PointerEvent, proj: ProjectedLayer2D, mode: 'move' | 'nw' | 'ne' | 'sw' | 'se'): void => {
@@ -219,8 +266,8 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
 
       const startX = e.clientX
       const startY = e.clientY
-      const origPos = [...(refLayer.transform.position.value ?? [0, 0, 0])]
-      const origScale = [...(refLayer.transform.scale.value ?? [1, 1, 1])]
+      const origPos = evaluateCleanLayerPos(refLayer, refLayer.inPoint ?? 0)
+      const origScale = evaluateCleanLayerScale(refLayer, refLayer.inPoint ?? 0)
       const safeZoom = Math.max(0.02, zoom)
       const refD = 1483.64
       const pFactor = refD / Math.max(80, refD + (origPos[2] ?? 0))
@@ -251,6 +298,10 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
               const ratio = (ratioW + ratioH) / 2
               const nextPct = Math.round(Math.abs(origScale[0] || 1) * ratio * 100)
               scaleClusterAroundRoot(members, nextPct)
+            }
+            if (d.workflow) {
+              const actMot = resolveActiveMotionNode(d.workflow, node, refLayer.id, clusterInstId)
+              if (actMot) syncWorkflowV2NodeToProject(d, actMot)
             }
             return
           }
@@ -292,6 +343,10 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
               origScale[2] ?? 1
             ]
           }
+          if (d.workflow) {
+            const actMot = resolveActiveMotionNode(d.workflow, node, dl.id, dl.composite?.instanceId)
+            if (actMot) syncWorkflowV2NodeToProject(d, actMot)
+          }
         }, `wf-mini-layer-bbox-${useClusterBbox ? clusterInstId : proj.id}`)
       }
 
@@ -302,7 +357,7 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
       window.addEventListener('pointermove', onMove)
       window.addEventListener('pointerup', onUp)
     },
-    [zoom, setPlaying, selectLayer, update, useClusterBbox, clusterRootLayer, isClusterLockNode, clusterInstId]
+    [zoom, setPlaying, selectLayer, update, useClusterBbox, clusterRootLayer, isClusterLockNode, clusterInstId, node]
   )
 
   const startCameraWaypointDrag = useCallback(
@@ -427,16 +482,65 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
         <button
           type="button"
           className={`wf-v2-direct-toggle-btn${open ? ' active' : ''}`}
-          style={{ flex: 1 }}
+          style={{ flex: '1 1 auto', minWidth: 0 }}
           onClick={onToggleOpen}
           title={open ? 'Ẩn khung chỉnh sửa trực tiếp BBox 2D' : 'Hiện khung chỉnh sửa trực tiếp BBox 2D như trên Camera 2D'}
         >
           <span>{open ? '▾' : '▸'}</span>
-          <span>
-            🎯 {useClusterBbox ? `Khung BBox Cả Cụm (${clusterMembers.length} mảnh)` : 'Khung BBox 2D trực tiếp'}
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            🎯 {useClusterBbox ? `BBox Cụm (${clusterMembers.length} mảnh)` : 'Khung BBox 2D trực tiếp'}
           </span>
-          <small>{open ? 'Đang bật' : 'Đang tắt'}</small>
         </button>
+        {open && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 3, flexShrink: 0 }}>
+            <button
+              type="button"
+              className={`wf-v2-direct-btn${customStageH === null && stageZoomBoost === 1 ? ' accent' : ''}`}
+              style={{ height: 22, padding: '0 6px', flex: '0 0 auto', whiteSpace: 'nowrap' }}
+              title="Tự động dãn khung 2D vừa khít toàn bộ chiều ngang bảng"
+              onClick={() => {
+                setCustomStageH(null)
+                setStageZoomBoost(1)
+                try {
+                  localStorage.removeItem('pxs:wf-stage-h')
+                } catch {
+                  // ignore
+                }
+              }}
+            >
+              ↔ Khít
+            </button>
+            <button
+              type="button"
+              className={`wf-v2-direct-btn${customStageH && customStageH >= 280 ? ' accent' : ''}`}
+              style={{ height: 22, padding: '0 6px', flex: '0 0 auto', whiteSpace: 'nowrap' }}
+              title="Mở rộng chiều cao khung BBox 2D để dễ kéo & vẽ đường đi"
+              onClick={() => {
+                const nextH = customStageH && customStageH >= 280 ? null : 300
+                setCustomStageH(nextH)
+                try {
+                  if (nextH) localStorage.setItem('pxs:wf-stage-h', String(nextH))
+                  else localStorage.removeItem('pxs:wf-stage-h')
+                } catch {
+                  // ignore
+                }
+              }}
+            >
+              ↕ Cao
+            </button>
+            <button
+              type="button"
+              className={`wf-v2-direct-btn${stageZoomBoost > 1 ? ' accent' : ''}`}
+              style={{ height: 22, padding: '0 6px', flex: '0 0 auto', whiteSpace: 'nowrap' }}
+              title="Phóng to khung cảnh 2D (100% -> 125% -> 150%) để chỉnh BBox chi tiết"
+              onClick={() =>
+                setStageZoomBoost((z) => (z < 1.2 ? 1.25 : z < 1.45 ? 1.5 : 1))
+              }
+            >
+              🔍 {Math.round(stageZoomBoost * 100)}%
+            </button>
+          </div>
+        )}
         {open && clusterMembers.length > 1 && !isClusterLockNode && (
           <button
             type="button"
@@ -479,7 +583,8 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
                 const ly = shotScreenH / 2 + l.offsetY * zoom - lh / 2
                 const isTarget = useClusterBbox ? clusterMemberIds.has(l.id) : l.id === repLayerId
                 const runtimeAsset = l.assetId ? assetStore.get(l.assetId) : undefined
-                const imgUrl = runtimeAsset?.url || runtimeAsset?.thumbUrl
+                const projAsset = l.assetId ? project.assets.find((a) => a.id === l.assetId) : undefined
+                const imgUrl = runtimeAsset?.url || runtimeAsset?.thumbUrl || projAsset?.dataUrl || projAsset?.path
                 return (
                   <div
                     key={l.id}
@@ -516,7 +621,7 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
                           style={{
                             width: '100%',
                             height: '100%',
-                            objectFit: 'fill',
+                            objectFit: 'contain',
                             display: 'block',
                             filter: getLayer2DFilterStyle(l, Math.max(0.3, zoom * 2))
                           }}
@@ -658,6 +763,52 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
                 ))}
               </div>
             )}
+
+            {/* Lớp phủ Ghost BBox #2 (Đích) & Quỹ đạo #1 -> #2 & Điểm Va Chạm */}
+            <WorkflowV2StageBboxMotionOverlay
+              project={project}
+              workflow={workflow}
+              node={node}
+              selectedProjLayer={selectedProjLayer}
+              coordRefLayer={coordRefLayer}
+              useClusterBbox={useClusterBbox}
+              clusterInstId={clusterInstId ?? undefined}
+              stageW={stageW}
+              stageH={stageH}
+              shotLeft={shotLeft}
+              shotTop={shotTop}
+              shotScreenW={shotScreenW}
+              shotScreenH={shotScreenH}
+              zoom={zoom}
+              onSelectNode={onSelectNode}
+              onScrubTime={onScrubTime}
+            />
+          </div>
+
+          {/* Thanh nắm kéo dãn chiều cao khung BBox 2D trực tiếp */}
+          <div
+            className="wf-v2-stage-resizer"
+            onPointerDown={startStageResizeDrag}
+            title="Kéo lên/xuống để điều chỉnh chiều cao khung BBox 2D trực tiếp"
+            style={{
+              height: 9,
+              cursor: 'ns-resize',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'var(--bg-2)',
+              borderTop: '1px solid var(--line-soft)',
+              userSelect: 'none'
+            }}
+          >
+            <span
+              style={{
+                width: 34,
+                height: 3,
+                borderRadius: 99,
+                background: 'var(--text-faint)'
+              }}
+            />
           </div>
 
           {/* Thanh thông số toạ độ BBox & thao tác nhanh */}

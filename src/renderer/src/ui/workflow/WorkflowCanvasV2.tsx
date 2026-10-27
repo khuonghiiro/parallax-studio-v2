@@ -43,9 +43,16 @@ export interface WorkflowCanvasV2Props {
   onToggleNodeEnable: (nodeId: string) => void
   onDeleteNode: (nodeId: string) => void
   onUpdateNodeParams: (nodeId: string, patch: Partial<WorkflowNodeParams>, nextTitle?: string) => void
-  onAttachLogicToLayer: (layerNodeId: string, category: WorkflowV2SpawnCategory) => void
+  onAttachLogicToLayer: (
+    layerNodeId: string,
+    category: WorkflowV2SpawnCategory,
+    presetId?: string,
+    extraParams?: Partial<WorkflowNodeParams>,
+    customTitle?: string
+  ) => void
   onConnectNodes: (fromNode: string, fromPort: WorkflowPortKind, toNode: string, toPort: WorkflowPortKind) => void
   onDisconnectEdge: (edgeId: string) => void
+  onToggleEdgeDisable?: (edgeId: string) => void
 }
 
 const COLUMN_BANNERS = [
@@ -125,8 +132,9 @@ function buildEdgeItems(
     const lane = sources.length > 1 ? sources.indexOf(from) - (sources.length - 1) / 2 : 0
     const fromEnd = from.params?.timeEnd ?? 0
     const toStart = to.params?.timeStart ?? 0
-    const isRunning =
-      kind === 'camera'
+    const isRunning = edge.disabled
+      ? false
+      : kind === 'camera'
         ? t >= fromEnd - 0.6 && t <= toStart + 0.8
         : to.params?.isCameraWaypoint
           ? running.has(to.id)
@@ -251,6 +259,7 @@ export const WorkflowCanvasV2: React.FC<WorkflowCanvasV2Props> = (props) => {
             nodeMap={graph.visibleMap}
             onSelectNode={onSelectNode}
             onDisconnectEdge={props.onDisconnectEdge}
+            onToggleEdgeDisable={props.onToggleEdgeDisable}
           />
           {cards.map((node) => (
             <WorkflowNodeCardV2
@@ -287,8 +296,10 @@ export const WorkflowCanvasV2: React.FC<WorkflowCanvasV2Props> = (props) => {
           <WorkflowV2SpawnMenu
             clientX={ix.spawnMenu.clientX}
             clientY={ix.spawnMenu.clientY}
-            onPick={(cat) => {
-              props.onAttachLogicToLayer(ix.spawnMenu!.layerNodeId, cat)
+            parentNode={graph.nodes.find((n) => n.id === ix.spawnMenu!.layerNodeId)}
+            project={project}
+            onPick={(cat, presetId, extraParams, customTitle) => {
+              props.onAttachLogicToLayer(ix.spawnMenu!.layerNodeId, cat, presetId, extraParams, customTitle)
               ix.setSpawnMenu(null)
             }}
             onClose={() => ix.setSpawnMenu(null)}

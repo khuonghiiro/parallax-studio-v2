@@ -9,29 +9,35 @@ import {
   generateShakeKeys
 } from '../ui/timeline/fxKeyGenerators'
 import { deleteLayerEffect, toggleLayerEffect } from '../ui/timeline/timelineEffects'
-import { computeShotStageLayout, extractCameraFrames2D } from '../ui/viewer/animateCamera/animateCameraMath'
 import {
-  applyWaypointActionMode,
-  spawnNextCameraWaypoint,
-  updateCameraWaypoint,
-  updateWaypointStepDuration,
-  type CameraActionMode
-} from '../ui/viewer/animateCamera/animateCameraRouteLogic'
+  spawnWorkflowV2CameraWaypoint,
+  syncCameraWaypointNodeToProject
+} from './workflowV2CameraWaypointSync'
+
+export { spawnWorkflowV2CameraWaypoint }
 import {
   WORKFLOW_V2_ACTION_OPTIONS,
   WORKFLOW_V2_ANIM_FX_OPTIONS,
   WORKFLOW_V2_LIGHT_OPTIONS
 } from './workflowV2Options'
 import {
+  bakeClusterCustomActionToScene,
   bakeClusterRigPresetToScene,
+  bakeCustomMotionPathToScene,
+  clearClusterCustomActionKeys,
   clearClusterRigKeysFromScene,
   getClusterMemberLayers,
   getClusterRootLayer,
+  getLockedClusterMemberLayers,
   scaleClusterAroundRoot,
   setClusterRootLayer,
   syncPartSwapNodeToProject,
   translateClusterToRootPos
 } from './workflowV2ClusterRigAndSwap'
+import {
+  bakeBboxTargetMotionToScene,
+  clearBboxMotionKeysFromScene
+} from './workflowV2BboxMotionAndCollision'
 import type { ProceduralMotionPreset } from '../ui/layerAssembly/workshopRigPresets'
 import {
   applyCollisionNodeToProject,
@@ -49,6 +55,7 @@ import {
 const NODE_TYPE: Record<WorkflowV2SpawnCategory, WorkflowNode['type']> = {
   action: 'motion_choreography',
   anim_fx: 'motion_choreography',
+  rig_bone: 'layer_transform',
   part_swap: 'layer_transform',
   audio: 'audio_lipsync',
   material: 'physics_fx',
@@ -61,6 +68,7 @@ const NODE_TYPE: Record<WorkflowV2SpawnCategory, WorkflowNode['type']> = {
 const AGENT: Record<WorkflowV2SpawnCategory, WorkflowNode['aiAgentRole']> = {
   action: 'MotionChoreographyAgent',
   anim_fx: 'MotionChoreographyAgent',
+  rig_bone: 'LayerTransformAgent',
   part_swap: 'LayerTransformAgent',
   audio: 'AudioLipSyncAgent',
   material: 'PhysicsLightFxAgent',
@@ -102,26 +110,130 @@ export function attachLogicNodeToLayerV2(
   workflow: WorkflowGraph,
   layerNodeId: string,
   category: WorkflowV2SpawnCategory,
-  presetId?: string
+  presetId?: string,
+  extraParams?: Partial<WorkflowNodeParams>,
+  customTitle?: string
 ): { workflow: WorkflowGraph; createdNodeId: string; reusedExisting?: boolean; message?: string } {
-  const layerNode = workflow.nodes.find((n) => n.id === layerNodeId)
+  const rawTargetNode = workflow.nodes.find((n) => n.id === layerNodeId)
+  const isPartHubTarget = Boolean(rawTargetNode?.params?.logicCategory === 'part_swap' && rawTargetNode?.params?.isPartHub)
+  const layerNode = isPartHubTarget
+    ? (workflow.nodes.find((n) => n.id === rawTargetNode?.params?.hierarchyParentNodeId) ?? rawTargetNode)
+    : rawTargetNode
   const isClusterLock = layerNode?.params?.logicCategory === 'cluster_lock'
-  if (!layerNode || ((!isClusterLock && layerNode.type !== 'layer_assembly') || layerNode.params?.groupKind)) {
+  if (!layerNode || ((!isClusterLock && !isPartHubTarget && layerNode.type !== 'layer_assembly') || layerNode.params?.groupKind)) {
     return { workflow, createdNodeId: '', message: 'Không tìm thấy Node Layer hoặc Khoá Cụm mục tiêu.' }
   }
   const chosen = (presetId ? findLogicPreset(presetId) : undefined) ?? defaultLogicPreset(category)
+  const wantedPartGroupId = extraParams?.partGroupId
+
+  // Nếu gắn một Bộ phận con cụ thể (`wantedPartGroupId`) vào Cụm 2.5D -> gắn làm Node con dưới Node Bộ phận chính (Hub)
+  if (category === 'part_swap' && isClusterLock && wantedPartGroupId) {
+    const hubRes = isPartHubTarget && rawTargetNode
+      ? { workflow, createdNodeId: rawTargetNode.id }
+      : attachLogicNodeToLayerV2(workflow, layerNode.id, 'part_swap', 'v2:part_swap:expr_happy', { isPartHub: true }, 'Bộ phận: Cụm 2.5D')
+    const curWf = hubRes.workflow
+    const hubNode = curWf.nodes.find((n) => n.id === hubRes.createdNodeId)!
+    const existingChild = curWf.nodes.find(
+      (n) =>
+        n.params?.logicCategory === 'part_swap' &&
+        n.params?.isPartChild &&
+        n.params?.partGroupId === wantedPartGroupId &&
+        (n.params?.hierarchyParentNodeId === hubNode.id ||
+          curWf.edges.some((e) => e.fromNode === hubNode.id && e.toNode === n.id))
+    )
+    if (existingChild) {
+      const updatedNodes = curWf.nodes.map((n) =>
+        n.id === existingChild.id
+          ? {
+              ...n,
+              title: customTitle ?? n.title,
+              params: { ...(n.params ?? {}), ...(extraParams ?? {}), isPartChild: true, hierarchyParentNodeId: hubNode.id }
+            }
+          : n.id === hubNode.id && n.params?.hiddenPartGroupIds?.includes(wantedPartGroupId)
+            ? {
+                ...n,
+                params: {
+                  ...n.params,
+                  hiddenPartGroupIds: n.params.hiddenPartGroupIds.filter((id) => id !== wantedPartGroupId)
+                }
+              }
+            : n
+      )
+      return {
+        workflow: { ...curWf, nodes: updatedNodes },
+        createdNodeId: existingChild.id,
+        reusedExisting: true
+      }
+    }
+    const instId = layerNode.params?.instanceId ?? layerNode.id
+    const childId = uniqueNodeId(curWf, `v2-partchild-${instId}-${wantedPartGroupId.replace(/[^a-zA-Z0-9_-]/g, '')}`)
+    const startSec = extraParams?.timeStart ?? hubNode.params?.timeStart ?? layerNode.params?.timeStart ?? 0
+    const endSec = extraParams?.timeEnd ?? hubNode.params?.timeEnd ?? layerNode.params?.timeEnd ?? 5
+    const childNode: WorkflowNode = {
+      id: childId,
+      type: 'layer_assembly',
+      title: customTitle ?? `Bộ phận: ${extraParams?.partGroupTitle ?? wantedPartGroupId}`,
+      enabled: true,
+      position: { x: WF_V2_COL_X.LOGIC + 356 * 2, y: hubNode.position.y },
+      preset: 'composite_part_swap',
+      aiAgentRole: 'AssemblyRigAgent',
+      aiDirective: `${customTitle ?? wantedPartGroupId} thuộc "${layerNode.title}".`,
+      params: {
+        shotId: layerNode.params?.shotId,
+        logicCategory: 'part_swap',
+        isPartChild: true,
+        partGroupId: wantedPartGroupId,
+        partGroupTitle: extraParams?.partGroupTitle ?? wantedPartGroupId,
+        partIcon: extraParams?.partIcon,
+        instanceId: layerNode.params?.instanceId,
+        compositeId: layerNode.params?.compositeId,
+        targetMode: 'custom',
+        targetLayerIds: [...(extraParams?.targetLayerIds ?? layerNode.params?.targetLayerIds ?? [])],
+        sharedLayerNodeIds: [hubNode.id],
+        requireLayerConnection: true,
+        hierarchyParentNodeId: hubNode.id,
+        swapMode: wantedPartGroupId === 'face' ? 'expression' : 'part_variant',
+        timeStart: startSec,
+        timeEnd: endSec,
+        ...(extraParams ?? {})
+      }
+    }
+    return {
+      workflow: withEdge(curWf, [...curWf.nodes, childNode], layerEdge(hubNode.id, childId)),
+      createdNodeId: childId
+    }
+  }
+
   const existing = workflow.edges
-    .filter((e) => e.fromNode === layerNodeId)
+    .filter((e) => e.fromNode === layerNode.id && !e.disabled)
     .map((e) => workflow.nodes.find((n) => n.id === e.toNode))
-    .find((n) => n?.params?.logicCategory === category)
+    .find((n) => {
+      if (n?.params?.logicCategory !== category) return false
+      if (category === 'part_swap' && isClusterLock) return Boolean(n.params?.isPartHub || !n.params?.isPartChild)
+      if (category === 'part_swap' && wantedPartGroupId) {
+        return (n.params?.partGroupId ?? '') === wantedPartGroupId
+      }
+      return true
+    })
   if (existing) {
-    const nodes = presetId ? workflow.nodes.map((n) => (n.id === existing.id ? applyLogicPresetToNode(n, chosen) : n)) : workflow.nodes
+    const nodes = workflow.nodes.map((n) => {
+      if (n.id !== existing.id) return n
+      const presetApplied = presetId ? applyLogicPresetToNode(n, chosen) : n
+      return {
+        ...presetApplied,
+        title: customTitle ?? presetApplied.title,
+        params: {
+          ...(presetApplied.params ?? {}),
+          ...(extraParams ?? {})
+        }
+      }
+    })
     return {
       workflow: { ...workflow, nodes },
       createdNodeId: existing.id,
       reusedExisting: true,
       message: presetId
-        ? `"${layerNode.title}" đã có Node ${chosen.title.split(':')[0]} — đã chuyển Node đó sang "${chosen.label}".`
+        ? `"${layerNode.title}" đã có Node ${chosen.title.split(':')[0]} — đã chuyển Node đó sang "${customTitle ?? chosen.label}".`
         : `"${layerNode.title}" đã có "${existing.title}" — chọn Node này để tránh trùng logic.`
     }
   }
@@ -142,27 +254,28 @@ export function attachLogicNodeToLayerV2(
     }
   }
   const suffix = layerNodeId.replace(/^v2-(layer|cluster)-/, '')
-  const id = uniqueNodeId(workflow, `v2-${category}-${suffix}`)
+  const partSuffix = category === 'part_swap' && wantedPartGroupId ? `-${wantedPartGroupId.replace(/[^a-zA-Z0-9_-]/g, '')}` : ''
+  const id = uniqueNodeId(workflow, `v2-${category}-${suffix}${partSuffix}`)
   const startSec = layerNode.params?.timeStart ?? 0
   const layerEndSec = layerNode.params?.timeEnd ?? 5
   const animDefaultDur =
-    category === 'anim_fx'
+    category === 'anim_fx' && chosen.params.animFxPreset
       ? (WORKFLOW_V2_ANIM_FX_OPTIONS.find((o) => o.id === chosen.params.animFxPreset)?.defaultDuration ?? 0.6)
       : undefined
   const endSec =
     animDefaultDur !== undefined
       ? Number(Math.max(startSec + 0.2, Math.min(layerEndSec, startSec + animDefaultDur)).toFixed(2))
       : layerEndSec
-  const node: WorkflowNode = applyLogicPresetToNode(
+  const baseNode: WorkflowNode = applyLogicPresetToNode(
     {
       id,
       type: NODE_TYPE[category],
-      title: chosen.title,
+      title: customTitle ?? chosen.title,
       enabled: true,
-      position: { x: WF_V2_COL_X.LOGIC, y: layerNode.position.y },
+      position: { x: isClusterLock ? WF_V2_COL_X.LOGIC + 356 : WF_V2_COL_X.LOGIC, y: layerNode.position.y },
       preset: category === 'action' || category === 'anim_fx' ? 'organic_wind_breathe' : category === 'audio' ? 'auto_dialogue_lipsync' : 'rim_glow_particles',
       aiAgentRole: AGENT[category],
-      aiDirective: `${chosen.title} cho "${layerNode.title}".`,
+      aiDirective: `${customTitle ?? chosen.title} cho "${layerNode.title}".`,
       params: {
         shotId: layerNode.params?.shotId,
         logicCategory: category,
@@ -179,6 +292,14 @@ export function attachLogicNodeToLayerV2(
     },
     chosen
   )
+  const node: WorkflowNode = {
+    ...baseNode,
+    title: customTitle ?? baseNode.title,
+    params: {
+      ...(baseNode.params ?? {}),
+      ...(extraParams ?? {})
+    }
+  }
   return {
     workflow: withEdge(workflow, [...workflow.nodes, node], layerEdge(layerNodeId, id)),
     createdNodeId: id,
@@ -377,6 +498,18 @@ export function syncWorkflowV2NodeToProject(
   patch?: Partial<WorkflowNodeParams>
 ): void {
   const params: WorkflowNodeParams = { ...(node.params ?? {}), ...(patch ?? {}) }
+  if (patch && project.workflow) {
+    const idx = project.workflow.nodes.findIndex((n) => n.id === node.id)
+    if (idx >= 0) {
+      const wfNode = project.workflow.nodes[idx]
+      project.workflow = {
+        ...project.workflow,
+        nodes: project.workflow.nodes.map((n, i) =>
+          i === idx ? { ...wfNode, params: { ...(wfNode.params ?? {}), ...patch } } : n
+        )
+      }
+    }
+  }
   const mergedNode: WorkflowNode = { ...node, params }
   const targetIds = new Set(params.targetLayerIds ?? [])
   const tStart = params.timeStart
@@ -391,46 +524,71 @@ export function syncWorkflowV2NodeToProject(
     return
   }
 
-  // 1b. Node Khoá Cụm 2.5D / 3D (`cluster_lock`) — điều khiển khoá cụm, gốc neo, vị trí/tỉ lệ cả cụm và rig xương 2.5D
+  // 1b. Node Khoá Cụm 2.5D / 3D (`cluster_lock`) — điều khiển khoá cụm, gốc neo và vị trí/tỉ lệ các mảnh ĐANG KHOÁ trong cụm
   if (params.logicCategory === 'cluster_lock') {
     const instId = params.instanceId
-    const members = instId ? getClusterMemberLayers(project, instId) : project.layers.filter((l) => targetIds.has(l.id))
-    const nextLocked = node.enabled && (params.lockedGroup ?? true)
+    const allMembers = instId ? getClusterMemberLayers(project, instId) : project.layers.filter((l) => targetIds.has(l.id))
+    const lockedMembersRaw = instId ? getLockedClusterMemberLayers(project, instId) : allMembers
+    const activeMembers =
+      targetIds.size > 0 ? lockedMembersRaw.filter((l) => targetIds.has(l.id)) : lockedMembersRaw
+    const effectiveMembers = activeMembers.length > 0 ? activeMembers : lockedMembersRaw
+
+    if (!patch || 'lockedGroup' in patch) {
+      const nextLocked = node.enabled && (params.lockedGroup ?? true)
+      for (const m of allMembers) {
+        if (m.composite) m.composite.lockedGroup = nextLocked
+        if (m.model3d) m.model3d.lockedGroup = nextLocked
+      }
+    }
     const timeEdited = Boolean(patch && ('timeStart' in patch || 'timeEnd' in patch))
-    for (const m of members) {
-      if (m.composite) m.composite.lockedGroup = nextLocked
-      if (m.model3d) m.model3d.lockedGroup = nextLocked
-      if (timeEdited) {
+    if (timeEdited) {
+      for (const m of effectiveMembers) {
         if (typeof tStart === 'number' && Number.isFinite(tStart)) m.inPoint = Math.max(0, tStart)
         if (typeof tEnd === 'number' && Number.isFinite(tEnd) && tEnd > (m.inPoint ?? 0)) m.outPoint = tEnd
       }
     }
     if (patch?.rootLayerId) {
-      setClusterRootLayer(members, patch.rootLayerId)
+      setClusterRootLayer(allMembers, patch.rootLayerId)
     }
     if (patch && ('transformX' in patch || 'transformY' in patch || 'transformZ' in patch)) {
-      translateClusterToRootPos(members, { x: params.transformX, y: params.transformY, z: params.transformZ })
+      translateClusterToRootPos(effectiveMembers, { x: params.transformX, y: params.transformY, z: params.transformZ })
     }
     if (patch && 'clusterScalePct' in patch && typeof params.clusterScalePct === 'number') {
-      scaleClusterAroundRoot(members, params.clusterScalePct)
+      scaleClusterAroundRoot(effectiveMembers, params.clusterScalePct)
     }
-    if (patch && 'rigActionPreset' in patch && instId) {
-      if (params.rigActionPreset && params.rigActionPreset !== 'none') {
+    return
+  }
+
+  // 1c. Node Bộ phận (`part_swap`) — điều khiển ẩn/hiện, biến thể, độ lệch hoặc ảnh bộ phận theo Tab Bộ phận 2.5D / 3D
+  if (params.logicCategory === 'part_swap') {
+    syncPartSwapNodeToProject(project, mergedNode, params)
+    return
+  }
+
+  // 1d. Node Gắn Xương (`rig_bone`) — đồng bộ cấu hình gắn xương 2.5D và tư thế khớp cơ bản
+  if (params.logicCategory === 'rig_bone') {
+    const compInstIds = Array.from(
+      new Set(
+        project.layers
+          .filter((l) => targetIds.has(l.id) && l.composite?.instanceId)
+          .map((l) => l.composite!.instanceId!)
+      )
+    )
+    if (params.instanceId && !compInstIds.includes(params.instanceId)) {
+      compInstIds.push(params.instanceId)
+    }
+    for (const instId of compInstIds) {
+      const members = getLockedClusterMemberLayers(project, instId)
+      if (!node.enabled) {
+        clearClusterRigKeysFromScene(members)
+      } else if (patch && 'rigActionPreset' in patch && params.rigActionPreset && params.rigActionPreset !== 'none') {
         bakeClusterRigPresetToScene(project, instId, params.rigActionPreset as ProceduralMotionPreset, {
           timeStart: tStart,
           timeEnd: tEnd,
           intensity: params.intensity
         })
-      } else {
-        clearClusterRigKeysFromScene(members)
       }
     }
-    return
-  }
-
-  // 1c. Node Thay Layer / Bộ phận Cụm (`part_swap`) — đổi biểu cảm, phụ kiện, thay ảnh mảnh hoặc thay mẫu cụm
-  if (params.logicCategory === 'part_swap') {
-    syncPartSwapNodeToProject(project, mergedNode, params)
     return
   }
 
@@ -452,14 +610,121 @@ export function syncWorkflowV2NodeToProject(
     return
   }
 
-  // 3b. Node Hoạt ảnh FX (Animation FX: Pop In, Shake, Pulse, Blink, Fade, Neon...)
+  // 3b. Node Animation (`anim_fx`) — hỗ trợ cả Động tác Tên Động Cụm 2.5D, Clip Animation Rig 2.5D và Keyframe / Neon FX
   if (params.logicCategory === 'anim_fx') {
+    const firstTargetLayer = project.layers.find((l) => targetIds.has(l.id))
+    const effInstId = params.instanceId ?? firstTargetLayer?.composite?.instanceId
+    if (params.customActionId && params.animMode !== 'keyframe_fx') {
+      if (!node.enabled) {
+        clearClusterCustomActionKeys(getClusterMemberLayers(project, effInstId, firstTargetLayer), node.id)
+      } else {
+        bakeClusterCustomActionToScene(project, effInstId, params.customActionId, {
+          timeStart: tStart,
+          timeEnd: tEnd,
+          speedHz: params.customActionSpeedHz,
+          nodeId: node.id,
+          fallbackLayer: firstTargetLayer
+        })
+      }
+      return
+    }
+    const isRigClipMode =
+      params.animMode === 'rig_clip' ||
+      (Boolean(params.rigActionPreset && params.rigActionPreset !== 'none') &&
+        params.animMode !== 'keyframe_fx' &&
+        !(patch && 'animFxPreset' in patch))
+    if (isRigClipMode && params.rigActionPreset && params.rigActionPreset !== 'none') {
+      const compInstIds = Array.from(
+        new Set(
+          project.layers
+            .filter((l) => targetIds.has(l.id) && l.composite?.instanceId)
+            .map((l) => l.composite!.instanceId!)
+        )
+      )
+      if (params.instanceId && !compInstIds.includes(params.instanceId)) {
+        compInstIds.push(params.instanceId)
+      }
+      for (const l of project.layers) {
+        if (!targetIds.has(l.id) || !l.appliedEffects) continue
+        const staleFx = l.appliedEffects.find((f) => f.id === `fx-wf-${node.id}`)
+        if (staleFx) deleteLayerEffect(l, staleFx.id)
+      }
+      for (const instId of compInstIds) {
+        const members = getLockedClusterMemberLayers(project, instId)
+        if (!node.enabled) {
+          clearClusterRigKeysFromScene(members, node.id)
+        } else {
+          bakeClusterRigPresetToScene(project, instId, params.rigActionPreset as ProceduralMotionPreset, {
+            timeStart: tStart,
+            timeEnd: tEnd,
+            intensity: params.intensity,
+            nodeId: node.id
+          })
+        }
+      }
+      return
+    } else if (patch && ('rigActionPreset' in patch || 'animMode' in patch) && (params.rigActionPreset === 'none' || params.animMode === 'keyframe_fx')) {
+      const compInstIds = Array.from(
+        new Set(
+          project.layers
+            .filter((l) => targetIds.has(l.id) && l.composite?.instanceId)
+            .map((l) => l.composite!.instanceId!)
+        )
+      )
+      for (const instId of compInstIds) {
+        clearClusterRigKeysFromScene(getClusterMemberLayers(project, instId), node.id)
+      }
+      if (!params.animFxPreset && params.animMode !== 'keyframe_fx') return
+    }
     syncAnimFxNodeToProject(project, node, params, patch)
     return
   }
 
-  // 4. Node Hành động (Motion / Action) — hỗ trợ cả Rig Xương Nhân vật 2.5D và chuyển động lệch pha theo cụm
+  // 4. Node Motion (`action`) — hỗ trợ Đặt BBox Đích (`bbox`), Vẽ quỹ đạo chuyển động (`path`) và Chuyển động chu kỳ (`cycle`)
   if (node.type === 'motion_choreography' || params.logicCategory === 'action') {
+    const isBboxMode =
+      params.motionMode === 'bbox' ||
+      params.actionPreset === 'bbox_target' ||
+      Boolean(patch && ('bboxTargetX' in patch || 'bboxTargetY' in patch || 'bboxTargetScalePct' in patch || 'depthMode' in patch))
+    if (isBboxMode) {
+      if (node.enabled) {
+        bakeBboxTargetMotionToScene(project, Array.from(targetIds), params, node.id)
+      } else {
+        clearBboxMotionKeysFromScene(project, node.id)
+      }
+      for (const l of project.layers) {
+        if (targetIds.has(l.id) && l.motion) {
+          l.motion.enabled = false
+        }
+      }
+      return
+    }
+    clearBboxMotionKeysFromScene(project, node.id)
+    const isPathMode =
+      params.motionMode === 'path' ||
+      params.actionPreset === 'custom_draw' ||
+      (Boolean(params.customMotionPath && params.customMotionPath.length >= 2) &&
+        !(patch && 'actionPreset' in patch && patch.actionPreset !== 'custom_draw'))
+    if (isPathMode && params.customMotionPath && params.customMotionPath.length >= 2) {
+      if (node.enabled) {
+        bakeCustomMotionPathToScene(project, Array.from(targetIds), params.customMotionPath, {
+          timeStart: tStart,
+          timeEnd: tEnd,
+          intensity: params.intensity,
+          loop: params.customMotionLoop,
+          cycleDuration: params.customMotionCycleSec,
+          nodeId: node.id
+        })
+      } else {
+        bakeCustomMotionPathToScene(project, Array.from(targetIds), [], { nodeId: node.id })
+      }
+      for (const l of project.layers) {
+        if (targetIds.has(l.id) && l.motion) {
+          l.motion.enabled = false
+        }
+      }
+      return
+    }
     const rigPreset =
       params.rigActionPreset ||
       (params.actionPreset?.startsWith('rig_') ? params.actionPreset.replace(/^rig_/, '') : undefined)
@@ -472,14 +737,15 @@ export function syncWorkflowV2NodeToProject(
         )
       )
       for (const instId of compInstIds) {
-        const members = getClusterMemberLayers(project, instId)
+        const members = getLockedClusterMemberLayers(project, instId)
         if (!node.enabled || rigPreset === 'none') {
-          clearClusterRigKeysFromScene(members)
+          clearClusterRigKeysFromScene(members, node.id)
         } else {
           bakeClusterRigPresetToScene(project, instId, rigPreset as ProceduralMotionPreset, {
             timeStart: tStart,
             timeEnd: tEnd,
-            intensity: params.intensity
+            intensity: params.intensity,
+            nodeId: node.id
           })
         }
       }
@@ -493,12 +759,13 @@ export function syncWorkflowV2NodeToProject(
       if (!targetIds.has(l.id)) continue
       const motionType = (actOpt?.motionType ?? (params.actionPreset as LayerMotionType | undefined) ?? l.motion?.type ?? 'float') as LayerMotionType
       if (!node.enabled) {
-        l.motion = { ...(l.motion ?? { speed: 1, amount: 0 }), type: motionType, enabled: false }
+        l.motion = { ...(l.motion ?? { speed: 1, amount: 0, amplitude: [8, 12, 0] }), type: motionType, enabled: false }
         continue
       }
       const startSec = tStart ?? l.inPoint ?? 0
       const endSec = tEnd ?? l.outPoint ?? project.comp.duration
       l.motion = {
+        amplitude: [8, 12, 0],
         ...(l.motion ?? {}),
         enabled: true,
         type: motionType,
@@ -631,120 +898,45 @@ export function syncWorkflowV2NodeToProject(
 }
 
 /**
- * Đồng bộ thay đổi trên một Node con lộ trình quay (`isCameraWaypoint`) xuống dữ liệu keyframe thật của `project.camera`.
+ * Tạo tiếp một Node hành động kế tiếp theo mốc giây (ví dụ: sau `[0.0s – 3.0s]` nối tiếp `[3.0s – 6.0s]` hoặc `[15.0s – 18.0s]`)
+ * cho cùng Bộ phận con, Animation hoặc Motion mà không ghi đè mốc cũ.
  */
-function syncCameraWaypointNodeToProject(
-  project: Project,
-  node: WorkflowNode,
-  params: WorkflowNodeParams,
-  patch?: Partial<WorkflowNodeParams>
-): void {
-  const layout = computeShotStageLayout(project, 0)
-  const frames = extractCameraFrames2D(project, layout)
-  const wpIdx = typeof params.waypointIndex === 'number' ? params.waypointIndex : 0
-  const nodeTime = node.params?.timeStart ?? params.timeStart ?? 0
-  const candidate = frames[wpIdx]
-  const frame =
-    (candidate && (!params.shotId || candidate.shotId === params.shotId || Math.abs(candidate.time - nodeTime) <= 0.1) ? candidate : undefined) ??
-    frames.find((f) => Math.abs(f.time - nodeTime) <= 0.05)
-  const shotBox = layout.find((b) => b.shotId === params.shotId)
-  const baseStageX = frame?.stageX ?? shotBox?.stageX ?? 0
-  const baseStageY = frame?.stageY ?? shotBox?.stageY ?? 0
-  const baseScale = frame?.scale ?? 1
-  const baseYaw = frame?.yaw ?? 0
-  const basePitch = frame?.pitch ?? 0
-  const baseRoll = frame?.roll ?? 0
-  let wpTime = frame?.time ?? nodeTime
+export function spawnTimedFollowupNodeV2(
+  workflow: WorkflowGraph,
+  sourceNodeId: string,
+  durationSec = 3.0,
+  explicitStartSec?: number
+): { workflow: WorkflowGraph; createdNodeId: string } | null {
+  const src = workflow.nodes.find((n) => n.id === sourceNodeId)
+  if (!src) return null
+  const parentEdge = workflow.edges.find((e) => e.toNode === src.id && !e.disabled)
+  const parentId = src.params?.hierarchyParentNodeId ?? parentEdge?.fromNode
+  if (!parentId) return null
 
-  if (patch?.camActionMode) {
-    applyWaypointActionMode(project, layout, wpTime, patch.camActionMode as CameraActionMode)
-  }
+  const prevEnd = src.params?.timeEnd ?? (src.params?.timeStart ?? 0) + durationSec
+  const tStart = Number(Math.max(0, explicitStartSec ?? prevEnd).toFixed(2))
+  const tEnd = Number((tStart + Math.max(0.5, durationSec)).toFixed(2))
+  const baseId = src.id.replace(/-t\d+(-\d+)?$/, '')
+  const newId = uniqueNodeId(workflow, `${baseId}-t${Math.round(tStart * 10)}`)
+  const cleanTitle = src.title.replace(/\s*\(\d+(\.\d+)?s–\d+(\.\d+)?s\)$/, '')
 
-  const hasPosePatch =
-    !patch ||
-    'camZoomPct' in patch ||
-    'camScale' in patch ||
-    'camYaw' in patch ||
-    'camPitch' in patch ||
-    'camRoll' in patch ||
-    'camStageX' in patch ||
-    'camStageY' in patch
-
-  if (hasPosePatch && !patch?.camActionMode) {
-    const nextScale =
-      patch && 'camZoomPct' in patch && typeof params.camZoomPct === 'number' && params.camZoomPct > 5
-        ? Number((100 / params.camZoomPct).toFixed(3))
-        : typeof params.camScale === 'number' && (!patch || 'camScale' in patch)
-          ? params.camScale
-          : typeof params.camZoomPct === 'number' && params.camZoomPct > 5
-            ? Number((100 / params.camZoomPct).toFixed(3))
-            : baseScale
-    const nextStageX = typeof params.camStageX === 'number' ? params.camStageX : baseStageX
-    const nextStageY = typeof params.camStageY === 'number' ? params.camStageY : baseStageY
-    const nextYaw = typeof params.camYaw === 'number' ? params.camYaw : baseYaw
-    const nextPitch = typeof params.camPitch === 'number' ? params.camPitch : basePitch
-    const nextRoll = typeof params.camRoll === 'number' ? params.camRoll : baseRoll
-    const poseChanged =
-      Math.abs(nextStageX - baseStageX) > 0.01 ||
-      Math.abs(nextStageY - baseStageY) > 0.01 ||
-      Math.abs(nextScale - baseScale) > 0.002 ||
-      Math.abs(nextYaw - baseYaw) > 0.01 ||
-      Math.abs(nextPitch - basePitch) > 0.01 ||
-      Math.abs(nextRoll - baseRoll) > 0.01
-    if (poseChanged || Boolean(patch)) {
-      updateCameraWaypoint(project, layout, wpTime, {
-        stageX: nextStageX,
-        stageY: nextStageY,
-        scale: nextScale,
-        yaw: nextYaw,
-        pitch: nextPitch,
-        roll: nextRoll
-      })
+  const nextNode: WorkflowNode = {
+    ...src,
+    id: newId,
+    title: `${cleanTitle} (${tStart}s–${tEnd}s)`,
+    enabled: true,
+    position: { x: src.position.x, y: src.position.y + 82 },
+    params: {
+      ...(src.params ?? {}),
+      timeStart: tStart,
+      timeEnd: tEnd,
+      pinned: undefined
     }
   }
-
-  if (patch && ('camStepDuration' in patch || 'timeEnd' in patch || 'timeStart' in patch)) {
-    if ('timeStart' in patch && typeof patch.timeStart === 'number' && wpIdx > 0 && Math.abs(patch.timeStart - wpTime) > 0.01) {
-      updateCameraWaypoint(project, layout, wpTime, { time: patch.timeStart, ripple: false })
-      wpTime = patch.timeStart
-    }
-    const desiredDur =
-      typeof patch.camStepDuration === 'number'
-        ? patch.camStepDuration
-        : typeof params.timeEnd === 'number' && typeof params.timeStart === 'number'
-          ? Math.max(0.2, Number((params.timeEnd - params.timeStart).toFixed(2)))
-          : undefined
-    if (desiredDur !== undefined) {
-      updateWaypointStepDuration(project, layout, wpIdx, { stepDuration: desiredDur })
-    }
-  }
-}
-
-/**
- * Thêm một cảnh con / mốc lộ trình quay mới vào đúng Cảnh `shotId` (hoặc chèn ngay sau `fromWaypointTime`).
- */
-export function spawnWorkflowV2CameraWaypoint(
-  project: Project,
-  shotId: string,
-  mode: 'pan' | 'zoom-in' | 'zoom-out' | 'hold' = 'zoom-in',
-  fromWaypointTime?: number
-): { nextTime: number; displayLabel: string; shotName: string; isSubWaypoint: boolean } | null {
-  const layout = computeShotStageLayout(project, 0)
-  const targetBox = layout.find((b) => b.shotId === shotId)
-  const res = spawnNextCameraWaypoint(project, layout, {
-    mode: targetBox ? mode : 'shot',
-    activeTime: fromWaypointTime ?? 0,
-    selectedShotId: shotId,
-    targetShot: targetBox,
-    fromWaypointTime,
-    stepSec: 2.0
-  })
-  if (!res) return null
   return {
-    nextTime: res.nextTime,
-    displayLabel: res.displayLabel,
-    shotName: res.shotName,
-    isSubWaypoint: res.isSubWaypoint
+    workflow: withEdge(workflow, [...workflow.nodes, nextNode], layerEdge(parentId, newId)),
+    createdNodeId: newId
   }
 }
+
 

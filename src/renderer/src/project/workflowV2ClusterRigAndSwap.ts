@@ -1,4 +1,4 @@
-import type { Layer, Project, Vec3, WorkflowNode, WorkflowNodeParams } from '@shared/types'
+import type { Layer, Project, Vec3 } from '@shared/types'
 import type { LayerBone, LayerRig } from '@shared/layerRig'
 import { evaluateRig, transformRigLayer } from '../engine/layerRig'
 import { findCompositeTemplate } from '../ui/layerAssembly/scenePartSwap'
@@ -43,20 +43,31 @@ export interface ClusterAccessoryEntry {
 
 /** Tìm toàn bộ các Layer thuộc cùng Cụm 2.5D (`composite.instanceId`) hoặc Mô hình 3D (`model3d.instanceId`) */
 export function getClusterMemberLayers(project: Project, instanceId?: string | null, fallbackLayer?: Layer | null): Layer[] {
+  if (!project || !Array.isArray(project.layers)) return fallbackLayer ? [fallbackLayer] : []
   const instId = instanceId || fallbackLayer?.composite?.instanceId || fallbackLayer?.model3d?.instanceId
   if (!instId) return fallbackLayer ? [fallbackLayer] : []
-  return project.layers.filter((l) => l.composite?.instanceId === instId || l.model3d?.instanceId === instId)
+  return project.layers.filter((l) => l && (l.composite?.instanceId === instId || l.model3d?.instanceId === instId))
+}
+
+/** Tìm các Layer thuộc Cụm đang thực sự kết nối (khoá theo cụm `lockedGroup !== false`) vào Node Khoá Cụm */
+export function getLockedClusterMemberLayers(project: Project, instanceId?: string | null, fallbackLayer?: Layer | null): Layer[] {
+  return getClusterMemberLayers(project, instanceId, fallbackLayer).filter((l) => {
+    if (l.composite) return l.composite.lockedGroup !== false
+    if (l.model3d) return l.model3d.lockedGroup !== false
+    return true
+  })
 }
 
 /** Tìm Layer đóng vai trò Gốc neo (`isRoot`) của một cụm 2.5D hoặc khối 3D */
-export function getClusterRootLayer(members: Layer[]): Layer | undefined {
-  if (members.length === 0) return undefined
-  return members.find((l) => l.composite?.isRoot) ?? members[0]
+export function getClusterRootLayer(members: Layer[] | undefined | null): Layer | undefined {
+  if (!Array.isArray(members) || members.length === 0) return undefined
+  return members.find((l) => l?.composite?.isRoot) ?? members[0]
 }
 
 /** Đổi Gốc neo định vị (`isRoot`) của cụm 2.5D sang một mảnh con mới và tính lại `rootOffset` cho các mảnh khác */
-export function setClusterRootLayer(members: Layer[], newRootId: string): void {
-  const nextRoot = members.find((l) => l.id === newRootId)
+export function setClusterRootLayer(members: Layer[] | undefined | null, newRootId: string): void {
+  if (!Array.isArray(members) || members.length === 0) return
+  const nextRoot = members.find((l) => l?.id === newRootId)
   if (!nextRoot) return
   const rp = nextRoot.transform.position.value
   for (const m of members) {
@@ -71,10 +82,36 @@ export function setClusterRootLayer(members: Layer[], newRootId: string): void {
   }
 }
 
-/** Khôi phục tên ngắn gọn của mảnh con trong cụm (bỏ tiền tố `[Tên Cụm]` lặp lại) */
+const SLUG_PART_LABELS: Record<string, string> = {
+  'arm-left': 'Bắp tay trái',
+  'arm-right': 'Bắp tay phải',
+  'forearm-left': 'Cẳng tay trái',
+  'forearm-right': 'Cẳng tay phải',
+  'thigh-left': 'Đùi trái',
+  'thigh-right': 'Đùi phải',
+  'shin-left': 'Cẳng chân trái',
+  'shin-right': 'Cẳng chân phải',
+  torso: 'Thân áo',
+  head: 'Đầu & Tóc',
+  'face-normal': 'Mặt thường',
+  'face-happy': 'Mặt cười',
+  glasses: 'Kính mắt'
+}
+
+/** Khôi phục tên ngắn gọn của mảnh con trong cụm (ưu tiên tên bộ phận trong Xưởng 2.5D, bỏ tiền tố `[Tên Cụm]` lặp lại) */
 export function getClusterPartShortName(layer: Layer): string {
-  const raw = layer.name || 'Mảnh con'
-  return raw.replace(/^\[[^\]]+\]\s*/, '').trim() || raw
+  const raw = (layer.name || 'Mảnh con').replace(/^\[[^\]]+\]\s*/, '').trim()
+  const lowerRaw = raw.toLowerCase()
+  if (SLUG_PART_LABELS[lowerRaw]) return SLUG_PART_LABELS[lowerRaw]
+  if (layer.composite?.compositeId && layer.composite?.sourceLayerId) {
+    const tpl = findCompositeTemplate(layer.composite.compositeId)
+    const found = tpl?.layers.find((it) => it.id === layer.composite?.sourceLayerId)
+    if (found?.name) {
+      const cleaned = found.name.replace(/^\d+[A-Z]?\.\s*/, '').trim()
+      return SLUG_PART_LABELS[cleaned.toLowerCase()] || cleaned
+    }
+  }
+  return raw || layer.name || 'Mảnh con'
 }
 
 /** Phát hiện danh sách các layer Biểu cảm khuôn mặt (`face-*` / `Biểu cảm *`) có thể chuyển đổi 1 chạm trong cụm */
@@ -188,15 +225,21 @@ function inferBoneIdForClusterLayer(layer: Layer, bones: LayerBone[], savedBoneI
   return undefined
 }
 
-const isRigKeyId = (id: string): boolean => id.includes('-rig-p-') || id.includes('-rig-r-')
+const isRigKeyId = (id: string, nodeId?: string): boolean => {
+  if (nodeId) return id.includes(`-rig-p-${nodeId}-`) || id.includes(`-rig-r-${nodeId}-`)
+  return id.includes('-rig-p-') || id.includes('-rig-r-')
+}
 
 /** Gỡ sạch toàn bộ keyframe hành động xương (`-rig-`) trên các layer của cụm và trả về tư thế đứng chuẩn */
-export function clearClusterRigKeysFromScene(members: Layer[]): void {
+export function clearClusterRigKeysFromScene(
+  members: Layer[],
+  nodeId?: string,
+  timeRange?: [number, number]
+): void {
   if (members.length === 0) return
   const root = getClusterRootLayer(members)
   if (!root) return
 
-  // Khôi phục vị trí chuẩn của từng mảnh dựa trên Gốc neo + rootOffset
   const rootBasePos: Vec3 = [...(root.transform.position.value ?? [0, 0, 0])] as Vec3
   const rootOff: Vec3 = [...(root.composite?.rootOffset ?? [0, 0, 0])] as Vec3
   const centerOrigin: Vec3 = [
@@ -205,17 +248,106 @@ export function clearClusterRigKeysFromScene(members: Layer[]): void {
     rootBasePos[2] - rootOff[2]
   ]
 
-  for (const l of members) {
-    l.transform.position.keyframes = l.transform.position.keyframes.filter((k) => !isRigKeyId(k.id))
-    l.transform.rotation.keyframes = l.transform.rotation.keyframes.filter((k) => !isRigKeyId(k.id))
-    const off: Vec3 = l.composite?.rootOffset ?? [0, 0, 0]
-    l.transform.position.value = [
-      Math.round((centerOrigin[0] + off[0]) * 100) / 100,
-      Math.round((centerOrigin[1] + off[1]) * 100) / 100,
-      Math.round((centerOrigin[2] + off[2]) * 100) / 100
-    ]
-    l.transform.rotation.value = [0, 0, 0]
+  const matchDrop = (k: { id: string; t: number }): boolean => {
+    if (!isRigKeyId(k.id)) return false
+    if (!nodeId && !timeRange) return true
+    if (nodeId && isRigKeyId(k.id, nodeId)) return true
+    if (!k.id.includes('-rig-p-v2-') && !k.id.includes('-rig-r-v2-')) return true
+    if (timeRange && k.t >= timeRange[0] - 0.01 && k.t <= timeRange[1] + 0.01) return true
+    return false
   }
+
+  for (const l of members) {
+    l.transform.position.keyframes = l.transform.position.keyframes.filter((k) => !matchDrop(k))
+    l.transform.rotation.keyframes = l.transform.rotation.keyframes.filter((k) => !matchDrop(k))
+    const hasRemainingRig =
+      l.transform.position.keyframes.some((k) => isRigKeyId(k.id)) ||
+      l.transform.rotation.keyframes.some((k) => isRigKeyId(k.id))
+    if (!hasRemainingRig) {
+      const off: Vec3 = l.composite?.rootOffset ?? [0, 0, 0]
+      l.transform.position.value = [
+        Math.round((centerOrigin[0] + off[0]) * 100) / 100,
+        Math.round((centerOrigin[1] + off[1]) * 100) / 100,
+        Math.round((centerOrigin[2] + off[2]) * 100) / 100
+      ]
+      l.transform.rotation.value = [0, 0, 0]
+    }
+  }
+}
+
+function sampleRigLayerKeyframes(
+  l: Layer,
+  boneId: string,
+  rig: LayerRig,
+  centerOrigin: Vec3,
+  scale: number,
+  tStart: number,
+  span: number,
+  totalSteps: number,
+  intensity: number,
+  nodeTag: string
+): boolean {
+  const off: Vec3 = l.composite?.rootOffset ?? [0, 0, 0]
+  const itemX = off[0] / scale
+  const itemY = -off[1] / scale
+  const itemZ = off[2] / scale
+  const virtItem = { x: itemX, y: itemY, z: itemZ, rotation: 0, boneId, scale: 1 }
+
+  const samples: { t: number; pos: Vec3; rot: Vec3 }[] = []
+  for (let step = 0; step <= totalSteps; step++) {
+    const tScene = Number((tStart + (span * step) / totalSteps).toFixed(3))
+    const tClip = ((tScene - tStart) % rig.duration + rig.duration) % rig.duration
+    const posed = transformRigLayer(virtItem, evaluateRig(rig, tClip))
+    const dx = (posed.x - itemX) * scale * intensity
+    const dy = -(posed.y - itemY) * scale * intensity
+    const rotZ = posed.rotation * intensity
+    samples.push({
+      t: tScene,
+      pos: [
+        Math.round((centerOrigin[0] + off[0] + dx) * 100) / 100,
+        Math.round((centerOrigin[1] + off[1] + dy) * 100) / 100,
+        Math.round((centerOrigin[2] + off[2]) * 100) / 100
+      ],
+      rot: [0, 0, Math.round(rotZ * 100) / 100]
+    })
+  }
+
+  const first = samples[0]
+  const hasTrajectoryPosKeys = l.transform.position.keyframes.some(
+    (k) => k.id.includes('-bboxmot-') || k.id.includes('-motpath-p-')
+  )
+  if (!hasTrajectoryPosKeys) {
+    l.transform.position.value = first.pos
+  }
+  l.transform.rotation.value = first.rot
+
+  const isStaticPos = samples.every((s) => Math.hypot(s.pos[0] - first.pos[0], s.pos[1] - first.pos[1]) < 0.05)
+  const isStaticRot = samples.every((s) => Math.abs(s.rot[2] - first.rot[2]) < 0.05)
+  if (isStaticPos && isStaticRot) return false
+
+  if (!isStaticPos && !hasTrajectoryPosKeys) {
+    let lastP: Vec3 | null = null
+    for (let i = 0; i < samples.length; i++) {
+      const s = samples[i]
+      if (i === 0 || i === samples.length - 1 || !lastP || Math.hypot(s.pos[0] - lastP[0], s.pos[1] - lastP[1]) >= 0.08) {
+        l.transform.position.keyframes.push({ id: `${l.id}-rig-p-${nodeTag}${i}`, t: s.t, value: s.pos, ease: 'linear' })
+        lastP = s.pos
+      }
+    }
+    l.transform.position.keyframes.sort((a, b) => a.t - b.t)
+  }
+  if (!isStaticRot) {
+    let lastR: Vec3 | null = null
+    for (let i = 0; i < samples.length; i++) {
+      const s = samples[i]
+      if (i === 0 || i === samples.length - 1 || !lastR || Math.abs(s.rot[2] - lastR[2]) >= 0.08) {
+        l.transform.rotation.keyframes.push({ id: `${l.id}-rig-r-${nodeTag}${i}`, t: s.t, value: s.rot, ease: 'linear' })
+        lastR = s.rot
+      }
+    }
+    l.transform.rotation.keyframes.sort((a, b) => a.t - b.t)
+  }
+  return true
 }
 
 /**
@@ -230,6 +362,7 @@ export function bakeClusterRigPresetToScene(
     timeStart?: number
     timeEnd?: number
     intensity?: number
+    nodeId?: string
   }
 ): number {
   const members = getClusterMemberLayers(project, instanceId)
@@ -237,10 +370,14 @@ export function bakeClusterRigPresetToScene(
   const root = getClusterRootLayer(members)
   if (!root) return 0
 
-  // 1. Dọn sạch keyframe rig cũ trước khi bake tư thế mới (idempotent 100%)
-  clearClusterRigKeysFromScene(members)
+  const compDur = Math.max(1, project.comp.duration || 5)
+  const tStart = Math.max(0, options?.timeStart ?? root.inPoint ?? 0)
+  const tEnd = Math.max(tStart + 0.3, Math.min(compDur, options?.timeEnd ?? root.outPoint ?? compDur))
 
-  // 2. Xác định bộ xương của cụm (ưu tiên từ store nếu có, hoặc tự chọn bộ xương Nhân vật Anime 15 khớp / Chuỗi 3 khớp)
+  // 1. Dọn sạch keyframe rig cũ của cùng Node hoặc trùng miền thời gian (idempotent 100%)
+  clearClusterRigKeysFromScene(members, options?.nodeId, options?.nodeId ? [tStart, tEnd] : undefined)
+
+  // 2. Xác định bộ xương của cụm
   const compositeId = root.composite?.compositeId
   const savedComp = findCompositeTemplate(compositeId)
   const isHumanoid = members.some((l) => {
@@ -264,92 +401,22 @@ export function bakeClusterRigPresetToScene(
     activeClipId: clip.id
   }
 
-  const compDur = Math.max(1, project.comp.duration || 5)
-  const tStart = Math.max(0, options?.timeStart ?? root.inPoint ?? 0)
-  const tEnd = Math.max(tStart + 0.3, Math.min(compDur, options?.timeEnd ?? root.outPoint ?? compDur))
   const span = tEnd - tStart
   const intensity = Math.max(0.15, Math.min(2.2, options?.intensity ?? 1.0))
-  const sampleFps = 15
-  const totalSteps = Math.max(4, Math.ceil(span * sampleFps))
-
+  const totalSteps = Math.max(4, Math.ceil(span * 15))
   const rootPos: Vec3 = [...(root.transform.position.value ?? [0, 0, 0])] as Vec3
   const rootOff: Vec3 = [...(root.composite?.rootOffset ?? [0, 0, 0])] as Vec3
   const centerOrigin: Vec3 = [rootPos[0] - rootOff[0], rootPos[1] - rootOff[1], rootPos[2] - rootOff[2]]
   const scale = Math.max(0.1, Math.abs(root.transform.scale.value?.[0] ?? 0.72))
+  const nodeTag = options?.nodeId ? `${options.nodeId}-` : ''
 
   let animatedCount = 0
   for (const l of members) {
     const savedLayer = savedComp?.layers.find((it) => it.id === l.composite?.sourceLayerId)
     const boneId = inferBoneIdForClusterLayer(l, bones, savedLayer?.boneId)
     if (!boneId) continue
-
-    const off: Vec3 = l.composite?.rootOffset ?? [0, 0, 0]
-    const itemX = off[0] / scale
-    const itemY = -off[1] / scale
-    const itemZ = off[2] / scale
-    const virtItem = { x: itemX, y: itemY, z: itemZ, rotation: 0, boneId, scale: 1 }
-
-    const samples: { t: number; pos: Vec3; rot: Vec3 }[] = []
-    for (let step = 0; step <= totalSteps; step++) {
-      const tScene = Number((tStart + (span * step) / totalSteps).toFixed(3))
-      const tClip = ((tScene - tStart) % clip.duration + clip.duration) % clip.duration
-      const posed = transformRigLayer(virtItem, evaluateRig(rig, tClip))
-      const dx = (posed.x - itemX) * scale * intensity
-      const dy = -(posed.y - itemY) * scale * intensity
-      const rotZ = posed.rotation * intensity
-      samples.push({
-        t: tScene,
-        pos: [
-          Math.round((centerOrigin[0] + off[0] + dx) * 100) / 100,
-          Math.round((centerOrigin[1] + off[1] + dy) * 100) / 100,
-          Math.round((centerOrigin[2] + off[2]) * 100) / 100
-        ],
-        rot: [0, 0, Math.round(rotZ * 100) / 100]
-      })
-    }
-
-    const first = samples[0]
-    l.transform.position.value = first.pos
-    l.transform.rotation.value = first.rot
-
-    const isStaticPos = samples.every(
-      (s) => Math.hypot(s.pos[0] - first.pos[0], s.pos[1] - first.pos[1]) < 0.05
-    )
-    const isStaticRot = samples.every((s) => Math.abs(s.rot[2] - first.rot[2]) < 0.05)
-    if (isStaticPos && isStaticRot) continue
-
-    animatedCount++
-    if (!isStaticPos) {
-      let lastP: Vec3 | null = null
-      for (let i = 0; i < samples.length; i++) {
-        const s = samples[i]
-        if (i === 0 || i === samples.length - 1 || !lastP || Math.hypot(s.pos[0] - lastP[0], s.pos[1] - lastP[1]) >= 0.08) {
-          l.transform.position.keyframes.push({
-            id: `${l.id}-rig-p-${i}`,
-            t: s.t,
-            value: s.pos,
-            ease: 'linear'
-          })
-          lastP = s.pos
-        }
-      }
-      l.transform.position.keyframes.sort((a, b) => a.t - b.t)
-    }
-    if (!isStaticRot) {
-      let lastR: Vec3 | null = null
-      for (let i = 0; i < samples.length; i++) {
-        const s = samples[i]
-        if (i === 0 || i === samples.length - 1 || !lastR || Math.abs(s.rot[2] - lastR[2]) >= 0.08) {
-          l.transform.rotation.keyframes.push({
-            id: `${l.id}-rig-r-${i}`,
-            t: s.t,
-            value: s.rot,
-            ease: 'linear'
-          })
-          lastR = s.rot
-        }
-      }
-      l.transform.rotation.keyframes.sort((a, b) => a.t - b.t)
+    if (sampleRigLayerKeyframes(l, boneId, rig, centerOrigin, scale, tStart, span, totalSteps, intensity, nodeTag)) {
+      animatedCount++
     }
   }
   return animatedCount
@@ -436,46 +503,10 @@ export function scaleClusterAroundRoot(members: Layer[], nextScalePct: number): 
   }
 }
 
-/** Đồng bộ Node Thay Bộ Phận / Layer Cụm (`part_swap`) xuống các Layer của cụm trong Project */
-export function syncPartSwapNodeToProject(
-  project: Project,
-  node: WorkflowNode,
-  params: WorkflowNodeParams
-): void {
-  const targetIds = new Set(params.targetLayerIds ?? [])
-  const firstLayer = project.layers.find((l) => targetIds.has(l.id))
-  const members = getClusterMemberLayers(project, params.instanceId, firstLayer)
-  if (members.length === 0) return
+export {
+  clearPartPoseKeysFromLayers,
+  syncPartSwapNodeToProject,
+  bakeCustomMotionPathToScene
+} from './workflowV2PartAndPathBake'
+export * from './workflowV2ClusterActionsAndAttach'
 
-  // 1. Nếu chọn biểu cảm mặt (swapVariant trỏ tới layerId hoặc slotKey của biểu cảm)
-  if (params.swapVariant) {
-    const expressions = detectClusterExpressions(members)
-    const chosenExpr = expressions.find(
-      (e) => e.layerId === params.swapVariant || e.slotKey === params.swapVariant || e.label === params.swapVariant
-    )
-    if (chosenExpr) {
-      for (const expr of expressions) {
-        const layer = members.find((m) => m.id === expr.layerId)
-        if (!layer) continue
-        if (!node.enabled) {
-          // Khi tắt node: khôi phục biểu cảm đầu tiên (mặc định)
-          layer.visible = expr.layerId === expressions[0]?.layerId
-        } else {
-          layer.visible = expr.layerId === chosenExpr.layerId
-        }
-      }
-    }
-  }
-
-  // 2. Nếu bật/tắt một mảnh phụ kiện hoặc layer con cụ thể (`swapTargetLayerId`)
-  if (params.swapTargetLayerId) {
-    const targetPart = members.find((m) => m.id === params.swapTargetLayerId)
-    if (targetPart) {
-      if (params.swapAssetId && node.enabled && targetPart.type === 'image') {
-        targetPart.props.assetId = params.swapAssetId
-      } else if (params.swapMode === 'toggle_part') {
-        targetPart.visible = node.enabled
-      }
-    }
-  }
-}

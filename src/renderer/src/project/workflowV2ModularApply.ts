@@ -42,6 +42,7 @@ export interface ModularApplyResult {
 const NODE_TYPE: Record<WorkflowV2SpawnCategory, WorkflowNode['type']> = {
   action: 'motion_choreography',
   anim_fx: 'motion_choreography',
+  rig_bone: 'layer_transform',
   part_swap: 'layer_transform',
   audio: 'audio_lipsync',
   material: 'physics_fx',
@@ -54,6 +55,7 @@ const NODE_TYPE: Record<WorkflowV2SpawnCategory, WorkflowNode['type']> = {
 const AGENT: Record<WorkflowV2SpawnCategory, WorkflowNode['aiAgentRole']> = {
   action: 'MotionChoreographyAgent',
   anim_fx: 'MotionChoreographyAgent',
+  rig_bone: 'LayerTransformAgent',
   part_swap: 'LayerTransformAgent',
   audio: 'AudioLipSyncAgent',
   material: 'PhysicsLightFxAgent',

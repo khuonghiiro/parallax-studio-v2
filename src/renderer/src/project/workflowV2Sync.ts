@@ -66,7 +66,32 @@ function preservedLogic(
 }
 
 const signature = (nodes: WorkflowNode[], edges: WorkflowEdge[]): string =>
-  `${nodes.map((n) => `${n.id}:${n.params?.collapsedGroup ? 1 : 0}:${n.params?.collapsedSubLayers ? 1 : 0}`).sort().join(',')}|${edges.map((e) => e.id).sort().join(',')}`
+  `${nodes.map((n) => `${n.id}:${n.params?.collapsedGroup ? 1 : 0}:${n.params?.collapsedSubLayers ? 1 : 0}`).sort().join(',')}|${edges.map((e) => `${e.id}:${e.disabled ? 1 : 0}`).sort().join(',')}`
+
+/** Giữ lại trạng thái disabled trên các đường dây của cây cũ (bao gồm cả dây Layer -> Khoá Cụm đang tạm ngắt) */
+function mergeDisabledEdges(
+  skeletonEdges: WorkflowEdge[],
+  prevEdges: WorkflowEdge[] | undefined,
+  layerNodeIds: Set<string>,
+  clusterLockIds: Set<string>
+): WorkflowEdge[] {
+  if (!prevEdges || prevEdges.length === 0) return skeletonEdges
+  const disabledById = new Map<string, WorkflowEdge>()
+  for (const pe of prevEdges) {
+    if (pe.disabled) disabledById.set(pe.id, pe)
+  }
+  if (disabledById.size === 0) return skeletonEdges
+
+  const out = skeletonEdges.map((se) => (disabledById.has(se.id) ? { ...se, disabled: true } : se))
+  const existingIds = new Set(out.map((e) => e.id))
+  for (const pe of disabledById.values()) {
+    if (existingIds.has(pe.id)) continue
+    if (layerNodeIds.has(pe.fromNode) && clusterLockIds.has(pe.toNode)) {
+      out.push({ ...pe, disabled: true })
+    }
+  }
+  return out
+}
 
 /**
  * Đồng bộ MỘT đồ thị Workflow V2 cho toàn dự án từ dữ liệu thật (Layer, Shot, Camera, Audio):
@@ -81,11 +106,12 @@ export function syncWorkflowV2Graph(project: Project, previous?: WorkflowGraph |
   const layerNodeIds = new Set(skeleton.nodes.filter((n) => n.type === 'layer_assembly' && !n.params?.groupKind).map((n) => n.id))
   const clusterLockIds = new Set(skeleton.nodes.filter((n) => n.params?.logicCategory === 'cluster_lock').map((n) => n.id))
   const logic = prev ? preservedLogic(project, prev, layerNodeIds, clusterLockIds) : { nodes: [], edges: [] }
+  const skeletonEdges = mergeDisabledEdges(skeleton.edges, prev?.edges, layerNodeIds, clusterLockIds)
 
   const derivedEffects = deriveLogicFromLayers(
     project,
     [...skeleton.nodes.map((n) => carryUserState(n, prevById.get(n.id), legacyCamera)), ...logic.nodes],
-    [...skeleton.edges, ...logic.edges]
+    [...skeletonEdges, ...logic.edges]
   )
   const derived = derivePhysicsLogic(project, derivedEffects.nodes, derivedEffects.edges)
   let nodes = recomputeSharedLogicTargets(derived.nodes, derived.edges)

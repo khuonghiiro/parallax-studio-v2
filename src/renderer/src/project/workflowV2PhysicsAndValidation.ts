@@ -171,11 +171,12 @@ export const WORKFLOW_V2_COLLISION_OPTIONS: WorkflowV2CollisionOption[] = [
 ]
 
 export const LOGIC_CATEGORY_LABELS: Record<string, string> = {
-  cluster_lock: '🔒 Khoá & Điều phối Cụm',
-  part_swap: '🧩 Thay Layer / Bộ phận',
-  action: '🏃 Hành động',
-  anim_fx: '🎞️ Hoạt ảnh FX',
-  material: '🏷️ Nhãn Vật liệu',
+  cluster_lock: '🔒 Khoá Cụm',
+  part_swap: '🧩 Bộ phận',
+  rig_bone: '🦴 Gắn xương',
+  action: '🏃 Motion',
+  anim_fx: '🎞️ Animation',
+  material: '🏷️ Vật liệu',
   collision: '💥 Va chạm Vật lý',
   light: '💡 Ánh sáng',
   cave: '🕳️ Hang động',
@@ -184,9 +185,10 @@ export const LOGIC_CATEGORY_LABELS: Record<string, string> = {
   camera: '🎥 Camera 3D'
 }
 
-export function getNodeLogicCategory(node: WorkflowNode): string | undefined {
-  if (node.type === 'scene_shot' || node.type === 'layer_assembly') return undefined
+export function getNodeLogicCategory(node?: WorkflowNode): string | undefined {
+  if (!node) return undefined
   if (node.params?.logicCategory) return node.params.logicCategory
+  if (node.type === 'scene_shot' || node.type === 'layer_assembly') return undefined
   if (node.type === 'layer_transform') return 'cluster_lock'
   if (node.type === 'camera_director') return 'camera'
   if (node.type === 'audio_lipsync') return 'audio'
@@ -209,7 +211,7 @@ export function validateWorkflowV2Connection(
   if (fromNodeId === toNodeId) {
     return { valid: false, reason: '❌ Không thể tự kết nối một Node với chính nó.' }
   }
-  if (workflow.edges.some((e) => e.fromNode === fromNodeId && e.toNode === toNodeId)) {
+  if (workflow.edges.some((e) => e.fromNode === fromNodeId && e.toNode === toNodeId && !e.disabled)) {
     return { valid: false, reason: '⚠️ Dây kết nối giữa 2 Node này đã tồn tại.' }
   }
 
@@ -223,8 +225,8 @@ export function validateWorkflowV2Connection(
   const dstIsRoot = dst.type === 'scene_shot'
   const srcIsGroup = Boolean(src.params?.groupKind)
   const dstIsGroup = Boolean(dst.params?.groupKind)
-  const srcIsLayer = src.type === 'layer_assembly' && !srcIsGroup
-  const dstIsLayer = dst.type === 'layer_assembly' && !dstIsGroup
+  const srcIsLayer = src.type === 'layer_assembly' && !srcIsGroup && !src.params?.logicCategory
+  const dstIsLayer = dst.type === 'layer_assembly' && !dstIsGroup && !dst.params?.logicCategory
   const srcCat = getNodeLogicCategory(src)
   const dstCat = getNodeLogicCategory(dst)
 
@@ -292,15 +294,25 @@ export function validateWorkflowV2Connection(
       return { valid: false, reason: '❌ Node đích không phải là Node Logic hợp lệ của Layer.' }
     }
 
+    // Cho phép nối mảnh Layer con hoặc nối 1 Layer mới bên ngoài vào Node Khoá Cụm 2.5D (để khoá Layer mới đó vào cùng cụm)
+    if (dstCat === 'cluster_lock') {
+      return { valid: true }
+    }
+
     // Kiểm tra chống trùng Logic: Layer này đã có một Node Logic khác cùng loại (dstCat) chưa?
+    // (Riêng Node Bộ phận `part_swap` cho phép gắn nhiều Node nếu mỗi Node điều khiển một partGroupId khác nhau)
     const existingLogicNodesOfLayer = workflow.edges
-      .filter((e) => e.fromNode === src.id)
+      .filter((e) => e.fromNode === src.id && !e.disabled)
       .map((e) => workflow.nodes.find((n) => n.id === e.toNode))
       .filter((n): n is WorkflowNode => Boolean(n))
 
-    const duplicateSameCat = existingLogicNodesOfLayer.find(
-      (n) => n.id !== dst.id && getNodeLogicCategory(n) === dstCat
-    )
+    const duplicateSameCat = existingLogicNodesOfLayer.find((n) => {
+      if (n.id === dst.id || getNodeLogicCategory(n) !== dstCat) return false
+      if (dstCat === 'part_swap' && n.params?.partGroupId && dst.params?.partGroupId) {
+        return n.params.partGroupId === dst.params.partGroupId
+      }
+      return true
+    })
     if (duplicateSameCat) {
       const catLabel = LOGIC_CATEGORY_LABELS[dstCat] ?? dstCat
       return {
@@ -316,10 +328,23 @@ export function validateWorkflowV2Connection(
   if (srcCat === 'cluster_lock') {
     if (dstCat && dstCat !== 'camera' && dstCat !== 'cluster_lock') {
       const existingOfCluster = workflow.edges
-        .filter((e) => e.fromNode === src.id)
+        .filter((e) => e.fromNode === src.id && !e.disabled)
         .map((e) => workflow.nodes.find((n) => n.id === e.toNode))
         .filter((n): n is WorkflowNode => Boolean(n))
-      const dup = existingOfCluster.find((n) => n.id !== dst.id && getNodeLogicCategory(n) === dstCat)
+      const dup = existingOfCluster.find((n) => {
+        if (n.id === dst.id || getNodeLogicCategory(n) !== dstCat) return false
+        if (dstCat === 'part_swap' && n.params?.partGroupId && dst.params?.partGroupId) {
+          return n.params.partGroupId === dst.params.partGroupId
+        }
+        if ((dstCat === 'anim_fx' || dstCat === 'action') && n.params?.timeEnd !== undefined && dst.params?.timeStart !== undefined) {
+          const aStart = n.params.timeStart ?? 0
+          const aEnd = n.params.timeEnd ?? 0
+          const bStart = dst.params.timeStart ?? 0
+          const bEnd = dst.params.timeEnd ?? bStart + 1
+          if (Math.max(aStart, bStart) >= Math.min(aEnd, bEnd) - 0.05) return false
+        }
+        return true
+      })
       if (dup) {
         const catLabel = LOGIC_CATEGORY_LABELS[dstCat] ?? dstCat
         return {
@@ -331,8 +356,13 @@ export function validateWorkflowV2Connection(
     }
     return {
       valid: false,
-      reason: '❌ Node Khoá Cụm chỉ được kết nối sang các Node Logic của Cụm/Layer (Hành động, Thay Bộ Phận, Hoạt ảnh FX, Ánh sáng, Vật liệu, Va chạm, Âm thanh).'
+      reason: '❌ Node Khoá Cụm chỉ được kết nối sang các Node Logic của Cụm/Layer (Bộ phận, Gắn xương, Animation, Motion, Ánh sáng, Vật liệu, Va chạm, Âm thanh).'
     }
+  }
+
+  // 3c. Nguồn là Node Bộ phận chính (isPartHub) -> nối sang các Node con Bộ phận (isPartChild)
+  if (srcCat === 'part_swap' && src.params?.isPartHub && dstCat === 'part_swap' && dst.params?.isPartChild) {
+    return { valid: true }
   }
 
   // 4. Nguồn là Node Nhãn Vật liệu -> cho phép nối bổ trợ sang Node Va chạm Vật lý để truyền chất liệu biến dạng
@@ -354,26 +384,77 @@ export function recomputeSharedLogicTargets(
   nodes: WorkflowNode[],
   edges: WorkflowEdge[]
 ): WorkflowNode[] {
-  const byId = new Map(nodes.map((n) => [n.id, n]))
+  // Bước 1: Cập nhật tập Layer đang thực sự kết nối (không bị ngắt / disabled) vào từng Node Khoá Cụm
+  const rawById = new Map(nodes.map((n) => [n.id, n]))
   const clusterByInst = new Map<string, WorkflowNode>()
-  for (const n of nodes) {
-    if (getNodeLogicCategory(n) === 'cluster_lock' && n.params?.instanceId) {
-      clusterByInst.set(n.params.instanceId, n)
-    }
-  }
+  const clusterConnectedLayerNodes = new Map<string, Set<string>>()
 
-  return nodes.map((node) => {
+  const nodesWithUpdatedClusters = nodes.map((node) => {
+    if (getNodeLogicCategory(node) !== 'cluster_lock') return node
+    const connectedLayerNodes: WorkflowNode[] = []
+    for (const e of edges) {
+      if (e.toNode !== node.id || e.disabled) continue
+      const fromN = rawById.get(e.fromNode)
+      if (fromN && fromN.type === 'layer_assembly' && !fromN.params?.groupKind) {
+        if (!connectedLayerNodes.some((ln) => ln.id === fromN.id)) {
+          connectedLayerNodes.push(fromN)
+        }
+      }
+    }
+    const activeLayerIds = Array.from(
+      new Set(connectedLayerNodes.flatMap((ln) => ln.params?.targetLayerIds ?? []))
+    )
+    const activeNodeIds = connectedLayerNodes.map((ln) => ln.id)
+    const updatedCluster: WorkflowNode = {
+      ...node,
+      enabled: activeLayerIds.length > 0 && node.params?.lockedGroup !== false,
+      params: {
+        ...(node.params ?? {}),
+        lockedGroup: activeLayerIds.length > 0 && node.params?.lockedGroup !== false,
+        targetLayerIds: activeLayerIds,
+        sharedLayerNodeIds: activeNodeIds
+      }
+    }
+    if (updatedCluster.params?.instanceId) {
+      clusterByInst.set(updatedCluster.params.instanceId, updatedCluster)
+      clusterConnectedLayerNodes.set(updatedCluster.params.instanceId, new Set(activeNodeIds))
+    }
+    return updatedCluster
+  })
+
+  const byId = new Map(nodesWithUpdatedClusters.map((n) => [n.id, n]))
+
+  return nodesWithUpdatedClusters.map((node) => {
     const cat = getNodeLogicCategory(node)
     if (!cat || cat === 'camera' || cat === 'cluster_lock') return node
 
-    // Tìm tất cả các Node Layer hoặc Node Khoá Cụm nối trực tiếp (hoặc qua Node Vật liệu) vào Node Logic này
+    // Nếu là Node con Bộ phận (isPartChild) nối từ Node Bộ phận chính (isPartHub): giữ nguyên các mảnh của riêng bộ phận đó
+    if (cat === 'part_swap' && node.params?.isPartChild) {
+      const parentEdge = edges.find((e) => e.toNode === node.id && !e.disabled && getNodeLogicCategory(byId.get(e.fromNode)!) === 'part_swap')
+      const hubNode = parentEdge ? byId.get(parentEdge.fromNode) : undefined
+      if (hubNode) {
+        const instId = hubNode.params?.instanceId ?? node.params?.instanceId
+        return {
+          ...node,
+          params: {
+            ...(node.params ?? {}),
+            targetMode: 'custom',
+            sharedLayerNodeIds: [hubNode.id],
+            ...(instId ? { instanceId: instId } : {}),
+            hierarchyParentNodeId: hubNode.id
+          }
+        }
+      }
+    }
+
+    // Tìm tất cả các Node Layer hoặc Node Khoá Cụm nối trực tiếp (hoặc qua Node Vật liệu) vào Node Logic này (bỏ qua các line đang disabled)
     const incomingLayerNodes: WorkflowNode[] = []
     const incomingClusterNodes: WorkflowNode[] = []
     for (const e of edges) {
-      if (e.toNode !== node.id) continue
+      if (e.toNode !== node.id || e.disabled) continue
       const fromN = byId.get(e.fromNode)
       if (!fromN) continue
-      if (fromN.type === 'layer_assembly' && !fromN.params?.groupKind) {
+      if (fromN.type === 'layer_assembly' && !fromN.params?.groupKind && !getNodeLogicCategory(fromN)) {
         if (!incomingLayerNodes.some((ln) => ln.id === fromN.id)) {
           incomingLayerNodes.push(fromN)
         }
@@ -383,7 +464,7 @@ export function recomputeSharedLogicTargets(
         }
       } else if (getNodeLogicCategory(fromN) === 'material') {
         for (const eMat of edges) {
-          if (eMat.toNode !== fromN.id) continue
+          if (eMat.toNode !== fromN.id || eMat.disabled) continue
           const matLayer = byId.get(eMat.fromNode)
           if (!matLayer) continue
           if (matLayer.type === 'layer_assembly' && !matLayer.params?.groupKind) {
@@ -395,10 +476,22 @@ export function recomputeSharedLogicTargets(
       }
     }
 
-    if (incomingLayerNodes.length === 0 && incomingClusterNodes.length === 0) return node
+    if (incomingLayerNodes.length === 0 && incomingClusterNodes.length === 0) {
+      if ((node.params?.targetLayerIds?.length ?? 0) === 0 && (node.params?.sharedLayerNodeIds?.length ?? 0) === 0) {
+        return node
+      }
+      return {
+        ...node,
+        params: {
+          ...(node.params ?? {}),
+          targetLayerIds: [],
+          sharedLayerNodeIds: []
+        }
+      }
+    }
 
-    // Nếu nối vào 1 Layer con thuộc Cụm đang khoá (lockedGroup !== false) và không bật chế độ chỉnh lẻ (`singleSubLayerOnly`),
-    // tự động lấy toàn bộ các mảnh của cụm đó để khung chỉnh 2.5D / BBox và hiệu ứng áp đồng bộ cho cả cụm đang khoá!
+    // Nếu nối vào 1 Layer con đang kết nối vào Cụm khoá và không bật chế độ chỉnh lẻ (`singleSubLayerOnly`),
+    // mở rộng sang các mảnh đang khoá trong cụm đó (bỏ qua các mảnh đã ngắt kết nối khỏi Khoá Cụm!)
     const expandedTargetIds: string[] = []
     for (const cn of incomingClusterNodes) {
       expandedTargetIds.push(...(cn.params?.targetLayerIds ?? []))
@@ -406,8 +499,11 @@ export function recomputeSharedLogicTargets(
     for (const ln of incomingLayerNodes) {
       const instId = ln.params?.instanceId
       const clusterNode = instId ? clusterByInst.get(instId) : undefined
+      const isLayerConnectedToCluster = instId ? Boolean(clusterConnectedLayerNodes.get(instId)?.has(ln.id)) : false
       const isClusterLocked =
-        clusterNode ? clusterNode.enabled !== false && clusterNode.params?.lockedGroup !== false : ln.params?.lockedGroup !== false
+        clusterNode && isLayerConnectedToCluster
+          ? clusterNode.enabled !== false && clusterNode.params?.lockedGroup !== false
+          : false
       if (clusterNode && isClusterLocked && !node.params?.singleSubLayerOnly) {
         expandedTargetIds.push(...(clusterNode.params?.targetLayerIds ?? ln.params?.targetLayerIds ?? []))
       } else {
@@ -673,54 +769,59 @@ export function applyCollisionNodeToProject(
     const contactX = Math.round(posA[0] + (posB[0] - posA[0]) * 0.72)
     const contactY = Math.round(posA[1] + (posB[1] - posA[1]) * 0.65)
 
-    // Quỹ đạo của Chủ thể A (lao tới điểm chạm tHit -> phản ứng theo dạng va chạm tại tRecover)
-    upsertCollisionKey(strikerLayer.transform.position, tStart, [...posA] as Vec3, 'easeIn', node.id, 'k0')
-    upsertCollisionKey(
-      strikerLayer.transform.position,
-      tHit,
-      [contactX, contactY, posA[2]],
-      'easeOut',
-      node.id,
-      'k1'
+    // Quỹ đạo của Chủ thể A (nếu Chủ thể A chưa có đường đi BBox #1 -> #2 hoặc Motion Path riêng thì tự tạo lao tới điểm chạm tHit)
+    const strikerHasOwnTrajectory = strikerLayer.transform.position.keyframes.some(
+      (k) => k.id.includes('-bboxmot-') || k.id.includes('-motpath-p-')
     )
+    if (!strikerHasOwnTrajectory) {
+      upsertCollisionKey(strikerLayer.transform.position, tStart, [...posA] as Vec3, 'easeIn', node.id, 'k0')
+      upsertCollisionKey(
+        strikerLayer.transform.position,
+        tHit,
+        [contactX, contactY, posA[2]],
+        'easeOut',
+        node.id,
+        'k1'
+      )
 
-    if (mode === 'elastic_bounce') {
-      const reboundDist = Math.round(140 * force * (0.6 + targetPreset.bounciness * 0.4))
-      upsertCollisionKey(
-        strikerLayer.transform.position,
-        tRecover,
-        [contactX - dirX * reboundDist, posA[1] + 24, posA[2]],
-        'easeOut',
-        node.id,
-        'k2'
-      )
-    } else if (mode === 'wall_vault') {
-      const vaultPeakT = Number(((tHit + tRecover) * 0.5).toFixed(2))
-      upsertCollisionKey(
-        strikerLayer.transform.position,
-        vaultPeakT,
-        [posB[0], posB[1] + Math.round(190 * force), posA[2]],
-        'easeOut',
-        node.id,
-        'k3'
-      )
-      upsertCollisionKey(
-        strikerLayer.transform.position,
-        tRecover,
-        [posB[0] + dirX * 180, posA[1], posA[2]],
-        'easeIn',
-        node.id,
-        'k4'
-      )
-    } else if (mode === 'heavy_punch') {
-      upsertCollisionKey(
-        strikerLayer.transform.position,
-        tRecover,
-        [contactX - dirX * 45, contactY, posA[2]],
-        'easeOut',
-        node.id,
-        'k5'
-      )
+      if (mode === 'elastic_bounce') {
+        const reboundDist = Math.round(140 * force * (0.6 + targetPreset.bounciness * 0.4))
+        upsertCollisionKey(
+          strikerLayer.transform.position,
+          tRecover,
+          [contactX - dirX * reboundDist, posA[1] + 24, posA[2]],
+          'easeOut',
+          node.id,
+          'k2'
+        )
+      } else if (mode === 'wall_vault') {
+        const vaultPeakT = Number(((tHit + tRecover) * 0.5).toFixed(2))
+        upsertCollisionKey(
+          strikerLayer.transform.position,
+          vaultPeakT,
+          [posB[0], posB[1] + Math.round(190 * force), posA[2]],
+          'easeOut',
+          node.id,
+          'k3'
+        )
+        upsertCollisionKey(
+          strikerLayer.transform.position,
+          tRecover,
+          [posB[0] + dirX * 180, posA[1], posA[2]],
+          'easeIn',
+          node.id,
+          'k4'
+        )
+      } else if (mode === 'heavy_punch') {
+        upsertCollisionKey(
+          strikerLayer.transform.position,
+          tRecover,
+          [contactX - dirX * 45, contactY, posA[2]],
+          'easeOut',
+          node.id,
+          'k5'
+        )
+      }
     }
 
     // Biến dạng Scale (Squash & Stretch) tại thời điểm va chạm tHit cho cả A và B dựa trên hệ số squashRatio của chất liệu
@@ -759,7 +860,15 @@ export function applyCollisionNodeToProject(
     upsertCollisionKey(targetLayer.transform.scale, tRecover, [...startScaleB] as Vec3, 'easeOut', node.id, 'k11')
 
     // Nếu Mục tiêu B bị tông mạnh ('heavy_punch') và không phải tường đá cố định -> bị đẩy lùi nhẹ theo khối lượng
-    if (mode === 'heavy_punch' && effectiveTargetMat !== 'stone_wall' && effectiveTargetMat !== 'ground_terrain') {
+    const targetAlreadyPushedByBbox = targetLayer.transform.position.keyframes.some((k) =>
+      k.id.includes('-bboxcol-')
+    )
+    if (
+      mode === 'heavy_punch' &&
+      !targetAlreadyPushedByBbox &&
+      effectiveTargetMat !== 'stone_wall' &&
+      effectiveTargetMat !== 'ground_terrain'
+    ) {
       const pushDist = Math.round((95 * force) / Math.max(0.6, Math.sqrt(targetPreset.mass)))
       upsertCollisionKey(targetLayer.transform.position, tHit, [...posB] as Vec3, 'easeOut', node.id, 'k12')
       upsertCollisionKey(

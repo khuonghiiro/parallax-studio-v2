@@ -234,6 +234,29 @@ export interface LayerCompositeRef {
   variant?: string
   /** Part group of the source layer (e.g. 'part-head'). */
   partGroupId?: string
+  /** Danh sách động tác đặt tên động (nhép miệng, nháy mắt, đổi biểu cảm...) của cụm 2.5D */
+  customActions?: CompositeCustomAction[]
+}
+
+export interface CompositeCustomAction {
+  id: string
+  /** Tên động do người dùng cấu hình (ví dụ: 'Nhép miệng nói', 'Nháy mắt', 'Cười tươi') */
+  name: string
+  icon?: string
+  /** Kiểu động tác: 'sprite_cycle' (luân phiên ảnh miệng/mắt/biểu cảm), 'part_pose' (xoay/nhún bộ phận), 'rig_clip' (clip xương) */
+  kind: 'sprite_cycle' | 'part_pose' | 'rig_clip'
+  /** Danh sách ID layer trong mẫu (hoặc tên bộ phận) tham gia động tác */
+  layerIds: string[]
+  /** Tốc độ luân phiên ảnh / nhịp cử động (Hz, mặc định 4.0 cho nhép miệng, 0.45 cho nháy mắt) */
+  speedHz?: number
+  /** Thời lượng mặc định (giây) */
+  duration?: number
+  /** Có lặp lại trong khoảng thời gian hay không */
+  loop?: boolean
+  /** Góc xoay cử động (độ) cho part_pose */
+  rotDeg?: number
+  /** ID clip xương liên kết (nếu kind === 'rig_clip') */
+  rigClipId?: string
 }
 
 export type LayerPhysicsMaterial =

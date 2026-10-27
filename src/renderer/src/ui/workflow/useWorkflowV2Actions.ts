@@ -3,6 +3,7 @@ import type { Project, WorkflowGraph, WorkflowNode, WorkflowNodeParams, Workflow
 import { useEditor } from '../../store/editor'
 import { useToast } from '../../actions'
 import {
+  attachExternalLayerToClusterV2,
   attachLogicNodeToLayerV2,
   findFreeV2Spot,
   layoutWorkflowV2Tree,
@@ -101,11 +102,13 @@ export function useWorkflowV2Actions(workflow: WorkflowGraph, selectedNodeId: st
         showToast(`Đã xoá mốc lộ trình quay "${cleanV2NodeTitle(target.title)}"`)
         return
       }
-      const edges = workflow.edges.filter((e) => e.fromNode !== nodeId && e.toNode !== nodeId)
-      const synced = recomputeSharedLogicTargets(workflow.nodes.filter((n) => n.id !== nodeId), edges)
       useEditor.getState().update((draft) => {
+        draft.workflow = { ...workflow, nodes: [...workflow.nodes], edges: [...workflow.edges] }
         detachWorkflowV2NodeFromProject(draft as Project, target)
-        draft.workflow = { ...workflow, nodes: layoutWorkflowV2Tree(synced, edges), edges }
+        const wfAfterDetach = draft.workflow as WorkflowGraph
+        const edges = wfAfterDetach.edges.filter((e) => e.fromNode !== nodeId && e.toNode !== nodeId)
+        const synced = recomputeSharedLogicTargets(wfAfterDetach.nodes.filter((n) => n.id !== nodeId), edges)
+        draft.workflow = { ...wfAfterDetach, nodes: layoutWorkflowV2Tree(synced, edges), edges }
         if (logicCategoryOf(target) === 'material') applyWorkflowV2PhysicsNodes(draft as Project, draft.workflow as WorkflowGraph)
       }, 'wf-v2-delete')
       if (selectedNodeId === nodeId) setSelectedNodeId(target.params?.sharedLayerNodeIds?.[0] ?? null)
@@ -117,6 +120,7 @@ export function useWorkflowV2Actions(workflow: WorkflowGraph, selectedNodeId: st
   const updateParams = useCallback(
     (nodeId: string, patch: Partial<WorkflowNodeParams>, nextTitle?: string) => {
       const relayoutNeeded = patch.collapsedGroup !== undefined || patch.collapsedSubLayers !== undefined
+      let scrubToSettled: number | null = null
       useEditor.getState().update((draft) => {
         const raw = workflow.nodes.map((n) => {
           if (n.id !== nodeId) return n
@@ -128,6 +132,16 @@ export function useWorkflowV2Actions(workflow: WorkflowGraph, selectedNodeId: st
         const updated = nodes.find((n) => n.id === nodeId)
         if (!updated || relayoutNeeded) return
         syncWorkflowV2NodeToProject(draft as Project, updated, patch)
+        if (
+          updated.params?.logicCategory === 'anim_fx' &&
+          (updated.params.animFxPreset === 'popIn' || updated.params.animFxPreset === 'fadeIn')
+        ) {
+          const t0 = updated.params.timeStart ?? 0
+          const t1 = updated.params.timeEnd ?? t0 + 0.5
+          if (useEditor.getState().time <= t0 + 0.05) {
+            scrubToSettled = Number(Math.min(draft.comp.duration || 5, Math.max(t0 + 0.35, t1)).toFixed(2))
+          }
+        }
         if (updated.params?.isCameraWaypoint) {
           draft.workflow = syncWorkflowV2Graph(draft as Project, draft.workflow as WorkflowGraph)
           return
@@ -136,6 +150,9 @@ export function useWorkflowV2Actions(workflow: WorkflowGraph, selectedNodeId: st
           for (const n of nodes) if (n.params?.logicCategory === 'collision') syncWorkflowV2NodeToProject(draft as Project, n)
         }
       }, `wf-v2-param-${nodeId}`)
+      if (scrubToSettled !== null) {
+        useEditor.getState().setTime(scrubToSettled)
+      }
     },
     [workflow]
   )
@@ -170,8 +187,14 @@ export function useWorkflowV2Actions(workflow: WorkflowGraph, selectedNodeId: st
   )
 
   const attachLogic = useCallback(
-    (layerNodeId: string, category: WorkflowV2SpawnCategory, presetId?: string) => {
-      const res = attachLogicNodeToLayerV2(workflow, layerNodeId, category, presetId)
+    (
+      layerNodeId: string,
+      category: WorkflowV2SpawnCategory,
+      presetId?: string,
+      extraParams?: Partial<WorkflowNodeParams>,
+      customTitle?: string
+    ) => {
+      const res = attachLogicNodeToLayerV2(workflow, layerNodeId, category, presetId, extraParams, customTitle)
       if (!res.createdNodeId) {
         if (res.message) showToast(res.message)
         return
@@ -183,7 +206,7 @@ export function useWorkflowV2Actions(workflow: WorkflowGraph, selectedNodeId: st
       }, 'wf-v2-attach-logic')
       setSelectedNodeId(res.createdNodeId)
       window.dispatchEvent(new CustomEvent('pxs:wf-focus-node', { detail: { nodeId: res.createdNodeId } }))
-      const label = WORKFLOW_V2_SPAWN_CATALOG.find((c) => c.id === category)?.label ?? 'Logic'
+      const label = customTitle ?? WORKFLOW_V2_SPAWN_CATALOG.find((c) => c.id === category)?.label ?? 'Logic'
       showToast(res.message ?? `Đã gắn Node ${label} — chỉnh chi tiết ở bảng bên phải`)
     },
     [workflow, setSelectedNodeId, showToast]
@@ -196,30 +219,75 @@ export function useWorkflowV2Actions(workflow: WorkflowGraph, selectedNodeId: st
         showToast(check.reason ?? 'Kết nối không hợp lệ')
         return
       }
+      const src = workflow.nodes.find((n) => n.id === fromNode)
       const dst = workflow.nodes.find((n) => n.id === toNode)!
-      const dstIsStructural = resolveV2NodeLevel(dst) !== 'logic' || dst.type === 'camera_director'
-      const base = dstIsStructural ? workflow.edges.filter((e) => e.toNode !== toNode) : workflow.edges
-      const edges = [...base, { id: `e-${fromNode}-${toNode}`, fromNode, fromPort, toNode, toPort }]
+      const dstIsClusterLock = dst.params?.logicCategory === 'cluster_lock'
+      const dstIsStructural = (resolveV2NodeLevel(dst) !== 'logic' || dst.type === 'camera_director') && !dstIsClusterLock
+      const filtered = workflow.edges.filter((e) => {
+        if (dstIsStructural && e.toNode === toNode) return false
+        if (e.fromNode === fromNode && e.toNode === toNode) return false
+        return true
+      })
+      const edges = [...filtered, { id: `e-${fromNode}-${toNode}`, fromNode, fromPort, toNode, toPort, disabled: false }]
       const nodes = layoutWorkflowV2Tree(recomputeSharedLogicTargets(workflow.nodes, edges), edges)
+      const srcLayerIds = new Set(src?.params?.targetLayerIds ?? [])
       useEditor.getState().update((draft) => {
+        if (dstIsClusterLock) {
+          const targetClusterNode = nodes.find((n) => n.id === toNode)
+          for (const l of draft.layers) {
+            if (!srcLayerIds.has(l.id)) continue
+            if (l.composite && l.composite.instanceId === dst.params?.instanceId) {
+              l.composite.lockedGroup = true
+            } else if (l.model3d && l.model3d.instanceId === dst.params?.instanceId) {
+              l.model3d.lockedGroup = true
+            } else if (targetClusterNode) {
+              attachExternalLayerToClusterV2(draft as Project, [l.id], targetClusterNode)
+            }
+          }
+        }
         draft.workflow = { ...workflow, nodes, edges }
         const updated = nodes.find((n) => n.id === toNode)
-        if (updated) syncWorkflowV2NodeToProject(draft as Project, updated)
+        if (updated && !dstIsClusterLock) syncWorkflowV2NodeToProject(draft as Project, updated)
       }, 'wf-v2-connect')
+      if (dstIsClusterLock) {
+        showToast(`Đã nối "${src?.title ?? 'Layer'}" vào Khoá Cụm — mảnh này được khoá theo cụm`)
+        return
+      }
       const shared = nodes.find((n) => n.id === toNode)?.params?.sharedLayerNodeIds?.length ?? 1
       showToast(shared > 1 && !dstIsStructural ? `Đã nối — Node đang dùng chung cho ${shared} Layer` : 'Đã kết nối')
     },
     [workflow, showToast]
   )
 
-  /** Gỡ dây Layer → Logic: gỡ hiệu ứng khỏi Layer vừa tách; Node còn Layer khác thì áp dụng lại đúng tập mới */
+  /** Gỡ dây Layer → Khoá Cụm hoặc Layer/Khoá Cụm → Logic */
   const disconnect = useCallback(
     (edgeId: string) => {
       const edge = workflow.edges.find((e) => e.id === edgeId)
+      const src = edge && workflow.nodes.find((n) => n.id === edge.fromNode)
       const dst = edge && workflow.nodes.find((n) => n.id === edge.toNode)
-      if (!edge || !dst || !logicCategoryOf(dst)) return
+      if (!edge || !dst) return
+
+      // Trường hợp 1: Gỡ dây từ Node Layer đến Node Khoá Cụm (`cluster_lock`) -> mở khoá riêng mảnh Layer đó
+      if (dst.params?.logicCategory === 'cluster_lock') {
+        const edges = workflow.edges.filter((e) => e.id !== edgeId)
+        const synced = recomputeSharedLogicTargets(workflow.nodes, edges)
+        const nodes = layoutWorkflowV2Tree(synced, edges)
+        const srcLayerIds = new Set(src?.params?.targetLayerIds ?? [])
+        useEditor.getState().update((draft) => {
+          for (const l of draft.layers) {
+            if (!srcLayerIds.has(l.id)) continue
+            if (l.composite) l.composite.lockedGroup = false
+            if (l.model3d) l.model3d.lockedGroup = false
+          }
+          draft.workflow = { ...workflow, nodes, edges }
+        }, 'wf-v2-disconnect-cluster-member')
+        showToast(`Đã ngắt dây "${src?.title ?? 'Layer'}" khỏi Khoá Cụm — mảnh này không còn khoá theo cụm`)
+        return
+      }
+
+      if (!logicCategoryOf(dst)) return
       const edges = workflow.edges.filter((e) => e.id !== edgeId)
-      const stillLinked = edges.some((e) => e.toNode === dst.id)
+      const stillLinked = edges.some((e) => e.toNode === dst.id && !e.disabled)
       const synced = recomputeSharedLogicTargets(workflow.nodes, edges).map((n) =>
         n.id === dst.id && !stillLinked ? { ...n, params: { ...n.params, targetLayerIds: [], sharedLayerNodeIds: [] } } : n
       )
@@ -235,6 +303,51 @@ export function useWorkflowV2Actions(workflow: WorkflowGraph, selectedNodeId: st
     [workflow, showToast]
   )
 
+  /** Bật / Tắt (Disable) một đường dây nối (Group -> Layer, Layer -> Khoá Cụm, hoặc Layer/Khoá Cụm -> Logic) */
+  const toggleEdgeDisable = useCallback(
+    (edgeId: string) => {
+      const edge = workflow.edges.find((e) => e.id === edgeId)
+      const src = edge && workflow.nodes.find((n) => n.id === edge.fromNode)
+      const dst = edge && workflow.nodes.find((n) => n.id === edge.toNode)
+      if (!edge || !src || !dst) return
+      const nextDisabled = !edge.disabled
+      const edges = workflow.edges.map((e) => (e.id === edgeId ? { ...e, disabled: nextDisabled } : e))
+      const synced = recomputeSharedLogicTargets(workflow.nodes, edges)
+      const nodes = layoutWorkflowV2Tree(synced, edges)
+      const srcLayerIds = new Set(src.params?.targetLayerIds ?? [])
+      const dstLayerIds = new Set(dst.params?.targetLayerIds ?? [])
+
+      useEditor.getState().update((draft) => {
+        if (dst.params?.logicCategory === 'cluster_lock') {
+          for (const l of draft.layers) {
+            if (!srcLayerIds.has(l.id)) continue
+            if (l.composite) l.composite.lockedGroup = !nextDisabled
+            if (l.model3d) l.model3d.lockedGroup = !nextDisabled
+          }
+        } else if (src.params?.groupKind && dst.type === 'layer_assembly') {
+          for (const l of draft.layers) {
+            if (dstLayerIds.has(l.id)) l.visible = !nextDisabled
+          }
+        } else if (logicCategoryOf(dst)) {
+          detachWorkflowV2NodeFromProject(draft as Project, dst)
+          const updated = nodes.find((n) => n.id === dst.id)
+          const hasActiveEdge = edges.some((e) => e.toNode === dst.id && !e.disabled)
+          if (hasActiveEdge && updated?.enabled) {
+            syncWorkflowV2NodeToProject(draft as Project, updated)
+          }
+        }
+        draft.workflow = { ...workflow, nodes, edges }
+      }, 'wf-v2-toggle-edge')
+
+      showToast(
+        nextDisabled
+          ? `Đã ngắt tạm (Disable) đường dây "${src.title} → ${cleanV2NodeTitle(dst.title)}"`
+          : `Đã bật lại đường dây "${src.title} → ${cleanV2NodeTitle(dst.title)}"`
+      )
+    },
+    [workflow, showToast]
+  )
+
   const applyAll = useCallback(() => {
     useEditor.getState().update((draft) => {
       applyWorkflowV2ToProject(draft as Project, (draft.workflow as WorkflowGraph) ?? workflow)
@@ -242,5 +355,17 @@ export function useWorkflowV2Actions(workflow: WorkflowGraph, selectedNodeId: st
     showToast('Đã áp dụng toàn bộ cây Workflow vào cảnh')
   }, [workflow, showToast])
 
-  return { relayout, moveNodes, toggleEnable, deleteNode, updateParams, attachLogic, spawnCameraWaypoint, connect, disconnect, applyAll }
+  return {
+    relayout,
+    moveNodes,
+    toggleEnable,
+    deleteNode,
+    updateParams,
+    attachLogic,
+    spawnCameraWaypoint,
+    connect,
+    disconnect,
+    toggleEdgeDisable,
+    applyAll
+  }
 }

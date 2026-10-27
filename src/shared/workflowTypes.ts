@@ -190,6 +190,80 @@ export interface WorkflowNodeParams {
     | 'camera'
     | 'cluster_lock'
     | 'part_swap'
+    | 'rig_bone'
+  /** [Workflow V2] Đánh dấu Node Bộ phận chính (Hub quản lý danh sách các Node con Bộ phận của cụm 2.5D/3D) */
+  isPartHub?: boolean
+  /** [Workflow V2] Đánh dấu Node con Bộ phận (điều khiển riêng 1 bộ phận: Khuôn mặt, Tay trái, Tay phải, Chân, Thân...) */
+  isPartChild?: boolean
+  /** [Workflow V2] Biểu tượng đại diện cho Bộ phận con (ví dụ: '😊', '💪', '🦵', '👕', '💇') */
+  partIcon?: string
+  /** [Workflow V2] Danh sách ID các nhóm bộ phận con đang được ẩn trên sơ đồ của Node Bộ phận chính */
+  hiddenPartGroupIds?: string[]
+  /** [Workflow V2] Chế độ thao tác trên Node con Bộ phận ('variant' = Biểu cảm/Thay ảnh, 'pose' = Xoay/Dịch chuyển bộ phận theo giây, 'layers' = Ẩn/Hiện mảnh con) */
+  partActionMode?: 'variant' | 'pose' | 'layers'
+  /** [Workflow V2] Góc xoay cử động của riêng Bộ phận con trong khoảng [timeStart, timeEnd] (-90 .. +90 độ) */
+  partRotDeg?: number
+  /** [Workflow V2] Độ dịch chuyển ngang X của Bộ phận con trong khoảng [timeStart, timeEnd] (px) */
+  partOffsetX?: number
+  /** [Workflow V2] Độ dịch chuyển dọc Y của Bộ phận con trong khoảng [timeStart, timeEnd] (px) */
+  partOffsetY?: number
+  /** [Workflow V2] Tỉ lệ thu phóng của Bộ phận con trong khoảng [timeStart, timeEnd] (%) */
+  partScalePct?: number
+  /** [Workflow V2] Kiểu nhịp cử động của Bộ phận con ('smooth' = Vào-Giữ-Trả về, 'hold' = Giữ nguyên tư thế, 'oscillate' = Vẫy/Lắc liên tục) */
+  partPoseWave?: 'smooth' | 'hold' | 'oscillate'
+  /** [Workflow V2] Chế độ chính của Node Animation ('rig_clip' = Hành động Xương Nhân vật, 'keyframe_fx' = Nhịp Biến đổi Keyframe FX) */
+  animMode?: 'rig_clip' | 'keyframe_fx'
+  /** [Workflow V2] Chế độ chính của Node Motion ('bbox' = Đặt BBox đích #1->#2 thu phóng & chiều sâu, 'path' = Vẽ quỹ đạo di chuyển A->B, 'cycle' = Dao động chu kỳ tại chỗ) */
+  motionMode?: 'bbox' | 'path' | 'cycle'
+  /** [Workflow V2] Dạng đường đi giữa BBox #1 và BBox #2 ('shortest' = Tự động tìm khoảng cách ngắn nhất, 'custom_curve' = Đặt vị trí đích #2 rồi vẽ đường đi) */
+  bboxPathType?: 'shortest' | 'custom_curve'
+  /** [Workflow V2] Tọa độ X đích của BBox #2 trong không gian cảnh */
+  bboxTargetX?: number
+  /** [Workflow V2] Tọa độ Y đích của BBox #2 trong không gian cảnh */
+  bboxTargetY?: number
+  /** [Workflow V2] Tỉ lệ kích thước % của BBox #2 so với BBox #1 (ví dụ: 160 = to dần lên 160%, 55 = nhỏ dần về 55%) */
+  bboxTargetScalePct?: number
+  /** [Workflow V2] Chế độ chiều sâu khi di chuyển BBox ('flat_2d' = Không đi theo chiều sâu / giữ nguyên Z, 'depth_z' = Đi theo chiều sâu Z / vượt trước hoặc bị cây che) */
+  depthMode?: 'flat_2d' | 'depth_z'
+  /** [Workflow V2] Tọa độ chiều sâu Z tại điểm xuất phát BBox #1 */
+  bboxStartZ?: number
+  /** [Workflow V2] Tọa độ chiều sâu Z tại điểm đích BBox #2 */
+  bboxTargetZ?: number
+  /** [Workflow V2] ID Layer vật cản tham chiếu chiều sâu (ví dụ: cái cây, tảng đá) để vượt lên trước (z > z_cây) hoặc đi sau bị che (z < z_cây) */
+  depthRefLayerId?: string
+  /** [Workflow V2] Quan hệ chiều sâu so với Layer vật cản ('in_front' = z lớn hơn xuất hiện qua cây, 'behind' = z nhỏ hơn bị cây che) */
+  depthRelation?: 'in_front' | 'behind'
+  /** [Workflow V2] Bật kiểm tra & tạo tác động va chạm khi di chuyển tới chạm vào Layer khác trên đường đi */
+  collisionOnPathEnabled?: boolean
+  /** [Workflow V2] ID Layer mục tiêu bị va chạm khi di chuyển theo BBox #1 -> #2 */
+  collisionTargetLayerId?: string
+  /** [Workflow V2] Phản ứng va chạm khi di chuyển chạm vào Layer mục tiêu ('bounce' | 'shake' | 'push' | 'stop' | 'jelly') */
+  collisionResponse?: 'bounce' | 'shake' | 'push' | 'stop' | 'jelly'
+  /** [Workflow V2] ID nhóm bộ phận lấy từ Tab `Bộ phận` trong Xưởng lắp ráp 2.5D (hoặc ID mặt 3D) */
+  partGroupId?: string
+  /** [Workflow V2] Tên tiêu đề chính xác của Bộ phận đặt trong Tab `Bộ phận` của Xưởng lắp ráp 2.5D */
+  partGroupTitle?: string
+  targetSlotId?: string
+  /** [Workflow V2] Chế độ khung xương của Node Gắn xương ('humanoid_15' | 'chain_3' | 'mixamo_12' | 'custom') */
+  rigBonePreset?: 'humanoid_15' | 'chain_3' | 'mixamo_12' | 'custom'
+  /** [Workflow V2] Chế độ ràng buộc mềm đàn hồi (Soft Skinning) cho các mảnh gắn xương */
+  rigSoftBinding?: boolean
+  /** [Workflow V2] Quỹ đạo chuyển động 2D vẽ trực tiếp trong khung chỉnh sửa của Node Motion */
+  customMotionPath?: [number, number][]
+  /** [Workflow V2] Lặp lại quỹ đạo chuyển động vẽ tay trong khoảng thời gian của Node Motion */
+  customMotionLoop?: boolean
+  /** [Workflow V2] Chu kỳ thời gian mỗi vòng lặp chuyển động (giây) khi bật customMotionLoop */
+  customMotionCycleSec?: number
+  /** [Workflow V2] Giữ nguyên biến thể sau khi kết thúc khoảng thời gian đổi bộ phận */
+  partSwapHoldAfterEnd?: boolean
+  /** [Workflow V2] ID động tác đặt tên động của Cụm 2.5D đang chọn trên Node Animation */
+  customActionId?: string
+  /** [Workflow V2] Tên động tác đặt tên động của Cụm 2.5D đang chọn trên Node Animation */
+  customActionName?: string
+  /** [Workflow V2] Tốc độ nhịp (Hz) của động tác đặt tên động trên Node Animation */
+  customActionSpeedHz?: number
+  /** [Workflow V2] ID Layer thành viên đang chọn để chỉnh vị trí tương đối trong Node Khoá Cụm 2.5D */
+  activeMemberLayerId?: string
   /** [Workflow V2] ID thực thể Cụm 2.5D (composite.instanceId) hoặc Mô hình 3D (model3d.instanceId) */
   instanceId?: string
   /** [Workflow V2] ID mẫu Cụm 2.5D gốc (composite.compositeId) */
@@ -341,6 +415,8 @@ export interface WorkflowEdge {
   fromPort: WorkflowPortKind
   toNode: string
   toPort: WorkflowPortKind
+  /** [Workflow V2] Khi true, đường dây này đang bị vô hiệu hoá tạm thời (disabled) — không truyền luồng xử lý tới Node đích */
+  disabled?: boolean
 }
 export interface WorkflowGraph {
   version: 1

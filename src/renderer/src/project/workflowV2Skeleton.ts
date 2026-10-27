@@ -9,6 +9,7 @@ import {
   getLayerZ,
   type LayerClusterInstanceInfo
 } from './workflowV2Options'
+import { getClusterPartShortName } from './workflowV2ClusterRigAndSwap'
 import { WF_V2_COL_X } from './workflowV2Layout'
 import {
   V2_SHARED_CLUSTER,
@@ -158,7 +159,7 @@ function groupNode(ctx: ClusterCtx, kind: GroupKind, items: RepItem[]): Workflow
 export function layerNode(item: RepItem, groupId: string, compDur: number, shotId?: string): WorkflowNode {
   const l: Layer = item.layer
   const { start, end } = resolveLayerNodeTimeRange(l, compDur)
-  const title = getLayerDisplayName(l)
+  const title = l.composite ? getClusterPartShortName(l) : getLayerDisplayName(l)
   const instId = l.composite?.instanceId || l.model3d?.instanceId
   return {
     id: v2LayerNodeId(l.id),
@@ -196,6 +197,7 @@ function clusterLockNode(inst: LayerClusterInstanceInfo, ctx: ClusterCtx): Workf
   const root = inst.rootLayer
   const scalePct = Math.round(Math.abs(root.transform?.scale?.value?.[0] ?? 1) * 100)
   const prefix = inst.kind === 'model3d' ? 'Khoá khối 3D' : 'Khoá cụm'
+  const activeMemberIds = inst.lockedMemberIds
   return {
     id: v2ClusterLockId(inst.instanceId),
     type: 'layer_transform',
@@ -204,7 +206,7 @@ function clusterLockNode(inst: LayerClusterInstanceInfo, ctx: ClusterCtx): Workf
     position: { x: WF_V2_COL_X.LOGIC, y: 0 },
     preset: 'character_prop_cluster',
     aiAgentRole: 'LayerTransformAgent',
-    aiDirective: `Node Khoá Cụm "${inst.name}" (${inst.memberIds.length} lớp, ${inst.lockedGroup ? 'Đang khoá cả cụm' : 'Đang mở khoá chỉnh lẻ'}).`,
+    aiDirective: `Node Khoá Cụm "${inst.name}" (${activeMemberIds.length}/${inst.memberIds.length} lớp đang khoá theo cụm).`,
     params: {
       shotId: ctx.shot?.id,
       logicCategory: 'cluster_lock',
@@ -216,8 +218,8 @@ function clusterLockNode(inst: LayerClusterInstanceInfo, ctx: ClusterCtx): Workf
       rootLayerId: root.id,
       childLayerCount: inst.memberIds.length,
       targetMode: 'custom',
-      targetLayerIds: [...inst.memberIds],
-      sharedLayerNodeIds: inst.memberIds.map((id) => v2LayerNodeId(id)),
+      targetLayerIds: [...activeMemberIds],
+      sharedLayerNodeIds: activeMemberIds.map((id) => v2LayerNodeId(id)),
       requireLayerConnection: true,
       transformX: getLayerX(root),
       transformY: getLayerY(root),
@@ -274,7 +276,8 @@ function buildCluster(
       for (const inst of clusterInstances) {
         const lockNode = clusterLockNode(inst, ctx)
         out.nodes.push(lockNode)
-        for (const memberId of inst.memberIds) {
+        // Chỉ tạo đường dây kết nối cho các layer đang thực sự khoá theo cụm (lockedGroup !== false)
+        for (const memberId of inst.lockedMemberIds) {
           out.edges.push(v2Edge(v2LayerNodeId(memberId), lockNode.id, 'layers_tree'))
         }
       }

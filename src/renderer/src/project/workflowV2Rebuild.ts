@@ -2,7 +2,13 @@ import type { Project, WorkflowGraph, WorkflowNode } from '@shared/types'
 import { getProjectAudioTracks } from './audioTracks'
 import { deleteLayerEffect } from '../ui/timeline/timelineEffects'
 import { removeCameraWaypoint } from '../ui/viewer/animateCamera/animateCameraRouteLogic'
-import { clearClusterRigKeysFromScene, getClusterMemberLayers } from './workflowV2ClusterRigAndSwap'
+import {
+  bakeCustomMotionPathToScene,
+  clearClusterRigKeysFromScene,
+  clearPartPoseKeysFromLayers,
+  getClusterMemberLayers
+} from './workflowV2ClusterRigAndSwap'
+import { clearBboxMotionKeysFromScene } from './workflowV2BboxMotionAndCollision'
 import { syncWorkflowV2NodeToProject } from './workflowV2Mutations'
 import { getNodeLogicCategory } from './workflowV2PhysicsAndValidation'
 import { syncWorkflowV2Graph } from './workflowV2Sync'
@@ -51,14 +57,45 @@ export function detachWorkflowV2NodeFromProject(project: Project, node: Workflow
   const layers = project.layers.filter((l) => targets.has(l.id))
   if (cat === 'action') {
     for (const l of layers) l.motion = { enabled: false, type: 'none', speed: 1, amount: 0 }
+    bakeCustomMotionPathToScene(project, Array.from(targets), [], { nodeId: node.id })
+    clearBboxMotionKeysFromScene(project, node.id)
     const compInstIds = Array.from(new Set(layers.map((l) => l.composite?.instanceId).filter((v): v is string => Boolean(v))))
-    for (const instId of compInstIds) clearClusterRigKeysFromScene(getClusterMemberLayers(project, instId))
+    for (const instId of compInstIds) clearClusterRigKeysFromScene(getClusterMemberLayers(project, instId), node.id)
     return
   }
   if (cat === 'part_swap') {
+    clearPartPoseKeysFromLayers(layers, node.id)
+    if (project.workflow && node.params?.isPartChild && node.params?.partGroupId) {
+      const hubId = node.params.hierarchyParentNodeId
+      const hub = project.workflow.nodes.find((n) => n.id === hubId)
+      if (hub && !node.id.match(/-t\d+(-\d+)?$/)) {
+        const curHidden = hub.params?.hiddenPartGroupIds ?? []
+        if (!curHidden.includes(node.params.partGroupId)) {
+          hub.params = { ...hub.params, hiddenPartGroupIds: [...curHidden, node.params.partGroupId] }
+        }
+      }
+    } else if (project.workflow && node.params?.isPartHub) {
+      const childIds = new Set(
+        project.workflow.nodes
+          .filter((n) => n.params?.isPartChild && n.params?.hierarchyParentNodeId === node.id)
+          .map((n) => n.id)
+      )
+      for (const cid of childIds) {
+        clearPartPoseKeysFromLayers(project.layers, cid)
+      }
+      project.workflow.nodes = project.workflow.nodes.filter((n) => !childIds.has(n.id))
+      project.workflow.edges = project.workflow.edges.filter((e) => !childIds.has(e.fromNode) && !childIds.has(e.toNode))
+    }
+    return
+  }
+  if (cat === 'rig_bone') {
+    const compInstIds = Array.from(new Set(layers.map((l) => l.composite?.instanceId).filter((v): v is string => Boolean(v))))
+    for (const instId of compInstIds) clearClusterRigKeysFromScene(getClusterMemberLayers(project, instId), node.id)
     return
   }
   if (cat === 'anim_fx') {
+    const compInstIds = Array.from(new Set(layers.map((l) => l.composite?.instanceId).filter((v): v is string => Boolean(v))))
+    for (const instId of compInstIds) clearClusterRigKeysFromScene(getClusterMemberLayers(project, instId), node.id)
     for (const l of layers) {
       const fxIds = (l.appliedEffects ?? []).filter((f) => f.category !== 'motion').map((f) => f.id)
       for (const fxId of fxIds) deleteLayerEffect(l, fxId)

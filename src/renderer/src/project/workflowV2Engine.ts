@@ -17,6 +17,7 @@ export {
 } from './workflowV2PhysicsAndValidation'
 export {
   attachLogicNodeToLayerV2,
+  spawnTimedFollowupNodeV2,
   spawnWorkflowV2CameraWaypoint,
   syncWorkflowV2NodeToProject
 } from './workflowV2Mutations'
@@ -57,6 +58,11 @@ export {
   type ShotCameraWaypointStep
 } from './workflowV2Scope'
 export * from './workflowV2ClusterRigAndSwap'
+export * from './workflowV2CompositeParts'
+export * from './workflowV2BboxMotionAndCollision'
+export {
+  getCompatibleLogicCatalogForNode
+} from './workflowV2LogicPresets'
 export { isCameraChainEdge } from './workflowV2Skeleton'
 export { syncWorkflowV2Graph, type SyncWorkflowV2Options } from './workflowV2Sync'
 export {

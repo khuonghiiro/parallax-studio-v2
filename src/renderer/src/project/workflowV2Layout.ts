@@ -31,11 +31,11 @@ export function estimateV2NodeHeight(_node?: WorkflowNode): number {
 
 const isRoot = (n: WorkflowNode): boolean => n.type === 'scene_shot'
 const isGroup = (n: WorkflowNode): boolean => Boolean(n.params?.groupKind)
-const isLayer = (n: WorkflowNode): boolean => n.type === 'layer_assembly' && !n.params?.groupKind
+const isLayer = (n: WorkflowNode): boolean => n.type === 'layer_assembly' && !n.params?.groupKind && !n.params?.logicCategory
 const isCamera = (n: WorkflowNode): boolean => n.type === 'camera_director'
 const isParentCamera = (n: WorkflowNode): boolean => n.type === 'camera_director' && !n.params?.isCameraWaypoint
 const isCameraWaypoint = (n: WorkflowNode): boolean => n.type === 'camera_director' && Boolean(n.params?.isCameraWaypoint)
-const isLogic = (n: WorkflowNode): boolean => !isRoot(n) && !isCamera(n) && n.type !== 'layer_assembly'
+const isLogic = (n: WorkflowNode): boolean => !isRoot(n) && !isCamera(n) && !isGroup(n) && !isLayer(n)
 
 /**
  * Tập Node bị ẩn khi thu gọn Nhóm hoặc Camera:
@@ -54,6 +54,9 @@ export function resolveHiddenV2NodeIds(nodes: WorkflowNode[], edges: WorkflowEdg
     parentsOf.set(e.toNode, list)
   }
   const hidden = new Set<string>()
+  for (const n of nodes) {
+    if (n.params?.logicCategory === 'rig_bone') hidden.add(n.id)
+  }
   // Nếu một Node Khoá Cụm đang bật thu gọn mảnh con (`collapsedSubLayers`), ẩn các Node Layer con phụ (chỉ giữ lại Node Gốc neo)
   for (const n of nodes) {
     if (n.params?.logicCategory !== 'cluster_lock' || !n.params.collapsedSubLayers) continue
@@ -104,6 +107,12 @@ function assignLogicOwners(layers: WorkflowNode[], edges: WorkflowEdge[], byId: 
         if (!taken.has(downstream.id)) {
           taken.add(downstream.id)
           list.push(downstream)
+        }
+        for (const subChild of childrenOf(downstream.id, edges, byId, isLogic)) {
+          if (!taken.has(subChild.id)) {
+            taken.add(subChild.id)
+            list.push(subChild)
+          }
         }
       }
     }
@@ -166,8 +175,28 @@ function layoutCluster(
       }
       layer.position = { x: WF_V2_COL_X.LAYER, y: cursorY }
       const logics = owners.get(layer.id) ?? []
-      logics.forEach((ln, idx) => (ln.position = { x: WF_V2_COL_X.LOGIC, y: cursorY + idx * (WF_V2_NODE_H + LOGIC_GAP) }))
-      const rows = Math.max(1, logics.length)
+      const isPartChildNode = (ln: WorkflowNode): boolean => Boolean(ln.params?.isPartChild)
+      const isClusterDownstream = (ln: WorkflowNode): boolean =>
+        !isPartChildNode(ln) &&
+        edges.some((e) => e.toNode === ln.id && byId.get(e.fromNode)?.params?.logicCategory === 'cluster_lock')
+      const directLogics = logics.filter((ln) => !isClusterDownstream(ln) && !isPartChildNode(ln))
+      const clusterChildLogics = logics.filter(isClusterDownstream)
+      const partChildLogics = logics.filter(isPartChildNode)
+      directLogics.forEach((ln, idx) => (ln.position = { x: WF_V2_COL_X.LOGIC, y: cursorY + idx * (WF_V2_NODE_H + LOGIC_GAP) }))
+      clusterChildLogics.forEach(
+        (ln, idx) => (ln.position = { x: WF_V2_COL_X.LOGIC + 356, y: cursorY + idx * (WF_V2_NODE_H + LOGIC_GAP) })
+      )
+      const visiblePartChildren = partChildLogics.filter((ln) => !hidden.has(ln.id))
+      partChildLogics.forEach((ln) => {
+        if (hidden.has(ln.id)) {
+          const hub = byId.get(ln.params?.hierarchyParentNodeId ?? '')
+          ln.position = hub ? { ...hub.position } : { x: WF_V2_COL_X.LOGIC + 356 * 2, y: cursorY }
+        }
+      })
+      visiblePartChildren.forEach(
+        (ln, idx) => (ln.position = { x: WF_V2_COL_X.LOGIC + 356 * 2, y: cursorY + idx * (WF_V2_NODE_H + LOGIC_GAP) })
+      )
+      const rows = Math.max(1, directLogics.length, clusterChildLogics.length, visiblePartChildren.length)
       cursorY += rows * WF_V2_NODE_H + (rows - 1) * LOGIC_GAP + LAYER_GAP
     }
     cursorY += GROUP_GAP - LAYER_GAP

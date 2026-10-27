@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react'
-import type { WorkflowGraph, WorkflowNode } from '@shared/types'
+import type { Project, WorkflowGraph, WorkflowNode, WorkflowNodeParams } from '@shared/types'
+import { getCompatibleLogicCatalogForNode } from '../../project/workflowV2Engine'
 import {
-  WORKFLOW_V2_SPAWN_CATALOG,
   cleanV2NodeTitle,
   resolveV2NodeTheme,
   type WorkflowV2SpawnCategory
@@ -9,6 +9,7 @@ import {
 
 export interface WorkflowV2SidebarProps {
   workflow: WorkflowGraph
+  project?: Project
   collapsed: boolean
   selectedNodeId: string | null
   activeShotId: string | null
@@ -17,7 +18,12 @@ export interface WorkflowV2SidebarProps {
   onSelectNode: (nodeId: string) => void
   onFocusShot: (shotId: string | null, rootId: string) => void
   onToggleGroup: (groupNodeId: string, collapsed: boolean) => void
-  onSpawn: (category: WorkflowV2SpawnCategory) => void
+  onSpawn: (
+    category: WorkflowV2SpawnCategory,
+    presetId?: string,
+    extraParams?: Partial<WorkflowNodeParams>,
+    customTitle?: string
+  ) => void
 }
 
 interface OutlineCluster {
@@ -88,10 +94,11 @@ const GroupRows: React.FC<{
   )
 }
 
-/** Cột trái: cây đề cương Cảnh → Nhóm → Layer (điều hướng trong không gian chung) + lưới gắn Node Logic */
+/** Cột trái: cây đề cương Cảnh → Nhóm → Layer (điều hướng trong không gian chung) + lưới gắn Node Logic ngữ cảnh */
 export const WorkflowV2Sidebar: React.FC<WorkflowV2SidebarProps> = (props) => {
   const outline = useMemo(() => buildOutline(props.workflow), [props.workflow])
-  const { collapsed, spawnTarget } = props
+  const { collapsed, spawnTarget, project } = props
+  const compat = useMemo(() => getCompatibleLogicCatalogForNode(spawnTarget, project), [spawnTarget, project])
   return (
     <aside className={`wf-node-palette wf-v2-sidebar${collapsed ? ' collapsed' : ''}`} data-mcp-region="workflow_palette">
       <div className="wf-v2-sidebar-head">
@@ -140,14 +147,14 @@ export const WorkflowV2Sidebar: React.FC<WorkflowV2SidebarProps> = (props) => {
               )}
             </div>
             <div className="wf-v2-add-grid">
-              {WORKFLOW_V2_SPAWN_CATALOG.map((item) => (
+              {compat.categories.map((item) => (
                 <button
                   key={item.id}
                   type="button"
                   className="wf-v2-add-card"
                   disabled={!spawnTarget}
                   style={{ ['--wf-v2-accent' as string]: item.accent }}
-                  title={spawnTarget ? `Gắn ${item.label} cho "${cleanV2NodeTitle(spawnTarget.title)}"` : 'Chọn một Layer trước'}
+                  title={spawnTarget ? `Gắn ${item.label} cho "${cleanV2NodeTitle(spawnTarget.title)}"` : 'Chọn một Layer hoặc Khoá Cụm trước'}
                   onClick={() => props.onSpawn(item.id)}
                 >
                   <span className="wf-v2-add-icon" aria-hidden="true">{item.icon}</span>
@@ -158,6 +165,36 @@ export const WorkflowV2Sidebar: React.FC<WorkflowV2SidebarProps> = (props) => {
                 </button>
               ))}
             </div>
+            {spawnTarget && compat.dynamicParts.length > 0 && (
+              <div className="wf-v2-sidebar-parts">
+                <div className="wf-v2-sec-title" style={{ marginTop: 6 }}>Bộ phận trong Xưởng 2.5D / 3D</div>
+                <div className="wf-v2-chip-grid">
+                  {compat.dynamicParts.map((part) => (
+                    <button
+                      key={part.id}
+                      type="button"
+                      className="wf-v2-spawn-chip"
+                      title={`Tạo Node Bộ phận: ${part.title}`}
+                      onClick={() =>
+                        props.onSpawn(
+                          'part_swap',
+                          part.kind === 'slot_variant' ? 'v2:part_swap:expression' : 'v2:part_swap:toggle_part',
+                          {
+                            partGroupId: part.id,
+                            partGroupTitle: part.title,
+                            swapMode: part.kind === 'slot_variant' ? 'expression' : 'toggle_part',
+                            ...(part.kind === 'slot_variant' ? { targetSlotId: part.id.replace(/^slot:/, '') } : {})
+                          },
+                          `Bộ phận: ${part.title}`
+                        )
+                      }
+                    >
+                      <span aria-hidden="true">{part.icon}</span> {part.title}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </section>
         </div>
       )}

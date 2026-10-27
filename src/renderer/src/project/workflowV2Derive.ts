@@ -1,5 +1,7 @@
 import type { AudioTrackItem, Layer, Project, WorkflowEdge, WorkflowNode, WorkflowNodeParams } from '@shared/types'
 import { getProjectAudioTracks } from './audioTracks'
+import { WORKFLOW_V2_RIG_PRESET_OPTIONS } from './workflowV2ClusterRigAndSwap'
+import { extractCompositeDynamicParts } from './workflowV2CompositeParts'
 import {
   WORKFLOW_V2_ACTION_OPTIONS,
   WORKFLOW_V2_ANIM_FX_OPTIONS,
@@ -29,7 +31,62 @@ interface Derived {
 
 const r2 = (v: number): number => Number(v.toFixed(2))
 
-function deriveAction(layer: Layer, compDur: number): Derived {
+function deriveAction(layer: Layer, compDur: number, current?: WorkflowNode): Derived {
+  if (
+    current &&
+    (current.params?.motionMode === 'bbox' || current.params?.actionPreset === 'bbox_target')
+  ) {
+    const range = resolveLayerNodeTimeRange(layer, compDur)
+    return {
+      present: true,
+      enabled: current.enabled,
+      params: {
+        actionPreset: 'bbox_target',
+        motionMode: 'bbox',
+        bboxPathType: current.params?.bboxPathType ?? 'shortest',
+        bboxTargetX: current.params?.bboxTargetX,
+        bboxTargetY: current.params?.bboxTargetY,
+        bboxTargetScalePct: current.params?.bboxTargetScalePct ?? 135,
+        depthMode: current.params?.depthMode ?? 'flat_2d',
+        bboxStartZ: current.params?.bboxStartZ,
+        bboxTargetZ: current.params?.bboxTargetZ,
+        depthRefLayerId: current.params?.depthRefLayerId,
+        depthRelation: current.params?.depthRelation,
+        collisionOnPathEnabled: current.params?.collisionOnPathEnabled,
+        collisionTargetLayerId: current.params?.collisionTargetLayerId,
+        collisionResponse: current.params?.collisionResponse,
+        customMotionPath: current.params?.customMotionPath,
+        customMotionLoop: current.params?.customMotionLoop,
+        customMotionCycleSec: current.params?.customMotionCycleSec,
+        intensity: current.params?.intensity ?? 1,
+        timeStart: r2(current.params?.timeStart ?? range.start),
+        timeEnd: r2(current.params?.timeEnd ?? range.end)
+      },
+      title: current.title?.startsWith('Motion:') ? current.title : 'Motion: Đặt BBox Đích (#1 → #2)'
+    }
+  }
+  if (
+    current &&
+    (current.params?.actionPreset === 'custom_draw' ||
+      current.params?.motionMode === 'path' ||
+      (current.params?.customMotionPath?.length ?? 0) >= 2)
+  ) {
+    const range = resolveLayerNodeTimeRange(layer, compDur)
+    return {
+      present: true,
+      enabled: current.enabled,
+      params: {
+        actionPreset: 'custom_draw',
+        motionMode: 'path',
+        customMotionPath: current.params?.customMotionPath,
+        customMotionLoop: current.params?.customMotionLoop,
+        intensity: current.params?.intensity ?? 1,
+        timeStart: r2(current.params?.timeStart ?? range.start),
+        timeEnd: r2(current.params?.timeEnd ?? range.end)
+      },
+      title: current.title?.startsWith('Motion:') ? current.title : 'Motion: Vẽ quỹ đạo tự do'
+    }
+  }
   const m = layer.motion
   const present = Boolean(m && m.type && m.type !== 'none')
   const opt = WORKFLOW_V2_ACTION_OPTIONS.find((o) => o.motionType === m?.type)
@@ -39,12 +96,40 @@ function deriveAction(layer: Layer, compDur: number): Derived {
   return {
     present,
     enabled: present && m?.enabled !== false,
-    params: { actionPreset: opt?.id ?? m?.type, intensity: m?.amount ?? opt?.defaultAmount, timeStart: r2(start), timeEnd: r2(end) },
+    params: {
+      actionPreset: opt?.id ?? m?.type,
+      motionMode: 'cycle',
+      intensity: m?.amount ?? opt?.defaultAmount,
+      timeStart: r2(start),
+      timeEnd: r2(end)
+    },
     title: `Hành động: ${opt?.label ?? m?.type ?? 'Chuyển động'}`
   }
 }
 
-function deriveAnimFx(layer: Layer, compDur: number): Derived {
+function deriveAnimFx(layer: Layer, compDur: number, current?: WorkflowNode): Derived {
+  if (
+    current &&
+    (current.params?.animMode === 'rig_clip' ||
+      (current.params?.rigActionPreset && current.params.rigActionPreset !== 'none'))
+  ) {
+    const range = resolveLayerNodeTimeRange(layer, compDur)
+    const rigOpt = WORKFLOW_V2_RIG_PRESET_OPTIONS.find((r) => r.id === current.params?.rigActionPreset)
+    const cleanRigName = rigOpt ? rigOpt.shortLabel.replace(/^[^\wÀ-ỹ]+\s*/, '') : 'Cử động Xương'
+    return {
+      present: true,
+      enabled: current.enabled,
+      params: {
+        animMode: 'rig_clip',
+        rigActionPreset: current.params?.rigActionPreset ?? 'idle',
+        intensity: current.params?.intensity ?? 1,
+        staggerPhase: current.params?.staggerPhase,
+        timeStart: r2(current.params?.timeStart ?? range.start),
+        timeEnd: r2(current.params?.timeEnd ?? range.end)
+      },
+      title: `Hoạt ảnh Xương: ${cleanRigName}`
+    }
+  }
   const fxList = (layer.appliedEffects ?? []).filter((f) => f.category !== 'motion')
   const primary = fxList[fxList.length - 1]
   const present = Boolean(primary)
@@ -57,6 +142,7 @@ function deriveAnimFx(layer: Layer, compDur: number): Derived {
     present,
     enabled: present && fxList.some((f) => f.enabled !== false),
     params: {
+      animMode: 'keyframe_fx',
       animFxPreset: opt.id,
       animFxCount: primary?.count ?? opt.defaultCount,
       intensity: primary?.intensity ?? opt.defaultIntensity,
@@ -238,9 +324,9 @@ export function deriveLogicFromLayers(
       const refLayer = presentMembers[0] ?? rootLayer
       const d =
         cat === 'action'
-          ? deriveAction(refLayer, compDur)
+          ? deriveAction(refLayer, compDur, current)
           : cat === 'anim_fx'
-            ? deriveAnimFx(refLayer, compDur)
+            ? deriveAnimFx(refLayer, compDur, current)
             : cat === 'light'
               ? deriveLight(refLayer, compDur, fxGlowCluster, current)
               : cat === 'cave'
@@ -266,7 +352,7 @@ export function deriveLogicFromLayers(
   }
 
   for (const layerNode of nodes) {
-    if (layerNode.type !== 'layer_assembly' || layerNode.params?.groupKind) continue
+    if (layerNode.type !== 'layer_assembly' || layerNode.params?.groupKind || layerNode.params?.logicCategory) continue
     const layer = layersById.get(layerNode.id.replace(/^v2-layer-/, ''))
     if (!layer) continue
     const instId = layer.composite?.instanceId || layer.model3d?.instanceId
@@ -282,8 +368,8 @@ export function deriveLogicFromLayers(
       const current = attached.find((n) => n.params?.logicCategory === cat)
       if (!current && instId && clusterOwnedCats.has(`${instId}:${cat}`)) continue
       const d =
-        cat === 'action' ? deriveAction(layer, compDur)
-          : cat === 'anim_fx' ? deriveAnimFx(layer, compDur)
+        cat === 'action' ? deriveAction(layer, compDur, current)
+          : cat === 'anim_fx' ? deriveAnimFx(layer, compDur, current)
             : cat === 'light' ? deriveLight(layer, compDur, fxGlow, current)
               : cat === 'cave' ? deriveCave(layer, compDur)
                 : deriveAudio(findLayerAudioTrack(project, layer, memberIds, !instId), layer, compDur)
@@ -304,6 +390,192 @@ export function deriveLogicFromLayers(
       }
     }
   }
-  if (replaced.size === 0 && added.length === 0) return { nodes, edges }
-  return { nodes: [...nodes.map((n) => replaced.get(n.id) ?? n), ...added], edges: [...edges, ...addedEdges] }
+  const baseNodes = replaced.size === 0 && added.length === 0 ? nodes : [...nodes.map((n) => replaced.get(n.id) ?? n), ...added]
+  const baseEdges = replaced.size === 0 && added.length === 0 ? edges : [...edges, ...addedEdges]
+  return syncClusterPartSubtree(project, baseNodes, baseEdges, replaced.size === 0 && added.length === 0)
+}
+
+/**
+ * Đồng bộ cây con Bộ Phận Cụm (`Node Bộ phận` Hub → các `Node con Bộ phận` cho từng bộ phận trong cụm 2.5D):
+ * Khi một cụm 2.5D có Node Bộ phận gắn vào `cluster_lock`, mỗi bộ phận thực tế (`Khuôn mặt`, `Tay trái`, `Tay phải`, `Chân`, `Thân`...)
+ * được tách thành một `Node con Bộ phận` riêng biệt để người dùng cấu hình biến thể / cử động theo mốc giây rõ ràng.
+ */
+function syncClusterPartSubtree(
+  project: Project,
+  nodes: WorkflowNode[],
+  edges: WorkflowEdge[],
+  unchangedSoFar: boolean
+): { nodes: WorkflowNode[]; edges: WorkflowEdge[] } {
+  const compDur = Math.max(1, project.comp.duration || 5)
+  const byId = new Map(nodes.map((n) => [n.id, n]))
+  const layersById = new Map(project.layers.map((l) => [l.id, l]))
+  const replaced = new Map<string, WorkflowNode>()
+  const added: WorkflowNode[] = []
+  const addedEdges: WorkflowEdge[] = []
+  const removedIds = new Set<string>()
+
+  for (const clusterNode of nodes) {
+    if (clusterNode.params?.logicCategory !== 'cluster_lock') continue
+    const instId = clusterNode.params?.instanceId
+    const memberIds = clusterNode.params?.targetLayerIds ?? []
+    const rootLayer = (clusterNode.params?.rootLayerId ? layersById.get(clusterNode.params.rootLayerId) : undefined) ??
+      memberIds.map((id) => layersById.get(id)).find(Boolean)
+    if (!instId || !rootLayer) continue
+
+    const directPartNodes = edges
+      .filter((e) => e.fromNode === clusterNode.id)
+      .map((e) => byId.get(e.toNode))
+      .filter((n): n is WorkflowNode => Boolean(n && n.params?.logicCategory === 'part_swap' && !n.params?.isPartChild))
+    if (directPartNodes.length === 0) continue
+
+    const hubNode = directPartNodes.find((n) => n.params?.isPartHub) ?? directPartNodes[0]
+    const allParts = extractCompositeDynamicParts(project, instId, rootLayer)
+    const hiddenSet = new Set(hubNode.params?.hiddenPartGroupIds ?? [])
+    const swappableParts = allParts.filter((p) => p.layerIds.length >= 2 || p.variants.length >= 2)
+    const activeParts = swappableParts.filter((p) => !hiddenSet.has(p.id))
+
+    const desiredHubTitle = 'Bộ phận: Cụm 2.5D'
+    const hubParams: WorkflowNodeParams = {
+      ...hubNode.params,
+      isPartHub: true,
+      isPartChild: undefined,
+      childLayerCount: activeParts.length,
+      instanceId: instId,
+      compositeId: clusterNode.params?.compositeId ?? rootLayer.composite?.compositeId
+    }
+    if (
+      !hubNode.params?.isPartHub ||
+      hubNode.params?.childLayerCount !== activeParts.length ||
+      hubNode.title !== desiredHubTitle
+    ) {
+      replaced.set(hubNode.id, {
+        ...hubNode,
+        title: desiredHubTitle,
+        aiDirective: `Điều phối ${activeParts.length} Node con Bộ phận của cụm "${clusterNode.title}".`,
+        params: hubParams
+      })
+    }
+
+    const existingChildren = nodes.filter(
+      (n) =>
+        n.params?.logicCategory === 'part_swap' &&
+        n.params?.isPartChild &&
+        (n.params?.hierarchyParentNodeId === hubNode.id ||
+          edges.some((e) => e.fromNode === hubNode.id && e.toNode === n.id))
+    )
+
+    const activePartIds = new Set(activeParts.map((p) => p.id))
+    for (const child of existingChildren) {
+      if (!child.params?.partGroupId || !activePartIds.has(child.params.partGroupId)) {
+        removedIds.add(child.id)
+      }
+    }
+    for (let idx = 0; idx < activeParts.length; idx++) {
+      const part = activeParts[idx]
+      const primaryChild = existingChildren.find((c) => c.params?.partGroupId === part.id)
+      const partLayerObjs = part.layerIds
+        .map((id) => project.layers.find((l) => l.id === id))
+        .filter((l): l is Layer => Boolean(l))
+      const swappedLayer = partLayerObjs.find((l) =>
+        l.transform.opacity.keyframes.some((k) => k.id.includes('-partswap-') && k.value === 1 && k.t > (l.inPoint ?? 0) + 0.04)
+      )
+      const visVariant =
+        partLayerObjs.length > 1
+          ? (swappedLayer ?? partLayerObjs.find((l) => l.visible !== false) ?? partLayerObjs[0])?.id
+          : undefined
+      const defaultTitle = `Bộ phận: ${part.title}`
+
+      if (!primaryChild) {
+        const childId = `v2-partchild-${instId}-${part.id}`
+        const tStart = r2(hubNode.params?.timeStart ?? clusterNode.params?.timeStart ?? 0)
+        const tEnd = r2(hubNode.params?.timeEnd ?? clusterNode.params?.timeEnd ?? compDur)
+        const inheritedVariant =
+          hubNode.params?.swapVariant && part.layerIds.includes(hubNode.params.swapVariant)
+            ? hubNode.params.swapVariant
+            : visVariant
+        const newChild: WorkflowNode = {
+          id: childId,
+          type: 'layer_assembly',
+          title: defaultTitle,
+          enabled: true,
+          position: { x: WF_V2_COL_X.LOGIC + 356, y: hubNode.position.y + idx * 84 },
+          preset: 'composite_part_swap',
+          aiAgentRole: 'AssemblyRigAgent',
+          aiDirective: `Điều khiển bộ phận "${part.title}" (${part.layerIds.length} mảnh) theo mốc giây.`,
+          params: {
+            shotId: clusterNode.params?.shotId,
+            logicCategory: 'part_swap',
+            isPartChild: true,
+            partGroupId: part.id,
+            partGroupTitle: part.title,
+            partIcon: part.icon,
+            instanceId: instId,
+            compositeId: clusterNode.params?.compositeId ?? rootLayer.composite?.compositeId,
+            targetMode: 'custom',
+            targetLayerIds: [...part.layerIds],
+            sharedLayerNodeIds: [hubNode.id],
+            requireLayerConnection: true,
+            hierarchyParentNodeId: hubNode.id,
+            swapMode: part.id === 'face' ? 'expression' : 'part_variant',
+            swapVariant: inheritedVariant,
+            partActionMode: part.layerIds.length > 1 ? 'variant' : 'pose',
+            timeStart: tStart,
+            timeEnd: tEnd
+          }
+        }
+        added.push(newChild)
+        addedEdges.push({
+          id: `e-${hubNode.id}-${childId}`,
+          fromNode: hubNode.id,
+          fromPort: 'layers_tree',
+          toNode: childId,
+          toPort: 'layers_tree'
+        })
+      } else {
+        const curTargets = primaryChild.params?.targetLayerIds ?? []
+        const sameTargets =
+          curTargets.length === part.layerIds.length && curTargets.every((id, i) => id === part.layerIds[i])
+        const keepExistingVariant =
+          primaryChild.params?.swapVariant && part.layerIds.includes(primaryChild.params.swapVariant)
+            ? primaryChild.params.swapVariant
+            : undefined
+        const nextVariant = keepExistingVariant ?? visVariant ?? primaryChild.params?.swapVariant
+        const needsUpdate =
+          !sameTargets ||
+          primaryChild.params?.partIcon !== part.icon ||
+          primaryChild.params?.partGroupTitle !== part.title ||
+          (part.layerIds.length > 1 && primaryChild.params?.swapVariant !== nextVariant)
+        if (needsUpdate) {
+          replaced.set(primaryChild.id, {
+            ...primaryChild,
+            params: {
+              ...primaryChild.params,
+              partGroupTitle: part.title,
+              partIcon: part.icon,
+              targetLayerIds: [...part.layerIds],
+              swapVariant: nextVariant
+            }
+          })
+        }
+        const edgeId = `e-${hubNode.id}-${primaryChild.id}`
+        if (!edges.some((e) => e.fromNode === hubNode.id && e.toNode === primaryChild.id)) {
+          addedEdges.push({
+            id: edgeId,
+            fromNode: hubNode.id,
+            fromPort: 'layers_tree',
+            toNode: primaryChild.id,
+            toPort: 'layers_tree'
+          })
+        }
+      }
+    }
+  }
+
+  if (replaced.size === 0 && added.length === 0 && addedEdges.length === 0 && removedIds.size === 0) {
+    return unchangedSoFar ? { nodes, edges } : { nodes, edges }
+  }
+  return {
+    nodes: [...nodes.filter((n) => !removedIds.has(n.id)).map((n) => replaced.get(n.id) ?? n), ...added],
+    edges: [...edges.filter((e) => !removedIds.has(e.fromNode) && !removedIds.has(e.toNode)), ...addedEdges]
+  }
 }

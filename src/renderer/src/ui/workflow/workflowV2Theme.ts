@@ -20,16 +20,17 @@ export const WORKFLOW_V2_SPAWN_CATALOG = WORKFLOW_V2_LOGIC_CATEGORIES
 
 const LOGIC_THEMES: Record<string, WorkflowV2NodeTheme> = {
   cluster_lock: { badge: 'KHOÁ CỤM', icon: '🔒', accent: '#0ea5e9', portIn: 'layers_tree', portOut: 'layers_tree', levelClass: 'level-logic is-cluster-lock' },
-  part_swap: { badge: 'THAY BỘ PHẬN', icon: '🧩', accent: '#06b6d4', portIn: 'layers_tree', portOut: 'vfx_stage', levelClass: 'level-logic' },
+  part_swap: { badge: 'BỘ PHẬN', icon: '🧩', accent: '#06b6d4', portIn: 'layers_tree', portOut: 'vfx_stage', levelClass: 'level-logic' },
+  rig_bone: { badge: 'GẮN XƯƠNG', icon: '🦴', accent: '#f59e0b', portIn: 'layers_tree', portOut: 'motion_stream', levelClass: 'level-logic' },
   material: { badge: 'VẬT LIỆU', icon: '🏷️', accent: '#f97316', portIn: 'layers_tree', portOut: 'vfx_stage', levelClass: 'level-logic' },
   collision: { badge: 'VA CHẠM', icon: '💥', accent: '#f43f5e', portIn: 'layers_tree', portOut: 'vfx_stage', levelClass: 'level-logic' },
   light: { badge: 'ÁNH SÁNG', icon: '💡', accent: '#f59e0b', portIn: 'layers_tree', portOut: 'vfx_stage', levelClass: 'level-logic' },
   cave: { badge: 'HANG ĐỘNG', icon: '🕳️', accent: '#14b8a6', portIn: 'layers_tree', portOut: 'vfx_stage', levelClass: 'level-logic' },
   fx: { badge: 'HIỆU ỨNG', icon: '✨', accent: '#a855f7', portIn: 'layers_tree', portOut: 'vfx_stage', levelClass: 'level-logic' },
-  anim_fx: { badge: 'HOẠT ẢNH FX', icon: '🎞️', accent: '#e11d48', portIn: 'layers_tree', portOut: 'motion_stream', levelClass: 'level-logic' },
+  anim_fx: { badge: 'ANIMATION', icon: '🎞️', accent: '#e11d48', portIn: 'layers_tree', portOut: 'motion_stream', levelClass: 'level-logic' },
   audio: { badge: 'ÂM THANH', icon: '🔊', accent: '#ec4899', portIn: 'layers_tree', portOut: 'audio_mix', levelClass: 'level-logic' },
   camera: { badge: 'CAMERA 3D', icon: '🎥', accent: '#0284c7', portIn: 'scene_ctx', portOut: 'camera_cut', levelClass: 'level-logic is-cam-parent' },
-  action: { badge: 'HÀNH ĐỘNG', icon: '🏃', accent: '#10b981', portIn: 'layers_tree', portOut: 'motion_stream', levelClass: 'level-logic' }
+  action: { badge: 'MOTION', icon: '🏃', accent: '#10b981', portIn: 'layers_tree', portOut: 'motion_stream', levelClass: 'level-logic' }
 }
 
 const STEP_CIRCLES = ['①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩']
@@ -56,7 +57,7 @@ export type WorkflowV2NodeLevel = 'root' | 'group' | 'layer' | 'logic'
 export function resolveV2NodeLevel(node: WorkflowNode): WorkflowV2NodeLevel {
   if (node.type === 'scene_shot') return 'root'
   if (node.params?.groupKind) return 'group'
-  if (node.type === 'layer_assembly') return 'layer'
+  if (node.type === 'layer_assembly' && !node.params?.logicCategory) return 'layer'
   return 'logic'
 }
 
@@ -114,10 +115,35 @@ export function resolveV2NodeTheme(node: WorkflowNode): WorkflowV2NodeTheme {
       levelClass: 'level-logic is-cluster-lock'
     }
   }
+  if (cat === 'part_swap') {
+    if (node.params?.isPartHub) {
+      return {
+        badge: 'CỤM BỘ PHẬN',
+        icon: '🧩',
+        accent: '#06b6d4',
+        portIn: 'layers_tree',
+        portOut: 'layers_tree',
+        levelClass: 'level-logic is-part-hub'
+      }
+    }
+    if (node.params?.isPartChild) {
+      return {
+        badge: 'BỘ PHẬN CON',
+        icon: node.params?.partIcon || '🧩',
+        accent: '#22d3ee',
+        portIn: 'layers_tree',
+        portOut: 'vfx_stage',
+        levelClass: 'level-logic is-part-child'
+      }
+    }
+  }
   return LOGIC_THEMES[cat] ?? LOGIC_THEMES.action
 }
 
-/** Tiêu đề hiển thị gọn (bỏ tiền tố loại như "Hành động: ", "Cảnh: "...) */
+/** Tiêu đề hiển thị gọn (bỏ tiền tố loại như "Hành động: ", "Bộ phận: ", "[Tên Cụm] " và icon trùng...) */
 export function cleanV2NodeTitle(title: string): string {
-  return title.replace(/^(Hành động|Hoạt ảnh FX|Hoạt ảnh|Thay bộ phận|Khoá cụm|Khoá khối 3D|Vật liệu|Va chạm|Ánh sáng|Hang động|Hiệu ứng|Âm thanh|Cảnh|Camera):\s*/i, '')
+  return title
+    .replace(/^(Hành động|Motion|Hoạt ảnh Xương|Hoạt ảnh FX|Hoạt ảnh|Animation|Thay bộ phận|Bộ phận|Gắn xương|Khoá cụm|Khoá khối 3D|Vật liệu|Va chạm|Ánh sáng|Hang động|Hiệu ứng|Âm thanh|Cảnh|Camera):\s*/i, '')
+    .replace(/^\[[^\]]+\]\s+/, '')
+    .replace(/^[\p{Extended_Pictographic}\u2600-\u27BF\uFE0F]+\s*/u, '')
 }

@@ -687,3 +687,39 @@
   background: var(--bg-0);
 }
 
+/* ------------------------------------------------------------------ Nút Ngắt / Xoá liên kết Line trực tiếp trên dây SVG */
+.wf-v2-edge-group.is-disabled .wf-v2-edge-fg {
+  opacity: 0.45;
+  stroke-dasharray: 5 5;
+}
+.wf-v2-edge-ctrl {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.14s ease;
+}
+.wf-v2-edge-ctrl.always-show,
+.wf-v2-edge-group:hover .wf-v2-edge-ctrl,
+.wf-v2-edge-group.highlighted .wf-v2-edge-ctrl {
+  opacity: 1;
+  pointer-events: auto;
+}
+.wf-v2-edge-ctrl-bg {
+  fill: var(--bg-1);
+  stroke: var(--line);
+  stroke-width: 1;
+}
+.wf-v2-edge-ctrl-btn {
+  cursor: pointer;
+}
+.wf-v2-edge-ctrl-text {
+  font-size: 9.5px;
+  font-weight: 700;
+  fill: var(--text);
+  user-select: none;
+}
+.wf-v2-edge-ctrl-btn.danger:hover .wf-v2-edge-ctrl-text {
+  fill: #ef4444;
+}
+.wf-v2-edge-ctrl-btn.is-off .wf-v2-edge-ctrl-text {
+  fill: #f59e0b;
+}

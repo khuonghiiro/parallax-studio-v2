@@ -54,13 +54,35 @@ export function summarizeV2Node(node: WorkflowNode, childCount: number): string 
   switch (resolveV2LogicCategory(node)) {
     case 'cluster_lock': {
       const locked = node.enabled !== false && p.lockedGroup !== false
-      return `${p.childLayerCount ?? shared} mảnh · ${locked ? 'Đang khoá' : 'Đang mở'}`
+      const totalCnt = p.childLayerCount ?? shared
+      const lockedCnt = p.targetLayerIds?.length ?? shared
+      return `${lockedCnt}/${totalCnt} khoá · ${locked ? 'Đang khoá' : 'Đang mở'}`
     }
     case 'part_swap': {
-      if (p.swapMode === 'toggle_part') return `Bật/Tắt mảnh${sharedTag}`
+      if (p.isPartHub) {
+        return `${p.childLayerCount ?? childCount} node con bộ phận`
+      }
+      if (p.isPartChild) {
+        const cnt = p.targetLayerIds?.length ?? 1
+        if (Math.abs(p.partRotDeg ?? 0) >= 1 || Math.abs(p.partOffsetX ?? 0) >= 1 || Math.abs(p.partOffsetY ?? 0) >= 1) {
+          return `Xoay ${p.partRotDeg ?? 0}° · ${cnt} mảnh`
+        }
+        return `${cnt} mảnh · ${node.enabled ? 'Đang bật' : 'Đã tắt'}`
+      }
+      if (p.partGroupTitle) return `${p.partGroupTitle}${sharedTag}`
+      if (p.swapMode === 'toggle_part') return `Bật/Tắt bộ phận${sharedTag}`
       if (p.swapMode === 'replace_template') return `Đổi cụm 2.5D`
-      if (p.swapMode === 'replace_asset') return `Thay ảnh mảnh`
-      return `Đổi biểu cảm${sharedTag}`
+      if (p.swapMode === 'replace_asset') return `Thay ảnh bộ phận`
+      return `Biến thể bộ phận${sharedTag}`
+    }
+    case 'rig_bone': {
+      const modeLabel =
+        p.rigBonePreset === 'mixamo_12'
+          ? '12 mốc Mixamo'
+          : p.rigBonePreset === 'chain_3'
+            ? '3 khớp Chuỗi'
+            : '15 khớp 2.5D'
+      return `${modeLabel}${p.rigSoftBinding !== false ? ' · Uốn dẻo' : ''}`
     }
     case 'material': {
       const opt = WORKFLOW_V2_MATERIAL_OPTIONS.find((m) => m.id === p.materialTag)
@@ -72,9 +94,15 @@ export function summarizeV2Node(node: WorkflowNode, childCount: number): string 
       return `${shared} layer · Lực ${pct(p.collisionForce, opt?.defaultForce ?? 1.2)}`
     }
     case 'action':
+      if (p.customMotionPath && p.customMotionPath.length >= 2) {
+        return `Quỹ đạo vẽ (${p.customMotionPath.length} mốc)`
+      }
       if (p.rigActionPreset && p.rigActionPreset !== 'none') return `Xương: ${p.rigActionPreset}${sharedTag}`
       return `Biên độ ${pct(p.intensity, 0.65)}${sharedTag}`
     case 'anim_fx': {
+      if (p.rigActionPreset && p.rigActionPreset !== 'none') {
+        return `Clip 2.5D: ${p.rigActionPreset}${sharedTag}`
+      }
       const cnt = p.animFxCount ? `${p.animFxCount} nhịp · ` : ''
       const dur = Math.max(0.1, Number(((p.timeEnd ?? 1) - (p.timeStart ?? 0)).toFixed(1)))
       return `${cnt}${dur}s${sharedTag}`
@@ -143,7 +171,7 @@ export const WorkflowNodeCardV2 = memo(function WorkflowNodeCardV2({
   const collapsed = Boolean(node.params?.collapsedGroup)
   const collapsedSubs = Boolean(node.params?.collapsedSubLayers)
   const thumb = resolveThumb(node, project)
-  const hasOutput = level !== 'logic' || cat === 'material' || cat === 'cluster_lock'
+  const hasOutput = level !== 'logic' || cat === 'material' || cat === 'cluster_lock' || Boolean(node.params?.isPartHub)
 
   const socket = (kind: 'in' | 'out'): React.ReactElement => {
     const isOut = kind === 'out'
@@ -220,18 +248,22 @@ export const WorkflowNodeCardV2 = memo(function WorkflowNodeCardV2({
           <span className="wf-v2-card-title" title={node.title}>{cleanV2NodeTitle(node.title)}</span>
         </div>
         <div className="wf-v2-card-actions" onPointerDown={(e) => e.stopPropagation()}>
-          {(level === 'group' || (node.type === 'camera_director' && !node.params?.isCameraWaypoint)) && (
+          {(level === 'group' || Boolean(node.params?.isPartHub) || (node.type === 'camera_director' && !node.params?.isCameraWaypoint)) && (
             <button
               type="button"
               className={`wf-v2-icon-btn${collapsed ? ' collapsed' : ''}`}
               title={
-                node.type === 'camera_director'
+                node.params?.isPartHub
                   ? collapsed
-                    ? 'Mở rộng các cảnh con lộ trình quay'
-                    : 'Thu gọn các cảnh con lộ trình quay'
-                  : collapsed
-                    ? 'Mở rộng các Layer trong nhóm'
-                    : 'Thu gọn nhóm'
+                    ? 'Bung các Node con Bộ phận ra trên sơ đồ'
+                    : 'Thu gọn các Node con Bộ phận'
+                  : node.type === 'camera_director'
+                    ? collapsed
+                      ? 'Mở rộng các cảnh con lộ trình quay'
+                      : 'Thu gọn các cảnh con lộ trình quay'
+                    : collapsed
+                      ? 'Mở rộng các Layer trong nhóm'
+                      : 'Thu gọn nhóm'
               }
               onClick={() => onUpdateParams(node.id, { collapsedGroup: !collapsed })}
             >

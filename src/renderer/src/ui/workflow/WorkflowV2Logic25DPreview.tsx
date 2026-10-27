@@ -27,6 +27,12 @@ import {
 } from '../../project/workflowV2Engine'
 import { useEditor } from '../../store/editor'
 import { VirtualLightInteractivePad } from '../inspector/sections/VirtualLightInteractivePad'
+import {
+  getCachedAlphaTrim,
+  getCheckerboardPalette,
+  useAlphaTrimmedUrls,
+  usePreviewCheckerTheme
+} from './alphaTrimmedPreview'
 import { resolveV2LogicCategory } from './workflowV2Theme'
 import '../../styles/virtualLightInspector.css'
 
@@ -87,11 +93,32 @@ export const WorkflowV2Logic25DPreview: React.FC<WorkflowV2Logic25DPreviewProps>
     project.layers.find((l) => targetIds.includes(l.id))
 
   const stageRef = useRef<HTMLDivElement | null>(null)
+  const [stageSize, setStageSize] = useState<{ w: number; h: number }>({ w: 288, h: 176 })
   const [draggingUV, setDraggingUV] = useState(false)
   const [clusterDataUrl, setClusterDataUrl] = useState<string | null>(null)
+  const [checkerTheme, toggleCheckerTheme] = usePreviewCheckerTheme()
+  const palette = getCheckerboardPalette(checkerTheme)
   const [, setAssetTick] = useState(0)
 
   useEffect(() => assetStore.subscribe(() => setAssetTick((n) => n + 1)), [])
+
+  useEffect(() => {
+    const el = stageRef.current
+    if (!el) return
+    const updateSize = (): void => {
+      const rect = el.getBoundingClientRect()
+      if (rect.width > 20 && rect.height > 20) {
+        setStageSize({ w: Math.round(rect.width), h: Math.round(rect.height) })
+      }
+    }
+    updateSize()
+    if (typeof ResizeObserver !== 'undefined') {
+      const ro = new ResizeObserver(updateSize)
+      ro.observe(el)
+      return () => ro.disconnect()
+    }
+    return undefined
+  }, [open, cat])
 
   const clusterInstId =
     node.params?.instanceId ??
@@ -110,6 +137,12 @@ export const WorkflowV2Logic25DPreview: React.FC<WorkflowV2Logic25DPreviewProps>
   const tStart = node.params?.timeStart ?? 0
   const tEnd = node.params?.timeEnd ?? Math.max(1, tStart + 1)
   const previewTime = currentTime > tStart + 0.02 && currentTime <= tEnd ? currentTime : tStart + (tEnd - tStart) * 0.45
+
+  const rawMemberUrls = useMemo(() => {
+    const list = clusterMembers.length > 0 ? clusterMembers : layer ? [layer] : []
+    return list.map((m) => resolveLayerThumbAndSize(m, project).url)
+  }, [clusterMembers, layer, project])
+  const trimmedMap = useAlphaTrimmedUrls(rawMemberUrls)
 
   // Tính bố cục lắp ghép toàn bộ các mảnh con hiển thị trong Cụm 2.5D / 3D
   const assembledCluster = useMemo<{
@@ -141,19 +174,35 @@ export const WorkflowV2Logic25DPreview: React.FC<WorkflowV2Logic25DPreviewProps>
       const scl = evaluate(m.transform.scale, previewTime)
       const rot = evaluate(m.transform.rotation, previewTime)
       const op = evaluate(m.transform.opacity, previewTime)
-      const w = Math.max(16, rawW * Math.abs(scl[0] || 1))
-      const h = Math.max(16, rawH * Math.abs(scl[1] || 1))
+      const baseScl = m.transform.scale.value
+      const sx =
+        Math.abs(scl[0]) >= 0.08
+          ? Math.abs(scl[0])
+          : Math.abs(baseScl[0]) >= 0.08
+            ? Math.abs(baseScl[0])
+            : 1
+      const sy =
+        Math.abs(scl[1]) >= 0.08
+          ? Math.abs(scl[1])
+          : Math.abs(baseScl[1]) >= 0.08
+            ? Math.abs(baseScl[1])
+            : 1
+      const w = Math.max(4, rawW * sx)
+      const h = Math.max(4, rawH * sy)
+      const trim = trimmedMap[url] ?? getCachedAlphaTrim(url)
+      const effW = Math.max(4, (trim ? trim.trimW : rawW) * sx)
+      const effH = Math.max(4, (trim ? trim.trimH : rawH) * sy)
       rawItems.push({
         id: m.id,
         name: m.name,
-        url,
-        cx: pos[0],
-        cy: -pos[1],
-        w,
-        h,
+        url: trim ? trim.croppedUrl : url,
+        cx: pos[0] + (trim ? trim.offsetRx * w : 0),
+        cy: -pos[1] + (trim ? trim.offsetRy * h : 0),
+        w: effW,
+        h: effH,
         z: pos[2] ?? 0,
         rot: rot[2] ?? 0,
-        op: clamp(op, 0.05, 1)
+        op: op <= 0.05 ? 0.85 : clamp(op, 0.25, 1)
       })
     }
     if (rawItems.length === 0) return null
@@ -187,7 +236,7 @@ export const WorkflowV2Logic25DPreview: React.FC<WorkflowV2Logic25DPreviewProps>
     }))
 
     return { parts, unionW: Math.round(unionW), unionH: Math.round(unionH) }
-  }, [showFullCluster, clusterMembers, project, previewTime])
+  }, [showFullCluster, clusterMembers, project, previewTime, trimmedMap])
 
   // Ghép ảnh tổng hợp cả cụm trên offscreen canvas cho VirtualLightInteractivePad (Light / Cave)
   useEffect(() => {
@@ -247,19 +296,22 @@ export const WorkflowV2Logic25DPreview: React.FC<WorkflowV2Logic25DPreviewProps>
     }
   }, [open, cat, assembledCluster])
 
+  const effectiveLayerIds = useMemo(() => {
+    if (showFullCluster && clusterMembers.length > 1) return clusterMembers.map((m) => m.id)
+    if (targetIds.length) return targetIds
+    return layer ? [layer.id] : []
+  }, [showFullCluster, clusterMembers, targetIds, layer])
+
   if (!layer) return null
 
-  const { url: singleThumbUrl, w: singleW, h: singleH } = resolveLayerThumbAndSize(layer, project)
+  const { url: rawSingleThumbUrl, w: singleW, h: singleH } = resolveLayerThumbAndSize(layer, project)
+  const singleTrim = rawSingleThumbUrl ? (trimmedMap[rawSingleThumbUrl] ?? getCachedAlphaTrim(rawSingleThumbUrl)) : null
+  const singleThumbUrl = singleTrim ? singleTrim.croppedUrl : rawSingleThumbUrl
   const thumbUrl = showFullCluster && clusterDataUrl ? clusterDataUrl : singleThumbUrl
   const layerSize: [number, number] =
     showFullCluster && assembledCluster
       ? [assembledCluster.unionW, assembledCluster.unionH]
-      : [singleW, singleH]
-
-  const effectiveLayerIds = useMemo(() => {
-    if (showFullCluster && clusterMembers.length > 1) return clusterMembers.map((m) => m.id)
-    return targetIds.length ? targetIds : [layer.id]
-  }, [showFullCluster, clusterMembers, targetIds, layer.id])
+      : [singleTrim ? singleTrim.trimW : singleW, singleTrim ? singleTrim.trimH : singleH]
 
   const displayTargetTitle = showFullCluster && clusterRoot
     ? `${getClusterDisplayName(clusterRoot)} (${clusterMembers.length} mảnh)`
@@ -447,7 +499,15 @@ export const WorkflowV2Logic25DPreview: React.FC<WorkflowV2Logic25DPreviewProps>
             <div className="vl-pad-card">
               <div className="vl-pad-header">
                 <span className="vl-pad-title">🎯 Khung Chỉnh 2.5D · {displayTargetTitle}</span>
-                <div className="vl-pad-badges">
+                <div className="vl-pad-badges" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <button
+                    type="button"
+                    className="wf-v2-mini-btn"
+                    title="Đổi nền Caro Trắng / Đen để tránh trùng màu với pixel của Layer"
+                    onClick={toggleCheckerTheme}
+                  >
+                    {checkerTheme === 'light' ? '☀️ Caro Trắng' : '🌙 Caro Đen'}
+                  </button>
                   <span className="vl-badge-light">
                     {Math.round((node.params?.intensity ?? 1) * 100)}%
                   </span>
@@ -457,10 +517,63 @@ export const WorkflowV2Logic25DPreview: React.FC<WorkflowV2Logic25DPreviewProps>
               <div
                 ref={stageRef}
                 className="vl-pad-stage"
+                style={{ background: palette.cssBackground }}
                 onPointerDown={handleStageDrag}
                 title="Kéo tâm vùng tác động 2.5D trên Cụm / Layer"
               >
                 {showFullCluster && assembledCluster && assembledCluster.parts.length > 1 ? (
+                  (() => {
+                    const availW = Math.max(80, stageSize.w * 0.88)
+                    const availH = Math.max(80, stageSize.h * 0.88)
+                    const fitScale = Math.min(
+                      availW / Math.max(1, assembledCluster.unionW),
+                      availH / Math.max(1, assembledCluster.unionH)
+                    )
+                    const boxW = Math.max(24, Math.round(assembledCluster.unionW * fitScale))
+                    const boxH = Math.max(24, Math.round(assembledCluster.unionH * fitScale))
+                    return (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          inset: 0,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          pointerEvents: 'none',
+                          filter: glowOn ? `drop-shadow(0 0 10px ${glowColor}) drop-shadow(0 0 20px ${glowColor})` : undefined
+                        }}
+                      >
+                        <div
+                          style={{
+                            position: 'relative',
+                            width: `${boxW}px`,
+                            height: `${boxH}px`,
+                            flexShrink: 0
+                          }}
+                        >
+                          {assembledCluster.parts.map((part) => (
+                            <img
+                              key={part.id}
+                              src={part.url}
+                              alt={part.name}
+                              draggable={false}
+                              style={{
+                                position: 'absolute',
+                                left: `${part.leftPct}%`,
+                                top: `${part.topPct}%`,
+                                width: `${part.widthPct}%`,
+                                height: `${part.heightPct}%`,
+                                objectFit: 'contain',
+                                opacity: part.opacity,
+                                transform: Math.abs(part.rotDeg) > 0.1 ? `rotate(${part.rotDeg}deg)` : undefined
+                              }}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  })()
+                ) : (
                   <div
                     style={{
                       position: 'absolute',
@@ -469,53 +582,8 @@ export const WorkflowV2Logic25DPreview: React.FC<WorkflowV2Logic25DPreviewProps>
                       alignItems: 'center',
                       justifyContent: 'center',
                       pointerEvents: 'none',
-                      filter: glowOn ? `drop-shadow(0 0 10px ${glowColor}) drop-shadow(0 0 20px ${glowColor})` : undefined
-                    }}
-                  >
-                    <div
-                      style={{
-                        position: 'relative',
-                        width:
-                          assembledCluster.unionW >= assembledCluster.unionH
-                            ? '100%'
-                            : `${Math.round((assembledCluster.unionW / assembledCluster.unionH) * 100)}%`,
-                        height:
-                          assembledCluster.unionH >= assembledCluster.unionW
-                            ? '100%'
-                            : `${Math.round((assembledCluster.unionH / assembledCluster.unionW) * 100)}%`
-                      }}
-                    >
-                      {assembledCluster.parts.map((part) => (
-                        <img
-                          key={part.id}
-                          src={part.url}
-                          alt={part.name}
-                          draggable={false}
-                          style={{
-                            position: 'absolute',
-                            left: `${part.leftPct}%`,
-                            top: `${part.topPct}%`,
-                            width: `${part.widthPct}%`,
-                            height: `${part.heightPct}%`,
-                            objectFit: 'fill',
-                            opacity: part.opacity,
-                            transform: Math.abs(part.rotDeg) > 0.1 ? `rotate(${part.rotDeg}deg)` : undefined
-                          }}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      inset: '10%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      pointerEvents: 'none',
-                      opacity: clamp(evalOpacity, 0.15, 1),
-                      transform: `scale(${clamp(evalScale[0] || 1, 0.4, 1.45).toFixed(3)}, ${clamp(evalScale[1] || 1, 0.4, 1.45).toFixed(3)})`,
+                      opacity: evalOpacity <= 0.05 ? 0.85 : clamp(evalOpacity, 0.25, 1),
+                      transform: `scale(${clamp(Math.abs(evalScale[0]) >= 0.08 ? Math.abs(evalScale[0]) : 1, 0.75, 1.25).toFixed(3)})`,
                       filter: glowOn ? `drop-shadow(0 0 10px ${glowColor}) drop-shadow(0 0 20px ${glowColor})` : undefined,
                       transition: 'transform 60ms linear'
                     }}
