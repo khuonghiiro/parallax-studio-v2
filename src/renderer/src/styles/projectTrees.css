@@ -1,0 +1,117 @@
+/* Shared visual hierarchy for the Timeline and Workflow project trees. */
+.tl-tree-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 23px;
+  height: 23px;
+  flex-shrink: 0;
+  padding: 0;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  background: var(--bg-2);
+  color: var(--text-dim);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+.tl-tree-action:hover,
+.tl-shot-root .tl-tree-toggle:hover {
+  background: color-mix(in srgb, var(--accent) 15%, var(--bg-3));
+  color: var(--text);
+  border-color: var(--line-focus);
+}
+.tl-tree-action:focus-visible,
+.wf-v2-sidebar button:focus-visible {
+  outline: 2px solid var(--line-focus);
+  outline-offset: -2px;
+}
+.timeline .tl-row.tl-shot-root {
+  background: color-mix(in srgb, var(--c, var(--accent)) 13%, var(--bg-2));
+  border-top: 1px solid color-mix(in srgb, var(--c, var(--accent)) 45%, var(--line));
+  border-bottom: 1px solid var(--line-soft);
+}
+.timeline .tl-row.tl-shot-root.selected {
+  background: color-mix(in srgb, var(--c, var(--accent)) 24%, var(--bg-2));
+}
+.tl-shot-root .tl-row-name-col {
+  box-shadow: inset 3px 0 var(--c, var(--accent));
+}
+.tl-shot-root .tl-name.group { font-weight: 700; color: var(--text); }
+.tl-shot-root .tl-tree-toggle {
+  width: 22px;
+  height: 22px;
+  border: 1px solid color-mix(in srgb, var(--c, var(--accent)) 40%, var(--line));
+  border-radius: var(--radius-sm);
+  background: var(--bg-2);
+  color: var(--text);
+}
+.tl-shot-root .tl-index-col {
+  color: var(--text);
+  font-weight: 800;
+}
+.wf-v2-sidebar .wf-v2-outline { gap: 10px; }
+.wf-v2-sidebar .wf-v2-outline-cluster {
+  margin: 0;
+  padding: 0 0 5px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-md);
+  background: var(--bg-1);
+  overflow: hidden;
+}
+.wf-v2-sidebar .wf-v2-outline-shot {
+  min-height: 32px;
+  gap: 6px;
+  border: 0;
+  border-bottom: 1px solid var(--line-soft);
+  border-radius: 0;
+  box-shadow: inset 3px 0 var(--shot-accent);
+  background: color-mix(in srgb, var(--shot-accent) 12%, var(--bg-2));
+  color: var(--text);
+}
+.wf-v2-sidebar .wf-v2-outline-shot:is(:hover, .active) {
+  background: color-mix(in srgb, var(--shot-accent) 23%, var(--bg-2));
+}
+.wf-v2-shot-marker { color: var(--text-dim); font-size: 14px; }
+.wf-v2-shot-live-label {
+  flex-shrink: 0;
+  padding: 2px 4px;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 8px;
+  font-weight: 600;
+}
+.wf-v2-outline-branch { margin: 4px 5px 0 8px; }
+.wf-v2-sidebar .wf-v2-outline-row.group { min-height: 28px; }
+.wf-v2-sidebar .wf-v2-outline-caret {
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  background: var(--bg-2);
+  color: var(--text-dim);
+  font-size: 13px;
+}
+.wf-v2-outline-children {
+  margin: 2px 0 4px 11px;
+  padding-left: 10px;
+  border-left: 1px solid var(--line);
+}
+.wf-v2-sidebar .wf-v2-outline-row.layer {
+  position: relative;
+  min-height: 27px;
+  padding: 3px 6px;
+}
+.wf-v2-outline-children .layer::before {
+  content: '';
+  position: absolute;
+  left: -11px;
+  top: 50%;
+  width: 9px;
+  border-top: 1px solid var(--line);
+}
+.wf-v2-sidebar .wf-v2-outline-row.active {
+  box-shadow: inset 2px 0 var(--accent);
+  color: var(--text);
+}

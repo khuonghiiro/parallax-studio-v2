@@ -19,6 +19,8 @@ import { TimelineCameraRows } from './timeline/TimelineCameraRows'
 import { useTimelineInteractions } from './timeline/useTimelineInteractions'
 import { WorkflowStudioPanel } from './workflow/WorkflowStudioPanel'
 import { resolveWorkflowV2 } from '../project/workflowV2Rebuild'
+import { useTimelineTree } from './timeline/useTimelineTree'
+import '../styles/projectTrees.css'
 
 const TimelineRulerPlayhead = memo(function TimelineRulerPlayhead({
   x
@@ -64,9 +66,7 @@ export function Timeline() {
     return () => window.clearTimeout(timer)
   }, [project])
 
-  const [expanded, setExpanded] = useState<Set<string>>(new Set())
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
-  const [collapsedClusters, setCollapsedClusters] = useState<Set<string>>(new Set())
+  const { expanded, collapsed, collapsedClusters, toggle, toggleGroup, toggleCluster, expandAll, collapseAll } = useTimelineTree(project)
   const [renaming, setRenaming] = useState<string | null>(null)
   const [zoom, setZoom] = useState<number>(1)
   const [modalTrack, setModalTrack] = useState<AudioTrackItem | null>(null)
@@ -104,17 +104,6 @@ export function Timeline() {
   const tAt = useCallback(
     (px: number): number => ((px - PAD) / (contentW - PAD * 2)) * comp.duration,
     [contentW, comp.duration]
-  )
-
-  const toggle = useCallback(
-    (id: string): void =>
-      setExpanded((s) => {
-        const n = new Set(s)
-        if (n.has(id)) n.delete(id)
-        else n.add(id)
-        return n
-      }),
-    []
   )
 
   const onRowsScroll = (e: React.UIEvent<HTMLDivElement>): void => {
@@ -396,22 +385,6 @@ export function Timeline() {
     }
   }
 
-  const toggleGroup = (id: string): void =>
-    setCollapsed((s) => {
-      const n = new Set(s)
-      if (n.has(id)) n.delete(id)
-      else n.add(id)
-      return n
-    })
-
-  const toggleCluster = (id: string): void =>
-    setCollapsedClusters((s) => {
-      const n = new Set(s)
-      if (n.has(id)) n.delete(id)
-      else n.add(id)
-      return n
-    })
-
   if (timelineTab === 'workflow') {
     return (
       <section
@@ -450,7 +423,12 @@ export function Timeline() {
         <div className="tl-header-row">
           <div className="tl-names-head" style={{ width: nameW }}>
             <span className="tl-names-head-left">
-              <span className="tl-head-col-idx">#</span>
+              <button type="button" id="tl-expand-all" className="tl-tree-action" title="Mở rộng tất cả cây" aria-label="Mở rộng tất cả cây" onClick={expandAll}>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="2" /><path d="M4.5 8h7M8 4.5v7" /></svg>
+              </button>
+              <button type="button" id="tl-collapse-all" className="tl-tree-action" title="Thu gọn tất cả cây" aria-label="Thu gọn tất cả cây" onClick={collapseAll}>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="2" /><path d="M4.5 8h7" /></svg>
+              </button>
               <span>TÊN LAYER / CẢNH</span>
             </span>
             <span className="tl-names-head-meta">
@@ -576,14 +554,14 @@ export function Timeline() {
                 <div key={gid} className="tl-group" style={shot ? ({ ['--c' as string]: shot.color } as React.CSSProperties) : undefined}>
                   {project.shots.length > 0 && (
                     <TimelineRow
-                      className="group"
+                      className="group tl-shot-root"
                       trackWidth={contentW}
                       onTrackPointerDown={handleTrackPointerDown}
                       selected={!!shot && shot.id === selectedShotId}
                       onClick={() => selectShot(shot ? shot.id : null)}
                       name={
                         <div className="tl-name group" id={`tl-group-${gid}`}>
-                          <button className="mini" onClick={(e) => (e.stopPropagation(), toggleGroup(gid))}>
+                          <button type="button" className="mini tl-tree-toggle" aria-expanded={!isCollapsed} title={isCollapsed ? 'Mở cây cảnh' : 'Thu gọn cây cảnh'} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => (e.stopPropagation(), toggleGroup(gid))}>
                             <IconCaret className={`caret${isCollapsed ? '' : ' open'}`} />
                           </button>
                           <span className="tl-index-col">
@@ -639,6 +617,7 @@ export function Timeline() {
                     />
                   )}
                   {shot &&
+                    !isCollapsed &&
                     shotOpen &&
                     SHOT_PROPS.map((p) => (
                       <TimelineRow

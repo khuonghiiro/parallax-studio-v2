@@ -67,9 +67,9 @@ const GroupRows: React.FC<{
 }> = ({ group, layers, selectedNodeId, onSelectNode, onToggleGroup }) => {
   const isCollapsed = Boolean(group.params?.collapsedGroup)
   return (
-    <div role="treeitem" aria-expanded={!isCollapsed}>
+    <div className="wf-v2-outline-branch" role="treeitem" aria-expanded={!isCollapsed}>
       <div className={`wf-v2-outline-row group${selectedNodeId === group.id ? ' active' : ''}`}>
-        <button type="button" className="wf-v2-outline-caret" aria-label={isCollapsed ? 'Mở nhóm' : 'Thu gọn nhóm'} onClick={() => onToggleGroup(group.id, !isCollapsed)}>
+        <button type="button" className="wf-v2-outline-caret" aria-expanded={!isCollapsed} title={isCollapsed ? 'Mở nhóm' : 'Thu gọn nhóm'} aria-label={isCollapsed ? 'Mở nhóm' : 'Thu gọn nhóm'} onClick={() => onToggleGroup(group.id, !isCollapsed)}>
           {isCollapsed ? '▸' : '▾'}
         </button>
         <button type="button" className="wf-v2-outline-name" onClick={() => onSelectNode(group.id)}>
@@ -78,7 +78,7 @@ const GroupRows: React.FC<{
         </button>
         <span className="wf-v2-outline-count">{layers.length}</span>
       </div>
-      {!isCollapsed &&
+      {!isCollapsed && <div className="wf-v2-outline-children" role="group">{
         layers.map((layer) => (
           <button
             key={layer.id}
@@ -89,7 +89,7 @@ const GroupRows: React.FC<{
           >
             <span className="txt">{cleanV2NodeTitle(layer.title)}</span>
           </button>
-        ))}
+        ))}</div>}
     </div>
   )
 }
@@ -111,20 +111,21 @@ export const WorkflowV2Sidebar: React.FC<WorkflowV2SidebarProps> = (props) => {
         <div className="wf-v2-sidebar-content">
           <section className="wf-v2-sidebar-sec">
             <div className="wf-v2-sec-title">Cảnh · Nhóm · Layer</div>
-            <div className="wf-v2-outline" role="tree">
+            <div className="wf-v2-outline" role="tree" aria-label="Cấu trúc dự án">
               {outline.map(({ root, groups }) => {
                 const live = Boolean(root.params?.shotId) && root.params?.shotId === props.activeShotId
                 return (
-                  <div key={root.id} className="wf-v2-outline-cluster">
+                  <div key={root.id} className="wf-v2-outline-cluster" style={{ ['--shot-accent' as string]: project?.shots.find((shot) => shot.id === root.params?.shotId)?.color ?? 'var(--accent)' }}>
                     <button
                       type="button"
                       className={`wf-v2-outline-shot${props.selectedNodeId === root.id ? ' active' : ''}${live ? ' live' : ''}`}
                       onClick={() => props.onFocusShot(root.params?.shotId ?? null, root.id)}
                       title={`${root.title} · ${(root.params?.timeStart ?? 0).toFixed(1)}s – ${(root.params?.timeEnd ?? 0).toFixed(1)}s`}
                     >
-                      {live && <span className="wf-v2-live-dot" aria-hidden="true" />}
+                      <span className="wf-v2-shot-marker" aria-hidden="true">▣</span>
                       <span className="txt">{root.title}</span>
                       <span className="range">{(root.params?.timeStart ?? 0).toFixed(1)}s</span>
+                      {live && <span className="wf-v2-shot-live-label">Đang quay</span>}
                     </button>
                     {groups.map(({ group, layers }) => (
                       <GroupRows key={group.id} group={group} layers={layers} selectedNodeId={props.selectedNodeId} onSelectNode={props.onSelectNode} onToggleGroup={props.onToggleGroup} />
