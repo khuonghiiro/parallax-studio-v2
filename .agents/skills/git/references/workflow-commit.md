@@ -37,7 +37,13 @@ NOTE:
 - Group 4: `code:` → `feat|fix: ...`
 - Group 5: `docs:` → `docs: ...`
 
+## Tool 2.5: Pre-Commit Fullscreen Visual Verification (Parallax Studio V2)
+Before committing, if the live Electron app is running (TCP 9877):
+- Run pnpm verify and unit tests.
+- Capture full-screen app screenshot: pnpm pxs review --view app --out D:/_tmp/pre_commit_fullscreen.png\n- Visually verify: no black screen, no canvas/WebGL crash, no error toast/dialog. Only proceed if clean.
+
 ## Tool 3: Commit
+Write commit message in accented Vietnamese according to Conventional Commits.
 
 **Single:**
 ```bash
