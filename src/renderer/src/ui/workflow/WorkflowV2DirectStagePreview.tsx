@@ -262,7 +262,7 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
         ? (clusterRootLayer ?? st.layers.find((l) => l.id === proj.id))
         : st.layers.find((l) => l.id === proj.id)
       if (!refLayer) return
-      if (!isClusterLockNode) selectLayer(refLayer.id)
+      if (level === 'layer') selectLayer(refLayer.id)
 
       const startX = e.clientX
       const startY = e.clientY

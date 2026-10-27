@@ -49,15 +49,19 @@ export function Timeline() {
   const { comp } = project
 
   // MỘT LOGIC CHUNG: mỗi khi Project đổi (ở Timeline, Inspector, Viewport, MCP...), đồ thị Workflow được suy ra lại
-  // từ dữ liệu thật và ghi vào Project (dữ liệu dẫn xuất → không tạo bước Undo). Chạy ở cả 2 tab Timeline / Workflow.
+  // từ dữ liệu thật và ghi vào Project (dữ liệu dẫn xuất → không tạo bước Undo).
+  // Debounce 90ms khi kéo thanh trượt liên tục để tránh nhân đôi chu kỳ render trên mỗi khung hình.
   useEffect(() => {
-    const current = useEditor.getState().project
-    const next = resolveWorkflowV2(current)
-    if (next !== current.workflow) {
-      useEditor.getState().patchDerived((draft) => {
-        draft.workflow = next
-      })
-    }
+    const timer = window.setTimeout(() => {
+      const current = useEditor.getState().project
+      const next = resolveWorkflowV2(current)
+      if (next !== current.workflow) {
+        useEditor.getState().patchDerived((draft) => {
+          draft.workflow = next
+        })
+      }
+    }, 90)
+    return () => window.clearTimeout(timer)
   }, [project])
 
   const [expanded, setExpanded] = useState<Set<string>>(new Set())

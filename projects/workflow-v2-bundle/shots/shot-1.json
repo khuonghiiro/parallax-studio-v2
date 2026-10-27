@@ -20,7 +20,7 @@
       0
     ],
     "timeStart": 0,
-    "timeEnd": 4.77
+    "timeEnd": 3.1
   },
   "links": {
     "prevShotId": null,
@@ -46,8 +46,8 @@
         "actionMode": "pan",
         "tagLabel": "Khung gốc (Bắt đầu)",
         "timeStart": 0,
-        "timeEnd": 4.7,
-        "stepDuration": 4.7,
+        "timeEnd": 2.2,
+        "stepDuration": 2.2,
         "zoomPct": 100,
         "stageX": 0,
         "stageY": 0,
@@ -64,9 +64,9 @@
         "isSubWaypoint": false,
         "actionMode": "push-in",
         "tagLabel": "Đẩy cận (114%)",
-        "timeStart": 4.7,
+        "timeStart": 2.2,
         "timeEnd": 5,
-        "stepDuration": 0.3,
+        "stepDuration": 2.8,
         "zoomPct": 114,
         "stageX": 60,
         "stageY": 15,
@@ -468,8 +468,8 @@
     {
       "id": "v2-material-layer-s1-fg-flowers",
       "category": "material",
-      "presetId": "v2:material:jelly_slime",
-      "title": "Vật liệu: 🍮 Cao su / Thạch đàn hồi",
+      "presetId": "v2:material:foliage_bush",
+      "title": "Vật liệu: 🍃 Lá cây / Cỏ mềm",
       "enabled": true,
       "timeStart": 0,
       "timeEnd": 5,
@@ -480,9 +480,9 @@
         "Hoa Bồ Công Anh Tiền Cảnh"
       ],
       "params": {
-        "materialTag": "jelly_slime",
-        "materialStiffness": 0.55,
-        "materialBounciness": 1.55,
+        "materialTag": "foliage_bush",
+        "materialStiffness": 0.75,
+        "materialBounciness": 1.1,
         "materialGravity": 0
       }
     }
@@ -500,11 +500,11 @@
         },
         "preset": "deep_parallax_stage",
         "aiAgentRole": "SceneLayoutAgent",
-        "aiDirective": "Cảnh \"#1 Cánh Đồng Gió Mùa\" [0s – 4.77s] điều phối Camera và các nhóm Layer.",
+        "aiDirective": "Cảnh \"#1 Cánh Đồng Gió Mùa\" [0s – 3.1s] điều phối Camera và các nhóm Layer.",
         "params": {
           "shotId": "shot-1",
           "timeStart": 0,
-          "timeEnd": 4.77,
+          "timeEnd": 3.1,
           "childLayerCount": 10
         }
       },
@@ -542,7 +542,7 @@
         },
         "preset": "cinematic_fly_push",
         "aiAgentRole": "CameraDirectorAgent",
-        "aiDirective": "Cảnh con #1 (Khung gốc (Bắt đầu), Zoom 100%) thuộc \"Cánh Đồng Gió Mùa\" [0s – 4.7s].",
+        "aiDirective": "Cảnh con #1 (Khung gốc (Bắt đầu), Zoom 100%) thuộc \"Cánh Đồng Gió Mùa\" [0s – 2.2s].",
         "params": {
           "shotId": "shot-1",
           "logicCategory": "camera",
@@ -562,9 +562,9 @@
           "camPitch": 0,
           "camRoll": 0,
           "camEase": "easeInOut",
-          "camStepDuration": 4.7,
+          "camStepDuration": 2.2,
           "timeStart": 0,
-          "timeEnd": 4.7,
+          "timeEnd": 2.2,
           "hierarchyParentNodeId": "v2-camera-shot-1"
         }
       },
@@ -579,7 +579,7 @@
         },
         "preset": "cinematic_fly_push",
         "aiAgentRole": "CameraDirectorAgent",
-        "aiDirective": "Cảnh con #2 (Đẩy cận (114%), Zoom 114%) thuộc \"Cánh Đồng Gió Mùa\" [4.7s – 5s].",
+        "aiDirective": "Cảnh con #2 (Đẩy cận (114%), Zoom 114%) thuộc \"Cánh Đồng Gió Mùa\" [2.2s – 5s].",
         "params": {
           "shotId": "shot-1",
           "logicCategory": "camera",
@@ -599,8 +599,8 @@
           "camPitch": 0,
           "camRoll": 0,
           "camEase": "easeInOut",
-          "camStepDuration": 0.3,
-          "timeStart": 4.7,
+          "camStepDuration": 2.8,
+          "timeStart": 2.2,
           "timeEnd": 5,
           "hierarchyParentNodeId": "v2-camera-shot-1"
         }
@@ -1252,7 +1252,7 @@
       {
         "id": "v2-material-layer-s1-fg-flowers",
         "type": "physics_fx",
-        "title": "Vật liệu: 🍮 Cao su / Thạch đàn hồi",
+        "title": "Vật liệu: 🍃 Lá cây / Cỏ mềm",
         "enabled": true,
         "position": {
           "x": 1116,
@@ -1260,7 +1260,7 @@
         },
         "preset": "rim_glow_particles",
         "aiAgentRole": "PhysicsLightFxAgent",
-        "aiDirective": "Vật liệu: 🍮 Cao su / Thạch đàn hồi cho \"Hoa Bồ Công Anh Tiền Cảnh\".",
+        "aiDirective": "Vật liệu: 🍃 Lá cây / Cỏ mềm cho \"Hoa Bồ Công Anh Tiền Cảnh\".",
         "params": {
           "shotId": "shot-1",
           "logicCategory": "material",
@@ -1275,11 +1275,11 @@
           "timeStart": 0,
           "timeEnd": 5,
           "hierarchyParentNodeId": "v2-layer-layer-s1-fg-flowers",
-          "materialTag": "jelly_slime",
-          "materialStiffness": 0.55,
-          "materialBounciness": 1.55,
+          "materialTag": "foliage_bush",
+          "materialStiffness": 0.75,
+          "materialBounciness": 1.1,
           "materialGravity": 0,
-          "intensity": 1.55
+          "intensity": 1.1
         }
       }
     ],

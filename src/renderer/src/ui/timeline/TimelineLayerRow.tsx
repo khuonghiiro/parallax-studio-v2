@@ -419,7 +419,7 @@ function TimelineLayerRowComponent({
                   <span className="bar-span">{(layer.outPoint - layer.inPoint).toFixed(1)}s</span>
                   {logicBadges.length > 0 && (
                     <span className="tl-bar-logic-badges">
-                      {logicBadges.slice(0, 4).map((b) => (
+                      {logicBadges.slice(0, 2).map((b) => (
                         <button
                           key={b.id}
                           type="button"
@@ -444,6 +444,17 @@ function TimelineLayerRowComponent({
                           <span className="b-txt">{b.label}</span>
                         </button>
                       ))}
+                      {logicBadges.length > 2 && (
+                        <span
+                          className="tl-bar-logic-more"
+                          title={logicBadges
+                            .slice(2)
+                            .map((b) => `${b.icon} ${b.label}`)
+                            .join(' · ')}
+                        >
+                          +{logicBadges.length - 2}
+                        </span>
+                      )}
                     </span>
                   )}
                 </span>

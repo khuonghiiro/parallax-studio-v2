@@ -35,6 +35,7 @@ export interface WorkflowNodeCardV2Props {
   onUpdateParams: (nodeId: string, patch: Partial<WorkflowNodeParams>, nextTitle?: string) => void
   onStartWireDrag: (e: React.PointerEvent, nodeId: string, port: WorkflowPortKind, isOutput: boolean) => void
   onScrubTime: (t: number) => void
+  onSpawnCameraWaypoint?: (shotId: string, mode: 'pan' | 'zoom-in' | 'zoom-out' | 'hold', fromWaypointTime?: number) => void
 }
 
 const pct = (v: number | undefined, fallback: number): string => `${Math.round((v ?? fallback) * 100)}%`
@@ -163,7 +164,8 @@ export const WorkflowNodeCardV2 = memo(function WorkflowNodeCardV2({
   onDeleteNode,
   onUpdateParams,
   onStartWireDrag,
-  onScrubTime
+  onScrubTime,
+  onSpawnCameraWaypoint
 }: WorkflowNodeCardV2Props) {
   const theme = resolveV2NodeTheme(node)
   const level = resolveV2NodeLevel(node)
@@ -248,6 +250,26 @@ export const WorkflowNodeCardV2 = memo(function WorkflowNodeCardV2({
           <span className="wf-v2-card-title" title={node.title}>{cleanV2NodeTitle(node.title)}</span>
         </div>
         <div className="wf-v2-card-actions" onPointerDown={(e) => e.stopPropagation()}>
+          {node.type === 'camera_director' && node.params?.shotId && onSpawnCameraWaypoint && (
+            <button
+              type="button"
+              className="wf-v2-cam-add-btn"
+              title={
+                node.params?.isCameraWaypoint
+                  ? `Chèn thêm mốc thời gian Camera ngay sau mốc #${node.params.waypointLabel ?? (node.params.waypointLocalIndex ?? 0) + 1}`
+                  : 'Thêm mốc thời gian Camera mới vào cảnh này'
+              }
+              onClick={() =>
+                onSpawnCameraWaypoint(
+                  node.params!.shotId!,
+                  'zoom-in',
+                  node.params?.isCameraWaypoint ? node.params.timeStart : undefined
+                )
+              }
+            >
+              + Mốc
+            </button>
+          )}
           {(level === 'group' || Boolean(node.params?.isPartHub) || (node.type === 'camera_director' && !node.params?.isCameraWaypoint)) && (
             <button
               type="button"
@@ -287,20 +309,25 @@ export const WorkflowNodeCardV2 = memo(function WorkflowNodeCardV2({
           {level !== 'root' && (
             <button
               type="button"
-              className={`wf-v2-icon-btn ${node.enabled ? 'on' : 'off'}`}
+              role="switch"
+              aria-checked={node.enabled}
+              className={`wf-v2-toggle-pill ${node.enabled ? 'on' : 'off'}`}
               title={
                 cat === 'cluster_lock'
                   ? node.enabled
                     ? 'Đang khoá cả cụm — nhấn để mở khoá cụm (chỉnh lẻ từng mảnh)'
                     : 'Đang mở khoá cụm — nhấn để khoá cả cụm lại'
                   : node.enabled
-                    ? 'Đang bật — nhấn để tắt'
-                    : 'Đang tắt — nhấn để bật'
+                    ? 'Node đang BẬT — nhấn để TẮT tạm thời'
+                    : 'Node đang TẮT — nhấn để BẬT lại'
               }
               aria-label={node.enabled ? 'Tắt node' : 'Bật node'}
               onClick={() => onToggleEnable(node.id)}
             >
-              {cat === 'cluster_lock' ? (node.enabled ? '🔒' : '🔓') : node.enabled ? '●' : '○'}
+              <span className="wf-v2-toggle-thumb" aria-hidden="true" />
+              <span className="wf-v2-toggle-txt">
+                {cat === 'cluster_lock' ? (node.enabled ? '🔒' : '🔓') : node.enabled ? 'BẬT' : 'TẮT'}
+              </span>
             </button>
           )}
           {isDeletableV2Node(node) && (

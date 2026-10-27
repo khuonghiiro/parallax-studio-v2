@@ -13,7 +13,14 @@ export function resolveActiveLayerForInspector(
   node: WorkflowNode | null,
   selectedLayerId: string | null
 ): Layer | undefined {
-  const fromNodeLayerId = node?.params?.targetLayerIds?.[0] ?? null
+  const instId = node?.params?.instanceId
+  if (instId && node && resolveV2NodeLevel(node) === 'logic') {
+    const clusterRoot =
+      project.layers.find((l) => l.composite?.instanceId === instId && l.composite?.isRoot) ??
+      project.layers.find((l) => l.model3d?.instanceId === instId)
+    if (clusterRoot) return clusterRoot
+  }
+  const fromNodeLayerId = node?.params?.rootLayerId ?? node?.params?.targetLayerIds?.[0] ?? null
   if (fromNodeLayerId) {
     const found = project.layers.find((l) => l.id === fromNodeLayerId)
     if (found) return found

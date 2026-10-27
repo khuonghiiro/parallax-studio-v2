@@ -19,8 +19,8 @@
       0,
       0
     ],
-    "timeStart": 4.93,
-    "timeEnd": 9.77
+    "timeStart": 4.1,
+    "timeEnd": 8.1
   },
   "links": {
     "prevShotId": "shot-1",
@@ -35,7 +35,7 @@
     "enabled": true,
     "preset": "dollyIn",
     "enableDof": false,
-    "timeStart": 4.93,
+    "timeStart": 4.1,
     "timeEnd": 10,
     "waypoints": [
       {
@@ -46,8 +46,8 @@
         "actionMode": "pull-out",
         "tagLabel": "Kéo rộng (100%)",
         "timeStart": 5,
-        "timeEnd": 9.7,
-        "stepDuration": 4.7,
+        "timeEnd": 7.2,
+        "stepDuration": 2.2,
         "zoomPct": 100,
         "stageX": 2458,
         "stageY": 0,
@@ -64,9 +64,9 @@
         "isSubWaypoint": false,
         "actionMode": "push-in",
         "tagLabel": "Đẩy cận (114%)",
-        "timeStart": 9.7,
+        "timeStart": 7.2,
         "timeEnd": 10,
-        "stepDuration": 0.3,
+        "stepDuration": 2.8,
         "zoomPct": 114,
         "stageX": 2533,
         "stageY": 20,
@@ -359,11 +359,11 @@
         },
         "preset": "deep_parallax_stage",
         "aiAgentRole": "SceneLayoutAgent",
-        "aiDirective": "Cảnh \"#2 Phòng Khách Ấm Áp\" [4.93s – 9.77s] điều phối Camera và các nhóm Layer.",
+        "aiDirective": "Cảnh \"#2 Phòng Khách Ấm Áp\" [4.1s – 8.1s] điều phối Camera và các nhóm Layer.",
         "params": {
           "shotId": "shot-2",
-          "timeStart": 4.93,
-          "timeEnd": 9.77,
+          "timeStart": 4.1,
+          "timeEnd": 8.1,
           "childLayerCount": 7
         }
       },
@@ -378,14 +378,14 @@
         },
         "preset": "cinematic_fly_push",
         "aiAgentRole": "CameraDirectorAgent",
-        "aiDirective": "Camera quay cảnh \"Phòng Khách Ấm Áp\" gồm 2 mốc lộ trình trong [4.93s – 10s].",
+        "aiDirective": "Camera quay cảnh \"Phòng Khách Ấm Áp\" gồm 2 mốc lộ trình trong [4.1s – 10s].",
         "params": {
           "shotId": "shot-2",
           "logicCategory": "camera",
           "camPreset": "dollyIn",
           "enableDof": false,
           "childLayerCount": 2,
-          "timeStart": 4.93,
+          "timeStart": 4.1,
           "timeEnd": 10,
           "hierarchyParentNodeId": "v2-root-shot-2"
         }
@@ -401,7 +401,7 @@
         },
         "preset": "cinematic_fly_push",
         "aiAgentRole": "CameraDirectorAgent",
-        "aiDirective": "Cảnh con #3 (Kéo rộng (100%), Zoom 100%) thuộc \"Phòng Khách Ấm Áp\" [5s – 9.7s].",
+        "aiDirective": "Cảnh con #3 (Kéo rộng (100%), Zoom 100%) thuộc \"Phòng Khách Ấm Áp\" [5s – 7.2s].",
         "params": {
           "shotId": "shot-2",
           "logicCategory": "camera",
@@ -421,9 +421,9 @@
           "camPitch": 0,
           "camRoll": 0,
           "camEase": "easeInOut",
-          "camStepDuration": 4.7,
+          "camStepDuration": 2.2,
           "timeStart": 5,
-          "timeEnd": 9.7,
+          "timeEnd": 7.2,
           "hierarchyParentNodeId": "v2-camera-shot-2"
         }
       },
@@ -438,7 +438,7 @@
         },
         "preset": "cinematic_fly_push",
         "aiAgentRole": "CameraDirectorAgent",
-        "aiDirective": "Cảnh con #4 (Đẩy cận (114%), Zoom 114%) thuộc \"Phòng Khách Ấm Áp\" [9.7s – 10s].",
+        "aiDirective": "Cảnh con #4 (Đẩy cận (114%), Zoom 114%) thuộc \"Phòng Khách Ấm Áp\" [7.2s – 10s].",
         "params": {
           "shotId": "shot-2",
           "logicCategory": "camera",
@@ -458,8 +458,8 @@
           "camPitch": 0,
           "camRoll": 0,
           "camEase": "easeInOut",
-          "camStepDuration": 0.3,
-          "timeStart": 9.7,
+          "camStepDuration": 2.8,
+          "timeStart": 7.2,
           "timeEnd": 10,
           "hierarchyParentNodeId": "v2-camera-shot-2"
         }

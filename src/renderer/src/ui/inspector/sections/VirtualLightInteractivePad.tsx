@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import type { DepthPortalConfig, LayerVirtualLight } from '@shared/types'
-import { computeUnified25DLightAtOffset, hexToRgb01 } from '../../../engine/virtualLight'
+import { renderVirtualLightPadFrame } from './virtualLightPadGpu'
 
 interface VirtualLightInteractivePadProps {
   imageUrl?: string | null
@@ -172,123 +172,33 @@ export function VirtualLightInteractivePad({
   const curveU = lightU + Math.cos(curveAngleRad) * sideDistUV
   const curveV = lightV + Math.sin(curveAngleRad) * sideDistUV
 
-  // Synchronized 1:1 Shader Canvas Renderer (Throttled via rAF, 96x56 resolution for 60fps responsiveness)
+  // Synchronized 1:1 GPU WebGL Shader Canvas Renderer (with 2D fallback)
   useEffect(() => {
     let animId: number | null = null
     const canvas = canvasRef.current
     if (!canvas) return
 
     animId = requestAnimationFrame(() => {
-      const ctx = canvas.getContext('2d')
-      if (!ctx) return
-
-      const W = 96
-      const H = 56
-      if (canvas.width !== W) canvas.width = W
-      if (canvas.height !== H) canvas.height = H
-
-      const imgData = ctx.createImageData(W, H)
-      const data = imgData.data
-
-      const [lr, lg, lb] = hexToRgb01(vlight.color || '#ff9d3b')
-      const [sr, sg, sb] = hexToRgb01(portal.shadowTint || '#060812')
-      const intensity = isLightEnabled ? clamp(vlight.intensity ?? 1.2, 0, 3) : 0
-      const intensityReach = 0.65 + Math.pow(Math.max(intensity, 0.05), 0.65) * 0.42
-      const effRadius = Math.max(24, radiusPx * intensityReach)
-      const coneCos =
-        coneDeg >= 355 ? -1 : Math.cos((clamp(coneDeg, 8, 355) * 0.5 * Math.PI) / 180)
-      const bDir: [number, number] = [Math.cos(beamRad), Math.sin(beamRad)]
-      const softness = clamp(vlight.softness ?? 0.68, 0.05, 1)
-      const ambDim = isLightEnabled ? clamp(vlight.ambientDim ?? 0.22, 0, 0.92) : 0
-      const pDark = isPortalEnabled ? clamp(portal.darkness ?? 0.78, 0, 1) : 0
-      const pFeather = clamp(portal.feather ?? 0.55, 0.08, 0.98)
-
-      for (let py = 0; py < H; py++) {
-        const normY = (py + 0.5) / H
-        for (let px = 0; px < W; px++) {
-          const normX = (px + 0.5) / W
-          const [u, v] = padNormToUV(normX, normY)
-          const inLayer = u >= 0 && u <= 1 && v >= 0 && v <= 1
-
-          // Compute cave portal mask inside layer
-          let caveAlpha = 0
-          if (inLayer && pDark > 0.01) {
-            let dx = (u - portalU) / Math.max(0.04, portalRx)
-            const dy = (v - portalV) / Math.max(0.04, portalRy)
-            if (archShape === 'arch') {
-              dx /= 1 - clamp(dy, -0.6, 0.6) * 0.16
-              if (dy < 0) dx *= 0.92
-            }
-            const d = Math.hypot(dx, dy)
-            const innerR = Math.max(0.08, 1 - pFeather * 0.88)
-            if (d < 1.08) {
-              const t = clamp((d - innerR) / Math.max(0.06, 1.05 - innerR), 0, 1)
-              const mask = 1 - t * t * (3 - 2 * t)
-              caveAlpha = mask * pDark
-            }
-          }
-
-          // Compute 1:1 physical 2.5D light at this offset (even outside layer bounds!)
-          let lightR = 0
-          let lightG = 0
-          let lightB = 0
-          let lightA = 0
-          let rescue = 0
-
-          if (intensity > 0.01) {
-            const dxPx = (u - lightU) * worldW
-            const dyPx = (v - lightV) * worldH
-            const evalL = computeUnified25DLightAtOffset(
-              dxPx,
-              dyPx,
-              effRadius,
-              intensity,
-              coneCos,
-              bDir,
-              softness,
-              beamCurvature
-            )
-            const surf = inLayer ? evalL.localLightHalo * 0.48 : 0
-            const air = evalL.localLightHalo * (inLayer ? 0.52 : 0.72)
-            const core = evalL.wickCore * 0.95
-            const totalGlow = clamp(surf + air + core, 0, 1.35)
-            rescue = clamp(evalL.localLightHalo * 0.85 + evalL.wickCore * 1.2, 0, 0.95)
-
-            // Core shifts toward warm white, matching LAYER_FRAG & VOLUMETRIC_LIGHT_FRAG
-            const whiteMix = clamp(evalL.wickCore * 0.72, 0, 0.82)
-            lightR = lr * (1 - whiteMix) + whiteMix
-            lightG = lg * (1 - whiteMix) + whiteMix * 0.98
-            lightB = lb * (1 - whiteMix) + whiteMix * 0.92
-            lightA = clamp(totalGlow * 0.86, 0, 0.94)
-          }
-
-          // Ambient darkening outside beam on layer + cave portal darkness rescued by light
-          const effCaveA = Math.max(0, caveAlpha * (1 - rescue * 0.82))
-          const ambDarkA = inLayer ? Math.max(0, ambDim * (1 - rescue) * 0.62) : 0
-          const darkA = clamp(Math.max(effCaveA, ambDarkA), 0, 0.92)
-
-          // Blend shadow base + additive light plume
-          const outA = clamp(darkA + lightA * (1 - darkA * 0.35), 0, 0.95)
-          let outR = 0
-          let outG = 0
-          let outB = 0
-          if (outA > 0.002) {
-            const darkWeight = (darkA * (1 - lightA * 0.65)) / outA
-            const lightWeight = clamp(1 - darkWeight, 0, 1)
-            outR = sr * darkWeight + lightR * lightWeight
-            outG = sg * darkWeight + lightG * lightWeight
-            outB = sb * darkWeight + lightB * lightWeight
-          }
-
-          const idx = (py * W + px) * 4
-          data[idx] = Math.round(clamp(outR, 0, 1) * 255)
-          data[idx + 1] = Math.round(clamp(outG, 0, 1) * 255)
-          data[idx + 2] = Math.round(clamp(outB, 0, 1) * 255)
-          data[idx + 3] = Math.round(outA * 255)
-        }
-      }
-
-      ctx.putImageData(imgData, 0, 0)
+      renderVirtualLightPadFrame(canvas, {
+        vlight,
+        isLightEnabled,
+        portal,
+        isPortalEnabled,
+        lightU,
+        lightV,
+        coneDeg,
+        beamRad,
+        beamCurvature,
+        radiusPx,
+        portalU,
+        portalV,
+        portalRx,
+        portalRy,
+        archShape,
+        box,
+        worldW,
+        worldH
+      })
     })
 
     return () => {

@@ -369,13 +369,14 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
         {level !== 'root' && (
           <button
             type="button"
-            className={`wf-v2-insp-toggle${node.enabled ? ' on' : ''}`}
+            className={`wf-v2-insp-toggle ${node.enabled ? 'on' : 'off'}`}
             role="switch"
             aria-checked={node.enabled}
-            title={node.enabled ? 'Đang bật — nhấn để tắt' : 'Đang tắt — nhấn để bật'}
+            title={node.enabled ? 'Node đang BẬT — nhấn để TẮT' : 'Node đang TẮT — nhấn để BẬT'}
             onClick={() => props.onToggleEnable(node.id)}
           >
-            <span />
+            <span className="wf-v2-insp-toggle-thumb" aria-hidden="true" />
+            <span className="wf-v2-insp-toggle-txt">{node.enabled ? 'BẬT' : 'TẮT'}</span>
           </button>
         )}
         {isDeletableV2Node(node) && (
@@ -491,6 +492,26 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
                   onClick={() => handleSpawnFollowup(3.0)}
                 >
                   + Chặng tiếp (+3s)
+                </button>
+              )}
+              {node.type === 'camera_director' && node.params?.shotId && props.onSpawnCameraWaypoint && (
+                <button
+                  type="button"
+                  className="wf-v2-time-quick-btn chain-cta"
+                  title={
+                    node.params?.isCameraWaypoint
+                      ? `Chèn thêm mốc thời gian Camera ngay sau mốc #${node.params.waypointLabel ?? (node.params.waypointLocalIndex ?? 0) + 1}`
+                      : 'Thêm mốc thời gian Camera mới vào lộ trình quay của cảnh này'
+                  }
+                  onClick={() =>
+                    props.onSpawnCameraWaypoint!(
+                      node.params!.shotId!,
+                      'zoom-in',
+                      node.params?.isCameraWaypoint ? node.params.timeStart : undefined
+                    )
+                  }
+                >
+                  + Thêm mốc Camera
                 </button>
               )}
             </div>

@@ -312,8 +312,48 @@ function inferNodeCategory(
 }
 
 function getV2LogicDisplayMeta(node: WorkflowNode): { icon: string; shortTitle: string; accent: string } | null {
-  const v2Cat = node.params?.logicCategory
+  const v2Cat = node.params?.logicCategory as string | undefined
   if (!v2Cat) return null
+  if (v2Cat === 'cluster_lock' || node.id.startsWith('v2-lock-')) {
+    return {
+      icon: '🔒',
+      shortTitle: 'Khoá cụm',
+      accent: '#6366f1'
+    }
+  }
+  if (v2Cat === 'part_swap') {
+    if (node.params?.isPartHub) {
+      return {
+        icon: '🧩',
+        shortTitle: 'Bộ phận 2.5D',
+        accent: '#14b8a6'
+      }
+    }
+    if (node.params?.isPartChild) {
+      const pSlot = node.params?.swapSlot || node.params?.partGroupId || ''
+      const tStart =
+        node.params?.timeStart !== undefined ? ` ${Number(node.params.timeStart).toFixed(1)}s` : ''
+      if (pSlot.includes('face') || pSlot.includes('head')) {
+        return {
+          icon: '😊',
+          shortTitle: `Biểu cảm${tStart}`,
+          accent: '#ec4899'
+        }
+      }
+      if (pSlot.includes('arm') || pSlot.includes('hand')) {
+        return {
+          icon: '💪',
+          shortTitle: `Động tác${tStart}`,
+          accent: '#f59e0b'
+        }
+      }
+      return {
+        icon: '🧩',
+        shortTitle: `${node.title.replace(/^Bộ phận:\s*/i, '').split(/[—/]/)[0].trim()}${tStart}`,
+        accent: '#14b8a6'
+      }
+    }
+  }
   if (v2Cat === 'material') {
     const matOpt = WORKFLOW_V2_MATERIAL_OPTIONS.find((m) => m.id === node.params?.materialTag)
     const cleanMat = (matOpt?.shortLabel ?? node.title.replace(/^Vật liệu:\s*/i, '')).replace(
@@ -336,44 +376,57 @@ function getV2LogicDisplayMeta(node: WorkflowNode): { icon: string; shortTitle: 
     }
   }
   if (v2Cat === 'action') {
+    if (node.params?.motionMode === 'bbox' || node.params?.actionPreset === 'bbox_target') {
+      const s = Number(node.params?.timeStart ?? 0).toFixed(1)
+      const e = Number(node.params?.timeEnd ?? Number(s) + 2).toFixed(1)
+      return {
+        icon: '🎯',
+        shortTitle: `Quỹ đạo ${s}–${e}s`,
+        accent: '#10b981'
+      }
+    }
+    const cleanAct = node.title
+      .replace(/^(Hành động|Chuyển động|Motion):\s*/i, '')
+      .replace(/\s*\([^)]*\)/g, '')
+      .trim()
     return {
       icon: '🏃',
-      shortTitle: node.title.replace(/^Hành động:\s*/i, ''),
+      shortTitle: cleanAct,
       accent: '#10b981'
     }
   }
   if (v2Cat === 'anim_fx') {
     return {
       icon: '🎞️',
-      shortTitle: node.title.replace(/^Hoạt ảnh FX:\s*/i, ''),
+      shortTitle: node.title.replace(/^(Hoạt ảnh FX|Hoạt ảnh Xương|Hoạt ảnh):\s*/i, '').trim(),
       accent: '#f59e0b'
     }
   }
   if (v2Cat === 'cave') {
     return {
       icon: '🕳️',
-      shortTitle: node.title.replace(/^Hang động:\s*/i, ''),
+      shortTitle: node.title.replace(/^(Hang động|Cửa sâu):\s*/i, '').trim(),
       accent: '#ec4899'
     }
   }
   if (v2Cat === 'light') {
     return {
       icon: '💡',
-      shortTitle: node.title.replace(/^Ánh sáng:\s*/i, ''),
+      shortTitle: node.title.replace(/^(Ánh sáng|Đèn):\s*/i, '').trim(),
       accent: '#f59e0b'
     }
   }
   if (v2Cat === 'fx') {
     return {
       icon: '✨',
-      shortTitle: node.title.replace(/^Hiệu ứng:\s*/i, ''),
+      shortTitle: node.title.replace(/^(Hiệu ứng|FX):\s*/i, '').trim(),
       accent: '#06b6d4'
     }
   }
   if (v2Cat === 'audio') {
     return {
       icon: '🔊',
-      shortTitle: node.title.replace(/^Âm thanh:\s*/i, ''),
+      shortTitle: node.title.replace(/^Âm thanh:\s*/i, '').trim(),
       accent: '#a855f7'
     }
   }
@@ -409,8 +462,14 @@ export function listTimelineLogicNodes(
     const isV2Logic = Boolean(node.params?.logicCategory)
     const isV1Logic = Boolean(node.params?.logicId)
     if (!isV2Logic && !isV1Logic) return false
-    // Camera mỗi cảnh là cấu trúc của cây (xem ở Workflow), không phải logic gắn Layer — đếm khớp với Workflow
-    if (node.params?.logicCategory === 'camera' && workflow.presetId === 'v2_scene_hierarchy') return false
+    // Camera, Khoá cụm & Hub bộ phận là node cấu trúc trung gian của cây Workflow V2, không phải thẻ hiệu ứng trên Timeline
+    const v2CatStr = node.params?.logicCategory as string | undefined
+    if (
+      workflow.presetId === 'v2_scene_hierarchy' &&
+      (v2CatStr === 'camera' || v2CatStr === 'cluster_lock' || node.params?.isPartHub)
+    ) {
+      return false
+    }
     if (layer) {
       if (isV2Logic) {
         return Boolean(node.params?.targetLayerIds?.includes(layer.id))
@@ -460,17 +519,41 @@ export function getLayerTimelineLogicBadges(
   workflow: WorkflowGraph
 ): LayerTimelineLogicBadge[] {
   const badges: LayerTimelineLogicBadge[] = []
+  const isModel3dRoot = Boolean(
+    layer.model3d &&
+      project.layers.find((l) => l.model3d?.instanceId === layer.model3d?.instanceId)?.id ===
+        layer.id
+  )
+  const isSubMember = Boolean(
+    (layer.composite && !layer.composite.isRoot) || (layer.model3d && !isModel3dRoot)
+  )
+  const isClusterRoot = Boolean(layer.composite?.isRoot || isModel3dRoot)
 
   // 1. Huy hiệu từ các Node Logic trong Workflow (V1 & V2) áp dụng cho Layer này
   const matchedNodes = workflow.nodes.filter((node) => {
-    if (node.params?.logicCategory) {
-      return Boolean(node.params?.targetLayerIds?.includes(layer.id))
+    const v2Cat = node.params?.logicCategory as string | undefined
+    const isClusterLockNode = v2Cat === 'cluster_lock' || node.id.startsWith('v2-lock-')
+    if (v2Cat || isClusterLockNode) {
+      // Ẩn các node cấu trúc trung gian (Khoá cụm / Hub bộ phận) trên thanh Timeline để gọn gàng
+      if (isClusterLockNode || node.params?.isPartHub || v2Cat === 'camera') return false
+      if (!node.params?.targetLayerIds?.includes(layer.id)) return false
+      if (isSubMember) {
+        // Mảnh con chỉ hiển thị node Bộ phận con (Biểu cảm / Động tác) hoặc logic gắn riêng mảnh đó
+        return Boolean(node.params?.isPartChild || node.params?.singleSubLayerOnly)
+      }
+      if (isClusterRoot && node.params?.isPartChild) {
+        // Node bộ phận con đã hiển thị ở dòng mảnh con bên dưới
+        return false
+      }
+      return true
     }
     if (!node.params?.logicId) return false
     return resolveNodeTargetBinding(node, project, workflow).matchesLayer(layer)
   })
 
+  const coveredV2Categories = new Set<string>()
   for (const node of matchedNodes) {
+    if (node.params?.logicCategory) coveredV2Categories.add(node.params.logicCategory)
     const catalogItem = node.params?.logicId
       ? WORKFLOW_LOGIC_NODE_CATALOG.find((item) => item.id === node.params?.logicId)
       : undefined
@@ -494,8 +577,22 @@ export function getLayerTimelineLogicBadges(
     })
   }
 
-  // 2. Huy hiệu từ các Capability Plugins của Layer
+  // 2. Huy hiệu từ các Capability Plugins của Layer (bỏ qua nếu đã có Node Workflow V2 tương ứng để tránh lặp 2 huy hiệu)
   for (const plugin of LAYER_CAPABILITY_PLUGINS) {
+    if (isSubMember && plugin.id === 'cap-billboard') continue
+    if (plugin.id === 'cap-virtual-light' && coveredV2Categories.has('light')) continue
+    if (plugin.id === 'cap-cave-portal' && coveredV2Categories.has('cave')) continue
+    if (
+      plugin.id === 'cap-physics' &&
+      (coveredV2Categories.has('material') || coveredV2Categories.has('collision'))
+    )
+      continue
+    if (plugin.id === 'cap-procedural-motion' && coveredV2Categories.has('action')) continue
+    if (
+      (plugin.id === 'cap-glow' || plugin.id === 'cap-particles') &&
+      coveredV2Categories.has('fx')
+    )
+      continue
     const inspected = plugin.inspect(layer)
     if (inspected) {
       badges.push({

@@ -53,6 +53,7 @@ export interface WorkflowCanvasV2Props {
   onConnectNodes: (fromNode: string, fromPort: WorkflowPortKind, toNode: string, toPort: WorkflowPortKind) => void
   onDisconnectEdge: (edgeId: string) => void
   onToggleEdgeDisable?: (edgeId: string) => void
+  onSpawnCameraWaypoint?: (shotId: string, mode: 'pan' | 'zoom-in' | 'zoom-out' | 'hold', fromWaypointTime?: number) => void
 }
 
 const COLUMN_BANNERS = [
@@ -188,9 +189,12 @@ export const WorkflowCanvasV2: React.FC<WorkflowCanvasV2Props> = (props) => {
     [graph.clusters, vp]
   )
   useCanvasEvents(vp, workflow.id, graph.visibleNodes.length, focusCluster)
-  // Theo dõi cảnh: khi đầu phát chuyển sang cảnh khác, khung nhìn tự di chuyển tới cụm Workflow của cảnh đó
+  // Theo dõi cảnh: khi đang phát video và đầu phát chuyển sang cảnh khác, khung nhìn tự di chuyển tới cụm Workflow của cảnh đó
+  // (không tự nhảy về đầu cụm khi người dùng đang dừng để bấm chọn Node con ở các cột bên phải)
   useEffect(() => {
-    if (props.follow && activeRootId) focusCluster(activeRootId)
+    if (!props.follow || !activeRootId) return
+    if (!props.playing && selectedNodeId && graph.clusterOf.get(selectedNodeId) === activeRootId) return
+    focusCluster(activeRootId)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeRootId, props.follow])
 
@@ -282,6 +286,7 @@ export const WorkflowCanvasV2: React.FC<WorkflowCanvasV2Props> = (props) => {
               onUpdateParams={props.onUpdateNodeParams}
               onStartWireDrag={ix.onStartWireDrag}
               onScrubTime={onSetTime}
+              onSpawnCameraWaypoint={props.onSpawnCameraWaypoint}
             />
           ))}
         </div>

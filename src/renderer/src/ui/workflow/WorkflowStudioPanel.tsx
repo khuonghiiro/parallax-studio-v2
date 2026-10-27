@@ -125,6 +125,7 @@ export const WorkflowStudioPanel: React.FC = () => {
           onConnectNodes={actions.connect}
           onDisconnectEdge={actions.disconnect}
           onToggleEdgeDisable={actions.toggleEdgeDisable}
+          onSpawnCameraWaypoint={actions.spawnCameraWaypoint}
         />
       </div>
     </div>

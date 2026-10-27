@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { useEditor } from '../../store/editor'
 import { useView } from '../../store/view'
 import { computeShotRoute, v2RootId } from '../../project/workflowV2Engine'
@@ -63,7 +63,19 @@ export function useWorkflowV2Controller() {
       const node = workflow.nodes.find((n) => n.id === id)
       if (!node) return
       const level = resolveV2NodeLevel(node)
-      const repLayerId = node.params?.targetLayerIds?.[0] ?? null
+      const instId = node.params?.instanceId
+      const clusterRootLayer =
+        level === 'logic' && instId
+          ? (st.project.layers.find(
+              (l) => l.composite?.instanceId === instId && l.composite?.isRoot
+            ) ?? st.project.layers.find((l) => l.model3d?.instanceId === instId))
+          : undefined
+      const repLayerId =
+        clusterRootLayer?.id ??
+        node.params?.rootLayerId ??
+        node.params?.swapVariant ??
+        node.params?.targetLayerIds?.[0] ??
+        null
       const shotId =
         node.params?.shotId ??
         (repLayerId ? st.project.layers.find((l) => l.id === repLayerId)?.shotId : null) ??
@@ -80,7 +92,9 @@ export function useWorkflowV2Controller() {
       }
 
       if ((level === 'layer' || (level === 'logic' && node.type !== 'camera_director')) && repLayerId) {
-        st.selectLayer(repLayerId)
+        if (st.selectedLayerId !== repLayerId) {
+          st.selectLayer(repLayerId)
+        }
         const shotRange = shotId ? route.ranges.get(shotId) : undefined
         const tStart = node.params?.timeStart ?? shotRange?.start ?? 0
         const tEnd = node.params?.timeEnd ?? shotRange?.end ?? st.project.comp.duration
@@ -179,27 +193,43 @@ export function useWorkflowV2SelectionSync(ctrl: ReturnType<typeof useWorkflowV2
     return () => window.removeEventListener('pxs:select-workflow-v2-node', onSelect)
   }, [activateNode])
 
-  // Chọn Layer ở Timeline / Viewport → chọn Node Layer tương ứng (trừ khi Node hiện tại đã gắn với Layer đó)
+  const lastSyncedLayerIdRef = useRef<string | null>(selectedLayerId)
+  const lastSyncedShotIdRef = useRef<string | null>(selectedShotId)
+
+  // Chọn Layer ở Timeline / Viewport → chọn Node Layer tương ứng (trừ khi Node hiện tại đã gắn với Layer/Cụm đó)
   useEffect(() => {
+    if (selectedLayerId === lastSyncedLayerIdRef.current) return
+    lastSyncedLayerIdRef.current = selectedLayerId
     if (!selectedLayerId) return
-    const curNodeId = useEditor.getState().selectedWorkflowNodeId
+    const st = useEditor.getState()
+    const curNodeId = st.selectedWorkflowNodeId
     const prevNode = curNodeId ? workflow.nodes.find((n) => n.id === curNodeId) : undefined
-    if (prevNode?.params?.targetLayerIds?.includes(selectedLayerId)) return
+    if (prevNode) {
+      if (prevNode.params?.targetLayerIds?.includes(selectedLayerId)) return
+      if (prevNode.params?.rootLayerId === selectedLayerId) return
+      const selLayer = st.project.layers.find((l) => l.id === selectedLayerId)
+      const selInstId = selLayer?.composite?.instanceId ?? selLayer?.model3d?.instanceId
+      if (selInstId && prevNode.params?.instanceId === selInstId) return
+    }
     const node = workflow.nodes.find(
       (n) => resolveV2NodeLevel(n) === 'layer' && n.params?.targetLayerIds?.includes(selectedLayerId)
     )
     if (node) setSelectedNodeId(node.id)
   }, [selectedLayerId, workflow.nodes, setSelectedNodeId])
 
-  // Chọn Cảnh ở Timeline / Shots panel → đồng bộ focusedShotId và chọn Root Cảnh nếu chưa chọn Layer
+  // Chọn Cảnh ở Timeline / Shots panel → chỉ di chuyển khung nhìn khi đổi sang Cảnh khác và chưa focus Node con trong Cảnh đó
   useEffect(() => {
     if (!selectedShotId) return
+    const shotChanged = selectedShotId !== lastSyncedShotIdRef.current
+    lastSyncedShotIdRef.current = selectedShotId
     setFocusedShotId(selectedShotId)
-    window.setTimeout(() => focusWorkflowCluster(v2RootId(selectedShotId)), 60)
-    if (!selectedLayerId) {
-      const curNodeId = useEditor.getState().selectedWorkflowNodeId
-      const prevNode = curNodeId ? workflow.nodes.find((n) => n.id === curNodeId) : undefined
-      if (prevNode?.params?.shotId === selectedShotId) return
+    const curNodeId = useEditor.getState().selectedWorkflowNodeId
+    const prevNode = curNodeId ? workflow.nodes.find((n) => n.id === curNodeId) : undefined
+    const alreadyInShot = prevNode?.params?.shotId === selectedShotId
+    if (shotChanged && !alreadyInShot) {
+      window.setTimeout(() => focusWorkflowCluster(v2RootId(selectedShotId)), 60)
+    }
+    if (!selectedLayerId && !alreadyInShot) {
       const rootNode = workflow.nodes.find((n) => n.id === v2RootId(selectedShotId))
       if (rootNode) setSelectedNodeId(rootNode.id)
     }

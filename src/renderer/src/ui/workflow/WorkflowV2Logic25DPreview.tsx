@@ -252,9 +252,11 @@ export const WorkflowV2Logic25DPreview: React.FC<WorkflowV2Logic25DPreviewProps>
     }))
 
     return { parts, unionW: Math.round(unionW), unionH: Math.round(unionH) }
-  }, [showFullCluster, clusterMembers, clusterFingerprint, previewTime, trimmedMap])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showFullCluster, clusterFingerprint, previewTime, trimmedMap])
 
   // Ghép ảnh tổng hợp cả cụm trên offscreen canvas cho VirtualLightInteractivePad (Light / Cave)
+  // Chỉ chạy lại khi bố cục hình học/tài nguyên cụm thực sự đổi (clusterFingerprint), không chạy lại khi kéo thông số đèn/hang.
   useEffect(() => {
     if (!open || (cat !== 'light' && cat !== 'cave') || !assembledCluster || assembledCluster.parts.length <= 1) {
       setClusterDataUrl(null)
@@ -310,7 +312,8 @@ export const WorkflowV2Logic25DPreview: React.FC<WorkflowV2Logic25DPreviewProps>
     return () => {
       cancelled = true
     }
-  }, [open, cat, assembledCluster])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, cat, clusterFingerprint])
 
   const effectiveLayerIds = useMemo(() => {
     if (showFullCluster && clusterMembers.length > 1) return clusterMembers.map((m) => m.id)
@@ -355,7 +358,12 @@ export const WorkflowV2Logic25DPreview: React.FC<WorkflowV2Logic25DPreviewProps>
     })
   }
 
-  const patchLight = (patch: Partial<LayerVirtualLight>, mergeKey = 'wf-v2-vlight'): void => {
+  const lightRafRef = useRef<number | null>(null)
+  const pendingLightRef = useRef<{ patch: Partial<LayerVirtualLight>; mergeKey: string } | null>(null)
+  const portalRafRef = useRef<number | null>(null)
+  const pendingPortalRef = useRef<{ patch: Partial<DepthPortalConfig>; mergeKey: string } | null>(null)
+
+  const commitLightPatch = (patch: Partial<LayerVirtualLight>, mergeKey: string): void => {
     useEditor.getState().update((d) => {
       const idSet = new Set(effectiveLayerIds)
       for (const l of d.layers) {
@@ -395,7 +403,26 @@ export const WorkflowV2Logic25DPreview: React.FC<WorkflowV2Logic25DPreviewProps>
     }, mergeKey)
   }
 
-  const patchPortal = (patch: Partial<DepthPortalConfig>, mergeKey = 'wf-v2-portal'): void => {
+  const patchLight = (patch: Partial<LayerVirtualLight>, mergeKey = 'wf-v2-vlight'): void => {
+    if (lightRafRef.current === null) {
+      commitLightPatch(patch, mergeKey)
+      lightRafRef.current = requestAnimationFrame(() => {
+        lightRafRef.current = null
+        if (pendingLightRef.current) {
+          const pending = pendingLightRef.current
+          pendingLightRef.current = null
+          commitLightPatch(pending.patch, pending.mergeKey)
+        }
+      })
+    } else {
+      pendingLightRef.current = {
+        patch: { ...(pendingLightRef.current?.patch ?? {}), ...patch },
+        mergeKey
+      }
+    }
+  }
+
+  const commitPortalPatch = (patch: Partial<DepthPortalConfig>, mergeKey: string): void => {
     useEditor.getState().update((d) => {
       const idSet = new Set(effectiveLayerIds)
       for (const l of d.layers) {
@@ -417,6 +444,25 @@ export const WorkflowV2Logic25DPreview: React.FC<WorkflowV2Logic25DPreviewProps>
         }
       }
     }, mergeKey)
+  }
+
+  const patchPortal = (patch: Partial<DepthPortalConfig>, mergeKey = 'wf-v2-portal'): void => {
+    if (portalRafRef.current === null) {
+      commitPortalPatch(patch, mergeKey)
+      portalRafRef.current = requestAnimationFrame(() => {
+        portalRafRef.current = null
+        if (pendingPortalRef.current) {
+          const pending = pendingPortalRef.current
+          pendingPortalRef.current = null
+          commitPortalPatch(pending.patch, pending.mergeKey)
+        }
+      })
+    } else {
+      pendingPortalRef.current = {
+        patch: { ...(pendingPortalRef.current?.patch ?? {}), ...patch },
+        mergeKey
+      }
+    }
   }
 
   const mr = (clusterRoot ?? layer).physics?.meshRegion

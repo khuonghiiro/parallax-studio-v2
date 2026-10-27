@@ -286,22 +286,26 @@ export function collectActiveImpactsForLayer(
   // 2. Tự động dò va chạm giữa các layer Striker / Projectile (Mũi tên) / Jumper với Target ở cùng lớp Z
   const targetRole = resolveEffectiveRole(cfg)
   if (targetRole === 'prop_target' || targetRole === 'both') {
+    const seenCompositeIds = new Set<string>()
     const strikers = project.layers.filter((other) => {
       if (other.id === targetLayer.id || !other.visible) return false
       if ((other.shotId ?? null) !== (targetLayer.shotId ?? null)) return false
       const oCfg = other.physics
-      if (oCfg?.enabled) {
-        const oRole = resolveEffectiveRole(oCfg)
-        if (
-          oRole === 'striker' ||
-          oRole === 'projectile' ||
-          oRole === 'vault_jumper' ||
-          oRole === 'both'
-        ) {
-          return true
-        }
+      if (!oCfg?.enabled) return false
+      const oRole = resolveEffectiveRole(oCfg)
+      const isStrikerRole =
+        oRole === 'striker' ||
+        oRole === 'projectile' ||
+        oRole === 'vault_jumper' ||
+        oRole === 'both'
+      if (!isStrikerRole) return false
+      const instId = other.composite?.instanceId
+      if (instId) {
+        if (other.composite && !other.composite.isRoot) return false
+        if (seenCompositeIds.has(instId)) return false
+        seenCompositeIds.add(instId)
       }
-      return other.transform.position.keyframes.length >= 2 || Boolean(other.mesh?.skin?.rig)
+      return true
     })
 
     if (strikers.length > 0) {
@@ -495,15 +499,22 @@ export function evaluateLayerPhysicsTransform(
     const decay = Math.exp(-preset.decayRate * (0.45 + damping) * elapsed)
     const dirX = Math.abs(vx) > 10 ? Math.sign(vx) : 1
 
-    if (cfg.material === 'wood_tree' || cfg.material === 'foliage_bush') {
+    if (cfg.material === 'wood_tree') {
+      const wave = Math.sin(omega * elapsed)
+      const secondaryHighFreq = Math.sin(omega * 2.5 * elapsed) * 0.22
+      const bendDeg = normForce * 4.2 * decay
+      rotZ -= dirX * bendDeg * (wave + secondaryHighFreq)
+      dx += dirX * normForce * 8.5 * decay * wave
+      // Thân gỗ cứng cáp: tuyệt đối không co giãn (squash & stretch) trục X/Y như cao su hay thạch
+    } else if (cfg.material === 'foliage_bush') {
       const wave = Math.sin(omega * elapsed)
       const secondaryHighFreq = Math.sin(omega * 2.35 * elapsed) * 0.28
-      const bendDeg = normForce * (cfg.material === 'wood_tree' ? 9.5 : 14.0) * decay
+      const bendDeg = normForce * 12.0 * decay
       rotZ -= dirX * bendDeg * (wave + secondaryHighFreq)
-      dx += dirX * normForce * (cfg.material === 'wood_tree' ? 18 : 28) * decay * wave
+      dx += dirX * normForce * 22 * decay * wave
       const squash = normForce * preset.squashRatio * decay * Math.cos(omega * 1.5 * elapsed)
-      sx *= 1 + squash * 0.55
-      sy *= 1 - squash * 0.45
+      sx *= 1 + squash * 0.22
+      sy *= 1 - squash * 0.18
     } else if (cfg.material === 'jelly_slime') {
       const osc = Math.cos(omega * elapsed)
       const squashAmp = Math.min(0.52, Math.max(0.12, normForce * preset.squashRatio * 1.35)) * decay

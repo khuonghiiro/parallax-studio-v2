@@ -240,7 +240,7 @@ export function WorkflowV2CameraWaypointParams({
 }
 
 export function WorkflowV2CameraParams(props: WorkflowV2NodeParamsProps): React.ReactElement {
-  const { node, project, onUpdate, onScrubTime, onSpawnCameraWaypoint } = props
+  const { node, project, workflow, onUpdate, onScrubTime, onSelectNode, onSpawnCameraWaypoint } = props
   const editorUpdate = useEditor((s) => s.update)
   const time = useEditor((s) => s.time)
   const selectedLayer = useEditor((s) => findLayer(s.project, s.selectedLayerId))
@@ -249,6 +249,35 @@ export function WorkflowV2CameraParams(props: WorkflowV2NodeParamsProps): React.
 
   const p = node.params ?? {}
   if (p.isCameraWaypoint) return <WorkflowV2CameraWaypointParams {...props} />
+
+  const shotWaypoints = useMemo(
+    () =>
+      (workflow?.nodes ?? [])
+        .filter(
+          (n) =>
+            n.type === 'camera_director' &&
+            Boolean(n.params?.isCameraWaypoint) &&
+            (p.shotId ? n.params?.shotId === p.shotId : n.params?.hierarchyParentNodeId === node.id)
+        )
+        .sort((a, b) => (a.params?.timeStart ?? 0) - (b.params?.timeStart ?? 0)),
+    [workflow?.nodes, p.shotId, node.id]
+  )
+
+  const addMilestoneAtPlayhead = (): void => {
+    const shotStart = p.timeStart ?? 0
+    const shotEnd = p.timeEnd ?? project.comp.duration ?? 5
+    const tClamped = Number(
+      Math.max(shotStart + 0.2, Math.min(shotEnd - 0.2, time >= shotStart && time <= shotEnd ? time : (shotStart + shotEnd) / 2)).toFixed(2)
+    )
+    editorUpdate((d) => {
+      const evAtT = evaluateScene(d as typeof project, tClamped)
+      setValueAt(d.camera.position, tClamped, evAtT.camera.position, tol)
+      setValueAt(d.camera.target, tClamped, evAtT.camera.target, tol)
+      setValueAt(d.camera.fov, tClamped, evAtT.camera.fov, tol)
+    }, 'cam-add-milestone-playhead')
+    onScrubTime(tClamped)
+    toast(`⏱️ Đã thêm mốc thời gian Camera tại ${tClamped.toFixed(2)}s`)
+  }
 
   const cam = project.camera
   const tol = frameTolerance(project)
@@ -342,6 +371,67 @@ export function WorkflowV2CameraParams(props: WorkflowV2NodeParamsProps): React.
 
   return (
     <>
+      <div className="wf-v2-insp-subhead">
+        ⏱️ Mốc thời gian Camera trong cảnh ({shotWaypoints.length} mốc)
+      </div>
+      {shotWaypoints.length > 0 && (
+        <div className="wf-v2-cam-wp-list">
+          {shotWaypoints.map((wp, idx) => {
+            const wpStart = wp.params?.timeStart ?? 0
+            const wpEnd = wp.params?.timeEnd ?? wpStart + 1
+            const isAtTime = time >= wpStart - 0.02 && time <= wpEnd + 0.02
+            return (
+              <div
+                key={wp.id}
+                className={`wf-v2-cam-wp-row${isAtTime ? ' is-live' : ''}`}
+              >
+                <button
+                  type="button"
+                  className="wf-v2-cam-wp-select"
+                  title={`Chọn và nhảy tới mốc "${wp.title}" (${wpStart.toFixed(1)}s – ${wpEnd.toFixed(1)}s)`}
+                  onClick={() => {
+                    onScrubTime(wpStart)
+                    onSelectNode?.(wp.id)
+                  }}
+                >
+                  <span className="wp-badge">#{wp.params?.waypointLabel ?? idx + 1}</span>
+                  <span className="wp-title">{wp.title.replace(/^#[\d.]+\s*·\s*/, '')}</span>
+                  <span className="wp-time">
+                    {wpStart.toFixed(1)}s–{wpEnd.toFixed(1)}s
+                  </span>
+                </button>
+              </div>
+            )
+          })}
+        </div>
+      )}
+      <div className="wf-v2-pill-grid" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+        <button
+          type="button"
+          className="wf-v2-opt-pill active"
+          style={{ gridColumn: '1 / -1' }}
+          title="Chèn một mốc keyframe Camera mới ngay tại vị trí Playhead (hoặc giữa cảnh)"
+          onClick={addMilestoneAtPlayhead}
+        >
+          <span className="wf-v2-opt-pill-txt">
+            📍 + Thêm mốc thời gian tại Playhead ({time.toFixed(1)}s)
+          </span>
+        </button>
+        {p.shotId &&
+          onSpawnCameraWaypoint &&
+          CAM_SPAWN_BUTTONS.map((btn) => (
+            <button
+              key={btn.mode}
+              type="button"
+              className="wf-v2-opt-pill"
+              title={`Thêm mốc thời gian Camera (${btn.label}) nối tiếp vào lộ trình của cảnh này`}
+              onClick={() => onSpawnCameraWaypoint(p.shotId!, btn.mode)}
+            >
+              <span className="wf-v2-opt-pill-txt">{btn.label} (+2s)</span>
+            </button>
+          ))}
+      </div>
+
       <div className="wf-v2-insp-subhead">
         Tư thế 3D &amp; Ống kính {targetShot ? `(${targetShot.name})` : ''}
       </div>

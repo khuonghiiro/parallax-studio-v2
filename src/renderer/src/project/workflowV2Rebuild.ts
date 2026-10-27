@@ -1,3 +1,4 @@
+import { isDraft } from 'immer'
 import type { Project, WorkflowGraph, WorkflowNode } from '@shared/types'
 import { getProjectAudioTracks } from './audioTracks'
 import { deleteLayerEffect } from '../ui/timeline/timelineEffects'
@@ -19,9 +20,19 @@ export function logicCategoryOf(node: WorkflowNode): string | undefined {
   return cat && cat !== 'camera' && cat !== 'cluster_lock' ? cat : undefined
 }
 
-/** Đồ thị Workflow V2 khớp dữ liệu Project hiện tại (giữ tham chiếu khi không đổi) — dùng chung cho Timeline & Workflow */
+const resolvedWorkflowCache = new WeakMap<Project, WorkflowGraph>()
+
+/** Đồ thị Workflow V2 khớp dữ liệu Project hiện tại (giữ tham chiếu khi không đổi & cache theo tham chiếu Project) */
 export function resolveWorkflowV2(project: Project): WorkflowGraph {
-  return syncWorkflowV2Graph(project, project.workflow)
+  if (!isDraft(project)) {
+    const cached = resolvedWorkflowCache.get(project)
+    if (cached) return cached
+  }
+  const next = syncWorkflowV2Graph(project, project.workflow)
+  if (!isDraft(project)) {
+    resolvedWorkflowCache.set(project, next)
+  }
+  return next
 }
 
 /** Xếp lại toàn bộ không gian Workflow (tuỳ chọn bỏ ghim các thẻ đã kéo tay) */

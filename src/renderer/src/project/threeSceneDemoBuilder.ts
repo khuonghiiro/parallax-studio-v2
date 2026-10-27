@@ -92,22 +92,24 @@ export function buildThreeSceneWorkflowV2Project(assetInputs: DemoSceneAssetInpu
   const shot3 = { ...createShot('Phố Đêm Đèn Đường', [spacing * 2, 0, 0], 2), id: 'shot-3' }
   project.shots.push(shot1, shot2, shot3)
 
-  // Lộ trình Camera 3 cảnh (0s-5s, 5s-10s, 10s-15s) với chuyển động mượt
+  // Lộ trình Camera 3 cảnh (0s-5s, 5s-10s, 10s-15s) với các mốc thời gian cân đối
   const refD = 1483.64
   addKeyframe(project.camera.position, 0.0, [0, 0, -refD], 'easeInOut')
   addKeyframe(project.camera.target, 0.0, [0, 0, 0], 'easeInOut')
-  addKeyframe(project.camera.position, 4.7, [60, -15, -refD * 0.88], 'easeInOut')
-  addKeyframe(project.camera.target, 4.7, [60, -15, 0], 'easeInOut')
+  addKeyframe(project.camera.position, 2.2, [60, -15, -refD * 0.88], 'easeInOut')
+  addKeyframe(project.camera.target, 2.2, [60, -15, 0], 'easeInOut')
 
   addKeyframe(project.camera.position, 5.0, [spacing, 0, -refD], 'easeInOut')
   addKeyframe(project.camera.target, 5.0, [spacing, 0, 0], 'easeInOut')
-  addKeyframe(project.camera.position, 9.7, [spacing + 75, -20, -refD * 0.88], 'easeInOut')
-  addKeyframe(project.camera.target, 9.7, [spacing + 75, -20, 0], 'easeInOut')
+  addKeyframe(project.camera.position, 7.2, [spacing + 75, -20, -refD * 0.88], 'easeInOut')
+  addKeyframe(project.camera.target, 7.2, [spacing + 75, -20, 0], 'easeInOut')
 
   addKeyframe(project.camera.position, 10.0, [spacing * 2, 0, -refD], 'easeInOut')
   addKeyframe(project.camera.target, 10.0, [spacing * 2, 0, 0], 'easeInOut')
-  addKeyframe(project.camera.position, 15.0, [spacing * 2 + 90, -25, -refD * 0.86], 'easeInOut')
-  addKeyframe(project.camera.target, 15.0, [spacing * 2 + 90, -25, 0], 'easeInOut')
+  addKeyframe(project.camera.position, 12.4, [spacing * 2 + 55, -15, -refD * 0.91], 'easeInOut')
+  addKeyframe(project.camera.target, 12.4, [spacing * 2 + 55, -15, 0], 'easeInOut')
+  addKeyframe(project.camera.position, 14.8, [spacing * 2 + 95, -25, -refD * 0.85], 'easeInOut')
+  addKeyframe(project.camera.target, 14.8, [spacing * 2 + 95, -25, 0], 'easeInOut')
 
   // ==========================================================================
   // CẢNH 1 (0.0s – 5.0s): CÁNH ĐỒNG GIÓ MÙA
@@ -585,7 +587,7 @@ export function buildThreeSceneWorkflowV2Project(assetInputs: DemoSceneAssetInpu
     project.workflow,
     v2LayerNodeId(fgFlowers.id),
     'material',
-    'v2:material:foliage_leaf'
+    'v2:material:foliage_bush'
   )
   project.workflow = s1FlowerMatRes.workflow
   const s1FlowerMatNode = project.workflow.nodes.find((n) => n.id === s1FlowerMatRes.createdNodeId)
