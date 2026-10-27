@@ -36,6 +36,25 @@ export async function importProjectFromJson(jsonString: string): Promise<Project
     rawObj.kind === 'parallax-workflow-shot'
   ) {
     const project = createProject({ name: typeof rawObj.name === 'string' ? rawObj.name : 'Parallax Journey' })
+    if (Array.isArray(rawObj.assets)) {
+      assetStore.clear()
+      for (const a of rawObj.assets as (AssetMeta & { dataUrl?: string; assetPath?: string })[]) {
+        if (a.dataUrl) {
+          const { mime, data } = parseDataUrl(a.dataUrl)
+          await assetStore.add(a.name, mime, data, a.kind, a)
+          project.assets.push(a)
+        } else if (a.path || a.assetPath) {
+          const p = (a.assetPath || a.path || '').replace(/^assets\//, '')
+          const file = await loadAssetBytesFromDiskOrBuiltIn(p)
+          if (file) {
+            const asset = await assetStore.add(a.name, file.mime || a.mime, file.data, a.kind, a)
+            asset.meta.assetPath = p
+            asset.meta.path = `assets/${p}`
+            project.assets.push(asset.meta)
+          }
+        }
+      }
+    }
     applyModularWorkflowJson(project, rawObj)
     return structuredClone(project)
   }

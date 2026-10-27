@@ -195,43 +195,59 @@ class AssetStore {
 
   /** Register bytes as an asset; resolves once probed (size, thumbnail, alpha mask). */
   async add(name: string, mime: string, bytes: Uint8Array | Blob, kind: AssetKind, existingMeta?: AssetMeta): Promise<RuntimeAsset> {
-    const blob = bytes instanceof Blob ? bytes : new Blob([bytes as BlobPart], { type: mime })
+    const isSvg = mime.includes('svg') || name.toLowerCase().endsWith('.svg')
+    const effectiveMime = isSvg ? 'image/svg+xml' : mime
+    const blob = bytes instanceof Blob ? bytes : new Blob([bytes as BlobPart], { type: effectiveMime })
     const url = URL.createObjectURL(blob)
-    const meta: AssetMeta = existingMeta ?? { id: nanoid(10), name, kind, mime }
+    const meta: AssetMeta = existingMeta ?? { id: nanoid(10), name, kind, mime: effectiveMime }
+    meta.mime = effectiveMime
     const asset: RuntimeAsset = { meta, blob, url }
 
     if (kind === 'image') {
       if (!meta.width || !meta.height) {
         const head = new Uint8Array(await blob.slice(0, 256 * 1024).arrayBuffer())
-        const size = probeImageSize(head)
+        const size = isSvg ? probeSvgSize(head) : probeImageSize(head)
         if (size) [meta.width, meta.height] = size
-        else if (typeof createImageBitmap !== 'undefined') {
-          const bmp = await createImageBitmap(blob)
-          meta.width = bmp.width
-          meta.height = bmp.height
-          bmp.close()
+        else if (!isSvg && typeof createImageBitmap !== 'undefined') {
+          try {
+            const bmp = await createImageBitmap(blob)
+            meta.width = bmp.width
+            meta.height = bmp.height
+            bmp.close()
+          } catch {
+            meta.width = 1920
+            meta.height = 1080
+          }
         } else {
           meta.width = 1920
           meta.height = 1080
         }
       }
-      if (typeof createImageBitmap !== 'undefined' && typeof document !== 'undefined') {
-        const s = Math.min(1, THUMB / Math.max(meta.width!, meta.height!))
-        const tw = Math.max(1, Math.round(meta.width! * s))
-        const th = Math.max(1, Math.round(meta.height! * s))
-        const small = await createImageBitmap(blob, { resizeWidth: tw, resizeHeight: th, resizeQuality: 'medium' })
-        const c = document.createElement('canvas')
-        c.width = tw
-        c.height = th
-        const ctx = c.getContext('2d', { willReadFrequently: true })!
-        ctx.drawImage(small, 0, 0)
-        small.close()
-        const src = ctx.getImageData(0, 0, tw, th).data
-        const data = new Uint8ClampedArray(tw * th)
-        for (let i = 0; i < tw * th; i++) data[i] = src[i * 4 + 3]
-        asset.alpha = { w: tw, h: th, data }
-        const thumb = await new Promise<Blob | null>((res) => c.toBlob(res, 'image/webp', 0.85))
-        if (thumb) asset.thumbUrl = URL.createObjectURL(thumb)
+      if (typeof document !== 'undefined') {
+        try {
+          const s = Math.min(1, THUMB / Math.max(meta.width!, meta.height!))
+          const tw = Math.max(1, Math.round(meta.width! * s))
+          const th = Math.max(1, Math.round(meta.height! * s))
+          const c = document.createElement('canvas')
+          c.width = tw
+          c.height = th
+          const ctx = c.getContext('2d', { willReadFrequently: true })!
+          if (isSvg) {
+            const img = await loadHtmlImage(url, tw, th)
+            if (img) ctx.drawImage(img, 0, 0, tw, th)
+          } else if (typeof createImageBitmap !== 'undefined') {
+            const small = await createImageBitmap(blob, { resizeWidth: tw, resizeHeight: th, resizeQuality: 'medium' })
+            ctx.drawImage(small, 0, 0)
+            small.close()
+          }
+          const src = ctx.getImageData(0, 0, tw, th).data
+          const data = new Uint8ClampedArray(tw * th)
+          for (let i = 0; i < tw * th; i++) data[i] = src[i * 4 + 3]
+          asset.alpha = { w: tw, h: th, data }
+          asset.thumbUrl = isSvg ? url : c.toDataURL('image/webp', 0.82)
+        } catch {
+          asset.thumbUrl = url
+        }
       }
       this.assets.set(meta.id, asset)
       if (mime === 'image/gif' || name.toLowerCase().endsWith('.gif') || mime === 'image/webp' || name.toLowerCase().endsWith('.webp')) {
@@ -279,13 +295,21 @@ class AssetStore {
     return new Promise<ImageBitmap>((resolve, reject) => {
       const run = (): void => {
         this.active++
+        const isSvg = asset.meta.mime.includes('svg') || asset.meta.name.toLowerCase().endsWith('.svg')
         const full = width >= (asset.meta.width ?? 0) && height >= (asset.meta.height ?? 0)
-        createImageBitmap(asset.blob, {
-          imageOrientation: 'flipY',
-          premultiplyAlpha: 'none',
-          colorSpaceConversion: 'none',
-          ...(full ? {} : { resizeWidth: width, resizeHeight: height, resizeQuality: 'high' as const })
-        })
+        const decodeTask = isSvg
+          ? decodeSvgToImageBitmap(
+              asset.url,
+              full ? (asset.meta.width ?? width) : width,
+              full ? (asset.meta.height ?? height) : height
+            )
+          : createImageBitmap(asset.blob, {
+              imageOrientation: 'flipY',
+              premultiplyAlpha: 'none',
+              colorSpaceConversion: 'none',
+              ...(full ? {} : { resizeWidth: width, resizeHeight: height, resizeQuality: 'high' as const })
+            })
+        decodeTask
           .then((b) => {
             this.stats.decodes++
             this.stats.decodedBytes += b.width * b.height * 4
@@ -384,6 +408,59 @@ export function probeIsAnimatedGif(b: Uint8Array): boolean {
     }
   }
   return images > 1
+}
+
+function probeSvgSize(b: Uint8Array): [number, number] | null {
+  try {
+    const txt = new TextDecoder('utf-8').decode(b.slice(0, 4096))
+    const vb = txt.match(/viewBox=["']\s*[-0-9.]+\s+[-0-9.]+\s+([0-9.]+)\s+([0-9.]+)\s*["']/i)
+    if (vb) {
+      const w = Math.round(Number(vb[1]))
+      const h = Math.round(Number(vb[2]))
+      if (w > 0 && h > 0) return [w, h]
+    }
+    const wm = txt.match(/\bwidth=["']([0-9.]+)(?:px)?["']/i)
+    const hm = txt.match(/\bheight=["']([0-9.]+)(?:px)?["']/i)
+    if (wm && hm) {
+      const w = Math.round(Number(wm[1]))
+      const h = Math.round(Number(hm[1]))
+      if (w > 0 && h > 0) return [w, h]
+    }
+  } catch {
+    /* ignore */
+  }
+  return null
+}
+
+function loadHtmlImage(url: string, width: number, height: number): Promise<HTMLImageElement | null> {
+  if (typeof Image === 'undefined') return Promise.resolve(null)
+  return new Promise((resolve) => {
+    const img = new Image(width, height)
+    const timer = setTimeout(() => resolve(null), 1500)
+    img.onload = () => {
+      clearTimeout(timer)
+      resolve(img)
+    }
+    img.onerror = () => {
+      clearTimeout(timer)
+      resolve(null)
+    }
+    img.src = url
+  })
+}
+
+async function decodeSvgToImageBitmap(url: string, width: number, height: number): Promise<ImageBitmap> {
+  const w = Math.max(1, Math.round(width || 512))
+  const h = Math.max(1, Math.round(height || 512))
+  const img = await loadHtmlImage(url, w, h)
+  const c = document.createElement('canvas')
+  c.width = w
+  c.height = h
+  const ctx = c.getContext('2d')!
+  ctx.translate(0, h)
+  ctx.scale(1, -1)
+  if (img) ctx.drawImage(img, 0, 0, w, h)
+  return createImageBitmap(c)
 }
 
 function probeAudioDuration(url: string): Promise<number> {

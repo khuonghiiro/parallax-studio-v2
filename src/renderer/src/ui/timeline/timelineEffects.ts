@@ -1,7 +1,6 @@
-import { addMotionEffect, migrateLayerMotion, MOTION_EFFECT_PRESETS, type MotionEffectPresetId } from '../../animation/motionEffects'
+import { addMotionEffect, migrateLayerMotion, MOTION_EFFECT_PRESETS } from '../../animation/motionEffects'
 import { nanoid } from 'nanoid'
-import type { Animatable, AppliedLayerEffect, EaseName, GlowSide, Keyframe, Layer, LayerGlow, Vec3 } from '@shared/types'
-import { addKeyframe, evaluate } from '../../animation/keyframes'
+import type { GlowSide, Layer, LayerGlow, Vec3 } from '@shared/types'
 import { frameTolerance, useEditor } from '../../store/editor'
 import { useToast } from '../../actions'
 
@@ -216,6 +215,19 @@ export function applyFxPresetToSelectedLayer(presetId: FxPresetId, options?: App
   return true
 }
 
+function restoreSettledScaleValue(targetAnim: { value: Vec3; keyframes: { value: Vec3 }[] }, removedKeys: { value: Vec3 }[]): void {
+  const curVal = targetAnim.value
+  if (curVal && Math.abs(curVal[0]) >= 0.05 && Math.abs(curVal[1]) >= 0.05) {
+    return
+  }
+  const lastValid = [...removedKeys].reverse().find((k) => Array.isArray(k.value) && Math.abs(k.value[0]) >= 0.05)
+  if (lastValid) {
+    targetAnim.value = [...lastValid.value] as Vec3
+  } else {
+    targetAnim.value = [1, 1, 1]
+  }
+}
+
 /**
  * Toggle an applied effect on/off by fxId.
  * When disabled: stashes keyframes into fx.savedKeyframes and removes them from the track.
@@ -262,7 +274,7 @@ export function toggleLayerEffect(layer: Layer, fxId: string, enabled: boolean):
           targetAnim.keyframes = (targetAnim.keyframes as any).filter((k: any) => !idSet.has(k.id))
           if (targetAnim.keyframes.length === 0) {
             if (targetFx.targetProp === 'opacity') targetAnim.value = 1
-            else if (targetFx.targetProp === 'scale') targetAnim.value = [1, 1, 1]
+            else if (targetFx.targetProp === 'scale') restoreSettledScaleValue(targetAnim as any, toSave as any)
           }
         }
       } else {
@@ -292,10 +304,11 @@ export function deleteLayerEffect(layer: Layer, fxId: string): boolean {
     const targetAnim = (layer.transform as any)[fx.targetProp]
     if (targetAnim && targetAnim.keyframes) {
       const idSet = new Set(fx.keyframeIds ?? [])
+      const removed = targetAnim.keyframes.filter((k: any) => idSet.has(k.id))
       targetAnim.keyframes = targetAnim.keyframes.filter((k: any) => !idSet.has(k.id))
       if (targetAnim.keyframes.length === 0) {
         if (fx.targetProp === 'opacity') targetAnim.value = 1
-        else if (fx.targetProp === 'scale') targetAnim.value = [1, 1, 1]
+        else if (fx.targetProp === 'scale') restoreSettledScaleValue(targetAnim, removed)
       }
     }
   }
@@ -303,7 +316,6 @@ export function deleteLayerEffect(layer: Layer, fxId: string): boolean {
   layer.appliedEffects = layer.appliedEffects?.filter((x: any) => x.id !== fxId)
 
   if (fx.category === 'glow') {
-    // If other glow effects remain on the layer, keep layer.glow synced to one of them
     const remainingGlow = layer.appliedEffects?.find((x) => x.category === 'glow' && x.glow)?.glow
     if (remainingGlow) {
       layer.glow = { ...remainingGlow }
@@ -313,4 +325,3 @@ export function deleteLayerEffect(layer: Layer, fxId: string): boolean {
   }
   return true
 }
-

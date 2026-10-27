@@ -245,6 +245,8 @@ export function Inspector() {
       onConnectLayer={(layerNodeId, logicNodeId) =>
         wfCtrl.actions.connect(layerNodeId, 'layers_tree', logicNodeId, 'layers_tree')
       }
+      onDisconnectEdge={wfCtrl.actions.disconnect}
+      onToggleEdgeDisable={wfCtrl.actions.toggleEdgeDisable}
       onScrubTime={wfCtrl.setTime}
     />
   )

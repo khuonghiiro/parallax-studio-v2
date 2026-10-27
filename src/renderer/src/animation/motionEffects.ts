@@ -8,14 +8,16 @@ export const MOTION_EFFECT_PRESETS = [
   { id: 'motionSway', type: 'sway', name: 'Sway · Lắc nhẹ', description: 'Lắc qua lại theo nhịp' },
   { id: 'motionFloat', type: 'float', name: 'Float · Bồng bềnh', description: 'Bay nổi nhẹ theo hai trục' },
   { id: 'motionWiggle', type: 'wiggle', name: 'Wiggle · Rung hữu cơ', description: 'Rung tự nhiên có seed cố định' },
-  { id: 'motionPulse', type: 'pulse', name: 'Pulse · Nhịp thở', description: 'Co giãn tuần hoàn theo hai trục' }
+  { id: 'motionPulse', type: 'pulse', name: 'Pulse · Nhịp thở', description: 'Co giãn tuần hoàn theo hai trục' },
+  { id: 'motionSpin', type: 'spin', name: 'Spin · Xoay tròn', description: 'Xoay vòng liên tục quanh tâm' }
 ] as const
 export type MotionEffectPresetId = typeof MOTION_EFFECT_PRESETS[number]['id']
 
 function legacyEffect(layer: Layer): AppliedLayerEffect | undefined {
   const motion = layer.motion
   if (!motion || motion.type === 'none') return undefined
-  const preset = MOTION_EFFECT_PRESETS.find((p) => p.type === motion.type)!
+  const preset = MOTION_EFFECT_PRESETS.find((p) => p.type === motion.type)
+  if (!preset) return undefined
   return { id: `legacy-motion-${layer.id}`, presetId: preset.id, name: preset.name, badge: 'FX',
     category: 'motion', startTime: motion.startTime ?? 0, duration: motion.duration ?? 0,
     enabled: motion.enabled !== false, motion: { ...motion } }

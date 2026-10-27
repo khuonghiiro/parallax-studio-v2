@@ -53,17 +53,15 @@ function AudioRowComponent({ track: propTrack, nested, clusterRole, x, trackW }:
       : null)
 
   const isSelected = track ? selectedAudioTrackId === track.id : false
-
-  if (!track) return null
-
-  const meta = assetStore.get(track.assetId)?.meta
+  const meta = track ? assetStore.get(track.assetId)?.meta : undefined
   const audioDur = meta?.duration ?? 0
-  const left = x(track.offset)
-  const width = Math.max(4, x(track.offset + audioDur) - left)
-  const trackName = track.name || meta?.name || 'Audio'
-  const isVoice = track.characterRole === 'voice' || track.lipSyncEnabled
+  const left = track ? x(track.offset) : 0
+  const width = track ? Math.max(4, x(track.offset + audioDur) - left) : 4
+  const trackName = track?.name || meta?.name || 'Audio'
+  const isVoice = track ? (track.characterRole === 'voice' || track.lipSyncEnabled) : false
 
   useEffect(() => {
+    if (!track) return
     let alive = true
     getAudioPeaks(track.assetId).then((peaks) => {
       const c = canvasRef.current
@@ -106,7 +104,9 @@ function AudioRowComponent({ track: propTrack, nested, clusterRole, x, trackW }:
     return () => {
       alive = false
     }
-  }, [track.assetId, track.volume, width, theme, isVoice])
+  }, [track?.assetId, track?.volume, width, theme, isVoice])
+
+  if (!track) return null
 
   const drag = (e: React.PointerEvent): void => {
     const startX = e.clientX

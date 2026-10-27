@@ -75,7 +75,8 @@ export class TexturePool {
     tex.generateMipmaps = true
     tex.minFilter = THREE.LinearMipmapLinearFilter
     tex.magFilter = THREE.LinearFilter
-    tex.wrapS = tex.wrapT = THREE.RepeatWrapping
+    tex.wrapS = THREE.RepeatWrapping
+    tex.wrapT = THREE.ClampToEdgeWrapping
     tex.anisotropy = this.maxAnisotropy
     tex.needsUpdate = true
     return tex

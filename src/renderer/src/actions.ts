@@ -4,7 +4,7 @@ import { nanoid } from 'nanoid'
 import { buildCameraPath, flyCameraToShot, type PathOptions, type PathStep } from './animation/cameraPath'
 import { applyDrawnCameraPath } from './animation/cameraSketch'
 import { assetStore } from './project/assets'
-import { buildDemoProject } from './project/demo'
+import { buildThreeSceneDemoProject } from './project/demo'
 import {
   createGroundLayer,
   createImageLayer,
@@ -69,7 +69,7 @@ export async function newProject(): Promise<void> {
 
 export async function loadDemo(force = false): Promise<void> {
   if (!force && !confirmDiscard()) return
-  const p = await buildDemoProject()
+  const p = await buildThreeSceneDemoProject()
   editor().loadProject(p, null)
   editor().setPlaying(false)
 }

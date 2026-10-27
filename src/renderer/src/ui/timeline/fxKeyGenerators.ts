@@ -5,6 +5,15 @@ function round3(n: number): number {
   return Math.round(n * 1000) / 1000
 }
 
+function resolveRestScale(target: Animatable<Vec3>, start: number): Vec3 {
+  const orig = evaluate(target, start)
+  const rest = target.value ?? [1, 1, 1]
+  const sx = Math.abs(orig[0]) >= 0.05 ? orig[0] : Math.abs(rest[0]) >= 0.05 ? rest[0] : 1
+  const sy = Math.abs(orig[1]) >= 0.05 ? orig[1] : Math.abs(rest[1]) >= 0.05 ? rest[1] : 1
+  const sz = orig[2] || rest[2] || 1
+  return [sx, sy, sz]
+}
+
 export function generateBlinkKeys(
   target: Animatable<number>,
   start: number,
@@ -14,7 +23,8 @@ export function generateBlinkKeys(
   tol = 1e-4
 ): Keyframe<number>[] {
   const keys: Keyframe<number>[] = []
-  const currentVal = Math.max(0.1, evaluate(target, start))
+  const evalVal = evaluate(target, start)
+  const currentVal = evalVal >= 0.1 ? evalVal : Math.max(0.1, target.value ?? 1)
   const step = duration / blinks
   keys.push(addKeyframe(target, round3(start), currentVal, 'easeInOut', tol))
 
@@ -35,7 +45,8 @@ export function generateBreatheKeys(
   tol = 1e-4
 ): Keyframe<number>[] {
   const keys: Keyframe<number>[] = []
-  const currentVal = Math.max(0.2, evaluate(target, start))
+  const evalVal = evaluate(target, start)
+  const currentVal = evalVal >= 0.2 ? evalVal : Math.max(0.2, target.value ?? 1)
   keys.push(addKeyframe(target, round3(start), currentVal, 'easeInOut', tol))
   keys.push(addKeyframe(target, round3(start + duration * 0.5), minVal, 'easeInOut', tol))
   keys.push(addKeyframe(target, round3(start + duration), currentVal, 'easeInOut', tol))
@@ -51,7 +62,8 @@ export function generateFadeKeys(
 ): Keyframe<number>[] {
   const keys: Keyframe<number>[] = []
   if (mode === 'out') {
-    const currentVal = Math.max(0.1, evaluate(target, start))
+    const evalVal = evaluate(target, start)
+    const currentVal = evalVal >= 0.1 ? evalVal : Math.max(0.1, target.value ?? 1)
     keys.push(addKeyframe(target, round3(start), currentVal, 'easeInOut', tol))
     keys.push(addKeyframe(target, round3(start + duration), 0, 'easeInOut', tol))
   } else {
@@ -106,8 +118,7 @@ export function generatePopInKeys(
   tol = 1e-4
 ): Keyframe<Vec3>[] {
   const keys: Keyframe<Vec3>[] = []
-  const orig = evaluate(target, start)
-  const baseScale: Vec3 = [orig[0] || 1, orig[1] || 1, orig[2] || 1]
+  const baseScale = resolveRestScale(target, start)
 
   keys.push(addKeyframe(target, round3(start), [0.001, 0.001, 1], 'easeOut', tol))
 
@@ -162,8 +173,7 @@ export function generatePulseKeys(
   tol = 1e-4
 ): Keyframe<Vec3>[] {
   const keys: Keyframe<Vec3>[] = []
-  const orig = evaluate(target, start)
-  const baseScale: Vec3 = [orig[0] || 1, orig[1] || 1, orig[2] || 1]
+  const baseScale = resolveRestScale(target, start)
 
   const count = Math.max(1, pulses)
   const cycleDur = duration / count
@@ -188,4 +198,3 @@ export function generatePulseKeys(
   }
   return keys
 }
-

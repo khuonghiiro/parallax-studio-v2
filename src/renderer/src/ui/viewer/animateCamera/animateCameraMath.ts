@@ -287,7 +287,8 @@ export function projectShotLayers2D(
   const yawRad = clampCameraAngle(cameraAngles?.yaw ?? 0, -85, 85) * RAD
   const pitchRad = clampCameraAngle(cameraAngles?.pitch ?? 0, -75, 75) * RAD
   const matching = ev.layers.filter((el) => {
-    if (!el.layer.visible || el.opacity <= 0.01) return false
+    const restOp = el.layer.transform?.opacity?.value ?? 1
+    if (!el.layer.visible || (el.opacity <= 0.01 && restOp <= 0.01)) return false
     if (el.layer.shotId === shotId) return true
     if (includeGlobals && el.layer.shotId === null && el.layer.type !== 'particles') return true
     return false
@@ -305,8 +306,11 @@ export function projectShotLayers2D(
   return matching.map((el): ProjectedLayer2D => {
     const lz = el.position[2]
     const pFactor = refD / Math.max(80, refD + lz)
-    const width = Math.max(4, el.size[0] * el.scale[0] * pFactor)
-    const height = Math.max(4, el.size[1] * el.scale[1] * pFactor)
+    const restScale = el.layer.transform?.scale?.value ?? [1, 1, 1]
+    const effScaleX = Math.abs(el.scale[0]) >= 0.05 ? Math.abs(el.scale[0]) : Math.abs(restScale[0]) >= 0.05 ? Math.abs(restScale[0]) : 1
+    const effScaleY = Math.abs(el.scale[1]) >= 0.05 ? Math.abs(el.scale[1]) : Math.abs(restScale[1]) >= 0.05 ? Math.abs(restScale[1]) : 1
+    const width = Math.max(4, el.size[0] * effScaleX * pFactor)
+    const height = Math.max(4, el.size[1] * effScaleY * pFactor)
     // Apply 2.5D parallax depth shift when 3D camera Yaw / Pitch is non-zero
     const parallaxDx = -Math.tan(yawRad) * lz * 0.35
     const parallaxDy = Math.tan(pitchRad) * lz * 0.35
@@ -323,7 +327,7 @@ export function projectShotLayers2D(
       width,
       height,
       rotation,
-      opacity: el.opacity,
+      opacity: el.opacity <= 0.05 ? Math.max(0.28, el.opacity) : el.opacity,
       zDepth: lz
     }
 

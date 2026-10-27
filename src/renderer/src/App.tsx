@@ -86,9 +86,8 @@ export default function App() {
 
   // Accept AI commands over MCP (re-subscribes cleanly on HMR).
   useEffect(() => {
-    if (!ready) return
-    return initMcp()
-  }, [ready, initMcp])
+    initMcp()
+  }, [])
 
   // Window title reflects document state.
   const dirty = useEditor((s) => s.dirty)

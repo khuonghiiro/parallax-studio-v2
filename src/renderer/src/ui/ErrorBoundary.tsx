@@ -1,5 +1,6 @@
 import React, { Component, type ReactNode } from 'react'
 import { loadDemo } from '../actions'
+import { initMcp } from '../mcp/commands'
 
 interface Props {
   children: ReactNode
@@ -16,15 +17,24 @@ export class ErrorBoundary extends Component<Props, State> {
     this.state = { hasError: false, error: null }
   }
 
+  componentDidMount(): void {
+    initMcp()
+  }
+
   static getDerivedStateFromError(error: Error): State {
     return { hasError: true, error }
   }
 
   componentDidCatch(error: Error, info: React.ErrorInfo): void {
     console.error('ErrorBoundary caught an error:', error, info)
+    ;(window as unknown as { __pxsLastRenderError?: string }).__pxsLastRenderError =
+      error?.stack || error?.message || String(error)
+    initMcp()
   }
 
-  handleReload = (): void => {
+  handleHardReload = (): void => { window.location.reload() }
+  handleReload = (): void => { this.setState({ hasError: false, error: null }) }
+  _unusedReload = (): void => {
     window.location.reload()
   }
 
@@ -122,6 +132,13 @@ export class ErrorBoundary extends Component<Props, State> {
                   cursor: 'pointer',
                   fontWeight: 600
                 }}
+              >
+                ↩ Tiếp tục phiên làm việc
+              </button>
+              <button
+                className="btn"
+                onClick={this.handleHardReload}
+                style={{ flex: 1, padding: '10px 16px', background: '#1e293b', color: '#e2e8f0', border: '1px solid #334155', borderRadius: 6, cursor: 'pointer', fontWeight: 500 }}
               >
                 🔄 Tải lại trang (F5)
               </button>

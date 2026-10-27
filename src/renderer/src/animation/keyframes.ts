@@ -14,7 +14,7 @@ function lerpValue<T extends AnimValue>(a: T, b: T, u: number): T {
   if (typeof a === 'number') return (a + ((b as number) - a) * u) as T
   const av = a as number[]
   const bv = b as number[]
-  return [av[0] + (bv[0] - av[0]) * u, av[1] + (bv[1] - av[1]) * u, av[2] + (bv[2] - av[2]) * u] as T
+  return [(av?.[0] ?? 0) + ((bv?.[0] ?? 0) - (av?.[0] ?? 0)) * u, (av?.[1] ?? 0) + ((bv?.[1] ?? 0) - (av?.[1] ?? 0)) * u, (av?.[2] ?? 0) + ((bv?.[2] ?? 0) - (av?.[2] ?? 0)) * u] as T
 }
 
 /** Evaluate an animatable property at time t (seconds). Pure function. */

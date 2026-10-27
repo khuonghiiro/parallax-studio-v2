@@ -123,6 +123,7 @@ export function Assembly3DDialog({ isOpen, initialModel, model: modelProp, onClo
     toggleLocked: () => selectedFaceId && setFaces((faces) => toggleFaceFlag(faces, selectedFaceId, 'locked'), DISCRETE)
   })
 
+  const appTheme = useView((s) => s.theme)
   const modelRef = useRef(model)
   modelRef.current = model
   const selectedFaceIdRef = useRef(selectedFaceId)
@@ -296,7 +297,6 @@ export function Assembly3DDialog({ isOpen, initialModel, model: modelProp, onClo
     />
   )
   const hiddenCount = model.faces.filter((f) => f.hidden).length
-  const appTheme = useView((s) => s.theme)
   const sky = resolveSkyAtmosphere(model.lighting, appTheme === 'light')
 
   return (
