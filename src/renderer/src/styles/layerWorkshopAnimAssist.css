@@ -9,7 +9,7 @@
   pointer-events: none;
   /* Ngay dưới lớp xương (5000) nhưng trên các layer ảnh */
   z-index: 4990;
-  transform: translateZ(195px);
+  transform: none;
 }
 
 .lw-onion-bone {

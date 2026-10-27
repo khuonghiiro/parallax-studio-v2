@@ -84,6 +84,7 @@ export function WorkshopBoneOverlay({
   const [liveStroke, setLiveStroke] = useState<Point2D[] | null>(null)
   const [chainIds, setChainIds] = useState<string[]>([])
   const assist = useAnimAssist()
+  const advanceLiveRef = useRef<((liveDrag: LiveBoneRecordDrag, p: Point2D) => void) | null>(null)
 
   const rig = composite.rig
   if (!rig || !rig.bones.length) return null
@@ -92,6 +93,13 @@ export function WorkshopBoneOverlay({
   const mixamoLandmarks = editing ? extractLandmarksFromBones(rig.bones) : null
 
   const toLocalPoint = (event: PointerEvent) => {
+    const rect = svgRef.current?.getBoundingClientRect()
+    if (rect && rect.width > 0 && rect.height > 0) {
+      return new DOMPoint(
+        ((event.clientX - rect.left) / rect.width - 0.5) * composite.width,
+        ((event.clientY - rect.top) / rect.height - 0.5) * composite.height
+      )
+    }
     const matrix = svgRef.current?.getScreenCTM()
     if (!matrix) return null
     return new DOMPoint(event.clientX, event.clientY).matrixTransform(matrix.inverse())
@@ -137,7 +145,6 @@ export function WorkshopBoneOverlay({
     })
   }
 
-  const advanceLiveRef = useRef(advanceLiveRecord)
   advanceLiveRef.current = advanceLiveRecord
 
   const handlePointerDown = (e: PointerEvent, id: string, mode: BoneDragMode) => {
@@ -186,7 +193,7 @@ export function WorkshopBoneOverlay({
         if (liveDragRef.current !== liveDrag) return
         const lastSample = liveDrag.samples[liveDrag.samples.length - 1]
         if (performance.now() - liveDrag.t0 - lastSample.t * 1000 > 60) {
-          advanceLiveRef.current(liveDrag, lastSample)
+          advanceLiveRef.current?.(liveDrag, lastSample)
         }
         requestAnimationFrame(tick)
       }

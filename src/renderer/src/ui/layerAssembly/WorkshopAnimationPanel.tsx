@@ -7,6 +7,7 @@ import { sameKeyTime, type BonePoseEntry } from './workshopAnimation'
 import type { useWorkshopPlayback } from './useWorkshopPlayback'
 import { Select } from '../controls'
 import { WorkshopClipBar } from './WorkshopClipBar'
+import { WorkshopCustomActionsCard } from './WorkshopCustomActionsCard'
 import { WorkshopRetargetDialog } from './WorkshopRetargetDialog'
 import { WorkshopInterpolation } from './WorkshopInterpolation'
 import { WorkshopMotionSketchCard } from './WorkshopMotionSketchCard'
@@ -110,6 +111,8 @@ export function WorkshopAnimationPanel({
 
   return (
     <div className="lw-rig-panel lw-animation-panel" data-mcp-region="layer_assembly_animation_panel">
+      {/* 0. Cấu hình Động tác Ảnh đặt tên động (Nhép miệng, Nháy mắt, Đổi biểu cảm...) */}
+      <WorkshopCustomActionsCard composite={composite} setComposite={setComposite} />
       {/* 1. Quản lý danh sách Động tác (Clips) */}
       <WorkshopClipBar
         rig={rig}

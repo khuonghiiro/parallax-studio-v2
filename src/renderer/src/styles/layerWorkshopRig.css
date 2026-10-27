@@ -382,7 +382,7 @@
   overflow: visible;
   z-index: 5000;
   pointer-events: none;
-  transform: translateZ(200px);
+  transform: none;
 }
 .lw-bone-relationship { stroke: var(--text-faint); stroke-dasharray: 4 3; stroke-width: 1.2px; vector-effect: non-scaling-stroke; }
 

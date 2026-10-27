@@ -83,6 +83,8 @@ export interface LayerComposite {
   layers: AssembledLayerItem[]
   /** Nhóm bộ phận & liên kết (Đầu, Thân, Tay trái…) */
   partGroups?: LayerPartGroup[]
+  /** Danh sách động tác chuyển động ảnh đặt tên động (nhép miệng, nháy mắt, đổi biểu cảm...) để Node Animation lấy ra sử dụng */
+  customActions?: import('@shared/types').CompositeCustomAction[]
   lighting?: AssemblyLighting
   createdAt?: number
   updatedAt?: number

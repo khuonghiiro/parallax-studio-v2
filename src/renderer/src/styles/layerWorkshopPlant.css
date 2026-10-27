@@ -18,7 +18,7 @@
   overflow: visible;
   z-index: 5100;
   pointer-events: none;
-  transform: translateZ(210px);
+  transform: none;
 }
 
 .lw-plant-overlay.drawing {

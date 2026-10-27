@@ -84,7 +84,7 @@ export function AssembledLayerItemView({
   const invScale = 1 / Math.max(0.2, baseScale)
 
   const layerTransform = show3DPerspective
-    ? `rotateY(${-rotY}deg) rotateX(${rotX}deg) rotateZ(${rotZ + animRotate}deg) scale(${squashScaleX}, ${squashScaleY})`
+    ? `perspective(1400px) rotateY(${-rotY}deg) rotateX(${rotX}deg) rotateZ(${rotZ + animRotate}deg) scale(${squashScaleX}, ${squashScaleY})`
     : `rotate(${rotZ + animRotate}deg) scale(${squashScaleX}, ${squashScaleY})`
 
   const depthTranslateZ = 0

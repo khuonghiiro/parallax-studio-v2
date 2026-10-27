@@ -41,8 +41,26 @@ interface BuildLayerArgs {
   positionOffset: [number, number, number]
 }
 
+function isSwappableHiddenVariant(item: AssembledLayerItem): boolean {
+  return Boolean(
+    item.slot ||
+      item.variant ||
+      /biểu cảm|ẩn sẵn|mùa|variant|expr|cười|nháy|buồn|giận/i.test(item.name)
+  )
+}
+
 /** Tạo ImageLayer của cảnh từ 1 layer trong mẫu (vị trí, tỉ lệ, góc, liên kết cụm & thông tin bộ phận). */
-function buildSceneLayer({ item, asset, composite, comp, shotId, instanceId, isRoot, globalScale, positionOffset }: BuildLayerArgs): ImageLayer {
+function buildSceneLayer({
+  item,
+  asset,
+  composite,
+  comp,
+  shotId,
+  instanceId,
+  isRoot,
+  globalScale,
+  positionOffset
+}: BuildLayerArgs): ImageLayer {
   const pos: [number, number, number] = [
     item.x * globalScale + positionOffset[0],
     -item.y * globalScale + positionOffset[1],
@@ -52,13 +70,18 @@ function buildSceneLayer({ item, asset, composite, comp, shotId, instanceId, isR
   layer.id = 'layer-' + nanoid(8)
   layer.name = `[${composite.name}] ${item.name}`
   layer.shotId = shotId
+  layer.visible = !item.hidden
   layer.autoScale = false
   if (asset.width && asset.height) {
     layer.props.width = asset.width
     layer.props.height = asset.height
   }
   layer.transform.position.value = pos
-  layer.transform.scale.value = [item.scale * (item.scaleX ?? 1) * globalScale, item.scale * (item.scaleY ?? 1) * globalScale, 1]
+  layer.transform.scale.value = [
+    item.scale * (item.scaleX ?? 1) * globalScale,
+    item.scale * (item.scaleY ?? 1) * globalScale,
+    1
+  ]
   layer.transform.rotation.value = [item.rotationX || 0, item.rotationY || 0, item.rotation || 0]
   layer.transform.opacity.value = item.opacity
   // Liên kết cụm (khoá cụm, di chuyển đồng bộ) + thông tin bộ phận để đổi biểu cảm / bộ phận nhanh trong cảnh
@@ -72,7 +95,10 @@ function buildSceneLayer({ item, asset, composite, comp, shotId, instanceId, isR
     rootOffset: [item.x * globalScale, -item.y * globalScale, item.z * globalScale],
     sourceLayerId: item.id,
     ...(item.slot ? { slot: item.slot, variant: item.variant } : {}),
-    ...(item.partGroupId ? { partGroupId: item.partGroupId } : {})
+    ...(item.partGroupId ? { partGroupId: item.partGroupId } : {}),
+    ...(isRoot && composite.customActions?.length
+      ? { customActions: structuredClone(composite.customActions) }
+      : {})
   }
   const motion = toSceneMotion(item)
   if (motion) layer.motion = motion
@@ -104,13 +130,24 @@ export async function insertLayerCompositeToScene({
   const layersToAdd: ImageLayer[] = []
   const newAssets: AssetMeta[] = []
   const instanceId = 'comp-inst-' + nanoid(8)
-  const activeItems = composite.layers.filter((item) => !item.hidden)
+  const activeItems = composite.layers.filter((item) => !item.hidden || isSwappableHiddenVariant(item))
+  const rootItemId = (activeItems.find((item) => !item.hidden) ?? activeItems[0])?.id
 
   for (let idx = 0; idx < activeItems.length; idx++) {
     const item = activeItems[idx]
     const { asset, isNew } = await resolveCompositeItemAsset(item, composite, [...projectAssets, ...newAssets])
     if (isNew && !newAssets.some((a) => a.id === asset.id)) newAssets.push(asset)
-    const layer = buildSceneLayer({ item, asset, composite, comp, shotId, instanceId, isRoot: idx === 0, globalScale, positionOffset })
+    const layer = buildSceneLayer({
+      item,
+      asset,
+      composite,
+      comp,
+      shotId,
+      instanceId,
+      isRoot: item.id === rootItemId,
+      globalScale,
+      positionOffset
+    })
     await exportWorkshopSkin(layer, item, composite, assetStore.get(asset.id)?.url ?? item.imageUrl)
     bakeWorkshopRig(layer, item, composite, comp.duration, comp.fps, globalScale, positionOffset)
     layersToAdd.push(layer)

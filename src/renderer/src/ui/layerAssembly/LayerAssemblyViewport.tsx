@@ -661,7 +661,7 @@ export function LayerAssemblyViewport({
             border: '2px solid var(--accent)',
             boxShadow: '0 12px 48px rgba(0, 0, 0, 0.35), 0 0 0 1px var(--line-focus)',
             overflow: clipToCamera ? 'hidden' : 'visible',
-            perspective: show3DPerspective && brush.activeTool !== 'eraser' ? '1400px' : 'none',
+            perspective: 'none',
             perspectiveOrigin: '50% 50%',
             transformStyle: 'preserve-3d'
           }}

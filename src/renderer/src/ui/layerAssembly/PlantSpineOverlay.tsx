@@ -117,6 +117,13 @@ export function PlantSpineOverlay(props: PlantSpineOverlayProps) {
   if (!drawing && !spines.length) return null
 
   const toLocal = (e: { clientX: number; clientY: number }): PlantSpinePoint | null => {
+    const rect = svgRef.current?.getBoundingClientRect()
+    if (rect && rect.width > 0 && rect.height > 0) {
+      return {
+        x: ((e.clientX - rect.left) / rect.width - 0.5) * composite.width,
+        y: ((e.clientY - rect.top) / rect.height - 0.5) * composite.height
+      }
+    }
     const m = svgRef.current?.getScreenCTM()
     if (!m) return null
     const p = new DOMPoint(e.clientX, e.clientY).matrixTransform(m.inverse())
