@@ -26,6 +26,7 @@ import {
   IconImage,
   IconMusic,
   IconPlus,
+  IconQrCode,
   IconRedo,
   IconSave,
   IconSparkles,
@@ -296,6 +297,15 @@ export function Toolbar({ onExport }: { onExport: () => void }) {
 
       <McpChip />
       <button
+        id="remote-qr-btn"
+        className="tb-btn-icon remote-qr-chip"
+        data-mcp-region="remote_chip"
+        onClick={() => useView.getState().openDialog('remote')}
+        title="Quét mã QR để điều khiển ứng dụng bằng Điện thoại qua Wi-Fi (Mobile Remote 3D Touchpad)"
+      >
+        <IconQrCode width={14} height={14} />
+      </button>
+      <button
         id="audio-studio-btn"
         className="tb-btn-icon"
         onClick={() => useView.getState().openAudioDialog('waveform')}
@@ -328,4 +338,3 @@ export function Toolbar({ onExport }: { onExport: () => void }) {
     </header>
   )
 }
-

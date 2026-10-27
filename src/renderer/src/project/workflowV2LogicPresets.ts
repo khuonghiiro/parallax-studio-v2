@@ -35,7 +35,7 @@ export interface WorkflowV2LogicCategoryItem {
 /** Nhóm logic gắn vào Layer / Cụm — dùng chung cho Timeline (kho logic) và Workflow (cột trái, menu thả dây, MCP) */
 export const WORKFLOW_V2_LOGIC_CATEGORIES: WorkflowV2LogicCategoryItem[] = [
   { id: 'part_swap', icon: '🧩', label: 'Bộ phận', hint: 'Đánh tráo bộ phận có 2+ biến thể theo giây', accent: '#06b6d4' },
-
+  { id: 'rig_bone', icon: '🦴', label: 'Gắn xương', hint: 'Khung xương nhân vật & chuỗi xương uốn dẻo cho Layer', accent: '#f59e0b' },
   { id: 'anim_fx', icon: '🎞️', label: 'Animation', hint: 'Clip xương 2.5D & Keyframe FX', accent: '#6366f1' },
   { id: 'action', icon: '🏃', label: 'Motion', hint: 'Vẽ quỹ đạo & đồ thị chuyển động mới', accent: '#10b981' },
   { id: 'material', icon: '🏷️', label: 'Vật liệu', hint: 'Cao su, gỗ, đá, lá, kim loại', accent: '#f97316' },

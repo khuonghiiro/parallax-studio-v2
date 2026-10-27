@@ -23,7 +23,7 @@ import {
 import { WorkflowV2SpawnMenu } from './WorkflowV2SpawnMenu'
 import { useWorkflowV2CanvasInteractions } from './useWorkflowV2CanvasInteractions'
 import { useWorkflowV2Viewport, type WorkflowV2Viewport } from './useWorkflowV2Viewport'
-import { classifyV2Edge, computeV2Lineage } from './workflowV2Edges'
+import { classifyV2Edge, computeV2Lineage, isV2EdgeFlowing } from './workflowV2Edges'
 import type { WorkflowV2SpawnCategory } from './workflowV2Theme'
 
 export interface WorkflowCanvasV2Props {
@@ -111,7 +111,8 @@ function buildEdgeItems(
   running: Set<string>,
   lineage: { edgeIds: Set<string>; active: boolean },
   view: ViewRect,
-  t: number
+  t: number,
+  playing: boolean
 ): EdgeRenderItem[] {
   const incoming = new Map<string, WorkflowNode[]>()
   for (const e of graph.visibleEdges) {
@@ -131,15 +132,14 @@ function buildEdgeItems(
     if (maxX < view.x0 || minX > view.x1 || maxY < view.y0 || minY > view.y1) continue
     const sources = (incoming.get(edge.toNode) ?? []).sort((a, b) => a.position.y - b.position.y)
     const lane = sources.length > 1 ? sources.indexOf(from) - (sources.length - 1) / 2 : 0
-    const fromEnd = from.params?.timeEnd ?? 0
     const toStart = to.params?.timeStart ?? 0
-    const isRunning = edge.disabled
-      ? false
-      : kind === 'camera'
-        ? t >= fromEnd - 0.6 && t <= toStart + 0.8
-        : to.params?.isCameraWaypoint
-          ? running.has(to.id)
-          : running.has(from.id) && running.has(to.id)
+    // Camera parent ranges include waypoint tails; scene roots use the actual shotAtTime route.
+    const fromRoot = graph.visibleMap.get(from.params?.hierarchyParentNodeId ?? '')
+    const toRoot = graph.visibleMap.get(to.params?.hierarchyParentNodeId ?? '')
+    const transition = kind === 'camera' && fromRoot && toRoot
+      ? { start: fromRoot.params?.timeEnd ?? 0, end: toRoot.params?.timeStart ?? 0 }
+      : undefined
+    const isRunning = isV2EdgeFlowing(edge, from, to, kind, running, t, playing, transition)
     items.push({
       edge,
       from,
@@ -178,7 +178,7 @@ export const WorkflowCanvasV2: React.FC<WorkflowCanvasV2Props> = (props) => {
     }
     return set
   }, [graph, activeRootId, sharedRootId, isLive])
-  const edgeItems = useMemo(() => buildEdgeItems(graph, running, lineage, view, currentTime), [graph, running, lineage, view.x0, view.y0, view.x1, view.y1, currentTime])
+  const edgeItems = useMemo(() => buildEdgeItems(graph, running, lineage, view, currentTime, props.playing), [graph, running, lineage, view.x0, view.y0, view.x1, view.y1, currentTime, props.playing])
   const cards = graph.visibleNodes.filter((n) => nodeInView(n, view) || n.id === selectedNodeId)
 
   const focusCluster = useCallback(
@@ -248,7 +248,8 @@ export const WorkflowCanvasV2: React.FC<WorkflowCanvasV2Props> = (props) => {
         />
         <WorkflowV2Legend />
 
-        <div className="wf-v2-world" style={{ transform: `translate3d(${vp.pan.x}px, ${vp.pan.y}px, 0) scale(${vp.zoom})` }}>
+        <div className="wf-v2-world" style={{ left: vp.pan.x, top: vp.pan.y }}>
+        <div className="wf-v2-world-content" style={{ zoom: vp.zoom }}>
           {COLUMN_BANNERS.map((b) => (
             <div key={b.label} className="wf-v2-col-banner" style={{ left: b.x, width: WF_V2_NODE_W }}>
               {b.label}
@@ -274,7 +275,7 @@ export const WorkflowCanvasV2: React.FC<WorkflowCanvasV2Props> = (props) => {
               isConnectedToSelected={lineage.active && lineage.nodeIds.has(node.id) && node.id !== selectedNodeId}
               isDimmed={lineage.active && !lineage.nodeIds.has(node.id)}
               isActiveAtCurrentTime={isLive(node)}
-              running={running.has(node.id)}
+              running={props.playing && running.has(node.id)}
               wireState={wireStateOf(node)}
               currentTime={currentTime}
               maxDuration={maxDuration}
@@ -289,6 +290,7 @@ export const WorkflowCanvasV2: React.FC<WorkflowCanvasV2Props> = (props) => {
               onSpawnCameraWaypoint={props.onSpawnCameraWaypoint}
             />
           ))}
+        </div>
         </div>
 
         {ix.wireDrag?.hoverNodeId && !ix.wireDrag.hoverValid && ix.wireDrag.hoverReason && (

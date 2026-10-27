@@ -15,6 +15,7 @@ import { motionCommands } from './commands/motionCommands'
 import { systemCommands } from './commands/systemCommands'
 import { uiCommands } from './commands/uiCommands'
 import { workflowCommands } from './commands/workflowCommands'
+import { remoteCommands } from './commands/remoteCommands'
 
 /**
  * Commands an external AI can run through the MCP bridge.
@@ -38,7 +39,8 @@ const commands: Record<string, Handler> = {
   ...effectStackCommands,
   ...workflowCommands,
   ...systemCommands,
-  ...uiCommands
+  ...uiCommands,
+  ...remoteCommands
 }
 
 function getHandler(canonical: string): Handler | undefined {
@@ -46,6 +48,7 @@ function getHandler(canonical: string): Handler | undefined {
     return () => Array.from(new Set([
       ...Object.keys(commands),
       ...Object.keys(uiCommands),
+      ...Object.keys(remoteCommands),
       ...Object.keys(workflowCommands),
       ...Object.keys(layerAssemblyCommands),
       ...Object.keys(layerAssemblyTemplateCommands),
@@ -63,6 +66,7 @@ function getHandler(canonical: string): Handler | undefined {
   }
   return (
     uiCommands[canonical] ??
+    remoteCommands[canonical] ??
     workflowCommands[canonical] ??
     layerAssemblyCommands[canonical] ??
     layerAssemblyTemplateCommands[canonical] ??
@@ -118,8 +122,8 @@ export function setManualAiLock(locked: boolean, reason?: string, timeoutMs = 10
 }
 
 /**
- * Các lệnh chỉ đọc (query/inspect) hoặc chụp ảnh màn hình.
- * Tuyệt đối không bật viền neon hay badge HUD để ảnh chụp không bị dính viền neon và không gây xao nhãng khi AI chỉ đọc thông tin.
+ * Các lệnh chỉ đọc (query/inspect), chụp ảnh màn hình hoặc thao tác cảm ứng realtime từ điện thoại (Mobile Remote).
+ * Tuyệt đối không bật viền neon hay badge HUD để ảnh chụp không bị dính viền neon và không gây xao nhãng khi thao tác.
  */
 const SILENT_MCP_COMMANDS = new Set([
   'get_app_screenshot',
@@ -147,7 +151,9 @@ const SILENT_MCP_COMMANDS = new Set([
   'list_workflow_presets',
   'get_workflow',
   'export_project_json',
-  'export_shot_json'
+  'export_shot_json',
+  'get_remote_state',
+  'remote_control_action'
 ])
 
 type McpWin = { __pxsMcpUnsub?: () => void }
@@ -234,4 +240,3 @@ if (import.meta.hot) {
     initMcp()
   })
 }
-

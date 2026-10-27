@@ -13,6 +13,23 @@ export const WF_V2_PORT_Y = 22
  */
 export type V2EdgeKind = 'hierarchy' | 'logic' | 'data' | 'camera'
 
+/** Playback pulses describe active processing, independently of selection highlighting. */
+export function isV2EdgeFlowing(
+  edge: WorkflowEdge, from: WorkflowNode, to: WorkflowNode, kind: V2EdgeKind,
+  active: Set<string>, time: number, playing: boolean,
+  transition?: { start: number; end: number }
+): boolean {
+  if (!playing || edge.disabled || from.enabled === false || to.enabled === false) return false
+  if (kind === 'camera') {
+    const start = transition?.start ?? from.params?.timeEnd
+    const end = transition?.end ?? to.params?.timeStart
+    return start !== undefined && end !== undefined && end > start && time >= start && time < end
+  }
+  // A waypoint is driven by the camera clock; its preceding waypoint has already finished.
+  if (to.params?.isCameraWaypoint) return active.has(to.id)
+  return active.has(from.id) && active.has(to.id)
+}
+
 export function classifyV2Edge(edge: WorkflowEdge, from: WorkflowNode, to: WorkflowNode): V2EdgeKind {
   if (isCameraChainEdge(edge)) return 'camera'
   if (from.params?.logicCategory === 'material' && to.params?.logicCategory === 'collision') return 'data'

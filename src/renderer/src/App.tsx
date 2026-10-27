@@ -10,6 +10,7 @@ import { CameraSketchDialog } from './ui/CameraSketchDialog'
 import { ExportDialog } from './ui/ExportDialog'
 import { PerformanceDialog } from './ui/PerformanceDialog'
 import { McpDialog } from './ui/McpDialog'
+import { MobileRemoteDialog } from './ui/MobileRemoteDialog'
 import { AudioStudioDialog } from './ui/AudioStudioDialog'
 import { Assembly3DDialog } from './ui/assets/models3d/Assembly3DDialog'
 import { GlobalLayerAssemblyHost } from './ui/layerAssembly/GlobalLayerAssemblyHost'
@@ -215,6 +216,7 @@ export default function App() {
       {dialog === 'sketch' && <CameraSketchDialog />}
       {dialog === 'performance' && <PerformanceDialog />}
       {dialog === 'mcp' && <McpDialog />}
+      {dialog === 'remote' && <MobileRemoteDialog />}
       {dialog === 'audio' && <AudioStudioDialog />}
       {assemblyModalModel && (
         <Assembly3DDialog

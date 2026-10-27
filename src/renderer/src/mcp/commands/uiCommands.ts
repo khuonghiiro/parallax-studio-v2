@@ -47,12 +47,6 @@ export interface UiCandidate {
   visible: boolean
 }
 
-/**
- * Chuẩn hóa chuỗi văn bản UI để so khớp:
- * - Thay thế dấu 3 chấm unicode … (\u2026) thành 3 dấu chấm ascii ...
- * - Lược bỏ biểu tượng cảm xúc (emojis) ở đầu/cuối nút (🎯, 🪞, 🦴, 📖, ✨, v.v.)
- * - Gom khoảng trắng, chuyển về chữ thường
- */
 export function normalizeUiText(raw: string): string {
   if (!raw) return ''
   return raw
@@ -64,10 +58,6 @@ export function normalizeUiText(raw: string): string {
     .toLowerCase()
 }
 
-/**
- * Từ điển đồng nghĩa / ánh xạ tiêu đề & nhãn nút bấm phổ biến.
- * Giúp AI gọi tên gần đúng (VD: "Studio Mixamo", "Tự phân nhóm", "Thay thế...") vẫn tìm trúng phần tử.
- */
 export const UI_TEXT_SYNONYMS: Record<string, string[]> = {
   // Studio Mixamo & Tạo xương
   'studio mixamo': ['mở studio', 'mở studio mixamo', 'studio mixamo 2.5d', 'mixamo', 'gắn điểm mixamo', 'khung xương mixamo'],
@@ -102,18 +92,15 @@ export const UI_TEXT_SYNONYMS: Record<string, string[]> = {
   'xếp lớp': ['layers', 'danh sách layer', 'lớp'],
   'tạo lắp ráp': ['mở xưởng', 'xưởng lắp ráp', 'tạo mới lắp ráp'],
   'workflow': ['quy trình', 'tab workflow', 'luồng tạo video', 'sơ đồ workflow'],
-  'áp dụng workflow': ['chạy workflow', 'thực thi workflow', 'apply workflow']
+  'áp dụng workflow': ['chạy workflow', 'thực thi workflow', 'apply workflow'],
+  'qr': ['quét mã qr', 'remote', 'điều khiển điện thoại', 'mobile remote'],
+  'remote': ['quét mã qr', 'qr', 'điều khiển điện thoại', 'mobile remote']
 }
 
-/**
- * Chọn phần tử khớp văn bản (case-insensitive + hỗ trợ chuẩn hóa & từ điển đồng nghĩa).
- * Exact matches > Prefix/Suffix matches > Substring matches; `index` chọn thứ tự khi có nhiều kết quả.
- */
 export function pickByText(candidates: UiCandidate[], query: string, index = 0): number {
   const cleanQ = normalizeUiText(query)
   if (!cleanQ) return -1
 
-  // Tập hợp các biến thể truy vấn (từ điển đồng nghĩa)
   const synonyms = UI_TEXT_SYNONYMS[cleanQ] ?? []
   const queries = [cleanQ, ...synonyms.map(normalizeUiText).filter(Boolean)]
 
@@ -124,7 +111,6 @@ export function pickByText(candidates: UiCandidate[], query: string, index = 0):
   candidates.forEach((c, i) => {
     if (!c.visible) return
 
-    // Tập hợp toàn bộ nhãn của phần tử
     const labels = [
       c.text,
       c.ariaLabel,
@@ -255,7 +241,6 @@ export const uiCommands: Record<string, Handler> = {
       }
 
       await sleep(Math.max(0, Math.min(5000, num(p, 'delay_ms') ?? 150)))
-      // Đánh thức compositor ngầm của Chromium khi cửa sổ bị che khuất để commit frame DOM/WebGL mới nhất (bao gồm cả vị trí cuộn mới)
       await capture({ width: 64, format: 'jpeg' }).catch(() => undefined)
       await nextPaint()
 
@@ -281,8 +266,6 @@ export const uiCommands: Record<string, Handler> = {
         }
       }
 
-      // Chụp toàn bộ khung hình trước (không truyền rect trực tiếp vào capturePage của Chromium)
-      // để buộc GPU compositor kết xuất frame mới nhất khi cửa sổ đang nằm ở nền, sau đó crop vùng chọn.
       const res = await capture({ width: rect ? undefined : (width ?? undefined), format })
 
       const matched = targetEl ? describeElement(targetEl) : undefined
@@ -344,7 +327,6 @@ export const uiCommands: Record<string, Handler> = {
     }
 
     if (!el && query) {
-      // 1. Thử tìm input trực tiếp theo placeholder, aria-label, name hoặc id
       const direct = Array.from(document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(
         'input, textarea'
       )).find((inp) => {
@@ -355,7 +337,6 @@ export const uiCommands: Record<string, Handler> = {
       if (direct) {
         el = direct
       } else {
-        // 2. Tìm thẻ label hoặc container trường nhập chứa văn bản query
         const labels = Array.from(document.querySelectorAll<HTMLElement>('label, .mx-field, .lw-field')).filter(isVisible)
         const cands = labels.map((l) => ({ text: l.innerText || l.title || '', visible: true }))
         const idx = pickByText(cands, query)
@@ -471,6 +452,7 @@ export const uiCommands: Record<string, Handler> = {
         dialog === 'sketch' ||
         dialog === 'performance' ||
         dialog === 'mcp' ||
+        dialog === 'remote' ||
         dialog === 'export'
       ) {
         v.openDialog(dialog)
@@ -478,7 +460,7 @@ export const uiCommands: Record<string, Handler> = {
         requestOpenLayerAssembly(str(p, 'composite_id') ?? undefined)
       } else {
         throw new ParamError(
-          `Invalid dialog "${dialog}". Expected none, path, sketch, performance, mcp, audio, export, layer_assembly, or layer_assembly_create.`
+          `Invalid dialog "${dialog}". Expected none, path, sketch, performance, mcp, remote, audio, export, layer_assembly, or layer_assembly_create.`
         )
       }
     } else if (audioMode === 'levels' || audioMode === 'mixer' || audioMode === 'waveform') {

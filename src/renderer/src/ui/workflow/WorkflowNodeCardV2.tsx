@@ -259,13 +259,14 @@ export const WorkflowNodeCardV2 = memo(function WorkflowNodeCardV2({
                   ? `Chèn thêm mốc thời gian Camera ngay sau mốc #${node.params.waypointLabel ?? (node.params.waypointLocalIndex ?? 0) + 1}`
                   : 'Thêm mốc thời gian Camera mới vào cảnh này'
               }
-              onClick={() =>
+              onClick={(event) => {
+                event.stopPropagation()
                 onSpawnCameraWaypoint(
                   node.params!.shotId!,
                   'zoom-in',
                   node.params?.isCameraWaypoint ? node.params.timeStart : undefined
                 )
-              }
+              }}
             >
               + Mốc
             </button>

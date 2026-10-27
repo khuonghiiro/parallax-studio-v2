@@ -24,6 +24,7 @@ export const DIALOG_SELECTORS = [
   '.export-modal',
   '.perf-modal',
   '.mcp-modal',
+  '.remote-modal',
   '.camera-path-modal',
   '.camera-sketch-modal',
   '.wf-node-config-modal',
@@ -135,6 +136,7 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   toolbar: ['header.toolbar', '.toolbar'],
   studio_menu: ['#menu-studio', '.toolbar'],
   mcp_chip: ['#mcp-chip', '.mcp-chip'],
+  remote_chip: region('remote_chip', '#remote-qr-btn', '.remote-qr-chip'),
   responsive_dock: ['#responsive-dock', '.responsive-dock'],
 
   // Floating Modals & Workshops — `dialog` cũng tự chọn dialog trên cùng giống `active`
@@ -237,6 +239,11 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   mcp_config: ['.mcp-ide-config'],
   mcp_guide: ['.mcp-ai-guide-card'],
 
+  // 9. Hộp thoại Điều khiển qua Điện thoại & QR Code (Mobile Wi-Fi Remote Dialog)
+  remote_dialog: region('remote_dialog', '.remote-modal'),
+  remote_qr_card: region('remote_qr_card', '.remote-qr-card'),
+  remote_touchpad_card: region('remote_touchpad_card', '.remote-touchpad-card'),
+
   // AI Neon HUD
   ai_hud: ['.ai-neon-hud-badge']
 }
@@ -302,7 +309,9 @@ export const REGION_ALIASES: Record<string, string> = {
   mixamo_settings: 'layer_assembly_mixamo_settings',
   mixamo_footer: 'layer_assembly_mixamo_footer',
   parts: 'layer_assembly_parts',
-  swap: 'layer_assembly_swap'
+  swap: 'layer_assembly_swap',
+  remote: 'remote_dialog',
+  qr: 'remote_qr_card'
 }
 
 export function resolveTargetElement(regionName?: string, selector?: string): HTMLElement | null {

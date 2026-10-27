@@ -40,20 +40,6 @@ async function captureWebContents(wc: Electron.WebContents, opts: McpCaptureOpti
   return { mime: jpeg ? 'image/jpeg' : 'image/png', data: buf.toString('base64'), width: size.width, height: size.height }
 }
 
-/**
- * Local control bridge for AI agents (Blender-MCP style).
- *
- * The app listens on 127.0.0.1 only. The external `mcp-server` (stdio MCP server
- * launched by the AI client) connects here and sends newline-delimited JSON:
- *
- *   → {"id":1,"token":"…","method":"get_project_info","params":{}}
- *   ← {"id":1,"ok":true,"result":{…}}
- *
- * Every request must carry the token stored in `<userData>/mcp.json`, which only
- * processes of the same OS user can read. Commands are forwarded to the renderer
- * (where the project state lives) and executed as normal undoable edits.
- */
-
 const DEFAULT_PORT = 9877
 const MAX_LINE = 256 * 1024 * 1024 // base64 images can be large
 const MAX_FILE = 1024 * 1024 * 1024
@@ -153,6 +139,11 @@ export class McpBridge {
     this.rendererReady = false
   }
 
+  /** Public entry point for internal bridges (e.g. Mobile Remote Control Server). */
+  executeCommand(method: string, params: Record<string, unknown> = {}): Promise<unknown> {
+    return this.dispatch(method, params)
+  }
+
   start(): void {
     if (process.env.PARALLAX_MCP === '0') {
       this.status.error = 'MCP bị tắt (PARALLAX_MCP=0)'
@@ -194,10 +185,6 @@ export class McpBridge {
     return this.status
   }
 
-  /**
-   * Language of the docs the MCP server gives AI agents (tool descriptions, guide). Written to
-   * mcp.json even while the listener is paused; running MCP servers pick it up live.
-   */
   setDocsLang(lang: unknown): McpStatus {
     this.status.docsLang = lang === 'vi' ? 'vi' : 'en'
     if (!this.token) this.token = this.loadOrCreateToken()
@@ -305,7 +292,6 @@ export class McpBridge {
   // ---------------------------------------------------------------- protocol
 
   private onConnection(sock: Socket): void {
-    // Defence in depth: the server is bound to loopback, but refuse anything else anyway.
     const addr = sock.remoteAddress ?? ''
     if (!['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(addr)) {
       sock.destroy()
@@ -395,8 +381,6 @@ export class McpBridge {
     if (normalizedMethod === 'get_app_screenshot') {
       const win = this.getWindow()
       if (!win || win.isDestroyed()) throw new Error('App window is not open')
-      // Tuyệt đối không gọi win.restore(), win.show() hay win.showInactive()
-      // để cửa sổ luôn nằm yên ở nền (background) khi người dùng đang làm việc trên ứng dụng khác.
 
       if (this.rendererReady) {
         try {

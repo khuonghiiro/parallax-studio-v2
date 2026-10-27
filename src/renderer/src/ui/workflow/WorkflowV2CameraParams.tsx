@@ -240,6 +240,12 @@ export function WorkflowV2CameraWaypointParams({
 }
 
 export function WorkflowV2CameraParams(props: WorkflowV2NodeParamsProps): React.ReactElement {
+  return props.node.params?.isCameraWaypoint
+    ? <WorkflowV2CameraWaypointParams key={props.node.id} {...props} />
+    : <WorkflowV2CameraShotParams key={props.node.id} {...props} />
+}
+
+function WorkflowV2CameraShotParams(props: WorkflowV2NodeParamsProps): React.ReactElement {
   const { node, project, workflow, onUpdate, onScrubTime, onSelectNode, onSpawnCameraWaypoint } = props
   const editorUpdate = useEditor((s) => s.update)
   const time = useEditor((s) => s.time)
@@ -248,7 +254,6 @@ export function WorkflowV2CameraParams(props: WorkflowV2NodeParamsProps): React.
   const [show3DControls, setShow3DControls] = useState(false)
 
   const p = node.params ?? {}
-  if (p.isCameraWaypoint) return <WorkflowV2CameraWaypointParams {...props} />
 
   const shotWaypoints = useMemo(
     () =>

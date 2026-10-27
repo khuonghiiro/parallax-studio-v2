@@ -499,8 +499,8 @@
   width: 1px;
   height: 1px;
   transform-origin: 0 0;
-  will-change: transform;
 }
+.wf-v2-world-content { position: relative; width: 1px; height: 1px; }
 .wf-v2-col-banner {
   position: absolute;
   top: 8px;

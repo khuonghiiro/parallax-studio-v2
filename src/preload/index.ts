@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer, webFrame } from 'electron'
-import type { McpCommand, McpStatus, ParallaxApi } from '@shared/ipc'
+import type { McpCommand, McpStatus, ParallaxApi, RemoteServerStatus } from '@shared/ipc'
+import { enrichRemoteStatusWithHttps } from './remoteHttpsBridge'
 
 function enforceZoom100(): void {
   try {
@@ -65,6 +66,18 @@ const api: ParallaxApi = {
     toggleListening: (enable?: boolean) => ipcRenderer.invoke('mcp:toggleListening', enable),
     setDocsLang: (lang) => ipcRenderer.invoke('mcp:setDocsLang', lang),
     captureWindow: (opts) => ipcRenderer.invoke('mcp:captureWindow', opts)
+  },
+  remote: {
+    status: () => ipcRenderer.invoke('remote:status').then(enrichRemoteStatusWithHttps),
+    onStatus: (cb) => {
+      const h = (_e: Electron.IpcRendererEvent, s: RemoteServerStatus): void => {
+        void enrichRemoteStatusWithHttps(s).then(cb)
+      }
+      ipcRenderer.on('remote:status', h)
+      return () => ipcRenderer.removeListener('remote:status', h)
+    },
+    toggle: (enable?: boolean) => ipcRenderer.invoke('remote:toggle', enable).then(enrichRemoteStatusWithHttps),
+    regenerateToken: () => ipcRenderer.invoke('remote:regenerateToken').then(enrichRemoteStatusWithHttps)
   }
 }
 

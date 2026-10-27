@@ -5,22 +5,17 @@ import { readFile, writeFile, unlink } from 'fs/promises'
 import { tmpdir } from 'os'
 import { FfmpegEncoder } from './ffmpeg'
 import { McpBridge } from './mcpBridge'
+import { RemoteControlServer } from './remoteServer'
 import { recentPaths } from './recentPaths'
 import { getSystemHardwareInfo } from './systemInfo'
 import { registerBuiltInAssetsIpc } from './builtInAssets'
 import { registerAsset3DsIpc } from './asset3ds'
 import type { ExportStartOptions, PickedFile } from '@shared/ipc'
 
-// ANGLE's default D3D11 backend crashes the GPU process right at startup on some
-// Windows driver/Electron combos (exit 0xC0000005 before any shader is linked), which
-// loses the WebGL context. D3D11-on-12 is stable and equally fast. Override with
-// PARALLAX_ANGLE=d3d11|gl|vulkan or by passing --use-angle=... on the command line.
 if (process.platform === 'win32' && !app.commandLine.hasSwitch('use-angle')) {
   app.commandLine.appendSwitch('use-angle', process.env.PARALLAX_ANGLE || 'd3d11on12')
 }
 
-// Giữ cho tiến trình Renderer luôn cập nhật khung hình khi cửa sổ bị che khuất hoặc nằm ở nền,
-// giúp MCP chụp ảnh màn hình ngầm (background screenshot) mượt mà mà không cần bật cửa sổ lên.
 app.commandLine.appendSwitch('disable-background-timer-throttling')
 app.commandLine.appendSwitch('disable-renderer-backgrounding')
 app.commandLine.appendSwitch('disable-backgrounding-occluded-windows')
@@ -28,6 +23,7 @@ app.commandLine.appendSwitch('disable-backgrounding-occluded-windows')
 let mainWindow: BrowserWindow | null = null
 let encoder: FfmpegEncoder | null = null
 let mcp: McpBridge | null = null
+let remoteServer: RemoteControlServer | null = null
 
 const IMAGE_EXT = ['png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp']
 const AUDIO_EXT = ['mp3', 'wav', 'ogg', 'm4a', 'aac', 'flac']
@@ -284,6 +280,8 @@ if (!gotTheLock) {
     registerIpc()
     mcp = new McpBridge(() => mainWindow)
     mcp.start()
+    remoteServer = new RemoteControlServer(() => mainWindow, mcp)
+    remoteServer.start()
     createWindow()
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow()
@@ -292,6 +290,7 @@ if (!gotTheLock) {
 
   app.on('window-all-closed', () => {
     encoder?.cancel()
+    remoteServer?.stop()
     mcp?.stop()
     if (process.platform !== 'darwin') app.quit()
   })

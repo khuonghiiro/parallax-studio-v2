@@ -119,6 +119,7 @@ export interface ParallaxApi {
     saveManifest(jsonContent: string): Promise<{ ok: boolean; error?: string }>
   }
   mcp: McpApi
+  remote?: RemoteApi
 }
 
 // ------------------------------------------------------------------ MCP bridge
@@ -188,3 +189,25 @@ export interface McpApi {
   captureWindow(opts?: McpCaptureOptions): Promise<McpCaptureResult>
 }
 
+// ------------------------------------------------------------------ Mobile Wi-Fi QR Remote
+
+export interface RemoteServerStatus {
+  listening: boolean
+  port: number
+  ips: string[]
+  primaryIp: string
+  token: string
+  url: string
+  urls: string[]
+  connectedDevices: number
+  lastActiveAt: number | null
+  lastAction: string | null
+  error?: string
+}
+
+export interface RemoteApi {
+  status(): Promise<RemoteServerStatus>
+  onStatus(cb: (s: RemoteServerStatus) => void): () => void
+  toggle(enable?: boolean): Promise<RemoteServerStatus>
+  regenerateToken(): Promise<RemoteServerStatus>
+}
