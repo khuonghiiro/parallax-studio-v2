@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 320" width="300" height="320">
+      <ellipse cx="150" cy="298" rx="95" ry="14" fill="#0f172a" opacity="0.4"/>
+      <!-- Bánh xe Scooter phát sáng Neon -->
+      <circle cx="78" cy="268" r="28" fill="#0f172a" stroke="#22d3ee" stroke-width="7"/>
+      <circle cx="222" cy="268" r="28" fill="#0f172a" stroke="#22d3ee" stroke-width="7"/>
+      <!-- Khung xe Scooter -->
+      <path d="M78,268 L195,268 L228,132 L202,126" fill="none" stroke="#f43f5e" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+      <!-- Đèn pha trước -->
+      <circle cx="232" cy="148" r="10" fill="#fef08a"/>
+      <!-- Nhân vật đội mũ bảo hiểm -->
+      <rect x="112" y="128" width="56" height="92" rx="20" fill="#8b5cf6" stroke="#5b21b6" stroke-width="4"/>
+      <line x1="156" y1="150" x2="216" y2="132" stroke="#c4b5fd" stroke-width="14" stroke-linecap="round"/>
+      <line x1="132" y1="215" x2="138" y2="262" stroke="#1e293b" stroke-width="16" stroke-linecap="round"/>
+      <circle cx="144" cy="92" r="34" fill="#38bdf8" stroke="#0284c7" stroke-width="4"/>
+      <path d="M148,78 L178,78 Q182,92 174,102 L148,102 Z" fill="#0f172a"/>
+    </svg>

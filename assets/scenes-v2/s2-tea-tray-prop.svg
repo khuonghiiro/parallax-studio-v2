@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 120" width="160" height="120">
+      <ellipse cx="80" cy="92" rx="68" ry="14" fill="#d97706" stroke="#78350f" stroke-width="4"/>
+      <!-- Ấm trà & tách trà bốc khói -->
+      <circle cx="66" cy="68" r="22" fill="#f8fafc" stroke="#64748b" stroke-width="3"/>
+      <path d="M88,68 Q104,58 106,48" fill="none" stroke="#f8fafc" stroke-width="6" stroke-linecap="round"/>
+      <rect x="108" y="66" width="24" height="22" rx="5" fill="#fef08a" stroke="#ca8a04" stroke-width="3"/>
+      <path d="M66,36 Q60,22 70,12 M118,54 Q114,40 122,30" fill="none" stroke="#e2e8f0" stroke-width="3" stroke-linecap="round" opacity="0.8"/>
+    </svg>

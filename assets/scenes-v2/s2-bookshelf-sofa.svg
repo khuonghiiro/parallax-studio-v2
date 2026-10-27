@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1700 700" width="1700" height="700">
+      <!-- Kệ sách bên trái -->
+      <rect x="90" y="60" width="320" height="540" rx="10" fill="#78350f" stroke="#451a03" stroke-width="8"/>
+      <rect x="115" y="90" width="270" height="110" fill="#451a03"/>
+      <rect x="115" y="225" width="270" height="110" fill="#451a03"/>
+      <rect x="115" y="360" width="270" height="110" fill="#451a03"/>
+      <!-- Những cuốn sách nhiều màu -->
+      <rect x="130" y="110" width="26" height="88" fill="#ef4444"/>
+      <rect x="160" y="118" width="28" height="80" fill="#3b82f6"/>
+      <rect x="192" y="105" width="24" height="93" fill="#10b981"/>
+      <rect x="222" y="115" width="30" height="83" fill="#f59e0b"/>
+      <rect x="140" y="245" width="32" height="88" fill="#8b5cf6"/>
+      <rect x="176" y="250" width="26" height="83" fill="#ec4899"/>
+      <!-- Ghế Sofa êm ái -->
+      <rect x="540" y="360" width="660" height="210" rx="42" fill="#0d9488" stroke="#115e59" stroke-width="6"/>
+      <rect x="500" y="430" width="740" height="160" rx="32" fill="#14b8a6" stroke="#0f766e" stroke-width="6"/>
+      <rect x="590" y="395" width="110" height="90" rx="20" fill="#fde047" transform="rotate(-8 645 440)"/>
+    </svg>

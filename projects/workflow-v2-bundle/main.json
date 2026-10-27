@@ -1,0 +1,134 @@
+{
+  "kind": "parallax-workflow-main",
+  "version": 2,
+  "name": "Hành Trình 3 Khung Cảnh — Workflow V2",
+  "composition": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 30,
+    "duration": 15,
+    "background": "#0b1020"
+  },
+  "camera": {
+    "fov": 40,
+    "dofEnabled": false,
+    "shakeAmount": 0,
+    "shakeSpeed": 0.6
+  },
+  "look": {
+    "fogEnabled": false,
+    "fogColor": "#2a2140",
+    "fogNear": 1500,
+    "fogFar": 6000,
+    "vignette": 0,
+    "grain": 0,
+    "exposure": 0,
+    "contrast": 1,
+    "saturation": 1
+  },
+  "route": [
+    {
+      "shotId": "shot-1",
+      "index": 1,
+      "name": "Cánh Đồng Gió Mùa",
+      "file": "shots/shot-1.json",
+      "color": "#8b7bff",
+      "visible": true,
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "timeStart": 0,
+      "timeEnd": 4.77,
+      "cameraPreset": "dollyIn",
+      "waypointCount": 2,
+      "layerCount": 10,
+      "logicCount": 7
+    },
+    {
+      "shotId": "shot-2",
+      "index": 2,
+      "name": "Phòng Khách Ấm Áp",
+      "file": "shots/shot-2.json",
+      "color": "#3dd6f5",
+      "visible": true,
+      "position": [
+        10560,
+        0,
+        0
+      ],
+      "timeStart": 4.93,
+      "timeEnd": 9.77,
+      "cameraPreset": "dollyIn",
+      "waypointCount": 2,
+      "layerCount": 7,
+      "logicCount": 4
+    },
+    {
+      "shotId": "shot-3",
+      "index": 3,
+      "name": "Phố Đêm Đèn Đường",
+      "file": "shots/shot-3.json",
+      "color": "#f59e6b",
+      "visible": true,
+      "position": [
+        21120,
+        0,
+        0
+      ],
+      "timeStart": 9.93,
+      "timeEnd": 15,
+      "cameraPreset": "dollyIn",
+      "waypointCount": 2,
+      "layerCount": 5,
+      "logicCount": 4
+    }
+  ],
+  "connections": [
+    {
+      "edgeId": "e-camchain-shot-1-shot-2",
+      "fromShotId": "shot-1",
+      "fromShotName": "Cánh Đồng Gió Mùa",
+      "fromFile": "shots/shot-1.json",
+      "toShotId": "shot-2",
+      "toShotName": "Phòng Khách Ấm Áp",
+      "toFile": "shots/shot-2.json",
+      "transitionAt": 4.77
+    },
+    {
+      "edgeId": "e-camchain-shot-2-shot-3",
+      "fromShotId": "shot-2",
+      "fromShotName": "Phòng Khách Ấm Áp",
+      "fromFile": "shots/shot-2.json",
+      "toShotId": "shot-3",
+      "toShotName": "Phố Đêm Đèn Đường",
+      "toFile": "shots/shot-3.json",
+      "transitionAt": 9.77
+    }
+  ],
+  "assets": {
+    "b_u_tr_i_ho_ng_h_n_c_nh_ng": "scenes-v2/s1-sky-field.svg",
+    "i_xa_c_i_xay_gi": "scenes-v2/s1-hills-windmill.svg",
+    "c_nh_ng_l_a_v_ng_ng_t": "scenes-v2/s1-golden-field.svg",
+    "c_y_s_i_c_th_v_t_c_n_z-index": "scenes-v2/s1-oak-tree.svg",
+    "c_u_b_du_h_nh_th_n_o_cho_ng": "scenes-v2/s1-boy-body.svg",
+    "khu_n_m_t_t_i_c_i": "scenes-v2/s1-boy-face-smile.svg",
+    "khu_n_m_t_h_o_h_ng_wow": "scenes-v2/s1-boy-face-wow.svg",
+    "tay_ph_i_v_y_ch_o": "scenes-v2/s1-boy-arm-wave.svg",
+    "tay_ph_i_c_m_chong_ch_ng_tre": "scenes-v2/s1-boy-arm-point.svg",
+    "hoa_b_c_ng_anh_ti_n_c_nh": "scenes-v2/s1-fg-flowers.svg",
+    "t_ng_g_c_a_s_m_tr_ng": "scenes-v2/s2-room-wall-window.svg",
+    "k_s_ch_g_gh_sofa": "scenes-v2/s2-bookshelf-sofa.svg",
+    "b_n_tr_n_b_n_to_s_ng": "scenes-v2/s2-tea-table-lamp.svg",
+    "m_o_m_y_qu_n_gia_th_n_m_y": "scenes-v2/s2-robo-body.svg",
+    "m_n_h_nh_m_t_m_t_c_i": "scenes-v2/s2-robo-face-happy.svg",
+    "m_n_h_nh_m_t_ang_n_i": "scenes-v2/s2-robo-face-talk.svg",
+    "khay_tr_n_ng_o_c_g_n_c_m": "scenes-v2/s2-tea-tray-prop.svg",
+    "b_u_tr_i_ph_m_t_a_nh_xa": "scenes-v2/s3-city-night-sky.svg",
+    "m_t_ng_nh_a_v_a_h_ph_m": "scenes-v2/s3-street-road.svg",
+    "c_t_n_ng_neon_c_y_v_a_h": "scenes-v2/s3-street-lamp-tree.svg",
+    "th_ng_h_ng_bi_n_b_o_v_a_h_m_c_ti_u_va_ch_m": "scenes-v2/s3-street-crate.svg",
+    "tay_ua_scooter_i_n": "scenes-v2/s3-scooter-rider.svg"
+  }
+}

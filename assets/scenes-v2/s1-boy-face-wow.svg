@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" width="160" height="160">
+      <ellipse cx="80" cy="48" rx="72" ry="20" fill="#facc15" stroke="#ca8a04" stroke-width="4"/>
+      <path d="M32,48 C32,8 128,8 128,48 Z" fill="#fde047" stroke="#ca8a04" stroke-width="4"/>
+      <path d="M34,44 L126,44" stroke="#ef4444" stroke-width="8"/>
+      <circle cx="80" cy="86" r="44" fill="#fed7aa" stroke="#ea580c" stroke-width="3"/>
+      <!-- Mắt ngôi sao hào hứng & Miệng chữ O -->
+      <circle cx="63" cy="78" r="8" fill="#0f172a"/>
+      <circle cx="97" cy="78" r="8" fill="#0f172a"/>
+      <circle cx="60" cy="75" r="3" fill="#fde047"/>
+      <circle cx="94" cy="75" r="3" fill="#fde047"/>
+      <ellipse cx="80" cy="103" rx="11" ry="13" fill="#ef4444" stroke="#7f1d1d" stroke-width="3"/>
+    </svg>

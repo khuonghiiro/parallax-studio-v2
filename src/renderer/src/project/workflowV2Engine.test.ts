@@ -1,20 +1,33 @@
+import fs from 'node:fs'
+import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { produce } from 'immer'
 import type { Project, WorkflowGraph } from '@shared/types'
-import { addKeyframe } from '../animation/keyframes'
+import { addKeyframe, evaluate } from '../animation/keyframes'
 import { createImageLayer, createProject, createShot } from './factory'
 import { addTimelineLogic, getLayerTimelineLogicBadges, removeTimelineLogicNode } from './timelineLogic'
+import { buildThreeSceneWorkflowV2Project, type DemoSceneAssetInput } from './threeSceneDemoBuilder'
 import {
   WF_V2_NODE_H,
   WF_V2_NODE_W,
+  attachExternalLayerToClusterV2,
   attachLogicNodeToLayerV2,
+  buildMainWorkflowJson,
+  buildModularWorkflowBundle,
+  buildShotWorkflowJson,
+  extractClusterDynamicActions,
+  extractCompositeDynamicParts,
+  getCompatibleLogicCatalogForNode,
   findFreeV2Spot,
   isCameraChainEdge,
   isCameraWaypointNode,
   resolveHiddenV2NodeIds,
+  saveClusterCustomAction,
+  spawnTimedFollowupNodeV2,
   spawnWorkflowV2CameraWaypoint,
   syncWorkflowV2Graph,
   syncWorkflowV2NodeToProject,
+  updateClusterMemberOffsetV2,
   v2CameraId,
   v2CameraWaypointId,
   v2LayerNodeId,
@@ -394,15 +407,282 @@ describe('Workflow V2 — bố cục không đè thẻ', () => {
     }))
     expect(proj.layers.find((l) => l.id === torso.id)!.transform.position.value[0]).toBe(100)
 
-    // 4. Gắn Node Thay Biểu Cảm (part_swap) vào Node Khoá Cụm -> bao phủ cả cụm và đổi biểu cảm sang Tươi cười
+    // 4. Gắn Node Bộ phận chính (part_swap / isPartHub) vào Node Khoá Cụm -> tự động sinh các Node con Bộ phận (isPartChild)
     const swapRes = attachLogicNodeToLayerV2(proj.workflow!, clusterLockNode.id, 'part_swap', 'v2:part_swap:expr_happy')
     expect(swapRes.createdNodeId).toBeTruthy()
     proj = synced(produce(proj, (d) => {
       d.workflow = swapRes.workflow
-      const created = d.workflow.nodes.find((n) => n.id === swapRes.createdNodeId)!
-      syncWorkflowV2NodeToProject(d as Project, created, { swapMode: 'expression', swapVariant: faceHappy.id })
     }))
-    expect(proj.layers.find((l) => l.id === faceNormal.id)!.visible).toBe(false)
+    const partHubNode = proj.workflow!.nodes.find((n) => n.id === swapRes.createdNodeId)!
+    expect(partHubNode).toBeDefined()
+    expect(partHubNode.params?.isPartHub).toBe(true)
+    const partChildNodes = proj.workflow!.nodes.filter(
+      (n) => n.params?.isPartChild && n.params?.hierarchyParentNodeId === partHubNode.id
+    )
+    // Chỉ hiện Node con Bộ phận khi bộ phận có >= 2 item (face có 2 item, torso chỉ có 1 item nên không hiện)
+    expect(partChildNodes.length).toBe(1)
+    expect(partChildNodes[0].params?.partGroupId).toBe('slot:face')
+    assertNoOverlap(proj.workflow!)
+
+    // Chỉnh Node con Bộ phận Khuôn mặt -> đổi biểu cảm sang Tươi cười & ghi Keyframe tư thế theo mốc giây
+    const faceChild = partChildNodes.find((n) => n.params?.partGroupId === 'face') ?? partChildNodes[0]
+    proj = synced(produce(proj, (d) => {
+      const c = d.workflow!.nodes.find((n) => n.id === faceChild.id)!
+      syncWorkflowV2NodeToProject(d as Project, c, {
+        swapMode: 'expression',
+        swapVariant: faceHappy.id,
+        partRotDeg: 18,
+        timeStart: 3,
+        timeEnd: 6
+      })
+    }))
+    expect(proj.layers.find((l) => l.id === faceNormal.id)!.visible).toBe(true)
     expect(proj.layers.find((l) => l.id === faceHappy.id)!.visible).toBe(true)
+    expect(evaluate(proj.layers.find((l) => l.id === faceNormal.id)!.transform.opacity, 1.0)).toBe(1)
+    expect(evaluate(proj.layers.find((l) => l.id === faceHappy.id)!.transform.opacity, 1.0)).toBe(0)
+    expect(evaluate(proj.layers.find((l) => l.id === faceNormal.id)!.transform.opacity, 4.5)).toBe(0)
+    expect(evaluate(proj.layers.find((l) => l.id === faceHappy.id)!.transform.opacity, 4.5)).toBe(1)
+    expect(
+      proj.layers
+        .find((l) => l.id === faceHappy.id)!
+        .transform.rotation.keyframes.some((k) => k.id.includes('-partpose-'))
+    ).toBe(true)
+
+    // Nối tiếp 1 chặng Node con Bộ phận (+3s: 6s -> 9s) mà không xoá keyframe chặng 3s -> 6s
+    const followRes = spawnTimedFollowupNodeV2(proj.workflow!, faceChild.id, 3)
+    expect(followRes?.createdNodeId).toBeTruthy()
+    proj = synced(produce(proj, (d) => {
+      if (followRes) d.workflow = followRes.workflow
+    }))
+    expect(proj.workflow!.nodes.find((n) => n.id === followRes!.createdNodeId)?.params?.timeStart).toBe(6)
+    expect(proj.workflow!.nodes.find((n) => n.id === followRes!.createdNodeId)?.params?.timeEnd).toBe(9)
+
+    // 5. Khi 1 layer ngắt kết nối khỏi Node Khoá Cụm (lockedGroup = false) -> không còn line nối vào Khoá Cụm và không bị di chuyển theo cụm
+    proj = synced(produce(proj, (d) => {
+      d.layers.find((l) => l.id === faceHappy.id)!.composite!.lockedGroup = false
+    }))
+    const updatedClusterLock = proj.workflow!.nodes.find((n) => n.id === `v2-cluster-${instId}`)!
+    expect(proj.workflow!.edges.some((e) => e.fromNode === v2LayerNodeId(faceHappy.id) && e.toNode === updatedClusterLock.id)).toBe(false)
+    expect(updatedClusterLock.params?.targetLayerIds).toEqual([torso.id, faceNormal.id])
+
+    // 6. Trích xuất động Bộ phận theo Tab Bộ phận Xưởng 2.5D và tạo nhiều Node Bộ phận tách biệt + Node Gắn xương + Node Motion vẽ quỹ đạo
+    const dynParts = extractCompositeDynamicParts(proj, instId, torso)
+    expect(dynParts.length).toBeGreaterThan(0)
+    const compat = getCompatibleLogicCatalogForNode(updatedClusterLock, proj)
+    expect(compat.parentKind).toBe('composite_25d')
+    // Ẩn Node Gắn xương khỏi danh mục Workflow (vì gắn xương thực hiện trong Xưởng 2.5D chuẩn hơn)
+    expect(compat.categories.some((c) => c.id === 'rig_bone')).toBe(false)
+
+    // 7. Động tác Tên Động trên Node Animation (nhép miệng, nháy mắt, tên tuỳ chỉnh)
+    const dynActions = extractClusterDynamicActions(proj, instId, torso)
+    expect(dynActions.some((a) => /nhép miệng/i.test(a.name))).toBe(true)
+    proj = produce(proj, (d) => {
+      saveClusterCustomAction(
+        d as Project,
+        instId,
+        {
+          id: 'act-custom-talk',
+          name: 'Nhép miệng nói nhanh',
+          icon: '👄',
+          kind: 'sprite_cycle',
+          layerIds: [faceNormal.id, faceHappy.id],
+          speedHz: 5.0,
+          duration: 3.0,
+          loop: true
+        },
+        d.layers.find((l) => l.id === torso.id)
+      )
+    })
+    const animRes = attachLogicNodeToLayerV2(proj.workflow!, updatedClusterLock.id, 'anim_fx', 'v2:anim_fx:rig_idle')
+    proj = synced(produce(proj, (d) => {
+      d.workflow = animRes.workflow
+      const aNode = d.workflow.nodes.find((n) => n.id === animRes.createdNodeId)!
+      syncWorkflowV2NodeToProject(d as Project, aNode, {
+        animMode: 'rig_clip',
+        customActionId: 'act-custom-talk',
+        customActionName: 'Nhép miệng nói nhanh',
+        customActionSpeedHz: 5.0,
+        timeStart: 1,
+        timeEnd: 3
+      })
+    }))
+    expect(
+      proj.layers
+        .find((l) => l.id === faceNormal.id)!
+        .transform.opacity.keyframes.some((k) => k.id.includes('-dynact-'))
+    ).toBe(true)
+
+    // 8. Node Motion vẽ line chuyển động với chế độ Lặp lại (customMotionLoop + customMotionCycleSec)
+    const motionRes = attachLogicNodeToLayerV2(proj.workflow!, updatedClusterLock.id, 'action', 'v2:action:custom_draw')
+    expect(motionRes.createdNodeId).toBeTruthy()
+    proj = synced(produce(proj, (d) => {
+      d.workflow = motionRes.workflow
+      const mNode = d.workflow.nodes.find((n) => n.id === motionRes.createdNodeId)!
+      syncWorkflowV2NodeToProject(d as Project, mNode, {
+        actionPreset: 'custom_draw',
+        customMotionPath: [[-0.5, 0], [0, -0.4], [0.5, 0]],
+        customMotionLoop: true,
+        customMotionCycleSec: 1.0,
+        timeStart: 0,
+        timeEnd: 3
+      })
+    }))
+    expect(proj.layers.find((l) => l.id === torso.id)!.transform.position.keyframes.length).toBeGreaterThanOrEqual(6)
+
+    // 9. Kết nối 1 Layer công cụ rời mới vào Cụm 2.5D -> tự động khoá vào cụm và cấu hình vị trí tương đối
+    const swordProp = createImageLayer({ id: 'a-sword', name: 'Thanh Kiếm Ánh Sáng', kind: 'image', mime: 'image/png', width: 120, height: 120 }, proj.comp, 115, shotA.id)
+    swordProp.transform.position.value = [150, 40, 115]
+    proj = synced(produce(proj, (d) => {
+      d.layers.push(swordProp)
+    }))
+    const swordLayerNodeId = v2LayerNodeId(swordProp.id)
+    expect(validateWorkflowV2Connection(proj.workflow!, swordLayerNodeId, updatedClusterLock.id).valid).toBe(true)
+    proj = synced(produce(proj, (d) => {
+      const cNode = d.workflow!.nodes.find((n) => n.id === updatedClusterLock.id)!
+      attachExternalLayerToClusterV2(d as Project, [swordProp.id], cNode)
+      updateClusterMemberOffsetV2(d as Project, instId, swordProp.id, { offsetX: 75, offsetY: -15, scalePct: 120, rotDeg: 30 })
+    }))
+    const attachedSword = proj.layers.find((l) => l.id === swordProp.id)!
+    expect(attachedSword.composite?.instanceId).toBe(instId)
+    expect(attachedSword.composite?.lockedGroup).toBe(true)
+    expect(attachedSword.composite?.rootOffset?.[0]).toBe(75)
+    expect(attachedSword.composite?.rootOffset?.[1]).toBe(-15)
+    expect(attachedSword.transform.rotation.value[2]).toBe(30)
+
+    // 10. Đặt BBox Đích (#1 -> #2): phóng to/thu nhỏ dần theo BBox #2, đi theo chiều sâu Z vượt trước/sau cây và va chạm trên đường đi
+    const treeLayer = createImageLayer(
+      { id: 'a-tree', name: 'Cây Cổ Thụ', kind: 'image', mime: 'image/png', width: 260, height: 320 },
+      proj.comp,
+      140,
+      shotA.id
+    )
+    treeLayer.transform.position.value = [160, 0, 140]
+    proj = synced(
+      produce(proj, (d) => {
+        d.layers.push(treeLayer)
+      })
+    )
+
+    proj = synced(
+      produce(proj, (d) => {
+        const mNode = d.workflow!.nodes.find((n) => n.id === motionRes.createdNodeId)!
+        syncWorkflowV2NodeToProject(d as Project, mNode, {
+          motionMode: 'bbox',
+          actionPreset: 'bbox_target',
+          bboxPathType: 'shortest',
+          bboxTargetX: 320,
+          bboxTargetY: 0,
+          bboxTargetScalePct: 160,
+          depthMode: 'depth_z',
+          depthRefLayerId: treeLayer.id,
+          depthRelation: 'in_front',
+          collisionOnPathEnabled: true,
+          collisionTargetLayerId: treeLayer.id,
+          collisionResponse: 'push',
+          timeStart: 0,
+          timeEnd: 3
+        })
+      })
+    )
+    const movedTorso = proj.layers.find((l) => l.id === torso.id)!
+    const bboxPosKeys = movedTorso.transform.position.keyframes.filter((k) => k.id.includes('-bboxmot-'))
+    const bboxScaleKeys = movedTorso.transform.scale.keyframes.filter((k) => k.id.includes('-bboxmot-'))
+    expect(bboxPosKeys.length).toBeGreaterThanOrEqual(2)
+    expect(bboxScaleKeys.length).toBeGreaterThanOrEqual(2)
+    // Tại điểm đích #2 (t=3s), depthZ phải nhỏ hơn depthZ của cây (140) -> Z-Index lớn hơn cây -> hiển thị đè lên trước cây
+    const lastPosKey = bboxPosKeys[bboxPosKeys.length - 1]
+    expect(lastPosKey.value[0]).toBe(320)
+    expect(lastPosKey.value[2]).toBeLessThan(140)
+    // Kích thước tại đích #2 phóng to lên 160% so với ban đầu
+    const firstScaleKey = bboxScaleKeys[0]
+    const lastScaleKey = bboxScaleKeys[bboxScaleKeys.length - 1]
+    expect(lastScaleKey.value[0]).toBeGreaterThan(firstScaleKey.value[0] * 1.45)
+    // Cây vật cản nhận xung lực va chạm và bị đẩy lùi khi cụm đi cắt qua trên đường BBox #1 -> #2
+    const impactedTree = proj.layers.find((l) => l.id === treeLayer.id)!
+    expect(impactedTree.physics?.impacts?.some((imp) => imp.id.startsWith('wf-bboxcol-'))).toBe(true)
+  })
+
+  it('xây dựng dự án mẫu 3 cảnh chuẩn JSON (Cánh Đồng, Trong Nhà, Ngoài Đường) với đầy đủ các Node Logic mượt mà', () => {
+    const assetSpecs: DemoSceneAssetInput[] = [
+      { id: 'asset-s1-sky', file: 's1-sky-field.svg', name: 'Bầu Trời Hoàng Hôn Cánh Đồng', width: 1920, height: 1080 },
+      { id: 'asset-s1-hills', file: 's1-hills-windmill.svg', name: 'Đồi Xa & Cối Xay Gió', width: 1920, height: 680 },
+      { id: 'asset-s1-field', file: 's1-golden-field.svg', name: 'Cánh Đồng Lúa Vàng & Đường Đất', width: 1920, height: 520 },
+      { id: 'asset-s1-oaktree', file: 's1-oak-tree.svg', name: 'Cây Sồi Cổ Thụ (Vật Cản Z-Index)', width: 460, height: 560 },
+      { id: 'asset-s1-boy-body', file: 's1-boy-body.svg', name: 'Cậu Bé Du Hành — Thân & Áo Choàng', width: 240, height: 340 },
+      { id: 'asset-s1-boy-face-smile', file: 's1-boy-face-smile.svg', name: 'Khuôn Mặt — Tươi Cười', width: 160, height: 160 },
+      { id: 'asset-s1-boy-face-wow', file: 's1-boy-face-wow.svg', name: 'Khuôn Mặt — Hào Hứng (Wow)', width: 160, height: 160 },
+      { id: 'asset-s1-boy-arm-wave', file: 's1-boy-arm-wave.svg', name: 'Tay Phải — Vẫy Chào', width: 150, height: 180 },
+      { id: 'asset-s1-boy-arm-point', file: 's1-boy-arm-point.svg', name: 'Tay Phải — Cầm Chong Chóng Tre', width: 150, height: 180 },
+      { id: 'asset-s1-fg-flowers', file: 's1-fg-flowers.svg', name: 'Hoa Bồ Công Anh Tiền Cảnh', width: 1920, height: 320 },
+      { id: 'asset-s2-room-wall', file: 's2-room-wall-window.svg', name: 'Tường Gỗ & Cửa Sổ Đêm Trăng', width: 1920, height: 1080 },
+      { id: 'asset-s2-bookshelf', file: 's2-bookshelf-sofa.svg', name: 'Kệ Sách Gỗ & Ghế Sofa', width: 1700, height: 700 },
+      { id: 'asset-s2-lamp-table', file: 's2-tea-table-lamp.svg', name: 'Bàn Trà & Đèn Bàn Toả Sáng', width: 520, height: 460 },
+      { id: 'asset-s2-robo-body', file: 's2-robo-body.svg', name: 'Mèo Máy Quản Gia — Thân Máy', width: 240, height: 320 },
+      { id: 'asset-s2-robo-face-happy', file: 's2-robo-face-happy.svg', name: 'Màn Hình Mặt — Mắt Cười', width: 160, height: 150 },
+      { id: 'asset-s2-robo-face-talk', file: 's2-robo-face-talk.svg', name: 'Màn Hình Mặt — Đang Nói', width: 160, height: 150 },
+      { id: 'asset-s2-tea-tray', file: 's2-tea-tray-prop.svg', name: 'Khay Trà Nóng (Đạo Cụ Gắn Cụm)', width: 160, height: 120 },
+      { id: 'asset-s3-city-sky', file: 's3-city-night-sky.svg', name: 'Bầu Trời Phố Đêm & Tòa Nhà Xa', width: 1920, height: 1080 },
+      { id: 'asset-s3-street-road', file: 's3-street-road.svg', name: 'Mặt Đường Nhựa & Vỉa Hè Phố Đêm', width: 1920, height: 540 },
+      { id: 'asset-s3-lamp-tree', file: 's3-street-lamp-tree.svg', name: 'Cột Đèn Đường Neon & Cây Vỉa Hè', width: 420, height: 620 },
+      { id: 'asset-s3-crate', file: 's3-street-crate.svg', name: 'Thùng Hàng & Biển Báo Vỉa Hè (Mục Tiêu Va Chạm)', width: 240, height: 220 },
+      { id: 'asset-s3-scooter', file: 's3-scooter-rider.svg', name: 'Tay Đua Scooter Điện', width: 300, height: 320 }
+    ]
+
+    const rootDir = path.resolve(__dirname, '../../../..')
+    for (const item of assetSpecs) {
+      const svgFile = path.join(rootDir, 'assets', 'scenes-v2', item.file)
+      if (fs.existsSync(svgFile)) {
+        const rawSvg = fs.readFileSync(svgFile, 'utf8')
+        item.dataUrl = `data:image/svg+xml;base64,${Buffer.from(rawSvg, 'utf8').toString('base64')}`
+      }
+    }
+
+    const proj = buildThreeSceneWorkflowV2Project(assetSpecs)
+    expect(proj.shots.map((s) => s.name)).toEqual([
+      'Cánh Đồng Gió Mùa',
+      'Phòng Khách Ấm Áp',
+      'Phố Đêm Đèn Đường'
+    ])
+    expect(proj.layers.length).toBe(22)
+    assertNoOverlap(proj.workflow!)
+    expect(syncWorkflowV2Graph(proj, proj.workflow)).toBe(proj.workflow)
+
+    // Kiểm tra Cảnh 1: Cụm Cậu Bé Du Hành đi theo BBox #1 -> #2 mượt (chỉ 2 keyframe đầu-cuối cho đường thẳng ngắn nhất)
+    const boyBody = proj.layers.find((l) => l.id === 'layer-s1-boy-body')!
+    const boyMotKeys = boyBody.transform.position.keyframes.filter((k) => k.id.includes('-bboxmot-'))
+    expect(boyMotKeys.length).toBe(3) // 1 key pre + 2 key (tStart=0.2s, tEnd=4.6s) với easeInOut mượt tuyệt đối!
+    expect(boyMotKeys[boyMotKeys.length - 1].value[2]).toBe(180) // Z=180 < Z=240 của Cây Sồi -> đi qua trước cây!
+
+    // Kiểm tra Cảnh 2: Đạo cụ Khay Trà Nóng đã được khoá vào Cụm Mèo Máy Quản Gia và đi theo đường cong custom_curve
+    const teaTray = proj.layers.find((l) => l.id === 'layer-s2-tea-tray')!
+    expect(teaTray.composite?.instanceId).toBe('cluster-robo-s2')
+    expect(teaTray.transform.position.keyframes.filter((k) => k.id.includes('-bboxmot-')).length).toBeGreaterThanOrEqual(10)
+
+    // Kiểm tra Cảnh 3: Tay Đua Scooter Điện đi theo BBox #1 -> #2 và va chạm đẩy lùi Thùng Hàng Vỉa Hè
+    const crate = proj.layers.find((l) => l.id === 'layer-s3-crate')!
+    expect(crate.physics?.impacts?.length).toBeGreaterThanOrEqual(1)
+
+    // Ghi ra các file JSON chuẩn tại projects/ để app load trực tiếp và dễ chỉnh sửa
+    const projDir = path.join(rootDir, 'projects')
+    const bundleDir = path.join(projDir, 'workflow-v2-bundle')
+    const shotsDir = path.join(bundleDir, 'shots')
+    fs.mkdirSync(shotsDir, { recursive: true })
+
+    fs.writeFileSync(
+      path.join(projDir, 'ba-canh-mau-workflow-v2.json'),
+      JSON.stringify(proj, null, 2),
+      'utf8'
+    )
+    const mainJson = buildMainWorkflowJson(proj, proj.workflow!)
+    const bundleJson = {
+      ...buildModularWorkflowBundle(proj, proj.workflow!),
+      assets: proj.assets
+    }
+    fs.writeFileSync(path.join(bundleDir, 'main.json'), JSON.stringify(mainJson, null, 2), 'utf8')
+    fs.writeFileSync(path.join(bundleDir, 'workflow-bundle.json'), JSON.stringify(bundleJson, null, 2), 'utf8')
+    for (let i = 0; i < proj.shots.length; i++) {
+      const sJson = buildShotWorkflowJson(proj, proj.shots[i].id, proj.workflow!)
+      fs.writeFileSync(path.join(shotsDir, `shot-${i + 1}.json`), JSON.stringify(sJson, null, 2), 'utf8')
+    }
   })
 })

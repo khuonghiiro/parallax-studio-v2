@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="1920" height="1080">
+      <defs>
+        <linearGradient id="wall2" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#312e81"/>
+          <stop offset="68%" stop-color="#4338ca"/>
+          <stop offset="69%" stop-color="#78350f"/>
+          <stop offset="100%" stop-color="#451a03"/>
+        </linearGradient>
+      </defs>
+      <rect width="1920" height="1080" fill="url(#wall2)"/>
+      <!-- Cửa sổ nhìn ra bầu trời đêm trăng -->
+      <rect x="720" y="120" width="480" height="420" rx="18" fill="#0f172a" stroke="#d97706" stroke-width="16"/>
+      <circle cx="1060" cy="230" r="46" fill="#fef08a"/>
+      <circle cx="820" cy="200" r="4" fill="#ffffff"/>
+      <circle cx="910" cy="280" r="3" fill="#ffffff"/>
+      <circle cx="860" cy="360" r="4" fill="#ffffff"/>
+      <line x1="960" y1="120" x2="960" y2="540" stroke="#d97706" stroke-width="12"/>
+      <line x1="720" y1="330" x2="1200" y2="330" stroke="#d97706" stroke-width="12"/>
+      <!-- Thảm trải sàn ấm áp -->
+      <ellipse cx="960" cy="910" rx="640" ry="110" fill="#991b1b" stroke="#f59e0b" stroke-width="8"/>
+    </svg>

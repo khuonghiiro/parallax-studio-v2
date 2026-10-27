@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 520" width="1920" height="520">
+      <defs>
+        <linearGradient id="meadow" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#84cc16"/>
+          <stop offset="45%" stop-color="#65a30d"/>
+          <stop offset="100%" stop-color="#3f6212"/>
+        </linearGradient>
+        <linearGradient id="dirtRoad" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#d97706"/>
+          <stop offset="50%" stop-color="#f59e0b"/>
+          <stop offset="100%" stop-color="#b45309"/>
+        </linearGradient>
+      </defs>
+      <path d="M0,110 Q640,50 1280,100 T1920,85 L1920,520 L0,520 Z" fill="url(#meadow)"/>
+      <!-- Con đường mòn uốn lượn ngang cánh đồng -->
+      <path d="M0,330 Q540,260 1050,315 T1920,280 L1920,410 Q1120,435 560,395 T0,430 Z" fill="url(#dirtRoad)" opacity="0.88"/>
+      <!-- Những bông lúa vàng -->
+      <g stroke="#fde047" stroke-width="3" fill="none" opacity="0.75">
+        <path d="M180,260 Q190,210 205,195 M220,270 Q230,220 245,205 M680,240 Q695,190 710,175 M1240,250 Q1255,200 1270,185 M1620,235 Q1635,185 1650,170"/>
+      </g>
+    </svg>

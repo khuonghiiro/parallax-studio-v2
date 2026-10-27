@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 220" width="240" height="220">
+      <ellipse cx="120" cy="202" rx="85" ry="14" fill="#0f172a" opacity="0.45"/>
+      <!-- Thùng gỗ kiện hàng -->
+      <rect x="34" y="74" width="124" height="124" rx="10" fill="#d97706" stroke="#78350f" stroke-width="6"/>
+      <line x1="34" y1="74" x2="158" y2="198" stroke="#92400e" stroke-width="6"/>
+      <line x1="158" y1="74" x2="34" y2="198" stroke="#92400e" stroke-width="6"/>
+      <!-- Chóp nón giao thông phản quang -->
+      <polygon points="150,198 216,198 192,92 174,92" fill="#f97316" stroke="#c2410c" stroke-width="4"/>
+      <polygon points="164,152 202,152 197,128 169,128" fill="#f8fafc"/>
+    </svg>

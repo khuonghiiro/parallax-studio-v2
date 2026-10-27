@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="1920" height="1080">
+      <defs>
+        <linearGradient id="night3" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#090d16"/>
+          <stop offset="55%" stop-color="#1e1b4b"/>
+          <stop offset="100%" stop-color="#311042"/>
+        </linearGradient>
+      </defs>
+      <rect width="1920" height="1080" fill="url(#night3)"/>
+      <!-- Skyline tòa nhà thành phố -->
+      <g fill="#0f172a" stroke="#334155" stroke-width="2">
+        <rect x="80" y="260" width="190" height="620"/>
+        <rect x="310" y="180" width="220" height="700"/>
+        <rect x="570" y="310" width="180" height="570"/>
+        <rect x="810" y="150" width="260" height="730"/>
+        <rect x="1120" y="240" width="210" height="640"/>
+        <rect x="1380" y="190" width="240" height="690"/>
+        <rect x="1660" y="280" width="190" height="600"/>
+      </g>
+      <!-- Ô cửa sổ sáng đèn -->
+      <g fill="#fde047" opacity="0.8">
+        <rect x="350" y="230" width="28" height="36"/>
+        <rect x="410" y="230" width="28" height="36"/>
+        <rect x="350" y="300" width="28" height="36"/>
+        <rect x="860" y="210" width="32" height="40"/>
+        <rect x="930" y="210" width="32" height="40"/>
+        <rect x="860" y="280" width="32" height="40"/>
+        <rect x="1430" y="250" width="30" height="38"/>
+        <rect x="1500" y="320" width="30" height="38"/>
+      </g>
+    </svg>

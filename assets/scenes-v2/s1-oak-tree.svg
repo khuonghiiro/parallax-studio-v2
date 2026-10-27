@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 560" width="460" height="560">
+      <!-- Bóng đổ dưới gốc cây -->
+      <ellipse cx="230" cy="525" rx="135" ry="22" fill="#0f172a" opacity="0.35"/>
+      <!-- Thân cây sồi cổ thụ -->
+      <path d="M185,525 C195,420 205,330 200,240 L260,240 C255,330 265,420 280,525 Z" fill="#78350f" stroke="#451a03" stroke-width="5"/>
+      <path d="M205,300 L130,215 M250,285 L330,205" stroke="#78350f" stroke-width="18" stroke-linecap="round"/>
+      <!-- Tán lá xanh rậm nhiều tầng -->
+      <circle cx="145" cy="210" r="95" fill="#15803d"/>
+      <circle cx="315" cy="210" r="95" fill="#166534"/>
+      <circle cx="230" cy="135" r="115" fill="#16a34a"/>
+      <circle cx="175" cy="165" r="85" fill="#22c55e" opacity="0.88"/>
+      <circle cx="285" cy="160" r="80" fill="#15803d"/>
+      <circle cx="230" cy="220" r="92" fill="#16a34a"/>
+      <!-- Quả táo đỏ điểm xuyết -->
+      <circle cx="170" cy="190" r="9" fill="#ef4444"/>
+      <circle cx="275" cy="155" r="9" fill="#ef4444"/>
+      <circle cx="225" cy="115" r="9" fill="#ef4444"/>
+      <circle cx="295" cy="225" r="9" fill="#ef4444"/>
+    </svg>

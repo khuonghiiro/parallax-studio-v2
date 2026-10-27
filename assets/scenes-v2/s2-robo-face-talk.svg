@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 150" width="160" height="150">
+      <polygon points="28,55 42,10 72,42" fill="#38bdf8" stroke="#0284c7" stroke-width="4"/>
+      <polygon points="132,55 118,10 88,42" fill="#38bdf8" stroke="#0284c7" stroke-width="4"/>
+      <rect x="22" y="34" width="116" height="96" rx="32" fill="#f8fafc" stroke="#0284c7" stroke-width="5"/>
+      <rect x="36" y="48" width="88" height="68" rx="20" fill="#0f172a"/>
+      <circle cx="62" cy="74" r="8" fill="#38bdf8"/>
+      <circle cx="98" cy="74" r="8" fill="#38bdf8"/>
+      <!-- Sóng âm miệng đang nói -->
+      <rect x="58" y="92" width="44" height="14" rx="7" fill="#f43f5e"/>
+    </svg>

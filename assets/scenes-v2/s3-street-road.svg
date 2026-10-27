@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 540" width="1920" height="540">
+      <!-- Vỉa hè lát gạch -->
+      <rect x="0" y="80" width="1920" height="130" fill="#334155"/>
+      <line x1="0" y1="210" x2="1920" y2="210" stroke="#94a3b8" stroke-width="8"/>
+      <!-- Lòng đường nhựa -->
+      <rect x="0" y="210" width="1920" height="330" fill="#1e293b"/>
+      <!-- Vạch kẻ phân làn phát sáng -->
+      <g fill="#facc15">
+        <rect x="120" y="360" width="180" height="18" rx="6"/>
+        <rect x="480" y="360" width="180" height="18" rx="6"/>
+        <rect x="840" y="360" width="180" height="18" rx="6"/>
+        <rect x="1200" y="360" width="180" height="18" rx="6"/>
+        <rect x="1560" y="360" width="180" height="18" rx="6"/>
+      </g>
+    </svg>
