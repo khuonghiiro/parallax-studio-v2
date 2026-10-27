@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { checkCommitMessage, checkStagedFile } from './agent-guard.mjs'
+import { checkCodeSyntax, checkCommitMessage, checkStagedFile } from './agent-guard.mjs'
 
 describe('agent-guard commit-msg', () => {
   it('accepts Vietnamese conventional commits with diacritics', () => {
@@ -34,7 +34,17 @@ describe('agent-guard pre-commit', () => {
 
   it('blocks secret files and private keys', () => {
     expect(checkStagedFile('.env', 'A=1')).toHaveLength(1)
-    const fakeKey = ['-----BEGIN', 'PRIVATE KEY-----'].join(' ')
+    const fakeKey = `export const k = "${['-----BEGIN', 'PRIVATE KEY-----'].join(' ')}"\n`
     expect(checkStagedFile('src/k.ts', fakeKey)).toHaveLength(1)
+  })
+
+  it('blocks broken JS/TS/JSX/TSX syntax such as unparenthesized ?? with &&', () => {
+    const brokenTsx = 'export const x = a ?? b && c ?? d\n'
+    expect(checkCodeSyntax('src/Broken.tsx', brokenTsx)).toHaveLength(1)
+    expect(checkStagedFile('src/Broken.tsx', brokenTsx)).toHaveLength(1)
+
+    const validTsx = 'export const x = a ?? (b ? c : undefined) ?? d\n'
+    expect(checkCodeSyntax('src/Valid.tsx', validTsx)).toEqual([])
+    expect(checkStagedFile('src/Valid.tsx', validTsx)).toEqual([])
   })
 })

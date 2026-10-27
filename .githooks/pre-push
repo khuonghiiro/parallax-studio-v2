@@ -1,0 +1,3 @@
+#!/bin/sh
+# Chặn đẩy code lỗi lên Git: tự động kiểm tra cú pháp esbuild/JSX và TypeScript toàn dự án
+exec node scripts/agent-guard.mjs pre-push

@@ -3,7 +3,9 @@
  * parameters, types and guide structure — only the wording may differ.
  */
 import { describe, expect, it } from 'vitest'
-import { GUIDE, TOOLS, paramsJsonSchema, renderGuide, resolveDocsLang, serverInstructions, toolDescription } from './index.mjs'
+import { parseCliCallParams, toolDualShellExamples } from '../cliParams.mjs'
+import { GUIDE, TOOLS, buildShape, paramsJsonSchema, renderGuide, resolveDocsLang, serverInstructions, toolDescription } from './index.mjs'
+import { z } from './shared.mjs'
 
 /** Removes every `description` so EN/VI schemas can be compared structurally. */
 function stripDescriptions(node) {
@@ -57,8 +59,55 @@ describe('bilingual MCP catalogue', () => {
     }
   })
 
-  it('examples are valid JSON', () => {
-    for (const tool of TOOLS.filter((t) => t.example)) expect(() => JSON.parse(tool.example), tool.name).not.toThrow()
+  it('examples are valid JSON and every tool supports both PowerShell and CMD CLI formats', () => {
+    for (const tool of TOOLS) {
+      const dual = toolDualShellExamples(tool)
+      expect(dual.powershell).toContain(`pnpm pxs call ${tool.name}`)
+      expect(dual.cmd).toContain(`pnpm pxs call ${tool.name}`)
+      expect(dual.flags).toContain(`pnpm pxs call ${tool.name}`)
+
+      if (!tool.example) continue
+      const expected = JSON.parse(tool.example)
+      const schema = z.object(buildShape(tool, 'en'))
+
+      // 1. Standard / PowerShell 7 single-quoted JSON
+      const fromPs7 = parseCliCallParams([`'${tool.example}'`], tool)
+      expect(schema.safeParse(fromPs7).success, `${tool.name} PS7 JSON`).toBe(true)
+      expect(fromPs7).toEqual(expected)
+
+      // 2. PowerShell 5.1 quote-stripped & space-split tokens
+      const ps5Tokens = tool.example.replace(/"/g, '').split(/\s+/)
+      const fromPs5 = parseCliCallParams(ps5Tokens, tool)
+      expect(schema.safeParse(fromPs5).success, `${tool.name} PS5 quote-stripped`).toBe(true)
+      expect(fromPs5).toEqual(expected)
+
+      // 3. CMD escaped double-quoted JSON
+      const cmdEscaped = `"${tool.example.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`
+      const fromCmd = parseCliCallParams([cmdEscaped], tool)
+      expect(schema.safeParse(fromCmd).success, `${tool.name} CMD escaped`).toBe(true)
+      expect(fromCmd).toEqual(expected)
+    }
+  })
+
+  it('parses CLI flags (--key value, key=value) and PowerShell hashtables (@{k=v})', () => {
+    const shotTool = TOOLS.find((t) => t.name === 'add_shot')
+    expect(parseCliCallParams(['--name', 'Shot 1', '--duration', '5'], shotTool)).toEqual({
+      name: 'Shot 1',
+      duration: 5
+    })
+    expect(parseCliCallParams(['name=Shot 1', 'duration=5'], shotTool)).toEqual({
+      name: 'Shot 1',
+      duration: 5
+    })
+    expect(parseCliCallParams(['@{name=Shot 1; duration=5}'], shotTool)).toEqual({
+      name: 'Shot 1',
+      duration: 5
+    })
+    const b64 = Buffer.from('name:Shot 1, color:#38bdf8', 'utf16le').toString('base64')
+    expect(parseCliCallParams(['-encodedCommand', b64, '-inputFormat', 'xml', '-outputFormat', 'text'], shotTool)).toEqual({
+      name: 'Shot 1',
+      color: '#38bdf8'
+    })
   })
 
   it('guide sections have the same number of EN and VI lines', () => {

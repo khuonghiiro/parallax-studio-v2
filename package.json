@@ -11,6 +11,7 @@
     "build": "electron-vite build",
     "preview": "electron-vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
+    "verify": "node scripts/agent-guard.mjs verify",
     "test": "vitest run",
     "test:watch": "vitest",
     "mcp": "node mcp-server/index.mjs",

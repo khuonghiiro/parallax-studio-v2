@@ -49,7 +49,7 @@ export function McpAiGuideCard({ status, onStatus, onMessage }: Props) {
   }
 
   return (
-    <section className="mcp-guide">
+    <section className="mcp-guide mcp-ai-guide-card" data-mcp-region="mcp_guide">
       <div className="mcp-guide-lang">
         <div className="mcp-guide-lang-text">
           <b>Tài liệu AI bằng tiếng Anh (khuyến nghị)</b>

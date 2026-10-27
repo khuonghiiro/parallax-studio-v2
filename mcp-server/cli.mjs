@@ -2,20 +2,20 @@
 /**
  * Parallax Studio V2 — real-time AI & developer CLI controller (`pnpm pxs`).
  *
+ * Supports BOTH Windows PowerShell (`powershell.exe` / `pwsh`) and CMD (`cmd.exe`) / Bash:
+ *   - PowerShell single-quoted JSON:  pnpm pxs call add_shot '{"name":"Shot 1","duration":5}'
+ *   - CMD escaped double-quoted JSON: pnpm pxs call add_shot "{\"name\":\"Shot 1\",\"duration\":5}"
+ *   - Universal CLI flags (no quotes): pnpm pxs call add_shot --name "Shot 1" --duration 5
+ *   - PowerShell hashtable:           pnpm pxs call add_shot '@{name="Shot 1"; duration=5}'
+ *
  * Help, tool catalogue and guide come from the bilingual catalogue (./catalog) — the same
  * source the MCP server uses — so the CLI can never drift from the real tool parameters.
  * Language: --lang en|vi  >  env PARALLAX_MCP_LANG  >  MCP dialog toggle (mcp.json)  >  en.
- *
- *   pnpm pxs --help [--lang vi]
- *   pnpm pxs help append_assembly_model
- *   pnpm pxs guide assembly
- *   pnpm pxs status | inspect
- *   pnpm pxs review --view camera --time 2.5 --out preview.png
- *   pnpm pxs call add_shot '{"name":"Shot 1"}'
  */
 import { createConnection } from 'node:net'
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdirSync, writeFileSync } from 'node:fs'
 import { join, resolve, isAbsolute } from 'node:path'
+import { parseCliCallParams, toolDualShellExamples } from './cliParams.mjs'
 import {
   GUIDE,
   GUIDE_TOPICS,
@@ -51,10 +51,10 @@ const MSG = {
   desc: { en: 'Description', vi: 'Mô tả' },
   params: { en: 'Parameters', vi: 'Tham số' },
   none: { en: '(none)', vi: '(không có)' },
-  example: { en: 'Example', vi: 'Ví dụ gọi' },
+  example: { en: 'Examples (PowerShell & CMD)', vi: 'Ví dụ gọi (PowerShell & CMD)' },
   unknownTool: { en: 'Unknown tool', vi: 'Không có công cụ' },
-  subtitle: { en: 'Real-time 2.5D scene & 3D assembly control', vi: 'Điều khiển cảnh 2.5D & lắp ráp 3D thời gian thực' },
-  commands: { en: 'CLI COMMANDS', vi: 'CÁC LỆNH CLI' },
+  subtitle: { en: 'Real-time 2.5D scene & 3D assembly control (PowerShell & CMD ready)', vi: 'Điều khiển cảnh 2.5D & lắp ráp 3D thời gian thực (hỗ trợ cả PowerShell & CMD)' },
+  commands: { en: 'CLI COMMANDS (PowerShell & CMD)', vi: 'CÁC LỆNH CLI (PowerShell & CMD)' },
   catalogue: { en: 'AVAILABLE MCP TOOLS', vi: 'CÔNG CỤ MCP KHẢ DỤNG' },
   docsLang: { en: 'Docs language: English (switch with --lang vi or the toggle in the app MCP dialog)', vi: 'Ngôn ngữ tài liệu: Tiếng Việt (đổi bằng --lang en hoặc công tắc trong dialog MCP của app)' },
   connected: { en: 'Connected to Parallax Studio V2!', vi: 'Kết nối thành công tới Parallax Studio V2!' },
@@ -83,8 +83,10 @@ const CLI_COMMANDS = [
   ['pnpm pxs status', { en: 'Check the connection and app state', vi: 'Kiểm tra kết nối và trạng thái app' }],
   ['pnpm pxs inspect', { en: 'Dump the whole project as JSON', vi: 'Xuất toàn bộ cấu trúc dự án (JSON)' }],
   ['pnpm pxs review [--view camera|3d|app] [--region <name>]', { en: 'Render the viewport (or app/region with "app") to a PNG file', vi: 'Chụp ảnh review cảnh (hoặc app/vùng cụ thể với "app") ra file PNG' }],
-  ["pnpm pxs call <tool> '<json>'", { en: 'Call any MCP tool (params validated first)', vi: 'Gọi bất kỳ công cụ MCP nào (kiểm tra tham số trước)' }],
-  ['pnpm pxs help <tool>', { en: 'Details and parameters of one tool', vi: 'Chi tiết và tham số của một công cụ' }],
+  ["pnpm pxs call <tool> '<json>'", { en: '[PowerShell] Call any MCP tool with single-quoted JSON', vi: '[PowerShell] Gọi công cụ MCP bằng JSON nháy đơn' }],
+  ['pnpm pxs call <tool> "{\\"k\\":\\"v\\"}"', { en: '[CMD] Call any MCP tool with escaped double-quoted JSON', vi: '[CMD] Gọi công cụ MCP bằng JSON escape nháy kép' }],
+  ['pnpm pxs call <tool> --key value', { en: '[PowerShell & CMD] Call with CLI flags (zero quote-escaping)', vi: '[PowerShell & CMD] Gọi bằng cờ --key value (không lo lỗi dấu nháy)' }],
+  ['pnpm pxs help <tool>', { en: 'Details, parameters and PowerShell/CMD examples of one tool', vi: 'Chi tiết, tham số và ví dụ PowerShell/CMD của một công cụ' }],
   [`pnpm pxs guide [${GUIDE_TOPICS.join('|')}]`, { en: 'Read the AI guide', vi: 'Đọc hướng dẫn AI' }],
   ['--lang en|vi', { en: 'Docs language for this run', vi: 'Ngôn ngữ tài liệu cho lần chạy này' }]
 ]
@@ -155,11 +157,15 @@ const fail = (msg) => {
 function printToolHelp(tool) {
   const bar = '='.repeat(64)
   const params = paramsSummary(tool, lang)
+  const ex = toolDualShellExamples(tool)
   console.log(`\n${bar}\n  ${t('tool')}: ${tool.name}\n${bar}`)
   console.log(`${t('group')}:  ${categoryLabel(tool.cat, lang)}`)
   console.log(`${t('desc')}:  ${toolDescription(tool, lang)}`)
   console.log(`${t('params')}:${params.length ? '\n' + params.map((p) => `  • ${p}`).join('\n') : ` ${t('none')}`}`)
-  console.log(`${t('example')}:  pnpm pxs call ${tool.name}${tool.example ? ` '${tool.example}'` : ''}\n${bar}\n`)
+  console.log(`${t('example')}:`)
+  console.log(`  [PowerShell]  ${ex.powershell}`)
+  console.log(`  [CMD]         ${ex.cmd}`)
+  console.log(`  [Flags]       ${ex.flags}\n${bar}\n`)
 }
 
 function printOverview() {
@@ -236,24 +242,15 @@ async function cmdReview(opts) {
   console.log(`✓ ${t('saved')}: ${absOut} (${res.width}x${res.height}${when}${regNote})\n👉 ${t('viewHint')}`)
 }
 
-function parseParams(arg) {
-  if (!arg) return {}
+async function cmdCall(method, paramTokens) {
+  if (!method) fail(t('missingMethod'))
+  const tool = findTool(method)
+  let params
   try {
-    if (arg.startsWith('@') || (arg.endsWith('.json') && existsSync(arg))) return JSON.parse(readFileSync(arg.replace(/^@/, ''), 'utf-8').replace(/^\uFEFF/, ''))
-    try {
-      return JSON.parse(arg)
-    } catch {
-      return Function(`return (${arg})`)()
-    }
+    params = parseCliCallParams(paramTokens, tool)
   } catch (e) {
     return fail(`${t('badJson')}: ${e.message}`)
   }
-}
-
-async function cmdCall(method, paramsArg) {
-  if (!method) fail(t('missingMethod'))
-  const params = parseParams(paramsArg)
-  const tool = findTool(method)
   if (tool) {
     const check = z.object(buildShape(tool, lang)).safeParse(params)
     if (!check.success) fail(`${t('badParams')} "${method}":\n${check.error.issues.map((i) => `  • ${i.path.join('.') || '(root)'}: ${i.message}`).join('\n')}`)
@@ -283,7 +280,7 @@ async function main() {
     case 'screenshot':
       return cmdReview(rest)
     case 'call':
-      return cmdCall(rest[0], rest[1])
+      return cmdCall(rest[0], rest.slice(1))
     default:
       console.log(`${t('invalid')}: "${action}". ${t('seeHelp')}`)
   }

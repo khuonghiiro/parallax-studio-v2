@@ -80,6 +80,33 @@ Tài liệu này cung cấp **đặc tả kỹ thuật toàn diện** và **hư�
 }
 ```
 
+### 2.4. Cấu hình qua PowerShell hoặc CMD (Dành cho AI Agent chạy trên Windows Shell riêng biệt)
+Một số AI Agent khởi chạy MCP hoặc thực thi lệnh qua `powershell.exe` hoặc `cmd.exe`. Trong hộp thoại **Cấu hình MCP** (`region: "mcp_config"`), bạn có thể chuyển đổi 1-click giữa **🟢 Node**, **🔵 PowerShell** và **⚫ CMD**:
+
+- **PowerShell Launcher:**
+```json
+{
+  "mcpServers": {
+    "parallax-studio": {
+      "command": "powershell.exe",
+      "args": ["-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", "node 'mcp-server/index.mjs'"]
+    }
+  }
+}
+```
+
+- **CMD Launcher:**
+```json
+{
+  "mcpServers": {
+    "parallax-studio": {
+      "command": "cmd.exe",
+      "args": ["/d", "/s", "/c", "node \"mcp-server/index.mjs\""]
+    }
+  }
+}
+```
+
 ---
 
 ## 3. Hệ Tọa Độ & Nguyên Lý Không Gian 2.5D (Spatial Rules)
@@ -329,26 +356,39 @@ pnpm pxs review --view 3d --time 3.5 --out artifacts/preview_3d.png
 ```
 *Sau khi chạy, AI Agent có thể gọi ngay công cụ `view_file` trên file ảnh `artifacts/preview.png` để phân tích bố cục hình ảnh trực tiếp.*
 
-### 7.5. Thực Thi Lệnh Tạo / Sửa Cảnh Realtime (`call`)
-AI Agent hoặc lập trình viên có thể bắn trực tiếp các thao tác tạo/sửa layer, shot, keyframe theo thời gian thực như người dùng thao tác trên giao diện:
-```bash
-# Thêm layer ảnh vào hậu cảnh Z = 1500
-pnpm pxs call add_image_layer '{"file_path": "D:/images/sky.png", "z": 1500, "name": "Sky"}'
+### 7.5. Thực Thi Lệnh Tạo / Sửa Cảnh Realtime (`call` — Hỗ Trợ Đồng Thời PowerShell & CMD)
+Bộ parser `mcp-server/cliParams.mjs` hỗ trợ **cả PowerShell (5.1 & 7+) lẫn CMD (`cmd.exe`)** và cờ `--key value` để mọi AI Agent tự chọn cú pháp tối ưu nhất cho môi trường của mình. Chạy `pnpm pxs help <tool>` sẽ in sẵn cả 3 cú pháp `[PowerShell]`, `[CMD]`, `[Flags]`:
 
-# Di chuyển layer sang tọa độ mới
+#### A. Cú pháp PowerShell (`powershell.exe` / `pwsh` hoặc `./pxs.ps1`)
+Tự động phục hồi dấu nháy kép và khoảng trắng khi PowerShell 5.1 tách chuỗi qua `pnpm`, đồng thời hỗ trợ cú pháp Hashtable `@{k=v}`:
+```powershell
+# JSON bọc nháy đơn (hoạt động trên cả PowerShell 5.1 và PowerShell 7+):
+pnpm pxs call add_image_layer '{"file_path": "D:/images/sky.png", "z": 1500, "name": "Night Sky"}'
 pnpm pxs call update_layer '{"layer_id": "layer-1", "position": [100, 50, 800]}'
 
-# Thêm tuyết rơi
-pnpm pxs call add_particles '{"count": 400, "velocity": [0, -40, 0], "twinkle": true}'
-
-# Gắn cửa sổ đã lưu lên tường trước của khung nhà đang mở trong xưởng
-pnpm pxs call append_assembly_model '{"source_model_id": "model-window-1", "face_id": "face-front", "uv": [0.25, 0.55]}'
-
-# Chạy timeline xem thử
-pnpm pxs call set_playing '{"playing": true}'
+# Hoặc cú pháp PowerShell Hashtable / gọi thẳng wrapper ./pxs.ps1:
+pnpm pxs call add_shot '@{name=Shot 1; color=#38bdf8}'
+./pxs.ps1 call set_playing '{"playing": true}'
 ```
 
-> Trên Windows PowerShell 5, dấu nháy kép trong JSON có thể bị bỏ khi truyền cho chương trình ngoài — dùng file: `pnpm pxs call add_shot @params.json`.
+#### B. Cú pháp CMD (`cmd.exe` hoặc `pxs.cmd`)
+```bat
+:: JSON bọc nháy kép có escape \" hoặc gọi thẳng wrapper pxs.cmd:
+pnpm pxs call add_image_layer "{\"file_path\":\"D:/images/sky.png\",\"z\":1500,\"name\":\"Night Sky\"}"
+pnpm pxs call update_layer "{\"layer_id\":\"layer-1\",\"position\":[100,50,800]}"
+pxs.cmd call set_playing "{\"playing\":true}"
+```
+
+#### C. Cú pháp Cờ Đa Nền Tảng (`--key value` / `@file.json` — Không Cần Escape Nháy)
+Hoạt động giống hệt nhau trên PowerShell, CMD và Bash:
+```bash
+pnpm pxs call add_image_layer --file_path D:/images/sky.png --z 1500 --name "Night Sky"
+pnpm pxs call update_layer --layer_id layer-1 --position "[100,50,800]"
+pnpm pxs call add_particles --count 400 --velocity "[0,-40,0]" --twinkle true
+pnpm pxs call add_shot @params.json
+```
+
+> **Quy tắc bắt buộc khi thêm/sửa MCP Tool mới:** Mọi tool trong `mcp-server/catalog/tools-*.mjs` bắt buộc khai báo `example` hợp lệ để `toolDualShellExamples(tool)` (`mcp-server/cliParams.mjs`) tự động sinh đủ 3 biến thể `[PowerShell]`, `[CMD]`, `[Flags]` trong `pnpm pxs help <tool>` và vượt qua bài test kiểm thử song hành PowerShell + CMD tại `mcp-server/catalog/catalog.test.mjs`.
 
 
 ### Layer transform gizmos

@@ -12,8 +12,9 @@
 ## Cưỡng chế tự động (không thể bỏ qua)
 - Git hooks `.githooks/` (bật tự động khi `pnpm install` qua script `prepare`, hoặc `node scripts/agent-guard.mjs install`):
   - `commit-msg`: Conventional Commits + **tiếng Việt CÓ DẤU** + cấm nhắc tên AI/watermark.
-  - `pre-commit`: file code ≤ 1000 dòng, chặn `.env`/private key/API token.
-- Trước khi commit: `npm run typecheck` và `npx vitest run` phải sạch.
-- Sửa logic nghiệp vụ ⇒ cập nhật MCP parity (renderer command + test, `mcp-server/catalog/tools-*.mjs` song ngữ, `guide.json`, `pnpm mcp:schemas`, README).
+  - `pre-commit`: kiểm tra cú pháp `esbuild`/JSX của mọi file code staged, file code ≤ 1000 dòng, chặn `.env`/private key/API token.
+  - `pre-push`: chạy `node scripts/agent-guard.mjs pre-push` (quét cú pháp `esbuild` toàn bộ dự án + `typecheck`) để chặn đẩy code lỗi lên Git.
+- Sau mỗi lần sửa code: bắt buộc chạy `pnpm verify` (`esbuild` syntax + `typecheck`) và `npx vitest run` phải sạch; không tự động `git push` khi người dùng chưa yêu cầu.
+- Sửa logic nghiệp vụ ⇒ cập nhật MCP parity (renderer command + test, `mcp-server/catalog/tools-*.mjs` song ngữ kèm `example`, `guide.json`, `pnpm mcp:schemas`, README) và bắt buộc hỗ trợ đồng thời cả lệnh **PowerShell** (`'{"k":"v"}'`, `'@{k=v}'`, `./pxs.ps1`) lẫn **CMD** (`"{\"k\":\"v\"}"`, `pxs.cmd`) và `--key value` qua `mcp-server/cliParams.mjs` (kiểm thử bởi `mcp-server/catalog/catalog.test.mjs`) để mọi AI tự chọn shell tối ưu nhất.
 - UI controls: cấm dùng `<select>` native (treo/lỗi Electron modal); bắt buộc dùng `<Menu>`, `<Select>` (portal z-index 50000); toolbar chứa menu giữ `overflow: visible; z-index: 5000`.
 - Đăng ký vùng chụp MCP cho mọi UI mới/sửa (dialog, modal lồng, panel, card, toolbar, picker): phần tử gốc có class ngữ nghĩa + `data-mcp-region="<ten_vung>"` (modal lồng thêm `data-mcp-dialog`); thêm vào `UI_REGION_SELECTORS` (`src/renderer/src/mcp/uiRegions.ts`) và enum `region` của `get_app_screenshot` (`mcp-server/catalog/tools-scene.mjs`); chạy `pnpm mcp:schemas` + `pnpm test` (test parity `uiRegions.test.ts` FAIL nếu thiếu); visual QA bằng `get_app_screenshot(region: "active")` rồi sub-region trên cả Dark & Light. Chi tiết: `.agents/skills/mcp-ui-region/SKILL.md`.
