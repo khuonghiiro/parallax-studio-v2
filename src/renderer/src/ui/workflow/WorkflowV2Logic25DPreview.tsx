@@ -321,6 +321,11 @@ export const WorkflowV2Logic25DPreview: React.FC<WorkflowV2Logic25DPreviewProps>
     return layer ? [layer.id] : []
   }, [showFullCluster, clusterMembers, targetIds, layer])
 
+  const lightRafRef = useRef<number | null>(null)
+  const pendingLightRef = useRef<{ patch: Partial<LayerVirtualLight>; mergeKey: string } | null>(null)
+  const portalRafRef = useRef<number | null>(null)
+  const pendingPortalRef = useRef<{ patch: Partial<DepthPortalConfig>; mergeKey: string } | null>(null)
+
   if (!layer) return null
 
   const { url: rawSingleThumbUrl, w: singleW, h: singleH } = resolveLayerThumbAndSize(layer, project)
@@ -358,10 +363,7 @@ export const WorkflowV2Logic25DPreview: React.FC<WorkflowV2Logic25DPreviewProps>
     })
   }
 
-  const lightRafRef = useRef<number | null>(null)
-  const pendingLightRef = useRef<{ patch: Partial<LayerVirtualLight>; mergeKey: string } | null>(null)
-  const portalRafRef = useRef<number | null>(null)
-  const pendingPortalRef = useRef<{ patch: Partial<DepthPortalConfig>; mergeKey: string } | null>(null)
+
 
   const commitLightPatch = (patch: Partial<LayerVirtualLight>, mergeKey: string): void => {
     useEditor.getState().update((d) => {

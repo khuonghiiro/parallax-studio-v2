@@ -16,7 +16,7 @@ import {
   validateWorkflowV2Connection
 } from '../../project/workflowV2Engine'
 import {
-  applyWorkflowV2PhysicsNodes,
+  deleteWorkflowV2Node,
   applyWorkflowV2ToProject,
   detachWorkflowV2NodeFromProject,
   logicCategoryOf,
@@ -105,18 +105,7 @@ export function useWorkflowV2Actions(workflow: WorkflowGraph, selectedNodeId: st
       }
       useEditor.getState().update((draft) => {
         draft.workflow = { ...workflow, nodes: [...workflow.nodes], edges: [...workflow.edges] }
-        if (isTimeNode(target)) {
-          draft.workflow.edges = draft.workflow.edges.filter(e => e.fromNode !== target.id)
-          for (const edge of workflow.edges.filter(e => e.fromNode === target.id)) {
-            const consumer = draft.workflow.nodes.find(n => n.id === edge.toNode)
-            if (consumer) syncWorkflowV2NodeToProject(draft as Project, consumer)
-          }
-        } else detachWorkflowV2NodeFromProject(draft as Project, target)
-        const wfAfterDetach = draft.workflow as WorkflowGraph
-        const edges = wfAfterDetach.edges.filter((e) => e.fromNode !== nodeId && e.toNode !== nodeId)
-        const synced = recomputeSharedLogicTargets(wfAfterDetach.nodes.filter((n) => n.id !== nodeId), edges)
-        draft.workflow = { ...wfAfterDetach, nodes: layoutWorkflowV2Tree(synced, edges), edges }
-        if (logicCategoryOf(target) === 'material') applyWorkflowV2PhysicsNodes(draft as Project, draft.workflow as WorkflowGraph)
+        deleteWorkflowV2Node(draft as Project, nodeId)
       }, 'wf-v2-delete')
       if (selectedNodeId === nodeId) setSelectedNodeId(target.params?.sharedLayerNodeIds?.[0] ?? null)
       showToast(`Đã xoá "${cleanV2NodeTitle(target.title)}" và gỡ hiệu ứng khỏi Layer`)
@@ -309,13 +298,13 @@ export function useWorkflowV2Actions(workflow: WorkflowGraph, selectedNodeId: st
 
       if (!logicCategoryOf(dst)) return
       const edges = workflow.edges.filter((e) => e.id !== edgeId)
-      const stillLinked = edges.some((e) => e.toNode === dst.id && !e.disabled)
+      const stillLinked = edges.some((e) => e.toNode === dst.id && e.fromPort !== 'time_range' && !e.disabled)
       const synced = recomputeSharedLogicTargets(workflow.nodes, edges).map((n) =>
         n.id === dst.id && !stillLinked ? { ...n, params: { ...n.params, targetLayerIds: [], sharedLayerNodeIds: [] } } : n
       )
       const nodes = layoutWorkflowV2Tree(synced, edges)
       useEditor.getState().update((draft) => {
-        detachWorkflowV2NodeFromProject(draft as Project, dst)
+        detachWorkflowV2NodeFromProject(draft as Project, dst, false)
         draft.workflow = { ...workflow, nodes, edges }
         const updated = nodes.find((n) => n.id === dst.id)
         if (stillLinked && updated?.enabled) syncWorkflowV2NodeToProject(draft as Project, updated)
@@ -355,9 +344,10 @@ export function useWorkflowV2Actions(workflow: WorkflowGraph, selectedNodeId: st
             if (dstLayerIds.has(l.id)) l.visible = !nextDisabled
           }
         } else if (logicCategoryOf(dst)) {
-          detachWorkflowV2NodeFromProject(draft as Project, dst)
+          draft.workflow = { ...workflow, nodes, edges }
+          detachWorkflowV2NodeFromProject(draft as Project, dst, false)
           const updated = nodes.find((n) => n.id === dst.id)
-          const hasActiveEdge = edges.some((e) => e.toNode === dst.id && !e.disabled)
+          const hasActiveEdge = edges.some((e) => e.toNode === dst.id && e.fromPort !== 'time_range' && !e.disabled)
           if (hasActiveEdge && updated?.enabled) {
             syncWorkflowV2NodeToProject(draft as Project, updated)
           }

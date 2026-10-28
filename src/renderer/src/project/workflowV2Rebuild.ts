@@ -1,3 +1,6 @@
+import { isTimeNode } from './workflowTiming'
+import { layoutWorkflowV2Tree } from './workflowV2Layout'
+import { recomputeSharedLogicTargets } from './workflowV2PhysicsAndValidation'
 import { isDraft } from 'immer'
 import type { Project, WorkflowGraph, WorkflowNode } from '@shared/types'
 import { getProjectAudioTracks } from './audioTracks'
@@ -57,7 +60,7 @@ export function applyWorkflowV2ToProject(project: Project, workflow: WorkflowGra
  * Gỡ hẳn hiệu ứng của một Node Logic khỏi Layer khi Node bị xoá (khác với tắt Node: tắt thì giữ cấu hình).
  * Sau khi gỡ, dữ liệu Layer không còn hiệu ứng nên Node không bị suy diễn hồi sinh ở Timeline / Workflow.
  */
-export function detachWorkflowV2NodeFromProject(project: Project, node: WorkflowNode): void {
+export function detachWorkflowV2NodeFromProject(project: Project, node: WorkflowNode, permanent = true): void {
   if (node.type === 'camera_director' && node.params?.isCameraWaypoint) {
     removeCameraWaypoint(project, node.params.timeStart ?? 0)
     return
@@ -125,4 +128,44 @@ export function detachWorkflowV2NodeFromProject(project: Project, node: Workflow
     return
   }
   syncWorkflowV2NodeToProject(project, { ...node, enabled: false })
+  if (!permanent) return
+  for (const layer of layers) {
+    if (cat === 'material' || (cat === 'fx' && (!node.params?.fxKind || node.params.fxKind === 'wind_physics'))) {
+      if (layer.physics) layer.physics.material = 'none'
+    }
+    if (cat === 'light') {
+      delete layer.virtualLight
+      if (node.params?.lightMode === 'glow' || node.params?.lightMode === 'rim') delete layer.glow
+    }
+    if (cat === 'cave' && layer.physics) {
+      delete layer.physics.depthPortal
+      if (layer.physics.colliderZone === 'cave_portal') delete layer.physics.colliderZone
+    }
+    if (cat === 'fx' && node.params?.fxKind && node.params.fxKind !== 'wind_physics') delete layer.glow
+  }
+}
+
+/** Delete a logic node and its generated data in the same UI/MCP transaction. */
+export function deleteWorkflowV2Node(project: Project, nodeId: string): void {
+  const workflow = project.workflow
+  const target = workflow?.nodes.find(n => n.id === nodeId)
+  if (!workflow || !target) throw new Error('Workflow node not found')
+  if (target.params?.isCameraWaypoint) {
+    if ((target.params.waypointIndex ?? 0) === 0) throw new Error('Cannot delete the first camera waypoint')
+    detachWorkflowV2NodeFromProject(project, target)
+    project.workflow = syncWorkflowV2Graph(project, workflow, { relayout: true })
+    return
+  }
+  if (!logicCategoryOf(target)) throw new Error('Cannot delete a structural node')
+  if (isTimeNode(target)) {
+    workflow.edges = workflow.edges.filter(e => e.fromNode !== target.id)
+    for (const consumer of workflow.nodes) {
+      if (consumer.params?.localTimeRange) syncWorkflowV2NodeToProject(project, consumer)
+    }
+  } else detachWorkflowV2NodeFromProject(project, target)
+  const after = project.workflow!
+  const edges = after.edges.filter(e => e.fromNode !== nodeId && e.toNode !== nodeId)
+  const nodes = recomputeSharedLogicTargets(after.nodes.filter(n => n.id !== nodeId), edges)
+  project.workflow = { ...after, nodes: layoutWorkflowV2Tree(nodes, edges), edges }
+  if (logicCategoryOf(target) === 'material') applyWorkflowV2PhysicsNodes(project, project.workflow)
 }

@@ -129,7 +129,7 @@ describe('Workflow V2 — MỘT LOGIC CHUNG với Timeline / Inspector', () => {
 
     proj = synced(produce(proj, (d) => removeTimelineLogicNode(d as Project, nodeId)))
     expect(proj.workflow!.nodes.some((n) => n.id === nodeId)).toBe(false)
-    expect(proj.layers.find((l) => l.id === rock.id)!.virtualLight?.enabled).toBe(false)
+    expect(proj.layers.find((l) => l.id === rock.id)!.virtualLight?.enabled).toBeFalsy()
   })
 
   it('âm thanh gắn Layer hiện thành Node; chỉnh Node ghi xuống track; xoá Node bỏ gắn track', () => {

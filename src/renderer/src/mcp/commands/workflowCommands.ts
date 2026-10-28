@@ -1,3 +1,4 @@
+import { deleteWorkflowV2Node, detachWorkflowV2NodeFromProject } from '../../project/workflowV2Rebuild'
 import { connectTimeNode, createTimeNode, isTimeNode } from '../../project/workflowTiming'
 import { moveTimelineLayers } from '../../project/timelineTiming'
 import { addTimelineLogic } from '../../project/timelineLogic'
@@ -128,6 +129,14 @@ export const workflowCommands: Record<string, Handler> = {
     return { ok: true, layers: proj().layers.filter(l => ids.includes(l.id)).map(l => ({ id: l.id, inPoint: l.inPoint, outPoint: l.outPoint })) }
   },
   set_workflow: (p) => {
+    if (bool(p, 'delete_node')) {
+      const nodeId = str(p, 'node_id', true)!
+      ed().update(d => {
+        d.workflow = structuredClone(ensureProjectWorkflow(proj()))
+        deleteWorkflowV2Node(d as Project, nodeId)
+      }, 'mcp-delete-workflow-node')
+      return { ok: true, workflow: ensureProjectWorkflow(proj()) }
+    }
     if (bool(p, 'create_time')) {
       const node = createTimeNode(proj())
       ed().update(d => { const wf = ensureProjectWorkflow(proj()); d.workflow = { ...wf, nodes: [...wf.nodes, node] } })
@@ -382,6 +391,13 @@ export const workflowCommands: Record<string, Handler> = {
     }
 
     ed().update((d) => {
+      if (next.presetId === 'v2_scene_hierarchy' && (action === 'disconnect' || action === 'clear')) {
+        const previous = ensureProjectWorkflow(proj())
+        const removedTargets = new Set(previous.edges.filter(e => e.fromPort !== 'time_range' && !next.edges.some(n => n.id === e.id)).map(e => e.toNode))
+        for (const node of previous.nodes) {
+          if (removedTargets.has(node.id)) detachWorkflowV2NodeFromProject(d as Project, node, false)
+        }
+      }
       d.workflow = next
       if (next.presetId === 'v2_scene_hierarchy') {
         for (const n of next.nodes) {
