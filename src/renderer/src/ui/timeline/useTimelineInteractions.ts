@@ -1,6 +1,6 @@
 import type React from 'react'
-import { moveTimelineLayers } from '../../project/timelineTiming'
-import { timelineSelectedIds, useTimelineSelection } from './timelineSelection'
+import { startIntervalDrag } from './intervalDrag'
+import { useTimelineSelection } from './timelineSelection'
 import { useCallback, useEffect, useRef } from 'react'
 import { nanoid } from 'nanoid'
 import type { Animatable, Layer, Project } from '@shared/types'
@@ -68,6 +68,7 @@ export function useTimelineInteractions({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.defaultPrevented || useView.getState().dialog || useView.getState().assemblyModalModel ||
         document.querySelector('.modal-backdrop, .la-dialog-backdrop, .a3d-backdrop, [data-mcp-dialog]')) return
+      if (e.key === 'Escape') useTimelineSelection.getState().clear()
       if (handleTimelineKeyShortcut(e)) return
       const target = e.target as HTMLElement
       if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
@@ -216,6 +217,7 @@ export function useTimelineInteractions({
 
   const handleTrackPointerDown = useCallback(
     (e: React.PointerEvent): void => {
+      if (!e.ctrlKey && !e.metaKey) useTimelineSelection.getState().clear()
       const rect = e.currentTarget.getBoundingClientRect()
       const clickX = e.clientX - rect.left
       const clickedTime = Math.max(0, Math.min(comp.duration, snapToFrame(tAt(clickX), comp.fps)))
@@ -356,71 +358,7 @@ export function useTimelineInteractions({
   // Drag layer duration bar (move / trim in / trim out)
   const startBarDrag = useCallback(
     (e: React.PointerEvent, layer: Layer, mode: 'move' | 'in' | 'out'): void => {
-      e.stopPropagation()
-      if (e.ctrlKey || e.metaKey) { useTimelineSelection.getState().toggle(layer.id); return }
-      selectLayer(layer.id)
-      if (layer.locked) return
-      const startX = e.clientX
-      const instanceId = layer.model3d?.instanceId
-      const picked = timelineSelectedIds()
-      const related = picked.includes(layer.id) && picked.length > 1
-        ? useEditor.getState().project.layers.filter(l => picked.includes(l.id))
-        : instanceId
-        ? useEditor.getState().project.layers.filter((l) => l.model3d?.instanceId === instanceId)
-        : [layer]
-      const original = useEditor.getState().project
-      const initialProject = structuredClone({ comp: original.comp, layers: related, workflow: original.workflow, audioTracks: original.audioTracks }) as Project
-      const initialTimes = related.map((l) => ({ id: l.id, inPoint: l.inPoint, outPoint: l.outPoint }))
-
-      const key = `bar-${nanoid(6)}`
-      const el = e.currentTarget as HTMLElement
-      el.setPointerCapture(e.pointerId)
-      let moved = false
-      const move = (ev: PointerEvent): void => {
-        if (Math.abs(ev.clientX - startX) > 3) {
-          moved = true
-        }
-        if (!moved) return
-        const dt = snapToFrame(((ev.clientX - startX) / (contentW - PAD * 2)) * comp.duration, comp.fps)
-        useEditor.getState().update((d) => {
-          if (mode === 'move') {
-            const shifted = structuredClone(initialProject)
-            moveTimelineLayers(shifted, initialTimes.map(l => l.id), dt)
-            for (const init of initialTimes) {
-              const index = d.layers.findIndex(l => l.id === init.id)
-              if (index >= 0) d.layers[index] = shifted.layers.find(l => l.id === init.id)!
-            }
-            d.workflow = shifted.workflow
-            d.audioTracks = shifted.audioTracks
-            return
-          }
-          for (const init of initialTimes) {
-            const l = d.layers.find((q) => q.id === init.id)
-            if (!l || l.locked) continue
-            if (mode === 'in') l.inPoint = Math.max(0, Math.min(init.outPoint - 1 / comp.fps, init.inPoint + dt))
-            else if (mode === 'out') l.outPoint = Math.min(comp.duration, Math.max(init.inPoint + 1 / comp.fps, init.outPoint + dt))
-            else {
-              const shift = Math.max(-init.inPoint, Math.min(comp.duration - init.outPoint, dt))
-              l.inPoint = init.inPoint + shift
-              l.outPoint = init.outPoint + shift
-            }
-          }
-        }, key)
-      }
-      const up = (ev: PointerEvent): void => {
-        el.removeEventListener('pointermove', move)
-        el.removeEventListener('pointerup', up)
-        if (!moved && mode === 'move') {
-          const rulerEl = trackRef.current
-          if (rulerEl) {
-            const rect = rulerEl.getBoundingClientRect()
-            const clickedTime = Math.max(0, Math.min(comp.duration, snapToFrame(tAt(ev.clientX - rect.left), comp.fps)))
-            setTime(clickedTime)
-          }
-        }
-      }
-      el.addEventListener('pointermove', move)
-      el.addEventListener('pointerup', up)
+      startIntervalDrag(e, { kind: 'layer', layerId: layer.id }, (contentW - PAD * 2) / comp.duration, mode)
     },
     [selectLayer, contentW, comp.duration, comp.fps, tAt, setTime, trackRef]
   )

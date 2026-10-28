@@ -312,7 +312,8 @@ export const uiCommands: Record<string, Handler> = {
   ui_click: async (p) => {
     const el = findTarget(p)
     el.scrollIntoView({ block: 'nearest', inline: 'nearest' })
-    el.click()
+    if (bool(p, 'ctrl')) el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, ctrlKey: true }))
+    else el.click()
     await nextPaint()
     return { clicked: el.tagName.toLowerCase(), text: (el.innerText || el.title || '').trim().slice(0, 120) }
   },

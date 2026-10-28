@@ -1,3 +1,7 @@
+import { useTimelineSelection } from './timelineSelection'
+import { intervalId, type TimelineInterval } from '../../project/timelineIntervals'
+import { startIntervalDrag } from './intervalDrag'
+import '../../styles/timelineIntervals.css'
 import type React from 'react'
 import { useMemo } from 'react'
 import type { Animatable, AnimValue, Keyframe, Layer } from '@shared/types'
@@ -49,6 +53,16 @@ function LayerKey({ layer, animation, property, x, startKeyDrag, frame, selected
     onPointerDown={event => {
       event.stopPropagation()
       if (layer.locked || event.button !== 0) return
+      const index = animation.keyframes.findIndex(k => k.id === frame.id)
+      const selected = useTimelineSelection.getState().intervals.find(i => i.kind === 'keys' && i.layerId === layer.id && i.prop === property.prop && (i.startId === frame.id || i.endId === frame.id))
+      const start = animation.keyframes[index < animation.keyframes.length - 1 ? index : index - 1]
+      const end = animation.keyframes[index < animation.keyframes.length - 1 ? index + 1 : index]
+      const item = selected ?? (start && end ? { kind: 'keys' as const, layerId: layer.id, prop: property.prop, startId: start.id, endId: end.id } : null)
+      if (item && (selected || event.ctrlKey || event.metaKey)) {
+        startIntervalDrag(event, item, x(1) - x(0))
+        return
+      }
+      useTimelineSelection.getState().clear()
       jumpTimelineKey(ref, frame.id, frame.t)
       startKeyDrag?.(event, ref, frame.id)
     }}
@@ -65,6 +79,7 @@ function LayerKey({ layer, animation, property, x, startKeyDrag, frame, selected
 export function TimelineLayerKeys(props: Props) {
   const { layer, animation, x, trackWidth } = props
   const selectedKey = useEditor(s => s.selectedKey)
+  const intervals = useTimelineSelection(s => s.intervals)
   let lastPx = -Infinity
   const visible = animation.keyframes.filter(key => {
     if (selectedKey?.keyId === key.id || layer.appliedEffects?.some(fx => fx.keyframeIds?.includes(key.id))) return true
@@ -74,14 +89,25 @@ export function TimelineLayerKeys(props: Props) {
     return true
   })
   return <>
-    {visible.map((key, index) => {
-      const next = visible[index + 1]
+    {animation.keyframes.map((key, index) => {
+      const next = animation.keyframes[index + 1]
       const width = next ? x(next.t) - x(key.t) : 0
       const isGapBetweenRanges =
         isSilentHoldGuard(animation, key) ||
         (key.timelineBoundary === 'end' && key.ease === 'hold' && next?.timelineBoundary === 'start')
-      return width >= 8 && !isGapBetweenRanges ? <div key={`line-${key.id}`} className={`tl-tween-line${key.ease === 'hold' ? ' hold' : ''}`}
-        style={{ left: x(key.t), width }} /> : null
+      if (!next || width <= 0 || isGapBetweenRanges) return null
+      const item: TimelineInterval = { kind: 'keys', layerId: layer.id, prop: props.property.prop, startId: key.id, endId: next.id }
+      const selected = intervals.some(i => intervalId(i) === intervalId(item))
+      return <div key={`line-${key.id}`} className={`tl-interval${selected ? ' interval-selected' : ''}`}
+        data-timeline-interval={intervalId(item)} role="button" tabIndex={layer.locked ? -1 : 0} aria-pressed={selected}
+        title={`${props.property.label} · ${key.t.toFixed(2)}–${next.t.toFixed(2)}s · Ctrl + click chọn nhiều đoạn · Kéo để dời`}
+        style={{ left: x(key.t), width }}
+        onPointerDown={e => startIntervalDrag(e, item, x(1) - x(0))}
+        onClick={e => { e.stopPropagation(); if (e.detail === 0 && !layer.locked) useTimelineSelection.getState().pick(item, e.ctrlKey || e.metaKey) }}
+        onKeyDown={e => { if ([' ', 'Enter'].includes(e.key) && !layer.locked) { e.preventDefault(); e.stopPropagation(); useTimelineSelection.getState().pick(item, e.ctrlKey || e.metaKey) } }}>
+        <span className="tl-interval-grip start" onPointerDown={e => startIntervalDrag(e, item, x(1) - x(0), 'in')} />
+        <span className="tl-interval-grip end" onPointerDown={e => startIntervalDrag(e, item, x(1) - x(0), 'out')} />
+      </div>
     })}
     {visible.map(frame => <LayerKey key={frame.id} {...props} frame={frame} selected={selectedKey?.keyId === frame.id} />)}
   </>

@@ -434,9 +434,14 @@ export const FX_TOOLS = [
     name: 'retime_layers', cat: 'timeline',
     doc: L('Move multiple layer clips with their animation and effect timing in one Undo step.', 'Dời nhiều dòng layer cùng keyframe và hiệu ứng trong một bước Undo.'),
     shape: (d) => ({
-      layer_ids: z.array(z.string()).min(1).describe(d('Layer IDs; locked layers are skipped.', 'ID các layer; bỏ qua layer đã khóa.')),
-      mode: z.enum(['shift', 'align']).describe(d('Shift preserves offsets; align places every clip start at seconds.', 'shift giữ khoảng cách; align căn đầu mọi dòng vào seconds.')),
-      seconds: z.number().describe(d('Delta for shift, absolute start time for align.', 'Độ dời khi shift, mốc bắt đầu tuyệt đối khi align.'))
+      layer_ids: z.array(z.string()).min(1).optional().describe(d('Layer IDs; locked layers are skipped.', 'ID các layer; bỏ qua layer đã khóa.')),
+      intervals: z.array(z.discriminatedUnion('kind', [
+        z.object({ kind: z.literal('layer'), layerId: z.string() }),
+        z.object({ kind: z.literal('keys'), layerId: z.string(), prop: z.enum(['position', 'rotation', 'scale', 'opacity']), startId: z.string(), endId: z.string() }),
+        z.object({ kind: z.literal('effect'), layerId: z.string(), effectId: z.string() })
+      ])).min(1).optional().describe(d('Explicit intervals instead of layer_ids; key intervals use adjacent key IDs. Supports shift, align, in and out.', 'Các đoạn cụ thể thay cho layer_ids; đoạn mốc dùng ID hai mốc liền kề. Hỗ trợ shift, align, in và out.')),
+      mode: z.enum(['shift', 'align', 'in', 'out']).describe(d('Shift preserves offsets; align places every clip start at seconds.', 'shift giữ khoảng cách; align căn đầu mọi dòng vào seconds.')),
+      seconds: z.number().describe(d('Delta for shift; absolute time for align, in or out.', 'Độ dời khi shift; thời gian tuyệt đối cho align, in hoặc out.'))
     }),
     example: '{"layer_ids":["layer-1","layer-2"],"mode":"align","seconds":2}'
   },

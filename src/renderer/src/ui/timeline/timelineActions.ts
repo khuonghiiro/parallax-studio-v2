@@ -1,3 +1,5 @@
+import { selectedIntervals } from './timelineSelection'
+import { retimeTimelineIntervals } from '../../project/timelineIntervals'
 import { duplicateLayer } from '../../project/factory'
 import { addKeyframe, evaluate } from '../../animation/keyframes'
 import { frameTolerance, useEditor } from '../../store/editor'
@@ -48,9 +50,20 @@ export function splitSelectedLayer(targetTime?: number): boolean {
   return true
 }
 
+function setSelectedIntervalsBoundary(mode: 'in' | 'out', time: number): boolean | null {
+  const items = selectedIntervals()
+  if (!items.length) return null
+  try {
+    useEditor.getState().update(d => retimeTimelineIntervals(d, items, mode, time))
+    return true
+  } catch (error) { toast(error instanceof Error ? error.message : String(error)); return false }
+}
+
 /** Set In-point of the selected layer to current time */
 export function setSelectedLayerInPoint(targetTime?: number): boolean {
   const st = useEditor.getState()
+  const batch = setSelectedIntervalsBoundary('in', targetTime ?? st.time)
+  if (batch !== null) return batch
   const { selectedLayerId, project } = st
   if (!selectedLayerId) {
     toast('Hãy chọn một layer trước')
@@ -81,6 +94,8 @@ export function setSelectedLayerInPoint(targetTime?: number): boolean {
 /** Set Out-point of the selected layer to current time */
 export function setSelectedLayerOutPoint(targetTime?: number): boolean {
   const st = useEditor.getState()
+  const batch = setSelectedIntervalsBoundary('out', targetTime ?? st.time)
+  if (batch !== null) return batch
   const { selectedLayerId, project } = st
   if (!selectedLayerId) {
     toast('Hãy chọn một layer trước')

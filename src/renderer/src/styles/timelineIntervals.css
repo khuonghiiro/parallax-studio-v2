@@ -1,0 +1,17 @@
+.tl-batch-timing { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.tl-selection-count { color: var(--text-dim); font-size: 10px; white-space: nowrap; }
+.tl-interval { position: absolute; top: 50%; transform: translateY(-50%); height: 16px;
+  background: color-mix(in srgb, var(--key) 16%, var(--bg-2));
+  border: 1px solid color-mix(in srgb, var(--key) 55%, var(--line));
+  border-radius: var(--radius-sm); cursor: grab; z-index: 1; box-sizing: border-box; }
+.tl-interval:hover { background: color-mix(in srgb, var(--accent) 24%, var(--bg-2)); }
+.timeline .interval-selected { background: color-mix(in srgb, var(--accent) 28%, var(--bg-2)) !important;
+  border: 2px solid var(--accent) !important; box-shadow: 0 0 0 1px var(--bg-0), 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent);
+  opacity: 1 !important; color: var(--text); }
+.timeline .interval-selected::after { content: ''; position: absolute; top: 2px; left: 6px; right: 6px;
+  height: 2px; background: var(--accent); pointer-events: none; }
+.tl-interval-grip { position: absolute; top: 0; bottom: 0; width: 7px; cursor: ew-resize; }
+.tl-interval-grip.start { left: 0; }
+.tl-interval-grip.end { right: 0; }
+.timeline .is-retiming { cursor: grabbing; outline: 1px dashed var(--text); }
+.tl-interval:focus-visible { outline: 2px solid var(--text); outline-offset: 3px; }

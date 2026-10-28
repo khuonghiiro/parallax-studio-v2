@@ -1,3 +1,4 @@
+import { intervalBounds, retimeTimelineIntervals, type TimelineInterval } from '../../project/timelineIntervals'
 import { deleteWorkflowV2Node, detachWorkflowV2NodeFromProject } from '../../project/workflowV2Rebuild'
 import { connectTimeNode, createTimeNode, isTimeNode } from '../../project/workflowTiming'
 import { moveTimelineLayers } from '../../project/timelineTiming'
@@ -121,10 +122,20 @@ export const workflowCommands: Record<string, Handler> = {
   },
 
   retime_layers: (p) => {
+    if (Array.isArray(p.intervals)) {
+      const items = p.intervals as TimelineInterval[]
+      const mode = str(p, 'mode')
+      if (!['shift', 'align', 'in', 'out'].includes(mode ?? '')) throw new ParamError('Invalid interval mode')
+      if (!items.length || items.some(i => !i || !['layer', 'keys', 'effect'].includes(i.kind) || !intervalBounds(proj(), i)))
+        throw new ParamError('Unknown, locked or invalid timeline interval')
+      ed().update(d => retimeTimelineIntervals(d as Project, items, mode as 'shift' | 'align' | 'in' | 'out', num(p, 'seconds', true)!))
+      return { ok: true, intervals: items.map(i => ({ ...i, ...intervalBounds(proj(), i) })) }
+    }
     if (!Array.isArray(p.layer_ids) || !p.layer_ids.length) throw new ParamError('layer_ids is required')
     const ids = p.layer_ids.map(String)
     if (ids.some(id => !proj().layers.some(l => l.id === id))) throw new ParamError('Unknown layer ID')
-    const mode = str(p, 'mode') === 'align' ? 'align' : 'shift'
+    const mode = str(p, 'mode')
+    if (mode !== 'shift' && mode !== 'align') throw new ParamError('Layer IDs require shift or align; use intervals for IN/OUT')
     ed().update(d => moveTimelineLayers(d as Project, ids, num(p, 'seconds', true)!, mode))
     return { ok: true, layers: proj().layers.filter(l => ids.includes(l.id)).map(l => ({ id: l.id, inPoint: l.inPoint, outPoint: l.outPoint })) }
   },

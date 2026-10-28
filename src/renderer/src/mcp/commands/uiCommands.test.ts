@@ -200,3 +200,18 @@ describe('get_app_screenshot', () => {
 
 
 
+
+
+describe('ui_click Ctrl modifier', () => {
+  afterEach(() => vi.unstubAllGlobals())
+  it('dispatches Ctrl+click for multi-interval selection', async () => {
+    const dispatchEvent = vi.fn()
+    const el = { tagName: 'DIV', innerText: '', title: '', scrollIntoView() {}, dispatchEvent,
+      getBoundingClientRect: () => ({ width: 100, height: 20 }) }
+    vi.stubGlobal('document', { querySelectorAll: () => [el] })
+    vi.stubGlobal('getComputedStyle', () => ({ visibility: 'visible' }))
+    vi.stubGlobal('MouseEvent', class { constructor(public type: string, public options: object) {} })
+    await runCommand('ui_click', { selector: '.tl-interval', ctrl: true })
+    expect(dispatchEvent).toHaveBeenCalledWith(expect.objectContaining({ type: 'click', options: expect.objectContaining({ ctrlKey: true }) }))
+  })
+})

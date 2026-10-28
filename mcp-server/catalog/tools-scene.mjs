@@ -201,6 +201,7 @@ export const SCENE_TOOLS = [
       'Bấm một phần tử UI đang hiển thị như người dùng: theo chữ (nút, tab, mục menu, thẻ) hoặc theo CSS selector. Kết hợp get_app_screenshot để mở dialog và kiểm tra.'
     ),
     shape: (d) => ({
+      ctrl: z.boolean().optional().describe(d('Hold Ctrl while clicking to toggle interval selection.', 'Giữ Ctrl khi bấm để thêm/bỏ chọn khoảng thời gian.')),
       text: z.string().optional().describe(d('Visible text; exact match wins over partial (case-insensitive).', 'Chữ hiển thị; khớp chính xác được ưu tiên hơn khớp một phần (không phân biệt hoa thường).')),
       selector: z.string().optional().describe(d('CSS selector (alone, or to narrow the text search).', 'CSS selector (dùng riêng, hoặc để thu hẹp phạm vi tìm theo chữ).')),
       index: z.number().int().min(0).optional().describe(d('Which match to click when several match (default 0).', 'Chọn kết quả thứ mấy khi có nhiều phần tử khớp (mặc định 0).'))

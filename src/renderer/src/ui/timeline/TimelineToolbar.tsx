@@ -1,3 +1,5 @@
+import { useTimelineSelection } from './timelineSelection'
+import { intervalBounds } from '../../project/timelineIntervals'
 import React from 'react'
 import { TimelineBatchTiming } from './TimelineBatchTiming'
 import { formatTimecode, snapToFrame } from '../../animation/math'
@@ -62,6 +64,8 @@ export function TimelineToolbar({
   const project = useEditor((s) => s.project)
   const time = propTime !== undefined ? propTime : storeTime
   const selectedAudioTrackId = useEditor((s) => s.selectedAudioTrackId)
+  const intervals = useTimelineSelection(s => s.intervals)
+  const canRetime = hasSelectedLayer || intervals.some(i => intervalBounds(project, i))
   const canDelete = hasSelectedLayer || !!selectedAudioTrackId
   const wf = ensureProjectWorkflow(project)
   const { activeNodes } = resolveConnectedWorkflowNodes(wf)

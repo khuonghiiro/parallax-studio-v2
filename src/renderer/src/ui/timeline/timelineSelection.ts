@@ -1,12 +1,23 @@
 import { create } from 'zustand'
 import { useEditor } from '../../store/editor'
+import { intervalBounds, intervalId, type TimelineInterval } from '../../project/timelineIntervals'
 
-export const useTimelineSelection = create<{ ids: string[]; toggle: (id: string) => void; clear: () => void }>((set) => ({
-  ids: [], toggle: id => set(s => ({ ids: s.ids.includes(id) ? s.ids.filter(x => x !== id) : [...s.ids, id] })),
-  clear: () => set({ ids: [] })
+export const useTimelineSelection = create<{
+  intervals: TimelineInterval[]
+  pick: (item: TimelineInterval, toggle?: boolean) => void
+  clear: () => void
+}>((set) => ({
+  intervals: [],
+  pick: (item, toggle = false) => set(s => {
+    const has = s.intervals.some(i => intervalId(i) === intervalId(item))
+    return { intervals: toggle ? has ? s.intervals.filter(i => intervalId(i) !== intervalId(item)) : [...s.intervals, item]
+      : has ? s.intervals : [item] }
+  }),
+  clear: () => set({ intervals: [] })
 }))
-
-export function timelineSelectedIds(): string[] {
-  const project = useEditor.getState().project
-  return useTimelineSelection.getState().ids.filter(id => project.layers.some(l => l.id === id && !l.locked))
+export function selectedIntervals(): TimelineInterval[] {
+  return useTimelineSelection.getState().intervals.filter(i => intervalBounds(useEditor.getState().project, i))
 }
+useEditor.subscribe((state, previous) => {
+  if (state.epoch !== previous.epoch) useTimelineSelection.getState().clear()
+})

@@ -498,8 +498,12 @@ pnpm pxs review --view app --region virtual_light_pad --out D:\_tmp\light-pad.pn
 ### Shared timing and multi-row timeline
 - Demo ba cảnh giữ đủ 15 giây: giữ khung rồi lia ở 4–5s và 9–10s; cảnh đến hiện từ đầu đoạn lia. Timeline không tự rút thời lượng khi render.
 - Workflow: **+ Time** tạo nguồn khoảng thời gian; kéo cổng ra tới Layer, Motion, Animation, FX, va chạm hoặc Audio. Một node nhận tối đa một nguồn Time. Ngắt/xoá/tắt nguồn trả về khoảng riêng; Camera và cấu trúc cảnh giữ lộ trình riêng.
-- Timeline: tích ô chọn các dòng rồi kéo một dòng để dời cả nhóm; **Căn dòng** căn các điểm đầu tới đầu phát, giữ thời lượng và dời keyframe/hiệu ứng/âm thanh gắn layer. Layer khoá được bỏ qua. Kéo thủ công node đã nối Time chuyển node đó về thời gian riêng.
+- Timeline: bỏ checkbox. **Ctrl + click** thêm/bỏ chọn từng khoảng thời gian (thanh layer, đoạn giữa hai keyframe trong dòng thuộc tính, hoặc thanh hiệu ứng). Mở cây layer để chọn các đoạn thuộc tính riêng; chọn nhiều đoạn cùng dòng hoặc khác dòng. Kéo đoạn/mốc đã chọn để dời cả nhóm; **Đặt IN/OUT** (phím `[` / `]`) đặt biên các đoạn tại đầu phát; **Căn đầu** giữ thời lượng. Click vùng trống hoặc Escape bỏ chọn. Nền xanh, viền kép và vạch nhấn phân biệt vùng chọn ở cả hai theme. Mỗi lần kéo có một bước Undo; Escape hủy kéo. Bỏ qua layer khóa; từ chối đảo/chồng mốc hoặc xung đột mốc chung.
 - MCP: `set_workflow(create_time: true)`, `set_workflow(node_id, node_params)` với `timeStart/timeEnd`, `connect_workflow_ports(port: "time_range")`, `retime_layers(layer_ids, mode: "shift" | "align", seconds)`. Có Undo/Redo; main.json giữ nguồn và dây thời gian dùng chung.
 - Region mới: `timeline_batch_timing`; Workflow tiếp tục dùng `workflow_toolbar`, `workflow_canvas`, `workflow_inspector`.
 - PowerShell: `pnpm pxs call retime_layers '{"layer_ids":["layer-1","layer-2"],"mode":"align","seconds":2}'`.
 - CMD: `pnpm pxs call retime_layers "{\"layer_ids\":[\"layer-1\",\"layer-2\"],\"mode\":\"align\",\"seconds\":2}"`.
+
+- MCP `retime_layers(intervals, mode, seconds)` dùng cùng logic; `kind: layer | keys | effect`. `keys` nhận `prop/startId/endId`, `effect` nhận `effectId`, tất cả nhận `layerId`. `mode: shift | align | in | out`. `ui_click(ctrl: true)` hỗ trợ chọn nhiều đoạn. Không thêm region: dùng `timeline`, `timeline_properties`, `timeline_batch_timing`.
+- PowerShell: `pnpm pxs call retime_layers '{"intervals":[{"kind":"keys","layerId":"layer-1","prop":"opacity","startId":"key-a","endId":"key-b"}],"mode":"shift","seconds":1}'`.
+- CMD: `pnpm pxs call retime_layers "{\"intervals\":[{\"kind\":\"keys\",\"layerId\":\"layer-1\",\"prop\":\"opacity\",\"startId\":\"key-a\",\"endId\":\"key-b\"}],\"mode\":\"shift\",\"seconds\":1}"`.
