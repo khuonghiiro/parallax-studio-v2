@@ -24,12 +24,12 @@ const resolvedWorkflowCache = new WeakMap<Project, WorkflowGraph>()
 
 /** Đồ thị Workflow V2 khớp dữ liệu Project hiện tại (giữ tham chiếu khi không đổi & cache theo tham chiếu Project) */
 export function resolveWorkflowV2(project: Project): WorkflowGraph {
-  if (!isDraft(project)) {
+  if (!isDraft(project) && Object.isFrozen(project)) {
     const cached = resolvedWorkflowCache.get(project)
     if (cached) return cached
   }
   const next = syncWorkflowV2Graph(project, project.workflow)
-  if (!isDraft(project)) {
+  if (!isDraft(project) && Object.isFrozen(project)) {
     resolvedWorkflowCache.set(project, next)
   }
   return next

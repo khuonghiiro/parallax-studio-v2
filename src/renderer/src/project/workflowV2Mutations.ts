@@ -1,3 +1,4 @@
+import { effectiveTimeParams, isTimeNode } from './workflowTiming'
 import type { GlowSide, Layer, LayerGlow, LayerMotionType, Project, WorkflowEdge, WorkflowGraph, WorkflowNode, WorkflowNodeParams } from '@shared/types'
 import { getProjectAudioTracks } from './audioTracks'
 import {
@@ -497,7 +498,20 @@ export function syncWorkflowV2NodeToProject(
   node: WorkflowNode,
   patch?: Partial<WorkflowNodeParams>
 ): void {
-  const params: WorkflowNodeParams = { ...(node.params ?? {}), ...(patch ?? {}) }
+  if (isTimeNode(node)) {
+    const start = node.params?.timeStart ?? 0, end = node.params?.timeEnd ?? project.comp.duration
+    if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || end <= start || end > project.comp.duration) throw new Error('Khoảng Time không hợp lệ.')
+    for (const edge of project.workflow?.edges ?? []) {
+      if (edge.fromNode !== node.id || edge.fromPort !== 'time_range') continue
+      const target = project.workflow?.nodes.find(n => n.id === edge.toNode)
+      if (target) syncWorkflowV2NodeToProject(project, target)
+    }
+    return
+  }
+  if (patch && ('timeStart' in patch || 'timeEnd' in patch) && node.params?.localTimeRange) {
+    node.params.localTimeRange = { start: patch.timeStart ?? node.params.localTimeRange.start, end: patch.timeEnd ?? node.params.localTimeRange.end }
+  }
+  const params = effectiveTimeParams(project, node, { ...(node.params ?? {}), ...(patch ?? {}) })
   if (patch && project.workflow) {
     const idx = project.workflow.nodes.findIndex((n) => n.id === node.id)
     if (idx >= 0) {
@@ -540,7 +554,7 @@ export function syncWorkflowV2NodeToProject(
         if (m.model3d) m.model3d.lockedGroup = nextLocked
       }
     }
-    const timeEdited = Boolean(patch && ('timeStart' in patch || 'timeEnd' in patch))
+    const timeEdited = Boolean(params.localTimeRange || (patch && ('timeStart' in patch || 'timeEnd' in patch)))
     if (timeEdited) {
       for (const m of effectiveMembers) {
         if (typeof tStart === 'number' && Number.isFinite(tStart)) m.inPoint = Math.max(0, tStart)

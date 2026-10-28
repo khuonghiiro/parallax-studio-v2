@@ -1,3 +1,4 @@
+import { effectiveTimeParams, isTimeNode } from '../../project/workflowTiming'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import type { Project, WorkflowGraph, WorkflowNode, WorkflowNodeParams, WorkflowPortKind } from '@shared/types'
 import {
@@ -169,12 +170,12 @@ export const WorkflowCanvasV2: React.FC<WorkflowCanvasV2Props> = (props) => {
 
   const activeRootId = props.activeShotId ? v2RootId(props.activeShotId) : null
   const sharedRootId = v2RootId(V2_SHARED_CLUSTER)
-  const isLive = useCallback((n: WorkflowNode) => activeAt(n, currentTime, maxDuration), [currentTime, maxDuration])
+  const isLive = useCallback((n: WorkflowNode) => activeAt({ ...n, params: effectiveTimeParams(project, n, n.params ?? {}) }, currentTime, maxDuration), [project, currentTime, maxDuration])
   const running = useMemo(() => {
     const set = new Set<string>()
     for (const n of graph.visibleNodes) {
       const cluster = graph.clusterOf.get(n.id)
-      if ((cluster === activeRootId || cluster === sharedRootId) && isLive(n)) set.add(n.id)
+      if ((isTimeNode(n) || cluster === activeRootId || cluster === sharedRootId) && isLive(n)) set.add(n.id)
     }
     return set
   }, [graph, activeRootId, sharedRootId, isLive])

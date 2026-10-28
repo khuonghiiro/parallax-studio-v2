@@ -1,5 +1,10 @@
 {
   "kind": "parallax-workflow-main",
+  "sharedTiming": {
+    "nodes": [],
+    "edges": [],
+    "consumers": []
+  },
   "version": 2,
   "name": "Hành Trình 3 Khung Cảnh — Workflow V2",
   "composition": {
@@ -42,7 +47,7 @@
       "timeStart": 0,
       "timeEnd": 3.1,
       "cameraPreset": "dollyIn",
-      "waypointCount": 2,
+      "waypointCount": 3,
       "layerCount": 10,
       "logicCount": 7
     },
@@ -61,7 +66,7 @@
       "timeStart": 4.1,
       "timeEnd": 8.1,
       "cameraPreset": "dollyIn",
-      "waypointCount": 2,
+      "waypointCount": 3,
       "layerCount": 7,
       "logicCount": 4
     },

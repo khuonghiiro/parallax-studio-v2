@@ -1,3 +1,5 @@
+import { connectTimeNode, createTimeNode, isTimeNode } from '../../project/workflowTiming'
+import { moveTimelineLayers } from '../../project/timelineTiming'
 import { addTimelineLogic } from '../../project/timelineLogic'
 import type { WorkflowNode } from '@shared/types'
 import { evaluateNodeDraft, patchNodeDraft } from '../../project/workflowNodeDraft'
@@ -117,7 +119,20 @@ export const workflowCommands: Record<string, Handler> = {
     }
   },
 
+  retime_layers: (p) => {
+    if (!Array.isArray(p.layer_ids) || !p.layer_ids.length) throw new ParamError('layer_ids is required')
+    const ids = p.layer_ids.map(String)
+    if (ids.some(id => !proj().layers.some(l => l.id === id))) throw new ParamError('Unknown layer ID')
+    const mode = str(p, 'mode') === 'align' ? 'align' : 'shift'
+    ed().update(d => moveTimelineLayers(d as Project, ids, num(p, 'seconds', true)!, mode))
+    return { ok: true, layers: proj().layers.filter(l => ids.includes(l.id)).map(l => ({ id: l.id, inPoint: l.inPoint, outPoint: l.outPoint })) }
+  },
   set_workflow: (p) => {
+    if (bool(p, 'create_time')) {
+      const node = createTimeNode(proj())
+      ed().update(d => { const wf = ensureProjectWorkflow(proj()); d.workflow = { ...wf, nodes: [...wf.nodes, node] } })
+      return { ok: true, node_id: node.id }
+    }
     if (has(p, 'logic_id')) {
       let nodeId = ''
       ed().update((draft) => {
@@ -313,7 +328,9 @@ export const workflowCommands: Record<string, Handler> = {
       if (!fromSrc || !toDst) {
         throw new ParamError(`Invalid from_node "${fromNode}" or to_node "${toNode}"`)
       }
-      if (next.presetId === 'v2_scene_hierarchy') {
+      if (isTimeNode(fromSrc)) {
+        next = connectTimeNode(next, fromSrc.id, toDst.id)
+      } else if (next.presetId === 'v2_scene_hierarchy') {
         const check = validateWorkflowV2Connection(next, fromSrc.id, toDst.id)
         if (!check.valid) {
           throw new ParamError(check.reason ?? 'Invalid Workflow V2 connection')

@@ -431,12 +431,23 @@ export const FX_TOOLS = [
     example: '{}'
   },
   {
+    name: 'retime_layers', cat: 'timeline',
+    doc: L('Move multiple layer clips with their animation and effect timing in one Undo step.', 'Dời nhiều dòng layer cùng keyframe và hiệu ứng trong một bước Undo.'),
+    shape: (d) => ({
+      layer_ids: z.array(z.string()).min(1).describe(d('Layer IDs; locked layers are skipped.', 'ID các layer; bỏ qua layer đã khóa.')),
+      mode: z.enum(['shift', 'align']).describe(d('Shift preserves offsets; align places every clip start at seconds.', 'shift giữ khoảng cách; align căn đầu mọi dòng vào seconds.')),
+      seconds: z.number().describe(d('Delta for shift, absolute start time for align.', 'Độ dời khi shift, mốc bắt đầu tuyệt đối khi align.'))
+    }),
+    example: '{"layer_ids":["layer-1","layer-2"],"mode":"align","seconds":2}'
+  },
+  {
     name: 'set_workflow', cat: 'timeline',
     doc: L(
       'Configure the project video production workflow from a preset template (`preset_id`), a JSON workflow graph (`workflow`), or update a specific functional node preset/enabled state.',
       'Cấu hình quy trình tạo video cho dự án từ mẫu có sẵn (`preset_id`), từ chuỗi/đối tượng JSON (`workflow`), hoặc cập nhật preset/trạng thái bật tắt của một khối chức năng.'
     ),
     shape: (d) => ({
+      create_time: z.boolean().optional().describe(d('Create a shared Time node; connect its time_range output to consumers.', 'Tạo node Time dùng chung; nối cổng time_range tới các node cần dùng.')),
       logic_id: z.string().optional().describe(d('Add a logic node to layer_id (shared Timeline ⇄ Workflow V2 logic). Use a V2 preset id `v2:<category>:<option>` (e.g. v2:action:sway, v2:light:candle, v2:material:stone_wall, v2:collision:elastic_bounce, v2:cave:arch, v2:fx:bloom, v2:audio:voice); legacy catalog ids are mapped. layer_id is required in Workflow V2.', 'Gắn Node logic vào layer_id (logic chung Timeline ⇄ Workflow V2). Dùng mã mẫu V2 `v2:<nhóm>:<tuỳ chọn>` (ví dụ v2:action:sway, v2:light:candle, v2:material:stone_wall, v2:collision:elastic_bounce, v2:cave:arch, v2:fx:bloom, v2:audio:voice); mã kho cũ được tự ánh xạ. Workflow V2 bắt buộc có layer_id.')),
       layer_id: z.string().optional().describe(d('Target layer for timeline logic.', 'Layer đích của logic timeline.')),
       shot_id: z.string().optional().describe(d('Target shot for timeline logic; all for the project.', 'Cảnh đích của logic timeline; all là toàn dự án.')),
@@ -464,7 +475,7 @@ export const FX_TOOLS = [
       action: z.enum(['connect', 'disconnect', 'auto_wire']).optional().describe(d('Action: "connect" (default), "disconnect", or "auto_wire".', 'Thao tác: "connect" (mặc định), "disconnect", hoặc "auto_wire".')),
       from_node: z.string().optional().describe(d('Source node ID or node type (e.g. "node-assembly" or "layer_assembly").', 'ID hoặc loại khối nguồn (VD: "node-assembly" hoặc "layer_assembly").')),
       to_node: z.string().optional().describe(d('Target node ID or node type (e.g. "node-motion" or "motion_choreography").', 'ID hoặc loại khối đích (VD: "node-motion" hoặc "motion_choreography").')),
-      port: z.enum(['scene_ctx', 'actors_rig', 'motion_stream', 'vfx_stage', 'camera_cut', 'audio_mix']).optional().describe(d('Port type to connect (auto-detected if omitted).', 'Loại cổng cần nối (bỏ trống sẽ tự động nhận diện cổng tương thích).')),
+      port: z.enum(['time_range', 'scene_ctx', 'actors_rig', 'motion_stream', 'vfx_stage', 'camera_cut', 'audio_mix']).optional().describe(d('Port type to connect (auto-detected if omitted).', 'Loại cổng cần nối (bỏ trống sẽ tự động nhận diện cổng tương thích).')),
       edge_id: z.string().optional().describe(d('Edge ID to remove when action="disconnect".', 'ID dây nối cần gỡ khi action="disconnect".'))
     }),
     example: '{"action":"connect","from_node":"node-assembly","to_node":"node-motion","port":"actors_rig"}'

@@ -1,3 +1,4 @@
+import { effectiveTimeParams, isTimeNode, timeSource } from '../../project/workflowTiming'
 import React, { memo } from 'react'
 import type { ImageProps, Project, WorkflowNode, WorkflowNodeParams, WorkflowPortKind } from '@shared/types'
 import {
@@ -53,6 +54,7 @@ export function summarizeV2Node(node: WorkflowNode, childCount: number): string 
     return `Z ${z >= 0 ? `+${z}` : z}`
   }
   switch (resolveV2LogicCategory(node)) {
+    case 'time': return 'Nối tới các node dùng chung thời gian'
     case 'cluster_lock': {
       const locked = node.enabled !== false && p.lockedGroup !== false
       const totalCnt = p.childLayerCount ?? shared
@@ -167,13 +169,15 @@ export const WorkflowNodeCardV2 = memo(function WorkflowNodeCardV2({
   onScrubTime,
   onSpawnCameraWaypoint
 }: WorkflowNodeCardV2Props) {
+  const timing = effectiveTimeParams(project, node, node.params ?? {})
+  const sharedTime = timeSource(project.workflow, node.id)
   const theme = resolveV2NodeTheme(node)
   const level = resolveV2NodeLevel(node)
   const cat = resolveV2LogicCategory(node)
   const collapsed = Boolean(node.params?.collapsedGroup)
   const collapsedSubs = Boolean(node.params?.collapsedSubLayers)
   const thumb = resolveThumb(node, project)
-  const hasOutput = level !== 'logic' || cat === 'material' || cat === 'cluster_lock' || Boolean(node.params?.isPartHub)
+  const hasOutput = isTimeNode(node) || level !== 'logic' || cat === 'material' || cat === 'cluster_lock' || Boolean(node.params?.isPartHub)
 
   const socket = (kind: 'in' | 'out'): React.ReactElement => {
     const isOut = kind === 'out'
@@ -223,7 +227,7 @@ export const WorkflowNodeCardV2 = memo(function WorkflowNodeCardV2({
       }}
     >
       <div className="wf-v2-card-accent-bar" />
-      {level !== 'root' && socket('in')}
+      {level !== 'root' && !isTimeNode(node) && socket('in')}
       {hasOutput && socket('out')}
 
       <div className="wf-v2-card-header">
@@ -347,13 +351,13 @@ export const WorkflowNodeCardV2 = memo(function WorkflowNodeCardV2({
 
       <div className="wf-v2-card-footer" onPointerDown={(e) => e.stopPropagation()}>
         <WorkflowTimeRangeBar
-          timeStart={node.params?.timeStart ?? 0}
-          timeEnd={node.params?.timeEnd ?? maxDuration}
+          timeStart={timing.timeStart ?? 0}
+          timeEnd={timing.timeEnd ?? maxDuration}
           minTime={0}
           maxTime={maxDuration}
           currentTime={currentTime}
           accentColor={theme.accent}
-          readOnly={level === 'root'}
+          readOnly={level === 'root' || Boolean(sharedTime)}
           onChangeRange={(s, e) => onUpdateParams(node.id, { timeStart: s, timeEnd: e })}
           onScrubTime={onScrubTime}
         />

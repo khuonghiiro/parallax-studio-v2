@@ -340,6 +340,7 @@ export function applyWorkflowToProject(
 
   const composedMotionLayers = new WeakSet<Layer>()
   for (const node of activeNodes) {
+    if (node.params?.logicCategory === 'time') continue
     if (opts?.onlyNodeIds && !opts.onlyNodeIds.has(node.id)) continue
     const intensity = Math.max(0.2, Math.min(2.5, node.params?.intensity ?? 1.0))
     const rawBinding = resolveNodeTargetBinding(node, project, workflow)

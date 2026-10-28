@@ -37,6 +37,7 @@ export const DIALOG_SELECTORS = [
 const region = (name: string, ...classes: string[]): string[] => [`[data-mcp-region="${name}"]`, ...classes]
 
 export const UI_REGION_SELECTORS: Record<string, string[]> = {
+  timeline_batch_timing: ['.tl-batch-timing'],
   viewer_stage2d_tools: ['.anim2d-toolbar'],
   viewer_route: ['#anim2d-filmstrip', '.filmstrip-collapsed-toggle'],
   viewer_depth_tools: ['.depth-toolbar'],

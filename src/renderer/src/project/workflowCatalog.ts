@@ -50,6 +50,7 @@ export interface WorkflowTemplateSpec {
 }
 
 export const WORKFLOW_PORT_SPECS: Record<WorkflowPortKind, WorkflowPortSpec> = {
+  time_range: { id: 'time_range', label: 'Thời gian chung', shortLabel: '⏱ Time', color: '#06b6d4', description: 'Dùng khoảng thời gian của node Time; ngắt dây để dùng thời gian riêng.' },
   scene_ctx: {
     id: 'scene_ctx',
     label: 'Ngữ cảnh Phân cảnh (Scene & Z-Depth)',

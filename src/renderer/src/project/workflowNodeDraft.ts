@@ -1,3 +1,5 @@
+import { isTimeNode } from './workflowTiming'
+import { syncWorkflowV2NodeToProject } from './workflowV2Mutations'
 import type { Project, WorkflowGraph, WorkflowNode, WorkflowNodeParams } from '@shared/types'
 import { applyWorkflowToProject, resolveNodeTargetBinding } from './workflowEngine'
 import { getNodeSubParts } from './workflowTargets'
@@ -65,6 +67,7 @@ function resetRemovedEffects(project: Project, previous: WorkflowNode, node: Wor
 /** Shared by the private preview and the single Undo transaction on Apply. */
 function applyNodeDraftToProject(project: Project, base: Project, workflow: WorkflowGraph, node: WorkflowNode, previous: WorkflowNode): void {
   const next = { ...workflow, nodes: workflow.nodes.map((item) => item.id === node.id ? node : item) }
+  if (isTimeNode(node)) { project.workflow = next; syncWorkflowV2NodeToProject(project, node); return }
   resetRemovedEffects(project, previous, node)
   const entity = node.type === 'layer_transform' || (node.type === 'layer_assembly' && !node.params?.logicId && node.params?.targetLayerIds?.length)
   if (entity) {

@@ -71,7 +71,7 @@ export function extractShotCameraWaypoints(project: Project): Map<string, ShotCa
     const next = allWps[i + 1]
     const timeStart = Number(Math.max(0, wp.time).toFixed(2))
     const rawEnd = next ? next.time : Math.min(compDur, Math.max(wp.time + 0.4, wp.endTime))
-    const timeEnd = Number(Math.max(timeStart + 0.1, rawEnd).toFixed(2))
+    const timeEnd = Number(Math.min(compDur, Math.max(timeStart, rawEnd)).toFixed(2))
     const list = byShot.get(shotId) ?? []
     const localIndex = list.length
     list.push({
@@ -95,7 +95,7 @@ export function extractShotCameraWaypoints(project: Project): Map<string, ShotCa
       ease: wp.ease,
       timeStart,
       timeEnd,
-      stepDuration: Number(Math.max(0.1, timeEnd - timeStart).toFixed(2))
+      stepDuration: Number(Math.max(0, timeEnd - timeStart).toFixed(2))
     })
     byShot.set(shotId, list)
   }

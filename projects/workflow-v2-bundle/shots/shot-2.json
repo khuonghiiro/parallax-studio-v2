@@ -41,7 +41,7 @@
       {
         "nodeId": "v2-cam-wp-shot-2-0",
         "index": 1,
-        "label": "3",
+        "label": "4",
         "isSubWaypoint": false,
         "actionMode": "pull-out",
         "tagLabel": "Kéo rộng (100%)",
@@ -60,13 +60,32 @@
       {
         "nodeId": "v2-cam-wp-shot-2-1",
         "index": 2,
-        "label": "4",
+        "label": "5",
         "isSubWaypoint": false,
         "actionMode": "push-in",
         "tagLabel": "Đẩy cận (114%)",
         "timeStart": 7.2,
+        "timeEnd": 9,
+        "stepDuration": 1.8,
+        "zoomPct": 114,
+        "stageX": 2533,
+        "stageY": 20,
+        "scale": 0.8800013010420433,
+        "yaw": 0,
+        "pitch": 0,
+        "roll": 0,
+        "ease": "hold"
+      },
+      {
+        "nodeId": "v2-cam-wp-shot-2-2",
+        "index": 3,
+        "label": "6",
+        "isSubWaypoint": false,
+        "actionMode": "cut",
+        "tagLabel": "Cắt cảnh tức thì",
+        "timeStart": 9,
         "timeEnd": 10,
-        "stepDuration": 2.8,
+        "stepDuration": 1,
         "zoomPct": 114,
         "stageX": 2533,
         "stageY": 20,
@@ -84,7 +103,7 @@
       "kind": "group_3d",
       "title": "Nhóm 3D & Lắp ráp",
       "enabled": true,
-      "timeStart": 5,
+      "timeStart": 4,
       "timeEnd": 10,
       "layerCount": 4
     },
@@ -93,7 +112,7 @@
       "kind": "group_25d",
       "title": "Nhóm Layer 2.5D",
       "enabled": true,
-      "timeStart": 5,
+      "timeStart": 4,
       "timeEnd": 10,
       "layerCount": 3
     }
@@ -118,7 +137,7 @@
         1
       ],
       "opacity": 1,
-      "timeStart": 5,
+      "timeStart": 4,
       "timeEnd": 10
     },
     {
@@ -140,7 +159,7 @@
         1
       ],
       "opacity": 1,
-      "timeStart": 5,
+      "timeStart": 4,
       "timeEnd": 10
     },
     {
@@ -162,7 +181,7 @@
         1
       ],
       "opacity": 1,
-      "timeStart": 5,
+      "timeStart": 4,
       "timeEnd": 10
     },
     {
@@ -184,7 +203,7 @@
         1
       ],
       "opacity": 1,
-      "timeStart": 5,
+      "timeStart": 4,
       "timeEnd": 10
     },
     {
@@ -206,7 +225,7 @@
         1
       ],
       "opacity": 1,
-      "timeStart": 5,
+      "timeStart": 4,
       "timeEnd": 10
     },
     {
@@ -228,7 +247,7 @@
         1
       ],
       "opacity": 0,
-      "timeStart": 5,
+      "timeStart": 4,
       "timeEnd": 10
     },
     {
@@ -250,7 +269,7 @@
         1
       ],
       "opacity": 1,
-      "timeStart": 5,
+      "timeStart": 4,
       "timeEnd": 10
     }
   ],
@@ -331,7 +350,7 @@
       "presetId": "v2:light:candle",
       "title": "Ánh sáng: Ngọn nến (Gió)",
       "enabled": true,
-      "timeStart": 5,
+      "timeStart": 4,
       "timeEnd": 10,
       "targetLayerIds": [
         "layer-s2-lamp-table"
@@ -378,13 +397,13 @@
         },
         "preset": "cinematic_fly_push",
         "aiAgentRole": "CameraDirectorAgent",
-        "aiDirective": "Camera quay cảnh \"Phòng Khách Ấm Áp\" gồm 2 mốc lộ trình trong [4.1s – 10s].",
+        "aiDirective": "Camera quay cảnh \"Phòng Khách Ấm Áp\" gồm 3 mốc lộ trình trong [4.1s – 10s].",
         "params": {
           "shotId": "shot-2",
           "logicCategory": "camera",
           "camPreset": "dollyIn",
           "enableDof": false,
-          "childLayerCount": 2,
+          "childLayerCount": 3,
           "timeStart": 4.1,
           "timeEnd": 10,
           "hierarchyParentNodeId": "v2-root-shot-2"
@@ -393,7 +412,7 @@
       {
         "id": "v2-cam-wp-shot-2-0",
         "type": "camera_director",
-        "title": "#3 · Kéo rộng (100%)",
+        "title": "#4 · Kéo rộng (100%)",
         "enabled": true,
         "position": {
           "x": 48,
@@ -401,14 +420,14 @@
         },
         "preset": "cinematic_fly_push",
         "aiAgentRole": "CameraDirectorAgent",
-        "aiDirective": "Cảnh con #3 (Kéo rộng (100%), Zoom 100%) thuộc \"Phòng Khách Ấm Áp\" [5s – 7.2s].",
+        "aiDirective": "Cảnh con #4 (Kéo rộng (100%), Zoom 100%) thuộc \"Phòng Khách Ấm Áp\" [5s – 7.2s].",
         "params": {
           "shotId": "shot-2",
           "logicCategory": "camera",
           "isCameraWaypoint": true,
-          "waypointIndex": 2,
+          "waypointIndex": 3,
           "waypointLocalIndex": 0,
-          "waypointLabel": "3",
+          "waypointLabel": "4",
           "isSubWaypoint": false,
           "isFirstOfShot": true,
           "camActionMode": "pull-out",
@@ -430,7 +449,7 @@
       {
         "id": "v2-cam-wp-shot-2-1",
         "type": "camera_director",
-        "title": "#4 · Đẩy cận (114%)",
+        "title": "#5 · Đẩy cận (114%)",
         "enabled": true,
         "position": {
           "x": 48,
@@ -438,14 +457,14 @@
         },
         "preset": "cinematic_fly_push",
         "aiAgentRole": "CameraDirectorAgent",
-        "aiDirective": "Cảnh con #4 (Đẩy cận (114%), Zoom 114%) thuộc \"Phòng Khách Ấm Áp\" [7.2s – 10s].",
+        "aiDirective": "Cảnh con #5 (Đẩy cận (114%), Zoom 114%) thuộc \"Phòng Khách Ấm Áp\" [7.2s – 9s].",
         "params": {
           "shotId": "shot-2",
           "logicCategory": "camera",
           "isCameraWaypoint": true,
-          "waypointIndex": 3,
+          "waypointIndex": 4,
           "waypointLocalIndex": 1,
-          "waypointLabel": "4",
+          "waypointLabel": "5",
           "isSubWaypoint": false,
           "isFirstOfShot": false,
           "camActionMode": "push-in",
@@ -457,9 +476,46 @@
           "camYaw": 0,
           "camPitch": 0,
           "camRoll": 0,
-          "camEase": "easeInOut",
-          "camStepDuration": 2.8,
+          "camEase": "hold",
+          "camStepDuration": 1.8,
           "timeStart": 7.2,
+          "timeEnd": 9,
+          "hierarchyParentNodeId": "v2-camera-shot-2"
+        }
+      },
+      {
+        "id": "v2-cam-wp-shot-2-2",
+        "type": "camera_director",
+        "title": "#6 · Cắt cảnh tức thì",
+        "enabled": true,
+        "position": {
+          "x": 48,
+          "y": 1670
+        },
+        "preset": "cinematic_fly_push",
+        "aiAgentRole": "CameraDirectorAgent",
+        "aiDirective": "Cảnh con #6 (Cắt cảnh tức thì, Zoom 114%) thuộc \"Phòng Khách Ấm Áp\" [9s – 10s].",
+        "params": {
+          "shotId": "shot-2",
+          "logicCategory": "camera",
+          "isCameraWaypoint": true,
+          "waypointIndex": 5,
+          "waypointLocalIndex": 2,
+          "waypointLabel": "6",
+          "isSubWaypoint": false,
+          "isFirstOfShot": false,
+          "camActionMode": "cut",
+          "camTagLabel": "Cắt cảnh tức thì",
+          "camZoomPct": 114,
+          "camStageX": 2533,
+          "camStageY": 20,
+          "camScale": 0.8800013010420433,
+          "camYaw": 0,
+          "camPitch": 0,
+          "camRoll": 0,
+          "camEase": "easeInOut",
+          "camStepDuration": 1,
+          "timeStart": 9,
           "timeEnd": 10,
           "hierarchyParentNodeId": "v2-camera-shot-2"
         }
@@ -488,7 +544,7 @@
             "layer-s2-robo-face-talk",
             "layer-s2-tea-tray"
           ],
-          "timeStart": 5,
+          "timeStart": 4,
           "timeEnd": 10,
           "hierarchyParentNodeId": "v2-root-shot-2"
         }
@@ -504,7 +560,7 @@
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
-        "aiDirective": "Layer \"Mèo Máy Quản Gia — Thân Máy\" hoạt động từ 5s đến 10s.",
+        "aiDirective": "Layer \"Mèo Máy Quản Gia — Thân Máy\" hoạt động từ 4s đến 10s.",
         "params": {
           "shotId": "shot-2",
           "targetMode": "custom",
@@ -521,7 +577,7 @@
           "transformX": -350,
           "transformY": -115,
           "transformZ": 160,
-          "timeStart": 5,
+          "timeStart": 4,
           "timeEnd": 10,
           "hierarchyParentNodeId": "v2-group-3d-shot-2"
         }
@@ -537,7 +593,7 @@
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
-        "aiDirective": "Layer \"Màn Hình Mặt — Mắt Cười\" hoạt động từ 5s đến 10s.",
+        "aiDirective": "Layer \"Màn Hình Mặt — Mắt Cười\" hoạt động từ 4s đến 10s.",
         "params": {
           "shotId": "shot-2",
           "targetMode": "custom",
@@ -553,7 +609,7 @@
           "transformX": -350,
           "transformY": -13,
           "transformZ": 156,
-          "timeStart": 5,
+          "timeStart": 4,
           "timeEnd": 10,
           "hierarchyParentNodeId": "v2-group-3d-shot-2"
         }
@@ -569,7 +625,7 @@
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
-        "aiDirective": "Layer \"Màn Hình Mặt — Đang Nói\" hoạt động từ 5s đến 10s.",
+        "aiDirective": "Layer \"Màn Hình Mặt — Đang Nói\" hoạt động từ 4s đến 10s.",
         "params": {
           "shotId": "shot-2",
           "targetMode": "custom",
@@ -585,7 +641,7 @@
           "transformX": -350,
           "transformY": -13,
           "transformZ": 156,
-          "timeStart": 5,
+          "timeStart": 4,
           "timeEnd": 10,
           "hierarchyParentNodeId": "v2-group-3d-shot-2"
         }
@@ -601,7 +657,7 @@
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
-        "aiDirective": "Layer \"Khay Trà Nóng (Đạo Cụ)\" hoạt động từ 5s đến 10s.",
+        "aiDirective": "Layer \"Khay Trà Nóng (Đạo Cụ)\" hoạt động từ 4s đến 10s.",
         "params": {
           "shotId": "shot-2",
           "targetMode": "custom",
@@ -617,7 +673,7 @@
           "transformX": -262,
           "transformY": -103,
           "transformZ": 152,
-          "timeStart": 5,
+          "timeStart": 4,
           "timeEnd": 10,
           "hierarchyParentNodeId": "v2-group-3d-shot-2"
         }
@@ -661,7 +717,7 @@
           "transformY": -115,
           "transformZ": 160,
           "clusterScalePct": 90,
-          "timeStart": 5,
+          "timeStart": 4,
           "timeEnd": 10,
           "hierarchyParentNodeId": "v2-layer-layer-s2-robo-body"
         }
@@ -689,7 +745,7 @@
             "layer-s2-bookshelf",
             "layer-s2-wall"
           ],
-          "timeStart": 5,
+          "timeStart": 4,
           "timeEnd": 10,
           "hierarchyParentNodeId": "v2-root-shot-2"
         }
@@ -705,7 +761,7 @@
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
-        "aiDirective": "Layer \"Bàn Trà & Đèn Bàn Ấm Áp\" hoạt động từ 5s đến 10s.",
+        "aiDirective": "Layer \"Bàn Trà & Đèn Bàn Ấm Áp\" hoạt động từ 4s đến 10s.",
         "params": {
           "shotId": "shot-2",
           "targetMode": "custom",
@@ -717,7 +773,7 @@
           "transformX": 220,
           "transformY": -115,
           "transformZ": 220,
-          "timeStart": 5,
+          "timeStart": 4,
           "timeEnd": 10,
           "hierarchyParentNodeId": "v2-group-25d-shot-2"
         }
@@ -733,7 +789,7 @@
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
-        "aiDirective": "Layer \"Kệ Sách Gỗ & Ghế Sofa\" hoạt động từ 5s đến 10s.",
+        "aiDirective": "Layer \"Kệ Sách Gỗ & Ghế Sofa\" hoạt động từ 4s đến 10s.",
         "params": {
           "shotId": "shot-2",
           "targetMode": "custom",
@@ -745,7 +801,7 @@
           "transformX": -40,
           "transformY": -65,
           "transformZ": 480,
-          "timeStart": 5,
+          "timeStart": 4,
           "timeEnd": 10,
           "hierarchyParentNodeId": "v2-group-25d-shot-2"
         }
@@ -761,7 +817,7 @@
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
-        "aiDirective": "Layer \"Tường Gỗ & Cửa Sổ Đêm Trăng\" hoạt động từ 5s đến 10s.",
+        "aiDirective": "Layer \"Tường Gỗ & Cửa Sổ Đêm Trăng\" hoạt động từ 4s đến 10s.",
         "params": {
           "shotId": "shot-2",
           "targetMode": "custom",
@@ -773,7 +829,7 @@
           "transformX": 0,
           "transformY": 0,
           "transformZ": 950,
-          "timeStart": 5,
+          "timeStart": 4,
           "timeEnd": 10,
           "hierarchyParentNodeId": "v2-group-25d-shot-2"
         }
@@ -938,7 +994,7 @@
             "v2-layer-layer-s2-lamp-table"
           ],
           "requireLayerConnection": true,
-          "timeStart": 5,
+          "timeStart": 4,
           "timeEnd": 10,
           "hierarchyParentNodeId": "v2-layer-layer-s2-lamp-table",
           "lightMode": "candle",
@@ -967,6 +1023,13 @@
         "fromNode": "v2-cam-wp-shot-2-0",
         "fromPort": "camera_cut",
         "toNode": "v2-cam-wp-shot-2-1",
+        "toPort": "camera_cut"
+      },
+      {
+        "id": "e-v2-cam-wp-shot-2-1-v2-cam-wp-shot-2-2",
+        "fromNode": "v2-cam-wp-shot-2-1",
+        "fromPort": "camera_cut",
+        "toNode": "v2-cam-wp-shot-2-2",
         "toPort": "camera_cut"
       },
       {

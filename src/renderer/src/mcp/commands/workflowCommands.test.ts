@@ -92,7 +92,8 @@ describe('MCP workflowCommands & Workflow Engine', () => {
   it('lists node specs, port specs, and logic nodes via list_workflow_presets', async () => {
     const res = (await runCommand('list_workflow_presets')) as any
     expect(res.nodeTypes.length).toBe(8)
-    expect(res.ports.length).toBe(8)
+    expect(res.ports.length).toBe(9)
+    expect(res.ports.some((p: { id: string }) => p.id === 'time_range')).toBe(true)
     expect(res.logicNodes.length).toBeGreaterThanOrEqual(10)
   })
 

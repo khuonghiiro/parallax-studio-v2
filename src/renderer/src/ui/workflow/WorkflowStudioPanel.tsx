@@ -79,6 +79,7 @@ export const WorkflowStudioPanel: React.FC = () => {
         onToggleJsonMode={handleToggleJsonMode}
         onRelayout={() => actions.relayout(true)}
         onApplyAll={actions.applyAll}
+        onAddTime={actions.addTime}
       />
       <div className="wf-v2-body">
         <WorkflowV2Sidebar

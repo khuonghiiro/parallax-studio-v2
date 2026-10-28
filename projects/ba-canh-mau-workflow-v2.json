@@ -17,7 +17,7 @@
       ],
       "keyframes": [
         {
-          "id": "zguNfv2a",
+          "id": "OJPrBk2Z",
           "t": 0,
           "value": [
             0,
@@ -27,8 +27,18 @@
           "ease": "easeInOut"
         },
         {
-          "id": "zbNJszz3",
+          "id": "Bb_8IMEI",
           "t": 2.2,
+          "value": [
+            60,
+            -15,
+            -1305.6032
+          ],
+          "ease": "hold"
+        },
+        {
+          "id": "demo-hold-Bb_8IMEI",
+          "t": 4,
           "value": [
             60,
             -15,
@@ -37,7 +47,7 @@
           "ease": "easeInOut"
         },
         {
-          "id": "F-zDyHZ8",
+          "id": "-VZblfAH",
           "t": 5,
           "value": [
             10560,
@@ -47,8 +57,18 @@
           "ease": "easeInOut"
         },
         {
-          "id": "UDRem9eP",
+          "id": "rJnGyjEe",
           "t": 7.2,
+          "value": [
+            10635,
+            -20,
+            -1305.6032
+          ],
+          "ease": "hold"
+        },
+        {
+          "id": "demo-hold-rJnGyjEe",
+          "t": 9,
           "value": [
             10635,
             -20,
@@ -57,7 +77,7 @@
           "ease": "easeInOut"
         },
         {
-          "id": "Cz2JosZ6",
+          "id": "mwXeOneW",
           "t": 10,
           "value": [
             21120,
@@ -67,7 +87,7 @@
           "ease": "easeInOut"
         },
         {
-          "id": "mK8wm9pp",
+          "id": "21aTJ05n",
           "t": 12.4,
           "value": [
             21175,
@@ -77,8 +97,8 @@
           "ease": "easeInOut"
         },
         {
-          "id": "6vYmU8nB",
-          "t": 14.8,
+          "id": "8twENDn6",
+          "t": 15,
           "value": [
             21215,
             -25,
@@ -96,7 +116,7 @@
       ],
       "keyframes": [
         {
-          "id": "bbKISI51",
+          "id": "jeMhOHek",
           "t": 0,
           "value": [
             0,
@@ -106,8 +126,18 @@
           "ease": "easeInOut"
         },
         {
-          "id": "cXcQFqpQ",
+          "id": "2kpKrDNP",
           "t": 2.2,
+          "value": [
+            60,
+            -15,
+            0
+          ],
+          "ease": "hold"
+        },
+        {
+          "id": "demo-hold-2kpKrDNP",
+          "t": 4,
           "value": [
             60,
             -15,
@@ -116,7 +146,7 @@
           "ease": "easeInOut"
         },
         {
-          "id": "3JjEClMR",
+          "id": "yWgYZxPt",
           "t": 5,
           "value": [
             10560,
@@ -126,8 +156,18 @@
           "ease": "easeInOut"
         },
         {
-          "id": "lWT2GR8z",
+          "id": "VgSrvdhk",
           "t": 7.2,
+          "value": [
+            10635,
+            -20,
+            0
+          ],
+          "ease": "hold"
+        },
+        {
+          "id": "demo-hold-VgSrvdhk",
+          "t": 9,
           "value": [
             10635,
             -20,
@@ -136,7 +176,7 @@
           "ease": "easeInOut"
         },
         {
-          "id": "7IubhYlh",
+          "id": "AYv6v7zn",
           "t": 10,
           "value": [
             21120,
@@ -146,7 +186,7 @@
           "ease": "easeInOut"
         },
         {
-          "id": "8LjpO8US",
+          "id": "53JvdJay",
           "t": 12.4,
           "value": [
             21175,
@@ -156,8 +196,8 @@
           "ease": "easeInOut"
         },
         {
-          "id": "wVR0wHBk",
-          "t": 14.8,
+          "id": "SNI2qdU0",
+          "t": 15,
           "value": [
             21215,
             -25,
@@ -1808,7 +1848,7 @@
       "name": "Tường Gỗ & Cửa Sổ Đêm Trăng",
       "visible": true,
       "locked": false,
-      "inPoint": 5,
+      "inPoint": 4,
       "outPoint": 10,
       "fadeIn": 0,
       "fadeOut": 0,
@@ -1867,7 +1907,7 @@
       "name": "Kệ Sách Gỗ & Ghế Sofa",
       "visible": true,
       "locked": false,
-      "inPoint": 5,
+      "inPoint": 4,
       "outPoint": 10,
       "fadeIn": 0,
       "fadeOut": 0,
@@ -1926,7 +1966,7 @@
       "name": "Bàn Trà & Đèn Bàn Ấm Áp",
       "visible": true,
       "locked": false,
-      "inPoint": 5,
+      "inPoint": 4,
       "outPoint": 10,
       "fadeIn": 0,
       "fadeOut": 0,
@@ -1997,7 +2037,7 @@
       "name": "Mèo Máy Quản Gia — Thân Máy",
       "visible": true,
       "locked": false,
-      "inPoint": 5,
+      "inPoint": 4,
       "outPoint": 10,
       "fadeIn": 0,
       "fadeOut": 0,
@@ -2393,7 +2433,7 @@
       "name": "Màn Hình Mặt — Mắt Cười",
       "visible": true,
       "locked": false,
-      "inPoint": 5,
+      "inPoint": 4,
       "outPoint": 10,
       "fadeIn": 0,
       "fadeOut": 0,
@@ -2819,7 +2859,7 @@
       "name": "Màn Hình Mặt — Đang Nói",
       "visible": true,
       "locked": false,
-      "inPoint": 5,
+      "inPoint": 4,
       "outPoint": 10,
       "fadeIn": 0,
       "fadeOut": 0,
@@ -3245,7 +3285,7 @@
       "name": "Khay Trà Nóng (Đạo Cụ)",
       "visible": true,
       "locked": false,
-      "inPoint": 5,
+      "inPoint": 4,
       "outPoint": 10,
       "fadeIn": 0,
       "fadeOut": 0,
@@ -3645,7 +3685,7 @@
       "name": "Bầu Trời Phố Đêm & Tòa Nhà Xa",
       "visible": true,
       "locked": false,
-      "inPoint": 10,
+      "inPoint": 9,
       "outPoint": 15,
       "fadeIn": 0,
       "fadeOut": 0,
@@ -3704,7 +3744,7 @@
       "name": "Mặt Đường Nhựa & Vỉa Hè",
       "visible": true,
       "locked": false,
-      "inPoint": 10,
+      "inPoint": 9,
       "outPoint": 15,
       "fadeIn": 0,
       "fadeOut": 0,
@@ -3763,7 +3803,7 @@
       "name": "Cột Đèn Đường Neon & Cây Vỉa Hè",
       "visible": true,
       "locked": false,
-      "inPoint": 10,
+      "inPoint": 9,
       "outPoint": 15,
       "fadeIn": 0,
       "fadeOut": 0,
@@ -3834,7 +3874,7 @@
       "name": "Thùng Hàng & Biển Báo Vỉa Hè",
       "visible": true,
       "locked": false,
-      "inPoint": 10,
+      "inPoint": 9,
       "outPoint": 15,
       "fadeIn": 0,
       "fadeOut": 0,
@@ -3986,7 +4026,7 @@
       "name": "Tay Đua Scooter Điện",
       "visible": true,
       "locked": false,
-      "inPoint": 10,
+      "inPoint": 9,
       "outPoint": 15,
       "fadeIn": 0,
       "fadeOut": 0,
@@ -4133,7 +4173,7 @@
       "height": 1080,
       "path": "assets/scenes-v2/s1-sky-field.svg",
       "assetPath": "scenes-v2/s1-sky-field.svg",
-      "dataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIwIDEwODAiIHdpZHRoPSIxOTIwIiBoZWlnaHQ9IjEwODAiPgogICAgICA8ZGVmcz4KICAgICAgICA8bGluZWFyR3JhZGllbnQgaWQ9InNreTEiIHgxPSIwIiB5MT0iMCIgeDI9IjAiIHkyPSIxIj4KICAgICAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiMxZTNhOGEiLz4KICAgICAgICAgIDxzdG9wIG9mZnNldD0iMzglIiBzdG9wLWNvbG9yPSIjM2I4MmY2Ii8+CiAgICAgICAgICA8c3RvcCBvZmZzZXQ9IjcyJSIgc3RvcC1jb2xvcj0iI2Y1OWUwYiIvPgogICAgICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjZmRlNjhhIi8+CiAgICAgICAgPC9saW5lYXJHcmFkaWVudD4KICAgICAgICA8cmFkaWFsR3JhZGllbnQgaWQ9InN1bjEiIGN4PSIwLjcyIiBjeT0iMC40OCIgcj0iMC4yOCI+CiAgICAgICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjZmZmYmViIiBzdG9wLW9wYWNpdHk9IjEiLz4KICAgICAgICAgIDxzdG9wIG9mZnNldD0iMzUlIiBzdG9wLWNvbG9yPSIjZmRlMDQ3IiBzdG9wLW9wYWNpdHk9IjAuODUiLz4KICAgICAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iI2Y5NzMxNiIgc3RvcC1vcGFjaXR5PSIwIi8+CiAgICAgICAgPC9yYWRpYWxHcmFkaWVudD4KICAgICAgPC9kZWZzPgogICAgICA8cmVjdCB3aWR0aD0iMTkyMCIgaGVpZ2h0PSIxMDgwIiBmaWxsPSJ1cmwoI3NreTEpIi8+CiAgICAgIDxjaXJjbGUgY3g9IjEzODAiIGN5PSI1MjAiIHI9IjMyMCIgZmlsbD0idXJsKCNzdW4xKSIvPgogICAgICA8Y2lyY2xlIGN4PSIxMzgwIiBjeT0iNTIwIiByPSI5NSIgZmlsbD0iI2ZlZjljMyIgb3BhY2l0eT0iMC45MiIvPgogICAgICA8ZyBmaWxsPSIjZmZmZmZmIiBvcGFjaXR5PSIwLjU1Ij4KICAgICAgICA8ZWxsaXBzZSBjeD0iNDIwIiBjeT0iMjQwIiByeD0iMjEwIiByeT0iNDQiLz4KICAgICAgICA8ZWxsaXBzZSBjeD0iNTIwIiBjeT0iMjI1IiByeD0iMTQwIiByeT0iMzgiLz4KICAgICAgICA8ZWxsaXBzZSBjeD0iOTgwIiBjeT0iMTgwIiByeD0iMjQwIiByeT0iNDgiLz4KICAgICAgICA8ZWxsaXBzZSBjeD0iMTU0MCIgY3k9IjI2MCIgcng9IjE5MCIgcnk9IjQwIi8+CiAgICAgIDwvZz4KICAgIDwvc3ZnPg=="
+      "dataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIwIDEwODAiIHdpZHRoPSIxOTIwIiBoZWlnaHQ9IjEwODAiPg0KICAgICAgPGRlZnM+DQogICAgICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ic2t5MSIgeDE9IjAiIHkxPSIwIiB4Mj0iMCIgeTI9IjEiPg0KICAgICAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiMxZTNhOGEiLz4NCiAgICAgICAgICA8c3RvcCBvZmZzZXQ9IjM4JSIgc3RvcC1jb2xvcj0iIzNiODJmNiIvPg0KICAgICAgICAgIDxzdG9wIG9mZnNldD0iNzIlIiBzdG9wLWNvbG9yPSIjZjU5ZTBiIi8+DQogICAgICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjZmRlNjhhIi8+DQogICAgICAgIDwvbGluZWFyR3JhZGllbnQ+DQogICAgICAgIDxyYWRpYWxHcmFkaWVudCBpZD0ic3VuMSIgY3g9IjAuNzIiIGN5PSIwLjQ4IiByPSIwLjI4Ij4NCiAgICAgICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjZmZmYmViIiBzdG9wLW9wYWNpdHk9IjEiLz4NCiAgICAgICAgICA8c3RvcCBvZmZzZXQ9IjM1JSIgc3RvcC1jb2xvcj0iI2ZkZTA0NyIgc3RvcC1vcGFjaXR5PSIwLjg1Ii8+DQogICAgICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjZjk3MzE2IiBzdG9wLW9wYWNpdHk9IjAiLz4NCiAgICAgICAgPC9yYWRpYWxHcmFkaWVudD4NCiAgICAgIDwvZGVmcz4NCiAgICAgIDxyZWN0IHdpZHRoPSIxOTIwIiBoZWlnaHQ9IjEwODAiIGZpbGw9InVybCgjc2t5MSkiLz4NCiAgICAgIDxjaXJjbGUgY3g9IjEzODAiIGN5PSI1MjAiIHI9IjMyMCIgZmlsbD0idXJsKCNzdW4xKSIvPg0KICAgICAgPGNpcmNsZSBjeD0iMTM4MCIgY3k9IjUyMCIgcj0iOTUiIGZpbGw9IiNmZWY5YzMiIG9wYWNpdHk9IjAuOTIiLz4NCiAgICAgIDxnIGZpbGw9IiNmZmZmZmYiIG9wYWNpdHk9IjAuNTUiPg0KICAgICAgICA8ZWxsaXBzZSBjeD0iNDIwIiBjeT0iMjQwIiByeD0iMjEwIiByeT0iNDQiLz4NCiAgICAgICAgPGVsbGlwc2UgY3g9IjUyMCIgY3k9IjIyNSIgcng9IjE0MCIgcnk9IjM4Ii8+DQogICAgICAgIDxlbGxpcHNlIGN4PSI5ODAiIGN5PSIxODAiIHJ4PSIyNDAiIHJ5PSI0OCIvPg0KICAgICAgICA8ZWxsaXBzZSBjeD0iMTU0MCIgY3k9IjI2MCIgcng9IjE5MCIgcnk9IjQwIi8+DQogICAgICA8L2c+DQogICAgPC9zdmc+"
     },
     {
       "id": "asset-s1-hills",
@@ -4144,7 +4184,7 @@
       "height": 680,
       "path": "assets/scenes-v2/s1-hills-windmill.svg",
       "assetPath": "scenes-v2/s1-hills-windmill.svg",
-      "dataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIwIDY4MCIgd2lkdGg9IjE5MjAiIGhlaWdodD0iNjgwIj4KICAgICAgPGRlZnM+CiAgICAgICAgPGxpbmVhckdyYWRpZW50IGlkPSJoaWxsRmFyIiB4MT0iMCIgeTE9IjAiIHgyPSIwIiB5Mj0iMSI+CiAgICAgICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjMDY1ZjQ2Ii8+CiAgICAgICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiMwNDc4NTciLz4KICAgICAgICA8L2xpbmVhckdyYWRpZW50PgogICAgICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iaGlsbE1pZCIgeDE9IjAiIHkxPSIwIiB4Mj0iMCIgeTI9IjEiPgogICAgICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iIzEwYjk4MSIvPgogICAgICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjMDU5NjY5Ii8+CiAgICAgICAgPC9saW5lYXJHcmFkaWVudD4KICAgICAgPC9kZWZzPgogICAgICA8cGF0aCBkPSJNMCw0MjAgUTM2MCwyMTAgNzgwLDM1MCBUMTUyMCwyODAgTDE5MjAsMzgwIEwxOTIwLDY4MCBMMCw2ODAgWiIgZmlsbD0idXJsKCNoaWxsRmFyKSIgb3BhY2l0eT0iMC45Ii8+CiAgICAgIDxwYXRoIGQ9Ik0wLDQ4MCBRNDgwLDMyMCA5NjAsNDMwIFQxOTIwLDM5MCBMMTkyMCw2ODAgTDAsNjgwIFoiIGZpbGw9InVybCgjaGlsbE1pZCkiLz4KICAgICAgPCEtLSBD4buRaSB4YXkgZ2nDsyB0csOqbiDEkeG7k2kgLS0+CiAgICAgIDxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDE0MjAsIDE3MCkiPgogICAgICAgIDxwb2x5Z29uIHBvaW50cz0iLTI4LDIyMCAyOCwyMjAgMTQsMCAtMTQsMCIgZmlsbD0iI2Y4ZmFmYyIgc3Ryb2tlPSIjNDc1NTY5IiBzdHJva2Utd2lkdGg9IjQiLz4KICAgICAgICA8cGF0aCBkPSJNLTIyLDAgUTAsLTI4IDIyLDAgWiIgZmlsbD0iI2RjMjYyNiIvPgogICAgICAgIDxyZWN0IHg9Ii0xMCIgeT0iMTUwIiB3aWR0aD0iMjAiIGhlaWdodD0iNDIiIHJ4PSI4IiBmaWxsPSIjNzgzNTBmIi8+CiAgICAgICAgPGcgc3Ryb2tlPSIjZmVmM2M3IiBzdHJva2Utd2lkdGg9IjYiPgogICAgICAgICAgPGxpbmUgeDE9IjAiIHkxPSIxNSIgeDI9Ii05NSIgeTI9Ii03NSIvPgogICAgICAgICAgPGxpbmUgeDE9IjAiIHkxPSIxNSIgeDI9Ijk1IiB5Mj0iMTA1Ii8+CiAgICAgICAgICA8bGluZSB4MT0iMCIgeTE9IjE1IiB4Mj0iOTUiIHkyPSItNzUiLz4KICAgICAgICAgIDxsaW5lIHgxPSIwIiB5MT0iMTUiIHgyPSItOTUiIHkyPSIxMDUiLz4KICAgICAgICA8L2c+CiAgICAgICAgPGNpcmNsZSBjeD0iMCIgY3k9IjE1IiByPSIxMCIgZmlsbD0iI2Y1OWUwYiIvPgogICAgICA8L2c+CiAgICA8L3N2Zz4="
+      "dataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIwIDY4MCIgd2lkdGg9IjE5MjAiIGhlaWdodD0iNjgwIj4NCiAgICAgIDxkZWZzPg0KICAgICAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImhpbGxGYXIiIHgxPSIwIiB5MT0iMCIgeDI9IjAiIHkyPSIxIj4NCiAgICAgICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjMDY1ZjQ2Ii8+DQogICAgICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjMDQ3ODU3Ii8+DQogICAgICAgIDwvbGluZWFyR3JhZGllbnQ+DQogICAgICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iaGlsbE1pZCIgeDE9IjAiIHkxPSIwIiB4Mj0iMCIgeTI9IjEiPg0KICAgICAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiMxMGI5ODEiLz4NCiAgICAgICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiMwNTk2NjkiLz4NCiAgICAgICAgPC9saW5lYXJHcmFkaWVudD4NCiAgICAgIDwvZGVmcz4NCiAgICAgIDxwYXRoIGQ9Ik0wLDQyMCBRMzYwLDIxMCA3ODAsMzUwIFQxNTIwLDI4MCBMMTkyMCwzODAgTDE5MjAsNjgwIEwwLDY4MCBaIiBmaWxsPSJ1cmwoI2hpbGxGYXIpIiBvcGFjaXR5PSIwLjkiLz4NCiAgICAgIDxwYXRoIGQ9Ik0wLDQ4MCBRNDgwLDMyMCA5NjAsNDMwIFQxOTIwLDM5MCBMMTkyMCw2ODAgTDAsNjgwIFoiIGZpbGw9InVybCgjaGlsbE1pZCkiLz4NCiAgICAgIDwhLS0gQ+G7kWkgeGF5IGdpw7MgdHLDqm4gxJHhu5NpIC0tPg0KICAgICAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTQyMCwgMTcwKSI+DQogICAgICAgIDxwb2x5Z29uIHBvaW50cz0iLTI4LDIyMCAyOCwyMjAgMTQsMCAtMTQsMCIgZmlsbD0iI2Y4ZmFmYyIgc3Ryb2tlPSIjNDc1NTY5IiBzdHJva2Utd2lkdGg9IjQiLz4NCiAgICAgICAgPHBhdGggZD0iTS0yMiwwIFEwLC0yOCAyMiwwIFoiIGZpbGw9IiNkYzI2MjYiLz4NCiAgICAgICAgPHJlY3QgeD0iLTEwIiB5PSIxNTAiIHdpZHRoPSIyMCIgaGVpZ2h0PSI0MiIgcng9IjgiIGZpbGw9IiM3ODM1MGYiLz4NCiAgICAgICAgPGcgc3Ryb2tlPSIjZmVmM2M3IiBzdHJva2Utd2lkdGg9IjYiPg0KICAgICAgICAgIDxsaW5lIHgxPSIwIiB5MT0iMTUiIHgyPSItOTUiIHkyPSItNzUiLz4NCiAgICAgICAgICA8bGluZSB4MT0iMCIgeTE9IjE1IiB4Mj0iOTUiIHkyPSIxMDUiLz4NCiAgICAgICAgICA8bGluZSB4MT0iMCIgeTE9IjE1IiB4Mj0iOTUiIHkyPSItNzUiLz4NCiAgICAgICAgICA8bGluZSB4MT0iMCIgeTE9IjE1IiB4Mj0iLTk1IiB5Mj0iMTA1Ii8+DQogICAgICAgIDwvZz4NCiAgICAgICAgPGNpcmNsZSBjeD0iMCIgY3k9IjE1IiByPSIxMCIgZmlsbD0iI2Y1OWUwYiIvPg0KICAgICAgPC9nPg0KICAgIDwvc3ZnPg=="
     },
     {
       "id": "asset-s1-field",
@@ -4155,7 +4195,7 @@
       "height": 520,
       "path": "assets/scenes-v2/s1-golden-field.svg",
       "assetPath": "scenes-v2/s1-golden-field.svg",
-      "dataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIwIDUyMCIgd2lkdGg9IjE5MjAiIGhlaWdodD0iNTIwIj4KICAgICAgPGRlZnM+CiAgICAgICAgPGxpbmVhckdyYWRpZW50IGlkPSJtZWFkb3ciIHgxPSIwIiB5MT0iMCIgeDI9IjAiIHkyPSIxIj4KICAgICAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiM4NGNjMTYiLz4KICAgICAgICAgIDxzdG9wIG9mZnNldD0iNDUlIiBzdG9wLWNvbG9yPSIjNjVhMzBkIi8+CiAgICAgICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiMzZjYyMTIiLz4KICAgICAgICA8L2xpbmVhckdyYWRpZW50PgogICAgICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZGlydFJvYWQiIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIwIj4KICAgICAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiNkOTc3MDYiLz4KICAgICAgICAgIDxzdG9wIG9mZnNldD0iNTAlIiBzdG9wLWNvbG9yPSIjZjU5ZTBiIi8+CiAgICAgICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiNiNDUzMDkiLz4KICAgICAgICA8L2xpbmVhckdyYWRpZW50PgogICAgICA8L2RlZnM+CiAgICAgIDxwYXRoIGQ9Ik0wLDExMCBRNjQwLDUwIDEyODAsMTAwIFQxOTIwLDg1IEwxOTIwLDUyMCBMMCw1MjAgWiIgZmlsbD0idXJsKCNtZWFkb3cpIi8+CiAgICAgIDwhLS0gQ29uIMSRxrDhu51uZyBtw7JuIHXhu5FuIGzGsOG7o24gbmdhbmcgY8OhbmggxJHhu5NuZyAtLT4KICAgICAgPHBhdGggZD0iTTAsMzMwIFE1NDAsMjYwIDEwNTAsMzE1IFQxOTIwLDI4MCBMMTkyMCw0MTAgUTExMjAsNDM1IDU2MCwzOTUgVDAsNDMwIFoiIGZpbGw9InVybCgjZGlydFJvYWQpIiBvcGFjaXR5PSIwLjg4Ii8+CiAgICAgIDwhLS0gTmjhu69uZyBiw7RuZyBsw7phIHbDoG5nIC0tPgogICAgICA8ZyBzdHJva2U9IiNmZGUwNDciIHN0cm9rZS13aWR0aD0iMyIgZmlsbD0ibm9uZSIgb3BhY2l0eT0iMC43NSI+CiAgICAgICAgPHBhdGggZD0iTTE4MCwyNjAgUTE5MCwyMTAgMjA1LDE5NSBNMjIwLDI3MCBRMjMwLDIyMCAyNDUsMjA1IE02ODAsMjQwIFE2OTUsMTkwIDcxMCwxNzUgTTEyNDAsMjUwIFExMjU1LDIwMCAxMjcwLDE4NSBNMTYyMCwyMzUgUTE2MzUsMTg1IDE2NTAsMTcwIi8+CiAgICAgIDwvZz4KICAgIDwvc3ZnPg=="
+      "dataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIwIDUyMCIgd2lkdGg9IjE5MjAiIGhlaWdodD0iNTIwIj4NCiAgICAgIDxkZWZzPg0KICAgICAgICA8bGluZWFyR3JhZGllbnQgaWQ9Im1lYWRvdyIgeDE9IjAiIHkxPSIwIiB4Mj0iMCIgeTI9IjEiPg0KICAgICAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiM4NGNjMTYiLz4NCiAgICAgICAgICA8c3RvcCBvZmZzZXQ9IjQ1JSIgc3RvcC1jb2xvcj0iIzY1YTMwZCIvPg0KICAgICAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzNmNjIxMiIvPg0KICAgICAgICA8L2xpbmVhckdyYWRpZW50Pg0KICAgICAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImRpcnRSb2FkIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMCI+DQogICAgICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iI2Q5NzcwNiIvPg0KICAgICAgICAgIDxzdG9wIG9mZnNldD0iNTAlIiBzdG9wLWNvbG9yPSIjZjU5ZTBiIi8+DQogICAgICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjYjQ1MzA5Ii8+DQogICAgICAgIDwvbGluZWFyR3JhZGllbnQ+DQogICAgICA8L2RlZnM+DQogICAgICA8cGF0aCBkPSJNMCwxMTAgUTY0MCw1MCAxMjgwLDEwMCBUMTkyMCw4NSBMMTkyMCw1MjAgTDAsNTIwIFoiIGZpbGw9InVybCgjbWVhZG93KSIvPg0KICAgICAgPCEtLSBDb24gxJHGsOG7nW5nIG3Dsm4gdeG7kW4gbMaw4bujbiBuZ2FuZyBjw6FuaCDEkeG7k25nIC0tPg0KICAgICAgPHBhdGggZD0iTTAsMzMwIFE1NDAsMjYwIDEwNTAsMzE1IFQxOTIwLDI4MCBMMTkyMCw0MTAgUTExMjAsNDM1IDU2MCwzOTUgVDAsNDMwIFoiIGZpbGw9InVybCgjZGlydFJvYWQpIiBvcGFjaXR5PSIwLjg4Ii8+DQogICAgICA8IS0tIE5o4buvbmcgYsO0bmcgbMO6YSB2w6BuZyAtLT4NCiAgICAgIDxnIHN0cm9rZT0iI2ZkZTA0NyIgc3Ryb2tlLXdpZHRoPSIzIiBmaWxsPSJub25lIiBvcGFjaXR5PSIwLjc1Ij4NCiAgICAgICAgPHBhdGggZD0iTTE4MCwyNjAgUTE5MCwyMTAgMjA1LDE5NSBNMjIwLDI3MCBRMjMwLDIyMCAyNDUsMjA1IE02ODAsMjQwIFE2OTUsMTkwIDcxMCwxNzUgTTEyNDAsMjUwIFExMjU1LDIwMCAxMjcwLDE4NSBNMTYyMCwyMzUgUTE2MzUsMTg1IDE2NTAsMTcwIi8+DQogICAgICA8L2c+DQogICAgPC9zdmc+"
     },
     {
       "id": "asset-s1-oaktree",
@@ -4166,7 +4206,7 @@
       "height": 560,
       "path": "assets/scenes-v2/s1-oak-tree.svg",
       "assetPath": "scenes-v2/s1-oak-tree.svg",
-      "dataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0NjAgNTYwIiB3aWR0aD0iNDYwIiBoZWlnaHQ9IjU2MCI+CiAgICAgIDwhLS0gQsOzbmcgxJHhu5UgZMaw4bubaSBn4buRYyBjw6J5IC0tPgogICAgICA8ZWxsaXBzZSBjeD0iMjMwIiBjeT0iNTI1IiByeD0iMTM1IiByeT0iMjIiIGZpbGw9IiMwZjE3MmEiIG9wYWNpdHk9IjAuMzUiLz4KICAgICAgPCEtLSBUaMOibiBjw6J5IHPhu5NpIGPhu5UgdGjhu6UgLS0+CiAgICAgIDxwYXRoIGQ9Ik0xODUsNTI1IEMxOTUsNDIwIDIwNSwzMzAgMjAwLDI0MCBMMjYwLDI0MCBDMjU1LDMzMCAyNjUsNDIwIDI4MCw1MjUgWiIgZmlsbD0iIzc4MzUwZiIgc3Ryb2tlPSIjNDUxYTAzIiBzdHJva2Utd2lkdGg9IjUiLz4KICAgICAgPHBhdGggZD0iTTIwNSwzMDAgTDEzMCwyMTUgTTI1MCwyODUgTDMzMCwyMDUiIHN0cm9rZT0iIzc4MzUwZiIgc3Ryb2tlLXdpZHRoPSIxOCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgICAgIDwhLS0gVMOhbiBsw6EgeGFuaCBy4bqtbSBuaGnhu4F1IHThuqduZyAtLT4KICAgICAgPGNpcmNsZSBjeD0iMTQ1IiBjeT0iMjEwIiByPSI5NSIgZmlsbD0iIzE1ODAzZCIvPgogICAgICA8Y2lyY2xlIGN4PSIzMTUiIGN5PSIyMTAiIHI9Ijk1IiBmaWxsPSIjMTY2NTM0Ii8+CiAgICAgIDxjaXJjbGUgY3g9IjIzMCIgY3k9IjEzNSIgcj0iMTE1IiBmaWxsPSIjMTZhMzRhIi8+CiAgICAgIDxjaXJjbGUgY3g9IjE3NSIgY3k9IjE2NSIgcj0iODUiIGZpbGw9IiMyMmM1NWUiIG9wYWNpdHk9IjAuODgiLz4KICAgICAgPGNpcmNsZSBjeD0iMjg1IiBjeT0iMTYwIiByPSI4MCIgZmlsbD0iIzE1ODAzZCIvPgogICAgICA8Y2lyY2xlIGN4PSIyMzAiIGN5PSIyMjAiIHI9IjkyIiBmaWxsPSIjMTZhMzRhIi8+CiAgICAgIDwhLS0gUXXhuqMgdMOhbyDEkeG7jyDEkWnhu4NtIHh1eeG6v3QgLS0+CiAgICAgIDxjaXJjbGUgY3g9IjE3MCIgY3k9IjE5MCIgcj0iOSIgZmlsbD0iI2VmNDQ0NCIvPgogICAgICA8Y2lyY2xlIGN4PSIyNzUiIGN5PSIxNTUiIHI9IjkiIGZpbGw9IiNlZjQ0NDQiLz4KICAgICAgPGNpcmNsZSBjeD0iMjI1IiBjeT0iMTE1IiByPSI5IiBmaWxsPSIjZWY0NDQ0Ii8+CiAgICAgIDxjaXJjbGUgY3g9IjI5NSIgY3k9IjIyNSIgcj0iOSIgZmlsbD0iI2VmNDQ0NCIvPgogICAgPC9zdmc+"
+      "dataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0NjAgNTYwIiB3aWR0aD0iNDYwIiBoZWlnaHQ9IjU2MCI+DQogICAgICA8IS0tIELDs25nIMSR4buVIGTGsOG7m2kgZ+G7kWMgY8OieSAtLT4NCiAgICAgIDxlbGxpcHNlIGN4PSIyMzAiIGN5PSI1MjUiIHJ4PSIxMzUiIHJ5PSIyMiIgZmlsbD0iIzBmMTcyYSIgb3BhY2l0eT0iMC4zNSIvPg0KICAgICAgPCEtLSBUaMOibiBjw6J5IHPhu5NpIGPhu5UgdGjhu6UgLS0+DQogICAgICA8cGF0aCBkPSJNMTg1LDUyNSBDMTk1LDQyMCAyMDUsMzMwIDIwMCwyNDAgTDI2MCwyNDAgQzI1NSwzMzAgMjY1LDQyMCAyODAsNTI1IFoiIGZpbGw9IiM3ODM1MGYiIHN0cm9rZT0iIzQ1MWEwMyIgc3Ryb2tlLXdpZHRoPSI1Ii8+DQogICAgICA8cGF0aCBkPSJNMjA1LDMwMCBMMTMwLDIxNSBNMjUwLDI4NSBMMzMwLDIwNSIgc3Ryb2tlPSIjNzgzNTBmIiBzdHJva2Utd2lkdGg9IjE4IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4NCiAgICAgIDwhLS0gVMOhbiBsw6EgeGFuaCBy4bqtbSBuaGnhu4F1IHThuqduZyAtLT4NCiAgICAgIDxjaXJjbGUgY3g9IjE0NSIgY3k9IjIxMCIgcj0iOTUiIGZpbGw9IiMxNTgwM2QiLz4NCiAgICAgIDxjaXJjbGUgY3g9IjMxNSIgY3k9IjIxMCIgcj0iOTUiIGZpbGw9IiMxNjY1MzQiLz4NCiAgICAgIDxjaXJjbGUgY3g9IjIzMCIgY3k9IjEzNSIgcj0iMTE1IiBmaWxsPSIjMTZhMzRhIi8+DQogICAgICA8Y2lyY2xlIGN4PSIxNzUiIGN5PSIxNjUiIHI9Ijg1IiBmaWxsPSIjMjJjNTVlIiBvcGFjaXR5PSIwLjg4Ii8+DQogICAgICA8Y2lyY2xlIGN4PSIyODUiIGN5PSIxNjAiIHI9IjgwIiBmaWxsPSIjMTU4MDNkIi8+DQogICAgICA8Y2lyY2xlIGN4PSIyMzAiIGN5PSIyMjAiIHI9IjkyIiBmaWxsPSIjMTZhMzRhIi8+DQogICAgICA8IS0tIFF14bqjIHTDoW8gxJHhu48gxJFp4buDbSB4dXnhur90IC0tPg0KICAgICAgPGNpcmNsZSBjeD0iMTcwIiBjeT0iMTkwIiByPSI5IiBmaWxsPSIjZWY0NDQ0Ii8+DQogICAgICA8Y2lyY2xlIGN4PSIyNzUiIGN5PSIxNTUiIHI9IjkiIGZpbGw9IiNlZjQ0NDQiLz4NCiAgICAgIDxjaXJjbGUgY3g9IjIyNSIgY3k9IjExNSIgcj0iOSIgZmlsbD0iI2VmNDQ0NCIvPg0KICAgICAgPGNpcmNsZSBjeD0iMjk1IiBjeT0iMjI1IiByPSI5IiBmaWxsPSIjZWY0NDQ0Ii8+DQogICAgPC9zdmc+"
     },
     {
       "id": "asset-s1-boy-body",
@@ -4177,7 +4217,7 @@
       "height": 340,
       "path": "assets/scenes-v2/s1-boy-body.svg",
       "assetPath": "scenes-v2/s1-boy-body.svg",
-      "dataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNDAgMzQwIiB3aWR0aD0iMjQwIiBoZWlnaHQ9IjM0MCI+CiAgICAgIDxlbGxpcHNlIGN4PSIxMjAiIGN5PSIzMjIiIHJ4PSI1OCIgcnk9IjE0IiBmaWxsPSIjMGYxNzJhIiBvcGFjaXR5PSIwLjMyIi8+CiAgICAgIDwhLS0gw4FvIGNob8OgbmcgeGFuaCAtLT4KICAgICAgPHBhdGggZD0iTTcyLDEzNSBMNDIsMjY1IEwxOTgsMjY1IEwxNjgsMTM1IFoiIGZpbGw9IiMyNTYzZWIiIHN0cm9rZT0iIzFkNGVkOCIgc3Ryb2tlLXdpZHRoPSI0Ii8+CiAgICAgIDwhLS0gQ2jDom4gJiBHacOgeSAtLT4KICAgICAgPHJlY3QgeD0iODgiIHk9IjIzNSIgd2lkdGg9IjI0IiBoZWlnaHQ9IjcyIiByeD0iMTAiIGZpbGw9IiMxZTI5M2IiLz4KICAgICAgPHJlY3QgeD0iMTI4IiB5PSIyMzUiIHdpZHRoPSIyNCIgaGVpZ2h0PSI3MiIgcng9IjEwIiBmaWxsPSIjMWUyOTNiIi8+CiAgICAgIDxyZWN0IHg9IjgwIiB5PSIyOTUiIHdpZHRoPSIzNiIgaGVpZ2h0PSIyMCIgcng9IjkiIGZpbGw9IiNiNDUzMDkiLz4KICAgICAgPHJlY3QgeD0iMTI0IiB5PSIyOTUiIHdpZHRoPSIzNiIgaGVpZ2h0PSIyMCIgcng9IjkiIGZpbGw9IiNiNDUzMDkiLz4KICAgICAgPCEtLSBUaMOibiDDoW8gdsOgbmcgY2FtICYgQmFsbyAtLT4KICAgICAgPHJlY3QgeD0iNzQiIHk9IjEyOCIgd2lkdGg9IjkyIiBoZWlnaHQ9IjExNiIgcng9IjI0IiBmaWxsPSIjZjU5ZTBiIiBzdHJva2U9IiNiNDUzMDkiIHN0cm9rZS13aWR0aD0iNCIvPgogICAgICA8cmVjdCB4PSI3NCIgeT0iMTk2IiB3aWR0aD0iOTIiIGhlaWdodD0iMTQiIGZpbGw9IiM3ODM1MGYiLz4KICAgICAgPHJlY3QgeD0iMTA4IiB5PSIxOTMiIHdpZHRoPSIyNCIgaGVpZ2h0PSIyMCIgcng9IjQiIGZpbGw9IiNmZGUwNDciLz4KICAgIDwvc3ZnPg=="
+      "dataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNDAgMzQwIiB3aWR0aD0iMjQwIiBoZWlnaHQ9IjM0MCI+DQogICAgICA8ZWxsaXBzZSBjeD0iMTIwIiBjeT0iMzIyIiByeD0iNTgiIHJ5PSIxNCIgZmlsbD0iIzBmMTcyYSIgb3BhY2l0eT0iMC4zMiIvPg0KICAgICAgPCEtLSDDgW8gY2hvw6BuZyB4YW5oIC0tPg0KICAgICAgPHBhdGggZD0iTTcyLDEzNSBMNDIsMjY1IEwxOTgsMjY1IEwxNjgsMTM1IFoiIGZpbGw9IiMyNTYzZWIiIHN0cm9rZT0iIzFkNGVkOCIgc3Ryb2tlLXdpZHRoPSI0Ii8+DQogICAgICA8IS0tIENow6JuICYgR2nDoHkgLS0+DQogICAgICA8cmVjdCB4PSI4OCIgeT0iMjM1IiB3aWR0aD0iMjQiIGhlaWdodD0iNzIiIHJ4PSIxMCIgZmlsbD0iIzFlMjkzYiIvPg0KICAgICAgPHJlY3QgeD0iMTI4IiB5PSIyMzUiIHdpZHRoPSIyNCIgaGVpZ2h0PSI3MiIgcng9IjEwIiBmaWxsPSIjMWUyOTNiIi8+DQogICAgICA8cmVjdCB4PSI4MCIgeT0iMjk1IiB3aWR0aD0iMzYiIGhlaWdodD0iMjAiIHJ4PSI5IiBmaWxsPSIjYjQ1MzA5Ii8+DQogICAgICA8cmVjdCB4PSIxMjQiIHk9IjI5NSIgd2lkdGg9IjM2IiBoZWlnaHQ9IjIwIiByeD0iOSIgZmlsbD0iI2I0NTMwOSIvPg0KICAgICAgPCEtLSBUaMOibiDDoW8gdsOgbmcgY2FtICYgQmFsbyAtLT4NCiAgICAgIDxyZWN0IHg9Ijc0IiB5PSIxMjgiIHdpZHRoPSI5MiIgaGVpZ2h0PSIxMTYiIHJ4PSIyNCIgZmlsbD0iI2Y1OWUwYiIgc3Ryb2tlPSIjYjQ1MzA5IiBzdHJva2Utd2lkdGg9IjQiLz4NCiAgICAgIDxyZWN0IHg9Ijc0IiB5PSIxOTYiIHdpZHRoPSI5MiIgaGVpZ2h0PSIxNCIgZmlsbD0iIzc4MzUwZiIvPg0KICAgICAgPHJlY3QgeD0iMTA4IiB5PSIxOTMiIHdpZHRoPSIyNCIgaGVpZ2h0PSIyMCIgcng9IjQiIGZpbGw9IiNmZGUwNDciLz4NCiAgICA8L3N2Zz4="
     },
     {
       "id": "asset-s1-boy-face-smile",
@@ -4188,7 +4228,7 @@
       "height": 160,
       "path": "assets/scenes-v2/s1-boy-face-smile.svg",
       "assetPath": "scenes-v2/s1-boy-face-smile.svg",
-      "dataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNjAgMTYwIiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjE2MCI+CiAgICAgIDwhLS0gTcWpIHLGoW0gcGhpw6p1IGzGsHUgLS0+CiAgICAgIDxlbGxpcHNlIGN4PSI4MCIgY3k9IjQ4IiByeD0iNzIiIHJ5PSIyMCIgZmlsbD0iI2ZhY2MxNSIgc3Ryb2tlPSIjY2E4YTA0IiBzdHJva2Utd2lkdGg9IjQiLz4KICAgICAgPHBhdGggZD0iTTMyLDQ4IEMzMiw4IDEyOCw4IDEyOCw0OCBaIiBmaWxsPSIjZmRlMDQ3IiBzdHJva2U9IiNjYThhMDQiIHN0cm9rZS13aWR0aD0iNCIvPgogICAgICA8cGF0aCBkPSJNMzQsNDQgTDEyNiw0NCIgc3Ryb2tlPSIjZWY0NDQ0IiBzdHJva2Utd2lkdGg9IjgiLz4KICAgICAgPCEtLSBLaHXDtG4gbeG6t3QgLS0+CiAgICAgIDxjaXJjbGUgY3g9IjgwIiBjeT0iODYiIHI9IjQ0IiBmaWxsPSIjZmVkN2FhIiBzdHJva2U9IiNlYTU4MGMiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgICA8IS0tIE3huq90IHPDoW5nICYgTuG7pSBjxrDhu51pIHTGsMahaSAtLT4KICAgICAgPGNpcmNsZSBjeD0iNjQiIGN5PSI4MCIgcj0iNiIgZmlsbD0iIzBmMTcyYSIvPgogICAgICA8Y2lyY2xlIGN4PSI5NiIgY3k9IjgwIiByPSI2IiBmaWxsPSIjMGYxNzJhIi8+CiAgICAgIDxjaXJjbGUgY3g9IjYyIiBjeT0iNzgiIHI9IjIiIGZpbGw9IiNmZmZmZmYiLz4KICAgICAgPGNpcmNsZSBjeD0iOTQiIGN5PSI3OCIgcj0iMiIgZmlsbD0iI2ZmZmZmZiIvPgogICAgICA8ZWxsaXBzZSBjeD0iNTIiIGN5PSI5MiIgcng9IjciIHJ5PSI0IiBmaWxsPSIjZmI3MTg1IiBvcGFjaXR5PSIwLjYiLz4KICAgICAgPGVsbGlwc2UgY3g9IjEwOCIgY3k9IjkyIiByeD0iNyIgcnk9IjQiIGZpbGw9IiNmYjcxODUiIG9wYWNpdHk9IjAuNiIvPgogICAgICA8cGF0aCBkPSJNNjQsOTggUTgwLDExNCA5Niw5OCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOWEzNDEyIiBzdHJva2Utd2lkdGg9IjQuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgICA8L3N2Zz4="
+      "dataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNjAgMTYwIiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjE2MCI+DQogICAgICA8IS0tIE3FqSByxqFtIHBoacOqdSBsxrB1IC0tPg0KICAgICAgPGVsbGlwc2UgY3g9IjgwIiBjeT0iNDgiIHJ4PSI3MiIgcnk9IjIwIiBmaWxsPSIjZmFjYzE1IiBzdHJva2U9IiNjYThhMDQiIHN0cm9rZS13aWR0aD0iNCIvPg0KICAgICAgPHBhdGggZD0iTTMyLDQ4IEMzMiw4IDEyOCw4IDEyOCw0OCBaIiBmaWxsPSIjZmRlMDQ3IiBzdHJva2U9IiNjYThhMDQiIHN0cm9rZS13aWR0aD0iNCIvPg0KICAgICAgPHBhdGggZD0iTTM0LDQ0IEwxMjYsNDQiIHN0cm9rZT0iI2VmNDQ0NCIgc3Ryb2tlLXdpZHRoPSI4Ii8+DQogICAgICA8IS0tIEtodcO0biBt4bq3dCAtLT4NCiAgICAgIDxjaXJjbGUgY3g9IjgwIiBjeT0iODYiIHI9IjQ0IiBmaWxsPSIjZmVkN2FhIiBzdHJva2U9IiNlYTU4MGMiIHN0cm9rZS13aWR0aD0iMyIvPg0KICAgICAgPCEtLSBN4bqvdCBzw6FuZyAmIE7hu6UgY8aw4budaSB0xrDGoWkgLS0+DQogICAgICA8Y2lyY2xlIGN4PSI2NCIgY3k9IjgwIiByPSI2IiBmaWxsPSIjMGYxNzJhIi8+DQogICAgICA8Y2lyY2xlIGN4PSI5NiIgY3k9IjgwIiByPSI2IiBmaWxsPSIjMGYxNzJhIi8+DQogICAgICA8Y2lyY2xlIGN4PSI2MiIgY3k9Ijc4IiByPSIyIiBmaWxsPSIjZmZmZmZmIi8+DQogICAgICA8Y2lyY2xlIGN4PSI5NCIgY3k9Ijc4IiByPSIyIiBmaWxsPSIjZmZmZmZmIi8+DQogICAgICA8ZWxsaXBzZSBjeD0iNTIiIGN5PSI5MiIgcng9IjciIHJ5PSI0IiBmaWxsPSIjZmI3MTg1IiBvcGFjaXR5PSIwLjYiLz4NCiAgICAgIDxlbGxpcHNlIGN4PSIxMDgiIGN5PSI5MiIgcng9IjciIHJ5PSI0IiBmaWxsPSIjZmI3MTg1IiBvcGFjaXR5PSIwLjYiLz4NCiAgICAgIDxwYXRoIGQ9Ik02NCw5OCBRODAsMTE0IDk2LDk4IiBmaWxsPSJub25lIiBzdHJva2U9IiM5YTM0MTIiIHN0cm9rZS13aWR0aD0iNC41IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4NCiAgICA8L3N2Zz4="
     },
     {
       "id": "asset-s1-boy-face-wow",
@@ -4199,7 +4239,7 @@
       "height": 160,
       "path": "assets/scenes-v2/s1-boy-face-wow.svg",
       "assetPath": "scenes-v2/s1-boy-face-wow.svg",
-      "dataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNjAgMTYwIiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjE2MCI+CiAgICAgIDxlbGxpcHNlIGN4PSI4MCIgY3k9IjQ4IiByeD0iNzIiIHJ5PSIyMCIgZmlsbD0iI2ZhY2MxNSIgc3Ryb2tlPSIjY2E4YTA0IiBzdHJva2Utd2lkdGg9IjQiLz4KICAgICAgPHBhdGggZD0iTTMyLDQ4IEMzMiw4IDEyOCw4IDEyOCw0OCBaIiBmaWxsPSIjZmRlMDQ3IiBzdHJva2U9IiNjYThhMDQiIHN0cm9rZS13aWR0aD0iNCIvPgogICAgICA8cGF0aCBkPSJNMzQsNDQgTDEyNiw0NCIgc3Ryb2tlPSIjZWY0NDQ0IiBzdHJva2Utd2lkdGg9IjgiLz4KICAgICAgPGNpcmNsZSBjeD0iODAiIGN5PSI4NiIgcj0iNDQiIGZpbGw9IiNmZWQ3YWEiIHN0cm9rZT0iI2VhNTgwYyIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICAgIDwhLS0gTeG6r3QgbmfDtGkgc2FvIGjDoG8gaOG7qW5nICYgTWnhu4duZyBjaOG7ryBPIC0tPgogICAgICA8Y2lyY2xlIGN4PSI2MyIgY3k9Ijc4IiByPSI4IiBmaWxsPSIjMGYxNzJhIi8+CiAgICAgIDxjaXJjbGUgY3g9Ijk3IiBjeT0iNzgiIHI9IjgiIGZpbGw9IiMwZjE3MmEiLz4KICAgICAgPGNpcmNsZSBjeD0iNjAiIGN5PSI3NSIgcj0iMyIgZmlsbD0iI2ZkZTA0NyIvPgogICAgICA8Y2lyY2xlIGN4PSI5NCIgY3k9Ijc1IiByPSIzIiBmaWxsPSIjZmRlMDQ3Ii8+CiAgICAgIDxlbGxpcHNlIGN4PSI4MCIgY3k9IjEwMyIgcng9IjExIiByeT0iMTMiIGZpbGw9IiNlZjQ0NDQiIHN0cm9rZT0iIzdmMWQxZCIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICA8L3N2Zz4="
+      "dataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNjAgMTYwIiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjE2MCI+DQogICAgICA8ZWxsaXBzZSBjeD0iODAiIGN5PSI0OCIgcng9IjcyIiByeT0iMjAiIGZpbGw9IiNmYWNjMTUiIHN0cm9rZT0iI2NhOGEwNCIgc3Ryb2tlLXdpZHRoPSI0Ii8+DQogICAgICA8cGF0aCBkPSJNMzIsNDggQzMyLDggMTI4LDggMTI4LDQ4IFoiIGZpbGw9IiNmZGUwNDciIHN0cm9rZT0iI2NhOGEwNCIgc3Ryb2tlLXdpZHRoPSI0Ii8+DQogICAgICA8cGF0aCBkPSJNMzQsNDQgTDEyNiw0NCIgc3Ryb2tlPSIjZWY0NDQ0IiBzdHJva2Utd2lkdGg9IjgiLz4NCiAgICAgIDxjaXJjbGUgY3g9IjgwIiBjeT0iODYiIHI9IjQ0IiBmaWxsPSIjZmVkN2FhIiBzdHJva2U9IiNlYTU4MGMiIHN0cm9rZS13aWR0aD0iMyIvPg0KICAgICAgPCEtLSBN4bqvdCBuZ8O0aSBzYW8gaMOgbyBo4bupbmcgJiBNaeG7h25nIGNo4buvIE8gLS0+DQogICAgICA8Y2lyY2xlIGN4PSI2MyIgY3k9Ijc4IiByPSI4IiBmaWxsPSIjMGYxNzJhIi8+DQogICAgICA8Y2lyY2xlIGN4PSI5NyIgY3k9Ijc4IiByPSI4IiBmaWxsPSIjMGYxNzJhIi8+DQogICAgICA8Y2lyY2xlIGN4PSI2MCIgY3k9Ijc1IiByPSIzIiBmaWxsPSIjZmRlMDQ3Ii8+DQogICAgICA8Y2lyY2xlIGN4PSI5NCIgY3k9Ijc1IiByPSIzIiBmaWxsPSIjZmRlMDQ3Ii8+DQogICAgICA8ZWxsaXBzZSBjeD0iODAiIGN5PSIxMDMiIHJ4PSIxMSIgcnk9IjEzIiBmaWxsPSIjZWY0NDQ0IiBzdHJva2U9IiM3ZjFkMWQiIHN0cm9rZS13aWR0aD0iMyIvPg0KICAgIDwvc3ZnPg=="
     },
     {
       "id": "asset-s1-boy-arm-wave",
@@ -4210,7 +4250,7 @@
       "height": 180,
       "path": "assets/scenes-v2/s1-boy-arm-wave.svg",
       "assetPath": "scenes-v2/s1-boy-arm-wave.svg",
-      "dataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNTAgMTgwIiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE4MCI+CiAgICAgIDxwYXRoIGQ9Ik0zMCwxMzAgUTc1LDg1IDExMCwzOCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZjU5ZTBiIiBzdHJva2Utd2lkdGg9IjI0IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgICAgPGNpcmNsZSBjeD0iMTE0IiBjeT0iMzQiIHI9IjE2IiBmaWxsPSIjZmVkN2FhIiBzdHJva2U9IiNlYTU4MGMiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgPC9zdmc+"
+      "dataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNTAgMTgwIiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE4MCI+DQogICAgICA8cGF0aCBkPSJNMzAsMTMwIFE3NSw4NSAxMTAsMzgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2Y1OWUwYiIgc3Ryb2tlLXdpZHRoPSIyNCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+DQogICAgICA8Y2lyY2xlIGN4PSIxMTQiIGN5PSIzNCIgcj0iMTYiIGZpbGw9IiNmZWQ3YWEiIHN0cm9rZT0iI2VhNTgwYyIgc3Ryb2tlLXdpZHRoPSIzIi8+DQogICAgPC9zdmc+"
     },
     {
       "id": "asset-s1-boy-arm-point",
@@ -4221,7 +4261,7 @@
       "height": 180,
       "path": "assets/scenes-v2/s1-boy-arm-point.svg",
       "assetPath": "scenes-v2/s1-boy-arm-point.svg",
-      "dataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNTAgMTgwIiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE4MCI+CiAgICAgIDxwYXRoIGQ9Ik0yNiwxMjIgTDExNiw3OCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZjU5ZTBiIiBzdHJva2Utd2lkdGg9IjI0IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgICAgPGNpcmNsZSBjeD0iMTE4IiBjeT0iNzYiIHI9IjE1IiBmaWxsPSIjZmVkN2FhIiBzdHJva2U9IiNlYTU4MGMiIHN0cm9rZS13aWR0aD0iMyIvPgogICAgICA8IS0tIENob25nIGNow7NuZyBnacOzIGPhuqdtIHRheSAtLT4KICAgICAgPGxpbmUgeDE9IjEyMiIgeTE9Ijc2IiB4Mj0iMTIyIiB5Mj0iMjIiIHN0cm9rZT0iIzc4MzUwZiIgc3Ryb2tlLXdpZHRoPSI1Ii8+CiAgICAgIDxjaXJjbGUgY3g9IjEyMiIgY3k9IjI0IiByPSIxOCIgZmlsbD0iIzM4YmRmOCIgb3BhY2l0eT0iMC44NSIvPgogICAgICA8Y2lyY2xlIGN4PSIxMjIiIGN5PSIyNCIgcj0iNSIgZmlsbD0iI2Y0M2Y1ZSIvPgogICAgPC9zdmc+"
+      "dataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNTAgMTgwIiB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE4MCI+DQogICAgICA8cGF0aCBkPSJNMjYsMTIyIEwxMTYsNzgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2Y1OWUwYiIgc3Ryb2tlLXdpZHRoPSIyNCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+DQogICAgICA8Y2lyY2xlIGN4PSIxMTgiIGN5PSI3NiIgcj0iMTUiIGZpbGw9IiNmZWQ3YWEiIHN0cm9rZT0iI2VhNTgwYyIgc3Ryb2tlLXdpZHRoPSIzIi8+DQogICAgICA8IS0tIENob25nIGNow7NuZyBnacOzIGPhuqdtIHRheSAtLT4NCiAgICAgIDxsaW5lIHgxPSIxMjIiIHkxPSI3NiIgeDI9IjEyMiIgeTI9IjIyIiBzdHJva2U9IiM3ODM1MGYiIHN0cm9rZS13aWR0aD0iNSIvPg0KICAgICAgPGNpcmNsZSBjeD0iMTIyIiBjeT0iMjQiIHI9IjE4IiBmaWxsPSIjMzhiZGY4IiBvcGFjaXR5PSIwLjg1Ii8+DQogICAgICA8Y2lyY2xlIGN4PSIxMjIiIGN5PSIyNCIgcj0iNSIgZmlsbD0iI2Y0M2Y1ZSIvPg0KICAgIDwvc3ZnPg=="
     },
     {
       "id": "asset-s1-fg-flowers",
@@ -4232,7 +4272,7 @@
       "height": 320,
       "path": "assets/scenes-v2/s1-fg-flowers.svg",
       "assetPath": "scenes-v2/s1-fg-flowers.svg",
-      "dataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIwIDMyMCIgd2lkdGg9IjE5MjAiIGhlaWdodD0iMzIwIj4KICAgICAgPHBhdGggZD0iTTAsMjEwIFE0ODAsMTUwIDk2MCwyMTUgVDE5MjAsMTg1IEwxOTIwLDMyMCBMMCwzMjAgWiIgZmlsbD0iIzE0NTMyZCIgb3BhY2l0eT0iMC45MiIvPgogICAgICA8ZyBmaWxsPSIjZmRlMDQ3Ij4KICAgICAgICA8Y2lyY2xlIGN4PSIyMTAiIGN5PSIxOTAiIHI9IjE2Ii8+CiAgICAgICAgPGNpcmNsZSBjeD0iMzQwIiBjeT0iMjIwIiByPSIxNCIvPgogICAgICAgIDxjaXJjbGUgY3g9IjE1NDAiIGN5PSIxOTUiIHI9IjE4Ii8+CiAgICAgICAgPGNpcmNsZSBjeD0iMTcyMCIgY3k9IjIxNSIgcj0iMTUiLz4KICAgICAgPC9nPgogICAgICA8ZyBmaWxsPSIjZjQ3MmI2Ij4KICAgICAgICA8Y2lyY2xlIGN4PSIyODAiIGN5PSIyMDUiIHI9IjEzIi8+CiAgICAgICAgPGNpcmNsZSBjeD0iMTYzMCIgY3k9IjIxMCIgcj0iMTQiLz4KICAgICAgPC9nPgogICAgPC9zdmc+"
+      "dataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIwIDMyMCIgd2lkdGg9IjE5MjAiIGhlaWdodD0iMzIwIj4NCiAgICAgIDxwYXRoIGQ9Ik0wLDIxMCBRNDgwLDE1MCA5NjAsMjE1IFQxOTIwLDE4NSBMMTkyMCwzMjAgTDAsMzIwIFoiIGZpbGw9IiMxNDUzMmQiIG9wYWNpdHk9IjAuOTIiLz4NCiAgICAgIDxnIGZpbGw9IiNmZGUwNDciPg0KICAgICAgICA8Y2lyY2xlIGN4PSIyMTAiIGN5PSIxOTAiIHI9IjE2Ii8+DQogICAgICAgIDxjaXJjbGUgY3g9IjM0MCIgY3k9IjIyMCIgcj0iMTQiLz4NCiAgICAgICAgPGNpcmNsZSBjeD0iMTU0MCIgY3k9IjE5NSIgcj0iMTgiLz4NCiAgICAgICAgPGNpcmNsZSBjeD0iMTcyMCIgY3k9IjIxNSIgcj0iMTUiLz4NCiAgICAgIDwvZz4NCiAgICAgIDxnIGZpbGw9IiNmNDcyYjYiPg0KICAgICAgICA8Y2lyY2xlIGN4PSIyODAiIGN5PSIyMDUiIHI9IjEzIi8+DQogICAgICAgIDxjaXJjbGUgY3g9IjE2MzAiIGN5PSIyMTAiIHI9IjE0Ii8+DQogICAgICA8L2c+DQogICAgPC9zdmc+"
     },
     {
       "id": "asset-s2-room-wall",
@@ -4243,7 +4283,7 @@
       "height": 1080,
       "path": "assets/scenes-v2/s2-room-wall-window.svg",
       "assetPath": "scenes-v2/s2-room-wall-window.svg",
-      "dataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIwIDEwODAiIHdpZHRoPSIxOTIwIiBoZWlnaHQ9IjEwODAiPgogICAgICA8ZGVmcz4KICAgICAgICA8bGluZWFyR3JhZGllbnQgaWQ9IndhbGwyIiB4MT0iMCIgeTE9IjAiIHgyPSIwIiB5Mj0iMSI+CiAgICAgICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjMzEyZTgxIi8+CiAgICAgICAgICA8c3RvcCBvZmZzZXQ9IjY4JSIgc3RvcC1jb2xvcj0iIzQzMzhjYSIvPgogICAgICAgICAgPHN0b3Agb2Zmc2V0PSI2OSUiIHN0b3AtY29sb3I9IiM3ODM1MGYiLz4KICAgICAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzQ1MWEwMyIvPgogICAgICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICAgIDwvZGVmcz4KICAgICAgPHJlY3Qgd2lkdGg9IjE5MjAiIGhlaWdodD0iMTA4MCIgZmlsbD0idXJsKCN3YWxsMikiLz4KICAgICAgPCEtLSBD4butYSBz4buVIG5ow6xuIHJhIGLhuqd1IHRy4budaSDEkcOqbSB0csSDbmcgLS0+CiAgICAgIDxyZWN0IHg9IjcyMCIgeT0iMTIwIiB3aWR0aD0iNDgwIiBoZWlnaHQ9IjQyMCIgcng9IjE4IiBmaWxsPSIjMGYxNzJhIiBzdHJva2U9IiNkOTc3MDYiIHN0cm9rZS13aWR0aD0iMTYiLz4KICAgICAgPGNpcmNsZSBjeD0iMTA2MCIgY3k9IjIzMCIgcj0iNDYiIGZpbGw9IiNmZWYwOGEiLz4KICAgICAgPGNpcmNsZSBjeD0iODIwIiBjeT0iMjAwIiByPSI0IiBmaWxsPSIjZmZmZmZmIi8+CiAgICAgIDxjaXJjbGUgY3g9IjkxMCIgY3k9IjI4MCIgcj0iMyIgZmlsbD0iI2ZmZmZmZiIvPgogICAgICA8Y2lyY2xlIGN4PSI4NjAiIGN5PSIzNjAiIHI9IjQiIGZpbGw9IiNmZmZmZmYiLz4KICAgICAgPGxpbmUgeDE9Ijk2MCIgeTE9IjEyMCIgeDI9Ijk2MCIgeTI9IjU0MCIgc3Ryb2tlPSIjZDk3NzA2IiBzdHJva2Utd2lkdGg9IjEyIi8+CiAgICAgIDxsaW5lIHgxPSI3MjAiIHkxPSIzMzAiIHgyPSIxMjAwIiB5Mj0iMzMwIiBzdHJva2U9IiNkOTc3MDYiIHN0cm9rZS13aWR0aD0iMTIiLz4KICAgICAgPCEtLSBUaOG6o20gdHLhuqNpIHPDoG4g4bqlbSDDoXAgLS0+CiAgICAgIDxlbGxpcHNlIGN4PSI5NjAiIGN5PSI5MTAiIHJ4PSI2NDAiIHJ5PSIxMTAiIGZpbGw9IiM5OTFiMWIiIHN0cm9rZT0iI2Y1OWUwYiIgc3Ryb2tlLXdpZHRoPSI4Ii8+CiAgICA8L3N2Zz4="
+      "dataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIwIDEwODAiIHdpZHRoPSIxOTIwIiBoZWlnaHQ9IjEwODAiPg0KICAgICAgPGRlZnM+DQogICAgICAgIDxsaW5lYXJHcmFkaWVudCBpZD0id2FsbDIiIHgxPSIwIiB5MT0iMCIgeDI9IjAiIHkyPSIxIj4NCiAgICAgICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjMzEyZTgxIi8+DQogICAgICAgICAgPHN0b3Agb2Zmc2V0PSI2OCUiIHN0b3AtY29sb3I9IiM0MzM4Y2EiLz4NCiAgICAgICAgICA8c3RvcCBvZmZzZXQ9IjY5JSIgc3RvcC1jb2xvcj0iIzc4MzUwZiIvPg0KICAgICAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzQ1MWEwMyIvPg0KICAgICAgICA8L2xpbmVhckdyYWRpZW50Pg0KICAgICAgPC9kZWZzPg0KICAgICAgPHJlY3Qgd2lkdGg9IjE5MjAiIGhlaWdodD0iMTA4MCIgZmlsbD0idXJsKCN3YWxsMikiLz4NCiAgICAgIDwhLS0gQ+G7rWEgc+G7lSBuaMOsbiByYSBi4bqndSB0cuG7nWkgxJHDqm0gdHLEg25nIC0tPg0KICAgICAgPHJlY3QgeD0iNzIwIiB5PSIxMjAiIHdpZHRoPSI0ODAiIGhlaWdodD0iNDIwIiByeD0iMTgiIGZpbGw9IiMwZjE3MmEiIHN0cm9rZT0iI2Q5NzcwNiIgc3Ryb2tlLXdpZHRoPSIxNiIvPg0KICAgICAgPGNpcmNsZSBjeD0iMTA2MCIgY3k9IjIzMCIgcj0iNDYiIGZpbGw9IiNmZWYwOGEiLz4NCiAgICAgIDxjaXJjbGUgY3g9IjgyMCIgY3k9IjIwMCIgcj0iNCIgZmlsbD0iI2ZmZmZmZiIvPg0KICAgICAgPGNpcmNsZSBjeD0iOTEwIiBjeT0iMjgwIiByPSIzIiBmaWxsPSIjZmZmZmZmIi8+DQogICAgICA8Y2lyY2xlIGN4PSI4NjAiIGN5PSIzNjAiIHI9IjQiIGZpbGw9IiNmZmZmZmYiLz4NCiAgICAgIDxsaW5lIHgxPSI5NjAiIHkxPSIxMjAiIHgyPSI5NjAiIHkyPSI1NDAiIHN0cm9rZT0iI2Q5NzcwNiIgc3Ryb2tlLXdpZHRoPSIxMiIvPg0KICAgICAgPGxpbmUgeDE9IjcyMCIgeTE9IjMzMCIgeDI9IjEyMDAiIHkyPSIzMzAiIHN0cm9rZT0iI2Q5NzcwNiIgc3Ryb2tlLXdpZHRoPSIxMiIvPg0KICAgICAgPCEtLSBUaOG6o20gdHLhuqNpIHPDoG4g4bqlbSDDoXAgLS0+DQogICAgICA8ZWxsaXBzZSBjeD0iOTYwIiBjeT0iOTEwIiByeD0iNjQwIiByeT0iMTEwIiBmaWxsPSIjOTkxYjFiIiBzdHJva2U9IiNmNTllMGIiIHN0cm9rZS13aWR0aD0iOCIvPg0KICAgIDwvc3ZnPg=="
     },
     {
       "id": "asset-s2-bookshelf",
@@ -4254,7 +4294,7 @@
       "height": 700,
       "path": "assets/scenes-v2/s2-bookshelf-sofa.svg",
       "assetPath": "scenes-v2/s2-bookshelf-sofa.svg",
-      "dataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNzAwIDcwMCIgd2lkdGg9IjE3MDAiIGhlaWdodD0iNzAwIj4KICAgICAgPCEtLSBL4buHIHPDoWNoIGLDqm4gdHLDoWkgLS0+CiAgICAgIDxyZWN0IHg9IjkwIiB5PSI2MCIgd2lkdGg9IjMyMCIgaGVpZ2h0PSI1NDAiIHJ4PSIxMCIgZmlsbD0iIzc4MzUwZiIgc3Ryb2tlPSIjNDUxYTAzIiBzdHJva2Utd2lkdGg9IjgiLz4KICAgICAgPHJlY3QgeD0iMTE1IiB5PSI5MCIgd2lkdGg9IjI3MCIgaGVpZ2h0PSIxMTAiIGZpbGw9IiM0NTFhMDMiLz4KICAgICAgPHJlY3QgeD0iMTE1IiB5PSIyMjUiIHdpZHRoPSIyNzAiIGhlaWdodD0iMTEwIiBmaWxsPSIjNDUxYTAzIi8+CiAgICAgIDxyZWN0IHg9IjExNSIgeT0iMzYwIiB3aWR0aD0iMjcwIiBoZWlnaHQ9IjExMCIgZmlsbD0iIzQ1MWEwMyIvPgogICAgICA8IS0tIE5o4buvbmcgY3Xhu5FuIHPDoWNoIG5oaeG7gXUgbcOgdSAtLT4KICAgICAgPHJlY3QgeD0iMTMwIiB5PSIxMTAiIHdpZHRoPSIyNiIgaGVpZ2h0PSI4OCIgZmlsbD0iI2VmNDQ0NCIvPgogICAgICA8cmVjdCB4PSIxNjAiIHk9IjExOCIgd2lkdGg9IjI4IiBoZWlnaHQ9IjgwIiBmaWxsPSIjM2I4MmY2Ii8+CiAgICAgIDxyZWN0IHg9IjE5MiIgeT0iMTA1IiB3aWR0aD0iMjQiIGhlaWdodD0iOTMiIGZpbGw9IiMxMGI5ODEiLz4KICAgICAgPHJlY3QgeD0iMjIyIiB5PSIxMTUiIHdpZHRoPSIzMCIgaGVpZ2h0PSI4MyIgZmlsbD0iI2Y1OWUwYiIvPgogICAgICA8cmVjdCB4PSIxNDAiIHk9IjI0NSIgd2lkdGg9IjMyIiBoZWlnaHQ9Ijg4IiBmaWxsPSIjOGI1Y2Y2Ii8+CiAgICAgIDxyZWN0IHg9IjE3NiIgeT0iMjUwIiB3aWR0aD0iMjYiIGhlaWdodD0iODMiIGZpbGw9IiNlYzQ4OTkiLz4KICAgICAgPCEtLSBHaOG6vyBTb2ZhIMOqbSDDoWkgLS0+CiAgICAgIDxyZWN0IHg9IjU0MCIgeT0iMzYwIiB3aWR0aD0iNjYwIiBoZWlnaHQ9IjIxMCIgcng9IjQyIiBmaWxsPSIjMGQ5NDg4IiBzdHJva2U9IiMxMTVlNTkiIHN0cm9rZS13aWR0aD0iNiIvPgogICAgICA8cmVjdCB4PSI1MDAiIHk9IjQzMCIgd2lkdGg9Ijc0MCIgaGVpZ2h0PSIxNjAiIHJ4PSIzMiIgZmlsbD0iIzE0YjhhNiIgc3Ryb2tlPSIjMGY3NjZlIiBzdHJva2Utd2lkdGg9IjYiLz4KICAgICAgPHJlY3QgeD0iNTkwIiB5PSIzOTUiIHdpZHRoPSIxMTAiIGhlaWdodD0iOTAiIHJ4PSIyMCIgZmlsbD0iI2ZkZTA0NyIgdHJhbnNmb3JtPSJyb3RhdGUoLTggNjQ1IDQ0MCkiLz4KICAgIDwvc3ZnPg=="
+      "dataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNzAwIDcwMCIgd2lkdGg9IjE3MDAiIGhlaWdodD0iNzAwIj4NCiAgICAgIDwhLS0gS+G7hyBzw6FjaCBiw6puIHRyw6FpIC0tPg0KICAgICAgPHJlY3QgeD0iOTAiIHk9IjYwIiB3aWR0aD0iMzIwIiBoZWlnaHQ9IjU0MCIgcng9IjEwIiBmaWxsPSIjNzgzNTBmIiBzdHJva2U9IiM0NTFhMDMiIHN0cm9rZS13aWR0aD0iOCIvPg0KICAgICAgPHJlY3QgeD0iMTE1IiB5PSI5MCIgd2lkdGg9IjI3MCIgaGVpZ2h0PSIxMTAiIGZpbGw9IiM0NTFhMDMiLz4NCiAgICAgIDxyZWN0IHg9IjExNSIgeT0iMjI1IiB3aWR0aD0iMjcwIiBoZWlnaHQ9IjExMCIgZmlsbD0iIzQ1MWEwMyIvPg0KICAgICAgPHJlY3QgeD0iMTE1IiB5PSIzNjAiIHdpZHRoPSIyNzAiIGhlaWdodD0iMTEwIiBmaWxsPSIjNDUxYTAzIi8+DQogICAgICA8IS0tIE5o4buvbmcgY3Xhu5FuIHPDoWNoIG5oaeG7gXUgbcOgdSAtLT4NCiAgICAgIDxyZWN0IHg9IjEzMCIgeT0iMTEwIiB3aWR0aD0iMjYiIGhlaWdodD0iODgiIGZpbGw9IiNlZjQ0NDQiLz4NCiAgICAgIDxyZWN0IHg9IjE2MCIgeT0iMTE4IiB3aWR0aD0iMjgiIGhlaWdodD0iODAiIGZpbGw9IiMzYjgyZjYiLz4NCiAgICAgIDxyZWN0IHg9IjE5MiIgeT0iMTA1IiB3aWR0aD0iMjQiIGhlaWdodD0iOTMiIGZpbGw9IiMxMGI5ODEiLz4NCiAgICAgIDxyZWN0IHg9IjIyMiIgeT0iMTE1IiB3aWR0aD0iMzAiIGhlaWdodD0iODMiIGZpbGw9IiNmNTllMGIiLz4NCiAgICAgIDxyZWN0IHg9IjE0MCIgeT0iMjQ1IiB3aWR0aD0iMzIiIGhlaWdodD0iODgiIGZpbGw9IiM4YjVjZjYiLz4NCiAgICAgIDxyZWN0IHg9IjE3NiIgeT0iMjUwIiB3aWR0aD0iMjYiIGhlaWdodD0iODMiIGZpbGw9IiNlYzQ4OTkiLz4NCiAgICAgIDwhLS0gR2jhur8gU29mYSDDqm0gw6FpIC0tPg0KICAgICAgPHJlY3QgeD0iNTQwIiB5PSIzNjAiIHdpZHRoPSI2NjAiIGhlaWdodD0iMjEwIiByeD0iNDIiIGZpbGw9IiMwZDk0ODgiIHN0cm9rZT0iIzExNWU1OSIgc3Ryb2tlLXdpZHRoPSI2Ii8+DQogICAgICA8cmVjdCB4PSI1MDAiIHk9IjQzMCIgd2lkdGg9Ijc0MCIgaGVpZ2h0PSIxNjAiIHJ4PSIzMiIgZmlsbD0iIzE0YjhhNiIgc3Ryb2tlPSIjMGY3NjZlIiBzdHJva2Utd2lkdGg9IjYiLz4NCiAgICAgIDxyZWN0IHg9IjU5MCIgeT0iMzk1IiB3aWR0aD0iMTEwIiBoZWlnaHQ9IjkwIiByeD0iMjAiIGZpbGw9IiNmZGUwNDciIHRyYW5zZm9ybT0icm90YXRlKC04IDY0NSA0NDApIi8+DQogICAgPC9zdmc+"
     },
     {
       "id": "asset-s2-lamp-table",
@@ -4265,7 +4305,7 @@
       "height": 460,
       "path": "assets/scenes-v2/s2-tea-table-lamp.svg",
       "assetPath": "scenes-v2/s2-tea-table-lamp.svg",
-      "dataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MjAgNDYwIiB3aWR0aD0iNTIwIiBoZWlnaHQ9IjQ2MCI+CiAgICAgIDxkZWZzPgogICAgICAgIDxyYWRpYWxHcmFkaWVudCBpZD0ibGFtcEdsb3ciIGN4PSIwLjUiIGN5PSIwLjMyIiByPSIwLjQ1Ij4KICAgICAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiNmZWYwOGEiIHN0b3Atb3BhY2l0eT0iMC45NSIvPgogICAgICAgICAgPHN0b3Agb2Zmc2V0PSI1NSUiIHN0b3AtY29sb3I9IiNmNTllMGIiIHN0b3Atb3BhY2l0eT0iMC4zNSIvPgogICAgICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjZjU5ZTBiIiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgICAgICA8L3JhZGlhbEdyYWRpZW50PgogICAgICA8L2RlZnM+CiAgICAgIDxjaXJjbGUgY3g9IjI2MCIgY3k9IjE1MCIgcj0iMTkwIiBmaWxsPSJ1cmwoI2xhbXBHbG93KSIvPgogICAgICA8IS0tIE3hurd0IGLDoG4gZ+G7lyAtLT4KICAgICAgPHJlY3QgeD0iNzAiIHk9IjI4MCIgd2lkdGg9IjM4MCIgaGVpZ2h0PSIzMiIgcng9IjEyIiBmaWxsPSIjYjQ1MzA5IiBzdHJva2U9IiM3ODM1MGYiIHN0cm9rZS13aWR0aD0iNCIvPgogICAgICA8cmVjdCB4PSIxMTUiIHk9IjMxMiIgd2lkdGg9IjI2IiBoZWlnaHQ9IjEyNSIgcng9IjYiIGZpbGw9IiM3ODM1MGYiLz4KICAgICAgPHJlY3QgeD0iMzc5IiB5PSIzMTIiIHdpZHRoPSIyNiIgaGVpZ2h0PSIxMjUiIHJ4PSI2IiBmaWxsPSIjNzgzNTBmIi8+CiAgICAgIDwhLS0gxJDDqG4gYsOgbiB2w6BuZyDhuqVtIC0tPgogICAgICA8cmVjdCB4PSIyMzUiIHk9IjI1NSIgd2lkdGg9IjUwIiBoZWlnaHQ9IjI1IiByeD0iNiIgZmlsbD0iIzQ3NTU2OSIvPgogICAgICA8bGluZSB4MT0iMjYwIiB5MT0iMTY1IiB4Mj0iMjYwIiB5Mj0iMjU1IiBzdHJva2U9IiM5NGEzYjgiIHN0cm9rZS13aWR0aD0iMTAiLz4KICAgICAgPHBvbHlnb24gcG9pbnRzPSIxOTUsMTc1IDMyNSwxNzUgMjk1LDg1IDIyNSw4NSIgZmlsbD0iI2ZkZTA0NyIgc3Ryb2tlPSIjZDk3NzA2IiBzdHJva2Utd2lkdGg9IjUiLz4KICAgIDwvc3ZnPg=="
+      "dataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MjAgNDYwIiB3aWR0aD0iNTIwIiBoZWlnaHQ9IjQ2MCI+DQogICAgICA8ZGVmcz4NCiAgICAgICAgPHJhZGlhbEdyYWRpZW50IGlkPSJsYW1wR2xvdyIgY3g9IjAuNSIgY3k9IjAuMzIiIHI9IjAuNDUiPg0KICAgICAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiNmZWYwOGEiIHN0b3Atb3BhY2l0eT0iMC45NSIvPg0KICAgICAgICAgIDxzdG9wIG9mZnNldD0iNTUlIiBzdG9wLWNvbG9yPSIjZjU5ZTBiIiBzdG9wLW9wYWNpdHk9IjAuMzUiLz4NCiAgICAgICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiNmNTllMGIiIHN0b3Atb3BhY2l0eT0iMCIvPg0KICAgICAgICA8L3JhZGlhbEdyYWRpZW50Pg0KICAgICAgPC9kZWZzPg0KICAgICAgPGNpcmNsZSBjeD0iMjYwIiBjeT0iMTUwIiByPSIxOTAiIGZpbGw9InVybCgjbGFtcEdsb3cpIi8+DQogICAgICA8IS0tIE3hurd0IGLDoG4gZ+G7lyAtLT4NCiAgICAgIDxyZWN0IHg9IjcwIiB5PSIyODAiIHdpZHRoPSIzODAiIGhlaWdodD0iMzIiIHJ4PSIxMiIgZmlsbD0iI2I0NTMwOSIgc3Ryb2tlPSIjNzgzNTBmIiBzdHJva2Utd2lkdGg9IjQiLz4NCiAgICAgIDxyZWN0IHg9IjExNSIgeT0iMzEyIiB3aWR0aD0iMjYiIGhlaWdodD0iMTI1IiByeD0iNiIgZmlsbD0iIzc4MzUwZiIvPg0KICAgICAgPHJlY3QgeD0iMzc5IiB5PSIzMTIiIHdpZHRoPSIyNiIgaGVpZ2h0PSIxMjUiIHJ4PSI2IiBmaWxsPSIjNzgzNTBmIi8+DQogICAgICA8IS0tIMSQw6huIGLDoG4gdsOgbmcg4bqlbSAtLT4NCiAgICAgIDxyZWN0IHg9IjIzNSIgeT0iMjU1IiB3aWR0aD0iNTAiIGhlaWdodD0iMjUiIHJ4PSI2IiBmaWxsPSIjNDc1NTY5Ii8+DQogICAgICA8bGluZSB4MT0iMjYwIiB5MT0iMTY1IiB4Mj0iMjYwIiB5Mj0iMjU1IiBzdHJva2U9IiM5NGEzYjgiIHN0cm9rZS13aWR0aD0iMTAiLz4NCiAgICAgIDxwb2x5Z29uIHBvaW50cz0iMTk1LDE3NSAzMjUsMTc1IDI5NSw4NSAyMjUsODUiIGZpbGw9IiNmZGUwNDciIHN0cm9rZT0iI2Q5NzcwNiIgc3Ryb2tlLXdpZHRoPSI1Ii8+DQogICAgPC9zdmc+"
     },
     {
       "id": "asset-s2-robo-body",
@@ -4276,7 +4316,7 @@
       "height": 320,
       "path": "assets/scenes-v2/s2-robo-body.svg",
       "assetPath": "scenes-v2/s2-robo-body.svg",
-      "dataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNDAgMzIwIiB3aWR0aD0iMjQwIiBoZWlnaHQ9IjMyMCI+CiAgICAgIDxlbGxpcHNlIGN4PSIxMjAiIGN5PSIzMDIiIHJ4PSI2NCIgcnk9IjE0IiBmaWxsPSIjMGYxNzJhIiBvcGFjaXR5PSIwLjM1Ii8+CiAgICAgIDwhLS0gQsOhbmggeGUgbMaw4bubdCAtLT4KICAgICAgPGNpcmNsZSBjeD0iOTIiIGN5PSIyODUiIHI9IjIwIiBmaWxsPSIjMWUyOTNiIiBzdHJva2U9IiMzOGJkZjgiIHN0cm9rZS13aWR0aD0iNCIvPgogICAgICA8Y2lyY2xlIGN4PSIxNDgiIGN5PSIyODUiIHI9IjIwIiBmaWxsPSIjMWUyOTNiIiBzdHJva2U9IiMzOGJkZjgiIHN0cm9rZS13aWR0aD0iNCIvPgogICAgICA8IS0tIFRow6JuIHJvYm90IGJvIHRyw7JuIC0tPgogICAgICA8cmVjdCB4PSI1NiIgeT0iMTMyIiB3aWR0aD0iMTI4IiBoZWlnaHQ9IjE0MiIgcng9IjM4IiBmaWxsPSIjZTJlOGYwIiBzdHJva2U9IiMwMjg0YzciIHN0cm9rZS13aWR0aD0iNSIvPgogICAgICA8Y2lyY2xlIGN4PSIxMjAiIGN5PSIxOTgiIHI9IjI4IiBmaWxsPSIjMzhiZGY4IiBzdHJva2U9IiMwMzY5YTEiIHN0cm9rZS13aWR0aD0iNCIvPgogICAgICA8IS0tIENodcO0bmcgdsOgbmcgY+G7lSBtw6hvIG3DoXkgLS0+CiAgICAgIDxyZWN0IHg9IjcyIiB5PSIxMjQiIHdpZHRoPSI5NiIgaGVpZ2h0PSIxNCIgcng9IjciIGZpbGw9IiNlZjQ0NDQiLz4KICAgICAgPGNpcmNsZSBjeD0iMTIwIiBjeT0iMTM0IiByPSIxMiIgZmlsbD0iI2ZhY2MxNSIgc3Ryb2tlPSIjYjQ1MzA5IiBzdHJva2Utd2lkdGg9IjMiLz4KICAgIDwvc3ZnPg=="
+      "dataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNDAgMzIwIiB3aWR0aD0iMjQwIiBoZWlnaHQ9IjMyMCI+DQogICAgICA8ZWxsaXBzZSBjeD0iMTIwIiBjeT0iMzAyIiByeD0iNjQiIHJ5PSIxNCIgZmlsbD0iIzBmMTcyYSIgb3BhY2l0eT0iMC4zNSIvPg0KICAgICAgPCEtLSBCw6FuaCB4ZSBsxrDhu5t0IC0tPg0KICAgICAgPGNpcmNsZSBjeD0iOTIiIGN5PSIyODUiIHI9IjIwIiBmaWxsPSIjMWUyOTNiIiBzdHJva2U9IiMzOGJkZjgiIHN0cm9rZS13aWR0aD0iNCIvPg0KICAgICAgPGNpcmNsZSBjeD0iMTQ4IiBjeT0iMjg1IiByPSIyMCIgZmlsbD0iIzFlMjkzYiIgc3Ryb2tlPSIjMzhiZGY4IiBzdHJva2Utd2lkdGg9IjQiLz4NCiAgICAgIDwhLS0gVGjDom4gcm9ib3QgYm8gdHLDsm4gLS0+DQogICAgICA8cmVjdCB4PSI1NiIgeT0iMTMyIiB3aWR0aD0iMTI4IiBoZWlnaHQ9IjE0MiIgcng9IjM4IiBmaWxsPSIjZTJlOGYwIiBzdHJva2U9IiMwMjg0YzciIHN0cm9rZS13aWR0aD0iNSIvPg0KICAgICAgPGNpcmNsZSBjeD0iMTIwIiBjeT0iMTk4IiByPSIyOCIgZmlsbD0iIzM4YmRmOCIgc3Ryb2tlPSIjMDM2OWExIiBzdHJva2Utd2lkdGg9IjQiLz4NCiAgICAgIDwhLS0gQ2h1w7RuZyB2w6BuZyBj4buVIG3DqG8gbcOheSAtLT4NCiAgICAgIDxyZWN0IHg9IjcyIiB5PSIxMjQiIHdpZHRoPSI5NiIgaGVpZ2h0PSIxNCIgcng9IjciIGZpbGw9IiNlZjQ0NDQiLz4NCiAgICAgIDxjaXJjbGUgY3g9IjEyMCIgY3k9IjEzNCIgcj0iMTIiIGZpbGw9IiNmYWNjMTUiIHN0cm9rZT0iI2I0NTMwOSIgc3Ryb2tlLXdpZHRoPSIzIi8+DQogICAgPC9zdmc+"
     },
     {
       "id": "asset-s2-robo-face-happy",
@@ -4287,7 +4327,7 @@
       "height": 150,
       "path": "assets/scenes-v2/s2-robo-face-happy.svg",
       "assetPath": "scenes-v2/s2-robo-face-happy.svg",
-      "dataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNjAgMTUwIiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjE1MCI+CiAgICAgIDwhLS0gxJDDtGkgdGFpIG3DqG8gLS0+CiAgICAgIDxwb2x5Z29uIHBvaW50cz0iMjgsNTUgNDIsMTAgNzIsNDIiIGZpbGw9IiMzOGJkZjgiIHN0cm9rZT0iIzAyODRjNyIgc3Ryb2tlLXdpZHRoPSI0Ii8+CiAgICAgIDxwb2x5Z29uIHBvaW50cz0iMTMyLDU1IDExOCwxMCA4OCw0MiIgZmlsbD0iIzM4YmRmOCIgc3Ryb2tlPSIjMDI4NGM3IiBzdHJva2Utd2lkdGg9IjQiLz4KICAgICAgPCEtLSDEkOG6p3UgJiBNw6BuIGjDrG5oIExFRCAtLT4KICAgICAgPHJlY3QgeD0iMjIiIHk9IjM0IiB3aWR0aD0iMTE2IiBoZWlnaHQ9Ijk2IiByeD0iMzIiIGZpbGw9IiNmOGZhZmMiIHN0cm9rZT0iIzAyODRjNyIgc3Ryb2tlLXdpZHRoPSI1Ii8+CiAgICAgIDxyZWN0IHg9IjM2IiB5PSI0OCIgd2lkdGg9Ijg4IiBoZWlnaHQ9IjY4IiByeD0iMjAiIGZpbGw9IiMwZjE3MmEiLz4KICAgICAgPHBhdGggZD0iTTUwLDc4IFE2Miw2NCA3NCw3OCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMzhiZGY4IiBzdHJva2Utd2lkdGg9IjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogICAgICA8cGF0aCBkPSJNODYsNzggUTk4LDY0IDExMCw3OCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMzhiZGY4IiBzdHJva2Utd2lkdGg9IjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogICAgICA8cGF0aCBkPSJNNjQsOTYgUTgwLDEwOCA5Niw5NiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNGFkZTgwIiBzdHJva2Utd2lkdGg9IjQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogICAgPC9zdmc+"
+      "dataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNjAgMTUwIiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjE1MCI+DQogICAgICA8IS0tIMSQw7RpIHRhaSBtw6hvIC0tPg0KICAgICAgPHBvbHlnb24gcG9pbnRzPSIyOCw1NSA0MiwxMCA3Miw0MiIgZmlsbD0iIzM4YmRmOCIgc3Ryb2tlPSIjMDI4NGM3IiBzdHJva2Utd2lkdGg9IjQiLz4NCiAgICAgIDxwb2x5Z29uIHBvaW50cz0iMTMyLDU1IDExOCwxMCA4OCw0MiIgZmlsbD0iIzM4YmRmOCIgc3Ryb2tlPSIjMDI4NGM3IiBzdHJva2Utd2lkdGg9IjQiLz4NCiAgICAgIDwhLS0gxJDhuqd1ICYgTcOgbiBow6xuaCBMRUQgLS0+DQogICAgICA8cmVjdCB4PSIyMiIgeT0iMzQiIHdpZHRoPSIxMTYiIGhlaWdodD0iOTYiIHJ4PSIzMiIgZmlsbD0iI2Y4ZmFmYyIgc3Ryb2tlPSIjMDI4NGM3IiBzdHJva2Utd2lkdGg9IjUiLz4NCiAgICAgIDxyZWN0IHg9IjM2IiB5PSI0OCIgd2lkdGg9Ijg4IiBoZWlnaHQ9IjY4IiByeD0iMjAiIGZpbGw9IiMwZjE3MmEiLz4NCiAgICAgIDxwYXRoIGQ9Ik01MCw3OCBRNjIsNjQgNzQsNzgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzM4YmRmOCIgc3Ryb2tlLXdpZHRoPSI1IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4NCiAgICAgIDxwYXRoIGQ9Ik04Niw3OCBROTgsNjQgMTEwLDc4IiBmaWxsPSJub25lIiBzdHJva2U9IiMzOGJkZjgiIHN0cm9rZS13aWR0aD0iNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+DQogICAgICA8cGF0aCBkPSJNNjQsOTYgUTgwLDEwOCA5Niw5NiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNGFkZTgwIiBzdHJva2Utd2lkdGg9IjQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPg0KICAgIDwvc3ZnPg=="
     },
     {
       "id": "asset-s2-robo-face-talk",
@@ -4298,7 +4338,7 @@
       "height": 150,
       "path": "assets/scenes-v2/s2-robo-face-talk.svg",
       "assetPath": "scenes-v2/s2-robo-face-talk.svg",
-      "dataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNjAgMTUwIiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjE1MCI+CiAgICAgIDxwb2x5Z29uIHBvaW50cz0iMjgsNTUgNDIsMTAgNzIsNDIiIGZpbGw9IiMzOGJkZjgiIHN0cm9rZT0iIzAyODRjNyIgc3Ryb2tlLXdpZHRoPSI0Ii8+CiAgICAgIDxwb2x5Z29uIHBvaW50cz0iMTMyLDU1IDExOCwxMCA4OCw0MiIgZmlsbD0iIzM4YmRmOCIgc3Ryb2tlPSIjMDI4NGM3IiBzdHJva2Utd2lkdGg9IjQiLz4KICAgICAgPHJlY3QgeD0iMjIiIHk9IjM0IiB3aWR0aD0iMTE2IiBoZWlnaHQ9Ijk2IiByeD0iMzIiIGZpbGw9IiNmOGZhZmMiIHN0cm9rZT0iIzAyODRjNyIgc3Ryb2tlLXdpZHRoPSI1Ii8+CiAgICAgIDxyZWN0IHg9IjM2IiB5PSI0OCIgd2lkdGg9Ijg4IiBoZWlnaHQ9IjY4IiByeD0iMjAiIGZpbGw9IiMwZjE3MmEiLz4KICAgICAgPGNpcmNsZSBjeD0iNjIiIGN5PSI3NCIgcj0iOCIgZmlsbD0iIzM4YmRmOCIvPgogICAgICA8Y2lyY2xlIGN4PSI5OCIgY3k9Ijc0IiByPSI4IiBmaWxsPSIjMzhiZGY4Ii8+CiAgICAgIDwhLS0gU8Ozbmcgw6JtIG1p4buHbmcgxJFhbmcgbsOzaSAtLT4KICAgICAgPHJlY3QgeD0iNTgiIHk9IjkyIiB3aWR0aD0iNDQiIGhlaWdodD0iMTQiIHJ4PSI3IiBmaWxsPSIjZjQzZjVlIi8+CiAgICA8L3N2Zz4="
+      "dataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNjAgMTUwIiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjE1MCI+DQogICAgICA8cG9seWdvbiBwb2ludHM9IjI4LDU1IDQyLDEwIDcyLDQyIiBmaWxsPSIjMzhiZGY4IiBzdHJva2U9IiMwMjg0YzciIHN0cm9rZS13aWR0aD0iNCIvPg0KICAgICAgPHBvbHlnb24gcG9pbnRzPSIxMzIsNTUgMTE4LDEwIDg4LDQyIiBmaWxsPSIjMzhiZGY4IiBzdHJva2U9IiMwMjg0YzciIHN0cm9rZS13aWR0aD0iNCIvPg0KICAgICAgPHJlY3QgeD0iMjIiIHk9IjM0IiB3aWR0aD0iMTE2IiBoZWlnaHQ9Ijk2IiByeD0iMzIiIGZpbGw9IiNmOGZhZmMiIHN0cm9rZT0iIzAyODRjNyIgc3Ryb2tlLXdpZHRoPSI1Ii8+DQogICAgICA8cmVjdCB4PSIzNiIgeT0iNDgiIHdpZHRoPSI4OCIgaGVpZ2h0PSI2OCIgcng9IjIwIiBmaWxsPSIjMGYxNzJhIi8+DQogICAgICA8Y2lyY2xlIGN4PSI2MiIgY3k9Ijc0IiByPSI4IiBmaWxsPSIjMzhiZGY4Ii8+DQogICAgICA8Y2lyY2xlIGN4PSI5OCIgY3k9Ijc0IiByPSI4IiBmaWxsPSIjMzhiZGY4Ii8+DQogICAgICA8IS0tIFPDs25nIMOibSBtaeG7h25nIMSRYW5nIG7Ds2kgLS0+DQogICAgICA8cmVjdCB4PSI1OCIgeT0iOTIiIHdpZHRoPSI0NCIgaGVpZ2h0PSIxNCIgcng9IjciIGZpbGw9IiNmNDNmNWUiLz4NCiAgICA8L3N2Zz4="
     },
     {
       "id": "asset-s2-tea-tray",
@@ -4309,7 +4349,7 @@
       "height": 120,
       "path": "assets/scenes-v2/s2-tea-tray-prop.svg",
       "assetPath": "scenes-v2/s2-tea-tray-prop.svg",
-      "dataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNjAgMTIwIiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjEyMCI+CiAgICAgIDxlbGxpcHNlIGN4PSI4MCIgY3k9IjkyIiByeD0iNjgiIHJ5PSIxNCIgZmlsbD0iI2Q5NzcwNiIgc3Ryb2tlPSIjNzgzNTBmIiBzdHJva2Utd2lkdGg9IjQiLz4KICAgICAgPCEtLSDhuqRtIHRyw6AgJiB0w6FjaCB0csOgIGLhu5FjIGtow7NpIC0tPgogICAgICA8Y2lyY2xlIGN4PSI2NiIgY3k9IjY4IiByPSIyMiIgZmlsbD0iI2Y4ZmFmYyIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjMiLz4KICAgICAgPHBhdGggZD0iTTg4LDY4IFExMDQsNTggMTA2LDQ4IiBmaWxsPSJub25lIiBzdHJva2U9IiNmOGZhZmMiIHN0cm9rZS13aWR0aD0iNiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgICAgIDxyZWN0IHg9IjEwOCIgeT0iNjYiIHdpZHRoPSIyNCIgaGVpZ2h0PSIyMiIgcng9IjUiIGZpbGw9IiNmZWYwOGEiIHN0cm9rZT0iI2NhOGEwNCIgc3Ryb2tlLXdpZHRoPSIzIi8+CiAgICAgIDxwYXRoIGQ9Ik02NiwzNiBRNjAsMjIgNzAsMTIgTTExOCw1NCBRMTE0LDQwIDEyMiwzMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZTJlOGYwIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgb3BhY2l0eT0iMC44Ii8+CiAgICA8L3N2Zz4="
+      "dataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNjAgMTIwIiB3aWR0aD0iMTYwIiBoZWlnaHQ9IjEyMCI+DQogICAgICA8ZWxsaXBzZSBjeD0iODAiIGN5PSI5MiIgcng9IjY4IiByeT0iMTQiIGZpbGw9IiNkOTc3MDYiIHN0cm9rZT0iIzc4MzUwZiIgc3Ryb2tlLXdpZHRoPSI0Ii8+DQogICAgICA8IS0tIOG6pG0gdHLDoCAmIHTDoWNoIHRyw6AgYuG7kWMga2jDs2kgLS0+DQogICAgICA8Y2lyY2xlIGN4PSI2NiIgY3k9IjY4IiByPSIyMiIgZmlsbD0iI2Y4ZmFmYyIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjMiLz4NCiAgICAgIDxwYXRoIGQ9Ik04OCw2OCBRMTA0LDU4IDEwNiw0OCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZjhmYWZjIiBzdHJva2Utd2lkdGg9IjYiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPg0KICAgICAgPHJlY3QgeD0iMTA4IiB5PSI2NiIgd2lkdGg9IjI0IiBoZWlnaHQ9IjIyIiByeD0iNSIgZmlsbD0iI2ZlZjA4YSIgc3Ryb2tlPSIjY2E4YTA0IiBzdHJva2Utd2lkdGg9IjMiLz4NCiAgICAgIDxwYXRoIGQ9Ik02NiwzNiBRNjAsMjIgNzAsMTIgTTExOCw1NCBRMTE0LDQwIDEyMiwzMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZTJlOGYwIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgb3BhY2l0eT0iMC44Ii8+DQogICAgPC9zdmc+"
     },
     {
       "id": "asset-s3-city-sky",
@@ -4320,7 +4360,7 @@
       "height": 1080,
       "path": "assets/scenes-v2/s3-city-night-sky.svg",
       "assetPath": "scenes-v2/s3-city-night-sky.svg",
-      "dataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIwIDEwODAiIHdpZHRoPSIxOTIwIiBoZWlnaHQ9IjEwODAiPgogICAgICA8ZGVmcz4KICAgICAgICA8bGluZWFyR3JhZGllbnQgaWQ9Im5pZ2h0MyIgeDE9IjAiIHkxPSIwIiB4Mj0iMCIgeTI9IjEiPgogICAgICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iIzA5MGQxNiIvPgogICAgICAgICAgPHN0b3Agb2Zmc2V0PSI1NSUiIHN0b3AtY29sb3I9IiMxZTFiNGIiLz4KICAgICAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzMxMTA0MiIvPgogICAgICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICAgIDwvZGVmcz4KICAgICAgPHJlY3Qgd2lkdGg9IjE5MjAiIGhlaWdodD0iMTA4MCIgZmlsbD0idXJsKCNuaWdodDMpIi8+CiAgICAgIDwhLS0gU2t5bGluZSB0w7JhIG5ow6AgdGjDoG5oIHBo4buRIC0tPgogICAgICA8ZyBmaWxsPSIjMGYxNzJhIiBzdHJva2U9IiMzMzQxNTUiIHN0cm9rZS13aWR0aD0iMiI+CiAgICAgICAgPHJlY3QgeD0iODAiIHk9IjI2MCIgd2lkdGg9IjE5MCIgaGVpZ2h0PSI2MjAiLz4KICAgICAgICA8cmVjdCB4PSIzMTAiIHk9IjE4MCIgd2lkdGg9IjIyMCIgaGVpZ2h0PSI3MDAiLz4KICAgICAgICA8cmVjdCB4PSI1NzAiIHk9IjMxMCIgd2lkdGg9IjE4MCIgaGVpZ2h0PSI1NzAiLz4KICAgICAgICA8cmVjdCB4PSI4MTAiIHk9IjE1MCIgd2lkdGg9IjI2MCIgaGVpZ2h0PSI3MzAiLz4KICAgICAgICA8cmVjdCB4PSIxMTIwIiB5PSIyNDAiIHdpZHRoPSIyMTAiIGhlaWdodD0iNjQwIi8+CiAgICAgICAgPHJlY3QgeD0iMTM4MCIgeT0iMTkwIiB3aWR0aD0iMjQwIiBoZWlnaHQ9IjY5MCIvPgogICAgICAgIDxyZWN0IHg9IjE2NjAiIHk9IjI4MCIgd2lkdGg9IjE5MCIgaGVpZ2h0PSI2MDAiLz4KICAgICAgPC9nPgogICAgICA8IS0tIMOUIGPhu61hIHPhu5Ugc8OhbmcgxJHDqG4gLS0+CiAgICAgIDxnIGZpbGw9IiNmZGUwNDciIG9wYWNpdHk9IjAuOCI+CiAgICAgICAgPHJlY3QgeD0iMzUwIiB5PSIyMzAiIHdpZHRoPSIyOCIgaGVpZ2h0PSIzNiIvPgogICAgICAgIDxyZWN0IHg9IjQxMCIgeT0iMjMwIiB3aWR0aD0iMjgiIGhlaWdodD0iMzYiLz4KICAgICAgICA8cmVjdCB4PSIzNTAiIHk9IjMwMCIgd2lkdGg9IjI4IiBoZWlnaHQ9IjM2Ii8+CiAgICAgICAgPHJlY3QgeD0iODYwIiB5PSIyMTAiIHdpZHRoPSIzMiIgaGVpZ2h0PSI0MCIvPgogICAgICAgIDxyZWN0IHg9IjkzMCIgeT0iMjEwIiB3aWR0aD0iMzIiIGhlaWdodD0iNDAiLz4KICAgICAgICA8cmVjdCB4PSI4NjAiIHk9IjI4MCIgd2lkdGg9IjMyIiBoZWlnaHQ9IjQwIi8+CiAgICAgICAgPHJlY3QgeD0iMTQzMCIgeT0iMjUwIiB3aWR0aD0iMzAiIGhlaWdodD0iMzgiLz4KICAgICAgICA8cmVjdCB4PSIxNTAwIiB5PSIzMjAiIHdpZHRoPSIzMCIgaGVpZ2h0PSIzOCIvPgogICAgICA8L2c+CiAgICA8L3N2Zz4="
+      "dataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIwIDEwODAiIHdpZHRoPSIxOTIwIiBoZWlnaHQ9IjEwODAiPg0KICAgICAgPGRlZnM+DQogICAgICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ibmlnaHQzIiB4MT0iMCIgeTE9IjAiIHgyPSIwIiB5Mj0iMSI+DQogICAgICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iIzA5MGQxNiIvPg0KICAgICAgICAgIDxzdG9wIG9mZnNldD0iNTUlIiBzdG9wLWNvbG9yPSIjMWUxYjRiIi8+DQogICAgICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjMzExMDQyIi8+DQogICAgICAgIDwvbGluZWFyR3JhZGllbnQ+DQogICAgICA8L2RlZnM+DQogICAgICA8cmVjdCB3aWR0aD0iMTkyMCIgaGVpZ2h0PSIxMDgwIiBmaWxsPSJ1cmwoI25pZ2h0MykiLz4NCiAgICAgIDwhLS0gU2t5bGluZSB0w7JhIG5ow6AgdGjDoG5oIHBo4buRIC0tPg0KICAgICAgPGcgZmlsbD0iIzBmMTcyYSIgc3Ryb2tlPSIjMzM0MTU1IiBzdHJva2Utd2lkdGg9IjIiPg0KICAgICAgICA8cmVjdCB4PSI4MCIgeT0iMjYwIiB3aWR0aD0iMTkwIiBoZWlnaHQ9IjYyMCIvPg0KICAgICAgICA8cmVjdCB4PSIzMTAiIHk9IjE4MCIgd2lkdGg9IjIyMCIgaGVpZ2h0PSI3MDAiLz4NCiAgICAgICAgPHJlY3QgeD0iNTcwIiB5PSIzMTAiIHdpZHRoPSIxODAiIGhlaWdodD0iNTcwIi8+DQogICAgICAgIDxyZWN0IHg9IjgxMCIgeT0iMTUwIiB3aWR0aD0iMjYwIiBoZWlnaHQ9IjczMCIvPg0KICAgICAgICA8cmVjdCB4PSIxMTIwIiB5PSIyNDAiIHdpZHRoPSIyMTAiIGhlaWdodD0iNjQwIi8+DQogICAgICAgIDxyZWN0IHg9IjEzODAiIHk9IjE5MCIgd2lkdGg9IjI0MCIgaGVpZ2h0PSI2OTAiLz4NCiAgICAgICAgPHJlY3QgeD0iMTY2MCIgeT0iMjgwIiB3aWR0aD0iMTkwIiBoZWlnaHQ9IjYwMCIvPg0KICAgICAgPC9nPg0KICAgICAgPCEtLSDDlCBj4butYSBz4buVIHPDoW5nIMSRw6huIC0tPg0KICAgICAgPGcgZmlsbD0iI2ZkZTA0NyIgb3BhY2l0eT0iMC44Ij4NCiAgICAgICAgPHJlY3QgeD0iMzUwIiB5PSIyMzAiIHdpZHRoPSIyOCIgaGVpZ2h0PSIzNiIvPg0KICAgICAgICA8cmVjdCB4PSI0MTAiIHk9IjIzMCIgd2lkdGg9IjI4IiBoZWlnaHQ9IjM2Ii8+DQogICAgICAgIDxyZWN0IHg9IjM1MCIgeT0iMzAwIiB3aWR0aD0iMjgiIGhlaWdodD0iMzYiLz4NCiAgICAgICAgPHJlY3QgeD0iODYwIiB5PSIyMTAiIHdpZHRoPSIzMiIgaGVpZ2h0PSI0MCIvPg0KICAgICAgICA8cmVjdCB4PSI5MzAiIHk9IjIxMCIgd2lkdGg9IjMyIiBoZWlnaHQ9IjQwIi8+DQogICAgICAgIDxyZWN0IHg9Ijg2MCIgeT0iMjgwIiB3aWR0aD0iMzIiIGhlaWdodD0iNDAiLz4NCiAgICAgICAgPHJlY3QgeD0iMTQzMCIgeT0iMjUwIiB3aWR0aD0iMzAiIGhlaWdodD0iMzgiLz4NCiAgICAgICAgPHJlY3QgeD0iMTUwMCIgeT0iMzIwIiB3aWR0aD0iMzAiIGhlaWdodD0iMzgiLz4NCiAgICAgIDwvZz4NCiAgICA8L3N2Zz4="
     },
     {
       "id": "asset-s3-street-road",
@@ -4331,7 +4371,7 @@
       "height": 540,
       "path": "assets/scenes-v2/s3-street-road.svg",
       "assetPath": "scenes-v2/s3-street-road.svg",
-      "dataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIwIDU0MCIgd2lkdGg9IjE5MjAiIGhlaWdodD0iNTQwIj4KICAgICAgPCEtLSBW4buJYSBow6ggbMOhdCBn4bqhY2ggLS0+CiAgICAgIDxyZWN0IHg9IjAiIHk9IjgwIiB3aWR0aD0iMTkyMCIgaGVpZ2h0PSIxMzAiIGZpbGw9IiMzMzQxNTUiLz4KICAgICAgPGxpbmUgeDE9IjAiIHkxPSIyMTAiIHgyPSIxOTIwIiB5Mj0iMjEwIiBzdHJva2U9IiM5NGEzYjgiIHN0cm9rZS13aWR0aD0iOCIvPgogICAgICA8IS0tIEzDsm5nIMSRxrDhu51uZyBuaOG7sWEgLS0+CiAgICAgIDxyZWN0IHg9IjAiIHk9IjIxMCIgd2lkdGg9IjE5MjAiIGhlaWdodD0iMzMwIiBmaWxsPSIjMWUyOTNiIi8+CiAgICAgIDwhLS0gVuG6oWNoIGvhursgcGjDom4gbMOgbiBwaMOhdCBzw6FuZyAtLT4KICAgICAgPGcgZmlsbD0iI2ZhY2MxNSI+CiAgICAgICAgPHJlY3QgeD0iMTIwIiB5PSIzNjAiIHdpZHRoPSIxODAiIGhlaWdodD0iMTgiIHJ4PSI2Ii8+CiAgICAgICAgPHJlY3QgeD0iNDgwIiB5PSIzNjAiIHdpZHRoPSIxODAiIGhlaWdodD0iMTgiIHJ4PSI2Ii8+CiAgICAgICAgPHJlY3QgeD0iODQwIiB5PSIzNjAiIHdpZHRoPSIxODAiIGhlaWdodD0iMTgiIHJ4PSI2Ii8+CiAgICAgICAgPHJlY3QgeD0iMTIwMCIgeT0iMzYwIiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjE4IiByeD0iNiIvPgogICAgICAgIDxyZWN0IHg9IjE1NjAiIHk9IjM2MCIgd2lkdGg9IjE4MCIgaGVpZ2h0PSIxOCIgcng9IjYiLz4KICAgICAgPC9nPgogICAgPC9zdmc+"
+      "dataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIwIDU0MCIgd2lkdGg9IjE5MjAiIGhlaWdodD0iNTQwIj4NCiAgICAgIDwhLS0gVuG7iWEgaMOoIGzDoXQgZ+G6oWNoIC0tPg0KICAgICAgPHJlY3QgeD0iMCIgeT0iODAiIHdpZHRoPSIxOTIwIiBoZWlnaHQ9IjEzMCIgZmlsbD0iIzMzNDE1NSIvPg0KICAgICAgPGxpbmUgeDE9IjAiIHkxPSIyMTAiIHgyPSIxOTIwIiB5Mj0iMjEwIiBzdHJva2U9IiM5NGEzYjgiIHN0cm9rZS13aWR0aD0iOCIvPg0KICAgICAgPCEtLSBMw7JuZyDEkcaw4budbmcgbmjhu7FhIC0tPg0KICAgICAgPHJlY3QgeD0iMCIgeT0iMjEwIiB3aWR0aD0iMTkyMCIgaGVpZ2h0PSIzMzAiIGZpbGw9IiMxZTI5M2IiLz4NCiAgICAgIDwhLS0gVuG6oWNoIGvhursgcGjDom4gbMOgbiBwaMOhdCBzw6FuZyAtLT4NCiAgICAgIDxnIGZpbGw9IiNmYWNjMTUiPg0KICAgICAgICA8cmVjdCB4PSIxMjAiIHk9IjM2MCIgd2lkdGg9IjE4MCIgaGVpZ2h0PSIxOCIgcng9IjYiLz4NCiAgICAgICAgPHJlY3QgeD0iNDgwIiB5PSIzNjAiIHdpZHRoPSIxODAiIGhlaWdodD0iMTgiIHJ4PSI2Ii8+DQogICAgICAgIDxyZWN0IHg9Ijg0MCIgeT0iMzYwIiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjE4IiByeD0iNiIvPg0KICAgICAgICA8cmVjdCB4PSIxMjAwIiB5PSIzNjAiIHdpZHRoPSIxODAiIGhlaWdodD0iMTgiIHJ4PSI2Ii8+DQogICAgICAgIDxyZWN0IHg9IjE1NjAiIHk9IjM2MCIgd2lkdGg9IjE4MCIgaGVpZ2h0PSIxOCIgcng9IjYiLz4NCiAgICAgIDwvZz4NCiAgICA8L3N2Zz4="
     },
     {
       "id": "asset-s3-lamp-tree",
@@ -4342,7 +4382,7 @@
       "height": 620,
       "path": "assets/scenes-v2/s3-street-lamp-tree.svg",
       "assetPath": "scenes-v2/s3-street-lamp-tree.svg",
-      "dataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MjAgNjIwIiB3aWR0aD0iNDIwIiBoZWlnaHQ9IjYyMCI+CiAgICAgIDxkZWZzPgogICAgICAgIDxyYWRpYWxHcmFkaWVudCBpZD0ic3RyZWV0R2xvdyIgY3g9IjAuNjUiIGN5PSIwLjIyIiByPSIwLjQ1Ij4KICAgICAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiMzOGJkZjgiIHN0b3Atb3BhY2l0eT0iMC45Ii8+CiAgICAgICAgICA8c3RvcCBvZmZzZXQ9IjUwJSIgc3RvcC1jb2xvcj0iIzM4YmRmOCIgc3RvcC1vcGFjaXR5PSIwLjI4Ii8+CiAgICAgICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiMzOGJkZjgiIHN0b3Atb3BhY2l0eT0iMCIvPgogICAgICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgICAgIDwvZGVmcz4KICAgICAgPGNpcmNsZSBjeD0iMjc1IiBjeT0iMTM1IiByPSIxNzUiIGZpbGw9InVybCgjc3RyZWV0R2xvdykiLz4KICAgICAgPCEtLSBDw6J5IHhhbmggduG7iWEgaMOoIC0tPgogICAgICA8cmVjdCB4PSIxMDUiIHk9IjM0MCIgd2lkdGg9IjM0IiBoZWlnaHQ9IjI0MCIgcng9IjgiIGZpbGw9IiM1YzJkMTYiLz4KICAgICAgPGNpcmNsZSBjeD0iMTIyIiBjeT0iMjcwIiByPSI4OCIgZmlsbD0iIzA2NWY0NiIvPgogICAgICA8Y2lyY2xlIGN4PSI5NSIgY3k9IjI0MCIgcj0iNjUiIGZpbGw9IiMxMGI5ODEiIG9wYWNpdHk9IjAuODUiLz4KICAgICAgPCEtLSBD4buZdCDEkcOobiDEkcaw4budbmcgY2FvIC0tPgogICAgICA8cmVjdCB4PSIyMTAiIHk9IjU2MCIgd2lkdGg9IjQ0IiBoZWlnaHQ9IjI0IiByeD0iNiIgZmlsbD0iIzQ3NTU2OSIvPgogICAgICA8cGF0aCBkPSJNMjMyLDU2MCBMMjMyLDEyNSBRMjMyLDg1IDI4MCw4NSBMMzE1LDg1IiBmaWxsPSJub25lIiBzdHJva2U9IiM5NGEzYjgiIHN0cm9rZS13aWR0aD0iMTQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogICAgICA8ZWxsaXBzZSBjeD0iMzA1IiBjeT0iOTYiIHJ4PSIzMiIgcnk9IjEyIiBmaWxsPSIjZTBmMmZlIiBzdHJva2U9IiMwMjg0YzciIHN0cm9rZS13aWR0aD0iNCIvPgogICAgPC9zdmc+"
+      "dataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MjAgNjIwIiB3aWR0aD0iNDIwIiBoZWlnaHQ9IjYyMCI+DQogICAgICA8ZGVmcz4NCiAgICAgICAgPHJhZGlhbEdyYWRpZW50IGlkPSJzdHJlZXRHbG93IiBjeD0iMC42NSIgY3k9IjAuMjIiIHI9IjAuNDUiPg0KICAgICAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiMzOGJkZjgiIHN0b3Atb3BhY2l0eT0iMC45Ii8+DQogICAgICAgICAgPHN0b3Agb2Zmc2V0PSI1MCUiIHN0b3AtY29sb3I9IiMzOGJkZjgiIHN0b3Atb3BhY2l0eT0iMC4yOCIvPg0KICAgICAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzM4YmRmOCIgc3RvcC1vcGFjaXR5PSIwIi8+DQogICAgICAgIDwvcmFkaWFsR3JhZGllbnQ+DQogICAgICA8L2RlZnM+DQogICAgICA8Y2lyY2xlIGN4PSIyNzUiIGN5PSIxMzUiIHI9IjE3NSIgZmlsbD0idXJsKCNzdHJlZXRHbG93KSIvPg0KICAgICAgPCEtLSBDw6J5IHhhbmggduG7iWEgaMOoIC0tPg0KICAgICAgPHJlY3QgeD0iMTA1IiB5PSIzNDAiIHdpZHRoPSIzNCIgaGVpZ2h0PSIyNDAiIHJ4PSI4IiBmaWxsPSIjNWMyZDE2Ii8+DQogICAgICA8Y2lyY2xlIGN4PSIxMjIiIGN5PSIyNzAiIHI9Ijg4IiBmaWxsPSIjMDY1ZjQ2Ii8+DQogICAgICA8Y2lyY2xlIGN4PSI5NSIgY3k9IjI0MCIgcj0iNjUiIGZpbGw9IiMxMGI5ODEiIG9wYWNpdHk9IjAuODUiLz4NCiAgICAgIDwhLS0gQ+G7mXQgxJHDqG4gxJHGsOG7nW5nIGNhbyAtLT4NCiAgICAgIDxyZWN0IHg9IjIxMCIgeT0iNTYwIiB3aWR0aD0iNDQiIGhlaWdodD0iMjQiIHJ4PSI2IiBmaWxsPSIjNDc1NTY5Ii8+DQogICAgICA8cGF0aCBkPSJNMjMyLDU2MCBMMjMyLDEyNSBRMjMyLDg1IDI4MCw4NSBMMzE1LDg1IiBmaWxsPSJub25lIiBzdHJva2U9IiM5NGEzYjgiIHN0cm9rZS13aWR0aD0iMTQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPg0KICAgICAgPGVsbGlwc2UgY3g9IjMwNSIgY3k9Ijk2IiByeD0iMzIiIHJ5PSIxMiIgZmlsbD0iI2UwZjJmZSIgc3Ryb2tlPSIjMDI4NGM3IiBzdHJva2Utd2lkdGg9IjQiLz4NCiAgICA8L3N2Zz4="
     },
     {
       "id": "asset-s3-crate",
@@ -4353,7 +4393,7 @@
       "height": 220,
       "path": "assets/scenes-v2/s3-street-crate.svg",
       "assetPath": "scenes-v2/s3-street-crate.svg",
-      "dataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNDAgMjIwIiB3aWR0aD0iMjQwIiBoZWlnaHQ9IjIyMCI+CiAgICAgIDxlbGxpcHNlIGN4PSIxMjAiIGN5PSIyMDIiIHJ4PSI4NSIgcnk9IjE0IiBmaWxsPSIjMGYxNzJhIiBvcGFjaXR5PSIwLjQ1Ii8+CiAgICAgIDwhLS0gVGjDuW5nIGfhu5cga2nhu4duIGjDoG5nIC0tPgogICAgICA8cmVjdCB4PSIzNCIgeT0iNzQiIHdpZHRoPSIxMjQiIGhlaWdodD0iMTI0IiByeD0iMTAiIGZpbGw9IiNkOTc3MDYiIHN0cm9rZT0iIzc4MzUwZiIgc3Ryb2tlLXdpZHRoPSI2Ii8+CiAgICAgIDxsaW5lIHgxPSIzNCIgeTE9Ijc0IiB4Mj0iMTU4IiB5Mj0iMTk4IiBzdHJva2U9IiM5MjQwMGUiIHN0cm9rZS13aWR0aD0iNiIvPgogICAgICA8bGluZSB4MT0iMTU4IiB5MT0iNzQiIHgyPSIzNCIgeTI9IjE5OCIgc3Ryb2tlPSIjOTI0MDBlIiBzdHJva2Utd2lkdGg9IjYiLz4KICAgICAgPCEtLSBDaMOzcCBuw7NuIGdpYW8gdGjDtG5nIHBo4bqjbiBxdWFuZyAtLT4KICAgICAgPHBvbHlnb24gcG9pbnRzPSIxNTAsMTk4IDIxNiwxOTggMTkyLDkyIDE3NCw5MiIgZmlsbD0iI2Y5NzMxNiIgc3Ryb2tlPSIjYzI0MTBjIiBzdHJva2Utd2lkdGg9IjQiLz4KICAgICAgPHBvbHlnb24gcG9pbnRzPSIxNjQsMTUyIDIwMiwxNTIgMTk3LDEyOCAxNjksMTI4IiBmaWxsPSIjZjhmYWZjIi8+CiAgICA8L3N2Zz4="
+      "dataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNDAgMjIwIiB3aWR0aD0iMjQwIiBoZWlnaHQ9IjIyMCI+DQogICAgICA8ZWxsaXBzZSBjeD0iMTIwIiBjeT0iMjAyIiByeD0iODUiIHJ5PSIxNCIgZmlsbD0iIzBmMTcyYSIgb3BhY2l0eT0iMC40NSIvPg0KICAgICAgPCEtLSBUaMO5bmcgZ+G7lyBraeG7h24gaMOgbmcgLS0+DQogICAgICA8cmVjdCB4PSIzNCIgeT0iNzQiIHdpZHRoPSIxMjQiIGhlaWdodD0iMTI0IiByeD0iMTAiIGZpbGw9IiNkOTc3MDYiIHN0cm9rZT0iIzc4MzUwZiIgc3Ryb2tlLXdpZHRoPSI2Ii8+DQogICAgICA8bGluZSB4MT0iMzQiIHkxPSI3NCIgeDI9IjE1OCIgeTI9IjE5OCIgc3Ryb2tlPSIjOTI0MDBlIiBzdHJva2Utd2lkdGg9IjYiLz4NCiAgICAgIDxsaW5lIHgxPSIxNTgiIHkxPSI3NCIgeDI9IjM0IiB5Mj0iMTk4IiBzdHJva2U9IiM5MjQwMGUiIHN0cm9rZS13aWR0aD0iNiIvPg0KICAgICAgPCEtLSBDaMOzcCBuw7NuIGdpYW8gdGjDtG5nIHBo4bqjbiBxdWFuZyAtLT4NCiAgICAgIDxwb2x5Z29uIHBvaW50cz0iMTUwLDE5OCAyMTYsMTk4IDE5Miw5MiAxNzQsOTIiIGZpbGw9IiNmOTczMTYiIHN0cm9rZT0iI2MyNDEwYyIgc3Ryb2tlLXdpZHRoPSI0Ii8+DQogICAgICA8cG9seWdvbiBwb2ludHM9IjE2NCwxNTIgMjAyLDE1MiAxOTcsMTI4IDE2OSwxMjgiIGZpbGw9IiNmOGZhZmMiLz4NCiAgICA8L3N2Zz4="
     },
     {
       "id": "asset-s3-scooter",
@@ -4364,7 +4404,7 @@
       "height": 320,
       "path": "assets/scenes-v2/s3-scooter-rider.svg",
       "assetPath": "scenes-v2/s3-scooter-rider.svg",
-      "dataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMDAgMzIwIiB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMyMCI+CiAgICAgIDxlbGxpcHNlIGN4PSIxNTAiIGN5PSIyOTgiIHJ4PSI5NSIgcnk9IjE0IiBmaWxsPSIjMGYxNzJhIiBvcGFjaXR5PSIwLjQiLz4KICAgICAgPCEtLSBCw6FuaCB4ZSBTY29vdGVyIHBow6F0IHPDoW5nIE5lb24gLS0+CiAgICAgIDxjaXJjbGUgY3g9Ijc4IiBjeT0iMjY4IiByPSIyOCIgZmlsbD0iIzBmMTcyYSIgc3Ryb2tlPSIjMjJkM2VlIiBzdHJva2Utd2lkdGg9IjciLz4KICAgICAgPGNpcmNsZSBjeD0iMjIyIiBjeT0iMjY4IiByPSIyOCIgZmlsbD0iIzBmMTcyYSIgc3Ryb2tlPSIjMjJkM2VlIiBzdHJva2Utd2lkdGg9IjciLz4KICAgICAgPCEtLSBLaHVuZyB4ZSBTY29vdGVyIC0tPgogICAgICA8cGF0aCBkPSJNNzgsMjY4IEwxOTUsMjY4IEwyMjgsMTMyIEwyMDIsMTI2IiBmaWxsPSJub25lIiBzdHJva2U9IiNmNDNmNWUiIHN0cm9rZS13aWR0aD0iMTQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgogICAgICA8IS0tIMSQw6huIHBoYSB0csaw4bubYyAtLT4KICAgICAgPGNpcmNsZSBjeD0iMjMyIiBjeT0iMTQ4IiByPSIxMCIgZmlsbD0iI2ZlZjA4YSIvPgogICAgICA8IS0tIE5ow6JuIHbhuq10IMSR4buZaSBtxakgYuG6o28gaGnhu4NtIC0tPgogICAgICA8cmVjdCB4PSIxMTIiIHk9IjEyOCIgd2lkdGg9IjU2IiBoZWlnaHQ9IjkyIiByeD0iMjAiIGZpbGw9IiM4YjVjZjYiIHN0cm9rZT0iIzViMjFiNiIgc3Ryb2tlLXdpZHRoPSI0Ii8+CiAgICAgIDxsaW5lIHgxPSIxNTYiIHkxPSIxNTAiIHgyPSIyMTYiIHkyPSIxMzIiIHN0cm9rZT0iI2M0YjVmZCIgc3Ryb2tlLXdpZHRoPSIxNCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgICAgIDxsaW5lIHgxPSIxMzIiIHkxPSIyMTUiIHgyPSIxMzgiIHkyPSIyNjIiIHN0cm9rZT0iIzFlMjkzYiIgc3Ryb2tlLXdpZHRoPSIxNiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgICAgIDxjaXJjbGUgY3g9IjE0NCIgY3k9IjkyIiByPSIzNCIgZmlsbD0iIzM4YmRmOCIgc3Ryb2tlPSIjMDI4NGM3IiBzdHJva2Utd2lkdGg9IjQiLz4KICAgICAgPHBhdGggZD0iTTE0OCw3OCBMMTc4LDc4IFExODIsOTIgMTc0LDEwMiBMMTQ4LDEwMiBaIiBmaWxsPSIjMGYxNzJhIi8+CiAgICA8L3N2Zz4="
+      "dataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMDAgMzIwIiB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMyMCI+DQogICAgICA8ZWxsaXBzZSBjeD0iMTUwIiBjeT0iMjk4IiByeD0iOTUiIHJ5PSIxNCIgZmlsbD0iIzBmMTcyYSIgb3BhY2l0eT0iMC40Ii8+DQogICAgICA8IS0tIELDoW5oIHhlIFNjb290ZXIgcGjDoXQgc8OhbmcgTmVvbiAtLT4NCiAgICAgIDxjaXJjbGUgY3g9Ijc4IiBjeT0iMjY4IiByPSIyOCIgZmlsbD0iIzBmMTcyYSIgc3Ryb2tlPSIjMjJkM2VlIiBzdHJva2Utd2lkdGg9IjciLz4NCiAgICAgIDxjaXJjbGUgY3g9IjIyMiIgY3k9IjI2OCIgcj0iMjgiIGZpbGw9IiMwZjE3MmEiIHN0cm9rZT0iIzIyZDNlZSIgc3Ryb2tlLXdpZHRoPSI3Ii8+DQogICAgICA8IS0tIEtodW5nIHhlIFNjb290ZXIgLS0+DQogICAgICA8cGF0aCBkPSJNNzgsMjY4IEwxOTUsMjY4IEwyMjgsMTMyIEwyMDIsMTI2IiBmaWxsPSJub25lIiBzdHJva2U9IiNmNDNmNWUiIHN0cm9rZS13aWR0aD0iMTQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPg0KICAgICAgPCEtLSDEkMOobiBwaGEgdHLGsOG7m2MgLS0+DQogICAgICA8Y2lyY2xlIGN4PSIyMzIiIGN5PSIxNDgiIHI9IjEwIiBmaWxsPSIjZmVmMDhhIi8+DQogICAgICA8IS0tIE5ow6JuIHbhuq10IMSR4buZaSBtxakgYuG6o28gaGnhu4NtIC0tPg0KICAgICAgPHJlY3QgeD0iMTEyIiB5PSIxMjgiIHdpZHRoPSI1NiIgaGVpZ2h0PSI5MiIgcng9IjIwIiBmaWxsPSIjOGI1Y2Y2IiBzdHJva2U9IiM1YjIxYjYiIHN0cm9rZS13aWR0aD0iNCIvPg0KICAgICAgPGxpbmUgeDE9IjE1NiIgeTE9IjE1MCIgeDI9IjIxNiIgeTI9IjEzMiIgc3Ryb2tlPSIjYzRiNWZkIiBzdHJva2Utd2lkdGg9IjE0IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4NCiAgICAgIDxsaW5lIHgxPSIxMzIiIHkxPSIyMTUiIHgyPSIxMzgiIHkyPSIyNjIiIHN0cm9rZT0iIzFlMjkzYiIgc3Ryb2tlLXdpZHRoPSIxNiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+DQogICAgICA8Y2lyY2xlIGN4PSIxNDQiIGN5PSI5MiIgcj0iMzQiIGZpbGw9IiMzOGJkZjgiIHN0cm9rZT0iIzAyODRjNyIgc3Ryb2tlLXdpZHRoPSI0Ii8+DQogICAgICA8cGF0aCBkPSJNMTQ4LDc4IEwxNzgsNzggUTE4Miw5MiAxNzQsMTAyIEwxNDgsMTAyIFoiIGZpbGw9IiMwZjE3MmEiLz4NCiAgICA8L3N2Zz4="
     }
   ],
   "audio": null,
@@ -4406,13 +4446,13 @@
         },
         "preset": "cinematic_fly_push",
         "aiAgentRole": "CameraDirectorAgent",
-        "aiDirective": "Camera quay cảnh \"Cánh Đồng Gió Mùa\" gồm 2 mốc lộ trình trong [0s – 5s].",
+        "aiDirective": "Camera quay cảnh \"Cánh Đồng Gió Mùa\" gồm 3 mốc lộ trình trong [0s – 5s].",
         "params": {
           "shotId": "shot-1",
           "logicCategory": "camera",
           "camPreset": "dollyIn",
           "enableDof": false,
-          "childLayerCount": 2,
+          "childLayerCount": 3,
           "timeStart": 0,
           "timeEnd": 5,
           "hierarchyParentNodeId": "v2-root-shot-1"
@@ -4466,7 +4506,7 @@
         },
         "preset": "cinematic_fly_push",
         "aiAgentRole": "CameraDirectorAgent",
-        "aiDirective": "Cảnh con #2 (Đẩy cận (114%), Zoom 114%) thuộc \"Cánh Đồng Gió Mùa\" [2.2s – 5s].",
+        "aiDirective": "Cảnh con #2 (Đẩy cận (114%), Zoom 114%) thuộc \"Cánh Đồng Gió Mùa\" [2.2s – 4s].",
         "params": {
           "shotId": "shot-1",
           "logicCategory": "camera",
@@ -4485,9 +4525,46 @@
           "camYaw": 0,
           "camPitch": 0,
           "camRoll": 0,
-          "camEase": "easeInOut",
-          "camStepDuration": 2.8,
+          "camEase": "hold",
+          "camStepDuration": 1.8,
           "timeStart": 2.2,
+          "timeEnd": 4,
+          "hierarchyParentNodeId": "v2-camera-shot-1"
+        }
+      },
+      {
+        "id": "v2-cam-wp-shot-1-2",
+        "type": "camera_director",
+        "title": "#3 · Cắt cảnh tức thì",
+        "enabled": true,
+        "position": {
+          "x": 48,
+          "y": 472
+        },
+        "preset": "cinematic_fly_push",
+        "aiAgentRole": "CameraDirectorAgent",
+        "aiDirective": "Cảnh con #3 (Cắt cảnh tức thì, Zoom 114%) thuộc \"Cánh Đồng Gió Mùa\" [4s – 5s].",
+        "params": {
+          "shotId": "shot-1",
+          "logicCategory": "camera",
+          "isCameraWaypoint": true,
+          "waypointIndex": 2,
+          "waypointLocalIndex": 2,
+          "waypointLabel": "3",
+          "isSubWaypoint": false,
+          "isFirstOfShot": false,
+          "camActionMode": "cut",
+          "camTagLabel": "Cắt cảnh tức thì",
+          "camZoomPct": 114,
+          "camStageX": 60,
+          "camStageY": 15,
+          "camScale": 0.8800013010420433,
+          "camYaw": 0,
+          "camPitch": 0,
+          "camRoll": 0,
+          "camEase": "easeInOut",
+          "camStepDuration": 1,
+          "timeStart": 4,
           "timeEnd": 5,
           "hierarchyParentNodeId": "v2-camera-shot-1"
         }
@@ -4929,13 +5006,13 @@
         },
         "preset": "cinematic_fly_push",
         "aiAgentRole": "CameraDirectorAgent",
-        "aiDirective": "Camera quay cảnh \"Phòng Khách Ấm Áp\" gồm 2 mốc lộ trình trong [4.1s – 10s].",
+        "aiDirective": "Camera quay cảnh \"Phòng Khách Ấm Áp\" gồm 3 mốc lộ trình trong [4.1s – 10s].",
         "params": {
           "shotId": "shot-2",
           "logicCategory": "camera",
           "camPreset": "dollyIn",
           "enableDof": false,
-          "childLayerCount": 2,
+          "childLayerCount": 3,
           "timeStart": 4.1,
           "timeEnd": 10,
           "hierarchyParentNodeId": "v2-root-shot-2"
@@ -4944,7 +5021,7 @@
       {
         "id": "v2-cam-wp-shot-2-0",
         "type": "camera_director",
-        "title": "#3 · Kéo rộng (100%)",
+        "title": "#4 · Kéo rộng (100%)",
         "enabled": true,
         "position": {
           "x": 48,
@@ -4952,14 +5029,14 @@
         },
         "preset": "cinematic_fly_push",
         "aiAgentRole": "CameraDirectorAgent",
-        "aiDirective": "Cảnh con #3 (Kéo rộng (100%), Zoom 100%) thuộc \"Phòng Khách Ấm Áp\" [5s – 7.2s].",
+        "aiDirective": "Cảnh con #4 (Kéo rộng (100%), Zoom 100%) thuộc \"Phòng Khách Ấm Áp\" [5s – 7.2s].",
         "params": {
           "shotId": "shot-2",
           "logicCategory": "camera",
           "isCameraWaypoint": true,
-          "waypointIndex": 2,
+          "waypointIndex": 3,
           "waypointLocalIndex": 0,
-          "waypointLabel": "3",
+          "waypointLabel": "4",
           "isSubWaypoint": false,
           "isFirstOfShot": true,
           "camActionMode": "pull-out",
@@ -4981,7 +5058,7 @@
       {
         "id": "v2-cam-wp-shot-2-1",
         "type": "camera_director",
-        "title": "#4 · Đẩy cận (114%)",
+        "title": "#5 · Đẩy cận (114%)",
         "enabled": true,
         "position": {
           "x": 48,
@@ -4989,14 +5066,14 @@
         },
         "preset": "cinematic_fly_push",
         "aiAgentRole": "CameraDirectorAgent",
-        "aiDirective": "Cảnh con #4 (Đẩy cận (114%), Zoom 114%) thuộc \"Phòng Khách Ấm Áp\" [7.2s – 10s].",
+        "aiDirective": "Cảnh con #5 (Đẩy cận (114%), Zoom 114%) thuộc \"Phòng Khách Ấm Áp\" [7.2s – 9s].",
         "params": {
           "shotId": "shot-2",
           "logicCategory": "camera",
           "isCameraWaypoint": true,
-          "waypointIndex": 3,
+          "waypointIndex": 4,
           "waypointLocalIndex": 1,
-          "waypointLabel": "4",
+          "waypointLabel": "5",
           "isSubWaypoint": false,
           "isFirstOfShot": false,
           "camActionMode": "push-in",
@@ -5008,9 +5085,46 @@
           "camYaw": 0,
           "camPitch": 0,
           "camRoll": 0,
-          "camEase": "easeInOut",
-          "camStepDuration": 2.8,
+          "camEase": "hold",
+          "camStepDuration": 1.8,
           "timeStart": 7.2,
+          "timeEnd": 9,
+          "hierarchyParentNodeId": "v2-camera-shot-2"
+        }
+      },
+      {
+        "id": "v2-cam-wp-shot-2-2",
+        "type": "camera_director",
+        "title": "#6 · Cắt cảnh tức thì",
+        "enabled": true,
+        "position": {
+          "x": 48,
+          "y": 1670
+        },
+        "preset": "cinematic_fly_push",
+        "aiAgentRole": "CameraDirectorAgent",
+        "aiDirective": "Cảnh con #6 (Cắt cảnh tức thì, Zoom 114%) thuộc \"Phòng Khách Ấm Áp\" [9s – 10s].",
+        "params": {
+          "shotId": "shot-2",
+          "logicCategory": "camera",
+          "isCameraWaypoint": true,
+          "waypointIndex": 5,
+          "waypointLocalIndex": 2,
+          "waypointLabel": "6",
+          "isSubWaypoint": false,
+          "isFirstOfShot": false,
+          "camActionMode": "cut",
+          "camTagLabel": "Cắt cảnh tức thì",
+          "camZoomPct": 114,
+          "camStageX": 2533,
+          "camStageY": 20,
+          "camScale": 0.8800013010420433,
+          "camYaw": 0,
+          "camPitch": 0,
+          "camRoll": 0,
+          "camEase": "easeInOut",
+          "camStepDuration": 1,
+          "timeStart": 9,
           "timeEnd": 10,
           "hierarchyParentNodeId": "v2-camera-shot-2"
         }
@@ -5039,7 +5153,7 @@
             "layer-s2-robo-face-talk",
             "layer-s2-tea-tray"
           ],
-          "timeStart": 5,
+          "timeStart": 4,
           "timeEnd": 10,
           "hierarchyParentNodeId": "v2-root-shot-2"
         }
@@ -5055,7 +5169,7 @@
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
-        "aiDirective": "Layer \"Mèo Máy Quản Gia — Thân Máy\" hoạt động từ 5s đến 10s.",
+        "aiDirective": "Layer \"Mèo Máy Quản Gia — Thân Máy\" hoạt động từ 4s đến 10s.",
         "params": {
           "shotId": "shot-2",
           "targetMode": "custom",
@@ -5072,7 +5186,7 @@
           "transformX": -350,
           "transformY": -115,
           "transformZ": 160,
-          "timeStart": 5,
+          "timeStart": 4,
           "timeEnd": 10,
           "hierarchyParentNodeId": "v2-group-3d-shot-2"
         }
@@ -5088,7 +5202,7 @@
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
-        "aiDirective": "Layer \"Màn Hình Mặt — Mắt Cười\" hoạt động từ 5s đến 10s.",
+        "aiDirective": "Layer \"Màn Hình Mặt — Mắt Cười\" hoạt động từ 4s đến 10s.",
         "params": {
           "shotId": "shot-2",
           "targetMode": "custom",
@@ -5104,7 +5218,7 @@
           "transformX": -350,
           "transformY": -13,
           "transformZ": 156,
-          "timeStart": 5,
+          "timeStart": 4,
           "timeEnd": 10,
           "hierarchyParentNodeId": "v2-group-3d-shot-2"
         }
@@ -5120,7 +5234,7 @@
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
-        "aiDirective": "Layer \"Màn Hình Mặt — Đang Nói\" hoạt động từ 5s đến 10s.",
+        "aiDirective": "Layer \"Màn Hình Mặt — Đang Nói\" hoạt động từ 4s đến 10s.",
         "params": {
           "shotId": "shot-2",
           "targetMode": "custom",
@@ -5136,7 +5250,7 @@
           "transformX": -350,
           "transformY": -13,
           "transformZ": 156,
-          "timeStart": 5,
+          "timeStart": 4,
           "timeEnd": 10,
           "hierarchyParentNodeId": "v2-group-3d-shot-2"
         }
@@ -5152,7 +5266,7 @@
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
-        "aiDirective": "Layer \"Khay Trà Nóng (Đạo Cụ)\" hoạt động từ 5s đến 10s.",
+        "aiDirective": "Layer \"Khay Trà Nóng (Đạo Cụ)\" hoạt động từ 4s đến 10s.",
         "params": {
           "shotId": "shot-2",
           "targetMode": "custom",
@@ -5168,7 +5282,7 @@
           "transformX": -262,
           "transformY": -103,
           "transformZ": 152,
-          "timeStart": 5,
+          "timeStart": 4,
           "timeEnd": 10,
           "hierarchyParentNodeId": "v2-group-3d-shot-2"
         }
@@ -5212,7 +5326,7 @@
           "transformY": -115,
           "transformZ": 160,
           "clusterScalePct": 90,
-          "timeStart": 5,
+          "timeStart": 4,
           "timeEnd": 10,
           "hierarchyParentNodeId": "v2-layer-layer-s2-robo-body"
         }
@@ -5240,7 +5354,7 @@
             "layer-s2-bookshelf",
             "layer-s2-wall"
           ],
-          "timeStart": 5,
+          "timeStart": 4,
           "timeEnd": 10,
           "hierarchyParentNodeId": "v2-root-shot-2"
         }
@@ -5256,7 +5370,7 @@
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
-        "aiDirective": "Layer \"Bàn Trà & Đèn Bàn Ấm Áp\" hoạt động từ 5s đến 10s.",
+        "aiDirective": "Layer \"Bàn Trà & Đèn Bàn Ấm Áp\" hoạt động từ 4s đến 10s.",
         "params": {
           "shotId": "shot-2",
           "targetMode": "custom",
@@ -5268,7 +5382,7 @@
           "transformX": 220,
           "transformY": -115,
           "transformZ": 220,
-          "timeStart": 5,
+          "timeStart": 4,
           "timeEnd": 10,
           "hierarchyParentNodeId": "v2-group-25d-shot-2"
         }
@@ -5284,7 +5398,7 @@
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
-        "aiDirective": "Layer \"Kệ Sách Gỗ & Ghế Sofa\" hoạt động từ 5s đến 10s.",
+        "aiDirective": "Layer \"Kệ Sách Gỗ & Ghế Sofa\" hoạt động từ 4s đến 10s.",
         "params": {
           "shotId": "shot-2",
           "targetMode": "custom",
@@ -5296,7 +5410,7 @@
           "transformX": -40,
           "transformY": -65,
           "transformZ": 480,
-          "timeStart": 5,
+          "timeStart": 4,
           "timeEnd": 10,
           "hierarchyParentNodeId": "v2-group-25d-shot-2"
         }
@@ -5312,7 +5426,7 @@
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
-        "aiDirective": "Layer \"Tường Gỗ & Cửa Sổ Đêm Trăng\" hoạt động từ 5s đến 10s.",
+        "aiDirective": "Layer \"Tường Gỗ & Cửa Sổ Đêm Trăng\" hoạt động từ 4s đến 10s.",
         "params": {
           "shotId": "shot-2",
           "targetMode": "custom",
@@ -5324,7 +5438,7 @@
           "transformX": 0,
           "transformY": 0,
           "transformZ": 950,
-          "timeStart": 5,
+          "timeStart": 4,
           "timeEnd": 10,
           "hierarchyParentNodeId": "v2-group-25d-shot-2"
         }
@@ -5374,7 +5488,7 @@
       {
         "id": "v2-cam-wp-shot-3-0",
         "type": "camera_director",
-        "title": "#5 · Kéo rộng (100%)",
+        "title": "#7 · Kéo rộng (100%)",
         "enabled": true,
         "position": {
           "x": 48,
@@ -5382,14 +5496,14 @@
         },
         "preset": "cinematic_fly_push",
         "aiAgentRole": "CameraDirectorAgent",
-        "aiDirective": "Cảnh con #5 (Kéo rộng (100%), Zoom 100%) thuộc \"Phố Đêm Đèn Đường\" [10s – 12.4s].",
+        "aiDirective": "Cảnh con #7 (Kéo rộng (100%), Zoom 100%) thuộc \"Phố Đêm Đèn Đường\" [10s – 12.4s].",
         "params": {
           "shotId": "shot-3",
           "logicCategory": "camera",
           "isCameraWaypoint": true,
-          "waypointIndex": 4,
+          "waypointIndex": 6,
           "waypointLocalIndex": 0,
-          "waypointLabel": "5",
+          "waypointLabel": "7",
           "isSubWaypoint": false,
           "isFirstOfShot": true,
           "camActionMode": "pull-out",
@@ -5411,7 +5525,7 @@
       {
         "id": "v2-cam-wp-shot-3-1",
         "type": "camera_director",
-        "title": "#6 · Dừng ngắm (+2.4s)",
+        "title": "#8 · Dừng ngắm (+2.6s)",
         "enabled": true,
         "position": {
           "x": 48,
@@ -5419,18 +5533,18 @@
         },
         "preset": "cinematic_fly_push",
         "aiAgentRole": "CameraDirectorAgent",
-        "aiDirective": "Cảnh con #6 (Dừng ngắm (+2.4s), Zoom 110%) thuộc \"Phố Đêm Đèn Đường\" [12.4s – 14.8s].",
+        "aiDirective": "Cảnh con #8 (Dừng ngắm (+2.6s), Zoom 110%) thuộc \"Phố Đêm Đèn Đường\" [12.4s – 15s].",
         "params": {
           "shotId": "shot-3",
           "logicCategory": "camera",
           "isCameraWaypoint": true,
-          "waypointIndex": 5,
+          "waypointIndex": 7,
           "waypointLocalIndex": 1,
-          "waypointLabel": "6",
+          "waypointLabel": "8",
           "isSubWaypoint": false,
           "isFirstOfShot": false,
           "camActionMode": "hold",
-          "camTagLabel": "Dừng ngắm (+2.4s)",
+          "camTagLabel": "Dừng ngắm (+2.6s)",
           "camZoomPct": 110,
           "camStageX": 4971,
           "camStageY": 15,
@@ -5439,16 +5553,16 @@
           "camPitch": 0,
           "camRoll": 0,
           "camEase": "easeInOut",
-          "camStepDuration": 2.4,
+          "camStepDuration": 2.6,
           "timeStart": 12.4,
-          "timeEnd": 14.8,
+          "timeEnd": 15,
           "hierarchyParentNodeId": "v2-camera-shot-3"
         }
       },
       {
         "id": "v2-cam-wp-shot-3-2",
         "type": "camera_director",
-        "title": "#7 · Dừng ngắm (+2.5s)",
+        "title": "#9 · Dừng ngắm (+2.5s)",
         "enabled": true,
         "position": {
           "x": 48,
@@ -5456,14 +5570,14 @@
         },
         "preset": "cinematic_fly_push",
         "aiAgentRole": "CameraDirectorAgent",
-        "aiDirective": "Cảnh con #7 (Dừng ngắm (+2.5s), Zoom 118%) thuộc \"Phố Đêm Đèn Đường\" [14.8s – 15s].",
+        "aiDirective": "Cảnh con #9 (Dừng ngắm (+2.5s), Zoom 118%) thuộc \"Phố Đêm Đèn Đường\" [15s – 15s].",
         "params": {
           "shotId": "shot-3",
           "logicCategory": "camera",
           "isCameraWaypoint": true,
-          "waypointIndex": 6,
+          "waypointIndex": 8,
           "waypointLocalIndex": 2,
-          "waypointLabel": "7",
+          "waypointLabel": "9",
           "isSubWaypoint": false,
           "isFirstOfShot": false,
           "camActionMode": "hold",
@@ -5476,8 +5590,8 @@
           "camPitch": 0,
           "camRoll": 0,
           "camEase": "easeInOut",
-          "camStepDuration": 0.2,
-          "timeStart": 14.8,
+          "camStepDuration": 0,
+          "timeStart": 15,
           "timeEnd": 15,
           "hierarchyParentNodeId": "v2-camera-shot-3"
         }
@@ -5507,7 +5621,7 @@
             "layer-s3-street-road",
             "layer-s3-city-sky"
           ],
-          "timeStart": 10,
+          "timeStart": 9,
           "timeEnd": 15,
           "hierarchyParentNodeId": "v2-root-shot-3"
         }
@@ -5523,7 +5637,7 @@
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
-        "aiDirective": "Layer \"Thùng Hàng & Biển Báo Vỉa Hè\" hoạt động từ 10s đến 15s.",
+        "aiDirective": "Layer \"Thùng Hàng & Biển Báo Vỉa Hè\" hoạt động từ 9s đến 15s.",
         "params": {
           "shotId": "shot-3",
           "targetMode": "custom",
@@ -5535,7 +5649,7 @@
           "transformX": 110,
           "transformY": -145,
           "transformZ": 170,
-          "timeStart": 10,
+          "timeStart": 9,
           "timeEnd": 15,
           "hierarchyParentNodeId": "v2-group-25d-shot-3"
         }
@@ -5547,11 +5661,11 @@
         "enabled": true,
         "position": {
           "x": 760,
-          "y": 2222
+          "y": 2304
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
-        "aiDirective": "Layer \"Cột Đèn Đường Neon & Cây Vỉa Hè\" hoạt động từ 10s đến 15s.",
+        "aiDirective": "Layer \"Cột Đèn Đường Neon & Cây Vỉa Hè\" hoạt động từ 9s đến 15s.",
         "params": {
           "shotId": "shot-3",
           "targetMode": "custom",
@@ -5563,7 +5677,7 @@
           "transformX": -45,
           "transformY": -15,
           "transformZ": 250,
-          "timeStart": 10,
+          "timeStart": 9,
           "timeEnd": 15,
           "hierarchyParentNodeId": "v2-group-25d-shot-3"
         }
@@ -5575,11 +5689,11 @@
         "enabled": true,
         "position": {
           "x": 760,
-          "y": 2316
+          "y": 2398
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
-        "aiDirective": "Layer \"Tay Đua Scooter Điện\" hoạt động từ 10s đến 15s.",
+        "aiDirective": "Layer \"Tay Đua Scooter Điện\" hoạt động từ 9s đến 15s.",
         "params": {
           "shotId": "shot-3",
           "targetMode": "custom",
@@ -5591,7 +5705,7 @@
           "transformX": -380,
           "transformY": -135,
           "transformZ": 310,
-          "timeStart": 10,
+          "timeStart": 9,
           "timeEnd": 15,
           "hierarchyParentNodeId": "v2-group-25d-shot-3"
         }
@@ -5607,7 +5721,7 @@
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
-        "aiDirective": "Layer \"Mặt Đường Nhựa & Vỉa Hè\" hoạt động từ 10s đến 15s.",
+        "aiDirective": "Layer \"Mặt Đường Nhựa & Vỉa Hè\" hoạt động từ 9s đến 15s.",
         "params": {
           "shotId": "shot-3",
           "targetMode": "custom",
@@ -5619,7 +5733,7 @@
           "transformX": 0,
           "transformY": -185,
           "transformZ": 520,
-          "timeStart": 10,
+          "timeStart": 9,
           "timeEnd": 15,
           "hierarchyParentNodeId": "v2-group-25d-shot-3"
         }
@@ -5635,7 +5749,7 @@
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
-        "aiDirective": "Layer \"Bầu Trời Phố Đêm & Tòa Nhà Xa\" hoạt động từ 10s đến 15s.",
+        "aiDirective": "Layer \"Bầu Trời Phố Đêm & Tòa Nhà Xa\" hoạt động từ 9s đến 15s.",
         "params": {
           "shotId": "shot-3",
           "targetMode": "custom",
@@ -5647,7 +5761,7 @@
           "transformX": 0,
           "transformY": 0,
           "transformZ": 1150,
-          "timeStart": 10,
+          "timeStart": 9,
           "timeEnd": 15,
           "hierarchyParentNodeId": "v2-group-25d-shot-3"
         }
@@ -6082,7 +6196,7 @@
             "v2-layer-layer-s2-lamp-table"
           ],
           "requireLayerConnection": true,
-          "timeStart": 5,
+          "timeStart": 4,
           "timeEnd": 10,
           "hierarchyParentNodeId": "v2-layer-layer-s2-lamp-table",
           "lightMode": "candle",
@@ -6097,7 +6211,7 @@
         "enabled": true,
         "position": {
           "x": 1116,
-          "y": 2222
+          "y": 2304
         },
         "preset": "rim_glow_particles",
         "aiAgentRole": "PhysicsLightFxAgent",
@@ -6113,7 +6227,7 @@
             "v2-layer-layer-s3-lamp-tree"
           ],
           "requireLayerConnection": true,
-          "timeStart": 10,
+          "timeStart": 9,
           "timeEnd": 15,
           "hierarchyParentNodeId": "v2-layer-layer-s3-lamp-tree",
           "lightMode": "spot",
@@ -6161,7 +6275,7 @@
         "enabled": true,
         "position": {
           "x": 1116,
-          "y": 2316
+          "y": 2398
         },
         "preset": "organic_wind_breathe",
         "aiAgentRole": "MotionChoreographyAgent",
@@ -6204,7 +6318,7 @@
         "enabled": true,
         "position": {
           "x": 1116,
-          "y": 2398
+          "y": 2210
         },
         "preset": "rim_glow_particles",
         "aiAgentRole": "PhysicsLightFxAgent",
@@ -6254,6 +6368,13 @@
         "fromNode": "v2-cam-wp-shot-1-0",
         "fromPort": "camera_cut",
         "toNode": "v2-cam-wp-shot-1-1",
+        "toPort": "camera_cut"
+      },
+      {
+        "id": "e-v2-cam-wp-shot-1-1-v2-cam-wp-shot-1-2",
+        "fromNode": "v2-cam-wp-shot-1-1",
+        "fromPort": "camera_cut",
+        "toNode": "v2-cam-wp-shot-1-2",
         "toPort": "camera_cut"
       },
       {
@@ -6394,6 +6515,13 @@
         "fromNode": "v2-cam-wp-shot-2-0",
         "fromPort": "camera_cut",
         "toNode": "v2-cam-wp-shot-2-1",
+        "toPort": "camera_cut"
+      },
+      {
+        "id": "e-v2-cam-wp-shot-2-1-v2-cam-wp-shot-2-2",
+        "fromNode": "v2-cam-wp-shot-2-1",
+        "fromPort": "camera_cut",
+        "toNode": "v2-cam-wp-shot-2-2",
         "toPort": "camera_cut"
       },
       {

@@ -28,6 +28,7 @@ function carryUserState(node: WorkflowNode, prev: WorkflowNode | undefined, lega
   const src = prev ?? (isParentCam ? legacyCamera : undefined)
   if (!src) return node
   const params = { ...node.params }
+  if (src.params?.localTimeRange) params.localTimeRange = src.params.localTimeRange
   if (src.params?.collapsedGroup !== undefined && (node.params?.groupKind || isParentCam)) {
     params.collapsedGroup = src.params.collapsedGroup
   }
@@ -115,7 +116,9 @@ export function syncWorkflowV2Graph(project: Project, previous?: WorkflowGraph |
   )
   const derived = derivePhysicsLogic(project, derivedEffects.nodes, derivedEffects.edges)
   let nodes = recomputeSharedLogicTargets(derived.nodes, derived.edges)
-  const edges = derived.edges
+  const nodeIds = new Set(nodes.map(n => n.id))
+  const timingEdges = (prev?.edges ?? []).filter(e => e.fromPort === 'time_range' && nodeIds.has(e.fromNode) && nodeIds.has(e.toNode))
+  const edges = [...derived.edges.filter(e => e.fromPort !== 'time_range'), ...timingEdges]
   if (opts.resetPins) nodes = nodes.map((n) => (n.params?.pinned ? { ...n, params: { ...n.params, pinned: undefined } } : n))
   if (!prev || opts.relayout || signature(nodes, edges) !== signature(prev.nodes, prev.edges)) {
     nodes = layoutWorkflowV2Tree(nodes, edges)

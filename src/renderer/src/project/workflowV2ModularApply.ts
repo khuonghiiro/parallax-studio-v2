@@ -1,3 +1,4 @@
+import { syncWorkflowV2NodeToProject } from './workflowV2Mutations'
 import type { Project, Vec3, WorkflowEdge, WorkflowGraph, WorkflowNode } from '@shared/types'
 import { createShot, shotSpacing } from './factory'
 import {
@@ -126,7 +127,17 @@ export function applyMainWorkflowJson(project: Project, main: WorkflowMainJson):
     }
   }
 
+  if (main.sharedTiming) {
+    const timing = main.sharedTiming
+    wf.nodes = [...wf.nodes.filter(n => n.params?.logicCategory !== 'time'), ...structuredClone(timing.nodes)]
+    for (const consumer of timing.consumers ?? []) {
+      const node = wf.nodes.find(n => n.id === consumer.id)
+      if (node && consumer.params?.localTimeRange) node.params = { ...node.params, localTimeRange: consumer.params.localTimeRange }
+    }
+    wf.edges = [...wf.edges.filter(e => e.fromPort !== 'time_range'), ...structuredClone(timing.edges)]
+  }
   project.workflow = syncWorkflowV2Graph(project, wf)
+  for (const node of project.workflow.nodes) if (node.params?.logicCategory === 'time') syncWorkflowV2NodeToProject(project, node)
   return {
     kind: 'main',
     targetShotId: null,

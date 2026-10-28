@@ -22,6 +22,7 @@ export interface WorkflowV2ToolbarProps {
   onToggleJsonMode?: () => void
   onRelayout: () => void
   onApplyAll: () => void
+  onAddTime: () => void
 }
 
 export const WorkflowV2Toolbar: React.FC<WorkflowV2ToolbarProps> = (props) => {
@@ -62,6 +63,7 @@ export const WorkflowV2Toolbar: React.FC<WorkflowV2ToolbarProps> = (props) => {
       </div>
 
       <div className="wf-v2-toolbar-actions">
+        <button type="button" className="btn ghost sm" onClick={props.onAddTime} title="Tạo nguồn thời gian chung rồi kéo dây tới các node">⏱ + Time</button>
         <span className="wf-v2-stats" title="Số cảnh / layer / node logic trong toàn dự án">
           <b>{props.stats.shots}</b> cảnh · <b>{props.stats.layers}</b> layer · <b>{props.stats.logic}</b> logic
         </span>

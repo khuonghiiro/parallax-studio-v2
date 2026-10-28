@@ -10,6 +10,7 @@
  *   đúng kịch bản mà không cần phơi bày hàng trăm tham số rời rạc.
  */
 export type WorkflowPortKind =
+  | 'time_range'
   | 'scene_ctx'
   | 'actors_rig'
   | 'motion_stream'
@@ -170,6 +171,7 @@ export interface WorkflowNodeParams {
   /** Tổng số lượng layer/mặt con thuộc cụm lắp ráp */
   childLayerCount?: number
   /** [Workflow V2] Mốc thời gian bắt đầu (giây) của Node trên đường kẻ thời gian */
+  localTimeRange?: { start: number; end: number }
   timeStart?: number
   /** [Workflow V2] Mốc thời gian kết thúc (giây) của Node trên đường kẻ thời gian */
   timeEnd?: number
@@ -179,6 +181,7 @@ export interface WorkflowNodeParams {
   collapsedGroup?: boolean
   /** [Workflow V2] Phân loại Node Logic gắn vào Layer ('action' | 'anim_fx' | 'material' | 'collision' | 'light' | 'cave' | 'fx' | 'audio' | 'camera' | 'cluster_lock' | 'part_swap') */
   logicCategory?:
+    | 'time'
     | 'action'
     | 'anim_fx'
     | 'material'

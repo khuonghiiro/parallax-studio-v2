@@ -1,3 +1,4 @@
+import { repairThreeSceneTiming } from './demoTiming'
 import type { Project } from '@shared/types'
 import demoJson from './demoProject.json'
 import threeSceneJson from '../../../../projects/ba-canh-mau-workflow-v2.json'
@@ -16,7 +17,7 @@ export async function buildDemoProject(): Promise<Project> {
  * directly from `projects/ba-canh-mau-workflow-v2.json`.
  */
 export async function buildThreeSceneDemoProject(): Promise<Project> {
-  return importProjectFromJson(JSON.stringify(threeSceneJson))
+  return repairThreeSceneTiming(await importProjectFromJson(JSON.stringify(threeSceneJson)))
 }
 
 export * from './plateGenerators'

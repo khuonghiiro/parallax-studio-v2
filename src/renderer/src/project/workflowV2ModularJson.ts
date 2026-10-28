@@ -73,6 +73,7 @@ export interface WorkflowMainConnection {
 
 export interface WorkflowMainJson {
   kind: 'parallax-workflow-main'
+  sharedTiming?: { nodes: WorkflowNode[]; edges: WorkflowEdge[]; consumers: WorkflowNode[] }
   version: 2
   name: string
   composition: {
@@ -326,6 +327,11 @@ export function buildMainWorkflowJson(project: Project, wfInput?: WorkflowGraph)
   const hasShared = reps.some((it) => layerClusterKey(project, it.layer) === V2_SHARED_CLUSTER)
   return {
     kind: 'parallax-workflow-main',
+    sharedTiming: {
+      nodes: structuredClone(wf.nodes.filter(n => n.params?.logicCategory === 'time')),
+      edges: structuredClone(wf.edges.filter(e => e.fromPort === 'time_range')),
+      consumers: structuredClone(wf.nodes.filter(n => wf.edges.some(e => e.fromPort === 'time_range' && e.toNode === n.id)))
+    },
     version: 2,
     name: project.comp.name,
     composition: {

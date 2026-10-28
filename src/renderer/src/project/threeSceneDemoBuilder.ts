@@ -1,3 +1,4 @@
+import { repairThreeSceneTiming } from './demoTiming'
 import type { AssetMeta, ImageLayer, Project } from '@shared/types'
 import { addKeyframe } from '../animation/keyframes'
 import { createImageLayer, createProject, createShot, shotSpacing } from './factory'
@@ -784,5 +785,5 @@ export function buildThreeSceneWorkflowV2Project(assetInputs: DemoSceneAssetInpu
 
   // Đồng bộ bố cục sơ đồ lần cuối
   project.workflow = syncWorkflowV2Graph(project, project.workflow)
-  return project
+  return repairThreeSceneTiming(project)
 }

@@ -1,4 +1,4 @@
-import React, { memo, useEffect, useMemo } from 'react'
+import React, { memo, useMemo } from 'react'
 import type { Animatable, AnimValue, Project, Shot } from '@shared/types'
 import { snapToFrame } from '../../animation/math'
 import { frameTolerance, useEditor, type PropRef } from '../../store/editor'
@@ -9,8 +9,7 @@ import {
 } from '../viewer/animateCamera/animateCameraMath'
 import {
   enrichCameraWaypoints,
-  findActiveWaypointIndexAtTime,
-  syncCompDurationToCameraRoute
+  findActiveWaypointIndexAtTime
 } from '../viewer/animateCamera/animateCameraRouteLogic'
 import { TimelineRow } from './TimelineRow'
 import { CAMERA_PROPS, shotSegments } from './timelineTypes'
@@ -54,23 +53,6 @@ export const TimelineCameraRows = memo(function TimelineCameraRows({
   )
 
   const lastWpTime = waypoints.length >= 2 ? waypoints[waypoints.length - 1].time : null
-
-  // Tự động đồng bộ nếu dự án đang có comp.duration lệch/thừa khoảng trống so với mốc cuối của lộ trình Camera 2D
-  useEffect(() => {
-    if (lastWpTime === null || lastWpTime < 0.5) return
-    const diff = project.comp.duration - lastWpTime
-    if (diff > 0.05 && diff <= 3.0) {
-      const maxAudioEnd = (project.audioTracks ?? []).reduce((acc, tr) => {
-        const end = (tr.offset ?? 0) + (tr.duration ?? 0)
-        return end > acc ? end : acc
-      }, 0)
-      if (maxAudioEnd <= lastWpTime + 0.05) {
-        useEditor.getState().update((d) => {
-          syncCompDurationToCameraRoute(d)
-        }, 'sync-cam-route-duration')
-      }
-    }
-  }, [lastWpTime, project.comp.duration, project.audioTracks])
 
   return (
     <>

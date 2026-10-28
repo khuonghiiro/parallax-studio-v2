@@ -1,3 +1,4 @@
+import { useTimelineSelection } from './timelineSelection'
 import { TimelinePropertyRow } from './TimelinePropertyRow'
 
 import { TimelineLayerSummary } from './TimelineLayerKeys'
@@ -109,6 +110,7 @@ function TimelineLayerRowComponent({
   onTrackPointerDown,
   onBarContextMenu
 }: TimelineLayerRowProps) {
+  const multiSelected = useTimelineSelection(s => s.ids.includes(layer.id))
   const zDepth = useMemo(() => {
     const p = layer.transform.position
     return Math.round(Array.isArray(p.value) ? (p.value[2] ?? 0) : evaluate(p, 0)[2])
@@ -142,7 +144,7 @@ function TimelineLayerRowComponent({
   return (
     <div>
       <TimelineRow
-        selected={isSelected}
+        selected={isSelected || multiSelected}
         onClick={onSelect}
         trackWidth={trackWidth}
         onTrackPointerDown={onTrackPointerDown}
@@ -160,6 +162,10 @@ function TimelineLayerRowComponent({
                   : undefined
             }}
           >
+            <input type="checkbox" checked={multiSelected} disabled={layer.locked}
+              aria-label={`Chọn dòng ${layer.name}`} title="Chọn nhiều dòng để kéo cùng nhau hoặc căn tới đầu phát"
+              onPointerDown={e => e.stopPropagation()} onChange={() => useTimelineSelection.getState().toggle(layer.id)}
+              style={{ flexShrink: 0, accentColor: 'var(--accent)' }} />
             <button className="mini" aria-expanded={isOpen} title="Thu gọn / mở thuộc tính layer" data-expand-layer={layer.id} onClick={(e) => (e.stopPropagation(), onToggleOpen())}>
               <IconCaret className={`caret${isOpen ? ' open' : ''}`} />
             </button>

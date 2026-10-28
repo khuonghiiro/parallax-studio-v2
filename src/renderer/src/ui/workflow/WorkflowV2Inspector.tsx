@@ -1,3 +1,4 @@
+import { effectiveTimeParams, timeSource } from '../../project/workflowTiming'
 import React, { useEffect, useMemo, useState } from 'react'
 import type { Project, Shot, WorkflowGraph, WorkflowNode, WorkflowNodeParams } from '@shared/types'
 import {
@@ -303,11 +304,15 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
   const canChainTimedStep =
     Boolean(node.params?.isPartChild) || logicCat === 'anim_fx' || logicCat === 'action'
   const duration = Math.max(1, project.comp.duration || 5)
-  const tStart = node.params?.timeStart ?? 0
-  const tEnd = node.params?.timeEnd ?? duration
-  const timeLocked = level === 'root'
+  const timing = effectiveTimeParams(project, node, node.params ?? {})
+  const source = timeSource(workflow, node.id)
+  const tStart = timing.timeStart ?? 0
+  const tEnd = timing.timeEnd ?? duration
+  const timeLocked = level === 'root' || Boolean(source)
   const childCount = workflow.edges.filter((e) => e.fromNode === node.id).length
-  const linked = level === 'logic' ? linkedLayerNames(node, project) : []
+  const linked = logicCat === 'time'
+    ? workflow.edges.filter(e => e.fromNode === node.id && e.fromPort === 'time_range' && !e.disabled).map(e => workflow.nodes.find(n => n.id === e.toNode)?.title ?? e.toNode)
+    : level === 'logic' ? linkedLayerNames(node, project) : []
   const update = (patch: Partial<WorkflowNodeParams>, title?: string): void => props.onUpdateParams(node.id, patch, title)
 
   const handleSpawnFollowup = (stepDur = 3.0): void => {
@@ -433,7 +438,7 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
           <div className="wf-v2-insp-sec-title">
             <span>Tiến trình Thời gian</span>
             {timeLocked ? (
-              <span className="wf-v2-insp-note">theo phạm vi cảnh</span>
+              <span className="wf-v2-insp-note">{source ? `Theo ${source.title} · ngắt dây để dùng riêng` : 'theo phạm vi cảnh'}</span>
             ) : linked.length > 0 ? (
               <span className="wf-v2-insp-target-badge" title={`Áp dụng cho: ${linked.join(', ')}`}>
                 🎯 {linked[0]}{linked.length > 1 ? ` +${linked.length - 1}` : ''}
@@ -531,11 +536,11 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
         {level === 'logic' &&
           node.type !== 'camera_director' &&
           !node.params?.isPartChild &&
-          (logicCat === 'collision' || linked.length === 0 || linked.length > 1) && (
+          (logicCat === 'time' || logicCat === 'collision' || linked.length === 0 || linked.length > 1) && (
           <section className="wf-v2-insp-sec">
             <div className="wf-v2-insp-sec-title">Áp dụng cho</div>
             <div className="wf-v2-linked">
-              {linked.length ? linked.map((name) => <span key={name}>{name}</span>) : <em>Chưa nối Layer nào — kéo dây từ một Layer vào Node này</em>}
+              {linked.length ? linked.map((name) => <span key={name}>{name}</span>) : <em>{logicCat === 'time' ? 'Kéo cổng ra của Time tới Layer hoặc node cần dùng chung thời gian.' : 'Chưa nối Layer nào — kéo dây từ một Layer vào Node này'}</em>}
             </div>
             {node.params?.logicCategory === 'collision' && (node.params?.sharedLayerNodeIds?.length ?? 0) < 2 && (
               <CollisionPartnerPicker workflow={workflow} node={node} onPick={(layerNodeId) => props.onConnectLayer(layerNodeId, node.id)} />
@@ -572,7 +577,7 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
           </section>
         )}
 
-        {level !== 'group' && (
+        {level !== 'group' && logicCat !== 'time' && (
           <section className="wf-v2-insp-sec">
             <div className="wf-v2-insp-sec-title">Thông số</div>
             <WorkflowV2NodeParams

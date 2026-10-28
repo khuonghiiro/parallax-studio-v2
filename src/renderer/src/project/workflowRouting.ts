@@ -11,6 +11,7 @@ const unique = (items: string[]) => [...new Set(items.filter((item) => item && i
 const scopeOf = (node: WorkflowNode) => unique([node.params?.shotId ?? ''])
 const direct = (node: WorkflowNode, workflow: WorkflowGraph, dir: 'in' | 'out') =>
   workflow.edges.flatMap((edge) => {
+    if (edge.fromPort === 'time_range' || edge.disabled) return []
     if ((dir === 'in' ? edge.toNode : edge.fromNode) !== node.id) return []
     const other = workflow.nodes.find((item) => item.id === (dir === 'in' ? edge.fromNode : edge.toNode) && item.enabled)
     const from = dir === 'in' ? other : node, to = dir === 'in' ? node : other

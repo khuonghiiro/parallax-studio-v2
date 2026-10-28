@@ -1,3 +1,4 @@
+import { connectTimeNode, createTimeNode, isTimeNode } from '../../project/workflowTiming'
 import { useCallback } from 'react'
 import type { Project, WorkflowGraph, WorkflowNode, WorkflowNodeParams, WorkflowPortKind } from '@shared/types'
 import { useEditor } from '../../store/editor'
@@ -104,7 +105,13 @@ export function useWorkflowV2Actions(workflow: WorkflowGraph, selectedNodeId: st
       }
       useEditor.getState().update((draft) => {
         draft.workflow = { ...workflow, nodes: [...workflow.nodes], edges: [...workflow.edges] }
-        detachWorkflowV2NodeFromProject(draft as Project, target)
+        if (isTimeNode(target)) {
+          draft.workflow.edges = draft.workflow.edges.filter(e => e.fromNode !== target.id)
+          for (const edge of workflow.edges.filter(e => e.fromNode === target.id)) {
+            const consumer = draft.workflow.nodes.find(n => n.id === edge.toNode)
+            if (consumer) syncWorkflowV2NodeToProject(draft as Project, consumer)
+          }
+        } else detachWorkflowV2NodeFromProject(draft as Project, target)
         const wfAfterDetach = draft.workflow as WorkflowGraph
         const edges = wfAfterDetach.edges.filter((e) => e.fromNode !== nodeId && e.toNode !== nodeId)
         const synced = recomputeSharedLogicTargets(wfAfterDetach.nodes.filter((n) => n.id !== nodeId), edges)
@@ -214,6 +221,14 @@ export function useWorkflowV2Actions(workflow: WorkflowGraph, selectedNodeId: st
 
   const connect = useCallback(
     (fromNode: string, fromPort: WorkflowPortKind, toNode: string, toPort: WorkflowPortKind) => {
+      if (workflow.nodes.some(n => n.id === fromNode && isTimeNode(n))) {
+        useEditor.getState().update(d => {
+          d.workflow = connectTimeNode(workflow, fromNode, toNode)
+          const target = d.workflow.nodes.find(n => n.id === toNode)!
+          syncWorkflowV2NodeToProject(d as Project, target)
+        })
+        return
+      }
       const check = validateWorkflowV2Connection(workflow, fromNode, toNode)
       if (!check.valid) {
         showToast(check.reason ?? 'Kết nối không hợp lệ')
@@ -268,6 +283,13 @@ export function useWorkflowV2Actions(workflow: WorkflowGraph, selectedNodeId: st
       if (!edge || !dst) return
 
       // Trường hợp 1: Gỡ dây từ Node Layer đến Node Khoá Cụm (`cluster_lock`) -> mở khoá riêng mảnh Layer đó
+      if (edge.fromPort === 'time_range') {
+        useEditor.getState().update(d => {
+          d.workflow = { ...workflow, edges: workflow.edges.filter(e => e.id !== edgeId) }
+          syncWorkflowV2NodeToProject(d as Project, dst)
+        })
+        return
+      }
       if (dst.params?.logicCategory === 'cluster_lock') {
         const edges = workflow.edges.filter((e) => e.id !== edgeId)
         const synced = recomputeSharedLogicTargets(workflow.nodes, edges)
@@ -312,6 +334,10 @@ export function useWorkflowV2Actions(workflow: WorkflowGraph, selectedNodeId: st
       if (!edge || !src || !dst) return
       const nextDisabled = !edge.disabled
       const edges = workflow.edges.map((e) => (e.id === edgeId ? { ...e, disabled: nextDisabled } : e))
+      if (edge.fromPort === 'time_range') {
+        useEditor.getState().update(d => { d.workflow = { ...workflow, edges }; syncWorkflowV2NodeToProject(d as Project, dst) })
+        return
+      }
       const synced = recomputeSharedLogicTargets(workflow.nodes, edges)
       const nodes = layoutWorkflowV2Tree(synced, edges)
       const srcLayerIds = new Set(src.params?.targetLayerIds ?? [])
@@ -355,7 +381,17 @@ export function useWorkflowV2Actions(workflow: WorkflowGraph, selectedNodeId: st
     showToast('Đã áp dụng toàn bộ cây Workflow vào cảnh')
   }, [workflow, showToast])
 
+  const addTime = () => {
+    const node = createTimeNode(useEditor.getState().project)
+    node.position = findFreeV2Spot(workflow.nodes, workflow.edges, node.id, node.position)
+    useEditor.getState().update(d => { d.workflow = { ...workflow, nodes: [...workflow.nodes, node] } })
+    setSelectedNodeId(node.id)
+    useEditor.getState().setInspectorTab('node')
+    fitSoon()
+  }
+
   return {
+    addTime,
     relayout,
     moveNodes,
     toggleEnable,

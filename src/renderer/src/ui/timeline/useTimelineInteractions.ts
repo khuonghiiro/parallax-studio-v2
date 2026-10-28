@@ -1,4 +1,6 @@
 import type React from 'react'
+import { moveTimelineLayers } from '../../project/timelineTiming'
+import { timelineSelectedIds, useTimelineSelection } from './timelineSelection'
 import { useCallback, useEffect, useRef } from 'react'
 import { nanoid } from 'nanoid'
 import type { Animatable, Layer, Project } from '@shared/types'
@@ -355,13 +357,19 @@ export function useTimelineInteractions({
   const startBarDrag = useCallback(
     (e: React.PointerEvent, layer: Layer, mode: 'move' | 'in' | 'out'): void => {
       e.stopPropagation()
+      if (e.ctrlKey || e.metaKey) { useTimelineSelection.getState().toggle(layer.id); return }
       selectLayer(layer.id)
       if (layer.locked) return
       const startX = e.clientX
       const instanceId = layer.model3d?.instanceId
-      const related = instanceId
+      const picked = timelineSelectedIds()
+      const related = picked.includes(layer.id) && picked.length > 1
+        ? useEditor.getState().project.layers.filter(l => picked.includes(l.id))
+        : instanceId
         ? useEditor.getState().project.layers.filter((l) => l.model3d?.instanceId === instanceId)
         : [layer]
+      const original = useEditor.getState().project
+      const initialProject = structuredClone({ comp: original.comp, layers: related, workflow: original.workflow, audioTracks: original.audioTracks }) as Project
       const initialTimes = related.map((l) => ({ id: l.id, inPoint: l.inPoint, outPoint: l.outPoint }))
 
       const key = `bar-${nanoid(6)}`
@@ -375,6 +383,17 @@ export function useTimelineInteractions({
         if (!moved) return
         const dt = snapToFrame(((ev.clientX - startX) / (contentW - PAD * 2)) * comp.duration, comp.fps)
         useEditor.getState().update((d) => {
+          if (mode === 'move') {
+            const shifted = structuredClone(initialProject)
+            moveTimelineLayers(shifted, initialTimes.map(l => l.id), dt)
+            for (const init of initialTimes) {
+              const index = d.layers.findIndex(l => l.id === init.id)
+              if (index >= 0) d.layers[index] = shifted.layers.find(l => l.id === init.id)!
+            }
+            d.workflow = shifted.workflow
+            d.audioTracks = shifted.audioTracks
+            return
+          }
           for (const init of initialTimes) {
             const l = d.layers.find((q) => q.id === init.id)
             if (!l || l.locked) continue

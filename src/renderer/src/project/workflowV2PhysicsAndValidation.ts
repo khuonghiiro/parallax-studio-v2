@@ -1,3 +1,4 @@
+import { acceptsSharedTime } from './workflowTiming'
 import type {
   Layer,
   LayerPhysicsMaterial,
@@ -221,6 +222,9 @@ export function validateWorkflowV2Connection(
     return { valid: false, reason: '❌ Không tìm thấy Node nguồn hoặc Node đích.' }
   }
 
+  if (src.params?.logicCategory === 'time') return { valid: acceptsSharedTime(dst), reason: 'Node này không có khoảng thời gian xử lý độc lập; hãy nối Time tới Layer, Motion, Animation, FX hoặc Audio.' }
+  if (dst.params?.logicCategory === 'time') return { valid: false, reason: 'Time là nguồn thời gian, không nhận dây vào.' }
+
   const srcIsRoot = src.type === 'scene_shot'
   const dstIsRoot = dst.type === 'scene_shot'
   const srcIsGroup = Boolean(src.params?.groupKind)
@@ -426,7 +430,7 @@ export function recomputeSharedLogicTargets(
 
   return nodesWithUpdatedClusters.map((node) => {
     const cat = getNodeLogicCategory(node)
-    if (!cat || cat === 'camera' || cat === 'cluster_lock') return node
+    if (!cat || cat === 'time' || cat === 'camera' || cat === 'cluster_lock') return node
 
     // Nếu là Node con Bộ phận (isPartChild) nối từ Node Bộ phận chính (isPartHub): giữ nguyên các mảnh của riêng bộ phận đó
     if (cat === 'part_swap' && node.params?.isPartChild) {

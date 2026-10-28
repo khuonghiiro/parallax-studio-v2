@@ -1,3 +1,4 @@
+import { acceptsSharedTime } from './workflowTiming'
 import { getWorkflowNodePorts } from './workflowNodePorts'
 import type {
   WorkflowNode,
@@ -21,6 +22,7 @@ export function validateWorkflowConnection(
   toNode: WorkflowNode,
   toPort: WorkflowPortKind
 ): ConnectionValidationResult {
+  if (fromPort === 'time_range' || toPort === 'time_range') return { valid: fromPort === 'time_range' && toPort === 'time_range' && fromNode.params?.logicCategory === 'time' && acceptsSharedTime(toNode) }
   const fromShot = fromNode.params?.shotId
   const toShot = toNode.params?.shotId
   if (fromShot && toShot && fromShot !== 'all' && toShot !== 'all' && fromShot !== toShot) {

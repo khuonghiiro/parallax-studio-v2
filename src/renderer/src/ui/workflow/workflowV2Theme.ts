@@ -19,6 +19,7 @@ export interface WorkflowV2NodeTheme {
 export const WORKFLOW_V2_SPAWN_CATALOG = WORKFLOW_V2_LOGIC_CATEGORIES
 
 const LOGIC_THEMES: Record<string, WorkflowV2NodeTheme> = {
+  time: { badge: 'TIME', icon: '⏱', accent: '#06b6d4', portIn: 'time_range', portOut: 'time_range', levelClass: 'level-logic' },
   cluster_lock: { badge: 'KHOÁ CỤM', icon: '🔒', accent: '#0ea5e9', portIn: 'layers_tree', portOut: 'layers_tree', levelClass: 'level-logic is-cluster-lock' },
   part_swap: { badge: 'BỘ PHẬN', icon: '🧩', accent: '#06b6d4', portIn: 'layers_tree', portOut: 'vfx_stage', levelClass: 'level-logic' },
   rig_bone: { badge: 'GẮN XƯƠNG', icon: '🦴', accent: '#f59e0b', portIn: 'layers_tree', portOut: 'motion_stream', levelClass: 'level-logic' },

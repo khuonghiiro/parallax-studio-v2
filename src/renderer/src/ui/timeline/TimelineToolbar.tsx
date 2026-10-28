@@ -1,4 +1,5 @@
 import React from 'react'
+import { TimelineBatchTiming } from './TimelineBatchTiming'
 import { formatTimecode, snapToFrame } from '../../animation/math'
 import {
   IconCopy,
@@ -67,6 +68,7 @@ export function TimelineToolbar({
 
   return (
     <div className="timeline-toolbar" data-mcp-region="timeline_toolbar">
+      <TimelineBatchTiming />
       <TimelineModeTabs
         layerCount={project.layers.length}
         connectedNodeCount={activeNodes.length}
