@@ -177,7 +177,7 @@ export const WorkflowNodeCardV2 = memo(function WorkflowNodeCardV2({
   const collapsed = Boolean(node.params?.collapsedGroup)
   const collapsedSubs = Boolean(node.params?.collapsedSubLayers)
   const thumb = resolveThumb(node, project)
-  const hasOutput = isTimeNode(node) || level !== 'logic' || cat === 'material' || cat === 'cluster_lock' || Boolean(node.params?.isPartHub)
+  const hasOutput = isTimeNode(node) || level !== 'logic' || cat === 'action' || cat === 'collision' || cat === 'material' || cat === 'cluster_lock' || Boolean(node.params?.isPartHub)
 
   const socket = (kind: 'in' | 'out'): React.ReactElement => {
     const isOut = kind === 'out'
@@ -185,7 +185,7 @@ export const WorkflowNodeCardV2 = memo(function WorkflowNodeCardV2({
     return (
       <div
         className={`wf-v2-socket ${kind}`}
-        title={isOut ? 'Kéo dây sang Node khác (thả ra khoảng trống để gắn nhanh Node Logic)' : 'Cổng nhận kết nối'}
+        title={isOut ? (cat === 'action' || cat === 'collision' ? 'Nối chặng tiếp — kéo vào Node tiếp theo hoặc thả ra khoảng trống để tạo chặng mới' : 'Kéo dây sang Node khác (thả ra khoảng trống để gắn nhanh Node Logic)') : 'Cổng nhận kết nối'}
         onPointerDown={(e) => {
           e.stopPropagation()
           onStartWireDrag(e, node.id, port, isOut)

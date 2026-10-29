@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from 'react'
+import { spawnWorkflowStepAt } from './spawnWorkflowStepAt'
 import type { WorkflowNode, WorkflowPortKind } from '@shared/types'
 import { WF_V2_NODE_H, WF_V2_NODE_W } from '../../project/workflowV2Engine'
 import type { WireDragState } from './WorkflowV2CanvasChrome'
@@ -118,8 +119,14 @@ export function useWorkflowV2CanvasInteractions(
           const hit = hitTest(drop.x, drop.y, nodeId)
           if (hit) {
             const theme = resolveV2NodeTheme(hit)
-            if (isOutput) handlersRef.current.onConnectNodes(nodeId, port, hit.id, theme.portIn)
-            else handlersRef.current.onConnectNodes(hit.id, theme.portOut, nodeId, port)
+            const sequential = src.params?.logicCategory === hit.params?.logicCategory &&
+              ['action', 'collision'].includes(src.params?.logicCategory ?? '')
+            if (isOutput) handlersRef.current.onConnectNodes(nodeId, port, hit.id, sequential ? port : theme.portIn)
+            else handlersRef.current.onConnectNodes(hit.id, theme.portOut, nodeId, sequential ? theme.portOut : port)
+          } else if (isOutput && ['action', 'collision'].includes(src.params?.logicCategory ?? '') &&
+            Math.hypot(drop.x - sx, drop.y - sy) > 36) {
+            const created = spawnWorkflowStepAt(nodeId, drop)
+            if (created) handlersRef.current.onSelectNode(created)
           } else if (
             isOutput &&
             (resolveV2NodeLevel(src) === 'layer' || src.params?.logicCategory === 'cluster_lock') &&

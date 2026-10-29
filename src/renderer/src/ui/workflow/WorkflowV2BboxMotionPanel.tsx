@@ -31,7 +31,7 @@ const COLLISION_RESPONSE_OPTIONS: {
 ]
 
 /**
- * Bảng cấu hình Chuyển động BBox Đích (#1 -> #2) + Chiều sâu Z-Index + Tác động Va chạm trên đường đi.
+ * Bảng cấu hình Chuyển động BBox Đích (đầu -> đích) + Chiều sâu Z-Index + Tác động Va chạm trên đường đi.
  */
 export const WorkflowV2BboxMotionPanel: React.FC<{
   props: WorkflowV2NodeParamsProps
@@ -161,33 +161,33 @@ export const WorkflowV2BboxMotionPanel: React.FC<{
 
   return (
     <div className="vl-subcard" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      {/* Header tóm tắt BBox #1 -> #2 & nút Preview */}
+      {/* Header tóm tắt BBox đầu -> đích & nút Preview */}
       <div className="vl-row-header" style={{ flexWrap: 'wrap', gap: 4 }}>
         <span className="vl-title">
-          🎯 Di chuyển BBox #1 → #2 ({targetScalePct >= 105 ? `To dần ${targetScalePct}%` : targetScalePct <= 95 ? `Nhỏ dần ${targetScalePct}%` : 'Giữ cỡ 100%'})
+          🎯 Di chuyển BBox đầu → đích ({targetScalePct >= 105 ? `To dần ${targetScalePct}%` : targetScalePct <= 95 ? `Nhỏ dần ${targetScalePct}%` : 'Giữ cỡ 100%'})
         </span>
         <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
           <button
             type="button"
             className="wf-v2-mini-btn"
             onClick={() => onScrubTime(tStart)}
-            title="Tua về vị trí xuất phát BBox #1"
+            title="Tua về vị trí xuất phát BBox đầu"
           >
-            #1 ({tStart}s)
+            đầu ({tStart}s)
           </button>
           <button
             type="button"
             className="wf-v2-mini-btn"
             onClick={() => onScrubTime(tEnd)}
-            title="Tua tới vị trí đích BBox #2"
+            title="Tua tới vị trí đích BBox đích"
           >
-            #2 ({tEnd}s)
+            đích ({tEnd}s)
           </button>
           <button
             type="button"
             className="wf-v2-mini-btn active"
             onClick={handleTogglePreview}
-            title="Phát thử chuyển động từ BBox #1 tới BBox #2"
+            title="Phát thử chuyển động từ BBox đầu tới BBox đích"
           >
             {isPlaying ? '⏹ Dừng' : '▶ Preview'}
           </button>
@@ -197,7 +197,7 @@ export const WorkflowV2BboxMotionPanel: React.FC<{
       {/* Chọn 1 trong 2 dạng đường đi giữa 2 BBox */}
       <div className="vl-subcard" style={{ padding: '6px 7px' }}>
         <div className="vl-row-header" style={{ marginBottom: 4 }}>
-          <span className="vl-subtitle">1. Chọn dạng đường đi tới BBox #2</span>
+          <span className="vl-subtitle">1. Chọn dạng đường đi tới BBox đích</span>
           <span className="vl-value-badge">
             {distPx}px · ~{speedPxPerSec}px/s
           </span>
@@ -205,8 +205,8 @@ export const WorkflowV2BboxMotionPanel: React.FC<{
         <OptionPills
           cols={2}
           options={[
-            { id: 'shortest', label: '📏 Đường ngắn nhất (#1 → #2)' },
-            { id: 'custom_curve', label: '✏️ Đặt #2 rồi Vẽ đường đi' }
+            { id: 'shortest', label: '📏 Đường ngắn nhất (đầu → đích)' },
+            { id: 'custom_curve', label: '✏️ Đặt đích rồi Vẽ đường đi' }
           ]}
           value={pathType}
           onPick={(nextType) =>
@@ -228,7 +228,7 @@ export const WorkflowV2BboxMotionPanel: React.FC<{
           }
         />
 
-        {/* Nếu chọn Dạng 2 (Đặt #2 rồi vẽ đường đi): hiện bảng vẽ nối từ #1 -> #2 */}
+        {/* Nếu chọn Dạng 2 (Đặt đích rồi vẽ đường đi): hiện bảng vẽ nối từ đầu -> đích */}
         {pathType === 'custom_curve' && (
           <div style={{ marginTop: 6 }}>
             <div
@@ -243,7 +243,7 @@ export const WorkflowV2BboxMotionPanel: React.FC<{
                 touchAction: 'none',
                 overflow: 'hidden'
               }}
-              title="Kéo chuột để vẽ đường cong nối từ BBox #1 sang BBox #2 (hoặc bấm nút ✏️ Vẽ đường #1↝#2 trên Khung BBox 2D phía trên)"
+              title="Kéo chuột để vẽ đường cong nối từ BBox đầu sang BBox đích (hoặc bấm nút ✏️ Vẽ đường đầu↝đích trên Khung BBox 2D phía trên)"
               onPointerDown={(e) => {
                 if (e.button !== 0) return
                 e.preventDefault()
@@ -275,7 +275,7 @@ export const WorkflowV2BboxMotionPanel: React.FC<{
               }}
             >
               <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: '100%', height: '100%' }}>
-                {/* Khung #1 và #2 minh hoạ */}
+                {/* Khung đầu và đích minh hoạ */}
                 <rect x={8} y={40} width={14} height={20} rx={2} fill="rgba(16, 185, 129, 0.2)" stroke="#10b981" strokeWidth={1.2} />
                 <rect
                   x={76}
@@ -318,17 +318,17 @@ export const WorkflowV2BboxMotionPanel: React.FC<{
                   pointerEvents: 'none'
                 }}
               >
-                ✏️ Vẽ đường cong tại đây hoặc trên Khung BBox 2D — tự khớp đầu #1 &amp; đích #2
+                ✏️ Vẽ đường cong tại đây hoặc trên Khung BBox 2D — tự khớp đầu đầu &amp; đích đích
               </span>
             </div>
           </div>
         )}
       </div>
 
-      {/* Cấu hình vị trí & Độ phóng đại của BBox Đích #2 */}
+      {/* Cấu hình vị trí & Độ phóng đại của BBox Đích đích */}
       <div className="vl-subcard" style={{ padding: '6px 7px' }}>
         <div className="vl-row-header" style={{ marginBottom: 4 }}>
-          <span className="vl-subtitle">2. Kích thước &amp; Vị trí BBox Đích #2</span>
+          <span className="vl-subtitle">2. Kích thước &amp; Vị trí BBox Đích đích</span>
           <span className="vl-value-badge">
             ({targetX}, {targetY}) · {targetScalePct}%
           </span>
@@ -344,7 +344,7 @@ export const WorkflowV2BboxMotionPanel: React.FC<{
                 ...(depthMode === 'depth_z' ? { bboxTargetZ: startZ - 110 } : {})
               })
             }
-            title="Cho BBox #2 to hơn: khi di chuyển tới #2 sẽ to dần lên cho tới khi vừa khít BBox #2"
+            title="Cho BBox đích to hơn: khi di chuyển tới đích sẽ to dần lên cho tới khi vừa khít BBox đích"
           >
             🔍 To dần tới đích (165%)
           </button>
@@ -357,7 +357,7 @@ export const WorkflowV2BboxMotionPanel: React.FC<{
                 ...(depthMode === 'depth_z' ? { bboxTargetZ: startZ + 110 } : {})
               })
             }
-            title="Cho BBox #2 nhỏ hơn: khi di chuyển tới #2 sẽ nhỏ dần đi cho tới khi vừa khít BBox #2"
+            title="Cho BBox đích nhỏ hơn: khi di chuyển tới đích sẽ nhỏ dần đi cho tới khi vừa khít BBox đích"
           >
             🔽 Nhỏ dần tới đích (55%)
           </button>
@@ -386,15 +386,15 @@ export const WorkflowV2BboxMotionPanel: React.FC<{
                 if (wfNode) syncWorkflowV2NodeToProject(d, wfNode, { bboxTargetX: curX, bboxTargetY: curY })
               }, 'wf-bbox-swap12')
             }}
-            title="Đổi chỗ vị trí xuất phát #1 và vị trí đích #2"
+            title="Đổi chỗ vị trí xuất phát đầu và vị trí đích đích"
           >
-            ⇄ Đảo vị trí #1 ⇄ #2
+            ⇄ Đảo vị trí đầu ⇄ đích
           </button>
         </div>
 
         <ParamSlider
           layout="stacked"
-          label="Cỡ BBox #2 (To dần >100% · Nhỏ dần <100%)"
+          label="Cỡ BBox đích (To dần >100% · Nhỏ dần <100%)"
           min={20}
           max={300}
           step={5}
@@ -404,7 +404,7 @@ export const WorkflowV2BboxMotionPanel: React.FC<{
         />
         <ParamSlider
           layout="stacked"
-          label="Vị trí ngang BBox #2 (Trục X)"
+          label="Vị trí ngang BBox đích (Trục X)"
           min={-960}
           max={960}
           step={10}
@@ -414,7 +414,7 @@ export const WorkflowV2BboxMotionPanel: React.FC<{
         />
         <ParamSlider
           layout="stacked"
-          label="Vị trí dọc BBox #2 (Trục Y)"
+          label="Vị trí dọc BBox đích (Trục Y)"
           min={-540}
           max={540}
           step={10}
@@ -442,7 +442,7 @@ export const WorkflowV2BboxMotionPanel: React.FC<{
         />
         <ParamSlider
           layout="stacked"
-          label="Thời gian chạy tới BBox #2 (Ngắn = Nhanh)"
+          label="Thời gian chạy tới BBox đích (Ngắn = Nhanh)"
           min={0.3}
           max={Math.max(1.0, Number((compDur - tStart).toFixed(1)))}
           step={0.1}
@@ -569,7 +569,7 @@ export const WorkflowV2BboxMotionPanel: React.FC<{
 
             <ParamSlider
               layout="stacked"
-              label="Z-Index tại BBox #1 (Xuất phát)"
+              label="Z-Index tại BBox đầu (Xuất phát)"
               min={-200}
               max={1300}
               step={10}
@@ -579,7 +579,7 @@ export const WorkflowV2BboxMotionPanel: React.FC<{
             />
             <ParamSlider
               layout="stacked"
-              label="Z-Index tại BBox #2 (Đích — Lớn hơn cây = Qua trước)"
+              label="Z-Index tại BBox đích (Đích — Lớn hơn cây = Qua trước)"
               min={-200}
               max={1300}
               step={10}
@@ -596,7 +596,7 @@ export const WorkflowV2BboxMotionPanel: React.FC<{
         )}
       </div>
 
-      {/* Tích hợp Va chạm trên đường đi BBox #1 -> #2 */}
+      {/* Tích hợp Va chạm trên đường đi BBox đầu -> đích */}
       <div className="vl-subcard" style={{ padding: '6px 7px' }}>
         <div className="vl-row-header" style={{ marginBottom: 4 }}>
           <label
@@ -689,7 +689,7 @@ export const WorkflowV2BboxMotionPanel: React.FC<{
               </div>
             ) : (
               <p className="wf-v2-hint" style={{ margin: 0 }}>
-                Kéo <b>BBox Đích #2</b> đi cắt qua một Layer khác trên cảnh để tự động phát hiện điểm chạm và thời gian chạm!
+                Kéo <b>BBox Đích đích</b> đi cắt qua một Layer khác trên cảnh để tự động phát hiện điểm chạm và thời gian chạm!
               </p>
             )}
 

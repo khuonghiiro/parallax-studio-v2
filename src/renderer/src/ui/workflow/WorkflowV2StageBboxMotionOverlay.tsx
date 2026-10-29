@@ -1,4 +1,5 @@
 import { bboxStartPosition, bboxStartScale } from '../../project/workflowMotionStart'
+import { bboxStepNumber } from '../../project/workflowBboxSteps'
 import React, { useCallback, useState } from 'react'
 import type { Layer, Project, Vec3, WorkflowGraph, WorkflowNode, WorkflowNodeParams } from '@shared/types'
 import { evaluate } from '../../animation/keyframes'
@@ -117,7 +118,7 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
     [motionNode, update]
   )
 
-  /** Khởi tạo nhanh BBox #2 ngay trên cảnh nếu Layer/Cụm chưa có BBox #2 */
+  /** Khởi tạo nhanh BBox đích ngay trên cảnh nếu Layer/Cụm chưa có BBox đích */
   const handleSpawnOrEnableBbox2 = useCallback((): void => {
     if (!coordRefLayer) return
     const tStart = mp?.timeStart ?? coordRefLayer.inPoint ?? 0
@@ -141,7 +142,7 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
       return
     }
 
-    // Nếu Layer/Cụm chưa có Node Motion -> tự gắn Node Motion chế độ BBox #1 -> #2
+    // Nếu Layer/Cụm chưa có Node Motion -> tự gắn Node Motion chế độ BBox đầu -> đích
     update((d) => {
       if (!d.workflow) return
       const res = attachLogicNodeToLayerV2(
@@ -162,7 +163,7 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
           timeStart: tStart,
           timeEnd: Number((tStart + 3).toFixed(2))
         },
-        'Motion: Đặt BBox Đích (#1 → #2)'
+        'Motion: Đặt BBox Đích (đầu → đích)'
       )
       d.workflow = res.workflow
       const created = d.workflow.nodes.find((n) => n.id === res.createdNodeId)
@@ -177,7 +178,7 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
 
   const tStart = mp?.timeStart ?? coordRefLayer.inPoint ?? 0
   const tEnd = mp?.timeEnd ?? Number((tStart + 3).toFixed(2))
-  // Đọc vị trí gốc #1 tại tStart (bỏ qua keyframe đã bake để BBox #1 và #2 không bị nhân kép tỷ lệ khi tua tới tEnd)
+  // Đọc vị trí gốc đầu tại tStart (bỏ qua keyframe đã bake để BBox đầu và đích không bị nhân kép tỷ lệ khi tua tới tEnd)
   const startPos: Vec3 = bboxStartPosition(coordRefLayer, tStart, motionNode?.id)
   const startCleanScale: Vec3 = bboxStartScale(coordRefLayer, tStart, motionNode?.id)
   const curEvalScale: Vec3 = evaluate(coordRefLayer.transform.scale, sampleTime)
@@ -197,7 +198,7 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
       ? (mp?.bboxTargetZ ?? Math.round(startZ - (scaleRatio - 1) * 180))
       : startZ
 
-  // Tọa độ màn hình của BBox #1 (Xuất phát)
+  // Tọa độ màn hình của BBox đầu (Xuất phát)
   const startOffsetX = startPos[0] * pFactorStart
   const startOffsetY = -startPos[1] * pFactorStart
   const baseStageW = Math.max(16, selectedProjLayer.width * unbakedRatioX)
@@ -207,7 +208,7 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
   const box1Cx = shotLeft + shotScreenW / 2 + startOffsetX * zoom
   const box1Cy = shotTop + shotScreenH / 2 + startOffsetY * zoom
 
-  // Tọa độ màn hình của Ghost BBox #2 (Đích)
+  // Tọa độ màn hình của Ghost BBox đích (Đích)
   const pFactorEnd = refD / Math.max(80, refD + targetZ)
   const targetOffsetX = targetX * pFactorEnd
   const targetOffsetY = -targetY * pFactorEnd
@@ -274,7 +275,7 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
     window.addEventListener('pointerup', onUp)
   }
 
-  // Tính các điểm đường đi từ BBox #1 -> BBox #2 để vẽ trên SVG
+  // Tính các điểm đường đi từ BBox đầu -> BBox đích để vẽ trên SVG
   const pathPointsScreen: [number, number][] = []
   if (hasBboxMotion) {
     const steps = 24
@@ -302,7 +303,7 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
 
   return (
     <>
-      {/* Nút bật nhanh BBox #2 hoặc chế độ vẽ đường đi nổi góc dưới phải của Stage 2D (không che nhãn BBox phía trên) */}
+      {/* Nút bật nhanh BBox đích hoặc chế độ vẽ đường đi nổi góc dưới phải của Stage 2D (không che nhãn BBox phía trên) */}
       <div
         style={{
           position: 'absolute',
@@ -329,9 +330,9 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
               e.stopPropagation()
               handleSpawnOrEnableBbox2()
             }}
-            title="Thêm khung BBox Đích #2 dạng mờ để kéo vị trí đích & phóng to/thu nhỏ dần khi di chuyển"
+            title="Thêm khung BBox Đích đích dạng mờ để kéo vị trí đích & phóng to/thu nhỏ dần khi di chuyển"
           >
-            🎯 + Đặt BBox Đích #2
+            🎯 + Đặt BBox Đích đích
           </button>
         ) : (
           <button
@@ -351,14 +352,14 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
               setDrawCurveOnStage(nextDraw)
               if (nextDraw) patchMotionNode({ bboxPathType: 'custom_curve' })
             }}
-            title="Vẽ trực tiếp đường cong di chuyển nối từ BBox #1 tới BBox #2 ngay trên khung cảnh 2D"
+            title="Vẽ trực tiếp đường cong di chuyển nối từ BBox đầu tới BBox đích ngay trên khung cảnh 2D"
           >
-            ✏️ {drawCurveOnStage ? 'Đang vẽ #1↝#2' : 'Vẽ đường #1↝#2'}
+            ✏️ {drawCurveOnStage ? 'Đang vẽ đầu↝đích' : 'Vẽ đường đầu↝đích'}
           </button>
         )}
       </div>
 
-      {/* Đường nối #1 -> #2 và điểm va chạm trên SVG */}
+      {/* Đường nối đầu -> đích và điểm va chạm trên SVG */}
       {hasBboxMotion && pathPointsScreen.length >= 2 && (
         <svg
           className="wf-v2-direct-cam-svg"
@@ -421,7 +422,7 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
             cursor: 'crosshair',
             touchAction: 'none'
           }}
-          title="Nhấn giữ chuột và kéo để vẽ đường đi nối từ BBox #1 sang BBox #2"
+          title="Nhấn giữ chuột và kéo để vẽ đường đi nối từ BBox đầu sang BBox đích"
           onPointerDown={(e) => {
             if (e.button !== 0) return
             e.stopPropagation()
@@ -458,7 +459,7 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
         />
       )}
 
-      {/* Khung BBox Đích #2 dạng mờ (Ghost Target BBox) */}
+      {/* Khung BBox Đích đích dạng mờ (Ghost Target BBox) */}
       {hasBboxMotion && (
         <div
           className="wf-v2-direct-layer-bbox is-ghost-target"
@@ -473,7 +474,7 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
             zIndex: 28,
             ['--wf-v2-accent' as string]: '#f59e0b'
           }}
-          title={`BBox Đích #2 (${targetScalePct}%) — Kéo để đặt vị trí kết thúc, kéo 4 góc để phóng to/thu nhỏ dần khi di chuyển tới đích`}
+          title={`BBox Đích đích (${targetScalePct}%) — Kéo để đặt vị trí kết thúc, kéo 4 góc để phóng to/thu nhỏ dần khi di chuyển tới đích`}
           onPointerDown={(e) => {
             if (e.button === 0) startBbox2Drag(e, 'move')
           }}
@@ -481,7 +482,7 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
           {ghostImgUrl && (
             <img
               src={ghostImgUrl}
-              alt="Ghost Target #2"
+              alt="Ghost Target đích"
               draggable={false}
               style={{
                 width: '100%',
@@ -503,7 +504,7 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
               color: '#ffffff'
             }}
           >
-            ② Đích
+            #{bboxStepNumber(workflow, motionNode?.id ?? node.id) + 1} Đích
           </span>
           <span className="wf-v2-direct-bbox-crosshair" />
           {HANDLES.map((h) => (

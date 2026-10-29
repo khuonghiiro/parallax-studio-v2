@@ -1,4 +1,5 @@
 import { workflowBboxEditTime } from './workflowBboxEditTime'
+import { bboxStepNumber } from '../../project/workflowBboxSteps'
 import { WorkflowCollisionPreviewOverlay } from './WorkflowCollisionPreviewOverlay'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Project, WorkflowGraph, WorkflowNode, WorkflowNodeParams } from '@shared/types'
@@ -748,7 +749,7 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
                 }}
               >
                 <span className="wf-v2-direct-bbox-tag">
-                  {node.params?.logicCategory === 'action' ? '① Đầu' : useClusterBbox ? 'Cụm' : 'BBox'}
+                  {node.params?.logicCategory === 'action' ? `#${bboxStepNumber(workflow, node.id)} Đầu` : useClusterBbox ? 'Cụm' : 'BBox'}
                 </span>
                 <span className="wf-v2-direct-bbox-crosshair" />
                 {!hasPreviousMotion && handles.map((h) => (

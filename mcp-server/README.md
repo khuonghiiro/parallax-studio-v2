@@ -518,3 +518,6 @@ pnpm pxs review --view app --region virtual_light_pad --out D:\_tmp\light-pad.pn
 - PowerShell: `pnpm pxs call set_workflow '{"node_id":"motion-id","follow_up":true,"step_duration":3}'`.
 - CMD: `pnpm pxs call set_workflow "{\"node_id\":\"motion-id\",\"follow_up\":true,\"step_duration\":3}"`.
 - Flags (PowerShell/CMD): `pnpm pxs call set_workflow --node_id motion-id --follow_up true --step_duration 3`.
+
+### Nối chặng BBox và chọn chặng
+Motion/va chạm có cổng OUT: kéo sang node kế tiếp hoặc thả ra khoảng trống để tạo chặng mới. Motion BBox nối #1→#2→#3 kế thừa đích chặng trước làm điểm đầu; sửa đích chặng trước cập nhật các chặng sau. Dải tag BBox trong Thuộc tính Node liệt kê các chặng của layer/cụm theo thời gian, bấm tag để chỉnh từng chặng. Vùng MCP `workflow_bbox_steps` chụp riêng dải tag; `set_workflow` với `follow_up: true` dùng cùng logic tạo chặng như UI.

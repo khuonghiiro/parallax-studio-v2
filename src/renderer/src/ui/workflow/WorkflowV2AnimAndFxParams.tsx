@@ -561,12 +561,12 @@ export function WorkflowV2ActionParams(props: WorkflowV2NodeParamsProps): React.
                 bboxTargetScalePct: p.bboxTargetScalePct ?? 135,
                 depthMode: p.depthMode ?? 'flat_2d'
               },
-              'Motion: Đặt BBox Đích (#1 → #2)'
+              'Motion: Đặt BBox Đích (đầu → đích)'
             )
           }}
-          title="Đặt BBox Đích #2 dạng mờ như Camera: di chuyển từ #1 tới #2, phóng to/thu nhỏ khớp BBox #2 và đi theo chiều sâu Z"
+          title="Đặt BBox Đích đích dạng mờ như Camera: di chuyển từ đầu tới đích, phóng to/thu nhỏ khớp BBox đích và đi theo chiều sâu Z"
         >
-          🎯 BBox Đích (#1→#2)
+          🎯 BBox Đích (đầu→đích)
         </button>
         <button
           type="button"

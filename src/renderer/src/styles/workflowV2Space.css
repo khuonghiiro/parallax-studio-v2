@@ -371,6 +371,15 @@
   align-items: center;
   gap: 4px;
 }
+.wf-v2-bbox-step-tags {
+  max-height: 88px;
+  overflow-y: auto;
+  padding: 2px 0;
+}
+.wf-v2-bbox-step-tags .wf-v2-node-switch-pill {
+  max-width: 100%;
+  flex-shrink: 0;
+}
 .wf-v2-node-switch-pill {
   display: inline-flex;
   align-items: center;

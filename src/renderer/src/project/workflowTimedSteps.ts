@@ -1,4 +1,5 @@
 import { stepTimeParams } from './workflowStepGraph'
+import { bboxStepNumber, isBboxStep } from './workflowBboxSteps'
 import type { WorkflowEdge, WorkflowGraph, WorkflowNode } from '@shared/types'
 import { layoutWorkflowV2Tree } from './workflowV2Layout'
 import { recomputeSharedLogicTargets } from './workflowV2PhysicsAndValidation'
@@ -41,7 +42,7 @@ export function spawnTimedFollowupNodeV2(
   const nextNode: WorkflowNode = {
     ...src,
     id: newId,
-    title: `${cleanTitle} (${tStart}s–${tEnd}s)`,
+    title: isBboxStep(src) ? `Motion: BBox #${bboxStepNumber(workflow, src.id) + 1} → #${bboxStepNumber(workflow, src.id) + 2}` : `${cleanTitle} (${tStart}s–${tEnd}s)`,
     enabled: true,
     position: { x: src.position.x + 356, y: src.position.y },
     params: {
@@ -50,7 +51,9 @@ export function spawnTimedFollowupNodeV2(
       timeEnd: tEnd,
       localTimeRange: undefined,
       bboxStartZ: undefined,
-      ...(src.params?.motionMode === 'bbox' ? { bboxTargetScalePct: 100, collisionOnPathEnabled: false } : {}),
+      ...(isBboxStep(src) ? { bboxTargetScalePct: 100, collisionOnPathEnabled: false,
+        bboxTargetX: (src.params?.bboxTargetX ?? 0) + 280,
+        bboxPathType: 'shortest' as const, customMotionPath: undefined } : {}),
       pinned: true
     }
   }

@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react'
+import { bboxStepsForLayer, isBboxStep } from '../../project/workflowBboxSteps'
 import type { Layer, Project, WorkflowGraph, WorkflowNode, WorkflowNodeParams } from '@shared/types'
 import { getCompatibleLogicCatalogForNode } from '../../project/workflowV2Engine'
 import {
@@ -60,6 +61,7 @@ export const WorkflowV2NodeSwitcherBar: React.FC<{
   )
 
   const instId = activeNode?.params?.instanceId ?? layer.composite?.instanceId ?? layer.model3d?.instanceId
+  const bboxSteps = useMemo(() => bboxStepsForLayer(workflow, layer.id, instId), [workflow, layer.id, instId])
 
   const logicNodes = useMemo(
     () =>
@@ -131,7 +133,7 @@ export const WorkflowV2NodeSwitcherBar: React.FC<{
           <span className="pill-txt">{layer.name}</span>
         </button>
 
-        {logicNodes.map((ln) => {
+        {logicNodes.filter(ln => !isBboxStep(ln)).map((ln) => {
           const theme = resolveV2NodeTheme(ln)
           const isSelected =
             activeNode?.id === ln.id ||
@@ -161,6 +163,21 @@ export const WorkflowV2NodeSwitcherBar: React.FC<{
           + Logic
         </button>
       </div>
+
+      {bboxSteps.length > 0 && (
+        <div className="wf-v2-bbox-step-tags wf-v2-node-switcher-row" data-mcp-region="workflow_bbox_steps" aria-label="Các chặng BBox của Layer">
+          {bboxSteps.map(({ node: step, number, timing }) => (
+            <button key={step.id} type="button" data-bbox-step-id={step.id}
+              className={`wf-v2-node-switch-pill${activeNode?.id === step.id ? ' active' : ''}${!step.enabled ? ' is-off' : ''}`}
+              aria-pressed={activeNode?.id === step.id}
+              title={`${step.title} — Chỉnh chặng ${number} → ${number + 1}; đầu chặng kế tiếp cập nhật theo đích chặng này`}
+              onClick={() => onSelectNode(step.id)}>
+              <span className="pill-ico">▣</span>
+              <span className="pill-txt">BBox #{number}→#{number + 1} · {(timing.timeStart ?? 0).toFixed(1)}–{(timing.timeEnd ?? 0).toFixed(1)}s</span>
+            </button>
+          ))}
+        </div>
+      )}
 
       {partChildNodes.length > 0 && activeNode?.params?.logicCategory === 'part_swap' && (
         <div className="wf-v2-part-children-row" aria-label="Danh sách Node con Bộ phận">

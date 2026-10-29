@@ -118,6 +118,7 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   workflow_target_binder: region('workflow_target_binder', '.wf-tab-pane'),
   workflow_action_builder: region('workflow_action_builder', '.wf-action-builder-box'),
   workflow_collision_preview: ['.wf-collision-preview'],
+  workflow_bbox_steps: ['.wf-v2-bbox-step-tags'],
   workflow_preview: region('workflow_preview', '.wf-inspector-preview-box'),
   workflow_json_panel: region('workflow_json_panel', '.wf-json-panel'),
   workflow_node_camera_preview: region('workflow_node_camera_preview', '.wf-camera-preview'),

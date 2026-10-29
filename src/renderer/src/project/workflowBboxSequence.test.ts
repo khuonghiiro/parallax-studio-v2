@@ -5,6 +5,7 @@ import { createImageLayer, createProject, createShot } from './factory'
 import { findWorkflowContact } from './workflowBboxContact'
 import { syncWorkflowV2Graph, attachLogicNodeToLayerV2, syncWorkflowV2NodeToProject, v2LayerNodeId, spawnTimedFollowupNodeV2 } from './workflowV2Engine'
 import { applyCollisionNodeToProject } from './workflowV2PhysicsAndValidation'
+import { bboxStepsForLayer, bboxStepNumber } from './workflowBboxSteps'
 
 function fixture() {
   const project = createProject()
@@ -88,6 +89,8 @@ describe('BBox follow-up continuity', () => {
     project.workflow = next.workflow
     const n2 = project.workflow.nodes.find(n => n.id === next.createdNodeId)!
     expect(n2.params?.targetLayerIds).toContain(a.id)
+    expect(n2.params?.bboxTargetX).toBe(380)
+    expect(bboxStepNumber(project.workflow, n2.id)).toBe(2)
     syncWorkflowV2NodeToProject(project, n2, { bboxTargetX: 300 })
     expect(evaluate(a.transform.position, 1)[0]).toBeCloseTo(0)
     expect(evaluate(a.transform.position, 2)[0]).toBeCloseTo(100)
@@ -98,5 +101,16 @@ describe('BBox follow-up continuity', () => {
     const before = JSON.stringify(a.transform)
     syncWorkflowV2NodeToProject(project, project.workflow.nodes.find(n => n.id === n2.id)!)
     expect(JSON.stringify(a.transform)).toBe(before)
+    const third = spawnTimedFollowupNodeV2(project.workflow, n2.id, 2)!
+    project.workflow = third.workflow
+    const n3 = project.workflow.nodes.find(n => n.id === third.createdNodeId)!
+    syncWorkflowV2NodeToProject(project, n3, { bboxTargetX: 500 })
+    const steps = bboxStepsForLayer(project.workflow, a.id)
+    expect(steps.map(s => s.number)).toEqual([1, 2, 3])
+    expect(steps.map(s => s.timing.timeStart)).toEqual([0, 2, 4])
+    expect(bboxStepsForLayer(project.workflow, 'unrelated-layer')).toEqual([])
+    syncWorkflowV2NodeToProject(project, project.workflow.nodes.find(n => n.id === n2.id)!, { bboxTargetX: 350 })
+    expect(evaluate(a.transform.position, 4)[0]).toBeCloseTo(350)
+    expect(evaluate(a.transform.position, 6)[0]).toBeCloseTo(500)
   })
 })
