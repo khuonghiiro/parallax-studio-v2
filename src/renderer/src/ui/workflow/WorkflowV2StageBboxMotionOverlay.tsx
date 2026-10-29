@@ -28,8 +28,8 @@ export interface StageBboxMotionOverlayProps {
   shotScreenW: number
   shotScreenH: number
   zoom: number
+  sampleTime: number
   onSelectNode?: (nodeId: string) => void
-  onScrubTime: (t: number) => void
 }
 
 const HANDLES: { key: 'nw' | 'ne' | 'sw' | 'se'; cls: string }[] = [
@@ -80,8 +80,8 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
   shotScreenW,
   shotScreenH,
   zoom,
-  onSelectNode,
-  onScrubTime
+  sampleTime,
+  onSelectNode
 }) => {
   const update = useEditor((s) => s.update)
   const setPlaying = useEditor((s) => s.setPlaying)
@@ -180,7 +180,7 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
   // Đọc vị trí gốc #1 tại tStart (bỏ qua keyframe đã bake để BBox #1 và #2 không bị nhân kép tỷ lệ khi tua tới tEnd)
   const startPos: Vec3 = bboxStartPosition(coordRefLayer, tStart, motionNode?.id)
   const startCleanScale: Vec3 = bboxStartScale(coordRefLayer, tStart, motionNode?.id)
-  const curEvalScale: Vec3 = evaluate(coordRefLayer.transform.scale, useEditor.getState().time)
+  const curEvalScale: Vec3 = evaluate(coordRefLayer.transform.scale, sampleTime)
   const unbakedRatioX = Math.abs(startCleanScale[0] || 1) / Math.max(0.05, Math.abs(curEvalScale[0] || 1))
   const unbakedRatioY = Math.abs(startCleanScale[1] || 1) / Math.max(0.05, Math.abs(curEvalScale[1] || 1))
   const refD = 1483.64
@@ -269,7 +269,6 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
     const onUp = (): void => {
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
-      onScrubTime(tEnd)
     }
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)

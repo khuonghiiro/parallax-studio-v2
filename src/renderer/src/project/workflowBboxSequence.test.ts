@@ -47,6 +47,20 @@ describe('BBox collision measures simultaneous real trajectories', () => {
     a.transform.position.keyframes = [{ id: 'a0', t: 0, value: [-10000, 0, 0], ease: 'linear' }, { id: 'a1', t: 0.001, value: [10000, 0, 0], ease: 'linear' }]
     expect(findWorkflowContact(project, a, b, 0, 0.001)?.time).toBeCloseTo(0.000499, 6)
   })
+  it('keeps the legacy A-to-B approach when neither layer has a Motion path', () => {
+    const { project, a, b } = fixture()
+    const node = { id: 'legacy', type: 'physics_fx', enabled: true, params: { logicCategory: 'collision', targetLayerIds: [a.id, b.id], strikerLayerId: a.id, targetColliderLayerId: b.id, timeStart: 0, timeEnd: 2 } } as WorkflowNode
+    applyCollisionNodeToProject(project, undefined, node)
+    expect(a.transform.position.keyframes.some(k => k.id.startsWith('wfcol:legacy:'))).toBe(true)
+    expect(b.physics?.impacts).toHaveLength(1)
+    const time = b.physics!.impacts![0].time
+    expect(time).toBeGreaterThan(0)
+    expect(Math.abs(evaluate(a.transform.position, time)[0] - evaluate(b.transform.position, time)[0])).toBeLessThanOrEqual(20.1)
+    const first = JSON.stringify(a.transform)
+    applyCollisionNodeToProject(project, undefined, node)
+    expect(JSON.stringify(a.transform)).toBe(first)
+  })
+
   it('clears stale impacts when trajectories stop intersecting, without rewriting motion keys', () => {
     const { project, a, b } = fixture()
     b.transform.position.value = [-100, 0, 0]
@@ -55,6 +69,7 @@ describe('BBox collision measures simultaneous real trajectories', () => {
     expect(b.physics?.impacts?.[0].time).toBe(0)
     expect(a.transform.position.keyframes).toHaveLength(0)
     b.transform.position.value = [300, 0, 0]
+    a.transform.position.keyframes = [{ id: 'a-bboxmot-test-p-0', t: 0, value: [-100, 0, 0], ease: 'linear' }, { id: 'a-bboxmot-test-p-1', t: 2, value: [-50, 0, 0], ease: 'linear' }]
     applyCollisionNodeToProject(project, undefined, node)
     expect(b.physics?.impacts).toHaveLength(0)
   })

@@ -1,6 +1,6 @@
 import { writeWorkflowCollisionResponse } from './workflowCollisionResponse'
 import { workflowSourceOwners } from './workflowStepGraph'
-import { findWorkflowContact } from './workflowBboxContact'
+import { resolveWorkflowCollisionContact } from './workflowCollisionApproach'
 import { acceptsSharedTime } from './workflowTiming'
 import type {
   Layer,
@@ -684,8 +684,7 @@ export function applyCollisionNodeToProject(
 
   const tStart = Math.max(0, node.params?.timeStart ?? 0)
   const tEnd = Math.max(tStart, node.params?.timeEnd ?? project.comp.duration)
-  const contact = findWorkflowContact(project, strikerLayer, targetLayer, tStart, tEnd,
-    node.params?.depthMode === 'flat_2d' ? Number.MAX_VALUE : 24)
+  const contact = resolveWorkflowCollisionContact(project, node, strikerLayer, targetLayer, tStart, tEnd)
   if (!contact) return
   writeWorkflowCollisionResponse(node, strikerLayer, targetLayer, contact, tEnd,
     resolveLayerMaterialInWorkflow(workflow, strikerLayer), resolveLayerMaterialInWorkflow(workflow, targetLayer))

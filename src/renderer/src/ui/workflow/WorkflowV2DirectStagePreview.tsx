@@ -1,3 +1,4 @@
+import { workflowBboxEditTime } from './workflowBboxEditTime'
 import { WorkflowCollisionPreviewOverlay } from './WorkflowCollisionPreviewOverlay'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Project, WorkflowGraph, WorkflowNode, WorkflowNodeParams } from '@shared/types'
@@ -148,11 +149,7 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
     project.shots[0]?.id ??
     null
 
-  const sampleTime = useMemo(() => {
-    if (isWaypointNode && typeof node.params?.timeStart === 'number') return node.params.timeStart
-    if (playing) return Math.round(currentTime * 12) / 12
-    return currentTime
-  }, [isWaypointNode, node.params?.timeStart, playing, currentTime])
+  const sampleTime = workflowBboxEditTime(node, currentTime, playing)
 
   const stageLayout = useMemo(() => computeShotStageLayout(project, 0), [project])
   const frames = useMemo(() => extractCameraFrames2D(project, stageLayout), [project, stageLayout])
@@ -782,8 +779,8 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
               shotScreenW={shotScreenW}
               shotScreenH={shotScreenH}
               zoom={zoom}
+              sampleTime={sampleTime}
               onSelectNode={onSelectNode}
-              onScrubTime={onScrubTime}
             />}
           </div>
 
