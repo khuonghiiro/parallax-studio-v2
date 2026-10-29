@@ -15,10 +15,10 @@ class Target extends EventTarget {
   releasePointerCapture() { this.captured = false }
 }
 const event = (type: string, data: object) => Object.assign(new Event(type), data)
-function down(item = first, ctrlKey = false) {
+function down(item = first, ctrlKey = false, mode: 'move' | 'in' | 'out' = 'move') {
   const target = new Target()
   startIntervalDrag({ button: 0, pointerId: 1, clientX: 0, ctrlKey, currentTarget: target,
-    stopPropagation() {}, preventDefault() {} } as any, item, 100)
+    stopPropagation() {}, preventDefault() {} } as any, item, 100, mode)
   return target
 }
 describe('timeline interval selection and gestures', () => {
@@ -72,6 +72,31 @@ describe('timeline interval selection and gestures', () => {
   it('does not retime unselected intervals', () => {
     useEditor.getState().update(p => retimeTimelineIntervals(p, [first], 'shift', 1))
     expect(intervalBounds(useEditor.getState().project, second)).toEqual({ start: 6, end: 8 })
+  })
+  it('extends scene 3 to the new camera endpoint even when dragging past the project edge', () => {
+    useEditor.getState().update(p => {
+      p.comp.duration = 17
+      p.layers[0].inPoint = 9
+      p.layers[0].outPoint = 15
+    })
+    const before = useEditor.getState().past.length
+    const target = down({ kind: 'layer', layerId: 'layer' }, false, 'out')
+    target.dispatchEvent(event('pointermove', { pointerId: 1, clientX: 250 }))
+    target.dispatchEvent(event('pointerup', { pointerId: 1 }))
+    expect(useEditor.getState().project.layers[0].outPoint).toBe(17)
+    expect(useEditor.getState().past).toHaveLength(before + 1)
+    useEditor.getState().undo()
+    expect(useEditor.getState().project.layers[0].outPoint).toBe(15)
+    useEditor.getState().redo()
+    expect(useEditor.getState().project.layers[0].outPoint).toBe(17)
+  })
+  it.each([['in', -1000, 0, 12], ['in', 2000, 12 - 1 / 30, 12],
+    ['out', -2000, 0, 1 / 30]] as const)('clamps %s trims at project and minimum-frame boundaries', (mode, x, start, end) => {
+    const target = down({ kind: 'layer', layerId: 'layer' }, false, mode)
+    target.dispatchEvent(event('pointermove', { pointerId: 1, clientX: x }))
+    target.dispatchEvent(event('pointerup', { pointerId: 1 }))
+    expect(useEditor.getState().project.layers[0].inPoint).toBeCloseTo(start)
+    expect(useEditor.getState().project.layers[0].outPoint).toBeCloseTo(end)
   })
   it('refuses overlapping intervals atomically', () => {
     const before = useEditor.getState().project

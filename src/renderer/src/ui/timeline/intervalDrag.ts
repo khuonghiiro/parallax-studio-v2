@@ -5,6 +5,19 @@ import { intervalBounds, intervalId, retimeTimelineIntervals, type TimelineInter
 import { selectedIntervals, useTimelineSelection } from './timelineSelection'
 
 type PreviewGeometry = { el: HTMLElement; left: string; width: string; item: TimelineInterval }
+function clampDragDelta(source: ReturnType<typeof useEditor.getState>['project'], items: TimelineInterval[],
+  anchor: TimelineInterval, mode: 'move' | 'in' | 'out', delta: number): number {
+  const bounds = items.map(item => intervalBounds(source, item)!).filter(Boolean)
+  const origin = intervalBounds(source, anchor)!
+  const frame = 1 / source.comp.fps
+  const minStart = Math.min(...bounds.map(b => b.start))
+  const maxEnd = Math.max(...bounds.map(b => b.end))
+  if (mode === 'move') return Math.max(-minStart, Math.min(source.comp.duration - maxEnd, delta))
+  const lower = mode === 'in' ? 0 : Math.max(...bounds.map(b => b.start)) + frame
+  const upper = mode === 'out' ? source.comp.duration : Math.min(...bounds.map(b => b.end)) - frame
+  const boundary = mode === 'in' ? origin.start : origin.end
+  return Math.max(lower, Math.min(upper, boundary + delta)) - boundary
+}
 function previewTrim(mode: 'move' | 'in' | 'out', pending: number, source: ReturnType<typeof useEditor.getState>['project'],
   item: TimelineInterval, geometry: PreviewGeometry[], pixelsPerSecond: number): void {
     if (mode !== 'move') {
@@ -47,6 +60,7 @@ export function startIntervalDrag(event: ReactPointerEvent, item: TimelineInterv
     if (!moved && Math.abs(e.clientX - startX) < 3) return
     moved = true
     pending = Math.round((e.clientX - startX) / pixelsPerSecond * source.comp.fps) / source.comp.fps
+    pending = clampDragDelta(source, items, item, mode, pending)
     for (const el of previews) {
       if (mode === 'move') el.style.translate = `${pending * pixelsPerSecond}px 0`
       el.classList.add('is-retiming')
