@@ -168,4 +168,5 @@ export function deleteWorkflowV2Node(project: Project, nodeId: string): void {
   const nodes = recomputeSharedLogicTargets(after.nodes.filter(n => n.id !== nodeId), edges)
   project.workflow = { ...after, nodes: layoutWorkflowV2Tree(nodes, edges), edges }
   if (logicCategoryOf(target) === 'material') applyWorkflowV2PhysicsNodes(project, project.workflow)
+  if (['action', 'collision'].includes(logicCategoryOf(target) ?? '')) applyWorkflowV2ToProject(project, project.workflow)
 }

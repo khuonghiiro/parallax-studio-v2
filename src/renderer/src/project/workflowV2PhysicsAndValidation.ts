@@ -1,16 +1,16 @@
+import { writeWorkflowCollisionResponse } from './workflowCollisionResponse'
+import { workflowSourceOwners } from './workflowStepGraph'
+import { findWorkflowContact } from './workflowBboxContact'
 import { acceptsSharedTime } from './workflowTiming'
 import type {
   Layer,
   LayerPhysicsMaterial,
-  PhysicsImpactPulse,
   Project,
-  Vec3,
   WorkflowEdge,
   WorkflowGraph,
   WorkflowNode
 } from '@shared/types'
-import { evaluate } from '../animation/keyframes'
-import { stripCollisionGeneratedKeys, upsertCollisionKey } from './workflowV2CollisionKeys'
+import { stripCollisionGeneratedKeys } from './workflowV2CollisionKeys'
 import {
   MATERIAL_PHYSICS_PRESETS,
   createDefaultLayerPhysics
@@ -256,6 +256,23 @@ export function validateWorkflowV2Connection(
     }
   }
 
+  if (srcCat && ['action', 'collision'].includes(srcCat) && (dstCat === srcCat || (srcCat === 'action' && dstCat === 'collision'))) {
+    if (srcCat === dstCat && workflow.edges.some(e => !e.disabled && e.toNode === dst.id && e.fromNode !== src.id &&
+      getNodeLogicCategory(workflow.nodes.find(n => n.id === e.fromNode)) === dstCat)) {
+      return { valid: false, reason: 'Mỗi chặng chỉ nhận một chặng trước; hãy nối lần lượt.' }
+    }
+    const seen = new Set<string>()
+    const pending = [dst.id]
+    while (pending.length) {
+      const id = pending.pop()!
+      if (id === src.id) return { valid: false, reason: 'Chuỗi hành động không được tạo vòng lặp.' }
+      if (seen.has(id)) continue
+      seen.add(id)
+      pending.push(...workflow.edges.filter(e => !e.disabled && e.fromNode === id).map(e => e.toNode))
+    }
+    return { valid: sameShot, reason: sameShot ? undefined : 'Chuỗi hành động phải ở cùng cảnh.' }
+  }
+
   // 1. Nguồn là Root Cảnh -> chỉ nối tới Group Layer hoặc Camera 3D
   if (srcIsRoot) {
     if (dstIsGroup || dstCat === 'camera') {
@@ -466,10 +483,9 @@ export function recomputeSharedLogicTargets(
         if (!incomingClusterNodes.some((cn) => cn.id === fromN.id)) {
           incomingClusterNodes.push(fromN)
         }
-      } else if (getNodeLogicCategory(fromN) === 'material') {
-        for (const eMat of edges) {
-          if (eMat.toNode !== fromN.id || eMat.disabled) continue
-          const matLayer = byId.get(eMat.fromNode)
+      } else if (['material', 'action', 'collision'].includes(getNodeLogicCategory(fromN) ?? '')) {
+        for (const ownerId of workflowSourceOwners(fromN.id, byId, edges)) {
+          const matLayer = byId.get(ownerId)
           if (!matLayer) continue
           if (matLayer.type === 'layer_assembly' && !matLayer.params?.groupKind) {
             if (!incomingLayerNodes.some((ln) => ln.id === matLayer.id)) incomingLayerNodes.push(matLayer)
@@ -637,7 +653,7 @@ export function applyCollisionNodeToProject(
   const strikerPulseId = `wf-col-a-${node.id}`
   // Gỡ sạch bộ keyframe cũ do chính Node này sinh ra trước khi tính lại (đồng bộ idempotent, không tích tụ keyframe rác)
   stripCollisionGeneratedKeys(project, node.id)
-  if (!node.enabled) {
+  {
     for (const l of project.layers) {
       if (l.physics?.impacts?.length) {
         l.physics.impacts = l.physics.impacts.filter(
@@ -645,8 +661,8 @@ export function applyCollisionNodeToProject(
         )
       }
     }
-    return
   }
+  if (!node.enabled) return
   const targetIds = node.params?.targetLayerIds ?? []
   if (targetIds.length === 0) return
 
@@ -666,223 +682,11 @@ export function applyCollisionNodeToProject(
     return
   }
 
-  const mode: WorkflowV2CollisionMode = node.params?.collisionMode ?? 'elastic_bounce'
-  const force = Math.max(0.2, Math.min(2.5, node.params?.collisionForce ?? 1.2))
-  const deform = Math.max(0.2, Math.min(2.5, node.params?.deformIntensity ?? 1.25))
-
   const tStart = Math.max(0, node.params?.timeStart ?? 0)
-  const tEnd = Math.max(tStart + 0.4, node.params?.timeEnd ?? project.comp.duration ?? 5)
-  const span = tEnd - tStart
-  const tHit = Number((tStart + span * 0.45).toFixed(2))
-  const tRecover = Number(Math.min(tEnd, tHit + Math.min(1.1, span * 0.45)).toFixed(2))
-
-  // Xác định chất liệu vật lý của Chủ thể A và Mục tiêu B từ Node Vật liệu (nếu có)
-  const strikerMat = resolveLayerMaterialInWorkflow(workflow, strikerLayer)
-  const targetMat = resolveLayerMaterialInWorkflow(
-    workflow,
-    targetLayer.id === strikerLayer.id ? strikerLayer : targetLayer
-  )
-  const effectiveTargetMat: WorkflowV2MaterialTag =
-    mode === 'jelly_crush' && targetMat === 'flesh_body' ? 'jelly_slime' : targetMat
-
-  const strikerPreset = MATERIAL_PHYSICS_PRESETS[strikerMat] ?? MATERIAL_PHYSICS_PRESETS.flesh_body
-  const targetPreset =
-    MATERIAL_PHYSICS_PRESETS[effectiveTargetMat] ?? MATERIAL_PHYSICS_PRESETS.wood_tree
-
-  const posA = evaluate(strikerLayer.transform.position, tStart)
-  const posB = evaluate(targetLayer.transform.position, tStart)
-  const zDiff = Math.abs(posA[2] - posB[2])
-  const sharedZTol = Math.max(80, Math.round(zDiff + 90))
-
-  // 1. Cấu hình Physics & Xung phản lực va chạm cho Chủ thể A
-  const baseStrikerCfg = strikerLayer.physics ?? createDefaultLayerPhysics(strikerMat)
-  const existingStrikerImpacts = (baseStrikerCfg.impacts ?? []).filter((imp) => imp.id !== strikerPulseId)
-  const dirX = posB[0] >= posA[0] ? 1 : -1
-  const strikerPulse: PhysicsImpactPulse = {
-    id: strikerPulseId,
-    time: tHit,
-    type: mode === 'wall_vault' ? 'vault' : 'punch',
-    velocity: [-dirX * 420 * force, 120 * force, 0],
-    contactUV: [0.5, 0.5],
-    sourceLayerId: targetLayer.id,
-    duration: Number(Math.max(0.7, tEnd - tHit).toFixed(2))
-  }
-  strikerLayer.physics = {
-    ...baseStrikerCfg,
-    enabled: true,
-    material: strikerMat,
-    role:
-      mode === 'projectile_stick'
-        ? 'projectile'
-        : mode === 'wall_vault'
-          ? 'vault_jumper'
-          : 'striker',
-    stickOnHit: mode === 'projectile_stick',
-    zTolerance: sharedZTol,
-    bounciness: Number((strikerPreset.bounciness * deform).toFixed(2)),
-    hitSensitivity: force,
-    impacts: [...existingStrikerImpacts, strikerPulse]
-  }
-
-  // 2. Cấu hình Physics & Xung biến dạng Mesh cho Mục tiêu B
-  const baseTargetCfg = targetLayer.physics ?? createDefaultLayerPhysics(effectiveTargetMat)
-  const existingImpacts = (baseTargetCfg.impacts ?? []).filter((imp) => imp.id !== pulseId)
-  const impactVelocity: Vec3 =
-    mode === 'jelly_crush'
-      ? [dirX * 80 * force, -760 * force, 0]
-      : mode === 'heavy_punch'
-        ? [dirX * 960 * force, 85 * force, 0]
-        : mode === 'projectile_stick'
-          ? [dirX * 680 * force, -40, 420 * force]
-          : [dirX * 640 * force, -60 * force, 0]
-
-  const impactPulse: PhysicsImpactPulse = {
-    id: pulseId,
-    time: tHit,
-    type:
-      mode === 'jelly_crush'
-        ? 'press'
-        : mode === 'wall_vault'
-          ? 'vault'
-          : mode === 'projectile_stick'
-            ? 'arrow'
-            : 'punch',
-    velocity: impactVelocity,
-    contactUV: mode === 'jelly_crush' ? [0.5, 0.85] : [0.5, 0.55],
-    sourceLayerId: strikerLayer.id,
-    duration: Number(Math.max(0.9, tEnd - tHit).toFixed(2))
-  }
-
-  targetLayer.physics = {
-    ...baseTargetCfg,
-    enabled: true,
-    material: effectiveTargetMat,
-    role: 'prop_target',
-    zTolerance: sharedZTol,
-    stiffness: targetPreset.stiffness,
-    damping: targetPreset.damping,
-    bounciness: Number((targetPreset.bounciness * deform).toFixed(2)),
-    hitSensitivity: Number((force * deform).toFixed(2)),
-    impacts: [...existingImpacts, impactPulse]
-  }
-
-  // 3. Nếu có 2 Layer riêng biệt (A != B), tạo quỹ đạo chuyển động va chạm & biến dạng đàn hồi theo chất liệu
-  if (strikerLayer.id !== targetLayer.id) {
-    const startScaleA = evaluate(strikerLayer.transform.scale, tStart)
-    const startScaleB = evaluate(targetLayer.transform.scale, tStart)
-    const contactX = Math.round(posA[0] + (posB[0] - posA[0]) * 0.72)
-    const contactY = Math.round(posA[1] + (posB[1] - posA[1]) * 0.65)
-
-    // Quỹ đạo của Chủ thể A (nếu Chủ thể A chưa có đường đi BBox #1 -> #2 hoặc Motion Path riêng thì tự tạo lao tới điểm chạm tHit)
-    const strikerHasOwnTrajectory = strikerLayer.transform.position.keyframes.some(
-      (k) => k.id.includes('-bboxmot-') || k.id.includes('-motpath-p-')
-    )
-    if (!strikerHasOwnTrajectory) {
-      upsertCollisionKey(strikerLayer.transform.position, tStart, [...posA] as Vec3, 'easeIn', node.id, 'k0')
-      upsertCollisionKey(
-        strikerLayer.transform.position,
-        tHit,
-        [contactX, contactY, posA[2]],
-        'easeOut',
-        node.id,
-        'k1'
-      )
-
-      if (mode === 'elastic_bounce') {
-        const reboundDist = Math.round(140 * force * (0.6 + targetPreset.bounciness * 0.4))
-        upsertCollisionKey(
-          strikerLayer.transform.position,
-          tRecover,
-          [contactX - dirX * reboundDist, posA[1] + 24, posA[2]],
-          'easeOut',
-          node.id,
-          'k2'
-        )
-      } else if (mode === 'wall_vault') {
-        const vaultPeakT = Number(((tHit + tRecover) * 0.5).toFixed(2))
-        upsertCollisionKey(
-          strikerLayer.transform.position,
-          vaultPeakT,
-          [posB[0], posB[1] + Math.round(190 * force), posA[2]],
-          'easeOut',
-          node.id,
-          'k3'
-        )
-        upsertCollisionKey(
-          strikerLayer.transform.position,
-          tRecover,
-          [posB[0] + dirX * 180, posA[1], posA[2]],
-          'easeIn',
-          node.id,
-          'k4'
-        )
-      } else if (mode === 'heavy_punch') {
-        upsertCollisionKey(
-          strikerLayer.transform.position,
-          tRecover,
-          [contactX - dirX * 45, contactY, posA[2]],
-          'easeOut',
-          node.id,
-          'k5'
-        )
-      }
-    }
-
-    // Biến dạng Scale (Squash & Stretch) tại thời điểm va chạm tHit cho cả A và B dựa trên hệ số squashRatio của chất liệu
-    const squashA = Math.min(0.38, Math.max(0.05, strikerPreset.squashRatio * deform * 0.9))
-    const squashB = Math.min(0.48, Math.max(0.03, targetPreset.squashRatio * deform * 1.15))
-    const tPeakDeform = Number(Math.min(tEnd, tHit + 0.08).toFixed(2))
-
-    upsertCollisionKey(strikerLayer.transform.scale, tStart, [...startScaleA] as Vec3, 'linear', node.id, 'k6')
-    upsertCollisionKey(
-      strikerLayer.transform.scale,
-      tPeakDeform,
-      [
-        Number((startScaleA[0] * (1 - squashA * 0.65)).toFixed(3)),
-        Number((startScaleA[1] * (1 + squashA * 0.55)).toFixed(3)),
-        startScaleA[2]
-      ],
-      'easeOut',
-      node.id,
-      'k7'
-    )
-    upsertCollisionKey(strikerLayer.transform.scale, tRecover, [...startScaleA] as Vec3, 'easeOut', node.id, 'k8')
-
-    upsertCollisionKey(targetLayer.transform.scale, tStart, [...startScaleB] as Vec3, 'linear', node.id, 'k9')
-    upsertCollisionKey(
-      targetLayer.transform.scale,
-      tPeakDeform,
-      [
-        Number((startScaleB[0] * (1 + squashB * 0.85)).toFixed(3)),
-        Number((startScaleB[1] * (1 - squashB * 0.78)).toFixed(3)),
-        startScaleB[2]
-      ],
-      'easeOut',
-      node.id,
-      'k10'
-    )
-    upsertCollisionKey(targetLayer.transform.scale, tRecover, [...startScaleB] as Vec3, 'easeOut', node.id, 'k11')
-
-    // Nếu Mục tiêu B bị tông mạnh ('heavy_punch') và không phải tường đá cố định -> bị đẩy lùi nhẹ theo khối lượng
-    const targetAlreadyPushedByBbox = targetLayer.transform.position.keyframes.some((k) =>
-      k.id.includes('-bboxcol-')
-    )
-    if (
-      mode === 'heavy_punch' &&
-      !targetAlreadyPushedByBbox &&
-      effectiveTargetMat !== 'stone_wall' &&
-      effectiveTargetMat !== 'ground_terrain'
-    ) {
-      const pushDist = Math.round((95 * force) / Math.max(0.6, Math.sqrt(targetPreset.mass)))
-      upsertCollisionKey(targetLayer.transform.position, tHit, [...posB] as Vec3, 'easeOut', node.id, 'k12')
-      upsertCollisionKey(
-        targetLayer.transform.position,
-        tRecover,
-        [posB[0] + dirX * pushDist, posB[1], posB[2]],
-        'easeOut',
-        node.id,
-        'k13'
-      )
-    }
-  }
+  const tEnd = Math.max(tStart, node.params?.timeEnd ?? project.comp.duration)
+  const contact = findWorkflowContact(project, strikerLayer, targetLayer, tStart, tEnd,
+    node.params?.depthMode === 'flat_2d' ? Number.MAX_VALUE : 24)
+  if (!contact) return
+  writeWorkflowCollisionResponse(node, strikerLayer, targetLayer, contact, tEnd,
+    resolveLayerMaterialInWorkflow(workflow, strikerLayer), resolveLayerMaterialInWorkflow(workflow, targetLayer))
 }

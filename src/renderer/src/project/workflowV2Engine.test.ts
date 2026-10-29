@@ -178,6 +178,7 @@ describe('Workflow V2 — MỘT LOGIC CHUNG với Timeline / Inspector', () => {
 describe('Workflow V2 — kết nối chuẩn logic', () => {
   it('Va chạm chỉ có hiệu lực khi đủ Layer A và B; keyframe va chạm đồng bộ idempotent', () => {
     let { proj, vine, rock } = sampleProject()
+    rock.transform.position.value = [...vine.transform.position.value]
     proj = synced(proj)
     const res = attachLogicNodeToLayerV2(proj.workflow!, v2LayerNodeId(vine.id), 'collision')
     let wf = res.workflow
@@ -206,6 +207,7 @@ describe('Workflow V2 — kết nối chuẩn logic', () => {
 
   it('Va chạm & Vật liệu được khôi phục từ dữ liệu vật lý thật khi cây bị dựng lại (không mất logic)', () => {
     let { proj, vine, rock } = sampleProject()
+    rock.transform.position.value = [...vine.transform.position.value]
     proj = synced(proj)
     let wf = attachLogicNodeToLayerV2(proj.workflow!, v2LayerNodeId(vine.id), 'collision').workflow
     const paired = attachLogicNodeToLayerV2(wf, v2LayerNodeId(rock.id), 'collision')

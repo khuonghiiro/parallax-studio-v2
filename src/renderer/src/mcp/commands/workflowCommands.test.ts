@@ -1,3 +1,5 @@
+import { syncWorkflowV2Graph, attachLogicNodeToLayerV2, syncWorkflowV2NodeToProject, v2LayerNodeId } from '../../project/workflowV2Engine'
+import { evaluate } from '../../animation/keyframes'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { createProject, createImageLayer, createShot } from '../../project/factory'
 import { DEFAULT_NODE_POSITIONS } from '../../project/workflowCatalog'
@@ -20,6 +22,31 @@ import { useEditor } from '../../store/editor'
 import { runCommand } from '../commands'
 
 describe('MCP workflowCommands & Workflow Engine', () => {
+  it('creates a connected BBox follow-up through MCP with atomic Undo/Redo', async () => {
+    let sourceId = '', layerId = ''
+    useEditor.getState().update(draft => {
+      const layer = draft.layers[0]
+      layerId = layer.id
+      draft.workflow = syncWorkflowV2Graph(draft)
+      const result = attachLogicNodeToLayerV2(draft.workflow, v2LayerNodeId(layerId), 'action', 'v2:action:bbox_target',
+        { timeStart: 0, timeEnd: 2, bboxTargetX: 300, bboxTargetY: 0, bboxTargetScalePct: 100 })
+      sourceId = result.createdNodeId
+      draft.workflow = result.workflow
+      syncWorkflowV2NodeToProject(draft, draft.workflow.nodes.find(n => n.id === sourceId)!)
+    })
+    const before = useEditor.getState().project
+    const result = await runCommand('set_workflow', { node_id: sourceId, follow_up: true, step_duration: 2 }) as any
+    const after = useEditor.getState().project
+    const node = after.workflow!.nodes.find(n => n.id === result.node_id)!
+    expect(node.params).toMatchObject({ timeStart: 2, timeEnd: 4, targetLayerIds: [layerId] })
+    expect(after.workflow!.edges.some(e => e.fromNode === sourceId && e.toNode === node.id)).toBe(true)
+    expect(evaluate(after.layers[0].transform.position, 2)[0]).toBe(300)
+    useEditor.getState().undo()
+    expect(useEditor.getState().project).toEqual(before)
+    useEditor.getState().redo()
+    expect(useEditor.getState().project).toEqual(after)
+  })
+
   it('applies explicit node parameters in one undo transaction', async () => {
     const before = useEditor.getState().project
     const count = useEditor.getState().past.length

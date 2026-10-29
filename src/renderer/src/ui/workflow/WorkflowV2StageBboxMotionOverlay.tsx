@@ -1,18 +1,13 @@
+import { bboxStartPosition, bboxStartScale } from '../../project/workflowMotionStart'
 import React, { useCallback, useState } from 'react'
 import type { Layer, Project, Vec3, WorkflowGraph, WorkflowNode, WorkflowNodeParams } from '@shared/types'
 import { evaluate } from '../../animation/keyframes'
 import { assetStore } from '../../project/assets'
 import {
-  depthToZIndex,
-  detectPathCollisionsInScene,
-  evaluateBboxTrajectoryAt,
-  evaluateCleanLayerPos,
-  evaluateCleanLayerScale
+  evaluateBboxTrajectoryAt
 } from '../../project/workflowV2BboxMotionAndCollision'
 import {
   attachLogicNodeToLayerV2,
-  getClusterMemberLayers,
-  getClusterRootLayer,
   syncWorkflowV2NodeToProject
 } from '../../project/workflowV2Engine'
 import { useEditor } from '../../store/editor'
@@ -126,7 +121,7 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
   const handleSpawnOrEnableBbox2 = useCallback((): void => {
     if (!coordRefLayer) return
     const tStart = mp?.timeStart ?? coordRefLayer.inPoint ?? 0
-    const startPos = evaluateCleanLayerPos(coordRefLayer, tStart)
+    const startPos = bboxStartPosition(coordRefLayer, tStart, motionNode?.id)
     const defaultTargetX = Math.round(startPos[0] + 280)
     const defaultTargetY = Math.round(startPos[1] - 20)
 
@@ -183,8 +178,8 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
   const tStart = mp?.timeStart ?? coordRefLayer.inPoint ?? 0
   const tEnd = mp?.timeEnd ?? Number((tStart + 3).toFixed(2))
   // Đọc vị trí gốc #1 tại tStart (bỏ qua keyframe đã bake để BBox #1 và #2 không bị nhân kép tỷ lệ khi tua tới tEnd)
-  const startPos: Vec3 = evaluateCleanLayerPos(coordRefLayer, tStart)
-  const startCleanScale: Vec3 = evaluateCleanLayerScale(coordRefLayer, tStart)
+  const startPos: Vec3 = bboxStartPosition(coordRefLayer, tStart, motionNode?.id)
+  const startCleanScale: Vec3 = bboxStartScale(coordRefLayer, tStart, motionNode?.id)
   const curEvalScale: Vec3 = evaluate(coordRefLayer.transform.scale, useEditor.getState().time)
   const unbakedRatioX = Math.abs(startCleanScale[0] || 1) / Math.max(0.05, Math.abs(curEvalScale[0] || 1))
   const unbakedRatioY = Math.abs(startCleanScale[1] || 1) / Math.max(0.05, Math.abs(curEvalScale[1] || 1))
@@ -306,15 +301,6 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
     }
   }
 
-  const collisions =
-    hasBboxMotion && mp
-      ? detectPathCollisionsInScene(
-          project,
-          mp.targetLayerIds ?? [coordRefLayer.id],
-          mp
-        )
-      : []
-
   return (
     <>
       {/* Nút bật nhanh BBox #2 hoặc chế độ vẽ đường đi nổi góc dưới phải của Stage 2D (không che nhãn BBox phía trên) */}
@@ -422,27 +408,7 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
           })}
           <circle cx={box1Cx} cy={box1Cy} r={4.5} fill="#10b981" stroke="#0f172a" strokeWidth={1.5} />
           <circle cx={box2Cx} cy={box2Cy} r={5} fill="#f59e0b" stroke="#0f172a" strokeWidth={1.5} />
-          {/* Điểm va chạm phát hiện được trên đường đi */}
-          {collisions.map((col) => {
-            const pf = refD / Math.max(80, refD + col.movingZAtHit)
-            const cx = shotLeft + shotScreenW / 2 + col.hitPoint[0] * pf * zoom
-            const cy = shotTop + shotScreenH / 2 - col.hitPoint[1] * pf * zoom
-            return (
-              <g key={`col-${col.layerId}`}>
-                <circle cx={cx} cy={cy} r={8} fill="rgba(244, 63, 94, 0.32)" stroke="#f43f5e" strokeWidth={1.6} />
-                <text
-                  x={cx}
-                  y={cy - 10}
-                  textAnchor="middle"
-                  fill="#fda4af"
-                  fontSize={9}
-                  fontWeight={700}
-                >
-                  💥 {col.layerName} ({col.hitTime}s)
-                </text>
-              </g>
-            )
-          })}
+
         </svg>
       )}
 
@@ -538,7 +504,7 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
               color: '#ffffff'
             }}
           >
-            #2 Đích · {targetScalePct}%{depthMode === 'depth_z' ? ` · Z-Idx:${depthToZIndex(targetZ)}` : ''}
+            ② Đích
           </span>
           <span className="wf-v2-direct-bbox-crosshair" />
           {HANDLES.map((h) => (

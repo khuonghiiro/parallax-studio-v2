@@ -28,7 +28,7 @@ export function collisionParamsFromPulse(pulse: PhysicsImpactPulse, target: Laye
   const deform = r2(clamp((target.physics?.hitSensitivity ?? force) / force, 0.2, 2.5))
   const tHit = pulse.time
   const tEnd = tHit + (pulse.duration ?? 0.9)
-  const tStart = Math.max(0, (tHit - 0.45 * tEnd) / 0.55)
+  const tStart = Math.max(0, tHit)
   return { collisionMode: mode, collisionForce: force, deformIntensity: deform, intensity: force, timeStart: r2(tStart), timeEnd: r2(tEnd) }
 }
 

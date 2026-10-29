@@ -1,8 +1,8 @@
+import { bboxStartPosition } from '../../project/workflowMotionStart'
 import React, { useMemo, useState } from 'react'
 import type { Layer, Vec3, WorkflowNodeParams } from '@shared/types'
 import { evaluate } from '../../animation/keyframes'
 import {
-  bakeBboxTargetMotionToScene,
   depthToZIndex,
   detectPathCollisionsInScene,
   evaluateCleanLayerPos,
@@ -62,7 +62,7 @@ export const WorkflowV2BboxMotionPanel: React.FC<{
   const runDuration = Number(Math.max(0.3, tEnd - tStart).toFixed(2))
 
   const startPos: Vec3 = useMemo(
-    () => (rootLayer ? evaluateCleanLayerPos(rootLayer, tStart) : [0, 0, 0]),
+    () => (rootLayer ? bboxStartPosition(rootLayer, tStart, node.id) : [0, 0, 0]),
     [rootLayer, tStart]
   )
 
@@ -105,7 +105,7 @@ export const WorkflowV2BboxMotionPanel: React.FC<{
       if (wfNode) {
         wfNode.params = { ...(wfNode.params ?? {}), ...merged }
       }
-      bakeBboxTargetMotionToScene(d, targetIds, merged, node.id)
+      if (wfNode) syncWorkflowV2NodeToProject(d, wfNode, merged)
     }, mergeKey)
   }
 
@@ -140,7 +140,7 @@ export const WorkflowV2BboxMotionPanel: React.FC<{
         bboxTargetZ: targetZ,
         timeStart: tStart,
         timeEnd: tEnd
-      }),
+      }, node.id),
     [project, targetIds, p, pathType, targetX, targetY, targetScalePct, depthMode, startZ, targetZ, tStart, tEnd]
   )
 
@@ -383,12 +383,7 @@ export const WorkflowV2BboxMotionPanel: React.FC<{
                   wfNode.params.bboxTargetX = curX
                   wfNode.params.bboxTargetY = curY
                 }
-                bakeBboxTargetMotionToScene(
-                  d,
-                  targetIds,
-                  { ...(wfNode?.params ?? p), bboxTargetX: curX, bboxTargetY: curY },
-                  node.id
-                )
+                if (wfNode) syncWorkflowV2NodeToProject(d, wfNode, { bboxTargetX: curX, bboxTargetY: curY })
               }, 'wf-bbox-swap12')
             }}
             title="Đổi chỗ vị trí xuất phát #1 và vị trí đích #2"

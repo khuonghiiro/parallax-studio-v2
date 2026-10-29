@@ -302,7 +302,7 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
   const show25DPreview =
     isLayerLogicNode && Boolean(logicCat && ['light', 'cave', 'material', 'fx'].includes(logicCat))
   const canChainTimedStep =
-    Boolean(node.params?.isPartChild) || logicCat === 'anim_fx' || logicCat === 'action'
+    Boolean(node.params?.isPartChild) || logicCat === 'anim_fx' || logicCat === 'action' || logicCat === 'collision'
   const duration = Math.max(1, project.comp.duration || 5)
   const timing = effectiveTimeParams(project, node, node.params ?? {})
   const source = timeSource(workflow, node.id)
@@ -326,6 +326,7 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
       createdId = res.createdNodeId
       const createdNode = res.workflow.nodes.find((n) => n.id === res.createdNodeId)
       if (createdNode) {
+        draft.comp.duration = Math.max(draft.comp.duration, createdNode.params?.timeEnd ?? 0)
         nextStart = createdNode.params?.timeStart ?? tEnd
         syncWorkflowV2NodeToProject(draft as Project, createdNode)
       }

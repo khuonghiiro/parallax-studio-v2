@@ -1,3 +1,4 @@
+import { WorkflowCollisionPreviewOverlay } from './WorkflowCollisionPreviewOverlay'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Project, WorkflowGraph, WorkflowNode, WorkflowNodeParams } from '@shared/types'
 import { evaluateScene } from '../../engine/evaluateScene'
@@ -108,6 +109,10 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
 
   const level = resolveV2NodeLevel(node)
   const theme = resolveV2NodeTheme(node)
+  const isCollisionNode = node.params?.logicCategory === 'collision'
+  const hasPreviousMotion = node.params?.logicCategory === 'action' && workflow.edges.some(e =>
+    e.toNode === node.id && !e.disabled && e.fromPort === 'motion_stream' &&
+    workflow.nodes.find(n => n.id === e.fromNode)?.params?.logicCategory === 'action')
   const isCamNode = node.type === 'camera_director'
   const isWaypointNode = Boolean(node.params?.isCameraWaypoint)
   const isClusterLockNode = node.params?.logicCategory === 'cluster_lock'
@@ -256,6 +261,7 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
     (e: React.PointerEvent, proj: ProjectedLayer2D, mode: 'move' | 'nw' | 'ne' | 'sw' | 'se'): void => {
       e.stopPropagation()
       e.preventDefault()
+      if (hasPreviousMotion) return
       setPlaying(false)
       const st = useEditor.getState().project
       const refLayer = useClusterBbox
@@ -357,7 +363,7 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
       window.addEventListener('pointermove', onMove)
       window.addEventListener('pointerup', onUp)
     },
-    [zoom, setPlaying, selectLayer, update, useClusterBbox, clusterRootLayer, isClusterLockNode, clusterInstId, node]
+    [zoom, setPlaying, selectLayer, update, useClusterBbox, clusterRootLayer, isClusterLockNode, clusterInstId, node, hasPreviousMotion]
   )
 
   const startCameraWaypointDrag = useCallback(
@@ -488,7 +494,7 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
         >
           <span>{open ? '▾' : '▸'}</span>
           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            🎯 {useClusterBbox ? `BBox Cụm (${clusterMembers.length} mảnh)` : 'Khung BBox 2D trực tiếp'}
+            Khung chỉnh BBox
           </span>
         </button>
         {open && (
@@ -541,7 +547,7 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
             </button>
           </div>
         )}
-        {open && clusterMembers.length > 1 && !isClusterLockNode && (
+        {open && clusterMembers.length > 1 && !isClusterLockNode && level === 'layer' && (
           <button
             type="button"
             className="wf-v2-direct-btn"
@@ -597,19 +603,14 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
                       opacity: l.opacity,
                       transform: l.rotation ? `rotate(${l.rotation}deg)` : undefined
                     }}
-                    title={`Bấm để chọn "${l.name}" (Z ${Math.round(l.zDepth)})`}
+                    title={isTarget ? l.name : undefined}
                     onPointerDown={(e) => {
-                      if (e.button !== 0) return
+                      if (e.button !== 0 || !isTarget || isCollisionNode) return
                       if (isTarget && selectedProjLayer) {
                         startLayerDrag(e, selectedProjLayer, 'move')
                         return
                       }
                       e.stopPropagation()
-                      selectLayer(l.id)
-                      const lNode = workflow.nodes.find(
-                        (n) => resolveV2NodeLevel(n) === 'layer' && n.params?.targetLayerIds?.includes(l.id)
-                      )
-                      if (lNode) onSelectNode?.(lNode.id)
                     }}
                   >
                     {l.type === 'image' && imgUrl && (
@@ -730,7 +731,7 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
               })}
 
             {/* Khung BBox tương tác trực tiếp của Layer hoặc Toàn bộ Cụm */}
-            {selectedProjLayer && (
+            {selectedProjLayer && !isCollisionNode && (
               <div
                 className="wf-v2-direct-layer-bbox"
                 style={{
@@ -750,11 +751,10 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
                 }}
               >
                 <span className="wf-v2-direct-bbox-tag">
-                  {useClusterBbox ? '🔒 BBox Cụm · ' : 'BBox · '}
-                  {selectedProjLayer.name}
+                  {node.params?.logicCategory === 'action' ? '① Đầu' : useClusterBbox ? 'Cụm' : 'BBox'}
                 </span>
                 <span className="wf-v2-direct-bbox-crosshair" />
-                {handles.map((h) => (
+                {!hasPreviousMotion && handles.map((h) => (
                   <span
                     key={h.key}
                     className={`wf-v2-bbox-handle ${h.cls}`}
@@ -765,7 +765,9 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
             )}
 
             {/* Lớp phủ Ghost BBox #2 (Đích) & Quỹ đạo #1 -> #2 & Điểm Va Chạm */}
-            <WorkflowV2StageBboxMotionOverlay
+            {isCollisionNode ? <WorkflowCollisionPreviewOverlay project={project} node={node}
+              stageW={stageW} stageH={stageH} centerX={shotLeft + shotScreenW / 2}
+              centerY={shotTop + shotScreenH / 2} zoom={zoom} /> : <WorkflowV2StageBboxMotionOverlay
               project={project}
               workflow={workflow}
               node={node}
@@ -782,7 +784,7 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
               zoom={zoom}
               onSelectNode={onSelectNode}
               onScrubTime={onScrubTime}
-            />
+            />}
           </div>
 
           {/* Thanh nắm kéo dãn chiều cao khung BBox 2D trực tiếp */}

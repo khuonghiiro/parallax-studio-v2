@@ -2,6 +2,7 @@ import type { WorkflowNode, WorkflowPortKind } from '@shared/types'
 import { WORKFLOW_NODE_SPECS } from './workflowCatalog'
 
 export function getWorkflowNodePorts(node: Pick<WorkflowNode, 'type' | 'params'>): { inputs: WorkflowPortKind[]; outputs: WorkflowPortKind[] } {
+  if (node.params?.logicCategory === 'collision') return { inputs: ['layers_tree', 'motion_stream', 'vfx_stage', 'time_range'], outputs: ['vfx_stage'] }
   if (node.params?.logicCategory === 'time') return { inputs: [], outputs: ['time_range'] }
   if (node.type === 'layer_assembly' && node.params?.targetLayerIds?.length && !node.params.logicId) {
     return { inputs: ['time_range', 'layers_tree', 'motion_stream', 'vfx_stage', 'audio_mix'], outputs: ['transform_link', 'actors_rig'] }

@@ -1,3 +1,4 @@
+import { spawnTimedFollowupNodeV2 } from '../../project/workflowTimedSteps'
 import { intervalBounds, retimeTimelineIntervals, type TimelineInterval } from '../../project/timelineIntervals'
 import { deleteWorkflowV2Node, detachWorkflowV2NodeFromProject } from '../../project/workflowV2Rebuild'
 import { connectTimeNode, createTimeNode, isTimeNode } from '../../project/workflowTiming'
@@ -152,6 +153,21 @@ export const workflowCommands: Record<string, Handler> = {
       const node = createTimeNode(proj())
       ed().update(d => { const wf = ensureProjectWorkflow(proj()); d.workflow = { ...wf, nodes: [...wf.nodes, node] } })
       return { ok: true, node_id: node.id }
+    }
+    if (bool(p, 'follow_up')) {
+      let createdId = ''
+      ed().update(draft => {
+        const graph = draft.workflow
+        if (!graph) throw new ParamError('Workflow V2 is required')
+        const result = spawnTimedFollowupNodeV2(graph, str(p, 'node_id', true)!, num(p, 'step_duration') ?? 3)
+        if (!result) throw new ParamError('Cannot create a follow-up for this node')
+        draft.workflow = result.workflow
+        createdId = result.createdNodeId
+        const created = result.workflow.nodes.find(n => n.id === createdId)!
+        draft.comp.duration = Math.max(draft.comp.duration, created.params?.timeEnd ?? 0)
+        syncWorkflowV2NodeToProject(draft as Project, created)
+      })
+      return { ok: true, node_id: createdId, workflow: proj().workflow }
     }
     if (has(p, 'logic_id')) {
       let nodeId = ''

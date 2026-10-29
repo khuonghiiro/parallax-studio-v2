@@ -1,3 +1,6 @@
+import { findWorkflowContact } from './workflowBboxContact'
+import { bboxStartPosition, bboxStartScale } from './workflowMotionStart'
+import { layerNominalSize } from '../engine/spatial'
 import type { Layer, PhysicsImpactPulse, Project, Vec3, WorkflowNodeParams } from '@shared/types'
 import { evaluate } from '../animation/keyframes'
 import { createDefaultLayerPhysics, MATERIAL_PHYSICS_PRESETS } from '../engine/layerPhysicsPresets'
@@ -61,19 +64,8 @@ export function clearBboxMotionKeysFromScene(project: Project, nodeId?: string):
 
 /** Ước lượng kích thước cơ sở (width, height) của 1 Layer hoặc Cụm 2.5D trong không gian cảnh */
 export function estimateLayerWorldSize(project: Project, layer: Layer): { w: number; h: number } {
-  const compW = project.comp.width || 1920
-  const compH = project.comp.height || 1080
-  if (layer.type === 'text') return { w: 420, h: 130 }
-  const assetId = layer.type === 'image' ? layer.props.assetId : undefined
-  const asset = assetId ? project.assets.find((a) => a.id === assetId) : undefined
-  if (asset?.width && asset?.height) {
-    const fit = Math.min((compW * 0.55) / asset.width, (compH * 0.65) / asset.height, 1)
-    return {
-      w: Math.max(90, Math.round(asset.width * fit)),
-      h: Math.max(90, Math.round(asset.height * fit))
-    }
-  }
-  return { w: 280, h: 320 }
+  const [w, h] = layerNominalSize(layer)
+  return { w, h }
 }
 
 /** Làm mượt đường vẽ tay 2D (giữ nguyên điểm đầu & điểm cuối) để triệt tiêu hiện tượng giật tay chuột */
@@ -184,139 +176,41 @@ export interface DetectedPathCollision {
  * Phát hiện các Layer vật cản trong cùng cảnh mà Layer/Cụm 2.5D sẽ đi cắt qua trên hành trình BBox #1 -> #2.
  */
 export function detectPathCollisionsInScene(
-  project: Project,
-  targetLayerIds: string[],
-  params: WorkflowNodeParams
+  project: Project, targetLayerIds: string[], params: WorkflowNodeParams, nodeId = '__bbox_preview__'
 ): DetectedPathCollision[] {
-  const idSet = new Set(targetLayerIds)
-  const directLayers = project.layers.filter((l) => idSet.has(l.id))
-  if (directLayers.length === 0) return []
-
-  const instId = params.instanceId ?? directLayers.find((l) => l.composite?.instanceId)?.composite?.instanceId
-  const clusterMembers = instId ? getClusterMemberLayers(project, instId) : directLayers
-  const movingIds = new Set(clusterMembers.map((m) => m.id))
-  const rootLayer = getClusterRootLayer(clusterMembers) ?? directLayers[0]
-  if (!rootLayer) return []
-
-  const compDur = Math.max(1, project.comp.duration || 5)
-  const tStart = Math.max(0, params.timeStart ?? rootLayer.inPoint ?? 0)
-  const tEnd = Math.max(tStart + 0.3, Math.min(compDur, params.timeEnd ?? tStart + 3))
-  const startPos = evaluateCleanLayerPos(rootLayer, tStart)
-  const startScale = evaluateCleanLayerScale(rootLayer, tStart)
-  const baseSize = estimateLayerWorldSize(project, rootLayer)
-
-  const targetX = params.bboxTargetX ?? Math.round(startPos[0] + 280)
-  const targetY = params.bboxTargetY ?? Math.round(startPos[1])
-  const scaleRatio = Math.max(0.15, Math.min(4.0, (params.bboxTargetScalePct ?? 135) / 100))
-  const depthMode = params.depthMode ?? 'flat_2d'
-  const startZ = params.bboxStartZ ?? startPos[2]
-
-  let targetZ = startZ
-  if (depthMode === 'depth_z') {
-    const refLayer = params.depthRefLayerId ? project.layers.find((l) => l.id === params.depthRefLayerId) : undefined
-    if (refLayer) {
-      const refZ = evaluateCleanLayerPos(refLayer, tStart)[2]
-      // Trong không gian 3D/2D của Parallax: depthZ nhỏ hơn vật cản = gần Camera hơn = hiển thị ĐÈ LÊN TRƯỚC vật cản (Z-Index lớn hơn)
-      targetZ =
-        params.depthRelation === 'behind'
-          ? Math.max(params.bboxTargetZ ?? refZ + 60, refZ + 30)
-          : Math.min(params.bboxTargetZ ?? refZ - 60, refZ - 30)
-    } else if (typeof params.bboxTargetZ === 'number') {
-      targetZ = params.bboxTargetZ
-    } else {
-      targetZ = Math.round(startZ - (scaleRatio - 1) * 180)
+  // Use the exact baked/eased trajectory in a private copy; never alter project state for a preview.
+  const simulation: Project = { ...project, layers: project.layers.map(layer => ({
+    ...layer, physics: layer.physics ? { ...layer.physics, impacts: [...(layer.physics.impacts ?? [])] } : undefined,
+    transform: { ...layer.transform,
+      position: { ...layer.transform.position, keyframes: [...layer.transform.position.keyframes] },
+      scale: { ...layer.transform.scale, keyframes: [...layer.transform.scale.keyframes] },
+      rotation: { ...layer.transform.rotation, keyframes: [...layer.transform.rotation.keyframes] }
     }
+  })) }
+  bakeBboxTargetMotionToScene(simulation, targetLayerIds, { ...params, collisionOnPathEnabled: false }, nodeId)
+  const direct = simulation.layers.filter(l => targetLayerIds.includes(l.id))
+  if (!direct.length) return []
+  const instance = params.instanceId ?? direct.find(l => l.composite?.instanceId)?.composite?.instanceId
+  const members = instance ? getClusterMemberLayers(simulation, instance) : direct
+  const root = getClusterRootLayer(members) ?? direct[0]
+  const moving = new Set(members.map(l => l.id))
+  const start = params.timeStart ?? root.inPoint
+  const end = Math.min(project.comp.duration, params.timeEnd ?? start + 3)
+  const flat = params.depthMode !== 'depth_z'
+  const result: DetectedPathCollision[] = []
+  for (const obstacle of simulation.layers) {
+    if (moving.has(obstacle.id) || obstacle.type === 'particles' ||
+      (obstacle.type === 'solid' && Boolean(obstacle.props.pattern)) ||
+      (obstacle.composite?.instanceId && !obstacle.composite.isRoot) ||
+      (params.collisionTargetLayerId && params.collisionTargetLayerId !== obstacle.id)) continue
+    const hit = findWorkflowContact(simulation, root, obstacle, start, end, flat ? Number.MAX_VALUE : 24)
+    if (!hit) continue
+    result.push({ layerId: obstacle.id, layerName: obstacle.composite?.compositeName || obstacle.name,
+      hitTime: hit.time, hitRatio: (hit.time - start) / Math.max(0.001, end - start),
+      hitPoint: [hit.positionA[0], hit.positionA[1]], obstacleZ: hit.positionB[2],
+      movingZAtHit: hit.positionA[2], depthRelationAtHit: 'same_plane' })
   }
-
-  const shotId = params.shotId ?? rootLayer.shotId
-  const candidates = project.layers.filter((l) => {
-    if (!l.visible || movingIds.has(l.id)) return false
-    if (l.type === 'particles' || (l.type === 'solid' && Boolean(l.props.pattern))) return false
-    if (shotId && l.shotId && l.shotId !== shotId) return false
-    if (l.composite?.instanceId && !l.composite.isRoot) return false
-    return true
-  })
-
-  const results: DetectedPathCollision[] = []
-  const samples = 28
-
-  for (const obs of candidates) {
-    const obsSize = estimateLayerWorldSize(project, obs)
-    let firstOverlapHit: DetectedPathCollision | null = null
-    let closestFallbackHit: DetectedPathCollision | null = null
-    let closestDist = Infinity
-
-    for (let s = 1; s <= samples; s++) {
-      const u = s / samples
-      const t = Number((tStart + (tEnd - tStart) * u).toFixed(2))
-      const pt = evaluateBboxTrajectoryAt(
-        startPos,
-        targetX,
-        targetY,
-        startZ,
-        targetZ,
-        scaleRatio,
-        u,
-        params.bboxPathType ?? 'shortest',
-        params.customMotionPath
-      )
-      const obsPos = evaluateCleanLayerPos(obs, t)
-      const obsScale = evaluateCleanLayerScale(obs, t)
-
-      const movHalfW = 0.5 * baseSize.w * Math.abs(startScale[0]) * pt.scaleRatio * 0.72
-      const movHalfH = 0.5 * baseSize.h * Math.abs(startScale[1]) * pt.scaleRatio * 0.72
-      const obsHalfW = 0.5 * obsSize.w * Math.abs(obsScale[0]) * 0.72
-      const obsHalfH = 0.5 * obsSize.h * Math.abs(obsScale[1]) * 0.72
-
-      const dx = Math.abs(pt.x - obsPos[0])
-      const dy = Math.abs(pt.y - obsPos[1])
-      const overlapX = dx <= movHalfW + obsHalfW
-      const overlapY = dy <= movHalfH + obsHalfH
-      const dist = Math.hypot(dx, dy)
-
-      // zDiff = obsPos[2] - pt.z (> 0 nghĩa là đối tượng đang gần Camera hơn vật cản -> đi trước)
-      const zDiff = obsPos[2] - pt.z
-      const rel: DetectedPathCollision['depthRelationAtHit'] =
-        depthMode === 'flat_2d' || Math.abs(zDiff) <= 24
-          ? 'same_plane'
-          : zDiff > 24
-            ? 'in_front'
-            : 'behind'
-
-      if (overlapX && overlapY && !firstOverlapHit) {
-        firstOverlapHit = {
-          layerId: obs.id,
-          layerName: obs.composite?.compositeName || obs.name,
-          hitTime: t,
-          hitRatio: Number(u.toFixed(2)),
-          hitPoint: [Math.round(pt.x), Math.round(pt.y)],
-          obstacleZ: Math.round(obsPos[2]),
-          movingZAtHit: Math.round(pt.z),
-          depthRelationAtHit: rel
-        }
-      }
-      if (dist < closestDist && params.collisionTargetLayerId === obs.id) {
-        closestDist = dist
-        closestFallbackHit = {
-          layerId: obs.id,
-          layerName: obs.composite?.compositeName || obs.name,
-          hitTime: t,
-          hitRatio: Number(u.toFixed(2)),
-          hitPoint: [Math.round(pt.x), Math.round(pt.y)],
-          obstacleZ: Math.round(obsPos[2]),
-          movingZAtHit: Math.round(pt.z),
-          depthRelationAtHit: rel
-        }
-      }
-    }
-
-    const bestHit = firstOverlapHit ?? closestFallbackHit
-    if (bestHit) {
-      results.push(bestHit)
-    }
-  }
-
-  return results.sort((a, b) => a.hitTime - b.hitTime)
+  return result.sort((a, b) => a.hitTime - b.hitTime)
 }
 
 /**
@@ -356,7 +250,7 @@ export function bakeBboxTargetMotionToScene(
     })
   }
 
-  const rootBasePos: Vec3 = evaluateCleanLayerPos(rootLayer, tStart)
+  const rootBasePos: Vec3 = bboxStartPosition(rootLayer, tStart, nodeId)
   const targetX = params.bboxTargetX ?? Math.round(rootBasePos[0] + 280)
   const targetY = params.bboxTargetY ?? Math.round(rootBasePos[1])
   const targetScaleRatio = Math.max(0.15, Math.min(4.0, (params.bboxTargetScalePct ?? 135) / 100))
@@ -382,7 +276,7 @@ export function bakeBboxTargetMotionToScene(
 
   // Kiểm tra va chạm trên đường đi nếu bật `collisionOnPathEnabled`
   const collisions = params.collisionOnPathEnabled
-    ? detectPathCollisionsInScene(project, targetLayerIds, params)
+    ? detectPathCollisionsInScene(project, targetLayerIds, params, nodeId)
     : []
   const activeCollision =
     (params.collisionTargetLayerId
@@ -417,14 +311,14 @@ export function bakeBboxTargetMotionToScene(
   }
 
   for (const m of effectiveLayers) {
-    const mBasePos: Vec3 = evaluateCleanLayerPos(m, tStart)
-    const mBaseScale: Vec3 = evaluateCleanLayerScale(m, tStart)
+    const mBasePos: Vec3 = bboxStartPosition(m, tStart, nodeId)
+    const mBaseScale: Vec3 = bboxStartScale(m, tStart, nodeId)
     const relX = mBasePos[0] - rootBasePos[0]
     const relY = mBasePos[1] - rootBasePos[1]
     const relZ = mBasePos[2] - rootBasePos[2]
 
     // Nếu tStart > 0.05s, neo giữ trạng thái gốc ngay trước tStart để layer không bị trôi trước mốc chạy
-    if (tStart > 0.05) {
+    if (tStart > 0.05 && !m.transform.position.keyframes.some(k => k.t <= tStart)) {
       const preT = Number(Math.max(0, tStart - 0.02).toFixed(3))
       m.transform.position.keyframes.push({
         id: `${m.id}-bboxmot-${nodeId}-p-pre`,

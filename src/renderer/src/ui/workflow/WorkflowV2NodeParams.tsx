@@ -1,3 +1,4 @@
+import { findWorkflowContact } from '../../project/workflowBboxContact'
 import React, { useEffect, useRef, useState } from 'react'
 import type { Project, WorkflowGraph, WorkflowNode, WorkflowNodeParams } from '@shared/types'
 import {
@@ -190,7 +191,8 @@ function CollisionParams({ node, project, workflow, onUpdate, onScrubTime, onCon
   )
   const tStart = p.timeStart ?? 0
   const tEnd = p.timeEnd ?? project.comp.duration ?? 5
-  const tHit = Number((tStart + (tEnd - tStart) * 0.45).toFixed(2))
+  const contact = striker && target ? findWorkflowContact(project, striker, target, tStart, tEnd, p.depthMode === 'flat_2d' ? Number.MAX_VALUE : 24) : null
+  const tHit = contact?.time
 
   // Danh sách các Layer khác trong cùng cảnh để chọn nhanh làm Mục tiêu B (nếu chưa nối hoặc muốn đổi nhanh)
   const candidateTargets = project.layers.filter((l) => {
@@ -291,8 +293,11 @@ function CollisionParams({ node, project, workflow, onUpdate, onScrubTime, onCon
           onChange={(v) => onUpdate({ deformIntensity: v })}
         />
       </div>
-      <button type="button" className="wf-v2-ghost-btn" onClick={() => onScrubTime(tHit)}>
-        ▶ Tua tới khoảnh khắc va chạm ({tHit.toFixed(2)}s)
+      <OptionPills cols={2} options={[{ id: 'flat_2d', label: 'Giao BBox 2D' }, { id: 'depth_z', label: 'Cùng độ sâu 2.5D' }]}
+        value={p.depthMode ?? 'depth_z'} onPick={(depthMode) => onUpdate({ depthMode })} />
+      <button type="button" className="wf-v2-ghost-btn" disabled={tHit === undefined}
+        onClick={() => tHit !== undefined && onScrubTime(tHit)}>
+        {tHit === undefined ? 'Chưa có tiếp xúc trong khoảng này' : `▶ Điểm chạm · ${tHit.toFixed(2)}s`}
       </button>
     </div>
   )

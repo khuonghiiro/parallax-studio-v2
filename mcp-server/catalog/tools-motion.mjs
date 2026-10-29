@@ -452,6 +452,8 @@ export const FX_TOOLS = [
       'Cấu hình quy trình tạo video cho dự án từ mẫu có sẵn (`preset_id`), từ chuỗi/đối tượng JSON (`workflow`), hoặc cập nhật preset/trạng thái bật tắt của một khối chức năng.'
     ),
     shape: (d) => ({
+      follow_up: z.boolean().optional().describe(d('Create the next timed step after node_id, preserving its layer scope and connecting the sequence. One Undo step.', 'Tạo chặng tiếp sau node_id, giữ phạm vi layer và nối dây chuỗi. Một bước Undo.')),
+      step_duration: z.number().min(0.5).max(3600).optional().describe(d('Follow-up duration in seconds; defaults to 3.', 'Thời lượng chặng tiếp theo tính bằng giây; mặc định 3.')),
       create_time: z.boolean().optional().describe(d('Create a shared Time node; connect its time_range output to consumers.', 'Tạo node Time dùng chung; nối cổng time_range tới các node cần dùng.')),
       logic_id: z.string().optional().describe(d('Add a logic node to layer_id (shared Timeline ⇄ Workflow V2 logic). Use a V2 preset id `v2:<category>:<option>` (e.g. v2:action:sway, v2:light:candle, v2:material:stone_wall, v2:collision:elastic_bounce, v2:cave:arch, v2:fx:bloom, v2:audio:voice); legacy catalog ids are mapped. layer_id is required in Workflow V2.', 'Gắn Node logic vào layer_id (logic chung Timeline ⇄ Workflow V2). Dùng mã mẫu V2 `v2:<nhóm>:<tuỳ chọn>` (ví dụ v2:action:sway, v2:light:candle, v2:material:stone_wall, v2:collision:elastic_bounce, v2:cave:arch, v2:fx:bloom, v2:audio:voice); mã kho cũ được tự ánh xạ. Workflow V2 bắt buộc có layer_id.')),
       layer_id: z.string().optional().describe(d('Target layer for timeline logic.', 'Layer đích của logic timeline.')),

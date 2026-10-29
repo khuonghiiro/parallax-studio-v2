@@ -1,3 +1,4 @@
+import { syncMotionExecution } from './workflowMotionExecution'
 import { effectiveTimeParams, isTimeNode } from './workflowTiming'
 import type { GlowSide, Layer, LayerGlow, LayerMotionType, Project, WorkflowEdge, WorkflowGraph, WorkflowNode, WorkflowNodeParams } from '@shared/types'
 import { getProjectAudioTracks } from './audioTracks'
@@ -493,7 +494,7 @@ function syncAnimFxNodeToProject(
  * Đồng bộ trực tiếp thay đổi trên một Node V2 xuống dữ liệu Project thực tế
  * (bao gồm Node Nhãn Vật liệu, Va chạm Vật lý 2 Layer và Hoạt ảnh FX).
  */
-export function syncWorkflowV2NodeToProject(
+function syncSingleWorkflowV2NodeToProject(
   project: Project,
   node: WorkflowNode,
   patch?: Partial<WorkflowNodeParams>
@@ -911,46 +912,8 @@ export function syncWorkflowV2NodeToProject(
   }
 }
 
-/**
- * Tạo tiếp một Node hành động kế tiếp theo mốc giây (ví dụ: sau `[0.0s – 3.0s]` nối tiếp `[3.0s – 6.0s]` hoặc `[15.0s – 18.0s]`)
- * cho cùng Bộ phận con, Animation hoặc Motion mà không ghi đè mốc cũ.
- */
-export function spawnTimedFollowupNodeV2(
-  workflow: WorkflowGraph,
-  sourceNodeId: string,
-  durationSec = 3.0,
-  explicitStartSec?: number
-): { workflow: WorkflowGraph; createdNodeId: string } | null {
-  const src = workflow.nodes.find((n) => n.id === sourceNodeId)
-  if (!src) return null
-  const parentEdge = workflow.edges.find((e) => e.toNode === src.id && !e.disabled)
-  const parentId = src.params?.hierarchyParentNodeId ?? parentEdge?.fromNode
-  if (!parentId) return null
+export { spawnTimedFollowupNodeV2 } from './workflowTimedSteps'
 
-  const prevEnd = src.params?.timeEnd ?? (src.params?.timeStart ?? 0) + durationSec
-  const tStart = Number(Math.max(0, explicitStartSec ?? prevEnd).toFixed(2))
-  const tEnd = Number((tStart + Math.max(0.5, durationSec)).toFixed(2))
-  const baseId = src.id.replace(/-t\d+(-\d+)?$/, '')
-  const newId = uniqueNodeId(workflow, `${baseId}-t${Math.round(tStart * 10)}`)
-  const cleanTitle = src.title.replace(/\s*\(\d+(\.\d+)?s–\d+(\.\d+)?s\)$/, '')
-
-  const nextNode: WorkflowNode = {
-    ...src,
-    id: newId,
-    title: `${cleanTitle} (${tStart}s–${tEnd}s)`,
-    enabled: true,
-    position: { x: src.position.x, y: src.position.y + 82 },
-    params: {
-      ...(src.params ?? {}),
-      timeStart: tStart,
-      timeEnd: tEnd,
-      pinned: undefined
-    }
-  }
-  return {
-    workflow: withEdge(workflow, [...workflow.nodes, nextNode], layerEdge(parentId, newId)),
-    createdNodeId: newId
-  }
+export function syncWorkflowV2NodeToProject(project: Project, node: WorkflowNode, patch?: Partial<WorkflowNodeParams>): void {
+  syncMotionExecution(project, node, patch, syncSingleWorkflowV2NodeToProject)
 }
-
-

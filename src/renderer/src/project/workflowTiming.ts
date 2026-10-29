@@ -1,3 +1,4 @@
+import { stepTimeParams } from './workflowStepGraph'
 import { nanoid } from 'nanoid'
 import type { Project, WorkflowGraph, WorkflowNode, WorkflowNodeParams } from '@shared/types'
 
@@ -21,7 +22,7 @@ export function timeSource(workflow: WorkflowGraph | undefined, nodeId: string):
 /** Local timing stays on the consumer; only the evaluated copy inherits the shared range. */
 export function effectiveTimeParams(project: Project, node: WorkflowNode, params: WorkflowNodeParams): WorkflowNodeParams {
   const source = timeSource(project.workflow, node.id)
-  if (!source) return params.localTimeRange ? { ...params, timeStart: params.localTimeRange.start, timeEnd: params.localTimeRange.end } : params
+  if (!source) return stepTimeParams(project.workflow, node, params.localTimeRange ? { ...params, timeStart: params.localTimeRange.start, timeEnd: params.localTimeRange.end } : params)
   const start = source.params?.timeStart ?? 0
   const end = source.params?.timeEnd ?? project.comp.duration
   if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || end <= start || end > project.comp.duration) {

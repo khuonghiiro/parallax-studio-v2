@@ -507,3 +507,14 @@ pnpm pxs review --view app --region virtual_light_pad --out D:\_tmp\light-pad.pn
 - MCP `retime_layers(intervals, mode, seconds)` dùng cùng logic; `kind: layer | keys | effect`. `keys` nhận `prop/startId/endId`, `effect` nhận `effectId`, tất cả nhận `layerId`. `mode: shift | align | in | out`. `ui_click(ctrl: true)` hỗ trợ chọn nhiều đoạn. Không thêm region: dùng `timeline`, `timeline_properties`, `timeline_batch_timing`.
 - PowerShell: `pnpm pxs call retime_layers '{"intervals":[{"kind":"keys","layerId":"layer-1","prop":"opacity","startId":"key-a","endId":"key-b"}],"mode":"shift","seconds":1}'`.
 - CMD: `pnpm pxs call retime_layers "{\"intervals\":[{\"kind\":\"keys\",\"layerId\":\"layer-1\",\"prop\":\"opacity\",\"startId\":\"key-a\",\"endId\":\"key-b\"}],\"mode\":\"shift\",\"seconds\":1}"`.
+
+
+### Workflow BBox: phạm vi chỉnh, chuỗi Motion và va chạm
+- Khung Thuộc tính Node chỉ nhận thao tác trên BBox của layer/cụm được nối. Layer khác chỉ làm nền tham chiếu; nhấn vào đó không đổi node hay lựa chọn layer. Motion chỉ hiện nhãn Đầu/Đích, không hiện điểm va chạm.
+- **+ Chặng tiếp** trên Motion/Va chạm tạo một node mới có dây nối từ chặng trước. Motion kế thừa vị trí và tỉ lệ cuối chặng trước; chỉnh đích của chặng mới để đi tiếp. Điểm đầu chặng nối được giữ theo chặng trước. Tạo chặng có Undo/Redo và tự mở rộng thời lượng dự án khi cần.
+- Node Va chạm đọc cả chuyển động A và B ở cùng thời điểm, dùng kích thước/pivot/rotation thật của layer và BBox hợp nhất của cụm khoá. Kiểm tra đoạn giữa các mẫu để tránh xuyên qua vật nhanh. Chế độ Giao BBox 2D bỏ qua Z; Cùng độ sâu 2.5D yêu cầu khoảng Z không quá 24. Không có tiếp xúc thì không tạo xung lực, không tự kéo A đến B. Quỹ đạo Motion giữ nguyên, phản ứng dùng hệ thống physics/mesh hiện có.
+- Preview va chạm hiển thị A1/A2, B1/B2 và thời điểm tiếp xúc; `workflow_collision_preview` chụp riêng phần này. Chỉnh quỹ đạo ở node Motion của từng layer.
+- Logic dùng chung UI/MCP: `workflowMotionExecution.ts`, `workflowMotionStart.ts`, `workflowStepGraph.ts`, `workflowTimedSteps.ts`, `workflowBboxContact.ts`, `workflowCollisionResponse.ts`. `set_workflow` hỗ trợ `follow_up: true`, `node_id`, `step_duration` (mặc định 3s); số công cụ vẫn là 144.
+- PowerShell: `pnpm pxs call set_workflow '{"node_id":"motion-id","follow_up":true,"step_duration":3}'`.
+- CMD: `pnpm pxs call set_workflow "{\"node_id\":\"motion-id\",\"follow_up\":true,\"step_duration\":3}"`.
+- Flags (PowerShell/CMD): `pnpm pxs call set_workflow --node_id motion-id --follow_up true --step_duration 3`.
