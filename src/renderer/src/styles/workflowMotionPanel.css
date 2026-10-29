@@ -1,0 +1,26 @@
+.wf-motion-panel { display: flex; flex-direction: column; gap: 8px; min-width: 0; color: var(--text); }
+.wf-motion-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.wf-motion-header > div { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.wf-motion-header strong { font-size: 11px; }
+.wf-motion-header span { font-size: 10px; color: var(--text-dim); }
+.wf-motion-header button { flex-shrink: 0; }
+.wf-motion-endpoints { display: flex; align-items: center; gap: 8px; color: var(--text-faint); }
+.wf-motion-endpoints button { display: flex; justify-content: space-between; gap: 8px; flex: 1; min-width: 0; }
+.wf-motion-panel button { border-radius: var(--radius-sm); }
+.wf-motion-endpoints button, .wf-motion-tabs button, .wf-motion-next { border: 1px solid var(--line); background: var(--bg-2); color: var(--text-dim); padding: 6px 8px; font-size: 10px; cursor: pointer; }
+.wf-motion-endpoints b { color: var(--text); font-family: var(--mono); font-weight: 500; }
+.wf-motion-tabs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 3px; }
+.wf-motion-tabs button { padding: 6px 2px; display: flex; flex-direction: column; align-items: center; gap: 4px; white-space: nowrap; }
+.wf-motion-tabs button[aria-selected='true'] { color: var(--accent); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--bg-2)); }
+.wf-motion-tabs button:hover, .wf-motion-endpoints button:hover, .wf-motion-next:hover { background: color-mix(in srgb, var(--accent) 10%, var(--bg-3)); color: var(--text); }
+.wf-motion-panel button:focus-visible { outline: 2px solid var(--line-focus); outline-offset: 1px; }
+.wf-motion-content { min-width: 0; }
+.wf-motion-content .vl-subcard { margin: 0; background: var(--bg-1); border: 1px solid var(--line-soft); border-radius: var(--radius); }
+.wf-motion-content .vl-row-header { flex-wrap: wrap; gap: 5px; }
+.wf-motion-content .vl-subtitle { font-size: 10px; color: var(--text-dim); }
+.wf-motion-content .vl-pill-btn { white-space: normal; min-width: 0; padding: 5px; font-size: 10px; }
+.wf-motion-next { display: flex; align-items: center; justify-content: space-between; color: var(--accent); }
+.wf-motion-next span { color: var(--text-dim); font-family: var(--mono); }
+
+.wf-motion-content .vl-pill-btn.active-amber { color: var(--accent); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--bg-2)); }
+.wf-motion-content .vl-pill-btn:hover { color: var(--text); background: color-mix(in srgb, var(--accent) 10%, var(--bg-3)); }

@@ -1,3 +1,4 @@
+import { logicPointerDown, canOpenTimelineLogic } from './timelineLogicModifiers'
 import { useTimelineSelection } from './timelineSelection'
 import { TimelinePropertyRow } from './TimelinePropertyRow'
 
@@ -468,9 +469,9 @@ function TimelineLayerRowComponent({
                     type="button"
                     className="tl-bar-add-logic-btn"
                     title={`Thêm Logic 2.5D cho "${layer.name}"`}
-                    onPointerDown={(e) => e.stopPropagation()}
+                    onPointerDown={e => logicPointerDown(e, { kind: 'layer', layerId: layer.id })}
                     onClick={(e) => {
-                      e.stopPropagation()
+                      if (!canOpenTimelineLogic(e, { kind: 'layer', layerId: layer.id })) return
                       window.dispatchEvent(
                         new CustomEvent('pxs:open-timeline-logic-picker', {
                           detail: { layerId: layer.id }

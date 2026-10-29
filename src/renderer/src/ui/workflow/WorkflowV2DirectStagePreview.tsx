@@ -1,3 +1,4 @@
+import { useShiftToFocus } from './workflowFocusGuard'
 import { workflowBboxEditTime } from './workflowBboxEditTime'
 import { bboxStepNumber } from '../../project/workflowBboxSteps'
 import { WorkflowCollisionPreviewOverlay } from './WorkflowCollisionPreviewOverlay'
@@ -74,6 +75,7 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
   onSelectNode,
   onScrubTime
 }) => {
+  const shiftToFocus = useShiftToFocus()
   const update = useEditor((s) => s.update)
   const selectLayer = useEditor((s) => s.selectLayer)
   const setPlaying = useEditor((s) => s.setPlaying)
@@ -562,6 +564,7 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
         <div
           ref={wrapRef}
           className="wf-v2-direct-stage wf-inspector-preview-box"
+          data-focus-node={node.id}
           data-mcp-region="workflow_preview"
         >
           <div
@@ -598,12 +601,18 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
                       top: ly,
                       width: lw,
                       height: lh,
+                      pointerEvents: isTarget || shiftToFocus ? 'auto' : 'none',
                       opacity: l.opacity,
                       transform: l.rotation ? `rotate(${l.rotation}deg)` : undefined
                     }}
                     title={isTarget ? l.name : undefined}
                     onPointerDown={(e) => {
-                      if (e.button !== 0 || !isTarget || isCollisionNode) return
+                      if (e.button !== 0 || isCollisionNode) return
+                      if (!isTarget) {
+                        e.stopPropagation()
+                        if (e.shiftKey) onSelectNode?.(v2LayerNodeId(l.id))
+                        return
+                      }
                       if (isTarget && selectedProjLayer) {
                         startLayerDrag(e, selectedProjLayer, 'move')
                         return
@@ -693,19 +702,29 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
                 return (
                   <div
                     key={`wp-bbox-${wp.index}`}
+                    data-waypoint-node-id={wpNodeId}
+                    onClick={e => {
+                      if (e.detail !== 0 || isFocusedWp || !e.shiftKey) return
+                      e.stopPropagation()
+                      onScrubTime(wp.time)
+                      onSelectNode?.(wpNodeId)
+                    }}
                     className={`wf-v2-direct-cam-bbox${isFocusedWp ? ' active' : ''}`}
                     style={{
                       left: fx,
                       top: fy,
                       width: fw,
                       height: fh,
+                      pointerEvents: isFocusedWp || shiftToFocus ? 'auto' : 'none',
+                      zIndex: shiftToFocus && !isFocusedWp ? 24 : isFocusedWp ? 23 : undefined,
                       ['--cam-step-c' as string]: stepColor
                     }}
-                    title={`#${wp.displayLabel} · ${wp.tagLabel} — Kéo để lia máy, kéo góc để Zoom`}
+                    title={`#${wp.displayLabel} · ${wp.tagLabel} — Giữ Shift để chọn mốc khác; kéo mốc đang chọn để lia máy`}
                     onPointerDown={(e) => {
                       if (e.button !== 0) return
                       if (!isFocusedWp) {
                         e.stopPropagation()
+                        if (!e.shiftKey) return
                         onScrubTime(wp.time)
                         onSelectNode?.(wpNodeId)
                         return

@@ -1,3 +1,4 @@
+import { guardWorkflowNodeEvent } from './workflowFocusGuard'
 import { effectiveTimeParams, isTimeNode, timeSource } from '../../project/workflowTiming'
 import React, { memo } from 'react'
 import type { ImageProps, Project, WorkflowNode, WorkflowNodeParams, WorkflowPortKind } from '@shared/types'
@@ -97,6 +98,7 @@ export function summarizeV2Node(node: WorkflowNode, childCount: number): string 
       return `${shared} layer · Lực ${pct(p.collisionForce, opt?.defaultForce ?? 1.2)}`
     }
     case 'action':
+      if (p.motionMode === 'bbox' || p.actionPreset === 'bbox_target') return `Đầu → Đích · ${p.bboxTargetScalePct ?? 135}%`
       if (p.customMotionPath && p.customMotionPath.length >= 2) {
         return `Quỹ đạo vẽ (${p.customMotionPath.length} mốc)`
       }
@@ -213,6 +215,10 @@ export const WorkflowNodeCardV2 = memo(function WorkflowNodeCardV2({
         .join(' ')}
       style={{ left: node.position.x, top: node.position.y, ['--wf-v2-accent' as string]: theme.accent }}
       data-node-id={node.id}
+      title="Giữ Shift và bấm để chuyển sang node khác"
+      onPointerDownCapture={e => { guardWorkflowNodeEvent(e, node.id) }}
+      onClickCapture={e => { guardWorkflowNodeEvent(e, node.id) }}
+      onKeyDownCapture={e => { if (['Enter', ' ', 'Delete'].includes(e.key)) guardWorkflowNodeEvent(e, node.id) }}
       role="button"
       tabIndex={0}
       aria-pressed={selected}

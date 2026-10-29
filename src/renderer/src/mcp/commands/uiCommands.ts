@@ -312,7 +312,7 @@ export const uiCommands: Record<string, Handler> = {
   ui_click: async (p) => {
     const el = findTarget(p)
     el.scrollIntoView({ block: 'nearest', inline: 'nearest' })
-    if (bool(p, 'ctrl')) el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, ctrlKey: true }))
+    if (bool(p, 'ctrl') || bool(p, 'shift')) el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, ctrlKey: bool(p, 'ctrl'), shiftKey: bool(p, 'shift') }))
     else el.click()
     await nextPaint()
     return { clicked: el.tagName.toLowerCase(), text: (el.innerText || el.title || '').trim().slice(0, 120) }

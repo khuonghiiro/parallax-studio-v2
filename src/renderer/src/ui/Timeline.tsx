@@ -596,9 +596,10 @@ export function Timeline() {
                                 type="button"
                                 className="tl-group-add-logic-btn"
                                 title={`Thêm Logic cho toàn bộ "${shot.name}"`}
-                                onPointerDown={(e) => e.stopPropagation()}
+                                onPointerDown={(e) => { e.stopPropagation(); if (e.ctrlKey || e.metaKey) e.preventDefault() }}
                                 onClick={(e) => {
                                   e.stopPropagation()
+                                  if (e.ctrlKey || e.metaKey) { e.preventDefault(); return }
                                   selectShot(shot.id)
                                   window.dispatchEvent(
                                     new CustomEvent('pxs:open-timeline-logic-picker', {

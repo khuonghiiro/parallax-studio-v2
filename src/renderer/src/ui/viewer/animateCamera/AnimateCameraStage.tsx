@@ -1,3 +1,4 @@
+import { canEditViewportTarget } from '../../workflow/workflowFocusGuard'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from '../../../actions'
 import { evaluateScene } from '../../../engine/evaluateScene'
@@ -219,6 +220,8 @@ export function AnimateCameraStage({ splitLeftWidth = 0 }: AnimateCameraStagePro
       projLayer: ProjectedLayer2D,
       mode: 'move' | 'nw' | 'ne' | 'sw' | 'se'
     ): void => {
+      const st = useEditor.getState()
+      if (!canEditViewportTarget(st.project, st.selectedWorkflowNodeId, { layerId: projLayer.id }, e.shiftKey)) return
       setPlaying(false)
       selectLayer(projLayer.id)
       const layerObj = useEditor.getState().project.layers.find((l) => l.id === projLayer.id)

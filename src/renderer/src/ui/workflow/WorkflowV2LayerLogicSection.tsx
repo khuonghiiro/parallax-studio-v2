@@ -1,3 +1,4 @@
+import { guardWorkflowNodeEvent } from './workflowFocusGuard'
 import React, { useMemo, useState } from 'react'
 import { bboxStepsForLayer, isBboxStep } from '../../project/workflowBboxSteps'
 import type { Layer, Project, WorkflowGraph, WorkflowNode, WorkflowNodeParams } from '@shared/types'
@@ -121,13 +122,13 @@ export const WorkflowV2NodeSwitcherBar: React.FC<{
   const isLayerSelected = activeNode?.id === layerNode.id
 
   return (
-    <div className="wf-v2-node-switcher" aria-label="Chuyển nhanh Node của Layer">
+    <div className="wf-v2-node-switcher" aria-label="Chuyển nhanh Node của Layer" title="Giữ Shift để chuyển node đang focus">
       <div className="wf-v2-node-switcher-row">
         <button
           type="button"
           className={`wf-v2-node-switch-pill is-layer${isLayerSelected ? ' active' : ''}`}
           title={`Node Layer gốc: ${layer.name} (Chỉnh BBox 2D, X/Y/Z, thời lượng)`}
-          onClick={() => onSelectNode(layerNode.id)}
+          onClick={e => { if (guardWorkflowNodeEvent(e, layerNode.id)) onSelectNode(layerNode.id) }}
         >
           <span className="pill-ico">🖼</span>
           <span className="pill-txt">{layer.name}</span>
@@ -145,7 +146,7 @@ export const WorkflowV2NodeSwitcherBar: React.FC<{
               className={`wf-v2-node-switch-pill${isSelected ? ' active' : ''}${!ln.enabled ? ' is-off' : ''}`}
               style={{ ['--wf-v2-accent' as string]: theme.accent }}
               title={`${ln.title} (${theme.badge}) — Click để chỉnh riêng thông số của Node này`}
-              onClick={() => onSelectNode(ln.id)}
+              onClick={e => { if (guardWorkflowNodeEvent(e, ln.id)) onSelectNode(ln.id) }}
             >
               <span className={`pill-dot${ln.enabled ? ' on' : ''}`} />
               <span className="pill-ico">{theme.icon}</span>
@@ -171,7 +172,7 @@ export const WorkflowV2NodeSwitcherBar: React.FC<{
               className={`wf-v2-node-switch-pill${activeNode?.id === step.id ? ' active' : ''}${!step.enabled ? ' is-off' : ''}`}
               aria-pressed={activeNode?.id === step.id}
               title={`${step.title} — Chỉnh chặng ${number} → ${number + 1}; đầu chặng kế tiếp cập nhật theo đích chặng này`}
-              onClick={() => onSelectNode(step.id)}>
+              onClick={e => { if (guardWorkflowNodeEvent(e, step.id)) onSelectNode(step.id) }}>
               <span className="pill-ico">▣</span>
               <span className="pill-txt">BBox #{number}→#{number + 1} · {(timing.timeStart ?? 0).toFixed(1)}–{(timing.timeEnd ?? 0).toFixed(1)}s</span>
             </button>
@@ -194,7 +195,7 @@ export const WorkflowV2NodeSwitcherBar: React.FC<{
                 type="button"
                 className={`wf-v2-part-child-pill${isChildSelected ? ' active' : ''}${!child.enabled ? ' is-off' : ''}`}
                 title={`${child.title}${timeLabel} — Click để cấu hình riêng bộ phận này`}
-                onClick={() => onSelectNode(child.id)}
+                onClick={e => { if (guardWorkflowNodeEvent(e, child.id)) onSelectNode(child.id) }}
               >
                 <span className="pill-ico">{child.params?.partIcon || '🧩'}</span>
                 <span className="pill-txt">{child.params?.partGroupTitle || cleanV2NodeTitle(child.title)}</span>

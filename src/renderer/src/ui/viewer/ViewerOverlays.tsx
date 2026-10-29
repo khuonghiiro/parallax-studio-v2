@@ -1,3 +1,4 @@
+import '../../styles/viewerCameraStatus.css'
 import { ViewTags } from './ViewTags'
 import type { ResidencyStats } from '../../engine/SceneRenderer'
 import type { EditorViewKind } from '../../engine/EditorCamera'
@@ -92,26 +93,6 @@ export function ViewerOverlays({
         </>
       )}
 
-      {(isStandardSplit || isAnimateSplit) && rects.cam && (
-        <span
-          className="pane-tag"
-          style={{
-            left: 8,
-            top: isAnimateSplit && rects.ed ? rects.ed.y - 30 : rects.cam.y + rects.cam.h - 34,
-            maxWidth: Math.max(100, (isAnimateSplit && rects.ed ? rects.ed.w : rects.cam.w) - 16)
-          }}
-          title="Hàng 1 — Khung nhìn Camera (Kết quả render video chính thức)"
-        >
-          <span className="pane-tag-badge">
-            <IconCamera /> Camera · {visibleLayerRatio} lớp
-          </span>
-          {selectedLayerName && (
-            <span className="pane-hint" style={{ color: 'var(--accent-cyan)', fontWeight: 600 }}>
-              🎯 {selectedLayerName}
-            </span>
-          )}
-        </span>
-      )}
       {showEd && (
         <span
           className="pane-tag"
@@ -290,6 +271,13 @@ export function ViewerOverlays({
               </button>
             </div>
           </>
+        )}
+
+        {rects.cam && (
+          <div className="viewer-camera-status" data-mcp-region="viewer_camera_status" title={selectedLayerName ?? 'Khung nhìn Camera'}>
+            <IconCamera /><span>Camera · {visibleLayerRatio} lớp</span>
+            {selectedLayerName && <span className="viewer-camera-selection">{selectedLayerName}</span>}
+          </div>
         )}
 
         {/* Nhóm phải: Telemetry HUD (FOV, FPS, VRAM) nằm gọn bên phải thanh công cụ, không đè lên nút bên trái */}

@@ -521,3 +521,16 @@ pnpm pxs review --view app --region virtual_light_pad --out D:\_tmp\light-pad.pn
 
 ### Nối chặng BBox và chọn chặng
 Motion/va chạm có cổng OUT: kéo sang node kế tiếp hoặc thả ra khoảng trống để tạo chặng mới. Motion BBox nối #1→#2→#3 kế thừa đích chặng trước làm điểm đầu; sửa đích chặng trước cập nhật các chặng sau. Dải tag BBox trong Thuộc tính Node liệt kê các chặng của layer/cụm theo thời gian, bấm tag để chỉnh từng chặng. Vùng MCP `workflow_bbox_steps` chụp riêng dải tag; `set_workflow` với `follow_up: true` dùng cùng logic tạo chặng như UI.
+
+
+### Focus node và Motion BBox
+
+Giữ Shift khi chọn node/BBox khác; thao tác mặc định giữ node đang focus. Ctrl + click trên `+ Logic` của layer chọn/bỏ chọn khoảng thời gian, không mở picker. Nhãn Camera nằm trên toolbar, ngoài hình render. Motion BBox chia tab Đường đi, Đích, Thời gian, Chiều sâu, Va chạm.
+
+MCP regions: `viewer_camera_status`, `workflow_motion_panel`, `workflow_motion_path`, `workflow_motion_target`, `workflow_motion_timing`, `workflow_motion_depth`, `workflow_motion_collision`.
+
+PowerShell: `pnpm pxs call ui_click '{"selector":"[data-node-id]","shift":true}'`
+
+CMD: `pnpm pxs call ui_click "{\"selector\":\"[data-node-id]\",\"shift\":true}"`
+
+Flags: `pnpm pxs call ui_click --selector "[data-node-id]" --shift true`

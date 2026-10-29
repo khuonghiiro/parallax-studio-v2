@@ -1,3 +1,4 @@
+import { canEditViewportTarget } from './workflow/workflowFocusGuard'
 import '../styles/workspaceCompact.css'
 import { computeTaggedLayout, selectedViews } from './viewer/taggedLayout'
 import { useEffect, useRef, useState } from 'react'
@@ -395,6 +396,7 @@ export function Viewer() {
       const [nx, ny] = ndcIn(L.cam, x, y)
       r.layoutForPick(st.project, st.time, toDevice(L.cam, L.dpr).h)
       const id = r.pick(nx, ny, st.project)
+      if (!canEditViewportTarget(st.project, st.selectedWorkflowNodeId, { layerId: id }, e.shiftKey)) return
       st.selectLayer(id)
       if (id) startLayerDrag(e, id, r.camera, L.cam, 'depth')
       return
@@ -409,6 +411,7 @@ export function Viewer() {
       const labelEl = document.elementFromPoint(e.clientX, e.clientY)?.closest<HTMLElement>('[data-shot]')
       if (labelEl?.dataset.shot) {
         const shotId = labelEl.dataset.shot
+        if (!canEditViewportTarget(st.project, st.selectedWorkflowNodeId, { shotId }, e.shiftKey)) return
         st.selectLayer(null)
         st.selectShot(shotId)
         startShotDrag(e, shotId)
@@ -425,6 +428,7 @@ export function Viewer() {
           const sx = ed.x + ((tmpV.x + 1) / 2) * ed.w
           const sy = ed.y + ((1 - tmpV.y) / 2) * ed.h - 14
           if (Math.hypot(x - sx, y - sy) <= 36) {
+            if (!canEditViewportTarget(st.project, st.selectedWorkflowNodeId, { shotId: s.shot.id }, e.shiftKey)) return
             st.selectLayer(null)
             st.selectShot(s.shot.id)
             startShotDrag(e, s.shot.id)
@@ -438,6 +442,7 @@ export function Viewer() {
       const id = r.pick(nx, ny, st.project, cam, false)
       if (id) {
         if (st.playing) st.setPlaying(false)
+        if (!canEditViewportTarget(st.project, st.selectedWorkflowNodeId, { layerId: id }, e.shiftKey)) return
         st.selectLayer(id)
         startLayerDrag(e, id, cam, ed, 'facing')
         return
@@ -465,7 +470,7 @@ export function Viewer() {
         requestRender()
       },
       (moved) => {
-        if (moved || e.button !== 0) return
+        if (moved || e.button !== 0 || (st.selectedWorkflowNodeId && !e.shiftKey)) return
         const [nx, ny] = ndcIn(ed, x, y)
         const shotId = r.pickShot(nx, ny, cam)
         if (shotId) st.selectShot(shotId)
@@ -508,6 +513,7 @@ export function Viewer() {
       e.preventDefault()
       const id = shotEl.dataset.shot
       const st = useEditor.getState()
+      if (!canEditViewportTarget(st.project, st.selectedWorkflowNodeId, { shotId: id }, e.shiftKey)) return
       st.selectLayer(null)
       st.selectShot(id)
       startShotDrag(e, id)
@@ -519,6 +525,7 @@ export function Viewer() {
       e.preventDefault()
       const mode = camEl.dataset.cam as 'pos' | 'target'
       const st = useEditor.getState()
+      if (!canEditViewportTarget(st.project, st.selectedWorkflowNodeId, { camera: true }, e.shiftKey)) return
       st.setInspectorTab('camera')
       startCameraDrag(e, mode)
       return

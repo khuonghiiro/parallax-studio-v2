@@ -68,7 +68,7 @@ export function useWorkflowV2CanvasInteractions(
         vp.setPan({ x: initPan.x + ev.clientX - start.x, y: initPan.y + ev.clientY - start.y })
       },
       () => {
-        if (!moved) handlersRef.current.onSelectNode(null)
+        if (!moved && e.shiftKey) handlersRef.current.onSelectNode(null)
       }
     )
   }

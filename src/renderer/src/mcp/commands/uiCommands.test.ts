@@ -204,14 +204,14 @@ describe('get_app_screenshot', () => {
 
 describe('ui_click Ctrl modifier', () => {
   afterEach(() => vi.unstubAllGlobals())
-  it('dispatches Ctrl+click for multi-interval selection', async () => {
+  it.each(['ctrl', 'shift'] as const)('dispatches %s+click for explicit selection', async modifier => {
     const dispatchEvent = vi.fn()
     const el = { tagName: 'DIV', innerText: '', title: '', scrollIntoView() {}, dispatchEvent,
       getBoundingClientRect: () => ({ width: 100, height: 20 }) }
     vi.stubGlobal('document', { querySelectorAll: () => [el] })
     vi.stubGlobal('getComputedStyle', () => ({ visibility: 'visible' }))
     vi.stubGlobal('MouseEvent', class { constructor(public type: string, public options: object) {} })
-    await runCommand('ui_click', { selector: '.tl-interval', ctrl: true })
-    expect(dispatchEvent).toHaveBeenCalledWith(expect.objectContaining({ type: 'click', options: expect.objectContaining({ ctrlKey: true }) }))
+    await runCommand('ui_click', { selector: '.tl-interval', [modifier]: true })
+    expect(dispatchEvent).toHaveBeenCalledWith(expect.objectContaining({ type: 'click', options: expect.objectContaining({ [modifier === 'ctrl' ? 'ctrlKey' : 'shiftKey']: true }) }))
   })
 })
