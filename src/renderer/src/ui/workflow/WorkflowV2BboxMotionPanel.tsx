@@ -1,19 +1,15 @@
 import React, { useState } from 'react'
 import type { WorkflowV2NodeParamsProps } from './WorkflowV2NodeParams'
 import { useBboxMotionModel } from './useBboxMotionModel'
-import { BboxMotionPathSection } from './BboxMotionPathSection'
 import { BboxMotionTargetSection } from './BboxMotionTargetSection'
 import { BboxMotionTimingSection } from './BboxMotionTimingSection'
 import { BboxMotionDepthSection } from './BboxMotionDepthSection'
-import { BboxMotionCollisionSection } from './BboxMotionCollisionSection'
 import '../../styles/workflowMotionPanel.css'
 
 const TABS = [
-  { id: 'path', label: 'Đường đi', icon: '↝' },
   { id: 'target', label: 'Đích', icon: '⊡' },
   { id: 'timing', label: 'Thời gian', icon: '◷' },
-  { id: 'depth', label: 'Chiều sâu', icon: '▱' },
-  { id: 'collision', label: 'Va chạm', icon: '✳' }
+  { id: 'depth', label: 'Chiều sâu', icon: '▱' }
 ] as const
 
 export function WorkflowV2BboxMotionPanel({ props, onSpawnFollowupNode }: {
@@ -43,11 +39,9 @@ export function WorkflowV2BboxMotionPanel({ props, onSpawnFollowupNode }: {
         </button>)}
       </div>
       <div className="wf-motion-content" role="tabpanel" id={`wf-motion-${tab}`} aria-labelledby={`wf-motion-tab-${tab}`}>
-        {tab === 'path' && <section className="wf-motion-path" data-mcp-region="workflow_motion_path"><BboxMotionPathSection model={model} /></section>}
         {tab === 'target' && <section className="wf-motion-target" data-mcp-region="workflow_motion_target"><BboxMotionTargetSection model={model} /></section>}
         {tab === 'timing' && <section className="wf-motion-timing" data-mcp-region="workflow_motion_timing"><BboxMotionTimingSection model={model} /></section>}
         {tab === 'depth' && <section className="wf-motion-depth" data-mcp-region="workflow_motion_depth"><BboxMotionDepthSection model={model} /></section>}
-        {tab === 'collision' && <section className="wf-motion-collision" data-mcp-region="workflow_motion_collision"><BboxMotionCollisionSection model={model} /></section>}
       </div>
       {onSpawnFollowupNode && <button type="button" className="wf-motion-next" onClick={() => onSpawnFollowupNode(runDuration)}>
         + Chặng tiếp <span>{runDuration.toFixed(1)}s</span>

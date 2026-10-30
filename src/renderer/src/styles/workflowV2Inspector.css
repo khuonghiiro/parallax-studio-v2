@@ -575,7 +575,12 @@
   white-space: nowrap;
   overflow: hidden;
 }
-.wf-v2-direct-toggle-btn > span {
+.wf-v2-direct-toggle-btn > span:first-child {
+  flex: 0 0 12px;
+  color: var(--text-dim);
+  text-align: center;
+}
+.wf-v2-direct-toggle-btn > span:last-child {
   flex: 1 1 0;
   min-width: 0;
   white-space: nowrap;

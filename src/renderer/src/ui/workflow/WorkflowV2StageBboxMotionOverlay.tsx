@@ -1,7 +1,10 @@
+import { WorkflowMotionStageTools } from './WorkflowMotionStageTools'
+import { WorkflowMotionIcon } from './WorkflowMotionIcons'
+import { resolveMotionMode } from '../../project/workflowMotionMode'
 import { useShiftToFocus } from './workflowFocusGuard'
 import { bboxStartPosition, bboxStartScale } from '../../project/workflowMotionStart'
 import { bboxStepNumber } from '../../project/workflowBboxSteps'
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback } from 'react'
 import type { Layer, Project, Vec3, WorkflowGraph, WorkflowNode, WorkflowNodeParams } from '@shared/types'
 import { evaluate } from '../../animation/keyframes'
 import { assetStore } from '../../project/assets'
@@ -50,7 +53,7 @@ export function resolveActiveMotionNode(
   repLayerId?: string,
   clusterInstId?: string
 ): WorkflowNode | undefined {
-  if (node.params?.logicCategory === 'action' || node.type === 'motion_choreography') {
+  if (node.params?.logicCategory === 'action' || (!node.params?.logicCategory && node.type === 'motion_choreography')) {
     return node
   }
   // Nếu đang chọn Node Va chạm, tìm Node Motion của Chủ thể A (strikerLayerId)
@@ -60,7 +63,7 @@ export function resolveActiveMotionNode(
       : repLayerId
 
   return workflow.nodes.find((n) => {
-    if (n.params?.logicCategory !== 'action' && n.type !== 'motion_choreography') return false
+    if (n.params?.logicCategory !== 'action' && (n.params?.logicCategory || n.type !== 'motion_choreography')) return false
     if (clusterInstId && n.params?.instanceId === clusterInstId) return true
     if (lookupLayerId && n.params?.targetLayerIds?.includes(lookupLayerId)) return true
     return workflow.edges.some((e) => !e.disabled && e.fromNode === node.id && e.toNode === n.id)
@@ -88,22 +91,11 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
   const shiftToFocus = useShiftToFocus()
   const update = useEditor((s) => s.update)
   const setPlaying = useEditor((s) => s.setPlaying)
-  const [drawCurveOnStage, setDrawCurveOnStage] = useState(false)
-  const [draftStageStroke, setDraftStageStroke] = useState<[number, number][] | null>(null)
-
-  useEffect(() => {
-    setDrawCurveOnStage(false)
-    setDraftStageStroke(null)
-  }, [node.id])
-
   const motionNode = resolveActiveMotionNode(workflow, node, coordRefLayer?.id, clusterInstId)
   const mp = motionNode?.params
   const hasBboxMotion = Boolean(
     motionNode &&
-      (mp?.motionMode === 'bbox' ||
-        mp?.actionPreset === 'bbox_target' ||
-        typeof mp?.bboxTargetX === 'number' ||
-        typeof mp?.bboxTargetY === 'number')
+      resolveMotionMode(mp ?? {}) === 'bbox'
   )
 
   const focusMotionForEdit = (event: { shiftKey: boolean }): boolean => {
@@ -121,8 +113,6 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
         if (!target) return
         target.params = {
           ...(target.params ?? {}),
-          motionMode: 'bbox',
-          actionPreset: 'bbox_target',
           ...patch
         }
         syncWorkflowV2NodeToProject(d, target, patch)
@@ -293,8 +283,8 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
   const pathPointsScreen: [number, number][] = []
   if (hasBboxMotion) {
     const steps = 24
-    const activeStroke = draftStageStroke && draftStageStroke.length >= 2 ? draftStageStroke : mp?.customMotionPath
-    const pType = draftStageStroke ? 'custom_curve' : (mp?.bboxPathType ?? 'shortest')
+    const activeStroke = mp?.customMotionPath
+    const pType = mp?.bboxPathType ?? 'shortest'
     for (let i = 0; i <= steps; i++) {
       const u = i / steps
       const pt = evaluateBboxTrajectoryAt(
@@ -317,62 +307,21 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
 
   return (
     <>
-      {/* Nút bật nhanh BBox đích hoặc chế độ vẽ đường đi nổi góc dưới phải của Stage 2D (không che nhãn BBox phía trên) */}
-      <div
-        style={{
-          position: 'absolute',
-          bottom: 6,
-          right: 6,
-          zIndex: 35,
-          display: 'flex',
-          gap: 4
-        }}
-      >
-        {!hasBboxMotion ? (
-          <button
-            type="button"
-            className="wf-v2-direct-btn accent"
-            style={{
-              height: 22,
-              padding: '0 8px',
-              fontSize: 10,
-              flex: '0 0 auto',
-              whiteSpace: 'nowrap',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.45)'
-            }}
-            onClick={(e) => {
-              e.stopPropagation()
-              if (focusMotionForEdit(e)) handleSpawnOrEnableBbox2()
-            }}
-            title="Thêm khung BBox đích dạng mờ để kéo vị trí đích & phóng to/thu nhỏ dần khi di chuyển"
-          >
-            🎯 + Đặt BBox đích
-          </button>
-        ) : (
-          <button
-            type="button"
-            className={`wf-v2-direct-btn${drawCurveOnStage ? ' accent' : ''}`}
-            style={{
-              height: 21,
-              padding: '0 7px',
-              fontSize: 9.5,
-              flex: '0 0 auto',
-              whiteSpace: 'nowrap',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.45)'
-            }}
-            onClick={(e) => {
-              e.stopPropagation()
-              if (!focusMotionForEdit(e)) return
-              const nextDraw = !drawCurveOnStage
-              setDrawCurveOnStage(nextDraw)
-              if (nextDraw) patchMotionNode({ bboxPathType: 'custom_curve' })
-            }}
-            title="Vẽ trực tiếp đường cong di chuyển nối từ BBox đầu tới BBox đích ngay trên khung cảnh 2D"
-          >
-            ✏️ {drawCurveOnStage ? 'Đang vẽ đầu↝đích' : 'Vẽ đường đầu↝đích'}
-          </button>
-        )}
-      </div>
+      {motionNode?.id === node.id && (hasBboxMotion || resolveMotionMode(mp ?? {}) === 'path') && (
+        <WorkflowMotionStageTools mode={hasBboxMotion ? 'bbox' : 'path'} nodeId={node.id} params={mp ?? {}}
+          width={stageW} height={stageH} zoom={zoom} perspective={pFactorStart} start={[box1Cx, box1Cy]}
+          path={coordRefLayer.transform.position.keyframes.filter(k => k.id.includes(`-motpath-p-${node.id}-`) && !k.id.endsWith('-pre')).map(k => {
+            const pf = refD / Math.max(80, refD + k.value[2])
+            return [shotLeft + shotScreenW / 2 + k.value[0] * pf * zoom, shotTop + shotScreenH / 2 - k.value[1] * pf * zoom]
+          })}
+          patch={patchMotionNode}
+        />
+      )}
+      {!motionNode && node.type === 'layer_assembly' && !node.params?.logicCategory && (
+        <div className="wf-motion-stage-tools">
+          <button type="button" title="Thêm Motion BBox đích" aria-label="Thêm Motion BBox đích" onClick={handleSpawnOrEnableBbox2}><WorkflowMotionIcon name="target"/></button>
+        </div>
+      )}
 
       {/* Đường nối đầu -> đích và điểm va chạm trên SVG */}
       {hasBboxMotion && pathPointsScreen.length >= 2 && (
@@ -425,53 +374,6 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
           <circle cx={box2Cx} cy={box2Cy} r={5} fill="#f59e0b" stroke="#0f172a" strokeWidth={1.5} />
 
         </svg>
-      )}
-
-      {/* Lớp vẽ đường cong trực tiếp trên Stage khi bật `drawCurveOnStage` */}
-      {hasBboxMotion && drawCurveOnStage && (
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            zIndex: 32,
-            cursor: 'crosshair',
-            touchAction: 'none'
-          }}
-          title="Nhấn giữ chuột và kéo để vẽ đường đi nối từ BBox đầu sang BBox đích"
-          onPointerDown={(e) => {
-            if (e.button !== 0) return
-            e.stopPropagation()
-            e.preventDefault()
-            setPlaying(false)
-            const rect = e.currentTarget.getBoundingClientRect()
-            const toNorm = (cx: number, cy: number): [number, number] => [
-              Number(Math.max(0.02, Math.min(0.98, (cx - rect.left) / Math.max(1, rect.width))).toFixed(4)),
-              Number(Math.max(0.02, Math.min(0.98, (cy - rect.top) / Math.max(1, rect.height))).toFixed(4))
-            ]
-            const pts: [number, number][] = [toNorm(e.clientX, e.clientY)]
-            setDraftStageStroke(pts)
-
-            const onMove = (pev: PointerEvent): void => {
-              const next = toNorm(pev.clientX, pev.clientY)
-              const prev = pts[pts.length - 1]
-              if (Math.hypot(next[0] - prev[0], next[1] - prev[1]) >= 0.012) {
-                pts.push(next)
-                setDraftStageStroke([...pts])
-              }
-            }
-            const onUp = (): void => {
-              window.removeEventListener('pointermove', onMove)
-              window.removeEventListener('pointerup', onUp)
-              setDraftStageStroke(null)
-              setDrawCurveOnStage(false)
-              if (pts.length >= 2) {
-                patchMotionNode({ bboxPathType: 'custom_curve', customMotionPath: pts }, 'wf-stage-curve')
-              }
-            }
-            window.addEventListener('pointermove', onMove)
-            window.addEventListener('pointerup', onUp)
-          }}
-        />
       )}
 
       {/* Khung BBox đích dạng mờ (Ghost Target BBox) */}

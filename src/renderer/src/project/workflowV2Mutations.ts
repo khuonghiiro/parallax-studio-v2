@@ -1,3 +1,4 @@
+import { resolveMotionMode } from './workflowMotionMode'
 import { syncMotionExecution } from './workflowMotionExecution'
 import { effectiveTimeParams, isTimeNode } from './workflowTiming'
 import type { GlowSide, Layer, LayerGlow, LayerMotionType, Project, WorkflowEdge, WorkflowGraph, WorkflowNode, WorkflowNodeParams } from '@shared/types'
@@ -697,10 +698,15 @@ function syncSingleWorkflowV2NodeToProject(
 
   // 4. Node Motion (`action`) — hỗ trợ Đặt BBox Đích (`bbox`), Vẽ quỹ đạo chuyển động (`path`) và Chuyển động chu kỳ (`cycle`)
   if (node.type === 'motion_choreography' || params.logicCategory === 'action') {
-    const isBboxMode =
-      params.motionMode === 'bbox' ||
-      params.actionPreset === 'bbox_target' ||
-      Boolean(patch && ('bboxTargetX' in patch || 'bboxTargetY' in patch || 'bboxTargetScalePct' in patch || 'depthMode' in patch))
+    const mode = resolveMotionMode(params)
+    if (mode !== 'path') {
+      for (const layer of project.layers) {
+        layer.transform.position.keyframes = layer.transform.position.keyframes.filter(
+          (key) => !key.id.includes(`-motpath-p-${node.id}-`)
+        )
+      }
+    }
+    const isBboxMode = mode === 'bbox'
     if (isBboxMode) {
       if (node.enabled) {
         bakeBboxTargetMotionToScene(project, Array.from(targetIds), params, node.id)
@@ -715,14 +721,10 @@ function syncSingleWorkflowV2NodeToProject(
       return
     }
     clearBboxMotionKeysFromScene(project, node.id)
-    const isPathMode =
-      params.motionMode === 'path' ||
-      params.actionPreset === 'custom_draw' ||
-      (Boolean(params.customMotionPath && params.customMotionPath.length >= 2) &&
-        !(patch && 'actionPreset' in patch && patch.actionPreset !== 'custom_draw'))
-    if (isPathMode && params.customMotionPath && params.customMotionPath.length >= 2) {
+    const isPathMode = mode === 'path'
+    if (isPathMode) {
       if (node.enabled) {
-        bakeCustomMotionPathToScene(project, Array.from(targetIds), params.customMotionPath, {
+        bakeCustomMotionPathToScene(project, Array.from(targetIds), params.customMotionPath ?? [], {
           timeStart: tStart,
           timeEnd: tEnd,
           intensity: params.intensity,

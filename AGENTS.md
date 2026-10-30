@@ -109,6 +109,8 @@ Tuân thủ nghiêm ngặt kỹ năng `code-modularization`:
 - **Tài liệu AI song ngữ (mặc định tiếng Anh):** Công tắc trong `McpDialog` (`ui/mcp/McpAiGuideCard.tsx`) lưu `docsLang` vào `mcp.json` qua IPC `mcp:setDocsLang`; MCP server theo dõi file và đổi mô tả tool trực tiếp (`tools/list_changed`). Ưu tiên: `PARALLAX_MCP_LANG` > `docsLang` > `en`.
 
 ### 2.5b. Một Logic Chung Timeline ⇄ Workflow V2 (BẮT BUỘC)
+
+> Motion: `motionMode` (`bbox`, `path`, `cycle`) là chế độ đang active và được ưu tiên hơn cấu hình còn lưu của tab khác. Đổi tab giữ cấu hình để dùng lại, gỡ keyframe do chế độ cũ sinh ra và cập nhật logic dùng chung cho UI/MCP; đường vẽ rỗng không kích hoạt động tác nhanh.
 - **Nguồn sự thật là dữ liệu thật của Project** (Layer: `motion`, `virtualLight`/`glow`, `physics.depthPortal`, `physics.material`, xung lực `wf-col-*`; track âm thanh gắn layer). Đồ thị Workflow V2 được **suy ra** từ dữ liệu này bằng `syncWorkflowV2Graph` (`src/renderer/src/project/workflowV2Sync.ts`) và Timeline ghi lại qua `patchDerived` (không tạo bước Undo).
 - **Thêm / sửa ở bên nào cũng phải đi qua cùng một đường:** gắn logic dùng `attachLogicNodeToLayerV2` + mẫu chung `WORKFLOW_V2_LOGIC_PRESETS` (`workflowV2LogicPresets.ts`, id `v2:<nhóm>:<tuỳ chọn>`); xoá dùng `detachWorkflowV2NodeFromProject` (gỡ hẳn hiệu ứng để Node không bị suy diễn hồi sinh); tắt Node chỉ tắt hiệu ứng, giữ cấu hình.
 - **Không gian chung:** một đồ thị cho toàn dự án, mỗi Cảnh là một cụm (Root → Camera / Nhóm → Layer → Logic) theo thứ tự camera đi qua (`computeShotRoute`, cùng nguồn `shotAtTime` với dải "Cảnh đang quay"); Camera các cảnh nối nhau bằng dây chuyển cảnh (chỉ hiển thị, không nối tay).
@@ -355,10 +357,16 @@ Motion/va chạm có cổng OUT: kéo sang node kế tiếp hoặc thả ra kho�
 
 Giữ Shift khi chọn node/BBox khác; thao tác mặc định giữ node đang focus. Ctrl + click trên `+ Logic` của layer chọn/bỏ chọn khoảng thời gian, không mở picker. Nhãn Camera nằm trên toolbar, ngoài hình render. Motion BBox chia tab Đường đi, Đích, Thời gian, Chiều sâu, Va chạm.
 
-MCP regions: `viewer_camera_status`, `workflow_motion_panel`, `workflow_motion_ghost`, `workflow_motion_path`, `workflow_motion_target`, `workflow_motion_timing`, `workflow_motion_depth`, `workflow_motion_collision`.
+MCP regions: `viewer_camera_status`, `workflow_motion_panel`, `workflow_motion_ghost`, `workflow_motion_path`, `workflow_motion_target`, `workflow_motion_timing`, `workflow_motion_depth`, `workflow_motion_tools`, `workflow_motion_draw`.
 
 PowerShell: `pnpm pxs call ui_click '{"selector":".wf-v2-card","shift":true}'`
 
 CMD: `pnpm pxs call ui_click "{\"selector\":\"[data-node-id]\",\"shift\":true}"`
 
 Flags: `pnpm pxs call ui_click --selector ".wf-v2-card" --shift true`
+
+### Chỉnh đường đi Motion trên khung BBox
+- Motion chỉ hiển thị Đích, Thời gian và Chiều sâu; cấu hình Va chạm thuộc node Va chạm riêng. Dữ liệu va chạm cũ được giữ để tương thích dự án đã lưu.
+- Tab Vẽ Line và đường cong BBox dùng chung khung chỉnh BBox, không dùng bảng vẽ nhỏ trong phần thông số. Thanh icon dọc: chọn/kéo, đường thẳng, vẽ đường cong, xóa, xem thử. Esc hủy nét vẽ; các thay đổi hỗ trợ Undo/Redo.
+- MCP/CLI dùng `set_workflow` với `node_params` và `apply_node: true`; path vẽ trên stage dùng `customMotionPath` dạng độ lệch tọa độ thế giới, `intensity: 1`. BBox dùng `bboxPathType: shortest | custom_curve` và đường cong chuẩn hóa.
+- Chụp riêng thanh công cụ: PowerShell `pnpm pxs call get_app_screenshot '{"region":"workflow_motion_tools"}'`; CMD `pnpm pxs call get_app_screenshot "{\"region\":\"workflow_motion_tools\"}"`. Lớp nhận nét vẽ khi bật bút: `workflow_motion_draw`.

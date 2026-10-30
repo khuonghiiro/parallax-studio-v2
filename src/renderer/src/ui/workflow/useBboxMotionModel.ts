@@ -1,7 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import type { Layer, Vec3, WorkflowNodeParams } from '@shared/types'
 import { bboxStartPosition } from '../../project/workflowMotionStart'
-import { detectPathCollisionsInScene } from '../../project/workflowV2BboxMotionAndCollision'
 import { getClusterMemberLayers, getClusterRootLayer, syncWorkflowV2NodeToProject } from '../../project/workflowV2Engine'
 import { useEditor } from '../../store/editor'
 import { resolveActionTargetLayerIds } from './WorkflowV2MotionAndRigEditors'
@@ -49,7 +48,6 @@ export function useBboxMotionModel(props: WorkflowV2NodeParamsProps) {
       ? Math.round(startZ - ((targetScalePct - 100) / 100) * 180)
       : startZ)
 
-  const [draftCurve, setDraftCurve] = useState<[number, number][] | null>(null)
   const isPlaying = useEditor((s) => s.playing)
 
   const applyBboxPatch = (
@@ -98,23 +96,6 @@ export function useBboxMotionModel(props: WorkflowV2NodeParamsProps) {
     })
   }, [project.layers, movingIdSet, p.shotId, rootLayer?.shotId])
 
-  const detectedCollisions = useMemo(
-    () =>
-      detectPathCollisionsInScene(project, targetIds, {
-        ...p,
-        bboxPathType: pathType,
-        bboxTargetX: targetX,
-        bboxTargetY: targetY,
-        bboxTargetScalePct: targetScalePct,
-        depthMode,
-        bboxStartZ: startZ,
-        bboxTargetZ: targetZ,
-        timeStart: tStart,
-        timeEnd: tEnd
-      }, node.id),
-    [project, targetIds, p, pathType, targetX, targetY, targetScalePct, depthMode, startZ, targetZ, tStart, tEnd]
-  )
-
   const handleTogglePreview = (): void => {
     const ed = useEditor.getState()
     if (ed.playing) {
@@ -130,7 +111,7 @@ export function useBboxMotionModel(props: WorkflowV2NodeParamsProps) {
   const distPx = Math.round(Math.hypot(targetX - startPos[0], targetY - startPos[1]))
   const speedPxPerSec = Math.round(distPx / Math.max(0.2, runDuration))
 
-  return { p, node, project, onScrubTime, onSelectNode, rootLayer, compDur, tStart, tEnd, runDuration, startPos, pathType, targetX, targetY, targetScalePct, depthMode, startZ, targetZ, draftCurve, setDraftCurve, applyBboxPatch, sceneObstacleLayers, detectedCollisions, distPx, speedPxPerSec, isPlaying, handleTogglePreview }
+  return { p, node, project, onScrubTime, onSelectNode, rootLayer, compDur, tStart, tEnd, runDuration, startPos, pathType, targetX, targetY, targetScalePct, depthMode, startZ, targetZ, applyBboxPatch, sceneObstacleLayers, distPx, speedPxPerSec, isPlaying, handleTogglePreview }
 }
 
 export type BboxMotionModel = ReturnType<typeof useBboxMotionModel>

@@ -22,6 +22,28 @@ import { useEditor } from '../../store/editor'
 import { runCommand } from '../commands'
 
 describe('MCP workflowCommands & Workflow Engine', () => {
+  it('applies a stage-drawn path through the shared Motion command with Undo/Redo', async () => {
+    let nodeId = '', layerId = ''
+    useEditor.getState().update(draft => {
+      layerId = draft.layers[1].id
+      draft.workflow = syncWorkflowV2Graph(draft)
+      const parent = draft.workflow.nodes.find(n => n.params?.logicCategory === 'cluster_lock' && n.params.targetLayerIds?.includes(layerId))!
+      const result = attachLogicNodeToLayerV2(draft.workflow, parent.id, 'action')
+      nodeId = result.createdNodeId
+      draft.workflow = result.workflow
+    })
+    const before = useEditor.getState().project
+    await runCommand('set_workflow', { node_id: nodeId, apply_node: true, node_params: JSON.stringify({ motionMode: 'path', actionPreset: 'custom_draw', customMotionPath: [[0, 0], [200, -100]], intensity: 1, timeStart: 0, timeEnd: 2 }) })
+    const after = useEditor.getState().project
+    const keys = after.layers.find(l => l.id === layerId)!.transform.position.keyframes
+    expect(keys.some(k => k.id.includes(`-motpath-p-${nodeId}-`))).toBe(true)
+    expect(after.workflow!.nodes.find(n => n.id === nodeId)?.params?.motionMode).toBe('path')
+    useEditor.getState().undo()
+    expect(useEditor.getState().project).toEqual(before)
+    useEditor.getState().redo()
+    expect(useEditor.getState().project).toEqual(after)
+  })
+
   it('creates a connected BBox follow-up through MCP with atomic Undo/Redo', async () => {
     let sourceId = '', layerId = ''
     useEditor.getState().update(draft => {

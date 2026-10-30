@@ -1,3 +1,5 @@
+import { WorkflowMotionPathSettings } from './WorkflowMotionPathSettings'
+import { resolveMotionMode } from '../../project/workflowMotionMode'
 import React, { useState } from 'react'
 import type { GlowSide, Layer, LayerGlow, LayerMotion } from '@shared/types'
 import { createDefaultLayerPhysics } from '../../engine/layerPhysics'
@@ -14,7 +16,7 @@ import { useEditor } from '../../store/editor'
 import { ColorInput, NumberInput, Row } from '../controls'
 import { deleteLayerEffect, toggleLayerEffect } from '../timeline/timelineEffects'
 import { WorkflowV2BboxMotionPanel } from './WorkflowV2BboxMotionPanel'
-import { InlineMotionDesignerPad, resolveActionTargetLayerIds } from './WorkflowV2MotionAndRigEditors'
+import { resolveActionTargetLayerIds } from './WorkflowV2MotionAndRigEditors'
 import { OptionPills, ParamSlider, type WorkflowV2NodeParamsProps } from './WorkflowV2NodeParams'
 import '../../styles/virtualLightInspector.css'
 
@@ -522,10 +524,7 @@ export function WorkflowV2ActionParams(props: WorkflowV2NodeParamsProps): React.
     amount: p.intensity ?? 0.65
   }
 
-  const defaultMode: 'bbox' | 'path' | 'cycle' =
-    p.motionMode ?? (p.actionPreset === 'bbox_target' ? 'bbox' : 'bbox')
-  const [mode, setMode] = useState<'bbox' | 'path' | 'cycle'>(defaultMode)
-  const activeMode = p.motionMode ?? mode
+  const activeMode = resolveMotionMode(p)
 
   const patchMotion = (patch: Partial<LayerMotion>, mergeKey = 'wf-v2-motion'): void => {
     useEditor.getState().update((d) => {
@@ -550,9 +549,10 @@ export function WorkflowV2ActionParams(props: WorkflowV2NodeParamsProps): React.
       <div className="wf-v2-seg-tabs" role="tablist">
         <button
           type="button"
+          role="tab"
+          aria-selected={activeMode === 'bbox'}
           className={`wf-v2-seg-tab${activeMode === 'bbox' ? ' active' : ''}`}
           onClick={() => {
-            setMode('bbox')
             onUpdate(
               {
                 motionMode: 'bbox',
@@ -570,9 +570,10 @@ export function WorkflowV2ActionParams(props: WorkflowV2NodeParamsProps): React.
         </button>
         <button
           type="button"
+          role="tab"
+          aria-selected={activeMode === 'path'}
           className={`wf-v2-seg-tab${activeMode === 'path' ? ' active' : ''}`}
           onClick={() => {
-            setMode('path')
             onUpdate({ motionMode: 'path', actionPreset: 'custom_draw' })
           }}
         >
@@ -580,9 +581,10 @@ export function WorkflowV2ActionParams(props: WorkflowV2NodeParamsProps): React.
         </button>
         <button
           type="button"
+          role="tab"
+          aria-selected={activeMode === 'cycle'}
           className={`wf-v2-seg-tab${activeMode === 'cycle' ? ' active' : ''}`}
           onClick={() => {
-            setMode('cycle')
             onUpdate({
               motionMode: 'cycle',
               actionPreset:
@@ -599,15 +601,7 @@ export function WorkflowV2ActionParams(props: WorkflowV2NodeParamsProps): React.
       {activeMode === 'bbox' ? (
         <WorkflowV2BboxMotionPanel props={props} onSpawnFollowupNode={onSpawnFollowupNode} />
       ) : activeMode === 'path' ? (
-        <InlineMotionDesignerPad
-          props={props}
-          mode="path"
-          motionSpeed={motion.speed ?? 1}
-          motionAmount={motion.amount ?? p.intensity ?? 0.65}
-          onChangeMotionSpeed={(spd) => patchMotion({ speed: spd }, 'wf-motion-spd')}
-          onChangeMotionAmount={(amt) => patchMotion({ amount: amt }, 'wf-motion-amt')}
-          onSpawnFollowupNode={onSpawnFollowupNode}
-        />
+        <WorkflowMotionPathSettings props={props} />
       ) : (
         <>
           <div className="vl-row-header">

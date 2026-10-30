@@ -483,12 +483,13 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
   const coordRefLayer = useClusterBbox ? (clusterRootLayer ?? activeLayerObj) : activeLayerObj
 
   return (
-    <section className="wf-v2-insp-sec wf-v2-direct-stage-sec">
+    <section className="wf-v2-insp-sec wf-v2-direct-stage-sec" data-mcp-region="workflow_preview">
       <div className="wf-v2-direct-stage-bar" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
         <button
           type="button"
           className={`wf-v2-direct-toggle-btn${open ? ' active' : ''}`}
           style={{ flex: '1 1 auto', minWidth: 0 }}
+          aria-expanded={open}
           onClick={onToggleOpen}
           title={open ? 'Ẩn khung chỉnh sửa trực tiếp BBox 2D' : 'Hiện khung chỉnh sửa trực tiếp BBox 2D như trên Camera 2D'}
         >
@@ -565,7 +566,6 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
           ref={wrapRef}
           className="wf-v2-direct-stage wf-inspector-preview-box"
           data-focus-node={node.id}
-          data-mcp-region="workflow_preview"
         >
           <div
             className="wf-v2-direct-canvas"

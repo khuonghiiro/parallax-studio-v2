@@ -1,3 +1,4 @@
+import { resolveMotionMode } from './workflowMotionMode'
 import type { AudioTrackItem, Layer, Project, WorkflowEdge, WorkflowNode, WorkflowNodeParams } from '@shared/types'
 import { getProjectAudioTracks } from './audioTracks'
 import { WORKFLOW_V2_RIG_PRESET_OPTIONS } from './workflowV2ClusterRigAndSwap'
@@ -34,7 +35,7 @@ const r2 = (v: number): number => Number(v.toFixed(2))
 function deriveAction(layer: Layer, compDur: number, current?: WorkflowNode): Derived {
   if (
     current &&
-    (current.params?.motionMode === 'bbox' || current.params?.actionPreset === 'bbox_target')
+    resolveMotionMode(current.params ?? {}) === 'bbox'
   ) {
     const range = resolveLayerNodeTimeRange(layer, compDur)
     return {
@@ -67,9 +68,7 @@ function deriveAction(layer: Layer, compDur: number, current?: WorkflowNode): De
   }
   if (
     current &&
-    (current.params?.actionPreset === 'custom_draw' ||
-      current.params?.motionMode === 'path' ||
-      (current.params?.customMotionPath?.length ?? 0) >= 2)
+    resolveMotionMode(current.params ?? {}) === 'path'
   ) {
     const range = resolveLayerNodeTimeRange(layer, compDur)
     return {

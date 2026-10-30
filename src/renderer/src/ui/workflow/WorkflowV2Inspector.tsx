@@ -151,6 +151,10 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
   const [directStageOpen, setDirectStageOpen] = useState(() => localStorage.getItem(DIRECT_STAGE_KEY) !== '0')
   const [logicPadOpen, setLogicPadOpen] = useState(() => localStorage.getItem(LOGIC_PAD_KEY) !== '0')
 
+  useEffect(() => {
+    if (node?.params?.logicCategory === 'action' && node.params.motionMode !== 'cycle') setDirectStageOpen(true)
+  }, [node?.id, node?.params?.logicCategory, node?.params?.motionMode])
+
   const activeLayer = resolveActiveLayerForInspector(project, node, props.selectedLayerId ?? null)
   const compat = useMemo(
     () =>

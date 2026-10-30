@@ -1,10 +1,11 @@
+import { resolveMotionMode } from './workflowMotionMode'
 import type { Project, WorkflowNode, WorkflowNodeParams } from '@shared/types'
 import { clearBboxMotionKeysFromScene } from './workflowV2BboxMotionAndCollision'
 import { stripCollisionGeneratedKeys } from './workflowV2CollisionKeys'
 import { effectiveTimeParams } from './workflowTiming'
 
 type SyncNode = (project: Project, node: WorkflowNode, patch?: Partial<WorkflowNodeParams>) => void
-const isBbox = (n: WorkflowNode): boolean => n.params?.motionMode === 'bbox' || n.params?.actionPreset === 'bbox_target'
+const isBbox = (n: WorkflowNode): boolean => resolveMotionMode(n.params ?? {}) === 'bbox'
 
 /** Rebuild dependent tracks from clean inputs, irrespective of graph insertion order. */
 export function syncMotionExecution(project: Project, node: WorkflowNode, patch: Partial<WorkflowNodeParams> | undefined, sync: SyncNode): void {
@@ -18,11 +19,9 @@ export function syncMotionExecution(project: Project, node: WorkflowNode, patch:
   motions.sort((a, b) => (effectiveTimeParams(project, a, a.params ?? {}).timeStart ?? 0) -
     (effectiveTimeParams(project, b, b.params ?? {}).timeStart ?? 0))
   for (const motion of motions) {
-    motion.params = effectiveTimeParams(project, motion, motion.params ?? {})
-    sync(project, motion)
+    sync(project, { ...motion, params: effectiveTimeParams(project, motion, motion.params ?? {}) })
   }
   for (const collision of collisions) {
-    collision.params = effectiveTimeParams(project, collision, collision.params ?? {})
-    sync(project, collision)
+    sync(project, { ...collision, params: effectiveTimeParams(project, collision, collision.params ?? {}) })
   }
 }

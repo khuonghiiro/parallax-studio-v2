@@ -9,7 +9,7 @@
 .wf-motion-panel button { border-radius: var(--radius-sm); }
 .wf-motion-endpoints button, .wf-motion-tabs button, .wf-motion-next { border: 1px solid var(--line); background: var(--bg-2); color: var(--text-dim); padding: 6px 8px; font-size: 10px; cursor: pointer; }
 .wf-motion-endpoints b { color: var(--text); font-family: var(--mono); font-weight: 500; }
-.wf-motion-tabs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 3px; }
+.wf-motion-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 3px; }
 .wf-motion-tabs button { padding: 6px 2px; display: flex; flex-direction: column; align-items: center; gap: 4px; white-space: nowrap; }
 .wf-motion-tabs button[aria-selected='true'] { color: var(--accent); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--bg-2)); }
 .wf-motion-tabs button:hover, .wf-motion-endpoints button:hover, .wf-motion-next:hover { background: color-mix(in srgb, var(--accent) 10%, var(--bg-3)); color: var(--text); }
