@@ -61,6 +61,8 @@ export class RemoteControlServer {
   private lastActiveAt: number | null = null
   private lastAction: string | null = null
   private error?: string
+  /** Cache TLS cert/key — tạo một lần duy nhất, tránh block Main Process nhiều lần */
+  private cachedCert: { key: string; cert: string } | null = null
 
   constructor(
     private getWindow: () => BrowserWindow | null,
@@ -165,8 +167,11 @@ export class RemoteControlServer {
     let httpsSrv: HttpsServer | null = null
     try {
       const ips = detectLanIpv4Addresses()
-      const { key, cert } = generateSelfSignedCert(ips)
-      httpsSrv = createHttpsServer({ key, cert }, handler)
+      // Dùng cert đã cache — ECDSA P-256 tạo 1 lần duy nhất (~1ms), không block Main Process
+      if (!this.cachedCert) {
+        this.cachedCert = generateSelfSignedCert(ips)
+      }
+      httpsSrv = createHttpsServer({ key: this.cachedCert.key, cert: this.cachedCert.cert }, handler)
       httpsSrv.listen(0, '127.0.0.1')
     } catch {
       httpsSrv = null

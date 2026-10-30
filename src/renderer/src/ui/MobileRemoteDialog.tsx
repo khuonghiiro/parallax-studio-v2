@@ -77,15 +77,8 @@ export function MobileRemoteDialog() {
       return api.onStatus(setStatus)
     }
 
-    // Fallback check against localhost:9878 if preload wasn't reloaded yet
-    fetch('http://127.0.0.1:9878/api/ping')
-      .then((r) => r.json())
-      .then((d) => {
-        if (d?.ok) {
-          setStatus((prev) => ({ ...prev, listening: true, connectedDevices: d.devices ?? 0 }))
-        }
-      })
-      .catch(() => {})
+    // Fallback: preload chưa sẵn sàng (dev/hot-reload) — giữ FALLBACK_STATUS, không fetch qua
+    // Chromium Network Service để tránh lỗi "Network service crashed" khi server chưa bind xong.
     return undefined
   }, [])
 

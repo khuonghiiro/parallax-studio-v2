@@ -1,4 +1,4 @@
-import { generateKeyPairSync, randomBytes, sign } from 'crypto'
+import { generateKeyPairSync, randomBytes, createSign } from 'crypto'
 
 function derLength(len: number): Buffer {
   if (len < 128) return Buffer.from([len])
@@ -78,16 +78,19 @@ function buildSanExtension(ips: string[]): Buffer {
 /**
  * Tạo chứng chỉ TLS X.509 v3 tự ký (Self-Signed Certificate) thuần Node.js crypto
  * kèm SubjectAltName cho mọi địa chỉ IPv4 LAN/Wi-Fi để hỗ trợ kết nối HTTPS-Only trên điện thoại.
+ *
+ * Dùng ECDSA P-256 (ecdh_curve prime256v1) thay RSA-2048 để tránh block Main Process:
+ *   - RSA-2048 generateKeyPairSync: ~200–500ms (CPU-intensive, block toàn bộ Main thread)
+ *   - ECDSA P-256 generateKeyPairSync: ~1–5ms (gần như tức thì)
  */
 export function generateSelfSignedCert(ips: string[] = []): { key: string; cert: string } {
-  const { publicKey, privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048 })
+  const { publicKey, privateKey } = generateKeyPairSync('ec', { namedCurve: 'prime256v1' })
   const spkiDer = publicKey.export({ type: 'spki', format: 'der' }) as Buffer
   const keyPem = privateKey.export({ type: 'pkcs8', format: 'pem' }) as string
 
-  // sha256WithRSAEncryption (1.2.840.113549.1.1.11)
+  // ecdsaWithSHA256 (1.2.840.10045.4.3.2) — OID bytes: 2a 86 48 ce 3d 04 03 02
   const sigAlg = derSeq([
-    derOid([0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x0b]),
-    Buffer.from([0x05, 0x00])
+    derOid([0x2a, 0x86, 0x48, 0xce, 0x3d, 0x04, 0x03, 0x02])
   ])
 
   const serialRaw = randomBytes(12)
@@ -114,7 +117,9 @@ export function generateSelfSignedCert(ips: string[] = []): { key: string; cert:
     buildSanExtension(ips)
   ])
 
-  const signature = sign('sha256', tbs, privateKey)
+  const signer = createSign('sha256')
+  signer.update(tbs)
+  const signature = signer.sign(privateKey)
   const certDer = derSeq([tbs, sigAlg, derBitString(signature)])
   const b64 = certDer.toString('base64').replace(/(.{64})/g, '$1\n').trim()
   const certPem = `-----BEGIN CERTIFICATE-----\n${b64}\n-----END CERTIFICATE-----\n`
