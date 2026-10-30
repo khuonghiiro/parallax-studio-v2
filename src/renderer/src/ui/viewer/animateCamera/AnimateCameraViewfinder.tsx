@@ -1,3 +1,4 @@
+import { focusCameraWaypoint } from './cameraWaypointFocus'
 import { useMemo, useState } from 'react'
 import { IconPlus, IconTrash } from '../../icons'
 import {
@@ -350,17 +351,17 @@ export function AnimateCameraViewfinder({
             onPointerDown={(e) => {
               if (e.button !== 0) return
               e.stopPropagation()
-              onStartBubbleDrag(e, idx, wp)
+              if (focusCameraWaypoint(e, wp.index)) onStartBubbleDrag(e, idx, wp)
             }}
             onClick={(e) => {
               e.stopPropagation()
-              onSelectFrame(wp, true)
+              if (focusCameraWaypoint(e, wp.index)) onSelectFrame(wp, true)
             }}
             onDoubleClick={(e) => {
               e.stopPropagation()
-              onResetBubbleOffset(idx)
+              if (focusCameraWaypoint(e, wp.index)) onResetBubbleOffset(idx)
             }}
-            title={`${isFirstOfShot ? `⚑ MỐC MỞ MÀN CẢNH: ${wp.shotName}\n` : ''}Bóng điều khiển Mốc #${wp.displayLabel} (${wp.time.toFixed(1)}s ➔ ${wp.endTime.toFixed(1)}s · Thời lượng ${dispDur.toFixed(1)}s) · ${wp.tagLabel}\nCỡ khung: Zoom ${wp.zoomPct}% · ${wp.angleSummary}\n👉 Click: Chọn khung #${wp.displayLabel} & mở tab Lộ trình để sửa\n✋ Kéo thả: Di chuyển bóng ra chỗ thoáng tùy ý\n↺ Đúp chuột: Đặt lại vị trí mặc định`}
+            title={`${isFirstOfShot ? `⚑ MỐC MỞ MÀN CẢNH: ${wp.shotName}\n` : ''}Bóng điều khiển Mốc #${wp.displayLabel} (${wp.time.toFixed(1)}s ➔ ${wp.endTime.toFixed(1)}s · Thời lượng ${dispDur.toFixed(1)}s) · ${wp.tagLabel}\nCỡ khung: Zoom ${wp.zoomPct}% · ${wp.angleSummary}\n👉 Shift + Click: Chọn khung #${wp.displayLabel} & mở tab Lộ trình để sửa\n✋ Kéo thả: Di chuyển bóng ra chỗ thoáng tùy ý\n↺ Đúp chuột: Đặt lại vị trí mặc định`}
           >
             <div className="bubble-circle">
               {isFirstOfShot && (
@@ -434,6 +435,8 @@ export function AnimateCameraViewfinder({
         return (
           <div
             id="anim2d-active-viewfinder"
+            onPointerDownCapture={e => { focusCameraWaypoint(e, activeWp.index) }}
+            onClickCapture={e => { focusCameraWaypoint(e, activeWp.index) }}
             className={`anim2d-cam-frame active mode-${toolMode}${playing ? ' is-playing' : ''}`}
             style={{
               left: tl.x,
@@ -445,7 +448,7 @@ export function AnimateCameraViewfinder({
               zIndex: toolMode === 'aim-target' ? 18 : 35
             }}
             onPointerDown={(e) => {
-              if (toolMode === 'aim-target') return
+              if (toolMode === 'aim-target' || !focusCameraWaypoint(e, activeWp.index)) return
               if (toolMode === 'orbit-3d' || e.altKey) {
                 onStartOrbit3DDrag(e, activeWp)
               } else {
@@ -473,7 +476,7 @@ export function AnimateCameraViewfinder({
             {toolMode !== 'aim-target' && (
               <div
                 className="anim2d-rot-stem"
-                onPointerDown={(e) => onStartRotateDrag(e, activeWp)}
+                onPointerDown={(e) => { if (focusCameraWaypoint(e, activeWp.index)) onStartRotateDrag(e, activeWp) }}
                 title={`Kéo để xoay nghiêng máy (Roll / Dutch Angle: ${Math.round(activeWp.roll)}°)\nGiữ Shift để bắt dính góc 15°`}
               >
                 <span className="anim2d-rot-knob">↻</span>
@@ -533,7 +536,7 @@ export function AnimateCameraViewfinder({
                   key={h.id}
                   className={`anim2d-cam-handle handle-${h.id}`}
                   style={{ cursor: h.cursor }}
-                  onPointerDown={(e) => onStartResizeDrag(e, activeWp, h.sx, h.sy)}
+                  onPointerDown={(e) => { if (focusCameraWaypoint(e, activeWp.index)) onStartResizeDrag(e, activeWp, h.sx, h.sy) }}
                   title="Kéo góc/cạnh để Phóng to (khung nhỏ lại) hoặc Thu nhỏ (khung rộng ra)"
                 />
               ))}

@@ -236,7 +236,7 @@ if (typeof window !== 'undefined' && (window as unknown as McpWin).__pxsMcpUnsub
 }
 
 if (import.meta.hot) {
-  import.meta.hot.accept(() => {
-    initMcp()
+  import.meta.hot.accept((next) => {
+    next?.initMcp()
   })
 }

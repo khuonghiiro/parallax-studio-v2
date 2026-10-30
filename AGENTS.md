@@ -355,10 +355,10 @@ Motion/va chạm có cổng OUT: kéo sang node kế tiếp hoặc thả ra kho�
 
 Giữ Shift khi chọn node/BBox khác; thao tác mặc định giữ node đang focus. Ctrl + click trên `+ Logic` của layer chọn/bỏ chọn khoảng thời gian, không mở picker. Nhãn Camera nằm trên toolbar, ngoài hình render. Motion BBox chia tab Đường đi, Đích, Thời gian, Chiều sâu, Va chạm.
 
-MCP regions: `viewer_camera_status`, `workflow_motion_panel`, `workflow_motion_path`, `workflow_motion_target`, `workflow_motion_timing`, `workflow_motion_depth`, `workflow_motion_collision`.
+MCP regions: `viewer_camera_status`, `workflow_motion_panel`, `workflow_motion_ghost`, `workflow_motion_path`, `workflow_motion_target`, `workflow_motion_timing`, `workflow_motion_depth`, `workflow_motion_collision`.
 
-PowerShell: `pnpm pxs call ui_click '{"selector":"[data-node-id]","shift":true}'`
+PowerShell: `pnpm pxs call ui_click '{"selector":".wf-v2-card","shift":true}'`
 
 CMD: `pnpm pxs call ui_click "{\"selector\":\"[data-node-id]\",\"shift\":true}"`
 
-Flags: `pnpm pxs call ui_click --selector "[data-node-id]" --shift true`
+Flags: `pnpm pxs call ui_click --selector ".wf-v2-card" --shift true`

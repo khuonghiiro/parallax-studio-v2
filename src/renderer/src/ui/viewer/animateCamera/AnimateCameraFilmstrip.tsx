@@ -1,3 +1,4 @@
+import { focusCameraWaypoint } from './cameraWaypointFocus'
 import { memo, useEffect, useRef } from 'react'
 import type { LookSettings } from '@shared/types'
 import { assetStore } from '../../../project/assets'
@@ -127,7 +128,7 @@ export const AnimateCameraVerticalFilmstrip = memo(function AnimateCameraVertica
               <div
                 id={`anim2d-film-card-${idx + 1}`}
                 className={`anim2d-film-card${wp.isFirstOfShot ? ' first-of-shot' : ''}${isActive ? ' active' : ''}`}
-                onClick={() => onSelectWaypoint(wp)}
+                onClick={e => { if (focusCameraWaypoint(e, wp.index)) onSelectWaypoint(wp) }}
                 title={`${wp.isFirstOfShot ? `⚑ MỐC MỞ MÀN CẢNH: ${wp.shotName}\n` : ''}Mốc #${wp.displayLabel} (@${wp.time.toFixed(1)}s · Thời lượng chuyển: ${dispDur.toFixed(1)}s)\nCảnh: ${wp.shotName} · Zoom ${wp.zoomPct}% · ${wp.tagLabel}\n👉 Bấm để chọn mốc này và mở tab Lộ trình chỉnh sửa`}
               >
                 {/* Dải tiêu đề trên cùng của thẻ phim (Căn chỉnh chuẩn 1 dòng gọn gàng) */}
@@ -311,7 +312,7 @@ export const AnimateCameraProFooterBar = memo(function AnimateCameraProFooterBar
           type="button"
           className="footer-nav-btn"
           disabled={!prevWp}
-          onClick={() => prevWp && onSelectWaypoint(prevWp)}
+          onClick={e => { if (prevWp && focusCameraWaypoint(e, prevWp.index)) onSelectWaypoint(prevWp) }}
           title="Lùi về mốc trước"
         >
           ◀
@@ -328,7 +329,7 @@ export const AnimateCameraProFooterBar = memo(function AnimateCameraProFooterBar
           type="button"
           className="footer-nav-btn"
           disabled={!nextWp}
-          onClick={() => nextWp && onSelectWaypoint(nextWp)}
+          onClick={e => { if (nextWp && focusCameraWaypoint(e, nextWp.index)) onSelectWaypoint(nextWp) }}
           title="Tiến tới mốc tiếp theo"
         >
           ▶

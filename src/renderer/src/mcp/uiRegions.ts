@@ -120,6 +120,7 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   workflow_collision_preview: ['.wf-collision-preview'],
   workflow_bbox_steps: ['.wf-v2-bbox-step-tags'],
   viewer_camera_status: region('viewer_camera_status', '[data-mcp-region="viewer_camera_status"]'),
+  workflow_motion_ghost: region('workflow_motion_ghost', '.is-ghost-target'),
   workflow_motion_panel: region('workflow_motion_panel', '[data-mcp-region="workflow_motion_panel"]'),
   workflow_motion_path: region('workflow_motion_path', '[data-mcp-region="workflow_motion_path"]'),
   workflow_motion_target: region('workflow_motion_target', '[data-mcp-region="workflow_motion_target"]'),

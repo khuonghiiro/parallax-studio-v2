@@ -1,6 +1,7 @@
+import { useShiftToFocus } from './workflowFocusGuard'
 import { bboxStartPosition, bboxStartScale } from '../../project/workflowMotionStart'
 import { bboxStepNumber } from '../../project/workflowBboxSteps'
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import type { Layer, Project, Vec3, WorkflowGraph, WorkflowNode, WorkflowNodeParams } from '@shared/types'
 import { evaluate } from '../../animation/keyframes'
 import { assetStore } from '../../project/assets'
@@ -84,10 +85,16 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
   sampleTime,
   onSelectNode
 }) => {
+  const shiftToFocus = useShiftToFocus()
   const update = useEditor((s) => s.update)
   const setPlaying = useEditor((s) => s.setPlaying)
   const [drawCurveOnStage, setDrawCurveOnStage] = useState(false)
   const [draftStageStroke, setDraftStageStroke] = useState<[number, number][] | null>(null)
+
+  useEffect(() => {
+    setDrawCurveOnStage(false)
+    setDraftStageStroke(null)
+  }, [node.id])
 
   const motionNode = resolveActiveMotionNode(workflow, node, coordRefLayer?.id, clusterInstId)
   const mp = motionNode?.params
@@ -98,6 +105,12 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
         typeof mp?.bboxTargetX === 'number' ||
         typeof mp?.bboxTargetY === 'number')
   )
+
+  const focusMotionForEdit = (event: { shiftKey: boolean }): boolean => {
+    if (!motionNode || motionNode.id === node.id) return true
+    if (event.shiftKey) onSelectNode?.(motionNode.id)
+    return false
+  }
 
   const patchMotionNode = useCallback(
     (patch: Partial<WorkflowNodeParams>, mergeKey = 'wf-stage-bbox2'): void => {
@@ -232,6 +245,7 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
   ): void => {
     e.stopPropagation()
     e.preventDefault()
+    if (!focusMotionForEdit(e)) return
     setPlaying(false)
     const sx = e.clientX
     const sy = e.clientY
@@ -328,11 +342,11 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
             }}
             onClick={(e) => {
               e.stopPropagation()
-              handleSpawnOrEnableBbox2()
+              if (focusMotionForEdit(e)) handleSpawnOrEnableBbox2()
             }}
-            title="Thêm khung BBox Đích đích dạng mờ để kéo vị trí đích & phóng to/thu nhỏ dần khi di chuyển"
+            title="Thêm khung BBox đích dạng mờ để kéo vị trí đích & phóng to/thu nhỏ dần khi di chuyển"
           >
-            🎯 + Đặt BBox Đích đích
+            🎯 + Đặt BBox đích
           </button>
         ) : (
           <button
@@ -348,6 +362,7 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
             }}
             onClick={(e) => {
               e.stopPropagation()
+              if (!focusMotionForEdit(e)) return
               const nextDraw = !drawCurveOnStage
               setDrawCurveOnStage(nextDraw)
               if (nextDraw) patchMotionNode({ bboxPathType: 'custom_curve' })
@@ -459,22 +474,24 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
         />
       )}
 
-      {/* Khung BBox Đích đích dạng mờ (Ghost Target BBox) */}
+      {/* Khung BBox đích dạng mờ (Ghost Target BBox) */}
       {hasBboxMotion && (
         <div
           className="wf-v2-direct-layer-bbox is-ghost-target"
+          data-mcp-region="workflow_motion_ghost"
           style={{
+            pointerEvents: motionNode?.id === node.id || shiftToFocus ? 'auto' : 'none',
             left: box2Left,
             top: box2Top,
             width: box2W,
             height: box2H,
-            border: '1.5px dashed #f59e0b',
-            background: 'rgba(245, 158, 11, 0.08)',
+            border: '1.5px dashed var(--key)',
+            background: 'color-mix(in srgb, var(--key) 8%, transparent)',
             boxShadow: '0 0 0 1px rgba(15, 23, 42, 0.55), 0 0 14px rgba(245, 158, 11, 0.25)',
             zIndex: 28,
             ['--wf-v2-accent' as string]: '#f59e0b'
           }}
-          title={`BBox Đích đích (${targetScalePct}%) — Kéo để đặt vị trí kết thúc, kéo 4 góc để phóng to/thu nhỏ dần khi di chuyển tới đích`}
+          title={`BBox đích (${targetScalePct}%) — Kéo để đặt vị trí kết thúc, kéo 4 góc để phóng to/thu nhỏ dần khi di chuyển tới đích`}
           onPointerDown={(e) => {
             if (e.button === 0) startBbox2Drag(e, 'move')
           }}
