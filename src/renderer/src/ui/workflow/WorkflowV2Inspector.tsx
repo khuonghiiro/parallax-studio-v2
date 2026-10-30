@@ -1,3 +1,5 @@
+import { patchPartCue } from '../../project/workflowPartEditing'
+import { WorkflowPartPreview } from './WorkflowPartPreview'
 import { effectiveTimeParams, timeSource } from '../../project/workflowTiming'
 import React, { useEffect, useMemo, useState } from 'react'
 import type { Project, Shot, WorkflowGraph, WorkflowNode, WorkflowNodeParams } from '@shared/types'
@@ -317,12 +319,17 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
   const linked = logicCat === 'time'
     ? workflow.edges.filter(e => e.fromNode === node.id && e.fromPort === 'time_range' && !e.disabled).map(e => workflow.nodes.find(n => n.id === e.toNode)?.title ?? e.toNode)
     : level === 'logic' ? linkedLayerNames(node, project) : []
-  const update = (patch: Partial<WorkflowNodeParams>, title?: string): void => props.onUpdateParams(node.id, patch, title)
+  const update = (patch: Partial<WorkflowNodeParams>, title?: string): void => {
+    if (node.params?.isPartChild) {
+      useEditor.getState().update(d => patchPartCue(d, node.id, patch), `part-timing-${node.id}`)
+    } else props.onUpdateParams(node.id, patch, title)
+  }
 
   const handleSpawnFollowup = (stepDur = 3.0): void => {
     let createdId: string | null = null
     let nextStart = tEnd
     useEditor.getState().update((draft) => {
+      if (node.params?.isPartChild) patchPartCue(draft, node.id, {})
       const wf = (draft.workflow ?? workflow) as WorkflowGraph
       const res = spawnTimedFollowupNodeV2(wf, node.id, stepDur)
       if (!res) return
@@ -438,8 +445,9 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
         </div>
       )}
 
+      {logicCat === 'part_swap' && <WorkflowPartPreview project={project} node={node} currentTime={currentTime} onScrubTime={props.onScrubTime} onSelectNode={props.onSelectNode} />}
       <div className="wf-v2-insp-body">
-        <section className="wf-v2-insp-sec workflow-node-timing" data-mcp-region="workflow_motion_timing">
+        {!node.params?.isPartHub && <section className="wf-v2-insp-sec workflow-node-timing" data-mcp-region="workflow_motion_timing">
           <div className="wf-v2-insp-sec-title">
             <span>Tiến trình Thời gian</span>
             {timeLocked ? (
@@ -536,7 +544,7 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
             onChangeRange={(s, e) => update({ timeStart: s, timeEnd: e })}
             onScrubTime={props.onScrubTime}
           />
-        </section>
+        </section>}
 
         {level === 'logic' &&
           node.type !== 'camera_director' &&

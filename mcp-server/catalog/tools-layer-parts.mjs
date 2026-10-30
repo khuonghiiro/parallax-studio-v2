@@ -5,6 +5,37 @@ import { L, z } from './shared.mjs'
 
 export const LAYER_PARTS_TOOLS = [
   {
+    name: 'get_part_cues', cat: 'timeline',
+    doc: L('Inspect a 2.5D part hub or child: child cue IDs, legal variant layer IDs, related Motion intervals and evaluated positions/visibility at time. Read this before set_part_cue. Preview regions: workflow_part_preview, workflow_part_stage, workflow_part_cues.', 'Đọc Hub hoặc node con bộ phận 2.5D: ID mốc con, ID biến thể hợp lệ, khoảng Motion liên quan và vị trí/hiển thị thật tại thời điểm. Đọc trước set_part_cue. Vùng preview: workflow_part_preview, workflow_part_stage, workflow_part_cues.'),
+    shape: d => ({ node_id: z.string().describe(d('Part hub or child node ID from get_workflow.', 'ID Hub hoặc node con Bộ phận từ get_workflow.')), time: z.number().min(0).optional().describe(d('Project seconds; defaults to playhead, does not seek.', 'Giây dự án; mặc định playhead, không tua.')) }),
+    example: '{"node_id":"part-child-id","time":2}'
+  },
+  {
+    name: 'set_part_cue', cat: 'timeline',
+    doc: L('Edit a child part cue, or add an independent cue at a time. Uses the same logic as the visual part editor, one Undo step. Never edits the hub or Motion path. Times are project seconds, intervals [start,end). Latest start wins overlaps. Pose adds to Motion; variants/assets revert at end unless hold_after_end. Shared Time must be edited at its source.', 'Sửa mốc bộ phận con hoặc thêm mốc độc lập tại một thời điểm. Cùng logic với khung chỉnh trực quan, một bước Undo. Không sửa Hub hay đường Motion. Thời gian là giây dự án, khoảng [Từ,Đến). Mốc bắt đầu sau ưu tiên khi chồng lấn. Tư thế cộng vào Motion; biến thể/ảnh trả về khi hết mốc trừ hold_after_end. Time chung phải chỉnh tại nguồn.'),
+    shape: d => ({
+      node_id: z.string().describe(d('Child node ID from get_part_cues.', 'ID node con từ get_part_cues.')),
+      action: z.enum(['update','add']).optional().describe(d('update (default) or add a separate cue.', 'update (mặc định) hoặc add mốc riêng.')),
+      at: z.number().min(0).optional().describe(d('Required for add: project time.', 'Bắt buộc khi add: thời điểm dự án.')),
+      duration: z.number().min(.5).optional().describe(d('New cue duration, default 1s.', 'Thời lượng mốc mới, mặc định 1s.')),
+      start: z.number().min(0).optional().describe(d('Interval start.', 'Bắt đầu khoảng.')),
+      end: z.number().min(0).optional().describe(d('Interval end.', 'Kết thúc khoảng.')),
+      mode: z.enum(['expression','part_variant','replace_asset','toggle_part']).optional().describe(d('Part operation.', 'Thao tác bộ phận.')),
+      variant_id: z.string().optional().describe(d('Variant layer ID within this child targets.', 'ID layer biến thể thuộc mục tiêu node con.')),
+      layer_id: z.string().optional().describe(d('Target part layer for image or visibility.', 'Layer bộ phận đích để đổi ảnh hoặc hiển thị.')),
+      asset_id: z.string().optional().describe(d('Existing image asset ID; use mode replace_asset.', 'ID tài nguyên ảnh có sẵn; dùng mode replace_asset.')),
+      visible: z.boolean().optional().describe(d('Visibility during toggle_part cue.', 'Hiển thị trong mốc toggle_part.')),
+      hold_after_end: z.boolean().optional().describe(d('Keep variant/image/visibility after end; pose still ends.', 'Giữ biến thể/ảnh/hiển thị sau Đến; tư thế vẫn kết thúc.')),
+      x: z.number().optional().describe(d('Additive horizontal offset in scene units.', 'Độ lệch ngang cộng thêm theo đơn vị cảnh.')),
+      y: z.number().optional().describe(d('Additive vertical offset, positive up.', 'Độ lệch dọc cộng thêm, dương hướng lên.')),
+      rotation: z.number().optional().describe(d('Additive rotation in degrees.', 'Góc xoay cộng thêm, độ.')),
+      scale: z.number().min(20).max(300).optional().describe(d('Part scale percent, 100 neutral.', 'Tỉ lệ phần trăm bộ phận, 100 trung tính.')),
+      wave: z.enum(['smooth','hold','oscillate']).optional().describe(d('Pose envelope within the interval.', 'Nhịp tư thế trong khoảng.'))
+    }),
+    example: '{"node_id":"part-child-id","action":"add","at":2,"duration":1,"rotation":25,"wave":"hold"}'
+  },
+
+  {
     name: 'layer_assembly_parts',
     cat: 'layer_assembly',
     doc: L(

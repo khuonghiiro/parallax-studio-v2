@@ -422,8 +422,8 @@ export const FX_TOOLS = [
   {
     name: 'get_workflow', cat: 'timeline',
     doc: L(
-      'Get per-node input/output ports, executable status and routed layer/shot IDs (`node_io`), and the current project Workflow graph JSON along with the compiled AI Logical Agent Blueprint (`aiBlueprint`) describing each connected functional agent, data flow ports, and MCP tool execution plan.',
-      'Lấy cổng vào/ra, trạng thái thực thi và ID layer/cảnh theo dây của từng node (`node_io`), cùng sơ đồ Workflow JSON hiện tại của dự án kèm Bản thiết kế Tác nhân Logic AI (`aiBlueprint`) mô tả rõ vai trò từng tác nhân, luồng kết nối cổng và kế hoạch công cụ MCP.'
+      'For timed 2.5D part edits use get_part_cues then set_part_cue. Get per-node input/output ports, executable status and routed layer/shot IDs (`node_io`), and the current project Workflow graph JSON along with the compiled AI Logical Agent Blueprint (`aiBlueprint`) describing each connected functional agent, data flow ports, and MCP tool execution plan.',
+      'Để chỉnh bộ phận 2.5D theo mốc dùng get_part_cues rồi set_part_cue. Lấy cổng vào/ra, trạng thái thực thi và ID layer/cảnh theo dây của từng node (`node_io`), cùng sơ đồ Workflow JSON hiện tại của dự án kèm Bản thiết kế Tác nhân Logic AI (`aiBlueprint`) mô tả rõ vai trò từng tác nhân, luồng kết nối cổng và kế hoạch công cụ MCP.'
     ),
     shape: (d) => ({
       shot_id: z.string().optional().describe(d('Optional shot ID to return its standalone shot_json directly.', 'ID phân cảnh tùy chọn để lấy trực tiếp shot_json đơn lẻ của cảnh đó.'))

@@ -258,6 +258,9 @@ export interface WorkflowNodeParams {
   /** [Workflow V2] Chu kỳ thời gian mỗi vòng lặp chuyển động (giây) khi bật customMotionLoop */
   customMotionCycleSec?: number
   /** [Workflow V2] Giữ nguyên biến thể sau khi kết thúc khoảng thời gian đổi bộ phận */
+  /** Evaluate timed part edits additively over Motion, without baking competing transform keys. */
+  partTimeline?: boolean
+  partVisible?: boolean
   partSwapHoldAfterEnd?: boolean
   /** [Workflow V2] ID động tác đặt tên động của Cụm 2.5D đang chọn trên Node Animation */
   customActionId?: string

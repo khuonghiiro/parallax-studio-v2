@@ -1,3 +1,4 @@
+import { workflowPartCommands } from './commands/workflowPartCommands'
 import { effectStackCommands } from './commands/effectStackCommands'
 import { proceduralMotionCommands } from './commands/proceduralMotionCommands'
 import type { McpCommand } from '@shared/ipc'
@@ -38,6 +39,7 @@ const commands: Record<string, Handler> = {
   ...proceduralMotionCommands,
   ...effectStackCommands,
   ...workflowCommands,
+  ...workflowPartCommands,
   ...systemCommands,
   ...uiCommands,
   ...remoteCommands
@@ -50,6 +52,7 @@ function getHandler(canonical: string): Handler | undefined {
       ...Object.keys(uiCommands),
       ...Object.keys(remoteCommands),
       ...Object.keys(workflowCommands),
+      ...Object.keys(workflowPartCommands),
       ...Object.keys(layerAssemblyCommands),
       ...Object.keys(layerAssemblyTemplateCommands),
       ...Object.keys(assemblyCommands),
@@ -68,6 +71,7 @@ function getHandler(canonical: string): Handler | undefined {
     uiCommands[canonical] ??
     remoteCommands[canonical] ??
     workflowCommands[canonical] ??
+    workflowPartCommands[canonical] ??
     layerAssemblyCommands[canonical] ??
     layerAssemblyTemplateCommands[canonical] ??
     assemblyCommands[canonical] ??

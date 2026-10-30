@@ -353,6 +353,10 @@ export class SceneRenderer {
     for (const el of ev.layers) {
       const node = this.nodes.get(el.layer.id)
       if (!node) continue
+      if (el.layer.type === 'image') {
+        node.texKey = `img:${el.layer.props.assetId}`
+        node.alpha = assetStore.get(el.layer.props.assetId)?.alpha
+      }
       const obj = node.object
       // Matrices are kept current for every layer so picking works even when culled.
       if (node.type === 'particles') obj.matrix.copy(el.world)

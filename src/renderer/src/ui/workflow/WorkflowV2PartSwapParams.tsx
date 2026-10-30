@@ -1,3 +1,4 @@
+import { patchPartCue } from '../../project/workflowPartEditing'
 import React, { useMemo, useState } from 'react'
 import type { ImageProps, Layer, WorkflowNodeParams } from '@shared/types'
 import {
@@ -5,8 +6,7 @@ import {
   extractCompositeDynamicParts,
   getClusterMemberLayers,
   getClusterPartShortName,
-  getClusterRootLayer,
-  syncWorkflowV2NodeToProject
+  getClusterRootLayer
 } from '../../project/workflowV2Engine'
 import { useEditor } from '../../store/editor'
 import { cleanV2NodeTitle } from './workflowV2Theme'
@@ -42,11 +42,18 @@ export function WorkflowV2PartSwapParams({
   node,
   project,
   workflow,
-  onUpdate,
+  onUpdate: updateNode,
   onSelectNode,
-  onAttachLogic,
-  onSpawnFollowupNode
+  onAttachLogic
 }: WorkflowV2NodeParamsProps): React.ReactElement {
+  const onUpdate = (patch: Partial<WorkflowNodeParams>, title?: string): void => {
+    if (node.params?.isPartHub) { updateNode(patch, title); return }
+    useEditor.getState().update(draft => {
+      patchPartCue(draft, node.id, patch)
+      if (title) { const target = draft.workflow?.nodes.find(n => n.id === node.id); if (target) target.title = title }
+    }, `part-edit-${node.id}`)
+  }
+  const [assetSearch, setAssetSearch] = useState('')
   const p = node.params ?? {}
   const targetIds = new Set(p.targetLayerIds ?? [])
   const firstLayer = project.layers.find((l) => targetIds.has(l.id))
@@ -107,10 +114,9 @@ export function WorkflowV2PartSwapParams({
   const defaultTab: PartTabMode =
     p.partActionMode ??
     ((activePart?.id === 'face' && expressions.length > 0) || partLayers.length > 1 ? 'variant' : 'pose')
-  const [subTab, setSubTab] = useState<PartTabMode>(defaultTab)
+  const subTab = defaultTab
 
   const switchSubTab = (next: PartTabMode): void => {
-    setSubTab(next)
     onUpdate({ partActionMode: next })
   }
 
@@ -118,7 +124,7 @@ export function WorkflowV2PartSwapParams({
   if (p.isPartHub || (!p.isPartChild && childPartNodes.length > 0)) {
     const collapsed = Boolean(p.collapsedGroup)
     return (
-      <div className="wf-v2-part-hub-panel">
+      <div className="wf-v2-part-hub-panel" data-mcp-region="workflow_part_hub">
         <div className="wf-v2-part-hub-banner">
           <div className="wf-v2-part-hub-info">
             <strong>🧩 Cụm Bộ phận 2.5D ({childPartNodes.length} bộ phận có 2+ biến thể)</strong>
@@ -133,44 +139,6 @@ export function WorkflowV2PartSwapParams({
             {collapsed ? `Bung (+${childPartNodes.length})` : 'Thu gọn'}
           </button>
         </div>
-
-        {expressions.length > 0 && (
-          <div className="wf-v2-subsec">
-            <div className="wf-v2-subsec-head">
-              <span>😊 Đổi nhanh Biểu cảm khuôn mặt</span>
-              <small>{expressions.length} trạng thái</small>
-            </div>
-            <div className="wf-v2-pill-grid" data-cols={2} style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
-              {expressions.map((expr, idx) => {
-                const spanFull = expressions.length % 2 === 1 && idx === expressions.length - 1
-                const isActive = expr.visible
-                return (
-                  <button
-                    key={expr.layerId}
-                    type="button"
-                    className={`wf-v2-opt-pill${isActive ? ' active' : ''}`}
-                    style={spanFull ? { gridColumn: '1 / -1' } : undefined}
-                    onClick={() => {
-                      onUpdate({ swapMode: 'expression', swapVariant: expr.layerId })
-                      const faceChild = childPartNodes.find((c) => c.params?.partGroupId === 'face')
-                      if (faceChild) {
-                        useEditor.getState().update((draft) => {
-                          const target = draft.workflow?.nodes.find((n) => n.id === faceChild.id)
-                          if (target) {
-                            target.params = { ...target.params, swapMode: 'expression', swapVariant: expr.layerId }
-                            syncWorkflowV2NodeToProject(draft, target, { swapMode: 'expression', swapVariant: expr.layerId })
-                          }
-                        }, 'wf-v2-hub-expr')
-                      }
-                    }}
-                  >
-                    <span className="wf-v2-opt-pill-txt">{isActive ? '● ' : '○ '}{expr.label}</span>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        )}
 
         <div className="wf-v2-subsec">
           <div className="wf-v2-subsec-head">
@@ -250,12 +218,12 @@ export function WorkflowV2PartSwapParams({
 
   // 2. GIAO DIỆN NODE CON BỘ PHẬN (CHỈNH RIÊNG 1 BỘ PHẬN TRONG MỐC GIÂY)
   const isFacePart = activePart?.id === 'face' && expressions.length > 0
-  const imageAssets = project.assets.filter((a) => a.kind === 'image')
+  const imageAssets = project.assets.filter((a) => a.kind === 'image' && a.name.toLocaleLowerCase().includes(assetSearch.toLocaleLowerCase()))
   const selectedSubLayer =
-    partLayers.find((l) => l.id === p.swapTargetLayerId) ?? partLayers[0]
+    partLayers.find((l) => l.id === p.swapTargetLayerId || l.id === p.swapVariant) ?? partLayers[0]
 
   return (
-    <div className="wf-v2-part-child-editor">
+    <div className="wf-v2-part-child-editor" data-mcp-region="workflow_part_editor">
       <div className="wf-v2-part-child-head-bar">
         <div className="wf-v2-part-child-title-tag">
           <span className="ico">{p.partIcon || activePart?.icon || '🧩'}</span>
@@ -273,16 +241,6 @@ export function WorkflowV2PartSwapParams({
               onClick={() => onSelectNode(parentHubNode.id)}
             >
               ← Cụm Bộ phận
-            </button>
-          )}
-          {onSpawnFollowupNode && (
-            <button
-              type="button"
-              className="wf-v2-mini-btn accent"
-              title="Tạo nối tiếp 1 mốc hành động 3s mới cho bộ phận này (ví dụ: 15s – 18s)"
-              onClick={() => onSpawnFollowupNode(3.0)}
-            >
-              + Mốc +3s
             </button>
           )}
         </div>
@@ -389,13 +347,10 @@ export function WorkflowV2PartSwapParams({
                 className={`wf-v2-mini-btn${selectedSubLayer?.visible !== false ? ' active' : ''}`}
                 onClick={() => {
                   if (!selectedSubLayer) return
-                  useEditor.getState().update((draft) => {
-                    const target = draft.layers.find((m) => m.id === selectedSubLayer.id)
-                    if (target) target.visible = !(target.visible !== false)
-                  }, 'wf-v2-toggle-single-part')
+                  onUpdate({ swapMode: 'toggle_part', swapTargetLayerId: selectedSubLayer.id, partVisible: !(p.partVisible ?? selectedSubLayer.visible) })
                 }}
               >
-                {selectedSubLayer?.visible !== false ? '👁 Đang hiện' : '🚫 Đang ẩn'}
+                {(p.partVisible ?? selectedSubLayer?.visible) !== false ? '👁 Hiện trong mốc' : '🚫 Ẩn trong mốc'}
               </button>
             </div>
           )}
@@ -413,13 +368,14 @@ export function WorkflowV2PartSwapParams({
               </button>
             </div>
           )}
-          {selectedSubLayer && imageAssets.length > 0 && (
+          {selectedSubLayer && (
             <div className="wf-v2-subsec" style={{ marginTop: 6 }}>
               <div className="wf-v2-subsec-head">
                 <span>🎨 Thay ảnh (Asset) cho "{getClusterPartShortName(selectedSubLayer)}"</span>
               </div>
-              <div className="wf-v2-pill-grid" data-cols={2} style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
-                {imageAssets.slice(0, 6).map((asset, idx, arr) => {
+              <input className="wf-part-asset-search" aria-label="Tìm ảnh thay bộ phận" placeholder="Tìm ảnh trong dự án…" value={assetSearch} onChange={e => setAssetSearch(e.target.value)} />
+              <div className="wf-v2-pill-grid wf-part-assets" data-cols={2} style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+                {imageAssets.map((asset, idx, arr) => {
                   const currentAssetId =
                     selectedSubLayer.type === 'image' ? (selectedSubLayer.props as ImageProps).assetId : ''
                   const isCurrent = p.swapAssetId ? p.swapAssetId === asset.id : currentAssetId === asset.id
@@ -535,13 +491,13 @@ export function WorkflowV2PartSwapParams({
       {subTab === 'layers' && (
         <div className="wf-v2-subsec">
           <div className="wf-v2-subsec-head">
-            <span>👁 Bật / Tắt từng mảnh trong "{p.partGroupTitle || activePart?.title}"</span>
+            <span>👁 Chọn mảnh ẩn / hiện trong mốc: "{p.partGroupTitle || activePart?.title}"</span>
             <small>{partLayers.filter((l) => l.visible !== false).length}/{partLayers.length} hiện</small>
           </div>
           <div className="wf-v2-pill-grid" data-cols={2} style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
             {partLayers.map((pl, idx) => {
               const shortName = getClusterPartShortName(pl)
-              const vis = pl.visible !== false
+              const vis = p.swapMode === 'toggle_part' && p.swapTargetLayerId === pl.id ? p.partVisible !== false : pl.visible !== false
               const spanFull = partLayers.length % 2 === 1 && idx === partLayers.length - 1
               return (
                 <button
@@ -551,10 +507,7 @@ export function WorkflowV2PartSwapParams({
                   style={spanFull ? { gridColumn: '1 / -1' } : undefined}
                   title={`Click để ${vis ? 'Ẩn' : 'Hiện'} mảnh "${shortName}"`}
                   onClick={() => {
-                    useEditor.getState().update((draft) => {
-                      const target = draft.layers.find((m) => m.id === pl.id)
-                      if (target) target.visible = !vis
-                    }, 'wf-v2-toggle-part-sublayer')
+                    onUpdate({ swapMode: 'toggle_part', swapTargetLayerId: pl.id, partVisible: !vis })
                   }}
                 >
                   <span className="wf-v2-opt-pill-txt">{vis ? '👁 ' : '🚫 '}{shortName}</span>

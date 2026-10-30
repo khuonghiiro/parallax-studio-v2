@@ -1,3 +1,4 @@
+import { partTimelineCues, evaluatePartTimeline } from './workflowPartTimeline'
 import { sampleMotionEffects } from '../animation/motionEffects'
 import * as THREE from 'three'
 import type { Layer, Project, Shot, Vec3 } from '@shared/types'
@@ -197,11 +198,20 @@ export function evaluateScene(project: Project, rawT: number): EvaluatedScene {
         Boolean(l.virtualLight?.enabled && l.virtualLight.kind !== 'none'))
   )
 
-  const layers = project.layers.map((layer, index): EvaluatedLayer => {
+  const partCues = partTimelineCues(project)
+  const layers = project.layers.map((sourceLayer, index): EvaluatedLayer => {
+    const part = evaluatePartTimeline(sourceLayer, partCues, t)
+    const layer = part.layer
     const tr = layer.transform
     const pos = [...evaluate(tr.position, t)] as Vec3
     const rot = [...evaluate(tr.rotation, t)] as Vec3
     const sc = [...evaluate(tr.scale, t)] as Vec3
+
+    pos[0] += part.offset[0]
+    pos[1] += part.offset[1]
+    rot[2] += part.rotation
+    sc[0] *= part.scale
+    sc[1] *= part.scale
 
     const size = layerNominalSize(layer)
     const motion = sampleMotionEffects(layer, t, size)

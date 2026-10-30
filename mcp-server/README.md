@@ -542,3 +542,29 @@ Flags: `pnpm pxs call ui_click --selector ".wf-v2-card" --shift true`
 - Tab Vẽ Line và đường cong BBox dùng chung khung chỉnh BBox, không dùng bảng vẽ nhỏ trong phần thông số. Thanh icon ngang nằm riêng bên dưới canvas: chọn/kéo, đường thẳng, vẽ đường cong, xóa, xem thử. Bảng Motion không chứa thanh chọn logic khác hay nút chỉnh Layer/Camera. Esc hủy nét vẽ; các thay đổi hỗ trợ Undo/Redo.
 - MCP/CLI dùng `set_workflow` với `node_params` và `apply_node: true`; path vẽ trên stage dùng `customMotionPath` dạng độ lệch tọa độ thế giới, `intensity: 1`. BBox dùng `bboxPathType: shortest | custom_curve` và đường cong chuẩn hóa.
 - Chụp riêng thanh công cụ: PowerShell `pnpm pxs call get_app_screenshot '{"region":"workflow_motion_tools"}'`; CMD `pnpm pxs call get_app_screenshot "{\"region\":\"workflow_motion_tools\"}"`. Lớp nhận nét vẽ khi bật bút: `workflow_motion_draw`.
+
+
+### Bộ phận 2.5D theo mốc — preview và MCP
+- Hub **Bộ phận: Cụm 2.5D** chỉ điều phối: chọn bộ phận trong hình hoặc danh sách node con. Không đổi biểu cảm toàn cụm qua Hub.
+- Hub và node con có **Khung chỉnh bộ phận** theo playhead thật, cùng `evaluateScene` với renderer/export. **Toàn cảnh** xem vị trí theo Motion BBox; **Cận cụm** phóng cụm và ẩn cảnh tham chiếu để bộ phận không bị che. Dải Motion cho tua Đầu / Giữa / Đích mà không đổi node đang chỉnh.
+- Chọn node con → tua Trước/Đầu/Giữa/Cuối/Sau → chỉnh biến thể, tìm ảnh thay thế hoặc cử động. Kéo bộ phận đang chọn trong mốc để đổi X/Y tư thế (nhịp Giữ); không sửa vị trí gốc hay đường Motion. Nút **+ Mốc riêng tại …s** tạo node con mới tại playhead, không sửa mốc trước. Từ/Đến vẫn là nơi chỉnh khoảng thời gian duy nhất; Hub không có bộ chỉnh khoảng riêng.
+- `patchPartCue` / `addPartCue` là logic dùng chung UI/MCP. Khi chỉnh lần đầu, các node bộ phận cùng cụm chuyển sang `partTimeline: true`: chỉ gỡ key `-partpose-` / `-partswap-` của chúng, giữ nguyên key Motion/rig. `workflowPartTimeline` đánh giá biến thể/ảnh/ẩn hiện và cộng tư thế vào chuyển động tại thời gian render, không ghi đè keyframe Motion. Ảnh gốc được giữ nguyên cho các mốc mới; không thể khôi phục ảnh gốc đã bị thay vĩnh viễn trong dữ liệu cũ.
+- Mốc dùng giây dự án và khoảng `[Từ, Đến)`. Khi chồng lấn cùng bộ phận/thuộc tính, mốc có Từ muộn hơn ưu tiên; cùng Từ sắp theo ID ổn định. Hết mốc trở về trạng thái nền hoặc mốc còn hiệu lực; `hold_after_end` giữ biến thể/ảnh/hiển thị sau Đến, không kéo dài tư thế. Tắt Hub tắt hiệu lực các mốc con. Time chung phải chỉnh tại node Time.
+- AI: `get_workflow` lấy ID → `get_part_cues(node_id, time)` đọc ID node con, layer/biến thể, các chặng Motion và vị trí/hiển thị tại thời điểm → `set_part_cue` sửa hoặc thêm mốc → chụp preview để kiểm tra. Mỗi lệnh sửa là một bước Undo/Redo; tool từ chối Hub, biến thể/mảnh ngoài bộ phận và khoảng thời gian sai.
+- MCP regions: `workflow_part_preview`, `workflow_part_stage`, `workflow_part_cues`, `workflow_part_hub`, `workflow_part_editor`. Tổng catalog: **146 tools**. Cập nhật schema bằng `pnpm mcp:schemas`.
+
+PowerShell:
+```powershell
+pnpm pxs call get_part_cues '{"node_id":"part-child-id","time":3}'
+pnpm pxs call set_part_cue '{"node_id":"part-child-id","action":"add","at":3,"duration":1,"rotation":25,"wave":"hold"}'
+pnpm pxs review --view app --region workflow_part_preview --out D:\_tmp\part-preview.png
+```
+CMD:
+```cmd
+pnpm pxs call get_part_cues "{\"node_id\":\"part-child-id\",\"time\":3}"
+pnpm pxs call set_part_cue "{\"node_id\":\"part-child-id\",\"action\":\"add\",\"at\":3,\"duration\":1,\"rotation\":25,\"wave\":\"hold\"}"
+```
+Flags (PowerShell/CMD):
+```text
+pnpm pxs call set_part_cue --node_id part-child-id --mode part_variant --variant_id variant-layer-id --start 3 --end 4
+```

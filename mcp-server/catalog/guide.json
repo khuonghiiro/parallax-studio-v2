@@ -1,6 +1,6 @@
 {
   "$comment": "Single source for the AI guide (MCP server instructions, get_ai_guide, CLI help, McpDialog prompt). Every section MUST keep the same number of lines in en and vi - catalog.test.mjs enforces it.",
-  "toolCount": 144,
+  "toolCount": 146,
   "sections": [
     {
       "id": "overview",
@@ -159,6 +159,31 @@
           "Tra cứu các mẫu khung nhân vật và con vật bằng list_layer_assembly_templates, lấy prompt tạo ảnh AI với get_layer_assembly_template, và nạp vào xưởng bằng apply_layer_assembly_template.",
           "Vẽ động tác nhanh: layer_assembly_motion_sketch {bone_id, points:[[x,y,t],...]} biến đường đi của ngọn xương thành chuỗi keyframe mượt (mode rotate/move, chain_length 2-4 = chuỗi IK, timing live/hand/even, loop_back); layer_assembly_plant_spine vẽ xương motion gốc→ngọn để cây cỏ uốn theo gió.",
           "Hoạt hoạ chuyên nghiệp: layer_assembly_ik_pose {bone_id, target:[x,y], chain_length} tạo dáng tay chân bằng cách kéo ngọn; layer_assembly_secondary_motion {bone_id, preset: hair|tail|cloth|antenna} nướng vật lý trễ nhịp/nảy cho nhánh xương sau động tác chính; xương motion nhận chuyển động vẽ tay đã ghi (motion_samples hoặc motion_keys, motion_end loop|spring) thay cho gió tự động; layer_assembly_pose_tools {op: breakdown|close_loop|overlap|retime|reverse|shift_time|next_key|prev_key} cho nhịp pose-to-pose (dáng trung gian, vòng lặp liền mạch, lệch pha follow-through); layer_assembly_plant_spine action phase / copy_motion so le hoặc dùng lại nhịp cây; layer_assembly_parts quản lý nhóm bộ phận do người dùng đặt tên (thả ảnh mới đúng vào neo nhóm) và bộ biến thể nhiều lớp (một biến thể = nhiều layer)."
+        ]
+      }
+    },
+    {
+      "id": "part_cues",
+      "title": {
+        "en": "Timed 2.5D part editing",
+        "vi": "Chỉnh bộ phận 2.5D theo mốc"
+      },
+      "lines": {
+        "en": [
+          "Use get_workflow to find a part hub/child, then get_part_cues(node_id,time) for child IDs, legal target layers, Motion intervals and evaluated positions.",
+          "Use set_part_cue on a child only. action add + at/duration creates a separate cue; update edits the existing cue. Pose adds to Motion without replacing path keys. Undo/Redo is atomic.",
+          "Times are project seconds, intervals [start,end). Latest start wins overlaps. Variant/image/visibility restores unless hold_after_end; pose always ends. Edit shared Time at its source.",
+          "Preview regions: workflow_part_preview, workflow_part_stage, workflow_part_cues, workflow_part_hub, workflow_part_editor. Full scene shows Motion context; close-up isolates the cluster.",
+          "PowerShell: pnpm pxs call get_part_cues '{\"node_id\":\"part-child-id\",\"time\":3}'. CMD: pnpm pxs call get_part_cues \"{\\\"node_id\\\":\\\"part-child-id\\\",\\\"time\\\":3}\".",
+          "Flags (PowerShell/CMD): pnpm pxs call set_part_cue --node_id part-child-id --action add --at 3 --duration 1 --rotation 25 --wave hold."
+        ],
+        "vi": [
+          "Dùng get_workflow tìm Hub/node con, rồi get_part_cues(node_id,time) lấy ID con, layer đích hợp lệ, khoảng Motion và vị trí đã đánh giá.",
+          "Chỉ dùng set_part_cue trên node con. action add + at/duration tạo mốc riêng; update sửa mốc hiện tại. Tư thế cộng vào Motion, không thay key đường đi. Undo/Redo nguyên tử.",
+          "Thời gian là giây dự án, khoảng [Từ,Đến). Mốc bắt đầu sau ưu tiên khi chồng lấn. Biến thể/ảnh/hiển thị trả về trừ hold_after_end; tư thế luôn kết thúc. Chỉnh Time chung tại nguồn.",
+          "Vùng preview: workflow_part_preview, workflow_part_stage, workflow_part_cues, workflow_part_hub, workflow_part_editor. Toàn cảnh xem ngữ cảnh Motion; Cận cụm tách riêng cụm.",
+          "PowerShell: pnpm pxs call get_part_cues '{\"node_id\":\"part-child-id\",\"time\":3}'. CMD: pnpm pxs call get_part_cues \"{\\\"node_id\\\":\\\"part-child-id\\\",\\\"time\\\":3}\".",
+          "Flags (PowerShell/CMD): pnpm pxs call set_part_cue --node_id part-child-id --action add --at 3 --duration 1 --rotation 25 --wave hold."
         ]
       }
     }

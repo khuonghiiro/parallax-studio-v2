@@ -202,6 +202,7 @@ export function syncPartSwapNodeToProject(
   node: WorkflowNode,
   params: WorkflowNodeParams
 ): void {
+  if (params.partTimeline) { clearPartPoseKeysFromLayers(project.layers, node.id); return }
   const targetIds = new Set(params.targetLayerIds ?? [])
   const firstLayer = project.layers.find((l) => targetIds.has(l.id))
   const members = getClusterMemberLayers(project, params.instanceId, firstLayer)

@@ -1,0 +1,18 @@
+.wf-part-preview { display: flex; flex-direction: column; gap: 5px; padding: 8px; border-bottom: 1px solid var(--line-soft); color: var(--text); flex-shrink: 0; }
+.wf-part-preview header { display: flex; align-items: center; gap: 8px; font-size: 11px; }
+.wf-part-preview header span { margin-left: auto; font-family: var(--mono); }
+.wf-part-preview button { border: 1px solid var(--line-soft); border-radius: var(--radius-sm); background: var(--bg-3); color: var(--text); padding: 4px 6px; cursor: pointer; font-size: 10px; }
+.wf-part-preview button:hover { background: color-mix(in srgb, var(--accent) 10%, var(--bg-3)); border-color: var(--line-focus); }
+.wf-part-stage { width: 100%; max-height: 210px; aspect-ratio: 16 / 9; border: 1px solid var(--line); border-radius: var(--radius); touch-action: none; }
+.wf-part-seek { display: flex; gap: 4px; }
+.wf-part-seek button { flex: 1; }
+.wf-part-preview p { margin: 0; color: var(--text-dim); font-size: 10px; line-height: 1.4; }
+.wf-part-cues { display: flex; flex-wrap: wrap; gap: 4px; max-height: 88px; overflow-y: auto; }
+.wf-part-motion-cue { display: flex; align-items: center; gap: 3px; width: 100%; min-width: 0; }
+.wf-part-motion-cue span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; color: var(--text-dim); }
+.wf-part-motion-cue button { flex-shrink: 0; }
+.wf-part-preview input { width: 100%; margin: 0; accent-color: var(--accent); }
+
+.wf-part-seek button[aria-pressed='true'] { color: var(--on-accent); background: var(--accent); border-color: var(--accent); }
+.wf-part-asset-search { box-sizing: border-box; width: 100%; padding: 5px; background: var(--bg-1); color: var(--text); border: 1px solid var(--line); border-radius: var(--radius-sm); }
+.wf-part-assets { max-height: 150px; overflow-y: auto; margin-top: 4px; }
