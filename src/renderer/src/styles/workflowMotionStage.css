@@ -9,3 +9,6 @@
 .wf-motion-path-settings { display: flex; flex-direction: column; gap: 8px; padding: 8px; border: 1px solid var(--line-soft); border-radius: var(--radius); color: var(--text); background: var(--bg-1); }
 .wf-motion-path-settings p { margin: 0; color: var(--text-dim); font-size: 11px; line-height: 1.5; }
 .wf-motion-path-settings label { display: flex; align-items: center; gap: 6px; font-size: 11px; }
+
+.wf-motion-toolbar-dock:empty { display: none; }
+.wf-motion-stage-tools.is-docked { position: static; flex-direction: row; justify-content: center; flex-wrap: wrap; }

@@ -248,7 +248,7 @@ Motion/va chạm có cổng OUT: kéo sang node kế tiếp hoặc thả ra kho�
 
 ### Focus node và Motion BBox
 
-Giữ Shift khi chọn node/BBox khác; thao tác mặc định giữ node đang focus. Ctrl + click trên `+ Logic` của layer chọn/bỏ chọn khoảng thời gian, không mở picker. Nhãn Camera nằm trên toolbar, ngoài hình render. Motion BBox chia tab Đường đi, Đích, Thời gian, Chiều sâu, Va chạm.
+Giữ Shift khi chọn node/BBox khác; thao tác mặc định giữ node đang focus. Ctrl + click trên `+ Logic` của layer chọn/bỏ chọn khoảng thời gian, không mở picker. Nhãn Camera nằm trên toolbar, ngoài hình render. Motion BBox chỉ có tab Đích và Chiều sâu; thời gian chỉnh một nơi tại Từ/Đến.
 
 MCP regions: `viewer_camera_status`, `workflow_motion_panel`, `workflow_motion_ghost`, `workflow_motion_path`, `workflow_motion_target`, `workflow_motion_timing`, `workflow_motion_depth`, `workflow_motion_tools`, `workflow_motion_draw`.
 
@@ -259,7 +259,7 @@ CMD: `pnpm pxs call ui_click "{\"selector\":\"[data-node-id]\",\"shift\":true}"`
 Flags: `pnpm pxs call ui_click --selector ".wf-v2-card" --shift true`
 
 ### Chỉnh đường đi Motion trên khung BBox
-- Motion chỉ hiển thị Đích, Thời gian và Chiều sâu; cấu hình Va chạm thuộc node Va chạm riêng. Dữ liệu va chạm cũ được giữ để tương thích dự án đã lưu.
-- Tab Vẽ Line và đường cong BBox dùng chung khung chỉnh BBox, không dùng bảng vẽ nhỏ trong phần thông số. Thanh icon dọc: chọn/kéo, đường thẳng, vẽ đường cong, xóa, xem thử. Esc hủy nét vẽ; các thay đổi hỗ trợ Undo/Redo.
+- Motion chỉ hiển thị Đích và Chiều sâu; vùng `workflow_motion_timing` trỏ tới Từ/Đến dùng chung, không có tab thời gian trùng lặp; cấu hình Va chạm thuộc node Va chạm riêng. Dữ liệu va chạm cũ được giữ để tương thích dự án đã lưu.
+- Tab Vẽ Line và đường cong BBox dùng chung khung chỉnh BBox, không dùng bảng vẽ nhỏ trong phần thông số. Thanh icon ngang nằm riêng bên dưới canvas: chọn/kéo, đường thẳng, vẽ đường cong, xóa, xem thử. Bảng Motion không chứa thanh chọn logic khác hay nút chỉnh Layer/Camera. Esc hủy nét vẽ; các thay đổi hỗ trợ Undo/Redo.
 - MCP/CLI dùng `set_workflow` với `node_params` và `apply_node: true`; path vẽ trên stage dùng `customMotionPath` dạng độ lệch tọa độ thế giới, `intensity: 1`. BBox dùng `bboxPathType: shortest | custom_curve` và đường cong chuẩn hóa.
 - Chụp riêng thanh công cụ: PowerShell `pnpm pxs call get_app_screenshot '{"region":"workflow_motion_tools"}'`; CMD `pnpm pxs call get_app_screenshot "{\"region\":\"workflow_motion_tools\"}"`. Lớp nhận nét vẽ khi bật bút: `workflow_motion_draw`.

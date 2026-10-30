@@ -75,6 +75,8 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
   onSelectNode,
   onScrubTime
 }) => {
+  const [toolbarHost, setToolbarHost] = useState<HTMLDivElement | null>(null)
+  const isMotionNode = node.params?.logicCategory === 'action'
   const shiftToFocus = useShiftToFocus()
   const update = useEditor((s) => s.update)
   const selectLayer = useEditor((s) => s.selectLayer)
@@ -663,7 +665,7 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
             </div>
 
             {/* Lộ trình các cảnh con (#1 → #2...) & BBox Camera tương tác */}
-            {shotWaypoints.length > 0 && (
+            {isCamNode && shotWaypoints.length > 0 && (
               <svg className="wf-v2-direct-cam-svg" width={stageW} height={stageH}>
                 {shotWaypoints.map((wp, idx) => {
                   if (idx === 0) return null
@@ -785,6 +787,7 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
             {isCollisionNode ? <WorkflowCollisionPreviewOverlay project={project} node={node}
               stageW={stageW} stageH={stageH} centerX={shotLeft + shotScreenW / 2}
               centerY={shotTop + shotScreenH / 2} zoom={zoom} /> : <WorkflowV2StageBboxMotionOverlay
+              toolbarHost={toolbarHost}
               project={project}
               workflow={workflow}
               node={node}
@@ -803,6 +806,8 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
               onSelectNode={onSelectNode}
             />}
           </div>
+
+          {isMotionNode && <div className="wf-motion-toolbar-dock" ref={setToolbarHost} />}
 
           {/* Thanh nắm kéo dãn chiều cao khung BBox 2D trực tiếp */}
           <div
@@ -831,7 +836,7 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
           </div>
 
           {/* Thanh thông số toạ độ BBox & thao tác nhanh */}
-          {selectedProjLayer && coordRefLayer ? (
+          {!isMotionNode && selectedProjLayer && coordRefLayer ? (
             <div className="wf-v2-direct-footer">
               <span className="wf-v2-direct-coords">
                 {useClusterBbox ? 'Cụm ' : ''}X <b>{Math.round(coordRefLayer.transform.position.value?.[0] ?? 0)}</b> · Y{' '}
@@ -851,7 +856,7 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
                 </button>
               </div>
             </div>
-          ) : activeWaypoint ? (
+          ) : isCamNode && activeWaypoint ? (
             <div className="wf-v2-direct-footer">
               <span className="wf-v2-direct-coords">
                 BBox Cam <b>#{activeWaypoint.displayLabel}</b> · Tâm{' '}

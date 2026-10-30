@@ -316,7 +316,8 @@ export const workflowCommands: Record<string, Handler> = {
     if (bool(p, 'apply_node') && editedNode && previousNode) {
       const next = evaluateNodeDraft(proj(), current, editedNode, previousNode)
       ed().update((d) => {
-        Object.assign(d, next)
+        // The evaluated snapshot is frozen by Immer; adopt mutable data before syncing Motion.
+        Object.assign(d, structuredClone(next))
         if (current.presetId === 'v2_scene_hierarchy' && editedNode) {
           syncWorkflowV2NodeToProject(d as Project, editedNode)
         }

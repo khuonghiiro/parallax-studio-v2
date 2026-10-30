@@ -396,7 +396,7 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
         )}
       </header>
 
-      {activeLayer && props.onSelectNode && (
+      {level !== 'logic' && activeLayer && props.onSelectNode && (
         <WorkflowV2NodeSwitcherBar
           workflow={workflow}
           project={project}
@@ -439,7 +439,7 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
       )}
 
       <div className="wf-v2-insp-body">
-        <section className="wf-v2-insp-sec">
+        <section className="wf-v2-insp-sec workflow-node-timing" data-mcp-region="workflow_motion_timing">
           <div className="wf-v2-insp-sec-title">
             <span>Tiến trình Thời gian</span>
             {timeLocked ? (

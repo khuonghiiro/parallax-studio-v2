@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom'
 import { useEffect, useRef, useState, type MutableRefObject } from 'react'
 import type { WorkflowNodeParams } from '@shared/types'
 import { useEditor } from '../../store/editor'
@@ -6,6 +7,7 @@ import { stageStrokeToMotionPath, type StagePoint } from './workflowStageStroke'
 import '../../styles/workflowMotionStage.css'
 
 type Props = {
+  toolbarHost: HTMLDivElement | null
   mode: 'bbox' | 'path'
   nodeId: string
   params: WorkflowNodeParams
@@ -18,7 +20,7 @@ type Props = {
   patch: (patch: Partial<WorkflowNodeParams>, mergeKey?: string) => void
 }
 
-export function WorkflowMotionStageTools({ mode, nodeId, params, width, height, zoom, perspective, start, path, patch }: Props) {
+export function WorkflowMotionStageTools({ toolbarHost, mode, nodeId, params, width, height, zoom, perspective, start, path, patch }: Props) {
   const [tool, setTool] = useState<'select' | 'straight' | 'draw'>('select')
   const [stroke, setStroke] = useState<StagePoint[] | null>(null)
   const strokeRef = useRef<StagePoint[] | null>(null)
@@ -65,9 +67,9 @@ export function WorkflowMotionStageTools({ mode, nodeId, params, width, height, 
     ? (tool === 'straight' ? [stroke[0], stroke[stroke.length - 1]] : stroke).map(([x, y]): StagePoint => mode === 'path' ? [x - stroke[0][0] + start[0], y - stroke[0][1] + start[1]] : [x, y])
     : mode === 'path' ? path : []
   return <>
-    <div className="wf-motion-stage-tools" data-mcp-region="workflow_motion_tools" role="toolbar" aria-label="Chỉnh đường đi Motion" onPointerDown={e => e.stopPropagation()}>
+    {toolbarHost && createPortal(<div className="wf-motion-stage-tools is-docked" data-mcp-region="workflow_motion_tools" role="toolbar" aria-label="Chỉnh đường đi Motion" onPointerDown={e => e.stopPropagation()}>
       {buttons.map(button => <button key={button.icon} type="button" title={button.title} aria-label={button.title} aria-pressed={button.active} onClick={e => { e.stopPropagation(); button.click() }}><WorkflowMotionIcon name={button.icon}/></button>)}
-    </div>
+    </div>, toolbarHost)}
     {display.length > 1 && <svg className="wf-motion-stage-path" width={width} height={height} aria-hidden="true"><polyline points={display.map(p => p.join(',')).join(' ')} fill="none" stroke="var(--accent-cyan)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><circle cx={display[0][0]} cy={display[0][1]} r="4" fill="var(--accent)"/><circle cx={display[display.length-1][0]} cy={display[display.length-1][1]} r="4" fill="var(--key)"/></svg>}
     {tool !== 'select' && <MotionStageDrawingSurface mode={mode} width={width} height={height} strokeRef={strokeRef} setStroke={setStroke} cancel={cancel} commit={commit} />}
   </>

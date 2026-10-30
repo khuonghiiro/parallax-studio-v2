@@ -19,6 +19,7 @@ import { useEditor } from '../../store/editor'
 import type { ProjectedLayer2D } from '../viewer/animateCamera/animateCameraMath'
 
 export interface StageBboxMotionOverlayProps {
+  toolbarHost?: HTMLDivElement | null
   project: Project
   workflow: WorkflowGraph
   node: WorkflowNode
@@ -71,6 +72,7 @@ export function resolveActiveMotionNode(
 }
 
 export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayProps> = ({
+  toolbarHost = null,
   project,
   workflow,
   node,
@@ -308,7 +310,7 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
   return (
     <>
       {motionNode?.id === node.id && (hasBboxMotion || resolveMotionMode(mp ?? {}) === 'path') && (
-        <WorkflowMotionStageTools mode={hasBboxMotion ? 'bbox' : 'path'} nodeId={node.id} params={mp ?? {}}
+        <WorkflowMotionStageTools toolbarHost={toolbarHost} mode={hasBboxMotion ? 'bbox' : 'path'} nodeId={node.id} params={mp ?? {}}
           width={stageW} height={stageH} zoom={zoom} perspective={pFactorStart} start={[box1Cx, box1Cy]}
           path={coordRefLayer.transform.position.keyframes.filter(k => k.id.includes(`-motpath-p-${node.id}-`) && !k.id.endsWith('-pre')).map(k => {
             const pf = refD / Math.max(80, refD + k.value[2])
