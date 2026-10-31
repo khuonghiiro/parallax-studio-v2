@@ -485,7 +485,25 @@ export function inferWaypointActionClassification(
   tagLabel: string
   actionMode: CameraActionMode
 } {
-  const explicit = getExplicitActionMode(f.time)
+  const isCrossShot = Boolean(f.shotId && prev?.shotId && f.shotId !== prev.shotId)
+  const scaleDiffFromPrev = prev ? f.scale - prev.scale : 0
+  const explicitRaw = getExplicitActionMode(f.time)
+  const isCrossShotGenericMove =
+    isCrossShot && (explicitRaw === 'pan' || explicitRaw === 'push-in' || explicitRaw === 'pull-out')
+  const explicitContradictsBBox =
+    Boolean(prev) &&
+    !isCrossShot &&
+    (((explicitRaw === 'pull-out' || explicitRaw === 'bird-eye') && scaleDiffFromPrev < -0.04) ||
+      ((explicitRaw === 'push-in' || explicitRaw === 'extreme-closeup' || explicitRaw === 'corkscrew') &&
+        scaleDiffFromPrev > 0.04))
+  const explicit = isCrossShotGenericMove || explicitContradictsBBox ? undefined : explicitRaw
+  if (isCrossShot && (explicit === 'cut' || prev?.ease === 'hold')) {
+    return {
+      tag: 'pan',
+      tagLabel: `Chuyển cảnh (Cắt) · ${f.shotName}`,
+      actionMode: 'cut'
+    }
+  }
   if (explicit) {
     const meta = getActionModeMeta(explicit)
     if (meta) {
@@ -560,6 +578,9 @@ export function inferWaypointActionClassification(
         tagLabel: `Dừng ngắm (+${durationFromPrev.toFixed(1)}s)`,
         actionMode: 'hold'
       }
+    }
+    if (f.shotId && prev.shotId && f.shotId !== prev.shotId) {
+      return { tag: 'pan', tagLabel: `Chuyển cảnh · ${f.shotName}`, actionMode: 'pan' }
     }
     if (scaleDiff < -0.04) {
       return { tag: 'zoom-in', tagLabel: `Đẩy cận (${zoomPct}%)`, actionMode: 'push-in' }

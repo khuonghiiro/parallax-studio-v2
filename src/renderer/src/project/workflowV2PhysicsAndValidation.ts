@@ -204,6 +204,29 @@ export function getNodeLogicCategory(node?: WorkflowNode): string | undefined {
  * 3. Cấm gắn 2 Node cùng loại Logic vào cùng 1 Layer (chống trùng logic trên 1 Layer).
  * 4. Cho phép NHIỀU Node Layer cùng kết nối vào 1 Node Logic chung (Tái sử dụng Node — Shared Logic Node, đặc biệt là Node Va chạm Vật lý & Node Nhãn Vật liệu).
  */
+/** Kiểm tra xem việc thêm dây `fromNodeId -> toNodeId` có tạo vòng lặp vô hạn (cycle) trên đồ thị hay không */
+export function wouldCreateWorkflowCycle(
+  edges: WorkflowEdge[],
+  fromNodeId: string,
+  toNodeId: string
+): boolean {
+  if (fromNodeId === toNodeId) return true
+  const seen = new Set<string>()
+  const queue = [toNodeId]
+  while (queue.length > 0) {
+    const cur = queue.pop()!
+    if (cur === fromNodeId) return true
+    if (seen.has(cur)) continue
+    seen.add(cur)
+    for (const e of edges) {
+      if (!e.disabled && e.fromNode === cur && !seen.has(e.toNode)) {
+        queue.push(e.toNode)
+      }
+    }
+  }
+  return false
+}
+
 export function validateWorkflowV2Connection(
   workflow: WorkflowGraph,
   fromNodeId: string,
@@ -214,6 +237,9 @@ export function validateWorkflowV2Connection(
   }
   if (workflow.edges.some((e) => e.fromNode === fromNodeId && e.toNode === toNodeId && !e.disabled)) {
     return { valid: false, reason: '⚠️ Dây kết nối giữa 2 Node này đã tồn tại.' }
+  }
+  if (wouldCreateWorkflowCycle(workflow.edges, fromNodeId, toNodeId)) {
+    return { valid: false, reason: '❌ Không thể kết nối vì sẽ tạo vòng lặp vô hạn giữa các Node!' }
   }
 
   const src = workflow.nodes.find((n) => n.id === fromNodeId)
@@ -391,6 +417,25 @@ export function validateWorkflowV2Connection(
     return { valid: true }
   }
 
+  // 5. Nguồn là Node Motion BBox ('action') -> nối sang Node Bộ phận con ('part_swap', không phải Hub) để kích hoạt thay theo vị trí di chuyển
+  if (srcCat === 'action' && dstCat === 'part_swap' && !dst.params?.isPartHub) {
+    if (!sameShot) {
+      return { valid: false, reason: '❌ Node Motion và Node Bộ phận con phải thuộc cùng một Cảnh.' }
+    }
+    const existingMotionTrigger = workflow.edges.find((e) => {
+      if (e.toNode !== dst.id || e.disabled || e.fromNode === src.id) return false
+      const other = workflow.nodes.find((n) => n.id === e.fromNode)
+      return getNodeLogicCategory(other) === 'action'
+    })
+    if (existingMotionTrigger) {
+      return {
+        valid: false,
+        reason: '⚠️ Bộ phận con này đã gắn với một lộ trình Motion BBox khác — hãy gỡ dây Motion cũ trước.'
+      }
+    }
+    return { valid: true }
+  }
+
   return {
     valid: false,
     reason: `❌ Không được liên kết "${src.title}" với "${dst.title}" do khác tầng ngữ nghĩa hoặc không liên quan!`
@@ -449,6 +494,11 @@ export function recomputeSharedLogicTargets(
     const cat = getNodeLogicCategory(node)
     if (!cat || cat === 'time' || cat === 'camera' || cat === 'cluster_lock') return node
 
+    const motionTriggerEdge =
+      cat === 'part_swap'
+        ? edges.find((e) => e.toNode === node.id && !e.disabled && getNodeLogicCategory(byId.get(e.fromNode)) === 'action')
+        : undefined
+
     // Nếu là Node con Bộ phận (isPartChild) nối từ Node Bộ phận chính (isPartHub): giữ nguyên các mảnh của riêng bộ phận đó
     if (cat === 'part_swap' && node.params?.isPartChild) {
       const parentEdge = edges.find((e) => e.toNode === node.id && !e.disabled && getNodeLogicCategory(byId.get(e.fromNode)!) === 'part_swap')
@@ -462,7 +512,13 @@ export function recomputeSharedLogicTargets(
             targetMode: 'custom',
             sharedLayerNodeIds: [hubNode.id],
             ...(instId ? { instanceId: instId } : {}),
-            hierarchyParentNodeId: hubNode.id
+            hierarchyParentNodeId: hubNode.id,
+            ...(motionTriggerEdge
+              ? {
+                  linkedMotionNodeId: motionTriggerEdge.fromNode,
+                  partTriggerMode: node.params?.partTriggerMode ?? 'motion_bbox'
+                }
+              : {})
           }
         }
       }
@@ -483,7 +539,10 @@ export function recomputeSharedLogicTargets(
         if (!incomingClusterNodes.some((cn) => cn.id === fromN.id)) {
           incomingClusterNodes.push(fromN)
         }
-      } else if (['material', 'action', 'collision'].includes(getNodeLogicCategory(fromN) ?? '')) {
+      } else if (
+        ['material', 'action', 'collision'].includes(getNodeLogicCategory(fromN) ?? '') &&
+        !(cat === 'part_swap' && getNodeLogicCategory(fromN) === 'action')
+      ) {
         for (const ownerId of workflowSourceOwners(fromN.id, byId, edges)) {
           const matLayer = byId.get(ownerId)
           if (!matLayer) continue
@@ -546,7 +605,13 @@ export function recomputeSharedLogicTargets(
       targetLayerIds: combinedTargetLayerIds,
       sharedLayerNodeIds,
       ...(primaryInstanceId ? { instanceId: primaryInstanceId } : {}),
-      hierarchyParentNodeId: primaryOwner.id
+      hierarchyParentNodeId: primaryOwner.id,
+      ...(motionTriggerEdge
+        ? {
+            linkedMotionNodeId: motionTriggerEdge.fromNode,
+            partTriggerMode: node.params?.partTriggerMode ?? 'motion_bbox'
+          }
+        : {})
     }
 
     if (cat === 'collision') {

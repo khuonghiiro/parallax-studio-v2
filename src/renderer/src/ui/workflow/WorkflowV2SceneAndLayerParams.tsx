@@ -1,19 +1,22 @@
-import React from 'react'
+import React, { useState } from 'react'
 import type { AutoOrientMode, BlendMode, LayerPhysicsColliderZone, LayerPhysicsConfig, Vec3 } from '@shared/types'
-import { flyToShot, updateAudioTrack } from '../../actions'
+import { flyToShot, toast, updateAudioTrack } from '../../actions'
 import { evaluate, setValueAt } from '../../animation/keyframes'
 import { evaluateScene } from '../../engine/evaluateScene'
 import { getProjectAudioTracks } from '../../project/audioTracks'
+import { snapCameraToEntityBBox } from '../../project/shotSpatial3D'
 import {
   WORKFLOW_V2_MATERIAL_OPTIONS,
   getClusterMemberLayers,
   getClusterPartShortName,
   getClusterRootLayer,
+  getLayerDisplayName,
   setClusterRootLayer
 } from '../../project/workflowV2Engine'
 import { findLayer, findShot, frameTolerance, useEditor } from '../../store/editor'
 import { useView } from '../../store/view'
 import { AssetReplaceModal } from '../inspector/AssetReplaceModal'
+import { ShotSpatial3DPad } from './ShotSpatial3DPad'
 import { OptionPills, ParamSlider, type WorkflowV2NodeParamsProps } from './WorkflowV2NodeParams'
 
 const SHOT_COLOR_SWATCHES = [
@@ -78,18 +81,7 @@ export function WorkflowV2ShotParams({ node, project }: WorkflowV2NodeParamsProp
     )
   }
 
-  const pos = evaluate(shot.position, time)
   const rot = evaluate(shot.rotation, time)
-
-  const setShotPosAxis = (axis: 0 | 1 | 2, val: number): void => {
-    editorUpdate((d) => {
-      const s = findShot(d, shot.id)
-      if (!s) return
-      const next: Vec3 = [...pos] as Vec3
-      next[axis] = val
-      setValueAt(s.position, time, next, tol)
-    }, `shot-pos-${axis}`)
-  }
 
   const setShotRotAxis = (axis: 0 | 1 | 2, val: number): void => {
     editorUpdate((d) => {
@@ -103,6 +95,8 @@ export function WorkflowV2ShotParams({ node, project }: WorkflowV2NodeParamsProp
 
   return (
     <>
+      <ShotSpatial3DPad project={project} shotId={shot.id} />
+
       <div className="wf-v2-insp-subhead">Màu nhận diện Cảnh</div>
       <div className="wf-v2-pill-grid" style={{ gridTemplateColumns: 'repeat(8, minmax(0, 1fr))' }}>
         {SHOT_COLOR_SWATCHES.map((hex) => (
@@ -121,35 +115,6 @@ export function WorkflowV2ShotParams({ node, project }: WorkflowV2NodeParamsProp
           />
         ))}
       </div>
-
-      <div className="wf-v2-insp-subhead">Vị trí 3D của Cảnh trong không gian</div>
-      <ParamSlider
-        label="Vị trí X"
-        min={-4000}
-        max={4000}
-        step={20}
-        value={Math.round(pos[0])}
-        format={(v) => `${Math.round(v)}px`}
-        onChange={(v) => setShotPosAxis(0, v)}
-      />
-      <ParamSlider
-        label="Vị trí Y"
-        min={-2400}
-        max={2400}
-        step={20}
-        value={Math.round(pos[1])}
-        format={(v) => `${Math.round(v)}px`}
-        onChange={(v) => setShotPosAxis(1, v)}
-      />
-      <ParamSlider
-        label="Độ sâu Z"
-        min={-3000}
-        max={3000}
-        step={20}
-        value={Math.round(pos[2])}
-        format={(v) => `${Math.round(v)}px`}
-        onChange={(v) => setShotPosAxis(2, v)}
-      />
 
       <div className="wf-v2-insp-subhead">Góc xoay 3D của Cảnh</div>
       <ParamSlider
@@ -172,18 +137,10 @@ export function WorkflowV2ShotParams({ node, project }: WorkflowV2NodeParamsProp
       />
 
       <div className="wf-v2-pill-grid" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
-        <button
-          type="button"
-          className="wf-v2-ghost-btn"
-          onClick={() => flyToShot(shot.id)}
-        >
+        <button type="button" className="wf-v2-ghost-btn" onClick={() => flyToShot(shot.id)}>
           🎥 Camera bay tới cảnh
         </button>
-        <button
-          type="button"
-          className="wf-v2-ghost-btn"
-          onClick={() => useView.getState().requestFocus('shot', shot.id)}
-        >
+        <button type="button" className="wf-v2-ghost-btn" onClick={() => useView.getState().requestFocus('shot', shot.id)}>
           🧭 Xem trong 3D
         </button>
       </div>
@@ -191,10 +148,11 @@ export function WorkflowV2ShotParams({ node, project }: WorkflowV2NodeParamsProp
   )
 }
 
-export function WorkflowV2LayerParams({ node, project, onUpdate }: WorkflowV2NodeParamsProps): React.ReactElement {
+export function WorkflowV2LayerParams({ node, project, onUpdate, onScrubTime }: WorkflowV2NodeParamsProps): React.ReactElement {
   const editorUpdate = useEditor((s) => s.update)
   const time = useEditor((s) => s.time)
-  const [showReplaceAsset, setShowReplaceAsset] = React.useState(false)
+  const [showReplaceAsset, setShowReplaceAsset] = useState(false)
+  const [layerTab, setLayerTab] = useState<'spatial' | 'style'>('spatial')
   const tol = frameTolerance(project)
   const targetId = node.params?.targetLayerIds?.[0] ?? null
   const layer = findLayer(project, targetId)
@@ -250,6 +208,25 @@ export function WorkflowV2LayerParams({ node, project, onUpdate }: WorkflowV2Nod
     })
   }
 
+  const handleSnapCameraToThisLayer = (): void => {
+    if (!layer) return
+    const atT = Number(Math.max(layer.inPoint, Math.min(layer.outPoint, time)).toFixed(2))
+    let ok = false
+    editorUpdate((d) => {
+      const res = snapCameraToEntityBBox(d, {
+        shotId: layer.shotId ?? node.params?.shotId,
+        layerIds: [layer.id],
+        atTime: atT,
+        mode: 'snap_current'
+      })
+      ok = Boolean(res)
+    }, 'layer-snap-cam-bbox')
+    if (ok) {
+      onScrubTime(atT)
+      toast(`🎥 Đã đưa Camera bắt gọn BBox "${getLayerDisplayName(layer)}" tại ${atT}s`)
+    }
+  }
+
   const curAnchor: Vec3 = layer?.transform.anchor ? evaluate(layer.transform.anchor, time) : [0, 0, 0]
   const activeAnchorId =
     ANCHOR_PRESETS.find(
@@ -260,102 +237,133 @@ export function WorkflowV2LayerParams({ node, project, onUpdate }: WorkflowV2Nod
 
   return (
     <>
+      {layer && (
+        <div className="wf-v2-pill-grid" style={{ gridTemplateColumns: layer.type === 'image' ? 'repeat(2, minmax(0, 1fr))' : '1fr' }}>
+          <button
+            type="button"
+            className="wf-v2-opt-pill active"
+            title="Tự động tạo/khớp mốc Camera bắt gọn khung BBox của Layer này mà không cần dựng lộ trình thủ công"
+            onClick={handleSnapCameraToThisLayer}
+          >
+            <span className="wf-v2-opt-pill-txt">🎥 Đưa Camera bắt BBox</span>
+          </button>
+          {layer.type === 'image' && (
+            <button type="button" className="wf-v2-opt-pill" onClick={() => setShowReplaceAsset(true)}>
+              <span className="wf-v2-opt-pill-txt">🖼 Đổi ảnh mảnh này…</span>
+            </button>
+          )}
+        </div>
+      )}
+
       {layer && clusterMembers.length > 1 && (
+        <div className="wf-v2-pair">
+          <span className="wf-v2-pair-tag">
+            {isClusterLocked ? '🔒' : '🔓'} Cụm: {layer.composite?.compositeName || layer.model3d?.modelName || '2.5D'} ·{' '}
+            {isClusterRoot ? '⚓ Gốc neo' : `Mảnh: ${getClusterPartShortName(layer)}`}
+          </span>
+          {layer.composite && !isClusterRoot && (
+            <button
+              type="button"
+              className="wf-v2-mini-btn"
+              onClick={() =>
+                editorUpdate((d) => {
+                  const members = getClusterMemberLayers(d, clusterInstId, layer)
+                  setClusterRootLayer(members, layer.id)
+                })
+              }
+            >
+              ⚓ Đặt làm Gốc
+            </button>
+          )}
+        </div>
+      )}
+
+      <div className="wf-v2-seg-tabs" role="tablist" aria-label="Cấu hình Layer 2.5D">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={layerTab === 'spatial'}
+          className={`wf-v2-seg-tab${layerTab === 'spatial' ? ' active' : ''}`}
+          onClick={() => setLayerTab('spatial')}
+        >
+          📐 Vị trí &amp; Khung BBox
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={layerTab === 'style'}
+          className={`wf-v2-seg-tab${layerTab === 'style' ? ' active' : ''}`}
+          onClick={() => setLayerTab('style')}
+        >
+          🎨 Dáng 3D &amp; Hoà trộn
+        </button>
+      </div>
+
+      {layerTab === 'spatial' && (
         <>
-          <div className="wf-v2-pair">
-            <span className="wf-v2-pair-tag" title="Mảnh con thuộc Cụm 2.5D / Khối 3D — chỉnh riêng mảnh này không làm hỏng các mảnh khác">
-              {isClusterLocked ? '🔒' : '🔓'} Cụm: {layer.composite?.compositeName || layer.model3d?.modelName || '2.5D'} ·{' '}
-              {isClusterRoot ? '⚓ Gốc neo' : `Mảnh: ${getClusterPartShortName(layer)}`}
-            </span>
-          </div>
-          <div className="wf-v2-pill-grid" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
-            {layer.composite && !isClusterRoot && (
-              <button
-                type="button"
-                className="wf-v2-opt-pill"
-                onClick={() =>
-                  editorUpdate((d) => {
-                    const members = getClusterMemberLayers(d, clusterInstId, layer)
-                    setClusterRootLayer(members, layer.id)
-                  })
-                }
-              >
-                ⚓ Đặt mảnh này làm Gốc neo
-              </button>
-            )}
-            {layer.type === 'image' && (
-              <button
-                type="button"
-                className="wf-v2-opt-pill"
-                onClick={() => setShowReplaceAsset(true)}
-              >
-                🖼 Đổi ảnh mảnh này…
-              </button>
-            )}
-          </div>
+          <ParamSlider
+            label="Tọa độ X"
+            min={-1600}
+            max={1600}
+            step={10}
+            value={x}
+            format={(v) => `${Math.round(v)}px`}
+            onChange={(v) => onUpdate({ transformX: v })}
+          />
+          <ParamSlider
+            label="Tọa độ Y"
+            min={-1200}
+            max={1200}
+            step={10}
+            value={y}
+            format={(v) => `${Math.round(v)}px`}
+            onChange={(v) => onUpdate({ transformY: v })}
+          />
+          <ParamSlider
+            label="Độ sâu Z"
+            min={-600}
+            max={3600}
+            step={10}
+            value={z}
+            format={(v) => (v >= 0 ? `+${Math.round(v)}` : `${Math.round(v)}`)}
+            onChange={(v) => onUpdate({ transformZ: v })}
+          />
+          {layer && (
+            <>
+              <ParamSlider
+                label="Tỉ lệ (Scale)"
+                min={10}
+                max={300}
+                step={2}
+                value={scalePct}
+                format={(v) => `${Math.round(v)}%`}
+                onChange={setLayerScale}
+              />
+              <ParamSlider
+                label="Xoay Z"
+                min={-180}
+                max={180}
+                step={2}
+                value={rotZ}
+                format={(v) => `${Math.round(v)}°`}
+                onChange={setLayerRotZ}
+              />
+              <ParamSlider
+                label="Độ rõ"
+                min={0}
+                max={100}
+                step={2}
+                value={opacityPct}
+                format={(v) => `${Math.round(v)}%`}
+                onChange={setLayerOpacity}
+              />
+            </>
+          )}
         </>
       )}
 
-      <div className="wf-v2-insp-subhead">Tọa độ &amp; Chiều sâu 2.5D (Riêng mảnh này)</div>
-      <ParamSlider
-        label="Tọa độ X"
-        min={-1600}
-        max={1600}
-        step={10}
-        value={x}
-        format={(v) => `${Math.round(v)}px`}
-        onChange={(v) => onUpdate({ transformX: v })}
-      />
-      <ParamSlider
-        label="Tọa độ Y"
-        min={-1200}
-        max={1200}
-        step={10}
-        value={y}
-        format={(v) => `${Math.round(v)}px`}
-        onChange={(v) => onUpdate({ transformY: v })}
-      />
-      <ParamSlider
-        label="Độ sâu Z"
-        min={-600}
-        max={3600}
-        step={10}
-        value={z}
-        format={(v) => (v >= 0 ? `+${Math.round(v)}` : `${Math.round(v)}`)}
-        onChange={(v) => onUpdate({ transformZ: v })}
-      />
-
-      {layer && (
+      {layerTab === 'style' && layer && (
         <>
-          <div className="wf-v2-insp-subhead">Kích thước · Xoay · Độ rõ</div>
-          <ParamSlider
-            label="Tỉ lệ (Scale)"
-            min={10}
-            max={300}
-            step={2}
-            value={scalePct}
-            format={(v) => `${Math.round(v)}%`}
-            onChange={setLayerScale}
-          />
-          <ParamSlider
-            label="Xoay Z"
-            min={-180}
-            max={180}
-            step={2}
-            value={rotZ}
-            format={(v) => `${Math.round(v)}°`}
-            onChange={setLayerRotZ}
-          />
-          <ParamSlider
-            label="Độ rõ (Opacity)"
-            min={0}
-            max={100}
-            step={2}
-            value={opacityPct}
-            format={(v) => `${Math.round(v)}%`}
-            onChange={setLayerOpacity}
-          />
-
           <div className="wf-v2-insp-subhead">Dáng mặt phẳng 3D nhanh</div>
           <div className="wf-v2-pill-grid" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
             {POSE_3D_PRESETS.map((p3) => (
@@ -411,7 +419,7 @@ export function WorkflowV2LayerParams({ node, project, onUpdate }: WorkflowV2Nod
             }
           />
           <ParamSlider
-            label="Mờ vào (Fade In)"
+            label="Mờ vào"
             min={0}
             max={3}
             step={0.1}
@@ -425,7 +433,7 @@ export function WorkflowV2LayerParams({ node, project, onUpdate }: WorkflowV2Nod
             }
           />
           <ParamSlider
-            label="Mờ ra (Fade Out)"
+            label="Mờ ra"
             min={0}
             max={3}
             step={0.1}
@@ -438,15 +446,16 @@ export function WorkflowV2LayerParams({ node, project, onUpdate }: WorkflowV2Nod
               })
             }
           />
-          {showReplaceAsset && layer.type === 'image' && (
-            <AssetReplaceModal
-              layerId={layer.id}
-              currentAssetId={layer.props.assetId}
-              layerName={layer.name}
-              onClose={() => setShowReplaceAsset(false)}
-            />
-          )}
         </>
+      )}
+
+      {showReplaceAsset && layer?.type === 'image' && (
+        <AssetReplaceModal
+          layerId={layer.id}
+          currentAssetId={layer.props.assetId}
+          layerName={layer.name}
+          onClose={() => setShowReplaceAsset(false)}
+        />
       )}
     </>
   )
@@ -454,6 +463,7 @@ export function WorkflowV2LayerParams({ node, project, onUpdate }: WorkflowV2Nod
 
 export function WorkflowV2MaterialParams({ node, project, onUpdate }: WorkflowV2NodeParamsProps): React.ReactElement {
   const editorUpdate = useEditor((s) => s.update)
+  const [matTab, setMatTab] = useState<'preset' | 'physics'>('preset')
   const p = node.params ?? {}
   const opt =
     WORKFLOW_V2_MATERIAL_OPTIONS.find((m) => m.id === (p.materialTag ?? 'jelly_slime')) ??
@@ -480,77 +490,103 @@ export function WorkflowV2MaterialParams({ node, project, onUpdate }: WorkflowV2
 
   return (
     <>
-      <div className="wf-v2-insp-subhead">Nhãn chất liệu đàn hồi</div>
-      <OptionPills
-        options={WORKFLOW_V2_MATERIAL_OPTIONS.map((m) => ({ id: m.id, label: m.shortLabel }))}
-        value={opt.id}
-        onPick={(id) => {
-          const next = WORKFLOW_V2_MATERIAL_OPTIONS.find((m) => m.id === id)!
-          onUpdate(
-            {
-              materialTag: next.id,
-              materialStiffness: next.defaultStiffness,
-              materialBounciness: next.defaultBounciness,
-              materialGravity: next.defaultGravity
-            },
-            `Vật liệu: ${next.label}`
-          )
-        }}
-      />
-      <p className="wf-v2-hint">
-        <strong>Khi va chạm:</strong> {opt.deformDesc}
-        {shared > 1 ? ` · Dùng chung cho ${shared} Layer` : ''}
-      </p>
+      <div className="wf-v2-seg-tabs" role="tablist" aria-label="Cấu hình Vật liệu">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={matTab === 'preset'}
+          className={`wf-v2-seg-tab${matTab === 'preset' ? ' active' : ''}`}
+          onClick={() => setMatTab('preset')}
+        >
+          🏷️ Chất liệu &amp; Đàn hồi
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={matTab === 'physics'}
+          className={`wf-v2-seg-tab${matTab === 'physics' ? ' active' : ''}`}
+          onClick={() => setMatTab('physics')}
+        >
+          📐 Vùng va chạm &amp; Lực
+        </button>
+      </div>
 
-      <div className="wf-v2-insp-subhead">Độ đàn hồi &amp; Trọng lực</div>
-      <ParamSlider
-        label="Độ cứng"
-        min={0.1}
-        max={2.5}
-        step={0.05}
-        value={p.materialStiffness ?? opt.defaultStiffness}
-        onChange={(v) => onUpdate({ materialStiffness: v })}
-      />
-      <ParamSlider
-        label="Độ nảy"
-        min={0}
-        max={2}
-        step={0.05}
-        value={p.materialBounciness ?? opt.defaultBounciness}
-        onChange={(v) => onUpdate({ materialBounciness: v })}
-      />
-      <ParamSlider
-        label="Trọng lực"
-        min={0}
-        max={1.5}
-        step={0.05}
-        value={p.materialGravity ?? opt.defaultGravity}
-        onChange={(v) => onUpdate({ materialGravity: v })}
-      />
-      <ParamSlider
-        label="Hệ số cản"
-        min={0.05}
-        max={0.95}
-        step={0.05}
-        value={damping}
-        onChange={(v) => patchTargetPhysics({ damping: v })}
-      />
-      <ParamSlider
-        label="Độ nhạy lực"
-        min={0.2}
-        max={2.5}
-        step={0.05}
-        value={hitSensitivity}
-        onChange={(v) => patchTargetPhysics({ hitSensitivity: v })}
-      />
+      {matTab === 'preset' && (
+        <>
+          <OptionPills
+            options={WORKFLOW_V2_MATERIAL_OPTIONS.map((m) => ({ id: m.id, label: m.shortLabel }))}
+            value={opt.id}
+            onPick={(id) => {
+              const next = WORKFLOW_V2_MATERIAL_OPTIONS.find((m) => m.id === id)!
+              onUpdate(
+                {
+                  materialTag: next.id,
+                  materialStiffness: next.defaultStiffness,
+                  materialBounciness: next.defaultBounciness,
+                  materialGravity: next.defaultGravity
+                },
+                `Vật liệu: ${next.label}`
+              )
+            }}
+          />
+          <p className="wf-v2-hint">
+            <strong>Khi va chạm:</strong> {opt.deformDesc}
+            {shared > 1 ? ` · Dùng chung cho ${shared} Layer` : ''}
+          </p>
+          <ParamSlider
+            label="Độ cứng"
+            min={0.1}
+            max={2.5}
+            step={0.05}
+            value={p.materialStiffness ?? opt.defaultStiffness}
+            onChange={(v) => onUpdate({ materialStiffness: v })}
+          />
+          <ParamSlider
+            label="Độ nảy"
+            min={0}
+            max={2}
+            step={0.05}
+            value={p.materialBounciness ?? opt.defaultBounciness}
+            onChange={(v) => onUpdate({ materialBounciness: v })}
+          />
+          <ParamSlider
+            label="Trọng lực"
+            min={0}
+            max={1.5}
+            step={0.05}
+            value={p.materialGravity ?? opt.defaultGravity}
+            onChange={(v) => onUpdate({ materialGravity: v })}
+          />
+        </>
+      )}
 
-      <div className="wf-v2-insp-subhead">Vùng nhận va chạm trên Mesh (Collider Zone)</div>
-      <OptionPills
-        cols={3}
-        options={COLLIDER_ZONE_OPTIONS}
-        value={colliderZone}
-        onPick={(zone) => patchTargetPhysics({ colliderZone: zone })}
-      />
+      {matTab === 'physics' && (
+        <>
+          <ParamSlider
+            label="Hệ số cản"
+            min={0.05}
+            max={0.95}
+            step={0.05}
+            value={damping}
+            onChange={(v) => patchTargetPhysics({ damping: v })}
+          />
+          <ParamSlider
+            label="Độ nhạy lực"
+            min={0.2}
+            max={2.5}
+            step={0.05}
+            value={hitSensitivity}
+            onChange={(v) => patchTargetPhysics({ hitSensitivity: v })}
+          />
+          <div className="wf-v2-insp-subhead">Vùng nhận va chạm trên Mesh (Collider Zone)</div>
+          <OptionPills
+            cols={3}
+            options={COLLIDER_ZONE_OPTIONS}
+            value={colliderZone}
+            onPick={(zone) => patchTargetPhysics({ colliderZone: zone })}
+          />
+        </>
+      )}
     </>
   )
 }

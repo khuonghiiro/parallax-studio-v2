@@ -13,8 +13,11 @@ export {
   applyMaterialNodeToProject,
   getNodeLogicCategory,
   recomputeSharedLogicTargets,
-  validateWorkflowV2Connection
+  validateWorkflowV2Connection,
+  wouldCreateWorkflowCycle
 } from './workflowV2PhysicsAndValidation'
+export * from './shotSpatial3D'
+export * from './workflowPartMotionTrigger'
 export {
   attachLogicNodeToLayerV2,
   spawnTimedFollowupNodeV2,

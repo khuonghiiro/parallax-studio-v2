@@ -154,7 +154,8 @@ export function useWorkflowV2CanvasInteractions(
           const hit = hitTest(drop.x, drop.y, nodeId)
           if (hit) {
             const theme = resolveV2NodeTheme(hit)
-            const sequential = src.params?.logicCategory === hit.params?.logicCategory &&
+            const fromN = isOutput ? src : hit, toN = isOutput ? hit : src
+            const sequential = (fromN.params?.logicCategory === 'action' && toN.params?.logicCategory === 'part_swap') || src.params?.logicCategory === hit.params?.logicCategory &&
               ['action', 'collision'].includes(src.params?.logicCategory ?? '')
             if (isOutput) handlersRef.current.onConnectNodes(nodeId, port, hit.id, sequential ? port : theme.portIn)
             else handlersRef.current.onConnectNodes(hit.id, theme.portOut, nodeId, sequential ? theme.portOut : port)

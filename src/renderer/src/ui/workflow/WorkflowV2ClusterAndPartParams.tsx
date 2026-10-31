@@ -1,5 +1,7 @@
 import React, { useMemo, useState } from 'react'
 import type { Vec3 } from '@shared/types'
+import { toast } from '../../actions'
+import { snapCameraToEntityBBox } from '../../project/shotSpatial3D'
 import {
   getClusterMemberLayers,
   getClusterPartShortName,
@@ -27,12 +29,15 @@ export function WorkflowV2ClusterLockParams({
   project,
   workflow,
   onUpdate,
+  onScrubTime,
   onConnectLayer,
   onDisconnectEdge,
   onToggleEdgeDisable
 }: WorkflowV2NodeParamsProps): React.ReactElement {
   const editorUpdate = useEditor((s) => s.update)
   const selectLayer = useEditor((s) => s.selectLayer)
+  const time = useEditor((s) => s.time)
+  const [clusterTab, setClusterTab] = useState<'members' | 'transform'>('members')
   const p = node.params ?? {}
   const instId = p.instanceId
   const members = useMemo(
@@ -76,14 +81,32 @@ export function WorkflowV2ClusterLockParams({
     )
   }
 
+  const handleSnapCameraToCluster = (): void => {
+    const ids = members.map((m) => m.id)
+    if (ids.length === 0) return
+    const atT = Number(Math.max(p.timeStart ?? 0, Math.min(p.timeEnd ?? project.comp.duration, time)).toFixed(2))
+    let ok = false
+    editorUpdate((d) => {
+      const res = snapCameraToEntityBBox(d, {
+        shotId: p.shotId ?? rootLayer?.shotId ?? undefined,
+        layerIds: ids,
+        atTime: atT,
+        mode: 'snap_current'
+      })
+      ok = Boolean(res)
+    }, 'cluster-snap-cam-bbox')
+    if (ok) {
+      onScrubTime(atT)
+      toast(`🎥 Đã đưa Camera bắt gọn BBox Cụm "${node.title}" tại ${atT}s`)
+    }
+  }
+
   const toggleMemberConnection = (layerId: string, currentlyConnected: boolean): void => {
     const layerNodeId = v2LayerNodeId(layerId)
     const existingEdge = workflow?.edges.find((e) => e.fromNode === layerNodeId && e.toNode === node.id)
-    if (currentlyConnected && existingEdge) {
-      if (onDisconnectEdge) {
-        onDisconnectEdge(existingEdge.id)
-        return
-      }
+    if (currentlyConnected && existingEdge && onDisconnectEdge) {
+      onDisconnectEdge(existingEdge.id)
+      return
     }
     if (!currentlyConnected) {
       if (existingEdge && existingEdge.disabled && onToggleEdgeDisable) {
@@ -112,19 +135,20 @@ export function WorkflowV2ClusterLockParams({
 
   return (
     <>
-      <div className="wf-v2-insp-subhead">
-        🔒 Logic Khoá Cụm ({connectedCount}/{members.length} mảnh đang nối line khoá)
-      </div>
       <div className="wf-v2-pill-grid" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+        <button
+          type="button"
+          className="wf-v2-opt-pill active"
+          style={{ gridColumn: '1 / -1' }}
+          title="Tự động tạo/khớp mốc Camera bắt gọn khung BBox của Cụm này mà không cần dựng lộ trình thủ công"
+          onClick={handleSnapCameraToCluster}
+        >
+          <span className="wf-v2-opt-pill-txt">🎥 Đưa Camera bắt BBox Cụm này</span>
+        </button>
         <button
           type="button"
           className={`wf-v2-opt-pill${isLocked ? ' active' : ''}`}
           onClick={() => onUpdate({ lockedGroup: !isLocked })}
-          title={
-            isLocked
-              ? 'Đang KHOÁ CỤM: Các mảnh có đường line nối vào Node Khoá Cụm sẽ di chuyển & nhận logic đồng bộ'
-              : 'Đang MỞ KHOÁ TOÀN CỤM: Tạm thời cho phép chỉnh lẻ từng mảnh'
-          }
         >
           {isLocked ? '🔒 Đang khoá theo line' : '🔓 Mở khoá toàn cụm'}
         </button>
@@ -132,20 +156,34 @@ export function WorkflowV2ClusterLockParams({
           type="button"
           className={`wf-v2-opt-pill${!isCollapsed ? ' active' : ''}`}
           onClick={() => onUpdate({ collapsedSubLayers: !isCollapsed })}
-          title="Bung toàn bộ các mảnh layer con trên sơ đồ Workflow hoặc thu gọn chỉ giữ lại mảnh gốc"
         >
-          {isCollapsed ? `📁 Bung ${members.length} mảnh con` : `📂 Đang bung ${members.length} mảnh`}
+          {isCollapsed ? `📁 Bung ${members.length} mảnh` : `📂 Đang bung ${members.length} mảnh`}
         </button>
       </div>
 
-      {members.length > 0 && (
+      <div className="wf-v2-seg-tabs" role="tablist" aria-label="Cấu hình Khoá Cụm">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={clusterTab === 'members'}
+          className={`wf-v2-seg-tab${clusterTab === 'members' ? ' active' : ''}`}
+          onClick={() => setClusterTab('members')}
+        >
+          🔗 Mảnh nối ({connectedCount}/{members.length})
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={clusterTab === 'transform'}
+          className={`wf-v2-seg-tab${clusterTab === 'transform' ? ' active' : ''}`}
+          onClick={() => setClusterTab('transform')}
+        >
+          📐 Tọa độ &amp; Xưởng
+        </button>
+      </div>
+
+      {clusterTab === 'members' && members.length > 0 && (
         <>
-          <div className="wf-v2-insp-subhead">
-            🔗 Kết nối Line từ từng Layer đến Khoá Cụm
-          </div>
-          <p className="wf-v2-hint" style={{ marginBottom: 4 }}>
-            Layer nào <b>có line nối vào Khoá Cụm</b> sẽ được khoá đi theo cụm. Ngắt line (🔌/✕) để tách riêng Layer đó khỏi cụm.
-          </p>
           <div className="wf-v2-member-lock-list">
             {members.map((m) => {
               const layerNodeId = v2LayerNodeId(m.id)
@@ -186,47 +224,42 @@ export function WorkflowV2ClusterLockParams({
                   <button
                     type="button"
                     className={`wf-v2-member-line-btn${isMemberConnected ? ' on' : ' off'}`}
-                    title={
-                      isMemberConnected
-                        ? `Đang nối line vào Khoá Cụm — nhấn để ngắt line (mở khoá riêng "${shortName}")`
-                        : `Đang ngắt line (không khoá theo cụm) — nhấn để nối lại vào Khoá Cụm`
-                    }
                     onClick={() => toggleMemberConnection(m.id, isMemberConnected)}
                   >
-                    {isMemberConnected ? '🔗 Đang khoá' : '🔌 Đã tách line'}
+                    {isMemberConnected ? '🔗 Đang khoá' : '🔌 Đã tách'}
                   </button>
                 </div>
               )
             })}
           </div>
+          {!is3D && (
+            <ClusterMemberPositionColumnSection
+              clusterNodeId={node.id}
+              instId={instId}
+              rootLayer={rootLayer}
+              members={members}
+              standaloneLayers={project.layers.filter(
+                (l) => !l.composite && !l.model3d && (!p.shotId || !l.shotId || l.shotId === p.shotId)
+              )}
+              activeMemberLayerId={p.activeMemberLayerId}
+              onUpdate={onUpdate}
+            />
+          )}
         </>
       )}
 
-      {!is3D && (
-        <ClusterMemberPositionColumnSection
-          clusterNodeId={node.id}
-          instId={instId}
-          rootLayer={rootLayer}
-          members={members}
-          standaloneLayers={project.layers.filter(
-            (l) => !l.composite && !l.model3d && (!p.shotId || !l.shotId || l.shotId === p.shotId)
-          )}
-          activeMemberLayerId={p.activeMemberLayerId}
-          onUpdate={onUpdate}
-        />
-      )}
-
-      {is3D && model3d ? (
-        <Cluster3DTransformSection model3d={model3d} onOpenWorkshop3D={openWorkshop3D} />
-      ) : (
-        <Cluster25DTransformSection
-          instId={instId}
-          rootPos={rootPos}
-          scalePct={scalePct}
-          onUpdate={onUpdate}
-          onOpenWorkshop25D={openWorkshop25D}
-        />
-      )}
+      {clusterTab === 'transform' &&
+        (is3D && model3d ? (
+          <Cluster3DTransformSection model3d={model3d} onOpenWorkshop3D={openWorkshop3D} />
+        ) : (
+          <Cluster25DTransformSection
+            instId={instId}
+            rootPos={rootPos}
+            scalePct={scalePct}
+            onUpdate={onUpdate}
+            onOpenWorkshop25D={openWorkshop25D}
+          />
+        ))}
 
       {editingModel && (
         <Assembly3DDialog
@@ -246,4 +279,3 @@ export function WorkflowV2ClusterLockParams({
     </>
   )
 }
-

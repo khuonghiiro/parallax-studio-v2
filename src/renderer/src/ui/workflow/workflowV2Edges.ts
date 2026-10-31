@@ -33,6 +33,7 @@ export function isV2EdgeFlowing(
 export function classifyV2Edge(edge: WorkflowEdge, from: WorkflowNode, to: WorkflowNode): V2EdgeKind {
   if (isCameraChainEdge(edge)) return 'camera'
   if (from.params?.logicCategory === 'material' && to.params?.logicCategory === 'collision') return 'data'
+  if (from.params?.logicCategory === 'action' && to.params?.logicCategory === 'part_swap') return 'data'
   if (to.params?.isCameraWaypoint) return 'logic'
   const toIsLogic = to.type !== 'scene_shot' && to.type !== 'layer_assembly' && to.type !== 'camera_director'
   return toIsLogic ? 'logic' : 'hierarchy'

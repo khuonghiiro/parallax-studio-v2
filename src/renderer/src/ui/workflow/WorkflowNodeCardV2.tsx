@@ -67,6 +67,9 @@ export function summarizeV2Node(node: WorkflowNode, childCount: number): string 
       }
       if (p.isPartChild) {
         const cnt = p.targetLayerIds?.length ?? 1
+        if (p.partTriggerMode === 'motion_bbox' || p.linkedMotionNodeId) {
+          return `🏃 Tại ${Math.round(p.motionTriggerPct ?? 50)}% BBox · ${cnt} mảnh`
+        }
         if (Math.abs(p.partRotDeg ?? 0) >= 1 || Math.abs(p.partOffsetX ?? 0) >= 1 || Math.abs(p.partOffsetY ?? 0) >= 1) {
           return `Xoay ${p.partRotDeg ?? 0}° · ${cnt} mảnh`
         }

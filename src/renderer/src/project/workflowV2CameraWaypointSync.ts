@@ -1,4 +1,5 @@
 import type { Project, WorkflowNode, WorkflowNodeParams } from '@shared/types'
+import { transitionCameraWaypointToTargetBBox } from './shotSpatial3D'
 import { computeShotStageLayout, extractCameraFrames2D } from '../ui/viewer/animateCamera/animateCameraMath'
 import {
   applyWaypointActionMode,
@@ -34,6 +35,16 @@ export function syncCameraWaypointNodeToProject(
   const basePitch = frame?.pitch ?? 0
   const baseRoll = frame?.roll ?? 0
   let wpTime = frame?.time ?? nodeTime
+
+  if (patch && ('camTransitionTargetShotId' in patch || 'camTransitionTargetLayerId' in patch)) {
+    const style = (patch.camActionMode ?? params.camActionMode) === 'cut' ? 'cut' : 'fly'
+    transitionCameraWaypointToTargetBBox(project, wpTime, {
+      shotId: patch.camTransitionTargetShotId ?? params.camTransitionTargetShotId ?? params.shotId,
+      layerIds: patch.camTransitionTargetLayerId ? [patch.camTransitionTargetLayerId] : undefined,
+      style
+    })
+    return
+  }
 
   if (patch?.camActionMode) {
     applyWaypointActionMode(project, layout, wpTime, patch.camActionMode as CameraActionMode)

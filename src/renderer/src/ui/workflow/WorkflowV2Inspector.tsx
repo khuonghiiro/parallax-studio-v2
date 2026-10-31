@@ -1,6 +1,8 @@
 import { patchPartCue } from '../../project/workflowPartEditing'
 import { WorkflowPartPreview } from './WorkflowPartPreview'
+import '../../styles/workflowNodeUpgrades.css'
 import { effectiveTimeParams, timeSource } from '../../project/workflowTiming'
+import { findLinkedMotionNodeForPart } from '../../project/workflowPartMotionTrigger'
 import React, { useEffect, useMemo, useState } from 'react'
 import type { Project, Shot, WorkflowGraph, WorkflowNode, WorkflowNodeParams } from '@shared/types'
 import {
@@ -314,7 +316,8 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
   const source = timeSource(workflow, node.id)
   const tStart = timing.timeStart ?? 0
   const tEnd = timing.timeEnd ?? duration
-  const timeLocked = level === 'root' || Boolean(source)
+  const motionTriggerSrc = logicCat === 'part_swap' && !node.params?.isPartHub ? findLinkedMotionNodeForPart(project, node) : undefined
+  const timeLocked = level === 'root' || Boolean(source) || Boolean(motionTriggerSrc)
   const childCount = workflow.edges.filter((e) => e.fromNode === node.id).length
   const linked = logicCat === 'time'
     ? workflow.edges.filter(e => e.fromNode === node.id && e.fromPort === 'time_range' && !e.disabled).map(e => workflow.nodes.find(n => n.id === e.toNode)?.title ?? e.toNode)
@@ -451,7 +454,7 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
           <div className="wf-v2-insp-sec-title">
             <span>Tiến trình Thời gian</span>
             {timeLocked ? (
-              <span className="wf-v2-insp-note">{source ? `Theo ${source.title} · ngắt dây để dùng riêng` : 'theo phạm vi cảnh'}</span>
+              <span className="wf-v2-insp-note">{motionTriggerSrc ? `🏃 Theo vị trí ${cleanV2NodeTitle(motionTriggerSrc.title)}` : source ? `Theo ${source.title} · ngắt dây để dùng riêng` : 'theo phạm vi cảnh'}</span>
             ) : linked.length > 0 ? (
               <span className="wf-v2-insp-target-badge" title={`Áp dụng cho: ${linked.join(', ')}`}>
                 🎯 {linked[0]}{linked.length > 1 ? ` +${linked.length - 1}` : ''}
@@ -558,35 +561,6 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
             {node.params?.logicCategory === 'collision' && (node.params?.sharedLayerNodeIds?.length ?? 0) < 2 && (
               <CollisionPartnerPicker workflow={workflow} node={node} onPick={(layerNodeId) => props.onConnectLayer(layerNodeId, node.id)} />
             )}
-          </section>
-        )}
-
-        {node.type === 'camera_director' && !node.params?.isCameraWaypoint && (
-          <section className="wf-v2-insp-sec">
-            <div className="wf-v2-insp-sec-title">Các cảnh con trong lộ trình quay</div>
-            <div className="wf-v2-chip-grid">
-              {workflow.nodes
-                .filter((n) => n.type === 'camera_director' && Boolean(n.params?.isCameraWaypoint) && n.params?.shotId === node.params?.shotId)
-                .sort((a, b) => (a.params?.waypointLocalIndex ?? 0) - (b.params?.waypointLocalIndex ?? 0))
-                .map((wp) => {
-                  const wpTheme = resolveV2NodeTheme(wp)
-                  return (
-                    <button
-                      key={wp.id}
-                      type="button"
-                      className="wf-v2-spawn-chip"
-                      style={{ ['--wf-v2-accent' as string]: wpTheme.accent }}
-                      title={`${wp.title} (${(wp.params?.timeStart ?? 0).toFixed(1)}s – ${(wp.params?.timeEnd ?? 0).toFixed(1)}s)`}
-                      onClick={() => props.onSelectNode?.(wp.id)}
-                    >
-                      {wpTheme.icon} {cleanV2NodeTitle(wp.title)}
-                    </button>
-                  )
-                })}
-            </div>
-            <button type="button" className="wf-v2-ghost-btn" onClick={() => update({ collapsedGroup: !node.params?.collapsedGroup })}>
-              {node.params?.collapsedGroup ? 'Mở rộng các cảnh con trên sơ đồ' : 'Thu gọn các cảnh con trên sơ đồ'}
-            </button>
           </section>
         )}
 

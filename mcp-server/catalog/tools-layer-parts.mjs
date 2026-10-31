@@ -30,7 +30,11 @@ export const LAYER_PARTS_TOOLS = [
       y: z.number().optional().describe(d('Additive vertical offset, positive up.', 'Độ lệch dọc cộng thêm, dương hướng lên.')),
       rotation: z.number().optional().describe(d('Additive rotation in degrees.', 'Góc xoay cộng thêm, độ.')),
       scale: z.number().min(20).max(300).optional().describe(d('Part scale percent, 100 neutral.', 'Tỉ lệ phần trăm bộ phận, 100 trung tính.')),
-      wave: z.enum(['smooth','hold','oscillate']).optional().describe(d('Pose envelope within the interval.', 'Nhịp tư thế trong khoảng.'))
+      wave: z.enum(['smooth','hold','oscillate']).optional().describe(d('Pose envelope within the interval.', 'Nhịp tư thế trong khoảng.')),
+      trigger_mode: z.enum(['time','motion_bbox']).optional().describe(d('Trigger by exact seconds (time) or when linked Motion BBox reaches motion_pct (motion_bbox).', 'Kích hoạt theo mốc giây (time) hoặc khi Motion BBox di chuyển đạt motion_pct (motion_bbox).')),
+      motion_node_id: z.string().optional().describe(d('Linked Motion BBox node ID when trigger_mode is motion_bbox.', 'ID node Motion BBox liên kết khi trigger_mode là motion_bbox.')),
+      motion_pct: z.number().min(0).max(100).optional().describe(d('Spatial progress percent (0..100) along Motion BBox #1 -> #2 trajectory to trigger swap.', 'Phần trăm vị trí trên đường đi BBox #1 -> #2 (0..100) để kích hoạt thay bộ phận.')),
+      hold_duration: z.number().min(0.2).max(60).optional().describe(d('Hold duration in seconds after motion trigger when hold_after_end is false.', 'Thời lượng giữ (giây) sau điểm kích hoạt khi hold_after_end là false.'))
     }),
     example: '{"node_id":"part-child-id","action":"add","at":2,"duration":1,"rotation":25,"wave":"hold"}'
   },

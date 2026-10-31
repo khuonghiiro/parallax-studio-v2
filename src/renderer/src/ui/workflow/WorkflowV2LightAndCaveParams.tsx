@@ -65,6 +65,7 @@ export function WorkflowV2LightParams(props: WorkflowV2NodeParamsProps): React.R
   const layer = resolvePrimaryTargetLayer(props)
   const targetIds = node.params?.targetLayerIds ?? (layer ? [layer.id] : [])
   const vlight: LayerVirtualLight = layer?.virtualLight ?? createDefaultVirtualLight('candle')
+  const [lightTab, setLightTab] = React.useState<'source' | 'beam'>('source')
 
   const pendingPatchRef = React.useRef<{ patch: Partial<LayerVirtualLight>; mergeKey: string } | null>(null)
   const patchRafRef = React.useRef<number | null>(null)
@@ -173,6 +174,15 @@ export function WorkflowV2LightParams(props: WorkflowV2NodeParamsProps): React.R
         <span className="vl-title">🕯️ Công Cụ Ánh Sáng Ảo 2.5D (Xuyên Layer)</span>
       </div>
 
+      <div className="wf-v2-seg-tabs" role="tablist" aria-label="Cấu hình Ánh sáng 2.5D">
+        <button type="button" role="tab" aria-selected={lightTab === 'source'} className={`wf-v2-seg-tab${lightTab === 'source' ? ' active' : ''}`} onClick={() => setLightTab('source')}>
+          💡 Nguồn &amp; Độ sáng
+        </button>
+        <button type="button" role="tab" aria-selected={lightTab === 'beam'} className={`wf-v2-seg-tab${lightTab === 'beam' ? ' active' : ''}`} onClick={() => setLightTab('beam')}>
+          📐 Khung tia &amp; Gió
+        </button>
+      </div>
+      {lightTab === 'source' && <>
       {/* 6 Preset Kind Cards */}
       <div className="vl-kind-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
         {LIGHT_KIND_CARDS.map((card) => {
@@ -247,6 +257,8 @@ export function WorkflowV2LightParams(props: WorkflowV2NodeParamsProps): React.R
         </Row>
       </div>
 
+      </>}
+      {lightTab === 'beam' && <>
       {/* Khung Sáng: Độ Dài, Độ Hướng, Độ Mở & Độ Cong */}
       <div className="vl-subcard">
         <div className="vl-row-header">
@@ -520,6 +532,7 @@ export function WorkflowV2LightParams(props: WorkflowV2NodeParamsProps): React.R
         </div>
       )}
 
+      </>}
       {/* Màu & Độ Mềm Viền */}
       <Row label="Màu &amp; Viền" title="Màu nhiệt độ nguồn sáng và độ mềm viền bán dạ (Softness)">
         <div style={{ display: 'flex', alignItems: 'center', gap: 5, width: '100%' }}>

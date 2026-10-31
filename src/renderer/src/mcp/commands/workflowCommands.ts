@@ -375,7 +375,7 @@ export const workflowCommands: Record<string, Handler> = {
         const defaultPort = WORKFLOW_NODE_SPECS[fromSrc.type]?.outputs[0] ?? 'layers_tree'
         const fromPort = (str(p, 'from_port') || str(p, 'port') || defaultPort) as WorkflowPortKind
         const toPort = (str(p, 'to_port') || str(p, 'port') || fromPort) as WorkflowPortKind
-        const isDstLayerOrGroup = toDst.type === 'layer_assembly' || toDst.type === 'camera_director'
+        const isDstLayerOrGroup = (toDst.type === 'layer_assembly' && !toDst.params?.logicCategory) || toDst.type === 'camera_director'
         const baseEdges = isDstLayerOrGroup
           ? next.edges.filter((e) => e.toNode !== toDst.id)
           : next.edges

@@ -230,10 +230,41 @@ export function bakeBboxTargetMotionToScene(
   const directLayers = project.layers.filter((l) => idSet.has(l.id))
   if (directLayers.length === 0) return
 
-  const instId = params.instanceId ?? directLayers.find((l) => l.composite?.instanceId)?.composite?.instanceId
-  const members = instId ? getLockedClusterMemberLayers(project, instId) : directLayers
-  const effectiveLayers = members.length > 0 ? members : directLayers
-  const rootLayer = getClusterRootLayer(effectiveLayers) ?? effectiveLayers[0]
+  // Hỗ trợ 2+ Layer hoặc Cụm 2.5D cùng kết nối vào chung 1 Node Motion BBox:
+  // Gom toàn bộ Layer lẻ kết nối trực tiếp VÀ mọi mảnh đang khoá của từng Cụm kết nối
+  const instIds = new Set<string>()
+  for (const dl of directLayers) {
+    if (dl.composite?.instanceId && !params.singleSubLayerOnly) {
+      instIds.add(dl.composite.instanceId)
+    }
+  }
+  if (params.instanceId && directLayers.some((l) => l.composite?.instanceId === params.instanceId)) {
+    instIds.add(params.instanceId)
+  }
+  const effectiveMap = new Map<string, Layer>()
+  const entityRootByLayerId = new Map<string, Layer>()
+  for (const inst of instIds) {
+    const locked = getLockedClusterMemberLayers(project, inst)
+    const cRoot = getClusterRootLayer(locked) ?? locked[0]
+    for (const m of locked) {
+      effectiveMap.set(m.id, m)
+      if (cRoot) entityRootByLayerId.set(m.id, cRoot)
+    }
+  }
+  for (const dl of directLayers) {
+    if (!effectiveMap.has(dl.id)) {
+      effectiveMap.set(dl.id, dl)
+      entityRootByLayerId.set(dl.id, dl)
+    }
+  }
+  const effectiveLayers = Array.from(effectiveMap.values())
+  const primaryInst = params.instanceId && instIds.has(params.instanceId) ? params.instanceId : Array.from(instIds)[0]
+  const primaryClusterLayers = primaryInst ? getLockedClusterMemberLayers(project, primaryInst) : []
+  const rootLayer =
+    getClusterRootLayer(primaryClusterLayers) ??
+    getClusterRootLayer(effectiveLayers) ??
+    directLayers[0] ??
+    effectiveLayers[0]
   if (!rootLayer) return
 
   const compDur = Math.max(1, project.comp.duration || 5)
@@ -310,12 +341,17 @@ export function bakeBboxTargetMotionToScene(
     uSteps = Array.from({ length: 15 }, (_, idx) => Number((idx / 14).toFixed(4)))
   }
 
+  const convergeEachEntity = params.bboxMultiMode === 'converge_target'
   for (const m of effectiveLayers) {
     const mBasePos: Vec3 = bboxStartPosition(m, tStart, nodeId)
     const mBaseScale: Vec3 = bboxStartScale(m, tStart, nodeId)
-    const relX = mBasePos[0] - rootBasePos[0]
-    const relY = mBasePos[1] - rootBasePos[1]
-    const relZ = mBasePos[2] - rootBasePos[2]
+    const entityRoot = convergeEachEntity ? (entityRootByLayerId.get(m.id) ?? m) : rootLayer
+    const entityStartPos: Vec3 =
+      entityRoot.id === rootLayer.id ? rootBasePos : bboxStartPosition(entityRoot, tStart, nodeId)
+    const entityStartZ = entityRoot.id === rootLayer.id ? startZ : entityStartPos[2]
+    const relX = mBasePos[0] - entityStartPos[0]
+    const relY = mBasePos[1] - entityStartPos[1]
+    const relZ = mBasePos[2] - entityStartPos[2]
 
     // Nếu tStart > 0.05s, neo giữ trạng thái gốc ngay trước tStart để layer không bị trôi trước mốc chạy
     if (tStart > 0.05 && !m.transform.position.keyframes.some(k => k.t <= tStart)) {
@@ -323,7 +359,7 @@ export function bakeBboxTargetMotionToScene(
       m.transform.position.keyframes.push({
         id: `${m.id}-bboxmot-${nodeId}-p-pre`,
         t: preT,
-        value: [mBasePos[0], mBasePos[1], startZ + relZ],
+        value: [mBasePos[0], mBasePos[1], entityStartZ + relZ],
         ease: 'linear'
       })
       m.transform.scale.keyframes.push({
@@ -357,10 +393,10 @@ export function bakeBboxTargetMotionToScene(
         }
 
         const pt = evaluateBboxTrajectoryAt(
-          rootBasePos,
+          entityStartPos,
           targetX,
           targetY,
-          startZ,
+          entityStartZ,
           targetZ,
           targetScaleRatio,
           effU,

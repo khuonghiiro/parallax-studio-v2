@@ -1,4 +1,5 @@
 import { connectTimeNode, createTimeNode, isTimeNode } from '../../project/workflowTiming'
+import { ensureClusterPartTimeline } from '../../project/workflowPartEditing'
 import { useCallback } from 'react'
 import type { Project, WorkflowGraph, WorkflowNode, WorkflowNodeParams, WorkflowPortKind } from '@shared/types'
 import { useEditor } from '../../store/editor'
@@ -226,6 +227,7 @@ export function useWorkflowV2Actions(workflow: WorkflowGraph, selectedNodeId: st
       const src = workflow.nodes.find((n) => n.id === fromNode)
       const dst = workflow.nodes.find((n) => n.id === toNode)!
       const dstIsClusterLock = dst.params?.logicCategory === 'cluster_lock'
+      const isMotionToPart = src?.params?.logicCategory === 'action' && dst.params?.logicCategory === 'part_swap' && !dst.params?.isPartHub
       const dstIsStructural = (resolveV2NodeLevel(dst) !== 'logic' || dst.type === 'camera_director') && !dstIsClusterLock
       const filtered = workflow.edges.filter((e) => {
         if (dstIsStructural && e.toNode === toNode) return false
@@ -233,7 +235,23 @@ export function useWorkflowV2Actions(workflow: WorkflowGraph, selectedNodeId: st
         return true
       })
       const edges = [...filtered, { id: `e-${fromNode}-${toNode}`, fromNode, fromPort, toNode, toPort, disabled: false }]
-      const nodes = layoutWorkflowV2Tree(recomputeSharedLogicTargets(workflow.nodes, edges), edges)
+      const seededNodes = isMotionToPart
+        ? workflow.nodes.map((n) =>
+            n.id === toNode
+              ? {
+                  ...n,
+                  params: {
+                    ...(n.params ?? {}),
+                    partTriggerMode: 'motion_bbox' as const,
+                    linkedMotionNodeId: fromNode,
+                    motionTriggerPct: n.params?.motionTriggerPct ?? 50,
+                    partSwapHoldAfterEnd: n.params?.partSwapHoldAfterEnd ?? true
+                  }
+                }
+              : n
+          )
+        : workflow.nodes
+      const nodes = layoutWorkflowV2Tree(recomputeSharedLogicTargets(seededNodes, edges), edges)
       const srcLayerIds = new Set(src?.params?.targetLayerIds ?? [])
       useEditor.getState().update((draft) => {
         if (dstIsClusterLock) {
@@ -251,10 +269,21 @@ export function useWorkflowV2Actions(workflow: WorkflowGraph, selectedNodeId: st
         }
         draft.workflow = { ...workflow, nodes, edges }
         const updated = nodes.find((n) => n.id === toNode)
-        if (updated && !dstIsClusterLock) syncWorkflowV2NodeToProject(draft as Project, updated)
+        if (updated && isMotionToPart && updated.params?.instanceId) {
+          ensureClusterPartTimeline(
+            draft as Project,
+            nodes.filter((n) => n.params?.logicCategory === 'part_swap' && n.params?.instanceId === updated.params?.instanceId)
+          )
+        } else if (updated && !dstIsClusterLock) {
+          syncWorkflowV2NodeToProject(draft as Project, updated)
+        }
       }, 'wf-v2-connect')
       if (dstIsClusterLock) {
         showToast(`Đã nối "${src?.title ?? 'Layer'}" vào Khoá Cụm — mảnh này được khoá theo cụm`)
+        return
+      }
+      if (isMotionToPart) {
+        showToast('Đã nối Motion BBox → Bộ phận con — tự thay đúng lúc BBox đi tới vị trí')
         return
       }
       const shared = nodes.find((n) => n.id === toNode)?.params?.sharedLayerNodeIds?.length ?? 1
@@ -296,6 +325,27 @@ export function useWorkflowV2Actions(workflow: WorkflowGraph, selectedNodeId: st
         return
       }
 
+      if (src?.params?.logicCategory === 'action' && dst.params?.logicCategory === 'part_swap') {
+        const edges = workflow.edges.filter((e) => e.id !== edgeId)
+        const baseNodes = workflow.nodes.map((n) =>
+          n.id === dst.id ? { ...n, params: { ...(n.params ?? {}), partTriggerMode: 'time' as const, linkedMotionNodeId: undefined } } : n
+        )
+        const nodes = layoutWorkflowV2Tree(recomputeSharedLogicTargets(baseNodes, edges), edges)
+        useEditor.getState().update((draft) => {
+          draft.workflow = { ...workflow, nodes, edges }
+          const updated = nodes.find((n) => n.id === dst.id)
+          if (updated?.params?.instanceId) {
+            ensureClusterPartTimeline(
+              draft as Project,
+              nodes.filter((n) => n.params?.logicCategory === 'part_swap' && n.params?.instanceId === updated.params?.instanceId)
+            )
+          } else if (updated?.enabled) {
+            syncWorkflowV2NodeToProject(draft as Project, updated)
+          }
+        }, 'wf-v2-disconnect-motion-part')
+        showToast('Đã ngắt liên kết Motion BBox — Bộ phận con quay lại thay theo mốc giây')
+        return
+      }
       if (!logicCategoryOf(dst)) return
       const edges = workflow.edges.filter((e) => e.id !== edgeId)
       const stillLinked = edges.some((e) => e.toNode === dst.id && e.fromPort !== 'time_range' && !e.disabled)
@@ -329,6 +379,35 @@ export function useWorkflowV2Actions(workflow: WorkflowGraph, selectedNodeId: st
       }
       const synced = recomputeSharedLogicTargets(workflow.nodes, edges)
       const nodes = layoutWorkflowV2Tree(synced, edges)
+      if (src.params?.logicCategory === 'action' && dst.params?.logicCategory === 'part_swap') {
+        const baseNodes = workflow.nodes.map((n) =>
+          n.id === dst.id
+            ? {
+                ...n,
+                params: {
+                  ...(n.params ?? {}),
+                  partTriggerMode: (nextDisabled ? 'time' : 'motion_bbox') as 'time' | 'motion_bbox',
+                  linkedMotionNodeId: nextDisabled ? undefined : src.id
+                }
+              }
+            : n
+        )
+        const mNodes = layoutWorkflowV2Tree(recomputeSharedLogicTargets(baseNodes, edges), edges)
+        useEditor.getState().update((draft) => {
+          draft.workflow = { ...workflow, nodes: mNodes, edges }
+          const updated = mNodes.find((n) => n.id === dst.id)
+          if (updated?.params?.instanceId) {
+            ensureClusterPartTimeline(
+              draft as Project,
+              mNodes.filter((n) => n.params?.logicCategory === 'part_swap' && n.params?.instanceId === updated.params?.instanceId)
+            )
+          } else if (updated?.enabled) {
+            syncWorkflowV2NodeToProject(draft as Project, updated)
+          }
+        }, 'wf-v2-toggle-motion-part-edge')
+        showToast(nextDisabled ? 'Đã tạm tắt kích hoạt theo Motion BBox' : 'Đã bật lại kích hoạt theo Motion BBox')
+        return
+      }
       const srcLayerIds = new Set(src.params?.targetLayerIds ?? [])
       const dstLayerIds = new Set(dst.params?.targetLayerIds ?? [])
 

@@ -1,6 +1,7 @@
-import { patchPartCue } from '../../project/workflowPartEditing'
 import React, { useMemo, useState } from 'react'
 import type { ImageProps, Layer, WorkflowNodeParams } from '@shared/types'
+import { patchPartCue } from '../../project/workflowPartEditing'
+import { resolvePartMotionTriggerWindow } from '../../project/workflowPartMotionTrigger'
 import {
   detectClusterExpressions,
   extractCompositeDynamicParts,
@@ -9,10 +10,16 @@ import {
   getClusterRootLayer
 } from '../../project/workflowV2Engine'
 import { useEditor } from '../../store/editor'
+import {
+  AssetThumbImg,
+  PartMotionTriggerPicker,
+  PartReplaceAssetGrid,
+  PartVariantThumbnailGrid
+} from './PartAssetThumbnailPicker'
 import { cleanV2NodeTitle } from './workflowV2Theme'
 import { ParamSlider, type WorkflowV2NodeParamsProps } from './WorkflowV2NodeParams'
 
-type PartTabMode = 'variant' | 'pose' | 'layers'
+type PartEditorTab = 'variant' | 'trigger' | 'pose'
 
 interface QuickPosePreset {
   id: string
@@ -33,29 +40,35 @@ const degFmt = (v: number): string => `${v >= 0 ? '+' : ''}${Math.round(v)}°`
 const pxFmt = (v: number): string => `${v >= 0 ? '+' : ''}${Math.round(v)}px`
 const pctRawFmt = (v: number): string => `${Math.round(v)}%`
 
-/**
- * Tham số của Node Bộ phận (`part_swap`):
- * - Nếu là Node Bộ phận chính (`isPartHub`): hiển thị danh sách trực quan các Node con Bộ phận của cụm 2.5D để điều phối hoặc nhảy nhanh.
- * - Nếu là Node con Bộ phận (`isPartChild`): hiển thị 3 Sub-Tabs gọn gàng (Biến thể/Ảnh, Cử động & Tư thế theo giây, Mảnh con).
- */
+function getLayerAssetId(layer?: Layer): string | undefined {
+  return layer?.type === 'image' ? (layer.props as ImageProps).assetId : undefined
+}
+
 export function WorkflowV2PartSwapParams({
   node,
   project,
   workflow,
   onUpdate: updateNode,
+  onScrubTime,
   onSelectNode,
   onAttachLogic
 }: WorkflowV2NodeParamsProps): React.ReactElement {
   const onUpdate = (patch: Partial<WorkflowNodeParams>, title?: string): void => {
-    if (node.params?.isPartHub) { updateNode(patch, title); return }
-    useEditor.getState().update(draft => {
+    if (node.params?.isPartHub) {
+      updateNode(patch, title)
+      return
+    }
+    useEditor.getState().update((draft) => {
       patchPartCue(draft, node.id, patch)
-      if (title) { const target = draft.workflow?.nodes.find(n => n.id === node.id); if (target) target.title = title }
+      if (title) {
+        const target = draft.workflow?.nodes.find((n) => n.id === node.id)
+        if (target) target.title = title
+      }
     }, `part-edit-${node.id}`)
   }
-  const [assetSearch, setAssetSearch] = useState('')
+
   const p = node.params ?? {}
-  const targetIds = new Set(p.targetLayerIds ?? [])
+  const targetIds = useMemo(() => new Set(p.targetLayerIds ?? []), [p.targetLayerIds])
   const firstLayer = project.layers.find((l) => targetIds.has(l.id))
   const instId = p.instanceId ?? firstLayer?.composite?.instanceId ?? firstLayer?.model3d?.instanceId
   const members = useMemo(() => getClusterMemberLayers(project, instId, firstLayer), [project, instId, firstLayer])
@@ -75,8 +88,7 @@ export function WorkflowV2PartSwapParams({
         (n) =>
           n.params?.logicCategory === 'part_swap' &&
           Boolean(n.params?.isPartChild) &&
-          (n.params?.hierarchyParentNodeId === node.id ||
-            (instId && n.params?.instanceId === instId))
+          (n.params?.hierarchyParentNodeId === node.id || (instId && n.params?.instanceId === instId))
       ),
     [workflow?.nodes, node.id, instId]
   )
@@ -92,6 +104,20 @@ export function WorkflowV2PartSwapParams({
         : undefined,
     [p.isPartChild, p.hierarchyParentNodeId, workflow, instId]
   )
+
+  const parentClusterOrLayerNodeId = useMemo(() => {
+    if (!workflow) return undefined
+    const clusterNode = workflow.nodes.find(
+      (n) => n.params?.logicCategory === 'cluster_lock' && instId && n.params?.instanceId === instId
+    )
+    if (clusterNode) return clusterNode.id
+    if (parentHubNode) {
+      const edgeToHub = workflow.edges.find((e) => e.toNode === parentHubNode.id && !e.disabled)
+      if (edgeToHub) return edgeToHub.fromNode
+    }
+    const edgeToSelf = workflow.edges.find((e) => e.toNode === node.id && !e.disabled)
+    return edgeToSelf?.fromNode
+  }, [workflow, instId, parentHubNode, node.id])
 
   const activePart = useMemo(
     () =>
@@ -111,13 +137,14 @@ export function WorkflowV2PartSwapParams({
     [p.isPartChild, p.targetLayerIds, members, targetIds, activePart]
   )
 
-  const defaultTab: PartTabMode =
-    p.partActionMode ??
-    ((activePart?.id === 'face' && expressions.length > 0) || partLayers.length > 1 ? 'variant' : 'pose')
-  const subTab = defaultTab
+  const initialTab: PartEditorTab = p.partActionMode === 'pose' ? 'pose' : 'variant'
+  const [subTab, setSubTab] = useState<PartEditorTab>(initialTab)
 
-  const switchSubTab = (next: PartTabMode): void => {
-    onUpdate({ partActionMode: next })
+  const switchSubTab = (next: PartEditorTab): void => {
+    setSubTab(next)
+    if (next === 'variant' || next === 'pose') {
+      onUpdate({ partActionMode: next })
+    }
   }
 
   // 1. GIAO DIỆN NODE BỘ PHẬN CHÍNH (HUB QUẢN LÝ CÁC NODE CON BỘ PHẬN)
@@ -127,8 +154,8 @@ export function WorkflowV2PartSwapParams({
       <div className="wf-v2-part-hub-panel" data-mcp-region="workflow_part_hub">
         <div className="wf-v2-part-hub-banner">
           <div className="wf-v2-part-hub-info">
-            <strong>🧩 Cụm Bộ phận 2.5D ({childPartNodes.length} bộ phận có 2+ biến thể)</strong>
-            <span>Chỉ hiện các bộ phận có từ 2 item trở lên để đánh tráo theo mốc giây</span>
+            <strong>🧩 Cụm Bộ phận 2.5D ({childPartNodes.length} bộ phận động)</strong>
+            <span>Chọn bộ phận để thay ảnh / biểu cảm theo mốc giây hoặc khi BBox di chuyển tới vị trí</span>
           </div>
           <button
             type="button"
@@ -140,57 +167,54 @@ export function WorkflowV2PartSwapParams({
           </button>
         </div>
 
-        <div className="wf-v2-subsec">
-          <div className="wf-v2-subsec-head">
-            <span>🌿 Danh sách Node con Bộ phận</span>
-            <small>Chọn để chỉnh riêng theo giây</small>
-          </div>
-          <div className="wf-v2-part-child-grid">
-            {childPartNodes.map((child, idx) => {
-              const cp = child.params ?? {}
-              const t0 = (cp.timeStart ?? 0).toFixed(1)
-              const t1 = (cp.timeEnd ?? project.comp.duration ?? 5).toFixed(1)
-              const hasPose = Math.abs(cp.partRotDeg ?? 0) >= 1 || Math.abs(cp.partOffsetX ?? 0) >= 1 || Math.abs(cp.partOffsetY ?? 0) >= 1
-              const spanFull = childPartNodes.length % 2 === 1 && idx === childPartNodes.length - 1
-              return (
-                <div
-                  key={child.id}
-                  className={`wf-v2-part-child-card${!child.enabled ? ' is-off' : ''}`}
-                  style={spanFull ? { gridColumn: '1 / -1' } : undefined}
+        <div className="wf-v2-part-child-grid">
+          {childPartNodes.map((child) => {
+            const cp = child.params ?? {}
+            const trig = resolvePartMotionTriggerWindow(project, child, cp)
+            const leadLayer =
+              project.layers.find((l) => l.id === (cp.swapVariant || cp.swapTargetLayerId)) ??
+              project.layers.find((l) => (cp.targetLayerIds ?? []).includes(l.id))
+            const assetId = cp.swapAssetId || getLayerAssetId(leadLayer)
+            return (
+              <div key={child.id} className={`wf-v2-part-child-card${!child.enabled ? ' is-off' : ''}`}>
+                <button
+                  type="button"
+                  className="wf-v2-part-child-main"
+                  onClick={() => onSelectNode?.(child.id)}
                 >
-                  <button
-                    type="button"
-                    className="wf-v2-part-child-main"
-                    title={`Mở thuộc tính của "${child.title}" (${t0}s – ${t1}s)`}
-                    onClick={() => onSelectNode?.(child.id)}
-                  >
-                    <span className="part-ico">{cp.partIcon || '🧩'}</span>
-                    <span className="part-body">
-                      <strong>{cp.partGroupTitle || cleanV2NodeTitle(child.title)}</strong>
-                      <small>
-                        {t0}s–{t1}s · {hasPose ? `Xoay ${cp.partRotDeg ?? 0}°` : `${cp.targetLayerIds?.length ?? 1} mảnh`}
-                      </small>
-                    </span>
-                  </button>
-                </div>
-              )
-            })}
-          </div>
+                  <AssetThumbImg
+                    project={project}
+                    assetId={assetId}
+                    alt={child.title}
+                    fallbackIcon={cp.partIcon || '🧩'}
+                  />
+                  <span className="part-body">
+                    <strong>{cp.partGroupTitle || cleanV2NodeTitle(child.title)}</strong>
+                    <small>
+                      {trig.triggeredByMotion
+                        ? `🏃 Tại ${Math.round(trig.pct ?? 50)}% BBox (${trig.start.toFixed(1)}s)`
+                        : `⏱ ${trig.start.toFixed(1)}s–${trig.end.toFixed(1)}s`}
+                    </small>
+                  </span>
+                </button>
+              </div>
+            )
+          })}
         </div>
 
         {dynamicParts.some((dp) => !childPartNodes.some((c) => c.params?.partGroupId === dp.id)) && (
           <div className="wf-v2-subsec">
             <div className="wf-v2-subsec-head">
-              <span>➕ Khôi phục Node con Bộ phận đã ẩn</span>
+              <span>➕ Khôi phục bộ phận đã ẩn</span>
             </div>
-            <div className="wf-v2-pill-grid" data-cols={2} style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+            <div className="wf-v2-chip-grid">
               {dynamicParts
                 .filter((dp) => !childPartNodes.some((c) => c.params?.partGroupId === dp.id))
                 .map((dp) => (
                   <button
                     key={dp.id}
                     type="button"
-                    className="wf-v2-opt-pill"
+                    className="wf-v2-spawn-chip"
                     onClick={() =>
                       onAttachLogic?.(
                         node.id,
@@ -206,7 +230,7 @@ export function WorkflowV2PartSwapParams({
                       )
                     }
                   >
-                    <span className="wf-v2-opt-pill-txt">+ {dp.icon} {dp.title}</span>
+                    + {dp.icon} {dp.title}
                   </button>
                 ))}
             </div>
@@ -216,37 +240,71 @@ export function WorkflowV2PartSwapParams({
     )
   }
 
-  // 2. GIAO DIỆN NODE CON BỘ PHẬN (CHỈNH RIÊNG 1 BỘ PHẬN TRONG MỐC GIÂY)
+  // 2. GIAO DIỆN NODE CON BỘ PHẬN (THUMBNAIL TRỰC QUAN + BẮT VỊ TRÍ MOTION BBOX + TƯ THẾ)
   const isFacePart = activePart?.id === 'face' && expressions.length > 0
-  const imageAssets = project.assets.filter((a) => a.kind === 'image' && a.name.toLocaleLowerCase().includes(assetSearch.toLocaleLowerCase()))
   const selectedSubLayer =
     partLayers.find((l) => l.id === p.swapTargetLayerId || l.id === p.swapVariant) ?? partLayers[0]
+  const triggerSummary = resolvePartMotionTriggerWindow(project, node, p)
+
+  const variantItems = useMemo(() => {
+    if (isFacePart) {
+      return expressions.map((expr) => {
+        const lyr = members.find((m) => m.id === expr.layerId)
+        const active = p.swapVariant ? p.swapVariant === expr.layerId : expr.visible
+        return {
+          id: expr.layerId,
+          label: expr.label,
+          assetId: getLayerAssetId(lyr),
+          active,
+          badge: active ? 'Đang chọn' : undefined
+        }
+      })
+    }
+    return partLayers.map((pl) => {
+      const shortName = getClusterPartShortName(pl)
+      const active = p.swapVariant ? p.swapVariant === pl.id : pl.visible !== false
+      return {
+        id: pl.id,
+        label: shortName,
+        assetId: getLayerAssetId(pl),
+        active,
+        badge: active ? 'Đang bật' : 'Ẩn'
+      }
+    })
+  }, [isFacePart, expressions, members, partLayers, p.swapVariant])
 
   return (
     <div className="wf-v2-part-child-editor" data-mcp-region="workflow_part_editor">
       <div className="wf-v2-part-child-head-bar">
         <div className="wf-v2-part-child-title-tag">
-          <span className="ico">{p.partIcon || activePart?.icon || '🧩'}</span>
+          <AssetThumbImg
+            project={project}
+            assetId={p.swapAssetId || getLayerAssetId(selectedSubLayer)}
+            alt={node.title}
+            fallbackIcon={p.partIcon || activePart?.icon || '🧩'}
+          />
           <div>
             <strong>{p.partGroupTitle || activePart?.title || cleanV2NodeTitle(node.title)}</strong>
-            <small>{partLayers.length} mảnh trong bộ phận này</small>
+            <small>
+              {triggerSummary.triggeredByMotion
+                ? `🏃 Thay tại ${Math.round(triggerSummary.pct ?? 50)}% BBox (${triggerSummary.start.toFixed(2)}s)`
+                : `⏱ Thay tại ${triggerSummary.start.toFixed(1)}s – ${triggerSummary.end.toFixed(1)}s`}
+            </small>
           </div>
         </div>
-        <div className="wf-v2-part-child-actions">
-          {parentHubNode && onSelectNode && (
-            <button
-              type="button"
-              className="wf-v2-mini-btn"
-              title="Quay về Node Bộ phận chính (Hub quản lý toàn bộ bộ phận)"
-              onClick={() => onSelectNode(parentHubNode.id)}
-            >
-              ← Cụm Bộ phận
-            </button>
-          )}
-        </div>
+        {parentHubNode && onSelectNode && (
+          <button
+            type="button"
+            className="wf-v2-mini-btn"
+            title="Quay về Node Cụm Bộ phận chính"
+            onClick={() => onSelectNode(parentHubNode.id)}
+          >
+            ← Cụm Bộ phận
+          </button>
+        )}
       </div>
 
-      {/* Segmented Sub-Tabs chuẩn 1-Click */}
+      {/* 3 Segmented Sub-Tabs chuẩn 1-Click */}
       <div className="wf-v2-seg-tabs" role="tablist" aria-label="Chế độ chỉnh Bộ phận con">
         <button
           type="button"
@@ -255,7 +313,16 @@ export function WorkflowV2PartSwapParams({
           className={`wf-v2-seg-tab${subTab === 'variant' ? ' active' : ''}`}
           onClick={() => switchSubTab('variant')}
         >
-          🎭 {isFacePart ? 'Biểu cảm' : 'Biến thể & Ảnh'}
+          🖼 {isFacePart ? 'Biểu cảm & Ảnh' : 'Biến thể & Ảnh'}
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={subTab === 'trigger'}
+          className={`wf-v2-seg-tab${subTab === 'trigger' ? ' active' : ''}`}
+          onClick={() => switchSubTab('trigger')}
+        >
+          🎯 {triggerSummary.triggeredByMotion ? `Vị trí (${Math.round(triggerSummary.pct ?? 50)}%)` : 'Vị trí kích hoạt'}
         </button>
         <button
           type="button"
@@ -264,151 +331,91 @@ export function WorkflowV2PartSwapParams({
           className={`wf-v2-seg-tab${subTab === 'pose' ? ' active' : ''}`}
           onClick={() => switchSubTab('pose')}
         >
-          📐 Cử động &amp; Tư thế
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={subTab === 'layers'}
-          className={`wf-v2-seg-tab${subTab === 'layers' ? ' active' : ''}`}
-          onClick={() => switchSubTab('layers')}
-        >
-          👁 Mảnh ({partLayers.length})
+          🤸 Tư thế
         </button>
       </div>
 
       {subTab === 'variant' && (
         <div className="wf-v2-subsec">
-          {isFacePart ? (
+          {variantItems.length > 1 ? (
             <>
               <div className="wf-v2-subsec-head">
-                <span>😊 Chọn Biểu cảm trong mốc giây</span>
-                <small>{expressions.length} trạng thái</small>
+                <span>{isFacePart ? '😊 Chọn Biểu cảm (có hình xem trước)' : '🔄 Chọn Biến thể bộ phận'}</span>
+                <button
+                  type="button"
+                  className={`wf-v2-mini-btn${p.partSwapHoldAfterEnd ? ' active' : ''}`}
+                  onClick={() => onUpdate({ partSwapHoldAfterEnd: !p.partSwapHoldAfterEnd })}
+                >
+                  {p.partSwapHoldAfterEnd ? '📌 Giữ luôn sau khi thay' : '↩ Hết mốc trả mặc định'}
+                </button>
               </div>
-              <div className="wf-v2-pill-grid" data-cols={2} style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
-                {expressions.map((expr, idx) => {
-                  const isSelected = p.swapVariant ? p.swapVariant === expr.layerId : expr.visible
-                  const spanFull = expressions.length % 2 === 1 && idx === expressions.length - 1
-                  return (
-                    <button
-                      key={expr.layerId}
-                      type="button"
-                      className={`wf-v2-opt-pill${isSelected ? ' active' : ''}`}
-                      style={spanFull ? { gridColumn: '1 / -1' } : undefined}
-                      onClick={() =>
-                        onUpdate(
-                          { swapMode: 'expression', swapVariant: expr.layerId },
-                          `Bộ phận: Khuôn mặt (${expr.label})`
-                        )
-                      }
-                    >
-                      <span className="wf-v2-opt-pill-txt">{isSelected ? '● ' : '○ '}{expr.label}</span>
-                    </button>
+              <PartVariantThumbnailGrid
+                project={project}
+                items={variantItems}
+                onPick={(layerId, label) =>
+                  onUpdate(
+                    isFacePart
+                      ? { swapMode: 'expression', swapVariant: layerId, swapTargetLayerId: layerId }
+                      : { swapMode: 'part_variant', swapVariant: layerId, swapTargetLayerId: layerId },
+                    isFacePart
+                      ? `Bộ phận: Khuôn mặt (${label})`
+                      : `Bộ phận: ${p.partGroupTitle || activePart?.title || label}`
                   )
-                })}
-              </div>
+                }
+              />
             </>
-          ) : partLayers.length > 1 ? (
-            <>
-              <div className="wf-v2-subsec-head">
-                <span>🔄 Chọn Biến thể hiển thị của {p.partGroupTitle || activePart?.title}</span>
-                <small>{partLayers.length} mảnh</small>
-              </div>
-              <div className="wf-v2-pill-grid" data-cols={2} style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
-                {partLayers.map((pl, idx) => {
-                  const shortName = getClusterPartShortName(pl)
-                  const isPicked = p.swapVariant ? p.swapVariant === pl.id : pl.visible !== false
-                  const spanFull = partLayers.length % 2 === 1 && idx === partLayers.length - 1
-                  return (
-                    <button
-                      key={pl.id}
-                      type="button"
-                      className={`wf-v2-opt-pill${isPicked ? ' active' : ''}`}
-                      style={spanFull ? { gridColumn: '1 / -1' } : undefined}
-                      title={shortName}
-                      onClick={() =>
-                        onUpdate(
-                          { swapMode: 'part_variant', swapVariant: pl.id, swapTargetLayerId: pl.id },
-                          `Bộ phận: ${p.partGroupTitle || activePart?.title || shortName}`
-                        )
-                      }
-                    >
-                      <span className="wf-v2-opt-pill-txt">{pl.visible !== false ? '👁 ' : '🚫 '}{shortName}</span>
-                    </button>
-                  )
-                })}
-              </div>
-            </>
-          ) : (
+          ) : selectedSubLayer ? (
             <div className="wf-v2-subsec-head">
-              <span>🖼 Mảnh bộ phận: {selectedSubLayer ? getClusterPartShortName(selectedSubLayer) : 'Mảnh đơn'}</span>
+              <span>👁 Trạng thái mảnh "{getClusterPartShortName(selectedSubLayer)}"</span>
               <button
                 type="button"
-                className={`wf-v2-mini-btn${selectedSubLayer?.visible !== false ? ' active' : ''}`}
-                onClick={() => {
-                  if (!selectedSubLayer) return
-                  onUpdate({ swapMode: 'toggle_part', swapTargetLayerId: selectedSubLayer.id, partVisible: !(p.partVisible ?? selectedSubLayer.visible) })
-                }}
+                className={`wf-v2-mini-btn${(p.partVisible ?? selectedSubLayer.visible) !== false ? ' active' : ''}`}
+                onClick={() =>
+                  onUpdate({
+                    swapMode: 'toggle_part',
+                    swapTargetLayerId: selectedSubLayer.id,
+                    partVisible: !(p.partVisible ?? selectedSubLayer.visible)
+                  })
+                }
               >
-                {(p.partVisible ?? selectedSubLayer?.visible) !== false ? '👁 Hiện trong mốc' : '🚫 Ẩn trong mốc'}
+                {(p.partVisible ?? selectedSubLayer.visible) !== false ? '👁 Hiện trong mốc' : '🚫 Ẩn trong mốc'}
               </button>
             </div>
-          )}
+          ) : null}
 
-          {(isFacePart || partLayers.length > 1) && (
-            <div className="wf-v2-subsec-head" style={{ marginTop: 4 }}>
-              <span>⏱ Hết mốc giây ({(p.timeEnd ?? project.comp.duration ?? 5).toFixed(1)}s)</span>
-              <button
-                type="button"
-                className={`wf-v2-mini-btn${p.partSwapHoldAfterEnd ? ' active' : ''}`}
-                title="Chọn xem sau mốc kết thúc sẽ giữ nguyên biến thể mới hay trả về mặc định ban đầu"
-                onClick={() => onUpdate({ partSwapHoldAfterEnd: !p.partSwapHoldAfterEnd })}
-              >
-                {p.partSwapHoldAfterEnd ? '📌 Giữ luôn sau khi đổi' : '↩ Trả về mặc định'}
-              </button>
-            </div>
-          )}
           {selectedSubLayer && (
-            <div className="wf-v2-subsec" style={{ marginTop: 6 }}>
-              <div className="wf-v2-subsec-head">
-                <span>🎨 Thay ảnh (Asset) cho "{getClusterPartShortName(selectedSubLayer)}"</span>
-              </div>
-              <input className="wf-part-asset-search" aria-label="Tìm ảnh thay bộ phận" placeholder="Tìm ảnh trong dự án…" value={assetSearch} onChange={e => setAssetSearch(e.target.value)} />
-              <div className="wf-v2-pill-grid wf-part-assets" data-cols={2} style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
-                {imageAssets.map((asset, idx, arr) => {
-                  const currentAssetId =
-                    selectedSubLayer.type === 'image' ? (selectedSubLayer.props as ImageProps).assetId : ''
-                  const isCurrent = p.swapAssetId ? p.swapAssetId === asset.id : currentAssetId === asset.id
-                  const spanFull = arr.length % 2 === 1 && idx === arr.length - 1
-                  return (
-                    <button
-                      key={asset.id}
-                      type="button"
-                      className={`wf-v2-opt-pill${isCurrent ? ' active' : ''}`}
-                      style={spanFull ? { gridColumn: '1 / -1' } : undefined}
-                      title={asset.name}
-                      onClick={() =>
-                        onUpdate({
-                          swapMode: 'replace_asset',
-                          swapTargetLayerId: selectedSubLayer.id,
-                          swapAssetId: asset.id
-                        })
-                      }
-                    >
-                      <span className="wf-v2-opt-pill-txt">🖼 {asset.name}</span>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
+            <PartReplaceAssetGrid
+              project={project}
+              targetLayer={selectedSubLayer}
+              selectedAssetId={p.swapAssetId}
+              onPickAsset={(asset) =>
+                onUpdate({
+                  swapMode: 'replace_asset',
+                  swapTargetLayerId: selectedSubLayer.id,
+                  swapAssetId: asset.id
+                })
+              }
+            />
           )}
         </div>
+      )}
+
+      {subTab === 'trigger' && (
+        <PartMotionTriggerPicker
+          node={node}
+          project={project}
+          parentClusterOrLayerNodeId={parentClusterOrLayerNodeId}
+          onUpdate={(patch) => onUpdate(patch)}
+          onScrubTime={onScrubTime}
+          onSelectNode={onSelectNode}
+          onAttachLogic={onAttachLogic}
+        />
       )}
 
       {subTab === 'pose' && (
         <div className="wf-v2-subsec">
           <div className="wf-v2-subsec-head">
-            <span>⚡ Mẫu cử động nhanh trong mốc giây</span>
+            <span>⚡ Mẫu cử động nhanh tại điểm kích hoạt</span>
           </div>
           <div className="wf-v2-pill-grid" data-cols={2} style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
             {QUICK_POSE_PRESETS.map((qp) => {
@@ -429,15 +436,17 @@ export function WorkflowV2PartSwapParams({
             })}
           </div>
 
-          <div className="wf-v2-subsec-head" style={{ marginTop: 6 }}>
-            <span>🌊 Kiểu nhịp Keyframe trong khoảng thời gian</span>
+          <div className="wf-v2-subsec-head" style={{ marginTop: 4 }}>
+            <span>🌊 Nhịp cử động</span>
           </div>
           <div className="wf-v2-pill-grid" data-cols={3} style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
-            {([
-              { id: 'smooth', label: '🌊 Vào-Giữ-Trả' },
-              { id: 'hold', label: '📌 Giữ tư thế' },
-              { id: 'oscillate', label: '👋 Vẫy lặp' }
-            ] as const).map((w) => (
+            {(
+              [
+                { id: 'smooth', label: '🌊 Vào-Giữ-Trả' },
+                { id: 'hold', label: '📌 Giữ tư thế' },
+                { id: 'oscillate', label: '👋 Vẫy lặp' }
+              ] as const
+            ).map((w) => (
               <button
                 key={w.id}
                 type="button"
@@ -485,36 +494,6 @@ export function WorkflowV2PartSwapParams({
             format={pctRawFmt}
             onChange={(v) => onUpdate({ partActionMode: 'pose', partScalePct: v })}
           />
-        </div>
-      )}
-
-      {subTab === 'layers' && (
-        <div className="wf-v2-subsec">
-          <div className="wf-v2-subsec-head">
-            <span>👁 Chọn mảnh ẩn / hiện trong mốc: "{p.partGroupTitle || activePart?.title}"</span>
-            <small>{partLayers.filter((l) => l.visible !== false).length}/{partLayers.length} hiện</small>
-          </div>
-          <div className="wf-v2-pill-grid" data-cols={2} style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
-            {partLayers.map((pl, idx) => {
-              const shortName = getClusterPartShortName(pl)
-              const vis = p.swapMode === 'toggle_part' && p.swapTargetLayerId === pl.id ? p.partVisible !== false : pl.visible !== false
-              const spanFull = partLayers.length % 2 === 1 && idx === partLayers.length - 1
-              return (
-                <button
-                  key={pl.id}
-                  type="button"
-                  className={`wf-v2-opt-pill${vis ? ' active' : ''}`}
-                  style={spanFull ? { gridColumn: '1 / -1' } : undefined}
-                  title={`Click để ${vis ? 'Ẩn' : 'Hiện'} mảnh "${shortName}"`}
-                  onClick={() => {
-                    onUpdate({ swapMode: 'toggle_part', swapTargetLayerId: pl.id, partVisible: !vis })
-                  }}
-                >
-                  <span className="wf-v2-opt-pill-txt">{vis ? '👁 ' : '🚫 '}{shortName}</span>
-                </button>
-              )
-            })}
-          </div>
         </div>
       )}
     </div>

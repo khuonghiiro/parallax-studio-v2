@@ -262,6 +262,20 @@ export interface WorkflowNodeParams {
   partTimeline?: boolean
   partVisible?: boolean
   partSwapHoldAfterEnd?: boolean
+  /** [Workflow V2] Chế độ kích hoạt thay bộ phận ('time' = theo mốc giây, 'motion_bbox' = khi BBox di chuyển tới vị trí) */
+  partTriggerMode?: 'time' | 'motion_bbox'
+  /** [Workflow V2] ID Node Motion (action) liên kết để kích hoạt thay bộ phận theo lộ trình BBox */
+  linkedMotionNodeId?: string
+  /** [Workflow V2] Tiến độ vị trí trên đường đi BBox #1 -> #2 để kích hoạt thay bộ phận (0..100%) */
+  motionTriggerPct?: number
+  /** [Workflow V2] Toạ độ X điểm kích hoạt thay bộ phận trên đường đi BBox */
+  motionTriggerX?: number
+  /** [Workflow V2] Toạ độ Y điểm kích hoạt thay bộ phận trên đường đi BBox */
+  motionTriggerY?: number
+  /** [Workflow V2] Thời lượng giữ (giây) từ lúc chạm điểm kích hoạt khi không bật giữ vĩnh viễn */
+  motionTriggerHoldSec?: number
+  /** [Workflow V2] Chế độ di chuyển khi nhiều Layer nối chung 1 Node Motion BBox ('group_offset' = giữ đội hình, 'converge_target' = cùng hội tụ về đích) */
+  bboxMultiMode?: 'group_offset' | 'converge_target'
   /** [Workflow V2] ID động tác đặt tên động của Cụm 2.5D đang chọn trên Node Animation */
   customActionId?: string
   /** [Workflow V2] Tên động tác đặt tên động của Cụm 2.5D đang chọn trên Node Animation */
@@ -399,6 +413,10 @@ export interface WorkflowNodeParams {
   camEase?: string
   /** [Workflow V2] Thời lượng riêng của bước quay xuất phát từ mốc này (giây) */
   camStepDuration?: number
+  /** [Workflow V2] ID Cảnh đích khi động tác Camera là Chuyển cảnh tới BBox cảnh đó */
+  camTransitionTargetShotId?: string
+  /** [Workflow V2] ID Layer/Cụm BBox đích mà mốc Camera đang bắt khung */
+  camTransitionTargetLayerId?: string
 }
 export interface WorkflowNode {
   id: string
