@@ -17,7 +17,7 @@
       ],
       "keyframes": [
         {
-          "id": "yScITw5u",
+          "id": "Oe-PwIhS",
           "t": 0,
           "value": [
             0,
@@ -27,7 +27,7 @@
           "ease": "easeInOut"
         },
         {
-          "id": "FadnmL77",
+          "id": "zB194Fal",
           "t": 2.2,
           "value": [
             60,
@@ -37,7 +37,7 @@
           "ease": "hold"
         },
         {
-          "id": "demo-hold-FadnmL77",
+          "id": "demo-hold-zB194Fal",
           "t": 4,
           "value": [
             60,
@@ -47,7 +47,7 @@
           "ease": "easeInOut"
         },
         {
-          "id": "wuLEWLch",
+          "id": "Gs2TA6Ev",
           "t": 5,
           "value": [
             10560,
@@ -57,7 +57,7 @@
           "ease": "easeInOut"
         },
         {
-          "id": "KP-OP0z1",
+          "id": "VRu0yV5a",
           "t": 7.2,
           "value": [
             10635,
@@ -67,7 +67,7 @@
           "ease": "hold"
         },
         {
-          "id": "demo-hold-KP-OP0z1",
+          "id": "demo-hold-VRu0yV5a",
           "t": 9,
           "value": [
             10635,
@@ -77,7 +77,7 @@
           "ease": "easeInOut"
         },
         {
-          "id": "WXOyJPFj",
+          "id": "mzCQ1TGU",
           "t": 10,
           "value": [
             21120,
@@ -87,7 +87,7 @@
           "ease": "easeInOut"
         },
         {
-          "id": "yq3H5HIC",
+          "id": "Z8fUjfw0",
           "t": 12.4,
           "value": [
             21175,
@@ -97,7 +97,7 @@
           "ease": "easeInOut"
         },
         {
-          "id": "z-L-xW-1",
+          "id": "Bpp6iMRj",
           "t": 15,
           "value": [
             21215,
@@ -116,7 +116,7 @@
       ],
       "keyframes": [
         {
-          "id": "MlP5BUCP",
+          "id": "ndTtaDS_",
           "t": 0,
           "value": [
             0,
@@ -126,7 +126,7 @@
           "ease": "easeInOut"
         },
         {
-          "id": "m88HsaMF",
+          "id": "3vRfpJrf",
           "t": 2.2,
           "value": [
             60,
@@ -136,7 +136,7 @@
           "ease": "hold"
         },
         {
-          "id": "demo-hold-m88HsaMF",
+          "id": "demo-hold-3vRfpJrf",
           "t": 4,
           "value": [
             60,
@@ -146,7 +146,7 @@
           "ease": "easeInOut"
         },
         {
-          "id": "RIt5XN0U",
+          "id": "U-7f0d6n",
           "t": 5,
           "value": [
             10560,
@@ -156,7 +156,7 @@
           "ease": "easeInOut"
         },
         {
-          "id": "wpkBAk7t",
+          "id": "vAgw9l_y",
           "t": 7.2,
           "value": [
             10635,
@@ -166,7 +166,7 @@
           "ease": "hold"
         },
         {
-          "id": "demo-hold-wpkBAk7t",
+          "id": "demo-hold-vAgw9l_y",
           "t": 9,
           "value": [
             10635,
@@ -176,7 +176,7 @@
           "ease": "easeInOut"
         },
         {
-          "id": "Xjpb3A5v",
+          "id": "tjUdjbcs",
           "t": 10,
           "value": [
             21120,
@@ -186,7 +186,7 @@
           "ease": "easeInOut"
         },
         {
-          "id": "CkUjLQWr",
+          "id": "GSWRJW6n",
           "t": 12.4,
           "value": [
             21175,
@@ -196,7 +196,7 @@
           "ease": "easeInOut"
         },
         {
-          "id": "T0_oVWcK",
+          "id": "_swUgX61",
           "t": 15,
           "value": [
             21215,
@@ -2037,6 +2037,8 @@
         "windDirectionDeg": 0,
         "flickerSpeed": 1.2,
         "zReach": 1500,
+        "zReachFront": 1500,
+        "zReachBack": 1500,
         "ambientDim": 0.24,
         "softness": 0.55,
         "beamCurvature": 0.35,
@@ -3894,7 +3896,7 @@
         "flickerSpeed": 0.85,
         "zReach": 1800,
         "zReachFront": 1800,
-        "zReachBack": 150,
+        "zReachBack": 1800,
         "ambientDim": 0.28,
         "softness": 0.42,
         "beamCurvature": 0.25,
@@ -6246,7 +6248,9 @@
           "lightWindPreset": "gentle",
           "lightRayIntensity": 0.24,
           "lightRayDynamic": true,
-          "lightEnvBounce": 0.9
+          "lightEnvBounce": 0.9,
+          "lightZReachFront": 1500,
+          "lightZReachBack": 1500
         }
       },
       {
@@ -6284,7 +6288,7 @@
           "lightRayDynamic": true,
           "lightEnvBounce": 0.92,
           "lightZReachFront": 1800,
-          "lightZReachBack": 150
+          "lightZReachBack": 1800
         }
       },
       {

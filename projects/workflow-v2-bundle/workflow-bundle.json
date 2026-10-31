@@ -2688,7 +2688,9 @@
               "lightWindPreset": "gentle",
               "lightRayIntensity": 0.24,
               "lightRayDynamic": true,
-              "lightEnvBounce": 0.9
+              "lightEnvBounce": 0.9,
+              "lightZReachFront": 1500,
+              "lightZReachBack": 1500
             }
           }
         ],
@@ -3508,7 +3510,9 @@
               "lightWindPreset": "none",
               "lightRayIntensity": 0.52,
               "lightRayDynamic": true,
-              "lightEnvBounce": 0.92
+              "lightEnvBounce": 0.92,
+              "lightZReachFront": 1800,
+              "lightZReachBack": 1800
             }
           },
           {
@@ -6421,7 +6425,9 @@
               "lightWindPreset": "gentle",
               "lightRayIntensity": 0.24,
               "lightRayDynamic": true,
-              "lightEnvBounce": 0.9
+              "lightEnvBounce": 0.9,
+              "lightZReachFront": 1500,
+              "lightZReachBack": 1500
             }
           }
         ],
@@ -7241,7 +7247,9 @@
               "lightWindPreset": "none",
               "lightRayIntensity": 0.52,
               "lightRayDynamic": true,
-              "lightEnvBounce": 0.92
+              "lightEnvBounce": 0.92,
+              "lightZReachFront": 1800,
+              "lightZReachBack": 1800
             }
           },
           {

@@ -4,7 +4,7 @@ import { resolveMotionMode } from '../../project/workflowMotionMode'
 import { useShiftToFocus } from './workflowFocusGuard'
 import { bboxStartPosition, bboxStartScale } from '../../project/workflowMotionStart'
 import { bboxStepNumber } from '../../project/workflowBboxSteps'
-import React, { useCallback, useMemo } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import type { ImageProps, Layer, Project, Vec3, WorkflowGraph, WorkflowNode, WorkflowNodeParams } from '@shared/types'
 import { evaluate } from '../../animation/keyframes'
 import { assetStore } from '../../project/assets'
@@ -558,6 +558,19 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
   }
 
   const primaryItem = renderedEntities.find((i) => i.isPrimary) ?? renderedEntities[0]
+  const isMultiEntity = renderedEntities.length > 1
+  const [localFocusedId, setLocalFocusedId] = useState<string | null>(null)
+  const focusedEntityId = useMemo(() => {
+    if (!isMultiEntity) return renderedEntities[0]?.ent.id
+    if (localFocusedId && renderedEntities.some((r) => r.ent.id === localFocusedId)) {
+      return localFocusedId
+    }
+    const paramTarget = mp?.activeMotionTargetEntityId
+    if (paramTarget && paramTarget !== 'all' && renderedEntities.some((r) => r.ent.id === paramTarget)) {
+      return paramTarget
+    }
+    return primaryEntity?.id ?? renderedEntities[0]?.ent.id
+  }, [isMultiEntity, localFocusedId, mp?.activeMotionTargetEntityId, primaryEntity?.id, renderedEntities])
 
   return (
     <>
@@ -605,29 +618,32 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
           height={stageH}
           style={{ zIndex: 24, pointerEvents: 'none' }}
         >
-          {renderedEntities.map(
-            (item) =>
-              item.pathPts.length >= 2 && (
-                <React.Fragment key={`svg-${item.ent.id}`}>
-                  <polyline
-                    fill="none"
-                    stroke={item.accentColor}
-                    strokeOpacity={0.28}
-                    strokeWidth={5}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    points={item.pathPts.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ')}
-                  />
-                  <polyline
-                    fill="none"
-                    stroke={item.accentColor}
-                    strokeWidth={2}
-                    strokeDasharray="5 3"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    points={item.pathPts.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ')}
-                  />
-                  {[0.33, 0.66].map((uStep) => {
+          {renderedEntities.map((item) => {
+            if (item.pathPts.length < 2) return null
+            const isFocused = !isMultiEntity || item.ent.id === focusedEntityId
+            return (
+              <React.Fragment key={`svg-${item.ent.id}`}>
+                <polyline
+                  fill="none"
+                  stroke={item.accentColor}
+                  strokeOpacity={isFocused ? 0.28 : 0.08}
+                  strokeWidth={isFocused ? 5 : 2}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  points={item.pathPts.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ')}
+                />
+                <polyline
+                  fill="none"
+                  stroke={item.accentColor}
+                  strokeWidth={isFocused ? 2 : 1}
+                  strokeOpacity={isFocused ? 1 : 0.3}
+                  strokeDasharray={isFocused ? '5 3' : '3 3'}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  points={item.pathPts.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ')}
+                />
+                {isFocused &&
+                  [0.33, 0.66].map((uStep) => {
                     const pIdx = Math.min(
                       item.pathPts.length - 1,
                       Math.round(uStep * (item.pathPts.length - 1))
@@ -652,101 +668,73 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
                       />
                     )
                   })}
-                  <circle
-                    cx={item.box1Cx}
-                    cy={item.box1Cy}
-                    r={4.5}
-                    fill="#10b981"
-                    stroke="#0f172a"
-                    strokeWidth={1.5}
-                  />
-                  <circle
-                    cx={item.box2Cx}
-                    cy={item.box2Cy}
-                    r={5}
-                    fill={item.accentColor}
-                    stroke="#0f172a"
-                    strokeWidth={1.5}
-                  />
-                </React.Fragment>
-              )
-          )}
+                <circle
+                  cx={item.box1Cx}
+                  cy={item.box1Cy}
+                  r={isFocused ? 4.5 : 3}
+                  fill="#10b981"
+                  stroke="#0f172a"
+                  strokeWidth={1.5}
+                  opacity={isFocused ? 1 : 0.45}
+                />
+                <circle
+                  cx={item.box2Cx}
+                  cy={item.box2Cy}
+                  r={isFocused ? 5 : 3.5}
+                  fill={item.accentColor}
+                  stroke="#0f172a"
+                  strokeWidth={1.5}
+                  opacity={isFocused ? 1 : 0.45}
+                />
+              </React.Fragment>
+            )
+          })}
         </svg>
       )}
 
-      {/* Khung BBox đích dạng mờ (Ghost Target BBox) cho từng Layer/Cụm kết nối */}
+      {/* Khung BBox đích cho từng Layer/Cụm kết nối. Khi có 2+ layer, chỉ entity được focus mới hiện đầy đủ handle, các entity còn lại hiện bóng mờ tinh tế */}
       {hasBboxMotion &&
-        renderedEntities.map((item) => (
-          <div
-            key={`ghost-${item.ent.id}`}
-            className="wf-v2-direct-layer-bbox is-ghost-target"
-            data-mcp-region="workflow_motion_ghost"
-            style={{
-              pointerEvents: motionNode?.id === node.id || shiftToFocus ? 'auto' : 'none',
-              left: item.box2Left,
-              top: item.box2Top,
-              width: item.box2W,
-              height: item.box2H,
-              border: `1.5px dashed ${item.accentColor}`,
-              background: `color-mix(in srgb, ${item.accentColor} 8%, transparent)`,
-              boxShadow: `0 0 0 1px rgba(15, 23, 42, 0.55), 0 0 14px color-mix(in srgb, ${item.accentColor} 25%, transparent)`,
-              zIndex: item.isPrimary ? 28 : 27,
-              ['--wf-v2-accent' as string]: item.accentColor
-            }}
-            title={`BBox đích của "${item.ent.name}" (${item.entTargetScalePct}%) — Kéo để đặt vị trí, kéo 4 góc để đổi kích thước`}
-            onPointerDown={(e) => {
-              if (e.button === 0) {
-                startBbox2DragForEntity(
-                  e,
-                  'move',
-                  item.ent,
-                  item.entTargetX,
-                  item.entTargetY,
-                  item.entTargetScalePct,
-                  item.baseStageW,
-                  item.entStartZ,
-                  item.pEnd
-                )
-              }
-            }}
-          >
-            {item.ghostImg && (
-              <img
-                src={item.ghostImg}
-                alt={`Ghost Target ${item.ent.name}`}
-                draggable={false}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'contain',
-                  opacity: 0.44,
-                  filter: `drop-shadow(0 0 6px ${item.accentColor})`,
-                  pointerEvents: 'none'
-                }}
-              />
-            )}
-            <span
-              className="wf-v2-direct-bbox-tag"
+        renderedEntities.map((item) => {
+          const isFocused = !isMultiEntity || item.ent.id === focusedEntityId
+
+          return (
+            <div
+              key={`ghost-${item.ent.id}`}
+              className={`wf-v2-direct-layer-bbox is-ghost-target${isFocused ? ' is-focused' : ' is-silhouette'}`}
+              data-mcp-region="workflow_motion_ghost"
               style={{
-                top: item.box2Top < 18 ? 2 : -16,
-                right: 0,
-                left: 'auto',
-                background: `color-mix(in srgb, ${item.accentColor} 82%, #0f172a)`,
-                color: '#ffffff'
+                pointerEvents: motionNode?.id === node.id || shiftToFocus ? 'auto' : 'none',
+                left: item.box2Left,
+                top: item.box2Top,
+                width: item.box2W,
+                height: item.box2H,
+                border: isFocused
+                  ? `2px dashed ${item.accentColor}`
+                  : `1px dashed color-mix(in srgb, ${item.accentColor} 40%, transparent)`,
+                background: isFocused
+                  ? `color-mix(in srgb, ${item.accentColor} 10%, transparent)`
+                  : `color-mix(in srgb, ${item.accentColor} 3%, transparent)`,
+                boxShadow: isFocused
+                  ? `0 0 0 1px rgba(15, 23, 42, 0.65), 0 0 16px color-mix(in srgb, ${item.accentColor} 40%, transparent)`
+                  : 'none',
+                zIndex: isFocused ? 32 : 25,
+                cursor: isFocused ? 'move' : 'pointer',
+                ['--wf-v2-accent' as string]: item.accentColor
               }}
-            >
-              #{bboxStepNumber(workflow, motionNode?.id ?? node.id) + 1} Đích
-              {renderedEntities.length > 1 ? ` · ${item.ent.name}` : ''}
-            </span>
-            <span className="wf-v2-direct-bbox-crosshair" />
-            {HANDLES.map((h) => (
-              <span
-                key={h.key}
-                className={`wf-v2-bbox-handle ${h.cls}`}
-                onPointerDown={(e) =>
+              title={
+                isFocused
+                  ? `BBox đích đang chọn: "${item.ent.name}" (${item.entTargetScalePct}%) — Kéo để đặt vị trí, kéo 4 góc để đổi kích thước`
+                  : `Bóng mờ BBox đích của "${item.ent.name}" — Nhấp để chọn và di chuyển BBox này`
+              }
+              onPointerDown={(e) => {
+                if (e.button === 0) {
+                  if (!isFocused) {
+                    setLocalFocusedId(item.ent.id)
+                    patchMotionNode({ activeMotionTargetEntityId: item.ent.id }, 'wf-stage-focus-bbox')
+                  }
                   startBbox2DragForEntity(
                     e,
-                    h.key,
+                    'move',
                     item.ent,
                     item.entTargetX,
                     item.entTargetY,
@@ -756,10 +744,87 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
                     item.pEnd
                   )
                 }
-              />
-            ))}
-          </div>
-        ))}
+              }}
+            >
+              {item.ghostImg && (
+                <img
+                  src={item.ghostImg}
+                  alt={`Ghost Target ${item.ent.name}`}
+                  draggable={false}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'contain',
+                    opacity: isFocused ? 0.52 : 0.28,
+                    filter: isFocused
+                      ? `drop-shadow(0 0 8px ${item.accentColor})`
+                      : `grayscale(25%) drop-shadow(0 0 3px color-mix(in srgb, ${item.accentColor} 35%, transparent))`,
+                    pointerEvents: 'none'
+                  }}
+                />
+              )}
+
+              {/* Tag nhãn: Nếu đang focus thì hiển thị đầy đủ, nếu là bóng mờ thì hiển thị nhãn mini mờ nhẹ */}
+              {isFocused ? (
+                <span
+                  className="wf-v2-direct-bbox-tag"
+                  style={{
+                    top: item.box2Top < 18 ? 2 : -17,
+                    right: 0,
+                    left: 'auto',
+                    background: `color-mix(in srgb, ${item.accentColor} 84%, #0f172a)`,
+                    color: '#ffffff',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
+                    border: `1px solid color-mix(in srgb, ${item.accentColor} 50%, #ffffff)`
+                  }}
+                >
+                  #{bboxStepNumber(workflow, motionNode?.id ?? node.id) + 1} Đích
+                  {isMultiEntity ? ` · ${item.ent.name}` : ''}
+                </span>
+              ) : (
+                <span
+                  className="wf-v2-direct-bbox-tag is-ghost-silhouette"
+                  style={{
+                    top: item.box2Top < 18 ? 2 : -15,
+                    right: 0,
+                    left: 'auto',
+                    background: 'rgba(15, 23, 42, 0.70)',
+                    color: 'rgba(255, 255, 255, 0.75)',
+                    fontSize: 8,
+                    padding: '0 4px',
+                    border: `1px solid color-mix(in srgb, ${item.accentColor} 35%, transparent)`,
+                    pointerEvents: 'none'
+                  }}
+                >
+                  {item.ent.name} (Bóng mờ)
+                </span>
+              )}
+
+              {/* Crosshair và 4 góc kéo kích thước CHỈ hiển thị khi BBox đang được focus */}
+              {isFocused && <span className="wf-v2-direct-bbox-crosshair" />}
+              {isFocused &&
+                HANDLES.map((h) => (
+                  <span
+                    key={h.key}
+                    className={`wf-v2-bbox-handle ${h.cls}`}
+                    onPointerDown={(e) =>
+                      startBbox2DragForEntity(
+                        e,
+                        h.key,
+                        item.ent,
+                        item.entTargetX,
+                        item.entTargetY,
+                        item.entTargetScalePct,
+                        item.baseStageW,
+                        item.entStartZ,
+                        item.pEnd
+                      )
+                    }
+                  />
+                ))}
+            </div>
+          )
+        })}
     </>
   )
 }

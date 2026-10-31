@@ -1004,7 +1004,9 @@
           "lightWindPreset": "gentle",
           "lightRayIntensity": 0.24,
           "lightRayDynamic": true,
-          "lightEnvBounce": 0.9
+          "lightEnvBounce": 0.9,
+          "lightZReachFront": 1500,
+          "lightZReachBack": 1500
         }
       }
     ],

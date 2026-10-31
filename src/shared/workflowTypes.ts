@@ -285,6 +285,8 @@ export interface WorkflowNodeParams {
   bboxMultiMode?: 'group_offset' | 'converge_target'
   /** Toạ độ và kích thước BBox đích riêng cho từng Layer/Cụm khi kết nối đa Layer vào 1 Motion BBox */
   layerBboxTargets?: Record<string, LayerBboxTargetConfig>
+  /** [Workflow V2] ID của Layer/Cụm đang được chọn/focus để điều chỉnh BBox đích riêng khi kết nối đa Layer */
+  activeMotionTargetEntityId?: string
   /** [Workflow V2] ID động tác đặt tên động của Cụm 2.5D đang chọn trên Node Animation */
   customActionId?: string
   /** [Workflow V2] Tên động tác đặt tên động của Cụm 2.5D đang chọn trên Node Animation */

@@ -238,9 +238,7 @@
       "params": {
         "lightMode": "spot",
         "lightColor": "#38bdf8",
-        "intensity": 1.4,
-        "lightZReachFront": 1800,
-        "lightZReachBack": 150
+        "intensity": 1.4
       }
     },
     {
@@ -667,7 +665,7 @@
           "lightRayDynamic": true,
           "lightEnvBounce": 0.92,
           "lightZReachFront": 1800,
-          "lightZReachBack": 150
+          "lightZReachBack": 1800
         }
       },
       {

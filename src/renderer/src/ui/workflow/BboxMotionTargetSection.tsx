@@ -28,7 +28,10 @@ export function BboxMotionTargetSection({ model }: { model: BboxMotionModel }): 
 
   const connectedEntities = model.connectedEntities ?? []
   const hasMultiple = connectedEntities.length > 1
-  const [activeEntityId, setActiveEntityId] = useState<string>('all')
+  const activeEntityId = p.activeMotionTargetEntityId ?? 'all'
+  const setActiveEntityId = (id: string): void => {
+    applyBboxPatch({ activeMotionTargetEntityId: id }, 'wf-bbox-target-ent')
+  }
   const primaryEnt = connectedEntities[0]
   const currentEnt = activeEntityId !== 'all' ? connectedEntities.find((e) => e.id === activeEntityId) : undefined
   const sharedCount = Math.max(p.sharedLayerNodeIds?.length ?? 1, connectedEntities.length)
