@@ -61,6 +61,18 @@ export function WorkflowMotionStageTools({ toolbarHost, mode, nodeId, params, wi
     { icon: 'straight', title: mode === 'bbox' ? 'Đường thẳng đầu → đích' : 'Vẽ đoạn thẳng trên khung', active: mode === 'bbox' ? params.bboxPathType !== 'custom_curve' : tool === 'straight', click: () => pick('straight') },
     { icon: 'draw', title: mode === 'bbox' ? 'Vẽ đường cong đầu → đích' : 'Vẽ line trên khung BBox', active: tool === 'draw', click: () => pick('draw') },
     { icon: 'clear', title: mode === 'bbox' ? 'Xóa đường cong, về đường thẳng' : 'Xóa line', click: () => { cancel(); setTool('select'); patch({ customMotionPath: [], ...(mode === 'bbox' ? { bboxPathType: 'shortest' as const } : {}) }, 'wf-stage-clear') } },
+    ...(mode === 'bbox'
+      ? [
+          {
+            icon: 'gimbal' as const,
+            title: `Vòng xoay Gimbal 3D (${params.bboxRotateGimbal ? 'Đang bật' : 'Đang tắt'})\n• Bật vòng xoay Gimbal 3D để xoay góc BBox đích\n• Kéo vòng Z xoay phẳng, vòng X/Y xoay nghiêng 3D`,
+            active: Boolean(params.bboxRotateGimbal),
+            click: () => {
+              patch({ bboxRotateGimbal: !params.bboxRotateGimbal }, 'wf-stage-gimbal')
+            }
+          }
+        ]
+      : []),
     { icon: playing ? 'stop' : 'play', title: playing ? 'Dừng xem thử' : 'Xem thử chuyển động', active: playing, click: () => { cancel(); setTool('select'); const ed = useEditor.getState(); if (!ed.playing) ed.setTime(params.timeStart ?? 0); ed.setPlaying(!ed.playing) } }
   ]
   const display = stroke && stroke.length > 1

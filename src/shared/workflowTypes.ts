@@ -111,6 +111,9 @@ export interface LayerBboxTargetConfig {
   targetY: number
   targetScalePct?: number
   targetZ?: number
+  targetRotZ?: number
+  targetRotY?: number
+  targetRotX?: number
 }
 
 export interface WorkflowNodeParams {
@@ -287,6 +290,14 @@ export interface WorkflowNodeParams {
   layerBboxTargets?: Record<string, LayerBboxTargetConfig>
   /** [Workflow V2] ID của Layer/Cụm đang được chọn/focus để điều chỉnh BBox đích riêng khi kết nối đa Layer */
   activeMotionTargetEntityId?: string
+  /** [Workflow V2] Bật/tắt hiển thị vòng xoay Gimbal 3D trên BBox đích trong khung chỉnh Motion */
+  bboxRotateGimbal?: boolean
+  /** [Workflow V2] Góc xoay trục Z (độ) của BBox đích #2 (-180..+180) */
+  bboxTargetRotZ?: number
+  /** [Workflow V2] Góc xoay trục Y (độ) của BBox đích #2 (-80..+80) */
+  bboxTargetRotY?: number
+  /** [Workflow V2] Góc xoay trục X (độ) của BBox đích #2 (-80..+80) */
+  bboxTargetRotX?: number
   /** [Workflow V2] ID động tác đặt tên động của Cụm 2.5D đang chọn trên Node Animation */
   customActionId?: string
   /** [Workflow V2] Tên động tác đặt tên động của Cụm 2.5D đang chọn trên Node Animation */

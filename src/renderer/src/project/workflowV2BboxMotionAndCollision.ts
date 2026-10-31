@@ -54,7 +54,7 @@ export function clearBboxMotionKeysFromScene(project: Project, nodeId?: string):
       (k) => !isBboxMotKeyId(k.id, nodeId) && !isBboxColKeyId(k.id, nodeId)
     )
     l.transform.rotation.keyframes = l.transform.rotation.keyframes.filter(
-      (k) => !isBboxColKeyId(k.id, nodeId)
+      (k) => !isBboxMotKeyId(k.id, nodeId) && !isBboxColKeyId(k.id, nodeId)
     )
     if (l.physics?.impacts?.length && nodeId) {
       l.physics.impacts = l.physics.impacts.filter((imp) => !imp.id.startsWith(`wf-bboxcol-${nodeId}`))
@@ -374,6 +374,19 @@ export function bakeBboxTargetMotionToScene(
         : Math.round(targetZ + (entityStartZ - startZ))
     )
 
+    const entityTargetRotZ = entityTargetConfig?.targetRotZ ?? params.bboxTargetRotZ ?? 0
+    const entityTargetRotY = entityTargetConfig?.targetRotY ?? params.bboxTargetRotY ?? 0
+    const entityTargetRotX = entityTargetConfig?.targetRotX ?? params.bboxTargetRotX ?? 0
+    const hasRotation =
+      Math.abs(entityTargetRotZ) > 0.05 ||
+      Math.abs(entityTargetRotY) > 0.05 ||
+      Math.abs(entityTargetRotX) > 0.05
+    const cleanRotKfs = m.transform.rotation.keyframes.filter((k) => !isGeneratedMotionKeyId(k.id))
+    const mBaseRot: Vec3 =
+      cleanRotKfs.length > 0
+        ? evaluate({ value: m.transform.rotation.value, keyframes: cleanRotKfs }, tStart)
+        : ([...(m.transform.rotation.value ?? [0, 0, 0])] as Vec3)
+
     // Nếu tStart > 0.05s, neo giữ trạng thái gốc ngay trước tStart để layer không bị trôi trước mốc chạy
     if (tStart > 0.05 && !m.transform.position.keyframes.some(k => k.t <= tStart)) {
       const preT = Number(Math.max(0, tStart - 0.02).toFixed(3))
@@ -389,6 +402,14 @@ export function bakeBboxTargetMotionToScene(
         value: [...mBaseScale] as Vec3,
         ease: 'linear'
       })
+      if (hasRotation) {
+        m.transform.rotation.keyframes.push({
+          id: `${m.id}-bboxmot-${nodeId}-r-pre`,
+          t: preT,
+          value: [...mBaseRot] as Vec3,
+          ease: 'linear'
+        })
+      }
     }
 
     let keyIdx = 0
@@ -473,12 +494,27 @@ export function bakeBboxTargetMotionToScene(
           ease: segEase
         })
 
+        if (hasRotation) {
+          const curRotZ = Number((mBaseRot[2] + (entityTargetRotZ - mBaseRot[2]) * effU).toFixed(2))
+          const curRotY = Number((mBaseRot[1] + (entityTargetRotY - mBaseRot[1]) * effU).toFixed(2))
+          const curRotX = Number((mBaseRot[0] + (entityTargetRotX - mBaseRot[0]) * effU).toFixed(2))
+          m.transform.rotation.keyframes.push({
+            id: `${m.id}-bboxmot-${nodeId}-r-${keyIdx}`,
+            t,
+            value: [curRotX, curRotY, curRotZ],
+            ease: segEase
+          })
+        }
+
         keyIdx++
       }
     }
 
     m.transform.position.keyframes.sort((a, b) => a.t - b.t)
     m.transform.scale.keyframes.sort((a, b) => a.t - b.t)
+    if (hasRotation) {
+      m.transform.rotation.keyframes.sort((a, b) => a.t - b.t)
+    }
   }
 
   // 2. Nếu có va chạm với Layer vật cản trên đường đi, tạo phản ứng vật lý cho cả Layer vật cản!

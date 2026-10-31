@@ -162,4 +162,35 @@ describe('Multi-layer Motion BBox with per-entity targets', () => {
     expect(evaluate(b.transform.position, 2)[1]).toBeCloseTo(50)
     expect(evaluate(b.transform.scale, 2)[0]).toBeCloseTo(2.0)
   })
+
+  it('bakes 3D gimbal rotation (Z, Y, X) keyframes on target bbox motion', () => {
+    const { project, a } = fixture()
+    project.workflow = syncWorkflowV2Graph(project)
+    const attachRes = attachLogicNodeToLayerV2(
+      project.workflow,
+      v2LayerNodeId(a.id),
+      'action',
+      'v2:action:bbox_target',
+      {
+        timeStart: 0,
+        timeEnd: 2,
+        targetLayerIds: [a.id],
+        bboxTargetX: 120,
+        bboxTargetY: -40,
+        bboxTargetScalePct: 120,
+        bboxTargetRotZ: 45,
+        bboxTargetRotY: -20,
+        bboxTargetRotX: 15
+      }
+    )
+    project.workflow = attachRes.workflow
+    const n = project.workflow.nodes.find((node) => node.id === attachRes.createdNodeId)!
+    syncWorkflowV2NodeToProject(project, n)
+
+    expect(a.transform.rotation.keyframes.length).toBeGreaterThan(0)
+    const endRot = evaluate(a.transform.rotation, 2)
+    expect(endRot[0]).toBeCloseTo(15, 1)
+    expect(endRot[1]).toBeCloseTo(-20, 1)
+    expect(endRot[2]).toBeCloseTo(45, 1)
+  })
 })

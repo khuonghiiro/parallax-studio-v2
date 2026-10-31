@@ -1,5 +1,6 @@
 import { WorkflowMotionStageTools } from './WorkflowMotionStageTools'
 import { WorkflowMotionIcon } from './WorkflowMotionIcons'
+import { WorkflowV2BboxGimbal } from './WorkflowV2BboxGimbal'
 import { resolveMotionMode } from '../../project/workflowMotionMode'
 import { useShiftToFocus } from './workflowFocusGuard'
 import { bboxStartPosition, bboxStartScale } from '../../project/workflowMotionStart'
@@ -340,6 +341,10 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
             : Math.round(entStartZ - (entScaleRatio - 1) * 180)
           : entStartZ)
 
+      const entRotZ = customTarget?.targetRotZ ?? (isPrimary ? (mp?.bboxTargetRotZ ?? 0) : 0)
+      const entRotY = customTarget?.targetRotY ?? (isPrimary ? (mp?.bboxTargetRotY ?? 0) : 0)
+      const entRotX = customTarget?.targetRotX ?? (isPrimary ? (mp?.bboxTargetRotX ?? 0) : 0)
+
       const pEnd = refD / Math.max(80, refD + entTargetZ)
       const startOffX = entStartPos[0] * pStart
       const startOffY = -entStartPos[1] * pStart
@@ -419,6 +424,9 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
         box2Cy,
         box2Left,
         box2Top,
+        entRotZ,
+        entRotY,
+        entRotX,
         ghostImg,
         pathPts
       }
@@ -431,6 +439,9 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
     sampleTime,
     refD,
     mp?.layerBboxTargets,
+    mp?.bboxTargetRotZ,
+    mp?.bboxTargetRotY,
+    mp?.bboxTargetRotX,
     multiMode,
     defaultTargetX,
     startPos,
@@ -555,6 +566,40 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
     }
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)
+  }
+
+  const patchBboxRotation = (entId: string, rotZ: number, rotY: number, rotX: number): void => {
+    if (connectedEntities.length === 1) {
+      patchMotionNode({
+        bboxTargetRotZ: rotZ,
+        bboxTargetRotY: rotY,
+        bboxTargetRotX: rotX
+      }, 'wf-bbox-rot')
+    } else {
+      const existing = mp?.layerBboxTargets ?? {}
+      const cur = existing[entId]
+      const isPrimary = entId === primaryEntity?.id
+      patchMotionNode({
+        layerBboxTargets: {
+          ...existing,
+          [entId]: {
+            ...(cur ?? {}),
+            targetX: cur?.targetX ?? defaultTargetX,
+            targetY: cur?.targetY ?? defaultTargetY,
+            targetScalePct: cur?.targetScalePct ?? defaultTargetScalePct,
+            targetZ: cur?.targetZ ?? defaultStartZ,
+            targetRotZ: rotZ,
+            targetRotY: rotY,
+            targetRotX: rotX
+          }
+        },
+        ...(isPrimary ? {
+          bboxTargetRotZ: rotZ,
+          bboxTargetRotY: rotY,
+          bboxTargetRotX: rotX
+        } : {})
+      }, 'wf-bbox-rot')
+    }
   }
 
   const primaryItem = renderedEntities.find((i) => i.isPrimary) ?? renderedEntities[0]
@@ -719,6 +764,8 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
                   : 'none',
                 zIndex: isFocused ? 32 : 25,
                 cursor: isFocused ? 'move' : 'pointer',
+                transform: `rotateZ(${item.entRotZ}deg) rotateY(${item.entRotY}deg) rotateX(${item.entRotX}deg)`,
+                transformOrigin: '50% 50%',
                 ['--wf-v2-accent' as string]: item.accentColor
               }}
               title={
@@ -825,6 +872,33 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
             </div>
           )
         })}
+
+      {/* Vòng xoay Gimbal 3D trực quan khi bật chế độ bboxRotateGimbal */}
+      {hasBboxMotion &&
+        Boolean(mp?.bboxRotateGimbal) &&
+        (() => {
+          const focusedItem =
+            renderedEntities.find((i) => !isMultiEntity || i.ent.id === focusedEntityId) ??
+            primaryItem
+          if (!focusedItem) return null
+          return (
+            <WorkflowV2BboxGimbal
+              cx={focusedItem.box2Cx}
+              cy={focusedItem.box2Cy}
+              boxW={focusedItem.box2W}
+              boxH={focusedItem.box2H}
+              rotZ={focusedItem.entRotZ}
+              rotY={focusedItem.entRotY}
+              rotX={focusedItem.entRotX}
+              zoom={zoom}
+              accentColor={focusedItem.accentColor}
+              onStartDrag={() => setPlaying(false)}
+              onRotate={(rz, ry, rx) => {
+                patchBboxRotation(focusedItem.ent.id, rz, ry, rx)
+              }}
+            />
+          )
+        })()}
     </>
   )
 }
