@@ -686,6 +686,7 @@ export function buildThreeSceneWorkflowV2Project(assetInputs: DemoSceneAssetInpu
   project.workflow = s2LightRes.workflow
   const s2LightNode = project.workflow.nodes.find((n) => n.id === s2LightRes.createdNodeId)
   if (s2LightNode) syncWorkflowV2NodeToProject(project, s2LightNode)
+  if (teaLampTable.virtualLight) teaLampTable.virtualLight.originUV = [0.5, 0.71]
 
   // --- CẢNH 3 LOGIC ---
   // 3.1. Node Ánh sáng 2.5D cho Cột Đèn Đường Neon
@@ -706,6 +707,11 @@ export function buildThreeSceneWorkflowV2Project(assetInputs: DemoSceneAssetInpu
   project.workflow = s3LightRes.workflow
   const s3LightNode = project.workflow.nodes.find((n) => n.id === s3LightRes.createdNodeId)
   if (s3LightNode) syncWorkflowV2NodeToProject(project, s3LightNode)
+  if (streetLampTree.virtualLight) {
+    streetLampTree.virtualLight.originUV = [0.73, 0.84]
+    streetLampTree.virtualLight.radius = 680
+    streetLampTree.virtualLight.beamAngleDeg = -96
+  }
 
   // 3.2. Node Vật liệu cho Thùng Hàng & Biển Báo Vỉa Hè
   const s3CrateMatRes = attachLogicNodeToLayerV2(

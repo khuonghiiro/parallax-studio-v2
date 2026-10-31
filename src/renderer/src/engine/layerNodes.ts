@@ -60,6 +60,7 @@ export function makeLayerMaterial(): THREE.ShaderMaterial {
       vlightParams: { value: new THREE.Vector3(0, 300, -1) },
       vlightBeam: { value: new THREE.Vector2(1, 0) },
       vlightExtra: { value: new THREE.Vector3(0.24, 0.5, 0) },
+      vlightRays: { value: new THREE.Vector4(0.24, 10, 0.45, 0) },
       ...sharedUniforms()
     }
   })

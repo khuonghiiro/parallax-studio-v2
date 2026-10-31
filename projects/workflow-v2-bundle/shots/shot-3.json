@@ -43,8 +43,8 @@
         "index": 1,
         "label": "7",
         "isSubWaypoint": false,
-        "actionMode": "pull-out",
-        "tagLabel": "Kéo rộng (100%)",
+        "actionMode": "pan",
+        "tagLabel": "Chuyển cảnh · Phố Đêm Đèn Đường",
         "timeStart": 10,
         "timeEnd": 12.4,
         "stepDuration": 2.4,
@@ -227,7 +227,7 @@
       "presetId": "v2:light:spot",
       "title": "Ánh sáng: Đèn pin (Chùm nón)",
       "enabled": true,
-      "timeStart": 9,
+      "timeStart": 10,
       "timeEnd": 15,
       "targetLayerIds": [
         "layer-s3-lamp-tree"
@@ -352,7 +352,7 @@
       {
         "id": "v2-cam-wp-shot-3-0",
         "type": "camera_director",
-        "title": "#7 · Kéo rộng (100%)",
+        "title": "#7 · Chuyển cảnh · Phố Đêm Đèn Đường",
         "enabled": true,
         "position": {
           "x": 48,
@@ -360,7 +360,7 @@
         },
         "preset": "cinematic_fly_push",
         "aiAgentRole": "CameraDirectorAgent",
-        "aiDirective": "Cảnh con #7 (Kéo rộng (100%), Zoom 100%) thuộc \"Phố Đêm Đèn Đường\" [10s – 12.4s].",
+        "aiDirective": "Cảnh con #7 (Chuyển cảnh · Phố Đêm Đèn Đường, Zoom 100%) thuộc \"Phố Đêm Đèn Đường\" [10s – 12.4s].",
         "params": {
           "shotId": "shot-3",
           "logicCategory": "camera",
@@ -370,8 +370,8 @@
           "waypointLabel": "7",
           "isSubWaypoint": false,
           "isFirstOfShot": true,
-          "camActionMode": "pull-out",
-          "camTagLabel": "Kéo rộng (100%)",
+          "camActionMode": "pan",
+          "camTagLabel": "Chuyển cảnh · Phố Đêm Đèn Đường",
           "camZoomPct": 100,
           "camStageX": 4916,
           "camStageY": 0,
@@ -653,12 +653,16 @@
             "v2-layer-layer-s3-lamp-tree"
           ],
           "requireLayerConnection": true,
-          "timeStart": 9,
+          "timeStart": 10,
           "timeEnd": 15,
           "hierarchyParentNodeId": "v2-layer-layer-s3-lamp-tree",
           "lightMode": "spot",
           "lightColor": "#38bdf8",
-          "intensity": 1.4
+          "intensity": 1.4,
+          "lightBehavior": "steady",
+          "lightWindPreset": "none",
+          "lightRayIntensity": 0.52,
+          "lightEnvBounce": 0.92
         }
       },
       {

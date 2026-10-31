@@ -3,8 +3,7 @@ import type {
   DepthPortalConfig,
   Layer,
   LayerVirtualLight,
-  VirtualLightKind,
-  WindStrengthPreset
+  VirtualLightKind
 } from '@shared/types'
 import {
   CAVE_PORTAL_PRESETS,
@@ -13,27 +12,28 @@ import {
   VIRTUAL_LIGHT_PRESETS,
   WIND_STRENGTH_VALUES
 } from '../../engine/virtualLight'
+import {
+  describeActiveLightPhysicsVi,
+  getDefaultOpticalProfile
+} from '../../engine/virtualLightPhysics'
 import { createDefaultLayerPhysics } from '../../engine/layerPhysics'
 import { WORKFLOW_V2_CAVE_OPTIONS, WORKFLOW_V2_LIGHT_OPTIONS } from '../../project/workflowV2Engine'
 import { useEditor } from '../../store/editor'
 import { ColorInput, NumberInput, Row } from '../controls'
 import type { WorkflowV2NodeParamsProps } from './WorkflowV2NodeParams'
+import {
+  WorkflowV2LightBehaviorPanel,
+  WorkflowV2LightRaysPanel
+} from './WorkflowV2LightBehaviorSection'
 import '../../styles/virtualLightInspector.css'
 
 const LIGHT_KIND_CARDS: { value: VirtualLightKind; icon: string; name: string }[] = [
   { value: 'candle', icon: '🕯️', name: 'Ánh nến' },
-  { value: 'flashlight', icon: '🔦', name: 'Đèn pin / Cột đèn' },
+  { value: 'flashlight', icon: '🔦', name: 'Đèn pin / Pha' },
   { value: 'bulb', icon: '💡', name: 'Bóng đèn' },
   { value: 'campfire', icon: '🔥', name: 'Lửa trại' },
   { value: 'cave_crystal', icon: '🔮', name: 'Tinh thể' },
   { value: 'magic_orb', icon: '✨', name: 'Phép thuật' }
-]
-
-const WIND_PILLS: { value: WindStrengthPreset; label: string; title: string }[] = [
-  { value: 'none', label: '🍃 Lặng', title: 'Đứng gió: ngọn nến thở êm dịu tại chỗ' },
-  { value: 'gentle', label: '🌬️ Nhẹ', title: 'Gió thổi nhẹ: ngọn lửa nghiêng & lắc mềm mại' },
-  { value: 'strong', label: '💨 Mạnh', title: 'Gió thổi mạnh: lửa tạt ngang & chập chờn rõ' },
-  { value: 'storm', label: '🌪️ Bão', title: 'Gió bão giật: chớp tắt dữ dội & bùng lửa' }
 ]
 
 const LIGHT_COLOR_SWATCHES = [
@@ -65,7 +65,7 @@ export function WorkflowV2LightParams(props: WorkflowV2NodeParamsProps): React.R
   const layer = resolvePrimaryTargetLayer(props)
   const targetIds = node.params?.targetLayerIds ?? (layer ? [layer.id] : [])
   const vlight: LayerVirtualLight = layer?.virtualLight ?? createDefaultVirtualLight('candle')
-  const [lightTab, setLightTab] = React.useState<'source' | 'beam'>('source')
+  const [lightTab, setLightTab] = React.useState<'source' | 'behavior' | 'beam'>('source')
 
   const pendingPatchRef = React.useRef<{ patch: Partial<LayerVirtualLight>; mergeKey: string } | null>(null)
   const patchRafRef = React.useRef<number | null>(null)
@@ -74,6 +74,10 @@ export function WorkflowV2LightParams(props: WorkflowV2NodeParamsProps): React.R
     let resolvedColor = patch.color
     let resolvedIntensity = patch.intensity
     let resolvedMode = node.params?.lightMode
+    let resolvedBehavior = patch.behaviorMode
+    let resolvedWind = patch.windPreset
+    let resolvedRays = patch.rayIntensity
+    let resolvedBounce = patch.envBounce
     let nextTitle: string | undefined
 
     useEditor.getState().update((d) => {
@@ -98,6 +102,12 @@ export function WorkflowV2LightParams(props: WorkflowV2NodeParamsProps): React.R
             next.windStrength = WIND_STRENGTH_VALUES[next.windPreset ?? 'gentle']
             if (patch.ambientDim === undefined) next.ambientDim = p.ambientDim
             if (patch.softness === undefined) next.softness = p.softness
+            if (patch.behaviorMode === undefined) next.behaviorMode = p.behaviorMode
+            if (patch.pulseDepth === undefined) next.pulseDepth = p.pulseDepth
+            if (patch.rayIntensity === undefined) next.rayIntensity = p.rayIntensity
+            if (patch.rayCount === undefined) next.rayCount = p.rayCount
+            if (patch.hotspotFocus === undefined) next.hotspotFocus = p.hotspotFocus
+            if (patch.envBounce === undefined) next.envBounce = p.envBounce
           }
           const opt = WORKFLOW_V2_LIGHT_OPTIONS.find((o) => o.virtualKind === patch.kind)
           if (opt) {
@@ -110,6 +120,10 @@ export function WorkflowV2LightParams(props: WorkflowV2NodeParamsProps): React.R
         }
         resolvedColor = next.color
         resolvedIntensity = next.intensity
+        resolvedBehavior = next.behaviorMode
+        resolvedWind = next.windPreset
+        resolvedRays = next.rayIntensity
+        resolvedBounce = next.envBounce
         l.virtualLight = next
       }
 
@@ -120,7 +134,11 @@ export function WorkflowV2LightParams(props: WorkflowV2NodeParamsProps): React.R
           ...(wfNode.params ?? {}),
           ...(resolvedMode ? { lightMode: resolvedMode } : {}),
           ...(resolvedColor ? { lightColor: resolvedColor } : {}),
-          ...(resolvedIntensity !== undefined ? { intensity: resolvedIntensity } : {})
+          ...(resolvedIntensity !== undefined ? { intensity: resolvedIntensity } : {}),
+          ...(resolvedBehavior ? { lightBehavior: resolvedBehavior } : {}),
+          ...(resolvedWind ? { lightWindPreset: resolvedWind } : {}),
+          ...(resolvedRays !== undefined ? { lightRayIntensity: resolvedRays } : {}),
+          ...(resolvedBounce !== undefined ? { lightEnvBounce: resolvedBounce } : {})
         }
       }
     }, mergeKey)
@@ -160,243 +178,337 @@ export function WorkflowV2LightParams(props: WorkflowV2NodeParamsProps): React.R
     }
   }
 
-  const isFlame = vlight.kind === 'candle' || vlight.kind === 'campfire'
+  const optDefaults = getDefaultOpticalProfile(vlight.kind)
   const coneDeg = vlight.coneAngleDeg ?? 360
   const isCone = vlight.kind === 'flashlight' || coneDeg < 350
   const activeConeWhenDirected = coneDeg < 350 ? coneDeg : vlight.kind === 'flashlight' ? 54 : 68
   const beamCurvature = vlight.beamCurvature ?? 0
+  const envBounce = vlight.envBounce ?? optDefaults.envBounce
   const zReachVal =
     vlight.zReach === undefined || [280, 320, 350, 380].includes(vlight.zReach) ? 1500 : vlight.zReach
 
   return (
     <div className="vl-section-card" style={{ marginTop: 2 }}>
       <div className="vl-row-header">
-        <span className="vl-title">🕯️ Công Cụ Ánh Sáng Ảo 2.5D (Xuyên Layer)</span>
+        <span className="vl-title">🕯️ Quang Học &amp; Ánh Xạ Môi Trường 2.5D</span>
       </div>
 
-      <div className="wf-v2-seg-tabs" role="tablist" aria-label="Cấu hình Ánh sáng 2.5D">
-        <button type="button" role="tab" aria-selected={lightTab === 'source'} className={`wf-v2-seg-tab${lightTab === 'source' ? ' active' : ''}`} onClick={() => setLightTab('source')}>
-          💡 Nguồn &amp; Độ sáng
+      <div className="vl-physics-summary" title="Trạng thái vật lý thực tế đang áp dụng lên nguồn sáng và môi trường">
+        <span>✨ {describeActiveLightPhysicsVi(vlight)}</span>
+      </div>
+
+      <div className="wf-v2-seg-tabs" role="tablist" aria-label="Cấu hình vật lý Ánh sáng 2.5D">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={lightTab === 'source'}
+          className={`wf-v2-seg-tab${lightTab === 'source' ? ' active' : ''}`}
+          onClick={() => setLightTab('source')}
+        >
+          💡 Nguồn &amp; Ánh xạ
         </button>
-        <button type="button" role="tab" aria-selected={lightTab === 'beam'} className={`wf-v2-seg-tab${lightTab === 'beam' ? ' active' : ''}`} onClick={() => setLightTab('beam')}>
-          📐 Khung tia &amp; Gió
+        <button
+          type="button"
+          role="tab"
+          aria-selected={lightTab === 'behavior'}
+          className={`wf-v2-seg-tab${lightTab === 'behavior' ? ' active' : ''}`}
+          onClick={() => setLightTab('behavior')}
+        >
+          ⚡ Nhịp &amp; Gió
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={lightTab === 'beam'}
+          className={`wf-v2-seg-tab${lightTab === 'beam' ? ' active' : ''}`}
+          onClick={() => setLightTab('beam')}
+        >
+          🌟 Tỉa tia &amp; Khung
         </button>
       </div>
-      {lightTab === 'source' && <>
-      {/* 6 Preset Kind Cards */}
-      <div className="vl-kind-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
-        {LIGHT_KIND_CARDS.map((card) => {
-          const active = vlight.kind === card.value
-          return (
-            <button
-              key={card.value}
-              type="button"
-              title={VIRTUAL_LIGHT_PRESETS[card.value]?.description}
-              className={`vl-kind-card ${active ? 'active' : ''}`}
-              onClick={() => patchLight({ kind: card.value })}
+
+      {lightTab === 'source' && (
+        <>
+          <div className="vl-kind-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+            {LIGHT_KIND_CARDS.map((card) => {
+              const active = vlight.kind === card.value
+              return (
+                <button
+                  key={card.value}
+                  type="button"
+                  title={VIRTUAL_LIGHT_PRESETS[card.value]?.description}
+                  className={`vl-kind-card ${active ? 'active' : ''}`}
+                  onClick={() => patchLight({ kind: card.value })}
+                >
+                  <span className="vl-kind-icon">{card.icon}</span>
+                  <span className="vl-kind-label">{card.name}</span>
+                </button>
+              )
+            })}
+          </div>
+
+          <div className="vl-subcard">
+            <Row label="Độ sáng đèn" title="Cường độ nguồn sáng đồng bộ 1:1 giữa Khung Chỉnh 2.5D và Camera">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%' }}>
+                <input
+                  type="range"
+                  min={0.05}
+                  max={2.6}
+                  step={0.05}
+                  value={Math.min(2.6, Math.max(0.05, vlight.intensity))}
+                  onChange={(e) => patchLightThrottled({ intensity: Number(e.target.value) }, 'wf-light-intensity')}
+                  onPointerUp={flushPatchLight}
+                  style={{ flex: 1, accentColor: 'var(--accent)', cursor: 'pointer' }}
+                />
+                <div style={{ width: 64, flexShrink: 0 }}>
+                  <NumberInput
+                    axis="I"
+                    value={vlight.intensity}
+                    step={0.05}
+                    precision={2}
+                    min={0.05}
+                    max={3.0}
+                    onChange={(v, k) => patchLight({ intensity: v }, k)}
+                  />
+                </div>
+              </div>
+            </Row>
+
+            <Row
+              label="Ánh xạ nền"
+              title="Mức phản xạ & truyền ánh sáng từ ngọn đèn sang tường, nền đất, cây cối và nhân vật xung quanh (0 = không hắt sáng, 1 = chuẩn vật lý, >1 = hắt sáng ấm mạnh)"
             >
-              <span className="vl-kind-icon">{card.icon}</span>
-              <span className="vl-kind-label">{card.name}</span>
-            </button>
-          )
-        })}
-      </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%' }}>
+                <input
+                  type="range"
+                  min={0}
+                  max={1.8}
+                  step={0.05}
+                  value={Math.min(1.8, Math.max(0, envBounce))}
+                  onChange={(e) => patchLightThrottled({ envBounce: Number(e.target.value) }, 'wf-light-bounce')}
+                  onPointerUp={flushPatchLight}
+                  style={{ flex: 1, accentColor: 'var(--accent)', cursor: 'pointer' }}
+                />
+                <div style={{ width: 64, flexShrink: 0 }}>
+                  <NumberInput
+                    axis="hắt"
+                    value={envBounce}
+                    step={0.05}
+                    precision={2}
+                    min={0}
+                    max={2.0}
+                    onChange={(v, k) => patchLight({ envBounce: v }, k)}
+                  />
+                </div>
+              </div>
+            </Row>
 
-      {/* Cường độ sáng & Dịu nền tối */}
-      <div className="vl-subcard">
-        <Row label="Độ sáng đèn" title="Cường độ nguồn sáng đồng bộ 1:1 giữa Khung Chỉnh 2.5D và Camera">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%' }}>
-            <input
-              type="range"
-              min={0.05}
-              max={2.6}
-              step={0.05}
-              value={Math.min(2.6, Math.max(0.05, vlight.intensity))}
-              onChange={(e) => patchLightThrottled({ intensity: Number(e.target.value) }, 'wf-light-intensity')}
-              onPointerUp={flushPatchLight}
-              style={{ flex: 1, accentColor: 'var(--accent)', cursor: 'pointer' }}
-            />
-            <div style={{ width: 64, flexShrink: 0 }}>
-              <NumberInput
-                axis="I"
-                value={vlight.intensity}
-                step={0.05}
-                precision={2}
-                min={0.05}
-                max={3.0}
-                onChange={(v, k) => patchLight({ intensity: v }, k)}
-              />
-            </div>
+            <Row label="Dịu nền tối" title="Làm dịu vùng tối ngoài tầm đèn (Ambient Dim) để quầng sáng nổi bật tương phản">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%' }}>
+                <input
+                  type="range"
+                  min={0}
+                  max={0.85}
+                  step={0.02}
+                  value={vlight.ambientDim ?? 0.24}
+                  onChange={(e) => patchLightThrottled({ ambientDim: Number(e.target.value) }, 'wf-light-dim')}
+                  onPointerUp={flushPatchLight}
+                  style={{ flex: 1, accentColor: 'var(--accent)', cursor: 'pointer' }}
+                />
+                <div style={{ width: 64, flexShrink: 0 }}>
+                  <NumberInput
+                    axis="dim"
+                    value={vlight.ambientDim ?? 0.24}
+                    step={0.05}
+                    precision={2}
+                    min={0}
+                    max={0.85}
+                    onChange={(v, k) => patchLight({ ambientDim: v }, k)}
+                  />
+                </div>
+              </div>
+            </Row>
           </div>
-        </Row>
 
-        <Row label="Dịu nền tối" title="Làm dịu vùng tối ngoài tầm đèn (Ambient Dim) để quầng sáng nổi bật rõ nét">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%' }}>
-            <input
-              type="range"
-              min={0}
-              max={0.85}
-              step={0.02}
-              value={vlight.ambientDim ?? 0.24}
-              onChange={(e) => patchLightThrottled({ ambientDim: Number(e.target.value) }, 'wf-light-dim')}
-              onPointerUp={flushPatchLight}
-              style={{ flex: 1, accentColor: 'var(--accent)', cursor: 'pointer' }}
-            />
-            <div style={{ width: 64, flexShrink: 0 }}>
-              <NumberInput
-                axis="dim"
-                value={vlight.ambientDim ?? 0.24}
-                step={0.05}
-                precision={2}
-                min={0}
-                max={0.85}
-                onChange={(v, k) => patchLight({ ambientDim: v }, k)}
+          <Row label="Màu &amp; Viền" title="Nhiệt độ màu nguồn sáng (tự dịch ấm/vàng khi gió thổi hoặc sụt áp) và độ mềm viền bán dạ">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, width: '100%' }}>
+              <ColorInput
+                compact
+                value={vlight.color}
+                onChange={(val, k) => patchLight({ color: val }, k)}
+                title="Chọn màu nguồn sáng ảo"
               />
+              <div className="vl-swatch-row">
+                {LIGHT_COLOR_SWATCHES.map((sw) => (
+                  <button
+                    key={sw.color}
+                    type="button"
+                    title={sw.title}
+                    className={`vl-swatch-btn ${vlight.color.toLowerCase() === sw.color ? 'active' : ''}`}
+                    style={{ background: sw.color }}
+                    onClick={() => patchLight({ color: sw.color })}
+                  />
+                ))}
+              </div>
+              <div style={{ width: 64, marginLeft: 'auto', flexShrink: 0 }}>
+                <NumberInput
+                  axis="mềm"
+                  value={vlight.softness ?? 0.55}
+                  step={0.05}
+                  precision={2}
+                  min={0.1}
+                  max={1}
+                  onChange={(v, k) => patchLight({ softness: v }, k)}
+                />
+              </div>
             </div>
-          </div>
-        </Row>
-      </div>
+          </Row>
+        </>
+      )}
 
-      </>}
-      {lightTab === 'beam' && <>
-      {/* Khung Sáng: Độ Dài, Độ Hướng, Độ Mở & Độ Cong */}
-      <div className="vl-subcard">
-        <div className="vl-row-header">
-          <span className="vl-subtitle">📐 Khung Sáng (Dài • Hướng • Mở • Cong)</span>
-          <span className="vl-value-badge">{isCone ? `${vlight.beamAngleDeg ?? -90}°` : '360°'}</span>
-        </div>
+      {lightTab === 'behavior' && (
+        <WorkflowV2LightBehaviorPanel
+          vlight={vlight}
+          onPatch={patchLight}
+          onPatchThrottled={patchLightThrottled}
+          onFlush={flushPatchLight}
+        />
+      )}
 
-        <div className="vl-pill-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
-          {[
-            {
-              label: '↓ Chiếu xuống',
-              title: 'Chiếu thẳng xuống dưới (-90°) — chuẩn cho cột đèn / đèn treo',
-              cone: activeConeWhenDirected,
-              beam: -90,
-              active: isCone && (vlight.beamAngleDeg ?? -90) >= -112 && (vlight.beamAngleDeg ?? -90) <= -68
-            },
-            {
-              label: '↙ Chéo trái',
-              title: 'Chiếu chéo xuống bên trái (-130°)',
-              cone: activeConeWhenDirected,
-              beam: -130,
-              active: isCone && (vlight.beamAngleDeg ?? 0) < -112 && (vlight.beamAngleDeg ?? 0) >= -158
-            },
-            {
-              label: '↘ Chéo phải',
-              title: 'Chiếu chéo xuống bên phải (-50°)',
-              cone: activeConeWhenDirected,
-              beam: -50,
-              active: isCone && (vlight.beamAngleDeg ?? 0) > -68 && (vlight.beamAngleDeg ?? 0) <= -22
-            },
-            {
-              label: '→ Sang phải',
-              title: 'Chiếu ngang sang phải (0°)',
-              cone: activeConeWhenDirected,
-              beam: 0,
-              active: isCone && (vlight.beamAngleDeg ?? 0) > -22 && (vlight.beamAngleDeg ?? 0) <= 22
-            },
-            {
-              label: '← Sang trái',
-              title: 'Chiếu ngang sang trái (180°)',
-              cone: activeConeWhenDirected,
-              beam: 180,
-              active: isCone && ((vlight.beamAngleDeg ?? 0) > 158 || (vlight.beamAngleDeg ?? 0) < -158)
-            },
-            {
-              label: '☀️ Tỏa 360°',
-              title: 'Tỏa sáng tròn đều 360° mọi hướng',
-              cone: 360,
-              beam: 0,
-              active: !isCone
-            }
-          ].map((dir) => (
-            <button
-              key={dir.label}
-              type="button"
-              title={dir.title}
-              className={`vl-pill-btn ${dir.active ? 'active-amber' : ''}`}
-              onClick={() => patchLight({ beamAngleDeg: dir.beam, coneAngleDeg: dir.cone })}
-            >
-              {dir.label}
-            </button>
-          ))}
-        </div>
+      {lightTab === 'beam' && (
+        <>
+          <WorkflowV2LightRaysPanel
+            vlight={vlight}
+            onPatch={patchLight}
+            onPatchThrottled={patchLightThrottled}
+            onFlush={flushPatchLight}
+          />
 
-        <Row label="Độ dài tia" title="Độ dài khung sáng (vượt tự do ra ngoài kích thước layer gốc để chiếu lên các layer khác)">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%' }}>
-            <input
-              type="range"
-              min={80}
-              max={2200}
-              step={15}
-              value={Math.min(2200, Math.max(80, vlight.radius))}
-              onChange={(e) => patchLightThrottled({ radius: Number(e.target.value) }, 'wf-light-radius')}
-              onPointerUp={flushPatchLight}
-              style={{ flex: 1, accentColor: 'var(--accent)', cursor: 'pointer' }}
-            />
-            <div style={{ width: 70, flexShrink: 0 }}>
-              <NumberInput
-                axis="dài"
-                value={vlight.radius}
-                step={20}
-                precision={0}
-                min={60}
-                max={2600}
-                suffix="px"
-                onChange={(v, k) => patchLight({ radius: v }, k)}
-              />
+          <div className="vl-subcard">
+            <div className="vl-row-header">
+              <span className="vl-subtitle">📐 Khung Chiếu (Dài • Hướng • Mở • Cong)</span>
+              <span className="vl-value-badge">{isCone ? `${vlight.beamAngleDeg ?? -90}°` : '360°'}</span>
             </div>
-          </div>
-        </Row>
 
-        <Row label="Độ hướng ∠" title="Góc xoay hướng chiếu của khung sáng (-180°..180°, -90° = chiếu thẳng xuống dưới)">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%' }}>
-            <input
-              type="range"
-              min={-180}
-              max={180}
-              step={2}
-              value={vlight.beamAngleDeg ?? -90}
-              onChange={(e) =>
-                patchLightThrottled(
-                  { beamAngleDeg: Number(e.target.value), coneAngleDeg: coneDeg >= 350 ? 64 : coneDeg },
-                  'wf-light-beam'
-                )
-              }
-              onPointerUp={flushPatchLight}
-              style={{ flex: 1, accentColor: 'var(--accent)', cursor: 'pointer' }}
-            />
-            <div style={{ width: 64, flexShrink: 0 }}>
-              <NumberInput
-                axis="∠"
-                value={vlight.beamAngleDeg ?? -90}
-                step={5}
-                precision={0}
-                min={-180}
-                max={180}
-                suffix="°"
-                onChange={(v, k) =>
-                  patchLight({ beamAngleDeg: v, coneAngleDeg: coneDeg >= 350 ? 64 : coneDeg }, k)
+            <div className="vl-pill-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+              {[
+                {
+                  label: '↓ Chiếu xuống',
+                  title: 'Chiếu thẳng xuống dưới (-90°) — chuẩn cho cột đèn / đèn treo',
+                  cone: activeConeWhenDirected,
+                  beam: -90,
+                  active: isCone && (vlight.beamAngleDeg ?? -90) >= -112 && (vlight.beamAngleDeg ?? -90) <= -68
+                },
+                {
+                  label: '↙ Chéo trái',
+                  title: 'Chiếu chéo xuống bên trái (-130°)',
+                  cone: activeConeWhenDirected,
+                  beam: -130,
+                  active: isCone && (vlight.beamAngleDeg ?? 0) < -112 && (vlight.beamAngleDeg ?? 0) >= -158
+                },
+                {
+                  label: '↘ Chéo phải',
+                  title: 'Chiếu chéo xuống bên phải (-50°)',
+                  cone: activeConeWhenDirected,
+                  beam: -50,
+                  active: isCone && (vlight.beamAngleDeg ?? 0) > -68 && (vlight.beamAngleDeg ?? 0) <= -22
+                },
+                {
+                  label: '→ Sang phải',
+                  title: 'Chiếu ngang sang phải (0°)',
+                  cone: activeConeWhenDirected,
+                  beam: 0,
+                  active: isCone && (vlight.beamAngleDeg ?? 0) > -22 && (vlight.beamAngleDeg ?? 0) <= 22
+                },
+                {
+                  label: '← Sang trái',
+                  title: 'Chiếu ngang sang trái (180°)',
+                  cone: activeConeWhenDirected,
+                  beam: 180,
+                  active: isCone && ((vlight.beamAngleDeg ?? 0) > 158 || (vlight.beamAngleDeg ?? 0) < -158)
+                },
+                {
+                  label: '☀️ Tỏa 360°',
+                  title: 'Tỏa sáng tròn đều 360° mọi hướng',
+                  cone: 360,
+                  beam: 90,
+                  active: !isCone
                 }
-              />
+              ].map((dir) => (
+                <button
+                  key={dir.label}
+                  type="button"
+                  title={dir.title}
+                  className={`vl-pill-btn ${dir.active ? 'active-amber' : ''}`}
+                  onClick={() => patchLight({ beamAngleDeg: dir.beam, coneAngleDeg: dir.cone })}
+                >
+                  <span>{dir.label}</span>
+                </button>
+              ))}
             </div>
-          </div>
-        </Row>
 
-        <Row label="Độ mở chóp" title="Góc mở rộng của khung sáng (15° = tia hẹp đèn rọi, 75° = đèn đường, 360° = tỏa tròn)">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%' }}>
-            <input
-              type="range"
-              min={15}
-              max={360}
-              step={5}
-              value={coneDeg}
-              onChange={(e) => patchLightThrottled({ coneAngleDeg: Number(e.target.value) }, 'wf-light-cone')}
-              onPointerUp={flushPatchLight}
-              style={{ flex: 1, accentColor: 'var(--accent)', cursor: 'pointer' }}
-            />
-            <div style={{ width: 64, flexShrink: 0 }}>
+            <Row label="Độ dài tia" title="Độ dài khung sáng vươn tự do ra ngoài layer gốc để chiếu lên môi trường">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%' }}>
+                <input
+                  type="range"
+                  min={80}
+                  max={2200}
+                  step={15}
+                  value={Math.min(2200, Math.max(80, vlight.radius))}
+                  onChange={(e) => patchLightThrottled({ radius: Number(e.target.value) }, 'wf-light-radius')}
+                  onPointerUp={flushPatchLight}
+                  style={{ flex: 1, accentColor: 'var(--accent)', cursor: 'pointer' }}
+                />
+                <div style={{ width: 70, flexShrink: 0 }}>
+                  <NumberInput
+                    axis="dài"
+                    value={vlight.radius}
+                    step={20}
+                    precision={0}
+                    min={60}
+                    max={2600}
+                    suffix="px"
+                    onChange={(v, k) => patchLight({ radius: v }, k)}
+                  />
+                </div>
+              </div>
+            </Row>
+
+            <Row label="Độ hướng ∠" title="Góc xoay hướng chiếu của khung sáng (-180°..180°)">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%' }}>
+                <input
+                  type="range"
+                  min={-180}
+                  max={180}
+                  step={2}
+                  value={vlight.beamAngleDeg ?? -90}
+                  onChange={(e) =>
+                    patchLightThrottled(
+                      { beamAngleDeg: Number(e.target.value), coneAngleDeg: coneDeg >= 350 ? 64 : coneDeg },
+                      'wf-light-beam'
+                    )
+                  }
+                  onPointerUp={flushPatchLight}
+                  style={{ flex: 1, accentColor: 'var(--accent)', cursor: 'pointer' }}
+                />
+                <div style={{ width: 64, flexShrink: 0 }}>
+                  <NumberInput
+                    axis="∠"
+                    value={vlight.beamAngleDeg ?? -90}
+                    step={5}
+                    precision={0}
+                    min={-180}
+                    max={180}
+                    suffix="°"
+                    onChange={(v, k) =>
+                      patchLight({ beamAngleDeg: v, coneAngleDeg: coneDeg >= 350 ? 64 : coneDeg }, k)
+                    }
+                  />
+                </div>
+              </div>
+            </Row>
+
+            <Row label="Mở &amp; Cong" title="Góc mở chóp (15°..360°) và độ cong thành khung sáng (-0.8..1.0)">
               <NumberInput
                 axis="Δ"
                 value={coneDeg}
@@ -407,28 +519,6 @@ export function WorkflowV2LightParams(props: WorkflowV2NodeParamsProps): React.R
                 suffix="°"
                 onChange={(v, k) => patchLight({ coneAngleDeg: v }, k)}
               />
-            </div>
-          </div>
-        </Row>
-
-        <Row label="Độ cong tia" title="Uốn độ cong thành bên của khung sáng (-0.8 = chụm tia đèn pha hẹp, 0 = nón thẳng, +0.8 = vòm parabol tỏa rộng)">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%' }}>
-            <input
-              type="range"
-              min={-0.8}
-              max={1.0}
-              step={0.05}
-              value={beamCurvature}
-              onChange={(e) =>
-                patchLightThrottled(
-                  { beamCurvature: Number(e.target.value), coneAngleDeg: coneDeg >= 350 ? 68 : coneDeg },
-                  'wf-light-curv'
-                )
-              }
-              onPointerUp={flushPatchLight}
-              style={{ flex: 1, accentColor: 'var(--accent)', cursor: 'pointer' }}
-            />
-            <div style={{ width: 64, flexShrink: 0 }}>
               <NumberInput
                 axis="⌒"
                 value={beamCurvature}
@@ -436,137 +526,41 @@ export function WorkflowV2LightParams(props: WorkflowV2NodeParamsProps): React.R
                 precision={2}
                 min={-0.8}
                 max={1.0}
-                onChange={(v, k) => patchLight({ beamCurvature: v }, k)}
+                onChange={(v, k) =>
+                  patchLight({ beamCurvature: v, coneAngleDeg: coneDeg >= 350 ? 68 : coneDeg }, k)
+                }
               />
-            </div>
+            </Row>
+
+            <Row label="Xuyên Z±" title="Tầm truyền ánh sáng sang các layer xếp chồng phía trước & phía sau theo trục Z (px)">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%' }}>
+                <input
+                  type="range"
+                  min={150}
+                  max={2500}
+                  step={50}
+                  value={Math.min(2500, Math.max(150, zReachVal))}
+                  onChange={(e) => patchLightThrottled({ zReach: Number(e.target.value) }, 'wf-light-zreach')}
+                  onPointerUp={flushPatchLight}
+                  style={{ flex: 1, accentColor: 'var(--accent)', cursor: 'pointer' }}
+                />
+                <div style={{ width: 70, flexShrink: 0 }}>
+                  <NumberInput
+                    axis="z±"
+                    value={zReachVal}
+                    step={50}
+                    precision={0}
+                    min={100}
+                    max={3000}
+                    suffix="px"
+                    onChange={(v, k) => patchLight({ zReach: v }, k)}
+                  />
+                </div>
+              </div>
+            </Row>
           </div>
-        </Row>
-
-        <div className="vl-pill-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
-          {[
-            { label: '🔦 Tia hội tụ', val: -0.45, title: 'Khung sáng thuôn hẹp tập trung ở xa' },
-            { label: '📐 Nón thẳng', val: 0, title: 'Khung nón ánh sáng tiêu chuẩn' },
-            { label: '⌒ Vòm parabol', val: 0.55, title: 'Khung sáng uốn vòm rộng ôm trọn cảnh dưới' }
-          ].map((cp) => (
-            <button
-              key={cp.label}
-              type="button"
-              title={cp.title}
-              className={`vl-pill-btn ${Math.abs(beamCurvature - cp.val) < 0.12 ? 'active' : ''}`}
-              onClick={() => patchLight({ beamCurvature: cp.val, coneAngleDeg: coneDeg >= 350 ? 68 : coneDeg })}
-            >
-              {cp.label}
-            </button>
-          ))}
-        </div>
-
-        <Row label="Xuyên Z±" title="Tầm truyền ánh sáng sang các layer xếp chồng phía trước & phía sau theo trục Z (px)">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%' }}>
-            <input
-              type="range"
-              min={150}
-              max={2500}
-              step={50}
-              value={Math.min(2500, Math.max(150, zReachVal))}
-              onChange={(e) => patchLightThrottled({ zReach: Number(e.target.value) }, 'wf-light-zreach')}
-              onPointerUp={flushPatchLight}
-              style={{ flex: 1, accentColor: 'var(--accent)', cursor: 'pointer' }}
-            />
-            <div style={{ width: 70, flexShrink: 0 }}>
-              <NumberInput
-                axis="z±"
-                value={zReachVal}
-                step={50}
-                precision={0}
-                min={100}
-                max={3000}
-                suffix="px"
-                onChange={(v, k) => patchLight({ zReach: v }, k)}
-              />
-            </div>
-          </div>
-        </Row>
-      </div>
-
-      {isFlame && (
-        <div className="vl-subcard">
-          <Row label="Gió thổi lửa" title="Cường độ gió làm nghiêng ngọn lửa và chập chờn ánh sáng">
-            <div className="vl-pill-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', width: '100%' }}>
-              {WIND_PILLS.map((w) => {
-                const active = (vlight.windPreset ?? 'gentle') === w.value
-                return (
-                  <button
-                    key={w.value}
-                    type="button"
-                    title={w.title}
-                    className={`vl-pill-btn ${active ? 'active' : ''}`}
-                    onClick={() => patchLight({ windPreset: w.value, windStrength: WIND_STRENGTH_VALUES[w.value] })}
-                  >
-                    {w.label}
-                  </button>
-                )
-              })}
-            </div>
-          </Row>
-          <Row label="Hướng / Nhịp" title="Góc gió thổi và tốc độ bập bùng">
-            <NumberInput
-              axis="∠"
-              value={vlight.windDirectionDeg ?? 0}
-              step={5}
-              precision={0}
-              min={-180}
-              max={180}
-              suffix="°"
-              onChange={(v, k) => patchLight({ windDirectionDeg: v }, k)}
-            />
-            <NumberInput
-              axis="hz"
-              value={vlight.flickerSpeed ?? 1.2}
-              step={0.1}
-              precision={1}
-              min={0}
-              max={6.0}
-              onChange={(v, k) => patchLight({ flickerSpeed: v }, k)}
-            />
-          </Row>
-        </div>
+        </>
       )}
-
-      </>}
-      {/* Màu & Độ Mềm Viền */}
-      <Row label="Màu &amp; Viền" title="Màu nhiệt độ nguồn sáng và độ mềm viền bán dạ (Softness)">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5, width: '100%' }}>
-          <ColorInput
-            compact
-            value={vlight.color}
-            onChange={(val, k) => patchLight({ color: val }, k)}
-            title="Chọn màu nguồn sáng ảo"
-          />
-          <div className="vl-swatch-row">
-            {LIGHT_COLOR_SWATCHES.map((sw) => (
-              <button
-                key={sw.color}
-                type="button"
-                title={sw.title}
-                className={`vl-swatch-btn ${vlight.color.toLowerCase() === sw.color ? 'active' : ''}`}
-                style={{ background: sw.color }}
-                onClick={() => patchLight({ color: sw.color })}
-              />
-            ))}
-          </div>
-          <div style={{ width: 64, marginLeft: 'auto', flexShrink: 0 }}>
-            <NumberInput
-              axis="mềm"
-              value={vlight.softness ?? 0.65}
-              step={0.05}
-              precision={2}
-              min={0.1}
-              max={1}
-              onChange={(v, k) => patchLight({ softness: v }, k)}
-            />
-          </div>
-        </div>
-      </Row>
     </div>
   )
 }

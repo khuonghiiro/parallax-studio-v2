@@ -17,7 +17,7 @@
       ],
       "keyframes": [
         {
-          "id": "upzu-jAx",
+          "id": "rQCfjNzq",
           "t": 0,
           "value": [
             0,
@@ -27,7 +27,7 @@
           "ease": "easeInOut"
         },
         {
-          "id": "dGCUecHp",
+          "id": "x-Oa9WdT",
           "t": 2.2,
           "value": [
             60,
@@ -37,7 +37,7 @@
           "ease": "hold"
         },
         {
-          "id": "demo-hold-dGCUecHp",
+          "id": "demo-hold-x-Oa9WdT",
           "t": 4,
           "value": [
             60,
@@ -47,7 +47,7 @@
           "ease": "easeInOut"
         },
         {
-          "id": "yI6dxBp3",
+          "id": "vtJsw6yY",
           "t": 5,
           "value": [
             10560,
@@ -57,7 +57,7 @@
           "ease": "easeInOut"
         },
         {
-          "id": "AXse0_8G",
+          "id": "_iLdbU95",
           "t": 7.2,
           "value": [
             10635,
@@ -67,7 +67,7 @@
           "ease": "hold"
         },
         {
-          "id": "demo-hold-AXse0_8G",
+          "id": "demo-hold-_iLdbU95",
           "t": 9,
           "value": [
             10635,
@@ -77,7 +77,7 @@
           "ease": "easeInOut"
         },
         {
-          "id": "y7xlv_dT",
+          "id": "GUvb8UJH",
           "t": 10,
           "value": [
             21120,
@@ -87,7 +87,7 @@
           "ease": "easeInOut"
         },
         {
-          "id": "_COz6dxJ",
+          "id": "VZNfInqr",
           "t": 12.4,
           "value": [
             21175,
@@ -97,7 +97,7 @@
           "ease": "easeInOut"
         },
         {
-          "id": "mPGWT03N",
+          "id": "G3Xzqhwg",
           "t": 15,
           "value": [
             21215,
@@ -116,7 +116,7 @@
       ],
       "keyframes": [
         {
-          "id": "lThuE6uE",
+          "id": "Phe10Ypm",
           "t": 0,
           "value": [
             0,
@@ -126,7 +126,7 @@
           "ease": "easeInOut"
         },
         {
-          "id": "mEjkNk49",
+          "id": "kfwXhd_6",
           "t": 2.2,
           "value": [
             60,
@@ -136,7 +136,7 @@
           "ease": "hold"
         },
         {
-          "id": "demo-hold-mEjkNk49",
+          "id": "demo-hold-kfwXhd_6",
           "t": 4,
           "value": [
             60,
@@ -146,7 +146,7 @@
           "ease": "easeInOut"
         },
         {
-          "id": "5JDwEvNe",
+          "id": "_xaXTBdB",
           "t": 5,
           "value": [
             10560,
@@ -156,7 +156,7 @@
           "ease": "easeInOut"
         },
         {
-          "id": "pm-37_Wd",
+          "id": "3dafoQuO",
           "t": 7.2,
           "value": [
             10635,
@@ -166,7 +166,7 @@
           "ease": "hold"
         },
         {
-          "id": "demo-hold-pm-37_Wd",
+          "id": "demo-hold-3dafoQuO",
           "t": 9,
           "value": [
             10635,
@@ -176,7 +176,7 @@
           "ease": "easeInOut"
         },
         {
-          "id": "7e-8_8ny",
+          "id": "SsMA9i1o",
           "t": 10,
           "value": [
             21120,
@@ -186,7 +186,7 @@
           "ease": "easeInOut"
         },
         {
-          "id": "9B_oWlVV",
+          "id": "cFF0Q26c",
           "t": 12.4,
           "value": [
             21175,
@@ -196,7 +196,7 @@
           "ease": "easeInOut"
         },
         {
-          "id": "y8RCnFEq",
+          "id": "ADHLUJUm",
           "t": 15,
           "value": [
             21215,
@@ -2020,16 +2020,34 @@
         "height": 460
       },
       "virtualLight": {
-        "radius": 460,
-        "originUV": [
-          0.5,
-          0.5
-        ],
-        "zReach": 320,
         "enabled": true,
         "kind": "candle",
         "color": "#fbbf24",
-        "intensity": 1.35
+        "intensity": 1.35,
+        "radius": 460,
+        "originUV": [
+          0.5,
+          0.71
+        ],
+        "beamAngleDeg": 90,
+        "coneAngleDeg": 360,
+        "windPreset": "gentle",
+        "windStrength": 0.38,
+        "windSensitivity": 1,
+        "windDirectionDeg": 0,
+        "flickerSpeed": 1.2,
+        "zReach": 1500,
+        "ambientDim": 0.24,
+        "softness": 0.55,
+        "beamCurvature": 0.35,
+        "behaviorMode": "wind_reactive",
+        "pulseDepth": 0.22,
+        "rayIntensity": 0.24,
+        "rayCount": 10,
+        "hotspotFocus": 0.42,
+        "envBounce": 0.9,
+        "startTime": 5,
+        "duration": 5
       }
     },
     {
@@ -3857,16 +3875,34 @@
         "height": 620
       },
       "virtualLight": {
-        "radius": 460,
-        "originUV": [
-          0.5,
-          0.5
-        ],
-        "zReach": 320,
         "enabled": true,
         "kind": "flashlight",
         "color": "#38bdf8",
-        "intensity": 1.4
+        "intensity": 1.4,
+        "radius": 680,
+        "originUV": [
+          0.73,
+          0.84
+        ],
+        "beamAngleDeg": -96,
+        "coneAngleDeg": 52,
+        "windPreset": "none",
+        "windStrength": 0,
+        "windSensitivity": 1,
+        "windDirectionDeg": 0,
+        "flickerSpeed": 0.85,
+        "zReach": 1800,
+        "ambientDim": 0.28,
+        "softness": 0.42,
+        "beamCurvature": 0.25,
+        "behaviorMode": "steady",
+        "pulseDepth": 0.2,
+        "rayIntensity": 0.52,
+        "rayCount": 9,
+        "hotspotFocus": 0.62,
+        "envBounce": 0.92,
+        "startTime": 10,
+        "duration": 5
       }
     },
     {
@@ -4305,7 +4341,7 @@
       "height": 460,
       "path": "assets/scenes-v2/s2-tea-table-lamp.svg",
       "assetPath": "scenes-v2/s2-tea-table-lamp.svg",
-      "dataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MjAgNDYwIiB3aWR0aD0iNTIwIiBoZWlnaHQ9IjQ2MCI+DQogICAgICA8ZGVmcz4NCiAgICAgICAgPHJhZGlhbEdyYWRpZW50IGlkPSJsYW1wR2xvdyIgY3g9IjAuNSIgY3k9IjAuMzIiIHI9IjAuNDUiPg0KICAgICAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiNmZWYwOGEiIHN0b3Atb3BhY2l0eT0iMC45NSIvPg0KICAgICAgICAgIDxzdG9wIG9mZnNldD0iNTUlIiBzdG9wLWNvbG9yPSIjZjU5ZTBiIiBzdG9wLW9wYWNpdHk9IjAuMzUiLz4NCiAgICAgICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiNmNTllMGIiIHN0b3Atb3BhY2l0eT0iMCIvPg0KICAgICAgICA8L3JhZGlhbEdyYWRpZW50Pg0KICAgICAgPC9kZWZzPg0KICAgICAgPGNpcmNsZSBjeD0iMjYwIiBjeT0iMTUwIiByPSIxOTAiIGZpbGw9InVybCgjbGFtcEdsb3cpIi8+DQogICAgICA8IS0tIE3hurd0IGLDoG4gZ+G7lyAtLT4NCiAgICAgIDxyZWN0IHg9IjcwIiB5PSIyODAiIHdpZHRoPSIzODAiIGhlaWdodD0iMzIiIHJ4PSIxMiIgZmlsbD0iI2I0NTMwOSIgc3Ryb2tlPSIjNzgzNTBmIiBzdHJva2Utd2lkdGg9IjQiLz4NCiAgICAgIDxyZWN0IHg9IjExNSIgeT0iMzEyIiB3aWR0aD0iMjYiIGhlaWdodD0iMTI1IiByeD0iNiIgZmlsbD0iIzc4MzUwZiIvPg0KICAgICAgPHJlY3QgeD0iMzc5IiB5PSIzMTIiIHdpZHRoPSIyNiIgaGVpZ2h0PSIxMjUiIHJ4PSI2IiBmaWxsPSIjNzgzNTBmIi8+DQogICAgICA8IS0tIMSQw6huIGLDoG4gdsOgbmcg4bqlbSAtLT4NCiAgICAgIDxyZWN0IHg9IjIzNSIgeT0iMjU1IiB3aWR0aD0iNTAiIGhlaWdodD0iMjUiIHJ4PSI2IiBmaWxsPSIjNDc1NTY5Ii8+DQogICAgICA8bGluZSB4MT0iMjYwIiB5MT0iMTY1IiB4Mj0iMjYwIiB5Mj0iMjU1IiBzdHJva2U9IiM5NGEzYjgiIHN0cm9rZS13aWR0aD0iMTAiLz4NCiAgICAgIDxwb2x5Z29uIHBvaW50cz0iMTk1LDE3NSAzMjUsMTc1IDI5NSw4NSAyMjUsODUiIGZpbGw9IiNmZGUwNDciIHN0cm9rZT0iI2Q5NzcwNiIgc3Ryb2tlLXdpZHRoPSI1Ii8+DQogICAgPC9zdmc+"
+      "dataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MjAgNDYwIiB3aWR0aD0iNTIwIiBoZWlnaHQ9IjQ2MCI+CiAgICAgIDxkZWZzPgogICAgICAgIDxyYWRpYWxHcmFkaWVudCBpZD0ibGFtcEdsb3ciIGN4PSIwLjUiIGN5PSIwLjUiIHI9IjAuNSI+CiAgICAgICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjZmVmMDhhIiBzdG9wLW9wYWNpdHk9IjAuNzIiLz4KICAgICAgICAgIDxzdG9wIG9mZnNldD0iNTIlIiBzdG9wLWNvbG9yPSIjZjU5ZTBiIiBzdG9wLW9wYWNpdHk9IjAuMjIiLz4KICAgICAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iI2Y1OWUwYiIgc3RvcC1vcGFjaXR5PSIwIi8+CiAgICAgICAgPC9yYWRpYWxHcmFkaWVudD4KICAgICAgPC9kZWZzPgogICAgICA8Y2lyY2xlIGN4PSIyNjAiIGN5PSIxNDAiIHI9IjEzNiIgZmlsbD0idXJsKCNsYW1wR2xvdykiLz4KICAgICAgPCEtLSBN4bq3dCBiw6BuIGfhu5cgLS0+CiAgICAgIDxyZWN0IHg9IjcwIiB5PSIyODAiIHdpZHRoPSIzODAiIGhlaWdodD0iMzIiIHJ4PSIxMiIgZmlsbD0iI2I0NTMwOSIgc3Ryb2tlPSIjNzgzNTBmIiBzdHJva2Utd2lkdGg9IjQiLz4KICAgICAgPHJlY3QgeD0iMTE1IiB5PSIzMTIiIHdpZHRoPSIyNiIgaGVpZ2h0PSIxMjUiIHJ4PSI2IiBmaWxsPSIjNzgzNTBmIi8+CiAgICAgIDxyZWN0IHg9IjM3OSIgeT0iMzEyIiB3aWR0aD0iMjYiIGhlaWdodD0iMTI1IiByeD0iNiIgZmlsbD0iIzc4MzUwZiIvPgogICAgICA8IS0tIMSQw6huIGLDoG4gdsOgbmcg4bqlbSAtLT4KICAgICAgPHJlY3QgeD0iMjM1IiB5PSIyNTUiIHdpZHRoPSI1MCIgaGVpZ2h0PSIyNSIgcng9IjYiIGZpbGw9IiM0NzU1NjkiLz4KICAgICAgPGxpbmUgeDE9IjI2MCIgeTE9IjE2NSIgeDI9IjI2MCIgeTI9IjI1NSIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjEwIi8+CiAgICAgIDxwb2x5Z29uIHBvaW50cz0iMTk1LDE3NSAzMjUsMTc1IDI5NSw4NSAyMjUsODUiIGZpbGw9IiNmZGUwNDciIHN0cm9rZT0iI2Q5NzcwNiIgc3Ryb2tlLXdpZHRoPSI1Ii8+CiAgICA8L3N2Zz4="
     },
     {
       "id": "asset-s2-robo-body",
@@ -4382,7 +4418,7 @@
       "height": 620,
       "path": "assets/scenes-v2/s3-street-lamp-tree.svg",
       "assetPath": "scenes-v2/s3-street-lamp-tree.svg",
-      "dataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MjAgNjIwIiB3aWR0aD0iNDIwIiBoZWlnaHQ9IjYyMCI+DQogICAgICA8ZGVmcz4NCiAgICAgICAgPHJhZGlhbEdyYWRpZW50IGlkPSJzdHJlZXRHbG93IiBjeD0iMC42NSIgY3k9IjAuMjIiIHI9IjAuNDUiPg0KICAgICAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiMzOGJkZjgiIHN0b3Atb3BhY2l0eT0iMC45Ii8+DQogICAgICAgICAgPHN0b3Agb2Zmc2V0PSI1MCUiIHN0b3AtY29sb3I9IiMzOGJkZjgiIHN0b3Atb3BhY2l0eT0iMC4yOCIvPg0KICAgICAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzM4YmRmOCIgc3RvcC1vcGFjaXR5PSIwIi8+DQogICAgICAgIDwvcmFkaWFsR3JhZGllbnQ+DQogICAgICA8L2RlZnM+DQogICAgICA8Y2lyY2xlIGN4PSIyNzUiIGN5PSIxMzUiIHI9IjE3NSIgZmlsbD0idXJsKCNzdHJlZXRHbG93KSIvPg0KICAgICAgPCEtLSBDw6J5IHhhbmggduG7iWEgaMOoIC0tPg0KICAgICAgPHJlY3QgeD0iMTA1IiB5PSIzNDAiIHdpZHRoPSIzNCIgaGVpZ2h0PSIyNDAiIHJ4PSI4IiBmaWxsPSIjNWMyZDE2Ii8+DQogICAgICA8Y2lyY2xlIGN4PSIxMjIiIGN5PSIyNzAiIHI9Ijg4IiBmaWxsPSIjMDY1ZjQ2Ii8+DQogICAgICA8Y2lyY2xlIGN4PSI5NSIgY3k9IjI0MCIgcj0iNjUiIGZpbGw9IiMxMGI5ODEiIG9wYWNpdHk9IjAuODUiLz4NCiAgICAgIDwhLS0gQ+G7mXQgxJHDqG4gxJHGsOG7nW5nIGNhbyAtLT4NCiAgICAgIDxyZWN0IHg9IjIxMCIgeT0iNTYwIiB3aWR0aD0iNDQiIGhlaWdodD0iMjQiIHJ4PSI2IiBmaWxsPSIjNDc1NTY5Ii8+DQogICAgICA8cGF0aCBkPSJNMjMyLDU2MCBMMjMyLDEyNSBRMjMyLDg1IDI4MCw4NSBMMzE1LDg1IiBmaWxsPSJub25lIiBzdHJva2U9IiM5NGEzYjgiIHN0cm9rZS13aWR0aD0iMTQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPg0KICAgICAgPGVsbGlwc2UgY3g9IjMwNSIgY3k9Ijk2IiByeD0iMzIiIHJ5PSIxMiIgZmlsbD0iI2UwZjJmZSIgc3Ryb2tlPSIjMDI4NGM3IiBzdHJva2Utd2lkdGg9IjQiLz4NCiAgICA8L3N2Zz4="
+      "dataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MjAgNjIwIiB3aWR0aD0iNDIwIiBoZWlnaHQ9IjYyMCI+CiAgICAgIDxkZWZzPgogICAgICAgIDxyYWRpYWxHcmFkaWVudCBpZD0ic3RyZWV0R2xvdyIgY3g9IjAuNSIgY3k9IjAuNSIgcj0iMC41Ij4KICAgICAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiMzOGJkZjgiIHN0b3Atb3BhY2l0eT0iMC42OCIvPgogICAgICAgICAgPHN0b3Agb2Zmc2V0PSI1MCUiIHN0b3AtY29sb3I9IiMzOGJkZjgiIHN0b3Atb3BhY2l0eT0iMC4xOCIvPgogICAgICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjMzhiZGY4IiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgICAgICA8L3JhZGlhbEdyYWRpZW50PgogICAgICA8L2RlZnM+CiAgICAgIDxjaXJjbGUgY3g9IjMwNSIgY3k9IjEwMCIgcj0iOTYiIGZpbGw9InVybCgjc3RyZWV0R2xvdykiLz4KICAgICAgPCEtLSBDw6J5IHhhbmggduG7iWEgaMOoIC0tPgogICAgICA8cmVjdCB4PSIxMDUiIHk9IjM0MCIgd2lkdGg9IjM0IiBoZWlnaHQ9IjI0MCIgcng9IjgiIGZpbGw9IiM1YzJkMTYiLz4KICAgICAgPGNpcmNsZSBjeD0iMTIyIiBjeT0iMjcwIiByPSI4OCIgZmlsbD0iIzA2NWY0NiIvPgogICAgICA8Y2lyY2xlIGN4PSI5NSIgY3k9IjI0MCIgcj0iNjUiIGZpbGw9IiMxMGI5ODEiIG9wYWNpdHk9IjAuODUiLz4KICAgICAgPCEtLSBD4buZdCDEkcOobiDEkcaw4budbmcgY2FvIC0tPgogICAgICA8cmVjdCB4PSIyMTAiIHk9IjU2MCIgd2lkdGg9IjQ0IiBoZWlnaHQ9IjI0IiByeD0iNiIgZmlsbD0iIzQ3NTU2OSIvPgogICAgICA8cGF0aCBkPSJNMjMyLDU2MCBMMjMyLDEyNSBRMjMyLDg1IDI4MCw4NSBMMzE1LDg1IiBmaWxsPSJub25lIiBzdHJva2U9IiM5NGEzYjgiIHN0cm9rZS13aWR0aD0iMTQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogICAgICA8ZWxsaXBzZSBjeD0iMzA1IiBjeT0iOTYiIHJ4PSIzMiIgcnk9IjEyIiBmaWxsPSIjZTBmMmZlIiBzdHJva2U9IiMwMjg0YzciIHN0cm9rZS13aWR0aD0iNCIvPgogICAgPC9zdmc+"
     },
     {
       "id": "asset-s3-crate",
@@ -5021,7 +5057,7 @@
       {
         "id": "v2-cam-wp-shot-2-0",
         "type": "camera_director",
-        "title": "#4 · Kéo rộng (100%)",
+        "title": "#4 · Chuyển cảnh · Phòng Khách Ấm Áp",
         "enabled": true,
         "position": {
           "x": 48,
@@ -5029,7 +5065,7 @@
         },
         "preset": "cinematic_fly_push",
         "aiAgentRole": "CameraDirectorAgent",
-        "aiDirective": "Cảnh con #4 (Kéo rộng (100%), Zoom 100%) thuộc \"Phòng Khách Ấm Áp\" [5s – 7.2s].",
+        "aiDirective": "Cảnh con #4 (Chuyển cảnh · Phòng Khách Ấm Áp, Zoom 100%) thuộc \"Phòng Khách Ấm Áp\" [5s – 7.2s].",
         "params": {
           "shotId": "shot-2",
           "logicCategory": "camera",
@@ -5039,8 +5075,8 @@
           "waypointLabel": "4",
           "isSubWaypoint": false,
           "isFirstOfShot": true,
-          "camActionMode": "pull-out",
-          "camTagLabel": "Kéo rộng (100%)",
+          "camActionMode": "pan",
+          "camTagLabel": "Chuyển cảnh · Phòng Khách Ấm Áp",
           "camZoomPct": 100,
           "camStageX": 2458,
           "camStageY": 0,
@@ -5488,7 +5524,7 @@
       {
         "id": "v2-cam-wp-shot-3-0",
         "type": "camera_director",
-        "title": "#7 · Kéo rộng (100%)",
+        "title": "#7 · Chuyển cảnh · Phố Đêm Đèn Đường",
         "enabled": true,
         "position": {
           "x": 48,
@@ -5496,7 +5532,7 @@
         },
         "preset": "cinematic_fly_push",
         "aiAgentRole": "CameraDirectorAgent",
-        "aiDirective": "Cảnh con #7 (Kéo rộng (100%), Zoom 100%) thuộc \"Phố Đêm Đèn Đường\" [10s – 12.4s].",
+        "aiDirective": "Cảnh con #7 (Chuyển cảnh · Phố Đêm Đèn Đường, Zoom 100%) thuộc \"Phố Đêm Đèn Đường\" [10s – 12.4s].",
         "params": {
           "shotId": "shot-3",
           "logicCategory": "camera",
@@ -5506,8 +5542,8 @@
           "waypointLabel": "7",
           "isSubWaypoint": false,
           "isFirstOfShot": true,
-          "camActionMode": "pull-out",
-          "camTagLabel": "Kéo rộng (100%)",
+          "camActionMode": "pan",
+          "camTagLabel": "Chuyển cảnh · Phố Đêm Đèn Đường",
           "camZoomPct": 100,
           "camStageX": 4916,
           "camStageY": 0,
@@ -6196,12 +6232,16 @@
             "v2-layer-layer-s2-lamp-table"
           ],
           "requireLayerConnection": true,
-          "timeStart": 4,
+          "timeStart": 5,
           "timeEnd": 10,
           "hierarchyParentNodeId": "v2-layer-layer-s2-lamp-table",
           "lightMode": "candle",
           "lightColor": "#fbbf24",
-          "intensity": 1.35
+          "intensity": 1.35,
+          "lightBehavior": "wind_reactive",
+          "lightWindPreset": "gentle",
+          "lightRayIntensity": 0.24,
+          "lightEnvBounce": 0.9
         }
       },
       {
@@ -6227,12 +6267,16 @@
             "v2-layer-layer-s3-lamp-tree"
           ],
           "requireLayerConnection": true,
-          "timeStart": 9,
+          "timeStart": 10,
           "timeEnd": 15,
           "hierarchyParentNodeId": "v2-layer-layer-s3-lamp-tree",
           "lightMode": "spot",
           "lightColor": "#38bdf8",
-          "intensity": 1.4
+          "intensity": 1.4,
+          "lightBehavior": "steady",
+          "lightWindPreset": "none",
+          "lightRayIntensity": 0.52,
+          "lightEnvBounce": 0.92
         }
       },
       {

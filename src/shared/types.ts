@@ -338,6 +338,25 @@ export type VirtualLightKind =
 export type WindStrengthPreset = 'none' | 'gentle' | 'strong' | 'storm'
 
 /**
+ * Chế độ hành vi quang học & vật lý theo thời gian của Nguồn sáng ảo 2.5D:
+ * - 'auto': Tự động theo bản chất nguồn sáng (Nến/Lửa -> đối lưu & nhạy gió; Đèn pin -> ổn định kèm vi rung; Tinh thể/Phép thuật -> nhịp thở)
+ * - 'steady': Ổn định êm (điện áp chuẩn / LED, vi dao động siêu nhỏ ~1.5%)
+ * - 'subtle_flicker': Nhấp nháy nhẹ tự nhiên (nến cháy êm lặng gió / đèn sợi đốt ấm)
+ * - 'wind_reactive': Phản ứng khí động học theo gió (lặng / gió nhẹ / gió mạnh / gió bão)
+ * - 'breathing': Nhịp đập / thở ánh sáng nhẹ (chu kỳ sin êm ái co giãn cường độ & quầng sáng)
+ * - 'intermittent': Chập chờn / pin yếu / tiếp xúc kém (sụt áp từng đợt ngắt quãng chân thực)
+ * - 'strobe': Nháy cảnh báo / tia chớp dứt khoát
+ */
+export type VirtualLightBehaviorMode =
+  | 'auto'
+  | 'steady'
+  | 'subtle_flicker'
+  | 'wind_reactive'
+  | 'breathing'
+  | 'intermittent'
+  | 'strobe'
+
+/**
  * Công cụ Ánh Sáng Ảo 2.5D (Virtual Light):
  * Thay thế nguồn sáng tĩnh bằng ánh nến nhạy theo gió (không gió / gió nhẹ / gió mạnh / bão),
  * đèn pin chiếu góc hình nón, bóng đèn điện, lửa trại hoặc tinh thể phát sáng trong hang động.
@@ -375,6 +394,22 @@ export interface LayerVirtualLight {
   softness?: number
   /** Độ cong khung sáng (-0.8 = chụm tiêu điểm, 0 = nón thẳng, +1.0 = vòm bầu parabol rộng, mặc định 0.25) */
   beamCurvature?: number
+  /** Chế độ hành vi thời gian của nguồn sáng (nhấp nháy nhẹ, nhịp đập, chập chờn pin yếu, nhạy gió...) */
+  behaviorMode?: VirtualLightBehaviorMode
+  /** Biên độ / độ sâu của nhịp thở, nhấp nháy hoặc chập chờn (0 .. 1, mặc định theo loại đèn) */
+  pulseDepth?: number
+  /** Cường độ tỉa tia sáng khí quyển Tyndall ra ngoài môi trường (0 .. 1, mặc định 0.48 cho đèn pin, 0.26 cho nến) */
+  rayIntensity?: number
+  /** Số luồng tia tỉa ra ngoài môi trường (3 .. 24, mặc định 9 cho đèn pin, 12 cho tỏa tròn) */
+  rayCount?: number
+  /** Độ hội tụ lõi chóa đèn Hotspot so với quầng loang môi trường Spill (0 .. 1, mặc định 0.58 cho đèn pin) */
+  hotspotFocus?: number
+  /** Hệ số khuếch tán & phản xạ ánh sáng sang các layer môi trường xung quanh (0 .. 1.5, mặc định 0.85) */
+  envBounce?: number
+  /** Thời điểm bắt đầu bật nguồn sáng (giây, mặc định theo layer) */
+  startTime?: number
+  /** Thời lượng bật nguồn sáng (giây, 0 hoặc undefined = tới hết layer) */
+  duration?: number
 }
 
 export interface PhysicsImpactPulse {

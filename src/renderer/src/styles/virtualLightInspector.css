@@ -864,3 +864,48 @@
   background: color-mix(in srgb, var(--accent) 16%, var(--bg-3));
   color: var(--text);
 }
+
+
+/* Live Physics Summary Strip & Responsive Behavior / Ray Grids */
+.vl-physics-summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--key) 12%, var(--bg-1));
+  border: 1px solid color-mix(in srgb, var(--key) 38%, var(--line));
+  color: var(--text);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.vl-behavior-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  width: 100%;
+}
+
+.vl-ray-preset-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .vl-behavior-grid,
+  .vl-ray-preset-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .vl-behavior-grid .vl-pill-btn,
+  .vl-ray-preset-grid .vl-pill-btn,
+  .wf-v2-seg-tab {
+    min-height: 36px;
+    font-size: 11px;
+  }
+}

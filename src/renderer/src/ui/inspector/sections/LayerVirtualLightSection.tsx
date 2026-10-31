@@ -18,6 +18,11 @@ import {
 import { createDefaultLayerPhysics } from '../../../engine/layerPhysics'
 import { assetStore } from '../../../project/assets'
 import { VirtualLightInteractivePad } from './VirtualLightInteractivePad'
+import { describeActiveLightPhysicsVi } from '../../../engine/virtualLightPhysics'
+import {
+  WorkflowV2LightBehaviorPanel,
+  WorkflowV2LightRaysPanel
+} from '../../workflow/WorkflowV2LightBehaviorSection'
 import '../../../styles/virtualLightInspector.css'
 
 const LIGHT_KIND_CARDS: { value: VirtualLightKind; icon: string; name: string; sub: string }[] = [
@@ -90,6 +95,12 @@ export function LayerVirtualLightSection({ layer, set }: { layer: Layer; set: Se
           next.windStrength = WIND_STRENGTH_VALUES[next.windPreset ?? 'gentle']
           if (patch.ambientDim === undefined) next.ambientDim = p.ambientDim
           if (patch.softness === undefined) next.softness = p.softness
+          if (patch.behaviorMode === undefined) next.behaviorMode = p.behaviorMode
+          if (patch.pulseDepth === undefined) next.pulseDepth = p.pulseDepth
+          if (patch.rayIntensity === undefined) next.rayIntensity = p.rayIntensity
+          if (patch.rayCount === undefined) next.rayCount = p.rayCount
+          if (patch.hotspotFocus === undefined) next.hotspotFocus = p.hotspotFocus
+          if (patch.envBounce === undefined) next.envBounce = p.envBounce
         }
       }
       if (patch.windPreset && patch.windStrength === undefined) {
@@ -606,6 +617,21 @@ export function LayerVirtualLightSection({ layer, set }: { layer: Layer; set: Se
                 </div>
               )}
 
+              <div className="vl-physics-summary">
+                <span>✨ {describeActiveLightPhysicsVi(vlight)}</span>
+              </div>
+              <WorkflowV2LightBehaviorPanel
+                vlight={vlight}
+                onPatch={patchLight}
+                onPatchThrottled={patchLight}
+                onFlush={() => {}}
+              />
+              <WorkflowV2LightRaysPanel
+                vlight={vlight}
+                onPatch={patchLight}
+                onPatchThrottled={patchLight}
+                onFlush={() => {}}
+              />
               {/* Màu & Độ Mềm Viền */}
               <Row label="Màu &amp; Viền" title="Màu nhiệt độ nguồn sáng và độ mềm viền bán dạ (Softness)">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5, width: '100%' }}>

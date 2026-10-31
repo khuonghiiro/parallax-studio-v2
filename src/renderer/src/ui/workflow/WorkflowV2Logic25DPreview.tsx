@@ -388,6 +388,12 @@ export const WorkflowV2Logic25DPreview: React.FC<WorkflowV2Logic25DPreviewProps>
             next.windStrength = WIND_STRENGTH_VALUES[next.windPreset ?? 'gentle']
             if (patch.ambientDim === undefined) next.ambientDim = p.ambientDim
             if (patch.softness === undefined) next.softness = p.softness
+            if (patch.behaviorMode === undefined) next.behaviorMode = p.behaviorMode
+            if (patch.pulseDepth === undefined) next.pulseDepth = p.pulseDepth
+            if (patch.rayIntensity === undefined) next.rayIntensity = p.rayIntensity
+            if (patch.rayCount === undefined) next.rayCount = p.rayCount
+            if (patch.hotspotFocus === undefined) next.hotspotFocus = p.hotspotFocus
+            if (patch.envBounce === undefined) next.envBounce = p.envBounce
           }
         }
         l.virtualLight = next
@@ -399,7 +405,11 @@ export const WorkflowV2Logic25DPreview: React.FC<WorkflowV2Logic25DPreviewProps>
           ...(wfNode.params ?? {}),
           ...(opt ? { lightMode: opt.id } : {}),
           ...(patch.color ? { lightColor: patch.color } : {}),
-          ...(patch.intensity !== undefined ? { intensity: patch.intensity } : {})
+          ...(patch.intensity !== undefined ? { intensity: patch.intensity } : {}),
+          ...(patch.behaviorMode ? { lightBehavior: patch.behaviorMode } : {}),
+          ...(patch.windPreset ? { lightWindPreset: patch.windPreset } : {}),
+          ...(patch.rayIntensity !== undefined ? { lightRayIntensity: patch.rayIntensity } : {}),
+          ...(patch.envBounce !== undefined ? { lightEnvBounce: patch.envBounce } : {})
         }
       }
     }, mergeKey)

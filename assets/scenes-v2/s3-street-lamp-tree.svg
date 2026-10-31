@@ -1,12 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 620" width="420" height="620">
       <defs>
-        <radialGradient id="streetGlow" cx="0.65" cy="0.22" r="0.45">
-          <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.9"/>
-          <stop offset="50%" stop-color="#38bdf8" stop-opacity="0.28"/>
+        <radialGradient id="streetGlow" cx="0.5" cy="0.5" r="0.5">
+          <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.68"/>
+          <stop offset="50%" stop-color="#38bdf8" stop-opacity="0.18"/>
           <stop offset="100%" stop-color="#38bdf8" stop-opacity="0"/>
         </radialGradient>
       </defs>
-      <circle cx="275" cy="135" r="175" fill="url(#streetGlow)"/>
+      <circle cx="305" cy="100" r="96" fill="url(#streetGlow)"/>
       <!-- Cây xanh vỉa hè -->
       <rect x="105" y="340" width="34" height="240" rx="8" fill="#5c2d16"/>
       <circle cx="122" cy="270" r="88" fill="#065f46"/>

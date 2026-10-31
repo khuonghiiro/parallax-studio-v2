@@ -46,6 +46,7 @@ uniform vec3 vlightColor;
 uniform vec3 vlightParams;
 uniform vec2 vlightBeam;
 uniform vec3 vlightExtra;
+uniform vec4 vlightRays; // x = rayIntensity, y = rayCount, z = hotspotFocus, w = rayAnimPhase
 varying vec2 vUv;
 varying float vDepth;
 
@@ -61,18 +62,24 @@ void main() {
   float baseLod = max(0.0, 0.5 * log2(max(dot(dx, dx), dot(dy, dy))));
   vec4 sharp = premul(texture2D(map, vUv));
 
-  // 2.5D Pseudo-Normal estimation from texture luminance & alpha silhouette (computed in uniform control flow)
+  // 2.5D Pseudo-Normal & Silhouette Edge Gradient from texture luminance & alpha (uniform control flow)
   float sharpA = clamp(sharp.a, 0.0, 1.0);
   vec3 sharpUnpremul = sharpA > 0.003 ? (sharp.rgb / sharpA) : vec3(0.0);
   float sharpLuma = dot(sharpUnpremul, vec3(0.299, 0.587, 0.114));
   float heightField = sharpLuma * 0.65 + sharpA * 0.35;
   float dhdx = dFdx(heightField);
   float dhdy = dFdy(heightField);
+  float dadx = dFdx(sharpA);
+  float dady = dFdy(sharpA);
   vec2 duvdx = dFdx(vUv);
   vec2 duvdy = dFdy(vUv);
   vec2 gradUv = vec2(
     dhdx * sign(duvdx.x + 1e-5) + dhdy * sign(duvdy.x),
     dhdx * sign(duvdx.y) + dhdy * sign(duvdy.y + 1e-5)
+  );
+  vec2 alphaGradUv = vec2(
+    dadx * sign(duvdx.x + 1e-5) + dady * sign(duvdy.x),
+    dadx * sign(duvdx.y) + dady * sign(duvdy.y + 1e-5)
   );
   vec3 normal25D = normalize(vec3(-gradUv * 6.5, 1.0));
 
@@ -111,8 +118,8 @@ void main() {
     float avgOuter = sumOuter / totalWeight;
     float avgInner = sumInner / totalWeight;
     float curA = clamp(c.a, 0.0, 1.0);
-    float outerVal = pow(clamp(avgOuter, 0.0, 1.0), 0.75) * (1.0 - curA);
-    float innerVal = pow(clamp(avgInner, 0.0, 1.0), 0.85) * curA;
+    float outerVal = pow(max(0.0001, clamp(avgOuter, 0.0, 1.0)), 0.75) * (1.0 - curA);
+    float innerVal = pow(max(0.0001, clamp(avgInner, 0.0, 1.0)), 0.85) * curA;
 
     float glowVal = 0.0;
     if (glowSide == 0) {
@@ -135,12 +142,18 @@ void main() {
   }
 
   // Nguồn sáng ảo 2.5D vật lý (đồng nhất 100% với computeUnified25DLightAtOffset trong virtualLight.ts):
-  // Hỗ trợ điều chỉnh độ dài (radPx), độ hướng (vlightBeam), góc mở (coneCos) và độ cong khung sáng (beamCurvature).
+  // - Chóa 2 vùng Hotspot + Spill cho đèn pin/đèn nón.
+  // - Quầng sáng giọt nước bất đối xứng xuôi chiều đối lưu / gió cho ngọn nến & lửa.
+  // - Tỉa tia sáng khí quyển Tyndall (vlightRays).
   float localLightHalo = 0.0;
   float wickCore = 0.0;
   float ambientDim = clamp(vlightExtra.x, 0.0, 0.85);
   float lightSoftness = clamp(vlightExtra.y, 0.1, 1.0);
   float beamCurvature = clamp(vlightExtra.z, -0.8, 1.0);
+  float rayAmt = clamp(vlightRays.x, 0.0, 1.0);
+  float rayCount = clamp(floor(vlightRays.y + 0.5), 3.0, 24.0);
+  float hotspotFocus = clamp(vlightRays.z, 0.0, 1.0);
+  float rayPhase = vlightRays.w;
   float radPx = max(36.0, vlightParams.y);
   float zStandoff = radPx * 0.22;
 
@@ -149,56 +162,91 @@ void main() {
     float dist2D = length(dPx);
     float intensity = vlightParams.x;
     float coneCos = vlightParams.z;
-    float rNorm = dist2D / radPx;
+    float rawRNorm = dist2D / radPx;
 
-    float coneAtten = 1.0;
-    if (coneCos > -0.98) {
-      vec2 beamAxis = vec2(1.0, 0.0);
-      float bLen = length(vlightBeam);
-      if (bLen > 0.001) beamAxis = vlightBeam / bLen;
-      vec2 perpAxis = vec2(-beamAxis.y, beamAxis.x);
-      float alongPx = dot(dPx, beamAxis);
-      float perpPx = abs(dot(dPx, perpAxis));
+    if (rawRNorm < 1.48) {
+      float effRNorm = rawRNorm;
+      float coneAtten = 1.0;
+      float rayTheta = atan(dPx.y, dPx.x + 1e-5);
+      bool isCone = coneCos > -0.98;
 
-      float halfAngle = acos(clamp(coneCos, -0.995, 0.995));
-      float tanHalf = clamp(tan(halfAngle * 0.92), 0.18, 2.4);
-      float nozzlePx = clamp(radPx * 0.04, 10.0, 26.0);
+      if (isCone) {
+        vec2 beamAxis = vec2(1.0, 0.0);
+        float bLen = length(vlightBeam);
+        if (bLen > 0.001) beamAxis = vlightBeam / bLen;
+        vec2 perpAxis = vec2(-beamAxis.y, beamAxis.x);
+        float alongPx = dot(dPx, beamAxis);
+        float signedPerpPx = dot(dPx, perpAxis);
+        float perpPx = abs(signedPerpPx);
+        rayTheta = atan(signedPerpPx, alongPx + 1e-5);
 
-      float alongNorm = clamp((alongPx + nozzlePx) / radPx, 0.0, 1.2);
-      float curveExp = clamp(1.0 - beamCurvature * 0.52, 0.42, 1.65);
-      float curvedEnvelopeWidth = nozzlePx * 0.85 + radPx * tanHalf * pow(max(0.0001, alongNorm), curveExp) * (1.0 + beamCurvature * 0.18);
+        float halfAngle = acos(clamp(coneCos, -0.995, 0.995));
+        float tanHalf = clamp(tan(halfAngle * 0.92), 0.18, 2.4);
+        float nozzlePx = clamp(radPx * 0.04, 10.0, 26.0);
 
-      float widthRatio = perpPx / max(8.0, curvedEnvelopeWidth);
-      float edgeFeather = max(0.22, 0.32 + lightSoftness * 0.55);
-      float innerEdge = max(0.05, 1.0 - edgeFeather * 0.75);
-      float outerEdge = 1.0 + edgeFeather * 0.45;
-      float envMask = 1.0 - smoothstep(innerEdge, outerEdge, widthRatio);
+        float alongNorm = clamp((alongPx + nozzlePx) / radPx, 0.0, 1.2);
+        float curveExp = clamp(1.0 - beamCurvature * 0.52, 0.42, 1.65);
+        float curvedEnvelopeWidth = nozzlePx * 0.85 + radPx * tanHalf * pow(max(0.0001, alongNorm), curveExp) * (1.0 + beamCurvature * 0.18);
 
-      float capCurve = 1.0 - (0.35 + beamCurvature * 0.35) * min(1.0, widthRatio * widthRatio * 0.45);
-      float effR = alongNorm / max(0.45, capCurve);
-      float capFade = 1.0 - smoothstep(1.0, 1.28, effR);
+        float widthRatio = perpPx / max(8.0, curvedEnvelopeWidth);
+        float edgeFeather = max(0.22, 0.32 + lightSoftness * 0.55);
+        float innerEdge = max(0.05, 1.0 - edgeFeather * 0.75);
+        float outerEdge = 1.0 + edgeFeather * 0.45;
+        float envMask = 1.0 - smoothstep(innerEdge, outerEdge, widthRatio);
 
-      float backGate = smoothstep(-nozzlePx * 1.1, nozzlePx * 1.0, alongPx);
-      float centerBoost = 0.72 + 0.28 * exp(-1.6 * widthRatio * widthRatio);
-      coneAtten = envMask * centerBoost * backGate * capFade;
-    } else if (length(vlightBeam) > 0.01) {
-      vec2 windDir = normalize(vlightBeam);
-      float windBias = clamp(dot(dPx / max(32.0, radPx), windDir), -0.3, 0.45);
-      coneAtten = 1.0 + windBias * 0.22;
-    }
+        float capCurve = 1.0 - (0.35 + beamCurvature * 0.35) * min(1.0, widthRatio * widthRatio * 0.45);
+        float effR = alongNorm / max(0.45, capCurve);
+        float capFade = 1.0 - smoothstep(1.0, 1.28, effR);
 
-    if (rNorm < 1.05 && coneAtten > 0.001) {
-      float falloffK = mix(3.2, 1.65, (lightSoftness - 0.1) / 0.9);
-      float r3D = length(vec2(rNorm, 0.20));
-      float invSq = (1.0 + 0.04 * falloffK) / (1.0 + falloffK * r3D * r3D);
-      float win = 1.0 - smoothstep(0.0, 1.05, rNorm);
-      float radialAtten = invSq * win * win;
-      localLightHalo = radialAtten * coneAtten * intensity;
-    }
+        float backGate = smoothstep(-nozzlePx * 1.1, nozzlePx * 1.0, alongPx);
+        float hotspotK = 1.4 + hotspotFocus * 3.2;
+        float hotspot = exp(-hotspotK * widthRatio * widthRatio);
+        float centerProfile = (0.68 - hotspotFocus * 0.22) + (0.32 + hotspotFocus * 0.56) * hotspot;
+        coneAtten = envMask * centerProfile * backGate * capFade;
+      } else {
+        float bLen = length(vlightBeam);
+        if (bLen > 0.01) {
+          float stretch = bLen <= 0.78 ? bLen : 0.24;
+          vec2 windDir = vlightBeam / bLen;
+          vec2 windPerp = vec2(-windDir.y, windDir.x);
+          float alongP = dot(dPx, windDir);
+          float perpP = dot(dPx, windPerp);
+          float alongScale = alongP >= 0.0 ? (1.0 + stretch * 0.58) : max(0.52, 1.0 - stretch * 0.42);
+          float perpScale = max(0.72, 1.0 - stretch * 0.22);
+          effRNorm = length(vec2(alongP / alongScale, perpP / perpScale)) / radPx;
+          float windBias = clamp(alongP / max(32.0, radPx), -0.28, 0.46);
+          coneAtten = 1.0 + windBias * (0.14 + stretch * 0.28);
+        }
+      }
 
-    if (vlightOn < 1.5) {
-      float coreRadPx = clamp(radPx * 0.036, 7.0, 20.0);
-      wickCore = exp(-2.4 * (dist2D * dist2D) / (coreRadPx * coreRadPx)) * min(1.0, intensity * 0.85);
+      if (effRNorm < 1.05 && coneAtten > 0.001) {
+        float baseFalloff = mix(3.2, 1.65, (lightSoftness - 0.1) / 0.9);
+        float falloffK = isCone ? baseFalloff : baseFalloff * (0.82 + hotspotFocus * 0.44);
+        float r3D = length(vec2(effRNorm, 0.20));
+        float invSq = (1.0 + 0.04 * falloffK) / (1.0 + falloffK * r3D * r3D);
+        float win = 1.0 - smoothstep(0.0, 1.05, effRNorm);
+        float radialAtten = invSq * win * win;
+
+        float rayFactor = 1.0;
+        if (rayAmt > 0.01 && effRNorm > 0.04) {
+          float freq = isCone ? rayCount * 2.2 : rayCount;
+          float s1 = sin(rayTheta * freq + rayPhase * 0.75);
+          float s2 = sin(rayTheta * (freq * 1.93) - rayPhase * 0.52 + 1.4);
+          float s3 = sin(rayTheta * (freq * 3.17) + rayPhase * 1.15 + 2.7);
+          float rawW = s1 * 0.52 + s2 * 0.31 + s3 * 0.17;
+          float ridge = pow(max(0.0001, clamp(rawW * 0.5 + 0.5, 0.0, 1.0)), 1.55);
+          float emerge = smoothstep(0.05, 0.26, effRNorm);
+          float outerFade = 1.0 - smoothstep(0.75, 1.06, effRNorm) * 0.35;
+          rayFactor = 1.0 + (ridge - 0.42) * rayAmt * 0.82 * emerge * outerFade;
+        }
+
+        localLightHalo = radialAtten * coneAtten * rayFactor * intensity;
+      }
+
+      if (vlightOn < 1.5) {
+        float coreRadPx = clamp(radPx * 0.036, 7.0, 20.0);
+        wickCore = exp(-2.4 * (dist2D * dist2D) / (coreRadPx * coreRadPx)) * min(1.0, intensity * 0.85);
+      }
     }
   }
 
@@ -213,7 +261,7 @@ void main() {
   vec3 wickColor = mix(vlightColor, vec3(1.0, 0.98, 0.92), clamp(wickCore * 0.85, 0.0, 0.85));
   vec3 rgb = c.rgb / max(0.003, texAlpha);
 
-  // 1. Vùng Độ Sâu / Lối Vào Hang Động 2.5D: hỗ trợ vòm hang bất đối xứng (Rx, Ry), làm tối có chiều sâu giữ vân đá và được cứu sáng cục bộ tại từng điểm ảnh có đèn chiếu
+  // 1. Vùng Độ Sâu / Lối Vào Hang Động 2.5D: hỗ trợ vòm hang bất đối xứng (Rx, Ry), cứu sáng cục bộ tại từng điểm ảnh có đèn chiếu
   if (portalOn > 0.5 && portalDarkness > 0.01) {
     vec2 pRad = max(vec2(0.04), portalParams.zw);
     vec2 pDiff = (vUv - portalParams.xy) / pRad;
@@ -232,14 +280,14 @@ void main() {
     }
   }
 
-  // 2. Bóng tối hang động che phủ nhân vật khi đi sâu vào cửa hang (được cứu sáng trực tiếp phía hướng về ngọn đèn!)
+  // 2. Bóng tối hang động che phủ nhân vật khi đi sâu vào cửa hang (được cứu sáng trực tiếp phía hướng về ngọn đèn)
   if (shadeDarkness > 0.005) {
     float netCharDark = max(0.0, shadeDarkness - localLightHalo * 0.78);
     vec3 shadedBody = rgb * (1.0 - netCharDark * 0.76);
     rgb = mix(shadedBody, shadeTint, clamp(netCharDark * 0.86, 0.0, 0.95));
   }
 
-  // 3. Tương phản Sáng - Tối vật lý (Ambient Contrast) & Chiếu sáng nổi khối 2.5D (Normal Relief + Filmic Roll-off)
+  // 3. Tương phản Sáng - Tối vật lý, Chiếu sáng nổi khối 2.5D & Bắt viền sáng Rim Light theo hướng nguồn sáng
   if (vlightOn > 0.5) {
     if (ambientDim > 0.01) {
       float effAmbient = ambientDim * (vlightOn < 1.5 ? 0.70 : 0.52);
@@ -248,16 +296,28 @@ void main() {
     }
 
     if (localLightHalo > 0.002) {
-      vec3 lightDir3D = normalize(vec3((vlightUv - vUv) * planeSize, zStandoff));
+      vec2 toLightVec = (vlightUv - vUv) * planeSize;
+      vec3 lightDir3D = normalize(vec3(toLightVec, zStandoff));
       float ndotl = clamp(dot(normal25D, lightDir3D), 0.0, 1.0);
       float reliefStrength = clamp(length(normal25D.xy) * 1.35, 0.0, 1.0);
       float bumpFactor = mix(1.0, mix(0.76, 1.32, ndotl), reliefStrength * 0.80);
-      float specRim = reliefStrength * pow(ndotl, 2.2) * clamp(localLightHalo * 0.25, 0.0, 0.42);
+      float specRim = reliefStrength * pow(max(0.0001, ndotl), 2.2) * clamp(localLightHalo * 0.25, 0.0, 0.42);
+
+      // Viền sáng Rim Catch-Light 2.5D trên các vật thể môi trường nhận sáng (vlightOn == 2) dọc theo mép hướng về ngọn đèn
+      float edgeMag = clamp(length(alphaGradUv) * 2.4, 0.0, 1.0);
+      float silhouetteRim = 0.0;
+      if (vlightOn > 1.5 && edgeMag > 0.03 && length(toLightVec) > 2.0) {
+        vec2 edgeOutDir = normalize(-alphaGradUv + vec2(1e-5));
+        vec2 toLightDir2D = normalize(toLightVec);
+        float rimFacing = pow(max(0.0001, clamp(dot(edgeOutDir, toLightDir2D), 0.0, 1.0)), 1.5);
+        silhouetteRim = edgeMag * rimFacing * clamp(localLightHalo * 0.55, 0.0, 0.72);
+      }
 
       float surfE = clamp(localLightHalo * bumpFactor, 0.0, 3.0);
+      float surfaceOpacity = smoothstep(0.04, 0.42, texAlpha);
       vec3 diffuse = rgb * vlightColor * (surfE * 0.88);
-      vec3 warmLift = vlightColor * (surfE * (0.26 + 0.24 * sharpLuma));
-      vec3 specHighlight = mix(vlightColor, vec3(1.0, 0.98, 0.92), 0.42) * specRim;
+      vec3 warmLift = vlightColor * (surfE * (0.26 + 0.24 * sharpLuma) * surfaceOpacity);
+      vec3 specHighlight = mix(vlightColor, vec3(1.0, 0.98, 0.92), 0.42) * (specRim + silhouetteRim) * surfaceOpacity;
 
       vec3 litRgb = rgb + diffuse + warmLift + specHighlight;
       if (wickCore > 0.02) {
@@ -268,10 +328,13 @@ void main() {
     }
   }
 
-  // 4. Ánh sáng môi trường gián tiếp từ các nguồn sáng lân cận trong cùng Shot
-  if (lightBoost > 0.01 && vlightOn < 0.5) {
-    float boostE = clamp(lightBoost * 0.48, 0.0, 1.2);
-    rgb = rgb * (1.0 + lightTint * boostE * 0.60) + lightTint * (boostE * 0.16 * (0.3 + 0.7 * sharpLuma));
+  // 4. Ánh sáng phản xạ môi trường đa nguồn (Multi-Light Environmental Bounce) trong cùng Shot
+  if (lightBoost > 0.01) {
+    float bounceScale = vlightOn < 0.5 ? 0.48 : (vlightOn > 1.5 ? 0.16 : 0.0);
+    if (bounceScale > 0.01) {
+      float boostE = clamp(lightBoost * bounceScale, 0.0, 1.2);
+      rgb = rgb * (1.0 + lightTint * boostE * 0.60) + lightTint * (boostE * 0.16 * (0.3 + 0.7 * sharpLuma));
+    }
   }
 
   c.a = texAlpha;
@@ -285,13 +348,14 @@ void main() {
 
 /**
  * Shader luồng sáng khí quyển 2.5D không bị cắt bởi kích thước layer nguồn (Unclipped Volumetric Light Beam):
- * Cho phép một layer nhỏ (như Cột điện, Đèn pin, Ngọn đuốc) phóng luồng sáng vươn xa tự do sang toàn bộ không gian cảnh.
+ * Hỗ trợ tỉa tia sáng khí quyển Tyndall, chóa 2 vùng Hotspot + Spill và quầng lửa tạt theo chiều gió.
  */
 export const VOLUMETRIC_LIGHT_FRAG = /* glsl */ `
 uniform vec3 vlightColor;
 uniform vec3 vlightParams; // x = intensity, y = radPx, z = coneCos
 uniform vec2 vlightBeam;
 uniform vec3 vlightExtra;  // x = ambientDim, y = softness, z = beamCurvature
+uniform vec4 vlightRays;   // x = rayIntensity, y = rayCount, z = hotspotFocus, w = rayAnimPhase
 uniform float quadSpanPx;
 varying vec2 vUv;
 
@@ -301,20 +365,30 @@ void main() {
   float coneCos = vlightParams.z;
   float lightSoftness = clamp(vlightExtra.y, 0.1, 1.0);
   float beamCurvature = clamp(vlightExtra.z, -0.8, 1.0);
+  float rayAmt = clamp(vlightRays.x, 0.0, 1.0);
+  float rayCount = clamp(floor(vlightRays.y + 0.5), 3.0, 24.0);
+  float hotspotFocus = clamp(vlightRays.z, 0.0, 1.0);
+  float rayPhase = vlightRays.w;
 
   vec2 dPx = (vUv - vec2(0.5)) * quadSpanPx;
   float dist2D = length(dPx);
-  float rNorm = dist2D / radPx;
-  if (rNorm >= 1.05 || intensity <= 0.005) discard;
+  float rawRNorm = dist2D / radPx;
+  if (rawRNorm >= 1.48 || intensity <= 0.005) discard;
 
+  float effRNorm = rawRNorm;
   float coneAtten = 1.0;
-  if (coneCos > -0.98) {
+  float rayTheta = atan(dPx.y, dPx.x + 1e-5);
+  bool isCone = coneCos > -0.98;
+
+  if (isCone) {
     vec2 beamAxis = vec2(1.0, 0.0);
     float bLen = length(vlightBeam);
     if (bLen > 0.001) beamAxis = vlightBeam / bLen;
     vec2 perpAxis = vec2(-beamAxis.y, beamAxis.x);
     float alongPx = dot(dPx, beamAxis);
-    float perpPx = abs(dot(dPx, perpAxis));
+    float signedPerpPx = dot(dPx, perpAxis);
+    float perpPx = abs(signedPerpPx);
+    rayTheta = atan(signedPerpPx, alongPx + 1e-5);
 
     float halfAngle = acos(clamp(coneCos, -0.995, 0.995));
     float tanHalf = clamp(tan(halfAngle * 0.92), 0.18, 2.4);
@@ -335,24 +409,54 @@ void main() {
     float capFade = 1.0 - smoothstep(1.0, 1.28, effR);
 
     float backGate = smoothstep(-nozzlePx * 1.1, nozzlePx * 1.0, alongPx);
-    float centerBoost = 0.72 + 0.28 * exp(-1.6 * widthRatio * widthRatio);
-    coneAtten = envMask * centerBoost * backGate * capFade;
-  } else if (length(vlightBeam) > 0.01) {
-    vec2 windDir = normalize(vlightBeam);
-    float windBias = clamp(dot(dPx / max(32.0, radPx), windDir), -0.3, 0.45);
-    coneAtten = 1.0 + windBias * 0.22;
+    float hotspotK = 1.4 + hotspotFocus * 3.2;
+    float hotspot = exp(-hotspotK * widthRatio * widthRatio);
+    float centerProfile = (0.68 - hotspotFocus * 0.22) + (0.32 + hotspotFocus * 0.56) * hotspot;
+    coneAtten = envMask * centerProfile * backGate * capFade;
+  } else {
+    float bLen = length(vlightBeam);
+    if (bLen > 0.01) {
+      float stretch = bLen <= 0.78 ? bLen : 0.24;
+      vec2 windDir = vlightBeam / bLen;
+      vec2 windPerp = vec2(-windDir.y, windDir.x);
+      float alongP = dot(dPx, windDir);
+      float perpP = dot(dPx, windPerp);
+      float alongScale = alongP >= 0.0 ? (1.0 + stretch * 0.58) : max(0.52, 1.0 - stretch * 0.42);
+      float perpScale = max(0.72, 1.0 - stretch * 0.22);
+      effRNorm = length(vec2(alongP / alongScale, perpP / perpScale)) / radPx;
+      float windBias = clamp(alongP / max(32.0, radPx), -0.28, 0.46);
+      coneAtten = 1.0 + windBias * (0.14 + stretch * 0.28);
+    }
   }
 
-  float falloffK = mix(3.2, 1.65, (lightSoftness - 0.1) / 0.9);
-  float r3D = length(vec2(rNorm, 0.20));
+  if (effRNorm >= 1.05 || coneAtten <= 0.001) discard;
+
+  float baseFalloff = mix(3.2, 1.65, (lightSoftness - 0.1) / 0.9);
+  float falloffK = isCone ? baseFalloff : baseFalloff * (0.82 + hotspotFocus * 0.44);
+  float r3D = length(vec2(effRNorm, 0.20));
   float invSq = (1.0 + 0.04 * falloffK) / (1.0 + falloffK * r3D * r3D);
-  float win = 1.0 - smoothstep(0.0, 1.05, rNorm);
+  float win = 1.0 - smoothstep(0.0, 1.05, effRNorm);
   float radialAtten = invSq * win * win;
-  float halo = radialAtten * coneAtten * intensity;
+
+  float rayFactor = 1.0;
+  if (rayAmt > 0.01 && effRNorm > 0.04) {
+    float freq = isCone ? rayCount * 2.2 : rayCount;
+    float s1 = sin(rayTheta * freq + rayPhase * 0.75);
+    float s2 = sin(rayTheta * (freq * 1.93) - rayPhase * 0.52 + 1.4);
+    float s3 = sin(rayTheta * (freq * 3.17) + rayPhase * 1.15 + 2.7);
+    float rawW = s1 * 0.52 + s2 * 0.31 + s3 * 0.17;
+    float ridge = pow(max(0.0001, clamp(rawW * 0.5 + 0.5, 0.0, 1.0)), 1.55);
+    float emerge = smoothstep(0.05, 0.26, effRNorm);
+    float outerFade = 1.0 - smoothstep(0.75, 1.06, effRNorm) * 0.35;
+    rayFactor = 1.0 + (ridge - 0.42) * rayAmt * 0.82 * emerge * outerFade;
+  }
+
+  float halo = radialAtten * coneAtten * rayFactor * intensity;
 
   float coreRadPx = clamp(radPx * 0.035, 7.0, 20.0);
   float wick = exp(-2.4 * (dist2D * dist2D) / (coreRadPx * coreRadPx)) * min(1.0, intensity * 0.9);
-  float beamAlpha = clamp(halo * (coneCos > -0.98 ? 0.28 : 0.18) + wick * 0.55, 0.0, 0.68);
+  float rayBoostAlpha = isCone ? (0.28 + rayAmt * 0.07) : (0.18 + rayAmt * 0.06);
+  float beamAlpha = clamp(halo * rayBoostAlpha + wick * 0.55, 0.0, 0.72);
   if (beamAlpha < 0.003) discard;
 
   vec3 col = mix(vlightColor, vec3(1.0, 0.98, 0.92), clamp(wick * 0.75 + halo * 0.15, 0.0, 0.85));

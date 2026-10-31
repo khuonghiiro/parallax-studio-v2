@@ -7,6 +7,7 @@ import { evaluateLayerGlow } from '../../../engine/layerGlow'
 import {
   collectEvaluatedVirtualLights,
   evaluateVirtualLightAtTime,
+  resolveActiveLightEmitterIds,
   resolveReceivedVirtualLightForLayer
 } from '../../../engine/virtualLight'
 import { frameTolerance } from '../../../store/editor'
@@ -59,6 +60,10 @@ export interface ProjectedLayer2D {
     ambientDim?: number
     softness?: number
     beamCurvature?: number
+    plumeStretch?: number
+    rayIntensity?: number
+    rayCount?: number
+    hotspotFocus?: number
   }
   portal?: {
     centerU: number
@@ -302,6 +307,7 @@ export function projectShotLayers2D(
   })
 
   const shotLights = collectEvaluatedVirtualLights(ev.layers, shotId, ev.t)
+  const emitterIds = resolveActiveLightEmitterIds(matching.map((e) => e.layer))
 
   return matching.map((el): ProjectedLayer2D => {
     const lz = el.position[2]
@@ -346,7 +352,9 @@ export function projectShotLayers2D(
 
     const worldW = Math.max(32, el.size[0] * Math.abs(el.scale[0]))
     const worldH = Math.max(32, el.size[1] * Math.abs(el.scale[1]))
-    const evVLight = evaluateVirtualLightAtTime(el.layer, ev.t, el.position, el.size, el.scale)
+    const evVLight = emitterIds.has(el.layer.id)
+      ? evaluateVirtualLightAtTime(el.layer, ev.t, el.position, el.size, el.scale)
+      : null
     if (evVLight && evVLight.effectiveIntensity > 0.01) {
       const origU = el.layer.virtualLight?.originUV?.[0] ?? 0.5
       const origV = el.layer.virtualLight?.originUV?.[1] ?? 0.5
@@ -369,7 +377,11 @@ export function projectShotLayers2D(
         isReceived: false,
         ambientDim: evVLight.ambientDim,
         softness: evVLight.softness,
-        beamCurvature: evVLight.beamCurvature
+        beamCurvature: evVLight.beamCurvature,
+        plumeStretch: evVLight.plumeStretch,
+        rayIntensity: evVLight.rayIntensity,
+        rayCount: evVLight.rayCount,
+        hotspotFocus: evVLight.hotspotFocus
       }
 
 
@@ -390,7 +402,11 @@ export function projectShotLayers2D(
           isReceived: true,
           ambientDim: received.light.ambientDim,
           softness: received.light.softness,
-          beamCurvature: received.light.beamCurvature
+          beamCurvature: received.light.beamCurvature,
+          plumeStretch: received.light.plumeStretch,
+          rayIntensity: received.light.rayIntensity * 0.72,
+          rayCount: received.light.rayCount,
+          hotspotFocus: received.light.hotspotFocus
         }
       }
     }

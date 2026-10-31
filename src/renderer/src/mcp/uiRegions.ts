@@ -147,6 +147,8 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   workflow_part_asset_grid: region('workflow_part_asset_grid', '.wf-part-asset-grid-section'),
   workflow_shot_spatial_pad: region('workflow_shot_spatial_pad', '.wf-shot-spatial-pad'),
   workflow_cam_bbox_guard: region('workflow_cam_bbox_guard', '.wf-cam-bbox-guard'),
+  workflow_light_behavior: region('workflow_light_behavior', '.vl-physics-behavior-panel'),
+  workflow_light_rays: region('workflow_light_rays', '.vl-physics-rays-panel'),
   workflow_preview: region('workflow_preview', '.wf-inspector-preview-box'),
   workflow_json_panel: region('workflow_json_panel', '.wf-json-panel'),
   workflow_node_camera_preview: region('workflow_node_camera_preview', '.wf-camera-preview'),

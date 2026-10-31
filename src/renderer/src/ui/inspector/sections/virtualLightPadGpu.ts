@@ -59,8 +59,11 @@ export function syncPadLightMaterials(
     u.vlightParams.value.set(light.effectiveIntensity, radius, light.coneCos)
     u.vlightBeam.value.set(...direction)
     u.vlightExtra.value.set(light.ambientDim, light.softness, light.beamCurvature)
+    if (u.vlightRays) {
+      u.vlightRays.value.set(light.rayIntensity, light.rayCount, light.hotspotFocus, light.rayAnimPhase)
+    }
   }
-  beam.uniforms.quadSpanPx.value = radius * 2.25
+  beam.uniforms.quadSpanPx.value = radius * 2.85
   return evaluated
 }
 
@@ -130,7 +133,7 @@ class LightPadRenderer {
     const evaluated = syncPadLightMaterials(this.surface.material, this.beam.material, p)
     this.beam.visible = Boolean(evaluated)
     if (evaluated) {
-      const span = evaluated.radius * 2.25
+      const span = evaluated.radius * 2.85
       this.beam.scale.set(span, span, 1)
       this.beam.position.set((evaluated.uv[0] - 0.5) * w, (evaluated.uv[1] - 0.5) * h, 0.01)
     }

@@ -43,8 +43,8 @@
         "index": 1,
         "label": "4",
         "isSubWaypoint": false,
-        "actionMode": "pull-out",
-        "tagLabel": "Kéo rộng (100%)",
+        "actionMode": "pan",
+        "tagLabel": "Chuyển cảnh · Phòng Khách Ấm Áp",
         "timeStart": 5,
         "timeEnd": 7.2,
         "stepDuration": 2.2,
@@ -350,7 +350,7 @@
       "presetId": "v2:light:candle",
       "title": "Ánh sáng: Ngọn nến (Gió)",
       "enabled": true,
-      "timeStart": 4,
+      "timeStart": 5,
       "timeEnd": 10,
       "targetLayerIds": [
         "layer-s2-lamp-table"
@@ -412,7 +412,7 @@
       {
         "id": "v2-cam-wp-shot-2-0",
         "type": "camera_director",
-        "title": "#4 · Kéo rộng (100%)",
+        "title": "#4 · Chuyển cảnh · Phòng Khách Ấm Áp",
         "enabled": true,
         "position": {
           "x": 48,
@@ -420,7 +420,7 @@
         },
         "preset": "cinematic_fly_push",
         "aiAgentRole": "CameraDirectorAgent",
-        "aiDirective": "Cảnh con #4 (Kéo rộng (100%), Zoom 100%) thuộc \"Phòng Khách Ấm Áp\" [5s – 7.2s].",
+        "aiDirective": "Cảnh con #4 (Chuyển cảnh · Phòng Khách Ấm Áp, Zoom 100%) thuộc \"Phòng Khách Ấm Áp\" [5s – 7.2s].",
         "params": {
           "shotId": "shot-2",
           "logicCategory": "camera",
@@ -430,8 +430,8 @@
           "waypointLabel": "4",
           "isSubWaypoint": false,
           "isFirstOfShot": true,
-          "camActionMode": "pull-out",
-          "camTagLabel": "Kéo rộng (100%)",
+          "camActionMode": "pan",
+          "camTagLabel": "Chuyển cảnh · Phòng Khách Ấm Áp",
           "camZoomPct": 100,
           "camStageX": 2458,
           "camStageY": 0,
@@ -994,12 +994,16 @@
             "v2-layer-layer-s2-lamp-table"
           ],
           "requireLayerConnection": true,
-          "timeStart": 4,
+          "timeStart": 5,
           "timeEnd": 10,
           "hierarchyParentNodeId": "v2-layer-layer-s2-lamp-table",
           "lightMode": "candle",
           "lightColor": "#fbbf24",
-          "intensity": 1.35
+          "intensity": 1.35,
+          "lightBehavior": "wind_reactive",
+          "lightWindPreset": "gentle",
+          "lightRayIntensity": 0.24,
+          "lightEnvBounce": 0.9
         }
       }
     ],

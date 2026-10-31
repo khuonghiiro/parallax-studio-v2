@@ -167,22 +167,33 @@ function lightModeOf(layer: Layer, current?: string): WorkflowNodeParams['lightM
 }
 
 function deriveLight(layer: Layer, compDur: number, glowOwnedByFx: boolean, current?: WorkflowNode): Derived {
-  const vlOn = Boolean(layer.virtualLight?.enabled)
+  const vl = layer.virtualLight
+  const vlOn = Boolean(vl?.enabled)
   const glowOn = Boolean(layer.glow?.enabled) && !glowOwnedByFx
   const present = vlOn || glowOn
   const mode = lightModeOf(layer, current?.params?.lightMode)
   const opt = WORKFLOW_V2_LIGHT_OPTIONS.find((o) => o.id === mode)
   const range = resolveLayerNodeTimeRange(layer, compDur)
   const g = layer.glow
-  const start = glowOn && typeof g?.startTime === 'number' ? g.startTime : range.start
-  const end = glowOn && g?.duration ? start + g.duration : range.end
+  const start =
+    vlOn && typeof vl?.startTime === 'number'
+      ? vl.startTime
+      : glowOn && typeof g?.startTime === 'number'
+        ? g.startTime
+        : range.start
+  const dur = vlOn && vl?.duration ? vl.duration : glowOn && g?.duration ? g.duration : 0
+  const end = dur > 0 ? start + dur : range.end
   return {
     present,
     enabled: present,
     params: {
       lightMode: mode,
       lightColor: (vlOn ? layer.virtualLight?.color : g?.color) ?? opt?.defaultColor,
-      intensity: vlOn ? layer.virtualLight?.intensity : g?.intensity,
+      intensity: vlOn ? vl?.intensity : g?.intensity,
+      ...(vlOn && vl?.behaviorMode ? { lightBehavior: vl.behaviorMode } : {}),
+      ...(vlOn && vl?.windPreset ? { lightWindPreset: vl.windPreset } : {}),
+      ...(vlOn && vl?.rayIntensity !== undefined ? { lightRayIntensity: r2(vl.rayIntensity) } : {}),
+      ...(vlOn && vl?.envBounce !== undefined ? { lightEnvBounce: r2(vl.envBounce) } : {}),
       timeStart: r2(start),
       timeEnd: r2(end)
     },

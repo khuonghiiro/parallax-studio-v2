@@ -1,6 +1,7 @@
 import { resolveMotionMode } from './workflowMotionMode'
 import { syncMotionExecution } from './workflowMotionExecution'
 import { effectiveTimeParams, isTimeNode } from './workflowTiming'
+import { createDefaultVirtualLight, WIND_STRENGTH_VALUES } from '../engine/virtualLight'
 import type { GlowSide, Layer, LayerGlow, LayerMotionType, Project, WorkflowEdge, WorkflowGraph, WorkflowNode, WorkflowNodeParams } from '@shared/types'
 import { getProjectAudioTracks } from './audioTracks'
 import {
@@ -843,6 +844,10 @@ function syncSingleWorkflowV2NodeToProject(
       if (!targetIds.has(l.id)) continue
       const startSec = tStart ?? l.inPoint ?? 0
       const endSec = tEnd ?? l.outPoint ?? project.comp.duration
+      if (mode !== 'glow' && mode !== 'rim' && l.glow?.enabled) {
+        const hasFxGlow = (l.appliedEffects ?? []).some((f) => f.category === 'glow' && f.enabled !== false)
+        if (!hasFxGlow) l.glow = { ...l.glow, enabled: false }
+      }
       if (mode === 'glow' || mode === 'rim') {
         l.glow = {
           ...(l.glow ?? {}),
@@ -855,11 +860,22 @@ function syncSingleWorkflowV2NodeToProject(
         }
       }
       const prevVl = l.virtualLight
+      const baseVl =
+        !prevVl || prevVl.kind !== lightOpt.virtualKind
+          ? { ...createDefaultVirtualLight(lightOpt.virtualKind), originUV: prevVl?.originUV ?? [0.5, 0.5] }
+          : prevVl
+      const nextWindPreset = params.lightWindPreset ?? baseVl.windPreset ?? 'gentle'
+      const durSec = Math.max(0.1, Number((endSec - startSec).toFixed(2)))
       l.virtualLight = {
-        radius: prevVl?.radius ?? 460,
-        originUV: prevVl?.originUV ?? [0.5, 0.5],
-        zReach: prevVl?.zReach ?? 320,
-        ...(prevVl ?? {}),
+        ...baseVl,
+        startTime: startSec,
+        duration: durSec,
+        ...(params.lightBehavior ? { behaviorMode: params.lightBehavior } : {}),
+        ...(params.lightWindPreset
+          ? { windPreset: nextWindPreset, windStrength: WIND_STRENGTH_VALUES[nextWindPreset] }
+          : {}),
+        ...(params.lightRayIntensity !== undefined ? { rayIntensity: params.lightRayIntensity } : {}),
+        ...(params.lightEnvBounce !== undefined ? { envBounce: params.lightEnvBounce } : {}),
         enabled: node.enabled,
         kind: lightOpt.virtualKind,
         color,

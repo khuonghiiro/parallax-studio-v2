@@ -57,9 +57,24 @@ export function Layer2DLightOverlay({
     : 0
 
   const color = layer.vlight?.color ?? '#ff9d3b'
+  const plumeStretch = Math.max(0, Math.min(0.72, layer.vlight?.plumeStretch ?? 0))
+  const rayIntensity = Math.max(0, Math.min(1, layer.vlight?.rayIntensity ?? 0))
+  const rayCount = Math.max(4, Math.min(24, Math.round(layer.vlight?.rayCount ?? 10)))
+  const rayStepDeg = Math.max(6, Math.round((isCone ? Math.max(36, coneDeg) : 360) / rayCount))
+  const rayAlphaHex = Math.round(Math.min(0.45, rayIntensity * 0.42) * 255)
+    .toString(16)
+    .padStart(2, '0')
+  const rayOrigin = isCone ? '6% 50%' : '50% 50%'
+  const rayStriationBg =
+    rayIntensity > 0.05
+      ? `, repeating-conic-gradient(from 0deg at ${rayOrigin}, ${color}${rayAlphaHex} 0deg, transparent ${Math.max(2, Math.round(rayStepDeg * 0.44))}deg, transparent ${rayStepDeg}deg)`
+      : ''
+  const omniCenterX = plumeStretch > 0.02 ? Math.round(50 - plumeStretch * 22) : 50
+  const omniScaleX = (1 + plumeStretch * 0.46).toFixed(2)
+  const omniScaleY = Math.max(0.76, 1 - plumeStretch * 0.16).toFixed(2)
   // Phân bố nghịch đảo bình phương vật lý: lõi sáng nhỏ sắc nét ở đầu đèn/tim nến, màu ánh sáng trong trẻo không làm đục trắng bề mặt
-  const omniHaloBg = `radial-gradient(50% 50% at 50% 50%, #fffdf5 0%, ${color}cc 7%, ${color}78 24%, ${color}30 50%, ${color}0c 76%, transparent 100%)`
-  const conePlumeBg = `radial-gradient(92% ${plumeRyPct}% at 6% 50%, #fffdf5 0%, ${color}dc 6%, ${color}88 22%, ${color}3b 48%, ${color}10 74%, transparent 100%)`
+  const omniHaloBg = `radial-gradient(50% 50% at ${omniCenterX}% 50%, #fffdf5 0%, ${color}cc 7%, ${color}78 24%, ${color}30 50%, ${color}0c 76%, transparent 100%)${rayStriationBg}`
+  const conePlumeBg = `radial-gradient(92% ${plumeRyPct}% at 6% 50%, #fffdf5 0%, ${color}dc 6%, ${color}88 22%, ${color}3b 48%, ${color}10 74%, transparent 100%)${rayStriationBg}`
   const conePlumeMask = `conic-gradient(from ${startConeDeg}deg at 6% 50%, transparent 0deg, #000 ${penumbra}deg, #000 ${coneDeg + penumbra}deg, transparent ${coneDeg + penumbra * 2}deg)`
   const surfDiamPct = Math.max(68, Math.min(215, surfRadPct * 2))
 
@@ -72,7 +87,9 @@ export function Layer2DLightOverlay({
     transformOrigin: isCone ? '6% 50%' : '50% 50%',
     transform: isCone
       ? `translate(-6%, -50%) rotate(${-beamDeg}deg)`
-      : 'translate(-50%, -50%)',
+      : plumeStretch > 0.02
+        ? `translate(-50%, -50%) rotate(${-beamDeg}deg) scale(${omniScaleX}, ${omniScaleY})`
+        : 'translate(-50%, -50%)',
     borderRadius: isCone ? undefined : '50%',
     pointerEvents: 'none',
     backgroundImage: isCone ? conePlumeBg : omniHaloBg,

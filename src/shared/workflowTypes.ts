@@ -369,6 +369,14 @@ export interface WorkflowNodeParams {
   lightMode?: 'rim' | 'point' | 'spot' | 'candle' | 'glow' | 'cave_crystal'
   /** [Workflow V2] Mã màu HEX của Node Ánh sáng */
   lightColor?: string
+  /** [Workflow V2] Hành vi động học nguồn sáng ('auto' | 'steady' | 'subtle_flicker' | 'wind_reactive' | 'breathing' | 'intermittent' | 'strobe') */
+  lightBehavior?: 'auto' | 'steady' | 'subtle_flicker' | 'wind_reactive' | 'breathing' | 'intermittent' | 'strobe'
+  /** [Workflow V2] Mức gió tác động lên Node Ánh sáng ('none' | 'gentle' | 'strong' | 'storm') */
+  lightWindPreset?: 'none' | 'gentle' | 'strong' | 'storm'
+  /** [Workflow V2] Cường độ tỉa tia sáng khí quyển ra ngoài môi trường (0..1) */
+  lightRayIntensity?: number
+  /** [Workflow V2] Hệ số ánh xạ ánh sáng sang các layer môi trường lân cận (0..1.5) */
+  lightEnvBounce?: number
   /** [Workflow V2] Hình dáng vòm cửa hang của Node Hang động */
   caveArchShape?: 'arch' | 'ellipse' | 'circle'
   /** [Workflow V2] Độ tối lòng hang (0..1) của Node Hang động */

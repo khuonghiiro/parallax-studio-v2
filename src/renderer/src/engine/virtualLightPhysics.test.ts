@@ -1,0 +1,294 @@
+import { describe, expect, it } from 'vitest'
+import { createProject, createShot, createSolidLayer } from '../project/factory'
+import {
+  attachLogicNodeToLayerV2,
+  syncWorkflowV2Graph,
+  syncWorkflowV2NodeToProject,
+  v2LayerNodeId
+} from '../project/workflowV2Engine'
+import {
+  collectActiveVirtualLights,
+  computeUnified25DLightAtOffset,
+  createDefaultVirtualLight,
+  evaluateCaveDepthPortalForLayer,
+  evaluateVirtualLightAtTime,
+  hexToRgb01,
+  resolveReceivedVirtualLightForLayer
+} from './virtualLight'
+
+describe('2.5D Physical Light Dynamics & Environmental Projection', () => {
+  it('models candle aerodynamics across calm, gentle, strong and storm wind with blackbody thermal shifts', () => {
+    const project = createProject({ width: 1920, height: 1080, duration: 10 })
+    const candle = createSolidLayer(project.comp)
+    candle.props.width = 160
+    candle.props.height = 240
+    candle.virtualLight = {
+      ...createDefaultVirtualLight('candle'),
+      color: '#ff9d3b',
+      intensity: 1.0,
+      windDirectionDeg: 0
+    }
+
+    const sampleSeries = (preset: 'none' | 'gentle' | 'strong' | 'storm') => {
+      candle.virtualLight!.windPreset = preset
+      const samples = []
+      for (let i = 0; i <= 40; i++) {
+        const ev = evaluateVirtualLightAtTime(candle, i * 0.08)!
+        samples.push(ev)
+      }
+      return samples
+    }
+
+    // 1. Lặng gió: đứng thẳng đối lưu (+Y), vẫn có nhấp nháy vi mô sống động (~4-10%), không phẳng cứng
+    const calm = sampleSeries('none')
+    const calmI = calm.map((s) => s.effectiveIntensity)
+    const calmRange = Math.max(...calmI) - Math.min(...calmI)
+    expect(calmRange).toBeGreaterThan(0.015)
+    expect(calmRange).toBeLessThan(0.22)
+    expect(calm[0].beamDir[1]).toBeGreaterThan(0.05)
+    expect(Math.abs(calm[0].beamDir[0])).toBeLessThan(0.01)
+
+    // 2. Gió nhẹ: lửa nghiêng xuôi chiều gió (+X), quầng sáng xuôi gió vươn dài hơn ngược gió
+    const gentle = sampleSeries('gentle')
+    const avgGentleX = gentle.reduce((s, e) => s + e.windOffset[0], 0) / gentle.length
+    expect(avgGentleX).toBeGreaterThan(4)
+    const g0 = gentle[5]
+    const downwindHalo = computeUnified25DLightAtOffset(
+      180,
+      20,
+      g0.effectiveRadius,
+      g0.effectiveIntensity,
+      g0.coneCos,
+      g0.beamDir,
+      g0.softness,
+      g0.beamCurvature,
+      0,
+      g0.hotspotFocus
+    ).localLightHalo
+    const upwindHalo = computeUnified25DLightAtOffset(
+      -180,
+      20,
+      g0.effectiveRadius,
+      g0.effectiveIntensity,
+      g0.coneCos,
+      g0.beamDir,
+      g0.softness,
+      g0.beamCurvature,
+      0,
+      g0.hotspotFocus
+    ).localLightHalo
+    expect(downwindHalo).toBeGreaterThan(upwindHalo * 1.25)
+
+    // 3. Gió mạnh & Bão: dao động biên độ lớn hơn gió nhẹ + dịch chuyển nhiệt màu Blackbody theo sụt/bùng oxy
+    const strong = sampleSeries('strong')
+    const storm = sampleSeries('storm')
+    const gentleRange = Math.max(...gentle.map((s) => s.effectiveIntensity)) - Math.min(...gentle.map((s) => s.effectiveIntensity))
+    const strongRange = Math.max(...strong.map((s) => s.effectiveIntensity)) - Math.min(...strong.map((s) => s.effectiveIntensity))
+    const stormMin = Math.min(...storm.map((s) => s.effectiveIntensity))
+    expect(strongRange).toBeGreaterThan(gentleRange * 1.2)
+    expect(stormMin).toBeLessThan(0.45)
+
+    const baseRgb = hexToRgb01('#ff9d3b')
+    const baseBlueRatio = baseRgb[2] / baseRgb[0]
+    const darkestSample = [...strong, ...storm].reduce((a, b) => (a.effectiveIntensity < b.effectiveIntensity ? a : b))
+    const brightestSample = [...strong, ...storm].reduce((a, b) => (a.effectiveIntensity > b.effectiveIntensity ? a : b))
+    expect(darkestSample.rgb[2] / darkestSample.rgb[0]).toBeLessThan(baseBlueRatio)
+    expect(brightestSample.rgb[2] / brightestSample.rgb[0]).toBeGreaterThan(darkestSample.rgb[2] / darkestSample.rgb[0])
+  })
+
+  it('models flashlight behavior modes (steady, breathing, intermittent) plus dual-zone hotspot and Tyndall rays', () => {
+    const project = createProject({ width: 1920, height: 1080, duration: 10 })
+    const torch = createSolidLayer(project.comp)
+    torch.virtualLight = {
+      ...createDefaultVirtualLight('flashlight'),
+      intensity: 1.2,
+      flickerSpeed: 1.1,
+      pulseDepth: 0.55
+    }
+
+    const collectI = (mode: 'steady' | 'breathing' | 'intermittent') => {
+      torch.virtualLight!.behaviorMode = mode
+      const vals: number[] = []
+      for (let i = 0; i <= 60; i++) {
+        vals.push(evaluateVirtualLightAtTime(torch, i * 0.07)!.effectiveIntensity)
+      }
+      return vals
+    }
+
+    const steadyI = collectI('steady')
+    const breatheI = collectI('breathing')
+    const interI = collectI('intermittent')
+
+    expect(Math.max(...steadyI) - Math.min(...steadyI)).toBeLessThan(0.08)
+    expect(Math.max(...breatheI)).toBeGreaterThan(1.32)
+    expect(Math.min(...breatheI)).toBeLessThan(1.05)
+    // Đèn pin chập chờn pin yếu: có đợt sáng chuẩn ~1.2 xen kẽ cụm sụt áp sâu < 0.75
+    expect(Math.max(...interI)).toBeGreaterThan(1.12)
+    expect(Math.min(...interI)).toBeLessThan(0.75)
+
+    // Quang học 2 vùng Hotspot vs Spill + Tỉa tia sáng Tyndall ra môi trường
+    const coneCos = Math.cos((52 * 0.5 * Math.PI) / 180)
+    const tightCenter = computeUnified25DLightAtOffset(0, -240, 760, 1.2, coneCos, [0, -1], 0.42, 0.2, 0, 0.88).coneAtten
+    const wideCenter = computeUnified25DLightAtOffset(0, -240, 760, 1.2, coneCos, [0, -1], 0.42, 0.2, 0, 0.12).coneAtten
+    expect(tightCenter).toBeGreaterThan(wideCenter)
+
+    const rayFactors: number[] = []
+    for (let deg = -22; deg <= 22; deg += 2) {
+      const rad = ((deg - 90) * Math.PI) / 180
+      const dx = Math.cos(rad) * 320
+      const dy = Math.sin(rad) * 320
+      const res = computeUnified25DLightAtOffset(dx, dy, 760, 1.2, coneCos, [0, -1], 0.42, 0.2, 0, 0.6, 0.75, 9, 0.4)
+      rayFactors.push(res.rayFactor)
+    }
+    expect(Math.max(...rayFactors) - Math.min(...rayFactors)).toBeGreaterThan(0.25)
+  })
+
+  it('projects environmental bounce onto wide off-center layers, respects directional cones, and deduplicates 2.5D clusters', () => {
+    const project = createProject({ width: 1920, height: 1080, duration: 10 })
+    const shot = createShot('Phòng nến', [0, 0, 0], 0)
+    project.shots.push(shot)
+
+    // Tường nền rộng 1920x1080 ở tâm (0, 0), ngọn nến đặt lệch hẳn sang mép trái (-640, 60) với bán kính 460
+    const wideWall = createSolidLayer(project.comp)
+    wideWall.shotId = shot.id
+    wideWall.props.width = 1920
+    wideWall.props.height = 1080
+    wideWall.transform.position.value = [0, 0, 120]
+
+    // Cụm nhân vật 3 mảnh cùng mang virtualLight (mô phỏng gắn Light Node lên Khoá Cụm 2.5D)
+    const makePart = (name: string, isRoot: boolean) => {
+      const p = createSolidLayer(project.comp)
+      p.name = name
+      p.shotId = shot.id
+      p.transform.position.value = [-640, 60, 20]
+      p.composite = {
+        compositeId: 'comp-candle-holder',
+        compositeName: 'Người cầm nến',
+        instanceId: 'inst-holder-1',
+        partGroupId: name,
+        lockedGroup: true,
+        isRoot
+      }
+      p.virtualLight = {
+        ...createDefaultVirtualLight('candle'),
+        intensity: 1.25,
+        radius: 460,
+        envBounce: 1.0
+      }
+      return p
+    }
+    const rootPart = makePart('body', true)
+    const armPart = makePart('arm', false)
+    const headPart = makePart('head', false)
+    project.layers.push(wideWall, rootPart, armPart, headPart)
+
+    // 1. Khử trùng lặp cụm: chỉ phát 1 nguồn sáng duy nhất từ rootPart thay vì chồng 3 lần
+    const activeLights = collectActiveVirtualLights(project, shot.id, 1.0)
+    expect(activeLights).toHaveLength(1)
+    expect(activeLights[0].sourceLayerId).toBe(rootPart.id)
+
+    // 2. Tường rộng lệch tâm vẫn nhận ánh xạ ấm áp tại vùng bề mặt gần ngọn nến
+    const wallBounce = evaluateCaveDepthPortalForLayer(project, wideWall, [0, 0, 120], 1.0)
+    expect(wallBounce.lightIllumination).toBeGreaterThan(0.15)
+
+    // Khi tắt Ánh xạ nền (envBounce = 0), tường không còn bị hắt sáng
+    rootPart.virtualLight!.envBounce = 0
+    const wallNoBounce = evaluateCaveDepthPortalForLayer(project, wideWall, [0, 0, 120], 1.0)
+    expect(wallNoBounce.lightIllumination).toBe(0)
+
+    // 3. Đèn pin định hướng quay lưng đi chỗ khác không chiếm nhầm kênh chiếu sáng của đèn rọi trúng vật thể
+    const prop = createSolidLayer(project.comp)
+    prop.shotId = shot.id
+    prop.props.width = 220
+    prop.props.height = 220
+    prop.transform.position.value = [300, 0, 0]
+
+    const awayTorch = createSolidLayer(project.comp)
+    awayTorch.shotId = shot.id
+    awayTorch.transform.position.value = [160, 0, 0]
+    awayTorch.virtualLight = {
+      ...createDefaultVirtualLight('flashlight'),
+      intensity: 1.8,
+      radius: 800,
+      beamAngleDeg: 180, // Quay ngược sang trái, lưng quay về prop ở X=300
+      coneAngleDeg: 45
+    }
+
+    const aimedTorch = createSolidLayer(project.comp)
+    aimedTorch.shotId = shot.id
+    aimedTorch.transform.position.value = [-50, 0, 0]
+    aimedTorch.virtualLight = {
+      ...createDefaultVirtualLight('flashlight'),
+      intensity: 1.1,
+      radius: 800,
+      beamAngleDeg: 0, // Rọi thẳng sang phải trúng prop ở X=300
+      coneAngleDeg: 48
+    }
+
+    const evAway = evaluateVirtualLightAtTime(awayTorch, 1.0)!
+    const evAimed = evaluateVirtualLightAtTime(aimedTorch, 1.0)!
+    const received = resolveReceivedVirtualLightForLayer(prop.id, [300, 0, 0], 220, 220, 0, [evAway, evAimed])
+    expect(received).not.toBeNull()
+    expect(received!.light.sourceLayerId).toBe(aimedTorch.id)
+  })
+
+  it('round-trips Workflow V2 Light Node timing [timeStart, timeEnd], mode switches, and behavior params cleanly', () => {
+    const project = createProject({ width: 1920, height: 1080, duration: 8 })
+    const shot = createShot('Cảnh Đêm', [0, 0, 0], 0)
+    project.shots = [shot]
+    const lamp = createSolidLayer(project.comp)
+    lamp.shotId = shot.id
+    lamp.inPoint = 0
+    lamp.outPoint = 8
+    project.layers = [lamp]
+
+    let wf = syncWorkflowV2Graph(project)
+    const attached = attachLogicNodeToLayerV2(wf, v2LayerNodeId(lamp.id), 'light', 'v2:light:candle')
+    wf = attached.workflow
+    project.workflow = wf
+
+    const lightNode = wf.nodes.find((n) => n.id === attached.createdNodeId)!
+    syncWorkflowV2NodeToProject(project, lightNode)
+    expect(lamp.virtualLight?.kind).toBe('candle')
+
+    // Chuyển từ Ngọn nến (360°) sang Đèn pin (chùm nón) + đặt khoảng sáng 1.5s..4.5s + chế độ chập chờn pin yếu
+    syncWorkflowV2NodeToProject(project, lightNode, {
+      lightMode: 'spot',
+      lightBehavior: 'intermittent',
+      lightRayIntensity: 0.68,
+      lightEnvBounce: 1.15,
+      timeStart: 1.5,
+      timeEnd: 4.5
+    })
+    lightNode.params = {
+      ...lightNode.params,
+      lightMode: 'spot',
+      lightBehavior: 'intermittent',
+      lightRayIntensity: 0.68,
+      lightEnvBounce: 1.15,
+      timeStart: 1.5,
+      timeEnd: 4.5
+    }
+
+    expect(lamp.virtualLight?.kind).toBe('flashlight')
+    expect(lamp.virtualLight?.coneAngleDeg).toBe(52)
+    expect(lamp.virtualLight?.behaviorMode).toBe('intermittent')
+    expect(lamp.virtualLight?.startTime).toBe(1.5)
+    expect(lamp.virtualLight?.duration).toBe(3)
+
+    // Ngoài khung [1.5s, 4.5s] đèn tắt hoàn toàn; trong khung đèn bật sáng
+    expect(evaluateVirtualLightAtTime(lamp, 0.8)).toBeNull()
+    expect(evaluateVirtualLightAtTime(lamp, 2.5)).not.toBeNull()
+    expect(evaluateVirtualLightAtTime(lamp, 5.2)).toBeNull()
+
+    // Đồng bộ ngược lại Workflow V2 Graph giữ nguyên chính xác mốc thời gian & cấu hình vật lý
+    const resynced = syncWorkflowV2Graph(project, project.workflow)
+    const derivedLight = resynced.nodes.find((n) => n.id === lightNode.id)!
+    expect(derivedLight.params?.lightMode).toBe('spot')
+    expect(derivedLight.params?.timeStart).toBe(1.5)
+    expect(derivedLight.params?.timeEnd).toBe(4.5)
+    expect(derivedLight.params?.lightBehavior).toBe('intermittent')
+    expect(derivedLight.params?.lightRayIntensity).toBe(0.68)
+    expect(derivedLight.params?.lightEnvBounce).toBe(1.15)
+  })
+})

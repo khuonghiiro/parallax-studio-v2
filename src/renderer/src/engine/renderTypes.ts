@@ -5,6 +5,7 @@ import type { EvaluatedCamera, EvaluatedLayer, EvaluatedScene } from './evaluate
 import {
   collectEvaluatedVirtualLights,
   evaluateVirtualLightAtTime,
+  resolveActiveLightEmitterIds,
   resolveReceivedVirtualLightForLayer
 } from './virtualLight'
 
@@ -211,7 +212,11 @@ export function syncLayerCaveAndLightUniforms(
 
   const worldW = Math.max(32, planeW * Math.abs(el.scale[0]))
   const worldH = Math.max(32, planeH * Math.abs(el.scale[1]))
-  const evVLight = evaluateVirtualLightAtTime(el.layer, ev.t, el.position, [planeW, planeH], el.scale)
+  const activeRawLayers = ev.layers.filter((e) => e.active && e.layer.visible).map((e) => e.layer)
+  const emitterIds = resolveActiveLightEmitterIds(activeRawLayers)
+  const evVLight = emitterIds.has(el.layer.id)
+    ? evaluateVirtualLightAtTime(el.layer, ev.t, el.position, [planeW, planeH], el.scale)
+    : null
 
   if (evVLight) {
     u.vlightOn.value = 1
@@ -239,6 +244,14 @@ export function syncLayerCaveAndLightUniforms(
     u.vlightBeam.value.set(localBeamX, localBeamY)
     if (u.vlightExtra) {
       u.vlightExtra.value.set(evVLight.ambientDim, evVLight.softness, evVLight.beamCurvature)
+    }
+    if (u.vlightRays) {
+      u.vlightRays.value.set(
+        evVLight.rayIntensity,
+        evVLight.rayCount,
+        evVLight.hotspotFocus,
+        evVLight.rayAnimPhase
+      )
     }
     return true
   }
@@ -270,6 +283,14 @@ export function syncLayerCaveAndLightUniforms(
         received.light.beamCurvature
       )
     }
+    if (u.vlightRays) {
+      u.vlightRays.value.set(
+        received.light.rayIntensity * 0.72,
+        received.light.rayCount,
+        received.light.hotspotFocus,
+        received.light.rayAnimPhase
+      )
+    }
   } else {
     u.vlightOn.value = 0
   }
@@ -277,7 +298,7 @@ export function syncLayerCaveAndLightUniforms(
 }
 
 export function makeVolumetricLightMaterial(): THREE.ShaderMaterial {
-  const mat = new THREE.ShaderMaterial({
+  return new THREE.ShaderMaterial({
     vertexShader: LAYER_VERT,
     fragmentShader: VOLUMETRIC_LIGHT_FRAG,
     transparent: true,
@@ -296,10 +317,10 @@ export function makeVolumetricLightMaterial(): THREE.ShaderMaterial {
       vlightParams: { value: new THREE.Vector3(1, 500, -1) },
       vlightBeam: { value: new THREE.Vector2(1, 0) },
       vlightExtra: { value: new THREE.Vector3(0.25, 0.45, 0.25) },
-      quadSpanPx: { value: 1200 }
+      vlightRays: { value: new THREE.Vector4(0.3, 10, 0.45, 0) },
+      quadSpanPx: { value: 1400 }
     }
   })
-  return mat
 }
 
 const _beamLocalMat = new THREE.Matrix4()
@@ -308,7 +329,7 @@ const _beamScaleMat = new THREE.Matrix4()
 /**
  * Tạo và cập nhật các mặt phẳng luồng sáng khí quyển (Volumetric Light Beams) độc lập hoàn toàn với kích thước layer nguồn:
  * Khi gắn đèn pin vào một layer nhỏ (như Cột điện), luồng sáng vẫn vươn dài đủ bán kính `effectiveRadius`
- * xuyên qua không gian cảnh và truyền xuống mọi layer bên dưới.
+ * xuyên qua không gian cảnh, tỉa tia Tyndall và truyền xuống mọi layer bên dưới.
  */
 export function syncShotVolumetricLightBeams(
   scene: THREE.Scene,
@@ -318,10 +339,13 @@ export function syncShotVolumetricLightBeams(
 ): void {
   const activeIds = new Set<string>()
   const refD = Math.max(200, ev.camera.refDistance ?? 1483.6378)
+  const emitterIds = resolveActiveLightEmitterIds(
+    ev.layers.filter((e) => e.active && e.layer.visible).map((e) => e.layer)
+  )
   let orderOffset = 0
 
   for (const el of ev.layers) {
-    if (!el.active || !el.layer.visible) continue
+    if (!el.active || !el.layer.visible || !emitterIds.has(el.layer.id)) continue
     if (!el.layer.virtualLight?.enabled || el.layer.virtualLight.kind === 'none') continue
     const evLight = evaluateVirtualLightAtTime(el.layer, ev.t, el.position, el.size, el.scale)
     if (!evLight || evLight.effectiveIntensity <= 0.01) continue
@@ -338,8 +362,8 @@ export function syncShotVolumetricLightBeams(
 
     const perspK = el.layer.autoScale ? Math.max(0.2, (refD + evLight.position[2]) / refD) : 1
     const worldRad = evLight.effectiveRadius * perspK
-    const spanPx = evLight.effectiveRadius * 2.25
-    const spanWorld = worldRad * 2.25
+    const spanPx = evLight.effectiveRadius * 2.85
+    const spanWorld = worldRad * 2.85
 
     _beamLocalMat.makeTranslation(evLight.position[0], evLight.position[1], -(evLight.position[2] - 0.5))
     _beamScaleMat.makeScale(spanWorld, spanWorld, 1)
@@ -360,6 +384,14 @@ export function syncShotVolumetricLightBeams(
     u.vlightParams.value.set(evLight.effectiveIntensity, evLight.effectiveRadius, evLight.coneCos)
     u.vlightBeam.value.set(evLight.beamDir[0], evLight.beamDir[1])
     u.vlightExtra.value.set(evLight.ambientDim, evLight.softness, evLight.beamCurvature)
+    if (u.vlightRays) {
+      u.vlightRays.value.set(
+        evLight.rayIntensity,
+        evLight.rayCount,
+        evLight.hotspotFocus,
+        evLight.rayAnimPhase
+      )
+    }
     u.quadSpanPx.value = spanPx
   }
 

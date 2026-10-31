@@ -308,6 +308,12 @@ export const layerCommands: Record<string, Handler> = {
           if (rawVLight.windPreset === undefined) next.windPreset = preset.windPreset
           if (rawVLight.ambientDim === undefined) next.ambientDim = preset.ambientDim
           if (rawVLight.softness === undefined) next.softness = preset.softness
+          if (rawVLight.behaviorMode === undefined) next.behaviorMode = preset.behaviorMode
+          if (rawVLight.pulseDepth === undefined) next.pulseDepth = preset.pulseDepth
+          if (rawVLight.rayIntensity === undefined) next.rayIntensity = preset.rayIntensity
+          if (rawVLight.rayCount === undefined) next.rayCount = preset.rayCount
+          if (rawVLight.hotspotFocus === undefined) next.hotspotFocus = preset.hotspotFocus
+          if (rawVLight.envBounce === undefined) next.envBounce = preset.envBounce
           next.windStrength = WIND_STRENGTH_VALUES[next.windPreset ?? 'gentle']
         }
         if (rawVLight.windPreset) {
