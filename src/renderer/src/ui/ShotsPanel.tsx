@@ -1,10 +1,30 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { addShot, autoBuildCameraTour, deleteShot, flyToShot, SHOT_DIRECTIONS, toast, updateShot, type ShotDirection } from '../actions'
+import {
+  addShot,
+  autoBuildCameraTour,
+  deleteShot,
+  flyToShot,
+  SHOT_DIRECTIONS,
+  toast,
+  updateShot,
+  type ShotDirection
+} from '../actions'
 import { shotAtTime } from '../animation/cameraPath'
 import { frameTolerance, useEditor } from '../store/editor'
 import { useView } from '../store/view'
 import { ColorInput } from './controls'
-import { IconCamera, IconEye, IconFocus, IconPen, IconPlane, IconPlus, IconRoute, IconTrash } from './icons'
+import {
+  IconAutoFlyTour,
+  IconCamera,
+  IconEye,
+  IconFocus,
+  IconPen,
+  IconPlane,
+  IconPlus,
+  IconRoute,
+  IconTrash
+} from './icons'
+import { IconActionBtn, ToolCluster } from './primitives'
 import { computeShotStageLayout, extractCameraFrames2D } from './viewer/animateCamera/animateCameraMath'
 import { appendShotCameraWaypoint } from './viewer/animateCamera/animateCameraRouteLogic'
 
@@ -79,10 +99,16 @@ export function ShotsPanel() {
   }
 
   return (
-    <div className="shots">
+    <div className="shots" data-mcp-region="shots">
       <div className="shots-actions">
         <div className="menu-wrap" ref={menuRef}>
-          <button id="add-shot" className="btn sm primary" onClick={() => setMenu((m: boolean) => !m)} title="Thêm cảnh mới trong không gian 3D">
+          <button
+            id="add-shot"
+            type="button"
+            className="btn sm primary"
+            onClick={() => setMenu((m: boolean) => !m)}
+            title="Thêm cảnh mới trong không gian 3D"
+          >
             <IconPlus /> Cảnh
           </button>
           {menu && (
@@ -96,32 +122,38 @@ export function ShotsPanel() {
             </div>
           )}
         </div>
-        <button
+
+        <IconActionBtn
           id="auto-tour-btn"
-          className="btn sm"
+          size="sm"
+          tone="cyan"
+          compactHideLabel
           disabled={shots.length === 0}
+          icon={<IconAutoFlyTour width={13} height={13} />}
+          label="Tự động bay"
           onClick={autoBuildCameraTour}
           title="Tự động 1-click tạo toàn bộ đường bay camera điện ảnh qua các cảnh (vòng cung 3D + đẩy Ken Burns)"
-        >
-          ⚡ Tự động bay
-        </button>
-        <button
-          id="open-path-builder"
-          className="btn sm icon"
-          disabled={shots.length === 0}
-          onClick={() => useView.getState().openDialog('path')}
-          title="Tùy chỉnh chi tiết đường bay camera qua các cảnh (bay thẳng / vòng cung / cắt / fade)"
-        >
-          <IconRoute />
-        </button>
-        <button
-          id="open-path-sketch"
-          className="btn sm icon"
-          onClick={() => useView.getState().openDialog('sketch')}
-          title="✏️ Vẽ tự do đường bay camera trên mặt phẳng 2D (Top-down Floor Pen)"
-        >
-          <IconPen />
-        </button>
+        />
+
+        <span className="spacer" style={{ flex: 1 }} />
+
+        <ToolCluster ariaLabel="Công cụ lộ trình Camera">
+          <IconActionBtn
+            id="open-path-builder"
+            size="xs"
+            disabled={shots.length === 0}
+            icon={<IconRoute width={13} height={13} />}
+            onClick={() => useView.getState().openDialog('path')}
+            title="Tùy chỉnh chi tiết đường bay camera qua các cảnh (bay thẳng / vòng cung / cắt / fade)"
+          />
+          <IconActionBtn
+            id="open-path-sketch"
+            size="xs"
+            icon={<IconPen width={13} height={13} />}
+            onClick={() => useView.getState().openDialog('sketch')}
+            title="Vẽ tự do đường bay camera trên mặt phẳng 2D (Top-down Floor Pen)"
+          />
+        </ToolCluster>
       </div>
 
       {shots.length === 0 ? (
@@ -191,16 +223,36 @@ export function ShotsPanel() {
                 {counts.get(s.id) ?? 0}
               </span>
               <span className="shot-btns" onClick={(e) => e.stopPropagation()}>
-                <button className="mini" title="Camera bay tới cảnh này tại thời điểm hiện tại (tạo keyframe)" onClick={() => flyToShot(s.id)}>
+                <button
+                  type="button"
+                  className="mini"
+                  title="Camera bay tới cảnh này tại thời điểm hiện tại (tạo keyframe)"
+                  onClick={() => flyToShot(s.id)}
+                >
                   <IconPlane />
                 </button>
-                <button className="mini" title="Xem cảnh trong view 3D" onClick={() => useView.getState().requestFocus('shot', s.id)}>
+                <button
+                  type="button"
+                  className="mini"
+                  title="Xem cảnh trong view 3D"
+                  onClick={() => useView.getState().requestFocus('shot', s.id)}
+                >
                   <IconFocus />
                 </button>
-                <button className={`mini${s.visible ? '' : ' off'}`} title="Ẩn/hiện" onClick={() => updateShot(s.id, { visible: !s.visible })}>
+                <button
+                  type="button"
+                  className={`mini${s.visible ? '' : ' off'}`}
+                  title="Ẩn/hiện"
+                  onClick={() => updateShot(s.id, { visible: !s.visible })}
+                >
                   <IconEye />
                 </button>
-                <button className="mini danger" title="Xoá cảnh" onClick={() => deleteShot(s.id)}>
+                <button
+                  type="button"
+                  className="mini danger"
+                  title="Xoá cảnh"
+                  onClick={() => deleteShot(s.id)}
+                >
                   <IconTrash />
                 </button>
               </span>

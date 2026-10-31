@@ -4,7 +4,7 @@ import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from '
 import type { Animatable, AnimValue, AudioTrackItem, Layer, Shot } from '@shared/types'
 import { useEditor, type PropRef } from '../store/editor'
 import { useView } from '../store/view'
-import { IconCaret, IconFilm } from './icons'
+import { IconCaret, IconEye, IconFilm, IconLock } from './icons'
 import { PAD, SHOT_PROPS, NAME_W } from './timeline/timelineTypes'
 import { TimelineRow } from './timeline/TimelineRow'
 import { AudioRow } from './timeline/AudioRow'
@@ -433,8 +433,8 @@ export function Timeline() {
             </span>
             <span className="tl-names-head-meta">
               <span title="Độ sâu 3D (Z depth)">Z</span>
-              <span title="Ẩn / Hiện (Visibility)">👁</span>
-              <span title="Khóa layer (Lock)">🔒</span>
+              <span title="Ẩn / Hiện (Visibility)"><IconEye width={12} height={12} /></span>
+              <span title="Khóa layer (Lock)"><IconLock width={12} height={12} /></span>
             </span>
           </div>
 

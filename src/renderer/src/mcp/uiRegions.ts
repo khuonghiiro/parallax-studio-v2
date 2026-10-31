@@ -55,7 +55,9 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
 
   // Left Sidebar and sub-sections
   left_panel: ['aside.left', '.left', '.panel-left'],
+  left_tabs: region('left_tabs', 'aside.left .tabs', 'aside.left .pxs-tabs', '.pxs-rail--left .pxs-rail-inner'),
   assets: ['.asset-panel-wrapper', '.asset-main-layout', 'aside.left'],
+  asset_subtabs: region('asset_subtabs', '.asset-subtabs', '.asset-panel-wrapper .pxs-tabs--segmented'),
   asset_grid: [
     '.builtin-grid-wrap',
     '.builtin-asset-grid',
@@ -83,7 +85,8 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
 
   // Right Inspector and sub-sections
   inspector: ['aside.right', '.right', '.inspector'],
-  inspector_tabs: ['aside.right .tabs'],
+  inspector_tabs: region('inspector_tabs', 'aside.right .tabs', 'aside.right .pxs-tabs', '.pxs-rail--right .pxs-rail-inner'),
+  inspector_bottom_tabs: region('inspector_bottom_tabs', 'aside.right .wf-v2-insp-tabs', '.pxs-rail--right .pxs-rail-bottom'),
   inspector_body: ['aside.right .panel-body'],
   inspector_composite: region('inspector_composite', '.composite-section'),
   inspector_physics: region('inspector_physics', '.layer-physics-section'),
@@ -151,6 +154,9 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
 
   // Top Toolbar & Responsive Workspace Dock
   toolbar: ['header.toolbar', '.toolbar'],
+  toolbar_left: region('toolbar_left', '.tb-left'),
+  toolbar_doc: region('toolbar_doc', '.doc-title'),
+  toolbar_actions: region('toolbar_actions', '.tb-right'),
   studio_menu: ['#menu-studio', '.toolbar'],
   mcp_chip: ['#mcp-chip', '.mcp-chip'],
   remote_chip: region('remote_chip', '#remote-qr-btn', '.remote-qr-chip'),

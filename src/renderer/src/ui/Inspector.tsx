@@ -1,6 +1,26 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { findLayer, findShot, useEditor } from '../store/editor'
-import { IconLayers } from './icons'
+import { useView } from '../store/view'
+import {
+  IconCameraLens,
+  IconCompFrame,
+  IconFilm,
+  IconJsonBraces,
+  IconLayers,
+  IconMusic,
+  IconNodeCircuit,
+  IconPaneMaximizeV,
+  IconPaneSplitH,
+  IconRouteWaypoints,
+  IconSidebarRightCollapse
+} from './icons'
+import {
+  CollapsibleRail,
+  IconActionBtn,
+  SegmentedTabs,
+  useResponsiveViewport,
+  type SegmentedTabItem
+} from './primitives'
 import { ShotInspector } from './inspector/ShotInspector'
 import { LayerInspector } from './inspector/LayerInspector'
 import { CameraInspector } from './inspector/CameraInspector'
@@ -18,18 +38,21 @@ export { AudioTrackInspector } from './inspector/AudioTrackInspector'
 export { CameraRouteInspector } from './inspector/CameraRouteInspector'
 
 type TopTabId = 'layer' | 'camera' | 'route' | 'scene'
+type InspectorAnyTab = TopTabId | 'node' | 'json'
 
-const COL_EXPANDED_KEY = 'pxs:right-col-expanded'
-const COL_COLLAPSED_KEY = 'pxs:right-col-collapsed'
 const COL_WIDTH_KEY = 'pxs:wf-v2-inspector-width'
 const MIN_COL_W = 280
 const MAX_COL_W = 680
 const DEFAULT_EXPANDED_W = 420
-const COLLAPSED_RAIL_W = 38
+const COLLAPSED_RAIL_W = 40
 
 function readInitialColWidth(): number {
-  const raw = Number(localStorage.getItem(COL_WIDTH_KEY))
-  if (Number.isFinite(raw) && raw >= MIN_COL_W && raw <= MAX_COL_W) return Math.round(raw)
+  try {
+    const raw = Number(localStorage.getItem(COL_WIDTH_KEY))
+    if (Number.isFinite(raw) && raw >= MIN_COL_W && raw <= MAX_COL_W) return Math.round(raw)
+  } catch {
+    /* ignore */
+  }
   return DEFAULT_EXPANDED_W
 }
 
@@ -48,14 +71,12 @@ export function Inspector() {
       : null
   )
 
-  // Mặc định mở rộng toàn cột phải (4 tab nằm trên, 2 tab Thuộc tính Node & JSON Cảnh nằm dưới đáy màn hình)
-  const [isColumnExpanded, setIsColumnExpanded] = useState<boolean>(
-    () => localStorage.getItem(COL_EXPANDED_KEY) !== '0'
-  )
-  // Trạng thái ẩn/hiện cột phải thành thanh dọc sát mép phải màn hình
-  const [isRightCollapsed, setIsRightCollapsed] = useState<boolean>(
-    () => localStorage.getItem(COL_COLLAPSED_KEY) === '1'
-  )
+  const isColumnExpanded = useView((s) => s.inspectorExpanded)
+  const setIsColumnExpanded = useView((s) => s.setInspectorExpanded)
+  const isRightCollapsed = useView((s) => s.rightCollapsed)
+  const setRightCollapsed = useView((s) => s.setRightCollapsed)
+  const { isDrawerMode } = useResponsiveViewport()
+
   const [lastTopTab, setLastTopTab] = useState<TopTabId>('layer')
   const [splitBottomMode, setSplitBottomMode] = useState<'node' | 'json'>('node')
   const [colWidth, setColWidth] = useState<number>(readInitialColWidth)
@@ -66,29 +87,29 @@ export function Inspector() {
     else if (tab === 'node' || tab === 'json') setSplitBottomMode(tab)
   }, [tab])
 
-  // Đồng bộ biến CSS `--right-col-w` lên `.app` (khi ẩn chỉ chiếm 38px thanh dọc sát phải để mở rộng Timeline/Workflow)
+  const effectiveCollapsed = !isDrawerMode && isRightCollapsed
+
   useEffect(() => {
-    const effectiveW = isRightCollapsed ? COLLAPSED_RAIL_W : colWidth
+    const effectiveW = effectiveCollapsed ? COLLAPSED_RAIL_W : colWidth
     document.documentElement.style.setProperty('--right-col-w', `${effectiveW}px`)
-  }, [colWidth, isRightCollapsed])
+  }, [colWidth, effectiveCollapsed])
 
   // Bộ điều khiển chung cho Thuộc tính Node & JSON Cảnh & Main (dùng chung cho cả Timeline và Workflow)
   const wfCtrl = useWorkflowV2Controller()
   useWorkflowV2SelectionSync(wfCtrl)
 
-  const handleSetRightCollapsed = (next: boolean): void => {
-    localStorage.setItem(COL_COLLAPSED_KEY, next ? '1' : '0')
-    setIsRightCollapsed(next)
-  }
-
   const updateColWidth = (nextW: number): void => {
     const clamped = Math.round(Math.max(MIN_COL_W, Math.min(MAX_COL_W, nextW)))
     setColWidth(clamped)
-    localStorage.setItem(COL_WIDTH_KEY, String(clamped))
+    try {
+      localStorage.setItem(COL_WIDTH_KEY, String(clamped))
+    } catch {
+      /* ignore */
+    }
   }
 
   const startResizeWidth = (e: React.PointerEvent): void => {
-    if (isRightCollapsed) return
+    if (effectiveCollapsed || isDrawerMode) return
     e.preventDefault()
     e.stopPropagation()
     const startX = e.clientX
@@ -113,10 +134,8 @@ export function Inspector() {
 
   const handleToggleTopGroupExpand = (): void => {
     if (isTopGroupExpanded) {
-      localStorage.setItem(COL_EXPANDED_KEY, '0')
       setIsColumnExpanded(false)
     } else {
-      localStorage.setItem(COL_EXPANDED_KEY, '1')
       setIsColumnExpanded(true)
       if (!isTopTab(tab)) setTab(lastTopTab)
       if (colWidth < DEFAULT_EXPANDED_W) updateColWidth(DEFAULT_EXPANDED_W)
@@ -125,12 +144,10 @@ export function Inspector() {
 
   const handleToggleBottomGroupExpand = (): void => {
     if (isBottomGroupExpanded) {
-      localStorage.setItem(COL_EXPANDED_KEY, '0')
       setIsColumnExpanded(false)
       setSplitBottomMode(tab === 'json' ? 'json' : 'node')
       setTab(lastTopTab)
     } else {
-      localStorage.setItem(COL_EXPANDED_KEY, '1')
       setIsColumnExpanded(true)
       setTab(splitBottomMode)
       if (colWidth < DEFAULT_EXPANDED_W) updateColWidth(DEFAULT_EXPANDED_W)
@@ -138,59 +155,109 @@ export function Inspector() {
   }
 
   const tabTitle = audioTrack ? 'Âm thanh' : !layer && shot ? 'Cảnh này' : 'Layer'
+  const LayerContextIcon = audioTrack ? IconMusic : !layer && shot ? IconFilm : IconLayers
   const topTabInSplit: TopTabId = isTopTab(tab) ? tab : lastTopTab
   const effectiveBottomMode: 'node' | 'json' =
     tab === 'json' ? 'json' : tab === 'node' ? 'node' : splitBottomMode
 
+  const topTabItems = useMemo<SegmentedTabItem<TopTabId>[]>(
+    () => [
+      {
+        id: 'layer',
+        domId: 'tab-layer',
+        label: tabTitle,
+        icon: <LayerContextIcon width={13} height={13} />,
+        title: `Thuộc tính ${tabTitle} đang chọn`
+      },
+      {
+        id: 'camera',
+        domId: 'tab-camera',
+        label: 'Camera',
+        icon: <IconCameraLens width={13} height={13} />,
+        title: 'Thông số ống kính, vị trí và tiêu cự Camera 3D'
+      },
+      {
+        id: 'route',
+        domId: 'tab-route',
+        label: 'Lộ trình',
+        icon: <IconRouteWaypoints width={13} height={13} />,
+        title: 'Lộ trình di chuyển và thu phóng Camera 2D (Adobe Animate)'
+      },
+      {
+        id: 'scene',
+        domId: 'tab-scene',
+        label: 'Dự án',
+        icon: <IconCompFrame width={13} height={13} />,
+        title: 'Thiết lập Composition, màu sắc điện ảnh và tổng thể dự án'
+      }
+    ],
+    [tabTitle, LayerContextIcon]
+  )
+
+  const bottomTabItems = useMemo<SegmentedTabItem<'node' | 'json'>[]>(
+    () => [
+      {
+        id: 'node',
+        domId: 'tab-node-props',
+        label: 'Thuộc tính Node',
+        icon: <IconNodeCircuit width={13} height={13} />,
+        title: 'Cấu hình đúng logic riêng của Node đang chọn (BBox 2D / 2.5D cố định trên đầu + thông số riêng của Node đó)'
+      },
+      {
+        id: 'json',
+        domId: 'tab-shot-json',
+        label: 'JSON Cảnh',
+        icon: <IconJsonBraces width={13} height={13} />,
+        title: 'Xem và chỉnh sửa JSON độc lập của từng Cảnh (shot-N.json) và lộ trình chính (main.json)'
+      }
+    ],
+    []
+  )
+
   const renderTopTabBar = () => {
     const activeTop = isColumnExpanded ? (isTopTab(tab) ? tab : null) : topTabInSplit
     return (
-      <div className="tabs" data-mcp-region="inspector_tabs">
-        <button
-          id="tab-layer"
-          className={`tab${activeTop === 'layer' ? ' active' : ''}`}
-          onClick={() => setTab('layer')}
-        >
-          {tabTitle}
-        </button>
-        <button
-          id="tab-camera"
-          className={`tab${activeTop === 'camera' ? ' active' : ''}`}
-          onClick={() => setTab('camera')}
-        >
-          Camera
-        </button>
-        <button
-          id="tab-route"
-          className={`tab${activeTop === 'route' ? ' active' : ''}`}
-          onClick={() => setTab('route')}
-          title="Lộ trình di chuyển và thu phóng Camera 2D (Adobe Animate)"
-        >
-          Lộ trình
-        </button>
-        <button
-          id="tab-scene"
-          className={`tab${activeTop === 'scene' ? ' active' : ''}`}
-          onClick={() => setTab('scene')}
-        >
-          Dự án
-        </button>
-        <button
-          id="btn-expand-top-tabs"
-          type="button"
-          className={`wf-v2-insp-expand-btn${isTopGroupExpanded ? ' active' : ''}`}
-          aria-pressed={isTopGroupExpanded}
-          title={
-            isTopGroupExpanded
-              ? 'Đang mở rộng cụm 4 tab chiếm hết cột phải — nhấn để thu về chế độ chia đôi trên/dưới'
-              : 'Mở rộng cụm 4 tab (Layer · Camera · Lộ trình · Dự án) chiếm hết cột phải màn hình'
-          }
-          onClick={handleToggleTopGroupExpand}
-        >
-          <span className="exp-ico">{isTopGroupExpanded ? '⤡' : '⤢'}</span>
-          <span>{isTopGroupExpanded ? 'Thu gọn' : 'Mở rộng'}</span>
-        </button>
-      </div>
+      <SegmentedTabs<TopTabId>
+        items={topTabItems}
+        value={activeTop}
+        onChange={(next) => setTab(next)}
+        variant="underline"
+        adaptiveCompact
+        ariaLabel="Chế độ thanh tra thuộc tính"
+        mcpRegion="inspector_tabs"
+        trailing={
+          <>
+            <IconActionBtn
+              id="btn-expand-top-tabs"
+              size="xs"
+              tone="cyan"
+              active={isTopGroupExpanded}
+              icon={
+                isTopGroupExpanded ? (
+                  <IconPaneSplitH width={13} height={13} />
+                ) : (
+                  <IconPaneMaximizeV width={13} height={13} />
+                )
+              }
+              title={
+                isTopGroupExpanded
+                  ? 'Đang mở rộng cụm 4 tab chiếm hết cột phải — nhấn để thu về chế độ chia đôi trên/dưới'
+                  : 'Mở rộng cụm 4 tab (Layer · Camera · Lộ trình · Dự án) chiếm hết cột phải màn hình'
+              }
+              onClick={handleToggleTopGroupExpand}
+            />
+            {!isDrawerMode && (
+              <IconActionBtn
+                id="btn-toggle-right-column"
+                size="xs"
+                icon={<IconSidebarRightCollapse width={13} height={13} />}
+                title="Thu gọn cột phải thành thanh Icon Rail dọc để mở rộng chiều ngang cho Viewport, Timeline & Workflow"
+                onClick={() => setRightCollapsed(true)}
+              />
+            )}
+          </>
+        }
+      />
     )
   }
 
@@ -252,165 +319,124 @@ export function Inspector() {
   )
 
   const renderNodeJsonTabBar = (dockedBottom: boolean) => {
-    const isNodeActive = isColumnExpanded ? tab === 'node' : effectiveBottomMode === 'node'
-    const isJsonActive = isColumnExpanded ? tab === 'json' : effectiveBottomMode === 'json'
+    const activeBottom: 'node' | 'json' | null = isColumnExpanded
+      ? tab === 'node' || tab === 'json'
+        ? tab
+        : null
+      : effectiveBottomMode
+
     return (
-      <div
+      <SegmentedTabs<'node' | 'json'>
+        items={bottomTabItems}
+        value={activeBottom}
+        onChange={(nextMode) => {
+          setSplitBottomMode(nextMode)
+          if (isColumnExpanded) setTab(nextMode)
+        }}
+        variant="docked"
+        size="sm"
+        dockBottom={dockedBottom}
+        ariaLabel="Thuộc tính Node và JSON Cảnh"
+        mcpRegion="inspector_bottom_tabs"
         className={`wf-v2-insp-tabs${dockedBottom ? ' docked-bottom' : ' split-header'}`}
-        role="tablist"
-        aria-label="Thuộc tính Node và JSON Cảnh"
-      >
-        <button
-          id="tab-node-props"
-          type="button"
-          role="tab"
-          aria-selected={isNodeActive}
-          className={`wf-v2-insp-tab${isNodeActive ? ' active' : ''}`}
-          title="Cấu hình đúng logic riêng của Node đang chọn (BBox 2D / 2.5D cố định trên đầu + thông số riêng của Node đó)"
-          onClick={() => {
-            setSplitBottomMode('node')
-            if (isColumnExpanded) setTab('node')
-          }}
-        >
-          <span>🎛️ Thuộc tính Node</span>
-        </button>
-        <button
-          id="tab-shot-json"
-          type="button"
-          role="tab"
-          aria-selected={isJsonActive}
-          className={`wf-v2-insp-tab${isJsonActive ? ' active' : ''}`}
-          title="Xem và chỉnh sửa JSON độc lập của từng Cảnh (shot-N.json) và lộ trình chính (main.json)"
-          onClick={() => {
-            setSplitBottomMode('json')
-            if (isColumnExpanded) setTab('json')
-          }}
-        >
-          <code>{'{ }'}</code>
-          <span>JSON Cảnh</span>
-        </button>
-        <button
-          id="btn-expand-right-column"
-          type="button"
-          className={`wf-v2-insp-expand-btn${isBottomGroupExpanded ? ' active' : ''}`}
-          aria-pressed={isBottomGroupExpanded}
-          title={
-            isBottomGroupExpanded
-              ? 'Đang mở rộng Thuộc tính Node & JSON Cảnh chiếm hết cột phải — nhấn để thu về chế độ chia đôi trên/dưới'
-              : 'Mở rộng Thuộc tính Node & JSON Cảnh chiếm hết cột phải màn hình (4 tab trên giữ nguyên, 2 tab này nằm dưới đáy màn hình)'
-          }
-          onClick={handleToggleBottomGroupExpand}
-        >
-          <span className="exp-ico">{isBottomGroupExpanded ? '⤡' : '⤢'}</span>
-          <span>{isBottomGroupExpanded ? 'Thu gọn' : 'Mở rộng'}</span>
-        </button>
-        <button
-          id="btn-toggle-right-column"
-          type="button"
-          className="wf-v2-insp-expand-btn wf-v2-insp-collapse-btn"
-          aria-pressed={isRightCollapsed}
-          title="Ẩn cột phải thành thanh dọc sát mép phải màn hình để mở rộng chiều ngang cho Timeline & Workflow"
-          onClick={() => handleSetRightCollapsed(true)}
-        >
-          <span className="exp-ico">»</span>
-          <span>Ẩn</span>
-        </button>
-      </div>
+        trailing={
+          <>
+            <IconActionBtn
+              id="btn-expand-right-column"
+              size="xs"
+              tone="cyan"
+              compactHideLabel
+              active={isBottomGroupExpanded}
+              icon={
+                isBottomGroupExpanded ? (
+                  <IconPaneSplitH width={13} height={13} />
+                ) : (
+                  <IconPaneMaximizeV width={13} height={13} />
+                )
+              }
+              label={isBottomGroupExpanded ? 'Chia đôi' : 'Mở rộng'}
+              title={
+                isBottomGroupExpanded
+                  ? 'Đang mở rộng Thuộc tính Node & JSON Cảnh chiếm hết cột phải — nhấn để thu về chế độ chia đôi trên/dưới'
+                  : 'Mở rộng Thuộc tính Node & JSON Cảnh chiếm hết cột phải màn hình'
+              }
+              onClick={handleToggleBottomGroupExpand}
+            />
+          </>
+        }
+      />
     )
   }
 
-  if (isRightCollapsed) {
+  if (effectiveCollapsed) {
     return (
-      <aside className="right is-collapsed-rail" data-mcp-region="inspector">
-        <div className="right-collapsed-rail" data-mcp-region="inspector_tabs">
-          <button
-            id="btn-show-right-column"
-            type="button"
-            className="right-rail-show-btn"
-            title="Hiện lại cột phải (Layer · Camera · Lộ trình · Dự án · Thuộc tính Node · JSON Cảnh) như cũ"
-            onClick={() => handleSetRightCollapsed(false)}
-          >
-            <span className="rail-arrow">«</span>
-            <span className="rail-show-text">Hiện</span>
-          </button>
-
-          <div className="right-rail-group" role="tablist" aria-label="4 tab trên">
-            <button
-              type="button"
-              className={`right-rail-pill${tab === 'layer' ? ' active' : ''}`}
-              title={`Mở tab ${tabTitle}`}
-              onClick={() => {
-                setTab('layer')
-                handleSetRightCollapsed(false)
-              }}
-            >
-              <span>{tabTitle}</span>
-            </button>
-            <button
-              type="button"
-              className={`right-rail-pill${tab === 'camera' ? ' active' : ''}`}
-              title="Mở tab Camera"
-              onClick={() => {
-                setTab('camera')
-                handleSetRightCollapsed(false)
-              }}
-            >
-              <span>Camera</span>
-            </button>
-            <button
-              type="button"
-              className={`right-rail-pill${tab === 'route' ? ' active' : ''}`}
-              title="Mở tab Lộ trình"
-              onClick={() => {
-                setTab('route')
-                handleSetRightCollapsed(false)
-              }}
-            >
-              <span>Lộ trình</span>
-            </button>
-            <button
-              type="button"
-              className={`right-rail-pill${tab === 'scene' ? ' active' : ''}`}
-              title="Mở tab Dự án"
-              onClick={() => {
-                setTab('scene')
-                handleSetRightCollapsed(false)
-              }}
-            >
-              <span>Dự án</span>
-            </button>
-          </div>
-
-          <div className="right-rail-bottom" data-mcp-region="inspector_body">
-            <button
-              id="rail-tab-node-props"
-              type="button"
-              className={`right-rail-pill bottom-pill${tab === 'node' ? ' active' : ''}`}
-              title="Hiện lại Thuộc tính Node"
-              onClick={() => {
-                setSplitBottomMode('node')
-                if (isColumnExpanded) setTab('node')
-                handleSetRightCollapsed(false)
-              }}
-            >
-              <span>🎛️ Thuộc tính Node</span>
-            </button>
-            <button
-              id="rail-tab-shot-json"
-              type="button"
-              className={`right-rail-pill bottom-pill${tab === 'json' ? ' active' : ''}`}
-              title="Hiện lại JSON Cảnh"
-              onClick={() => {
-                setSplitBottomMode('json')
-                if (isColumnExpanded) setTab('json')
-                handleSetRightCollapsed(false)
-              }}
-            >
-              <span>{'{ }'} JSON Cảnh</span>
-            </button>
-          </div>
-        </div>
-      </aside>
+      <CollapsibleRail<InspectorAnyTab>
+        side="right"
+        activeId={tab as InspectorAnyTab}
+        expandDomId="btn-show-right-column"
+        expandTitle="Mở rộng lại cột phải (Layer · Camera · Lộ trình · Dự án · Thuộc tính Node · JSON Cảnh)"
+        mcpRegion="inspector"
+        tabsMcpRegion="inspector_tabs"
+        bottomMcpRegion="inspector_bottom_tabs"
+        items={[
+          {
+            id: 'layer',
+            domId: 'rail-tab-layer',
+            label: tabTitle,
+            icon: <LayerContextIcon width={15} height={15} />,
+            title: `Mở tab ${tabTitle}`
+          },
+          {
+            id: 'camera',
+            domId: 'rail-tab-camera',
+            label: 'Camera',
+            icon: <IconCameraLens width={15} height={15} />,
+            title: 'Mở tab Camera 3D'
+          },
+          {
+            id: 'route',
+            domId: 'rail-tab-route',
+            label: 'Lộ trình',
+            icon: <IconRouteWaypoints width={15} height={15} />,
+            title: 'Mở tab Lộ trình Camera 2D'
+          },
+          {
+            id: 'scene',
+            domId: 'rail-tab-scene',
+            label: 'Dự án',
+            icon: <IconCompFrame width={15} height={15} />,
+            title: 'Mở tab Thiết lập Dự án'
+          }
+        ]}
+        bottomItems={[
+          {
+            id: 'node',
+            domId: 'rail-tab-node-props',
+            label: 'Thuộc tính Node',
+            icon: <IconNodeCircuit width={15} height={15} />,
+            accent: 'cyan',
+            title: 'Mở bảng Thuộc tính Node'
+          },
+          {
+            id: 'json',
+            domId: 'rail-tab-shot-json',
+            label: 'JSON Cảnh',
+            icon: <IconJsonBraces width={15} height={15} />,
+            accent: 'cyan',
+            title: 'Mở bảng JSON Cảnh & Main'
+          }
+        ]}
+        onExpand={() => setRightCollapsed(false)}
+        onSelectItem={(nextId) => {
+          if (nextId === 'node' || nextId === 'json') {
+            setSplitBottomMode(nextId)
+            if (isColumnExpanded) setTab(nextId)
+          } else {
+            setTab(nextId)
+          }
+          setRightCollapsed(false)
+        }}
+      />
     )
   }
 
@@ -419,14 +445,16 @@ export function Inspector() {
       className={`right${isColumnExpanded ? ' is-full-column' : ' is-split-column'}`}
       data-mcp-region="inspector"
     >
-      <div
-        className={`wf-v2-insp-resizer right-col-resizer${resizingWidth ? ' dragging' : ''}`}
-        role="separator"
-        aria-orientation="vertical"
-        aria-label="Kéo co dãn độ rộng cột phải"
-        title={`Kéo trái/phải để mở rộng cột phải (Hiện tại: ${colWidth}px)`}
-        onPointerDown={startResizeWidth}
-      />
+      {!isDrawerMode && (
+        <div
+          className={`wf-v2-insp-resizer right-col-resizer${resizingWidth ? ' dragging' : ''}`}
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Kéo co dãn độ rộng cột phải"
+          title={`Kéo trái/phải để mở rộng cột phải (Hiện tại: ${colWidth}px)`}
+          onPointerDown={startResizeWidth}
+        />
+      )}
 
       {isColumnExpanded ? (
         <section className="panel right-unified-panel" style={{ flex: 1 }}>

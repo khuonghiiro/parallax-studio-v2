@@ -1,0 +1,355 @@
+/* ==========================================================================
+   Parallax Studio V2 — Multi-Device Responsive Architecture (2026 Overhaul)
+   Seamless adaptation across Desktop, Laptop, iPad / Tablet, and Phone
+   (Portrait & Landscape) + Touch Pointer Ergonomics + Workflow V2 & Dialogs.
+   ========================================================================== */
+
+/* --- 1. Fluid TopView & Shots Toolbar Refinements --- */
+.topview-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  min-height: 32px;
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--line);
+  flex-wrap: nowrap;
+}
+
+.topview-toolbar .spacer {
+  flex: 1;
+}
+
+.shots-actions {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+/* Timeline Header SVG Icon Alignment */
+.tl-names-head-meta > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Workflow V2 Inspector BBox / 2.5D Icon Toggle Alignment */
+.wf-v2-insp-bbox-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* --- 2. Laptop & Compact Desktop (<= 1366px) --- */
+@media (max-width: 1366px) {
+  .doc-title-file,
+  .doc-title-sep {
+    display: none;
+  }
+
+  .mcp-chip small {
+    max-width: 84px;
+  }
+
+  .wf-v2-stats {
+    display: none;
+  }
+}
+
+/* --- 3. Medium Laptop / Large Tablet Landscape (<= 1240px) --- */
+@media (max-width: 1240px) {
+  .mcp-chip-label {
+    display: none;
+  }
+
+  .wf-v2-toolbar {
+    padding: 0 8px;
+    gap: 5px;
+  }
+
+  .wf-v2-scope-label {
+    display: none;
+  }
+}
+
+/* --- 4. iPad & Tablet Mode (769px <= width <= 1120px) --- */
+@media (max-width: 1120px) and (min-width: 769px) {
+  .app {
+    grid-template-columns: minmax(0, 1fr) clamp(310px, 34vw, 360px);
+  }
+
+  /* Ensure side dock panels fill their assigned area cleanly without desktop outer margins */
+  .app[data-tablet-tab='left'] .left,
+  .app[data-tablet-tab='right'] .right {
+    padding: 0;
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+  }
+
+  .app[data-tablet-tab='left'] .left > .panel,
+  .app[data-tablet-tab='right'] .right > .panel {
+    border-radius: 0;
+    border-top: none;
+    border-right: none;
+  }
+
+  .viewer > .viewer-tools {
+    height: auto;
+    min-height: 32px;
+    flex-wrap: wrap;
+    padding: 3px 8px;
+    row-gap: 3px;
+  }
+
+  .wf-v2-toolbar {
+    height: auto;
+    min-height: 36px;
+    padding: 4px 8px;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+
+  .wf-v2-scope {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .wf-v2-scope::-webkit-scrollbar {
+    display: none;
+  }
+
+  .wf-node-palette {
+    width: 168px;
+    min-width: 152px;
+  }
+}
+
+/* --- 5. Phone & Compact Window Mode (width <= 768px) --- */
+@media (max-width: 768px) {
+  /* Single-column adaptive workspace */
+  .toolbar {
+    min-height: 38px;
+    padding: 4px 6px;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+
+  .tb-center {
+    display: none;
+  }
+
+  .tb-left,
+  .tb-right {
+    gap: 4px;
+  }
+
+  /* Compact File / Add Layer menu labels on very narrow screens handled below; keep crisp on 481-768px */
+  .app[data-mobile-tab='left'] .left,
+  .app[data-mobile-tab='right'] .right,
+  .app[data-mobile-tab='timeline'] .timeline {
+    padding: 0;
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+  }
+
+  .app[data-mobile-tab='left'] .left > .panel,
+  .app[data-mobile-tab='right'] .right > .panel,
+  .app[data-mobile-tab='timeline'] .timeline {
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+  }
+
+  /* Viewer Tools clean single/wrap bar on Phone */
+  .viewer > .viewer-tools {
+    position: relative;
+    top: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    min-height: 32px;
+    padding: 3px 6px;
+    gap: 4px;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
+  .viewer-camera-status {
+    display: none;
+  }
+
+  /* Workflow V2 Responsive on Phone */
+  .wf-v2-toolbar {
+    height: auto;
+    min-height: 36px;
+    padding: 4px 6px;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+
+  .wf-v2-toolbar .tl-mode-tabs {
+    display: none; /* ResponsiveDockBar already provides 1-tap Timeline / Workflow tabs on Phone! */
+  }
+
+  .timeline-toolbar .tl-mode-tabs {
+    display: none;
+  }
+
+  .wf-v2-scope {
+    flex: 1 1 180px;
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .wf-v2-scope::-webkit-scrollbar {
+    display: none;
+  }
+
+  .wf-v2-scope-pills {
+    flex-wrap: nowrap;
+  }
+
+  .wf-v2-toolbar-actions {
+    margin-left: auto;
+    gap: 4px;
+  }
+
+  .wf-v2-tool-btn:not(.primary-apply) .wf-v2-btn-txt {
+    display: none;
+  }
+
+  .wf-v2-legend {
+    display: none;
+  }
+
+  /* Collapse Workflow left outline palette on narrow phone so canvas has full touch area */
+  .wf-node-palette {
+    display: none;
+  }
+
+  /* Responsive Modals & Workshops fit cleanly within mobile screen */
+  .modal,
+  .export-modal,
+  .perf-modal,
+  .mcp-modal,
+  .remote-modal,
+  .camera-path-modal,
+  .camera-sketch-modal,
+  .audio-studio-modal,
+  .assembly-modal-content,
+  .layer-workshop-dialog {
+    width: calc(100vw - 12px) !important;
+    max-width: calc(100vw - 12px) !important;
+    max-height: calc(100dvh - 12px) !important;
+  }
+
+  .tl-fx-popover {
+    width: calc(100vw - 16px);
+    max-height: 78dvh;
+  }
+
+  .tl-fx-popover-body {
+    flex-direction: column;
+    height: auto;
+    max-height: 62dvh;
+  }
+
+  .tl-fx-list {
+    width: 100%;
+    max-height: 135px;
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+}
+
+/* --- 6. Compact Phone Portrait (width <= 520px) --- */
+@media (max-width: 520px) {
+  .brand.tb-brand-compact {
+    display: none;
+  }
+
+  #menu-add .btn > span,
+  #menu-file .btn > span {
+    font-size: 11px;
+  }
+
+  .responsive-dock {
+    padding: 0 4px;
+    gap: 3px;
+  }
+
+  .dock-tab {
+    padding: 0 5px;
+    gap: 4px;
+    font-size: 10.5px;
+  }
+
+  .dock-badge {
+    display: none;
+  }
+
+  .dock-quick-play {
+    padding: 0 6px;
+    font-size: 10px;
+  }
+
+  .wf-v2-tool-btn.primary-apply .wf-v2-btn-txt {
+    display: none;
+  }
+}
+
+/* --- 7. Touch & Tablet Ergonomics (iPad / Android Tablet / Touchscreen) --- */
+@media (pointer: coarse) {
+  .pxs-tab,
+  .tab {
+    min-height: 32px;
+  }
+
+  .dock-tab {
+    height: 34px;
+  }
+
+  .tb-btn-icon,
+  .tb-btn-save,
+  .tb-btn-export,
+  .mcp-chip {
+    min-height: 32px;
+  }
+
+  .tb-utility-cluster,
+  .tb-history-cluster {
+    height: 32px;
+  }
+
+  .tb-utility-cluster .tb-btn-icon,
+  .tb-history-cluster .btn.icon.sm {
+    width: 28px;
+    height: 26px;
+  }
+
+  /* Generous invisible finger hit-area on panel splitters */
+  .splitter::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: -8px;
+    bottom: -8px;
+  }
+
+  .left-col-resizer,
+  .right-col-resizer {
+    width: 12px;
+  }
+}

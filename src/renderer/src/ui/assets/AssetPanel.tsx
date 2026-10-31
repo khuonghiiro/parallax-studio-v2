@@ -2,8 +2,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { BuiltInAssetCategory, BuiltInAssetItem, BuiltInCatalogResult } from '@shared/ipc'
 import { importAudio, importBuiltInAsset, importImages } from '../../actions'
 import { useEditor } from '../../store/editor'
-import { useView } from '../../store/view'
-import { IconBriefcase, IconCube, IconFolder, IconGrid, IconImage, IconLayerAssembly, IconLayers, IconMusic, IconPlus } from '../icons'
+import { useView, type AssetSubTab } from '../../store/view'
+import {
+  IconBriefcase,
+  IconGrid,
+  IconCube,
+  IconLayerAssembly,
+  IconMusic,
+  IconPlus
+} from '../icons'
+import { SegmentedTabs, type SegmentedTabItem } from '../primitives'
 import { AssetCatalogModal } from './AssetCatalogModal'
 import { BuiltInAssetBar } from './BuiltInAssetBar'
 import { BuiltInAssetGrid } from './BuiltInAssetGrid'
@@ -17,11 +25,10 @@ import { sortAssetCategories } from './types'
 import { getVisiblePublicAssets, addCustomPublicAsset, isPrivateModularAsset } from './publicAssetStorage'
 import { getAudioCount } from './music/builtinAudios'
 
-type AssetSubTab = 'builtin' | 'project' | '3d' | 'assembly' | 'music'
-
 export function AssetPanel() {
   const projectAssets = useEditor((s) => s.project.assets)
-  const [subTab, setSubTab] = useState<AssetSubTab>('builtin')
+  const subTab = useView((s) => s.assetSubTab)
+  const setSubTab = useView((s) => s.setAssetSubTab)
   const [catalog, setCatalog] = useState<BuiltInCatalogResult | null>(null)
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [loading, setLoading] = useState(false)
@@ -77,7 +84,7 @@ export function AssetPanel() {
     const handleOpen = () => setSubTab('assembly')
     window.addEventListener('layerAssembly:open', handleOpen)
     return () => window.removeEventListener('layerAssembly:open', handleOpen)
-  }, [])
+  }, [setSubTab])
 
   const categories = useMemo<BuiltInAssetCategory[]>(() => {
     const list = (
@@ -110,6 +117,52 @@ export function AssetPanel() {
     })
     return counts
   }, [categories, visiblePublicItems])
+
+  const subTabItems = useMemo<SegmentedTabItem<AssetSubTab>[]>(
+    () => [
+      {
+        id: 'builtin',
+        domId: 'asset-subtab-builtin-btn',
+        label: 'Kho mẫu',
+        icon: <IconGrid width={13} height={13} />,
+        badge: visiblePublicItems.length,
+        title: `Kho mẫu có sẵn tích hợp (${visiblePublicItems.length} mẫu)`
+      },
+      {
+        id: '3d',
+        domId: 'asset-subtab-3d-btn',
+        label: '3D',
+        icon: <IconCube width={13} height={13} />,
+        badge: model3DCount,
+        title: `Mô hình 3D lắp ráp (${model3DCount} mô hình)`
+      },
+      {
+        id: 'assembly',
+        domId: 'asset-subtab-assembly-btn',
+        label: 'Lắp ráp',
+        icon: <IconLayerAssembly width={13} height={13} />,
+        badge: assemblyCount,
+        title: `Cụm layer lắp ráp 2.5D (${assemblyCount} cụm)`
+      },
+      {
+        id: 'music',
+        domId: 'asset-subtab-music-btn',
+        label: 'Nhạc',
+        icon: <IconMusic width={13} height={13} />,
+        badge: audioCount,
+        title: `Tài nguyên âm thanh & nhạc nền (${audioCount} tệp)`
+      },
+      {
+        id: 'project',
+        domId: 'asset-subtab-project-btn',
+        label: 'Dự án',
+        icon: <IconBriefcase width={13} height={13} />,
+        badge: projectAssets.length,
+        title: `Tệp tài nguyên trong dự án (${projectAssets.length} tệp)`
+      }
+    ],
+    [visiblePublicItems.length, model3DCount, assemblyCount, audioCount, projectAssets.length]
+  )
 
   const handleImportItem = async (item: BuiltInAssetItem, addLayer: boolean) => {
     const curTime = useEditor.getState().time
@@ -172,8 +225,20 @@ export function AssetPanel() {
   }
 
   return (
-    <div className="asset-panel-wrapper">
-      {/* Header with import actions */}
+    <div className="asset-panel-wrapper" data-mcp-region="assets">
+      {/* Subtabs: Adaptive 5-category Segmented Switcher (Icons always visible, labels auto-adapt to width) */}
+      <SegmentedTabs<AssetSubTab>
+        items={subTabItems}
+        value={subTab}
+        onChange={setSubTab}
+        variant="segmented"
+        size="sm"
+        adaptiveCompact
+        ariaLabel="Phân mục thư viện tài nguyên"
+        mcpRegion="asset_subtabs"
+      />
+
+      {/* Contextual Header with import actions */}
       <div className="asset-top-header">
         <span className="asset-top-header-label">
           {subTab === 'builtin' && <IconGrid width={14} height={14} />}
@@ -259,71 +324,6 @@ export function AssetPanel() {
             </button>
           </>
         )}
-      </div>
-
-      {/* Subtabs: Built-in Library vs 3D Assembled Models vs Layer Assembly vs Music vs Project Assets */}
-      <div className="asset-subtabs" role="tablist">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={subTab === 'builtin'}
-          className={`asset-subtab-btn${subTab === 'builtin' ? ' active' : ''}`}
-          onClick={() => setSubTab('builtin')}
-          title="Kho mẫu có sẵn tích hợp"
-        >
-          <IconGrid width={14} height={14} />
-          <span className="asset-subtab-label">Kho mẫu</span>
-          <span className="asset-subtab-badge">{visiblePublicItems.length}</span>
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={subTab === '3d'}
-          className={`asset-subtab-btn${subTab === '3d' ? ' active' : ''}`}
-          onClick={() => setSubTab('3d')}
-          title={`Mô hình 3D lắp ráp (${model3DCount} mô hình)`}
-        >
-          <IconCube width={14} height={14} />
-          <span className="asset-subtab-label">3D</span>
-          <span className="asset-subtab-badge">{model3DCount}</span>
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={subTab === 'assembly'}
-          className={`asset-subtab-btn${subTab === 'assembly' ? ' active' : ''}`}
-          onClick={() => setSubTab('assembly')}
-          title={`Cụm layer lắp ráp 2.5D (${assemblyCount} cụm)`}
-        >
-          <IconLayerAssembly width={14} height={14} />
-          <span className="asset-subtab-label">Lắp ráp</span>
-          <span className="asset-subtab-badge">{assemblyCount}</span>
-        </button>
-        <button
-          type="button"
-          role="tab"
-          id="asset-subtab-music-btn"
-          aria-selected={subTab === 'music'}
-          className={`asset-subtab-btn${subTab === 'music' ? ' active' : ''}`}
-          onClick={() => setSubTab('music')}
-          title={`Tài nguyên âm thanh & nhạc nền (${audioCount} tệp)`}
-        >
-          <IconMusic width={14} height={14} />
-          <span className="asset-subtab-label">Nhạc</span>
-          <span className="asset-subtab-badge">{audioCount}</span>
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={subTab === 'project'}
-          className={`asset-subtab-btn${subTab === 'project' ? ' active' : ''}`}
-          onClick={() => setSubTab('project')}
-          title={`Tệp tài nguyên trong dự án (${projectAssets.length} tệp)`}
-        >
-          <IconBriefcase width={14} height={14} />
-          <span className="asset-subtab-label">Dự án</span>
-          <span className="asset-subtab-badge">{projectAssets.length}</span>
-        </button>
       </div>
 
       {/* Main Content Area */}

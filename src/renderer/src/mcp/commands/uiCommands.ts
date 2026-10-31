@@ -1,7 +1,9 @@
 import { ParamError, type Handler, type Params } from '../types'
 import { bool, num, str } from '../params'
 import { setManualAiLock } from '../commands'
-import { useView } from '../../store/view'
+import { useEditor } from '../../store/editor'
+import { useView, type AssetSubTab } from '../../store/view'
+import { resolveDeviceBreakpoint } from '../../ui/primitives/useResponsiveViewport'
 import {
   getActiveLayerAssemblySession,
   requestCloseLayerAssembly,
@@ -12,7 +14,7 @@ import { describeElement, isVisible, resolveTargetElement } from '../uiRegions'
 export { UI_REGION_SELECTORS, findActiveDialog, isVisible, resolveTargetElement } from '../uiRegions'
 
 /**
- * UI-level commands: let an AI see and drive the real app UI (dialogs, tabs, workshop),
+ * UI-level commands: let an AI see and drive the real app UI (dialogs, tabs, rails, workshop),
  * not just the rendered scene. Screenshots come from the main process
  * (`webContents.capturePage`), so they match exactly what the user sees.
  */
@@ -37,6 +39,86 @@ const nextPaint = (): Promise<void> =>
       })
     )
   })
+
+const PRIMARY_DISCOVERABLE_REGIONS = [
+  'active',
+  'toolbar',
+  'toolbar_actions',
+  'left_panel',
+  'left_tabs',
+  'assets',
+  'asset_subtabs',
+  'asset_grid',
+  'shots',
+  'topview',
+  'viewer',
+  'viewer_tools',
+  'inspector',
+  'inspector_tabs',
+  'inspector_body',
+  'inspector_bottom_tabs',
+  'timeline',
+  'timeline_tabs',
+  'timeline_toolbar',
+  'timeline_tracks',
+  'timeline_workflow',
+  'workflow_toolbar',
+  'workflow_canvas',
+  'workflow_inspector',
+  'responsive_dock'
+] as const
+
+function detectVisiblePrimaryRegions(): string[] {
+  if (
+    typeof document === 'undefined' ||
+    typeof document.querySelector !== 'function' ||
+    typeof getComputedStyle !== 'function'
+  ) {
+    return []
+  }
+  const visible: string[] = []
+  for (const name of PRIMARY_DISCOVERABLE_REGIONS) {
+    try {
+      if (resolveTargetElement(name)) visible.push(name)
+    } catch {
+      /* ignore partial DOM mocks */
+    }
+  }
+  return visible
+}
+
+function readViewportMetrics(): {
+  width: number
+  height: number
+  breakpoint: ReturnType<typeof resolveDeviceBreakpoint>
+} {
+  const width =
+    typeof window !== 'undefined' && typeof window.innerWidth === 'number' && window.innerWidth > 0
+      ? window.innerWidth
+      : 1440
+  const height =
+    typeof window !== 'undefined' && typeof window.innerHeight === 'number' && window.innerHeight > 0
+      ? window.innerHeight
+      : 900
+  return {
+    width,
+    height,
+    breakpoint: resolveDeviceBreakpoint(width, height)
+  }
+}
+
+function dispatchResponsiveTabEvent(detail: {
+  mobileTab?: 'timeline' | 'left' | 'right'
+  tabletTab?: 'left' | 'right'
+}): void {
+  if (
+    typeof window !== 'undefined' &&
+    typeof window.dispatchEvent === 'function' &&
+    typeof CustomEvent === 'function'
+  ) {
+    window.dispatchEvent(new CustomEvent('pxs:responsive-tab', { detail }))
+  }
+}
 
 export interface UiCandidate {
   text: string
@@ -85,7 +167,7 @@ export const UI_TEXT_SYNONYMS: Record<string, string[]> = {
   'liên kết': ['khoá liên kết', 'liên kết bộ phận', 'đang liên kết'],
   'bộ phận': ['nhóm bộ phận', 'bộ phận & biến thể', 'bộ phận & thay thế'],
 
-  // Xưởng & Tab
+  // Xưởng, Tab & Thanh Công Cụ
   'tạo xương': ['bones', 'khung xương', 'xương'],
   'animation': ['hoạt ảnh', 'chuyển động', 'diễn hoạt'],
   'motion': ['plant', 'cây cối', 'uốn thân cây', 'khớp uốn'],
@@ -93,6 +175,12 @@ export const UI_TEXT_SYNONYMS: Record<string, string[]> = {
   'tạo lắp ráp': ['mở xưởng', 'xưởng lắp ráp', 'tạo mới lắp ráp'],
   'workflow': ['quy trình', 'tab workflow', 'luồng tạo video', 'sơ đồ workflow'],
   'áp dụng workflow': ['chạy workflow', 'thực thi workflow', 'apply workflow'],
+  'thuộc tính node': ['node', 'cấu hình node', 'node inspector'],
+  'json cảnh': ['json', 'mã json', 'shot json'],
+  'tự động bay': ['dựng lộ trình bay tự động', 'auto fly', 'bay tự động'],
+  'kho mẫu': ['mẫu có sẵn', 'builtin', 'kho tài nguyên'],
+  'sơ đồ 3d': ['topview', 'mặt bằng xz', 'mặt cắt zy'],
+  'lắp ráp 2.5d': ['2.5d', 'xưởng 2.5d', 'layer assembly'],
   'qr': ['quét mã qr', 'remote', 'điều khiển điện thoại', 'mobile remote'],
   'remote': ['quét mã qr', 'qr', 'điều khiển điện thoại', 'mobile remote']
 }
@@ -111,13 +199,7 @@ export function pickByText(candidates: UiCandidate[], query: string, index = 0):
   candidates.forEach((c, i) => {
     if (!c.visible) return
 
-    const labels = [
-      c.text,
-      c.ariaLabel,
-      c.title,
-      c.placeholder,
-      c.region
-    ]
+    const labels = [c.text, c.ariaLabel, c.title, c.placeholder, c.region]
       .filter((v): v is string => Boolean(v))
       .map(normalizeUiText)
       .filter(Boolean)
@@ -152,7 +234,8 @@ export function pickByText(candidates: UiCandidate[], query: string, index = 0):
   return pool[Math.max(0, Math.min(pool.length - 1, index))] ?? -1
 }
 
-const CLICKABLE = 'button, [role="button"], [role="tab"], [role="menuitem"], a, summary, label, .c3d-card, [data-mcp-region]'
+const CLICKABLE =
+  'button, [role="button"], [role="tab"], [role="menuitem"], a, summary, label, .c3d-card, [data-mcp-region]'
 
 function findTarget(p: Params): HTMLElement {
   const selector = str(p, 'selector')
@@ -218,6 +301,115 @@ async function cropImageBase64(
     img.onerror = () => resolve(null)
     img.src = `data:${mime};base64,${base64}`
   })
+}
+
+const VALID_ASSET_SUBTABS = new Set<AssetSubTab>(['builtin', '3d', 'assembly', 'music', 'project'])
+
+function applyPanelAndTabSwitches(p: Params): void {
+  const v = useView.getState()
+  const leftTab = str(p, 'left_tab')
+  const assetSubTab = str(p, 'asset_subtab') as AssetSubTab | undefined
+  const timelineTab = str(p, 'timeline_tab')
+  const inspectorTab = str(p, 'inspector_tab')
+  const mobileTab = str(p, 'mobile_tab')
+  const tabletTab = str(p, 'tablet_tab')
+  const leftCollapsed = bool(p, 'left_collapsed')
+  const rightCollapsed = bool(p, 'right_collapsed')
+  const inspectorExpanded = bool(p, 'inspector_expanded')
+  const theme = str(p, 'theme')
+
+  if (theme === 'dark' || theme === 'light') {
+    v.set({ theme })
+  }
+
+  if (timelineTab === 'timeline' || timelineTab === 'workflow') {
+    v.setTimelineTab(timelineTab)
+  }
+
+  if (leftTab === 'shots' || leftTab === 'assets' || leftTab === 'topview') {
+    v.setLeftTab(leftTab)
+    v.setLeftCollapsed(false)
+    useView.setState({ mobileTab: 'left', tabletTab: 'left' })
+    dispatchResponsiveTabEvent({ mobileTab: 'left', tabletTab: 'left' })
+  }
+
+  if (assetSubTab && VALID_ASSET_SUBTABS.has(assetSubTab)) {
+    v.setLeftTab('assets')
+    v.setAssetSubTab(assetSubTab)
+    v.setLeftCollapsed(false)
+    useView.setState({ mobileTab: 'left', tabletTab: 'left' })
+    dispatchResponsiveTabEvent({ mobileTab: 'left', tabletTab: 'left' })
+  }
+
+  if (
+    inspectorTab === 'scene' ||
+    inspectorTab === 'layer' ||
+    inspectorTab === 'camera' ||
+    inspectorTab === 'route' ||
+    inspectorTab === 'node' ||
+    inspectorTab === 'json'
+  ) {
+    useEditor.getState().setInspectorTab(inspectorTab)
+    v.setRightCollapsed(false)
+    if (inspectorTab === 'node' || inspectorTab === 'json') {
+      v.setInspectorExpanded(true)
+    }
+    useView.setState({ mobileTab: 'right', tabletTab: 'right' })
+    dispatchResponsiveTabEvent({ mobileTab: 'right', tabletTab: 'right' })
+  }
+
+  if (mobileTab === 'timeline' || mobileTab === 'left' || mobileTab === 'right') {
+    const nextTablet: { tabletTab?: 'left' | 'right' } =
+      mobileTab === 'left' || mobileTab === 'right' ? { tabletTab: mobileTab } : {}
+    useView.setState({ mobileTab, ...nextTablet })
+    dispatchResponsiveTabEvent({ mobileTab, ...nextTablet })
+  }
+
+  if (tabletTab === 'left' || tabletTab === 'right') {
+    v.setTabletTab(tabletTab)
+    dispatchResponsiveTabEvent({ tabletTab })
+  }
+
+  if (leftCollapsed !== undefined) v.setLeftCollapsed(leftCollapsed)
+  if (rightCollapsed !== undefined) v.setRightCollapsed(rightCollapsed)
+  if (inspectorExpanded !== undefined) v.setInspectorExpanded(inspectorExpanded)
+}
+
+function applyDialogSwitch(p: Params): void {
+  const v = useView.getState()
+  const dialog = str(p, 'dialog')
+  const audioMode = str(p, 'audio_mode')
+
+  if (dialog !== undefined) {
+    if (dialog === 'none' || dialog === 'close' || dialog === '') {
+      v.openDialog(null)
+      if (v.assemblyModalModel) v.closeAssemblyWorkshop()
+      requestCloseLayerAssembly()
+    } else if (dialog === 'audio') {
+      const mode =
+        audioMode === 'levels' || audioMode === 'mixer' || audioMode === 'waveform'
+          ? audioMode
+          : v.audioDialogMode
+      v.openAudioDialog(mode)
+    } else if (
+      dialog === 'path' ||
+      dialog === 'sketch' ||
+      dialog === 'performance' ||
+      dialog === 'mcp' ||
+      dialog === 'remote' ||
+      dialog === 'export'
+    ) {
+      v.openDialog(dialog)
+    } else if (dialog === 'layer_assembly' || dialog === 'layer_assembly_create') {
+      requestOpenLayerAssembly(str(p, 'composite_id') ?? undefined)
+    } else {
+      throw new ParamError(
+        `Invalid dialog "${dialog}". Expected none, path, sketch, performance, mcp, remote, audio, export, layer_assembly, or layer_assembly_create.`
+      )
+    }
+  } else if (audioMode === 'levels' || audioMode === 'mixer' || audioMode === 'waveform') {
+    v.openAudioDialog(audioMode)
+  }
 }
 
 export const uiCommands: Record<string, Handler> = {
@@ -312,8 +504,18 @@ export const uiCommands: Record<string, Handler> = {
   ui_click: async (p) => {
     const el = findTarget(p)
     el.scrollIntoView({ block: 'nearest', inline: 'nearest' })
-    if (bool(p, 'ctrl') || bool(p, 'shift')) el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, ctrlKey: bool(p, 'ctrl'), shiftKey: bool(p, 'shift') }))
-    else el.click()
+    if (bool(p, 'ctrl') || bool(p, 'shift')) {
+      el.dispatchEvent(
+        new MouseEvent('click', {
+          bubbles: true,
+          cancelable: true,
+          ctrlKey: bool(p, 'ctrl'),
+          shiftKey: bool(p, 'shift')
+        })
+      )
+    } else {
+      el.click()
+    }
     await nextPaint()
     return { clicked: el.tagName.toLowerCase(), text: (el.innerText || el.title || '').trim().slice(0, 120) }
   },
@@ -328,9 +530,9 @@ export const uiCommands: Record<string, Handler> = {
     }
 
     if (!el && query) {
-      const direct = Array.from(document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(
-        'input, textarea'
-      )).find((inp) => {
+      const direct = Array.from(
+        document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('input, textarea')
+      ).find((inp) => {
         if (!isVisible(inp)) return false
         const attrs = [inp.placeholder, inp.getAttribute('aria-label'), inp.name, inp.id].filter(Boolean)
         return attrs.some((a) => normalizeUiText(a!).includes(normalizeUiText(query)))
@@ -338,13 +540,18 @@ export const uiCommands: Record<string, Handler> = {
       if (direct) {
         el = direct
       } else {
-        const labels = Array.from(document.querySelectorAll<HTMLElement>('label, .mx-field, .lw-field')).filter(isVisible)
+        const labels = Array.from(document.querySelectorAll<HTMLElement>('label, .mx-field, .lw-field')).filter(
+          isVisible
+        )
         const cands = labels.map((l) => ({ text: l.innerText || l.title || '', visible: true }))
         const idx = pickByText(cands, query)
         if (idx >= 0) {
           const parent = labels[idx]
-          const inp = parent.querySelector<HTMLInputElement | HTMLTextAreaElement>('input, textarea') ||
-            (parent.getAttribute('for') ? document.getElementById(parent.getAttribute('for')!) as HTMLInputElement : null)
+          const inp =
+            parent.querySelector<HTMLInputElement | HTMLTextAreaElement>('input, textarea') ||
+            (parent.getAttribute('for')
+              ? (document.getElementById(parent.getAttribute('for')!) as HTMLInputElement)
+              : null)
           if (inp && isVisible(inp)) el = inp
         }
       }
@@ -354,7 +561,9 @@ export const uiCommands: Record<string, Handler> = {
       el = findTarget(p) as HTMLInputElement
     }
 
-    if (!el || !('value' in el)) throw new Error(`Target is not a visible input/textarea: "${selector || query || ''}"`)
+    if (!el || !('value' in el)) {
+      throw new Error(`Target is not a visible input/textarea: "${selector || query || ''}"`)
+    }
     const value = str(p, 'value') ?? ''
     const proto = Object.getPrototypeOf(el) as object
     const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set
@@ -373,100 +582,32 @@ export const uiCommands: Record<string, Handler> = {
       dialog: v.dialog,
       audio_dialog_mode: v.audioDialogMode,
       left_tab: v.leftTab,
+      asset_subtab: v.assetSubTab,
+      left_collapsed: v.leftCollapsed,
+      inspector_tab: useEditor.getState().inspectorTab,
+      inspector_expanded: v.inspectorExpanded,
+      right_collapsed: v.rightCollapsed,
       timeline_tab: v.timelineTab,
       mobile_tab: v.mobileTab,
       tablet_tab: v.tabletTab,
       primary_view: v.primary,
       split_view: v.split,
+      active_views: v.activeViews,
       top_view_mode: v.topViewMode,
       camera_only: v.cameraOnly,
       show_path: v.showPath,
       assembly_workshop_open: !!v.assemblyModalModel,
       layer_assembly_open: !!lwSession,
       ai_active: v.aiActive,
-      ai_locked: v.aiLocked
+      ai_locked: v.aiLocked,
+      viewport: readViewportMetrics(),
+      visible_regions: detectVisiblePrimaryRegions()
     }
   },
 
   set_ui_dialog: async (p) => {
-    const v = useView.getState()
-    const dialog = str(p, 'dialog')
-    const audioMode = str(p, 'audio_mode')
-    const leftTab = str(p, 'left_tab')
-    const timelineTab = str(p, 'timeline_tab')
-    const inspectorTab = str(p, 'inspector_tab')
-    const mobileTab = str(p, 'mobile_tab')
-    const theme = str(p, 'theme')
-
-    if (theme === 'dark' || theme === 'light') {
-      v.set({ theme })
-    }
-
-    if (timelineTab === 'timeline' || timelineTab === 'workflow') {
-      v.setTimelineTab(timelineTab)
-    }
-
-    if (leftTab === 'shots' || leftTab === 'assets' || leftTab === 'topview') {
-      v.setLeftTab(leftTab)
-      useView.setState({ mobileTab: 'left', tabletTab: 'left' })
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('pxs:responsive-tab', { detail: { mobileTab: 'left', tabletTab: 'left' } }))
-      }
-    }
-
-    if (inspectorTab === 'scene' || inspectorTab === 'layer' || inspectorTab === 'camera' || inspectorTab === 'route' || inspectorTab === 'node' || inspectorTab === 'json') {
-      const { useEditor } = await import('../../store/editor')
-      useEditor.getState().setInspectorTab(inspectorTab)
-      useView.setState({ mobileTab: 'right', tabletTab: 'right' })
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('pxs:responsive-tab', { detail: { mobileTab: 'right', tabletTab: 'right' } }))
-      }
-    }
-
-    if (mobileTab === 'timeline' || mobileTab === 'left' || mobileTab === 'right') {
-      useView.setState({
-        mobileTab,
-        ...(mobileTab === 'left' || mobileTab === 'right' ? { tabletTab: mobileTab } : {})
-      })
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(
-          new CustomEvent('pxs:responsive-tab', {
-            detail: { mobileTab, ...(mobileTab === 'left' || mobileTab === 'right' ? { tabletTab: mobileTab } : {}) }
-          })
-        )
-      }
-    }
-
-    if (dialog !== undefined) {
-      if (dialog === 'none' || dialog === 'close' || dialog === '') {
-        v.openDialog(null)
-        if (v.assemblyModalModel) v.closeAssemblyWorkshop()
-        requestCloseLayerAssembly()
-      } else if (dialog === 'audio') {
-        const mode =
-          audioMode === 'levels' || audioMode === 'mixer' || audioMode === 'waveform'
-            ? audioMode
-            : v.audioDialogMode
-        v.openAudioDialog(mode)
-      } else if (
-        dialog === 'path' ||
-        dialog === 'sketch' ||
-        dialog === 'performance' ||
-        dialog === 'mcp' ||
-        dialog === 'remote' ||
-        dialog === 'export'
-      ) {
-        v.openDialog(dialog)
-      } else if (dialog === 'layer_assembly' || dialog === 'layer_assembly_create') {
-        requestOpenLayerAssembly(str(p, 'composite_id') ?? undefined)
-      } else {
-        throw new ParamError(
-          `Invalid dialog "${dialog}". Expected none, path, sketch, performance, mcp, remote, audio, export, layer_assembly, or layer_assembly_create.`
-        )
-      }
-    } else if (audioMode === 'levels' || audioMode === 'mixer' || audioMode === 'waveform') {
-      v.openAudioDialog(audioMode)
-    }
+    applyPanelAndTabSwitches(p)
+    applyDialogSwitch(p)
 
     await nextPaint()
     const s = useView.getState()
@@ -476,6 +617,11 @@ export const uiCommands: Record<string, Handler> = {
       dialog: s.dialog,
       audio_dialog_mode: s.audioDialogMode,
       left_tab: s.leftTab,
+      asset_subtab: s.assetSubTab,
+      left_collapsed: s.leftCollapsed,
+      inspector_tab: useEditor.getState().inspectorTab,
+      inspector_expanded: s.inspectorExpanded,
+      right_collapsed: s.rightCollapsed,
       timeline_tab: s.timelineTab,
       mobile_tab: s.mobileTab,
       tablet_tab: s.tabletTab,

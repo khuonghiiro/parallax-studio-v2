@@ -1,0 +1,505 @@
+/* ==========================================================================
+   Parallax Studio V2 — Unified UI Primitives & Modern Studio Design System
+   Inspired by Figma UI3 / Rive Studio / Linear / After Effects Pro.
+   Adheres strictly to Dual-Theme tokens, Contrast rules, and Unified Geometry.
+   ========================================================================== */
+
+/* Container queries on sidebars so tabs adapt gracefully at any column width */
+aside.left:not(.is-collapsed-rail),
+aside.right:not(.is-collapsed-rail) {
+  container-type: inline-size;
+  position: relative;
+}
+
+/* ------------------------------------------------------------------ 1. SegmentedTabs Primitive */
+.pxs-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--line);
+  flex: none;
+  min-width: 0;
+  position: relative;
+  z-index: 5;
+}
+
+.pxs-tabs--dock-bottom {
+  border-bottom: none;
+  border-top: 1px solid var(--line);
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.12);
+}
+
+.pxs-tabs-track {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.pxs-tabs--segmented {
+  background: var(--bg-0);
+  padding: 4px 6px;
+}
+
+.pxs-tabs--segmented .pxs-tabs-track {
+  background: var(--bg-1);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+  padding: 2px;
+  gap: 2px;
+}
+
+.pxs-tabs-trailing {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.pxs-tab {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 27px;
+  padding: 0 7px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  white-space: nowrap;
+  transition: background 0.14s ease, color 0.14s ease, border-color 0.14s ease, box-shadow 0.14s ease;
+  position: relative;
+}
+
+.pxs-tabs--sm .pxs-tab {
+  height: 25px;
+  padding: 0 6px;
+  font-size: 10.5px;
+  gap: 4px;
+}
+
+.pxs-tab:hover:not(:disabled):not(.active) {
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-3));
+  border-color: var(--line-soft);
+}
+
+.pxs-tab:focus-visible {
+  outline: 2px solid var(--line-focus);
+  outline-offset: -1px;
+}
+
+.pxs-tab:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Variant: Underline (Panel Top Tabs) */
+.pxs-tabs--underline .pxs-tab.active {
+  background: color-mix(in srgb, var(--accent) 13%, var(--bg-2));
+  border-color: color-mix(in srgb, var(--accent) 32%, var(--line));
+  color: var(--text);
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+
+.pxs-tabs--underline .pxs-tab.active .pxs-tab-icon {
+  color: var(--accent);
+}
+
+/* Variant: Segmented (Asset Sub-tabs, Mode Switchers) */
+.pxs-tabs--segmented .pxs-tab.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+.pxs-tabs--segmented .pxs-tab.active .pxs-tab-icon {
+  color: var(--on-accent);
+}
+
+/* Variant: Docked (Bottom Node / JSON Tabs) */
+.pxs-tabs--docked .pxs-tab {
+  background: var(--bg-2);
+  border-color: var(--line-soft);
+}
+
+.pxs-tabs--docked .pxs-tab.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+
+.pxs-tabs--docked .pxs-tab.active .pxs-tab-icon {
+  color: var(--on-accent);
+}
+
+.pxs-tab-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: currentColor;
+}
+
+.pxs-tab-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+/* Unified Rectangular Badge Geometry (4px --radius-sm across entire app) */
+.pxs-tab-badge,
+.tab-count,
+.asset-subtab-badge,
+.tl-mode-tab-badge,
+.dock-badge,
+.badge-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 15px;
+  padding: 0 4px;
+  border-radius: var(--radius-sm) !important;
+  background: var(--bg-3);
+  color: var(--text-dim);
+  font-family: var(--mono);
+  font-size: 9.5px;
+  font-weight: 700;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.pxs-tabs--underline .pxs-tab.active .pxs-tab-badge {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.pxs-tabs--segmented .pxs-tab.active .pxs-tab-badge,
+.pxs-tabs--docked .pxs-tab.active .pxs-tab-badge {
+  background: rgba(15, 23, 42, 0.32);
+  color: #ffffff;
+}
+
+/* Adaptive Container Query: When sidebar is narrow (< 305px), inactive tabs show Icon + Badge while active tab shows full Icon + Label + Badge */
+@container (max-width: 365px) {
+  .pxs-tabs--segmented.pxs-tabs--adaptive .pxs-tab:not(.active) {
+    flex: 0 0 30px;
+    padding: 0;
+  }
+  .pxs-tabs--segmented.pxs-tabs--adaptive .pxs-tab:not(.active) .pxs-tab-label,
+  .pxs-tabs--segmented.pxs-tabs--adaptive .pxs-tab:not(.active) .pxs-tab-badge {
+    display: none;
+  }
+  .pxs-tabs--segmented.pxs-tabs--adaptive .pxs-tab.active {
+    flex: 1 1 auto;
+    padding: 0 8px;
+  }
+}
+
+@container (max-width: 305px) {
+  .pxs-tabs--adaptive .pxs-tab:not(.active) {
+    flex: 0 0 auto;
+    padding: 0 7px;
+  }
+  .pxs-tabs--adaptive .pxs-tab:not(.active) .pxs-tab-label {
+    display: none;
+  }
+  .pxs-tabs--adaptive .pxs-tab.active {
+    flex: 1 1 auto;
+  }
+}
+
+/* ------------------------------------------------------------------ 2. IconActionBar & ToolCluster Primitive */
+.pxs-tool-cluster {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px;
+  border-radius: var(--radius);
+  background: var(--bg-2);
+  border: 1px solid var(--line-soft);
+  flex-shrink: 0;
+}
+
+.pxs-tool-cluster.is-plain {
+  padding: 0;
+  background: transparent;
+  border: none;
+  gap: 4px;
+}
+
+.pxs-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-soft);
+  background: var(--bg-2);
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+  transition: background 0.14s ease, color 0.14s ease, border-color 0.14s ease, transform 0.1s ease;
+}
+
+.pxs-action-btn--xs {
+  height: 23px;
+  padding: 0 6px;
+  font-size: 10.5px;
+  gap: 4px;
+}
+
+.pxs-action-btn--md {
+  height: 28px;
+  padding: 0 10px;
+  font-size: 11.5px;
+}
+
+.pxs-action-btn.is-icon-only {
+  width: 26px;
+  padding: 0;
+}
+
+.pxs-action-btn--xs.is-icon-only {
+  width: 24px;
+}
+
+.pxs-action-btn:hover:not(:disabled) {
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-3));
+  border-color: var(--line-focus);
+}
+
+.pxs-action-btn:active:not(:disabled) {
+  transform: translateY(0.5px);
+}
+
+.pxs-action-btn:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+.pxs-action-btn.active,
+.pxs-action-btn--primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+
+.pxs-action-btn--primary:hover:not(:disabled),
+.pxs-action-btn.active:hover:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  color: var(--on-accent);
+}
+
+.pxs-action-btn--cyan {
+  border-color: color-mix(in srgb, var(--accent-cyan) 42%, var(--line));
+  background: color-mix(in srgb, var(--accent-cyan) 11%, var(--bg-2));
+  color: var(--text);
+}
+
+.pxs-action-btn--cyan:hover:not(:disabled),
+.pxs-action-btn--cyan.active {
+  background: color-mix(in srgb, var(--accent-cyan) 78%, #0f172a);
+  border-color: var(--accent-cyan);
+  color: #ffffff;
+}
+
+.pxs-action-btn--danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--danger) 78%, #0f172a);
+  border-color: var(--danger);
+  color: #ffffff;
+}
+
+.pxs-action-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.pxs-action-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@container (max-width: 340px) {
+  .pxs-action-btn.is-compact-collapsible {
+    padding: 0 6px;
+  }
+  .pxs-action-btn.is-compact-collapsible .pxs-action-label {
+    display: none;
+  }
+}
+
+/* ------------------------------------------------------------------ 3. Collapsible Vertical Icon Rail (Left & Right) */
+.pxs-rail {
+  width: 40px !important;
+  min-width: 40px !important;
+  max-width: 40px !important;
+  padding: 4px 2px !important;
+  background: var(--bg-1);
+  overflow: hidden;
+}
+
+.pxs-rail--left {
+  border-right: 1px solid var(--line);
+}
+
+.pxs-rail--right {
+  border-left: 1px solid var(--line);
+}
+
+.pxs-rail-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  padding: 4px 0;
+  gap: 6px;
+}
+
+.pxs-rail-expand-btn {
+  width: 30px;
+  height: 28px;
+  padding: 0;
+  border-radius: var(--radius-sm);
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--line));
+  background: color-mix(in srgb, var(--accent) 13%, var(--bg-2));
+  color: var(--accent);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.14s ease, color 0.14s ease, border-color 0.14s ease;
+}
+
+.pxs-rail-expand-btn:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+
+.pxs-rail-divider {
+  width: 22px;
+  height: 1px;
+  background: var(--line);
+  flex-shrink: 0;
+}
+
+.pxs-rail-group,
+.pxs-rail-bottom {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+}
+
+.pxs-rail-bottom {
+  margin-top: auto;
+  padding-top: 6px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.pxs-rail-btn {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-soft);
+  background: var(--bg-2);
+  color: var(--text-dim);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.14s ease, color 0.14s ease, border-color 0.14s ease;
+}
+
+.pxs-rail-btn:hover {
+  color: var(--text);
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg-3));
+}
+
+.pxs-rail-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 32%, transparent);
+}
+
+.pxs-rail-btn.tone-cyan:not(.active) {
+  border-color: color-mix(in srgb, var(--accent-cyan) 38%, var(--line));
+}
+
+.pxs-rail-btn.tone-cyan:hover:not(.active) {
+  background: color-mix(in srgb, var(--accent-cyan) 78%, #0f172a);
+  border-color: var(--accent-cyan);
+  color: #ffffff;
+}
+
+.pxs-rail-badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  min-width: 13px;
+  height: 13px;
+  padding: 0 3px;
+  border-radius: 3px;
+  background: var(--bg-4);
+  border: 1px solid var(--line);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 8.5px;
+  font-weight: 700;
+  line-height: 11px;
+  pointer-events: none;
+}
+
+.pxs-rail-btn.active .pxs-rail-badge {
+  background: #0f172a;
+  border-color: var(--accent-cyan);
+  color: #ffffff;
+}
+
+/* ------------------------------------------------------------------ 4. Left & Right Column Edge Resizers */
+.left-col-resizer {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: -3px;
+  width: 6px;
+  cursor: col-resize;
+  z-index: 60;
+  background: transparent;
+  transition: background 0.14s ease;
+}
+
+.left-col-resizer:hover,
+.left-col-resizer.dragging {
+  background: color-mix(in srgb, var(--accent) 65%, transparent);
+}

@@ -62,7 +62,7 @@ textarea:focus {
 .app {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) 5px clamp(120px, var(--timeline-h, 320px), 68vh);
-  grid-template-columns: clamp(220px, 22vw, 340px) minmax(0, 1fr) var(--right-col-w, clamp(320px, 27vw, 440px));
+  grid-template-columns: var(--left-col-w, clamp(232px, 22vw, 340px)) minmax(0, 1fr) var(--right-col-w, clamp(320px, 27vw, 440px));
   grid-template-areas:
     'top top top'
     'left view right'
@@ -70,6 +70,7 @@ textarea:focus {
     'time time right';
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
   background: var(--bg-0);
   gap: 0;
   overflow: hidden;

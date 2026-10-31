@@ -1,7 +1,7 @@
 import React from 'react'
 import type { Shot } from '@shared/types'
 import { CustomSelect } from '../controls/CustomSelect'
-import { IconLightning, IconTree } from '../icons'
+import { IconJsonBraces, IconLightning, IconTimeNodePlus, IconTree } from '../icons'
 import { TimelineModeTabs } from './TimelineModeTabs'
 
 /** Quy chuẩn: ≤ 5 lựa chọn dùng pill bấm 1 lần, nhiều hơn dùng Select */
@@ -33,7 +33,11 @@ export const WorkflowV2Toolbar: React.FC<WorkflowV2ToolbarProps> = (props) => {
   const current = props.focusedShotId ?? ALL
   return (
     <div className="wf-toolbar wf-v2-toolbar" data-mcp-region="workflow_toolbar">
-      <TimelineModeTabs layerCount={props.layerCount} connectedNodeCount={props.enabledNodeCount} totalNodeCount={props.totalNodeCount} />
+      <TimelineModeTabs
+        layerCount={props.layerCount}
+        connectedNodeCount={props.enabledNodeCount}
+        totalNodeCount={props.totalNodeCount}
+      />
       <div className="tl-toolbar-divider" />
 
       <div className="wf-v2-scope" role="group" aria-label="Đi tới cảnh trong không gian Workflow">
@@ -58,15 +62,31 @@ export const WorkflowV2Toolbar: React.FC<WorkflowV2ToolbarProps> = (props) => {
             })}
           </div>
         ) : (
-          <CustomSelect size="sm" value={current} options={options} onChange={(v) => props.onFocusShot(v === ALL ? null : v)} style={{ minWidth: 180 }} />
+          <CustomSelect
+            size="sm"
+            value={current}
+            options={options}
+            onChange={(v) => props.onFocusShot(v === ALL ? null : v)}
+            style={{ minWidth: 168 }}
+          />
         )}
       </div>
 
       <div className="wf-v2-toolbar-actions">
-        <button type="button" className="btn ghost sm" onClick={props.onAddTime} title="Tạo nguồn thời gian chung rồi kéo dây tới các node">⏱ + Time</button>
+        <button
+          type="button"
+          className="btn ghost sm wf-v2-tool-btn wf-v2-time-btn"
+          onClick={props.onAddTime}
+          title="Tạo nguồn thời gian chung rồi kéo dây tới các node"
+        >
+          <IconTimeNodePlus width={13} height={13} />
+          <span className="wf-v2-btn-txt">Time</span>
+        </button>
+
         <span className="wf-v2-stats" title="Số cảnh / layer / node logic trong toàn dự án">
           <b>{props.stats.shots}</b> cảnh · <b>{props.stats.layers}</b> layer · <b>{props.stats.logic}</b> logic
         </span>
+
         {props.onToggleJsonMode && (
           <button
             type="button"
@@ -75,17 +95,29 @@ export const WorkflowV2Toolbar: React.FC<WorkflowV2ToolbarProps> = (props) => {
             onClick={props.onToggleJsonMode}
             title="Mở bảng JSON độc lập (main.json kết nối + shot-N.json cho từng cảnh)"
           >
-            <code className="wf-v2-json-glyph">{'{ }'}</code>
-            <span>JSON</span>
+            <IconJsonBraces width={13} height={13} />
+            <span className="wf-v2-btn-txt">JSON</span>
           </button>
         )}
-        <button type="button" className="btn ghost sm wf-v2-tool-btn" onClick={props.onRelayout} title="Xếp lại toàn bộ không gian gọn gàng (bỏ ghim các thẻ đã kéo tay)">
+
+        <button
+          type="button"
+          className="btn ghost sm wf-v2-tool-btn"
+          onClick={props.onRelayout}
+          title="Xếp lại toàn bộ không gian gọn gàng (bỏ ghim các thẻ đã kéo tay)"
+        >
           <IconTree width={13} height={13} />
-          <span>Sắp xếp</span>
+          <span className="wf-v2-btn-txt">Sắp xếp</span>
         </button>
-        <button type="button" className="btn primary sm wf-v2-tool-btn primary-apply" onClick={props.onApplyAll} title="Áp dụng lại toàn bộ logic của cây xuống cảnh">
+
+        <button
+          type="button"
+          className="btn primary sm wf-v2-tool-btn primary-apply"
+          onClick={props.onApplyAll}
+          title="Áp dụng lại toàn bộ logic của cây xuống cảnh"
+        >
           <IconLightning width={13} height={13} />
-          <span>Áp dụng vào cảnh</span>
+          <span className="wf-v2-btn-txt">Áp dụng vào cảnh</span>
         </button>
       </div>
     </div>

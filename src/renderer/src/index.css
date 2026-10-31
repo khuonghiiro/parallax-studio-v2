@@ -43,10 +43,9 @@
 @import './styles/assemblyCompose.css';
 @import './styles/create3d.css';
 @import './styles/assemblyAdvanced.css';
-@import './styles/workflowPalette.css';
 @import './styles/workflowModernUx.css';
 @import './styles/workflowV2Inspector.css';
 @import './styles/workflowV2Space.css';
+@import './styles/uiPrimitives.css';
 @import './styles/responsive.css';
-/* Dual-Theme & Unified Control Geometry */
-
+@import './styles/responsiveWorkspace.css';

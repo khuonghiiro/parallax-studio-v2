@@ -139,6 +139,69 @@ describe('get_app_screenshot', () => {
     })
   })
 
+  it('synchronizes asset_subtab, inspector_tab (node/json), collapsed rails, and responsive viewport state', async () => {
+    vi.stubGlobal('window', { innerWidth: 1024, innerHeight: 768, dispatchEvent: vi.fn() })
+    vi.stubGlobal('CustomEvent', class { constructor(public type: string, public init?: object) {} })
+
+    const res1 = (await uiCommands.set_ui_dialog(
+      {
+        asset_subtab: '3d',
+        inspector_tab: 'node',
+        tablet_tab: 'right'
+      },
+      { reqId: 't', method: 'set_ui_dialog', params: {} }
+    )) as Record<string, unknown>
+
+    expect(res1).toMatchObject({
+      ok: true,
+      left_tab: 'assets',
+      asset_subtab: '3d',
+      left_collapsed: false,
+      inspector_tab: 'node',
+      inspector_expanded: true,
+      right_collapsed: false,
+      tablet_tab: 'right'
+    })
+
+    const res2 = (await uiCommands.set_ui_dialog(
+      {
+        left_collapsed: true,
+        right_collapsed: true
+      },
+      { reqId: 't', method: 'set_ui_dialog', params: {} }
+    )) as Record<string, unknown>
+
+    expect(res2).toMatchObject({
+      ok: true,
+      left_collapsed: true,
+      right_collapsed: true
+    })
+
+    const state = uiCommands.get_ui_state({}, { reqId: 't', method: 'get_ui_state', params: {} }) as Record<
+      string,
+      unknown
+    >
+    expect(state).toMatchObject({
+      asset_subtab: '3d',
+      inspector_tab: 'node',
+      left_collapsed: true,
+      right_collapsed: true,
+      viewport: { width: 1024, height: 768, breakpoint: 'tablet' }
+    })
+    expect(Array.isArray(state.visible_regions)).toBe(true)
+
+    await uiCommands.set_ui_dialog(
+      {
+        left_tab: 'shots',
+        asset_subtab: 'builtin',
+        inspector_tab: 'layer',
+        left_collapsed: false,
+        right_collapsed: false
+      },
+      { reqId: 't', method: 'set_ui_dialog', params: {} }
+    )
+  })
+
   it('normalizes typographic ellipsis, emojis, and whitespace in text queries', () => {
     const list = [
       { text: 'Thay thế…', visible: true },

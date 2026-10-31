@@ -1,29 +1,61 @@
 /* ==========================================================================
-   AE Toolbar: Top Application Workspace Bar, Brand Badge & Menu Bar
+   AE / Studio Toolbar: Top Application Workspace Bar, Brand Badge & Clusters
+   Keeps overflow: visible and z-index: 5000 so <Menu> popups never clip.
    ========================================================================== */
 
 .toolbar {
   grid-area: top;
   position: relative;
-  z-index: 100;
+  z-index: 5000;
+  overflow: visible;
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 0 10px;
+  gap: 8px;
+  min-height: 40px;
+  padding: 4px 10px;
   border-bottom: 1px solid var(--line);
   background: var(--bg-1);
 }
 
-/* Brand & AE Logo Badge */
+.tb-left {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.tb-center {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+}
+
+.tb-right {
+  flex-shrink: 0;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Brand & Studio Monogram Badge */
 .brand {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-right: 10px;
+  margin-right: 4px;
   font-weight: 700;
   font-size: 13px;
   letter-spacing: 0.02em;
   color: var(--text);
+}
+
+.brand.tb-brand-compact {
+  margin-right: 2px;
 }
 
 .brand-logo {
@@ -35,7 +67,8 @@
   position: relative;
   display: grid;
   place-items: center;
-  box-shadow: 0 0 10px rgba(38, 128, 235, 0.35);
+  box-shadow: 0 0 10px rgba(38, 128, 235, 0.28);
+  flex-shrink: 0;
 }
 
 .brand-logo::before {
@@ -68,17 +101,29 @@
   flex: 1;
 }
 
-/* Composition Title & Status Badge */
+/* Composition Title & Status Pill */
 .doc-title {
   color: var(--text-dim);
   font-size: 11.5px;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 3px 10px;
+  height: 28px;
+  max-width: min(100%, 440px);
+  min-width: 0;
+  padding: 0 10px;
   border-radius: var(--radius-sm);
   background: var(--bg-2);
   border: 1px solid var(--line);
+  cursor: pointer;
+  overflow: hidden;
+  transition: background 0.14s ease, border-color 0.14s ease, color 0.14s ease;
+}
+
+.doc-title:hover {
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg-3));
+  border-color: var(--line-focus);
+  color: var(--text);
 }
 
 .doc-title .dirty {
@@ -87,6 +132,39 @@
   border-radius: 50%;
   background: var(--key);
   box-shadow: 0 0 6px var(--key-glow);
+  flex-shrink: 0;
+}
+
+.doc-title-name {
+  color: var(--text);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.doc-title-spec {
+  color: var(--accent-cyan);
+  opacity: 0.9;
+  font-size: 10.5px;
+  font-family: var(--mono);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.doc-title-sep {
+  opacity: 0.4;
+  flex-shrink: 0;
+}
+
+.doc-title-file {
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 110px;
+  flex-shrink: 1;
 }
 
 /* MCP AI Status Chip */
@@ -94,9 +172,8 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 26px;
+  height: 28px;
   padding: 0 9px;
-  margin-right: 4px;
   border-radius: var(--radius-sm);
   font-size: 10.5px;
   font-weight: 600;
@@ -105,12 +182,13 @@
   border: 1px solid var(--line);
   transition: background 0.2s, border-color 0.2s, box-shadow 0.2s, color 0.2s;
   user-select: none;
+  flex-shrink: 0;
 }
 .mcp-chip small {
   font-family: var(--mono);
   font-weight: 500;
   color: var(--text-faint);
-  max-width: 130px;
+  max-width: 115px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -119,7 +197,8 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #666666;
+  background: var(--text-faint);
+  flex-shrink: 0;
 }
 .mcp-chip.listening .dot {
   background: var(--key);
@@ -127,8 +206,8 @@
 }
 .mcp-chip.connected {
   color: var(--ok);
-  border-color: rgba(34, 197, 94, 0.4);
-  background: rgba(34, 197, 94, 0.08);
+  border-color: color-mix(in srgb, var(--ok) 45%, var(--line));
+  background: color-mix(in srgb, var(--ok) 10%, var(--bg-2));
 }
 .mcp-chip.connected .dot {
   background: var(--ok);
@@ -139,12 +218,12 @@
 }
 .mcp-chip.connected.idle {
   color: var(--accent-cyan);
-  border-color: color-mix(in srgb, var(--accent-cyan) 40%, transparent);
-  background: color-mix(in srgb, var(--accent-cyan) 10%, transparent);
+  border-color: color-mix(in srgb, var(--accent-cyan) 40%, var(--line));
+  background: color-mix(in srgb, var(--accent-cyan) 10%, var(--bg-2));
 }
 .mcp-chip.disconnected {
   color: var(--text);
-  border-color: color-mix(in srgb, var(--text-dim) 45%, transparent);
+  border-color: color-mix(in srgb, var(--text-dim) 45%, var(--line));
   background: var(--bg-3);
 }
 .mcp-chip.disconnected .dot {
@@ -158,7 +237,7 @@
   height: 15px;
   margin-left: 2px;
   margin-right: -3px;
-  border-radius: 50%;
+  border-radius: var(--radius-sm);
   font-size: 9.5px;
   line-height: 1;
   color: var(--text-dim);
@@ -167,11 +246,11 @@
 }
 .mcp-chip-disconnect:hover {
   background: var(--danger);
-  color: #ffffff;
+  color: var(--on-danger);
 }
 .mcp-chip.error {
   color: var(--danger);
-  border-color: rgba(239, 68, 68, 0.4);
+  border-color: color-mix(in srgb, var(--danger) 45%, var(--line));
 }
 .mcp-chip.error .dot {
   background: var(--danger);
@@ -194,9 +273,35 @@
   }
 }
 
-/* ------------------------------------------------------------------ Toolbar Right Actions */
+/* ------------------------------------------------------------------ Toolbar Utility Clusters & Right Actions */
+.tb-history-cluster,
+.tb-utility-cluster {
+  height: 28px;
+  padding: 2px;
+  gap: 2px;
+}
+
+.tb-history-cluster .btn.icon.sm {
+  width: 24px;
+  height: 22px;
+  border-color: transparent;
+  background: transparent;
+}
+
+.tb-history-cluster .btn.icon.sm:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg-3));
+  border-color: var(--line-soft);
+}
+
+.tb-utility-cluster .tb-btn-icon {
+  width: 24px;
+  height: 22px;
+  border-color: transparent;
+  background: transparent;
+}
+
 .tb-btn-save {
-  height: 26px;
+  height: 28px;
   padding: 0 10px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--line);
@@ -210,19 +315,25 @@
   cursor: pointer;
   transition: all 0.14s ease;
   user-select: none;
+  flex-shrink: 0;
 }
 
 .tb-btn-save:hover {
-  background: var(--bg-3);
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-3));
   border-color: var(--accent);
   color: var(--text);
-  box-shadow: 0 0 8px rgba(38, 128, 235, 0.25);
 }
 
 .tb-btn-save:active {
   background: var(--bg-4);
   color: var(--text);
-  transform: translateY(1px);
+  transform: translateY(0.5px);
+}
+
+.tb-btn-export {
+  height: 28px;
+  padding: 0 11px;
+  flex-shrink: 0;
 }
 
 .tb-btn-icon {
@@ -242,13 +353,13 @@
 }
 
 .tb-btn-icon:hover {
-  background: var(--bg-3);
-  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg-3));
+  border-color: var(--line-focus);
   color: var(--text);
 }
 
 .tb-btn-icon:active {
   background: var(--bg-4);
   color: var(--text);
-  transform: translateY(1px);
+  transform: translateY(0.5px);
 }

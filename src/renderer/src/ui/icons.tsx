@@ -871,6 +871,7 @@ export const IconFaceSwap = (p: P) => (
 )
 
 export * from './viewerIcons'
+export * from './workspaceIcons'
 
 
 

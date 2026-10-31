@@ -7,6 +7,7 @@ export type PrimaryView = 'camera' | 'editor' | 'topview' | 'animate2d'
 export type TopViewMode = 'top' | 'side'
 export type Theme = 'dark' | 'light'
 export type LeftTab = 'shots' | 'assets' | 'topview'
+export type AssetSubTab = 'builtin' | 'project' | '3d' | 'assembly' | 'music'
 export type TimelineMainTab = 'timeline' | 'workflow'
 export type MobileWorkspaceTab = 'timeline' | 'left' | 'right'
 export type TabletSideTab = 'left' | 'right'
@@ -50,6 +51,14 @@ export interface ViewState extends ViewPrefs {
   assemblyModalModel: Model3D | null
   leftTab: LeftTab
   setLeftTab(tab: LeftTab): void
+  assetSubTab: AssetSubTab
+  setAssetSubTab(tab: AssetSubTab): void
+  leftCollapsed: boolean
+  setLeftCollapsed(collapsed: boolean): void
+  rightCollapsed: boolean
+  setRightCollapsed(collapsed: boolean): void
+  inspectorExpanded: boolean
+  setInspectorExpanded(expanded: boolean): void
   timelineTab: TimelineMainTab
   setTimelineTab(tab: TimelineMainTab): void
   mobileTab: MobileWorkspaceTab
@@ -75,6 +84,10 @@ export interface ViewState extends ViewPrefs {
 
 const KEY = 'pxs.viewPrefs.v2'
 const LEFT_TAB_KEY = 'pxs.leftTab'
+const ASSET_SUBTAB_KEY = 'pxs:asset-subtab'
+const LEFT_COLLAPSED_KEY = 'pxs:left-col-collapsed'
+const RIGHT_COLLAPSED_KEY = 'pxs:right-col-collapsed'
+const RIGHT_EXPANDED_KEY = 'pxs:right-col-expanded'
 
 function loadLeftTab(): LeftTab {
   try {
@@ -84,6 +97,29 @@ function loadLeftTab(): LeftTab {
     /* ignore */
   }
   return 'shots'
+}
+
+function loadAssetSubTab(): AssetSubTab {
+  try {
+    const raw = localStorage.getItem(ASSET_SUBTAB_KEY)
+    if (raw === 'builtin' || raw === 'project' || raw === '3d' || raw === 'assembly' || raw === 'music') {
+      return raw
+    }
+  } catch {
+    /* ignore */
+  }
+  return 'builtin'
+}
+
+function loadBoolKey(key: string, defaultVal: boolean): boolean {
+  try {
+    const raw = localStorage.getItem(key)
+    if (raw === '1') return true
+    if (raw === '0') return false
+  } catch {
+    /* ignore */
+  }
+  return defaultVal
 }
 
 function closeLayerAssemblyOverlay(): void {
@@ -154,9 +190,46 @@ export const useView = create<ViewState>((set, get) => ({
   assemblyModalModel: null,
   leftTab: loadLeftTab(),
   setLeftTab(leftTab) {
-    set({ leftTab, tabletTab: 'left', mobileTab: 'left' })
+    set({ leftTab, leftCollapsed: false, tabletTab: 'left', mobileTab: 'left' })
     try {
       localStorage.setItem(LEFT_TAB_KEY, leftTab)
+      localStorage.setItem(LEFT_COLLAPSED_KEY, '0')
+    } catch {
+      /* ignore */
+    }
+  },
+  assetSubTab: loadAssetSubTab(),
+  setAssetSubTab(assetSubTab) {
+    set({ assetSubTab })
+    try {
+      localStorage.setItem(ASSET_SUBTAB_KEY, assetSubTab)
+    } catch {
+      /* ignore */
+    }
+  },
+  leftCollapsed: loadBoolKey(LEFT_COLLAPSED_KEY, false),
+  setLeftCollapsed(leftCollapsed) {
+    set({ leftCollapsed })
+    try {
+      localStorage.setItem(LEFT_COLLAPSED_KEY, leftCollapsed ? '1' : '0')
+    } catch {
+      /* ignore */
+    }
+  },
+  rightCollapsed: loadBoolKey(RIGHT_COLLAPSED_KEY, false),
+  setRightCollapsed(rightCollapsed) {
+    set({ rightCollapsed })
+    try {
+      localStorage.setItem(RIGHT_COLLAPSED_KEY, rightCollapsed ? '1' : '0')
+    } catch {
+      /* ignore */
+    }
+  },
+  inspectorExpanded: loadBoolKey(RIGHT_EXPANDED_KEY, true),
+  setInspectorExpanded(inspectorExpanded) {
+    set({ inspectorExpanded })
+    try {
+      localStorage.setItem(RIGHT_EXPANDED_KEY, inspectorExpanded ? '1' : '0')
     } catch {
       /* ignore */
     }
@@ -219,9 +292,17 @@ export const useView = create<ViewState>((set, get) => ({
     if (p.theme) applyTheme(p.theme)
     if (!p.activeViews && (p.primary !== undefined || p.split !== undefined || p.animate2dSplit !== undefined)) {
       const next = { ...get(), ...p }
-      p = { ...p, activeViews: next.primary === 'animate2d'
-        ? (next.animate2dSplit ? ['camera', 'editor', 'animate2d'] : ['animate2d'])
-        : next.split ? ['camera', 'editor'] : [next.primary] }
+      p = {
+        ...p,
+        activeViews:
+          next.primary === 'animate2d'
+            ? next.animate2dSplit
+              ? ['camera', 'editor', 'animate2d']
+              : ['animate2d']
+            : next.split
+              ? ['camera', 'editor']
+              : [next.primary]
+      }
     }
     set(p)
     const {

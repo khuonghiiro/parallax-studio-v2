@@ -24,25 +24,25 @@ import {
   IconFolder,
   IconGround,
   IconImage,
+  IconLayerAssembly,
+  IconMoon,
   IconMusic,
+  IconPlug,
   IconPlus,
   IconQrCode,
   IconRedo,
   IconSave,
+  IconSettings,
   IconSparkles,
   IconSquare,
+  IconSun,
   IconText,
   IconUndo,
-  IconWand,
-  IconSun,
-  IconMoon,
-  IconSettings,
-  IconLayerAssembly,
-  IconPlug
+  IconWand
 } from './icons'
 import { requestOpenLayerAssembly } from './layerAssembly/layerAssemblyBridge'
-
 import { Menu } from './controls'
+import { ToolCluster } from './primitives'
 
 /** Shows real-time MCP connection lifecycle: listening, AI executing, AI connected (idle/done), and AI disconnected. */
 function McpChip() {
@@ -170,6 +170,7 @@ function McpChip() {
     <div
       id="mcp-chip"
       className={`mcp-chip ${state}`}
+      data-mcp-region="mcp_chip"
       title={`${title}\n\n👉 Bấm vào đây để mở Cấu hình & Quản lý kết nối MCP`}
       onClick={() => useView.getState().openDialog('mcp')}
     >
@@ -208,133 +209,178 @@ export function Toolbar({ onExport }: { onExport: () => void }) {
   const theme = useView((s) => s.theme)
 
   return (
-    <header className="toolbar">
-      <Menu id="menu-file" label="Tệp" icon={<IconFile />}>
-        <button className="menu-item" onClick={newProject}>
-          <IconFile width={15} /> Dự án mới <span className="hint">Ctrl+N</span>
-        </button>
-        <button className="menu-item" onClick={openProject}>
-          <IconFolder width={15} /> Mở dự án… <span className="hint">Ctrl+O</span>
-        </button>
-        <button className="menu-item" onClick={() => saveProject(false)}>
-          <IconSave width={15} /> Lưu <span className="hint">Ctrl+S</span>
-        </button>
-        <button className="menu-item" onClick={() => saveProject(true)}>
-          <IconSave width={15} /> Lưu thành… <span className="hint">Ctrl+Shift+S</span>
-        </button>
-        <div className="menu-label">JSON (Dễ chỉnh sửa)</div>
-        <button id="import-json" className="menu-item" onClick={openProjectJson}>
-          <IconFolder width={15} /> Nhập từ JSON…
-        </button>
-        <button id="export-json" className="menu-item" onClick={saveProjectJson}>
-          <IconSave width={15} /> Xuất ra JSON…
-        </button>
-        <div className="menu-label">Mẫu dựng sẵn</div>
-        <button className="menu-item" onClick={() => loadDemo()}>
-          <IconWand width={15} /> Mở cảnh mẫu “Parallax Journey” (4 cảnh)
-        </button>
-      </Menu>
+    <header className="toolbar" data-mcp-region="toolbar">
+      {/* 1. Left Cluster: Brand + File & Layer Menus + Undo/Redo */}
+      <div className="tb-left" data-mcp-region="toolbar_left">
+        <div
+          className="brand tb-brand-compact"
+          title="Parallax Studio V2 — Studio dựng video Parallax 2.5D & 3D Camera"
+        >
+          <span className="brand-logo" />
+        </div>
 
-      <Menu id="menu-add" label="Thêm layer" icon={<IconPlus />}>
-        <button id="add-image" className="menu-item" onClick={() => importImages(true)}>
-          <IconImage width={15} /> Ảnh (PNG/JPG)… <span className="hint">Ctrl+I</span>
-        </button>
-        <button id="add-text" className="menu-item" onClick={addTextLayer}>
-          <IconText width={15} /> Chữ (Text Layer) <span className="hint">Ctrl+T</span>
-        </button>
-        <button id="add-solid" className="menu-item" onClick={addSolidLayer}>
-          <IconSquare width={15} /> Solid / Gradient nền
-        </button>
-        <button id="add-ground" className="menu-item" onClick={addGroundLayer}>
-          <IconGround width={15} /> Mặt đất 3D / Sàn (Ground Plane)
-        </button>
-        <button id="add-mist" className="menu-item" onClick={addMistLayer}>
-          <IconSparkles width={15} /> Sương mù thực (Ảnh PNG/WebP)
-        </button>
-        <button id="add-rain" className="menu-item" onClick={addRainLayer}>
-          <IconSparkles width={15} /> Mưa rào thực (Ảnh PNG/WebP)
-        </button>
-        <button id="add-particles" className="menu-item" onClick={addParticleLayer}>
-          <IconSparkles width={15} /> Hạt môi trường (Bụi, Đom đóm, Tuyết)
-        </button>
-        <div className="menu-label">Âm thanh & Lắp ráp</div>
-        <button id="add-audio-file" className="menu-item" onClick={() => importAudio()}>
-          <IconMusic width={15} /> Nhập âm thanh / Nhạc nền…
-        </button>
-        <button id="add-assembly-workshop" className="menu-item" onClick={() => requestOpenLayerAssembly()}>
-          <IconLayerAssembly width={15} /> Xưởng Lắp Ráp Layer & Rigging 2.5D…
-        </button>
-      </Menu>
+        <Menu id="menu-file" label="Tệp" icon={<IconFile />}>
+          <button className="menu-item" onClick={newProject}>
+            <IconFile width={15} /> Dự án mới <span className="hint">Ctrl+N</span>
+          </button>
+          <button className="menu-item" onClick={openProject}>
+            <IconFolder width={15} /> Mở dự án… <span className="hint">Ctrl+O</span>
+          </button>
+          <button className="menu-item" onClick={() => saveProject(false)}>
+            <IconSave width={15} /> Lưu <span className="hint">Ctrl+S</span>
+          </button>
+          <button className="menu-item" onClick={() => saveProject(true)}>
+            <IconSave width={15} /> Lưu thành… <span className="hint">Ctrl+Shift+S</span>
+          </button>
+          <div className="menu-label">JSON (Dễ chỉnh sửa)</div>
+          <button id="import-json" className="menu-item" onClick={openProjectJson}>
+            <IconFolder width={15} /> Nhập từ JSON…
+          </button>
+          <button id="export-json" className="menu-item" onClick={saveProjectJson}>
+            <IconSave width={15} /> Xuất ra JSON…
+          </button>
+          <div className="menu-label">Mẫu dựng sẵn</div>
+          <button className="menu-item" onClick={() => loadDemo()}>
+            <IconWand width={15} /> Mở cảnh mẫu “Parallax Journey” (4 cảnh)
+          </button>
+        </Menu>
 
-      <span className="tb-sep" />
-      <button id="undo" className="btn ghost icon" title="Hoàn tác (Ctrl+Z)" disabled={!canUndo} onClick={undo}>
-        <IconUndo />
-      </button>
-      <button id="redo" className="btn ghost icon" title="Làm lại (Ctrl+Y)" disabled={!canRedo} onClick={redo}>
-        <IconRedo />
-      </button>
+        <Menu id="menu-add" label="Thêm layer" icon={<IconPlus />}>
+          <button id="add-image" className="menu-item" onClick={() => importImages(true)}>
+            <IconImage width={15} /> Ảnh (PNG/JPG)… <span className="hint">Ctrl+I</span>
+          </button>
+          <button id="add-text" className="menu-item" onClick={addTextLayer}>
+            <IconText width={15} /> Chữ (Text Layer) <span className="hint">Ctrl+T</span>
+          </button>
+          <button id="add-solid" className="menu-item" onClick={addSolidLayer}>
+            <IconSquare width={15} /> Solid / Gradient nền
+          </button>
+          <button id="add-ground" className="menu-item" onClick={addGroundLayer}>
+            <IconGround width={15} /> Mặt đất 3D / Sàn (Ground Plane)
+          </button>
+          <button id="add-mist" className="menu-item" onClick={addMistLayer}>
+            <IconSparkles width={15} /> Sương mù thực (Ảnh PNG/WebP)
+          </button>
+          <button id="add-rain" className="menu-item" onClick={addRainLayer}>
+            <IconSparkles width={15} /> Mưa rào thực (Ảnh PNG/WebP)
+          </button>
+          <button id="add-particles" className="menu-item" onClick={addParticleLayer}>
+            <IconSparkles width={15} /> Hạt môi trường (Bụi, Đom đóm, Tuyết)
+          </button>
+          <div className="menu-label">Âm thanh & Lắp ráp</div>
+          <button id="add-audio-file" className="menu-item" onClick={() => importAudio()}>
+            <IconMusic width={15} /> Nhập âm thanh / Nhạc nền…
+          </button>
+          <button id="add-assembly-workshop" className="menu-item" onClick={() => requestOpenLayerAssembly()}>
+            <IconLayerAssembly width={15} /> Xưởng Lắp Ráp Layer & Rigging 2.5D…
+          </button>
+        </Menu>
 
-      <span className="tb-spacer" />
-      <div
-        className="doc-title"
-        style={{ cursor: 'pointer' }}
-        onClick={() => {
-          useEditor.getState().setInspectorTab('scene')
-          useView.getState().setMobileTab('right')
-          useView.getState().setTabletTab('right')
-        }}
-        title={`Composition: ${compName} (${comp.width}×${comp.height} @ ${comp.fps}fps) — Bấm để mở thiết lập Composition & Cảnh`}
-      >
-        {dirty && <span className="dirty" title="Có thay đổi chưa lưu" />}
-        <b style={{ color: 'var(--text)' }}>{compName}</b>
-        <span style={{ color: 'var(--accent-cyan)', opacity: 0.85, fontSize: '10.5px', fontFamily: 'var(--mono)' }}>
-          {comp.width}×{comp.height} @ {comp.fps}fps
-        </span>
-        <span style={{ opacity: 0.4 }}>•</span>
-        <span style={{ color: 'var(--text-dim)' }}>{fileName}</span>
+        <ToolCluster ariaLabel="Hoàn tác và làm lại" className="tb-history-cluster">
+          <button
+            id="undo"
+            type="button"
+            className="btn ghost icon sm"
+            title="Hoàn tác (Ctrl+Z)"
+            aria-label="Hoàn tác"
+            disabled={!canUndo}
+            onClick={undo}
+          >
+            <IconUndo width={14} height={14} />
+          </button>
+          <button
+            id="redo"
+            type="button"
+            className="btn ghost icon sm"
+            title="Làm lại (Ctrl+Y)"
+            aria-label="Làm lại"
+            disabled={!canRedo}
+            onClick={redo}
+          >
+            <IconRedo width={14} height={14} />
+          </button>
+        </ToolCluster>
       </div>
-      <span className="tb-spacer" />
 
-      <McpChip />
-      <button
-        id="remote-qr-btn"
-        className="tb-btn-icon remote-qr-chip"
-        data-mcp-region="remote_chip"
-        onClick={() => useView.getState().openDialog('remote')}
-        title="Quét mã QR để điều khiển ứng dụng bằng Điện thoại qua Wi-Fi (Mobile Remote 3D Touchpad)"
-      >
-        <IconQrCode width={14} height={14} />
-      </button>
-      <button
-        id="audio-studio-btn"
-        className="tb-btn-icon"
-        onClick={() => useView.getState().openAudioDialog('waveform')}
-        title="Mở Studio Âm thanh, Sóng âm & Bàn trộn Mixer (Phím tắt: L / LL)"
-      >
-        <IconMusic width={14} height={14} />
-      </button>
-      <button
-        id="theme-toggle"
-        className="tb-btn-icon"
-        onClick={() => useView.getState().toggleTheme()}
-        title={theme === 'dark' ? 'Chuyển sang giao diện Sáng (Light Mode)' : 'Chuyển sang giao diện Tối (Dark Mode)'}
-      >
-        {theme === 'dark' ? <IconSun width={14} height={14} /> : <IconMoon width={14} height={14} />}
-      </button>
-      <button
-        id="perf-settings-btn"
-        className="tb-btn-icon"
-        onClick={() => useView.getState().openDialog('performance')}
-        title="Cấu hình Hiệu năng, RAM & VRAM GPU"
-      >
-        <IconSettings width={14} height={14} />
-      </button>
-      <button id="save" className="tb-btn-save" onClick={() => saveProject(false)} title="Lưu dự án (Ctrl+S)">
-        <IconSave width={14} height={14} /> <span className="tb-btn-text">Lưu</span>
-      </button>
-      <button id="export" className="btn primary" onClick={onExport} title="Xuất MP4 (Ctrl+M)">
-        <IconExport width={14} height={14} /> <span className="tb-btn-text">Xuất </span>MP4
-      </button>
+      {/* 2. Center Composition Pill (min-width: 0; overflow: hidden so it never pushes right CTA off-screen) */}
+      <div className="tb-center">
+        <button
+          type="button"
+          className="doc-title"
+          data-mcp-region="toolbar_doc"
+          onClick={() => {
+            useEditor.getState().setInspectorTab('scene')
+            useView.getState().setRightCollapsed(false)
+            useView.getState().setMobileTab('right')
+            useView.getState().setTabletTab('right')
+          }}
+          title={`Composition: ${compName} (${comp.width}×${comp.height} @ ${comp.fps}fps · ${fileName}) — Bấm để mở thiết lập Dự án`}
+        >
+          {dirty && <span className="dirty" title="Có thay đổi chưa lưu" />}
+          <b className="doc-title-name">{compName}</b>
+          <span className="doc-title-spec">
+            {comp.width}×{comp.height} · {comp.fps}fps
+          </span>
+          <span className="doc-title-sep">•</span>
+          <span className="doc-title-file">{fileName}</span>
+        </button>
+      </div>
+
+      {/* 3. Right Cluster: AI MCP + Studio Utilities + Save & Export MP4 */}
+      <div className="tb-right" data-mcp-region="toolbar_actions">
+        <McpChip />
+
+        <ToolCluster ariaLabel="Tiện ích Studio" className="tb-utility-cluster">
+          <button
+            id="remote-qr-btn"
+            type="button"
+            className="tb-btn-icon remote-qr-chip"
+            data-mcp-region="remote_chip"
+            aria-label="Điều khiển Điện thoại QR"
+            onClick={() => useView.getState().openDialog('remote')}
+            title="Quét mã QR để điều khiển ứng dụng bằng Điện thoại qua Wi-Fi (Mobile Remote 3D Touchpad)"
+          >
+            <IconQrCode width={14} height={14} />
+          </button>
+          <button
+            id="audio-studio-btn"
+            type="button"
+            className="tb-btn-icon"
+            aria-label="Phòng thu Âm thanh"
+            onClick={() => useView.getState().openAudioDialog('waveform')}
+            title="Mở Studio Âm thanh, Sóng âm & Bàn trộn Mixer (Phím tắt: L / LL)"
+          >
+            <IconMusic width={14} height={14} />
+          </button>
+          <button
+            id="theme-toggle"
+            type="button"
+            className="tb-btn-icon"
+            aria-label={theme === 'dark' ? 'Đổi sang giao diện Sáng' : 'Đổi sang giao diện Tối'}
+            onClick={() => useView.getState().toggleTheme()}
+            title={theme === 'dark' ? 'Chuyển sang giao diện Sáng (Light Mode)' : 'Chuyển sang giao diện Tối (Dark Mode)'}
+          >
+            {theme === 'dark' ? <IconSun width={14} height={14} /> : <IconMoon width={14} height={14} />}
+          </button>
+          <button
+            id="perf-settings-btn"
+            type="button"
+            className="tb-btn-icon"
+            aria-label="Hiệu năng & GPU"
+            onClick={() => useView.getState().openDialog('performance')}
+            title="Cấu hình Hiệu năng, RAM & VRAM GPU"
+          >
+            <IconSettings width={14} height={14} />
+          </button>
+        </ToolCluster>
+
+        <button id="save" type="button" className="tb-btn-save" onClick={() => saveProject(false)} title="Lưu dự án (Ctrl+S)">
+          <IconSave width={14} height={14} /> <span className="tb-btn-text">Lưu</span>
+        </button>
+        <button id="export" type="button" className="btn primary tb-btn-export" onClick={onExport} title="Xuất MP4 (Ctrl+M)">
+          <IconExport width={14} height={14} /> <span className="tb-btn-text">Xuất </span>MP4
+        </button>
+      </div>
     </header>
   )
 }

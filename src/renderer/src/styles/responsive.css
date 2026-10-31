@@ -25,7 +25,7 @@
 }
 
 .doc-title {
-  max-width: clamp(90px, 16vw, 260px);
+  max-width: clamp(110px, 36vw, 520px);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -104,7 +104,7 @@
   min-width: 16px;
   height: 15px;
   padding: 0 4px;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   background: var(--bg-3);
   color: var(--text-dim);
   font-size: 9.5px;
@@ -146,7 +146,7 @@
    ========================================================================== */
 @media (max-width: 1366px) {
   .app {
-    grid-template-columns: clamp(220px, 21vw, 290px) minmax(0, 1fr) var(--right-col-w, clamp(300px, 26vw, 400px));
+    grid-template-columns: var(--left-col-w, clamp(224px, 21vw, 290px)) minmax(0, 1fr) var(--right-col-w, clamp(300px, 26vw, 400px));
   }
 
   .toolbar {

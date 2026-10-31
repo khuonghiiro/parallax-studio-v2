@@ -10,7 +10,7 @@ import {
   syncWorkflowV2NodeToProject
 } from '../../project/workflowV2Engine'
 import { useEditor } from '../../store/editor'
-import { IconTrash } from '../icons'
+import { IconGizmoBbox, IconJsonBraces, IconNodeCircuit, IconPad25D, IconPaneMaximizeV, IconPaneSplitH, IconTrash } from '../icons'
 import { WorkflowTimeRangeBar } from './WorkflowTimeRangeBar'
 import { WorkflowV2DirectStagePreview } from './WorkflowV2DirectStagePreview'
 import { WorkflowV2JsonPanel } from './WorkflowV2JsonPanel'
@@ -224,7 +224,7 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
         className={`wf-v2-insp-tab${!jsonMode ? ' active' : ''}`}
         onClick={() => onSetJsonMode(false)}
       >
-        Thuộc tính Node
+        <IconNodeCircuit width={13} height={13} /> <span>Thuộc tính Node</span>
       </button>
       <button
         type="button"
@@ -233,7 +233,7 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
         className={`wf-v2-insp-tab${jsonMode ? ' active' : ''}`}
         onClick={() => onSetJsonMode(true)}
       >
-        <code>{'{ }'}</code> JSON Cảnh &amp; Main
+        <IconJsonBraces width={13} height={13} /> <span>JSON Cảnh &amp; Main</span>
       </button>
       {props.onToggleColumnExpanded && (
         <button
@@ -246,7 +246,7 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
           }
           onClick={props.onToggleColumnExpanded}
         >
-          {props.isColumnExpanded ? '⤡ Chia đôi' : '⤢ Mở rộng'}
+          {props.isColumnExpanded ? <><IconPaneSplitH width={12} height={12} /> Chia đôi</> : <><IconPaneMaximizeV width={12} height={12} /> Mở rộng</>}
         </button>
       )}
     </div>
@@ -370,7 +370,7 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
             title={directStageOpen ? 'Đang bật khung chỉnh BBox 2D cố định — nhấn để ẩn' : 'Bật khung chỉnh BBox 2D cố định trên đầu bảng'}
             onClick={toggleDirectStage}
           >
-            🎯 BBox
+            <IconGizmoBbox width={12} height={12} /> <span>BBox</span>
           </button>
         )}
         {show25DPreview && (
@@ -380,7 +380,7 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
             title={logicPadOpen ? 'Đang bật Khung chỉnh 2.5D cố định — nhấn để ẩn' : 'Bật Khung chỉnh 2.5D cố định trên đầu bảng cho Node Logic này'}
             onClick={toggleLogicPad}
           >
-            🎛️ 2.5D
+            <IconPad25D width={12} height={12} /> <span>2.5D</span>
           </button>
         )}
         {level !== 'root' && (

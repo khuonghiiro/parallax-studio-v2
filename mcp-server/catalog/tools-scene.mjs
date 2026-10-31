@@ -71,12 +71,12 @@ export const SCENE_TOOLS = [
     shape: (d) => ({
       region: z.enum(['viewer_route', 'viewer_depth_tools', 'timeline_properties', 'timeline_key_menu', 'timeline_motion_popup', 'timeline_key_controls', 'viewer_stage2d_tools', 'viewer_depth', 'viewer_stage2d', 'timeline_logic', 'timeline_logic_picker',
         'active',
-        'left_panel', 'assets', 'asset_grid', 'asset_bar', 'music', 'shots', 'topview',
+        'left_panel', 'left_tabs', 'assets', 'asset_subtabs', 'asset_grid', 'asset_bar', 'music', 'shots', 'topview',
         'viewer', 'viewer_canvas', 'viewport', 'camera_frame', 'viewer_hud', 'viewer_tools', 'animate_camera_stage', 'animate_camera_toolbar', 'animate_camera_route', 'animate_camera_inspector',
-        'inspector', 'inspector_tabs', 'inspector_body', 'inspector_composite', 'inspector_physics', 'inspector_virtual_light', 'virtual_light_pad', 'composite_swap', 'effect_stack', 'effect_editor', 'timeline_effects', 'fx_presets', 'motion', 'motion_preview', 'motion_parameters', 'motion_timing',
+        'inspector', 'inspector_tabs', 'inspector_bottom_tabs', 'inspector_body', 'inspector_composite', 'inspector_physics', 'inspector_virtual_light', 'virtual_light_pad', 'composite_swap', 'effect_stack', 'effect_editor', 'timeline_effects', 'fx_presets', 'motion', 'motion_preview', 'motion_parameters', 'motion_timing',
         'timeline', 'timeline_toolbar', 'timeline_batch_timing', 'timeline_tabs', 'timeline_ruler', 'timeline_tracks',
         'timeline_workflow', 'workflow_toolbar', 'workflow_palette', 'workflow_canvas', 'workflow_canvas_hud', 'workflow_quick_connect', 'workflow_inspector', 'workflow_ruler', 'workflow_spawn_menu', 'workflow_legend', 'workflow_target_binder', 'workflow_action_builder', 'workflow_preview', 'workflow_part_preview', 'workflow_part_stage', 'workflow_part_cues', 'workflow_part_hub', 'workflow_part_editor', 'viewer_camera_status', 'workflow_motion_panel', 'workflow_motion_ghost', 'workflow_motion_path', 'workflow_motion_target', 'workflow_motion_timing', 'workflow_motion_depth', 'workflow_motion_tools', 'workflow_motion_draw', 'workflow_collision_preview', 'workflow_bbox_steps', 'workflow_json_panel', 'workflow_node_config', 'workflow_node_input', 'workflow_node_output', 'workflow_node_connections', 'workflow_node_operation', 'workflow_node_scope_picker', 'workflow_node_edit_context', 'workflow_node_advanced', 'workflow_node_preview_controls', 'workflow_node_preset_picker', 'workflow_node_rule_picker', 'workflow_node_camera_preview', 'workflow_node_settings',
-        'toolbar', 'studio_menu', 'mcp_chip', 'remote_chip', 'responsive_dock',
+        'toolbar', 'toolbar_left', 'toolbar_doc', 'toolbar_actions', 'studio_menu', 'mcp_chip', 'remote_chip', 'responsive_dock',
         'dialog',
         'assembly_3d', 'assembly_sidebar', 'assembly_viewport', 'assembly_inspector', 'assembly_header', 'assembly_footer', 'assembly_hud',
         'layer_assembly', 'layer_assembly_sidebar', 'layer_assembly_workspace', 'layer_assembly_inspector', 'layer_assembly_tools', 'layer_assembly_header',
@@ -108,8 +108,8 @@ export const SCENE_TOOLS = [
   {
     name: 'get_ui_state', cat: 'inspect',
     doc: L(
-      'Inspect current UI state: active dialog/modal, Audio Studio mode, left sidebar tab, right inspector tab, timeline/workflow tab, viewer split/mode, open workshops, and active theme (dark/light).',
-      'Tra cứu trạng thái giao diện hiện tại: hộp thoại/modal đang mở, tab Phòng thu âm thanh, tab thanh bên trái, tab thanh tra bên phải, tab Timeline/Workflow, chế độ khung xem, các xưởng đang mở và giao diện sáng/tối.'
+      'Inspect current UI state: active dialog/modal, Audio Studio mode, left sidebar tab + asset sub-tab + collapsed rail, right inspector tab + expanded state + collapsed rail, timeline/workflow tab, viewer split/mode, responsive viewport breakpoint, and visible UI regions for token-efficient targeted screenshots.',
+      'Tra cứu trạng thái giao diện hiện tại: hộp thoại/modal đang mở, tab Phòng thu âm thanh, tab thanh bên trái + sub-tab tài nguyên + thu gọn rail, tab thanh tra bên phải + trạng thái mở rộng + thu gọn rail, tab Timeline/Workflow, breakpoint màn hình responsive và danh sách vùng UI đang hiển thị để chụp crop tiết kiệm token.'
     ),
     shape: () => ({}),
     example: '{}'
@@ -129,9 +129,14 @@ export const SCENE_TOOLS = [
       model_id: z.string().optional().describe(d('3D model ID when opening assembly_3d.', 'ID mô hình 3D khi mở xưởng assembly_3d.')),
       composite_id: z.string().optional().describe(d('2.5D composite ID when opening layer_assembly.', 'ID cụm 2.5D khi mở xưởng layer_assembly.')),
       left_tab: z.enum(['shots', 'assets', 'topview']).optional().describe(d('Switch Left Sidebar tab.', 'Chuyển tab thanh bên trái.')),
+      asset_subtab: z.enum(['builtin', '3d', 'assembly', 'music', 'project']).optional().describe(d('Switch Asset Library sub-tab and focus Assets tab.', 'Chuyển sub-tab Kho tài nguyên và mở tab Tài nguyên.')),
       timeline_tab: z.enum(['timeline', 'workflow']).optional().describe(d('Switch bottom panel between Timeline and Workflow Studio tab.', 'Chuyển tab khu vực dưới cùng giữa Timeline và Workflow Studio.')),
-      inspector_tab: z.enum(['scene', 'layer', 'camera']).optional().describe(d('Switch Right Inspector tab.', 'Chuyển tab bảng thuộc tính bên phải.')),
+      inspector_tab: z.enum(['layer', 'camera', 'route', 'scene', 'node', 'json']).optional().describe(d('Switch Right Inspector tab (layer, camera, route, scene, node, json).', 'Chuyển tab bảng thuộc tính bên phải (layer, camera, route, scene, node, json).')),
       mobile_tab: z.enum(['timeline', 'left', 'right']).optional().describe(d('Switch active workspace dock tab on Tablet/Phone.', 'Chuyển tab vùng làm việc đang mở trên Máy tính bảng/Điện thoại.')),
+      tablet_tab: z.enum(['left', 'right']).optional().describe(d('Switch active side drawer on Tablet (769px–1120px).', 'Chuyển ngăn bên đang mở trên Máy tính bảng (769px–1120px).')),
+      left_collapsed: z.boolean().optional().describe(d('Collapse or expand Left Sidebar to 40px icon rail.', 'Thu gọn hoặc bung rộng Thanh bên trái về dải Icon 40px.')),
+      right_collapsed: z.boolean().optional().describe(d('Collapse or expand Right Inspector to 40px icon rail.', 'Thu gọn hoặc bung rộng Thanh thuộc tính phải về dải Icon 40px.')),
+      inspector_expanded: z.boolean().optional().describe(d('Expand or collapse Right Inspector content pane.', 'Mở rộng hoặc thu gọn nội dung Thanh thuộc tính phải.')),
       theme: z.enum(['dark', 'light']).optional().describe(d('Switch UI theme ("dark" or "light").', 'Đổi giao diện Sáng ("light") hoặc Tối ("dark").'))
     }),
     example: '{"dialog":"remote"}'
