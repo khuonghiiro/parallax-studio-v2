@@ -1,4 +1,4 @@
-import React, { useMemo, useRef } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import type { WorkflowNode } from '@shared/types'
 import { IconPause, IconPlay, IconSkipStart } from '../icons'
 import { dragTimeRange } from './WorkflowTimeRangeBar'
@@ -17,10 +17,11 @@ export interface WorkflowTimeRulerV2Props {
   onUpdateNodeTimeRange?: (nodeId: string, nextStart: number, nextEnd: number) => void
 }
 
-/** Bước vạch chia sao cho mỗi nhãn cách nhau ≥ ~64px trên độ rộng thước điển hình */
-function pickTickStep(duration: number): number {
-  const steps = [0.25, 0.5, 1, 2, 5, 10, 15, 30, 60]
-  return steps.find((s) => duration / s <= 14) ?? 60
+/** Bước vạch chia động theo bề rộng thực tế của thước (chống đè nhãn `02s 4s 6 8.3s` trên điện thoại) */
+function pickTickStep(duration: number, rulerWidth: number): number {
+  const maxMajorCount = Math.max(2, Math.floor(Math.max(80, rulerWidth) / 44))
+  const steps = [0.25, 0.5, 1, 2, 3, 5, 10, 15, 30, 60]
+  return steps.find((s) => duration / s <= maxMajorCount) ?? 60
 }
 
 /**
@@ -39,18 +40,36 @@ export const WorkflowTimeRulerV2: React.FC<WorkflowTimeRulerV2Props> = ({
   onUpdateNodeTimeRange
 }) => {
   const rulerRef = useRef<HTMLDivElement>(null)
+  const [rulerWidth, setRulerWidth] = useState<number>(() =>
+    typeof window !== 'undefined' ? Math.max(110, Math.min(720, window.innerWidth - 230)) : 420
+  )
   const safeDuration = Math.max(1, duration || 5)
   const toPct = (t: number): number => Math.max(0, Math.min(100, (t / safeDuration) * 100))
 
+  useEffect(() => {
+    const el = rulerRef.current
+    if (!el || typeof ResizeObserver === 'undefined') return
+    const update = (): void => {
+      const w = Math.floor(el.getBoundingClientRect().width)
+      if (w > 24) setRulerWidth((prev) => (Math.abs(prev - w) < 6 ? prev : w))
+    }
+    update()
+    const ro = new ResizeObserver(update)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
   const ticks = useMemo(() => {
-    const step = pickTickStep(safeDuration)
-    const minor = step / 2
+    const step = pickTickStep(safeDuration, rulerWidth)
+    const minor = rulerWidth < 190 ? step : step / 2
     const list: { t: number; major: boolean }[] = []
     for (let i = 0; i * minor <= safeDuration + 1e-4; i++) {
-      list.push({ t: Number((i * minor).toFixed(3)), major: i % 2 === 0 })
+      const tVal = Number((i * minor).toFixed(3))
+      const isMaj = rulerWidth < 190 ? true : i % 2 === 0
+      list.push({ t: tVal, major: isMaj })
     }
     return list
-  }, [safeDuration])
+  }, [safeDuration, rulerWidth])
 
   const timeFromClientX = (clientX: number): number => {
     const rect = rulerRef.current!.getBoundingClientRect()
@@ -96,7 +115,7 @@ export const WorkflowTimeRulerV2: React.FC<WorkflowTimeRulerV2Props> = ({
   }
 
   const playPct = toPct(currentTime)
-  const capAlign = playPct < 4 ? 'align-left' : playPct > 96 ? 'align-right' : ''
+  const capAlign = playPct < 8 ? 'align-left' : playPct > 92 ? 'align-right' : ''
   const accent = selectedNode ? resolveV2NodeTheme(selectedNode).accent : 'var(--accent)'
 
   return (
@@ -131,7 +150,7 @@ export const WorkflowTimeRulerV2: React.FC<WorkflowTimeRulerV2Props> = ({
           return (
             <div key={tk.t} className={`wf-v2-ruler-tick ${tk.major ? 'major' : 'minor'}`} style={{ left: `${p}%` }}>
               {tk.major && (
-                <span className={`wf-v2-ruler-tick-label${p < 2 ? ' edge-left' : p > 97 ? ' edge-right' : ''}`}>
+                <span className={`wf-v2-ruler-tick-label${p < 3 ? ' edge-left' : p > 96 ? ' edge-right' : ''}`}>
                   {Number.isInteger(tk.t) ? `${tk.t}s` : `${tk.t.toFixed(1)}s`}
                 </span>
               )}

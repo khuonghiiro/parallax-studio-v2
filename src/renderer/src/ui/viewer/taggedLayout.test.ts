@@ -1,9 +1,31 @@
 import { describe, it, expect } from 'vitest'
-import { computeTaggedLayout, VIEW_ORDER, selectedViews } from './taggedLayout'
+import { computeTaggedLayout, effectiveDeviceViews, VIEW_ORDER, selectedViews } from './taggedLayout'
 
 describe('independent viewport tags', () => {
   it('migrates the old camera stage split', () => {
     expect(selectedViews({ primary: 'animate2d', split: false, animate2dSplit: true })).toEqual(['camera', 'editor', 'animate2d'])
+  })
+  it('clamps simultaneous viewports ergonomically per device breakpoint', () => {
+    const fourViews = {
+      activeViews: ['camera', 'editor', 'animate2d', 'topview'] as const,
+      primary: 'topview' as const,
+      split: true,
+      animate2dSplit: true
+    }
+    expect(effectiveDeviceViews({ ...fourViews, activeViews: [...fourViews.activeViews] }, 'phone')).toEqual(['topview'])
+    expect(effectiveDeviceViews({ ...fourViews, activeViews: [...fourViews.activeViews] }, 'tablet')).toEqual(['camera', 'topview'])
+    expect(effectiveDeviceViews({ ...fourViews, activeViews: [...fourViews.activeViews] }, 'laptop')).toEqual([
+      'camera',
+      'editor',
+      'animate2d',
+      'topview'
+    ])
+    expect(effectiveDeviceViews({ ...fourViews, activeViews: [...fourViews.activeViews] }, 'desktop')).toEqual([
+      'camera',
+      'editor',
+      'animate2d',
+      'topview'
+    ])
   })
   it('places depth below camera drafting in a shared column', () => {
     for (const views of [['animate2d', 'topview'], VIEW_ORDER] as const) {

@@ -1,5 +1,6 @@
 import type { PrimaryView, ViewState } from '../../store/view'
 import type { Rect } from '../../engine/SceneRenderer'
+import type { DeviceBreakpoint } from '../primitives/useResponsiveViewport'
 import { fitRect, type Layout } from './viewerLayout'
 
 export const VIEW_ORDER: PrimaryView[] = ['camera', 'editor', 'animate2d', 'topview']
@@ -8,6 +9,31 @@ export function selectedViews(view: Pick<ViewState, 'activeViews' | 'primary' | 
   if (valid.length) return valid
   if (view.primary === 'animate2d') return view.animate2dSplit ? ['camera', 'editor', 'animate2d'] : ['animate2d']
   return view.split ? ['camera', 'editor'] : [view.primary]
+}
+
+/**
+ * Clamp simultaneous active viewports to fit the device's physical ergonomics:
+ * - Phone: 1 full-stage viewport (prevents crushing 3–4 sub-panes into a 240px mobile stage).
+ * - Tablet / iPad: up to 2 side-by-side viewports.
+ * - Laptop / Desktop: all 1..4 user-selected viewports.
+ */
+export function effectiveDeviceViews(
+  view: Pick<ViewState, 'activeViews' | 'primary' | 'split' | 'animate2dSplit'>,
+  breakpoint: DeviceBreakpoint
+): PrimaryView[] {
+  const raw = selectedViews(view)
+  if (breakpoint === 'phone') {
+    if (raw.includes(view.primary)) return [view.primary]
+    return [raw[0] ?? 'camera']
+  }
+  if (breakpoint === 'tablet' && raw.length > 2) {
+    if (raw.includes(view.primary)) {
+      const other = raw.find((id) => id !== view.primary) ?? raw[0]
+      return VIEW_ORDER.filter((id) => id === view.primary || id === other)
+    }
+    return raw.slice(0, 2)
+  }
+  return raw
 }
 
 /** Two balanced columns; drafting and depth always share a column when both are active. */

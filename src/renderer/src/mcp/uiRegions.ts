@@ -106,6 +106,10 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
 
   // Bottom Timeline & Workflow Studio and sub-sections
   timeline: ['section.panel.timeline', 'section.timeline', '.timeline'],
+  mobile_timeline: region('mobile_timeline', '.cc-mobile-timeline'),
+  mobile_transport: region('mobile_transport', '.cc-transport-bar'),
+  mobile_action_strip: region('mobile_action_strip', '.cc-action-strip'),
+  mobile_quick_sheet: region('mobile_quick_sheet', '.cc-quick-sheet'),
   timeline_tabs: region('timeline_tabs', '.tl-mode-tabs'),
   timeline_toolbar: ['.timeline-toolbar', '.tl-toolbar'],
   timeline_ruler: ['.tl-header', '.tl-ruler-wrap'],

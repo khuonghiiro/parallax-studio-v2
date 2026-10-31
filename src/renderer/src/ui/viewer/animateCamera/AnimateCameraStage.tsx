@@ -80,7 +80,12 @@ export function AnimateCameraStage({ splitLeftWidth = 0 }: AnimateCameraStagePro
   const [autoFitted, setAutoFitted] = useState(false)
   const [toolMode, setToolMode] = useState<StageToolMode>('pan-scale')
   const [lineStyle, setLineStyle] = useState<CameraLineStyle>('smoothstep')
-  const [showFilmstripPreview, setShowFilmstripPreview] = useState<boolean>(true)
+  const [showFilmstripPreview, setShowFilmstripPreview] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true
+    const eff = typeof document !== 'undefined' ? document.documentElement.getAttribute('data-remote-effective') : null
+    if (eff === 'phone') return false
+    return window.innerWidth > 768
+  })
   const [bubbleOffsets, setBubbleOffsets] = useState<Record<number, BubbleStageOffset>>({})
   const [showAllFrames, setShowAllFrames] = useState(true)
   const [showGrid, setShowGrid] = useState(true)

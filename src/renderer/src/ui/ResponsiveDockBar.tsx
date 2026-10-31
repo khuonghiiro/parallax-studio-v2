@@ -10,8 +10,10 @@ import {
   IconPlay,
   IconSliders
 } from './icons'
+import { useResponsiveViewport } from './primitives'
 import { IconTimelineTracks, IconWorkflowGraph } from './workflow/workflowIcons'
 
+/** Thanh dock chuyển vùng làm việc đa thiết bị (Điện thoại / iPad / Tablet) */
 interface ResponsiveDockBarProps {
   mobileTab: MobileWorkspaceTab
   tabletTab: TabletSideTab
@@ -35,6 +37,7 @@ export function ResponsiveDockBar({
   const timelineTab = useView((s) => s.timelineTab)
   const mobileDrawerExpanded = useView((s) => s.mobileDrawerExpanded)
   const toggleMobileDrawerExpanded = useView((s) => s.toggleMobileDrawerExpanded)
+  const { isPhone } = useResponsiveViewport()
 
   const wf = ensureProjectWorkflow(project)
   const { activeNodes } = resolveConnectedWorkflowNodes(wf)
@@ -51,7 +54,7 @@ export function ResponsiveDockBar({
   return (
     <nav
       id="responsive-dock"
-      className="responsive-dock"
+      className={`responsive-dock${isPhone ? ' is-phone-dock' : ''}`}
       data-mcp-region="responsive_dock"
       aria-label="Điều hướng vùng làm việc"
     >
@@ -70,7 +73,7 @@ export function ResponsiveDockBar({
         >
           <IconTimelineTracks width={14} height={14} />
           <span>Timeline</span>
-          <span className="dock-badge">{layerCount}</span>
+          {!isPhone && <span className="dock-badge">{layerCount}</span>}
         </button>
 
         <button
@@ -87,7 +90,7 @@ export function ResponsiveDockBar({
         >
           <IconWorkflowGraph width={14} height={14} />
           <span>Workflow</span>
-          <span className="dock-badge">{activeNodes.length}</span>
+          {!isPhone && <span className="dock-badge">{activeNodes.length}</span>}
         </button>
 
         <button
@@ -104,8 +107,8 @@ export function ResponsiveDockBar({
           title="Mở bảng Cảnh, Kho mẫu có sẵn, Mô hình 3D & Âm thanh"
         >
           <IconFolder width={14} height={14} />
-          <span>Tài nguyên</span>
-          <span className="dock-badge">{shotCount}</span>
+          <span>{isPhone ? 'Kho mẫu' : 'Tài nguyên'}</span>
+          {!isPhone && <span className="dock-badge">{shotCount}</span>}
         </button>
 
         <button
@@ -127,6 +130,20 @@ export function ResponsiveDockBar({
       </div>
 
       <div className="responsive-dock-actions phone-only-tab">
+        {!isTimelineDrawer && (
+          <button
+            id="dock-quick-play"
+            type="button"
+            className={`dock-quick-play${playing ? ' playing' : ''}${isPhone ? ' icon-only' : ''}`}
+            onClick={togglePlay}
+            title={playing ? 'Tạm dừng (Space)' : 'Phát thử cảnh (Space)'}
+            aria-label={playing ? 'Tạm dừng' : 'Phát'}
+          >
+            {playing ? <IconPause width={12} height={12} /> : <IconPlay width={12} height={12} />}
+            {!isPhone && <span>{formatTimecode(time, fps)}</span>}
+          </button>
+        )}
+
         <button
           id="dock-expand-drawer"
           type="button"
@@ -147,17 +164,6 @@ export function ResponsiveDockBar({
           ) : (
             <IconPaneMaximizeV width={13} height={13} />
           )}
-        </button>
-
-        <button
-          id="dock-quick-play"
-          type="button"
-          className={`dock-quick-play${playing ? ' playing' : ''}`}
-          onClick={togglePlay}
-          title={playing ? 'Tạm dừng (Space)' : 'Phát thử cảnh (Space)'}
-        >
-          {playing ? <IconPause width={12} height={12} /> : <IconPlay width={12} height={12} />}
-          <span>{formatTimecode(time, fps)}</span>
         </button>
       </div>
     </nav>

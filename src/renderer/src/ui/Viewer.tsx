@@ -1,6 +1,7 @@
 import { canEditViewportTarget } from './workflow/workflowFocusGuard'
 import '../styles/workspaceCompact.css'
-import { computeTaggedLayout, selectedViews } from './viewer/taggedLayout'
+import { computeTaggedLayout, effectiveDeviceViews } from './viewer/taggedLayout'
+import { useResponsiveViewport } from './primitives'
 import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { flyToShot } from '../actions'
@@ -52,6 +53,7 @@ export function Viewer() {
   const comp = useEditor((s) => s.project.comp)
   const playing = useEditor((s) => s.playing)
   const view = useView()
+  const { breakpoint } = useResponsiveViewport()
 
   edCam.setKind(view.editorKind)
   const focusShotId = useFocusShotId()
@@ -343,7 +345,7 @@ export function Viewer() {
       const dpr = Math.min(window.devicePixelRatio || 1, 2)
       rendererRef.current?.setSize(W * dpr, H * dpr)
       const toolbarHeight = (wrap.querySelector('.viewer-tools')?.getBoundingClientRect().height ?? 32) + 2
-      const L = computeTaggedLayout(W, H, comp.width / comp.height, selectedViews(view), dpr, toolbarHeight)
+      const L = computeTaggedLayout(W, H, comp.width / comp.height, effectiveDeviceViews(view, breakpoint), dpr, toolbarHeight)
       layoutRef.current = L
       setRects(L)
       requestRender()
@@ -355,7 +357,7 @@ export function Viewer() {
     fit()
     return () => ro.disconnect()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [comp.width, comp.height, view.split, view.primary, view.animate2dSplit, view.activeViews, canvasEpoch])
+  }, [comp.width, comp.height, view.split, view.primary, view.animate2dSplit, view.activeViews, breakpoint, canvasEpoch])
 
   // F = frame selection in the 3D view.
   useEffect(() => {

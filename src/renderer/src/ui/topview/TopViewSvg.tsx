@@ -3,6 +3,7 @@ import type { Vec3 } from '@shared/types'
 import type { EvaluatedLayer } from '../../engine/evaluateScene'
 import { getTopViewCorners, TYPE_COLORS } from './topViewCommon'
 
+/** Sơ đồ độ sâu 2.5D góc nhìn trên (X-Z), tự lọc chống đè nhãn trên màn hình nhỏ */
 interface TopViewSvgProps {
   size: { w: number; h: number }
   pad: number
@@ -46,6 +47,17 @@ export function TopViewSvg({
   startCamAngleDrag,
   startCamTargetDrag
 }: TopViewSvgProps) {
+  const isCompact = size.w < 460 || size.h < 220
+  const placedLabels: { x: number; y: number }[] = []
+
+  // Reserve label space for the selected layer first so it is never culled
+  const selectedEval = selected ? layers.find((l) => l.layer.id === selected) : undefined
+  if (selectedEval) {
+    const half = (selectedEval.size[0] * selectedEval.scale[0]) / 2
+    const lx0 = Math.max(8, Math.min(size.w - 92, sx(selectedEval.position[0] - half) + 4))
+    placedLabels.push({ x: lx0, y: sz(selectedEval.position[2]) - 4 })
+  }
+
   return (
     <>
       {/* Depth Grid Lines */}
@@ -55,9 +67,13 @@ export function TopViewSvg({
       })}
 
       {/* Spatial Zone Labels */}
-      <text className="tv-zone-label" x={12} y={sz(-150)}>Tiền cảnh</text>
-      <text className="tv-zone-label" x={12} y={sz(350)}>Trung cảnh</text>
-      <text className="tv-zone-label" x={12} y={sz(1100)}>Hậu cảnh</text>
+      {size.h >= 150 && (
+        <>
+          <text className="tv-zone-label" x={12} y={sz(-150)}>Tiền cảnh</text>
+          <text className="tv-zone-label" x={12} y={sz(350)}>Trung cảnh</text>
+          <text className="tv-zone-label" x={12} y={sz(1100)}>Hậu cảnh</text>
+        </>
+      )}
 
       {/* Focus Zero Plane (Z = 0) */}
       <line x1={0} x2={size.w} y1={sz(0)} y2={sz(0)} stroke="var(--line)" strokeDasharray="3 4" />
@@ -79,7 +95,7 @@ export function TopViewSvg({
       {/* Target handle */}
       <g className="tv-cam-target" transform={`translate(${targetScreenX},${targetScreenZ})`} onPointerDown={startCamTargetDrag}>
         <title>Điểm nhìn camera: Kéo để xoay góc ngắm</title>
-        <circle r={10} fill="transparent" />
+        <circle r={14} fill="transparent" />
         <circle r={5} fill="none" stroke="var(--accent-cyan)" strokeWidth={1.5} strokeOpacity={0.7} />
         <circle r={2} fill="var(--accent-cyan)" />
       </g>
@@ -87,7 +103,7 @@ export function TopViewSvg({
       {/* Aim angle handle */}
       <g className="tv-cam-aim" transform={`translate(${aimScreenX},${aimScreenZ})`} onPointerDown={startCamAngleDrag}>
         <title>Xoay hướng nhìn camera</title>
-        <circle r={12} fill="transparent" />
+        <circle r={16} fill="transparent" />
         <circle r={5} fill="var(--accent-cyan)" fillOpacity={0.25} stroke="var(--accent-cyan)" strokeWidth={1.5} />
       </g>
 
@@ -98,6 +114,19 @@ export function TopViewSvg({
         const y = sz(l.position[2])
         const isSel = l.layer.id === selected
         const color = TYPE_COLORS[l.layer.type] || '#8b7bff'
+        const labelX = Math.max(8, Math.min(size.w - 92, sx(l.position[0] - half) + 4))
+        const labelY = Math.max(14, Math.min(size.h - 6, y - 5))
+
+        let showLabel = isSel
+        if (!isSel && !isCompact) {
+          const collides = placedLabels.some(
+            (pt) => Math.abs(pt.x - labelX) < 96 && Math.abs(pt.y - labelY) < 15
+          )
+          if (!collides) {
+            placedLabels.push({ x: labelX, y: labelY })
+            showLabel = true
+          }
+        }
 
         return (
           <g
@@ -106,7 +135,7 @@ export function TopViewSvg({
             onPointerDown={(e) => startLayerDrag(e, l.layer.id)}
             style={{ cursor: 'move' }}
           >
-            <title>{`${l.layer.name}\nKéo để di chuyển (Trái/Phải X, Trước/Sau Z)\nShift: Khóa trục · Alt: Snap lưới`}</title>
+            <title>{`${l.layer.name} (Z: ${Math.round(l.position[2])})\nChạm hoặc kéo để di chuyển (Trái/Phải X, Trước/Sau Z)`}</title>
             {isTilted ? (
               <polygon
                 points={`${sx(p0[0])},${sz(p0[2])} ${sx(p1[0])},${sz(p1[2])} ${sx(p2[0])},${sz(p2[2])} ${sx(p3[0])},${sz(p3[2])}`}
@@ -117,7 +146,7 @@ export function TopViewSvg({
               />
             ) : (
               <>
-                <line x1={sx(l.position[0] - half)} x2={sx(l.position[0] + half)} y1={y} y2={y} stroke="transparent" strokeWidth={16} />
+                <line x1={sx(l.position[0] - half)} x2={sx(l.position[0] + half)} y1={y} y2={y} stroke="transparent" strokeWidth={24} />
                 <line
                   x1={sx(l.position[0] - half)}
                   x2={sx(l.position[0] + half)}
@@ -130,13 +159,15 @@ export function TopViewSvg({
                 />
               </>
             )}
-            <text
-              className={`tv-label${isSel ? ' selected' : ''}`}
-              x={sx(l.position[0] - half) + 4}
-              y={y - 4}
-            >
-              {l.layer.name}
-            </text>
+            {showLabel && (
+              <text
+                className={`tv-label${isSel ? ' selected' : ''}`}
+                x={labelX}
+                y={labelY}
+              >
+                {l.layer.name}
+              </text>
+            )}
           </g>
         )
       })}
@@ -144,7 +175,7 @@ export function TopViewSvg({
       {/* Camera Position Dot */}
       <g className="tv-cam-group" transform={`translate(${sx(camPos[0])},${sz(camPos[2])})`} onPointerDown={startCamPosDrag}>
         <title>Vị trí Camera: Kéo để di chuyển (X, Z)</title>
-        <circle r={16} fill="transparent" />
+        <circle r={18} fill="transparent" />
         <circle className="tv-cam-pulse" r={10} fill="none" stroke="var(--accent-cyan)" strokeOpacity={0.6} strokeWidth={1.5} />
         <circle r={5.5} fill="var(--accent-cyan)" />
       </g>

@@ -69,9 +69,18 @@ export function useResponsiveViewport(): ResponsiveViewportInfo {
       })
     }
     window.addEventListener('resize', onResize, { passive: true })
+    let mo: MutationObserver | null = null
+    if (typeof MutationObserver !== 'undefined' && typeof document !== 'undefined') {
+      mo = new MutationObserver(() => onResize())
+      mo.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['data-remote-effective', 'data-remote-layout']
+      })
+    }
     return () => {
       window.cancelAnimationFrame(raf)
       window.removeEventListener('resize', onResize)
+      mo?.disconnect()
     }
   }, [])
 

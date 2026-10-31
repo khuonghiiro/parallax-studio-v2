@@ -21,6 +21,8 @@ import { useTimelineInteractions } from './timeline/useTimelineInteractions'
 import { WorkflowStudioPanel } from './workflow/WorkflowStudioPanel'
 import { resolveWorkflowV2 } from '../project/workflowV2Rebuild'
 import { useTimelineTree } from './timeline/useTimelineTree'
+import { useResponsiveViewport } from './primitives'
+import { MobileCapCutTimeline } from './mobile/MobileCapCutTimeline'
 import '../styles/projectTrees.css'
 
 const TimelineRulerPlayhead = memo(function TimelineRulerPlayhead({
@@ -48,6 +50,7 @@ export function Timeline() {
   const selectedLayerId = useEditor((s) => s.selectedLayerId)
   const selectedShotId = useEditor((s) => s.selectedShotId)
   const timelineTab = useView((s) => s.timelineTab)
+  const { isPhone } = useResponsiveViewport()
   const { setTime, setPlaying, setLoop, selectLayer, selectShot } = useEditor.getState()
   const { comp } = project
 
@@ -399,6 +402,14 @@ export function Timeline() {
       const found = getProjectAudioTracks(useEditor.getState().project).find((t) => t.id === createdId)
       if (found) setModalTrack(found)
     }
+  }
+
+  if (isPhone && timelineTab !== 'workflow') {
+    return (
+      <section className="panel timeline cc-timeline-host" data-mcp-region="timeline">
+        <MobileCapCutTimeline />
+      </section>
+    )
   }
 
   if (timelineTab === 'workflow') {

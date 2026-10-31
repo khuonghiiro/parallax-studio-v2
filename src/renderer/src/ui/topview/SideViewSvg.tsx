@@ -2,6 +2,7 @@ import type React from 'react'
 import type { EvaluatedLayer } from '../../engine/evaluateScene'
 import { getTopViewCorners, TYPE_COLORS } from './topViewCommon'
 
+/** Sơ đồ độ sâu 2.5D góc nhìn bên (Z-Y), tự lọc chống đè nhãn trên màn hình nhỏ */
 interface SideViewSvgProps {
   size: { w: number; h: number }
   pad: number
@@ -47,6 +48,18 @@ export function SideViewSvg({
   startCamAngleDrag,
   startCamTargetDrag
 }: SideViewSvgProps) {
+  const isCompact = size.w < 460 || size.h < 220
+  const placedLabels: { x: number; y: number }[] = []
+
+  const selectedEval = selected ? layers.find((l) => l.layer.id === selected) : undefined
+  if (selectedEval) {
+    const halfH = (selectedEval.size[1] * selectedEval.scale[1]) / 2
+    placedLabels.push({
+      x: Math.max(8, Math.min(size.w - 92, sideZ(selectedEval.position[2]) + 4)),
+      y: Math.max(14, Math.min(size.h - 6, sideY(selectedEval.position[1] + halfH) - 4))
+    })
+  }
+
   return (
     <>
       {/* Depth Grid Lines (Vertical) */}
@@ -61,11 +74,13 @@ export function SideViewSvg({
       <line x1={sideZ(0)} x2={sideZ(0)} y1={0} y2={size.h} stroke="var(--line-soft)" strokeDasharray="2 4" />
 
       {/* Spatial Zone Labels (Top of screen) */}
-      {sideZ(350) - sideZ(-150) >= 70 && <>
-        <text className="tv-zone-label" x={sideZ(-150)} y={18}>Tiền cảnh</text>
-        <text className="tv-zone-label" x={sideZ(350)} y={18}>Trung cảnh</text>
-        <text className="tv-zone-label" x={sideZ(1100)} y={18}>Hậu cảnh</text>
-      </>}
+      {sideZ(350) - sideZ(-150) >= 70 && size.h >= 150 && (
+        <>
+          <text className="tv-zone-label" x={sideZ(-150)} y={18}>Tiền cảnh</text>
+          <text className="tv-zone-label" x={sideZ(350)} y={18}>Trung cảnh</text>
+          <text className="tv-zone-label" x={sideZ(1100)} y={18}>Hậu cảnh</text>
+        </>
+      )}
 
       {/* Reference Zero Labels */}
       <text className="tv-zero-label" x={12} y={sideY(0) - 4}>Y = 0 (Chân trời)</text>
@@ -86,7 +101,7 @@ export function SideViewSvg({
       {/* Target handle */}
       <g className="tv-cam-target" transform={`translate(${targetScreenSideX},${targetScreenSideY})`} onPointerDown={startCamTargetDrag}>
         <title>Điểm nhìn camera: Kéo để nâng hạ độ cao Y và độ sâu Z</title>
-        <circle r={10} fill="transparent" />
+        <circle r={14} fill="transparent" />
         <circle r={5} fill="none" stroke="var(--accent-cyan)" strokeWidth={1.5} strokeOpacity={0.7} />
         <circle r={2} fill="var(--accent-cyan)" />
       </g>
@@ -94,7 +109,7 @@ export function SideViewSvg({
       {/* Aim angle handle (Pitch) */}
       <g className="tv-cam-aim" transform={`translate(${aimScreenSideX},${aimScreenSideY})`} onPointerDown={startCamAngleDrag}>
         <title>Góc nghiêng camera (Pitch): Kéo để ngửa lên / chúi xuống</title>
-        <circle r={12} fill="transparent" />
+        <circle r={16} fill="transparent" />
         <circle r={5} fill="var(--accent-cyan)" fillOpacity={0.25} stroke="var(--accent-cyan)" strokeWidth={1.5} />
       </g>
 
@@ -105,6 +120,19 @@ export function SideViewSvg({
         const isSel = l.layer.id === selected
         const color = TYPE_COLORS[l.layer.type] || '#8b7bff'
         const isTilted = Math.abs(p0[2] - p3[2]) > 10 || Math.abs(p0[1] - p2[1]) < halfH * 0.8
+        const labelX = Math.max(8, Math.min(size.w - 92, sideZ(l.position[2]) + 4))
+        const labelY = Math.max(14, Math.min(size.h - 6, sideY(l.position[1] + halfH) - 4))
+
+        let showLabel = isSel
+        if (!isSel && !isCompact) {
+          const collides = placedLabels.some(
+            (pt) => Math.abs(pt.x - labelX) < 96 && Math.abs(pt.y - labelY) < 15
+          )
+          if (!collides) {
+            placedLabels.push({ x: labelX, y: labelY })
+            showLabel = true
+          }
+        }
 
         return (
           <g
@@ -113,7 +141,7 @@ export function SideViewSvg({
             onPointerDown={(e) => startLayerDrag(e, l.layer.id)}
             style={{ cursor: 'move' }}
           >
-            <title>{`${l.layer.name}\nKéo để di chuyển (Độ sâu Z, Độ cao Y)\nShift: Khóa trục · Alt: Snap lưới`}</title>
+            <title>{`${l.layer.name} (Z: ${Math.round(l.position[2])})\nChạm hoặc kéo để di chuyển (Độ sâu Z, Độ cao Y)`}</title>
             {isTilted ? (
               <polygon
                 points={`${sideZ(p0[2])},${sideY(p0[1])} ${sideZ(p1[2])},${sideY(p1[1])} ${sideZ(p2[2])},${sideY(p2[1])} ${sideZ(p3[2])},${sideY(p3[1])}`}
@@ -130,7 +158,7 @@ export function SideViewSvg({
                   y1={sideY(l.position[1] - halfH)}
                   y2={sideY(l.position[1] + halfH)}
                   stroke="transparent"
-                  strokeWidth={16}
+                  strokeWidth={24}
                 />
                 <line
                   x1={sideZ(l.position[2])}
@@ -144,13 +172,15 @@ export function SideViewSvg({
                 />
               </>
             )}
-            <text
-              className={`tv-label${isSel ? ' selected' : ''}`}
-              x={sideZ(l.position[2]) + 4}
-              y={sideY(l.position[1] + halfH) - 4}
-            >
-              {l.layer.name}
-            </text>
+            {showLabel && (
+              <text
+                className={`tv-label${isSel ? ' selected' : ''}`}
+                x={labelX}
+                y={labelY}
+              >
+                {l.layer.name}
+              </text>
+            )}
           </g>
         )
       })}
@@ -158,7 +188,7 @@ export function SideViewSvg({
       {/* Camera Position Dot (Side View) */}
       <g className="tv-cam-group" transform={`translate(${camScreenSideX},${camScreenSideY})`} onPointerDown={startCamPosDrag}>
         <title>Vị trí Camera: Kéo để di chuyển (Z, Y)</title>
-        <circle r={16} fill="transparent" />
+        <circle r={18} fill="transparent" />
         <circle className="tv-cam-pulse" r={10} fill="none" stroke="var(--accent-cyan)" strokeOpacity={0.6} strokeWidth={1.5} />
         <circle r={5.5} fill="var(--accent-cyan)" />
       </g>

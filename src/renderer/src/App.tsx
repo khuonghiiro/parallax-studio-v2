@@ -26,6 +26,7 @@ import { Toolbar } from './ui/Toolbar'
 import { Viewer } from './ui/Viewer'
 import { usePerformance } from './store/performance'
 import './styles/responsiveTouchStudio.css'
+import './styles/mobileCapCutTimeline.css'
 
 export default function App() {
   const [ready, setReady] = useState(false)

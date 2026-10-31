@@ -208,13 +208,71 @@ html[data-remote-effective='tablet'] .audio-preview-btn {
   display: flex !important;
 }
 
-/* --- 4. Floating Remote Client HUD Pill --- */
+/* --- 4. Floating Remote Client HUD Pill (Docked at Top-Right of Viewer on Phone/Tablet so it NEVER covers bottom toolbars) --- */
 .remote-client-hud {
   position: fixed;
   right: calc(10px + env(safe-area-inset-right, 0px));
   bottom: calc(10px + env(safe-area-inset-bottom, 0px));
   z-index: 9500;
   pointer-events: auto;
+}
+
+@media (max-width: 768px) {
+  .remote-client-hud {
+    top: calc(104px + env(safe-area-inset-top, 0px));
+    right: calc(6px + env(safe-area-inset-right, 0px));
+    left: auto;
+    bottom: auto;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1120px) {
+  .remote-client-hud {
+    top: calc(82px + env(safe-area-inset-top, 0px));
+    left: calc(10px + env(safe-area-inset-left, 0px));
+    right: auto;
+    bottom: auto;
+  }
+}
+
+@media (max-width: 1120px) {
+  .remote-client-hud:not(.expanded) .remote-hud-pill {
+    height: 24px;
+    padding: 0 7px;
+    gap: 5px;
+    font-size: 10px;
+    opacity: 0.88;
+  }
+
+  .remote-client-hud:not(.expanded) .remote-hud-pill-text {
+    display: none;
+  }
+}
+
+html[data-remote-effective='phone'] .remote-client-hud {
+  top: calc(104px + env(safe-area-inset-top, 0px));
+  right: calc(6px + env(safe-area-inset-right, 0px));
+  left: auto;
+  bottom: auto;
+}
+
+html[data-remote-effective='tablet'] .remote-client-hud {
+  top: calc(82px + env(safe-area-inset-top, 0px));
+  left: calc(10px + env(safe-area-inset-left, 0px));
+  right: auto;
+  bottom: auto;
+}
+
+:is(html[data-remote-effective='phone'], html[data-remote-effective='tablet']) .remote-client-hud:not(.expanded) .remote-hud-pill {
+  height: 24px;
+  padding: 0 7px;
+  gap: 5px;
+  font-size: 10px;
+  opacity: 0.88;
+}
+
+:is(html[data-remote-effective='phone'], html[data-remote-effective='tablet']) .remote-client-hud:not(.expanded) .remote-hud-pill-text {
+  display: none;
 }
 
 .remote-hud-pill {

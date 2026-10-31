@@ -1,0 +1,957 @@
+/* ==========================================================================
+   CapCut-Style Mobile Timeline, Center-Playhead Multi-Track & Half-Screen
+   Touch Quick Sheet + Multi-Device Adaptive Dock/Viewer Polish.
+   100% Dual-Theme Token Compliant (variables.css), 4px-6px Unified Geometry.
+   ========================================================================== */
+
+.cc-timeline-host {
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+.cc-mobile-timeline {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  background: var(--bg-0);
+  color: var(--text);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* --- 1. CapCut Center Transport Strip --- */
+.cc-transport-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  height: 36px;
+  min-height: 36px;
+  padding: 0 8px;
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+
+.cc-transport-left,
+.cc-transport-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.cc-transport-right {
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.cc-play-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: var(--radius);
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.cc-play-btn.playing {
+  background: color-mix(in srgb, var(--accent-cyan) 78%, #0f172a);
+  border-color: var(--accent-cyan);
+  color: #ffffff;
+}
+
+.cc-tbtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  height: 26px;
+  min-width: 26px;
+  padding: 0 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-soft);
+  background: var(--bg-2);
+  color: var(--text);
+  font-size: 10.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cc-tbtn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-3));
+  border-color: var(--line-focus);
+}
+
+.cc-tbtn:disabled {
+  opacity: 0.38;
+  cursor: default;
+}
+
+.cc-tbtn.cc-key-btn.active {
+  background: var(--key);
+  border-color: var(--key);
+  color: var(--on-key);
+}
+
+.cc-tbtn.expanded {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+
+.cc-time-readout {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 0 4px;
+  white-space: nowrap;
+}
+
+.cc-time-cur {
+  font-weight: 700;
+  color: var(--accent-cyan);
+}
+
+.cc-time-sep,
+.cc-time-dur {
+  color: var(--text-dim);
+  font-size: 10px;
+}
+
+/* --- 2. Center-Playhead Scrollable Multi-Track Viewport --- */
+.cc-tracks-viewport {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--bg-0);
+}
+
+.cc-center-playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 0;
+  z-index: 25;
+  pointer-events: none;
+}
+
+.cc-playhead-head {
+  position: absolute;
+  top: 0;
+  left: -5px;
+  width: 10px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--accent-cyan);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--accent-cyan) 65%, transparent);
+}
+
+.cc-playhead-line {
+  position: absolute;
+  top: 6px;
+  bottom: 0;
+  left: -1px;
+  width: 2px;
+  background: var(--accent-cyan);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--accent-cyan) 55%, transparent);
+}
+
+.cc-tracks-scroll {
+  width: 100%;
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.cc-tracks-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.cc-tracks-canvas {
+  position: relative;
+  min-height: 100%;
+  padding-bottom: 12px;
+}
+
+/* --- 3. Time Ruler Lane --- */
+.cc-ruler-lane {
+  position: sticky;
+  top: 0;
+  z-index: 14;
+  height: 22px;
+  background: color-mix(in srgb, var(--bg-1) 94%, transparent);
+  backdrop-filter: blur(6px);
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.cc-ruler-tick {
+  position: absolute;
+  bottom: 0;
+  width: 1px;
+  background: var(--line);
+}
+
+.cc-ruler-tick.minor {
+  height: 5px;
+  opacity: 0.55;
+}
+
+.cc-ruler-tick.major {
+  height: 9px;
+}
+
+.cc-ruler-label {
+  position: absolute;
+  bottom: 9px;
+  left: 3px;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+/* --- 4. Shots & Camera Waypoints Lane --- */
+.cc-camera-lane {
+  position: relative;
+  height: 30px;
+  margin-top: 3px;
+  border-bottom: 1px dashed var(--line-soft);
+}
+
+.cc-shot-block {
+  position: absolute;
+  top: 2px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 7px;
+  border-radius: var(--radius-sm);
+  border: 1px solid color-mix(in srgb, var(--shot-c, var(--accent)) 55%, var(--line));
+  background: color-mix(in srgb, var(--shot-c, var(--accent)) 22%, var(--bg-2));
+  color: var(--text);
+  font-size: 10.5px;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.cc-shot-block.active {
+  border-color: var(--shot-c, var(--accent-cyan));
+  background: color-mix(in srgb, var(--shot-c, var(--accent)) 36%, var(--bg-2));
+  font-weight: 700;
+}
+
+.cc-shot-badge {
+  font-size: 9.5px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.cc-shot-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cc-cam-waypoints-lane {
+  position: relative;
+  height: 22px;
+  border-bottom: 1px dashed var(--line-soft);
+}
+
+.cc-cam-wp-chip {
+  position: absolute;
+  top: 2px;
+  transform: translateX(-50%);
+  height: 18px;
+  padding: 0 5px;
+  border-radius: var(--radius-sm);
+  border: 1px solid color-mix(in srgb, var(--accent-cyan) 60%, var(--line));
+  background: var(--bg-1);
+  color: var(--accent-cyan);
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  z-index: 4;
+  cursor: pointer;
+}
+
+.cc-cam-wp-chip.active {
+  background: color-mix(in srgb, var(--accent-cyan) 78%, #0f172a);
+  border-color: var(--accent-cyan);
+  color: #ffffff;
+}
+
+/* --- 5. Layer & Character 2.5D Clip Lanes --- */
+.cc-layer-lanes {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 5px;
+}
+
+.cc-track-row {
+  position: relative;
+  height: 38px;
+}
+
+.cc-track-row.is-sub {
+  height: 32px;
+}
+
+.cc-clip-bar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  border-radius: var(--radius);
+  border: 1px solid color-mix(in srgb, var(--accent) 42%, var(--line));
+  background: color-mix(in srgb, var(--accent) 22%, var(--bg-2));
+  color: var(--text);
+  cursor: pointer;
+  overflow: visible;
+}
+
+.cc-clip-bar.type-composite {
+  border-color: color-mix(in srgb, #a855f7 52%, var(--line));
+  background: color-mix(in srgb, #a855f7 24%, var(--bg-2));
+}
+
+.cc-clip-bar.type-model3d {
+  border-color: color-mix(in srgb, #06b6d4 52%, var(--line));
+  background: color-mix(in srgb, #06b6d4 24%, var(--bg-2));
+}
+
+.cc-clip-bar.type-text {
+  border-color: color-mix(in srgb, #f59e0b 52%, var(--line));
+  background: color-mix(in srgb, #f59e0b 22%, var(--bg-2));
+}
+
+.cc-clip-bar.type-particles {
+  border-color: color-mix(in srgb, #10b981 52%, var(--line));
+  background: color-mix(in srgb, #10b981 22%, var(--bg-2));
+}
+
+.cc-clip-bar.hidden-layer {
+  opacity: 0.48;
+}
+
+.cc-clip-bar.selected {
+  border: 2px solid var(--text);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.28);
+  z-index: 6;
+}
+
+.cc-clip-sticky-content {
+  position: sticky;
+  left: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: calc(100% - 16px);
+  padding: 0 8px;
+  overflow: hidden;
+}
+
+.cc-clip-ico {
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.cc-clip-name {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cc-clip-z {
+  padding: 1px 4px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--bg-0) 76%, transparent);
+  color: var(--text-dim);
+  font-family: var(--mono);
+  font-size: 9.5px;
+  flex-shrink: 0;
+}
+
+.cc-clip-logic-tag {
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, #10b981 78%, #0f172a);
+  color: #ffffff;
+  font-size: 9.5px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.cc-cluster-expand-pill {
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--bg-1);
+  color: var(--text);
+  font-size: 9.5px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* CapCut Thick Left/Right Touch Trim Handles */
+.cc-trim-handle {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--text);
+  z-index: 9;
+  touch-action: none;
+}
+
+.cc-trim-handle.left {
+  left: -2px;
+  border-radius: var(--radius) 0 0 var(--radius);
+}
+
+.cc-trim-handle.right {
+  right: -2px;
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+.cc-trim-grip {
+  width: 2px;
+  height: 14px;
+  border-radius: 1px;
+  background: var(--bg-0);
+}
+
+/* Tappable & Draggable Gold Keyframe Diamonds */
+.cc-key-diamond {
+  position: absolute;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  margin-left: -5px;
+  margin-top: -5px;
+  transform: rotate(45deg);
+  border-radius: 1.5px;
+  background: var(--key);
+  border: 1.5px solid var(--bg-0);
+  z-index: 8;
+  touch-action: none;
+}
+
+.cc-key-diamond::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+}
+
+.cc-key-diamond.at-playhead {
+  transform: rotate(45deg) scale(1.25);
+  box-shadow: 0 0 8px var(--key);
+}
+
+/* --- 6. Audio Lane --- */
+.cc-audio-lane {
+  position: relative;
+  height: 32px;
+  margin-top: 6px;
+}
+
+.cc-audio-bar {
+  position: absolute;
+  top: 0;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 8px;
+  border-radius: var(--radius);
+  border: 1px solid color-mix(in srgb, #14b8a6 55%, var(--line));
+  background: color-mix(in srgb, #14b8a6 24%, var(--bg-2));
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 600;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.cc-audio-bar.selected {
+  border: 2px solid var(--text);
+}
+
+.cc-audio-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cc-empty-hint {
+  position: relative;
+  padding: 12px 8px;
+  font-size: 11.5px;
+  color: var(--text-dim);
+}
+
+/* --- 7. CapCut Contextual Bottom Action Strip --- */
+.cc-action-strip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 54px;
+  min-height: 54px;
+  padding: 4px 6px;
+  background: var(--bg-1);
+  border-top: 1px solid var(--line);
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  flex-shrink: 0;
+}
+
+.cc-action-strip::-webkit-scrollbar {
+  display: none;
+}
+
+.cc-act-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 58px;
+  height: 44px;
+  padding: 0 6px;
+  border-radius: var(--radius);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text);
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.cc-act-btn:hover {
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-2));
+}
+
+.cc-act-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+
+.cc-act-btn.primary-add {
+  border-color: var(--line-soft);
+  background: var(--bg-2);
+}
+
+.cc-act-btn.primary-add.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+
+.cc-act-btn.back-pill {
+  background: var(--bg-2);
+  border-color: var(--line);
+  color: var(--text-dim);
+  min-width: 52px;
+}
+
+.cc-act-btn.key-active {
+  background: var(--key);
+  border-color: var(--key);
+  color: var(--on-key);
+}
+
+.cc-act-btn.accent-logic {
+  color: var(--accent-cyan);
+}
+
+.cc-act-btn.danger {
+  color: var(--danger);
+}
+
+.cc-act-btn.muted {
+  opacity: 0.6;
+}
+
+/* --- 8. Half-Screen Non-Blocking Touch Quick Sheet --- */
+.cc-quick-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-height: min(48dvh, 360px);
+  z-index: 12000;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-1);
+  border-top: 1px solid var(--line-focus);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  box-shadow: 0 -10px 28px rgba(0, 0, 0, 0.36);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.cc-qsheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  height: 36px;
+  padding: 0 10px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--line);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  flex-shrink: 0;
+}
+
+.cc-qsheet-title {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cc-qsheet-close {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 26px;
+  padding: 0 9px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.cc-qsheet-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 10px 12px 12px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.cc-slider-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cc-slider-row {
+  display: grid;
+  grid-template-columns: 74px minmax(0, 1fr) 50px;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+}
+
+.cc-slider-row.highlight-z .cc-sl-label,
+.cc-slider-row.highlight-z .cc-sl-val {
+  color: var(--accent-cyan);
+  font-weight: 700;
+}
+
+.cc-sl-label {
+  color: var(--text-dim);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.cc-slider-row input[type='range'] {
+  width: 100%;
+  height: 24px;
+  accent-color: var(--accent);
+}
+
+.cc-sl-val {
+  text-align: right;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text);
+}
+
+.cc-timing-grid-wrap,
+.cc-camera-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cc-timing-span-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.cc-btn-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.cc-grid-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 52px;
+  padding: 4px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+  color: var(--text);
+  font-size: 10.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cc-key-nav-row,
+.cc-cam-cta-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cc-pill-btn {
+  flex: 1 1 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 32px;
+  padding: 0 8px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.cc-pill-btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+
+.cc-pill-btn.key-toggle.active {
+  background: var(--key);
+  border-color: var(--key);
+  color: var(--on-key);
+}
+
+.cc-ease-pills {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+  padding: 2px;
+  border-radius: var(--radius);
+  background: var(--bg-0);
+  border: 1px solid var(--line);
+}
+
+.cc-ease-pill {
+  height: 28px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cc-ease-pill.active {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.cc-shot-pills {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.cc-shot-pills::-webkit-scrollbar {
+  display: none;
+}
+
+.cc-shot-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 10px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.cc-shot-pill.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+
+.cc-shot-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.cc-add-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+}
+
+@media (max-width: 420px) {
+  .cc-add-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.cc-add-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 58px;
+  padding: 4px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line-soft);
+  background: var(--bg-2);
+  color: var(--text);
+  font-size: 10px;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+}
+
+.cc-add-card:hover {
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg-3));
+  border-color: var(--accent);
+}
+
+/* --- 9. Non-Truncating Phone Navigation Dock & Labeled View Switcher Pills --- */
+.responsive-dock.is-phone-dock {
+  display: flex !important;
+  align-items: center;
+  gap: 4px;
+  padding: 0 5px !important;
+}
+
+.responsive-dock.is-phone-dock .responsive-dock-tabs {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 3px !important;
+}
+
+.responsive-dock.is-phone-dock .dock-tab {
+  min-width: 0 !important;
+  padding: 0 4px !important;
+  gap: 4px !important;
+  justify-content: center !important;
+  font-size: 11px !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+}
+
+.responsive-dock.is-phone-dock .dock-quick-play.icon-only {
+  width: 26px !important;
+  min-width: 26px !important;
+  height: 26px !important;
+  padding: 0 !important;
+  justify-content: center !important;
+}
+
+.viewer-view-tags .seg-btn.phone-labeled {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px !important;
+  width: auto !important;
+  min-width: auto !important;
+}
+
+.view-tag-phone-txt {
+  font-size: 10.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* --- 10. iPad / Tablet Touch Studio Enhancements (769px – 1120px) --- */
+@media (min-width: 769px) and (max-width: 1120px) {
+  .timeline .tl-row {
+    min-height: 32px;
+  }
+
+  .timeline .tl-bar-handle {
+    width: 14px;
+  }
+
+  .timeline-toolbar .btn.sm,
+  .wf-v2-toolbar .btn.sm {
+    min-height: 28px;
+  }
+}
+
+html[data-remote-effective='tablet'] .timeline .tl-row {
+  min-height: 32px;
+}
+
+html[data-remote-effective='tablet'] .timeline .tl-bar-handle {
+  width: 14px;
+}

@@ -264,12 +264,18 @@ function GizmoPane({
         <circle className="gizmo-pivot" cx={center[0]} cy={center[1]} r={5} />
       )}
       {showReadout && (
-        <text className="gizmo-readout" x={center[0] + 12} y={center[1] + 100}>
+        <text
+          className="gizmo-readout"
+          x={Math.max(8, Math.min(Math.max(8, rect.w - (rect.w < 460 ? 185 : 265)), center[0] - (rect.w < 460 ? 85 : 115)))}
+          y={Math.max(20, Math.min(rect.h - 10, center[1] + (rect.h < 320 ? 74 : 100)))}
+        >
           {isModel3D
             ? `Model 3D [${el.layer.model3d?.modelName || 'Khối 3D'}] · ${groupLayers.length} mặt`
             : isCompLocked
               ? `Cụm [${compRef?.compositeName || 'Layer'}] · 🔒 Khóa nhóm · ${groupLayers.length} lớp`
-              : `P ${position.map((v) => v.toFixed(0)).join(' / ')} · R ${rotation.map((v) => `${v.toFixed(1)}°`).join(' / ')}`}
+              : rect.w < 460
+                ? `X:${position[0].toFixed(0)} Y:${position[1].toFixed(0)} Z:${position[2].toFixed(0)} · R:${rotation[2].toFixed(0)}°`
+                : `P ${position.map((v) => v.toFixed(0)).join(' / ')} · R ${rotation.map((v) => `${v.toFixed(1)}°`).join(' / ')}`}
         </text>
       )}
     </svg>
