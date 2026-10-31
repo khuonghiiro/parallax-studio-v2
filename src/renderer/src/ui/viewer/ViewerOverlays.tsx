@@ -8,6 +8,7 @@ import { evaluate } from '../../animation/keyframes'
 import {
   IconCamera,
   IconCameraFrustumCull,
+  IconCompFrame,
   IconCube,
   IconFlightPath3D,
   IconFocusTarget3D,
@@ -16,7 +17,6 @@ import {
   IconGizmoTranslate3D,
   IconReadout
 } from '../icons'
-import { CustomSelect } from '../controls/CustomSelect'
 import { EDITOR_KINDS, type Layout } from './viewerLayout'
 
 interface ViewerOverlaysProps {
@@ -27,6 +27,13 @@ interface ViewerOverlaysProps {
   stats: ResidencyStats | null
   rects: Layout
 }
+
+const VIEW_3D_NAV_TOOLTIP =
+  'Điều hướng Không gian 3D:\n' +
+  '• Chuột trái: Di chuyển mặt phẳng (Pan)\n' +
+  '• Con lăn chuột (hoặc Alt + Chuột trái): Xoay 360° (Orbit)\n' +
+  '• Cuộn chuột: Phóng to / Thu nhỏ (Zoom)\n' +
+  '• Phím F: Tiêu điểm vào layer hoặc cảnh đang chọn'
 
 export function ViewerOverlays({
   view,
@@ -53,12 +60,18 @@ export function ViewerOverlays({
   const isAnimate2D = !!rects.stage2d
   const isAnimateSplit = Boolean(isAnimate2D && view.animate2dSplit && rects.cam && rects.ed && rects.stage2d)
   const isStandardSplit = Boolean(!isAnimate2D && rects.cam && rects.ed)
-  const kindLabel = EDITOR_KINDS.find((k) => k.id === view.editorKind)?.shortLabel ?? 'Tự do'
 
   const showBbox = view.showBbox ?? true
   const showTranslate = view.showTranslate ?? true
   const showRotate = view.showRotate ?? true
   const showReadout = view.showReadout ?? true
+
+  const selectEditorKind = (kind: EditorViewKind) => {
+    view.set({ editorKind: kind })
+    useView.setState((s) => ({
+      focus: { kind: 'selection', n: (s.focus?.n ?? 0) + 1 }
+    }))
+  }
 
   return (
     <>
@@ -82,8 +95,8 @@ export function ViewerOverlays({
             className="pane-divider"
             style={{
               left: rects.stage2d.x - 1,
-              top: 32,
-              height: 'calc(100% - 32px)'
+              top: 30,
+              height: 'calc(100% - 30px)'
             }}
           />
           <div
@@ -93,109 +106,41 @@ export function ViewerOverlays({
         </>
       )}
 
-      {showEd && (
-        <span
-          className="pane-tag"
-          style={{
-            left: rects.ed!.x + 8,
-            top: rects.ed!.y + rects.ed!.h - 30,
-            maxWidth: Math.max(120, rects.ed!.w - 16),
-            pointerEvents: 'auto'
-          }}
-          title={`Không gian 3D (${kindLabel})\n• Giữ chuột trái: Di chuyển mặt phẳng (Pan)\n• Giữ con lăn chuột (hoặc Alt + Chuột trái): Xoay 360° (Orbit)\n• Cuộn chuột: Phóng to / Thu nhỏ (Zoom)\n• Phím F: Tiêu điểm (Focus vào layer hoặc cảnh đang chọn)`}
-        >
-          <span className="pane-tag-badge">
-            <IconCube /> 3D · {kindLabel}
-          </span>
-          <span
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 3,
-              marginLeft: 4
-            }}
-          >
-            {(['custom', 'front', 'top'] as EditorViewKind[]).map((kind) => {
-              const spec = EDITOR_KINDS.find((k) => k.id === kind)
-              const active = view.editorKind === kind
-              return (
-                <button
-                  key={kind}
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    view.set({ editorKind: kind })
-                    useView.setState((s) => ({
-                      focus: { kind: 'selection', n: (s.focus?.n ?? 0) + 1 }
-                    }))
-                  }}
-                  style={{
-                    height: 18,
-                    padding: '0 6px',
-                    fontSize: 10,
-                    fontWeight: active ? 700 : 500,
-                    borderRadius: 4,
-                    border: active ? '1px solid var(--accent-cyan)' : '1px solid var(--line)',
-                    background: active ? 'rgba(56, 189, 248, 0.2)' : 'var(--bg-2)',
-                    color: active ? 'var(--accent-cyan)' : 'var(--text-dim)',
-                    cursor: 'pointer'
-                  }}
-                  title={`Chuyển góc nhìn 3D sang: ${spec?.label ?? kind}`}
-                >
-                  {spec?.shortLabel ?? kind}
-                </button>
-              )
-            })}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation()
-                useView.setState((s) => ({
-                  focus: { kind: 'all', n: (s.focus?.n ?? 0) + 1 }
-                }))
-              }}
-              style={{
-                height: 18,
-                padding: '0 6px',
-                fontSize: 10,
-                fontWeight: 600,
-                borderRadius: 4,
-                border: '1px solid var(--line)',
-                background: 'var(--bg-2)',
-                color: 'var(--text)',
-                cursor: 'pointer'
-              }}
-              title="Căn chỉnh lại khung nhìn 3D ôm gọn toàn bộ phân cảnh (Phím F)"
-            >
-              ⊡ Căn cảnh
-            </button>
-          </span>
-          {!isAnimateSplit && (
-            <span className="pane-hint">
-              Chuột trái: di chuyển · Giữ con lăn: xoay 360° · Lăn: zoom
-            </span>
-          )}
-        </span>
-      )}
-
-      {/* Dock công cụ Viewport & Thao tác Layer (Top Bar Gọn Nhẹ Bằng Icon) */}
+      {/* Dock công cụ Viewport & Không gian 3D (Nằm gọn trên thanh Header 30px, không che tầm nhìn Camera 3D) */}
       <div className="viewer-tools" data-mcp-region="viewer_tools">
         <ViewTags />
         <span className="viewer-tool-sep" />
 
-        {/* Nhóm 2: Kiểu nhìn 3D (CustomSelect gọn 60fps) */}
+        {/* Nhóm 2: Góc chiếu Không gian 3D 1-Click Segmented Pills (Không dùng combobox, không đè vào canvas 3D) */}
         {showEd && (
           <>
-            <CustomSelect<EditorViewKind>
+            <div
               id="view-kind"
-              className="viewer-kind-select"
-              value={view.editorKind}
-              onChange={(val) => view.set({ editorKind: val })}
-              options={EDITOR_KINDS.map((k) => ({ value: k.id, label: k.shortLabel }))}
-              size="sm"
-              title="Chọn góc chiếu không gian 3D (Tự do / Trước / Trên / Trái)"
-              dropdownWidth={112}
-            />
+              className="viewer-mode-seg viewer-3d-presets"
+              data-mcp-region="viewer_3d_presets"
+              role="group"
+              aria-label="Góc chiếu không gian 3D"
+            >
+              <span className="viewer-3d-presets-tag" title={VIEW_3D_NAV_TOOLTIP}>
+                <IconCube width={12} height={12} />
+                <span>3D</span>
+              </span>
+              {EDITOR_KINDS.map((spec) => {
+                const active = view.editorKind === spec.id
+                return (
+                  <button
+                    key={spec.id}
+                    type="button"
+                    className={`seg-btn${active ? ' active' : ''}`}
+                    onClick={() => selectEditorKind(spec.id)}
+                    title={`Góc nhìn 3D: ${spec.label}`}
+                    aria-pressed={active}
+                  >
+                    {spec.shortLabel}
+                  </button>
+                )
+              })}
+            </div>
             <span className="viewer-tool-sep" />
           </>
         )}
@@ -204,6 +149,7 @@ export function ViewerOverlays({
         <div className="viewer-tool-group" title="Công cụ thao tác layer (BBox, Di chuyển 3D, Xoay 3D, Tọa độ)">
           <button
             id="view-toggle-bbox"
+            type="button"
             className={`viewer-tool-btn icon${showBbox ? ' active' : ''}`}
             title={`Khung bao BBox (${showBbox ? 'Đang hiện' : 'Đang ẩn'})\n• Bật/Tắt khung viền và 8 điểm mút co dãn layer`}
             onClick={() => view.set({ showBbox: !showBbox })}
@@ -213,6 +159,7 @@ export function ViewerOverlays({
           </button>
           <button
             id="view-toggle-translate"
+            type="button"
             className={`viewer-tool-btn icon${showTranslate ? ' active' : ''}`}
             title={`Trục di chuyển 3D XYZ (${showTranslate ? 'Đang hiện' : 'Đang ẩn'})\n• Kéo mũi tên XYZ để dời vị trí\n• Phím W để bật/tắt nhanh`}
             onClick={() => view.set({ showTranslate: !showTranslate })}
@@ -222,6 +169,7 @@ export function ViewerOverlays({
           </button>
           <button
             id="view-toggle-rotate"
+            type="button"
             className={`viewer-tool-btn icon${showRotate ? ' active' : ''}`}
             title={`Vòng xoay Gimbal 3D (${showRotate ? 'Đang hiện' : 'Đang ẩn'})\n• Kéo vòng cầu để xoay nghiêng\n• Phím E để bật/tắt nhanh`}
             onClick={() => view.set({ showRotate: !showRotate })}
@@ -231,6 +179,7 @@ export function ViewerOverlays({
           </button>
           <button
             id="view-toggle-readout"
+            type="button"
             className={`viewer-tool-btn icon${showReadout ? ' active' : ''}`}
             title={`Thông số tọa độ P/R (${showReadout ? 'Đang hiện' : 'Đang ẩn'})\n• Bật/Tắt hiển thị vị trí (P) và góc xoay (R) của layer`}
             onClick={() => view.set({ showReadout: !showReadout })}
@@ -240,42 +189,75 @@ export function ViewerOverlays({
           </button>
         </div>
 
-        {/* Nhóm 4: Hỗ trợ hiển thị không gian 3D */}
+        {/* Nhóm 4: Hỗ trợ hiển thị & Căn khung không gian 3D */}
         {showEd && (
           <>
             <span className="viewer-tool-sep" />
             <div className="viewer-tool-group">
               <button
                 id="view-path"
+                type="button"
                 className={`viewer-tool-btn icon${view.showPath ? ' active' : ''}`}
                 title="Hiện/ẩn đường bay quỹ đạo camera 3D"
                 onClick={() => view.set({ showPath: !view.showPath })}
+                aria-label="Hiện/ẩn đường bay camera 3D"
               >
                 <IconFlightPath3D width={14} height={14} />
               </button>
               <button
                 id="view-camera-only"
+                type="button"
                 className={`viewer-tool-btn icon${view.cameraOnly ? ' active' : ''}`}
                 title="Chỉ hiện nội dung trong hình nón tầm nhìn Camera (Frustum Culling)"
                 onClick={() => view.set({ cameraOnly: !view.cameraOnly })}
+                aria-label="Chỉ hiện vùng nhìn camera"
               >
                 <IconCameraFrustumCull width={14} height={14} />
               </button>
               <button
                 id="view-focus"
+                type="button"
                 className="viewer-tool-btn icon"
-                title="Focus khung hình vào vùng chọn 3D (Phím F)"
+                title="Tiêu điểm vào layer đang chọn trong 3D (Phím F)"
                 onClick={() => useView.getState().requestFocus('selection')}
+                aria-label="Tiêu điểm vào vùng chọn"
               >
                 <IconFocusTarget3D width={14} height={14} />
               </button>
+              <button
+                id="view-fit-all"
+                type="button"
+                className="viewer-tool-btn viewer-fit-scene-btn"
+                title="Căn khung 3D ôm gọn toàn bộ phân cảnh"
+                onClick={() =>
+                  useView.setState((s) => ({
+                    focus: { kind: 'all', n: (s.focus?.n ?? 0) + 1 }
+                  }))
+                }
+                aria-label="Căn cảnh 3D"
+              >
+                <IconCompFrame width={13} height={13} />
+                <span>Căn cảnh</span>
+              </button>
+              <span
+                className="viewer-3d-help-chip"
+                title={VIEW_3D_NAV_TOOLTIP}
+                aria-label="Hướng dẫn chuột không gian 3D"
+              >
+                ?
+              </span>
             </div>
           </>
         )}
 
         {rects.cam && (
-          <div className="viewer-camera-status" data-mcp-region="viewer_camera_status" title={selectedLayerName ?? 'Khung nhìn Camera'}>
-            <IconCamera /><span>Camera · {visibleLayerRatio} lớp</span>
+          <div
+            className="viewer-camera-status"
+            data-mcp-region="viewer_camera_status"
+            title={selectedLayerName ?? 'Khung nhìn Camera'}
+          >
+            <IconCamera />
+            <span>Camera · {visibleLayerRatio} lớp</span>
             {selectedLayerName && <span className="viewer-camera-selection">{selectedLayerName}</span>}
           </div>
         )}

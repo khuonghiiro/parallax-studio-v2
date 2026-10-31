@@ -1,0 +1,703 @@
+/* ==========================================================================
+   Layer Assembly Workshop — Studio Header, Moho Pro Rigging & Animate UI
+   Dual-Theme Standard (Dark & Light) · Unified Rectangular Geometry (4–6px)
+   ========================================================================== */
+
+/* 1. 3-Zone Studio Header (Anti-Clipping Rule: Center flex 1 1 auto, CTA flex-shrink 0) */
+.layer-workshop-header {
+  position: relative;
+  z-index: 5100;
+  height: 44px;
+  min-height: 44px;
+  padding: 0 12px;
+  gap: 10px;
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--line);
+  overflow: visible;
+}
+
+.lw-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.lw-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-right: 2px;
+  flex-shrink: 0;
+  color: var(--accent);
+}
+
+.lw-brand strong {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.lw-brand small {
+  font-size: 9.5px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.lw-name {
+  width: clamp(130px, 15vw, 220px);
+  min-width: 110px;
+  max-width: 240px;
+  height: 28px;
+  border-radius: var(--radius);
+  font-weight: 600;
+  font-size: 11.5px;
+}
+
+.lw-category-select {
+  width: 168px;
+  min-width: 132px;
+  flex-shrink: 1;
+}
+
+.lw-header-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.lw-header-center::-webkit-scrollbar {
+  display: none;
+}
+
+.layer-workshop-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.lw-panel-toggle-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--radius);
+  background: var(--bg-2);
+  border: 1px solid var(--line-soft);
+}
+
+.lw-panel-toggle-group .btn.icon {
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  min-height: 24px;
+  padding: 0;
+  border-radius: var(--radius-sm);
+  border-color: transparent;
+}
+
+.lw-panel-toggle-group .btn.icon.active {
+  background: color-mix(in srgb, var(--accent) 18%, var(--bg-3));
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 42%, var(--line-soft));
+}
+
+/* Stage Pane Header Mode Chip */
+.pane-header-tab {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.pane-mode-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 7px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--accent) 14%, var(--bg-2));
+  border: 1px solid color-mix(in srgb, var(--accent) 32%, var(--line-soft));
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+[data-theme='dark'] .pane-mode-chip {
+  color: var(--accent-cyan);
+}
+
+/* Right Column Segmented Tabs Header */
+.lw-right-segmented-tabs {
+  flex-shrink: 0;
+  padding: 4px 4px 0;
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.lw-right-segmented-tabs .pxs-tab {
+  padding: 0 5px;
+  gap: 3px;
+  font-size: 11px;
+  flex: 0 1 auto;
+}
+
+.lw-right-segmented-tabs .pxs-tabs-track {
+  justify-content: space-between;
+}
+
+/* Chống cắt cụt thanh chip nổi trên Sân khấu 2D khi chia đôi 2D & 3D */
+.layer-workshop-viewport .lw-anim-chips,
+.layer-workshop-viewport .lw-plant-motion-chips {
+  left: 50px !important;
+  right: 10px !important;
+  transform: none !important;
+  width: auto !important;
+  max-width: calc(100% - 60px) !important;
+  align-items: center;
+}
+
+.layer-workshop-viewport .lw-anim-chips-row {
+  max-width: 100%;
+  flex-wrap: wrap;
+  justify-content: center;
+  row-gap: 2px;
+}
+
+/* Unified Card Badge Geometry (4px) */
+.lw-card-badge {
+  border-radius: var(--radius-sm);
+}
+
+/* 2. Moho Pro Rigging Toolbelt & Frame-0 Mode Bar */
+.lw-moho-toolbelt-card {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 9px 10px;
+  margin-bottom: 8px;
+  border-radius: var(--radius-md);
+  background: var(--bg-1);
+  border: 1px solid var(--line-soft);
+}
+
+.lw-rig-panel > .pxs-tabs {
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+.lw-moho-frame0-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 0;
+}
+
+.lw-frame-mode-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.lw-frame-mode-badge.is-setup {
+  background: color-mix(in srgb, var(--accent) 14%, var(--bg-2));
+  border: 1px solid color-mix(in srgb, var(--accent) 36%, var(--line-soft));
+  color: var(--accent);
+}
+
+[data-theme='dark'] .lw-frame-mode-badge.is-setup {
+  color: var(--accent-cyan);
+}
+
+.lw-frame-mode-badge.is-testing {
+  background: var(--key);
+  border: 1px solid color-mix(in srgb, var(--key) 75%, #0f172a);
+  color: var(--on-key);
+}
+
+.lw-frame-mode-badge.is-animating {
+  background: color-mix(in srgb, #e11d48 78%, #0f172a);
+  border: 1px solid color-mix(in srgb, #fb7185 55%, transparent);
+  color: #ffffff;
+}
+
+.lw-reset-test-btn {
+  border-color: color-mix(in srgb, var(--key) 55%, var(--line));
+  background: color-mix(in srgb, var(--key) 16%, var(--bg-2));
+  color: var(--text);
+  font-weight: 600;
+}
+
+.lw-reset-test-btn:hover {
+  background: var(--key);
+  color: var(--on-key);
+}
+
+/* 4-Column Moho Rig Tool Grid (S / A / T / Z) */
+.lw-moho-tool-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.lw-moho-tool-btn {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-height: 46px;
+  padding: 5px 3px 4px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line-soft);
+  background: var(--bg-2);
+  color: var(--text-dim);
+  font: inherit;
+  cursor: pointer;
+  transition: background 0.14s ease, color 0.14s ease, border-color 0.14s ease, box-shadow 0.14s ease;
+}
+
+.lw-moho-tool-btn:hover {
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-3));
+  color: var(--text);
+  border-color: var(--line-focus);
+}
+
+.lw-moho-tool-btn.active {
+  background: color-mix(in srgb, var(--accent) 78%, #0f172a);
+  border-color: var(--accent);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.28);
+}
+
+.lw-moho-tool-label {
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.lw-moho-tool-btn kbd {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  padding: 0 3.5px;
+  border-radius: 3px;
+  font-size: 8.5px;
+  font-weight: 700;
+  line-height: 13px;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  background: var(--bg-0);
+  color: var(--text-faint);
+  border: 1px solid var(--line-soft);
+}
+
+.lw-moho-tool-btn.active kbd {
+  background: rgba(15, 23, 42, 0.48);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
+.lw-moho-tool-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+}
+
+.lw-moho-opt-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 25px;
+  padding: 0 7px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-soft);
+  background: var(--bg-2);
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 10.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: all 0.14s ease;
+}
+
+.lw-moho-opt-pill:hover {
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-3));
+  color: var(--text);
+  border-color: var(--line-focus);
+}
+
+.lw-moho-opt-pill.active {
+  background: color-mix(in srgb, var(--accent) 16%, var(--bg-2));
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+[data-theme='dark'] .lw-moho-opt-pill.active {
+  color: var(--accent-cyan);
+}
+
+/* 3. Anatomical Bone Side Color Dots (Left: Cyan, Center: Royal Blue, Right: Coral/Amber) */
+.lw-bone-side-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  flex-shrink: 0;
+  display: inline-block;
+}
+
+.lw-bone-side-dot.side-left {
+  background: #06b6d4;
+  box-shadow: 0 0 0 1px rgba(6, 182, 212, 0.35);
+}
+
+.lw-bone-side-dot.side-center {
+  background: var(--accent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+.lw-bone-side-dot.side-right {
+  background: #f97316;
+  box-shadow: 0 0 0 1px rgba(249, 115, 22, 0.35);
+}
+
+/* Bone Strength Slider & Quick Limb Presets */
+.lw-moho-strength-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 7px 8px;
+  margin: 6px 0 8px;
+  border-radius: var(--radius);
+  background: var(--bg-0);
+  border: 1px solid var(--line-soft);
+}
+
+.lw-moho-strength-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 10.5px;
+  color: var(--text-dim);
+}
+
+.lw-moho-strength-head strong {
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+[data-theme='dark'] .lw-moho-strength-head strong {
+  color: var(--accent-cyan);
+}
+
+.lw-moho-strength-row input[type='range'] {
+  width: 100%;
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.lw-limb-quick-box {
+  margin-top: 8px;
+  padding: 7px 8px;
+  border-radius: var(--radius);
+  background: var(--bg-0);
+  border: 1px solid var(--line-soft);
+}
+
+.lw-limb-quick-title {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-dim);
+  margin-bottom: 5px;
+}
+
+.lw-limb-quick-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.lw-rig-empty-hint {
+  padding: 14px 10px;
+  text-align: center;
+}
+
+.lw-rig-empty-hint p {
+  margin: 0 0 8px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.lw-rig-empty-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Flexi-Bind & Layer-Bind Subtab Controls */
+.lw-smart-autobind-btn {
+  width: 100%;
+  justify-content: center;
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+  background: color-mix(in srgb, var(--accent) 14%, var(--bg-2));
+  color: var(--text);
+  font-weight: 600;
+}
+
+.lw-smart-autobind-btn:hover:not(:disabled) {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
+}
+
+.lw-bind-status-box {
+  padding: 7px 9px;
+  margin-bottom: 8px;
+  border-radius: var(--radius);
+  background: var(--bg-0);
+  border: 1px solid var(--line-soft);
+  font-size: 11px;
+}
+
+.lw-bound-layer-chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-0);
+  border: 1px solid var(--line-soft);
+  font-size: 11px;
+}
+
+.lw-bound-layer-chip > span {
+  cursor: pointer;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lw-template-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.lw-template-card-btn {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 9px;
+  border-radius: var(--radius);
+}
+
+.lw-template-card-btn strong {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.lw-template-card-btn small {
+  font-size: 9.5px;
+  color: var(--text-dim);
+  line-height: 1.3;
+}
+
+/* 4. Moho / Adobe Animate Auto-Key Record Pill */
+.lw-autokey-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 23px;
+  padding: 0 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 10.5px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.14s ease;
+}
+
+.lw-autokey-pill.compact {
+  height: 22px;
+  padding: 0 6px;
+  font-size: 10px;
+}
+
+.lw-autokey-pill:hover {
+  border-color: #f43f5e;
+  color: var(--text);
+}
+
+.lw-autokey-pill.active {
+  background: color-mix(in srgb, #e11d48 80%, #0f172a);
+  border-color: #fb7185;
+  color: #ffffff;
+  box-shadow: 0 1px 6px rgba(225, 29, 72, 0.35);
+}
+
+.lw-empty-note {
+  padding: 10px 8px;
+  border-radius: var(--radius);
+  background: var(--bg-0);
+  border: 1px dashed var(--line);
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+/* 5. Moho 2D Stage SVG Bone Capsules, Pin Bones & L/C/R Anatomical Colors */
+.lw-bone-capsule rect {
+  fill: rgba(59, 130, 246, 0.07);
+  stroke: rgba(96, 165, 250, 0.38);
+  stroke-width: 1.2px;
+  stroke-dasharray: 4 3;
+  vector-effect: non-scaling-stroke;
+  transition: fill 0.14s ease, stroke 0.14s ease;
+}
+
+.lw-bone-capsule.side-left rect {
+  fill: rgba(6, 182, 212, 0.07);
+  stroke: rgba(34, 211, 238, 0.42);
+}
+
+.lw-bone-capsule.side-right rect {
+  fill: rgba(249, 115, 22, 0.07);
+  stroke: rgba(251, 146, 60, 0.42);
+}
+
+.lw-bone-capsule.selected rect {
+  fill: rgba(245, 158, 11, 0.13);
+  stroke: var(--key);
+  stroke-width: 1.7px;
+  stroke-dasharray: 5 2.5;
+}
+
+.lw-bone-capsule.interactive rect {
+  cursor: ns-resize;
+}
+
+.lw-bone-capsule.interactive:hover rect {
+  fill: rgba(56, 189, 248, 0.16);
+  stroke: var(--accent-cyan);
+  stroke-width: 1.9px;
+}
+
+.lw-bone-capsule-handle {
+  fill: var(--bg-1);
+  stroke: var(--key);
+  stroke-width: 2px;
+  vector-effect: non-scaling-stroke;
+  cursor: ns-resize;
+}
+
+.lw-bone-capsule-handle:hover {
+  fill: var(--key);
+}
+
+/* Unselected Anatomical Bone Tints (Left = Cyan, Center = Royal Blue, Right = Coral) */
+.lw-blender-bone.side-left:not(.selected) .lw-bone-facet {
+  fill: rgba(6, 182, 212, 0.22);
+  stroke: rgba(34, 211, 238, 0.88);
+}
+
+.lw-blender-bone.side-left:not(.selected) .lw-bone-head-joint,
+.lw-blender-bone.side-left:not(.selected) .lw-bone-tail-joint {
+  stroke: #06b6d4;
+}
+
+.lw-blender-bone.side-right:not(.selected) .lw-bone-facet {
+  fill: rgba(249, 115, 22, 0.22);
+  stroke: rgba(251, 146, 60, 0.88);
+}
+
+.lw-blender-bone.side-right:not(.selected) .lw-bone-head-joint,
+.lw-blender-bone.side-right:not(.selected) .lw-bone-tail-joint {
+  stroke: #f97316;
+}
+
+.lw-blender-bone.side-center:not(.selected) .lw-bone-facet {
+  fill: rgba(59, 130, 246, 0.22);
+  stroke: rgba(96, 165, 250, 0.88);
+}
+
+.lw-blender-bone.side-center:not(.selected) .lw-bone-head-joint,
+.lw-blender-bone.side-center:not(.selected) .lw-bone-tail-joint {
+  stroke: #3b82f6;
+}
+
+/* Light Theme High-Contrast Bone Strokes over Light Checkerboard */
+[data-theme='light'] .lw-blender-bone.side-left:not(.selected) .lw-bone-facet {
+  stroke: #0891b2;
+}
+
+[data-theme='light'] .lw-blender-bone.side-right:not(.selected) .lw-bone-facet {
+  stroke: #ea580c;
+}
+
+[data-theme='light'] .lw-blender-bone.side-center:not(.selected) .lw-bone-facet {
+  stroke: #2563eb;
+}
+
+/* Moho Pin Bone Reticle Ring */
+.lw-pin-bone-ring {
+  fill: rgba(59, 130, 246, 0.22);
+  stroke: var(--accent-cyan);
+  stroke-width: 2px;
+  vector-effect: non-scaling-stroke;
+  pointer-events: auto;
+  cursor: move;
+}
+
+.lw-blender-bone.side-right .lw-pin-bone-ring {
+  fill: rgba(249, 115, 22, 0.22);
+  stroke: #f97316;
+}
+
+.lw-blender-bone.selected .lw-pin-bone-ring {
+  fill: rgba(245, 158, 11, 0.36);
+  stroke: #ff9800;
+  stroke-width: 2.4px;
+}
+
+.lw-bone-tail-joint.ik {
+  stroke: #10b981 !important;
+  stroke-width: 2.5px;
+}

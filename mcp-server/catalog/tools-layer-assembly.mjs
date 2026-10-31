@@ -270,6 +270,7 @@ export const LAYER_ASSEMBLY_TOOLS = [
           'add-bone',
           'update-bone',
           'delete-bone',
+          'mirror-bone',
           'bind',
           'set-key',
           'delete-key',
@@ -294,6 +295,8 @@ export const LAYER_ASSEMBLY_TOOLS = [
       y: z.number().optional().describe(d('Head joint Y coordinate in canvas units.', 'Tọa độ Y khớp gốc.')),
       length: z.number().optional().describe(d('Bone length in pixels.', 'Chiều dài xương theo pixel.')),
       angle: z.number().optional().describe(d('Bone angle in degrees (clockwise).', 'Góc xương theo độ.')),
+      strength: z.number().min(0.1).max(4).optional().describe(d('Moho Bone Strength / Influence Envelope multiplier (0.1–4.0, default 1.0) controlling Flexi-Bind soft-mesh falloff radius.', 'Hệ số Vùng ảnh hưởng xương chuẩn Moho (0.1–4.0, mặc định 1.0) điều khiển bán kính uốn mềm Flexi-Bind Mesh.')),
+      pin: z.boolean().optional().describe(d('Whether this bone is a Moho Pin Bone point anchor (single joint point).', 'Đánh dấu xương là Chốt Pin Bone chuẩn Moho (điểm khớp đơn).')),
       binding_mode: z.enum(['rigid', 'soft']).optional().describe(d('Bind rigidly or deform the alpha mesh with the selected bone and its descendants.', 'Gắn cứng hoặc uốn mesh alpha theo xương đã chọn và các xương con.')),
       layer_ids: z.array(z.string()).optional().describe(d('Layer IDs to bind to the bone.', 'Danh sách ID layer cần gắn vào xương.')),
       time: z.number().optional().describe(d('Keyframe time in seconds.', 'Thời điểm keyframe tính bằng giây.')),
@@ -368,7 +371,12 @@ export const LAYER_ASSEMBLY_TOOLS = [
       anim_onion: z.boolean().optional().describe(d('Enable onion skin ghosting of previous/next poses (O hotkey).', 'Bật bóng mờ Onion skin các dáng trước/sau (phím O).')),
       anim_onion_count: z.number().int().min(1).max(5).optional().describe(d('Number of ghosts on each side.', 'Số bóng mỗi bên.')),
       anim_onion_step: z.number().min(0.03).max(0.5).optional().describe(d('Time spacing between ghosts in seconds.', 'Khoảng thời gian giữa các bóng (giây).')),
-      anim_path: z.boolean().optional().describe(d('Show motion path of the active bone tip (P hotkey).', 'Hiện quỹ đạo chuyển động của ngọn xương đang chọn (phím P).'))
+      anim_path: z.boolean().optional().describe(d('Show motion path of the active bone tip (P hotkey).', 'Hiện quỹ đạo chuyển động của ngọn xương đang chọn (phím P).')),
+      anim_auto_key: z.boolean().optional().describe(d('Toggle Moho / Adobe Animate Auto-Key recording when dragging bones.', 'Bật/tắt chế độ Auto-Key tự ghi Keyframe khi kéo xương.')),
+      anim_dope_filter: z.enum(['all', 'keyed', 'selected']).optional().describe(d('Filter bone tracks shown in the Dope Sheet timeline ("all", "keyed", "selected").', 'Lọc hàng xương hiển thị trên Dope Sheet ("all", "keyed", "selected").')),
+      rig_tool: z.enum(['select', 'add', 'strength', 'manipulate']).optional().describe(d('Active Moho Rigging tool on the Bones tab: "select" (S), "add" (A draw bone / Pin Bone), "strength" (T Bone Strength capsule), "manipulate" (Z live Frame-0 IK/FK test).', 'Công cụ Tạo xương chuẩn Moho ở tab Tạo xương: "select" (S), "add" (A vẽ xương / Pin Bone), "strength" (T vỏ vùng uốn), "manipulate" (Z thử bẻ khớp IK/FK tại Frame 0).')),
+      rig_influence: z.boolean().optional().describe(d('Show or hide Moho Bone Strength / Influence capsules on the 2D stage.', 'Hiện/ẩn lớp vỏ viên nang Vùng ảnh hưởng xương trên sân khấu 2D.')),
+      rig_mirror_draw: z.boolean().optional().describe(d('Enable symmetrical Left ⇄ Right bone drawing across X = 0 when using the Add Bone (A) tool.', 'Bật/tắt chế độ Vẽ xương đối xứng Trái ⇄ Phải qua trục X = 0 khi dùng công cụ Vẽ xương (A).'))
     }),
     example: '{"tab":"animation","anim_ik":true}'
   },

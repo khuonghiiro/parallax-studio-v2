@@ -218,7 +218,7 @@ export function CameraSketchDialog() {
 
   return (
     <div className="modal-backdrop" onPointerDown={(e) => e.target === e.currentTarget && close()}>
-      <div className="modal wide camera-sketch-modal" role="dialog" style={{ maxWidth: 980, width: '92vw' }}>
+      <div className="modal wide camera-sketch-modal" data-mcp-region="camera_sketch" data-mcp-dialog role="dialog">
         <div className="modal-head modal-head-row">
           <div className="modal-head-title-group">
             <span className="modal-head-badge">
@@ -236,7 +236,7 @@ export function CameraSketchDialog() {
           </button>
         </div>
 
-        <div className="modal-body" style={{ display: 'grid', gridTemplateColumns: '1fr 290px', gap: 16 }}>
+        <div className="modal-body camera-sketch-body">
           {/* 2D Canvas Area */}
           <div className="camera-sketch-canvas">
             <svg

@@ -1,0 +1,429 @@
+/* ==========================================================================
+   Parallax Studio V2 — Multi-Device Responsive Dialogs & Workshops
+   Covers Phone (<=520px, <=768px, Landscape), iPad/Tablet (<=1120px),
+   Laptop (<=1366px), and Desktop (>=1367px) across Dark & Light themes.
+   ========================================================================== */
+
+/* Shared Responsive Pane Switcher Bar inside 3D & 2.5D Workshops */
+.workshop-responsive-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+
+.workshop-responsive-bar .pxs-tabs {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.workshop-responsive-bar .pxs-tabs-track {
+  width: 100%;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+}
+
+.layer-cutter-workspace-shell {
+  flex: 1 1 0%;
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Camera Sketch & Mobile Remote Dialog Grids (replacing rigid inline grids) */
+.camera-sketch-modal {
+  width: min(980px, 94vw);
+  max-width: 980px;
+}
+
+.camera-sketch-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 290px;
+  gap: 14px;
+  min-height: 0;
+}
+
+.remote-modal-body {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: 14px;
+}
+
+/* 3D Assembly Header Scrollable Middle Zone (Anti-Clipping Standard) */
+.assembly-modal-header {
+  gap: 8px;
+}
+
+.assembly-modal-header .header-view-controls {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  flex-wrap: nowrap;
+}
+
+.assembly-modal-header .header-view-controls::-webkit-scrollbar {
+  display: none;
+}
+
+.assembly-modal-header .ah-panel-toggles,
+.assembly-modal-header .ah-close {
+  flex-shrink: 0;
+}
+
+.assembly-split-container.is-stacked {
+  flex-direction: column;
+}
+
+.assembly-split-container.is-stacked .assembly-split-pane.left-pane {
+  border-right: 0;
+  border-bottom: 1px solid var(--line);
+}
+
+/* ==========================================================================
+   1. Laptop / Compact Desktop (<= 1366px)
+   ========================================================================== */
+@media (max-width: 1366px) {
+  .assembly-modal-overlay,
+  .layer-workshop-overlay {
+    padding: 8px;
+  }
+
+  .assembly-modal-content {
+    width: calc(100dvw - 16px);
+    height: calc(100dvh - 16px);
+  }
+
+  .assembly-modal-header .header-title span {
+    font-size: 12.5px;
+  }
+}
+
+/* ==========================================================================
+   2. iPad / Tablet Landscape & Portrait (<= 1120px)
+   ========================================================================== */
+@media (max-width: 1120px) {
+  .modal-backdrop,
+  .manifest-modal-backdrop {
+    padding: 10px;
+  }
+
+  .modal,
+  .modal.wide,
+  .export-modal,
+  .perf-modal,
+  .mcp-modal,
+  .audio-studio-modal,
+  .camera-path-modal,
+  .camera-sketch-modal,
+  .remote-modal,
+  .manifest-modal-box,
+  .wf-node-dialog-window {
+    max-width: calc(100dvw - 20px);
+    max-height: calc(100dvh - 20px);
+  }
+
+  .assembly-modal-overlay,
+  .layer-workshop-overlay {
+    padding: 6px;
+  }
+
+  .assembly-modal-content,
+  .layer-workshop-dialog {
+    width: calc(100dvw - 12px);
+    height: calc(100dvh - 12px);
+    max-width: none;
+    max-height: none;
+  }
+
+  .assembly-modal-content.is-responsive-drawer .assembly-asset-sidebar,
+  .assembly-modal-content.is-responsive-drawer .assembly-inspector-panel {
+    width: 100%;
+    max-width: none;
+    border-left: 0;
+    border-right: 0;
+  }
+
+  .layer-workshop-dialog.is-responsive-drawer .lw-sidebar,
+  .layer-workshop-dialog.is-responsive-drawer .lw-right {
+    width: 100% !important;
+    max-width: none;
+    flex: 1 1 0%;
+    border-left: 0;
+    border-right: 0;
+  }
+
+  /* Nested Mixamo Motion Studio inside Layer Assembly */
+  .lw-mixamo-motion-modal {
+    width: calc(100dvw - 20px) !important;
+    height: calc(100dvh - 20px) !important;
+    max-width: none !important;
+  }
+
+  .lw-mixamo-body {
+    grid-template-columns: minmax(0, 1fr) 290px !important;
+  }
+}
+
+/* ==========================================================================
+   3. Tablet Portrait & Large Foldable (<= 900px)
+   ========================================================================== */
+@media (max-width: 900px) {
+  .camera-sketch-body {
+    grid-template-columns: 1fr;
+    overflow-y: auto;
+  }
+
+  .camera-sketch-canvas {
+    min-height: 260px !important;
+    height: 38dvh;
+  }
+
+  .audio-studio-body {
+    grid-template-columns: 200px minmax(0, 1fr);
+    height: min(540px, 76dvh);
+  }
+
+  /* Camera Path Step: Reflow 8 columns into neat 2-row responsive cards */
+  .camera-path-modal .path-step {
+    grid-template-columns: 24px minmax(0, 1fr) minmax(0, 1fr) auto;
+    row-gap: 6px;
+    padding: 8px;
+    height: auto;
+  }
+
+  /* Mixamo Studio stacks canvas above sidebar on <= 900px */
+  .lw-mixamo-body {
+    display: flex !important;
+    flex-direction: column !important;
+    overflow-y: auto !important;
+  }
+
+  .lw-mixamo-stage {
+    min-height: 300px;
+    flex: 0 0 46dvh;
+  }
+
+  .lw-mixamo-sidebar {
+    width: 100% !important;
+    max-width: none !important;
+    border-left: 0 !important;
+    border-top: 1px solid var(--line);
+  }
+
+  /* Create Layer Assembly Template Modal */
+  .lat-dialog {
+    width: calc(100dvw - 20px) !important;
+    max-height: calc(100dvh - 20px) !important;
+  }
+
+  .lat-body {
+    flex-direction: column !important;
+  }
+
+  .lat-categories {
+    width: 100% !important;
+    flex-direction: row !important;
+    overflow-x: auto !important;
+    border-right: 0 !important;
+    border-bottom: 1px solid var(--line);
+    padding: 6px 8px !important;
+  }
+}
+
+/* ==========================================================================
+   4. Phone Portrait & Compact Phablet (<= 768px)
+   ========================================================================== */
+@media (max-width: 768px) {
+  .modal-backdrop,
+  .manifest-modal-backdrop,
+  .lw-confirm-backdrop {
+    padding: 6px;
+    align-items: stretch;
+  }
+
+  .modal,
+  .modal.wide,
+  .export-modal,
+  .perf-modal,
+  .mcp-modal,
+  .audio-studio-modal,
+  .camera-path-modal,
+  .camera-sketch-modal,
+  .remote-modal,
+  .manifest-modal-box,
+  .wf-node-dialog-window {
+    width: 100% !important;
+    max-width: calc(100dvw - 12px) !important;
+    max-height: calc(100dvh - 12px) !important;
+    margin: auto;
+  }
+
+  /* Full-bleed Studio Sheet for 3D & 2.5D Assembly Workshops on Phone */
+  .assembly-modal-overlay,
+  .layer-workshop-overlay {
+    padding: 0;
+  }
+
+  .assembly-modal-content,
+  .layer-workshop-dialog {
+    width: 100dvw;
+    height: 100dvh;
+    border-radius: 0;
+    border: 0;
+  }
+
+  .assembly-modal-header {
+    padding: 6px 8px;
+    min-height: 40px;
+  }
+
+  .assembly-modal-header .header-title span {
+    display: none;
+  }
+
+  .assembly-modal-footer,
+  .lw-status {
+    padding: 6px 10px;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .lw-status > span:last-child {
+    display: none;
+  }
+
+  .assembly-modal-footer .footer-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  /* Audio Studio stacks track list above editor on Phone */
+  .audio-studio-body {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: minmax(110px, 165px) minmax(0, 1fr);
+    height: min(640px, 80dvh) !important;
+  }
+
+  .audio-track-sidebar {
+    border-right: 0 !important;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .audio-studio-shortcuts-tip {
+    display: none !important;
+  }
+
+  .audio-fade-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Form rows inside Export / Perf / MCP / Standard Modals */
+  .modal .row.plain {
+    grid-template-columns: 96px minmax(0, 1fr);
+    gap: 6px;
+  }
+
+  .modal-head h2 {
+    font-size: 13px;
+  }
+
+  .modal-head p {
+    font-size: 10.5px;
+  }
+
+  .modal-foot {
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 8px 12px;
+  }
+
+  /* Nested Workshop Modals (Retarget, Swap, Template Prompt, Mixamo) */
+  .lw-retarget-modal,
+  .lw-swap-modal,
+  .tpm-modal,
+  .lw-confirm-modal,
+  .lat-dialog,
+  .lw-mixamo-motion-modal {
+    width: calc(100dvw - 12px) !important;
+    max-width: calc(100dvw - 12px) !important;
+    max-height: calc(100dvh - 12px) !important;
+  }
+
+  .lw-workspace.split {
+    flex-direction: column;
+  }
+}
+
+/* ==========================================================================
+   5. Compact Phone (<= 520px)
+   ========================================================================== */
+@media (max-width: 520px) {
+  .modal .row.plain {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .camera-path-modal .path-step {
+    grid-template-columns: 22px minmax(0, 1fr);
+  }
+
+  .remote-modal-body {
+    padding: 10px !important;
+    gap: 10px !important;
+  }
+
+  .workshop-responsive-bar {
+    padding: 4px 6px;
+  }
+
+  .workshop-responsive-bar .pxs-tab {
+    padding: 0 6px;
+    font-size: 10.5px;
+  }
+}
+
+/* ==========================================================================
+   6. Phone Landscape (Short Viewport Height <= 540px)
+   ========================================================================== */
+@media (max-height: 540px) {
+  .assembly-modal-overlay,
+  .layer-workshop-overlay,
+  .modal-backdrop {
+    padding: 0;
+  }
+
+  .assembly-modal-content,
+  .layer-workshop-dialog {
+    width: 100dvw;
+    height: 100dvh;
+    border-radius: 0;
+  }
+
+  .modal,
+  .modal.wide {
+    max-height: 98dvh !important;
+  }
+
+  .modal-head {
+    padding: 6px 12px;
+  }
+
+  .modal-head p,
+  .lw-status {
+    display: none;
+  }
+
+  .camera-sketch-canvas {
+    min-height: 180px !important;
+  }
+}

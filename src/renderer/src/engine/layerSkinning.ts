@@ -81,8 +81,9 @@ function buildCorridorWeights(
         const rawT = ((x - b.x) * end.x + (y - b.y) * end.y) / len2
         const t = Math.max(0, Math.min(1, rawT))
         const distance = Math.hypot(x - b.x - t * end.x, y - b.y - t * end.y)
-        const radius = Math.max(1, b.length * 0.15)
-        const affinity = 1 / (distance * distance + radius * radius) ** 2
+        const sMult = Math.max(0.1, b.strength ?? 1)
+        const radius = Math.max(1, b.length * 0.15 * sMult)
+        const affinity = (sMult * sMult) / (distance * distance + radius * radius) ** 2
         active.push({ id: b.id, raw: cw * affinity, cw })
       }
     }
@@ -163,8 +164,9 @@ export function skinWeights(x: number, y: number, bones: LayerRig['bones']): Ski
     const end = rotatePoint(b.length, 0, b.angle)
     const t = Math.max(0, Math.min(1, ((x - b.x) * end.x + (y - b.y) * end.y) / (b.length * b.length)))
     const distance = Math.hypot(x - b.x - t * end.x, y - b.y - t * end.y)
-    const radius = Math.max(1, b.length * 0.15)
-    return { id: b.id, weight: 1 / (distance * distance + radius * radius) ** 2 }
+    const sMult = Math.max(0.1, b.strength ?? 1)
+    const radius = Math.max(1, b.length * 0.15 * sMult)
+    return { id: b.id, weight: (sMult * sMult) / (distance * distance + radius * radius) ** 2 }
   }).sort((a, b) => b.weight - a.weight).slice(0, 4)
   const sum = weights.reduce((s, w) => s + w.weight, 0)
   return weights.map((w) => ({ id: w.id, weight: w.weight / sum }))

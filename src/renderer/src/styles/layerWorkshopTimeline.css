@@ -1,30 +1,452 @@
-.lw-animation-timeline { flex: 0 0 auto; min-width: 0; color: var(--text); background: var(--bg-1); border-top: 1px solid var(--line); font-size: 11px; }
-.lw-animation-timeline:focus-visible { outline: 1px solid var(--line-focus); outline-offset: -1px; }
-.lw-animation-timeline-toolbar { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; min-height: 36px; padding: 5px 12px; position: relative; overflow: visible; z-index: 5000; }
-.lw-animation-timeline-toolbar strong { color: var(--text); margin-right: 4px; }
-.lw-animation-timeline-toolbar label { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; color: var(--text-dim); }
-.lw-animation-timecode { color: var(--accent); font-variant-numeric: tabular-nums; }
-.lw-animation-track-scroll { overflow: auto; max-height: 190px; border-block: 1px solid var(--line-soft); }
-.lw-animation-track-content { min-width: 100%; }
-.lw-animation-track-row { display: grid; grid-template-columns: 148px minmax(0, 1fr); height: 29px; border-bottom: 1px solid var(--line-soft); }
-.lw-animation-track-name { position: sticky; left: 0; z-index: 2; border: 0; border-right: 1px solid var(--line); background: var(--bg-1); color: var(--text-dim); padding: 6px 10px; font: inherit; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-button.lw-animation-track-name { cursor: pointer; }
-.lw-animation-track-name small { float: right; color: var(--text-faint); margin-left: 5px; }
-.lw-animation-track-row.selected { background: color-mix(in srgb, var(--accent) 8%, var(--bg-0)); }
-.lw-animation-track-row.selected .lw-animation-track-name { color: var(--accent); background: var(--bg-2); }
-.lw-animation-track-lane { position: relative; margin: 0 14px; touch-action: none; background-image: repeating-linear-gradient(to right, var(--line-soft) 0 1px, transparent 1px 12.5%); }
-.lw-animation-ruler-row { position: sticky; top: 0; z-index: 3; background: var(--bg-2); height: 26px; }
-.lw-animation-ruler-row .lw-animation-track-name { background: var(--bg-2); font-size: 10px; font-weight: 600; }
-.lw-animation-ruler span { position: absolute; top: 6px; transform: translateX(-50%); font-size: 10px; color: var(--text-dim); pointer-events: none; }
-.lw-animation-ruler span:first-child { transform: none; }
-.lw-animation-ruler span:last-child { transform: translateX(-100%); }
-.lw-animation-key { position: absolute; top: 50%; width: 10px; height: 10px; padding: 0; transform: translate(-50%, -50%) rotate(45deg); border-radius: 1px; border: 1px solid var(--bg-1); background: var(--key); cursor: ew-resize; touch-action: none; }
-.lw-animation-key.active, .lw-animation-key:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; background: var(--accent); z-index: 1; }
-.lw-animation-key.dragging { background: var(--accent-cyan); z-index: 2; }
-.lw-animation-playhead { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--accent-cyan); box-shadow: 0 0 6px rgba(0, 229, 255, 0.7); pointer-events: none; z-index: 10; }
-.lw-animation-playhead-cap { position: absolute; top: 0; width: 9px; height: 11px; transform: translateX(-50%); background: var(--accent-cyan); clip-path: polygon(0 0, 100% 0, 100% 55%, 50% 100%, 0 55%); pointer-events: none; z-index: 12; filter: drop-shadow(0 0 3px rgba(0, 229, 255, 0.8)); }
-.lw-animation-timeline-hint { color: var(--text-faint); padding: 6px 12px; font-size: 10px; }
-.lw-interpolation-editor { display: flex; flex-direction: column; gap: 6px; margin: 12px 0; }
-.lw-bezier-preview { width: 100%; height: 92px; border-radius: 4px; background: var(--bg-0); border: 1px solid var(--line-soft); }
-.lw-bezier-axis { fill: none; stroke: var(--line); }
-.lw-bezier-curve { fill: none; stroke: var(--accent-cyan); stroke-width: 2; }
+/* ==========================================================================
+   Layer Assembly Workshop — Moho Pro & Adobe Animate Dope Sheet Timeline
+   Dual-Theme Standard (Dark & Light) · Anti-Clipping & Tween Span Bars
+   ========================================================================== */
+
+.lw-animation-timeline {
+  flex: 0 0 auto;
+  min-width: 0;
+  color: var(--text);
+  background: var(--bg-1);
+  border-top: 1px solid var(--line);
+  font-size: 11px;
+}
+
+.lw-animation-timeline:focus-visible {
+  outline: 1px solid var(--line-focus);
+  outline-offset: -1px;
+}
+
+/* 1. Dope Sheet Toolbar (3 Clusters: Transport, Key/Easing, Filter/Zoom) */
+.lw-animation-timeline-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-height: 36px;
+  padding: 5px 10px;
+  position: relative;
+  overflow: visible;
+  z-index: 5000;
+  background: var(--bg-1);
+}
+
+.lw-dope-cluster {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.lw-dope-center-cluster {
+  flex: 1 1 auto;
+  justify-content: center;
+}
+
+.lw-dope-right-cluster {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.lw-animation-timecode {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-0);
+  border: 1px solid var(--line-soft);
+  color: var(--accent);
+  font-size: 10.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+[data-theme='dark'] .lw-animation-timecode {
+  color: var(--accent-cyan);
+}
+
+/* 1-Click Segmented Pills for Tween Easing & Track Filter */
+.lw-dope-seg {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  padding: 2px;
+  border-radius: var(--radius);
+  background: var(--bg-2);
+  border: 1px solid var(--line-soft);
+}
+
+.lw-dope-seg-btn {
+  height: 20px;
+  padding: 0 6px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+
+.lw-dope-seg-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-3));
+  color: var(--text);
+}
+
+.lw-dope-seg-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.lw-dope-seg-btn.active {
+  background: color-mix(in srgb, var(--accent) 78%, #0f172a);
+  border-color: var(--accent);
+  color: #ffffff;
+}
+
+.lw-dope-zoom {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding-left: 4px;
+  border-left: 1px solid var(--line-soft);
+  color: var(--text-dim);
+  font-size: 10.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 2. Dope Sheet Scroll & Grid Rows */
+.lw-animation-track-scroll {
+  overflow: auto;
+  max-height: 206px;
+  border-block: 1px solid var(--line-soft);
+  background: var(--bg-0);
+}
+
+.lw-animation-track-content {
+  min-width: 100%;
+}
+
+.lw-animation-track-row {
+  display: grid;
+  grid-template-columns: 168px minmax(0, 1fr);
+  height: 28px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.lw-animation-track-name {
+  position: sticky;
+  left: 0;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 5px;
+  border: 0;
+  border-right: 1px solid var(--line);
+  background: var(--bg-1);
+  color: var(--text-dim);
+  padding: 0 8px;
+  font: inherit;
+  font-size: 10.5px;
+  text-align: left;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+button.lw-animation-track-name {
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+button.lw-animation-track-name:hover {
+  background: var(--bg-2);
+  color: var(--text);
+}
+
+.lw-dope-bone-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.lw-dope-bone-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lw-animation-track-name small {
+  flex-shrink: 0;
+  color: var(--text-faint);
+  font-size: 9.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.lw-animation-track-row.selected {
+  background: color-mix(in srgb, var(--accent) 9%, var(--bg-0));
+}
+
+.lw-animation-track-row.selected .lw-animation-track-name {
+  color: var(--accent);
+  font-weight: 600;
+  background: color-mix(in srgb, var(--accent) 14%, var(--bg-2));
+}
+
+[data-theme='dark'] .lw-animation-track-row.selected .lw-animation-track-name {
+  color: var(--accent-cyan);
+}
+
+.lw-animation-track-lane {
+  position: relative;
+  margin: 0 14px;
+  touch-action: none;
+  background-image: repeating-linear-gradient(
+    to right,
+    var(--line-soft) 0 1px,
+    transparent 1px 12.5%
+  );
+}
+
+/* 3. Dual Frame + Timecode Ruler (Anti-Clipping at t = 0.0s & 100%) */
+.lw-animation-ruler-row {
+  position: sticky;
+  top: 0;
+  z-index: 8;
+  background: var(--bg-2);
+  height: 26px;
+}
+
+.lw-animation-ruler-row .lw-animation-track-name.lw-ruler-corner {
+  background: var(--bg-2);
+  color: var(--text-dim);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.lw-animation-ruler {
+  cursor: ew-resize;
+}
+
+.lw-ruler-tick {
+  position: absolute;
+  top: 5px;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+  font-size: 9.5px;
+  color: var(--text-dim);
+  pointer-events: none;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.lw-ruler-tick b {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.lw-ruler-tick small {
+  font-size: 9px;
+  color: var(--text-faint);
+}
+
+.lw-ruler-tick:first-of-type {
+  transform: translateX(0);
+  padding-left: 7px;
+}
+
+.lw-ruler-tick:nth-last-of-type(2) {
+  transform: translateX(-100%);
+}
+
+/* 4. Moho Consolidated Master Channel Row (◆ TẤT CẢ KHỚP) */
+.lw-master-pose-row {
+  height: 26px;
+  background: color-mix(in srgb, var(--key) 7%, var(--bg-1));
+  border-bottom: 1px solid var(--line);
+}
+
+.lw-master-pose-row .lw-master-track-label {
+  background: color-mix(in srgb, var(--key) 11%, var(--bg-2));
+  color: var(--text);
+  font-weight: 700;
+  font-size: 10px;
+}
+
+.lw-master-pose-row .lw-master-track-label small {
+  padding: 0 5px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--key) 22%, var(--bg-1));
+  color: var(--text);
+  font-weight: 700;
+}
+
+/* 5. Adobe Animate Color-Coded Tween Span Bars */
+.lw-tween-span {
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  border-radius: 3px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.lw-tween-span::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  right: 5px;
+  top: 50%;
+  height: 1px;
+  transform: translateY(-50%);
+  opacity: 0.7;
+}
+
+.lw-tween-span.kind-motion {
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 44%, transparent);
+}
+
+.lw-tween-span.kind-motion::after {
+  background: var(--accent);
+}
+
+.lw-tween-span.kind-linear {
+  background: rgba(6, 182, 212, 0.16);
+  border: 1px solid rgba(6, 182, 212, 0.42);
+}
+
+.lw-tween-span.kind-linear::after {
+  background: #06b6d4;
+}
+
+.lw-tween-span.kind-hold {
+  background: color-mix(in srgb, var(--key) 14%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--key) 50%, transparent);
+}
+
+.lw-tween-span.kind-hold::after {
+  border-top: 1px dashed var(--key);
+  background: transparent;
+}
+
+/* 6. Keyframes (Diamond Motion/Linear vs Square Hold/Step + Master Pose) */
+.lw-animation-key {
+  position: absolute;
+  top: 50%;
+  width: 9px;
+  height: 9px;
+  padding: 0;
+  transform: translate(-50%, -50%) rotate(45deg);
+  border-radius: 1.5px;
+  border: 1px solid var(--bg-1);
+  background: var(--key);
+  cursor: ew-resize;
+  touch-action: none;
+  z-index: 3;
+  transition: transform 0.1s ease, background 0.1s ease;
+}
+
+.lw-animation-key.ease-linear {
+  background: #06b6d4;
+}
+
+.lw-animation-key.ease-hold {
+  transform: translate(-50%, -50%);
+  border-radius: 2px;
+  width: 8.5px;
+  height: 8.5px;
+  background: #f97316;
+}
+
+.lw-animation-key.master-key {
+  width: 10px;
+  height: 10px;
+  background: var(--key);
+  border-color: var(--bg-0);
+  cursor: pointer;
+}
+
+.lw-animation-key.active,
+.lw-animation-key:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1.5px;
+  background: var(--accent);
+  z-index: 5;
+}
+
+.lw-animation-key.dragging {
+  background: var(--accent-cyan);
+  z-index: 6;
+}
+
+/* 7. Playhead Line & Cap */
+.lw-animation-playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--accent-cyan);
+  box-shadow: 0 0 6px rgba(0, 229, 255, 0.65);
+  pointer-events: none;
+  z-index: 10;
+}
+
+.lw-animation-playhead-cap {
+  position: absolute;
+  top: 0;
+  width: 8px;
+  height: 9px;
+  transform: translateX(-50%);
+  background: var(--accent-cyan);
+  clip-path: polygon(0 0, 100% 0, 100% 55%, 50% 100%, 0 55%);
+  pointer-events: none;
+  z-index: 12;
+  filter: drop-shadow(0 0 3px rgba(0, 229, 255, 0.75));
+}
+
+/* 8. Bezier Curve Preview inside Inspector */
+.lw-interpolation-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 10px 0;
+}
+
+.lw-bezier-preview {
+  width: 100%;
+  height: 88px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-0);
+  border: 1px solid var(--line-soft);
+}
+
+.lw-bezier-axis {
+  fill: none;
+  stroke: var(--line);
+}
+
+.lw-bezier-curve {
+  fill: none;
+  stroke: var(--accent-cyan);
+  stroke-width: 2;
+}
+
+@media (max-width: 900px) {
+  .lw-animation-track-row {
+    grid-template-columns: 124px minmax(0, 1fr);
+  }
+}

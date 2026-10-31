@@ -6,7 +6,6 @@ import { AssemblyAssetSidebar } from './AssemblyAssetSidebar'
 import { Mesh2DTextureEditor } from './Mesh2DTextureEditor'
 import {
   AssemblyHeaderBar,
-  DEFAULT_VIEW_STATE,
   loadAssemblyViewPrefs,
   saveAssemblyViewPrefs,
   type AssemblyViewState
@@ -24,7 +23,8 @@ import {
   type SetAssemblyCameraParams
 } from './assemblyBridge'
 import { resolveSkyAtmosphere } from './assemblyLighting'
-import { IconCube, IconImage } from '../../icons'
+import { IconCube, IconImage, IconLayers, IconSliders } from '../../icons'
+import { SegmentedTabs, useResponsiveViewport } from '../../primitives'
 import { useView } from '../../../store/view'
 
 interface Assembly3DDialogProps {
@@ -34,6 +34,8 @@ interface Assembly3DDialogProps {
   onClose: () => void
   onSaved?: (model: Model3D) => void
 }
+
+type AssemblyResponsivePane = 'assets' | 'stage' | 'inspector'
 
 const DISCRETE = { discrete: true }
 
@@ -81,6 +83,11 @@ export function Assembly3DDialog({ isOpen, initialModel, model: modelProp, onClo
   const [view, setView] = useState<AssemblyViewState>(loadAssemblyViewPrefs)
   const [frameToken, setFrameToken] = useState(0)
   const [inserting, setInserting] = useState(false)
+  const [leftSidebarOpen, setLeftSidebarOpen] = useState(true)
+  const [rightInspectorOpen, setRightInspectorOpen] = useState(true)
+  const [mobilePane, setMobilePane] = useState<AssemblyResponsivePane>('stage')
+  const { isDrawerMode, isPhone: isMobile, breakpoint } = useResponsiveViewport()
+  const isCompactDesktop = breakpoint === 'laptop'
 
   const selectedFace = useMemo(() => model.faces.find((f) => f.id === selectedFaceId) || null, [model.faces, selectedFaceId])
   const selectedTexture = useSelectedTexture(selectedFace?.assetPath)
@@ -95,8 +102,10 @@ export function Assembly3DDialog({ isOpen, initialModel, model: modelProp, onClo
   useEffect(() => {
     if (isOpen) {
       setView(loadAssemblyViewPrefs())
+      setMobilePane('stage')
     }
   }, [isOpen, activeInitial.id])
+
   const setFaces = useCallback(
     (fn: (faces: Face3D[]) => Face3D[], opts?: { discrete?: boolean }) => setModel((m) => ({ ...m, faces: fn(m.faces) }), opts),
     [setModel]
@@ -299,9 +308,29 @@ export function Assembly3DDialog({ isOpen, initialModel, model: modelProp, onClo
   const hiddenCount = model.faces.filter((f) => f.hidden).length
   const sky = resolveSkyAtmosphere(model.lighting, appTheme === 'light')
 
+  const sidebarW = isCompactDesktop ? 280 : 340
+  const desktopGridCols = [
+    leftSidebarOpen ? `${sidebarW}px` : '',
+    'minmax(0, 1fr)',
+    rightInspectorOpen ? `${sidebarW}px` : ''
+  ]
+    .filter(Boolean)
+    .join(' ')
+
+  const showAssets = isDrawerMode ? mobilePane === 'assets' : leftSidebarOpen
+  const showStage = isDrawerMode ? mobilePane === 'stage' : true
+  const showInspector = isDrawerMode ? mobilePane === 'inspector' : rightInspectorOpen
+
   return (
     <div className="assembly-modal-overlay">
-      <div className="assembly-modal-content">
+      <div
+        className={`assembly-modal-content${isDrawerMode ? ' is-responsive-drawer' : ''}${isMobile ? ' is-mobile' : ''}`}
+        data-mcp-region="assembly_3d"
+        data-mcp-dialog
+        role="dialog"
+        aria-modal="true"
+        aria-label="Xưởng Lắp Ráp 3D"
+      >
         <AssemblyHeaderBar
           view={view}
           onViewChange={onViewChange}
@@ -311,77 +340,134 @@ export function Assembly3DDialog({ isOpen, initialModel, model: modelProp, onClo
           onRedo={redo}
           onFrame={() => setFrameToken((t) => t + 1)}
           onClose={handleClose}
+          showPanelToggles={!isDrawerMode}
+          leftSidebarOpen={leftSidebarOpen}
+          rightInspectorOpen={rightInspectorOpen}
+          onToggleLeftSidebar={() => setLeftSidebarOpen((v) => !v)}
+          onToggleRightInspector={() => setRightInspectorOpen((v) => !v)}
         />
 
-        {/* Body: assets | viewport | inspector */}
-        <div className="assembly-modal-body">
-          <AssemblyAssetSidebar
-            model={model}
-            selectedFace={selectedFace}
-            onAssignAssetToFace={handleAssignAssetToFace}
-            modelFaces={model.faces}
-            onSelectFace={setSelectedFaceId}
-            onApplyFaces={(faces, selectId) => {
-              setFaces(() => faces, DISCRETE)
-              if (selectId) setSelectedFaceId(selectId)
-            }}
-          />
-
-          <div className="assembly-viewport-panel">
-            {view.workspaceView === '3d' && (
-              <>
-                {viewport}
-                <div className="viewport-hint">
-                  Chuột giữa: xoay · Chuột phải / kéo nền: dời khung · Cuộn: thu phóng · Kéo mặt: di chuyển (Shift bước 10) · F: lấy nét
-                </div>
-              </>
-            )}
-
-            {view.workspaceView === '2d' && editor2D}
-
-            {view.workspaceView === 'split' && (
-              <div className="assembly-split-container">
-                <div className="assembly-split-pane left-pane">
-                  <div className="pane-header-tab">
-                    <span className="pane-title"><IconImage width={12} height={12} /> Lưới ảnh 2D</span>
-                    <span>{selectedFace ? formatFaceLabel(selectedFace.name) : 'Chưa chọn'}</span>
-                  </div>
-                  {editor2D}
-                </div>
-                <div className="assembly-split-pane">
-                  <div className="pane-header-tab">
-                    <span className="pane-title"><IconCube width={12} height={12} /> Không gian 3D</span>
-                    <span className="assembly-lighting-indicator" title={`Ánh sáng & Bầu trời: ${sky.label}`}>
-                      <span className="lighting-indicator-dot" style={{ backgroundColor: sky.sunColor }} />
-                      <span className="lighting-indicator-label">{sky.icon} {sky.label}</span>
-                    </span>
-                    {/* <span>{model.name}</span> */}
-                  </div>
-                  {viewport}
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="assembly-inspector-panel">
-            <FaceInspector
-              model={model}
-              selectedFaceId={selectedFaceId}
-              imageSize={selectedTexture ? { width: selectedTexture.width, height: selectedTexture.height } : null}
-              onChangeModel={setModel}
-              onSelectFace={setSelectedFaceId}
+        {isDrawerMode && (
+          <div className="workshop-responsive-bar">
+            <SegmentedTabs<AssemblyResponsivePane>
+              variant="segmented"
+              size="sm"
+              mcpRegion="assembly_responsive_tabs"
+              ariaLabel="Chuyển vùng Xưởng Lắp Ráp 3D"
+              value={mobilePane}
+              onChange={setMobilePane}
+              items={[
+                {
+                  id: 'assets',
+                  label: 'Kho & Mặt',
+                  icon: <IconLayers width={13} height={13} />,
+                  badge: model.faces.length
+                },
+                {
+                  id: 'stage',
+                  label: 'Khung 3D',
+                  icon: <IconCube width={13} height={13} />
+                },
+                {
+                  id: 'inspector',
+                  label: selectedFace ? formatFaceLabel(selectedFace.name) : 'Thuộc tính',
+                  icon: <IconSliders width={13} height={13} />
+                }
+              ]}
             />
           </div>
+        )}
+
+        {/* Body: assets | viewport | inspector */}
+        <div
+          className="assembly-modal-body"
+          style={isDrawerMode ? { gridTemplateColumns: 'minmax(0, 1fr)' } : { gridTemplateColumns: desktopGridCols }}
+        >
+          {showAssets && (
+            <AssemblyAssetSidebar
+              model={model}
+              selectedFace={selectedFace}
+              onAssignAssetToFace={handleAssignAssetToFace}
+              modelFaces={model.faces}
+              onSelectFace={(id) => {
+                setSelectedFaceId(id)
+              }}
+              onApplyFaces={(faces, selectId) => {
+                setFaces(() => faces, DISCRETE)
+                if (selectId) setSelectedFaceId(selectId)
+                if (isDrawerMode) setMobilePane('stage')
+              }}
+            />
+          )}
+
+          {showStage && (
+            <div className="assembly-viewport-panel" data-mcp-region="assembly_viewport">
+              {view.workspaceView === '3d' && (
+                <>
+                  {viewport}
+                  <div className="viewport-hint">
+                    Chuột giữa: xoay · Chuột phải / kéo nền: dời khung · Cuộn: thu phóng · Kéo mặt: di chuyển (Shift bước 10) · F: lấy nét
+                  </div>
+                </>
+              )}
+
+              {view.workspaceView === '2d' && editor2D}
+
+              {view.workspaceView === 'split' && (
+                <div className={`assembly-split-container${isMobile ? ' is-stacked' : ''}`}>
+                  <div className="assembly-split-pane left-pane">
+                    <div className="pane-header-tab">
+                      <span className="pane-title">
+                        <IconImage width={12} height={12} /> Lưới ảnh 2D
+                      </span>
+                      <span>{selectedFace ? formatFaceLabel(selectedFace.name) : 'Chưa chọn'}</span>
+                    </div>
+                    {editor2D}
+                  </div>
+                  <div className="assembly-split-pane">
+                    <div className="pane-header-tab">
+                      <span className="pane-title">
+                        <IconCube width={12} height={12} /> Không gian 3D
+                      </span>
+                      <span className="assembly-lighting-indicator" title={`Ánh sáng & Bầu trời: ${sky.label}`}>
+                        <span className="lighting-indicator-dot" style={{ backgroundColor: sky.sunColor }} />
+                        <span className="lighting-indicator-label">
+                          {sky.icon} {sky.label}
+                        </span>
+                      </span>
+                    </div>
+                    {viewport}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {showInspector && (
+            <div className="assembly-inspector-panel" data-mcp-region="assembly_inspector">
+              <FaceInspector
+                model={model}
+                selectedFaceId={selectedFaceId}
+                imageSize={selectedTexture ? { width: selectedTexture.width, height: selectedTexture.height } : null}
+                onChangeModel={setModel}
+                onSelectFace={setSelectedFaceId}
+              />
+            </div>
+          )}
         </div>
 
-        <div className="assembly-modal-footer">
+        <div className="assembly-modal-footer" data-mcp-region="assembly_footer">
           <span className="footer-status">
             <strong>{model.faces.length}</strong> mặt{hiddenCount > 0 && <> · {hiddenCount} đang ẩn</>} · Tỉ lệ{' '}
             <strong>{(model.scale * 100).toFixed(0)}%</strong>
           </span>
           <div className="footer-actions">
-            <button type="button" className="btn secondary" onClick={handleClose}>Hủy</button>
-            <button type="button" className="btn secondary" onClick={handleSave}>Lưu mô hình</button>
+            <button type="button" className="btn secondary" onClick={handleClose}>
+              Hủy
+            </button>
+            <button type="button" className="btn secondary" onClick={handleSave}>
+              Lưu mô hình
+            </button>
             <button type="button" className="btn primary" onClick={handleInsert} disabled={inserting}>
               {inserting ? 'Đang thêm…' : '+ Thêm vào cảnh hiện tại'}
             </button>

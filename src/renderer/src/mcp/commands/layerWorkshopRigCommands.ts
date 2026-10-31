@@ -8,6 +8,7 @@ import { parseWorkshopAnimation } from './layerWorkshopAnimationParams'
 import { getStoredComposites } from '../../ui/layerAssembly/layerAssemblyStorage'
 import { setPlantSpineEditorState, getPlantSpineEditorState } from '../../ui/layerAssembly/plantSpineEditorStore'
 import { setAnimAssist, getAnimAssist } from '../../ui/layerAssembly/animAssistStore'
+import { getRigToolState, resetTestPoses, setRigToolState } from '../../ui/layerAssembly/rigToolStore'
 import {
   autoDetectLandmarksFromComposite,
   buildHumanoidBonesFromLandmarks,
@@ -25,7 +26,8 @@ function bonePatch(p: Params): Partial<Omit<LayerBone, 'id'>> {
   const patch: Partial<Omit<LayerBone, 'id'>> = {}
   if (p.name !== undefined) patch.name = str(p, 'name', true)
   if (p.parent_id !== undefined) patch.parentId = str(p, 'parent_id') || undefined
-  for (const field of ['x', 'y', 'length', 'angle'] as const) if (p[field] !== undefined) patch[field] = num(p, field, true)
+  for (const field of ['x', 'y', 'length', 'angle', 'strength'] as const) if (p[field] !== undefined) patch[field] = num(p, field, true)
+  if (p.pin !== undefined) patch.pin = bool(p, 'pin')
   return patch
 }
 
@@ -157,6 +159,7 @@ function rigAction(p: Params): RigAction {
   const boneId = str(p, 'bone_id', true)
   if (action === 'update-bone') return { action, boneId, patch: bonePatch(p) }
   if (action === 'delete-bone') return { action, boneId }
+  if (action === 'mirror-bone') return { action, boneId }
   throw new ParamError('Unknown rig action')
 }
 
@@ -226,7 +229,31 @@ export const layerWorkshopRigCommands: Record<string, Handler> = {
     if (animOnionStep !== undefined) animPatch.onionStep = Math.max(0.03, Math.min(0.5, animOnionStep))
     const animPath = bool(p, 'anim_path')
     if (animPath !== undefined) animPatch.path = animPath
+    const animAutoKey = bool(p, 'anim_auto_key')
+    if (animAutoKey !== undefined) animPatch.autoKey = animAutoKey
+    const animDopeFilter = str(p, 'anim_dope_filter')
+    if (animDopeFilter) {
+      if (!['all', 'keyed', 'selected'].includes(animDopeFilter)) {
+        throw new ParamError('anim_dope_filter must be all, keyed or selected')
+      }
+      animPatch.dopeFilter = animDopeFilter
+    }
     if (Object.keys(animPatch).length > 0) setAnimAssist(animPatch)
+
+    const rigPatch: Record<string, unknown> = {}
+    const rigTool = str(p, 'rig_tool')
+    if (rigTool) {
+      if (!['select', 'add', 'strength', 'manipulate'].includes(rigTool)) {
+        throw new ParamError('rig_tool must be select, add, strength or manipulate')
+      }
+      if (rigTool !== 'manipulate') resetTestPoses()
+      rigPatch.tool = rigTool
+    }
+    const rigInfluence = bool(p, 'rig_influence')
+    if (rigInfluence !== undefined) rigPatch.showInfluence = rigInfluence
+    const rigMirrorDraw = bool(p, 'rig_mirror_draw')
+    if (rigMirrorDraw !== undefined) rigPatch.mirrorDraw = rigMirrorDraw
+    if (Object.keys(rigPatch).length > 0) setRigToolState(rigPatch as any)
 
     if (tab) {
       session.setIsPlaying(false)
@@ -238,6 +265,7 @@ export const layerWorkshopRigCommands: Record<string, Handler> = {
       boneId,
       spineId: getPlantSpineEditorState().selectedSpineId,
       animAssist: getAnimAssist(),
+      rigTool: getRigToolState(),
       plantEditor: {
         grabMode: getPlantSpineEditorState().grabMode,
         pathRecord: getPlantSpineEditorState().pathRecord,

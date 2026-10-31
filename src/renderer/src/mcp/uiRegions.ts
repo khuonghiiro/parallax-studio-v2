@@ -78,6 +78,7 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   camera_frame: ['#camera-frame', '.camera-frame'],
   viewer_hud: ['.viewer-hud'],
   viewer_tools: ['.viewer-tools'],
+  viewer_3d_presets: region('viewer_3d_presets', '.viewer-3d-presets'),
   animate_camera_stage: ['#animate-camera-stage', '.anim2d-stage', '.anim2d-pane-host'],
   animate_camera_toolbar: ['.anim2d-toolbar'],
   animate_camera_route: ['#camera-route-inspector', '.camera-route-inspector', '#tab-route'],
@@ -173,6 +174,7 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   assembly_header: ['.assembly-modal-header'],
   assembly_footer: ['.assembly-modal-footer'],
   assembly_hud: ['.assembly-3d-hud-container'],
+  assembly_responsive_tabs: region('assembly_responsive_tabs'),
 
   // 2. Xưởng Layer 2.5D (Layer Assembly Workshop) — toàn bộ, từng cột và dialog lồng bên trong
   layer_assembly: ['.tpm-modal', '.layer-workshop-dialog', '.lat-dialog'],
@@ -181,6 +183,7 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   layer_assembly_inspector: ['.lw-right-panel', '.lw-right-column'],
   layer_assembly_tools: ['.workshop-tools', '.lw-tools'],
   layer_assembly_header: ['.workshop-header', '.layer-workshop-header'],
+  layer_assembly_responsive_tabs: region('layer_assembly_responsive_tabs'),
   layer_assembly_toolbar: region('layer_assembly_toolbar', '.lw-tools'),
   layer_assembly_viewport_2d: region('layer_assembly_viewport_2d'),
   layer_assembly_viewport_3d: region('layer_assembly_viewport_3d'),
@@ -190,6 +193,8 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   layer_assembly_physics: region('layer_assembly_physics', '.lw-physics-light-section'),
   layer_assembly_swap: region('layer_assembly_swap', '.lw-swap-modal'),
   layer_assembly_rig_panel: region('layer_assembly_rig_panel', '.lw-rig-panel'),
+  layer_assembly_rig_tools: region('layer_assembly_rig_tools', '.lw-moho-toolbelt-card'),
+  layer_assembly_dopesheet: region('layer_assembly_dopesheet', '.lw-animation-timeline'),
   layer_assembly_mixamo_card: region('layer_assembly_mixamo_card', '.lw-mixamo-card'),
   layer_assembly_mixamo_studio: region('layer_assembly_mixamo_studio', '.lw-mixamo-motion-modal'),
   layer_assembly_mixamo_header: region('layer_assembly_mixamo_header', '.mx-header'),
@@ -334,7 +339,9 @@ export const REGION_ALIASES: Record<string, string> = {
   parts: 'layer_assembly_parts',
   swap: 'layer_assembly_swap',
   remote: 'remote_dialog',
-  qr: 'remote_qr_card'
+  qr: 'remote_qr_card',
+  dopesheet: 'layer_assembly_dopesheet',
+  rig_tools: 'layer_assembly_rig_tools'
 }
 
 export function resolveTargetElement(regionName?: string, selector?: string): HTMLElement | null {

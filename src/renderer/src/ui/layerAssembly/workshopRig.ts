@@ -14,6 +14,7 @@ import {
 import { applyAnimationAction, isAnimationAction, validateCurve, type AnimationAction, type AnimationBatch } from './workshopAnimation'
 export type { BonePoseEntry } from './workshopAnimation'
 import { retargetAnimationClip } from './workshopRetarget'
+import { buildMirroredBoneChain } from './mohoRigHelpers'
 import { autoBindLayersToMixamoBones } from './workshopMixamoAutoRig'
 import { applyAnimTool, type AnimToolOp } from './workshopAnimTools'
 import {
@@ -111,6 +112,7 @@ export type RigAction = AnimationAction | AnimationBatch
   | { action: 'add-bone'; bone: LayerBone }
   | { action: 'update-bone'; boneId: string; patch: Partial<Omit<LayerBone, 'id'>> }
   | { action: 'delete-bone'; boneId: string }
+  | { action: 'mirror-bone'; boneId: string }
   | { action: 'bind'; boneId?: string; layerIds: string[]; mode?: 'rigid' | 'soft' }
   | { action: 'mirror-pose'; time: number }
   | { action: 'settings'; duration?: number; loop?: boolean }
@@ -168,6 +170,9 @@ export function validateRig(composite: LayerComposite): void {
       bone.length < 1
     ) {
       throw new Error('Invalid bone')
+    }
+    if (bone.strength !== undefined && (!Number.isFinite(bone.strength) || bone.strength < 0.05 || bone.strength > 10)) {
+      throw new Error('Invalid bone strength')
     }
     const chain = new Set([bone.id])
     let parent = bone.parentId
@@ -240,6 +245,10 @@ export function applyRigAction(composite: LayerComposite, action: RigAction): La
   }
 
   if (action.action === 'add-bone') rig.bones.push({ ...action.bone })
+  if (action.action === 'mirror-bone') {
+    const mirrored = buildMirroredBoneChain(rig.bones, action.boneId, findMirrorBoneId)
+    rig.bones.push(...mirrored)
+  }
   if (action.action === 'update-bone') {
     rig.bones = rig.bones.map((b) => (b.id === action.boneId ? { ...b, ...action.patch, id: b.id } : b))
   }

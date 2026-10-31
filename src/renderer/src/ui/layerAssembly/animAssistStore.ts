@@ -1,10 +1,20 @@
 import { useSyncExternalStore } from 'react'
 
 /**
- * Công cụ hỗ trợ hoạt họa (tab Animation) — giống các phần mềm hoạt hình chuyên nghiệp:
- * IK kéo ngọn xương, Onion skin (bóng mờ các khung trước/sau) và Quỹ đạo chuyển động của xương đang chọn.
+ * Công cụ hỗ trợ hoạt họa (tab Animation) — chuẩn Moho Pro & Adobe Animate:
+ * - `autoKey`: Tự động ghi keyframe khi kéo/chỉnh xương trên sân khấu.
+ * - `dopeFilter`: Bộ lọc hiển thị hàng xương trên Dope Sheet Timeline (`all`, `keyed`, `selected`).
+ * - `ik` / `ikChain`: Kéo ngọn xương xoay chuỗi xương cha (CCD IK).
+ * - `onion` / `onionCount` / `onionStep`: Bóng mờ Onion Skin khung trước/sau.
+ * - `path`: Đường quỹ đạo chuyển động ngọn xương.
  */
+export type DopeSheetTrackFilter = 'all' | 'keyed' | 'selected'
+
 export interface AnimAssistState {
+  /** Tự động ghi keyframe khi thao tác xương (Moho / Adobe Animate Auto-Key). */
+  autoKey: boolean
+  /** Bộ lọc hàng xương trên Dope Sheet Timeline. */
+  dopeFilter: DopeSheetTrackFilter
   /** Kéo ngọn xương thì cả chuỗi xương cha xoay theo (IK). */
   ik: boolean
   /** Số xương trong chuỗi IK (2 = cánh tay/cẳng tay, 3 = thêm vai…). */
@@ -20,7 +30,16 @@ export interface AnimAssistState {
 }
 
 const STORAGE_KEY = 'pxs.layerWorkshop.animAssist'
-const DEFAULTS: AnimAssistState = { ik: true, ikChain: 2, onion: false, onionCount: 2, onionStep: 0.1, path: true }
+const DEFAULTS: AnimAssistState = {
+  autoKey: true,
+  dopeFilter: 'all',
+  ik: true,
+  ikChain: 2,
+  onion: false,
+  onionCount: 2,
+  onionStep: 0.1,
+  path: true
+}
 
 function load(): AnimAssistState {
   try {
@@ -40,7 +59,11 @@ export function getAnimAssist(): AnimAssistState {
 
 export function setAnimAssist(patch: Partial<AnimAssistState>): void {
   state = { ...state, ...patch }
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)) } catch { /* bộ nhớ trình duyệt không khả dụng */ }
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+  } catch {
+    /* bộ nhớ trình duyệt không khả dụng */
+  }
   listeners.forEach((l) => l())
 }
 

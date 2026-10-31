@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import type { AnimationClip, BoneKeyframe, LayerBone, LayerRig } from '@shared/layerRig'
 import { sampleBonePose } from '../../engine/layerRig'
 import { RigNumber, type RigPanelProps } from './WorkshopRigPanel'
@@ -6,6 +6,7 @@ import { emptyRig, ensureRigClips } from './workshopRig'
 import { sameKeyTime, type BonePoseEntry } from './workshopAnimation'
 import type { useWorkshopPlayback } from './useWorkshopPlayback'
 import { Select } from '../controls'
+import { SegmentedTabs } from '../primitives'
 import { WorkshopClipBar } from './WorkshopClipBar'
 import { WorkshopCustomActionsCard } from './WorkshopCustomActionsCard'
 import { WorkshopRetargetDialog } from './WorkshopRetargetDialog'
@@ -18,14 +19,22 @@ import { confirmPoseAndStep, setStepRecordState, useStepRecord } from './worksho
 import { WorkshopAnimToolsCard } from './WorkshopAnimToolsCard'
 import { WorkshopParallax25DCard } from './WorkshopParallax25DCard'
 import { AnimationKeyList, AnimationPoseActions } from './WorkshopAnimPoseParts'
+import { useEditor } from '../../store/editor'
 import type { LayerComposite } from './types'
+import {
+  IconAutoKeyRec,
+  IconClipsAction,
+  IconOnionSkin,
+  IconPhysicsSpring,
+  IconPoseKey
+} from './LayerWorkshopStudioIcons'
 
 type Props = RigPanelProps & {
   playback: ReturnType<typeof useWorkshopPlayback>
   setComposite: (update: (prev: LayerComposite) => LayerComposite) => void
 }
 
-export type AnimInspectorSubTab = 'pose' | 'sketch' | 'physics'
+export type AnimInspectorSubTab = 'pose' | 'clips' | 'physics'
 
 export function WorkshopAnimationPanel({
   composite,
@@ -36,15 +45,14 @@ export function WorkshopAnimationPanel({
   setComposite
 }: Props) {
   const { rig, activeClip } = ensureRigClips(composite.rig ?? emptyRig())
+  const fps = useEditor((s) => s.project.comp.fps) || 30
   const activeBone = rig.bones.find((b) => b.id === boneId) ?? (rig.bones[0] || null)
   const bone = activeBone
   const time = Math.min(rig.duration, playback.time)
   const keys = bone ? rig.tracks[bone.id] ?? [] : []
   const exact = keys.find((k) => sameKeyTime(k.time, time))
   const previous = keys.filter((k) => k.time <= time).at(-1)
-  const pose = bone
-    ? sampleBonePose({ ...rig, loop: false }, bone.id, time)
-    : { x: 0, y: 0, rotation: 0 }
+  const pose = bone ? sampleBonePose({ ...rig, loop: false }, bone.id, time) : { x: 0, y: 0, rotation: 0 }
   const key: BoneKeyframe = {
     ...pose,
     time,
@@ -109,37 +117,55 @@ export function WorkshopAnimationPanel({
     })
   }
 
+  const frameNumber = Math.round(time * fps)
+
   return (
     <div className="lw-rig-panel lw-animation-panel" data-mcp-region="layer_assembly_animation_panel">
-      {/* 0. Cấu hình Động tác Ảnh đặt tên động (Nhép miệng, Nháy mắt, Đổi biểu cảm...) */}
-      <WorkshopCustomActionsCard composite={composite} setComposite={setComposite} />
-      {/* 1. Quản lý danh sách Động tác (Clips) */}
-      <WorkshopClipBar
+      {/* 1. Thanh Điều khiển Phát, Frame Badge & Auto-Key chuẩn Moho / Adobe Animate */}
+      <AnimationTransportCard
         rig={rig}
-        activeClip={activeClip}
-        composite={composite}
-        run={(action) => {
-          if (action.action === 'apply-mixamo-rig-motion') {
-            playback.setTime(0)
-            run(action)
-            playback.setIsPlaying(true)
-            return
-          }
-          playback.setIsPlaying(false)
-          if (
-            [
-              'switch-clip',
-              'add-clip',
-              'duplicate-clip',
-              'delete-clip',
-              'delete-all-clips'
-            ].includes(action.action)
-          ) {
-            playback.setTime(0)
-          }
-          run(action)
+        activeClipName={activeClip.name}
+        frameNumber={frameNumber}
+        autoKey={assist.autoKey}
+        onToggleAutoKey={() => setAnimAssist({ autoKey: !assist.autoKey })}
+        playback={playback}
+        run={run}
+        onConfirmStep={handleConfirmStep}
+      />
+
+      {/* 2. Thanh 3 Sub-Tabs gọn gàng (loại bỏ cuộn dọc 7 thẻ) */}
+      <SegmentedTabs<AnimInspectorSubTab>
+        variant="segmented"
+        size="sm"
+        ariaLabel="Phân khu Diễn hoạt"
+        value={subTab}
+        onChange={(next) => {
+          setSubTab(next)
+          if (next !== 'clips' && sketch.armed) toggleMotionSketchArmed(false)
         }}
-        onOpenRetarget={() => setIsRetargetOpen(true)}
+        items={[
+          {
+            id: 'pose',
+            label: 'Tạo dáng',
+            icon: <IconPoseKey width={12} height={12} />,
+            badge: exact ? '◆' : undefined,
+            badgeTone: 'accent',
+            title: 'Chỉnh khớp IK/FK, nội suy đường cong Easing/Bezier & danh sách Keyframe'
+          },
+          {
+            id: 'clips',
+            label: 'Clips & Vẽ',
+            icon: <IconClipsAction width={12} height={12} />,
+            badge: rig.clips?.length ?? 1,
+            title: 'Quản lý danh sách Động tác (Clips), Nhép miệng / Biểu cảm & Ghi động tác Realtime / Bút vẽ'
+          },
+          {
+            id: 'physics',
+            label: 'Vật lý & 2.5D',
+            icon: <IconPhysicsSpring width={12} height={12} />,
+            title: 'Xoay nghiêng đầu/thân 2.5D, Nướng quán tính vật lý tóc/áo/đuôi & Cấu hình IK / Onion Skin'
+          }
+        ]}
       />
 
       <WorkshopRetargetDialog
@@ -149,71 +175,13 @@ export function WorkshopAnimationPanel({
         onInherit={inherit}
       />
 
-      {/* 2. Thanh Thời gian, Phát thử & Xác nhận vị trí (Enter) */}
-      <AnimationTransportCard
-        rig={rig}
-        playback={playback}
-        run={run}
-        onConfirmStep={handleConfirmStep}
-      />
-      <WorkshopParallax25DCard
-        rig={rig}
-        time={time}
-        run={run}
-        onStartPlayback={() => {
-          playback.setTime(0)
-          playback.setIsPlaying(true)
-        }}
-        onPausePlayback={() => playback.setIsPlaying(false)}
-      />
-
-      {/* 3. Thanh chuyển 3 chế độ chuyên sâu trong Tab Animation */}
-      <div className="lw-anim-subtabs" role="tablist" aria-label="Chế độ diễn hoạt">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={subTab === 'pose'}
-          className={`lw-anim-subtab${subTab === 'pose' ? ' active' : ''}`}
-          onClick={() => {
-            setSubTab('pose')
-            if (sketch.armed) toggleMotionSketchArmed(false)
-          }}
-          title="Chỉnh tư thế xương, nhấn Enter xác nhận vị trí hoặc giữ Shift+Chuột trái ghi Realtime"
-        >
-          🎯 Tạo dáng
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={subTab === 'sketch'}
-          className={`lw-anim-subtab${subTab === 'sketch' ? ' active' : ''}`}
-          onClick={() => setSubTab('sketch')}
-          title="Ghi động tác Realtime (Shift+Chuột trái) hoặc bật Bút vẽ tự do (Phím D)"
-        >
-          ✏️ Vẽ động tác{sketch.armed ? ' ●' : ''}
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={subTab === 'physics'}
-          className={`lw-anim-subtab${subTab === 'physics' ? ' active' : ''}`}
-          onClick={() => {
-            setSubTab('physics')
-            if (sketch.armed) toggleMotionSketchArmed(false)
-          }}
-          title="Nướng chuyển động vật lý thứ cấp (tóc, tà áo, đuôi) và cấu hình IK / Onion Skin"
-        >
-          🌊 Vật lý & IK
-        </button>
-      </div>
-
-      {/* Nội dung theo từng Sub-tab */}
+      {/* SUB-TAB 1: TẠO DÁNG, EASING & POSE-TO-POSE */}
       {subTab === 'pose' && (
         <div className="lw-card-section lw-animation-pose">
           <div className="lw-card-header">
-            <span className="lw-card-title">🦴 Xương đang chỉnh</span>
+            <span className="lw-card-title">Khớp đang diễn hoạt</span>
             <span className={`lw-card-badge${exact ? ' lw-badge-keyed' : ''}`}>
-              {exact ? '◆ Đã có key' : 'Chưa ghi key'}
+              {exact ? `◆ F${frameNumber}` : 'Nội suy'}
             </span>
           </div>
 
@@ -221,7 +189,7 @@ export function WorkshopAnimationPanel({
             size="sm"
             value={bone?.id ?? ''}
             options={[
-              { value: '', label: 'Chọn xương trên hình hoặc timeline' },
+              { value: '', label: 'Chọn xương trên sân khấu hoặc Dope Sheet' },
               ...rig.bones.map((b) => ({
                 value: b.id,
                 label: `${b.name} (${(rig.tracks[b.id] ?? []).length} key)`
@@ -230,13 +198,12 @@ export function WorkshopAnimationPanel({
             onChange={(value) => selectBone(String(value) || null)}
           />
 
-          {/* Bật/tắt nhanh IK, Onion Skin, Quỹ đạo ngay trong thẻ Tạo dáng */}
           <div className="lw-pose-quick-toggles">
             <button
               type="button"
               className={`lw-pose-toggle-chip${assist.ik ? ' active' : ''}`}
               onClick={() => setAnimAssist({ ik: !assist.ik })}
-              title="Bật/tắt kéo ngọn xương theo chuỗi IK (Phím I)"
+              title="Bật/tắt kéo ngọn xương theo chuỗi CCD IK (Phím I)"
             >
               🦾 IK {assist.ik ? `(${assist.ikChain})` : 'Tắt'}
             </button>
@@ -244,9 +211,9 @@ export function WorkshopAnimationPanel({
               type="button"
               className={`lw-pose-toggle-chip${assist.onion ? ' active' : ''}`}
               onClick={() => setAnimAssist({ onion: !assist.onion })}
-              title="Bật/tắt bóng mờ Onion Skin trước/sau (Phím O)"
+              title="Bật/tắt bóng mờ Onion Skin khung trước/sau (Phím O)"
             >
-              🧅 Onion Skin
+              <IconOnionSkin width={12} height={12} /> Onion
             </button>
             <button
               type="button"
@@ -280,20 +247,17 @@ export function WorkshopAnimationPanel({
               />
 
               <div className="lw-rig-actions">
-                <button className="btn sm primary" onClick={() => setKey()}>
-                  ◆ Ghi tư thế xương
+                <button type="button" className="btn sm primary" onClick={() => setKey()}>
+                  ◆ Ghi Key tại F{frameNumber}
                 </button>
                 <button
+                  type="button"
                   className="btn sm"
-                  onClick={() =>
-                    setKey({ x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1 })
-                  }
+                  onClick={() => setKey({ x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1 })}
                 >
                   ↺ Về gốc
                 </button>
               </div>
-
-              <WorkshopAnimToolsCard rig={rig} boneId={bone.id} playback={playback} run={run} />
 
               <AnimationPoseActions
                 rig={rig}
@@ -306,30 +270,62 @@ export function WorkshopAnimationPanel({
                 canPaste={!!copiedPose}
               />
 
-              <AnimationKeyList
-                bone={bone}
-                keys={keys}
-                time={time}
-                playback={playback}
-                run={run}
-              />
+              <WorkshopAnimToolsCard rig={rig} boneId={bone.id} playback={playback} run={run} />
+
+              <AnimationKeyList bone={bone} keys={keys} time={time} playback={playback} run={run} />
             </>
           ) : (
-            <p>Chọn một xương để chỉnh tư thế. Mỗi hàng timeline bên dưới là một xương.</p>
+            <p className="lw-empty-note">Chọn một xương trên sân khấu 2D hoặc hàng Dope Sheet phía dưới để tạo dáng.</p>
           )}
         </div>
       )}
 
-      {subTab === 'sketch' && (
-        <WorkshopMotionSketchCard
-          isPlaying={playback.isPlaying}
-          onTogglePlay={playback.toggle}
-          onConfirmStep={handleConfirmStep}
-        />
+      {/* SUB-TAB 2: CLIPS ĐỘNG TÁC, BIỂU CẢM SPRITE & GHI ĐỘNG TÁC REALTIME */}
+      {subTab === 'clips' && (
+        <>
+          <WorkshopClipBar
+            rig={rig}
+            activeClip={activeClip}
+            composite={composite}
+            run={(action) => {
+              if (action.action === 'apply-mixamo-rig-motion') {
+                playback.setTime(0)
+                run(action)
+                playback.setIsPlaying(true)
+                return
+              }
+              playback.setIsPlaying(false)
+              if (
+                ['switch-clip', 'add-clip', 'duplicate-clip', 'delete-clip', 'delete-all-clips'].includes(action.action)
+              ) {
+                playback.setTime(0)
+              }
+              run(action)
+            }}
+            onOpenRetarget={() => setIsRetargetOpen(true)}
+          />
+          <WorkshopMotionSketchCard
+            isPlaying={playback.isPlaying}
+            onTogglePlay={playback.toggle}
+            onConfirmStep={handleConfirmStep}
+          />
+          <WorkshopCustomActionsCard composite={composite} setComposite={setComposite} />
+        </>
       )}
 
+      {/* SUB-TAB 3: XOAY 2.5D PARALLAX, VẬT LÝ XƯƠNG THỨ CẤP & CẤU HÌNH IK/ONION */}
       {subTab === 'physics' && (
         <>
+          <WorkshopParallax25DCard
+            rig={rig}
+            time={time}
+            run={run}
+            onStartPlayback={() => {
+              playback.setTime(0)
+              playback.setIsPlaying(true)
+            }}
+            onPausePlayback={() => playback.setIsPlaying(false)}
+          />
           <WorkshopSecondaryMotionCard
             rig={rig}
             boneId={bone?.id ?? null}
@@ -348,31 +344,58 @@ export function WorkshopAnimationPanel({
 
 function AnimationTransportCard({
   rig,
+  activeClipName,
+  frameNumber,
+  autoKey,
+  onToggleAutoKey,
   playback,
   run,
   onConfirmStep
 }: {
   rig: LayerRig
+  activeClipName: string
+  frameNumber: number
+  autoKey: boolean
+  onToggleAutoKey: () => void
   playback: Props['playback']
   run: Props['run']
   onConfirmStep: () => void
 }) {
   const stepRecord = useStepRecord()
+  const isFrameZero = frameNumber === 0
+
   return (
     <div className="lw-card-section lw-anim-transport-card">
+      <div className="lw-moho-frame0-bar">
+        <span className={`lw-frame-mode-badge ${isFrameZero ? 'is-setup' : 'is-animating'}`} title={activeClipName}>
+          {isFrameZero ? '◇ F0 · KHUNG KHỞI ĐẦU' : `◆ F${frameNumber} · ${activeClipName}`}
+        </span>
+        <button
+          type="button"
+          className={`lw-autokey-pill${autoKey ? ' active' : ''}`}
+          onClick={onToggleAutoKey}
+          aria-pressed={autoKey}
+          title="Auto-Key (chuẩn Moho & Adobe Animate): Tự động ghi Keyframe ngay khi kéo xương"
+        >
+          <IconAutoKeyRec width={11} height={11} />
+          <span>Auto-Key</span>
+        </button>
+      </div>
+
       <div className="lw-anim-transport-row">
-        <button className="btn sm primary" onClick={playback.toggle}>
-          {playback.isPlaying ? '⏸ Tạm dừng' : '▶ Phát thử'}
+        <button type="button" className="btn sm primary" onClick={playback.toggle}>
+          {playback.isPlaying ? '⏸ Dừng' : '▶ Phát'}
         </button>
         <button
+          type="button"
           className="btn sm"
           onClick={() => {
             playback.setIsPlaying(false)
             playback.setTime(0)
           }}
-          title="Đưa đầu phát về 0.00s"
+          title="Đưa đầu phát về Frame 0 (0.00s)"
         >
-          ⏮ Về 0s
+          ⏮ F0
         </button>
         <label className="lw-rig-check lw-anim-loop-check" title="Tự động lặp lại khi phát hết clip">
           <input
@@ -380,11 +403,10 @@ function AnimationTransportCard({
             checked={rig.loop}
             onChange={(e) => run({ action: 'settings', loop: e.target.checked })}
           />
-          <span>🔁 Lặp</span>
+          <span>Lặp</span>
         </label>
       </div>
 
-      {/* Thanh xác nhận vị trí từng bước (Enter) & hướng dẫn ghi Realtime (Shift + Chuột trái) */}
       <div className="lw-step-record-bar">
         <div className="lw-step-record-main">
           <button
@@ -393,7 +415,7 @@ function AnimationTransportCard({
             onClick={onConfirmStep}
             title="Chốt tư thế toàn bộ xương tại mốc hiện tại và tự động đẩy thời gian sang bước kế tiếp (Phím tắt: Enter)"
           >
-            ✓ Xác nhận vị trí <kbd>Enter ⏎</kbd>
+            ✓ Chốt bước <kbd>Enter</kbd>
           </button>
           <div className="lw-step-duration-group" role="group" aria-label="Bước nhảy thời gian mỗi lần nhấn Enter">
             {[0.15, 0.3, 0.5, 1.0].map((d) => (
@@ -409,10 +431,6 @@ function AnimationTransportCard({
             ))}
           </div>
         </div>
-        <div className="lw-step-record-hints">
-          <span><strong>Từng bước:</strong> Chuột trái + <kbd>Enter</kbd></span>
-          <span><strong>Realtime:</strong> <kbd>Shift</kbd> + Chuột trái</span>
-        </div>
         {stepRecord.status && (
           <div className="lw-step-record-status" role="status">
             {stepRecord.status}
@@ -422,14 +440,14 @@ function AnimationTransportCard({
 
       <div className="lw-rig-grid lw-anim-time-grid">
         <RigNumber
-          label="Đang đứng (s)"
+          label="Thời điểm (s)"
           value={Number(playback.time.toFixed(2))}
           min={0}
           max={rig.duration}
           step={0.05}
-          onChange={(time) => {
+          onChange={(t) => {
             playback.setIsPlaying(false)
-            playback.setTime(time)
+            playback.setTime(t)
           }}
         />
         <RigNumber
@@ -454,11 +472,7 @@ function PoseFields({
 }) {
   return (
     <div className="lw-rig-grid">
-      <RigNumber
-        label="Góc xoay (°)"
-        value={pose.rotation}
-        onChange={(rotation) => setKey({ rotation })}
-      />
+      <RigNumber label="Góc xoay (°)" value={pose.rotation} onChange={(rotation) => setKey({ rotation })} />
       <RigNumber label="Dời X (px)" value={pose.x} onChange={(x) => setKey({ x })} />
       <RigNumber label="Dời Y (px)" value={pose.y} onChange={(y) => setKey({ y })} />
       <RigNumber

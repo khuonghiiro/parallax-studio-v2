@@ -25,6 +25,7 @@ import { layerMotionSketchCommands } from './layerMotionSketchCommands'
 import { layerAnimProCommands } from './layerAnimProCommands'
 import { getPlantSpineEditorState } from '../../ui/layerAssembly/plantSpineEditorStore'
 import { getAnimAssist } from '../../ui/layerAssembly/animAssistStore'
+import { getRigToolState } from '../../ui/layerAssembly/rigToolStore'
 import { layerWorkshopEditCommands } from './layerWorkshopEditCommands'
 import { layerPartsCommands } from './layerPartsCommands'
 import { validateWorkshop } from '../../ui/layerAssembly/workshopEdits'
@@ -301,6 +302,7 @@ export const layerAssemblyCommands: Record<string, Handler> = {
       selectedBoneId: session.getSelectedBoneId?.() ?? null,
       selectedSpineId: plantEditor.selectedSpineId,
       animAssist: getAnimAssist(),
+      rigTool: getRigToolState(),
       plantEditor: {
         preset: plantEditor.preset,
         target: plantEditor.target,

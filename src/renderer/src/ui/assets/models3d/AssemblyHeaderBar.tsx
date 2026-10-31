@@ -15,6 +15,12 @@ import {
   IconWireframe,
   IconX
 } from '../../icons'
+import {
+  IconSidebarLeftCollapse,
+  IconSidebarLeftExpand,
+  IconSidebarRightCollapse,
+  IconSidebarRightExpand
+} from '../../workspaceIcons'
 
 export type CameraPreset = 'front' | 'left' | 'right' | 'top' | 'iso'
 export type MeshEditMode = 'none' | 'erase' | 'select'
@@ -122,6 +128,11 @@ interface AssemblyHeaderBarProps {
   onRedo: () => void
   onFrame: () => void
   onClose: () => void
+  showPanelToggles?: boolean
+  leftSidebarOpen?: boolean
+  rightInspectorOpen?: boolean
+  onToggleLeftSidebar?: () => void
+  onToggleRightInspector?: () => void
 }
 
 const VIEW_TABS: Array<{ id: WorkspaceView; label: string; title: string; Icon: typeof IconCube }> = [
@@ -171,7 +182,21 @@ function ShortcutHelp() {
 }
 
 /** Header of the Assembly workshop: workspace layout, tools, display toggles, camera, history. */
-export function AssemblyHeaderBar({ view, onViewChange, canUndo, canRedo, onUndo, onRedo, onFrame, onClose }: AssemblyHeaderBarProps) {
+export function AssemblyHeaderBar({
+  view,
+  onViewChange,
+  canUndo,
+  canRedo,
+  onUndo,
+  onRedo,
+  onFrame,
+  onClose,
+  showPanelToggles = false,
+  leftSidebarOpen = true,
+  rightInspectorOpen = true,
+  onToggleLeftSidebar,
+  onToggleRightInspector
+}: AssemblyHeaderBarProps) {
   const toggle = (key: 'showWireframe' | 'meshOnlyPixels' | 'showGrid' | 'showAxes', label: string, title: string, icon?: ReactNode) => (
     <button
       type="button"
@@ -192,7 +217,7 @@ export function AssemblyHeaderBar({ view, onViewChange, canUndo, canRedo, onUndo
   }
 
   return (
-    <div className="assembly-modal-header">
+    <div className="assembly-modal-header" data-mcp-region="assembly_header">
       <div className="header-title">
         <IconCube width={18} height={18} />
         <span>Xưởng Lắp Ráp 3D</span>
@@ -210,8 +235,13 @@ export function AssemblyHeaderBar({ view, onViewChange, canUndo, canRedo, onUndo
       <div className="header-view-controls">
         <div className="view-mode-tabs" title="Bố cục khung làm việc">
           {VIEW_TABS.map(({ id, label, title, Icon }) => (
-            <button key={id} type="button" title={title} onClick={() => onViewChange({ workspaceView: id })}
-              className={`view-mode-tab-btn${view.workspaceView === id ? ' active' : ''}`}>
+            <button
+              key={id}
+              type="button"
+              title={title}
+              onClick={() => onViewChange({ workspaceView: id })}
+              className={`view-mode-tab-btn${view.workspaceView === id ? ' active' : ''}`}
+            >
               <Icon width={13} height={13} />
               <span>{label}</span>
             </button>
@@ -239,12 +269,20 @@ export function AssemblyHeaderBar({ view, onViewChange, canUndo, canRedo, onUndo
             <IconAxisRotate width={12} height={12} />
             <span>Xoay</span>
           </button>
-          <button type="button" className={`ah-seg-btn${view.meshEditMode === 'select' ? ' active' : ''}`}
-            onClick={() => meshMode('select')} title="Chọn ô lưới để uốn/bẻ (hoặc Shift + Click trên 3D)">
+          <button
+            type="button"
+            className={`ah-seg-btn${view.meshEditMode === 'select' ? ' active' : ''}`}
+            onClick={() => meshMode('select')}
+            title="Chọn ô lưới để uốn/bẻ (hoặc Shift + Click trên 3D)"
+          >
             <span>Chọn ô</span>
           </button>
-          <button type="button" className={`ah-seg-btn danger${view.meshEditMode === 'erase' ? ' active' : ''}`}
-            onClick={() => meshMode('erase')} title="Gọt/tỉa từng ô lưới (hoặc Alt + Click trên 3D)">
+          <button
+            type="button"
+            className={`ah-seg-btn danger${view.meshEditMode === 'erase' ? ' active' : ''}`}
+            onClick={() => meshMode('erase')}
+            title="Gọt/tỉa từng ô lưới (hoặc Alt + Click trên 3D)"
+          >
             <span>Gọt</span>
           </button>
         </div>
@@ -258,8 +296,13 @@ export function AssemblyHeaderBar({ view, onViewChange, canUndo, canRedo, onUndo
 
         <div className="ah-seg" role="group" aria-label="Góc camera">
           {CAMERA_PRESETS.map((p) => (
-            <button key={p.id} type="button" title={p.title} onClick={() => onViewChange({ cameraPreset: p.id })}
-              className={`ah-seg-btn${view.cameraPreset === p.id ? ' active' : ''}`}>
+            <button
+              key={p.id}
+              type="button"
+              title={p.title}
+              onClick={() => onViewChange({ cameraPreset: p.id })}
+              className={`ah-seg-btn${view.cameraPreset === p.id ? ' active' : ''}`}
+            >
               {p.label}
             </button>
           ))}
@@ -270,6 +313,29 @@ export function AssemblyHeaderBar({ view, onViewChange, canUndo, canRedo, onUndo
 
         <ShortcutHelp />
       </div>
+
+      {showPanelToggles && (
+        <div className="ah-group ah-panel-toggles">
+          <button
+            type="button"
+            className={`ah-icon-btn${leftSidebarOpen ? ' active' : ''}`}
+            onClick={onToggleLeftSidebar}
+            title={leftSidebarOpen ? 'Thu gọn cột Tài nguyên bên trái' : 'Mở cột Tài nguyên bên trái'}
+            aria-pressed={leftSidebarOpen}
+          >
+            {leftSidebarOpen ? <IconSidebarLeftCollapse width={14} height={14} /> : <IconSidebarLeftExpand width={14} height={14} />}
+          </button>
+          <button
+            type="button"
+            className={`ah-icon-btn${rightInspectorOpen ? ' active' : ''}`}
+            onClick={onToggleRightInspector}
+            title={rightInspectorOpen ? 'Thu gọn cột Thuộc tính bên phải' : 'Mở cột Thuộc tính bên phải'}
+            aria-pressed={rightInspectorOpen}
+          >
+            {rightInspectorOpen ? <IconSidebarRightCollapse width={14} height={14} /> : <IconSidebarRightExpand width={14} height={14} />}
+          </button>
+        </div>
+      )}
 
       <button type="button" className="ah-icon-btn ah-close" onClick={onClose} title="Đóng">
         <IconX width={14} height={14} />

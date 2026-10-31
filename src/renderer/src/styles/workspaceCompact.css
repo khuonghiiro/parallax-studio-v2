@@ -17,7 +17,14 @@
   backdrop-filter: none;
   box-sizing: border-box;
   justify-content: flex-start;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
   margin: 0;
+}
+
+.viewer > .viewer-tools::-webkit-scrollbar {
+  display: none;
 }
 
 .viewer-view-tags .seg-btn.icon-only {
@@ -28,13 +35,102 @@
   justify-content: center;
 }
 
-.viewer-tools .custom-select-wrap.viewer-kind-select {
-  min-width: 66px;
+.viewer-tools .viewer-3d-presets {
+  flex: none;
+  height: 22px;
+  padding: 1px;
+  gap: 1px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+}
+
+.viewer-tools .viewer-3d-presets .seg-btn {
+  height: 18px;
+  padding: 0 7px;
+  font-size: 10.5px;
+  border-radius: 3px;
+}
+
+.viewer-3d-presets-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 18px;
+  padding: 0 6px 0 5px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--accent-cyan);
+  border-right: 1px solid var(--line-soft);
+  margin-right: 1px;
+  user-select: none;
+  cursor: help;
+}
+
+[data-theme='light'] .viewer-3d-presets-tag {
+  color: var(--accent);
+}
+
+.viewer-tools .viewer-fit-scene-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 7px;
+  font-size: 10.5px;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-soft);
+  background: var(--bg-2);
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.viewer-tools .viewer-fit-scene-btn:hover {
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg-3));
+  border-color: var(--line-focus);
+  color: var(--text);
+}
+
+.viewer-3d-help-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-left: 1px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-soft);
+  background: var(--bg-2);
+  color: var(--text-dim);
+  font-size: 10px;
+  font-weight: 700;
+  cursor: help;
+  flex-shrink: 0;
+}
+
+.viewer-3d-help-chip:hover {
+  color: var(--text);
+  border-color: var(--line-focus);
+  background: var(--bg-3);
+}
+
+@media (max-width: 1120px) {
+  .viewer-3d-presets-tag span,
+  .viewer-tools .viewer-fit-scene-btn span {
+    display: none;
+  }
+
+  .viewer-tools .viewer-fit-scene-btn {
+    padding: 0 5px;
+  }
 }
 
 .viewer-tools .viewer-hud-inline {
   position: static;
   margin-left: auto;
+  flex-shrink: 0;
   height: 22px;
   padding: 0 2px;
   background: var(--bg-2);

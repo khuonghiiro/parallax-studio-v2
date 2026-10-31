@@ -212,10 +212,10 @@ export function MobileRemoteDialog() {
 
         {/* Body: 2 Columns */}
         <div
-          className="modal-body"
+          className="modal-body remote-modal-body"
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))',
             gap: 14,
             padding: '14px 16px',
             maxHeight: '76vh',

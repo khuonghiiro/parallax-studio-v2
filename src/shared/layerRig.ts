@@ -7,6 +7,10 @@ export interface LayerBone {
   y: number
   length: number
   angle: number
+  /** Moho Bone Strength / Influence Envelope multiplier (0.1..4.0, default 1.0). */
+  strength?: number
+  /** True when created as a Moho Pin Bone (point-pivot bone with compact capsule). */
+  pin?: boolean
 }
 
 export interface BonePose {
@@ -51,4 +55,3 @@ export interface LayerRig {
   /** ID của động tác đang được kích hoạt và chỉnh sửa */
   activeClipId?: string
 }
-
