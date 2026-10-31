@@ -24,6 +24,7 @@ import {
 } from './meshEditor/sculptBrushEngine'
 import type { GizmoRect } from '../../../engine/layerGizmo'
 import { useView } from '../../../store/view'
+import { usePinchPanGesture } from '../../../hooks/usePinchPanGesture'
 
 import type { AssemblyCaptureOptions, AssemblyCameraState, SetAssemblyCameraParams } from './assemblyBridge'
 import type { CameraPreset } from './assemblyMeshFactory'
@@ -111,6 +112,18 @@ export function AssemblyViewport({
   const orbitRef = useRef<OrbitState>({ azimuth: -0.6, elevation: 0.4, radius: 1400, target: new THREE.Vector3(0, 100, 200) })
   const dragRef = useRef({ mode: 'none' as DragMode, prevX: 0, prevY: 0, startX: 0, startY: 0, faceId: null as string | null, initFacePos: [0, 0, 0] as [number, number, number] })
   const scale = model.scale || 1.0
+  const isMultiTouchRef = usePinchPanGesture(containerRef, ({ scaleFactor, dx, dy }) => {
+    const o = orbitRef.current
+    o.radius = Math.max(200, Math.min(6000, o.radius / scaleFactor))
+    const cam = cameraRef.current
+    if (cam && (Math.abs(dx) > 0.3 || Math.abs(dy) > 0.3)) {
+      const right = new THREE.Vector3(1, 0, 0).applyQuaternion(cam.quaternion)
+      const up = new THREE.Vector3(0, 1, 0).applyQuaternion(cam.quaternion)
+      const sp = (o.radius / 1000) * 0.85
+      o.target.addScaledVector(right, -dx * sp).addScaledVector(up, dy * sp)
+    }
+    bumpGizmo()
+  })
 
   useEffect(() => {
     if (!onRegisterCapture) return
@@ -443,7 +456,7 @@ export function AssemblyViewport({
   }
 
   const handlePointerDown = (e: React.PointerEvent) => {
-    if (isGizmoDraggingRef.current) return
+    if (isGizmoDraggingRef.current || isMultiTouchRef.current) return
     if (e.button === 1) {
       e.preventDefault()
       return startDrag(e, 'orbit')
@@ -463,7 +476,7 @@ export function AssemblyViewport({
     }
     const hit = pick(e.clientX, e.clientY)
     const face = hit ? model.faces.find((f) => f.id === hit.faceId) : undefined
-    if (!hit || !face) return startDrag(e, 'panSpace')
+    if (!hit || !face) return startDrag(e, e.pointerType === 'touch' ? 'orbit' : 'panSpace')
     onSelectFace(hit.faceId)
     if (face.locked) return startDrag(e, 'panSpace')
 
@@ -501,7 +514,7 @@ export function AssemblyViewport({
   }
 
   const handlePointerMove = (e: React.PointerEvent) => {
-    if (isGizmoDraggingRef.current) return
+    if (isGizmoDraggingRef.current || isMultiTouchRef.current) return
     const ds = dragRef.current
     const o = orbitRef.current
     const camera = cameraRef.current
@@ -599,7 +612,7 @@ export function AssemblyViewport({
   }
 
   const handlePointerUp = (e: React.PointerEvent) => {
-    if (isGizmoDraggingRef.current) return
+    if (isGizmoDraggingRef.current || isMultiTouchRef.current) return
     if (dragRef.current.mode === 'brush') {
       if (sculptSessionRef.current) {
         const session = sculptSessionRef.current

@@ -65,6 +65,8 @@ export interface ViewState extends ViewPrefs {
   setMobileTab(tab: MobileWorkspaceTab): void
   tabletTab: TabletSideTab
   setTabletTab(tab: TabletSideTab): void
+  touch3dMode: 'orbit' | 'pan'
+  setTouch3dMode(mode: 'orbit' | 'pan'): void
   audioSelectedCategory: string
   setAudioSelectedCategory(cat: string): void
   aiActive: boolean
@@ -248,6 +250,10 @@ export const useView = create<ViewState>((set, get) => ({
   tabletTab: 'left',
   setTabletTab(tabletTab) {
     set({ tabletTab })
+  },
+  touch3dMode: 'orbit',
+  setTouch3dMode(touch3dMode) {
+    set({ touch3dMode })
   },
   audioSelectedCategory: 'all',
   setAudioSelectedCategory(cat) {

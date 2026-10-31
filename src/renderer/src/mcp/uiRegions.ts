@@ -79,6 +79,7 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   viewer_hud: ['.viewer-hud'],
   viewer_tools: ['.viewer-tools'],
   viewer_3d_presets: region('viewer_3d_presets', '.viewer-3d-presets'),
+  viewer_touch_nav: region('viewer_touch_nav', '.viewer-touch-nav-seg'),
   animate_camera_stage: ['#animate-camera-stage', '.anim2d-stage', '.anim2d-pane-host'],
   animate_camera_toolbar: ['.anim2d-toolbar'],
   animate_camera_route: ['#camera-route-inspector', '.camera-route-inspector', '#tab-route'],
@@ -272,6 +273,9 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   remote_dialog: region('remote_dialog', '.remote-modal'),
   remote_qr_card: region('remote_qr_card', '.remote-qr-card'),
   remote_touchpad_card: region('remote_touchpad_card', '.remote-touchpad-card'),
+  remote_mode_picker: region('remote_mode_picker', '.remote-mode-picker'),
+  remote_devices_list: region('remote_devices_list', '.remote-devices-card'),
+  remote_client_hud: region('remote_client_hud', '.remote-client-hud'),
 
   // AI Neon HUD
   ai_hud: ['.ai-neon-hud-badge']

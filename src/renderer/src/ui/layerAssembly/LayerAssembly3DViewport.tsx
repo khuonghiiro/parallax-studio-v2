@@ -14,6 +14,7 @@ import { syncLayersGroupMeshes } from './layerAssembly3DSync'
 import { LayerAssembly3DToolbar } from './LayerAssembly3DToolbar'
 import { LayerAssemblyGizmo } from './LayerAssemblyGizmo'
 import { useView } from '../../store/view'
+import { usePinchPanGesture } from '../../hooks/usePinchPanGesture'
 import type { GizmoRect } from '../../engine/layerGizmo'
 import {
   createLightRig,
@@ -595,6 +596,19 @@ export function LayerAssembly3DViewport({
     if (!selectedLayer) return
     aimAtSelectedLayer(selectedLayer, orbitRef.current, effectiveZExaggeration, setCameraTarget, requestRender)
   }, [selectedLayer, effectiveZExaggeration, requestRender])
+
+  usePinchPanGesture(containerRef, ({ scaleFactor, dx, dy }) => {
+    const o = orbitRef.current
+    o.distance = Math.max(120, Math.min(9000, o.distance / scaleFactor))
+    const cam = cameraRef.current
+    if (cam && (Math.abs(dx) > 0.3 || Math.abs(dy) > 0.3)) {
+      const right = new THREE.Vector3(1, 0, 0).applyQuaternion(cam.quaternion)
+      const up = new THREE.Vector3(0, 1, 0).applyQuaternion(cam.quaternion)
+      const sp = (o.distance / 900) * 0.85
+      o.target.addScaledVector(right, -dx * sp).addScaledVector(up, dy * sp)
+    }
+    requestRender()
+  })
 
   const handleApplyPreset = (preset: CameraPreset) => {
     cameraPresetRef.current = preset

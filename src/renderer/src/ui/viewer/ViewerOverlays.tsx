@@ -141,6 +141,32 @@ export function ViewerOverlays({
                 )
               })}
             </div>
+            <div
+              className="viewer-mode-seg viewer-touch-nav-seg"
+              data-mcp-region="viewer_touch_nav"
+              role="group"
+              aria-label="Chế độ kéo 1 ngón cảm ứng 3D"
+              title="Chế độ kéo 1 ngón trên màn hình cảm ứng (Điện thoại / iPad / Tablet): Xoay 360° hoặc Lia mặt phẳng (2 ngón luôn Chụm Zoom & Lia)"
+            >
+              <button
+                type="button"
+                className={`seg-btn${view.touch3dMode === 'orbit' ? ' active' : ''}`}
+                onClick={() => view.setTouch3dMode('orbit')}
+                aria-pressed={view.touch3dMode === 'orbit'}
+                title="Cảm ứng 1 ngón: Xoay 360° quanh tâm cảnh"
+              >
+                Xoay
+              </button>
+              <button
+                type="button"
+                className={`seg-btn${view.touch3dMode === 'pan' ? ' active' : ''}`}
+                onClick={() => view.setTouch3dMode('pan')}
+                aria-pressed={view.touch3dMode === 'pan'}
+                title="Cảm ứng 1 ngón: Lia mặt phẳng X/Y"
+              >
+                Lia
+              </button>
+            </div>
             <span className="viewer-tool-sep" />
           </>
         )}

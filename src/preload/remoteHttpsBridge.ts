@@ -55,6 +55,9 @@ function forwardToUpstream(req: IncomingMessage, res: ServerResponse): void {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Private-Network': 'true'
       })
+      if (String(proxyRes.headers['content-type'] || '').includes('text/event-stream')) {
+        res.flushHeaders?.()
+      }
       proxyRes.pipe(res)
     }
   )
@@ -67,6 +70,25 @@ function forwardToUpstream(req: IncomingMessage, res: ServerResponse): void {
   })
 
   req.pipe(proxyReq)
+}
+
+function forwardUpgradeToUpstream(req: IncomingMessage, socket: Socket, head: Buffer): void {
+  const upstream = createConnection({ host: '127.0.0.1', port: latestUpstreamPort }, () => {
+    const rawUrl = req.url || '/'
+    let headerLines = `${req.method || 'GET'} ${rawUrl} HTTP/${req.httpVersion}\r\n`
+    for (let i = 0; i + 1 < req.rawHeaders.length; i += 2) {
+      headerLines += `${req.rawHeaders[i]}: ${req.rawHeaders[i + 1]}\r\n`
+    }
+    if (latestToken && !req.headers['x-remote-token']) {
+      headerLines += `X-Remote-Token: ${latestToken}\r\n`
+    }
+    headerLines += '\r\n'
+    upstream.write(headerLines)
+    if (head && head.length > 0) upstream.write(head)
+    socket.pipe(upstream).pipe(socket)
+  })
+  upstream.on('error', () => socket.destroy())
+  socket.on('error', () => upstream.destroy())
 }
 
 async function ensureBridgeForStatus(status: RemoteServerStatus): Promise<number | null> {
@@ -95,6 +117,8 @@ async function ensureBridgeForStatus(status: RemoteServerStatus): Promise<number
       const { key, cert } = generateSelfSignedCert(status.ips)
       const httpSrv = createHttpServer(forwardToUpstream)
       const httpsSrv = createHttpsServer({ key, cert }, forwardToUpstream)
+      httpSrv.on('upgrade', forwardUpgradeToUpstream)
+      httpsSrv.on('upgrade', forwardUpgradeToUpstream)
       httpsSrv.listen(0, '127.0.0.1')
 
       const netSrv = createNetServer((socket: Socket) => {

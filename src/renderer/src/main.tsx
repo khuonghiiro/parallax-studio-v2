@@ -16,9 +16,12 @@ import App from './App'
 import './styles/responsive.css'
 import './styles/responsiveWorkspace.css'
 import './styles/responsiveDialogs.css'
+import './styles/remoteStudio.css'
+import { installRemoteWebApiBridge } from './remote/remoteWebApiBridge'
 import { initMcp } from './mcp/commands'
 import { ErrorBoundary } from './ui/ErrorBoundary'
 
+installRemoteWebApiBridge()
 initMcp()
 
 // No StrictMode: double-mounted effects would create two WebGL renderers on one canvas context.

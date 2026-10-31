@@ -15,6 +15,9 @@ import { AudioStudioDialog } from './ui/AudioStudioDialog'
 import { Assembly3DDialog } from './ui/assets/models3d/Assembly3DDialog'
 import { GlobalLayerAssemblyHost } from './ui/layerAssembly/GlobalLayerAssemblyHost'
 import { AiControlOverlay } from './ui/AiControlOverlay'
+import { RemoteClientHud } from './ui/remote/RemoteClientHud'
+import { isRemoteWebClient } from './remote/remoteSession'
+import { bootstrapAndSyncRemoteClient, initHostRemoteBridge } from './remote/remoteStudioSync'
 import { Inspector } from './ui/Inspector'
 import { LeftPanel } from './ui/LeftPanel'
 import { ResponsiveDockBar } from './ui/ResponsiveDockBar'
@@ -46,15 +49,45 @@ export default function App() {
   usePlayback()
   useShortcuts(openExport)
 
-  // Open the demo scene on first launch and ensure UI zoom is at 100%.
+  // Open the demo scene on first launch (or bootstrap live project when running as a Remote QR client).
   useEffect(() => {
+    let cleanupRemote: (() => void) | null = null
+    let cancelled = false
+
     window.api?.resetZoom?.()
-    loadDemo(true)
-      .catch((err) => console.error(err))
-      .finally(() => {
-        setReady(true)
-        usePerformance.getState().init().catch(() => undefined)
-      })
+
+    if (isRemoteWebClient()) {
+      bootstrapAndSyncRemoteClient()
+        .then((cleanup) => {
+          if (cancelled) cleanup()
+          else cleanupRemote = cleanup
+        })
+        .catch((err) => {
+          console.error('[RemoteClient] Bootstrap failed, falling back to demo:', err)
+          return loadDemo(true)
+        })
+        .finally(() => {
+          if (!cancelled) {
+            setReady(true)
+            usePerformance.getState().init().catch(() => undefined)
+          }
+        })
+    } else {
+      cleanupRemote = initHostRemoteBridge()
+      loadDemo(true)
+        .catch((err) => console.error(err))
+        .finally(() => {
+          if (!cancelled) {
+            setReady(true)
+            usePerformance.getState().init().catch(() => undefined)
+          }
+        })
+    }
+
+    return () => {
+      cancelled = true
+      cleanupRemote?.()
+    }
   }, [])
 
   // Chặn phím Alt kích hoạt thanh menu mặc định của Windows để dành trọn phím Alt cho thao tác 3D/2D và phím tắt trong app.
@@ -197,6 +230,7 @@ export default function App() {
       <Timeline />
 
       <AiControlOverlay />
+      <RemoteClientHud />
 
       {dialog === 'export' && <ExportDialog onClose={() => useView.getState().openDialog(null)} />}
       {dialog === 'path' && <CameraPathDialog />}
@@ -219,7 +253,7 @@ export default function App() {
         <div className="loading-screen">
           <div style={{ textAlign: 'center' }}>
             <div className="brand-logo" />
-            Đang dựng cảnh mẫu…
+            {isRemoteWebClient() ? 'Đang đồng bộ Studio từ máy chủ…' : 'Đang dựng cảnh mẫu…'}
           </div>
         </div>
       )}

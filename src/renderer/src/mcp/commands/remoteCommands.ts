@@ -1,6 +1,7 @@
 import type { Animatable, AnimValue, Layer, Project, Vec3 } from '@shared/types'
 import { addKeyframe, evaluate } from '../../animation/keyframes'
 import { flyCameraToShot } from '../../animation/cameraPath'
+import { useView } from '../../store/view'
 import { ParamError, ed, proj, type Handler, type Params } from '../types'
 import { bool, has, num, requireLayer, requireShot, round, scale3, setAnim, str, vec3 } from '../params'
 
@@ -384,6 +385,12 @@ export function executeRemoteAction(p: Params) {
         break
       }
 
+      case 'set_touch_3d_mode': {
+        const navMode = str(p, 'mode') === 'pan' ? 'pan' : 'orbit'
+        useView.getState().setTouch3dMode(navMode)
+        break
+      }
+
       default:
         throw new ParamError(`Unknown remote action "${action}"`)
     }
@@ -392,6 +399,19 @@ export function executeRemoteAction(p: Params) {
 }
 
 export const remoteCommands: Record<string, Handler> = {
-  get_remote_state: () => buildRemoteStateSnapshot(),
+  get_remote_state: async () => {
+    const snap = buildRemoteStateSnapshot()
+    let server: unknown = null
+    try {
+      server = (await window.api?.remote?.status?.()) ?? null
+    } catch {
+      server = null
+    }
+    return {
+      ...snap,
+      touch3dMode: useView.getState().touch3dMode,
+      ...(server ? { server } : {})
+    }
+  },
   remote_control_action: (p) => executeRemoteAction(p)
 }

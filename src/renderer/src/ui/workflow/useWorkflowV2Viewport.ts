@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { WorkflowNode } from '@shared/types'
 import { WF_V2_NODE_H, WF_V2_NODE_W } from '../../project/workflowV2Engine'
+import { usePinchPanGesture } from '../../hooks/usePinchPanGesture'
 
 export const WF_V2_MIN_ZOOM = 0.3
 export const WF_V2_MAX_ZOOM = 1.6
@@ -42,6 +43,7 @@ function boundsOf(nodes: WorkflowNode[]): { minX: number; minY: number; maxX: nu
 /**
  * Quản lý khung nhìn sơ đồ Workflow V2:
  * - Lăn chuột = cuộn sơ đồ (dọc; Shift = ngang) — phù hợp dock thấp; Ctrl/Alt + lăn = thu phóng quanh con trỏ.
+ * - Cảm ứng 2 ngón (Điện thoại / iPad / Tablet) = chụm/mở để thu phóng quanh tâm 2 ngón + kéo 2 ngón để lia sơ đồ.
  * - "Vừa khung" ưu tiên vừa bề ngang ở mức chữ còn đọc được và căn đỉnh, phần dư cuộn dọc.
  */
 export function useWorkflowV2Viewport(visibleNodes: WorkflowNode[]): WorkflowV2Viewport {
@@ -157,6 +159,15 @@ export function useWorkflowV2Viewport(visibleNodes: WorkflowNode[]): WorkflowV2V
     el.addEventListener('wheel', onWheel, { passive: false })
     return () => el.removeEventListener('wheel', onWheel)
   }, [zoomBy, setPan])
+
+  usePinchPanGesture(viewportRef, ({ scaleFactor, dx, dy, centerX, centerY }) => {
+    if (Math.abs(scaleFactor - 1) > 0.002) {
+      zoomBy(scaleFactor, { x: centerX, y: centerY })
+    }
+    if (Math.abs(dx) > 0.25 || Math.abs(dy) > 0.25) {
+      setPan({ x: Math.round(panRef.current.x + dx), y: Math.round(panRef.current.y + dy) })
+    }
+  })
 
   const clientToWorld = useCallback((clientX: number, clientY: number) => {
     const rect = viewportRef.current?.getBoundingClientRect()

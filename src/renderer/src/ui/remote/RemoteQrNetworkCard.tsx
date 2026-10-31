@@ -1,6 +1,13 @@
-import { useEffect, useMemo, useState } from 'react'
-import type { RemoteServerStatus } from '@shared/ipc'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import type { RemoteLayoutProfile, RemoteServerStatus } from '@shared/ipc'
 import { IconCheck, IconCopy, IconRefresh, IconSmartphone } from '../icons'
+import {
+  IconDeviceAuto,
+  IconDeviceLaptop,
+  IconDevicePhone,
+  IconDeviceTablet,
+  IconTouchpadRemote
+} from './remoteIcons'
 import { buildQrSvgPath, encodeQrMatrix } from './qrCodeSvg'
 
 interface RemoteQrNetworkCardProps {
@@ -8,6 +15,7 @@ interface RemoteQrNetworkCardProps {
   onToggleServer: () => void
   onRegenerateToken: () => void
   notice: string | null
+  onActiveUrlChange?: (url: string) => void
 }
 
 function findBestWifiIpIndex(ips: string[]): number {
@@ -17,14 +25,54 @@ function findBestWifiIpIndex(ips: string[]): number {
   return idx >= 0 ? idx : 0
 }
 
+const QR_LAYOUT_OPTIONS: Array<{
+  id: RemoteLayoutProfile
+  label: string
+  hint: string
+  icon: ReactNode
+}> = [
+  {
+    id: 'auto',
+    label: 'Tự động',
+    hint: 'Mặc định: Tự mở Full App dạng Mobile / iPad / Desktop đúng theo thiết bị quét QR',
+    icon: <IconDeviceAuto width={12} height={12} />
+  },
+  {
+    id: 'phone',
+    label: 'Điện thoại',
+    hint: 'Mở toàn bộ Parallax Studio ở chế độ App Điện thoại (100dvh + Dock cảm ứng)',
+    icon: <IconDevicePhone width={12} height={12} />
+  },
+  {
+    id: 'tablet',
+    label: 'iPad · Tablet',
+    hint: 'Mở toàn bộ Parallax Studio ở bố cục iPad & Máy tính bảng 2 cột cảm ứng',
+    icon: <IconDeviceTablet width={12} height={12} />
+  },
+  {
+    id: 'desktop',
+    label: 'Laptop · PC',
+    hint: 'Mở toàn bộ Parallax Studio giao diện Desktop 3 cột đầy đủ',
+    icon: <IconDeviceLaptop width={12} height={12} />
+  },
+  {
+    id: 'pad',
+    label: 'Touchpad 3D',
+    hint: 'Mở nhanh bàn rê Touchpad xoay Camera 3D & đẩy chiều sâu Z (/pad)',
+    icon: <IconTouchpadRemote width={12} height={12} />
+  }
+]
+
 export function RemoteQrNetworkCard({
   status,
   onToggleServer,
   onRegenerateToken,
-  notice
+  notice,
+  onActiveUrlChange
 }: RemoteQrNetworkCardProps) {
   const [selectedIpIdx, setSelectedIpIdx] = useState(() => findBestWifiIpIndex(status.ips))
   const [protocol, setProtocol] = useState<'https' | 'http'>('https')
+  const [qrMode, setQrMode] = useState<RemoteLayoutProfile>('auto')
   const [customIp, setCustomIp] = useState('')
   const [copied, setCopied] = useState(false)
 
@@ -39,8 +87,19 @@ export function RemoteQrNetworkCard({
   }, [customIp, selectedIpIdx, status.ips, status.primaryIp])
 
   const activeUrl = useMemo(() => {
-    return `${protocol}://${selectedHost}:${status.port}/?t=${status.token}`
-  }, [protocol, selectedHost, status.port, status.token])
+    const base = `${protocol}://${selectedHost}:${status.port}`
+    if (qrMode === 'pad') {
+      return `${base}/pad?t=${status.token}`
+    }
+    if (qrMode === 'auto') {
+      return `${base}/?t=${status.token}`
+    }
+    return `${base}/?t=${status.token}&layout=${qrMode}`
+  }, [protocol, selectedHost, status.port, status.token, qrMode])
+
+  useEffect(() => {
+    onActiveUrlChange?.(activeUrl)
+  }, [activeUrl, onActiveUrlChange])
 
   const qrSvg = useMemo(() => {
     const matrix = encodeQrMatrix(activeUrl)
@@ -73,7 +132,7 @@ export function RemoteQrNetworkCard({
         padding: 14,
         display: 'flex',
         flexDirection: 'column',
-        gap: 10
+        gap: 9
       }}
     >
       {/* Status Row */}
@@ -89,7 +148,7 @@ export function RemoteQrNetworkCard({
             }}
           />
           <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text)' }}>
-            {status.listening ? `Wi-Fi Server sẵn sàng (:${status.port})` : 'Server LAN đang tạm dừng'}
+            {status.listening ? `Studio LAN sẵn sàng (:${status.port})` : 'Server LAN đang tạm dừng'}
           </span>
         </div>
 
@@ -108,8 +167,65 @@ export function RemoteQrNetworkCard({
           }}
         >
           <IconSmartphone width={12} height={12} />
-          {status.connectedDevices > 0 ? `${status.connectedDevices} điện thoại đang kết nối` : 'Chờ điện thoại quét QR'}
+          {status.connectedDevices > 0
+            ? `${status.connectedDevices} thiết bị đang kết nối`
+            : 'Chờ thiết bị quét QR'}
         </span>
+      </div>
+
+      {/* Multi-Device Layout Mode Picker (1-Click Chip Grid, <= 5 items, no combobox) */}
+      <div
+        className="remote-mode-picker"
+        data-mcp-region="remote_mode_picker"
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 4
+        }}
+      >
+        <div style={{ fontSize: '10.5px', fontWeight: 600, color: 'var(--text-dim)' }}>
+          Chế độ màn hình truyền sang thiết bị từ xa:
+        </div>
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 4,
+            padding: 3,
+            background: 'var(--bg-2)',
+            border: '1px solid var(--line-soft)',
+            borderRadius: 'var(--radius)'
+          }}
+        >
+          {QR_LAYOUT_OPTIONS.map((opt) => {
+            const active = qrMode === opt.id
+            return (
+              <button
+                key={opt.id}
+                type="button"
+                className="btn sm ghost"
+                onClick={() => setQrMode(opt.id)}
+                title={opt.hint}
+                aria-pressed={active}
+                style={{
+                  flex: '1 1 auto',
+                  justifyContent: 'center',
+                  fontSize: '10.5px',
+                  fontWeight: 600,
+                  padding: '4px 7px',
+                  gap: 4,
+                  borderRadius: 'var(--radius-sm)',
+                  background: active ? 'var(--accent)' : 'transparent',
+                  color: active ? 'var(--on-accent)' : 'var(--text-dim)',
+                  borderColor: active ? 'var(--accent)' : 'transparent'
+                }}
+              >
+                {opt.icon}
+                <span>{opt.label}</span>
+              </button>
+            )
+          })}
+        </div>
       </div>
 
       {/* Protocol Segmented Switch (HTTPS vs HTTP) */}
@@ -174,12 +290,12 @@ export function RemoteQrNetworkCard({
         <div
           style={{
             background: '#ffffff',
-            padding: 10,
+            padding: 8,
             borderRadius: 'var(--radius)',
             border: '2px solid var(--accent-cyan)',
             boxShadow: '0 4px 16px rgba(0,0,0,0.22)',
-            width: 180,
-            height: 180,
+            width: 164,
+            height: 164,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
@@ -187,10 +303,10 @@ export function RemoteQrNetworkCard({
         >
           <svg
             viewBox={`0 0 ${qrSvg.viewBoxSize} ${qrSvg.viewBoxSize}`}
-            width="160"
-            height="160"
+            width="146"
+            height="146"
             shapeRendering="crispEdges"
-            aria-label="Mã QR kết nối điều khiển qua Wi-Fi"
+            aria-label="Mã QR kết nối điều khiển đa thiết bị qua Wi-Fi"
           >
             <rect width={qrSvg.viewBoxSize} height={qrSvg.viewBoxSize} fill="#ffffff" />
             <path d={qrSvg.pathData} fill="#0f172a" />
@@ -199,12 +315,12 @@ export function RemoteQrNetworkCard({
         <div
           style={{
             marginTop: 8,
-            fontSize: '11px',
+            fontSize: '10.5px',
             lineHeight: 1.45,
             color: 'var(--text-dim)',
             textAlign: 'left',
             background: 'var(--bg-2)',
-            padding: '7px 9px',
+            padding: '6px 9px',
             borderRadius: 'var(--radius-sm)',
             border: '1px solid var(--line-soft)',
             width: '100%'
@@ -219,8 +335,8 @@ export function RemoteQrNetworkCard({
           ) : (
             <>
               <strong style={{ color: 'var(--accent-cyan)' }}>Chế độ HTTP Thường:</strong> Quét bằng{' '}
-              <strong style={{ color: 'var(--text)' }}>Zalo / Camera iPhone</strong> (hoặc tắt mục{' '}
-              <em>HTTPS-Only</em> trong Cài đặt app quét QR) để vào thẳng không hỏi chứng chỉ.
+              <strong style={{ color: 'var(--text)' }}>Camera iPhone / iPad / Zalo</strong> hoặc dán URL lên trình duyệt{' '}
+              <strong style={{ color: 'var(--text)' }}>Laptop / PC</strong> để mở ngay toàn bộ Studio.
             </>
           )}
         </div>

@@ -72,7 +72,7 @@ export const SCENE_TOOLS = [
       region: z.enum(['viewer_route', 'viewer_depth_tools', 'timeline_properties', 'timeline_key_menu', 'timeline_motion_popup', 'timeline_key_controls', 'viewer_stage2d_tools', 'viewer_depth', 'viewer_stage2d', 'timeline_logic', 'timeline_logic_picker',
         'active',
         'left_panel', 'left_tabs', 'assets', 'asset_subtabs', 'asset_grid', 'asset_bar', 'music', 'shots', 'topview',
-        'viewer', 'viewer_canvas', 'viewport', 'camera_frame', 'viewer_hud', 'viewer_tools', 'viewer_3d_presets', 'animate_camera_stage', 'animate_camera_toolbar', 'animate_camera_route', 'animate_camera_inspector',
+        'viewer', 'viewer_canvas', 'viewport', 'camera_frame', 'viewer_hud', 'viewer_tools', 'viewer_3d_presets', 'viewer_touch_nav', 'animate_camera_stage', 'animate_camera_toolbar', 'animate_camera_route', 'animate_camera_inspector',
         'inspector', 'inspector_tabs', 'inspector_bottom_tabs', 'inspector_body', 'inspector_composite', 'inspector_physics', 'inspector_virtual_light', 'virtual_light_pad', 'composite_swap', 'effect_stack', 'effect_editor', 'timeline_effects', 'fx_presets', 'motion', 'motion_preview', 'motion_parameters', 'motion_timing',
         'timeline', 'timeline_toolbar', 'timeline_batch_timing', 'timeline_tabs', 'timeline_ruler', 'timeline_tracks',
         'timeline_workflow', 'workflow_toolbar', 'workflow_palette', 'workflow_canvas', 'workflow_canvas_hud', 'workflow_quick_connect', 'workflow_inspector', 'workflow_ruler', 'workflow_spawn_menu', 'workflow_legend', 'workflow_target_binder', 'workflow_action_builder', 'workflow_preview', 'workflow_part_preview', 'workflow_part_stage', 'workflow_part_cues', 'workflow_part_hub', 'workflow_part_editor', 'viewer_camera_status', 'workflow_motion_panel', 'workflow_motion_ghost', 'workflow_motion_path', 'workflow_motion_target', 'workflow_motion_timing', 'workflow_motion_depth', 'workflow_motion_tools', 'workflow_motion_draw', 'workflow_collision_preview', 'workflow_bbox_steps', 'workflow_json_panel', 'workflow_node_config', 'workflow_node_input', 'workflow_node_output', 'workflow_node_connections', 'workflow_node_operation', 'workflow_node_scope_picker', 'workflow_node_edit_context', 'workflow_node_advanced', 'workflow_node_preview_controls', 'workflow_node_preset_picker', 'workflow_node_rule_picker', 'workflow_node_camera_preview', 'workflow_node_settings',
@@ -94,7 +94,7 @@ export const SCENE_TOOLS = [
         'camera_sketch', 'camera_sketch_canvas', 'camera_sketch_sidebar', 'camera_sketch_waypoints',
         'camera_path', 'camera_path_presets', 'camera_path_steps',
         'mcp_dialog', 'mcp_status', 'mcp_config', 'mcp_guide',
-        'remote_dialog', 'remote_qr_card', 'remote_touchpad_card',
+        'remote_dialog', 'remote_qr_card', 'remote_mode_picker', 'remote_touchpad_card', 'remote_devices_list', 'remote_client_hud',
         'ai_hud', 'window'
       ]).optional().describe(d('Predefined UI region to capture. Use "active" to capture the TOPMOST open dialog automatically (e.g. Studio Mixamo opened inside the Layer Workshop) instead of the whole window; "dialog" also picks the topmost dialog. Sub-regions (e.g. layer_assembly_mixamo_stage, layer_assembly_parts, audio_studio_waveform) crop a single control to save tokens. Any element with data-mcp-region="<name>" is matched automatically.', 'Vùng UI định sẵn cần chụp. Dùng "active" để tự chụp đúng dialog đang mở TRÊN CÙNG (VD Studio Mixamo mở bên trong Xưởng Layer) thay vì cả cửa sổ; "dialog" cũng chọn dialog trên cùng. Vùng con (VD layer_assembly_mixamo_stage, layer_assembly_parts, audio_studio_waveform) chỉ cắt đúng một control để tiết kiệm token. Mọi phần tử có data-mcp-region="<tên>" đều tự khớp.')),
       selector: z.string().optional().describe(d('CSS selector of a specific element to capture (e.g. ".music-panel-layout", "#music-tab-add-btn"). Falls back to whole window if not found.', 'CSS selector của phần tử cụ thể cần chụp. Tự động chụp toàn bộ app nếu không tìm thấy selector.')),
@@ -144,8 +144,8 @@ export const SCENE_TOOLS = [
   {
     name: 'get_remote_state', cat: 'inspect',
     doc: L(
-      'Get compact real-time state snapshot used by the Wi-Fi QR Mobile Remote Controller (composition, playhead time, shots, active shot layers with evaluated 3D transforms, and 3D camera state).',
-      'Lấy bản chụp trạng thái thời gian thực gọn nhẹ dùng cho bộ điều khiển Điện thoại qua Wi-Fi QR Code (composition, thời gian playhead, danh sách cảnh, các layer kèm toạ độ 3D và trạng thái Camera 3D).'
+      'Get compact real-time state snapshot used by the Multi-Device Wi-Fi QR Remote Studio (composition, playhead time, shots, active shot layers with evaluated 3D transforms, 3D camera state, touch 3D navigation mode, and connected remote devices list across Phone/iPad/Tablet/Laptop/Desktop).',
+      'Lấy bản chụp trạng thái thời gian thực của bộ Điều khiển Đa thiết bị qua Wi-Fi QR Code (composition, thời gian playhead, danh sách cảnh, các layer kèm toạ độ 3D, trạng thái Camera 3D, chế độ kéo cảm ứng 3D và danh sách thiết bị Điện thoại/iPad/Tablet/Laptop/PC đang kết nối).'
     ),
     shape: () => ({}),
     example: '{}'
@@ -161,9 +161,9 @@ export const SCENE_TOOLS = [
         'toggle_play', 'play', 'pause', 'seek', 'undo', 'redo',
         'select_shot', 'select_layer', 'toggle_layer_visible', 'toggle_layer_lock',
         'nudge_camera', 'set_camera_transform', 'reset_camera',
-        'nudge_layer', 'set_layer_transform', 'reset_layer_transform', 'keyframe'
+        'nudge_layer', 'set_layer_transform', 'reset_layer_transform', 'keyframe', 'set_touch_3d_mode'
       ]).describe(d('Remote control action type.', 'Loại thao tác điều khiển từ xa.')),
-      mode: z.enum(['pan', 'dolly', 'orbit']).optional().describe(d('Camera touchpad mode when action="nudge_camera".', 'Chế độ touchpad camera khi action="nudge_camera".')),
+      mode: z.enum(['pan', 'dolly', 'orbit']).optional().describe(d('Camera touchpad mode ("pan", "dolly", "orbit") or touch 3D drag mode ("orbit", "pan").', 'Chế độ touchpad camera ("pan", "dolly", "orbit") hoặc chế độ kéo cảm ứng 1 ngón 3D ("orbit", "pan").')),
       shot_id: z.string().optional().describe(d('Target shot ID for select_shot.', 'ID cảnh cần chọn.')),
       fly: z.boolean().optional().describe(d('Fly camera to the shot when selecting it.', 'Cho camera bay tới cảnh khi chọn.')),
       layer_id: z.string().optional().describe(d('Target layer ID (defaults to currently selected layer).', 'ID layer mục tiêu (mặc định là layer đang chọn).')),

@@ -28,6 +28,7 @@ import { LayerAssemblyCalloutOverlay } from './LayerAssemblyCalloutOverlay'
 import type { WorkshopTab } from './WorkshopRightPanel'
 import type { AssemblyWorkspaceView } from './LayerAssemblyDialog'
 import { expandLinkedSelection } from './workshopParts'
+import { usePinchPanGesture } from '../../hooks/usePinchPanGesture'
 
 export interface LayerAssemblyViewportProps {
   view?: AssemblyWorkspaceView
@@ -98,6 +99,10 @@ export function LayerAssemblyViewport({
   const [isDraggingHandle, setIsDraggingHandle] = useState(false)
   const theme = useView((s) => s.theme)
   const isLight = theme === 'light'
+  usePinchPanGesture(containerRef, ({ scaleFactor, dx, dy }) => {
+    setZoom((z) => Math.max(0.12, Math.min(3.5, Number((z * scaleFactor).toFixed(3)))))
+    setPan((p) => ({ x: Math.round(p.x + dx), y: Math.round(p.y + dy) }))
+  })
 
   const isBonesVisible = showBones
 

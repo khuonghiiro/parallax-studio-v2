@@ -23,6 +23,7 @@ import {
 } from './viewer/viewerLayout'
 import { useViewerLabels } from './viewer/useViewerLabels'
 import { useViewerDrag } from './viewer/useViewerDrag'
+import { usePinchPanGesture } from '../hooks/usePinchPanGesture'
 import { ViewerOverlays } from './viewer/ViewerOverlays'
 import { LayerGizmo, type GizmoController, type GizmoFrame } from './viewer/LayerGizmo'
 import { AnimateCameraStage } from './viewer/animateCamera/AnimateCameraStage'
@@ -63,6 +64,21 @@ export function Viewer() {
   })
 
   const workflowPreviewActive = useRef(false)
+  const lastTouchTapRef = useRef<{ time: number; x: number; y: number }>({ time: 0, x: 0, y: 0 })
+  const isMultiTouchRef = usePinchPanGesture(canvasRef, ({ scaleFactor, dx, dy, centerX, centerY }) => {
+    const L = layoutRef.current
+    if (!inRect(L.ed, centerX, centerY)) return
+    const ed = L.ed
+    const aspect = ed.w / Math.max(1, ed.h)
+    const [nx, ny] = ndcIn(ed, centerX, centerY)
+    if (Math.abs(dx) > 0.25 || Math.abs(dy) > 0.25) {
+      edCam.pan(dx, dy, ed.h, aspect)
+    }
+    if (Math.abs(scaleFactor - 1) > 0.0015) {
+      edCam.zoom(-Math.log(scaleFactor) / 0.0012, nx, ny, aspect)
+    }
+    requestRender()
+  })
   useEffect(() => {
     const onPreviewActivity = (event: Event) => {
       workflowPreviewActive.current = Boolean((event as CustomEvent<boolean>).detail)
@@ -450,7 +466,26 @@ export function Viewer() {
     }
 
     if (e.button === 1) e.preventDefault()
-    const orbit = e.button === 1 || (e.button === 0 && e.altKey)
+    if (isMultiTouchRef.current) return
+    if (e.pointerType === 'touch') {
+      const now = performance.now()
+      const prev = lastTouchTapRef.current
+      if (now - prev.time < 320 && Math.hypot(e.clientX - prev.x, e.clientY - prev.y) < 28) {
+        lastTouchTapRef.current = { time: 0, x: 0, y: 0 }
+        const [nx, ny] = ndcIn(ed, x, y)
+        const layerId = r.pick(nx, ny, st.project, cam, false)
+        const shotId = (layerId && st.project.layers.find((l) => l.id === layerId)?.shotId) || r.pickShot(nx, ny, cam)
+        if (shotId) {
+          flyToShot(shotId)
+          return
+        }
+      }
+      lastTouchTapRef.current = { time: now, x: e.clientX, y: e.clientY }
+    }
+    const orbit =
+      e.pointerType === 'touch'
+        ? useView.getState().touch3dMode === 'orbit'
+        : e.button === 1 || (e.button === 0 && e.altKey)
 
     const doPan = !orbit
     let lastX = e.clientX
@@ -458,6 +493,7 @@ export function Viewer() {
     capture(
       e,
       (pev) => {
+        if (isMultiTouchRef.current) return
         const dx = pev.clientX - lastX
         const dy = pev.clientY - lastY
         lastX = pev.clientX

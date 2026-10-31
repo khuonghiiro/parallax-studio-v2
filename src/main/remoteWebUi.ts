@@ -286,6 +286,7 @@ export function renderMobileRemoteHtml(token: string): string {
     <button class="btn" id="btn-undo" onclick="sendAction({ action: 'undo' })">↶ Hoàn tác</button>
     <button class="btn" id="btn-redo" onclick="sendAction({ action: 'redo' })">↷ Làm lại</button>
     <button class="btn" id="btn-preview" onclick="togglePreview()">👁 Xem</button>
+    <a class="btn primary" href="/?t=${token}" style="text-decoration:none">🎬 Mở Toàn bộ App</a>
   </div>
 
   <div id="preview-box" class="preview-box">

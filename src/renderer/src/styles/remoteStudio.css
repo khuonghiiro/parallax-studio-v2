@@ -1,0 +1,392 @@
+/* ==========================================================================
+   Multi-Device Remote Studio (Phone App / iPad / Tablet / Laptop / Desktop)
+   Safe-area insets, 100dvh mobile viewport stability, forced layout profiles,
+   floating Remote HUD pill, and 1-tap touch action parity across all cards.
+   ========================================================================== */
+
+/* --- 1. Native Mobile/Tablet Web-App Viewport & Safe Area --- */
+html[data-remote-client='true'],
+html[data-remote-client='true'] body {
+  height: 100dvh;
+  width: 100vw;
+  overflow: hidden;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+
+html[data-remote-client='true'] .app {
+  height: 100dvh;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+  box-sizing: border-box;
+}
+
+/* Prevent accidental browser pan/zoom on interactive 2D/3D/Workflow canvases */
+#viewer-canvas,
+.wf-canvas-viewport,
+.layer-workshop-2d-viewport,
+.layer-workshop-3d-viewport,
+.assembly-viewport-canvas-container,
+.camera-sketch-canvas {
+  touch-action: none;
+}
+
+/* --- 2. Touch Parity: Show Hover-Only Action Buttons on Touch Screens --- */
+@media (hover: none), (pointer: coarse) {
+  .builtin-asset-actions,
+  .layer-assembly-actions,
+  .lw-row-actions .lw-reorder {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    transform: none !important;
+  }
+
+  .audio-preview-btn {
+    opacity: 0.94 !important;
+    pointer-events: auto !important;
+    transform: scale(1) !important;
+  }
+
+  /* Comfortable minimum touch target sizing on touchscreens */
+  .dock-tab {
+    min-height: 32px;
+  }
+
+  .splitter {
+    min-height: 8px;
+    touch-action: none;
+  }
+}
+
+html[data-remote-effective='phone'] .builtin-asset-actions,
+html[data-remote-effective='phone'] .layer-assembly-actions,
+html[data-remote-effective='phone'] .lw-row-actions .lw-reorder,
+html[data-remote-effective='tablet'] .builtin-asset-actions,
+html[data-remote-effective='tablet'] .layer-assembly-actions,
+html[data-remote-effective='tablet'] .lw-row-actions .lw-reorder {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  transform: none !important;
+}
+
+html[data-remote-effective='phone'] .audio-preview-btn,
+html[data-remote-effective='tablet'] .audio-preview-btn {
+  opacity: 0.94 !important;
+  pointer-events: auto !important;
+  transform: scale(1) !important;
+}
+
+/* --- 3. Explicit Remote Layout Profile Overrides (Phone / Tablet / Desktop) --- */
+html[data-remote-layout='phone'] .app {
+  grid-template-columns: minmax(0, 1fr) !important;
+  grid-template-rows:
+    auto
+    minmax(165px, 1fr)
+    6px
+    38px
+    clamp(220px, var(--timeline-h, 340px), 56dvh) !important;
+  grid-template-areas:
+    'top'
+    'view'
+    'split'
+    'dock'
+    'drawer' !important;
+}
+
+html[data-remote-layout='phone'] .responsive-dock {
+  display: flex !important;
+  grid-area: dock !important;
+  background: var(--bg-2);
+}
+
+html[data-remote-layout='phone'] .responsive-dock .phone-only-tab {
+  display: inline-flex !important;
+}
+
+html[data-remote-layout='phone'] .app[data-mobile-tab='timeline'] .timeline {
+  grid-area: drawer !important;
+  display: flex !important;
+}
+html[data-remote-layout='phone'] .app[data-mobile-tab='timeline'] .left,
+html[data-remote-layout='phone'] .app[data-mobile-tab='timeline'] .right {
+  display: none !important;
+}
+
+html[data-remote-layout='phone'] .app[data-mobile-tab='left'] .left {
+  grid-area: drawer !important;
+  display: flex !important;
+  width: 100% !important;
+}
+html[data-remote-layout='phone'] .app[data-mobile-tab='left'] .timeline,
+html[data-remote-layout='phone'] .app[data-mobile-tab='left'] .right {
+  display: none !important;
+}
+
+html[data-remote-layout='phone'] .app[data-mobile-tab='right'] .right {
+  grid-area: drawer !important;
+  display: flex !important;
+  width: 100% !important;
+}
+html[data-remote-layout='phone'] .app[data-mobile-tab='right'] .timeline,
+html[data-remote-layout='phone'] .app[data-mobile-tab='right'] .left {
+  display: none !important;
+}
+
+/* Explicit Tablet Layout Override */
+html[data-remote-layout='tablet'] .app {
+  grid-template-columns: minmax(0, 1fr) clamp(305px, 35vw, 360px) !important;
+  grid-template-rows:
+    auto
+    36px
+    minmax(0, 1fr)
+    5px
+    clamp(140px, var(--timeline-h, 250px), 42dvh) !important;
+  grid-template-areas:
+    'top top'
+    'view dock'
+    'view side'
+    'split split'
+    'time time' !important;
+}
+
+html[data-remote-layout='tablet'] .responsive-dock {
+  display: flex !important;
+  grid-area: dock !important;
+  border-top: none;
+  border-left: 1px solid var(--line);
+  background: var(--bg-2);
+}
+
+html[data-remote-layout='tablet'] .responsive-dock .phone-only-tab {
+  display: none !important;
+}
+
+html[data-remote-layout='tablet'] .timeline {
+  grid-area: time !important;
+  display: flex !important;
+}
+
+html[data-remote-layout='tablet'] .app[data-tablet-tab='left'] .left {
+  grid-area: side !important;
+  display: flex !important;
+  width: 100% !important;
+}
+html[data-remote-layout='tablet'] .app[data-tablet-tab='left'] .right {
+  display: none !important;
+}
+
+html[data-remote-layout='tablet'] .app[data-tablet-tab='right'] .right {
+  grid-area: side !important;
+  display: flex !important;
+  width: 100% !important;
+}
+html[data-remote-layout='tablet'] .app[data-tablet-tab='right'] .left {
+  display: none !important;
+}
+
+/* Explicit Desktop Layout Override (even on iPad / smaller screens) */
+html[data-remote-layout='desktop'] .app {
+  grid-template-columns: clamp(210px, 20vw, 280px) minmax(0, 1fr) clamp(280px, 25vw, 380px) !important;
+  grid-template-rows: auto minmax(0, 1fr) 5px clamp(160px, var(--timeline-h, 260px), 44dvh) !important;
+  grid-template-areas:
+    'top top top'
+    'left view right'
+    'split split split'
+    'time time time' !important;
+}
+
+html[data-remote-layout='desktop'] .responsive-dock {
+  display: none !important;
+}
+
+html[data-remote-layout='desktop'] .left,
+html[data-remote-layout='desktop'] .right,
+html[data-remote-layout='desktop'] .timeline {
+  display: flex !important;
+}
+
+/* --- 4. Floating Remote Client HUD Pill --- */
+.remote-client-hud {
+  position: fixed;
+  right: calc(10px + env(safe-area-inset-right, 0px));
+  bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+  z-index: 48000;
+  pointer-events: auto;
+}
+
+.remote-hud-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: var(--radius);
+  border: 1px solid color-mix(in srgb, var(--accent-cyan) 45%, var(--line));
+  background: color-mix(in srgb, var(--bg-1) 92%, transparent);
+  backdrop-filter: blur(8px);
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+  transition: border-color 0.14s, background 0.14s;
+}
+
+.remote-hud-pill:hover {
+  border-color: var(--accent-cyan);
+  background: var(--bg-2);
+}
+
+.remote-hud-pill-text {
+  white-space: nowrap;
+}
+
+.remote-hud-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--text-faint);
+}
+
+.remote-hud-dot.ok {
+  background: var(--ok);
+  box-shadow: 0 0 7px var(--ok);
+}
+
+.remote-hud-dot.off {
+  background: var(--danger);
+}
+
+.remote-hud-dot.syncing {
+  background: var(--accent-cyan);
+  box-shadow: 0 0 8px var(--accent-cyan);
+}
+
+.remote-hud-panel {
+  width: min(304px, calc(100vw - 24px));
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.38);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.remote-hud-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.remote-hud-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--text);
+  min-width: 0;
+}
+
+.remote-hud-error {
+  font-size: 11px;
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 12%, var(--bg-2));
+  border: 1px solid color-mix(in srgb, var(--danger) 35%, var(--line));
+  border-radius: var(--radius-sm);
+  padding: 5px 8px;
+}
+
+.remote-hud-section-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.remote-hud-layout-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+}
+
+.remote-hud-layout-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 30px;
+  padding: 0 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-soft);
+  background: var(--bg-2);
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+
+.remote-hud-layout-btn:hover {
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-3));
+  color: var(--text);
+}
+
+.remote-hud-layout-btn.active {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
+}
+
+.remote-hud-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.remote-hud-actions > * {
+  justify-content: center;
+}
+
+/* --- 5. Touch 3D Orbit/Pan Segmented Toggle Pill in Viewer Tools --- */
+.viewer-touch-nav-seg {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-1);
+  border: 1px solid var(--line-soft);
+}
+
+.viewer-touch-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 10.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.viewer-touch-nav-btn:hover {
+  background: var(--bg-2);
+  color: var(--text);
+}
+
+.viewer-touch-nav-btn.active {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
+}

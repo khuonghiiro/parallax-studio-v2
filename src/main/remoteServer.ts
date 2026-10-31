@@ -8,9 +8,16 @@ import type { RemoteServerStatus } from '@shared/ipc'
 import type { McpBridge } from './mcpBridge'
 import { renderMobileRemoteHtml } from './remoteWebUi'
 import { generateSelfSignedCert } from './selfSignedCert'
+import { normalizeLayoutProfile, parseRemoteCookies } from './remoteDeviceDetect'
+import {
+  forwardRemoteWsUpgrade,
+  isFrontendAssetPath,
+  serveRemoteStudioFrontend,
+  type RemoteBootstrapPayload
+} from './remoteFrontendProxy'
+import { RemoteStudioHub, type HostBridgeAdapter } from './remoteStudioHub'
 
 const DEFAULT_REMOTE_PORT = 9878
-const DEVICE_TTL_MS = 15_000
 
 const VIRTUAL_IFACE_PATTERN = /vethernet|wsl|docker|vmware|virtualbox|vbox|hyper-v|loopback|tailscale|zerotier/i
 
@@ -50,32 +57,64 @@ export function detectLanIpv4Addresses(): string[] {
   return all.length > 0 ? all : ['127.0.0.1']
 }
 
+export interface RemoteControlServerOptions {
+  port?: number
+  registerIpc?: boolean
+  rendererDistDir?: string
+  hostAdapter?: HostBridgeAdapter
+}
+
 export class RemoteControlServer {
   private netServer: NetServer | null = null
   private httpServer: HttpServer | null = null
   private httpsServer: HttpsServer | null = null
-  private port = Number(process.env.PARALLAX_REMOTE_PORT) || DEFAULT_REMOTE_PORT
+  private port: number
   private listening = false
   private token = randomBytes(4).toString('hex')
-  private activeClients = new Map<string, number>()
   private lastActiveAt: number | null = null
   private lastAction: string | null = null
   private error?: string
-  /** Cache TLS cert/key — tạo một lần duy nhất, tránh block Main Process nhiều lần */
   private cachedCert: { key: string; cert: string } | null = null
+  readonly hub: RemoteStudioHub
 
   constructor(
     private getWindow: () => BrowserWindow | null,
-    private mcpBridge: McpBridge
+    private mcpBridge: McpBridge,
+    private opts?: RemoteControlServerOptions
   ) {
-    ipcMain.handle('remote:status', () => this.getStatus())
-    ipcMain.handle('remote:toggle', (_e, enable?: boolean) => this.toggle(enable))
-    ipcMain.handle('remote:regenerateToken', () => this.regenerateToken())
+    this.port =
+      opts?.port !== undefined
+        ? opts.port
+        : Number(process.env.PARALLAX_REMOTE_PORT) || DEFAULT_REMOTE_PORT
+
+    this.hub = new RemoteStudioHub(
+      getWindow,
+      (action) => {
+        this.lastActiveAt = Date.now()
+        if (action) this.lastAction = action
+        this.broadcast()
+      },
+      opts?.hostAdapter
+    )
+
+    if (opts?.registerIpc !== false && ipcMain?.handle) {
+      ipcMain.removeHandler?.('remote:status')
+      ipcMain.removeHandler?.('remote:toggle')
+      ipcMain.removeHandler?.('remote:regenerateToken')
+      ipcMain.handle('remote:status', () => this.getStatus())
+      ipcMain.handle('remote:toggle', (_e, enable?: boolean) => this.toggle(enable))
+      ipcMain.handle('remote:regenerateToken', () => this.regenerateToken())
+    }
   }
 
   start(): void {
     if (this.listening) return
-    this.listen(this.port, 0)
+    void this.listen(this.port, 0)
+  }
+
+  startAsync(): Promise<number> {
+    if (this.listening) return Promise.resolve(this.port)
+    return this.listen(this.port, 0)
   }
 
   stop(): void {
@@ -86,7 +125,7 @@ export class RemoteControlServer {
     this.httpServer = null
     this.httpsServer = null
     this.listening = false
-    this.activeClients.clear()
+    this.hub.dispose()
     this.broadcast()
   }
 
@@ -99,13 +138,13 @@ export class RemoteControlServer {
 
   regenerateToken(): RemoteServerStatus {
     this.token = randomBytes(4).toString('hex')
-    this.activeClients.clear()
+    this.hub.clearDevices()
     this.broadcast()
     return this.getStatus()
   }
 
   getStatus(): RemoteServerStatus {
-    this.pruneClients()
+    const devices = this.hub.getActiveDevices()
     const ips = detectLanIpv4Addresses()
     const primaryIp = ips[0] ?? '127.0.0.1'
     const urls = ips.map((ip) => `https://${ip}:${this.port}/?t=${this.token}`)
@@ -117,28 +156,11 @@ export class RemoteControlServer {
       token: this.token,
       url: urls[0] ?? `https://127.0.0.1:${this.port}/?t=${this.token}`,
       urls,
-      connectedDevices: this.activeClients.size,
+      connectedDevices: devices.length,
+      devices,
       lastActiveAt: this.lastActiveAt,
       lastAction: this.lastAction,
       error: this.error
-    }
-  }
-
-  private pruneClients(): void {
-    const now = Date.now()
-    for (const [ip, ts] of this.activeClients.entries()) {
-      if (now - ts > DEVICE_TTL_MS) this.activeClients.delete(ip)
-    }
-  }
-
-  private markClient(req: IncomingMessage, actionLabel?: string): void {
-    const ip = req.socket.remoteAddress || 'unknown'
-    const prevCount = this.activeClients.size
-    this.activeClients.set(ip, Date.now())
-    this.lastActiveAt = Date.now()
-    if (actionLabel) this.lastAction = actionLabel
-    if (this.activeClients.size !== prevCount || actionLabel) {
-      this.broadcast()
     }
   }
 
@@ -156,70 +178,74 @@ export class RemoteControlServer {
 
   /**
    * Lắng nghe đồng thời cả giao thức HTTP và HTTPS (TLS tự ký) trên cùng 1 cổng TCP (Polyglot Multiplexer).
-   * Nhờ đó điện thoại bật chế độ "HTTPS-Only" trên trình duyệt hoặc phần mềm quét QR đều kết nối được.
    */
-  private listen(port: number, attempt: number): void {
-    const handler = (req: IncomingMessage, res: ServerResponse): void => {
-      void this.handleHttp(req, res)
-    }
-
-    const httpSrv = createHttpServer(handler)
-    let httpsSrv: HttpsServer | null = null
-    try {
-      const ips = detectLanIpv4Addresses()
-      // Dùng cert đã cache — ECDSA P-256 tạo 1 lần duy nhất (~1ms), không block Main Process
-      if (!this.cachedCert) {
-        this.cachedCert = generateSelfSignedCert(ips)
+  private listen(port: number, attempt: number): Promise<number> {
+    return new Promise((resolve) => {
+      const handler = (req: IncomingMessage, res: ServerResponse): void => {
+        void this.handleHttp(req, res)
       }
-      httpsSrv = createHttpsServer({ key: this.cachedCert.key, cert: this.cachedCert.cert }, handler)
-      httpsSrv.listen(0, '127.0.0.1')
-    } catch {
-      httpsSrv = null
-    }
 
-    const netSrv = createNetServer((socket: Socket) => {
-      socket.once('data', (chunk: Buffer) => {
-        socket.pause()
-        const httpsAddr = httpsSrv?.address()
-        const httpsPort = typeof httpsAddr === 'object' && httpsAddr ? httpsAddr.port : 0
-        // Byte đầu tiên 0x16 (22) là bản tin TLS Handshake (ClientHello -> HTTPS)
-        if (chunk[0] === 0x16 && httpsPort > 0) {
-          const tlsConn = createConnection({ host: '127.0.0.1', port: httpsPort }, () => {
-            tlsConn.write(chunk)
-            socket.pipe(tlsConn).pipe(socket)
-            socket.resume()
-          })
-          tlsConn.on('error', () => socket.destroy())
-          socket.on('error', () => tlsConn.destroy())
-        } else {
-          socket.unshift(chunk)
-          httpSrv.emit('connection', socket)
-          socket.resume()
+      const httpSrv = createHttpServer(handler)
+      httpSrv.on('upgrade', forwardRemoteWsUpgrade)
+
+      let httpsSrv: HttpsServer | null = null
+      try {
+        const ips = detectLanIpv4Addresses()
+        if (!this.cachedCert) {
+          this.cachedCert = generateSelfSignedCert(ips)
         }
-      })
-      socket.on('error', () => {
-        /* ignore abrupt client socket close */
-      })
-    })
-
-    netSrv.once('error', (err: NodeJS.ErrnoException) => {
-      if (err.code === 'EADDRINUSE' && attempt < 8) {
-        this.listen(port + 1, attempt + 1)
-        return
+        httpsSrv = createHttpsServer({ key: this.cachedCert.key, cert: this.cachedCert.cert }, handler)
+        httpsSrv.on('upgrade', forwardRemoteWsUpgrade)
+        httpsSrv.listen(0, '127.0.0.1')
+      } catch {
+        httpsSrv = null
       }
-      this.error = `Không mở được cổng LAN Remote: ${err.message}`
-      this.listening = false
-      this.broadcast()
-    })
 
-    netSrv.listen(port, '0.0.0.0', () => {
-      this.netServer = netSrv
-      this.httpServer = httpSrv
-      this.httpsServer = httpsSrv
-      this.port = port
-      this.listening = true
-      this.error = undefined
-      this.broadcast()
+      const netSrv = createNetServer((socket: Socket) => {
+        socket.once('data', (chunk: Buffer) => {
+          socket.pause()
+          const httpsAddr = httpsSrv?.address()
+          const httpsPort = typeof httpsAddr === 'object' && httpsAddr ? httpsAddr.port : 0
+          if (chunk[0] === 0x16 && httpsPort > 0) {
+            const tlsConn = createConnection({ host: '127.0.0.1', port: httpsPort }, () => {
+              tlsConn.write(chunk)
+              socket.pipe(tlsConn).pipe(socket)
+              socket.resume()
+            })
+            tlsConn.on('error', () => socket.destroy())
+            socket.on('error', () => tlsConn.destroy())
+          } else {
+            socket.unshift(chunk)
+            httpSrv.emit('connection', socket)
+            socket.resume()
+          }
+        })
+        socket.on('error', () => undefined)
+      })
+
+      netSrv.once('error', (err: NodeJS.ErrnoException) => {
+        if (err.code === 'EADDRINUSE' && port > 0 && attempt < 8) {
+          resolve(this.listen(port + 1, attempt + 1))
+          return
+        }
+        this.error = `Không mở được cổng LAN Remote: ${err.message}`
+        this.listening = false
+        this.broadcast()
+        resolve(this.port)
+      })
+
+      netSrv.listen(port, '0.0.0.0', () => {
+        const addr = netSrv.address()
+        const boundPort = typeof addr === 'object' && addr ? addr.port : port
+        this.netServer = netSrv
+        this.httpServer = httpSrv
+        this.httpsServer = httpsSrv
+        this.port = boundPort
+        this.listening = true
+        this.error = undefined
+        this.broadcast()
+        resolve(boundPort)
+      })
     })
   }
 
@@ -231,7 +257,29 @@ export class RemoteControlServer {
   private checkAuth(req: IncomingMessage, urlObj: URL): boolean {
     const qToken = urlObj.searchParams.get('t') || urlObj.searchParams.get('token')
     const hToken = req.headers['x-remote-token']
-    return qToken === this.token || hToken === this.token
+    if (qToken === this.token || hToken === this.token) return true
+    const cookies = parseRemoteCookies(req.headers.cookie)
+    return cookies['pxs_remote_token'] === this.token
+  }
+
+  private checkStaticBundleAccess(req: IncomingMessage, urlObj: URL): boolean {
+    if (this.checkAuth(req, urlObj)) return true
+    const referer = String(req.headers.referer || '')
+    if (referer.includes(`t=${this.token}`) || referer.includes(`token=${this.token}`)) return true
+    // Các tệp bundle JS/CSS/Font tĩnh không chứa dữ liệu dự án (dữ liệu nằm sau /api/* có checkAuth chặt chẽ),
+    // cho phép tải để hỗ trợ WebView in-app (Zalo / Camera iOS) chặn cookie bên thứ ba trên ES Module import.
+    return true
+  }
+
+  private sendUnauthorizedHtml(res: ServerResponse): void {
+    res.writeHead(401, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' })
+    res.end(
+      `<!doctype html><html lang="vi"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/></head>` +
+        `<body style="background:#0b0e14;color:#f1f5f9;font-family:system-ui,sans-serif;padding:32px;text-align:center">` +
+        `<h3>⚠️ Mã phiên QR đã hết hạn hoặc không hợp lệ</h3>` +
+        `<p style="color:#94a3b8;max-width:420px;margin:10px auto">Vui lòng mở hộp thoại <b>Remote QR</b> trên màn hình Parallax Studio và quét lại mã QR mới nhất.</p>` +
+        `</body></html>`
+    )
   }
 
   private sendJson(res: ServerResponse, status: number, payload: unknown): void {
@@ -240,7 +288,7 @@ export class RemoteControlServer {
       'Content-Type': 'application/json; charset=utf-8',
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Private-Network': 'true',
-      'Access-Control-Allow-Headers': 'Content-Type, X-Remote-Token',
+      'Access-Control-Allow-Headers': 'Content-Type, X-Remote-Token, X-Remote-Client-Id, X-Asset-Name, X-Asset-Mime, X-Asset-Kind, X-Asset-Width, X-Asset-Height',
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
       'Cache-Control': 'no-store'
     })
@@ -253,7 +301,7 @@ export class RemoteControlServer {
       req.setEncoding('utf8')
       req.on('data', (chunk: string) => {
         raw += chunk
-        if (raw.length > 1024 * 1024) {
+        if (raw.length > 2 * 1024 * 1024) {
           reject(new Error('Payload too large'))
           req.destroy()
         }
@@ -280,7 +328,7 @@ export class RemoteControlServer {
     const pathname = urlObj.pathname
 
     if (pathname === '/api/ping') {
-      if (this.isLocalhostRequest(req)) {
+      if (this.isLocalhostRequest(req) || this.checkAuth(req, urlObj)) {
         this.sendJson(res, 200, { ok: true, app: 'parallax-studio-remote', ...this.getStatus() })
       } else {
         this.sendJson(res, 200, { ok: true, app: 'parallax-studio-remote', port: this.port })
@@ -288,16 +336,56 @@ export class RemoteControlServer {
       return
     }
 
-    if (pathname === '/api/regenerate-token' && req.method === 'POST' && this.isLocalhostRequest(req)) {
+    if (pathname === '/api/regenerate-token' && req.method === 'POST' && (this.isLocalhostRequest(req) || this.checkAuth(req, urlObj))) {
       this.sendJson(res, 200, { ok: true, ...this.regenerateToken() })
       return
     }
 
-    if (pathname === '/' || pathname === '/index.html') {
-      this.markClient(req, 'connected')
+    // 1. Phục vụ tệp tĩnh JS/CSS/Fonts/Modules của Full Studio Web App
+    if (!pathname.startsWith('/api/') && pathname !== '/' && pathname !== '/index.html' && pathname !== '/pad') {
+      if (isFrontendAssetPath(pathname) && this.checkStaticBundleAccess(req, urlObj)) {
+        const dev = this.hub.registerOrTouchDevice(req)
+        const served = await serveRemoteStudioFrontend(
+          req,
+          res,
+          urlObj,
+          {
+            token: this.token,
+            clientId: dev.id,
+            deviceKind: dev.kind,
+            deviceLabel: dev.label,
+            layoutProfile: dev.layoutProfile ?? 'auto',
+            serverPort: this.port
+          },
+          {},
+          this.opts?.rendererDistDir
+        )
+        if (served) return
+      }
+    }
+
+    // 2. Mọi truy cập trang gốc (`/`, `/pad`) và `/api/*` đều bắt buộc xác thực Token / Cookie phiên QR
+    if (!this.checkAuth(req, urlObj)) {
+      if (pathname.startsWith('/api/')) {
+        this.sendJson(res, 401, { ok: false, error: 'Unauthorized or expired QR token' })
+      } else {
+        this.sendUnauthorizedHtml(res)
+      }
+      return
+    }
+
+    const cookieHeader = `pxs_remote_token=${encodeURIComponent(this.token)}; Path=/; SameSite=Lax; Max-Age=86400`
+
+    // 3. Trang Touchpad 3D Nhanh tùy chọn (`/pad` hoặc `/?mode=pad` hoặc `/?layout=pad`)
+    const requestedLayout = normalizeLayoutProfile(
+      urlObj.searchParams.get('layout') || urlObj.searchParams.get('mode')
+    )
+    if (pathname === '/pad' || ((pathname === '/' || pathname === '/index.html') && requestedLayout === 'pad')) {
+      this.hub.registerOrTouchDevice(req, { layoutProfile: 'pad', action: 'open_touchpad' })
       const html = renderMobileRemoteHtml(this.token)
       res.writeHead(200, {
         'Content-Type': 'text/html; charset=utf-8',
+        'Set-Cookie': cookieHeader,
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Private-Network': 'true',
         'Cache-Control': 'no-store'
@@ -306,19 +394,52 @@ export class RemoteControlServer {
       return
     }
 
-    if (!this.checkAuth(req, urlObj)) {
-      res.writeHead(401, { 'Content-Type': 'text/html; charset=utf-8' })
-      res.end(
-        `<!doctype html><html><body style="background:#0b0e14;color:#f1f5f9;font-family:sans-serif;padding:32px;text-align:center">` +
-          `<h3>⚠️ Mã phiên QR đã hết hạn hoặc không hợp lệ</h3>` +
-          `<p style="color:#94a3b8">Vui lòng tải lại trang hoặc quét lại mã QR mới nhất trên màn hình Parallax Studio.</p></body></html>`
+    // 4. Trang gốc `/` -> Phục vụ TOÀN BỘ ỨNG DỤNG PARALLAX STUDIO tự động thích ứng Điện thoại / iPad / Tablet / Laptop / Desktop!
+    if (pathname === '/' || pathname === '/index.html') {
+      const dev = this.hub.registerOrTouchDevice(req, {
+        layoutProfile: requestedLayout,
+        action: 'open_full_studio'
+      })
+      const bootstrap: RemoteBootstrapPayload = {
+        token: this.token,
+        clientId: dev.id,
+        deviceKind: dev.kind,
+        deviceLabel: dev.label,
+        layoutProfile: requestedLayout,
+        serverPort: this.port
+      }
+      const served = await serveRemoteStudioFrontend(
+        req,
+        res,
+        urlObj,
+        bootstrap,
+        { 'Set-Cookie': cookieHeader },
+        this.opts?.rendererDistDir
       )
+      if (!served) {
+        // Fallback an toàn nếu thư mục dist chưa build trong môi trường tối giản
+        const html = renderMobileRemoteHtml(this.token)
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Set-Cookie': cookieHeader })
+        res.end(html)
+      }
       return
     }
 
+    // 5. Các API đồng bộ Full Studio đa thiết bị (`/api/remote/*`)
     try {
+      if (pathname === '/api/remote/status' && req.method === 'GET') {
+        this.sendJson(res, 200, { ok: true, ...this.getStatus() })
+        return
+      }
+
+      if (pathname.startsWith('/api/remote/')) {
+        const handled = await this.hub.handleApiRequest(req, res, urlObj)
+        if (handled) return
+      }
+
+      // 6. Các API Touchpad 3D Nhanh tương thích ngược (`/api/state`, `/api/action`, `/api/preview`)
       if (pathname === '/api/state' && req.method === 'GET') {
-        this.markClient(req)
+        this.hub.registerOrTouchDevice(req)
         const state = await this.mcpBridge.executeCommand('get_remote_state', {})
         this.sendJson(res, 200, { ok: true, state })
         return
@@ -327,14 +448,14 @@ export class RemoteControlServer {
       if (pathname === '/api/action' && req.method === 'POST') {
         const body = await this.readJsonBody(req)
         const actionName = typeof body.action === 'string' ? body.action : 'action'
-        this.markClient(req, actionName)
+        this.hub.registerOrTouchDevice(req, { action: actionName })
         const state = await this.mcpBridge.executeCommand('remote_control_action', body)
         this.sendJson(res, 200, { ok: true, state })
         return
       }
 
       if (pathname === '/api/preview' && req.method === 'GET') {
-        this.markClient(req)
+        this.hub.registerOrTouchDevice(req)
         const shot = (await this.mcpBridge.executeCommand('get_viewport_screenshot', {
           view: 'camera',
           width: 480,

@@ -122,7 +122,7 @@ export function handle3DPointerDown(e: React.PointerEvent, deps: PointerHandlerD
   }
 
   if (e.button === 1) e.preventDefault()
-  deps.dragModeRef.current = e.button === 1 || (e.button === 0 && e.altKey) ? 'orbit' : 'pan'
+  deps.dragModeRef.current = e.pointerType === 'touch' || e.button === 1 || (e.button === 0 && e.altKey) ? 'orbit' : 'pan'
   deps.isDraggingRef.current = true
   deps.dragStartRef.current = { mouseX: e.clientX, mouseY: e.clientY, moved: false }
   ;(e.target as HTMLElement).setPointerCapture(e.pointerId)

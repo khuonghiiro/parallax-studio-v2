@@ -189,7 +189,55 @@ export interface McpApi {
   captureWindow(opts?: McpCaptureOptions): Promise<McpCaptureResult>
 }
 
-// ------------------------------------------------------------------ Mobile Wi-Fi QR Remote
+// ------------------------------------------------------------------ Multi-Device Wi-Fi QR Remote Studio
+
+export type RemoteDeviceKind = 'phone' | 'ipad' | 'tablet' | 'laptop' | 'desktop'
+export type RemoteLayoutProfile = 'auto' | 'phone' | 'tablet' | 'desktop' | 'pad'
+
+export interface RemoteConnectedDevice {
+  id: string
+  ip: string
+  kind: RemoteDeviceKind
+  label: string
+  width?: number
+  height?: number
+  layoutProfile?: RemoteLayoutProfile
+  connectedAt: number
+  lastActiveAt: number
+  lastAction?: string
+}
+
+export interface RemoteSyncEnvelope {
+  rev: number
+  clientId: string
+  project?: unknown
+  filePath?: string | null
+  dirty?: boolean
+  time?: number
+  playing?: boolean
+  loop?: boolean
+  selectedShotId?: string | null
+  selectedLayerId?: string | null
+  selectedAudioTrackId?: string | null
+  inspectorTab?: string
+  theme?: 'dark' | 'light'
+  libraries?: Record<string, string | null>
+  assetIds?: string[]
+  action?: string
+}
+
+export interface RemoteBridgeRequest {
+  reqId: string
+  kind: 'bootstrap' | 'applySync' | 'getAssetBytes' | 'putAssetBytes'
+  payload?: Record<string, unknown>
+}
+
+export interface RemoteBridgeResponse {
+  reqId: string
+  ok: boolean
+  result?: unknown
+  error?: string
+}
 
 export interface RemoteServerStatus {
   listening: boolean
@@ -200,6 +248,7 @@ export interface RemoteServerStatus {
   url: string
   urls: string[]
   connectedDevices: number
+  devices?: RemoteConnectedDevice[]
   lastActiveAt: number | null
   lastAction: string | null
   error?: string
@@ -210,4 +259,7 @@ export interface RemoteApi {
   onStatus(cb: (s: RemoteServerStatus) => void): () => void
   toggle(enable?: boolean): Promise<RemoteServerStatus>
   regenerateToken(): Promise<RemoteServerStatus>
+  onBridgeCall?(cb: (req: RemoteBridgeRequest) => void): () => void
+  replyBridgeCall?(res: RemoteBridgeResponse): void
+  pushHostBroadcast?(payload: RemoteSyncEnvelope): void
 }

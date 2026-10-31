@@ -43,6 +43,7 @@ import {
   type CameraWaypointItem
 } from './animateCameraRouteLogic'
 import { useCameraStageDrag } from './useCameraStageDrag'
+import { usePinchPanGesture } from '../../../hooks/usePinchPanGesture'
 
 interface AnimateCameraStageProps {
   splitLeftWidth?: number
@@ -72,6 +73,10 @@ export function AnimateCameraStage({ splitLeftWidth = 0 }: AnimateCameraStagePro
   const zoomRef = useRef(zoom)
   panRef.current = pan
   zoomRef.current = zoom
+  usePinchPanGesture(stageRef, ({ scaleFactor, dx, dy }) => {
+    setZoom((z) => Math.max(0.08, Math.min(2.4, Number((z * scaleFactor).toFixed(3)))))
+    setPan((p) => ({ x: Math.round(p.x + dx), y: Math.round(p.y + dy) }))
+  })
   const [autoFitted, setAutoFitted] = useState(false)
   const [toolMode, setToolMode] = useState<StageToolMode>('pan-scale')
   const [lineStyle, setLineStyle] = useState<CameraLineStyle>('smoothstep')
