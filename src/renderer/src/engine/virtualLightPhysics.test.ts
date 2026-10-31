@@ -15,6 +15,7 @@ import {
   hexToRgb01,
   resolveReceivedVirtualLightForLayer
 } from './virtualLight'
+import { computePhysicalRayStriation } from './virtualLightPhysics'
 
 describe('2.5D Physical Light Dynamics & Environmental Projection', () => {
   it('models candle aerodynamics across calm, gentle, strong and storm wind with blackbody thermal shifts', () => {
@@ -290,5 +291,64 @@ describe('2.5D Physical Light Dynamics & Environmental Projection', () => {
     expect(derivedLight.params?.lightBehavior).toBe('intermittent')
     expect(derivedLight.params?.lightRayIntensity).toBe(0.68)
     expect(derivedLight.params?.lightEnvBounce).toBe(1.15)
+  })
+
+  it('alternates dynamic stochastic ray directions every ~1s while keeping static rays fixed', () => {
+    const project = createProject({ width: 1920, height: 1080, duration: 10 })
+    const lantern = createSolidLayer(project.comp)
+    lantern.virtualLight = {
+      ...createDefaultVirtualLight('candle'),
+      rayIntensity: 0.85,
+      rayCount: 12,
+      rayDynamic: true
+    }
+
+    // 1. Khi rayDynamic = false: giá trị tia sáng tại mọi thời điểm là cố định 100%
+    lantern.virtualLight.rayDynamic = false
+    const static0 = evaluateVirtualLightAtTime(lantern, 0.0)!
+    const static1 = evaluateVirtualLightAtTime(lantern, 1.0)!
+    expect(static0.rayAnimPhase).toBe(0)
+    expect(static1.rayAnimPhase).toBe(0)
+    const factorStatic0 = computePhysicalRayStriation(0.5, 0.5, 0.85, 12, static0.rayAnimPhase, false)
+    const factorStatic1 = computePhysicalRayStriation(0.5, 0.5, 0.85, 12, static1.rayAnimPhase, false)
+    expect(factorStatic0).toBe(factorStatic1)
+
+    // 2. Khi rayDynamic = true: sau 1s (t=0.05s vs t=1.05s vs t=2.05s), tia đảo sang các góc / vị trí khác
+    lantern.virtualLight.rayDynamic = true
+    const dyn0 = evaluateVirtualLightAtTime(lantern, 0.05)!
+    const dyn1 = evaluateVirtualLightAtTime(lantern, 1.05)!
+    const dyn2 = evaluateVirtualLightAtTime(lantern, 2.05)!
+
+    expect(dyn0.rayAnimPhase).toBeGreaterThan(0)
+    expect(dyn1.rayAnimPhase).toBeGreaterThan(dyn0.rayAnimPhase)
+
+    // Quét toàn bộ vòng 360° để thu thập profile tia tại từng giây
+    const scanAngles = (phase: number) => {
+      const vals: number[] = []
+      for (let deg = 0; deg < 360; deg += 10) {
+        const rad = (deg * Math.PI) / 180
+        vals.push(computePhysicalRayStriation(rad, 0.5, 0.85, 12, phase, false))
+      }
+      return vals
+    }
+
+    const raysAtSec0 = scanAngles(dyn0.rayAnimPhase)
+    const raysAtSec1 = scanAngles(dyn1.rayAnimPhase)
+    const raysAtSec2 = scanAngles(dyn2.rayAnimPhase)
+
+    // Kiểm tra độ khác biệt vị trí tia giữa các giây: các đỉnh tia ở giây 0 và giây 1 phân bố ở góc khác nhau
+    let diff01 = 0
+    let diff12 = 0
+    for (let i = 0; i < raysAtSec0.length; i++) {
+      diff01 += Math.abs(raysAtSec0[i] - raysAtSec1[i])
+      diff12 += Math.abs(raysAtSec1[i] - raysAtSec2[i])
+    }
+    expect(diff01 / raysAtSec0.length).toBeGreaterThan(0.08)
+    expect(diff12 / raysAtSec1.length).toBeGreaterThan(0.08)
+
+    // 3. Chuyển tiếp liên tục không giật cục tại mốc chuyển giao giây (t = 0.999s vs t = 1.001s)
+    const factorPre = computePhysicalRayStriation(0.8, 0.5, 0.85, 12, 0.9999, false)
+    const factorPost = computePhysicalRayStriation(0.8, 0.5, 0.85, 12, 1.0001, false)
+    expect(Math.abs(factorPre - factorPost)).toBeLessThan(0.01)
   })
 })

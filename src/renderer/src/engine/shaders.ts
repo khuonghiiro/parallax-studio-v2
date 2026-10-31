@@ -13,6 +13,40 @@ void main() {
 }
 `
 
+const RAY_STRIATION_GLSL_FUNCS = /* glsl */ `
+float evalRayRidgeGlsl(float theta, float freq, float slotSeed, float microTime) {
+  float h1 = fract(abs(sin(slotSeed * 127.1 + 311.7)) * 43758.5453);
+  float h2 = fract(abs(sin(slotSeed * 269.5 + 183.3)) * 43758.5453);
+  float h3 = fract(abs(sin(slotSeed * 419.2 + 71.9)) * 43758.5453);
+
+  // Đảo góc tia ngẫu nhiên theo chu kỳ 1s: mỗi slot nhận góc lệch và nhịp pha hoàn toàn khác biệt
+  float angleShift = (h1 - 0.5) * 6.28318;
+  float microWobble = sin(microTime * 3.5 + h2 * 6.283) * 0.10 + sin(microTime * 1.2) * 0.06;
+  float th = theta + angleShift + microWobble;
+
+  float s1 = sin(th * freq + h2 * 6.283);
+  float s2 = sin(th * (freq * 1.93) + h3 * 6.283 + 1.4);
+  float s3 = sin(th * (freq * 3.17) - h1 * 6.283 + 2.7);
+  float s4 = sin(th * (freq * 0.71) + microTime * 1.85 + sin(microTime * 0.4) * 2.2);
+  float rawW = s1 * 0.42 + s2 * 0.30 + s3 * 0.18 + s4 * 0.10;
+  return pow(max(0.0001, clamp(rawW * 0.5 + 0.5, 0.0, 1.0)), 1.55);
+}
+
+float computeRayStriationGlsl(float rayTheta, float freq, float rayPhase) {
+  if (rayPhase <= 0.0005) {
+    return evalRayRidgeGlsl(rayTheta, freq, 0.0, 0.0);
+  }
+  float timeSec = rayPhase;
+  float slot1 = floor(timeSec);
+  float slot2 = slot1 + 1.0;
+  float prog = fract(timeSec);
+  float blend = smoothstep(0.12, 0.88, prog);
+  float r1 = evalRayRidgeGlsl(rayTheta, freq, slot1, timeSec);
+  float r2 = evalRayRidgeGlsl(rayTheta, freq, slot2, timeSec);
+  return mix(r1, r2, blend);
+}
+`;
+
 export const LAYER_FRAG = /* glsl */ `
 uniform sampler2D map;
 uniform vec2 texSize;     // texels
@@ -53,6 +87,8 @@ varying float vDepth;
 vec4 premul(vec4 s) {
   return vec4(s.rgb * s.a, s.a);
 }
+
+${RAY_STRIATION_GLSL_FUNCS}
 
 void main() {
   // Derivatives / implicit-LOD sampling happen OUTSIDE any branch or loop.
@@ -230,12 +266,7 @@ void main() {
         float rayFactor = 1.0;
         if (rayAmt > 0.01 && effRNorm > 0.04) {
           float freq = isCone ? rayCount * 2.2 : rayCount;
-          float s1 = sin(rayTheta * freq + rayPhase * 0.75);
-          float s2 = sin(rayTheta * (freq * 1.93) - rayPhase * 0.52 + 1.4);
-          float s3 = sin(rayTheta * (freq * 3.17) + rayPhase * 1.15 + 2.7);
-          float s4 = sin(rayTheta * (freq * 0.71) + rayPhase * 1.85 + sin(rayPhase * 0.4) * 2.2);
-          float rawW = s1 * 0.44 + s2 * 0.28 + s3 * 0.16 + s4 * 0.12;
-          float ridge = pow(max(0.0001, clamp(rawW * 0.5 + 0.5, 0.0, 1.0)), 1.55);
+          float ridge = computeRayStriationGlsl(rayTheta, freq, rayPhase);
           float emerge = smoothstep(0.05, 0.26, effRNorm);
           float outerFade = 1.0 - smoothstep(0.75, 1.06, effRNorm) * 0.35;
           rayFactor = 1.0 + (ridge - 0.42) * rayAmt * 0.82 * emerge * outerFade;
@@ -360,6 +391,8 @@ uniform vec4 vlightRays;   // x = rayIntensity, y = rayCount, z = hotspotFocus, 
 uniform float quadSpanPx;
 varying vec2 vUv;
 
+${RAY_STRIATION_GLSL_FUNCS}
+
 void main() {
   float intensity = vlightParams.x;
   float radPx = max(36.0, vlightParams.y);
@@ -442,12 +475,7 @@ void main() {
   float rayFactor = 1.0;
   if (rayAmt > 0.01 && effRNorm > 0.04) {
     float freq = isCone ? rayCount * 2.2 : rayCount;
-    float s1 = sin(rayTheta * freq + rayPhase * 0.75);
-    float s2 = sin(rayTheta * (freq * 1.93) - rayPhase * 0.52 + 1.4);
-    float s3 = sin(rayTheta * (freq * 3.17) + rayPhase * 1.15 + 2.7);
-    float s4 = sin(rayTheta * (freq * 0.71) + rayPhase * 1.85 + sin(rayPhase * 0.4) * 2.2);
-    float rawW = s1 * 0.44 + s2 * 0.28 + s3 * 0.16 + s4 * 0.12;
-    float ridge = pow(max(0.0001, clamp(rawW * 0.5 + 0.5, 0.0, 1.0)), 1.55);
+    float ridge = computeRayStriationGlsl(rayTheta, freq, rayPhase);
     float emerge = smoothstep(0.05, 0.26, effRNorm);
     float outerFade = 1.0 - smoothstep(0.75, 1.06, effRNorm) * 0.35;
     rayFactor = 1.0 + (ridge - 0.42) * rayAmt * 0.82 * emerge * outerFade;

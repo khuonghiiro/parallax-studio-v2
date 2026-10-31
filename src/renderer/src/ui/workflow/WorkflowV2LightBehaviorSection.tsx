@@ -289,9 +289,9 @@ export function WorkflowV2LightRaysPanel({
               'wf-light-ray-dynamic'
             )
           }
-          title="Bật/Tắt tính chất động ngẫu nhiên: khi BẬT, tia sáng sẽ lay động theo gió, nhấp nháy theo nhịp đèn và xuất hiện ngẫu nhiên sinh động"
+          title="Bật/Tắt tính chất động ngẫu nhiên: khi BẬT, cứ mỗi 1s các tia sáng sẽ đảo sang vị trí và góc ngẫu nhiên mới (thay vì cố định 1 hướng), kết hợp lay động theo gió và nhịp nguồn sáng"
         >
-          <span>{vlight.rayDynamic !== false ? '🎲 Tia động ngẫu nhiên (Gió & Nhịp): BẬT' : '⏸ Tia tĩnh: CỐ ĐỊNH'}</span>
+          <span>{vlight.rayDynamic !== false ? '🎲 Tia động ngẫu nhiên (1s đảo tia): BẬT' : '⏸ Tia tĩnh: CỐ ĐỊNH'}</span>
         </button>
       </div>
 

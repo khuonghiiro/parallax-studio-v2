@@ -389,7 +389,9 @@ export function evaluatePhysicalSourceDynamics(
       0.1,
       1.6
     )
-    rayAnimPhase = (t * (0.42 + speed * 0.28) + windRayShift + seed) % 62.8318
+    // 1 đơn vị phase tương ứng đúng 1 giây thực tế (1s) nhân với tốc độ nguồn sáng
+    // Cứ mỗi 1s, phase chuyển sang slot nguyên tiếp theo để đảo hướng các tia sang vị trí ngẫu nhiên mới
+    rayAnimPhase = ((t * speed + windRayShift * 0.35 + seed) % 3600) + 0.001
   }
 
   return {
@@ -403,6 +405,39 @@ export function evaluatePhysicalSourceDynamics(
     rayIntensityMultiplier,
     rayAnimPhase
   }
+}
+
+function hashRay1(p: number): number {
+  const s = Math.abs(Math.sin(p * 127.1 + 311.7)) * 43758.5453
+  return s - Math.floor(s)
+}
+
+function hashRay2(p: number): number {
+  const s = Math.abs(Math.sin(p * 269.5 + 183.3)) * 43758.5453
+  return s - Math.floor(s)
+}
+
+function hashRay3(p: number): number {
+  const s = Math.abs(Math.sin(p * 419.2 + 71.9)) * 43758.5453
+  return s - Math.floor(s)
+}
+
+function evalRayRidgeTs(theta: number, freq: number, slotSeed: number, microTime: number): number {
+  const h1 = hashRay1(slotSeed)
+  const h2 = hashRay2(slotSeed)
+  const h3 = hashRay3(slotSeed)
+
+  // Đảo góc tia ngẫu nhiên theo chu kỳ 1s: mỗi slot nhận góc lệch và nhịp pha hoàn toàn khác biệt
+  const angleShift = (h1 - 0.5) * 6.28318
+  const microWobble = Math.sin(microTime * 3.5 + h2 * 6.283) * 0.1 + Math.sin(microTime * 1.2) * 0.06
+  const th = theta + angleShift + microWobble
+
+  const s1 = Math.sin(th * freq + h2 * 6.283)
+  const s2 = Math.sin(th * (freq * 1.93) + h3 * 6.283 + 1.4)
+  const s3 = Math.sin(th * (freq * 3.17) - h1 * 6.283 + 2.7)
+  const s4 = Math.sin(th * (freq * 0.71) + microTime * 1.85 + Math.sin(microTime * 0.4) * 2.2)
+  const rawW = s1 * 0.42 + s2 * 0.3 + s3 * 0.18 + s4 * 0.1
+  return Math.pow(Math.max(0.0001, clamp(rawW * 0.5 + 0.5, 0, 1)), 1.55)
 }
 
 /**
@@ -422,12 +457,20 @@ export function computePhysicalRayStriation(
 
   const count = Math.max(3, Math.min(24, Math.round(rayCount || (isCone ? 9 : 12))))
   const freq = isCone ? count * 2.2 : count
-  const s1 = Math.sin(thetaRad * freq + animPhase * 0.75)
-  const s2 = Math.sin(thetaRad * (freq * 1.93) - animPhase * 0.52 + 1.4)
-  const s3 = Math.sin(thetaRad * (freq * 3.17) + animPhase * 1.15 + 2.7)
-  const s4 = Math.sin(thetaRad * (freq * 0.71) + animPhase * 1.85 + Math.sin(animPhase * 0.4) * 2.2)
-  const rawWave = s1 * 0.44 + s2 * 0.28 + s3 * 0.16 + s4 * 0.12
-  const ridge = Math.pow(clamp(rawWave * 0.5 + 0.5, 0, 1), 1.55)
+
+  let ridge: number
+  if (animPhase <= 0.0005) {
+    ridge = evalRayRidgeTs(thetaRad, freq, 0, 0)
+  } else {
+    const timeSec = animPhase
+    const slot1 = Math.floor(timeSec)
+    const slot2 = slot1 + 1
+    const prog = timeSec - slot1
+    const blend = smoothstep(0.12, 0.88, prog)
+    const r1 = evalRayRidgeTs(thetaRad, freq, slot1, timeSec)
+    const r2 = evalRayRidgeTs(thetaRad, freq, slot2, timeSec)
+    ridge = r1 * (1 - blend) + r2 * blend
+  }
 
   const emerge = smoothstep(0.05, 0.26, rNorm)
   const outerFade = 1 - smoothstep(0.75, 1.06, rNorm) * 0.35
@@ -440,7 +483,7 @@ export function describeActiveLightPhysicsVi(vl: LayerVirtualLight): string {
   const mode = resolveEffectiveLightBehavior(vl.kind, vl.behaviorMode)
   const rays = (vl.rayIntensity ?? getDefaultOpticalProfile(vl.kind).rayIntensity) > 0.05
   const raySuffix = rays
-    ? ` · Tỉa ${vl.rayCount ?? getDefaultOpticalProfile(vl.kind).rayCount} tia${vl.rayDynamic !== false ? ' (Động theo gió & nhịp)' : ' (Tĩnh)'}`
+    ? ` · Tỉa ${vl.rayCount ?? getDefaultOpticalProfile(vl.kind).rayCount} tia${vl.rayDynamic !== false ? ' (Động 1s đảo tia ngẫu nhiên)' : ' (Tĩnh)'}`
     : ''
 
   if (mode === 'wind_reactive') {
