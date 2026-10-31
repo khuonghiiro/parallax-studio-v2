@@ -9,7 +9,7 @@ export const WF_V2_COL_X = {
 } as const
 
 /** Làn dọc bên trái cột Root dành riêng cho dây Camera chuyển cảnh */
-export const WF_V2_CAMERA_LANE_X = 18
+export const WF_V2_CAMERA_LANE_X = -18
 
 /** Kích thước thẻ Node cố định (CSS `.wf-v2-card` dùng đúng các giá trị này) */
 export const WF_V2_NODE_W = 236

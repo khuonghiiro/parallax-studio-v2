@@ -163,6 +163,22 @@ export const WorkflowCanvasV2: React.FC<WorkflowCanvasV2Props> = (props) => {
   const { workflow, project, currentTime, selectedNodeId, onSelectNode, onSetTime } = props
   const [dragPositions, setDragPositions] = useState<Record<string, { x: number; y: number }> | null>(null)
   const [wireStyle, setWireStyle] = useState<'smoothstep' | 'bezier'>('smoothstep')
+  const [legendOpen, setLegendOpen] = useState(() => {
+    try {
+      return localStorage.getItem('pxs:wf-legend-open') === 'true'
+    } catch {
+      return false
+    }
+  })
+  const toggleLegend = useCallback(() => {
+    setLegendOpen((prev) => {
+      const next = !prev
+      try {
+        localStorage.setItem('pxs:wf-legend-open', String(next))
+      } catch {}
+      return next
+    })
+  }, [])
   const maxDuration = Math.max(1, project.comp.duration || 5)
   const graph = useSpaceGraph(workflow, project, dragPositions)
   const rootIds = useMemo(() => new Set(graph.clusters.map((c) => c.rootId)), [graph.clusters])
@@ -250,12 +266,14 @@ export const WorkflowCanvasV2: React.FC<WorkflowCanvasV2Props> = (props) => {
           zoom={vp.zoom}
           wireStyle={wireStyle}
           follow={props.follow}
+          legendOpen={legendOpen}
           onFit={(all) => vp.fitToView(all)}
           onZoom={(f) => vp.zoomBy(f)}
           onToggleWireStyle={() => setWireStyle((s) => (s === 'smoothstep' ? 'bezier' : 'smoothstep'))}
           onToggleFollow={props.onToggleFollow}
+          onToggleLegend={toggleLegend}
         />
-        <WorkflowV2Legend />
+        <WorkflowV2Legend open={legendOpen} onToggle={toggleLegend} />
 
         <div className="wf-v2-world" style={{ left: vp.pan.x, top: vp.pan.y }}>
         <div className="wf-v2-world-content" style={{ zoom: vp.zoom }}>

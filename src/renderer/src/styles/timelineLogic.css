@@ -901,3 +901,302 @@
   flex-wrap: wrap;
   flex-shrink: 1;
 }
+
+/* ==========================================================================
+   Logic Dropdown Menu for Timeline (Clean Compact UX)
+   ========================================================================== */
+
+.tl-logic-menu-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.tl-logic-menu-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 9px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-soft);
+  background: var(--bg-2);
+  color: var(--text);
+  font-size: 10.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+
+[data-theme='light'] .tl-logic-menu-trigger,
+.app.light .tl-logic-menu-trigger {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #1e293b;
+}
+
+.tl-logic-menu-trigger:hover,
+.tl-logic-menu-trigger.open {
+  background: color-mix(in srgb, var(--accent) 14%, var(--bg-2));
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.tl-logic-menu-trigger.has-active .tl-logic-menu-dot {
+  background: #10b981;
+  box-shadow: 0 0 6px #10b981;
+}
+
+.tl-logic-menu-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-faint);
+  flex-shrink: 0;
+}
+
+.tl-logic-menu-label strong {
+  color: var(--accent-cyan);
+  font-weight: 700;
+}
+
+[data-theme='light'] .tl-logic-menu-label strong,
+.app.light .tl-logic-menu-label strong {
+  color: #0284c7;
+}
+
+.tl-logic-menu-arrow {
+  font-size: 9px;
+  opacity: 0.6;
+  margin-left: 1px;
+}
+
+/* Logic Dropdown Card */
+.tl-logic-dropdown {
+  width: 290px;
+  max-height: 380px;
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line-soft);
+  background: var(--bg-2);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45), 0 2px 6px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  font-family: inherit;
+  font-size: 11px;
+  color: var(--text);
+}
+
+[data-theme='light'] .tl-logic-dropdown,
+.app.light .tl-logic-dropdown {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.15), 0 2px 6px rgba(15, 23, 42, 0.08);
+}
+
+.tl-logic-dropdown-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--line-soft);
+}
+
+[data-theme='light'] .tl-logic-dropdown-head,
+.app.light .tl-logic-dropdown-head {
+  background: #f8fafc;
+  border-bottom-color: #e2e8f0;
+}
+
+.tl-logic-dropdown-title {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tl-logic-dropdown-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: none;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 14px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+}
+
+.tl-logic-dropdown-close:hover {
+  background: var(--bg-3);
+  color: var(--text);
+}
+
+.tl-logic-dropdown-list {
+  display: flex;
+  flex-direction: column;
+  padding: 4px;
+  overflow-y: auto;
+  max-height: 280px;
+  gap: 2px;
+}
+
+.tl-logic-dropdown-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  transition: background 0.1s, border-color 0.1s;
+}
+
+.tl-logic-dropdown-item:hover {
+  background: color-mix(in srgb, var(--logic-accent, var(--accent)) 10%, var(--bg-3));
+  border-color: color-mix(in srgb, var(--logic-accent, var(--line)) 40%, transparent);
+}
+
+[data-theme='light'] .tl-logic-dropdown-item:hover,
+.app.light .tl-logic-dropdown-item:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.tl-logic-dropdown-item.is-disabled {
+  opacity: 0.55;
+}
+
+.tl-logic-dropdown-item-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 11px;
+  text-align: left;
+  cursor: pointer;
+  padding: 0;
+}
+
+.tl-logic-dropdown-item-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.tl-logic-dropdown-item-cat {
+  font-size: 9.5px;
+  font-weight: 700;
+  opacity: 0.85;
+  margin-right: 4px;
+  flex-shrink: 0;
+}
+
+.tl-logic-dropdown-item-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.tl-logic-item-toggle-btn {
+  height: 18px;
+  padding: 0 5px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-soft);
+  background: var(--bg-3);
+  color: var(--text-dim);
+  font-size: 9.5px;
+  font-weight: 600;
+  cursor: pointer;
+  line-height: 1;
+  transition: background 0.1s, color 0.1s;
+}
+
+.tl-logic-dropdown-item.active .tl-logic-item-toggle-btn {
+  color: #10b981;
+  border-color: color-mix(in srgb, #10b981 50%, var(--line));
+}
+
+.tl-logic-item-toggle-btn:hover {
+  background: var(--bg-4);
+  color: var(--text);
+}
+
+.tl-logic-item-del-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.1s, color 0.1s;
+}
+
+.tl-logic-item-del-btn:hover {
+  background: rgba(239, 68, 68, 0.18);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #ef4444;
+}
+
+.tl-logic-dropdown-foot {
+  padding: 6px 8px;
+  border-top: 1px solid var(--line-soft);
+  background: var(--bg-1);
+}
+
+[data-theme='light'] .tl-logic-dropdown-foot,
+.app.light .tl-logic-dropdown-foot {
+  background: #f8fafc;
+  border-top-color: #e2e8f0;
+}
+
+.tl-logic-dropdown-add {
+  width: 100%;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  border: 1px dashed var(--line);
+  background: transparent;
+  color: var(--accent-cyan);
+  font-size: 10.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+
+[data-theme='light'] .tl-logic-dropdown-add,
+.app.light .tl-logic-dropdown-add {
+  color: #0284c7;
+}
+
+.tl-logic-dropdown-add:hover {
+  background: color-mix(in srgb, var(--accent) 14%, var(--bg-2));
+  border-color: var(--accent);
+  color: var(--text);
+}

@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useEditor } from '../../store/editor'
 import { useView } from '../../store/view'
 import { toast } from '../../actions'
@@ -16,6 +17,10 @@ export function TimelineLogic() {
   const [pickerOpen, setPickerOpen] = useState(false)
   const [initialCategory, setInitialCategory] = useState<TimelinePickerCategory>('all')
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuAnchorRef = useRef<HTMLDivElement>(null)
+  const menuPopupRef = useRef<HTMLDivElement>(null)
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 })
 
   const workflow = useMemo(() => ensureProjectWorkflow(project), [project])
   const layer = project.layers.find((item) => item.id === selectedLayerId)
@@ -32,34 +37,43 @@ export function TimelineLogic() {
 
   const editingNode = workflow.nodes.find((item) => item.id === editingNodeId) ?? null
 
-  // Dải chip logic: lăn chuột dọc để cuộn ngang, hiện vệt mờ ở mép khi còn chip bị khuất
-  const itemsRef = useRef<HTMLDivElement>(null)
-  const [overflow, setOverflow] = useState({ left: false, right: false })
-  const updateOverflow = useCallback(() => {
-    const el = itemsRef.current
-    if (!el) return
-    const left = el.scrollLeft > 2
-    const right = el.scrollLeft + el.clientWidth < el.scrollWidth - 2
-    setOverflow((prev) => (prev.left === left && prev.right === right ? prev : { left, right }))
-  }, [])
+  // Định vị dropdown menu
+  useLayoutEffect(() => {
+    if (!menuOpen || !menuAnchorRef.current) return
+    const rect = menuAnchorRef.current.getBoundingClientRect()
+    const width = 290
+    const approxH = Math.min(360, entries.length * 36 + 80)
+    const spaceBelow = window.innerHeight - rect.bottom
+    const flipUp = spaceBelow < approxH && rect.top > approxH
+    const top = flipUp ? rect.top - approxH - 4 : rect.bottom + 4
+    let left = rect.left
+    if (left + width > window.innerWidth - 8) {
+      left = Math.max(8, window.innerWidth - width - 8)
+    }
+    setDropdownPos({ top, left })
+  }, [menuOpen, entries.length])
+
+  // Đóng khi click ngoài hoặc nhấn Escape
   useEffect(() => {
-    const el = itemsRef.current
-    if (!el) return
-    updateOverflow()
-    const ro = new ResizeObserver(updateOverflow)
-    ro.observe(el)
-    const onWheel = (e: WheelEvent): void => {
-      if (el.scrollWidth <= el.clientWidth || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return
-      e.preventDefault()
-      el.scrollLeft += e.deltaY
+    if (!menuOpen) return
+    const onPointerDown = (e: PointerEvent) => {
+      if (
+        !menuAnchorRef.current?.contains(e.target as Node) &&
+        !menuPopupRef.current?.contains(e.target as Node)
+      ) {
+        setMenuOpen(false)
+      }
     }
-    el.addEventListener('wheel', onWheel, { passive: false })
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMenuOpen(false)
+    }
+    window.addEventListener('pointerdown', onPointerDown)
+    window.addEventListener('keydown', onKeyDown)
     return () => {
-      ro.disconnect()
-      el.removeEventListener('wheel', onWheel)
+      window.removeEventListener('pointerdown', onPointerDown)
+      window.removeEventListener('keydown', onKeyDown)
     }
-  }, [updateOverflow])
-  useEffect(updateOverflow, [entries, updateOverflow])
+  }, [menuOpen])
 
   const openOrFocusLogicNode = (nodeId: string) => {
     const target = workflow.nodes.find((n) => n.id === nodeId)
@@ -163,77 +177,131 @@ export function TimelineLogic() {
 
       <span className="tl-logic-divider" />
 
-      <div
-        ref={itemsRef}
-        className={`tl-logic-items${overflow.left ? ' fade-left' : ''}${overflow.right ? ' fade-right' : ''}`}
-        role="list"
-        aria-label="Danh sách logic đang gắn"
-        onScroll={updateOverflow}
-      >
-        {entries.map((entry) => (
-          <div
-            key={entry.node.id}
-            role="listitem"
-            className={`tl-logic-chip-wrap${entry.connected && entry.enabled ? ' active' : ''}${!entry.enabled ? ' is-disabled' : ''}`}
-            style={{ ['--logic-accent' as string]: entry.categoryMeta.accent }}
+      {entries.length > 0 ? (
+        <div className="tl-logic-menu-wrap" ref={menuAnchorRef}>
+          <button
+            type="button"
+            className={`tl-logic-menu-trigger${menuOpen ? ' open' : ''}${entries.some((e) => e.enabled && e.connected) ? ' has-active' : ''}`}
+            onClick={() => setMenuOpen((o) => !o)}
+            aria-haspopup="true"
+            aria-expanded={menuOpen}
+            title={`Xem ${entries.length} node logic đang gắn cho ${targetName}`}
           >
-            <button
-              type="button"
-              className={`tl-logic-chip${entry.connected && entry.enabled ? ' active' : ''}`}
-              data-logic-id={entry.node.id}
-              title={`${entry.node.title} (${entry.categoryMeta.label}) · ${
-                !entry.enabled
-                  ? 'Đang tạm tắt'
-                  : entry.connected
-                    ? 'Đang hoạt động thông mạch'
-                    : 'Chưa nối nguồn'
-              } — Click để mở bảng cấu hình`}
-              onClick={() => openOrFocusLogicNode(entry.node.id)}
-            >
-              <span
-                className={`tl-logic-chip-dot${
-                  !entry.enabled ? ' off' : entry.connected ? ' on' : ' warn'
-                }`}
-              />
-              <span className="tl-logic-chip-ico">{entry.icon}</span>
-              <span className="tl-logic-chip-title">{entry.shortTitle}</span>
-            </button>
-            <button
-              type="button"
-              className="tl-logic-chip-action"
-              title={entry.enabled ? 'Tạm tắt logic này' : 'Bật lại logic này'}
-              aria-label={entry.enabled ? `Tắt ${entry.shortTitle}` : `Bật ${entry.shortTitle}`}
-              onClick={(e) => {
-                e.stopPropagation()
-                useEditor.getState().update((draft) => {
-                  toggleTimelineLogicNode(draft, entry.node.id)
-                })
-              }}
-            >
-              {entry.enabled ? '●' : '○'}
-            </button>
-            <button
-              type="button"
-              className="tl-logic-chip-action remove"
-              title="Gỡ logic này khỏi luồng"
-              aria-label={`Xóa ${entry.shortTitle}`}
-              onClick={(e) => {
-                e.stopPropagation()
-                useEditor.getState().update((draft) => {
-                  removeTimelineLogicNode(draft, entry.node.id)
-                })
-              }}
-            >
-              ×
-            </button>
-          </div>
-        ))}
-        {entries.length === 0 && (
-          <span className="tl-logic-empty">
-            Chưa gắn node logic riêng · Chọn nhanh nhóm bên trái hoặc bấm <strong>+ Thêm logic</strong>
-          </span>
-        )}
-      </div>
+            <span className="tl-logic-menu-dot" />
+            <span className="tl-logic-menu-label">
+              Logic đang gắn <strong>({entries.length})</strong>
+            </span>
+            <span className="tl-logic-menu-arrow">▾</span>
+          </button>
+
+          {menuOpen &&
+            createPortal(
+              <div
+                ref={menuPopupRef}
+                className="tl-logic-dropdown"
+                style={{
+                  position: 'fixed',
+                  top: `${dropdownPos.top}px`,
+                  left: `${dropdownPos.left}px`,
+                  zIndex: 70000
+                }}
+              >
+                <div className="tl-logic-dropdown-head">
+                  <span className="tl-logic-dropdown-title">
+                    Logic đang gắn · {targetName} ({entries.length})
+                  </span>
+                  <button
+                    type="button"
+                    className="tl-logic-dropdown-close"
+                    onClick={() => setMenuOpen(false)}
+                    title="Đóng menu"
+                  >
+                    ×
+                  </button>
+                </div>
+                <div className="tl-logic-dropdown-list">
+                  {entries.map((entry) => (
+                    <div
+                      key={entry.node.id}
+                      className={`tl-logic-dropdown-item${entry.connected && entry.enabled ? ' active' : ''}${!entry.enabled ? ' is-disabled' : ''}`}
+                      style={{ ['--logic-accent' as string]: entry.categoryMeta.accent }}
+                    >
+                      <button
+                        type="button"
+                        className="tl-logic-dropdown-item-main"
+                        title={`${entry.node.title} (${entry.categoryMeta.label}) — Click để mở bảng cấu hình`}
+                        onClick={() => {
+                          setMenuOpen(false)
+                          openOrFocusLogicNode(entry.node.id)
+                        }}
+                      >
+                        <span
+                          className={`tl-logic-chip-dot${
+                            !entry.enabled ? ' off' : entry.connected ? ' on' : ' warn'
+                          }`}
+                        />
+                        <span className="tl-logic-chip-ico">{entry.icon}</span>
+                        <span className="tl-logic-dropdown-item-name">{entry.shortTitle}</span>
+                        <span
+                          className="tl-logic-dropdown-item-cat"
+                          style={{ color: entry.categoryMeta.accent }}
+                        >
+                          {entry.categoryMeta.label}
+                        </span>
+                      </button>
+                      <div className="tl-logic-dropdown-item-actions">
+                        <button
+                          type="button"
+                          className="tl-logic-item-toggle-btn"
+                          title={entry.enabled ? 'Tạm tắt logic này' : 'Bật lại logic này'}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            useEditor.getState().update((draft) => {
+                              toggleTimelineLogicNode(draft, entry.node.id)
+                            })
+                          }}
+                        >
+                          {entry.enabled ? '● Bật' : '○ Tắt'}
+                        </button>
+                        <button
+                          type="button"
+                          className="tl-logic-item-del-btn"
+                          title="Gỡ logic này khỏi luồng"
+                          aria-label={`Xóa ${entry.shortTitle}`}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            useEditor.getState().update((draft) => {
+                              removeTimelineLogicNode(draft, entry.node.id)
+                            })
+                          }}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="tl-logic-dropdown-foot">
+                  <button
+                    type="button"
+                    className="tl-logic-dropdown-add"
+                    onClick={() => {
+                      setMenuOpen(false)
+                      openPickerWithCategory('all')
+                    }}
+                  >
+                    + Thêm logic mới...
+                  </button>
+                </div>
+              </div>,
+              document.body
+            )}
+        </div>
+      ) : (
+        <span className="tl-logic-empty">Chưa gắn logic riêng</span>
+      )}
+
+      <div style={{ flex: 1 }} />
 
       <button
         type="button"

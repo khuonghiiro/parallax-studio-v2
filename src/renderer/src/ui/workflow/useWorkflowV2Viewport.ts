@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { WorkflowNode } from '@shared/types'
-import { WF_V2_NODE_H, WF_V2_NODE_W } from '../../project/workflowV2Engine'
+import { WF_V2_CAMERA_LANE_X, WF_V2_NODE_H, WF_V2_NODE_W } from '../../project/workflowV2Engine'
 import { usePinchPanGesture } from '../../hooks/usePinchPanGesture'
 
 export const WF_V2_MIN_ZOOM = 0.3
@@ -38,7 +38,7 @@ function boundsOf(nodes: WorkflowNode[]): { minX: number; minY: number; maxX: nu
     maxX = Math.max(maxX, n.position.x + WF_V2_NODE_W)
     maxY = Math.max(maxY, n.position.y + WF_V2_NODE_H)
   }
-  return { minX: minX - 40, minY: Math.min(minY - 48, 0), maxX: maxX + 16, maxY: maxY + 16 }
+  return { minX: Math.min(minX - 40, WF_V2_CAMERA_LANE_X - 28), minY: Math.min(minY - 48, 0), maxX: maxX + 16, maxY: maxY + 16 }
 }
 
 /**
@@ -50,7 +50,7 @@ function boundsOf(nodes: WorkflowNode[]): { minX: number; minY: number; maxX: nu
 export function useWorkflowV2Viewport(visibleNodes: WorkflowNode[]): WorkflowV2Viewport {
   const viewportRef = useRef<HTMLDivElement>(null)
   const [zoom, setZoomState] = useState(0.85)
-  const [pan, setPanState] = useState({ x: 24, y: 8 })
+  const [pan, setPanState] = useState({ x: 44, y: 8 })
   const zoomRef = useRef(zoom)
   const panRef = useRef(pan)
   const nodesRef = useRef(visibleNodes)

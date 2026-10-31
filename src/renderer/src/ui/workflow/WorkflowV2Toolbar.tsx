@@ -5,8 +5,6 @@ import { IconJsonBraces, IconLightning, IconTimeNodePlus, IconTree } from '../ic
 import { TimelineModeTabs } from './TimelineModeTabs'
 import { IconWorkflowCardsList, IconWorkflowGraph } from './workflowIcons'
 
-/** Quy chuẩn: ≤ 6 lựa chọn dùng pill bấm 1 lần (hỗ trợ vuốt ngang trên mobile), nhiều hơn dùng Select */
-const MAX_SHOT_PILLS = 6
 const ALL = '__all__'
 
 export type WorkflowV2ViewMode = 'graph' | 'cards'
@@ -33,7 +31,11 @@ export interface WorkflowV2ToolbarProps {
 export const WorkflowV2Toolbar: React.FC<WorkflowV2ToolbarProps> = (props) => {
   const options = [
     { value: ALL, label: 'Toàn cảnh' },
-    ...props.shots.map(({ shot, index }) => ({ value: shot.id, label: `#${index + 1} ${shot.name}` }))
+    ...props.shots.map(({ shot, index }) => ({
+      value: shot.id,
+      label: `#${index + 1} ${shot.name}`,
+      icon: shot.id === props.activeShotId ? <span className="wf-v2-live-dot" aria-hidden="true" /> : undefined
+    }))
   ]
   const current = props.focusedShotId ?? ALL
   return (
@@ -47,34 +49,13 @@ export const WorkflowV2Toolbar: React.FC<WorkflowV2ToolbarProps> = (props) => {
 
       <div className="wf-v2-scope" role="group" aria-label="Đi tới cảnh trong không gian Workflow">
         <span className="wf-v2-scope-label">Đi tới</span>
-        {options.length <= MAX_SHOT_PILLS ? (
-          <div className="wf-v2-scope-pills">
-            {options.map((opt) => {
-              const live = opt.value === props.activeShotId
-              return (
-                <button
-                  key={opt.value}
-                  type="button"
-                  className={`wf-v2-scope-pill${current === opt.value ? ' active' : ''}${live ? ' live' : ''}`}
-                  title={live ? `${opt.label} — camera đang quay cảnh này` : opt.label}
-                  aria-pressed={current === opt.value}
-                  onClick={() => props.onFocusShot(opt.value === ALL ? null : opt.value)}
-                >
-                  {live && <span className="wf-v2-live-dot" aria-hidden="true" />}
-                  {opt.label}
-                </button>
-              )
-            })}
-          </div>
-        ) : (
-          <CustomSelect
-            size="sm"
-            value={current}
-            options={options}
-            onChange={(v) => props.onFocusShot(v === ALL ? null : v)}
-            style={{ minWidth: 168 }}
-          />
-        )}
+        <CustomSelect
+          size="sm"
+          value={current}
+          options={options}
+          onChange={(v) => props.onFocusShot(v === ALL ? null : v)}
+          style={{ minWidth: 168, maxWidth: 260 }}
+        />
       </div>
 
       <div className="wf-v2-toolbar-actions">

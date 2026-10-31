@@ -1,6 +1,6 @@
 import React from 'react'
 import type { WorkflowEdge, WorkflowNode } from '@shared/types'
-import type { V2Cluster } from '../../project/workflowV2Engine'
+import { WF_V2_CAMERA_LANE_X, type V2Cluster } from '../../project/workflowV2Engine'
 import { IconFit, IconZoomIn, IconZoomOut } from '../icons'
 import { WF_V2_PORT_Y, buildEdgePath, type V2EdgeKind } from './workflowV2Edges'
 import {
@@ -262,7 +262,7 @@ export const WorkflowV2EdgeLayer: React.FC<{
               </g>
             )}
             {label && kind === 'camera' && (
-              <g transform={`translate(${6} ${(from.position.y + to.position.y) / 2 + WF_V2_PORT_Y})`}>
+              <g transform={`translate(${WF_V2_CAMERA_LANE_X - 29} ${(from.position.y + to.position.y) / 2 + WF_V2_PORT_Y})`}>
                 <rect className="wf-v2-chain-label-bg" x={-3} y={-9.5} width={58} height={19} rx={4} />
                 <text className="wf-v2-chain-label" x={26} y={3.5}>{label}</text>
               </g>
@@ -314,11 +314,13 @@ export const WorkflowV2CanvasHud: React.FC<{
   zoom: number
   wireStyle: 'smoothstep' | 'bezier'
   follow: boolean
+  legendOpen?: boolean
   onFit: (all: boolean) => void
   onZoom: (factor: number) => void
   onToggleWireStyle: () => void
   onToggleFollow: () => void
-}> = ({ zoom, wireStyle, follow, onFit, onZoom, onToggleWireStyle, onToggleFollow }) => (
+  onToggleLegend?: () => void
+}> = ({ zoom, wireStyle, follow, legendOpen, onFit, onZoom, onToggleWireStyle, onToggleFollow, onToggleLegend }) => (
   <div className="wf-canvas-hud vertical wf-v2-hud" data-mcp-region="workflow_canvas_hud" onPointerDown={(e) => e.stopPropagation()}>
     <button
       type="button"
@@ -351,46 +353,88 @@ export const WorkflowV2CanvasHud: React.FC<{
     >
       {wireStyle === 'smoothstep' ? <IconWfWireStep width={14} height={14} /> : <IconWfWireBezier width={14} height={14} />}
     </button>
+    {onToggleLegend && (
+      <button
+        type="button"
+        className={`wf-hud-btn${legendOpen ? ' active' : ''}`}
+        title={legendOpen ? 'Ẩn chú giải đường nối' : 'Hiện chú giải đường nối'}
+        onClick={onToggleLegend}
+      >
+        <span style={{ fontSize: 11, fontWeight: 800 }}>ℹ</span>
+      </button>
+    )}
   </div>
 )
 
 /** Chú giải loại dây bằng mẫu vector SVG thật để khớp 1:1 với dây trên sơ đồ ở cả 2 Theme */
-export const WorkflowV2Legend: React.FC = () => (
-  <div className="wf-v2-legend" data-mcp-region="workflow_legend" onPointerDown={(e) => e.stopPropagation()}>
-    <span>
-      <svg className="wf-v2-legend-svg k-hierarchy" width="24" height="10" viewBox="0 0 24 10" aria-hidden="true">
-        <line x1="1" y1="5" x2="18.5" y2="5" />
-        <polygon points="17.5,2.2 23,5 17.5,7.8" />
-      </svg>
-      Cấu trúc
-    </span>
-    <span>
-      <svg className="wf-v2-legend-svg k-logic" width="24" height="10" viewBox="0 0 24 10" aria-hidden="true">
-        <line x1="1" y1="5" x2="18.5" y2="5" />
-        <polygon points="17.5,2.2 23,5 17.5,7.8" />
-      </svg>
-      Logic Layer
-    </span>
-    <span>
-      <svg className="wf-v2-legend-svg k-data" width="24" height="10" viewBox="0 0 24 10" aria-hidden="true">
-        <line x1="1" y1="5" x2="18.5" y2="5" strokeDasharray="4.5 3" />
-        <polygon points="17.5,2.2 23,5 17.5,7.8" />
-      </svg>
-      Chất liệu → Va chạm
-    </span>
-    <span>
-      <svg className="wf-v2-legend-svg k-camera" width="24" height="10" viewBox="0 0 24 10" aria-hidden="true">
-        <line x1="1" y1="5" x2="18.5" y2="5" strokeDasharray="6 3" />
-        <polygon points="17.5,2.2 23,5 17.5,7.8" />
-      </svg>
-      Camera chuyển cảnh
-    </span>
-    <span>
-      <svg className="wf-v2-legend-svg k-running" width="24" height="10" viewBox="0 0 24 10" aria-hidden="true">
-        <line className="base" x1="1" y1="5" x2="22" y2="5" />
-        <line className="pulse" x1="2" y1="5" x2="22" y2="5" strokeDasharray="4 6" />
-      </svg>
-      Đang chạy
-    </span>
-  </div>
-)
+export const WorkflowV2Legend: React.FC<{
+  open?: boolean
+  onToggle?: () => void
+}> = ({ open = false, onToggle }) => {
+  if (!open) {
+    return (
+      <button
+        type="button"
+        className="wf-v2-legend-toggle"
+        data-mcp-region="workflow_legend"
+        title="Hiện chú giải loại dây nối trong Workflow"
+        onClick={onToggle}
+        onPointerDown={(e) => e.stopPropagation()}
+      >
+        <span className="wf-v2-legend-toggle-ico" aria-hidden="true">ℹ</span>
+        <span>Chú giải</span>
+      </button>
+    )
+  }
+
+  return (
+    <div className="wf-v2-legend" data-mcp-region="workflow_legend" onPointerDown={(e) => e.stopPropagation()}>
+      <span>
+        <svg className="wf-v2-legend-svg k-hierarchy" width="24" height="10" viewBox="0 0 24 10" aria-hidden="true">
+          <line x1="1" y1="5" x2="18.5" y2="5" />
+          <polygon points="17.5,2.2 23,5 17.5,7.8" />
+        </svg>
+        Cấu trúc
+      </span>
+      <span>
+        <svg className="wf-v2-legend-svg k-logic" width="24" height="10" viewBox="0 0 24 10" aria-hidden="true">
+          <line x1="1" y1="5" x2="18.5" y2="5" />
+          <polygon points="17.5,2.2 23,5 17.5,7.8" />
+        </svg>
+        Logic Layer
+      </span>
+      <span>
+        <svg className="wf-v2-legend-svg k-data" width="24" height="10" viewBox="0 0 24 10" aria-hidden="true">
+          <line x1="1" y1="5" x2="18.5" y2="5" strokeDasharray="4.5 3" />
+          <polygon points="17.5,2.2 23,5 17.5,7.8" />
+        </svg>
+        Chất liệu → Va chạm
+      </span>
+      <span>
+        <svg className="wf-v2-legend-svg k-camera" width="24" height="10" viewBox="0 0 24 10" aria-hidden="true">
+          <line x1="1" y1="5" x2="18.5" y2="5" strokeDasharray="6 3" />
+          <polygon points="17.5,2.2 23,5 17.5,7.8" />
+        </svg>
+        Camera chuyển cảnh
+      </span>
+      <span>
+        <svg className="wf-v2-legend-svg k-running" width="24" height="10" viewBox="0 0 24 10" aria-hidden="true">
+          <line className="base" x1="1" y1="5" x2="22" y2="5" />
+          <line className="pulse" x1="2" y1="5" x2="22" y2="5" strokeDasharray="4 6" />
+        </svg>
+        Đang chạy
+      </span>
+      {onToggle && (
+        <button
+          type="button"
+          className="wf-v2-legend-close"
+          title="Thu gọn chú giải"
+          aria-label="Thu gọn chú giải"
+          onClick={onToggle}
+        >
+          ×
+        </button>
+      )}
+    </div>
+  )
+}

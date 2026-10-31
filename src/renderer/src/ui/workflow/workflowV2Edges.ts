@@ -72,7 +72,8 @@ export function buildCameraChainPath(from: WorkflowNode, to: WorkflowNode): stri
   const y1 = from.position.y + WF_V2_PORT_Y
   const x2 = to.position.x - 8
   const y2 = to.position.y + WF_V2_PORT_Y
-  return roundedOrthogonal([[x1, y1], [WF_V2_CAMERA_LANE_X, y1], [WF_V2_CAMERA_LANE_X, y2], [x2, y2]], 14)
+  const laneX = Math.min(WF_V2_CAMERA_LANE_X, x1 - 56, x2 - 56)
+  return roundedOrthogonal([[x1, y1], [laneX, y1], [laneX, y2], [x2, y2]], 14)
 }
 
 /**
