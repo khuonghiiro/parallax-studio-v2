@@ -68,6 +68,17 @@ Tuân thủ nghiêm ngặt kỹ năng `code-modularization`:
   - **Cấm đặt chữ `#ffffff` trực tiếp lên nền màu nhấn động sáng (`--logic-accent`, `--badge-accent`, `--item-c` như vàng cam `#f59e0b` hoặc cyan `#38bdf8`) khi `:hover` / `.active`:** Bắt buộc làm đậm nền bằng `background: color-mix(in srgb, var(--logic-accent, var(--accent)) 78%, #0f172a); color: #ffffff;` để chữ trắng luôn nổi bật sắc nét trên cả 2 theme.
   - Các nút `.btn.ghost` / `.tl-action-btn` trên thanh công cụ phải có viền nhẹ `border-color: var(--line-soft)` và nền `:hover` pha `color-mix(in srgb, var(--accent) 10%, var(--bg-3))` để người dùng nhận diện rõ vùng bấm ở cả 2 theme.
 
+### 2.3b. Quy Chuẩn Responsive Đa Thiết Bị & Triệt Tiêu "Sa Mạc Trống Trải" (Multi-Device Responsive Standard - BẮT BUỘC)
+- **Hệ thống 4 Breakpoints chuẩn ([responsive-standard.md](./.agents/rules/responsive-standard.md)):** Mọi thành phần UI khi xây mới hoặc chỉnh sửa bắt buộc vận hành trơn tru trên cả 4 ngưỡng màn hình:
+  - **Phone** (`<= 768px`): 1 cột (`1fr`), drawer/sheet trượt toàn màn hình, nút bấm cảm ứng lớn (`>= 36px–44px`), thanh công cụ thu gọn text chỉ giữ icon, menu chuyển cảnh dạng dropdown.
+  - **Tablet** (`769px – 1120px`): Lưới 2 cột (`repeat(auto-fill, minmax(280px, 1fr))`), thanh công cụ co giãn, ẩn bớt text phụ.
+  - **Laptop** (`1121px – 1366px`): Lưới 2–3 cột, các panel và viewer cân đối.
+  - **Desktop / Màn hình rộng** (`> 1366px`): Lưới 3–4 cột, giới hạn chiều rộng vùng chứa (`max-width: 1400px–1680px; margin: 0 auto;`).
+- **Triệt tiêu hiện tượng "Sa Mạc Trống Trải" (Anti-Empty Desert Principle - BẮT BUỘC):**
+  - Tuyệt đối CẤM để danh sách các dòng đơn lẻ trải dài 100% trên màn hình desktop/laptop rộng (1440px – 1920px) khiến nhãn bên trái và các nút bấm bên phải bị kéo xa nhau hàng nghìn pixel với khoảng trống rỗng vô nghĩa ở giữa.
+  - BẮT BUỘC tổ chức các danh sách dạng Thẻ (Cards / Workflow / Assets) theo lưới Card đa cột tự co giãn (`display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 8px–10px;`). Mỗi Card gom trọn vẹn thông tin và các nút thao tác trực tiếp của đối tượng đó trong phạm vi gọn gàng (`340px – 480px`), giúp người dùng quan sát và thao tác tức thì.
+- **Vùng bấm cảm ứng & Công thái học:** Vùng bấm tối thiểu `36px × 36px` (khuyến nghị `40px–44px` cho nút chính), khoảng cách giữa 2 nút tối thiểu `6px–8px`, danh sách cuộn bật `-webkit-overflow-scrolling: touch;`.
+
 ### 2.4. Giao Thức Điều Khiển AI Qua MCP & CLI Controller (`pnpm pxs`)
 - **Máy chủ MCP nội bộ:** Ứng dụng cung cấp MCP Server tại `mcp-server/index.mjs` kết nối qua TCP `127.0.0.1:9877` với hơn 50 công cụ chuyên biệt để AI thao tác trực tiếp (xem chi tiết tại `mcp-server/README.md`).
 - **Bộ điều khiển CLI (`pnpm pxs`):** AI Agent có thể tra cứu toàn diện và điều khiển trực tiếp qua terminal:

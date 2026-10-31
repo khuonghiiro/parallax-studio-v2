@@ -135,6 +135,38 @@ export const WorkflowMobileCardsView: React.FC<WorkflowMobileCardsViewProps> = (
     </div>
   )
 
+  const renderSubActions = (node: WorkflowNode) => (
+    <div className="wf-mcard-actions" onClick={(e) => e.stopPropagation()}>
+      <button
+        type="button"
+        className="btn ghost sm wf-mcard-btn sub"
+        title="Mở bảng chỉnh sửa thông số Node"
+        onClick={() => onOpenNodeInspector(node.id)}
+      >
+        <IconSliders width={11} height={11} />
+        <span>Chỉnh</span>
+      </button>
+      <button
+        type="button"
+        className={`wf-mcard-toggle sm${node.enabled ? ' on' : ''}`}
+        title={node.enabled ? 'Đang bật — chạm để tạm tắt' : 'Đang tắt — chạm để bật'}
+        onClick={() => onToggleNodeEnable(node.id)}
+      >
+        {node.enabled ? 'BẬT' : 'TẮT'}
+      </button>
+      {isDeletableV2Node(node) && (
+        <button
+          type="button"
+          className="btn ghost icon sm wf-mcard-del sub"
+          title="Xoá Node này"
+          onClick={() => onDeleteNode(node.id)}
+        >
+          <IconTrash width={11} height={11} />
+        </button>
+      )}
+    </div>
+  )
+
   return (
     <div className="wf-mobile-cards-view" data-mcp-region="workflow_mobile_cards">
       <WorkflowTimeRulerV2
@@ -188,137 +220,153 @@ export const WorkflowMobileCardsView: React.FC<WorkflowMobileCardsViewProps> = (
                 </span>
               </header>
 
-              {/* 1. Lộ trình Camera 3D của Cảnh */}
-              {camParent && (
-                <div className="wf-mcard-group">
+              <div className="wf-mcard-grid">
+                {/* 1. Lộ trình Camera 3D của Cảnh */}
+                {camParent && (
                   <div
-                    className={`wf-mcard-row is-cam${selectedNodeId === camParent.id ? ' selected' : ''}`}
+                    className={`wf-mcard-card is-camera${selectedNodeId === camParent.id ? ' selected' : ''}`}
                     style={{ ['--wf-v2-accent' as string]: resolveV2NodeTheme(camParent).accent }}
-                    onClick={() => onSelectNode(camParent.id)}
                   >
-                    <div className="wf-mcard-info">
-                      <span className="wf-mcard-badge">CAMERA 3D</span>
-                      <span className="wf-mcard-name">{cleanV2NodeTitle(camParent.title)}</span>
-                    </div>
-                    {renderNodeActions(
-                      camParent,
-                      cluster.shotId && onSpawnCameraWaypoint ? (
-                        <button
-                          type="button"
-                          className="btn ghost sm wf-mcard-btn accent"
-                          onClick={() => onSpawnCameraWaypoint(cluster.shotId!, 'pan')}
-                          title="Thêm mốc lộ trình Camera mới cho cảnh này"
-                        >
-                          <IconPlus width={11} height={11} />
-                          <span>Mốc</span>
-                        </button>
-                      ) : null
-                    )}
-                  </div>
-
-                  {camWaypoints.map((wp) => {
-                    const th = resolveV2NodeTheme(wp)
-                    return (
-                      <div
-                        key={wp.id}
-                        className={`wf-mcard-row is-child${selectedNodeId === wp.id ? ' selected' : ''}`}
-                        style={{ ['--wf-v2-accent' as string]: th.accent }}
-                        onClick={() => {
-                          onSelectNode(wp.id)
-                          if (wp.params?.timeStart !== undefined) onSetTime(wp.params.timeStart)
-                        }}
-                      >
-                        <div className="wf-mcard-info">
-                          <span className="wf-mcard-step-icon">{th.icon}</span>
-                          <div className="wf-mcard-texts">
-                            <span className="wf-mcard-name">{cleanV2NodeTitle(wp.title)}</span>
-                            <small className="wf-mcard-sub">
-                              {(wp.params?.timeStart ?? 0).toFixed(1)}s → {(wp.params?.timeEnd ?? 0).toFixed(1)}s
-                            </small>
-                          </div>
-                        </div>
-                        {renderNodeActions(wp)}
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-
-              {/* 1b. Cụm 2.5D / Khoá Cụm & Logic chung của cả Nhân vật / Tổ hợp */}
-              {clusterLocks.map((lockNode) => {
-                const lockTheme = resolveV2NodeTheme(lockNode)
-                const lockLogic = (childrenMap.get(lockNode.id) ?? []).filter(
-                  (c) => resolveV2NodeLevel(c) === 'logic' && c.params?.logicCategory !== 'cluster_lock'
-                )
-                return (
-                  <div key={lockNode.id} className="wf-mcard-group">
                     <div
-                      className={`wf-mcard-row is-layer${selectedNodeId === lockNode.id ? ' selected' : ''}`}
-                      style={{ ['--wf-v2-accent' as string]: lockTheme.accent }}
-                      onClick={() => onSelectNode(lockNode.id)}
+                      className="wf-mcard-card-head"
+                      onClick={() => onSelectNode(camParent.id)}
                     >
                       <div className="wf-mcard-info">
-                        <span className="wf-mcard-emoji">{lockTheme.icon}</span>
-                        <div className="wf-mcard-texts">
-                          <span className="wf-mcard-name">{cleanV2NodeTitle(lockNode.title)}</span>
-                          <small className="wf-mcard-sub">
-                            {lockTheme.badge} · {lockLogic.length} logic cụm
-                          </small>
-                        </div>
+                        <span className="wf-mcard-badge">CAMERA 3D</span>
+                        <span className="wf-mcard-name">{cleanV2NodeTitle(camParent.title)}</span>
                       </div>
                       {renderNodeActions(
-                        lockNode,
-                        <button
-                          type="button"
-                          className="btn ghost sm wf-mcard-btn accent"
-                          onClick={(e) => openSpawnFor(e, lockNode.id)}
-                          title="Gắn Logic chung cho toàn bộ Cụm 2.5D (Chuyển động, Rig xương, Biểu cảm...)"
-                        >
-                          <IconPlus width={11} height={11} />
-                          <span>Logic cụm</span>
-                        </button>
+                        camParent,
+                        cluster.shotId && onSpawnCameraWaypoint ? (
+                          <button
+                            type="button"
+                            className="btn ghost sm wf-mcard-btn accent"
+                            onClick={() => onSpawnCameraWaypoint(cluster.shotId!, 'pan')}
+                            title="Thêm mốc lộ trình Camera mới cho cảnh này"
+                          >
+                            <IconPlus width={11} height={11} />
+                            <span>Mốc</span>
+                          </button>
+                        ) : null
                       )}
                     </div>
 
-                    {lockLogic.map((lg) => {
-                      const gTheme = resolveV2NodeTheme(lg)
-                      return (
-                        <div
-                          key={lg.id}
-                          className={`wf-mcard-row is-child is-logic${selectedNodeId === lg.id ? ' selected' : ''}`}
-                          style={{ ['--wf-v2-accent' as string]: gTheme.accent }}
-                          onClick={() => onSelectNode(lg.id)}
-                        >
-                          <div className="wf-mcard-info">
-                            <span className="wf-mcard-emoji">{gTheme.icon}</span>
-                            <div className="wf-mcard-texts">
-                              <span className="wf-mcard-name">{cleanV2NodeTitle(lg.title)}</span>
-                              <small className="wf-mcard-sub">
-                                {gTheme.badge} · {(lg.params?.timeStart ?? 0).toFixed(1)}s–
-                                {(lg.params?.timeEnd ?? maxDuration).toFixed(1)}s
-                              </small>
+                    {camWaypoints.length > 0 && (
+                      <div className="wf-mcard-sublist">
+                        {camWaypoints.map((wp) => {
+                          const th = resolveV2NodeTheme(wp)
+                          return (
+                            <div
+                              key={wp.id}
+                              className={`wf-mcard-sub-item${selectedNodeId === wp.id ? ' selected' : ''}`}
+                              style={{ ['--wf-v2-accent' as string]: th.accent }}
+                              onClick={() => {
+                                onSelectNode(wp.id)
+                                if (wp.params?.timeStart !== undefined) onSetTime(wp.params.timeStart)
+                              }}
+                            >
+                              <div className="wf-mcard-info">
+                                <span className="wf-mcard-step-icon">{th.icon}</span>
+                                <div className="wf-mcard-texts">
+                                  <span className="wf-mcard-name">{cleanV2NodeTitle(wp.title)}</span>
+                                  <small className="wf-mcard-sub">
+                                    {(wp.params?.timeStart ?? 0).toFixed(1)}s → {(wp.params?.timeEnd ?? 0).toFixed(1)}s
+                                  </small>
+                                </div>
+                              </div>
+                              {renderSubActions(wp)}
                             </div>
-                          </div>
-                          {renderNodeActions(lg)}
-                        </div>
-                      )
-                    })}
+                          )
+                        })}
+                      </div>
+                    )}
                   </div>
-                )
-              })}
+                )}
 
-              {/* 2. Danh sách Layer & Logic riêng gắn kèm */}
-              <div className="wf-mcard-layers">
+                {/* 1b. Cụm 2.5D / Khoá Cụm & Logic chung của cả Nhân vật / Tổ hợp */}
+                {clusterLocks.map((lockNode) => {
+                  const lockTheme = resolveV2NodeTheme(lockNode)
+                  const lockLogic = (childrenMap.get(lockNode.id) ?? []).filter(
+                    (c) => resolveV2NodeLevel(c) === 'logic' && c.params?.logicCategory !== 'cluster_lock'
+                  )
+                  return (
+                    <div
+                      key={lockNode.id}
+                      className={`wf-mcard-card is-cluster-lock${selectedNodeId === lockNode.id ? ' selected' : ''}`}
+                      style={{ ['--wf-v2-accent' as string]: lockTheme.accent }}
+                    >
+                      <div
+                        className="wf-mcard-card-head"
+                        onClick={() => onSelectNode(lockNode.id)}
+                      >
+                        <div className="wf-mcard-info">
+                          <span className="wf-mcard-emoji">{lockTheme.icon}</span>
+                          <div className="wf-mcard-texts">
+                            <span className="wf-mcard-name">{cleanV2NodeTitle(lockNode.title)}</span>
+                            <small className="wf-mcard-sub">
+                              {lockTheme.badge} · {lockLogic.length} logic cụm
+                            </small>
+                          </div>
+                        </div>
+                        {renderNodeActions(
+                          lockNode,
+                          <button
+                            type="button"
+                            className="btn ghost sm wf-mcard-btn accent"
+                            onClick={(e) => openSpawnFor(e, lockNode.id)}
+                            title="Gắn Logic chung cho toàn bộ Cụm 2.5D (Chuyển động, Rig xương, Biểu cảm...)"
+                          >
+                            <IconPlus width={11} height={11} />
+                            <span>Logic cụm</span>
+                          </button>
+                        )}
+                      </div>
+
+                      {lockLogic.length > 0 && (
+                        <div className="wf-mcard-sublist">
+                          {lockLogic.map((lg) => {
+                            const gTheme = resolveV2NodeTheme(lg)
+                            return (
+                              <div
+                                key={lg.id}
+                                className={`wf-mcard-sub-item is-logic${selectedNodeId === lg.id ? ' selected' : ''}`}
+                                style={{ ['--wf-v2-accent' as string]: gTheme.accent }}
+                                onClick={() => onSelectNode(lg.id)}
+                              >
+                                <div className="wf-mcard-info">
+                                  <span className="wf-mcard-emoji">{gTheme.icon}</span>
+                                  <div className="wf-mcard-texts">
+                                    <span className="wf-mcard-name">{cleanV2NodeTitle(lg.title)}</span>
+                                    <small className="wf-mcard-sub">
+                                      {gTheme.badge} · {(lg.params?.timeStart ?? 0).toFixed(1)}s–
+                                      {(lg.params?.timeEnd ?? maxDuration).toFixed(1)}s
+                                    </small>
+                                  </div>
+                                </div>
+                                {renderSubActions(lg)}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+
+                {/* 2. Danh sách Layer & Logic riêng gắn kèm */}
                 {layerNodes.map((ln) => {
                   const lTheme = resolveV2NodeTheme(ln)
                   const attached = (childrenMap.get(ln.id) ?? []).filter(
                     (c) => resolveV2NodeLevel(c) === 'logic' && c.params?.logicCategory !== 'cluster_lock'
                   )
                   return (
-                    <div key={ln.id} className="wf-mcard-group">
+                    <div
+                      key={ln.id}
+                      className={`wf-mcard-card is-layer${selectedNodeId === ln.id ? ' selected' : ''}`}
+                      style={{ ['--wf-v2-accent' as string]: lTheme.accent }}
+                    >
                       <div
-                        className={`wf-mcard-row is-layer${selectedNodeId === ln.id ? ' selected' : ''}`}
-                        style={{ ['--wf-v2-accent' as string]: lTheme.accent }}
+                        className="wf-mcard-card-head"
                         onClick={() => onSelectNode(ln.id)}
                       >
                         <div className="wf-mcard-info">
@@ -326,7 +374,7 @@ export const WorkflowMobileCardsView: React.FC<WorkflowMobileCardsViewProps> = (
                           <div className="wf-mcard-texts">
                             <span className="wf-mcard-name">{cleanV2NodeTitle(ln.title)}</span>
                             <small className="wf-mcard-sub">
-                              {lTheme.badge} · {attached.length} logic
+                              {lTheme.badge} · {attached.length > 0 ? `${attached.length} logic` : 'Gốc'}
                             </small>
                           </div>
                         </div>
@@ -344,29 +392,39 @@ export const WorkflowMobileCardsView: React.FC<WorkflowMobileCardsViewProps> = (
                         )}
                       </div>
 
-                      {attached.map((lg) => {
-                        const gTheme = resolveV2NodeTheme(lg)
-                        return (
-                          <div
-                            key={lg.id}
-                            className={`wf-mcard-row is-child is-logic${selectedNodeId === lg.id ? ' selected' : ''}`}
-                            style={{ ['--wf-v2-accent' as string]: gTheme.accent }}
-                            onClick={() => onSelectNode(lg.id)}
-                          >
-                            <div className="wf-mcard-info">
-                              <span className="wf-mcard-emoji">{gTheme.icon}</span>
-                              <div className="wf-mcard-texts">
-                                <span className="wf-mcard-name">{cleanV2NodeTitle(lg.title)}</span>
-                                <small className="wf-mcard-sub">
-                                  {gTheme.badge} · {(lg.params?.timeStart ?? 0).toFixed(1)}s–
-                                  {(lg.params?.timeEnd ?? maxDuration).toFixed(1)}s
-                                </small>
+                      {attached.length > 0 ? (
+                        <div className="wf-mcard-sublist">
+                          {attached.map((lg) => {
+                            const gTheme = resolveV2NodeTheme(lg)
+                            return (
+                              <div
+                                key={lg.id}
+                                className={`wf-mcard-sub-item is-logic${selectedNodeId === lg.id ? ' selected' : ''}`}
+                                style={{ ['--wf-v2-accent' as string]: gTheme.accent }}
+                                onClick={() => onSelectNode(lg.id)}
+                              >
+                                <div className="wf-mcard-info">
+                                  <span className="wf-mcard-emoji">{gTheme.icon}</span>
+                                  <div className="wf-mcard-texts">
+                                    <span className="wf-mcard-name">{cleanV2NodeTitle(lg.title)}</span>
+                                    <small className="wf-mcard-sub">
+                                      {gTheme.badge} · {(lg.params?.timeStart ?? 0).toFixed(1)}s–
+                                      {(lg.params?.timeEnd ?? maxDuration).toFixed(1)}s
+                                    </small>
+                                  </div>
+                                </div>
+                                {renderSubActions(lg)}
                               </div>
-                            </div>
-                            {renderNodeActions(lg)}
-                          </div>
-                        )
-                      })}
+                            )
+                          })}
+                        </div>
+                      ) : (
+                        <div className="wf-mcard-empty-layer" onClick={() => onSelectNode(ln.id)}>
+                          <span className="wf-mcard-time-hint">
+                            ⏱ {(ln.params?.timeStart ?? 0).toFixed(1)}s – {(ln.params?.timeEnd ?? maxDuration).toFixed(1)}s
+                          </span>
+                        </div>
+                      )}
                     </div>
                   )
                 })}
