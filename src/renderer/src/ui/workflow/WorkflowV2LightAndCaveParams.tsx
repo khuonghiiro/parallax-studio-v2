@@ -78,6 +78,8 @@ export function WorkflowV2LightParams(props: WorkflowV2NodeParamsProps): React.R
     let resolvedWind = patch.windPreset
     let resolvedRays = patch.rayIntensity
     let resolvedBounce = patch.envBounce
+    let resolvedZReachFront = patch.zReachFront
+    let resolvedZReachBack = patch.zReachBack
     let nextTitle: string | undefined
 
     useEditor.getState().update((d) => {
@@ -124,6 +126,8 @@ export function WorkflowV2LightParams(props: WorkflowV2NodeParamsProps): React.R
         resolvedWind = next.windPreset
         resolvedRays = next.rayIntensity
         resolvedBounce = next.envBounce
+        resolvedZReachFront = next.zReachFront
+        resolvedZReachBack = next.zReachBack
         l.virtualLight = next
       }
 
@@ -138,7 +142,9 @@ export function WorkflowV2LightParams(props: WorkflowV2NodeParamsProps): React.R
           ...(resolvedBehavior ? { lightBehavior: resolvedBehavior } : {}),
           ...(resolvedWind ? { lightWindPreset: resolvedWind } : {}),
           ...(resolvedRays !== undefined ? { lightRayIntensity: resolvedRays } : {}),
-          ...(resolvedBounce !== undefined ? { lightEnvBounce: resolvedBounce } : {})
+          ...(resolvedBounce !== undefined ? { lightEnvBounce: resolvedBounce } : {}),
+          ...(resolvedZReachFront !== undefined ? { lightZReachFront: resolvedZReachFront } : {}),
+          ...(resolvedZReachBack !== undefined ? { lightZReachBack: resolvedZReachBack } : {})
         }
       }
     }, mergeKey)
@@ -186,6 +192,8 @@ export function WorkflowV2LightParams(props: WorkflowV2NodeParamsProps): React.R
   const envBounce = vlight.envBounce ?? optDefaults.envBounce
   const zReachVal =
     vlight.zReach === undefined || [280, 320, 350, 380].includes(vlight.zReach) ? 1500 : vlight.zReach
+  const zReachFrontVal = vlight.zReachFront ?? zReachVal
+  const zReachBackVal = vlight.zReachBack ?? zReachVal
 
   return (
     <div className="vl-section-card" style={{ marginTop: 2 }}>
@@ -532,32 +540,106 @@ export function WorkflowV2LightParams(props: WorkflowV2NodeParamsProps): React.R
               />
             </Row>
 
-            <Row label="Xuyên Z±" title="Tầm truyền ánh sáng sang các layer xếp chồng phía trước & phía sau theo trục Z (px)">
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%' }}>
-                <input
-                  type="range"
-                  min={150}
-                  max={2500}
-                  step={50}
-                  value={Math.min(2500, Math.max(150, zReachVal))}
-                  onChange={(e) => patchLightThrottled({ zReach: Number(e.target.value) }, 'wf-light-zreach')}
-                  onPointerUp={flushPatchLight}
-                  style={{ flex: 1, accentColor: 'var(--accent)', cursor: 'pointer' }}
-                />
-                <div style={{ width: 70, flexShrink: 0 }}>
-                  <NumberInput
-                    axis="z±"
-                    value={zReachVal}
-                    step={50}
-                    precision={0}
-                    min={100}
-                    max={3000}
-                    suffix="px"
-                    onChange={(v, k) => patchLight({ zReach: v }, k)}
-                  />
-                </div>
+            <div className="vl-subcard" style={{ marginTop: 6 }}>
+              <div className="vl-row-header">
+                <span className="vl-subtitle">🌐 Chiếu Sáng Chiều Sâu (Độ Sâu Z)</span>
+                <span className="vl-value-badge">Trước: {zReachFrontVal}px · Sau: {zReachBackVal}px</span>
               </div>
-            </Row>
+
+              <Row
+                label="Phía trước (Z-)"
+                title="Tầm chiếu tới các layer ở phía trước ngọn đèn (tiền cảnh, gần camera hơn). Giảm về 0 nếu không muốn hắt sáng vào nhân vật/tiền cảnh."
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%' }}>
+                  <input
+                    type="range"
+                    min={0}
+                    max={2500}
+                    step={50}
+                    value={Math.min(2500, Math.max(0, zReachFrontVal))}
+                    onChange={(e) =>
+                      patchLightThrottled({ zReachFront: Number(e.target.value) }, 'wf-light-zfront')
+                    }
+                    onPointerUp={flushPatchLight}
+                    style={{ flex: 1, accentColor: 'var(--accent-cyan)', cursor: 'pointer' }}
+                  />
+                  <div style={{ width: 70, flexShrink: 0 }}>
+                    <NumberInput
+                      axis="trước"
+                      value={zReachFrontVal}
+                      step={50}
+                      precision={0}
+                      min={0}
+                      max={3000}
+                      suffix="px"
+                      onChange={(v, k) => patchLight({ zReachFront: v }, k)}
+                    />
+                  </div>
+                </div>
+              </Row>
+
+              <Row
+                label="Phía sau (Z+)"
+                title="Tầm chiếu tới các layer ở phía sau ngọn đèn (hậu cảnh, xa camera hơn). Giảm để tránh làm sáng mép layer nền hoặc tạo viền nổi ngang hỏng cảnh."
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%' }}>
+                  <input
+                    type="range"
+                    min={0}
+                    max={2500}
+                    step={50}
+                    value={Math.min(2500, Math.max(0, zReachBackVal))}
+                    onChange={(e) =>
+                      patchLightThrottled({ zReachBack: Number(e.target.value) }, 'wf-light-zback')
+                    }
+                    onPointerUp={flushPatchLight}
+                    style={{ flex: 1, accentColor: 'var(--accent)', cursor: 'pointer' }}
+                  />
+                  <div style={{ width: 70, flexShrink: 0 }}>
+                    <NumberInput
+                      axis="sau"
+                      value={zReachBackVal}
+                      step={50}
+                      precision={0}
+                      min={0}
+                      max={3000}
+                      suffix="px"
+                      onChange={(v, k) => patchLight({ zReachBack: v }, k)}
+                    />
+                  </div>
+                </div>
+              </Row>
+
+              <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
+                <button
+                  type="button"
+                  className="vl-pill-btn"
+                  style={{ flex: 1, fontSize: 11, padding: '2px 4px', justifyContent: 'center' }}
+                  onClick={() => patchLight({ zReachFront: 1500, zReachBack: 150 })}
+                  title="Chỉ chiếu mạnh về phía trước, chặn ánh sáng chiếu hắt vào nền/tường phía sau (tránh viền trắng)"
+                >
+                  🎯 Chặn nền sau
+                </button>
+                <button
+                  type="button"
+                  className="vl-pill-btn"
+                  style={{ flex: 1, fontSize: 11, padding: '2px 4px', justifyContent: 'center' }}
+                  onClick={() => patchLight({ zReachFront: 1500, zReachBack: 1500 })}
+                  title="Chiếu đều cả 2 hướng trước và sau"
+                >
+                  ↔ Cả 2 hướng
+                </button>
+                <button
+                  type="button"
+                  className="vl-pill-btn"
+                  style={{ flex: 1, fontSize: 11, padding: '2px 4px', justifyContent: 'center' }}
+                  onClick={() => patchLight({ zReachFront: 0, zReachBack: 1500 })}
+                  title="Chỉ chiếu vào nền phía sau, không chiếu tiền cảnh"
+                >
+                  🔙 Chỉ nền sau
+                </button>
+              </div>
+            </div>
           </div>
         </>
       )}

@@ -351,4 +351,54 @@ describe('2.5D Physical Light Dynamics & Environmental Projection', () => {
     const factorPost = computePhysicalRayStriation(0.8, 0.5, 0.85, 12, 1.0001, false)
     expect(Math.abs(factorPre - factorPost)).toBeLessThan(0.01)
   })
+
+  it('controls asymmetric front/back depth reach (zReachFront vs zReachBack) to isolate foreground and background layers', () => {
+    const project = createProject({ width: 1920, height: 1080, duration: 10 })
+    const shot = createShot('Cột Đèn', [0, 0, 0], 0)
+    project.shots = [shot]
+
+    // Cột đèn đặt ở Z = 250
+    const lamp = createSolidLayer(project.comp)
+    lamp.shotId = shot.id
+    lamp.transform.position.value = [0, 0, 250]
+    lamp.virtualLight = {
+      ...createDefaultVirtualLight('flashlight'),
+      intensity: 1.5,
+      radius: 600,
+      envBounce: 1.0,
+      zReachFront: 1800, // Chiếu mạnh tới 1800px về phía trước (tiền cảnh)
+      zReachBack: 150    // Chỉ chiếu tối đa 150px về phía sau (chặn tường/nền ở xa)
+    }
+
+    // Layer tiền cảnh (xe scooter) ở Z = 120 (cách 130px về phía trước: 250 - 120 = 130 <= 1800)
+    const scooter = createSolidLayer(project.comp)
+    scooter.shotId = shot.id
+    scooter.transform.position.value = [0, 0, 120]
+
+    // Layer hậu cảnh (bức tường/mặt đường) ở Z = 520 (cách 270px về phía sau: 520 - 250 = 270 > 150)
+    const wall = createSolidLayer(project.comp)
+    wall.shotId = shot.id
+    wall.transform.position.value = [0, 0, 520]
+
+    project.layers = [lamp, scooter, wall]
+
+    const evLamp = evaluateVirtualLightAtTime(lamp, 1.0)!
+    expect(evLamp.zReachFront).toBe(1800)
+    expect(evLamp.zReachBack).toBe(150)
+
+    // Tiền cảnh (scooter) nhận ánh sáng từ cột đèn
+    const receivedFront = resolveReceivedVirtualLightForLayer(scooter.id, [0, 0, 120], 300, 300, 0, [evLamp])
+    expect(receivedFront).not.toBeNull()
+    expect(receivedFront!.effectiveIntensity).toBeGreaterThan(0.1)
+
+    // Hậu cảnh (wall) bị chặn bởi zReachBack=150, nhận 0 ánh sáng (triệt tiêu viền trắng bị lộ)
+    const receivedBack = resolveReceivedVirtualLightForLayer(wall.id, [0, 0, 520], 1920, 540, 0, [evLamp])
+    expect(receivedBack).toBeNull()
+
+    // Khi nới rộng zReachBack lên 400px, bức tường mới bắt đầu nhận sáng
+    lamp.virtualLight.zReachBack = 400
+    const evLampWide = evaluateVirtualLightAtTime(lamp, 1.0)!
+    const receivedBackWide = resolveReceivedVirtualLightForLayer(wall.id, [0, 0, 520], 1920, 540, 0, [evLampWide])
+    expect(receivedBackWide).not.toBeNull()
+  })
 })

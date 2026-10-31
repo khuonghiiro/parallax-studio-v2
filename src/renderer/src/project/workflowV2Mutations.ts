@@ -877,6 +877,8 @@ function syncSingleWorkflowV2NodeToProject(
         ...(params.lightRayIntensity !== undefined ? { rayIntensity: params.lightRayIntensity } : {}),
         ...(params.lightRayDynamic !== undefined ? { rayDynamic: params.lightRayDynamic } : {}),
         ...(params.lightEnvBounce !== undefined ? { envBounce: params.lightEnvBounce } : {}),
+        ...(params.lightZReachFront !== undefined ? { zReachFront: params.lightZReachFront } : {}),
+        ...(params.lightZReachBack !== undefined ? { zReachBack: params.lightZReachBack } : {}),
         enabled: node.enabled,
         kind: lightOpt.virtualKind,
         color,

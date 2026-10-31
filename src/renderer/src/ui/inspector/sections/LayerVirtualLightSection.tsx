@@ -135,6 +135,8 @@ export function LayerVirtualLightSection({ layer, set }: { layer: Layer; set: Se
     vlight.zReach === 380
       ? 1500
       : vlight.zReach
+  const zReachFrontVal = vlight.zReachFront ?? zReachVal
+  const zReachBackVal = vlight.zReachBack ?? zReachVal
 
   const showLightPanel = subTab === 'light' || subTab === 'both'
   const showPortalPanel = subTab === 'portal' || subTab === 'both'
@@ -540,33 +542,97 @@ export function LayerVirtualLightSection({ layer, set }: { layer: Layer; set: Se
                   ))}
                 </div>
 
-                <Row label="Xuyên Z±" title="Tầm truyền ánh sáng sang các layer xếp chồng phía trước & phía sau theo trục Z (px)">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%' }}>
-                    <input
-                      type="range"
-                      min={150}
-                      max={2500}
-                      step={50}
-                      value={Math.min(2500, Math.max(150, zReachVal))}
-                      onChange={(e) =>
-                        patchLight({ zReach: Number(e.target.value) }, 'virtual-light-zreach')
-                      }
-                      style={{ flex: 1, accentColor: 'var(--accent)', cursor: 'pointer' }}
-                    />
-                    <div style={{ width: 70, flexShrink: 0 }}>
-                      <NumberInput
-                        axis="z±"
-                        value={zReachVal}
+                <Row
+                    label="Phía trước (Z-)"
+                    title="Tầm chiếu tới các layer ở phía trước ngọn đèn (tiền cảnh, gần camera hơn). Giảm về 0 nếu không muốn hắt sáng vào nhân vật/tiền cảnh."
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%' }}>
+                      <input
+                        type="range"
+                        min={0}
+                        max={2500}
                         step={50}
-                        precision={0}
-                        min={100}
-                        max={3000}
-                        suffix="px"
-                        onChange={(v, k) => patchLight({ zReach: v }, k)}
+                        value={Math.min(2500, Math.max(0, zReachFrontVal))}
+                        onChange={(e) =>
+                          patchLight({ zReachFront: Number(e.target.value) }, 'virtual-light-zfront')
+                        }
+                        style={{ flex: 1, accentColor: 'var(--accent-cyan)', cursor: 'pointer' }}
                       />
+                      <div style={{ width: 70, flexShrink: 0 }}>
+                        <NumberInput
+                          axis="trước"
+                          value={zReachFrontVal}
+                          step={50}
+                          precision={0}
+                          min={0}
+                          max={3000}
+                          suffix="px"
+                          onChange={(v, k) => patchLight({ zReachFront: v }, k)}
+                        />
+                      </div>
                     </div>
+                  </Row>
+
+                  <Row
+                    label="Phía sau (Z+)"
+                    title="Tầm chiếu tới các layer ở phía sau ngọn đèn (hậu cảnh, xa camera hơn). Giảm để tránh làm sáng mép layer nền hoặc tạo viền nổi ngang hỏng cảnh."
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%' }}>
+                      <input
+                        type="range"
+                        min={0}
+                        max={2500}
+                        step={50}
+                        value={Math.min(2500, Math.max(0, zReachBackVal))}
+                        onChange={(e) =>
+                          patchLight({ zReachBack: Number(e.target.value) }, 'virtual-light-zback')
+                        }
+                        style={{ flex: 1, accentColor: 'var(--accent)', cursor: 'pointer' }}
+                      />
+                      <div style={{ width: 70, flexShrink: 0 }}>
+                        <NumberInput
+                          axis="sau"
+                          value={zReachBackVal}
+                          step={50}
+                          precision={0}
+                          min={0}
+                          max={3000}
+                          suffix="px"
+                          onChange={(v, k) => patchLight({ zReachBack: v }, k)}
+                        />
+                      </div>
+                    </div>
+                  </Row>
+
+                  <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
+                    <button
+                      type="button"
+                      className="vl-pill-btn"
+                      style={{ flex: 1, fontSize: 11, padding: '2px 4px', justifyContent: 'center' }}
+                      onClick={() => patchLight({ zReachFront: 1500, zReachBack: 150 })}
+                      title="Chỉ chiếu mạnh về phía trước, chặn ánh sáng chiếu hắt vào nền/tường phía sau (tránh viền trắng)"
+                    >
+                      🎯 Chặn nền sau
+                    </button>
+                    <button
+                      type="button"
+                      className="vl-pill-btn"
+                      style={{ flex: 1, fontSize: 11, padding: '2px 4px', justifyContent: 'center' }}
+                      onClick={() => patchLight({ zReachFront: 1500, zReachBack: 1500 })}
+                      title="Chiếu đều cả 2 hướng trước và sau"
+                    >
+                      ↔ Cả 2 hướng
+                    </button>
+                    <button
+                      type="button"
+                      className="vl-pill-btn"
+                      style={{ flex: 1, fontSize: 11, padding: '2px 4px', justifyContent: 'center' }}
+                      onClick={() => patchLight({ zReachFront: 0, zReachBack: 1500 })}
+                      title="Chỉ chiếu vào nền phía sau, không chiếu tiền cảnh"
+                    >
+                      🔙 Chỉ nền sau
+                    </button>
                   </div>
-                </Row>
               </div>
 
               {isFlame && (

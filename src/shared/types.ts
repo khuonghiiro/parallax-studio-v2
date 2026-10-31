@@ -388,6 +388,10 @@ export interface LayerVirtualLight {
   flickerSpeed?: number
   /** Khoảng cách chiều sâu Z tối đa mà ánh sáng chiếu tới các layer lân cận (px, mặc định 280) */
   zReach?: number
+  /** Khoảng cách chiều sâu Z tối đa chiếu tới các layer PHÍA TRƯỚC (tiền cảnh, z < z_light). Mặc định bằng zReach hoặc 1200 */
+  zReachFront?: number
+  /** Khoảng cách chiều sâu Z tối đa chiếu tới các layer PHÍA SAU (hậu cảnh, z > z_light). Mặc định bằng zReach hoặc 1200 */
+  zReachBack?: number
   /** Độ dìm tối môi trường xung quanh ngoài vùng sáng để tạo tương phản sáng-tối vật lý (0 .. 0.85, mặc định 0.25) */
   ambientDim?: number
   /** Độ mềm viền chùm sáng / vùng bán dạ (0.1 .. 1.0, mặc định 0.5) */

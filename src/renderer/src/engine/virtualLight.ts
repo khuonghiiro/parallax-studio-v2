@@ -45,6 +45,10 @@ export interface EvaluatedVirtualLight {
   /** cos(halfConeAngle): -1 nếu tỏa tròn 360°, > -0.98 nếu là chùm sáng hình nón định hướng */
   coneCos: number
   zReach: number
+  /** Tầm chiếu chiều sâu Z tối đa về phía trước (tiền cảnh, z < z_light) */
+  zReachFront: number
+  /** Tầm chiếu chiều sâu Z tối đa về phía sau (hậu cảnh, z > z_light) */
+  zReachBack: number
   /** Độ nghiêng/bạt ngọn sáng do gió [offsetX, offsetY] (px) */
   windOffset: [number, number]
   /** Độ dìm tối môi trường ngoài vùng sáng (0..0.85) tạo tương phản vật lý */
@@ -304,6 +308,8 @@ export function evaluateVirtualLightAtTime(
     rawZReach === 280 || rawZReach === 320 || rawZReach === 350 || rawZReach === 380
       ? 1500
       : Math.max(30, rawZReach)
+  const zReachFront = Math.max(0, vl.zReachFront ?? zReach)
+  const zReachBack = Math.max(0, vl.zReachBack ?? zReach)
   const ambientDim = Math.max(0, Math.min(0.85, vl.ambientDim ?? preset.ambientDim ?? 0.24))
   const softness = Math.max(0, Math.min(1.0, Math.max(0.1, vl.softness ?? preset.softness ?? 0.45)))
   const beamCurvature = Math.max(-0.8, Math.min(1.0, vl.beamCurvature ?? preset.beamCurvature ?? 0.25))
@@ -338,6 +344,8 @@ export function evaluateVirtualLightAtTime(
     beamDir: dyn.plumeVector,
     coneCos,
     zReach,
+    zReachFront,
+    zReachBack,
     windOffset: dyn.windOffset,
     ambientDim: ambientDim * timeEnv,
     softness,
@@ -430,10 +438,13 @@ export function resolveReceivedVirtualLightForLayer(
 
   for (const sl of shotLights) {
     if (sl.sourceLayerId === targetLayerId || sl.envBounce <= 0.01) continue
-    const dz = Math.abs(targetPos[2] - sl.position[2])
-    if (dz > sl.zReach) continue
+    const zDiff = targetPos[2] - sl.position[2]
+    const isBack = zDiff > 0
+    const zLimit = isBack ? sl.zReachBack : sl.zReachFront
+    const dz = Math.abs(zDiff)
+    if (dz > zLimit) continue
 
-    const zRatio = dz / Math.max(1, sl.zReach)
+    const zRatio = dz / Math.max(1, zLimit)
     const zAtten = Math.max(0.22, Math.pow(1 - zRatio * zRatio, 0.9))
 
     const perspRatio = Math.max(150, refD + targetPos[2]) / Math.max(150, refD + sl.position[2])
@@ -517,10 +528,13 @@ export function computeLightContributionAtPoint(
   py: number,
   pz: number
 ): number {
-  const dz = Math.abs(pz - light.position[2])
-  if (dz > light.zReach) return 0
+  const zDiff = pz - light.position[2]
+  const isBack = zDiff > 0
+  const zLimit = isBack ? light.zReachBack : light.zReachFront
+  const dz = Math.abs(zDiff)
+  if (dz > zLimit) return 0
 
-  const zRatio = dz / Math.max(1, light.zReach)
+  const zRatio = dz / Math.max(1, zLimit)
   const zAtten = Math.max(0.2, Math.pow(1 - zRatio * zRatio, 0.95))
 
   const evalBeam = computeUnified25DLightAtOffset(

@@ -388,6 +388,10 @@ export interface WorkflowNodeParams {
   lightRayDynamic?: boolean
   /** [Workflow V2] Hệ số ánh xạ ánh sáng sang các layer môi trường lân cận (0..1.5) */
   lightEnvBounce?: number
+  /** [Workflow V2] Khoảng cách chiều sâu Z tối đa chiếu tới các layer PHÍA TRƯỚC (tiền cảnh, z < z_light) */
+  lightZReachFront?: number
+  /** [Workflow V2] Khoảng cách chiều sâu Z tối đa chiếu tới các layer PHÍA SAU (hậu cảnh, z > z_light) */
+  lightZReachBack?: number
   /** [Workflow V2] Hình dáng vòm cửa hang của Node Hang động */
   caveArchShape?: 'arch' | 'ellipse' | 'circle'
   /** [Workflow V2] Độ tối lòng hang (0..1) của Node Hang động */

@@ -21,6 +21,8 @@ export interface VirtualLightPreset {
   windSensitivity?: number
   flickerSpeed: number
   zReach: number
+  zReachFront?: number
+  zReachBack?: number
   ambientDim: number
   softness: number
   beamCurvature: number
@@ -264,6 +266,8 @@ export function createDefaultVirtualLight(kind: VirtualLightKind = 'candle'): La
     windDirectionDeg: 0,
     flickerSpeed: preset.flickerSpeed,
     zReach: preset.zReach,
+    zReachFront: preset.zReachFront ?? preset.zReach,
+    zReachBack: preset.zReachBack ?? preset.zReach,
     ambientDim: preset.ambientDim,
     softness: preset.softness,
     beamCurvature: preset.beamCurvature,

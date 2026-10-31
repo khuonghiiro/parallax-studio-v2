@@ -3893,6 +3893,8 @@
         "windDirectionDeg": 0,
         "flickerSpeed": 0.85,
         "zReach": 1800,
+        "zReachFront": 1800,
+        "zReachBack": 150,
         "ambientDim": 0.28,
         "softness": 0.42,
         "beamCurvature": 0.25,
@@ -6280,7 +6282,9 @@
           "lightWindPreset": "none",
           "lightRayIntensity": 0.52,
           "lightRayDynamic": true,
-          "lightEnvBounce": 0.92
+          "lightEnvBounce": 0.92,
+          "lightZReachFront": 1800,
+          "lightZReachBack": 150
         }
       },
       {

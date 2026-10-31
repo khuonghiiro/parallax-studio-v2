@@ -195,6 +195,8 @@ function deriveLight(layer: Layer, compDur: number, glowOwnedByFx: boolean, curr
       ...(vlOn && vl?.rayIntensity !== undefined ? { lightRayIntensity: r2(vl.rayIntensity) } : {}),
       ...(vlOn && vl?.rayDynamic !== undefined ? { lightRayDynamic: vl.rayDynamic } : {}),
       ...(vlOn && vl?.envBounce !== undefined ? { lightEnvBounce: r2(vl.envBounce) } : {}),
+      ...(vlOn && vl?.zReachFront !== undefined ? { lightZReachFront: Math.round(vl.zReachFront) } : {}),
+      ...(vlOn && vl?.zReachBack !== undefined ? { lightZReachBack: Math.round(vl.zReachBack) } : {}),
       timeStart: r2(start),
       timeEnd: r2(end)
     },

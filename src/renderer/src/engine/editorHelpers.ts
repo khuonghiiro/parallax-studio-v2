@@ -83,10 +83,16 @@ function appendLayerLightAndPortalGizmos(
     pushSeg(dLeft, dRight, 1, 0.96, 0.82)
     pushSeg(dBot, dTop, 1, 0.96, 0.82)
 
-    const zReach = Math.max(40, vl.zReach ?? 1500)
-    const zFront = tmp.set(u0, v0, zReach).applyMatrix4(matrix).toArray()
-    const zBack = tmp.set(u0, v0, -zReach).applyMatrix4(matrix).toArray()
-    pushSeg(zFront, zBack, lCol.r * 0.75, lCol.g * 0.75, lCol.b * 0.75)
+    const zReachFront = Math.max(0, vl.zReachFront ?? vl.zReach ?? 1500)
+    const zReachBack = Math.max(0, vl.zReachBack ?? vl.zReach ?? 1500)
+    const zFront = tmp.set(u0, v0, zReachFront).applyMatrix4(matrix).toArray()
+    const zBack = tmp.set(u0, v0, -zReachBack).applyMatrix4(matrix).toArray()
+    if (zReachFront > 0) {
+      pushSeg(origPt, zFront, 0.24, 0.85, 0.98)
+    }
+    if (zReachBack > 0) {
+      pushSeg(origPt, zBack, 0.98, 0.65, 0.28)
+    }
 
     if (coneDeg < 350) {
       const halfRad = (Math.max(12, coneDeg) * 0.5 * Math.PI) / 180
