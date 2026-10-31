@@ -81,7 +81,8 @@ export const LAYER_ASSEMBLY_TOOLS = [
         duration: z.number().min(0.1).max(120), loop: z.boolean(),
         tracks: z.record(z.array(z.object({
           time: z.number(), x: z.number(), y: z.number(), rotation: z.number(),
-          scaleX: z.number().optional(), scaleY: z.number().optional(), easing: z.enum(['smooth', 'linear', 'hold'])
+          scaleX: z.number().optional(), scaleY: z.number().optional(), zOrder: z.number().optional(),
+          easing: z.enum(['smooth', 'linear', 'hold', 'ease-in', 'ease-out', 'ease-in-out', 'bezier'])
         })))
       }).optional().describe(d('Complete skeleton and animation tracks to save with the cutout layers.', 'Toàn bộ khung xương và các track hoạt ảnh cần lưu cùng các mảnh layer.')),
       width: z.number().optional().describe(d('Reference bounding width in pixels.', 'Chiều rộng khung tham chiếu (pixel).')),
@@ -261,8 +262,8 @@ export const LAYER_ASSEMBLY_TOOLS = [
     name: 'layer_assembly_rig',
     cat: 'layer_assembly',
     doc: L(
-      'Manage cutout skeleton bones and keyframe animations in the active layer assembly workshop. Supports adding/updating/deleting/welding bones (snap-joints), binding layers, setting keyframes/poses (set-pose, mirror-pose, hold-frames F5), Moho/Adobe Animate FPS & proportional keyframe retiming (fps, scale_keys), rich easings, applying humanoid/chain templates, and generating view-angle-aware procedural motions (front 0°, diagonal 45°, side 90°).',
-      'Quản lý hệ thống xương và animation trong xưởng lắp ráp layer. Hỗ trợ thêm/sửa/xóa/hàn khít khớp xương (snap-joints), gắn layer vào xương, ghi keyframe/tạo dáng/chèn giữ khung F5 (set-pose, mirror-pose, hold-frames), chỉnh FPS & co giãn key tỷ lệ chuẩn Moho/Adobe Animate (fps, scale_keys), 6 kiểu nội suy, áp dụng khung xương mẫu và tự động sinh chuyển động theo góc nhìn nhân vật (front 0°, diagonal 45°, side 90°).'
+      'Manage cutout skeleton bones and keyframe animations in the active layer assembly workshop. Supports adding/updating/deleting/welding bones (snap-joints), binding layers, setting keyframes/poses (set-pose, mirror-pose, hold-frames F5), animated hierarchical bone Z-Index / layer order (z_order / set-bone-z-order where parent Z-Index changes automatically cascade to all child bones, e.g. arm behind back vs waving in front of chest/face), Moho/Adobe Animate FPS & proportional keyframe retiming (fps, scale_keys), rich easings, applying humanoid/chain templates, and generating view-angle-aware procedural motions (front 0°, diagonal 45°, side 90°).',
+      'Quản lý hệ thống xương và animation trong xưởng lắp ráp layer. Hỗ trợ thêm/sửa/xóa/hàn khít khớp xương (snap-joints), gắn layer vào xương, ghi keyframe/tạo dáng/chèn giữ khung F5 (set-pose, mirror-pose, hold-frames), diễn hoạt thứ tự lớp Z-Index phân cấp cha-con (z_order / set-bone-z-order: xương cha tăng/giảm Z-Index thì toàn bộ xương con tự ăn theo, VD để tay sau lưng hay khua tay phía trước ngực/mặt), chỉnh FPS & co giãn key tỷ lệ chuẩn Moho/Adobe Animate (fps, scale_keys), 6 kiểu nội suy, áp dụng khung xương mẫu và tự động sinh chuyển động theo góc nhìn nhân vật (front 0°, diagonal 45°, side 90°).'
     ),
     shape: (d) => ({
       action: z
@@ -278,6 +279,7 @@ export const LAYER_ASSEMBLY_TOOLS = [
           'move-key',
           'move-keys',
           'set-pose',
+          'set-bone-z-order',
           'mirror-pose',
           'settings',
           'apply-template',
@@ -331,6 +333,9 @@ export const LAYER_ASSEMBLY_TOOLS = [
       rotation: z.number().optional().describe(d('Keyframe rotation angle in degrees.', 'Góc xoay keyframe.')),
       scale_x: z.number().optional().describe(d('Keyframe scale X factor (for squash/stretch or horizontal flip).', 'Tỷ lệ co giãn trục X (squash/stretch hoặc lật ngang).')),
       scale_y: z.number().optional().describe(d('Keyframe scale Y factor.', 'Tỷ lệ co giãn trục Y.')),
+      z_order: z.number().min(-500).max(500).optional().describe(d('Animated hierarchical Z-Index / layer depth offset at this keyframe (+ brings limb forward in front of torso/face, - pushes limb behind back; all descendant child bones automatically inherit parent z_order).', 'Độ lệch thứ tự lớp Z-Index phân cấp tại keyframe này (số dương + đưa chi nổi lên trước thân/mặt, số âm - lùi chi ra sau lưng; toàn bộ xương con tự động kế thừa cộng dồn từ xương cha).')),
+      delta_z_order: z.number().min(-500).max(500).optional().describe(d('set-bone-z-order: relative Z-Index step (+10/-10 like keyboard +/- keys).', 'set-bone-z-order: bước tăng/giảm Z-Index tương đối (+10/-10 tương đương phím +/-).')),
+      z_preset: z.enum(['behind-back', 'default', 'front-torso', 'front-face']).optional().describe(d('set-bone-z-order: anatomical Z-Index zone preset (behind-back, default, front-torso, front-face).', 'set-bone-z-order: mức Z-Index nhanh theo vùng giải phẫu (behind-back: sau lưng, default: mặc định, front-torso: trước thân, front-face: trước mặt).')),
       easing: z.enum(['smooth', 'linear', 'hold', 'ease-in', 'ease-out', 'ease-in-out']).optional().describe(d('Keyframe interpolation.', 'Nội suy keyframe.')),
       poses: z
         .array(
@@ -344,6 +349,8 @@ export const LAYER_ASSEMBLY_TOOLS = [
             scaleX: z.number().optional(),
             scale_y: z.number().optional(),
             scaleY: z.number().optional(),
+            z_order: z.number().optional(),
+            zOrder: z.number().optional(),
             easing: z.enum(['smooth', 'linear', 'hold', 'ease-in', 'ease-out', 'ease-in-out']).optional()
           })
         )

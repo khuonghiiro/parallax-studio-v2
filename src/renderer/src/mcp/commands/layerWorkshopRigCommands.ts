@@ -3,7 +3,14 @@ import type { Handler, Params } from '../types'
 import { ParamError } from '../types'
 import { bool, num, str, toPlain } from '../params'
 import { getActiveLayerAssemblySession } from '../../ui/layerAssembly/layerAssemblyBridge'
-import { applyRigAction, type RigAction } from '../../ui/layerAssembly/workshopRig'
+import { applyRigAction, ensureRigClips, type RigAction } from '../../ui/layerAssembly/workshopRig'
+import {
+  applyBoneZOrderPreset,
+  applyBoneZOrderStep,
+  applyBoneZOrderValue,
+  getBoneDepthSummary,
+  type BoneDepthSemanticPreset
+} from '../../ui/layerAssembly/workshopBoneDepthOrder'
 import type { LayerComposite } from '../../ui/layerAssembly/types'
 import { parseWorkshopAnimation } from './layerWorkshopAnimationParams'
 import { getStoredComposites } from '../../ui/layerAssembly/layerAssemblyStorage'
@@ -215,6 +222,48 @@ export const layerWorkshopRigCommands: Record<string, Handler> = {
   layer_assembly_rig: (p) => {
     const session = activeWorkshop()
     const current = session.getComposite()
+    if (str(p, 'action') === 'set-bone-z-order') {
+      const targetBoneId = str(p, 'bone_id') ?? session.getSelectedBoneId?.() ?? current.rig?.bones[0]?.id
+      if (!targetBoneId) throw new ParamError('Missing bone_id and no bone is selected')
+      const time = num(p, 'time') ?? session.getTime()
+      const presetRaw = str(p, 'z_preset')
+      const explicitZ = num(p, 'z_order') ?? num(p, 'zOrder')
+      const deltaZ = num(p, 'delta_z_order') ?? num(p, 'deltaZOrder')
+      let next: LayerComposite
+      if (presetRaw !== undefined) {
+        const validZones: BoneDepthSemanticPreset[] = ['behind-back', 'default', 'front-torso', 'front-face']
+        if (!validZones.includes(presetRaw as BoneDepthSemanticPreset)) {
+          throw new ParamError(`z_preset must be one of: ${validZones.join(', ')}`)
+        }
+        next = applyBoneZOrderPreset(current, targetBoneId, time, presetRaw as BoneDepthSemanticPreset)
+      } else if (explicitZ !== undefined) {
+        next = applyBoneZOrderValue(current, targetBoneId, time, explicitZ)
+      } else if (deltaZ !== undefined) {
+        next = applyBoneZOrderStep(current, targetBoneId, time, deltaZ)
+      } else {
+        throw new ParamError('Provide z_order, delta_z_order, or z_preset for set-bone-z-order')
+      }
+      session.setIsPlaying(false)
+      session.setComposite(next)
+      const nextRig = next.rig ? ensureRigClips(next.rig).rig : undefined
+      const summary = nextRig ? getBoneDepthSummary(next, nextRig, targetBoneId, time) : null
+      return {
+        ok: true,
+        boneId: targetBoneId,
+        depthSummary: summary
+          ? {
+              localZOrder: summary.localZOrder,
+              inheritedZOrder: summary.inheritedZOrder,
+              effectiveZOrder: summary.effectiveZOrder,
+              zone: summary.zone,
+              zoneLabel: summary.zoneLabel,
+              parentBoneId: summary.parentBone?.id ?? null,
+              descendantBoneIds: summary.descendants.map((d) => d.id)
+            }
+          : null,
+        composite: toPlain(next)
+      }
+    }
     const action = rigAction(p, current, session.getTime())
     const next = applyRigAction(current, action)
     session.setComposite(next)

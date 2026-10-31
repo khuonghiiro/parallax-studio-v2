@@ -300,13 +300,14 @@ function sampleRigLayerKeyframes(
     const posed = transformRigLayer(virtItem, evaluateRig(rig, tClip))
     const dx = (posed.x - itemX) * scale * intensity
     const dy = -(posed.y - itemY) * scale * intensity
+    const dz = ((posed.z ?? itemZ) - itemZ) * scale
     const rotZ = posed.rotation * intensity
     samples.push({
       t: tScene,
       pos: [
         Math.round((centerOrigin[0] + off[0] + dx) * 100) / 100,
         Math.round((centerOrigin[1] + off[1] + dy) * 100) / 100,
-        Math.round((centerOrigin[2] + off[2]) * 100) / 100
+        Math.round((centerOrigin[2] + off[2] + dz) * 100) / 100
       ],
       rot: [0, 0, Math.round(rotZ * 100) / 100]
     })
@@ -321,7 +322,9 @@ function sampleRigLayerKeyframes(
   }
   l.transform.rotation.value = first.rot
 
-  const isStaticPos = samples.every((s) => Math.hypot(s.pos[0] - first.pos[0], s.pos[1] - first.pos[1]) < 0.05)
+  const isStaticPos = samples.every(
+    (s) => Math.hypot(s.pos[0] - first.pos[0], s.pos[1] - first.pos[1], s.pos[2] - first.pos[2]) < 0.05
+  )
   const isStaticRot = samples.every((s) => Math.abs(s.rot[2] - first.rot[2]) < 0.05)
   if (isStaticPos && isStaticRot) return false
 
@@ -329,7 +332,12 @@ function sampleRigLayerKeyframes(
     let lastP: Vec3 | null = null
     for (let i = 0; i < samples.length; i++) {
       const s = samples[i]
-      if (i === 0 || i === samples.length - 1 || !lastP || Math.hypot(s.pos[0] - lastP[0], s.pos[1] - lastP[1]) >= 0.08) {
+      if (
+        i === 0 ||
+        i === samples.length - 1 ||
+        !lastP ||
+        Math.hypot(s.pos[0] - lastP[0], s.pos[1] - lastP[1], s.pos[2] - lastP[2]) >= 0.08
+      ) {
         l.transform.position.keyframes.push({ id: `${l.id}-rig-p-${nodeTag}${i}`, t: s.t, value: s.pos, ease: 'linear' })
         lastP = s.pos
       }

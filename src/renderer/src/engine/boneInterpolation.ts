@@ -2,8 +2,9 @@ import type { BoneKeyframe, BonePose, LayerRig } from '@shared/layerRig'
 import { cubicBezierProgress } from './boneEasing'
 
 const REST: BonePose = { x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1 }
-const fields = ['x', 'y', 'rotation', 'scaleX', 'scaleY'] as const
-const value = (k: BonePose, field: typeof fields[number]) => k[field] ?? REST[field] ?? 0
+const fields = ['x', 'y', 'rotation', 'scaleX', 'scaleY', 'zOrder'] as const
+const value = (k: BonePose, field: typeof fields[number]) =>
+  field === 'zOrder' ? (k.zOrder ?? 0) : (k[field] ?? REST[field] ?? 0)
 const shifted = (key: BoneKeyframe, offset: number) => ({ ...key, time: key.time + offset })
 
 function unwrap(ref: number, angle: number): number {
@@ -47,6 +48,9 @@ function interpolate(keys: BoneKeyframe[], time: number): BonePose {
       result[field] = (2 * t3 - 3 * t2 + 1) * v1 + (t3 - 2 * t2 + t) * m1
         + (-2 * t3 + 3 * t2) * v2 + (t3 - t2) * m2
     }
+  }
+  if (result.zOrder !== undefined && Math.abs(result.zOrder) < 1e-6) {
+    delete result.zOrder
   }
   return result
 }

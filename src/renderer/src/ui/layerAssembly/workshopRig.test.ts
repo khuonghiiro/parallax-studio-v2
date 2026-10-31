@@ -9,6 +9,12 @@ import { BUILTIN_COMPOSITES } from './layerAssemblyDefaultComposites'
 import { createHumanoidBones, generateIdleBreathe, generateWaveHand } from './workshopRigPresets'
 import { confirmPoseAndStep, setStepRecordFrames, setStepRecordSeconds } from './workshopStepRecord'
 import { weldConnectedLimbBones, withSymmetricBoneAction } from './mohoRigHelpers'
+import {
+  applyBoneZOrderPreset,
+  applyBoneZOrderStep,
+  getBoneDepthSummary
+} from './workshopBoneDepthOrder'
+import { parseWorkshopAnimation } from '../../mcp/commands/layerWorkshopAnimationParams'
 
 describe('workshopRig & layerRig engine', () => {
   const baseComposite: LayerComposite = {
@@ -511,5 +517,84 @@ describe('workshopRig & layerRig engine', () => {
     const tailX = armR.x + Math.cos((armR.angle * Math.PI) / 180) * armR.length
     const tailY = armR.y + Math.sin((armR.angle * Math.PI) / 180) * armR.length
     expect(Math.hypot(tailX - forearmR.x, tailY - forearmR.y)).toBeLessThan(0.5)
+  })
+
+  it('cascades animated Z-Index (zOrder) from parent bone (Bắp tay phải) to child & grandchild bones (Cẳng tay, Bàn tay)', () => {
+    const cutoutDemo = BUILTIN_COMPOSITES.find((c) => c.id === 'comp-character-cutout-demo-20261011') ?? baseComposite
+    let comp = applyRigAction(cutoutDemo, { action: 'apply-template', template: 'humanoid' })
+    comp = applyRigAction(comp, { action: 'clear-animation' })
+    comp = applyRigAction(comp, { action: 'settings', duration: 2.0, fps: 30 })
+
+    // Bind torso + right arm chain layers if needed
+    const torsoLayer = comp.layers.find((l) => /torso|thân/i.test(`${l.id} ${l.name}`)) ?? {
+      id: 'torso',
+      name: 'Thân áo',
+      x: 0,
+      y: 0,
+      z: 0,
+      scale: 1,
+      rotation: 0,
+      opacity: 1,
+      boneId: 'bone-chest',
+      motion: { type: 'none' as const, speed: 1, amplitude: 0, anchor: 'center' as const }
+    }
+    const armLayer = { ...torsoLayer, id: 'arm-r', name: 'Bắp tay phải', z: 35, boneId: 'bone-arm-r' }
+    const forearmLayer = { ...torsoLayer, id: 'forearm-r', name: 'Cẳng tay phải', z: 40, boneId: 'bone-forearm-r' }
+    const handLayer = { ...torsoLayer, id: 'hand-r', name: 'Bàn tay phải', z: 42, boneId: 'bone-hand-r' }
+    comp = { ...comp, layers: [torsoLayer, armLayer, forearmLayer, handLayer] }
+
+    // 1. At t = 0.4s: put right arm behind the back (zOrder = -30 on bone-arm-r)
+    comp = applyBoneZOrderStep(comp, 'bone-arm-r', 0.4, -30)
+    const tfBehind = evaluateRig({ ...comp.rig!, loop: false }, 0.4)
+    expect(tfBehind.get('bone-arm-r')?.zOrder).toBe(-30)
+    expect(tfBehind.get('bone-forearm-r')?.zOrder).toBe(-30)
+    expect(tfBehind.get('bone-hand-r')?.zOrder).toBe(-30)
+    expect(transformRigLayer(armLayer, tfBehind).z).toBe(65)
+    expect(transformRigLayer(forearmLayer, tfBehind).z).toBe(70)
+    expect(transformRigLayer(handLayer, tfBehind).z).toBe(72)
+
+    // 2. At t = 1.2s: swing right arm in front of chest/face (preset 'front-face')
+    comp = applyBoneZOrderPreset(comp, 'bone-arm-r', 1.2, 'front-face')
+    // Add extra local +10 on hand-r at t = 1.2s so hand sits even slightly closer than forearm
+    comp = applyBoneZOrderStep(comp, 'bone-hand-r', 1.2, 10)
+
+    const rig = comp.rig!
+    // At t = 1.2s (front-face): arm, forearm, and hand all rise in front of torso (Z < torsoLayer.z)
+    const tfFront = evaluateRig({ ...rig, loop: false }, 1.2)
+    const parentFrontZOrder = tfFront.get('bone-arm-r')?.zOrder ?? 0
+    expect(parentFrontZOrder).toBeGreaterThanOrEqual(55)
+    expect(tfFront.get('bone-forearm-r')?.zOrder).toBe(parentFrontZOrder)
+    expect(tfFront.get('bone-hand-r')?.zOrder).toBe(parentFrontZOrder + 10)
+    expect(transformRigLayer(armLayer, tfFront).z).toBeLessThan(torsoLayer.z)
+    expect(transformRigLayer(forearmLayer, tfFront).z).toBeLessThan(torsoLayer.z)
+    expect(transformRigLayer(handLayer, tfFront).z).toBeLessThan(transformRigLayer(forearmLayer, tfFront).z)
+
+    // Summary on child bone reports inherited parent zOrder accurately
+    const childSummary = getBoneDepthSummary(comp, rig, 'bone-forearm-r', 1.2)
+    expect(childSummary?.parentBone?.id).toBe('bone-arm-r')
+    expect(childSummary?.inheritedZOrder).toBe(parentFrontZOrder)
+    expect(childSummary?.effectiveZOrder).toBe(parentFrontZOrder)
+    expect(childSummary?.descendants.map((d) => d.id)).toContain('bone-hand-r')
+
+    // Mirror pose swaps zOrder from right arm to left arm cleanly
+    comp = applyRigAction(comp, { action: 'mirror-pose', time: 1.2 })
+    const tfMirrored = evaluateRig({ ...comp.rig!, loop: false }, 1.2)
+    expect(tfMirrored.get('bone-arm-l')?.zOrder).toBe(parentFrontZOrder)
+    expect(tfMirrored.get('bone-forearm-l')?.zOrder).toBe(parentFrontZOrder)
+    expect(tfMirrored.get('bone-hand-l')?.zOrder).toBe(parentFrontZOrder + 10)
+
+    // MCP parser accepts z_order on set-key and set-pose
+    const parsed = parseWorkshopAnimation({
+      action: 'set-key',
+      bone_id: 'bone-arm-r',
+      time: 0.6,
+      rotation: -45,
+      z_order: 60
+    })
+    expect(parsed).toEqual({
+      action: 'set-key',
+      boneId: 'bone-arm-r',
+      key: expect.objectContaining({ time: 0.6, rotation: -45, zOrder: 60 })
+    })
   })
 })

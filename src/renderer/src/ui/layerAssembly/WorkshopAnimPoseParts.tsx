@@ -72,6 +72,7 @@ export function ActiveActionClipHeader({
             rotation: p.rotation,
             scaleX: p.scaleX ?? 1,
             scaleY: p.scaleY ?? 1,
+            ...(p.zOrder !== undefined ? { zOrder: p.zOrder } : {}),
             easing: 'smooth'
           }
         ]
@@ -462,6 +463,9 @@ export function AnimationKeyList({
                 title={`Nhảy tới F${kfFrame} (${key.time.toFixed(3)}s)`}
               >
                 ◆ F{kfFrame} · {key.rotation.toFixed(0)}°
+                {Math.abs(key.zOrder ?? 0) >= 1
+                  ? ` · Z${(key.zOrder ?? 0) > 0 ? '+' : ''}${Math.round(key.zOrder ?? 0)}`
+                  : ''}
               </button>
               <input
                 type="number"

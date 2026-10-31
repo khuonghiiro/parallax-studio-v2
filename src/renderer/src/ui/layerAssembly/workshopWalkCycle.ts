@@ -159,7 +159,8 @@ export function generateWalkCycle(
         rotation: -sign * (2 + 6 * armSwing(p)) * signMod, // Vung tới xoay nhẹ vào trong
         y: -2 * unit * forwardSwing(p), // Vai nhấc rất nhẹ khi vung tới
         scaleX: 1 + 0.04 * forwardSwing(p) - 0.02 * backwardSwing(p),
-        scaleY: 1 - 0.05 * forwardSwing(p)
+        scaleY: 1 - 0.05 * forwardSwing(p),
+        zOrder: Number(((55 * forwardSwing(p) - 20 * backwardSwing(p)) * signMod).toFixed(1))
       }))
       assign(roleBone(bones, `forearm-${side}`, `cẳng tay ${label}`), (p) => ({
         rotation: sign * (4 + 8 * forwardSwing(p)) * signMod, // Gập nhẹ khuỷu tay
@@ -276,7 +277,8 @@ export function generateRunCycle(
         rotation: -sign * (4 + 10 * armSwing(p)) * signMod,
         y: -8 * unit * forwardSwing(p), // Đánh tay cao hơn khi chạy
         scaleX: 1 + 0.1 * forwardSwing(p) - 0.08 * backwardSwing(p),
-        scaleY: 1 - 0.15 * forwardSwing(p)
+        scaleY: 1 - 0.15 * forwardSwing(p),
+        zOrder: Number(((60 * forwardSwing(p) - 25 * backwardSwing(p)) * signMod).toFixed(1))
       }))
       assign(roleBone(bones, `forearm-${side}`, `cẳng tay ${label}`), (p) => ({
         rotation: sign * (6 + 12 * forwardSwing(p)) * signMod,

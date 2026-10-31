@@ -210,6 +210,7 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   layer_assembly_mixamo_settings: region('layer_assembly_mixamo_settings', '.mx-card:has(.mx-form-grid)', '.mx-form-grid'),
   layer_assembly_mixamo_footer: region('layer_assembly_mixamo_footer', '.mx-footer'),
   layer_assembly_animation_panel: region('layer_assembly_animation_panel'),
+  layer_assembly_bone_depth: region('layer_assembly_bone_depth', '.lw-bone-depth-card'),
   layer_assembly_retarget: region('layer_assembly_retarget'),
   layer_assembly_create: region('layer_assembly_create'),
   layer_assembly_confirm: region('layer_assembly_confirm', '.lw-confirm-modal'),

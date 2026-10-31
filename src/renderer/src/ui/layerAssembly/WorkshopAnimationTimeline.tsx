@@ -648,7 +648,7 @@ function AnimationTimeline({ state, playback, boneId, selectBone, rig }: Props &
                           data-bone-id={bone.id}
                           data-key-time={key.time}
                           aria-label={`${bone.name} · ${key.time.toFixed(4)}s · ${key.easing}`}
-                          title={`${bone.name} · F${Math.round(key.time * fps)} (${key.time.toFixed(3)}s) · ${key.easing} · Kéo để dời key · Ctrl/Shift+Click chọn nhiều · Alt bỏ bắt frame`}
+                          title={`${bone.name} · F${Math.round(key.time * fps)} (${key.time.toFixed(3)}s)${Math.abs(key.zOrder ?? 0) >= 1 ? ` · Z${(key.zOrder ?? 0) > 0 ? '+' : ''}${Math.round(key.zOrder ?? 0)}` : ''} · ${key.easing} · Kéo để dời key · Ctrl/Shift+Click chọn nhiều · Alt bỏ bắt frame`}
                           style={{ left: `${((ghostT ?? key.time) / rig.duration) * 100}%` }}
                           onPointerDown={(e) => handleBoneKeyPointerDown(e, { boneId: bone.id, time: key.time })}
                           onPointerMove={(e) => {

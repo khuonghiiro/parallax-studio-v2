@@ -201,6 +201,7 @@ export function validateRig(composite: LayerComposite): void {
       }
       if (key.scaleX !== undefined && !Number.isFinite(key.scaleX)) throw new Error('Invalid scaleX')
       if (key.scaleY !== undefined && !Number.isFinite(key.scaleY)) throw new Error('Invalid scaleY')
+      if (key.zOrder !== undefined && !Number.isFinite(key.zOrder)) throw new Error('Invalid zOrder')
       validateCurve(key.easing, key.bezier)
       previous = key.time
     }
@@ -336,6 +337,7 @@ export function applyRigAction(composite: LayerComposite, action: RigAction): La
           rotation: -poseB.rotation,
           scaleX: poseB.scaleX ?? 1,
           scaleY: poseB.scaleY ?? 1,
+          ...(poseB.zOrder !== undefined ? { zOrder: poseB.zOrder } : {}),
           easing: 'smooth'
         }
         const keyB: BoneKeyframe = {
@@ -345,6 +347,7 @@ export function applyRigAction(composite: LayerComposite, action: RigAction): La
           rotation: -poseA.rotation,
           scaleX: poseA.scaleX ?? 1,
           scaleY: poseA.scaleY ?? 1,
+          ...(poseA.zOrder !== undefined ? { zOrder: poseA.zOrder } : {}),
           easing: 'smooth'
         }
         rig.tracks[bone.id] = [...keysA.filter((k) => Math.abs(k.time - time) > 0.0001), keyA].sort((a, b) => a.time - b.time)
@@ -361,6 +364,7 @@ export function applyRigAction(composite: LayerComposite, action: RigAction): La
           rotation: -pose.rotation,
           scaleX: pose.scaleX ?? 1,
           scaleY: pose.scaleY ?? 1,
+          ...(pose.zOrder !== undefined ? { zOrder: pose.zOrder } : {}),
           easing: 'smooth'
         }
         rig.tracks[bone.id] = [...keys.filter((k) => Math.abs(k.time - time) > 0.0001), key].sort((a, b) => a.time - b.time)

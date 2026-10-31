@@ -1,0 +1,305 @@
+/* ==========================================================================
+   Animated Bone Z-Index / Layer Order Card (Moho Pro & Adobe Animate Style)
+   Dual-Theme Safe (Dark & Light) · Unified Rectangular Geometry (4px–6px)
+   ========================================================================== */
+
+.lw-bone-depth-card {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 8px 9px;
+  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in srgb, var(--accent-cyan) 28%, var(--line-soft));
+  background: color-mix(in srgb, var(--accent-cyan) 4%, var(--bg-2));
+}
+
+.lw-bone-depth-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 0;
+}
+
+.lw-bone-depth-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text);
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.lw-bone-depth-title svg {
+  color: var(--accent-cyan);
+  flex-shrink: 0;
+}
+
+.lw-bone-depth-zone-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.3;
+  white-space: nowrap;
+  flex-shrink: 0;
+  border: 1px solid var(--line-soft);
+  background: var(--bg-3);
+  color: var(--text-dim);
+}
+
+.lw-bone-depth-zone-badge.zone-front-torso,
+.lw-bone-depth-zone-badge.zone-front-face {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
+  background: color-mix(in srgb, var(--accent) 16%, var(--bg-3));
+  color: var(--text);
+}
+
+.lw-bone-depth-zone-badge.zone-behind-back {
+  border-color: color-mix(in srgb, var(--key) 58%, var(--line));
+  background: color-mix(in srgb, var(--key) 18%, var(--bg-3));
+  color: var(--text);
+}
+
+/* Stepper Row: [- Lùi sau (-)] [Z input] [+ Nổi trước (+)] */
+.lw-bone-depth-stepper {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 82px minmax(0, 1fr);
+  gap: 5px;
+  align-items: stretch;
+}
+
+.lw-bone-depth-step-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 27px;
+  padding: 0 7px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--bg-1);
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.14s ease, border-color 0.14s ease, color 0.14s ease;
+  white-space: nowrap;
+}
+
+.lw-bone-depth-step-btn:hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg-2));
+}
+
+.lw-bone-depth-step-btn.is-front {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-1));
+}
+
+.lw-bone-depth-step-btn.is-front:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+
+.lw-bone-depth-step-btn.is-back:hover {
+  border-color: color-mix(in srgb, var(--key) 70%, var(--line));
+  background: color-mix(in srgb, var(--key) 20%, var(--bg-2));
+}
+
+.lw-bone-depth-step-btn kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-soft);
+  background: var(--bg-3);
+  color: var(--text-dim);
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.lw-bone-depth-step-btn.is-front:hover kbd {
+  background: color-mix(in srgb, #000000 26%, var(--accent));
+  border-color: color-mix(in srgb, var(--on-accent) 35%, transparent);
+  color: var(--on-accent);
+}
+
+.lw-bone-depth-input-box {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0 6px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--bg-1);
+  min-height: 27px;
+}
+
+.lw-bone-depth-input-box:focus-within {
+  border-color: var(--line-focus);
+}
+
+.lw-bone-depth-input-box > span {
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-faint);
+  user-select: none;
+}
+
+.lw-bone-depth-input-box > input,
+.lw-rig-panel .lw-bone-depth-input-box > input[type='number'],
+.lw-rig-panel .lw-bone-depth-input-box > input[type='number']:focus {
+  width: 100%;
+  min-width: 0;
+  height: 22px;
+  border: none;
+  outline: none;
+  box-shadow: none;
+  background: transparent;
+  color: var(--text);
+  font-family: var(--font-mono, monospace);
+  font-size: 11.5px;
+  font-weight: 700;
+  text-align: right;
+  padding: 0;
+}
+
+/* 4 Anatomical 1-Click Presets (No Combobox!) */
+.lw-bone-depth-presets {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 3px;
+  padding: 2px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line-soft);
+  background: var(--bg-1);
+}
+
+.lw-bone-depth-preset-btn {
+  min-height: 23px;
+  padding: 2px 4px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 10.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background 0.14s ease, color 0.14s ease, border-color 0.14s ease;
+}
+
+.lw-bone-depth-preset-btn:hover {
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-3));
+  color: var(--text);
+}
+
+.lw-bone-depth-preset-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+  font-weight: 700;
+}
+
+.lw-bone-depth-preset-btn.is-behind.active {
+  background: color-mix(in srgb, var(--key) 78%, #0f172a);
+  border-color: color-mix(in srgb, var(--key) 78%, #0f172a);
+  color: #ffffff;
+}
+
+/* Parent ⇄ Child Inheritance Info & Quick Bone Navigation */
+.lw-bone-depth-hierarchy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 5px;
+  border-top: 1px dashed var(--line-soft);
+}
+
+.lw-bone-depth-hier-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  font-size: 10.5px;
+  color: var(--text-dim);
+  line-height: 1.35;
+}
+
+.lw-bone-depth-hier-label {
+  font-weight: 600;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.lw-bone-depth-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-soft);
+  background: var(--bg-1);
+  color: var(--text);
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.14s ease, background 0.14s ease;
+  max-width: 155px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lw-bone-depth-chip:hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg-2));
+}
+
+.lw-bone-depth-chip.has-offset {
+  border-color: color-mix(in srgb, var(--accent-cyan) 55%, var(--line));
+  background: color-mix(in srgb, var(--accent-cyan) 12%, var(--bg-1));
+}
+
+.lw-bone-depth-total-tag {
+  margin-left: auto;
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-3);
+  color: var(--text);
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.lw-bone-depth-more {
+  font-size: 10px;
+  color: var(--text-faint);
+  font-weight: 600;
+}
+
+@media (max-width: 480px) {
+  .lw-bone-depth-stepper {
+    grid-template-columns: minmax(0, 1fr) 72px minmax(0, 1fr);
+  }
+  .lw-bone-depth-presets {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

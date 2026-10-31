@@ -9,6 +9,8 @@ export interface BoneTransform {
   ty: number
   scaleX?: number
   scaleY?: number
+  /** Độ nổi Z-Index tích luỹ từ chuỗi xương cha xuống xương con (cha tăng/giảm -> con ăn theo). */
+  zOrder?: number
 }
 
 import { sampleBonePose } from './boneInterpolation'
@@ -47,7 +49,17 @@ export function evaluateRig(
     const origin = rotatePoint(bone.x, bone.y, rotation)
     const scaleX = (parent?.scaleX ?? 1) * (pose.scaleX ?? 1)
     const scaleY = (parent?.scaleY ?? 1) * (pose.scaleY ?? 1)
-    const value: BoneTransform = { x, y, rotation, tx: x - origin.x, ty: y - origin.y, scaleX, scaleY }
+    const zOrder = (parent?.zOrder ?? 0) + (pose.zOrder ?? 0)
+    const value: BoneTransform = {
+      x,
+      y,
+      rotation,
+      tx: x - origin.x,
+      ty: y - origin.y,
+      scaleX,
+      scaleY,
+      ...(Math.abs(zOrder) > 1e-6 ? { zOrder } : {})
+    }
     result.set(id, value)
     visiting.delete(id)
     return value
@@ -56,16 +68,27 @@ export function evaluateRig(
   return result
 }
 
-export function transformRigLayer<T extends { x: number; y: number; rotation: number; boneId?: string; scale?: number; scaleX?: number; scaleY?: number }>(
-  layer: T, transforms: Map<string, BoneTransform>
-): T {
+export function transformRigLayer<
+  T extends {
+    x: number
+    y: number
+    z?: number
+    rotation: number
+    boneId?: string
+    scale?: number
+    scaleX?: number
+    scaleY?: number
+  }
+>(layer: T, transforms: Map<string, BoneTransform>): T {
   const bone = layer.boneId ? transforms.get(layer.boneId) : undefined
   if (!bone) return layer
   const position = rotatePoint(layer.x, layer.y, bone.rotation)
+  const nextZ = typeof layer.z === 'number' ? Number((layer.z - (bone.zOrder ?? 0)).toFixed(3)) : layer.z
   return {
     ...layer,
     x: position.x + bone.tx,
     y: position.y + bone.ty,
+    ...(typeof nextZ === 'number' ? { z: nextZ } : {}),
     rotation: layer.rotation + bone.rotation,
     scaleX: (bone.scaleX ?? 1) * (layer.scaleX ?? 1),
     scaleY: (bone.scaleY ?? 1) * (layer.scaleY ?? 1)

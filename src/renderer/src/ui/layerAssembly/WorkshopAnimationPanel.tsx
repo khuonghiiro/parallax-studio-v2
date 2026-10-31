@@ -22,6 +22,7 @@ import {
   useStepRecord
 } from './workshopStepRecord'
 import { WorkshopAnimToolsCard } from './WorkshopAnimToolsCard'
+import { WorkshopBoneDepthCard } from './WorkshopBoneDepthCard'
 import { WorkshopParallax25DCard } from './WorkshopParallax25DCard'
 import {
   ActiveActionClipHeader,
@@ -137,7 +138,15 @@ export function WorkshopAnimationPanel({
     run({
       action: 'set-pose',
       time,
-      poses: rig.bones.map((b) => ({ boneId: b.id, x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1 }))
+      poses: rig.bones.map((b) => ({
+        boneId: b.id,
+        x: 0,
+        y: 0,
+        rotation: 0,
+        scaleX: 1,
+        scaleY: 1,
+        zOrder: 0
+      }))
     })
   }
 
@@ -268,6 +277,16 @@ export function WorkshopAnimationPanel({
               <>
                 <PoseFields keyframe={key} setKey={setKey} />
 
+                <WorkshopBoneDepthCard
+                  composite={composite}
+                  rig={rig}
+                  boneId={bone.id}
+                  time={time}
+                  selectBone={selectBone}
+                  playback={playback}
+                  setComposite={setComposite}
+                />
+
                 {/* Thanh thao tác Frame chuẩn Adobe Animate: F6 (Ghi Key), F5 (Giữ dáng +3F), F7 (Xóa Key), Về gốc */}
                 <div className="lw-animate-fkey-bar" role="group" aria-label="Thao tác Frame kiểu Adobe Animate">
                   <button
@@ -298,8 +317,8 @@ export function WorkshopAnimationPanel({
                   <button
                     type="button"
                     className="btn xs"
-                    onClick={() => setKey({ x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1 })}
-                    title="Đưa xương đang chọn về tư thế gốc Frame 0 tại thời điểm này"
+                    onClick={() => setKey({ x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1, zOrder: 0 })}
+                    title="Đưa xương đang chọn về tư thế và Z-Index gốc Frame 0 tại thời điểm này"
                   >
                     ↺ Gốc
                   </button>

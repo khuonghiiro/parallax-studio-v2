@@ -300,3 +300,15 @@ export const IconTimeRemove = (p: P) => (
     <line x1="8.2" y1="12" x2="15.8" y2="12" />
   </svg>
 )
+
+/** Thứ tự lớp Z-Index theo Keyframe (Animated Bone Layer Order: nổi trước / lùi sau lưng) */
+export const IconLayerDepthOrder = (p: P) => (
+  <svg {...base(p)}>
+    <polygon points="9.5 4.2 16.5 8 9.5 11.8 2.5 8" />
+    <polyline points="2.5 13 9.5 16.8 16.5 13" />
+    <polyline points="2.5 17.5 9.5 21 16.5 17.5" />
+    <line x1="19.5" y1="4" x2="19.5" y2="20" />
+    <polyline points="17 6.8 19.5 4 22 6.8" />
+    <polyline points="17 17.2 19.5 20 22 17.2" />
+  </svg>
+)

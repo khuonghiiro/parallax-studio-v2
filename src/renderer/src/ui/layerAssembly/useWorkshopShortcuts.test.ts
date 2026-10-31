@@ -1,6 +1,8 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
-import { useWorkshopShortcuts } from './useWorkshopShortcuts'
+import { handleWorkshopKeydown, type WorkshopBoneContext } from './useWorkshopShortcuts'
 import type { AssembledLayerItem, LayerComposite } from './types'
+import { evaluateRig } from '../../engine/layerRig'
+import { createHumanoidBones } from './workshopRigPresets'
 
 describe('useWorkshopShortcuts', () => {
   let listeners: Record<string, ((ev: any) => void)[]> = {}
@@ -72,20 +74,17 @@ describe('useWorkshopShortcuts', () => {
     return ev
   }
 
-  function setupHook(overrides: {
-    layers?: AssembledLayerItem[]
-    selection?: string[]
-    onUpdate?: (id: string, patch: Partial<AssembledLayerItem>) => void
-    boneContext?: {
-      tab?: string
-      boneId?: string | null
-      selectBone?: (id: string | null) => void
-      isErasing?: boolean
-    }
-  } = {}) {
+  function setupHook(
+    overrides: {
+      composite?: LayerComposite
+      layers?: AssembledLayerItem[]
+      selection?: string[]
+      onUpdate?: (id: string, patch: Partial<AssembledLayerItem>) => void
+      boneContext?: WorkshopBoneContext
+    } = {}
+  ) {
     const updateFn = overrides.onUpdate || vi.fn()
     const boneContext = overrides.boneContext
-    const setCompositeFn = vi.fn()
     const layers: AssembledLayerItem[] = overrides.layers || [
       {
         id: 'layer-1',
@@ -100,21 +99,28 @@ describe('useWorkshopShortcuts', () => {
       }
     ]
 
-    const composite: LayerComposite = {
-      id: 'comp-1',
-      name: 'Test Comp',
-      category: 'nature',
-      width: 600,
-      height: 600,
-      layers
-    }
+    let currentComposite: LayerComposite =
+      overrides.composite || {
+        id: 'comp-1',
+        name: 'Test Comp',
+        category: 'nature',
+        width: 600,
+        height: 600,
+        layers
+      }
+
+    const setCompositeFn = vi.fn((updater: any) => {
+      currentComposite = typeof updater === 'function' ? updater(currentComposite) : updater
+      state.composite = currentComposite
+    })
 
     const state = {
-      composite,
+      composite: currentComposite,
       selection: overrides.selection ?? ['layer-1'],
       selectedLayerId: overrides.selection?.[0] ?? 'layer-1',
       history: {
         gestureActive: false,
+        begin: vi.fn(),
         end: vi.fn()
       },
       undo: vi.fn(),
@@ -129,80 +135,9 @@ describe('useWorkshopShortcuts', () => {
     const togglePlay = vi.fn()
     const close = vi.fn()
 
-    // Simulate useEffect by running the effect body directly
-    const handle = (e: any) => {
-      if (e.target instanceof MockHTMLElement && e.target.closest('input, textarea, select, [contenteditable="true"]')) {
-        e.stopPropagation()
-        return
-      }
-      const mod = e.ctrlKey || e.metaKey
-      const key = e.key.toLowerCase()
-      if (e.key === 'Escape' && state.history.gestureActive) return
-      if (state.history.gestureActive && mod && (key === 'z' || key === 'y')) {
-        e.preventDefault()
-        e.stopImmediatePropagation()
-        return
-      }
-      if (mod && key === 'z') e.shiftKey ? state.redo() : state.undo()
-      else if (mod && key === 'y') state.redo()
-      else if (mod && key === 'a') state.setIds(state.composite.layers.map((l: any) => l.id))
-      else if (mod && key === 'd') state.run('duplicate')
-      else if (e.key === 'Delete' || e.key === 'Backspace') {
-        if (boneContext?.boneId && (boneContext.tab === 'bones' || state.selection.length === 0)) {
-          const targetBoneId = boneContext.boneId
-          state.setComposite((c: any) => c)
-          boneContext.selectBone?.(null)
-        } else if (state.selection.length && boneContext?.tab !== 'animation' && boneContext?.tab !== 'plant') {
-          state.run('delete')
-        }
-      }
-      else if (e.code === 'Space') {
-        if (boneContext?.isErasing) {
-          return
-        }
-        togglePlay()
-      }
-      else if (e.key === 'Escape') {
-        if (boneContext?.boneId) boneContext.selectBone?.(null)
-        else if (state.selection.length) state.select(null)
-        else close()
-      } else if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(key) && state.selection.length) {
-        const step = e.shiftKey ? 10 : 1
-        let dx = 0
-        let dy = 0
-        if (key === 'arrowup') dy = -step
-        else if (key === 'arrowdown') dy = step
-        else if (key === 'arrowleft') dx = -step
-        else if (key === 'arrowright') dx = step
-        state.selection.forEach((id: string) => {
-          const l = state.composite.layers.find((layer: any) => layer.id === id)
-          if (l && !l.locked) {
-            state.update(id, { x: l.x + dx, y: l.y + dy })
-          }
-        })
-      } else if (
-        !mod &&
-        state.selection.length &&
-        boneContext?.tab !== 'plant' &&
-        (key === '+' || key === '=' || e.code === 'NumpadAdd' || key === '-' || key === '_' || e.code === 'NumpadSubtract')
-      ) {
-        const isPlus = key === '+' || key === '=' || e.code === 'NumpadAdd'
-        const step = e.altKey ? 25 : 5
-        const dz = isPlus ? -step : step
-        state.selection.forEach((id: string) => {
-          const l = state.composite.layers.find((layer: any) => layer.id === id)
-          if (l && !l.locked) {
-            state.update(id, { z: Math.max(-2000, Math.min(2000, Math.round(l.z + dz))) })
-          }
-        })
-      } else return
-      e.preventDefault()
-      e.stopImmediatePropagation()
-    }
+    listeners['keydown'] = [(e: any) => handleWorkshopKeydown(e, state, togglePlay, close, boneContext)]
 
-    listeners['keydown'] = [handle]
-
-    return { state, updateFn, togglePlay }
+    return { state, updateFn, togglePlay, getComposite: () => currentComposite }
   }
 
   it('layer tiến ra trước (Z âm hơn) khi nhấn phím +', () => {
@@ -244,7 +179,7 @@ describe('useWorkshopShortcuts', () => {
     expect(updateFn).toHaveBeenCalledWith('layer-1', { z: 25 })
   })
 
-  it('không làm gì nếu không có layer nào được chọn', () => {
+  it('không làm gì nếu không có layer nào được chọn ở tab layers', () => {
     const { updateFn } = setupHook({ selection: [] })
     fireKey({ key: '+' })
     expect(updateFn).not.toHaveBeenCalled()
@@ -314,7 +249,21 @@ describe('useWorkshopShortcuts', () => {
 
   it('xóa xương được chọn khi nhấn phím Delete trong tab bones', () => {
     const selectBone = vi.fn()
-    const { state } = setupHook({
+    const { state, getComposite } = setupHook({
+      composite: {
+        id: 'comp-bone-del',
+        name: 'Bone Delete Test',
+        category: 'character',
+        width: 600,
+        height: 600,
+        layers: [],
+        rig: {
+          bones: [{ id: 'bone-arm', name: 'Cánh tay', x: 0, y: 0, length: 60, angle: 90 }],
+          duration: 2,
+          loop: true,
+          tracks: {}
+        }
+      },
       selection: [],
       boneContext: {
         tab: 'bones',
@@ -324,6 +273,7 @@ describe('useWorkshopShortcuts', () => {
     })
     fireKey({ key: 'Delete' })
     expect(state.setComposite).toHaveBeenCalled()
+    expect(getComposite().rig?.bones).toHaveLength(0)
     expect(selectBone).toHaveBeenCalledWith(null)
   })
 
@@ -362,5 +312,66 @@ describe('useWorkshopShortcuts', () => {
     expect(updateFn).not.toHaveBeenCalled()
     fireKey({ key: '-' })
     expect(updateFn).not.toHaveBeenCalled()
+  })
+
+  it('ở tab animation, phím + tăng Z-Index và phím - giảm Z-Index của xương cha tại mốc time, toàn bộ xương con tự ăn theo', () => {
+    const stopPlayback = vi.fn()
+    const bones = createHumanoidBones()
+    const { updateFn, getComposite } = setupHook({
+      composite: {
+        id: 'comp-rig',
+        name: 'Nhân vật 2.5D',
+        category: 'character',
+        width: 600,
+        height: 600,
+        layers: [],
+        rig: {
+          bones,
+          duration: 2,
+          fps: 30,
+          loop: true,
+          tracks: {}
+        }
+      },
+      selection: [],
+      boneContext: {
+        tab: 'animation',
+        boneId: 'bone-arm-r',
+        time: 0.8,
+        stopPlayback
+      }
+    })
+
+    // Nhấn + hai lần (+10 * 2 = +20) và Alt + + một lần (+30) => tổng +50 trên Bắp tay phải tại t = 0.8s
+    fireKey({ key: '+', shiftKey: true, code: 'Equal' })
+    fireKey({ key: '=' })
+    fireKey({ key: '+', altKey: true })
+
+    expect(stopPlayback).toHaveBeenCalled()
+    expect(updateFn).not.toHaveBeenCalled()
+
+    let comp = getComposite()
+    // Tự neo mốc nghỉ 0.0s (zOrder = 0) để khoảng trước không bị nhảy lớp đột ngột
+    const t0 = evaluateRig({ ...comp.rig!, loop: false }, 0)
+    expect(t0.get('bone-arm-r')?.zOrder ?? 0).toBe(0)
+    expect(t0.get('bone-forearm-r')?.zOrder ?? 0).toBe(0)
+
+    // Tại t = 0.8s: Bắp tay phải (+50) -> Cẳng tay phải và Bàn tay phải tự ăn theo +50
+    const tPose = evaluateRig({ ...comp.rig!, loop: false }, 0.8)
+    expect(tPose.get('bone-arm-r')?.zOrder).toBe(50)
+    expect(tPose.get('bone-forearm-r')?.zOrder).toBe(50)
+    expect(tPose.get('bone-hand-r')?.zOrder).toBe(50)
+
+    // Nhấn Alt + - (-30) và - ba lần (-10 * 3 = -30) => 50 - 60 = -10 (lùi ra sau lưng), con cũng lùi theo -10
+    fireKey({ key: '-', altKey: true })
+    fireKey({ key: '-' })
+    fireKey({ key: '-' })
+    fireKey({ key: '-', code: 'NumpadSubtract' })
+
+    comp = getComposite()
+    const tBack = evaluateRig({ ...comp.rig!, loop: false }, 0.8)
+    expect(tBack.get('bone-arm-r')?.zOrder).toBe(-10)
+    expect(tBack.get('bone-forearm-r')?.zOrder).toBe(-10)
+    expect(tBack.get('bone-hand-r')?.zOrder).toBe(-10)
   })
 })

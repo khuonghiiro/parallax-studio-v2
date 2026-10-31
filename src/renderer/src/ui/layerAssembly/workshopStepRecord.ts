@@ -93,7 +93,7 @@ export function buildZeroAnchorOps(rig: LayerRig, boneIds: string[], time: numbe
       ops.push({
         action: 'set-key',
         boneId,
-        key: { time: 0, x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1, easing: 'smooth' }
+        key: { time: 0, x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1, zOrder: 0, easing: 'smooth' }
       })
     }
   }
@@ -136,7 +136,8 @@ export function confirmPoseAndStep(
       y: p.y,
       rotation: p.rotation,
       scaleX: p.scaleX ?? 1,
-      scaleY: p.scaleY ?? 1
+      scaleY: p.scaleY ?? 1,
+      ...(p.zOrder !== undefined ? { zOrder: p.zOrder } : {})
     }
   })
 
@@ -152,7 +153,8 @@ export function confirmPoseAndStep(
         Math.abs(p.x ?? 0) > 0.01 ||
         Math.abs(p.y ?? 0) > 0.01 ||
         Math.abs((p.scaleX ?? 1) - 1) > 0.01 ||
-        Math.abs((p.scaleY ?? 1) - 1) > 0.01
+        Math.abs((p.scaleY ?? 1) - 1) > 0.01 ||
+        Math.abs(p.zOrder ?? 0) > 0.01
     )
 
   let next = composite

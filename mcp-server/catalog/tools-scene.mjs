@@ -84,7 +84,7 @@ export const SCENE_TOOLS = [
         'layer_assembly_properties', 'layer_assembly_physics', 'layer_assembly_swap', 'layer_assembly_rig_panel', 'layer_assembly_rig_tools', 'layer_assembly_dopesheet', 'layer_assembly_mixamo_card', 'layer_assembly_mixamo_studio',
         'layer_assembly_mixamo_header', 'layer_assembly_mixamo_stage', 'layer_assembly_mixamo_toolbar', 'layer_assembly_mixamo_canvas', 'layer_assembly_mixamo_coords', 'layer_assembly_mixamo_guide',
         'layer_assembly_mixamo_sidebar', 'layer_assembly_mixamo_preview', 'layer_assembly_mixamo_angles', 'layer_assembly_mixamo_presets', 'layer_assembly_mixamo_settings', 'layer_assembly_mixamo_footer',
-        'layer_assembly_animation_panel', 'layer_assembly_retarget', 'layer_assembly_create', 'layer_assembly_confirm',
+        'layer_assembly_animation_panel', 'layer_assembly_bone_depth', 'layer_assembly_retarget', 'layer_assembly_create', 'layer_assembly_confirm',
         'layer_assembly_cutter', 'layer_assembly_source', 'layer_assembly_target', 'layer_assembly_motion_sketch',
         'layer_assembly_anim_tools', 'layer_assembly_anim_chips', 'layer_assembly_anim_assist', 'layer_assembly_anim_secondary',
         'layer_assembly_plant_motion', 'layer_assembly_plant_chips', 'layer_assembly_plant_panel', 'layer_assembly_pose_tools', 'layer_assembly_plant_graph', 'layer_assembly_smart_rig_25d', 'layer_assembly_parallax_25d', 'layer_assembly_motion_harmony',

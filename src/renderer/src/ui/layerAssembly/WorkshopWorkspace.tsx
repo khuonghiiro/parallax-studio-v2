@@ -206,7 +206,13 @@ export function WorkshopWorkspace({
           effectiveSoft && effectiveRig
             ? extraSoftBoneIdsForLayer(state.composite.layers, effectiveRig, l.id, effectiveBoneId)
             : undefined
-        const transformed = transforms && !effectiveSoft ? transformRigLayer(l, transforms) : l
+        const boneTf = transforms && effectiveBoneId ? transforms.get(effectiveBoneId) : undefined
+        const transformed =
+          transforms && !effectiveSoft
+            ? transformRigLayer(l, transforms)
+            : boneTf?.zOrder
+              ? { ...l, z: Number((l.z - boneTf.zOrder).toFixed(3)) }
+              : l
         const layerSpines = !isErasing && !l.hidden ? spinesForLayer(shiftedSpines, l.id) : undefined
         return {
           ...transformed,

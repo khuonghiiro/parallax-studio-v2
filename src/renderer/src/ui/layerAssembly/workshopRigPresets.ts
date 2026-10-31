@@ -91,7 +91,8 @@ function k(
   x = 0,
   y = 0,
   scaleX = 1,
-  scaleY = 1
+  scaleY = 1,
+  zOrder?: number
 ): BoneKeyframe {
   return {
     time: Number(time.toFixed(3)),
@@ -100,6 +101,7 @@ function k(
     y: Number(y.toFixed(2)),
     scaleX: Number(scaleX.toFixed(3)),
     scaleY: Number(scaleY.toFixed(3)),
+    ...(zOrder !== undefined && Math.abs(zOrder) > 1e-4 ? { zOrder: Number(zOrder.toFixed(1)) } : {}),
     easing: 'smooth'
   }
 }
@@ -229,22 +231,23 @@ export function generateWaveHand(
   }
   if (ids.armR) {
     const baseRaise = isSide ? -96 : -116
+    // Đưa bắp tay phải nổi lên phía trước thân (cẳng tay & bàn tay tự động kế thừa zOrder của bắp tay)
     tracks[ids.armR] = [
-      k(0, baseRaise),
-      k(d * 0.25, baseRaise - 6),
-      k(d * 0.5, baseRaise + 5),
-      k(d * 0.75, baseRaise - 6),
-      k(d, baseRaise)
+      k(0, baseRaise, 0, 0, 1, 1, 55),
+      k(d * 0.25, baseRaise - 6, 0, 0, 1, 1, 55),
+      k(d * 0.5, baseRaise + 5, 0, 0, 1, 1, 55),
+      k(d * 0.75, baseRaise - 6, 0, 0, 1, 1, 55),
+      k(d, baseRaise, 0, 0, 1, 1, 55)
     ]
   }
   if (ids.forearmR) {
     const bend = isSide ? -28 : -36
     tracks[ids.forearmR] = [
-      k(0, bend),
-      k(d * 0.25, bend - 26),
-      k(d * 0.5, bend + 24),
-      k(d * 0.75, bend - 26),
-      k(d, bend)
+      k(0, bend, 0, 0, 1, 1, 30),
+      k(d * 0.25, bend - 26, 0, 0, 1, 1, 30),
+      k(d * 0.5, bend + 24, 0, 0, 1, 1, 30),
+      k(d * 0.75, bend - 26, 0, 0, 1, 1, 30),
+      k(d, bend, 0, 0, 1, 1, 30)
     ]
   }
   if (ids.handR) {
@@ -316,9 +319,23 @@ export function generateBow(
       k(d, 0, 0, 0, 1, 1)
     ]
   }
-  // Hai tay khép lịch sự vào thân (trái -θ vào trong, phải +θ vào trong)
-  if (ids.armL) tracks[ids.armL] = [k(0, 0), k(d * 0.42, -9, 2, 6), k(d * 0.66, -9, 2, 6), k(d, 0)]
-  if (ids.armR) tracks[ids.armR] = [k(0, 0), k(d * 0.42, 9, -2, 6), k(d * 0.66, 9, -2, 6), k(d, 0)]
+  // Hai tay khép lịch sự trước bụng (nâng zOrder trên bắp tay để cả cẳng tay & bàn tay nổi trước thân áo)
+  if (ids.armL) {
+    tracks[ids.armL] = [
+      k(0, 0),
+      k(d * 0.42, -9, 2, 6, 1, 1, 50),
+      k(d * 0.66, -9, 2, 6, 1, 1, 50),
+      k(d, 0)
+    ]
+  }
+  if (ids.armR) {
+    tracks[ids.armR] = [
+      k(0, 0),
+      k(d * 0.42, 9, -2, 6, 1, 1, 50),
+      k(d * 0.66, 9, -2, 6, 1, 1, 50),
+      k(d, 0)
+    ]
+  }
   if (ids.forearmL) tracks[ids.forearmL] = [k(0, 0), k(d * 0.42, -18), k(d * 0.66, -18), k(d, 0)]
   if (ids.forearmR) tracks[ids.forearmR] = [k(0, 0), k(d * 0.42, 18), k(d * 0.66, 18), k(d, 0)]
 
@@ -445,11 +462,12 @@ export function generateActionSlash(
     ]
   }
   if (ids.armR) {
+    // Lấy đà ra sau (-20) rồi vung chém xiên mạnh qua phía trước ngực (+60, cẳng tay & bàn tay ăn theo)
     tracks[ids.armR] = [
       k(0, 0),
-      k(d * 0.32, -124),
-      k(d * 0.54, 48),
-      k(d * 0.76, 32),
+      k(d * 0.32, -124, 0, 0, 1, 1, -20),
+      k(d * 0.54, 48, 0, 0, 1, 1, 60),
+      k(d * 0.76, 32, 0, 0, 1, 1, 55),
       k(d, 0)
     ]
   }

@@ -38,6 +38,7 @@ function posePatch(p: Params): Omit<BonePoseEntry, 'boneId'> {
     rotation: num(p, 'rotation'),
     scaleX: num(p, 'scale_x') ?? num(p, 'scaleX'),
     scaleY: num(p, 'scale_y') ?? num(p, 'scaleY'),
+    zOrder: num(p, 'z_order') ?? num(p, 'zOrder') ?? num(p, 'z_index') ?? num(p, 'zIndex'),
     easing,
     bezier
   }

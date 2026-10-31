@@ -23,6 +23,7 @@ import '../../styles/layerWorkshopPanels.css'
 import '../../styles/layerWorkshopChrome.css'
 import '../../styles/layerWorkshopStudio.css'
 import '../../styles/layerWorkshopAnimateStudio.css'
+import '../../styles/layerWorkshopBoneDepth.css'
 import { WorkshopRightPanel, type WorkshopTab } from './WorkshopRightPanel'
 import { ensureRigClips } from './workshopRig'
 import { CreateLayerAssemblyModal } from './CreateLayerAssemblyModal'
@@ -182,6 +183,8 @@ export function LayerAssemblyDialog({ initialComposite, onClose }: LayerAssembly
     tab,
     boneId,
     selectBone,
+    time: playback.time,
+    stopPlayback: () => playback.setIsPlaying(false),
     isErasing: isBrushActive && tab === 'layers'
   })
 

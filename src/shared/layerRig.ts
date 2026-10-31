@@ -19,6 +19,13 @@ export interface BonePose {
   rotation: number
   scaleX?: number
   scaleY?: number
+  /**
+   * Độ nổi thứ tự lớp Z-Index tương đối của xương tại thời điểm này (mặc định 0).
+   * - Dương (+, phím `+`): nâng Z-Index lên phía trước (khua tay trước ngực/mặt, gần camera hơn).
+   * - Âm (-, phím `-`): hạ Z-Index lùi ra phía sau (để tay sau lưng, xa camera hơn).
+   * - Tự động cộng dồn từ xương cha xuống toàn bộ chuỗi xương con để các đốt con luôn ăn theo xương cha.
+   */
+  zOrder?: number
 }
 export type BoneEasing = 'smooth' | 'linear' | 'hold' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'bezier'
 export type BoneBezier = [number, number, number, number]

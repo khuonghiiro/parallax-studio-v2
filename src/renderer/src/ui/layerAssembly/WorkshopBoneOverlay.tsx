@@ -853,6 +853,9 @@ export function WorkshopBoneOverlay({
             {showLabel && (
               <text x={wx + nx * (waistW + 8)} y={wy + ny * (waistW + 8)} className="lw-bone-name">
                 {bone.name}
+                {!editing && Math.abs(tf.zOrder ?? 0) >= 1
+                  ? ` · Z${(tf.zOrder ?? 0) > 0 ? '+' : ''}${Math.round(tf.zOrder ?? 0)}`
+                  : ''}
               </text>
             )}
           </g>
