@@ -45,6 +45,34 @@ function resolveRawBranchAccent(kind: V2EdgeKind, from: WorkflowNode, to: Workfl
   return resolveV2NodeTheme(to).accent
 }
 
+/** Đặt pill điều khiển [⚡ | ×] nằm đúng trên nhánh dây riêng của từng Node để không chồng lên trục dọc chung khi 1 Node chia nhiều nhánh */
+function computeEdgeControlPoint(
+  from: WorkflowNode,
+  to: WorkflowNode,
+  wireStyle: 'smoothstep' | 'bezier',
+  isToClusterLock: boolean,
+  lane: number
+): [number, number] {
+  const x1 = from.position.x + 236 + 6
+  const y1 = from.position.y + WF_V2_PORT_Y
+  const x2 = to.position.x - 8
+  const y2 = to.position.y + WF_V2_PORT_Y
+  const gap = x2 - x1
+  if (wireStyle === 'bezier' && gap >= 48) {
+    const dx = Math.max(40, Math.abs(gap) * 0.5)
+    const t = isToClusterLock ? 0.28 : 0.7
+    const u = 1 - t
+    const bx = u * u * u * x1 + 3 * u * u * t * (x1 + dx) + 3 * u * t * t * (x2 - dx) + t * t * t * x2
+    const by = (u * u * u + 3 * u * u * t) * y1 + (3 * u * t * t + t * t * t) * y2
+    return [Math.round(bx), Math.round(by)]
+  }
+  if (gap >= 76) {
+    if (isToClusterLock) return [Math.round(from.position.x + 236 + 31), Math.round(y1)]
+    return [Math.round(to.position.x - 34), Math.round(y2)]
+  }
+  return [Math.round((x1 + x2) / 2), Math.round((y1 + y2) / 2 + lane * 7)]
+}
+
 /** Lớp SVG vẽ dây nối 2 lớp (casing tách nền + lõi màu độ tương phản cao, bù tỷ lệ zoom), xung sáng khi phát và nút vector */
 export const WorkflowV2EdgeLayer: React.FC<{
   items: EdgeRenderItem[]
@@ -102,17 +130,8 @@ export const WorkflowV2EdgeLayer: React.FC<{
             ? `▼ Bước ${(from.params.waypointLocalIndex ?? 0) + 1} → ${(to.params?.waypointLocalIndex ?? 0) + 1}`
             : `▼ Mở đầu #${to.params?.waypointLabel ?? 1}`
           : null
-        const midX = isToClusterLock
-          ? Math.round(from.position.x + 236 + 34)
-          : isGroupToLayer
-            ? Math.round(to.position.x - 28)
-            : Math.round((from.position.x + 236 + to.position.x) / 2)
-        const midY = isToClusterLock
-          ? Math.round(from.position.y + WF_V2_PORT_Y)
-          : isGroupToLayer
-            ? Math.round(to.position.y + WF_V2_PORT_Y)
-            : Math.round((from.position.y + WF_V2_PORT_Y + to.position.y + WF_V2_PORT_Y) / 2 + lane * 7)
-        const pillW = disconnectable && onToggleEdgeDisable ? 46 : 24
+        const [midX, midY] = computeEdgeControlPoint(from, to, wireStyle, isToClusterLock, lane)
+        const pillW = disconnectable && onToggleEdgeDisable ? 44 : 24
         const showAura = !isDisabled && (running || (lineageActive && lit))
 
         return (

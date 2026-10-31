@@ -42,11 +42,11 @@
   --wf-grid-major: rgba(71, 85, 105, 0.055);
 
   /* High-contrast cables on Light Porcelain Slate */
-  --wf-wire-hierarchy-base: #334155;
-  --wf-wire-data: #d95204;
+  --wf-wire-hierarchy-base: #1e293b;
+  --wf-wire-data: #c2410c;
   --wf-wire-camera: #0284c7;
   --wf-wire-disabled: #64748b;
-  --wf-wire-casing: rgba(231, 236, 244, 0.88);
+  --wf-wire-casing: rgba(240, 244, 250, 0.9);
   --wf-wire-flow-pulse: #ffffff;
 
   /* Node cards & sockets */
@@ -90,6 +90,7 @@
   font-weight: 700;
   letter-spacing: 0.06em;
   box-sizing: border-box;
+  z-index: 2;
 }
 
 .wf-v2-studio .wf-v2-col-step {
@@ -166,6 +167,11 @@
 
 /* ------------------------------------------------------------------ 3. Theme-Adaptive Zoom-Compensated Cables */
 
+/* Đảm bảo toàn bộ dây kết nối luôn nổi trên nền cụm cảnh (.wf-v2-cluster z-index: 1) và nằm dưới thẻ Node (.wf-v2-card z-index: 10) */
+.wf-v2-studio .wf-v2-edges-svg {
+  z-index: 5;
+}
+
 /* Compute exact theme-aware cable color directly in CSS (valid literal % in CSS Color 4) */
 .wf-v2-studio .wf-v2-edge-group.kind-hierarchy {
   --wf-edge-c: color-mix(in srgb, var(--wf-edge-raw, #38bdf8) 56%, var(--wf-wire-hierarchy-base));
@@ -178,13 +184,13 @@
 :root[data-theme='light'] .wf-v2-studio .wf-v2-edge-group.kind-hierarchy,
 [data-theme='light'] .wf-v2-studio .wf-v2-edge-group.kind-hierarchy,
 .app.light .wf-v2-studio .wf-v2-edge-group.kind-hierarchy {
-  --wf-edge-c: color-mix(in srgb, var(--wf-edge-raw, #0284c7) 48%, #273449);
+  --wf-edge-c: color-mix(in srgb, var(--wf-edge-raw, #0284c7) 52%, #1e293b);
 }
 
 :root[data-theme='light'] .wf-v2-studio .wf-v2-edge-group.kind-logic,
 [data-theme='light'] .wf-v2-studio .wf-v2-edge-group.kind-logic,
 .app.light .wf-v2-studio .wf-v2-edge-group.kind-logic {
-  --wf-edge-c: color-mix(in srgb, var(--wf-edge-raw, #10b981) 80%, #0f172a);
+  --wf-edge-c: color-mix(in srgb, var(--wf-edge-raw, #10b981) 76%, #0f172a);
 }
 
 .wf-v2-studio .wf-v2-edge-group.kind-data {
@@ -227,10 +233,10 @@
 .wf-v2-studio .wf-v2-edge-glow {
   fill: none;
   stroke: var(--wf-edge-c);
-  stroke-width: calc(7.4px * var(--wf-zoom-comp, 1));
+  stroke-width: calc(7px * var(--wf-zoom-comp, 1));
   stroke-linecap: round;
   stroke-linejoin: round;
-  opacity: 0.26;
+  opacity: 0.18;
   pointer-events: none;
 }
 
@@ -267,13 +273,19 @@
 
 .wf-v2-studio .wf-v2-edge-group:hover .wf-v2-edge-fg,
 .wf-v2-studio .wf-v2-edge-group.highlighted .wf-v2-edge-fg {
-  stroke-width: calc(3.3px * var(--wf-zoom-comp, 1));
+  stroke-width: calc(3.2px * var(--wf-zoom-comp, 1));
   opacity: 1;
 }
 
 .wf-v2-studio .wf-v2-edge-group.highlighted .wf-v2-edge-glow {
-  stroke-width: calc(8.4px * var(--wf-zoom-comp, 1));
-  opacity: 0.34;
+  stroke-width: calc(8px * var(--wf-zoom-comp, 1));
+  opacity: 0.25;
+}
+
+:root[data-theme='light'] .wf-v2-studio .wf-v2-edge-group.highlighted .wf-v2-edge-glow,
+[data-theme='light'] .wf-v2-studio .wf-v2-edge-group.highlighted .wf-v2-edge-glow,
+.app.light .wf-v2-studio .wf-v2-edge-group.highlighted .wf-v2-edge-glow {
+  opacity: 0.18;
 }
 
 .wf-v2-studio .wf-v2-edge-group:hover .wf-v2-edge-casing {
