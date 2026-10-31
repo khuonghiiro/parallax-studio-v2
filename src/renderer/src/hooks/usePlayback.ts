@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { assetStore } from '../project/assets'
 import { getProjectAudioTracks } from '../project/audioTracks'
+import { resolveActivePlaybackRange } from '../project/playbackRange'
 import { useEditor } from '../store/editor'
 
 /** Drives the playhead while playing and keeps all background audio tracks in sync. */
@@ -47,6 +48,21 @@ export function usePlayback(): void {
       for (const entry of audiosRef.current.values()) entry.el.pause()
       return
     }
+
+    const stInitial = useEditor.getState()
+    if (stInitial.isolateShotPlayback) {
+      const initialRange = resolveActivePlaybackRange(
+        stInitial.project,
+        stInitial.isolateShotPlayback,
+        stInitial.focusedWorkflowShotId,
+        stInitial.customPlaybackRange
+      )
+      const curT = Number.isFinite(stInitial.time) ? stInitial.time : 0
+      if (curT < initialRange.start || curT >= initialRange.end) {
+        stInitial.setTime(initialRange.start)
+      }
+    }
+
     let raf = 0
     let last = performance.now()
     const tick = (now: number): void => {
@@ -55,17 +71,26 @@ export function usePlayback(): void {
       last = now
       const baseTime = Number.isFinite(st.time) ? st.time : 0
       let t = baseTime + dt
-      const dur = st.project.comp.duration
-      if (t >= dur) {
-        if (st.loop) {
-          t = 0
+
+      const range = resolveActivePlaybackRange(
+        st.project,
+        st.isolateShotPlayback,
+        st.focusedWorkflowShotId,
+        st.customPlaybackRange
+      )
+
+      if (t >= range.end) {
+        if (st.loop || st.isolateShotPlayback) {
+          t = range.start
           for (const entry of audiosRef.current.values()) entry.el.pause()
         } else {
-          st.setTime(dur)
+          st.setTime(range.end)
           st.setPlaying(false)
           for (const entry of audiosRef.current.values()) entry.el.pause()
           return
         }
+      } else if (t < range.start) {
+        t = range.start
       }
       st.setTime(t)
 

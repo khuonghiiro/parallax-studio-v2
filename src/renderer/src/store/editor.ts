@@ -41,6 +41,11 @@ export function propRefKey(ref: PropRef): string {
 const HISTORY_LIMIT = 200
 const MERGE_WINDOW_MS = 800
 
+export interface CustomPlaybackRange {
+  start: number
+  end: number
+}
+
 interface EditorState {
   project: Project
   filePath: string | null
@@ -48,6 +53,8 @@ interface EditorState {
   time: number
   playing: boolean
   loop: boolean
+  isolateShotPlayback: boolean
+  customPlaybackRange: CustomPlaybackRange | null
   selectedLayerId: string | null
   selectedShotId: string | null
   selectedAudioTrackId: string | null
@@ -73,6 +80,8 @@ interface EditorState {
   setTime(t: number): void
   setPlaying(p: boolean): void
   setLoop(l: boolean): void
+  setIsolateShotPlayback(enabled: boolean): void
+  setCustomPlaybackRange(range: CustomPlaybackRange | null): void
   selectLayer(id: string | null): void
   selectShot(id: string | null): void
   selectAudioTrack(id: string | null): void
@@ -91,6 +100,8 @@ export const useEditor = create<EditorState>((set, get) => ({
   time: 0,
   playing: false,
   loop: true,
+  isolateShotPlayback: false,
+  customPlaybackRange: null,
   selectedLayerId: null,
   selectedShotId: null,
   selectedAudioTrackId: null,
@@ -152,6 +163,12 @@ export const useEditor = create<EditorState>((set, get) => ({
   },
   setLoop(l) {
     set({ loop: l })
+  },
+  setIsolateShotPlayback(enabled) {
+    set({ isolateShotPlayback: enabled })
+  },
+  setCustomPlaybackRange(range) {
+    set({ customPlaybackRange: range })
   },
   selectLayer(id) {
     set((s) => {
@@ -223,6 +240,7 @@ export const useEditor = create<EditorState>((set, get) => ({
       selectedKey: null,
       selectedWorkflowNodeId: null,
       focusedWorkflowShotId: null,
+      customPlaybackRange: null,
       past: [],
       future: [],
       lastMerge: null,

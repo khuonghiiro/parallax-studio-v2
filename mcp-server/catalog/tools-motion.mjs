@@ -392,7 +392,11 @@ export const FX_TOOLS = [
   {
     name: 'set_playing', cat: 'timeline',
     doc: L('Start/stop playback in the app.', 'Bắt đầu/dừng phát trong app.'),
-    shape: () => ({ playing: z.boolean() })
+    shape: (d) => ({
+      playing: z.boolean().describe(d('Whether playback is active.', 'Bật/dừng phát.')),
+      isolate: z.boolean().optional().describe(d('Whether to isolate playback to current shot or custom range.', 'Khoanh vùng chỉ phát trong cảnh hiện tại hoặc khoảng time tuỳ chọn.'))
+    }),
+    example: '{"playing":true,"isolate":true}'
   },
   {
     name: 'select', cat: 'timeline',

@@ -600,6 +600,9 @@ export const uiCommands: Record<string, Handler> = {
       layer_assembly_open: !!lwSession,
       ai_active: v.aiActive,
       ai_locked: v.aiLocked,
+      isolate_shot_playback: useEditor.getState().isolateShotPlayback,
+      focused_workflow_shot_id: useEditor.getState().focusedWorkflowShotId,
+      custom_playback_range: useEditor.getState().customPlaybackRange,
       viewport: readViewportMetrics(),
       visible_regions: detectVisiblePrimaryRegions()
     }

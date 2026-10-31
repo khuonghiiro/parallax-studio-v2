@@ -43,6 +43,7 @@
 @import './styles/assemblyCompose.css';
 @import './styles/create3d.css';
 @import './styles/assemblyAdvanced.css';
+@import './styles/workflowV2Toolbar.css';
 @import './styles/workflowModernUx.css';
 @import './styles/workflowV2Inspector.css';
 @import './styles/workflowV2Space.css';

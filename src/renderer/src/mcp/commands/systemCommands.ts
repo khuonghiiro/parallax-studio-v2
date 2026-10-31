@@ -252,8 +252,11 @@ export const systemCommands: Record<string, Handler> = {
   },
 
   set_playing: (p) => {
+    if (has(p, 'isolate')) {
+      ed().setIsolateShotPlayback(bool(p, 'isolate') ?? true)
+    }
     ed().setPlaying(bool(p, 'playing') ?? true)
-    return { playing: ed().playing }
+    return { playing: ed().playing, isolate: ed().isolateShotPlayback }
   },
 
   select: (p) => {

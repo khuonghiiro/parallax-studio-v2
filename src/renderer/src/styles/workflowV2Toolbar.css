@@ -1,0 +1,260 @@
+/* ==========================================================================
+   Workflow V2 — Toolbar & Scope Controls
+   Dual-Theme: variables.css design tokens.
+   ========================================================================== */
+
+/* ------------------------------------------------------------------ Toolbar */
+
+.wf-v2-toolbar {
+  position: relative;
+  z-index: 5000;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 10px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+  overflow: visible;
+}
+.wf-v2-scope {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+}
+.wf-v2-scope-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  flex-shrink: 0;
+}
+.wf-v2-scope-pills {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  min-width: 0;
+  overflow: hidden;
+  background: var(--bg-0);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.wf-v2-scope-pill {
+  height: 22px;
+  padding: 0 9px;
+  max-width: 160px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  flex: 0 1 auto;
+  min-width: 48px;
+}
+.wf-v2-scope-pill:hover {
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-3));
+}
+.wf-v2-scope-pill.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+
+/* Scope Toolbar Controls: Isolate Shot & Time Range */
+.wf-v2-scope-isolate-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  padding: 0 8px;
+  background: var(--bg-3);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.wf-v2-scope-isolate-btn:hover {
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-3));
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
+  color: var(--text);
+}
+
+.wf-v2-scope-isolate-btn.active {
+  background: color-mix(in srgb, var(--accent) 18%, var(--bg-2));
+  border-color: var(--accent);
+  color: var(--accent-cyan, var(--accent));
+  box-shadow: 0 0 8px rgba(0, 160, 255, 0.22);
+  font-weight: 700;
+}
+
+[data-theme='light'] .wf-v2-scope-isolate-btn.active {
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg-0));
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.wf-v2-scope-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-faint);
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.wf-v2-scope-dot.active {
+  background: #22c55e;
+  box-shadow: 0 0 6px #22c55e;
+}
+
+.wf-v2-scope-range {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 6px;
+  background: var(--bg-1);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+.wf-v2-scope-range-lbl {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  letter-spacing: 0.02em;
+}
+
+.wf-v2-scope-time-input {
+  width: 44px;
+  height: 18px;
+  padding: 0 2px;
+  background: var(--bg-0);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  outline: none;
+}
+
+.wf-v2-scope-time-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.wf-v2-scope-range-sep {
+  font-size: 10px;
+  color: var(--text-faint);
+  margin: 0 1px;
+}
+
+.wf-v2-scope-unit {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-faint);
+}
+
+.wf-v2-scope-shot-range {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 7px;
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg-1));
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--line-soft));
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  flex-shrink: 0;
+  user-select: none;
+  transition: all 0.15s ease;
+}
+
+.wf-v2-scope-shot-range:hover {
+  background: color-mix(in srgb, var(--accent) 15%, var(--bg-1));
+  border-color: var(--accent);
+}
+
+.wf-v2-scope-time-badge {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent-cyan, var(--accent));
+}
+
+[data-theme='light'] .wf-v2-scope-time-badge {
+  color: var(--accent);
+}
+
+.wf-v2-scope-time-dur {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+.wf-v2-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.wf-v2-stats {
+  font-size: 11px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  padding-right: 4px;
+}
+.wf-v2-stats b {
+  color: var(--text);
+  font-family: var(--mono);
+  font-weight: 700;
+}
+.wf-v2-tool-btn.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.wf-v2-tool-btn.btn.ghost {
+  border: 1px solid var(--line-soft);
+  background: var(--bg-3);
+  color: var(--text);
+}
+.wf-v2-tool-btn.btn.ghost:hover {
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-3));
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
+}
+.wf-v2-tool-btn.primary-apply {
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  color: var(--on-accent);
+}
+.wf-v2-tool-btn.primary-apply:hover { filter: brightness(1.08); }
