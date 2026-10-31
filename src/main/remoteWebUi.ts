@@ -670,15 +670,18 @@ export function renderMobileRemoteHtml(token: string): string {
       if (previewOpen) refreshPreview();
     }
 
+    let previewInFlight = false;
     async function refreshPreview() {
-      if (!previewOpen) return;
+      if (!previewOpen || previewInFlight) return;
+      previewInFlight = true;
       try {
         const res = await apiCall("/api/preview");
         if (res && res.data) {
           document.getElementById("preview-img").src = "data:" + (res.mime || "image/jpeg") + ";base64," + res.data;
         }
       } catch {}
-      if (previewOpen) previewTimer = setTimeout(refreshPreview, 450);
+      previewInFlight = false;
+      if (previewOpen) previewTimer = setTimeout(refreshPreview, 1100);
     }
 
     async function pollState() {

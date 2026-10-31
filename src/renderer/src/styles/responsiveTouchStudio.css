@@ -1,0 +1,707 @@
+/* ==========================================================================
+   Multi-Device Touch & Mobile Ergonomics for Timeline, Workflow V2 & Workspace
+   Dual-Theme compliant (variables.css), preserves overflow: visible on menu
+   toolbars, unifies 4px-6px geometry, and synchronizes @media with Remote QR
+   html[data-remote-effective='phone' | 'tablet' | 'desktop'].
+   ========================================================================== */
+
+/* --- 1. Responsive Dock Actions & 1-Tap Drawer Expand Toggle --- */
+.responsive-dock-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.dock-expand-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+  color: var(--text-dim);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+
+.dock-expand-btn:hover {
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-3));
+  color: var(--text);
+  border-color: var(--line-focus);
+}
+
+.dock-expand-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+
+/* Expanded Mobile Drawer Mode: 70dvh workspace + live mini-Viewer on top */
+@media (max-width: 768px) {
+  html:not([data-remote-effective='tablet']):not([data-remote-effective='desktop'])
+    .app[data-drawer-expanded='true'] {
+    grid-template-rows:
+      auto
+      minmax(96px, 1fr)
+      5px
+      36px
+      clamp(300px, 68dvh, calc(100dvh - 172px)) !important;
+  }
+}
+
+:is(html[data-remote-layout='phone'], html[data-remote-effective='phone'])
+  .app[data-drawer-expanded='true'] {
+  grid-template-rows:
+    auto
+    minmax(96px, 1fr)
+    5px
+    36px
+    clamp(300px, 68dvh, calc(100dvh - 172px)) !important;
+}
+
+/* Hide Host-only MCP status chip on Remote Web Clients to save mobile toolbar space */
+html[data-remote-client='true'] #mcp-chip {
+  display: none !important;
+}
+
+/* --- 2. Workflow V2 Scene Pills Anti-Clipping & 1-Click View Mode Switcher --- */
+.wf-v2-scope-pills {
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  flex-wrap: nowrap !important;
+  max-width: 100%;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.wf-v2-scope-pills::-webkit-scrollbar {
+  display: none;
+}
+
+.wf-v2-scope-pill {
+  flex: 0 0 auto !important;
+  min-width: auto !important;
+  max-width: none !important;
+  overflow: visible !important;
+  white-space: nowrap !important;
+}
+
+.wf-v2-view-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  background: var(--bg-0);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  flex-shrink: 0;
+}
+
+.wf-v2-view-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 10.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s, color 0.12s;
+}
+
+.wf-v2-view-btn:hover {
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-3));
+}
+
+.wf-v2-view-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+
+/* --- 3. Workflow Mobile / Touch Structured Cards View (📋 Thẻ) --- */
+.wf-mobile-cards-view {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
+  min-height: 0;
+  background: var(--bg-1);
+}
+
+.wf-mcards-scroll {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.wf-mcard-cluster {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: var(--bg-0);
+}
+
+.wf-mcard-cluster.is-live {
+  border-color: color-mix(in srgb, var(--accent-cyan) 55%, var(--line));
+}
+
+.wf-mcard-cluster-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: var(--radius);
+  background: var(--bg-2);
+  border: 1px solid var(--line-soft);
+  cursor: pointer;
+}
+
+.wf-mcard-cluster-head.selected {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, var(--bg-2));
+}
+
+.wf-mcard-cluster-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 12px;
+}
+
+.wf-mcard-cluster-title strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wf-mcard-live-badge {
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, #f43f5e 78%, #0f172a);
+  color: #ffffff;
+  font-size: 9px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.wf-mcard-time {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.wf-mcard-group,
+.wf-mcard-layers {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.wf-mcard-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 36px;
+  padding: 5px 8px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line-soft);
+  border-left: 3px solid var(--wf-v2-accent, var(--accent));
+  background: var(--bg-2);
+  cursor: pointer;
+}
+
+.wf-mcard-row.is-child {
+  margin-left: 14px;
+  background: var(--bg-1);
+}
+
+.wf-mcard-row.selected {
+  border-color: var(--accent);
+  border-left-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, var(--bg-2));
+}
+
+.wf-mcard-info {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.wf-mcard-emoji {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.wf-mcard-step-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--wf-v2-accent, #10b981) 78%, #0f172a);
+  color: #ffffff;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.wf-mcard-badge {
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--wf-v2-accent, #0284c7) 78%, #0f172a);
+  color: #ffffff;
+  font-size: 9px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.wf-mcard-texts {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.wf-mcard-name {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wf-mcard-sub {
+  font-size: 9.5px;
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wf-mcard-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.wf-mcard-btn {
+  height: 24px !important;
+  padding: 0 7px !important;
+  font-size: 10.5px !important;
+  gap: 3px !important;
+  border-color: var(--line-soft) !important;
+}
+
+.wf-mcard-btn.accent {
+  border-color: color-mix(in srgb, var(--accent-cyan) 45%, var(--line)) !important;
+  color: var(--accent-cyan) !important;
+}
+
+.wf-mcard-toggle {
+  height: 22px;
+  padding: 0 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--bg-3);
+  color: var(--text-dim);
+  font-size: 9.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.wf-mcard-toggle.on {
+  background: color-mix(in srgb, #10b981 78%, #0f172a);
+  border-color: #10b981;
+  color: #ffffff;
+}
+
+.wf-mcard-del {
+  width: 24px !important;
+  height: 24px !important;
+  padding: 0 !important;
+  color: var(--danger) !important;
+}
+
+/* Floating Selected-Node Quick Action Bar on Graph Canvas (Tablet & Phone) */
+.wf-v2-mobile-node-bar {
+  display: none;
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  z-index: 46;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: var(--radius);
+  border: 1px solid color-mix(in srgb, var(--wf-v2-accent, var(--accent)) 55%, var(--line));
+  background: color-mix(in srgb, var(--bg-1) 94%, transparent);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+}
+
+.wf-v2-mbar-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.wf-v2-mbar-icon {
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.wf-v2-mbar-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wf-v2-mbar-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* Mobile Back Bar inside Inspector when jumped from Workflow / Timeline */
+.insp-mobile-back-bar {
+  padding: 5px 8px;
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+
+.insp-mobile-back-btn {
+  width: 100%;
+  justify-content: flex-start !important;
+  border-color: color-mix(in srgb, var(--accent-cyan) 40%, var(--line)) !important;
+  color: var(--accent-cyan) !important;
+  font-weight: 600 !important;
+}
+
+/* --- 4. Timeline Compact Track-Name Rail Mode (1-Tap 85%+ Track Area) --- */
+.tl-compact-names-btn.active {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-radius: var(--radius-sm);
+}
+
+.timeline.tl-compact-names .tl-names-head-meta,
+.timeline.tl-compact-names .tl-name .name,
+.timeline.tl-compact-names .tl-name .label,
+.timeline.tl-compact-names .tl-name .tl-idx,
+.timeline.tl-compact-names .tl-name .depth,
+.timeline.tl-compact-names .tl-name .eye,
+.timeline.tl-compact-names .tl-name .lock,
+.timeline.tl-compact-names .tl-name .tl-audio-attach-btn,
+.timeline.tl-compact-names .tl-name .tl-cluster-badge,
+.timeline.tl-compact-names .tl-name .tl-cluster-lipsync-badge,
+.timeline.tl-compact-names .tl-name .tl-cluster-audio-badge,
+.timeline.tl-compact-names .tl-name .tl-shot-meta,
+.timeline.tl-compact-names .tl-name .tl-cam-badge,
+.timeline.tl-compact-names .tl-name .tl-lip-badge {
+  display: none !important;
+}
+
+.timeline.tl-compact-names .tl-name {
+  padding-left: 4px !important;
+  padding-right: 4px !important;
+  justify-content: center;
+  gap: 3px;
+}
+
+/* --- 5. Touch & Tablet Ergonomics (<= 1120px, coarse pointer, or Remote Tablet/Phone) --- */
+@media (max-width: 1120px), (pointer: coarse) {
+  .tl-batch-timing.is-empty {
+    display: none !important;
+  }
+
+  .wf-v2-mobile-node-bar {
+    display: flex;
+  }
+
+  /* Larger invisible touch hit target for keyframe diamonds & clip handles */
+  .tl-key::after {
+    content: '';
+    position: absolute;
+    inset: -9px;
+  }
+
+  .tl-bar-handle {
+    width: 12px;
+  }
+}
+
+:is(html[data-remote-effective='phone'], html[data-remote-effective='tablet']) .tl-batch-timing.is-empty {
+  display: none !important;
+}
+
+:is(html[data-remote-effective='phone'], html[data-remote-effective='tablet']) .wf-v2-mobile-node-bar {
+  display: flex;
+}
+
+/* --- 6. Phone Single-Row Chrome & Compact Controls (<= 768px OR Remote Phone) --- */
+@media (max-width: 768px) {
+  html:not([data-remote-effective='tablet']):not([data-remote-effective='desktop']) .toolbar {
+    flex-wrap: nowrap !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    padding: 0 5px !important;
+    gap: 3px !important;
+    overflow: visible !important;
+  }
+
+  html:not([data-remote-effective='tablet']):not([data-remote-effective='desktop']) .viewer > .viewer-tools {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 30 !important;
+    flex-wrap: nowrap !important;
+    height: 32px !important;
+    min-height: 32px !important;
+    padding: 0 6px !important;
+    gap: 4px !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  html:not([data-remote-effective='tablet']):not([data-remote-effective='desktop']) .tl-names-head {
+    padding: 0 4px !important;
+  }
+
+  html:not([data-remote-effective='tablet']):not([data-remote-effective='desktop']) .tl-names-head-left {
+    gap: 4px !important;
+    width: 100%;
+    justify-content: center;
+  }
+
+  html:not([data-remote-effective='tablet']):not([data-remote-effective='desktop']) .tl-names-head-title,
+  html:not([data-remote-effective='tablet']):not([data-remote-effective='desktop']) .tl-names-head-meta {
+    display: none !important;
+  }
+
+  html:not([data-remote-effective='tablet']):not([data-remote-effective='desktop']) .viewer > .viewer-tools::-webkit-scrollbar {
+    display: none;
+  }
+
+  html:not([data-remote-effective='tablet']):not([data-remote-effective='desktop']) .viewer > .viewer-tools > * {
+    flex-shrink: 0;
+  }
+
+  html:not([data-remote-effective='tablet']):not([data-remote-effective='desktop']) .viewer-hud-inline,
+  html:not([data-remote-effective='tablet']):not([data-remote-effective='desktop']) .viewer-3d-help-chip {
+    display: none !important;
+  }
+
+  html:not([data-remote-effective='tablet']):not([data-remote-effective='desktop']) .timeline-toolbar {
+    flex-wrap: nowrap !important;
+    height: 34px !important;
+    min-height: 34px !important;
+    padding: 0 5px !important;
+    gap: 3px !important;
+    overflow: visible !important;
+  }
+
+  html:not([data-remote-effective='tablet']):not([data-remote-effective='desktop']) .timeline-toolbar .tl-zoom-slider,
+  html:not([data-remote-effective='tablet']):not([data-remote-effective='desktop']) .timeline-toolbar #tl-prev,
+  html:not([data-remote-effective='tablet']):not([data-remote-effective='desktop']) .timeline-toolbar #tl-next {
+    display: none !important;
+  }
+
+  html:not([data-remote-effective='tablet']):not([data-remote-effective='desktop']) .wf-v2-toolbar {
+    flex-wrap: nowrap !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    padding: 0 6px !important;
+    gap: 4px !important;
+  }
+
+  html:not([data-remote-effective='tablet']):not([data-remote-effective='desktop']) .wf-v2-tool-btn.primary-apply .wf-v2-btn-txt,
+  html:not([data-remote-effective='tablet']):not([data-remote-effective='desktop']) .wf-v2-time-btn {
+    display: none !important;
+  }
+
+  /* Compact horizontal HUD on Phone Graph Canvas so it never covers 22% of the right side */
+  html:not([data-remote-effective='tablet']):not([data-remote-effective='desktop']) .wf-canvas-hud.vertical {
+    flex-direction: row !important;
+    top: 6px !important;
+    right: 6px !important;
+    bottom: auto !important;
+    transform: none !important;
+    padding: 2px 4px !important;
+    gap: 2px !important;
+    width: auto !important;
+  }
+
+  html:not([data-remote-effective='tablet']):not([data-remote-effective='desktop']) .wf-canvas-hud.vertical .wf-hud-sep {
+    display: none !important;
+  }
+}
+
+/* Mirror exact Phone rules when html[data-remote-effective='phone'] (including Phone Landscape > 768px!) */
+html[data-remote-effective='phone'] .toolbar {
+  flex-wrap: nowrap !important;
+  height: 38px !important;
+  min-height: 38px !important;
+  padding: 0 5px !important;
+  gap: 3px !important;
+  overflow: visible !important;
+}
+
+html[data-remote-effective='phone'] .brand,
+html[data-remote-effective='phone'] .tb-center,
+html[data-remote-effective='phone'] .tb-sep,
+html[data-remote-effective='phone'] .tb-btn-text {
+  display: none !important;
+}
+
+html[data-remote-effective='phone'] .viewer > .viewer-tools {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 30 !important;
+  flex-wrap: nowrap !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  padding: 0 6px !important;
+  gap: 4px !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  scrollbar-width: none;
+}
+
+html[data-remote-effective='phone'] .tl-names-head {
+  padding: 0 4px !important;
+}
+
+html[data-remote-effective='phone'] .tl-names-head-left {
+  gap: 4px !important;
+  width: 100%;
+  justify-content: center;
+}
+
+html[data-remote-effective='phone'] .tl-names-head-title,
+html[data-remote-effective='phone'] .tl-names-head-meta {
+  display: none !important;
+}
+
+html[data-remote-effective='phone'] .viewer > .viewer-tools > * {
+  flex-shrink: 0;
+}
+
+html[data-remote-effective='phone'] .viewer-hud-inline,
+html[data-remote-effective='phone'] .viewer-3d-help-chip,
+html[data-remote-effective='phone'] .viewer-camera-status {
+  display: none !important;
+}
+
+html[data-remote-effective='phone'] .timeline-toolbar {
+  flex-wrap: nowrap !important;
+  height: 34px !important;
+  min-height: 34px !important;
+  padding: 0 5px !important;
+  gap: 3px !important;
+  overflow: visible !important;
+}
+
+html[data-remote-effective='phone'] .timeline-toolbar .tl-mode-tabs,
+html[data-remote-effective='phone'] .timeline-toolbar .tl-toolbar-divider,
+html[data-remote-effective='phone'] .timeline-toolbar .tl-action-btn > span,
+html[data-remote-effective='phone'] .timeline-toolbar .timecode small,
+html[data-remote-effective='phone'] .timeline-toolbar .tl-zoom-slider,
+html[data-remote-effective='phone'] .timeline-toolbar #tl-start,
+html[data-remote-effective='phone'] .timeline-toolbar #tl-end,
+html[data-remote-effective='phone'] .timeline-toolbar #tl-prev,
+html[data-remote-effective='phone'] .timeline-toolbar #tl-next {
+  display: none !important;
+}
+
+html[data-remote-effective='phone'] .wf-v2-toolbar {
+  flex-wrap: nowrap !important;
+  height: 36px !important;
+  min-height: 36px !important;
+  padding: 0 6px !important;
+  gap: 4px !important;
+}
+
+html[data-remote-effective='phone'] .wf-v2-toolbar .tl-mode-tabs,
+html[data-remote-effective='phone'] .wf-v2-toolbar .tl-toolbar-divider,
+html[data-remote-effective='phone'] .wf-v2-scope-label,
+html[data-remote-effective='phone'] .wf-v2-stats,
+html[data-remote-effective='phone'] .wf-v2-tool-btn .wf-v2-btn-txt,
+html[data-remote-effective='phone'] .wf-v2-time-btn,
+html[data-remote-effective='phone'] .wf-node-palette,
+html[data-remote-effective='phone'] .wf-v2-legend {
+  display: none !important;
+}
+
+html[data-remote-effective='phone'] .wf-canvas-hud.vertical {
+  flex-direction: row !important;
+  top: 6px !important;
+  right: 6px !important;
+  bottom: auto !important;
+  transform: none !important;
+  padding: 2px 4px !important;
+  gap: 2px !important;
+  width: auto !important;
+}
+
+html[data-remote-effective='phone'] .wf-canvas-hud.vertical .wf-hud-sep {
+  display: none !important;
+}
+
+/* Narrow phone (< 460px): give maximum room to layer names in Timeline left column */
+@media (max-width: 460px) {
+  .tl-name .tl-idx {
+    display: none !important;
+  }
+
+  .tl-name .eye:not(.off),
+  .tl-name .lock:not(.on) {
+    display: none !important;
+  }
+
+  #menu-file > .btn > span {
+    display: none;
+  }
+}

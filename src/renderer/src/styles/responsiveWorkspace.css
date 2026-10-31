@@ -166,19 +166,23 @@
     border-bottom: none;
   }
 
-  /* Viewer Tools clean single/wrap bar on Phone */
+  /* Viewer Tools clean single bar pinned at top:0 of .viewer on Phone (never centered across Camera frame) */
   .viewer > .viewer-tools {
-    position: relative;
+    position: absolute;
     top: 0;
     left: 0;
     right: 0;
+    z-index: 30;
     width: 100%;
     max-width: 100%;
-    height: auto;
+    height: 32px;
     min-height: 32px;
-    padding: 3px 6px;
+    padding: 0 6px;
     gap: 4px;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
     justify-content: flex-start;
   }
 

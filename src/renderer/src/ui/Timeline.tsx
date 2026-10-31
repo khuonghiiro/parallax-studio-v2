@@ -4,7 +4,8 @@ import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from '
 import type { Animatable, AnimValue, AudioTrackItem, Layer, Shot } from '@shared/types'
 import { useEditor, type PropRef } from '../store/editor'
 import { useView } from '../store/view'
-import { IconCaret, IconEye, IconFilm, IconLock } from './icons'
+import { usePinchPanGesture } from '../hooks/usePinchPanGesture'
+import { IconCaret, IconEye, IconFilm, IconLock, IconSidebarLeftCollapse, IconSidebarRightCollapse } from './icons'
 import { PAD, SHOT_PROPS, NAME_W } from './timeline/timelineTypes'
 import { TimelineRow } from './timeline/TimelineRow'
 import { AudioRow } from './timeline/AudioRow'
@@ -70,6 +71,7 @@ export function Timeline() {
   const [renaming, setRenaming] = useState<string | null>(null)
   const [zoom, setZoom] = useState<number>(1)
   const [modalTrack, setModalTrack] = useState<AudioTrackItem | null>(null)
+  const [compactNames, setCompactNames] = useState<boolean>(false)
 
   const trackRef = useRef<HTMLDivElement>(null)
   const rulerScrollRef = useRef<HTMLDivElement>(null)
@@ -79,13 +81,27 @@ export function Timeline() {
   const [nameW, setNameW] = useState(NAME_W)
   const [scrollbarW, setScrollbarW] = useState(0)
 
+  usePinchPanGesture(rowsScrollRef, ({ scaleFactor }) => {
+    if (Math.abs(scaleFactor - 1) > 0.004) {
+      setZoom((prev) => Math.max(1, Math.min(6, Number((prev * scaleFactor).toFixed(3)))))
+    }
+  })
+
   // Measure visible track area from rows container to account for vertical scrollbar
   useEffect(() => {
     const el = rowsScrollRef.current
     if (!el) return
     const update = () => {
       const sw = el.offsetWidth - el.clientWidth
-      const nw = el.clientWidth < 440 ? 156 : el.clientWidth < 560 ? 204 : el.clientWidth < 860 ? 280 : NAME_W
+      const nw = compactNames
+        ? 58
+        : el.clientWidth < 460
+          ? 132
+          : el.clientWidth < 580
+            ? 196
+            : el.clientWidth < 860
+              ? 276
+              : NAME_W
       setScrollbarW(sw)
       setNameW(nw)
       setTrackW(Math.max(100, el.clientWidth - nw))
@@ -94,7 +110,7 @@ export function Timeline() {
     const ro = new ResizeObserver(update)
     ro.observe(el)
     return () => ro.disconnect()
-  }, [timelineTab])
+  }, [timelineTab, compactNames])
 
   const contentW = Math.max(trackW, Math.round((trackW - PAD * 2) * zoom + PAD * 2))
   const x = useCallback(
@@ -399,8 +415,9 @@ export function Timeline() {
 
   return (
     <section
-      className="panel timeline"
+      className={`panel timeline${compactNames ? ' tl-compact-names' : ''}`}
       data-mcp-region="timeline"
+      data-compact-names={compactNames ? 'true' : 'false'}
       style={{ ['--tl-name-w' as string]: `${nameW}px` }}
     >
       <TimelineToolbar
@@ -423,13 +440,35 @@ export function Timeline() {
         <div className="tl-header-row">
           <div className="tl-names-head" style={{ width: nameW }}>
             <span className="tl-names-head-left">
-              <button type="button" id="tl-expand-all" className="tl-tree-action" title="Mở rộng tất cả cây" aria-label="Mở rộng tất cả cây" onClick={expandAll}>
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="2" /><path d="M4.5 8h7M8 4.5v7" /></svg>
+              <button
+                type="button"
+                id="tl-toggle-compact-names"
+                className={`tl-tree-action tl-compact-names-btn${compactNames ? ' active' : ''}`}
+                title={
+                  compactNames
+                    ? 'Mở rộng cột tên Layer / Cảnh'
+                    : 'Thu gọn cột tên để mở rộng tối đa vùng kéo Track & Keyframe'
+                }
+                aria-pressed={compactNames}
+                onClick={() => setCompactNames((c) => !c)}
+              >
+                {compactNames ? (
+                  <IconSidebarRightCollapse width={14} height={14} />
+                ) : (
+                  <IconSidebarLeftCollapse width={14} height={14} />
+                )}
               </button>
-              <button type="button" id="tl-collapse-all" className="tl-tree-action" title="Thu gọn tất cả cây" aria-label="Thu gọn tất cả cây" onClick={collapseAll}>
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="2" /><path d="M4.5 8h7" /></svg>
-              </button>
-              <span>TÊN LAYER / CẢNH</span>
+              {!compactNames && (
+                <>
+                  <button type="button" id="tl-expand-all" className="tl-tree-action" title="Mở rộng tất cả cây" aria-label="Mở rộng tất cả cây" onClick={expandAll}>
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="2" /><path d="M4.5 8h7M8 4.5v7" /></svg>
+                  </button>
+                  <button type="button" id="tl-collapse-all" className="tl-tree-action" title="Thu gọn tất cả cây" aria-label="Thu gọn tất cả cây" onClick={collapseAll}>
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="2" /><path d="M4.5 8h7" /></svg>
+                  </button>
+                  <span className="tl-names-head-title">TÊN LAYER / CẢNH</span>
+                </>
+              )}
             </span>
             <span className="tl-names-head-meta">
               <span title="Độ sâu 3D (Z depth)">Z</span>

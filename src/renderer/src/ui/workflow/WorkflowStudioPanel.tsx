@@ -1,8 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useEditor } from '../../store/editor'
+import { useView } from '../../store/view'
+import { useResponsiveViewport } from '../primitives'
 import { WorkflowCanvasV2 } from './WorkflowCanvasV2'
+import { WorkflowMobileCardsView } from './WorkflowMobileCardsView'
 import { WorkflowV2Sidebar } from './WorkflowV2Sidebar'
-import { WorkflowV2Toolbar } from './WorkflowV2Toolbar'
+import { WorkflowV2Toolbar, type WorkflowV2ViewMode } from './WorkflowV2Toolbar'
 import { useWorkflowV2Controller } from './useWorkflowV2Controller'
 import { resolveV2NodeLevel } from './workflowV2Theme'
 
@@ -17,8 +20,11 @@ const FOLLOW_KEY = 'pxs:wf-v2-follow-shot'
 export const WorkflowStudioPanel: React.FC = () => {
   const inspectorTab = useEditor((s) => s.inspectorTab)
   const setInspectorTab = useEditor((s) => s.setInspectorTab)
+  const { isPhone, isDrawerMode } = useResponsiveViewport()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem(SIDEBAR_KEY) === '1')
   const [follow, setFollow] = useState(() => localStorage.getItem(FOLLOW_KEY) !== '0')
+  const [manualViewMode, setManualViewMode] = useState<WorkflowV2ViewMode | null>(null)
+  const viewMode: WorkflowV2ViewMode = manualViewMode ?? (isPhone ? 'cards' : 'graph')
 
   const ctrl = useWorkflowV2Controller()
   const {
@@ -60,8 +66,25 @@ export const WorkflowStudioPanel: React.FC = () => {
     })
 
   const jsonMode = inspectorTab === 'json'
+  const routeToInspectorDrawerIfMobile = (): void => {
+    const v = useView.getState()
+    v.setRightCollapsed(false)
+    if (isDrawerMode) {
+      v.setMobileTab('right')
+      v.setTabletTab('right')
+    }
+  }
+
   const handleToggleJsonMode = (): void => {
-    setInspectorTab(jsonMode ? 'node' : 'json')
+    const next = jsonMode ? 'node' : 'json'
+    setInspectorTab(next)
+    if (next === 'json') routeToInspectorDrawerIfMobile()
+  }
+
+  const handleOpenNodeInspector = (nodeId: string): void => {
+    activateNode(nodeId, false, true)
+    setInspectorTab('node')
+    routeToInspectorDrawerIfMobile()
   }
 
   return (
@@ -75,60 +98,87 @@ export const WorkflowStudioPanel: React.FC = () => {
         activeShotId={activeShotId}
         focusedShotId={focusedShotId}
         jsonMode={jsonMode}
+        viewMode={viewMode}
+        onChangeViewMode={(m) => setManualViewMode(m)}
         onFocusShot={(id) => handleFocusShot(id, undefined, follow)}
         onToggleJsonMode={handleToggleJsonMode}
         onRelayout={() => actions.relayout(true)}
         onApplyAll={actions.applyAll}
         onAddTime={actions.addTime}
       />
-      <div className="wf-v2-body">
-        <WorkflowV2Sidebar
-          workflow={workflow}
-          project={project}
-          collapsed={sidebarCollapsed}
-          selectedNodeId={selectedNodeId}
-          activeShotId={activeShotId}
-          spawnTarget={spawnTarget}
-          onToggleCollapsed={toggle(SIDEBAR_KEY, setSidebarCollapsed, '1', '0')}
-          onSelectNode={(id) => activateNode(id, true, true)}
-          onFocusShot={(shotId, rootId) => {
-            setSelectedNodeId(rootId)
-            handleFocusShot(shotId, rootId, follow)
-          }}
-          onToggleGroup={(id, collapsed) => actions.updateParams(id, { collapsedGroup: collapsed })}
-          onSpawn={(cat, presetId, extraParams, customTitle) => {
-            if (spawnTarget) {
-              actions.attachLogic(spawnTarget.id, cat, presetId, extraParams, customTitle)
-              if (inspectorTab !== 'json') setInspectorTab('node')
-            }
-          }}
-        />
-        <WorkflowCanvasV2
+      {viewMode === 'cards' ? (
+        <WorkflowMobileCardsView
           workflow={workflow}
           project={project}
           currentTime={currentTime}
           playing={playing}
           activeShotId={activeShotId}
-          follow={follow}
-          onToggleFollow={toggle(FOLLOW_KEY, setFollow, '1', '0')}
+          focusedShotId={focusedShotId}
           selectedNodeId={selectedNodeId}
-          onSelectNode={(id) => activateNode(id, false, true)}
+          onSelectNode={(id) => activateNode(id, false, false)}
+          onOpenNodeInspector={handleOpenNodeInspector}
           onSetTime={setTime}
           onTogglePlay={() => setPlaying(!playing)}
-          onMoveNodes={actions.moveNodes}
           onToggleNodeEnable={actions.toggleEnable}
           onDeleteNode={actions.deleteNode}
-          onUpdateNodeParams={actions.updateParams}
+          onUpdateNodeParams={(id, patch) => actions.updateParams(id, patch)}
           onAttachLogicToLayer={(layerNodeId, cat, presetId, extraParams, customTitle) => {
             actions.attachLogic(layerNodeId, cat, presetId, extraParams, customTitle)
             if (inspectorTab !== 'json') setInspectorTab('node')
           }}
-          onConnectNodes={actions.connect}
-          onDisconnectEdge={actions.disconnect}
-          onToggleEdgeDisable={actions.toggleEdgeDisable}
           onSpawnCameraWaypoint={actions.spawnCameraWaypoint}
         />
-      </div>
+      ) : (
+        <div className="wf-v2-body">
+          <WorkflowV2Sidebar
+            workflow={workflow}
+            project={project}
+            collapsed={sidebarCollapsed}
+            selectedNodeId={selectedNodeId}
+            activeShotId={activeShotId}
+            spawnTarget={spawnTarget}
+            onToggleCollapsed={toggle(SIDEBAR_KEY, setSidebarCollapsed, '1', '0')}
+            onSelectNode={(id) => activateNode(id, true, true)}
+            onFocusShot={(shotId, rootId) => {
+              setSelectedNodeId(rootId)
+              handleFocusShot(shotId, rootId, follow)
+            }}
+            onToggleGroup={(id, collapsed) => actions.updateParams(id, { collapsedGroup: collapsed })}
+            onSpawn={(cat, presetId, extraParams, customTitle) => {
+              if (spawnTarget) {
+                actions.attachLogic(spawnTarget.id, cat, presetId, extraParams, customTitle)
+                if (inspectorTab !== 'json') setInspectorTab('node')
+              }
+            }}
+          />
+          <WorkflowCanvasV2
+            workflow={workflow}
+            project={project}
+            currentTime={currentTime}
+            playing={playing}
+            activeShotId={activeShotId}
+            follow={follow}
+            onToggleFollow={toggle(FOLLOW_KEY, setFollow, '1', '0')}
+            selectedNodeId={selectedNodeId}
+            onSelectNode={(id) => activateNode(id, false, true)}
+            onOpenNodeInspector={handleOpenNodeInspector}
+            onSetTime={setTime}
+            onTogglePlay={() => setPlaying(!playing)}
+            onMoveNodes={actions.moveNodes}
+            onToggleNodeEnable={actions.toggleEnable}
+            onDeleteNode={actions.deleteNode}
+            onUpdateNodeParams={actions.updateParams}
+            onAttachLogicToLayer={(layerNodeId, cat, presetId, extraParams, customTitle) => {
+              actions.attachLogic(layerNodeId, cat, presetId, extraParams, customTitle)
+              if (inspectorTab !== 'json') setInspectorTab('node')
+            }}
+            onConnectNodes={actions.connect}
+            onDisconnectEdge={actions.disconnect}
+            onToggleEdgeDisable={actions.toggleEdgeDisable}
+            onSpawnCameraWaypoint={actions.spawnCameraWaypoint}
+          />
+        </div>
+      )}
     </div>
   )
 }

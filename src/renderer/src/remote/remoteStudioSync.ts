@@ -378,6 +378,16 @@ export async function bootstrapAndSyncRemoteClient(): Promise<() => void> {
   const knownAssetIds = new Set<string>()
   const inFlightDownloads = new Map<string, Promise<void>>()
 
+  const fetchWithTimeout = async (pathOrUrl: string, init: RequestInit | undefined, timeoutMs: number): Promise<Response> => {
+    const ctrl = new AbortController()
+    const timer = window.setTimeout(() => ctrl.abort(), timeoutMs)
+    try {
+      return await remoteFetch(pathOrUrl, { ...(init || {}), signal: ctrl.signal })
+    } finally {
+      window.clearTimeout(timer)
+    }
+  }
+
   const downloadAssetIfNeeded = async (meta: AssetMeta): Promise<void> => {
     if (!meta?.id || assetStore.get(meta.id)) {
       if (meta?.id) knownAssetIds.add(meta.id)
@@ -389,7 +399,7 @@ export async function bootstrapAndSyncRemoteClient(): Promise<() => void> {
     const task = (async () => {
       try {
         knownAssetIds.add(meta.id)
-        const resp = await remoteFetch(`/api/remote/asset/${encodeURIComponent(meta.id)}`)
+        const resp = await fetchWithTimeout(`/api/remote/asset/${encodeURIComponent(meta.id)}`, undefined, 15_000)
         if (!resp.ok) return
         const bytes = new Uint8Array(await resp.arrayBuffer())
         await assetStore.add(meta.name, meta.mime, bytes, meta.kind, { ...meta })
@@ -450,7 +460,7 @@ export async function bootstrapAndSyncRemoteClient(): Promise<() => void> {
     layout: live.layoutProfile
   })
 
-  const resp = await remoteFetch(bootUrl)
+  const resp = await fetchWithTimeout(bootUrl, undefined, 12_000)
   if (!resp.ok) {
     const msg = `Không kết nối được phiên Remote (${resp.status})`
     updateRemoteLiveState({ connected: false, syncing: false, error: msg })
@@ -468,8 +478,30 @@ export async function bootstrapAndSyncRemoteClient(): Promise<() => void> {
   let localRev = data.rev || 1
   const snap = data.snapshot
   const initialAssets = snap.assets ?? snap.project?.assets ?? []
-  await ensureAllAssetsForProject(initialAssets)
+  for (const m of initialAssets) {
+    if (m?.id) knownAssetIds.add(m.id)
+  }
+
+  // Áp dụng cấu trúc dự án ngay lập tức để mở khóa giao diện Studio tức thì trên điện thoại (không bị treo màn hình đen chờ tải hết file nặng)
   applySyncEnvelopeToStores({ ...snap, rev: localRev, clientId: 'host' }, { initialBootstrap: true })
+
+  // Ưu tiên tải trước các ảnh của cảnh đang chọn (chờ tối đa 1.2s rồi hiển thị giao diện ngay, phần còn lại tự nạp ngầm và kích hoạt WebGL re-render)
+  const activeShotId = snap.selectedShotId ?? snap.project?.shots?.[0]?.id
+  const activeImageAssetIds = new Set(
+    (snap.project?.layers ?? [])
+      .filter((l) => l.type === 'image' && (!activeShotId || !l.shotId || l.shotId === activeShotId))
+      .map((l) => (l.type === 'image' ? l.props.assetId : ''))
+      .filter(Boolean)
+  )
+  const prioritizedAssets = [
+    ...initialAssets.filter((m) => activeImageAssetIds.has(m.id)),
+    ...initialAssets.filter((m) => !activeImageAssetIds.has(m.id))
+  ]
+  const bgDownloadPromise = ensureAllAssetsForProject(prioritizedAssets)
+  await Promise.race([
+    bgDownloadPromise,
+    new Promise<void>((resolve) => window.setTimeout(resolve, 1200))
+  ])
 
   // Chuyển tab mặc định thông minh khi mở trên Điện thoại (Timeline sẵn sàng dưới, Viewer trên)
   const detectedKind = detectBrowserDeviceKind()

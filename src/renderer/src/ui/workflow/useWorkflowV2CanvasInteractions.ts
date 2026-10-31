@@ -56,19 +56,44 @@ export function useWorkflowV2CanvasInteractions(
     )
 
   const onCanvasPointerDown = (e: React.PointerEvent<HTMLDivElement>): void => {
+    if (e.button !== 0) return
     const target = e.target as HTMLElement
-    if (target !== e.currentTarget && !target.classList.contains('wf-v2-world')) return
+    if (
+      target.closest(
+        '.wf-v2-card, .wf-canvas-hud, .wf-v2-cluster-head, .wf-v2-quick-spawn-menu, .wf-v2-edge-ctrl, .wf-v2-legend, .wf-v2-mobile-node-bar, button, input, textarea, select, a'
+      )
+    ) {
+      return
+    }
     setSpawnMenu(null)
-    const start = { x: e.clientX, y: e.clientY }
-    const initPan = { ...vp.pan }
+    let start = { x: e.clientX, y: e.clientY }
+    let initPan = { ...vp.pan }
     let moved = false
+    let sawMultiTouch = false
+    const isTouch = e.pointerType === 'touch'
     trackPointer(
       (ev) => {
+        if (ev.pointerId !== e.pointerId) return
+        if (vp.isMultiTouchRef?.current) {
+          sawMultiTouch = true
+          start = { x: ev.clientX, y: ev.clientY }
+          initPan = { ...vp.pan }
+          return
+        }
+        if (sawMultiTouch) {
+          sawMultiTouch = false
+          start = { x: ev.clientX, y: ev.clientY }
+          initPan = { ...vp.pan }
+          return
+        }
         if (Math.hypot(ev.clientX - start.x, ev.clientY - start.y) > 4) moved = true
         vp.setPan({ x: initPan.x + ev.clientX - start.x, y: initPan.y + ev.clientY - start.y })
       },
-      () => {
-        if (!moved && e.shiftKey) handlersRef.current.onSelectNode(null)
+      (ev) => {
+        if (ev.pointerId !== e.pointerId) return
+        if (!moved && !sawMultiTouch && (e.shiftKey || isTouch)) {
+          handlersRef.current.onSelectNode(null)
+        }
       }
     )
   }
@@ -80,15 +105,25 @@ export function useWorkflowV2CanvasInteractions(
       const startW = vp.clientToWorld(e.clientX, e.clientY)
       const initPos = { ...node.position }
       let latest: Positions | null = null
+      let abortedByMultiTouch = false
       trackPointer(
         (ev) => {
+          if (ev.pointerId !== e.pointerId) return
+          if (vp.isMultiTouchRef?.current) {
+            abortedByMultiTouch = true
+            latest = null
+            setDragPositions(null)
+            return
+          }
+          if (abortedByMultiTouch) return
           const cur = vp.clientToWorld(ev.clientX, ev.clientY)
           if (!latest && Math.hypot(cur.x - startW.x, cur.y - startW.y) < 3) return
           latest = { [node.id]: { x: Math.round(initPos.x + cur.x - startW.x), y: Math.round(initPos.y + cur.y - startW.y) } }
           setDragPositions(latest)
         },
-        () => {
-          if (latest) handlersRef.current.onMoveNodes(latest)
+        (ev) => {
+          if (ev.pointerId !== e.pointerId) return
+          if (latest && !abortedByMultiTouch) handlersRef.current.onMoveNodes(latest)
           setDragPositions(null)
         }
       )

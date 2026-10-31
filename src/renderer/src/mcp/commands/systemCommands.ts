@@ -44,20 +44,66 @@ async function canvasToBase64(c: HTMLCanvasElement, mime: string, quality?: numb
 
 const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms))
 
-async function screenshot(p: Params) {
+interface SharedOffscreenCapture {
+  canvas: HTMLCanvasElement
+  renderer: SceneRenderer
+}
+
+let sharedCapture: SharedOffscreenCapture | null = null
+let sharedCaptureIdleTimer: ReturnType<typeof setTimeout> | null = null
+let sharedCaptureQueue: Promise<unknown> = Promise.resolve()
+
+function disposeSharedCapture(): void {
+  if (sharedCaptureIdleTimer) {
+    clearTimeout(sharedCaptureIdleTimer)
+    sharedCaptureIdleTimer = null
+  }
+  if (sharedCapture) {
+    const prev = sharedCapture
+    sharedCapture = null
+    prev.renderer.dispose({ releaseContext: true })
+  }
+}
+
+function acquireSharedCapture(w: number, h: number): SharedOffscreenCapture {
+  if (sharedCaptureIdleTimer) {
+    clearTimeout(sharedCaptureIdleTimer)
+    sharedCaptureIdleTimer = null
+  }
+  if (sharedCapture && sharedCapture.renderer.isContextLost()) {
+    disposeSharedCapture()
+  }
+  if (!sharedCapture) {
+    const canvas = document.createElement('canvas')
+    canvas.width = w
+    canvas.height = h
+    const renderer = new SceneRenderer(canvas, { preserveDrawingBuffer: true, budgetMB: 384 })
+    sharedCapture = { canvas, renderer }
+  } else if (sharedCapture.canvas.width !== w || sharedCapture.canvas.height !== h) {
+    sharedCapture.canvas.width = w
+    sharedCapture.canvas.height = h
+  }
+  return sharedCapture
+}
+
+function scheduleSharedCaptureRelease(): void {
+  if (sharedCaptureIdleTimer) clearTimeout(sharedCaptureIdleTimer)
+  sharedCaptureIdleTimer = setTimeout(() => {
+    disposeSharedCapture()
+  }, 12_000)
+}
+
+async function renderOffscreenScreenshot(p: Params) {
   const project = proj()
   const t = num(p, 'time') ?? ed().time
   const view = str(p, 'view') === '3d' ? '3d' : 'camera'
   const w = Math.max(64, Math.min(3840, Math.round(num(p, 'width') ?? 960)))
   const h = Math.max(64, Math.round((w * project.comp.height) / project.comp.width / 2) * 2)
   const format = str(p, 'format') === 'jpeg' ? 'image/jpeg' : 'image/png'
-  const canvas = document.createElement('canvas')
-  canvas.width = w
-  canvas.height = h
-  const r = new SceneRenderer(canvas, { preserveDrawingBuffer: true, budgetMB: 512 })
+  const { canvas, renderer: r } = acquireSharedCapture(w, h)
   try {
     r.setSize(w, h)
-    await r.waitForContext()
+    await r.waitForContext(4000)
     await document.fonts.ready
     if (view === 'camera') {
       await r.prepare(project, t, h)
@@ -89,9 +135,18 @@ async function screenshot(p: Params) {
     }
     const data = await canvasToBase64(canvas, format, format === 'image/jpeg' ? 0.88 : undefined)
     return { mime: format, data, width: w, height: h, time: t, view, stats: r.stats() }
+  } catch (err) {
+    disposeSharedCapture()
+    throw err
   } finally {
-    r.dispose()
+    scheduleSharedCaptureRelease()
   }
+}
+
+async function screenshot(p: Params) {
+  const next = sharedCaptureQueue.then(() => renderOffscreenScreenshot(p))
+  sharedCaptureQueue = next.catch(() => undefined)
+  return next
 }
 
 type ScriptFn = (api: unknown, log: (...a: unknown[]) => void) => Promise<unknown>

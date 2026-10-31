@@ -3,10 +3,13 @@ import type { Shot } from '@shared/types'
 import { CustomSelect } from '../controls/CustomSelect'
 import { IconJsonBraces, IconLightning, IconTimeNodePlus, IconTree } from '../icons'
 import { TimelineModeTabs } from './TimelineModeTabs'
+import { IconWorkflowCardsList, IconWorkflowGraph } from './workflowIcons'
 
-/** Quy chuẩn: ≤ 5 lựa chọn dùng pill bấm 1 lần, nhiều hơn dùng Select */
-const MAX_SHOT_PILLS = 5
+/** Quy chuẩn: ≤ 6 lựa chọn dùng pill bấm 1 lần (hỗ trợ vuốt ngang trên mobile), nhiều hơn dùng Select */
+const MAX_SHOT_PILLS = 6
 const ALL = '__all__'
+
+export type WorkflowV2ViewMode = 'graph' | 'cards'
 
 export interface WorkflowV2ToolbarProps {
   layerCount: number
@@ -18,6 +21,8 @@ export interface WorkflowV2ToolbarProps {
   activeShotId: string | null
   focusedShotId: string | null
   jsonMode?: boolean
+  viewMode?: WorkflowV2ViewMode
+  onChangeViewMode?: (mode: WorkflowV2ViewMode) => void
   onFocusShot: (shotId: string | null) => void
   onToggleJsonMode?: () => void
   onRelayout: () => void
@@ -73,6 +78,33 @@ export const WorkflowV2Toolbar: React.FC<WorkflowV2ToolbarProps> = (props) => {
       </div>
 
       <div className="wf-v2-toolbar-actions">
+        {props.onChangeViewMode && (
+          <div className="wf-v2-view-switch" role="group" aria-label="Chế độ hiển thị Workflow">
+            <button
+              type="button"
+              id="wf-v2-view-graph"
+              className={`wf-v2-view-btn${(props.viewMode ?? 'graph') === 'graph' ? ' active' : ''}`}
+              aria-pressed={(props.viewMode ?? 'graph') === 'graph'}
+              onClick={() => props.onChangeViewMode!('graph')}
+              title="Chế độ Sơ đồ Node 2D (Vuốt 1 ngón để di chuyển, chụm 2 ngón để thu phóng)"
+            >
+              <IconWorkflowGraph width={12} height={12} />
+              <span>Sơ đồ</span>
+            </button>
+            <button
+              type="button"
+              id="wf-v2-view-cards"
+              className={`wf-v2-view-btn${props.viewMode === 'cards' ? ' active' : ''}`}
+              aria-pressed={props.viewMode === 'cards'}
+              onClick={() => props.onChangeViewMode!('cards')}
+              title="Chế độ Danh sách Thẻ gọn (Tối ưu thao tác cảm ứng trên Điện thoại & Máy tính bảng)"
+            >
+              <IconWorkflowCardsList width={12} height={12} />
+              <span>Thẻ</span>
+            </button>
+          </div>
+        )}
+
         <button
           type="button"
           className="btn ghost sm wf-v2-tool-btn wf-v2-time-btn"

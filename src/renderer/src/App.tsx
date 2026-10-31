@@ -25,6 +25,7 @@ import { Timeline } from './ui/Timeline'
 import { Toolbar } from './ui/Toolbar'
 import { Viewer } from './ui/Viewer'
 import { usePerformance } from './store/performance'
+import './styles/responsiveTouchStudio.css'
 
 export default function App() {
   const [ready, setReady] = useState(false)
@@ -160,6 +161,7 @@ export default function App() {
   const aiLocked = useView((s) => s.aiLocked)
   const storeMobileTab = useView((s) => s.mobileTab)
   const storeTabletTab = useView((s) => s.tabletTab)
+  const mobileDrawerExpanded = useView((s) => s.mobileDrawerExpanded)
   const [mobileTab, setMobileTabLocal] = useState<'timeline' | 'left' | 'right'>(storeMobileTab ?? 'timeline')
   const [tabletTab, setTabletTabLocal] = useState<'left' | 'right'>(storeTabletTab ?? 'left')
 
@@ -198,6 +200,7 @@ export default function App() {
       data-theme={theme}
       data-mobile-tab={mobileTab}
       data-tablet-tab={tabletTab}
+      data-drawer-expanded={mobileDrawerExpanded ? 'true' : 'false'}
       style={{ ['--timeline-h' as string]: `${timelineH}px` }}
       onDragOver={(e) => {
         e.preventDefault()

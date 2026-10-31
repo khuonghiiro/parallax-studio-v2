@@ -66,6 +66,14 @@ export function TimelineLogic() {
     if (nodeId.startsWith('v2-') || Boolean(target?.params?.logicCategory)) {
       useEditor.getState().setInspectorTab('node')
       useEditor.getState().setSelectedWorkflowNodeId(nodeId)
+      const v = useView.getState()
+      v.setRightCollapsed(false)
+      const eff = typeof document !== 'undefined' ? document.documentElement.getAttribute('data-remote-effective') : null
+      const isMobileOrTablet = eff === 'phone' || eff === 'tablet' || (typeof window !== 'undefined' && window.innerWidth <= 1120 && eff !== 'desktop')
+      if (isMobileOrTablet) {
+        v.setMobileTab('right')
+        v.setTabletTab('right')
+      }
       window.setTimeout(() => {
         window.dispatchEvent(
           new CustomEvent('pxs:select-workflow-v2-node', { detail: { nodeId, openInspector: true } })

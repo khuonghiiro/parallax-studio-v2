@@ -1,0 +1,636 @@
+/* ==========================================================================
+   Workflow Studio V2 — Pro Node-Graph Visual Theme (Dual-Theme: Dark & Light)
+   High-contrast zoom-compensated cables · Blueprint canvas · Precision cards
+   ========================================================================== */
+
+:root,
+[data-theme='dark'] {
+  --wf-canvas-bg: #10131a;
+  --wf-grid-dot: rgba(148, 163, 184, 0.15);
+  --wf-grid-major: rgba(148, 163, 184, 0.045);
+
+  /* High-visibility cables on Dark Slate */
+  --wf-wire-hierarchy-base: #cbd5e1;
+  --wf-wire-data: #fb923c;
+  --wf-wire-camera: #38bdf8;
+  --wf-wire-disabled: #64748b;
+  --wf-wire-casing: rgba(16, 19, 26, 0.85);
+  --wf-wire-flow-pulse: #ffffff;
+
+  /* Node cards & sockets */
+  --wf-card-bg: linear-gradient(180deg, #242a36 0%, #1c202a 100%);
+  --wf-card-root-bg: linear-gradient(180deg, #222c3f 0%, #1a2232 100%);
+  --wf-card-border-base: #364154;
+  --wf-card-shadow: 0 4px 14px rgba(0, 0, 0, 0.44), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --wf-card-shadow-hover: 0 8px 22px rgba(0, 0, 0, 0.56), inset 0 1px 0 rgba(255, 255, 255, 0.09);
+  --wf-socket-bg: #131720;
+  --wf-socket-halo: rgba(16, 19, 26, 0.92);
+
+  /* Cluster frames & floating glass docks */
+  --wf-cluster-surface: rgba(25, 31, 44, 0.44);
+  --wf-cluster-active-surface: rgba(26, 36, 54, 0.58);
+  --wf-glass-bg: rgba(24, 28, 38, 0.9);
+  --wf-glass-border: rgba(148, 163, 184, 0.22);
+  --wf-glass-shadow: 0 8px 24px rgba(0, 0, 0, 0.46);
+}
+
+:root[data-theme='light'],
+[data-theme='light'],
+.app.light {
+  --wf-canvas-bg: #e7ecf4;
+  --wf-grid-dot: rgba(71, 85, 105, 0.2);
+  --wf-grid-major: rgba(71, 85, 105, 0.055);
+
+  /* High-contrast cables on Light Porcelain Slate */
+  --wf-wire-hierarchy-base: #334155;
+  --wf-wire-data: #d95204;
+  --wf-wire-camera: #0284c7;
+  --wf-wire-disabled: #64748b;
+  --wf-wire-casing: rgba(231, 236, 244, 0.88);
+  --wf-wire-flow-pulse: #ffffff;
+
+  /* Node cards & sockets */
+  --wf-card-bg: linear-gradient(180deg, #ffffff 0%, #f7f9fd 100%);
+  --wf-card-root-bg: linear-gradient(180deg, #f3f8ff 0%, #e8f0fc 100%);
+  --wf-card-border-base: #bfcbe0;
+  --wf-card-shadow: 0 3px 10px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.05);
+  --wf-card-shadow-hover: 0 8px 20px rgba(15, 23, 42, 0.14), 0 2px 4px rgba(15, 23, 42, 0.06);
+  --wf-socket-bg: #ffffff;
+  --wf-socket-halo: rgba(231, 236, 244, 0.95);
+
+  /* Cluster frames & floating glass docks */
+  --wf-cluster-surface: rgba(255, 255, 255, 0.46);
+  --wf-cluster-active-surface: rgba(255, 255, 255, 0.7);
+  --wf-glass-bg: rgba(255, 255, 255, 0.92);
+  --wf-glass-border: rgba(15, 23, 42, 0.14);
+  --wf-glass-shadow: 0 6px 20px rgba(15, 23, 42, 0.1);
+}
+
+/* ------------------------------------------------------------------ 1. Studio Canvas & Column Headers */
+
+.wf-v2-studio .wf-v2-viewport {
+  background-color: var(--wf-canvas-bg);
+  background-image:
+    radial-gradient(circle, var(--wf-grid-dot) 1px, transparent 1.15px),
+    linear-gradient(to right, var(--wf-grid-major) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--wf-grid-major) 1px, transparent 1px);
+  background-size: 20px 20px, 120px 120px, 120px 120px;
+}
+
+.wf-v2-studio .wf-v2-col-banner {
+  top: 10px;
+  height: 24px;
+  gap: 7px;
+  padding: 0 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid color-mix(in srgb, var(--line) 82%, transparent);
+  background: color-mix(in srgb, var(--bg-2) 86%, transparent);
+  color: var(--text-dim);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  box-sizing: border-box;
+}
+
+.wf-v2-studio .wf-v2-col-step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 15px;
+  padding: 0 4.5px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--accent) 16%, var(--bg-3));
+  color: var(--accent-cyan);
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+}
+
+.wf-v2-studio .wf-v2-col-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------------ 2. Scene Cluster Frames */
+
+.wf-v2-studio .wf-v2-cluster {
+  border-radius: var(--radius-md);
+  border: 1.5px solid color-mix(in srgb, var(--wf-cluster-c, var(--accent)) 40%, var(--line));
+  background: color-mix(in srgb, var(--wf-cluster-c, var(--accent)) 4.5%, var(--wf-cluster-surface));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.wf-v2-studio .wf-v2-cluster.active {
+  border-color: color-mix(in srgb, var(--wf-cluster-c, var(--accent)) 76%, var(--line));
+  background: color-mix(in srgb, var(--wf-cluster-c, var(--accent)) 7.5%, var(--wf-cluster-active-surface));
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--wf-cluster-c, var(--accent)) 32%, transparent),
+    0 8px 28px rgba(0, 0, 0, 0.14);
+}
+
+.wf-v2-studio .wf-v2-cluster-head {
+  top: 7px;
+  left: 12px;
+  height: 24px;
+  padding: 0 9px;
+  gap: 7px;
+  border-radius: var(--radius-sm);
+  border: 1px solid color-mix(in srgb, var(--wf-cluster-c, var(--accent)) 48%, var(--line));
+  background: var(--bg-2);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.14);
+  transition: border-color 0.14s ease, background 0.12s ease;
+}
+
+.wf-v2-studio .wf-v2-cluster-head:hover {
+  border-color: var(--wf-cluster-c, var(--line-focus));
+  background: color-mix(in srgb, var(--wf-cluster-c, var(--accent)) 10%, var(--bg-2));
+}
+
+.wf-v2-studio .wf-v2-cluster-head .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  box-shadow: 0 0 6px color-mix(in srgb, var(--wf-cluster-c, var(--accent)) 65%, transparent);
+}
+
+.wf-v2-studio .wf-v2-cluster-head .range {
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: var(--bg-1);
+  border: 1px solid var(--line-soft);
+  color: var(--text-dim);
+}
+
+/* ------------------------------------------------------------------ 3. Theme-Adaptive Zoom-Compensated Cables */
+
+/* Compute exact theme-aware cable color directly in CSS (valid literal % in CSS Color 4) */
+.wf-v2-studio .wf-v2-edge-group.kind-hierarchy {
+  --wf-edge-c: color-mix(in srgb, var(--wf-edge-raw, #38bdf8) 56%, var(--wf-wire-hierarchy-base));
+}
+
+.wf-v2-studio .wf-v2-edge-group.kind-logic {
+  --wf-edge-c: color-mix(in srgb, var(--wf-edge-raw, #10b981) 88%, #ffffff);
+}
+
+:root[data-theme='light'] .wf-v2-studio .wf-v2-edge-group.kind-hierarchy,
+[data-theme='light'] .wf-v2-studio .wf-v2-edge-group.kind-hierarchy,
+.app.light .wf-v2-studio .wf-v2-edge-group.kind-hierarchy {
+  --wf-edge-c: color-mix(in srgb, var(--wf-edge-raw, #0284c7) 48%, #273449);
+}
+
+:root[data-theme='light'] .wf-v2-studio .wf-v2-edge-group.kind-logic,
+[data-theme='light'] .wf-v2-studio .wf-v2-edge-group.kind-logic,
+.app.light .wf-v2-studio .wf-v2-edge-group.kind-logic {
+  --wf-edge-c: color-mix(in srgb, var(--wf-edge-raw, #10b981) 80%, #0f172a);
+}
+
+.wf-v2-studio .wf-v2-edge-group.kind-data {
+  --wf-edge-c: var(--wf-wire-data);
+}
+
+.wf-v2-studio .wf-v2-edge-group.kind-camera {
+  --wf-edge-c: var(--wf-wire-camera);
+}
+
+.wf-v2-studio .wf-v2-edge-group.is-disabled {
+  --wf-edge-c: var(--wf-wire-disabled);
+}
+
+.wf-v2-studio .wf-v2-edge-hit {
+  stroke-width: calc(15px * var(--wf-zoom-comp, 1));
+}
+
+/* Canvas-matched separation sheath: cleanly bridges crossing cables without bleaching or darkening */
+.wf-v2-studio .wf-v2-edge-casing {
+  fill: none;
+  stroke: var(--wf-wire-casing);
+  stroke-width: calc(4.8px * var(--wf-zoom-comp, 1));
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+  transition: stroke-width 0.14s ease, stroke 0.14s ease;
+}
+
+.wf-v2-studio .wf-v2-edge-rail {
+  fill: none;
+  stroke: var(--wf-edge-c);
+  stroke-width: calc(5.6px * var(--wf-zoom-comp, 1));
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.2;
+  pointer-events: none;
+}
+
+.wf-v2-studio .wf-v2-edge-glow {
+  fill: none;
+  stroke: var(--wf-edge-c);
+  stroke-width: calc(7.4px * var(--wf-zoom-comp, 1));
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.26;
+  pointer-events: none;
+}
+
+.wf-v2-studio .wf-v2-edge-fg {
+  fill: none;
+  stroke: var(--wf-edge-c);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+  transition: stroke-width 0.14s ease, opacity 0.14s ease;
+}
+
+.wf-v2-studio .wf-v2-edge-group.kind-hierarchy .wf-v2-edge-fg {
+  stroke-width: calc(2.25px * var(--wf-zoom-comp, 1));
+  opacity: 0.96;
+}
+
+.wf-v2-studio .wf-v2-edge-group.kind-logic .wf-v2-edge-fg {
+  stroke-width: calc(2.55px * var(--wf-zoom-comp, 1));
+  opacity: 1;
+}
+
+.wf-v2-studio .wf-v2-edge-group.kind-data .wf-v2-edge-fg {
+  stroke-width: calc(2.55px * var(--wf-zoom-comp, 1));
+  stroke-dasharray: 8 5;
+  opacity: 1;
+}
+
+.wf-v2-studio .wf-v2-edge-group.kind-camera .wf-v2-edge-fg {
+  stroke-width: calc(2.85px * var(--wf-zoom-comp, 1));
+  stroke-dasharray: 10 5;
+  opacity: 1;
+}
+
+.wf-v2-studio .wf-v2-edge-group:hover .wf-v2-edge-fg,
+.wf-v2-studio .wf-v2-edge-group.highlighted .wf-v2-edge-fg {
+  stroke-width: calc(3.3px * var(--wf-zoom-comp, 1));
+  opacity: 1;
+}
+
+.wf-v2-studio .wf-v2-edge-group.highlighted .wf-v2-edge-glow {
+  stroke-width: calc(8.4px * var(--wf-zoom-comp, 1));
+  opacity: 0.34;
+}
+
+.wf-v2-studio .wf-v2-edge-group:hover .wf-v2-edge-casing {
+  stroke: color-mix(in srgb, var(--wf-edge-c) 38%, transparent);
+  stroke-width: calc(8px * var(--wf-zoom-comp, 1));
+}
+
+/* Giữ mọi line trên sơ đồ luôn rõ nét ngay cả khi đang chọn 1 Node khác; nhánh được chọn nổi bật nhờ glow & độ dày */
+.wf-v2-studio .wf-v2-edge-group.dimmed {
+  opacity: 0.78;
+}
+
+.wf-v2-studio .wf-v2-edge-group.is-disabled .wf-v2-edge-fg {
+  stroke-width: calc(2.1px * var(--wf-zoom-comp, 1));
+  opacity: 0.68;
+  stroke-dasharray: 6 5;
+}
+
+/* Luminous energy pulse gliding over active running cables */
+.wf-v2-studio .wf-v2-edge-flow {
+  fill: none;
+  stroke: color-mix(in srgb, var(--wf-edge-c) 22%, var(--wf-wire-flow-pulse));
+  stroke-width: calc(2.7px * var(--wf-zoom-comp, 1));
+  stroke-linecap: round;
+  stroke-dasharray: 9 39;
+  opacity: 0.96;
+  pointer-events: none;
+  animation: wfV2Flow 1.05s linear infinite;
+}
+
+/* Vector Edge Control Pill (Disable / Disconnect) */
+.wf-v2-studio .wf-v2-edge-ctrl-bg {
+  fill: var(--bg-2);
+  stroke: color-mix(in srgb, var(--wf-edge-c, var(--line)) 60%, var(--line));
+  stroke-width: 1.25px;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.26));
+}
+
+.wf-v2-studio .wf-v2-edge-ctrl-sep {
+  stroke: var(--line);
+  stroke-width: 1px;
+}
+
+.wf-v2-studio .wf-v2-edge-ctrl-hit {
+  fill: transparent;
+  transition: fill 0.12s ease;
+}
+
+.wf-v2-studio .wf-v2-edge-ctrl-icon {
+  fill: none;
+  stroke: var(--text-dim);
+  stroke-width: 1.55px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.wf-v2-studio .wf-v2-edge-ctrl-icon.bolt {
+  fill: color-mix(in srgb, #10b981 24%, transparent);
+  stroke: #10b981;
+  stroke-width: 1.35px;
+}
+
+.wf-v2-studio .wf-v2-edge-ctrl-btn.is-off .wf-v2-edge-ctrl-icon {
+  stroke: #f59e0b;
+}
+
+.wf-v2-studio .wf-v2-edge-ctrl-btn:hover .wf-v2-edge-ctrl-hit {
+  fill: color-mix(in srgb, var(--accent) 18%, var(--bg-3));
+}
+
+.wf-v2-studio .wf-v2-edge-ctrl-btn:hover .wf-v2-edge-ctrl-icon {
+  stroke: var(--text);
+}
+
+.wf-v2-studio .wf-v2-edge-ctrl-btn.danger:hover .wf-v2-edge-ctrl-hit {
+  fill: color-mix(in srgb, #ef4444 78%, #0f172a);
+}
+
+.wf-v2-studio .wf-v2-edge-ctrl-btn.danger:hover .wf-v2-edge-ctrl-icon {
+  stroke: #ffffff;
+}
+
+/* Interactive Wire Dragging Preview */
+.wf-v2-studio .wf-v2-edge-dragging-casing {
+  fill: none;
+  stroke: var(--wf-wire-casing);
+  stroke-width: calc(5.4px * var(--wf-zoom-comp, 1));
+  stroke-linecap: round;
+  pointer-events: none;
+}
+
+.wf-v2-studio .wf-v2-edge-dragging {
+  stroke: var(--wf-wire-camera);
+  stroke-width: calc(2.7px * var(--wf-zoom-comp, 1));
+  stroke-linecap: round;
+  stroke-dasharray: 7 4.5;
+  pointer-events: none;
+}
+
+.wf-v2-studio .wf-v2-edge-drag-tip {
+  fill: var(--wf-wire-camera);
+  stroke: var(--wf-wire-casing);
+  stroke-width: 1.8px;
+  pointer-events: none;
+}
+
+.wf-v2-studio .wf-v2-edge-drag-tip.valid { fill: #10b981; }
+.wf-v2-studio .wf-v2-edge-drag-tip.invalid { fill: #ef4444; }
+
+/* High-Contrast Step & Camera Chain Labels on Wires */
+.wf-v2-studio .wf-v2-chain-label-bg {
+  fill: var(--bg-2);
+  stroke: var(--wf-wire-camera);
+  stroke-width: 1.4px;
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.22));
+}
+
+.wf-v2-studio .wf-v2-step-label-bg {
+  fill: color-mix(in srgb, var(--wf-edge-raw, var(--accent)) 78%, #0f172a);
+  stroke: color-mix(in srgb, var(--wf-edge-raw, var(--accent)) 92%, #ffffff);
+  stroke-width: 1.1px;
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.25));
+}
+
+.wf-v2-studio .wf-v2-step-label {
+  fill: #ffffff !important;
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+/* ------------------------------------------------------------------ 4. Precision Node Cards & Sockets */
+
+.wf-v2-studio .wf-v2-card {
+  background: var(--wf-card-bg);
+  border: 1px solid color-mix(in srgb, var(--wf-v2-accent, var(--accent)) 46%, var(--wf-card-border-base));
+  box-shadow: var(--wf-card-shadow);
+}
+
+.wf-v2-studio .wf-v2-card.level-root {
+  background: var(--wf-card-root-bg);
+  border-width: 1.5px;
+  border-color: color-mix(in srgb, var(--wf-v2-accent, var(--accent)) 68%, var(--wf-card-border-base));
+}
+
+.wf-v2-studio .wf-v2-card:hover {
+  border-color: var(--wf-v2-accent, var(--accent));
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--wf-v2-accent, var(--accent)) 45%, transparent),
+    var(--wf-card-shadow-hover);
+}
+
+.wf-v2-studio .wf-v2-card.selected {
+  border-color: var(--wf-v2-accent, var(--accent));
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--wf-v2-accent, var(--accent)) 52%, transparent),
+    var(--wf-card-shadow-hover);
+}
+
+.wf-v2-studio .wf-v2-card.connected-highlight {
+  border-color: color-mix(in srgb, var(--wf-v2-accent, var(--accent)) 84%, var(--wf-card-border-base));
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--wf-v2-accent, var(--accent)) 32%, transparent),
+    var(--wf-card-shadow);
+}
+
+.wf-v2-studio .wf-v2-card.dimmed {
+  opacity: 0.94;
+}
+
+.wf-v2-studio .wf-v2-card-accent-bar {
+  width: 3.5px;
+}
+
+.wf-v2-studio .wf-v2-card-header {
+  gap: 6px;
+  padding: 0 7px 0 11px;
+}
+
+.wf-v2-studio .wf-v2-card-meta-row {
+  gap: 5px;
+}
+
+.wf-v2-studio .wf-v2-card-badge {
+  color: color-mix(in srgb, var(--wf-v2-accent, var(--accent)) 84%, #f8fafc);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+:root[data-theme='light'] .wf-v2-studio .wf-v2-card-badge,
+[data-theme='light'] .wf-v2-studio .wf-v2-card-badge,
+.app.light .wf-v2-studio .wf-v2-card-badge {
+  color: color-mix(in srgb, var(--wf-v2-accent, var(--accent)) 76%, #0f172a);
+}
+
+.wf-v2-studio .wf-v2-card-icon {
+  background: color-mix(in srgb, var(--wf-v2-accent, var(--accent)) 16%, var(--bg-1));
+  border: 1px solid color-mix(in srgb, var(--wf-v2-accent, var(--accent)) 28%, var(--line-soft));
+}
+
+.wf-v2-studio .wf-v2-socket {
+  background: var(--wf-socket-bg);
+  border: 2px solid color-mix(in srgb, var(--wf-v2-accent, var(--accent)) 88%, #f8fafc);
+  box-shadow: 0 0 0 2px var(--wf-socket-halo);
+  transition: transform 0.14s ease, box-shadow 0.14s ease;
+}
+
+:root[data-theme='light'] .wf-v2-studio .wf-v2-socket,
+[data-theme='light'] .wf-v2-studio .wf-v2-socket,
+.app.light .wf-v2-studio .wf-v2-socket {
+  border-color: color-mix(in srgb, var(--wf-v2-accent, var(--accent)) 82%, #0f172a);
+}
+
+.wf-v2-studio .wf-v2-socket:hover {
+  transform: scale(1.28);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--wf-v2-accent, var(--accent)) 35%, transparent),
+    0 0 8px color-mix(in srgb, var(--wf-v2-accent, var(--accent)) 55%, transparent);
+}
+
+.wf-v2-studio .wf-v2-socket-dot {
+  width: 4.5px;
+  height: 4.5px;
+  background: var(--wf-v2-accent, var(--accent));
+}
+
+/* ------------------------------------------------------------------ 5. Toolbar, Ruler, Sidebar & Glass HUD */
+
+.wf-v2-studio .wf-v2-toolbar {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--bg-2) 94%, var(--bg-3)) 0%, var(--bg-2) 100%);
+  border-bottom: 1px solid var(--line);
+}
+
+.wf-v2-studio .wf-v2-stats {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-1);
+  border: 1px solid var(--line-soft);
+  font-size: 10.5px;
+}
+
+.wf-v2-studio .wf-v2-tool-btn.primary-apply {
+  background: var(--accent-grad);
+  border-color: var(--accent);
+  color: var(--on-accent);
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.wf-v2-studio .wf-v2-ruler-bar {
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--line);
+}
+
+.wf-v2-studio .wf-v2-active-badge {
+  border-color: color-mix(in srgb, #10b981 35%, var(--line-soft));
+  background: color-mix(in srgb, #10b981 10%, var(--bg-2));
+  color: var(--text);
+}
+
+.wf-v2-studio .wf-v2-shot-live-label {
+  background: color-mix(in srgb, #f43f5e 78%, #0f172a);
+  color: #ffffff;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.wf-v2-studio .wf-v2-hud.wf-canvas-hud.vertical {
+  padding: 5px;
+  gap: 3px;
+  border-radius: var(--radius-md);
+  background: var(--wf-glass-bg);
+  border: 1px solid var(--wf-glass-border);
+  box-shadow: var(--wf-glass-shadow);
+  backdrop-filter: blur(10px);
+}
+
+.wf-v2-studio .wf-v2-hud .wf-hud-btn {
+  width: 28px;
+  height: 26px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-dim);
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+
+.wf-v2-studio .wf-v2-hud .wf-hud-btn:hover {
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg-3));
+  border-color: var(--line);
+  color: var(--text);
+}
+
+.wf-v2-studio .wf-v2-hud .wf-hud-btn.active {
+  background: color-mix(in srgb, var(--accent-cyan) 78%, #0f172a);
+  border-color: var(--accent-cyan);
+  color: #ffffff;
+}
+
+/* Vector Cable Legend */
+.wf-v2-studio .wf-v2-legend {
+  left: 12px;
+  bottom: 12px;
+  gap: 13px;
+  padding: 6px 12px;
+  border-radius: var(--radius-md);
+  background: var(--wf-glass-bg);
+  border: 1px solid var(--wf-glass-border);
+  box-shadow: var(--wf-glass-shadow);
+  backdrop-filter: blur(10px);
+  color: var(--text);
+  font-size: 10.5px;
+  font-weight: 600;
+}
+
+.wf-v2-studio .wf-v2-legend-svg {
+  flex-shrink: 0;
+  overflow: visible;
+}
+
+.wf-v2-studio .wf-v2-legend-svg line {
+  stroke-width: 2.3px;
+  stroke-linecap: round;
+}
+
+.wf-v2-studio .wf-v2-legend-svg.k-hierarchy {
+  --lg-c: color-mix(in srgb, #38bdf8 56%, var(--wf-wire-hierarchy-base));
+}
+:root[data-theme='light'] .wf-v2-studio .wf-v2-legend-svg.k-hierarchy,
+[data-theme='light'] .wf-v2-studio .wf-v2-legend-svg.k-hierarchy,
+.app.light .wf-v2-studio .wf-v2-legend-svg.k-hierarchy {
+  --lg-c: color-mix(in srgb, #0284c7 48%, #273449);
+}
+
+.wf-v2-studio .wf-v2-legend-svg.k-logic { --lg-c: #10b981; }
+:root[data-theme='light'] .wf-v2-studio .wf-v2-legend-svg.k-logic,
+[data-theme='light'] .wf-v2-studio .wf-v2-legend-svg.k-logic,
+.app.light .wf-v2-studio .wf-v2-legend-svg.k-logic {
+  --lg-c: #0d9067;
+}
+
+.wf-v2-studio .wf-v2-legend-svg.k-data { --lg-c: var(--wf-wire-data); }
+.wf-v2-studio .wf-v2-legend-svg.k-camera { --lg-c: var(--wf-wire-camera); }
+
+.wf-v2-studio .wf-v2-legend-svg line { stroke: var(--lg-c); }
+.wf-v2-studio .wf-v2-legend-svg polygon { fill: var(--lg-c); }
+
+.wf-v2-studio .wf-v2-legend-svg.k-running line.base {
+  stroke: color-mix(in srgb, #f59e0b 45%, transparent);
+  stroke-width: 3px;
+}
+
+.wf-v2-studio .wf-v2-legend-svg.k-running line.pulse {
+  stroke: #f59e0b;
+  stroke-width: 2.6px;
+}

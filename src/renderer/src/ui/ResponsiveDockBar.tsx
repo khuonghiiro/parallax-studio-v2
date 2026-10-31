@@ -2,7 +2,14 @@ import { formatTimecode } from '../animation/math'
 import { ensureProjectWorkflow, resolveConnectedWorkflowNodes } from '../project/workflowEngine'
 import { useEditor } from '../store/editor'
 import { useView, type MobileWorkspaceTab, type TabletSideTab } from '../store/view'
-import { IconFolder, IconPause, IconPlay, IconSliders } from './icons'
+import {
+  IconFolder,
+  IconPaneMaximizeV,
+  IconPaneSplitH,
+  IconPause,
+  IconPlay,
+  IconSliders
+} from './icons'
 import { IconTimelineTracks, IconWorkflowGraph } from './workflow/workflowIcons'
 
 interface ResponsiveDockBarProps {
@@ -26,6 +33,8 @@ export function ResponsiveDockBar({
   const fps = project.comp.fps
   const duration = project.comp.duration
   const timelineTab = useView((s) => s.timelineTab)
+  const mobileDrawerExpanded = useView((s) => s.mobileDrawerExpanded)
+  const toggleMobileDrawerExpanded = useView((s) => s.toggleMobileDrawerExpanded)
 
   const wf = ensureProjectWorkflow(project)
   const { activeNodes } = resolveConnectedWorkflowNodes(wf)
@@ -117,16 +126,40 @@ export function ResponsiveDockBar({
         </button>
       </div>
 
-      <button
-        id="dock-quick-play"
-        type="button"
-        className={`dock-quick-play phone-only-tab${playing ? ' playing' : ''}`}
-        onClick={togglePlay}
-        title={playing ? 'Tạm dừng (Space)' : 'Phát thử cảnh (Space)'}
-      >
-        {playing ? <IconPause width={12} height={12} /> : <IconPlay width={12} height={12} />}
-        <span>{formatTimecode(time, fps)}</span>
-      </button>
+      <div className="responsive-dock-actions phone-only-tab">
+        <button
+          id="dock-expand-drawer"
+          type="button"
+          className={`dock-expand-btn${mobileDrawerExpanded ? ' active' : ''}`}
+          onClick={() => {
+            toggleMobileDrawerExpanded()
+            window.setTimeout(() => window.dispatchEvent(new Event('resize')), 40)
+          }}
+          aria-pressed={mobileDrawerExpanded}
+          title={
+            mobileDrawerExpanded
+              ? 'Chia đôi cân đối Khung nhìn 3D và Vùng thao tác'
+              : 'Mở rộng Vùng thao tác (Timeline / Workflow / Thuộc tính) để dễ chạm trên điện thoại'
+          }
+        >
+          {mobileDrawerExpanded ? (
+            <IconPaneSplitH width={13} height={13} />
+          ) : (
+            <IconPaneMaximizeV width={13} height={13} />
+          )}
+        </button>
+
+        <button
+          id="dock-quick-play"
+          type="button"
+          className={`dock-quick-play${playing ? ' playing' : ''}`}
+          onClick={togglePlay}
+          title={playing ? 'Tạm dừng (Space)' : 'Phát thử cảnh (Space)'}
+        >
+          {playing ? <IconPause width={12} height={12} /> : <IconPlay width={12} height={12} />}
+          <span>{formatTimecode(time, fps)}</span>
+        </button>
+      </div>
     </nav>
   )
 }

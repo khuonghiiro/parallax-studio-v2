@@ -14,6 +14,7 @@ const FIT_MIN_READABLE = 0.62
 
 export interface WorkflowV2Viewport {
   viewportRef: React.RefObject<HTMLDivElement | null>
+  isMultiTouchRef?: React.RefObject<boolean>
   zoom: number
   pan: { x: number; y: number }
   /** Kích thước khung nhìn (px màn hình) */
@@ -85,8 +86,10 @@ export function useWorkflowV2Viewport(visibleNodes: WorkflowNode[]): WorkflowV2V
     const nodes = nodesRef.current
     if (!el || nodes.length === 0) return
     const b = boundsOf(nodes)
-    const availW = Math.max(240, el.clientWidth - FIT_PAD_X * 2 - HUD_RESERVE)
-    const availH = Math.max(120, el.clientHeight - FIT_PAD_Y * 2)
+    const hudRes = el.clientWidth < 680 ? 10 : HUD_RESERVE
+    const padX = el.clientWidth < 680 ? 14 : FIT_PAD_X
+    const availW = Math.max(180, el.clientWidth - padX * 2 - hudRes)
+    const availH = Math.max(100, el.clientHeight - FIT_PAD_Y * 2)
     const fitBoth = Math.min(availW / (b.maxX - b.minX), availH / (b.maxY - b.minY))
     const fitWidth = availW / (b.maxX - b.minX)
     const z = all
@@ -94,7 +97,7 @@ export function useWorkflowV2Viewport(visibleNodes: WorkflowNode[]): WorkflowV2V
       : Number(Math.min(1, Math.max(fitBoth, FIT_MIN_READABLE, fitWidth)).toFixed(2))
     const graphW = (b.maxX - b.minX) * z
     const graphH = (b.maxY - b.minY) * z
-    const x = Math.round(FIT_PAD_X + Math.max(0, (availW - graphW) / 2) - b.minX * z)
+    const x = Math.round(padX + Math.max(0, (availW - graphW) / 2) - b.minX * z)
     const y = Math.round(FIT_PAD_Y + (all ? Math.max(0, (availH - graphH) / 2) : 0) - b.minY * z)
     apply(z, { x, y })
   }, [apply])
@@ -122,8 +125,10 @@ export function useWorkflowV2Viewport(visibleNodes: WorkflowNode[]): WorkflowV2V
     (b: { x: number; y: number; w: number; h: number }) => {
       const el = viewportRef.current
       if (!el) return
-      const z = Number(Math.min(1, Math.max(FIT_MIN_READABLE, (el.clientWidth - FIT_PAD_X * 2 - HUD_RESERVE) / b.w)).toFixed(2))
-      const offsetX = Math.max(FIT_PAD_X, (el.clientWidth - HUD_RESERVE - b.w * z) / 2)
+      const hudRes = el.clientWidth < 680 ? 10 : HUD_RESERVE
+      const padX = el.clientWidth < 680 ? 14 : FIT_PAD_X
+      const z = Number(Math.min(1, Math.max(FIT_MIN_READABLE, (el.clientWidth - padX * 2 - hudRes) / b.w)).toFixed(2))
+      const offsetX = Math.max(padX, (el.clientWidth - hudRes - b.w * z) / 2)
       apply(z, { x: Math.round(offsetX - b.x * z), y: Math.round(FIT_PAD_Y - b.y * z) })
     },
     [apply]
@@ -160,7 +165,7 @@ export function useWorkflowV2Viewport(visibleNodes: WorkflowNode[]): WorkflowV2V
     return () => el.removeEventListener('wheel', onWheel)
   }, [zoomBy, setPan])
 
-  usePinchPanGesture(viewportRef, ({ scaleFactor, dx, dy, centerX, centerY }) => {
+  const isMultiTouchRef = usePinchPanGesture(viewportRef, ({ scaleFactor, dx, dy, centerX, centerY }) => {
     if (Math.abs(scaleFactor - 1) > 0.002) {
       zoomBy(scaleFactor, { x: centerX, y: centerY })
     }
@@ -178,5 +183,5 @@ export function useWorkflowV2Viewport(visibleNodes: WorkflowNode[]): WorkflowV2V
     }
   }, [])
 
-  return { viewportRef, zoom, pan, size, setPan, zoomBy, fitToView, focusNode, focusBounds, clientToWorld }
+  return { viewportRef, isMultiTouchRef, zoom, pan, size, setPan, zoomBy, fitToView, focusNode, focusBounds, clientToWorld }
 }

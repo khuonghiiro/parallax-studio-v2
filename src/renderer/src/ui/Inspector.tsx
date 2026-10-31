@@ -75,7 +75,8 @@ export function Inspector() {
   const setIsColumnExpanded = useView((s) => s.setInspectorExpanded)
   const isRightCollapsed = useView((s) => s.rightCollapsed)
   const setRightCollapsed = useView((s) => s.setRightCollapsed)
-  const { isDrawerMode } = useResponsiveViewport()
+  const timelineTab = useView((s) => s.timelineTab)
+  const { isDrawerMode, isPhone } = useResponsiveViewport()
 
   const [lastTopTab, setLastTopTab] = useState<TopTabId>('layer')
   const [splitBottomMode, setSplitBottomMode] = useState<'node' | 'json'>('node')
@@ -454,6 +455,18 @@ export function Inspector() {
           title={`Kéo trái/phải để mở rộng cột phải (Hiện tại: ${colWidth}px)`}
           onPointerDown={startResizeWidth}
         />
+      )}
+
+      {isPhone && (tab === 'node' || tab === 'json') && (
+        <div className="insp-mobile-back-bar">
+          <button
+            type="button"
+            className="btn ghost sm insp-mobile-back-btn"
+            onClick={() => useView.getState().setMobileTab('timeline')}
+          >
+            <span>← Quay lại {timelineTab === 'workflow' ? 'Sơ đồ Workflow' : 'Timeline'}</span>
+          </button>
+        </div>
       )}
 
       {isColumnExpanded ? (

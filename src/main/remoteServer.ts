@@ -1,7 +1,7 @@
 import { ipcMain, type BrowserWindow } from 'electron'
 import { createServer as createHttpServer, type IncomingMessage, type Server as HttpServer, type ServerResponse } from 'http'
 import { createServer as createHttpsServer, type Server as HttpsServer } from 'https'
-import { createConnection, createServer as createNetServer, type Server as NetServer, type Socket } from 'net'
+import { createServer as createNetServer, type Server as NetServer, type Socket } from 'net'
 import { networkInterfaces } from 'os'
 import { randomBytes } from 'crypto'
 import type { RemoteServerStatus } from '@shared/ipc'
@@ -147,14 +147,14 @@ export class RemoteControlServer {
     const devices = this.hub.getActiveDevices()
     const ips = detectLanIpv4Addresses()
     const primaryIp = ips[0] ?? '127.0.0.1'
-    const urls = ips.map((ip) => `https://${ip}:${this.port}/?t=${this.token}`)
+    const urls = ips.map((ip) => `http://${ip}:${this.port}/?t=${this.token}`)
     return {
       listening: this.listening,
       port: this.port,
       ips,
       primaryIp,
       token: this.token,
-      url: urls[0] ?? `https://127.0.0.1:${this.port}/?t=${this.token}`,
+      url: urls[0] ?? `http://127.0.0.1:${this.port}/?t=${this.token}`,
       urls,
       connectedDevices: devices.length,
       devices,
@@ -196,31 +196,30 @@ export class RemoteControlServer {
         }
         httpsSrv = createHttpsServer({ key: this.cachedCert.key, cert: this.cachedCert.cert }, handler)
         httpsSrv.on('upgrade', forwardRemoteWsUpgrade)
-        httpsSrv.listen(0, '127.0.0.1')
       } catch {
         httpsSrv = null
       }
 
-      const netSrv = createNetServer((socket: Socket) => {
-        socket.once('data', (chunk: Buffer) => {
-          socket.pause()
-          const httpsAddr = httpsSrv?.address()
-          const httpsPort = typeof httpsAddr === 'object' && httpsAddr ? httpsAddr.port : 0
-          if (chunk[0] === 0x16 && httpsPort > 0) {
-            const tlsConn = createConnection({ host: '127.0.0.1', port: httpsPort }, () => {
-              tlsConn.write(chunk)
-              socket.pipe(tlsConn).pipe(socket)
-              socket.resume()
-            })
-            tlsConn.on('error', () => socket.destroy())
-            socket.on('error', () => tlsConn.destroy())
-          } else {
-            socket.unshift(chunk)
-            httpSrv.emit('connection', socket)
-            socket.resume()
-          }
-        })
+      // Multiplexer không mất gói tin (pauseOnConnect): đọc byte đầu tiên (0x16 = TLS Handshake) rồi đẩy trực tiếp vào
+      // httpsSrv hoặc httpSrv ngay trong tiến trình, không qua socket trung gian và giữ nguyên IP LAN thật của điện thoại.
+      const netSrv = createNetServer({ pauseOnConnect: true }, (socket: Socket) => {
         socket.on('error', () => undefined)
+        const onReadable = (): void => {
+          const first = socket.read(1) as Buffer | null
+          if (!first) {
+            if (socket.readableEnded || socket.destroyed) return
+            socket.once('readable', onReadable)
+            return
+          }
+          socket.unshift(first)
+          if (first[0] === 0x16 && httpsSrv) {
+            httpsSrv.emit('connection', socket)
+          } else {
+            httpSrv.emit('connection', socket)
+          }
+          socket.resume()
+        }
+        socket.once('readable', onReadable)
       })
 
       netSrv.once('error', (err: NodeJS.ErrnoException) => {

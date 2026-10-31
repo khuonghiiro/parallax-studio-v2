@@ -79,12 +79,12 @@ html[data-remote-effective='tablet'] .audio-preview-btn {
   transform: scale(1) !important;
 }
 
-/* --- 3. Explicit Remote Layout Profile Overrides (Phone / Tablet / Desktop) --- */
-html[data-remote-layout='phone'] .app {
+/* --- 3. Explicit & Auto-Detected Remote Layout Profile Overrides (Phone / Tablet / Desktop) --- */
+:is(html[data-remote-layout='phone'], html[data-remote-effective='phone']) .app {
   grid-template-columns: minmax(0, 1fr) !important;
   grid-template-rows:
     auto
-    minmax(165px, 1fr)
+    minmax(150px, 1fr)
     6px
     38px
     clamp(220px, var(--timeline-h, 340px), 56dvh) !important;
@@ -96,47 +96,47 @@ html[data-remote-layout='phone'] .app {
     'drawer' !important;
 }
 
-html[data-remote-layout='phone'] .responsive-dock {
+:is(html[data-remote-layout='phone'], html[data-remote-effective='phone']) .responsive-dock {
   display: flex !important;
   grid-area: dock !important;
   background: var(--bg-2);
 }
 
-html[data-remote-layout='phone'] .responsive-dock .phone-only-tab {
+:is(html[data-remote-layout='phone'], html[data-remote-effective='phone']) .responsive-dock .phone-only-tab {
   display: inline-flex !important;
 }
 
-html[data-remote-layout='phone'] .app[data-mobile-tab='timeline'] .timeline {
+:is(html[data-remote-layout='phone'], html[data-remote-effective='phone']) .app[data-mobile-tab='timeline'] .timeline {
   grid-area: drawer !important;
   display: flex !important;
 }
-html[data-remote-layout='phone'] .app[data-mobile-tab='timeline'] .left,
-html[data-remote-layout='phone'] .app[data-mobile-tab='timeline'] .right {
+:is(html[data-remote-layout='phone'], html[data-remote-effective='phone']) .app[data-mobile-tab='timeline'] .left,
+:is(html[data-remote-layout='phone'], html[data-remote-effective='phone']) .app[data-mobile-tab='timeline'] .right {
   display: none !important;
 }
 
-html[data-remote-layout='phone'] .app[data-mobile-tab='left'] .left {
-  grid-area: drawer !important;
-  display: flex !important;
-  width: 100% !important;
-}
-html[data-remote-layout='phone'] .app[data-mobile-tab='left'] .timeline,
-html[data-remote-layout='phone'] .app[data-mobile-tab='left'] .right {
-  display: none !important;
-}
-
-html[data-remote-layout='phone'] .app[data-mobile-tab='right'] .right {
+:is(html[data-remote-layout='phone'], html[data-remote-effective='phone']) .app[data-mobile-tab='left'] .left {
   grid-area: drawer !important;
   display: flex !important;
   width: 100% !important;
 }
-html[data-remote-layout='phone'] .app[data-mobile-tab='right'] .timeline,
-html[data-remote-layout='phone'] .app[data-mobile-tab='right'] .left {
+:is(html[data-remote-layout='phone'], html[data-remote-effective='phone']) .app[data-mobile-tab='left'] .timeline,
+:is(html[data-remote-layout='phone'], html[data-remote-effective='phone']) .app[data-mobile-tab='left'] .right {
   display: none !important;
 }
 
-/* Explicit Tablet Layout Override */
-html[data-remote-layout='tablet'] .app {
+:is(html[data-remote-layout='phone'], html[data-remote-effective='phone']) .app[data-mobile-tab='right'] .right {
+  grid-area: drawer !important;
+  display: flex !important;
+  width: 100% !important;
+}
+:is(html[data-remote-layout='phone'], html[data-remote-effective='phone']) .app[data-mobile-tab='right'] .timeline,
+:is(html[data-remote-layout='phone'], html[data-remote-effective='phone']) .app[data-mobile-tab='right'] .left {
+  display: none !important;
+}
+
+/* Explicit & Auto-Detected Tablet Layout Override */
+:is(html[data-remote-layout='tablet'], html[data-remote-effective='tablet']) .app {
   grid-template-columns: minmax(0, 1fr) clamp(305px, 35vw, 360px) !important;
   grid-template-rows:
     auto
@@ -152,7 +152,7 @@ html[data-remote-layout='tablet'] .app {
     'time time' !important;
 }
 
-html[data-remote-layout='tablet'] .responsive-dock {
+:is(html[data-remote-layout='tablet'], html[data-remote-effective='tablet']) .responsive-dock {
   display: flex !important;
   grid-area: dock !important;
   border-top: none;
@@ -160,35 +160,35 @@ html[data-remote-layout='tablet'] .responsive-dock {
   background: var(--bg-2);
 }
 
-html[data-remote-layout='tablet'] .responsive-dock .phone-only-tab {
+:is(html[data-remote-layout='tablet'], html[data-remote-effective='tablet']) .responsive-dock .phone-only-tab {
   display: none !important;
 }
 
-html[data-remote-layout='tablet'] .timeline {
+:is(html[data-remote-layout='tablet'], html[data-remote-effective='tablet']) .timeline {
   grid-area: time !important;
   display: flex !important;
 }
 
-html[data-remote-layout='tablet'] .app[data-tablet-tab='left'] .left {
+:is(html[data-remote-layout='tablet'], html[data-remote-effective='tablet']) .app[data-tablet-tab='left'] .left {
   grid-area: side !important;
   display: flex !important;
   width: 100% !important;
 }
-html[data-remote-layout='tablet'] .app[data-tablet-tab='left'] .right {
+:is(html[data-remote-layout='tablet'], html[data-remote-effective='tablet']) .app[data-tablet-tab='left'] .right {
   display: none !important;
 }
 
-html[data-remote-layout='tablet'] .app[data-tablet-tab='right'] .right {
+:is(html[data-remote-layout='tablet'], html[data-remote-effective='tablet']) .app[data-tablet-tab='right'] .right {
   grid-area: side !important;
   display: flex !important;
   width: 100% !important;
 }
-html[data-remote-layout='tablet'] .app[data-tablet-tab='right'] .left {
+:is(html[data-remote-layout='tablet'], html[data-remote-effective='tablet']) .app[data-tablet-tab='right'] .left {
   display: none !important;
 }
 
 /* Explicit Desktop Layout Override (even on iPad / smaller screens) */
-html[data-remote-layout='desktop'] .app {
+:is(html[data-remote-layout='desktop'], html[data-remote-effective='desktop']) .app {
   grid-template-columns: clamp(210px, 20vw, 280px) minmax(0, 1fr) clamp(280px, 25vw, 380px) !important;
   grid-template-rows: auto minmax(0, 1fr) 5px clamp(160px, var(--timeline-h, 260px), 44dvh) !important;
   grid-template-areas:
@@ -198,13 +198,13 @@ html[data-remote-layout='desktop'] .app {
     'time time time' !important;
 }
 
-html[data-remote-layout='desktop'] .responsive-dock {
+:is(html[data-remote-layout='desktop'], html[data-remote-effective='desktop']) .responsive-dock {
   display: none !important;
 }
 
-html[data-remote-layout='desktop'] .left,
-html[data-remote-layout='desktop'] .right,
-html[data-remote-layout='desktop'] .timeline {
+:is(html[data-remote-layout='desktop'], html[data-remote-effective='desktop']) .left,
+:is(html[data-remote-layout='desktop'], html[data-remote-effective='desktop']) .right,
+:is(html[data-remote-layout='desktop'], html[data-remote-effective='desktop']) .timeline {
   display: flex !important;
 }
 

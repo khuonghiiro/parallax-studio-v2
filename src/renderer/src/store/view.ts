@@ -63,6 +63,9 @@ export interface ViewState extends ViewPrefs {
   setTimelineTab(tab: TimelineMainTab): void
   mobileTab: MobileWorkspaceTab
   setMobileTab(tab: MobileWorkspaceTab): void
+  mobileDrawerExpanded: boolean
+  setMobileDrawerExpanded(expanded: boolean): void
+  toggleMobileDrawerExpanded(): void
   tabletTab: TabletSideTab
   setTabletTab(tab: TabletSideTab): void
   touch3dMode: 'orbit' | 'pan'
@@ -246,6 +249,13 @@ export const useView = create<ViewState>((set, get) => ({
     if (mobileTab === 'left' || mobileTab === 'right') {
       set({ tabletTab: mobileTab })
     }
+  },
+  mobileDrawerExpanded: false,
+  setMobileDrawerExpanded(mobileDrawerExpanded) {
+    set({ mobileDrawerExpanded })
+  },
+  toggleMobileDrawerExpanded() {
+    set((s) => ({ mobileDrawerExpanded: !s.mobileDrawerExpanded }))
   },
   tabletTab: 'left',
   setTabletTab(tabletTab) {

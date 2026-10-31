@@ -48,7 +48,10 @@ export class TexturePool {
     for (const e of this.pool.values()) {
       if (e.texture.anisotropy !== this.maxAnisotropy) {
         e.texture.anisotropy = this.maxAnisotropy
-        e.texture.needsUpdate = true
+        const src = e.texture.image as { width?: number; height?: number } | undefined
+        if (src && (typeof src.width !== 'number' || (src.width > 0 && (src.height ?? 1) > 0))) {
+          e.texture.needsUpdate = true
+        }
       }
     }
   }
@@ -135,9 +138,15 @@ export class TexturePool {
         }
         const tex = this.configureTexture(new THREE.Texture(bmp as unknown as HTMLImageElement))
         tex.flipY = false // flipped by createImageBitmap
-        // Pixels live on the GPU after upload; free the CPU copy right away.
-        tex.onUpdate = () => bmp.close()
-        if (existing) existing.texture.dispose()
+        // Keep ImageBitmap alive while resident in pool so anisotropy updates or WebGL context restores can re-upload safely;
+        // dropTexture() and LOD replacement below release bmp.close() deterministically.
+        if (existing) {
+          const prevSrc = existing.texture.image as ImageBitmap | undefined
+          if (!key.startsWith('gif:') && prevSrc && typeof prevSrc.close === 'function') {
+            prevSrc.close()
+          }
+          existing.texture.dispose()
+        }
         this.pool.set(key, {
           key,
           texture: tex,

@@ -47,6 +47,8 @@ export function Viewer() {
   const [fps, setFps] = useState(0)
   const [stats, setStats] = useState<ResidencyStats | null>(null)
   const [rects, setRects] = useState<Layout>({ dpr: 1, cam: null, ed: null, stage2d: null })
+  const [canvasEpoch, setCanvasEpoch] = useState(0)
+  const healTimerRef = useRef<number | null>(null)
   const comp = useEditor((s) => s.project.comp)
   const playing = useEditor((s) => s.playing)
   const view = useView()
@@ -103,6 +105,17 @@ export function Viewer() {
     const r = rendererRef.current
     const L = layoutRef.current
     if (!r || (!L.cam && !L.ed)) return
+    if (r.isContextLost()) {
+      if (healTimerRef.current === null) {
+        healTimerRef.current = window.setTimeout(() => {
+          healTimerRef.current = null
+          if (rendererRef.current?.isContextLost()) {
+            setCanvasEpoch((e) => e + 1)
+          }
+        }, 650)
+      }
+      return
+    }
     const s = useEditor.getState()
     if (!Number.isFinite(s.time)) {
       s.setTime(0)
@@ -180,13 +193,44 @@ export function Viewer() {
   // ---------------------------------------------------------------- lifecycle
 
   useEffect(() => {
+    const canvasEl = canvasRef.current
+    if (!canvasEl) return
+    const scheduleHeal = (delayMs: number): void => {
+      if (healTimerRef.current !== null) window.clearTimeout(healTimerRef.current)
+      healTimerRef.current = window.setTimeout(() => {
+        healTimerRef.current = null
+        setCanvasEpoch((e) => e + 1)
+      }, delayMs)
+    }
+    const existingGl = canvasEl.getContext('webgl2')
+    if (existingGl && existingGl.isContextLost()) {
+      scheduleHeal(40)
+      return () => {
+        if (healTimerRef.current !== null) {
+          window.clearTimeout(healTimerRef.current)
+          healTimerRef.current = null
+        }
+      }
+    }
     const perf = usePerformance.getState()
-    const r = new SceneRenderer(canvasRef.current!, { budgetMB: perf.budgetMB })
+    const r = new SceneRenderer(canvasEl, { budgetMB: perf.budgetMB })
     r.maxAnisotropy = perf.maxAnisotropy
     r.maxTextureSize = perf.maxTextureSize
     rendererRef.current = r
     setLiveRenderer(r)
     r.onInvalidate = () => requestRender()
+    r.onContextLost = () => {
+      if (healTimerRef.current !== null) window.clearTimeout(healTimerRef.current)
+      healTimerRef.current = window.setTimeout(() => {
+        healTimerRef.current = null
+        if (rendererRef.current === r && r.isContextLost()) {
+          setCanvasEpoch((e) => e + 1)
+        }
+      }, 650)
+    }
+    if (r.isContextLost()) {
+      scheduleHeal(80)
+    }
     const unsubStore = useEditor.subscribe((s, prev) => {
       if (s.epoch !== prev.epoch) needsFrame.current = true
       if (s.selectedLayerId !== prev.selectedLayerId && s.selectedLayerId) {
@@ -224,6 +268,10 @@ export function Viewer() {
     applyFocus('shot', useEditor.getState().selectedShotId ?? useEditor.getState().project.shots[0]?.id)
     requestRender()
     return () => {
+      if (healTimerRef.current !== null) {
+        window.clearTimeout(healTimerRef.current)
+        healTimerRef.current = null
+      }
       unsubStore()
       unsubView()
       unsubAssets()
@@ -235,7 +283,7 @@ export function Viewer() {
       rendererRef.current = null
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [SceneRenderer, LAYER_COMPOSE_FRAG])
+  }, [SceneRenderer, LAYER_COMPOSE_FRAG, canvasEpoch])
 
   useEffect(() => {
     const id = window.setInterval(() => {
@@ -307,7 +355,7 @@ export function Viewer() {
     fit()
     return () => ro.disconnect()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [comp.width, comp.height, view.split, view.primary, view.animate2dSplit, view.activeViews])
+  }, [comp.width, comp.height, view.split, view.primary, view.animate2dSplit, view.activeViews, canvasEpoch])
 
   // F = frame selection in the 3D view.
   useEffect(() => {
@@ -576,6 +624,7 @@ export function Viewer() {
   return (
     <div className="viewer" ref={wrapRef}>
       <canvas
+        key={canvasEpoch}
         id="viewer-canvas"
         ref={canvasRef}
         onPointerDown={onPointerDown}

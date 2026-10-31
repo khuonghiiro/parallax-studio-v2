@@ -119,28 +119,24 @@ async function ensureBridgeForStatus(status: RemoteServerStatus): Promise<number
       const httpsSrv = createHttpsServer({ key, cert }, forwardToUpstream)
       httpSrv.on('upgrade', forwardUpgradeToUpstream)
       httpsSrv.on('upgrade', forwardUpgradeToUpstream)
-      httpsSrv.listen(0, '127.0.0.1')
-
-      const netSrv = createNetServer((socket: Socket) => {
-        socket.once('data', (chunk: Buffer) => {
-          socket.pause()
-          const httpsAddr = httpsSrv.address()
-          const httpsPort = typeof httpsAddr === 'object' && httpsAddr ? httpsAddr.port : 0
-          if (chunk[0] === 0x16 && httpsPort > 0) {
-            const tlsConn = createConnection({ host: '127.0.0.1', port: httpsPort }, () => {
-              tlsConn.write(chunk)
-              socket.pipe(tlsConn).pipe(socket)
-              socket.resume()
-            })
-            tlsConn.on('error', () => socket.destroy())
-            socket.on('error', () => tlsConn.destroy())
-          } else {
-            socket.unshift(chunk)
-            httpSrv.emit('connection', socket)
-            socket.resume()
-          }
-        })
+      const netSrv = createNetServer({ pauseOnConnect: true }, (socket: Socket) => {
         socket.on('error', () => undefined)
+        const onReadable = (): void => {
+          const first = socket.read(1) as Buffer | null
+          if (!first) {
+            if (socket.readableEnded || socket.destroyed) return
+            socket.once('readable', onReadable)
+            return
+          }
+          socket.unshift(first)
+          if (first[0] === 0x16) {
+            httpsSrv.emit('connection', socket)
+          } else {
+            httpSrv.emit('connection', socket)
+          }
+          socket.resume()
+        }
+        socket.once('readable', onReadable)
       })
 
       netSrv.once('error', () => {
@@ -180,11 +176,11 @@ export async function enrichRemoteStatusWithHttps(status: RemoteServerStatus): P
     })
   }
   const activePort = (await checkingPromise) ?? bridgePort ?? status.port
-  const urls = status.ips.map((ip) => `https://${ip}:${activePort}/?t=${status.token}`)
+  const urls = status.ips.map((ip) => `http://${ip}:${activePort}/?t=${status.token}`)
   return {
     ...status,
     port: activePort,
-    url: urls[0] ?? `https://127.0.0.1:${activePort}/?t=${status.token}`,
+    url: urls[0] ?? `http://127.0.0.1:${activePort}/?t=${status.token}`,
     urls
   }
 }

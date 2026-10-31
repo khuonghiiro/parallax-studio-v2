@@ -247,7 +247,7 @@ export const WorkflowNodeCardV2 = memo(function WorkflowNodeCardV2({
                 : theme.badge}
             </span>
             {node.params?.isCameraWaypoint && isActiveAtCurrentTime && node.enabled ? (
-              <span className="wf-v2-cam-live-pill">ĐANG QUAY</span>
+              <span className="wf-v2-cam-live-pill" title="Camera đang quay tại bước này">● QUAY</span>
             ) : (
               <span className="wf-v2-card-sub">{summarizeV2Node(node, childCount)}</span>
             )}

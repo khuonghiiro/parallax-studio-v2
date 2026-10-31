@@ -25,7 +25,8 @@ import { WorkflowV2SpawnMenu } from './WorkflowV2SpawnMenu'
 import { useWorkflowV2CanvasInteractions } from './useWorkflowV2CanvasInteractions'
 import { useWorkflowV2Viewport, type WorkflowV2Viewport } from './useWorkflowV2Viewport'
 import { classifyV2Edge, computeV2Lineage, isV2EdgeFlowing } from './workflowV2Edges'
-import type { WorkflowV2SpawnCategory } from './workflowV2Theme'
+import { cleanV2NodeTitle, resolveV2NodeLevel, resolveV2NodeTheme, type WorkflowV2SpawnCategory } from './workflowV2Theme'
+import { IconPlus, IconSliders, IconTrash } from '../icons'
 
 export interface WorkflowCanvasV2Props {
   workflow: WorkflowGraph
@@ -55,13 +56,16 @@ export interface WorkflowCanvasV2Props {
   onDisconnectEdge: (edgeId: string) => void
   onToggleEdgeDisable?: (edgeId: string) => void
   onSpawnCameraWaypoint?: (shotId: string, mode: 'pan' | 'zoom-in' | 'zoom-out' | 'hold', fromWaypointTime?: number) => void
+  onOpenNodeInspector?: (nodeId: string) => void
 }
 
 const COLUMN_BANNERS = [
-  { x: WF_V2_COL_X.ROOT, label: 'CẢNH & CAMERA' },
-  { x: WF_V2_COL_X.GROUP, label: 'NHÓM LAYER' },
-  { x: WF_V2_COL_X.LAYER, label: 'LAYER' },
-  { x: WF_V2_COL_X.LOGIC, label: 'LOGIC CỦA LAYER' }
+  { x: WF_V2_COL_X.ROOT, step: '01', label: 'CẢNH & CAMERA', minX: -Infinity },
+  { x: WF_V2_COL_X.GROUP, step: '02', label: 'NHÓM LAYER', minX: -Infinity },
+  { x: WF_V2_COL_X.LAYER, step: '03', label: 'LAYER 2.5D / 3D', minX: -Infinity },
+  { x: WF_V2_COL_X.LOGIC, step: '04', label: 'LOGIC CỦA LAYER', minX: -Infinity },
+  { x: WF_V2_COL_X.LOGIC + 356, step: '05', label: 'HOẠT ẢNH & NHÁNH CỤM', minX: WF_V2_COL_X.LOGIC + 280 },
+  { x: WF_V2_COL_X.LOGIC + 712, step: '06', label: 'BỘ PHẬN CHI TIẾT', minX: WF_V2_COL_X.LOGIC + 640 }
 ]
 const CULL_MARGIN = 240
 
@@ -181,6 +185,10 @@ export const WorkflowCanvasV2: React.FC<WorkflowCanvasV2Props> = (props) => {
   }, [graph, activeRootId, sharedRootId, isLive])
   const edgeItems = useMemo(() => buildEdgeItems(graph, running, lineage, view, currentTime, props.playing), [graph, running, lineage, view.x0, view.y0, view.x1, view.y1, currentTime, props.playing])
   const cards = graph.visibleNodes.filter((n) => nodeInView(n, view) || n.id === selectedNodeId)
+  const maxVisibleX = useMemo(
+    () => graph.visibleNodes.reduce((mx, n) => Math.max(mx, n.position.x), 0),
+    [graph.visibleNodes]
+  )
 
   const focusCluster = useCallback(
     (rootId: string) => {
@@ -251,14 +259,16 @@ export const WorkflowCanvasV2: React.FC<WorkflowCanvasV2Props> = (props) => {
 
         <div className="wf-v2-world" style={{ left: vp.pan.x, top: vp.pan.y }}>
         <div className="wf-v2-world-content" style={{ zoom: vp.zoom }}>
-          {COLUMN_BANNERS.map((b) => (
-            <div key={b.label} className="wf-v2-col-banner" style={{ left: b.x, width: WF_V2_NODE_W }}>
-              {b.label}
+          {COLUMN_BANNERS.filter((b) => maxVisibleX >= b.minX).map((b) => (
+            <div key={b.step} className="wf-v2-col-banner" style={{ left: b.x, width: WF_V2_NODE_W }}>
+              <span className="wf-v2-col-step">{b.step}</span>
+              <span className="wf-v2-col-label">{b.label}</span>
             </div>
           ))}
           <WorkflowV2ClusterFrames clusters={graph.clusters} activeRootId={activeRootId} onFocus={focusCluster} />
           <WorkflowV2EdgeLayer
             items={edgeItems}
+            zoom={vp.zoom}
             wireStyle={wireStyle}
             lineageActive={lineage.active}
             wireDrag={ix.wireDrag}
@@ -300,6 +310,80 @@ export const WorkflowCanvasV2: React.FC<WorkflowCanvasV2Props> = (props) => {
         {!workflow.nodes.some((n) => n.type === 'layer_assembly' && !n.params?.groupKind) && (
           <div className="wf-v2-empty">Dự án chưa có Layer nào — thêm ảnh/Layer vào cảnh để bung cây Workflow.</div>
         )}
+        {(() => {
+          const sel = selectedNodeId ? graph.nodes.find((n) => n.id === selectedNodeId) : undefined
+          if (!sel) return null
+          const selTheme = resolveV2NodeTheme(sel)
+          const canSpawnLogic = resolveV2NodeLevel(sel) === 'layer' || sel.params?.logicCategory === 'cluster_lock'
+          const camShotId = sel.type === 'camera_director' ? sel.params?.shotId : undefined
+          return (
+            <div
+              className="wf-v2-mobile-node-bar"
+              style={{ ['--wf-v2-accent' as string]: selTheme.accent }}
+              onPointerDown={(e) => e.stopPropagation()}
+            >
+              <div className="wf-v2-mbar-info">
+                <span className="wf-v2-mbar-icon">{selTheme.icon}</span>
+                <span className="wf-v2-mbar-title">{cleanV2NodeTitle(sel.title)}</span>
+              </div>
+              <div className="wf-v2-mbar-actions">
+                {canSpawnLogic && (
+                  <button
+                    type="button"
+                    className="btn ghost sm wf-mcard-btn accent"
+                    onClick={(e) => {
+                      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+                      ix.setSpawnMenu({ layerNodeId: sel.id, clientX: Math.round(rect.left), clientY: Math.round(rect.top - 8) })
+                    }}
+                    title="Gắn thêm Node Logic cho Layer này"
+                  >
+                    <IconPlus width={11} height={11} />
+                    <span>Logic</span>
+                  </button>
+                )}
+                {camShotId && props.onSpawnCameraWaypoint && (
+                  <button
+                    type="button"
+                    className="btn ghost sm wf-mcard-btn accent"
+                    onClick={() => props.onSpawnCameraWaypoint!(camShotId, 'pan', sel.params?.isCameraWaypoint ? sel.params.timeStart : undefined)}
+                    title="Thêm mốc Camera tiếp theo"
+                  >
+                    <IconPlus width={11} height={11} />
+                    <span>Mốc</span>
+                  </button>
+                )}
+                {props.onOpenNodeInspector && (
+                  <button
+                    type="button"
+                    className="btn ghost sm wf-mcard-btn"
+                    onClick={() => props.onOpenNodeInspector!(sel.id)}
+                    title="Mở bảng Thuộc tính Node để chỉnh chi tiết"
+                  >
+                    <IconSliders width={12} height={12} />
+                    <span>Chỉnh</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className={`wf-mcard-toggle${sel.enabled ? ' on' : ''}`}
+                  onClick={() => props.onToggleNodeEnable(sel.id)}
+                >
+                  {sel.enabled ? 'BẬT' : 'TẮT'}
+                </button>
+                {isDeletableV2Node(sel) && (
+                  <button
+                    type="button"
+                    className="btn ghost icon sm wf-mcard-del"
+                    onClick={() => props.onDeleteNode(sel.id)}
+                    title="Xoá Node đang chọn"
+                  >
+                    <IconTrash width={12} height={12} />
+                  </button>
+                )}
+              </div>
+            </div>
+          )
+        })()}
         {ix.spawnMenu && (
           <WorkflowV2SpawnMenu
             clientX={ix.spawnMenu.clientX}

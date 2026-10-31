@@ -22,7 +22,20 @@ export interface ResponsiveViewportInfo {
 function readViewport(): ResponsiveViewportInfo {
   const width = typeof window !== 'undefined' ? window.innerWidth || 1440 : 1440
   const height = typeof window !== 'undefined' ? window.innerHeight || 900 : 900
-  const breakpoint = resolveDeviceBreakpoint(width, height)
+  const remoteEff =
+    typeof document !== 'undefined'
+      ? document.documentElement.getAttribute('data-remote-effective')
+      : null
+  const breakpoint: DeviceBreakpoint =
+    remoteEff === 'phone'
+      ? 'phone'
+      : remoteEff === 'tablet'
+        ? 'tablet'
+        : remoteEff === 'desktop'
+          ? width <= 1366
+            ? 'laptop'
+            : 'desktop'
+          : resolveDeviceBreakpoint(width, height)
   return {
     width,
     height,

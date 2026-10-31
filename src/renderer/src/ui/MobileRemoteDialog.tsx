@@ -38,6 +38,7 @@ export function MobileRemoteDialog() {
   const close = () => useView.getState().openDialog(null)
 
   const [status, setStatus] = useState<RemoteServerStatus>(FALLBACK_STATUS)
+  const [statusLoaded, setStatusLoaded] = useState(false)
   const [rightView, setRightView] = useState<RemoteRightView>('devices')
   const [activeTab, setActiveTab] = useState<RemoteTab>('camera')
   const [activeModeUrl, setActiveModeUrl] = useState<string>(FALLBACK_STATUS.url)
@@ -51,7 +52,9 @@ export function MobileRemoteDialog() {
   useEditor((s) => s.selectedLayerId)
 
   const snap = buildRemoteStateSnapshot()
-  const devices = status.devices ?? []
+  const rawDevices = (status as unknown as { devices?: RemoteServerStatus['devices'] }).devices
+  const devices = Array.isArray(rawDevices) ? rawDevices : []
+  const isLegacyMainServer = statusLoaded && status.listening && !Array.isArray(rawDevices)
 
   useEffect(() => {
     const api = (window as unknown as {
@@ -64,8 +67,17 @@ export function MobileRemoteDialog() {
     }).api?.remote
 
     if (api?.status) {
-      api.status().then(setStatus).catch(() => {})
-      return api.onStatus(setStatus)
+      api
+        .status()
+        .then((s) => {
+          setStatus(s)
+          setStatusLoaded(true)
+        })
+        .catch(() => {})
+      return api.onStatus((s) => {
+        setStatus(s)
+        setStatusLoaded(true)
+      })
     }
     return undefined
   }, [])
@@ -143,6 +155,34 @@ export function MobileRemoteDialog() {
             <IconX width={14} height={14} />
           </button>
         </div>
+
+        {isLegacyMainServer && (
+          <div
+            role="status"
+            style={{
+              margin: '10px 16px 0',
+              padding: '9px 12px',
+              borderRadius: 'var(--radius)',
+              background: 'color-mix(in srgb, var(--warn) 14%, var(--bg-2))',
+              border: '1px solid color-mix(in srgb, var(--warn) 55%, var(--line))',
+              color: 'var(--text)',
+              fontSize: '11.5px',
+              lineHeight: 1.45,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 3
+            }}
+          >
+            <strong style={{ color: 'var(--warn)', fontSize: '12px' }}>
+              ⚡ Cần khởi động lại `pnpm dev` 1 lần để nạp Máy chủ Full App Đa Thiết Bị trên cổng :{status.port}
+            </strong>
+            <span style={{ color: 'var(--text-dim)' }}>
+              Tiến trình nền Electron đang mở từ phiên trước vẫn đang chạy máy chủ Touchpad rút gọn cũ trong bộ nhớ nên điện thoại quét QR chỉ nhận giao diện Touchpad. Hãy nhấn{' '}
+              <code style={{ color: 'var(--text)', fontFamily: 'var(--mono)' }}>Ctrl + C</code> rồi chạy lại{' '}
+              <code style={{ color: 'var(--accent-cyan)', fontFamily: 'var(--mono)' }}>pnpm dev</code> trên terminal — ngay sau đó điện thoại / iPad / Laptop quét QR sẽ nhận toàn bộ giao diện App Mobile / Tablet / Desktop.
+            </span>
+          </div>
+        )}
 
         {/* Body: 2 Columns */}
         <div

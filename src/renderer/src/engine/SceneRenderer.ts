@@ -72,6 +72,7 @@ export class SceneRenderer {
   private disposed = false
   private contextLost = false
   private restoreWaiters: (() => void)[] = []
+  onContextLost: (() => void) | null = null
 
   // residency & pool
   private pool: TexturePool
@@ -186,7 +187,10 @@ export class SceneRenderer {
     canvas.addEventListener('webglcontextlost', (e) => {
       e.preventDefault() // allow the browser to restore the context
       this.contextLost = true
-      console.warn('[SceneRenderer] WebGL context lost')
+      if (!this.disposed) {
+        console.warn('[SceneRenderer] WebGL context lost')
+        this.onContextLost?.()
+      }
     })
     canvas.addEventListener('webglcontextrestored', () => {
       console.warn('[SceneRenderer] WebGL context restored')
@@ -737,8 +741,11 @@ export class SceneRenderer {
     return this.lastScene
   }
 
-  dispose(): void {
+  dispose(opts?: { releaseContext?: boolean }): void {
+    const shouldReleaseContext = Boolean(opts?.releaseContext || !this.renderer.domElement.isConnected)
+    const wasLost = this.contextLost
     this.disposed = true
+    this.onContextLost = null
     this.pool.disposed = true
     for (const node of this.nodes.values()) disposeNode(node, this.scene, (k) => this.pool.dropTexture(k))
     this.nodes.clear()
@@ -754,5 +761,14 @@ export class SceneRenderer {
     this.postMat.dispose()
     this.copyMat.dispose()
     this.renderer.dispose()
+    if (shouldReleaseContext && !wasLost) {
+      try {
+        if (!this.renderer.getContext().isContextLost()) {
+          this.renderer.forceContextLoss()
+        }
+      } catch {
+        // Ignore when running in headless/mocked GL environments
+      }
+    }
   }
 }

@@ -1,4 +1,5 @@
 import { mkdtempSync, rmSync, writeFileSync } from 'fs'
+import { request as httpsRequest } from 'https'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -16,6 +17,7 @@ vi.mock('electron', () => ({
 }))
 
 import { classifyRemoteDevice, normalizeLayoutProfile, parseRemoteCookies } from './remoteDeviceDetect'
+import { buildRemoteViteClientShim, stripInlineSourceMap } from './remoteBootShim'
 import { RemoteControlServer } from './remoteServer'
 import type { McpBridge } from './mcpBridge'
 
@@ -161,6 +163,45 @@ describe('RemoteControlServer — Multi-Device Full Studio Web App & Bi-Directio
     expect(html).toContain('window.__PXS_REMOTE_BOOTSTRAP__')
     expect(html).toContain('"layoutProfile":"phone"')
     expect(html).toContain('viewport-fit=cover')
+    expect(html).toContain('id="pxs-remote-boot"')
+    expect(html).toContain('crypto.randomUUID')
+
+    // 2b. `/favicon.ico` returns 200 SVG without 404 console errors
+    const favResp = await fetch(`${baseUrl}/favicon.ico`)
+    expect(favResp.status).toBe(200)
+    expect(favResp.headers.get('content-type')).toContain('image/svg+xml')
+
+    // 2c. Polyglot TLS Multiplexer handles parallel HTTPS requests on the exact same port without dropping ClientHello packets
+    const fetchHttpsText = (path: string): Promise<{ status: number; body: string }> =>
+      new Promise((resolveReq, rejectReq) => {
+        const req = httpsRequest(
+          {
+            hostname: '127.0.0.1',
+            port: boundPort,
+            path,
+            method: 'GET',
+            rejectUnauthorized: false,
+            headers: { 'User-Agent': phoneUa }
+          },
+          (res) => {
+            const chunks: Buffer[] = []
+            res.on('data', (c: Buffer) => chunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c)))
+            res.on('end', () =>
+              resolveReq({ status: res.statusCode ?? 0, body: Buffer.concat(chunks).toString('utf-8') })
+            )
+          }
+        )
+        req.on('error', rejectReq)
+        req.end()
+      })
+
+    const parallelTls = await Promise.all(
+      Array.from({ length: 6 }, () => fetchHttpsText(`/?t=${token}&layout=phone`))
+    )
+    for (const item of parallelTls) {
+      expect(item.status).toBe(200)
+      expect(item.body).toContain('id="pxs-remote-boot"')
+    }
 
     // 3. `/pad` serves quick Touchpad 3D mode with link back to Full Studio App
     const padResp = await fetch(`${baseUrl}/pad?t=${token}&cid=pad-preview`)
@@ -230,5 +271,16 @@ describe('RemoteControlServer — Multi-Device Full Studio Web App & Bi-Directio
     expect(downResp.headers.get('content-type')).toBe('image/png')
     const downloaded = new Uint8Array(await downResp.arrayBuffer())
     expect(Array.from(downloaded)).toEqual(Array.from(sampleBytes))
+
+    // 7. Vite client shim & inline sourcemap stripper keep dev payloads compact and valid
+    const shimCode = buildRemoteViteClientShim()
+    expect(shimCode).toContain('export function updateStyle')
+    expect(shimCode).toContain('export function removeStyle')
+    expect(shimCode).toContain('export function createHotContext')
+    expect(shimCode).toContain('export function injectQuery')
+    expect(shimCode).toContain('export class ErrorOverlay')
+
+    const bloatedJs = `const x = 1;\n//# sourceMappingURL=data:application/json;base64,AAAA`
+    expect(stripInlineSourceMap(bloatedJs)).toBe('const x = 1;\n')
   })
 })

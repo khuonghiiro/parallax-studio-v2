@@ -321,7 +321,65 @@ export function createRemoteParallaxApi(): ParallaxApi {
   }
 }
 
+export function installNonSecureLanPolyfills(): void {
+  if (typeof window === 'undefined') return
+
+  // Trên kết nối LAN HTTP (http://192.168.x.x), trình duyệt đánh dấu isSecureContext = false nên ẩn crypto.randomUUID.
+  // Bổ sung polyfill chuẩn RFC 4122 v4 dựa trên crypto.getRandomValues (luôn khả dụng trên mọi trình duyệt di động).
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID !== 'function') {
+    const fallbackUuid = (): `${string}-${string}-${string}-${string}-${string}` => {
+      const bytes = new Uint8Array(16)
+      if (typeof crypto.getRandomValues === 'function') {
+        crypto.getRandomValues(bytes)
+      } else {
+        for (let i = 0; i < 16; i++) bytes[i] = Math.floor(Math.random() * 256)
+      }
+      bytes[6] = (bytes[6]! & 0x0f) | 0x40
+      bytes[8] = (bytes[8]! & 0x3f) | 0x80
+      const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')
+      return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
+    }
+    try {
+      Object.defineProperty(crypto, 'randomUUID', {
+        value: fallbackUuid,
+        configurable: true,
+        writable: true
+      })
+    } catch {
+      ;(crypto as unknown as { randomUUID: typeof fallbackUuid }).randomUUID = fallbackUuid
+    }
+  }
+
+  // Fallback navigator.clipboard.writeText trên HTTP LAN (iOS Safari / Android Chrome)
+  if (typeof navigator !== 'undefined' && (!navigator.clipboard || typeof navigator.clipboard.writeText !== 'function')) {
+    const fallbackWriteText = async (text: string): Promise<void> => {
+      const ta = document.createElement('textarea')
+      ta.value = text
+      ta.style.position = 'fixed'
+      ta.style.opacity = '0'
+      ta.style.left = '-9999px'
+      document.body.appendChild(ta)
+      ta.focus()
+      ta.select()
+      try {
+        document.execCommand('copy')
+      } finally {
+        ta.remove()
+      }
+    }
+    try {
+      Object.defineProperty(navigator, 'clipboard', {
+        value: { writeText: fallbackWriteText },
+        configurable: true
+      })
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
 export function installRemoteWebApiBridge(): boolean {
+  installNonSecureLanPolyfills()
   if (!isRemoteWebClient()) return false
   initRemoteClientLayout()
   const w = window as unknown as { api?: ParallaxApi }

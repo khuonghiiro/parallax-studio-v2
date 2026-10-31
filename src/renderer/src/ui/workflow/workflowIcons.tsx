@@ -138,6 +138,53 @@ export const IconWfLayerTransform = (p: WfIconProps) => (
   </svg>
 )
 
+/** Chế độ Thẻ gọn cho Điện thoại / Máy tính bảng (Stacked Node Cards) */
+export const IconWorkflowCardsList = (p: WfIconProps) => (
+  <svg {...base(p)}>
+    <rect x="3" y="3.5" width="18" height="4.8" rx="1.4" />
+    <rect x="3" y="10.2" width="18" height="4.8" rx="1.4" />
+    <rect x="7" y="16.8" width="14" height="4.2" rx="1.3" />
+    <path d="M5 15v3.8h2" />
+  </svg>
+)
+
+/** HUD: Tự động theo sát cảnh Camera đang quay */
+export const IconWfFollowShot = (p: WfIconProps) => (
+  <svg {...base(p)}>
+    <circle cx="12" cy="12" r="6.5" />
+    <circle cx="12" cy="12" r="2.2" fill="currentColor" />
+    <path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3" />
+  </svg>
+)
+
+/** HUD: Toàn cảnh không gian nhiều cảnh (Overview All Clusters) */
+export const IconWfFitAll = (p: WfIconProps) => (
+  <svg {...base(p)}>
+    <path d="M4 8.5V4h4.5M20 8.5V4h-4.5M4 15.5V20h4.5M20 15.5V20h-4.5" />
+    <rect x="7.5" y="8" width="4" height="3.2" rx="0.8" />
+    <rect x="12.5" y="12.8" width="4" height="3.2" rx="0.8" />
+    <path d="M11.5 9.6h1v4.8" />
+  </svg>
+)
+
+/** HUD: Kiểu dây vuông bo góc (Orthogonal Smooth-Step Wire) */
+export const IconWfWireStep = (p: WfIconProps) => (
+  <svg {...base(p)}>
+    <circle cx="4.5" cy="6.5" r="2" fill="currentColor" />
+    <circle cx="19.5" cy="17.5" r="2" fill="currentColor" />
+    <path d="M6.5 6.5h3.5a2 2 0 0 1 2 2v7a2 2 0 0 0 2 2h3.5" />
+  </svg>
+)
+
+/** HUD: Kiểu dây cong mềm (Cubic Bezier Wire) */
+export const IconWfWireBezier = (p: WfIconProps) => (
+  <svg {...base(p)}>
+    <circle cx="4.5" cy="6.5" r="2" fill="currentColor" />
+    <circle cx="19.5" cy="17.5" r="2" fill="currentColor" />
+    <path d="M6.5 6.5C13 6.5 11 17.5 17.5 17.5" />
+  </svg>
+)
+
 export function renderWorkflowNodeIcon(type: WorkflowNodeType, props?: WfIconProps) {
   switch (type) {
     case 'scene_shot':

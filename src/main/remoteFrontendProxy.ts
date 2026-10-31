@@ -1,9 +1,26 @@
-import { request as httpRequest, type IncomingMessage, type OutgoingHttpHeaders, type ServerResponse } from 'http'
+import {
+  Agent as HttpAgent,
+  request as httpRequest,
+  type IncomingMessage,
+  type OutgoingHttpHeaders,
+  type ServerResponse
+} from 'http'
 import { createConnection, type Socket } from 'net'
 import { existsSync } from 'fs'
 import { readFile, stat } from 'fs/promises'
 import { extname, join, normalize, resolve } from 'path'
+import { gzip as gzipCallback } from 'zlib'
+import { promisify } from 'util'
 import type { RemoteDeviceKind, RemoteLayoutProfile } from '@shared/ipc'
+import {
+  REMOTE_FAVICON_SVG,
+  buildRemoteBootHeadScript,
+  buildRemoteBootSplashHtml,
+  buildRemoteViteClientShim,
+  stripInlineSourceMap
+} from './remoteBootShim'
+
+const gzipAsync = promisify(gzipCallback)
 
 export interface RemoteBootstrapPayload {
   token: string
@@ -49,13 +66,99 @@ const REMOTE_CSP =
   "connect-src 'self' data: blob: http: https: ws: wss:; " +
   "worker-src 'self' blob:;"
 
+const devKeepAliveAgent = new HttpAgent({ keepAlive: true, maxSockets: 64 })
+const resolvedUpstreamHostCache = new Map<string, string>()
+
+async function resolveFastLoopbackHost(hostname: string, port: number): Promise<string> {
+  if (hostname !== 'localhost') return hostname
+  const cacheKey = `${hostname}:${port}`
+  const cached = resolvedUpstreamHostCache.get(cacheKey)
+  if (cached) return cached
+
+  const probe = (candidate: string): Promise<string> =>
+    new Promise((resolveHost, rejectHost) => {
+      const sock = createConnection({ host: candidate, port })
+      const timer = setTimeout(() => {
+        sock.destroy()
+        rejectHost(new Error('timeout'))
+      }, 180)
+      sock.once('connect', () => {
+        clearTimeout(timer)
+        sock.destroy()
+        resolveHost(candidate)
+      })
+      sock.once('error', (err) => {
+        clearTimeout(timer)
+        sock.destroy()
+        rejectHost(err)
+      })
+    })
+
+  try {
+    const winner = await Promise.any([probe('::1'), probe('127.0.0.1')])
+    resolvedUpstreamHostCache.set(cacheKey, winner)
+    return winner
+  } catch {
+    return hostname
+  }
+}
+
+function clientAcceptsGzip(req: IncomingMessage): boolean {
+  const enc = String(req.headers['accept-encoding'] || '')
+  return /\bgzip\b/i.test(enc)
+}
+
+function isCompressibleMime(contentType: string): boolean {
+  return /javascript|text\/css|text\/html|application\/json|image\/svg\+xml/i.test(contentType)
+}
+
+function isImmutableVendorPath(pathname: string): boolean {
+  return (
+    pathname.includes('/node_modules/.vite/') ||
+    pathname.includes('/node_modules/@fontsource/') ||
+    /\.(woff2|woff|ttf|otf)$/i.test(pathname)
+  )
+}
+
+async function sendBufferWithOptionalGzip(
+  req: IncomingMessage,
+  res: ServerResponse,
+  status: number,
+  buf: Buffer,
+  contentType: string,
+  cacheControl: string,
+  extraHeaders: Record<string, string>
+): Promise<void> {
+  let payload = buf
+  const headers: OutgoingHttpHeaders = {
+    'Content-Type': contentType,
+    'Cache-Control': cacheControl,
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Private-Network': 'true',
+    ...extraHeaders
+  }
+
+  if (buf.byteLength >= 512 && isCompressibleMime(contentType) && clientAcceptsGzip(req)) {
+    try {
+      payload = await gzipAsync(buf, { level: 4 })
+      headers['Content-Encoding'] = 'gzip'
+      headers['Vary'] = 'Accept-Encoding'
+    } catch {
+      payload = buf
+    }
+  }
+
+  headers['Content-Length'] = String(payload.byteLength)
+  res.writeHead(status, headers)
+  res.end(payload)
+}
+
 /**
  * Biến đổi index.html gốc của Parallax Studio để chạy mượt như App Native trên Điện thoại, iPad, Tablet, Laptop qua mạng LAN.
  */
 export function transformRemoteIndexHtml(rawHtml: string, bootstrap: RemoteBootstrapPayload): string {
   let html = rawHtml
 
-  // Nới CSP để cho phép kết nối tới IP LAN (192.168.x.x / 10.x.x.x), WebSocket HMR và Blob/Worker WebGL
   if (/http-equiv=["']Content-Security-Policy["']/i.test(html)) {
     html = html.replace(
       /<meta\s+http-equiv=["']Content-Security-Policy["'][^>]*>/i,
@@ -63,13 +166,12 @@ export function transformRemoteIndexHtml(rawHtml: string, bootstrap: RemoteBoots
     )
   }
 
-  // Nâng cấp thẻ viewport chuẩn Mobile/iPad App (chống double-tap zoom lệch canvas, hỗ trợ tai thỏ safe-area)
   const mobileMeta =
     `<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />\n` +
     `    <meta name="apple-mobile-web-app-capable" content="yes" />\n` +
     `    <meta name="mobile-web-app-capable" content="yes" />\n` +
     `    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />\n` +
-    `    <meta name="theme-color" content="#0b0d12" />`
+    `    <meta name="theme-color" content="#0b0e14" />`
 
   if (/<meta\s+name=["']viewport["'][^>]*>/i.test(html)) {
     html = html.replace(/<meta\s+name=["']viewport["'][^>]*>/i, mobileMeta)
@@ -77,23 +179,21 @@ export function transformRemoteIndexHtml(rawHtml: string, bootstrap: RemoteBoots
     html = html.replace('<head>', `<head>\n    ${mobileMeta}`)
   }
 
-  const safeJson = JSON.stringify(bootstrap).replace(/</g, '\\u003c')
-  const bootstrapScript =
-    `    <script>window.__PXS_REMOTE_BOOTSTRAP__ = ${safeJson};</script>\n`
-
+  const bootstrapScript = buildRemoteBootHeadScript(bootstrap)
   if (html.includes('</head>')) {
     html = html.replace('</head>', `${bootstrapScript}  </head>`)
   } else {
     html = `${bootstrapScript}${html}`
   }
 
+  const bootSplash = buildRemoteBootSplashHtml()
+  if (html.includes('<div id="root"></div>')) {
+    html = html.replace('<div id="root"></div>', `<div id="root"></div>\n    ${bootSplash}`)
+  }
+
   return html
 }
 
-/**
- * Sửa biến `directSocketHost` của `/@vite/client` để trình duyệt trên Điện thoại / iPad kết nối WebSocket HMR
- * qua đúng IP:Port & giao thức (ws/wss) của Remote Server thay vì `ws://localhost:5173` (tránh lỗi Mixed Content).
- */
 export function rewriteViteClientScript(code: string): string {
   return code.replace(
     /const directSocketHost\s*=\s*["'][^"']*["'];?/,
@@ -113,9 +213,6 @@ function resolveDevUpstream(): { hostname: string; port: number; hostHeader: str
   }
 }
 
-/**
- * Kiểm tra xem đường dẫn có phải tài nguyên mã nguồn / bundle tĩnh mà trình duyệt nạp sau index.html hay không.
- */
 export function isFrontendAssetPath(pathname: string): boolean {
   if (pathname === '/favicon.ico' || pathname === '/manifest.webmanifest') return true
   if (
@@ -133,9 +230,6 @@ export function isFrontendAssetPath(pathname: string): boolean {
   return Boolean(ext && STATIC_MIME[ext] && !pathname.startsWith('/api/'))
 }
 
-/**
- * Phục vụ toàn bộ giao diện Parallax Studio (Dev Vite Proxy hoặc Production Dist) tới mọi thiết bị từ xa.
- */
 export async function serveRemoteStudioFrontend(
   req: IncomingMessage,
   res: ServerResponse,
@@ -144,16 +238,35 @@ export async function serveRemoteStudioFrontend(
   extraHeaders: Record<string, string> = {},
   customDistDir?: string
 ): Promise<boolean> {
+  if (urlObj.pathname === '/favicon.ico') {
+    const svgBuf = Buffer.from(REMOTE_FAVICON_SVG, 'utf-8')
+    await sendBufferWithOptionalGzip(req, res, 200, svgBuf, 'image/svg+xml', 'public, max-age=86400', extraHeaders)
+    return true
+  }
+
   const devUpstream = customDistDir ? null : resolveDevUpstream()
   if (devUpstream) {
+    if (urlObj.pathname === '/@vite/client') {
+      const shimBuf = Buffer.from(buildRemoteViteClientShim(), 'utf-8')
+      await sendBufferWithOptionalGzip(
+        req,
+        res,
+        200,
+        shimBuf,
+        'application/javascript; charset=utf-8',
+        'no-cache',
+        extraHeaders
+      )
+      return true
+    }
     return proxyDevRenderer(req, res, urlObj, devUpstream, bootstrap, extraHeaders)
   }
 
   const distRoot = resolve(customDistDir || join(__dirname, '../renderer'))
-  return serveBuiltRenderer(res, urlObj.pathname, distRoot, bootstrap, extraHeaders)
+  return serveBuiltRenderer(req, res, urlObj.pathname, distRoot, bootstrap, extraHeaders)
 }
 
-function proxyDevRenderer(
+async function proxyDevRenderer(
   req: IncomingMessage,
   res: ServerResponse,
   urlObj: URL,
@@ -161,49 +274,55 @@ function proxyDevRenderer(
   bootstrap: RemoteBootstrapPayload,
   extraHeaders: Record<string, string>
 ): Promise<boolean> {
+  const fastHost = await resolveFastLoopbackHost(upstream.hostname, upstream.port)
+
   return new Promise((resolveDone) => {
     const isIndex = urlObj.pathname === '/' || urlObj.pathname === '/index.html'
-    const isViteClient = urlObj.pathname === '/@vite/client'
     const forwardPath = isIndex ? '/index.html' : urlObj.pathname + urlObj.search
 
     const headers: Record<string, string | string[] | undefined> = {
       ...req.headers,
       host: upstream.hostHeader
     }
-    if (isIndex || isViteClient) {
-      // Tắt nén gzip trên upstream cho 2 tệp text nhỏ cần biến đổi nội dung trực tiếp
-      delete headers['accept-encoding']
-    }
+    delete headers['accept-encoding']
 
     const proxyReq = httpRequest(
       {
-        hostname: upstream.hostname,
+        hostname: fastHost,
         port: upstream.port,
         method: req.method || 'GET',
         path: forwardPath,
-        headers
+        headers,
+        agent: devKeepAliveAgent
       },
       (proxyRes) => {
         const status = proxyRes.statusCode || 200
-        if ((isIndex || isViteClient) && status === 200) {
+        const contentType = String(proxyRes.headers['content-type'] || 'application/octet-stream')
+
+        if (status === 200 && (isIndex || isCompressibleMime(contentType))) {
           const chunks: Buffer[] = []
           proxyRes.on('data', (c: Buffer) => chunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c)))
           proxyRes.on('end', () => {
-            const rawText = Buffer.concat(chunks).toString('utf-8')
-            const outText = isIndex
-              ? transformRemoteIndexHtml(rawText, bootstrap)
-              : rewriteViteClientScript(rawText)
-            const outBuf = Buffer.from(outText, 'utf-8')
-            res.writeHead(200, {
-              'Content-Type': isIndex ? 'text/html; charset=utf-8' : 'application/javascript; charset=utf-8',
-              'Content-Length': String(outBuf.byteLength),
-              'Cache-Control': 'no-store',
-              'Access-Control-Allow-Origin': '*',
-              'Access-Control-Allow-Private-Network': 'true',
-              ...extraHeaders
-            })
-            res.end(outBuf)
-            resolveDone(true)
+            const rawBuf = Buffer.concat(chunks)
+            let outBuf = rawBuf
+            let outMime = contentType
+
+            if (isIndex) {
+              outMime = 'text/html; charset=utf-8'
+              outBuf = Buffer.from(transformRemoteIndexHtml(rawBuf.toString('utf-8'), bootstrap), 'utf-8')
+            } else if (/javascript|text\/css/i.test(contentType)) {
+              outBuf = Buffer.from(stripInlineSourceMap(rawBuf.toString('utf-8')), 'utf-8')
+            }
+
+            const cacheCtrl = isIndex
+              ? 'no-store'
+              : isImmutableVendorPath(urlObj.pathname)
+                ? 'private, max-age=600'
+                : 'no-cache'
+
+            void sendBufferWithOptionalGzip(req, res, 200, outBuf, outMime, cacheCtrl, extraHeaders).then(() =>
+              resolveDone(true)
+            )
           })
           return
         }
@@ -211,6 +330,9 @@ function proxyDevRenderer(
         const resHeaders: OutgoingHttpHeaders = {}
         for (const [k, v] of Object.entries(proxyRes.headers)) {
           if (v !== undefined) resHeaders[k] = v
+        }
+        if (isImmutableVendorPath(urlObj.pathname)) {
+          resHeaders['cache-control'] = 'private, max-age=600'
         }
         resHeaders['Access-Control-Allow-Origin'] = '*'
         resHeaders['Access-Control-Allow-Private-Network'] = 'true'
@@ -235,6 +357,7 @@ function proxyDevRenderer(
 }
 
 async function serveBuiltRenderer(
+  req: IncomingMessage,
   res: ServerResponse,
   pathname: string,
   distRoot: string,
@@ -252,7 +375,6 @@ async function serveBuiltRenderer(
 
   let isIndex = cleanRel === 'index.html'
   if (!existsSync(candidate) || !(await stat(candidate)).isFile()) {
-    // SPA Fallback về index.html nếu không phải file tĩnh có đuôi mở rộng
     if (!extname(cleanRel)) {
       candidate = resolve(distRoot, 'index.html')
       isIndex = true
@@ -267,36 +389,18 @@ async function serveBuiltRenderer(
     const rawHtml = await readFile(candidate, 'utf-8')
     const outHtml = transformRemoteIndexHtml(rawHtml, bootstrap)
     const buf = Buffer.from(outHtml, 'utf-8')
-    res.writeHead(200, {
-      'Content-Type': 'text/html; charset=utf-8',
-      'Content-Length': String(buf.byteLength),
-      'Cache-Control': 'no-store',
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Private-Network': 'true',
-      ...extraHeaders
-    })
-    res.end(buf)
+    await sendBufferWithOptionalGzip(req, res, 200, buf, 'text/html; charset=utf-8', 'no-store', extraHeaders)
     return true
   }
 
   const ext = extname(candidate).toLowerCase()
   const mime = STATIC_MIME[ext] || 'application/octet-stream'
   const buf = await readFile(candidate)
-  res.writeHead(200, {
-    'Content-Type': mime,
-    'Content-Length': String(buf.byteLength),
-    'Cache-Control': ext === '.html' ? 'no-store' : 'public, max-age=300',
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Private-Network': 'true',
-    ...extraHeaders
-  })
-  res.end(buf)
+  const cacheCtrl = ext === '.html' ? 'no-store' : 'public, max-age=300'
+  await sendBufferWithOptionalGzip(req, res, 200, buf, mime, cacheCtrl, extraHeaders)
   return true
 }
 
-/**
- * Chuyển tiếp kết nối WebSocket (Vite HMR) từ trình duyệt Điện thoại / iPad / Laptop về Vite Dev Server nội bộ.
- */
 export function forwardRemoteWsUpgrade(req: IncomingMessage, socket: Socket, head: Buffer): void {
   const devUpstream = resolveDevUpstream()
   if (!devUpstream) {
@@ -304,20 +408,22 @@ export function forwardRemoteWsUpgrade(req: IncomingMessage, socket: Socket, hea
     return
   }
 
-  const upstream = createConnection({ host: devUpstream.hostname, port: devUpstream.port }, () => {
-    const rawUrl = req.url || '/'
-    let headerLines = `${req.method || 'GET'} ${rawUrl} HTTP/${req.httpVersion}\r\n`
-    for (let i = 0; i + 1 < req.rawHeaders.length; i += 2) {
-      const k = req.rawHeaders[i]
-      const v = k.toLowerCase() === 'host' ? devUpstream.hostHeader : req.rawHeaders[i + 1]
-      headerLines += `${k}: ${v}\r\n`
-    }
-    headerLines += '\r\n'
-    upstream.write(headerLines)
-    if (head && head.length > 0) upstream.write(head)
-    socket.pipe(upstream).pipe(socket)
-  })
+  void resolveFastLoopbackHost(devUpstream.hostname, devUpstream.port).then((fastHost) => {
+    const upstream = createConnection({ host: fastHost, port: devUpstream.port }, () => {
+      const rawUrl = req.url || '/'
+      let headerLines = `${req.method || 'GET'} ${rawUrl} HTTP/${req.httpVersion}\r\n`
+      for (let i = 0; i + 1 < req.rawHeaders.length; i += 2) {
+        const k = req.rawHeaders[i]
+        const v = k.toLowerCase() === 'host' ? devUpstream.hostHeader : req.rawHeaders[i + 1]
+        headerLines += `${k}: ${v}\r\n`
+      }
+      headerLines += '\r\n'
+      upstream.write(headerLines)
+      if (head && head.length > 0) upstream.write(head)
+      socket.pipe(upstream).pipe(socket)
+    })
 
-  upstream.on('error', () => socket.destroy())
-  socket.on('error', () => upstream.destroy())
+    upstream.on('error', () => socket.destroy())
+    socket.on('error', () => upstream.destroy())
+  })
 }

@@ -71,7 +71,7 @@ export function RemoteQrNetworkCard({
   onActiveUrlChange
 }: RemoteQrNetworkCardProps) {
   const [selectedIpIdx, setSelectedIpIdx] = useState(() => findBestWifiIpIndex(status.ips))
-  const [protocol, setProtocol] = useState<'https' | 'http'>('https')
+  const [protocol, setProtocol] = useState<'https' | 'http'>('http')
   const [qrMode, setQrMode] = useState<RemoteLayoutProfile>('auto')
   const [customIp, setCustomIp] = useState('')
   const [copied, setCopied] = useState(false)
@@ -228,7 +228,7 @@ export function RemoteQrNetworkCard({
         </div>
       </div>
 
-      {/* Protocol Segmented Switch (HTTPS vs HTTP) */}
+      {/* Protocol Segmented Switch (HTTP Default for Instant Zero-Cert QR Scan vs HTTPS) */}
       <div
         style={{
           display: 'grid',
@@ -240,6 +240,22 @@ export function RemoteQrNetworkCard({
           borderRadius: 'var(--radius)'
         }}
       >
+        <button
+          type="button"
+          className="btn sm ghost"
+          onClick={() => setProtocol('http')}
+          style={{
+            fontSize: '11px',
+            fontWeight: 600,
+            padding: '5px 8px',
+            borderRadius: 'var(--radius-sm)',
+            background: protocol === 'http' ? 'var(--accent)' : 'transparent',
+            color: protocol === 'http' ? 'var(--on-accent)' : 'var(--text-dim)',
+            borderColor: protocol === 'http' ? 'var(--accent)' : 'transparent'
+          }}
+        >
+          🌐 HTTP Nhanh (Khuyên dùng)
+        </button>
         <button
           type="button"
           className="btn sm ghost"
@@ -255,22 +271,6 @@ export function RemoteQrNetworkCard({
           }}
         >
           🔒 HTTPS (Vượt HTTPS-Only)
-        </button>
-        <button
-          type="button"
-          className="btn sm ghost"
-          onClick={() => setProtocol('http')}
-          style={{
-            fontSize: '11px',
-            fontWeight: 600,
-            padding: '5px 8px',
-            borderRadius: 'var(--radius-sm)',
-            background: protocol === 'http' ? 'var(--accent)' : 'transparent',
-            color: protocol === 'http' ? 'var(--on-accent)' : 'var(--text-dim)',
-            borderColor: protocol === 'http' ? 'var(--accent)' : 'transparent'
-          }}
-        >
-          🌐 HTTP Thường (Zalo / iOS)
         </button>
       </div>
 
