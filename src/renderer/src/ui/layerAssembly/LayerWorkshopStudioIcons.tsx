@@ -184,3 +184,54 @@ export const IconOnionSkin = (p: P) => (
     <circle cx="12" cy="12" r="5" />
   </svg>
 )
+
+/** Moho Weld / Snap Connected Joints: hàn khít tâm khớp cha - con */
+export const IconBoneWeld = (p: P) => (
+  <svg {...base(p)}>
+    <line x1="4" y1="19.5" x2="9.8" y2="14.2" />
+    <line x1="14.2" y1="9.8" x2="20" y2="4.5" />
+    <circle cx="12" cy="12" r="3.4" />
+    <circle cx="12" cy="12" r="1.3" fill="currentColor" />
+    <circle cx="4" cy="19.5" r="1.5" />
+    <circle cx="20" cy="4.5" r="1.5" />
+  </svg>
+)
+
+/** Retime / Scale Keyframes Proportionally */
+export const IconRetimeStretch = (p: P) => (
+  <svg {...base(p)}>
+    <polyline points="6.5 8.5 3 12 6.5 15.5" />
+    <polyline points="17.5 8.5 21 12 17.5 15.5" />
+    <line x1="3.5" y1="12" x2="20.5" y2="12" />
+    <polygon points="12 8.8 14.8 12 12 15.2 9.2 12" fill="currentColor" />
+  </svg>
+)
+
+/** Wind Sub-Tab 1: Danh sách sống cây & lực gió */
+export const IconPlantSpineBranch = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M12 21V6" />
+    <path d="M12 15c-3.5 0-6-2.2-6.5-5.5 3.3-.5 6 1.5 6.5 5.5Z" />
+    <path d="M12 11c3.5 0 6-2.2 6.5-5.5-3.3-.5-6 1.5-6.5 5.5Z" />
+    <circle cx="12" cy="21" r="1.6" fill="currentColor" />
+  </svg>
+)
+
+/** Wind Sub-Tab 2: Tạo mới trục sống cây */
+export const IconPlantAddSpine = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M9 20c0-6 2.5-11 8-14" />
+    <circle cx="9" cy="20" r="1.8" />
+    <circle cx="17" cy="6" r="1.8" />
+    <line x1="17.5" y1="14" x2="17.5" y2="20" />
+    <line x1="14.5" y1="17" x2="20.5" y2="17" />
+  </svg>
+)
+
+/** Wind Sub-Tab 3: Hòa âm chuyển động Layer 2.5D */
+export const IconMotionHarmonyWave = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M2.5 9.5c2.4-3 4.8-3 7.2 0s4.8 3 7.2 0 3.2-2 4.6-.5" />
+    <path d="M2.5 15.5c2.4-3 4.8-3 7.2 0s4.8 3 7.2 0 3.2-2 4.6-.5" />
+  </svg>
+)

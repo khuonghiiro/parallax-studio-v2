@@ -32,7 +32,8 @@ import {
   classifyBoneSide,
   computeBoneInfluenceRadius,
   computeStrengthFromPointerDistance,
-  createBoneFromCanvasDrag
+  createBoneFromCanvasDrag,
+  isBoneTailCoincidentWithChild
 } from './mohoRigHelpers'
 import { WorkshopBoneCapsuleSvg } from './WorkshopBoneCapsuleSvg'
 
@@ -418,7 +419,7 @@ export function WorkshopBoneOverlay({
     const drag = dragRef.current
     if (!drag) return
     movedRef.current = true
-    const action = boneDragAction(drag, point, e.shiftKey)
+    const action = boneDragAction(drag, point, e.shiftKey, e.altKey)
     setComposite((c) => applyRigAction(c, action))
     const text =
       action.action === 'batch'
@@ -429,9 +430,11 @@ export function WorkshopBoneOverlay({
           ? action.key.rotation !== undefined
             ? `${action.key.rotation.toFixed(1)}° · Enter ⏎ chốt`
             : `${action.key.x?.toFixed(0)}, ${action.key.y?.toFixed(0)} · Enter ⏎ chốt`
-          : action.action === 'update-bone'
-            ? `${action.patch.angle?.toFixed(0) ?? ''}°`
-            : ''
+          : action.action === 'update-bones'
+            ? `${drag.bone.name} · 🔗 Hàn khớp (Alt: tách rời)`
+            : action.action === 'update-bone'
+              ? `${action.patch.angle !== undefined ? `${action.patch.angle.toFixed(0)}°` : `${Math.round(action.patch.x ?? drag.bone.x)}, ${Math.round(action.patch.y ?? drag.bone.y)}`}`
+              : ''
     setDragAngle({ x: point.x, y: point.y, text })
   }
 
@@ -767,14 +770,16 @@ export function WorkshopBoneOverlay({
                   style={{ cursor: 'crosshair', pointerEvents: 'all' }}
                   onPointerDown={(e) => handlePointerDown(e, bone.id, tailMode(e))}
                 />
-                <circle
-                  cx={tx}
-                  cy={ty}
-                  r={isSelected ? 6.5 : editing && mixamoLandmarks && !isHovered ? 3 : 5}
-                  className={`lw-bone-tail-joint${(!editing || isManipulateTool) && assist.ik ? ' ik' : ''}`}
-                  style={editing && mixamoLandmarks && !isSelected && !isHovered ? { opacity: 0.45 } : undefined}
-                  onPointerDown={(e) => handlePointerDown(e, bone.id, tailMode(e))}
-                />
+                {(isSelected || isHovered || !isBoneTailCoincidentWithChild(bone, rig.bones, transforms, 3)) && (
+                  <circle
+                    cx={tx}
+                    cy={ty}
+                    r={isSelected ? 6.5 : editing && mixamoLandmarks && !isHovered ? 3 : 5}
+                    className={`lw-bone-tail-joint${(!editing || isManipulateTool) && assist.ik ? ' ik' : ''}`}
+                    style={editing && mixamoLandmarks && !isSelected && !isHovered ? { opacity: 0.45 } : undefined}
+                    onPointerDown={(e) => handlePointerDown(e, bone.id, tailMode(e))}
+                  />
+                )}
 
                 <circle
                   cx={hx}

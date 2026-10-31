@@ -5,13 +5,19 @@ import { bool, num, str, toPlain } from '../params'
 import { activeWorkshop } from './layerWorkshopRigCommands'
 import {
   applyPlantSpineAction,
+  buildAutoPlantSpinePoints,
   createPlantSpine,
   resolveSpineLayerIds,
-  type PlantSpineTarget
+  WIND_WEATHER_PRESETS,
+  type PlantSpineDirection,
+  type PlantSpineTarget,
+  type WindWeatherPresetId
 } from '../../ui/layerAssembly/workshopPlantSpines'
 import { parsePlantMotionPatch, summarizePlantMotion } from './layerPlantMotionParams'
 
 const PRESETS: PlantSpinePresetId[] = ['grass', 'sapling', 'branch', 'canopy', 'flower', 'seaweed']
+const DIRECTIONS: PlantSpineDirection[] = ['up', 'horizontal', 'down']
+const WEATHERS: WindWeatherPresetId[] = ['breeze', 'moderate', 'strong', 'storm']
 
 function parsePoints(p: Params): PlantSpine['points'] | undefined {
   if (p.points === undefined) return undefined
@@ -42,12 +48,26 @@ function parsePreset(p: Params): PlantSpinePresetId | undefined {
   return preset as PlantSpinePresetId
 }
 
+function parseDirection(p: Params): PlantSpineDirection {
+  const direction = str(p, 'direction') ?? 'up'
+  if (!DIRECTIONS.includes(direction as PlantSpineDirection)) {
+    throw new ParamError(`direction must be one of: ${DIRECTIONS.join(', ')}`)
+  }
+  return direction as PlantSpineDirection
+}
+
 /** Thông số số học tuỳ chọn (MCP snake_case → field camelCase). */
 function parsePatch(p: Params): Partial<PlantSpine> {
   const patch: Partial<PlantSpine> = {}
   const fields: Array<[string, keyof PlantSpine]> = [
-    ['amplitude', 'amplitude'], ['speed', 'speed'], ['stiffness', 'stiffness'], ['flexibility', 'flexibility'],
-    ['turbulence', 'turbulence'], ['lean', 'lean'], ['phase_offset', 'phaseOffset'], ['reach', 'reach'],
+    ['amplitude', 'amplitude'],
+    ['speed', 'speed'],
+    ['stiffness', 'stiffness'],
+    ['flexibility', 'flexibility'],
+    ['turbulence', 'turbulence'],
+    ['lean', 'lean'],
+    ['phase_offset', 'phaseOffset'],
+    ['reach', 'reach'],
     ['vertical_bob', 'verticalBob']
   ]
   for (const [param, field] of fields) {
@@ -94,12 +114,17 @@ export const layerPlantSpineCommands: Record<string, Handler> = {
     let next = composite
     let spineId: string | null = null
     if (action === 'add') {
-      const points = parsePoints(p)
-      if (!points) throw new ParamError('points is required for add')
       const target = (str(p, 'apply_to') ?? 'selected') as PlantSpineTarget
       if (target !== 'selected' && target !== 'all') throw new ParamError('apply_to must be selected or all')
       const selected = session.getSelectedLayerIds?.() ?? [session.getSelectedLayerId()].filter((id): id is string => !!id)
       const layerIds = parseLayerIds(p) ?? resolveSpineLayerIds(composite, target, selected)
+      const explicitPoints = parsePoints(p)
+      if (!explicitPoints && p.direction === undefined) {
+        throw new ParamError('points or direction is required for add')
+      }
+      const points =
+        explicitPoints ??
+        buildAutoPlantSpinePoints(composite, layerIds, composite.plantSpines?.length ?? 0, parseDirection(p))
       const base = createPlantSpine({ points, layerIds, preset: parsePreset(p), id: str(p, 'spine_id') })
       const { points: _ignoredPoints, layerIds: _ignoredLayers, ...overrides } = parsePatch(p)
       const spine = { ...base, ...overrides, ...parsePlantMotionPatch(p) }
@@ -108,12 +133,27 @@ export const layerPlantSpineCommands: Record<string, Handler> = {
     } else if (action === 'update') {
       spineId = str(p, 'spine_id', true)
       const preset = parsePreset(p)
-      const presetParams = preset ? createPlantSpine({ points: [{ x: 0, y: 0 }, { x: 0, y: -10 }], layerIds: [], preset }) : null
+      const presetParams = preset
+        ? createPlantSpine({ points: [{ x: 0, y: 0 }, { x: 0, y: -10 }], layerIds: [], preset })
+        : null
       const patch = presetParams
-        ? { amplitude: presetParams.amplitude, speed: presetParams.speed, stiffness: presetParams.stiffness, flexibility: presetParams.flexibility, turbulence: presetParams.turbulence, lean: presetParams.lean, reach: presetParams.reach, ...parsePatch(p) }
+        ? {
+            amplitude: presetParams.amplitude,
+            speed: presetParams.speed,
+            stiffness: presetParams.stiffness,
+            flexibility: presetParams.flexibility,
+            turbulence: presetParams.turbulence,
+            lean: presetParams.lean,
+            reach: presetParams.reach,
+            ...parsePatch(p)
+          }
         : parsePatch(p)
       const current = composite.plantSpines?.find((s) => s.id === spineId)
-      next = applyPlantSpineAction(composite, { action: 'update', id: spineId, patch: { ...patch, ...parsePlantMotionPatch(p, current?.motion) } })
+      next = applyPlantSpineAction(composite, {
+        action: 'update',
+        id: spineId,
+        patch: { ...patch, ...parsePlantMotionPatch(p, current?.motion) }
+      })
     } else if (action === 'delete') {
       spineId = str(p, 'spine_id', true)
       next = applyPlantSpineAction(composite, { action: 'delete', id: spineId })
@@ -126,10 +166,47 @@ export const layerPlantSpineCommands: Record<string, Handler> = {
     } else if (action === 'copy_motion') {
       spineId = str(p, 'spine_id', true)
       const targets = p.target_spine_ids
-      if (targets !== undefined && (!Array.isArray(targets) || targets.some((t) => typeof t !== 'string'))) throw new ParamError('target_spine_ids must be a string array')
-      next = applyPlantSpineAction(composite, { action: 'copy-motion', id: spineId, targetIds: targets as string[] | undefined, stagger: num(p, 'stagger') })
+      if (targets !== undefined && (!Array.isArray(targets) || targets.some((t) => typeof t !== 'string'))) {
+        throw new ParamError('target_spine_ids must be a string array')
+      }
+      next = applyPlantSpineAction(composite, {
+        action: 'copy-motion',
+        id: spineId,
+        targetIds: targets as string[] | undefined,
+        stagger: num(p, 'stagger')
+      })
+    } else if (action === 'apply_weather') {
+      const weatherRaw = str(p, 'weather')
+      if (weatherRaw !== undefined && !WEATHERS.includes(weatherRaw as WindWeatherPresetId)) {
+        throw new ParamError(`weather must be one of: ${WEATHERS.join(', ')}`)
+      }
+      const presetObj = weatherRaw ? WIND_WEATHER_PRESETS.find((w) => w.id === weatherRaw) : undefined
+      const { points: _pts, layerIds: _lids, name: _nm, ...windOverrides } = parsePatch(p)
+      const weatherPatch = { ...(presetObj ? presetObj.params : {}), ...windOverrides }
+      if (Object.keys(weatherPatch).length === 0) {
+        throw new ParamError('weather or wind parameters (lean, amplitude, speed, etc.) required for apply_weather')
+      }
+      if ((composite.plantSpines?.length ?? 0) === 0) {
+        const selected = session.getSelectedLayerIds?.() ?? [session.getSelectedLayerId()].filter((id): id is string => !!id)
+        const layerIds = parseLayerIds(p) ?? resolveSpineLayerIds(composite, 'all', selected)
+        const points = buildAutoPlantSpinePoints(composite, layerIds, 0, parseDirection(p))
+        const spine = {
+          ...createPlantSpine({ points, layerIds, preset: parsePreset(p) }),
+          ...weatherPatch
+        }
+        next = applyPlantSpineAction(composite, { action: 'add', spine })
+        spineId = spine.id
+      } else {
+        spineId = str(p, 'spine_id') ?? null
+        next = applyPlantSpineAction(composite, {
+          action: 'apply-weather',
+          patch: weatherPatch,
+          spineId: spineId || undefined,
+          stagger: bool(p, 'stagger_phase') ?? true
+        })
+      }
     } else {
-      throw new ParamError('action must be list, add, update, delete, clear, phase or copy_motion')
+      throw new ParamError('action must be list, add, update, delete, clear, phase, copy_motion or apply_weather')
     }
     session.setComposite(next)
     return { ok: true, spineId, spines: summarize(next.plantSpines), composite: toPlain(next) }

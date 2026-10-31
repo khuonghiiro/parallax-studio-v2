@@ -22,6 +22,7 @@ import {
   IconBoneMirror,
   IconBoneSelect,
   IconBoneStrength,
+  IconBoneWeld,
   IconFlexiMeshBind
 } from './LayerWorkshopStudioIcons'
 
@@ -262,7 +263,17 @@ export function WorkshopRigPanel({
             title="Khi bật: dùng công cụ Vẽ xương (A) bên trái/phải sẽ tự động sinh xương đối xứng qua trục X = 0"
           >
             <IconBoneMirror width={12} height={12} />
-            <span>Vẽ đối xứng L⇄R</span>
+            <span>Đối xứng L⇄R</span>
+          </button>
+          <button
+            type="button"
+            className="lw-moho-opt-pill"
+            disabled={bones.length < 2}
+            onClick={() => run({ action: 'snap-joints' })}
+            title="Hàn khớp chuỗi xương (Moho Weld Joints): tự căn độ dài & góc xương cha để khớp tròn ngọn trùng khít 100% tâm khớp con"
+          >
+            <IconBoneWeld width={12} height={12} />
+            <span>Hàn khớp</span>
           </button>
         </div>
       </div>

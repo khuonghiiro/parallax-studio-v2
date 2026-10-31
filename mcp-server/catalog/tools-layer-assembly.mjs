@@ -261,8 +261,8 @@ export const LAYER_ASSEMBLY_TOOLS = [
     name: 'layer_assembly_rig',
     cat: 'layer_assembly',
     doc: L(
-      'Manage cutout skeleton bones and keyframe animations in the active layer assembly workshop. Supports adding/updating/deleting bones, binding layers, setting keyframes/poses (set-pose, mirror-pose), adjusting scaleX/scaleY, rich easings (smooth, linear, hold, ease-in, ease-out, ease-in-out), applying humanoid/chain templates, and generating procedural walk/idle/wave/sway motions.',
-      'Quản lý hệ thống xương và animation trong xưởng lắp ráp layer. Hỗ trợ thêm/sửa/xóa xương, gắn layer vào xương, ghi keyframe/tạo dáng toàn thân (set-pose, mirror-pose), chỉnh scaleX/scaleY, 6 kiểu nội suy Moho (smooth, linear, hold, ease-in, ease-out, ease-in-out), áp dụng khung xương người/chuỗi uốn dựng sẵn và tự động sinh chuyển động đi bộ/đứng thở/vẫy tay/uốn lượn.'
+      'Manage cutout skeleton bones and keyframe animations in the active layer assembly workshop. Supports adding/updating/deleting/welding bones (snap-joints), binding layers, setting keyframes/poses (set-pose, mirror-pose, hold-frames F5), Moho/Adobe Animate FPS & proportional keyframe retiming (fps, scale_keys), rich easings, applying humanoid/chain templates, and generating view-angle-aware procedural motions (front 0°, diagonal 45°, side 90°).',
+      'Quản lý hệ thống xương và animation trong xưởng lắp ráp layer. Hỗ trợ thêm/sửa/xóa/hàn khít khớp xương (snap-joints), gắn layer vào xương, ghi keyframe/tạo dáng/chèn giữ khung F5 (set-pose, mirror-pose, hold-frames), chỉnh FPS & co giãn key tỷ lệ chuẩn Moho/Adobe Animate (fps, scale_keys), 6 kiểu nội suy, áp dụng khung xương mẫu và tự động sinh chuyển động theo góc nhìn nhân vật (front 0°, diagonal 45°, side 90°).'
     ),
     shape: (d) => ({
       action: z
@@ -285,7 +285,9 @@ export const LAYER_ASSEMBLY_TOOLS = [
           'rename-clip',
           'delete-clip',
           'duplicate-clip',
-          'inherit-clip'
+          'inherit-clip',
+          'snap-joints',
+          'hold-frames'
         ])
         .describe(d('Rigging or animation action to perform.', 'Hành động tạo xương hoặc animation cần thực hiện.')),
       bone_id: z.string().optional().describe(d('Target bone ID.', 'ID xương mục tiêu.')),
@@ -322,14 +324,19 @@ export const LAYER_ASSEMBLY_TOOLS = [
         .optional()
         .describe(d('List of bone transforms for set-pose action.', 'Danh sách chuyển đổi xương khi dùng hành động set-pose.')),
       duration: z.number().optional().describe(d('Rig animation duration in seconds (0.1–120s).', 'Thời lượng animation (0.1–120s).')),
+      fps: z.number().int().min(4).max(120).optional().describe(d('Clip frame rate in frames per second (12, 24, 30, 60; default 30).', 'Tốc độ khung hình của clip (12, 24, 30, 60 fps; mặc định 30).')),
+      scale_keys: z.boolean().optional().describe(d('settings: when true, changing duration proportionally stretches/compresses existing keyframe times instead of clamping.', 'settings: khi bật true, đổi thời lượng sẽ co giãn tỷ lệ các keyframe hiện có thay vì cắt biên.')),
+      hold_frames: z.number().min(1).max(300).optional().describe(d('hold-frames (Adobe Animate F5): number of frames to insert/hold at time, shifting subsequent keys forward.', 'hold-frames (Adobe Animate F5): số khung giữ dáng chèn thêm tại time, tự đẩy các keyframe phía sau lùi lại.')),
+      hold_seconds: z.number().min(0.01).max(30).optional().describe(d('hold-frames: hold duration in seconds (alternative to hold_frames).', 'hold-frames: thời gian giữ dáng tính bằng giây (thay cho hold_frames).')),
       template: z
         .enum(['humanoid', 'humanoid-full', 'hand-detailed', 'foot-detailed', 'simple-chain'])
         .optional()
         .describe(d('Skeleton template to apply (humanoid, humanoid-full, hand-detailed, foot-detailed, simple-chain).', 'Mẫu khung xương áp dụng (humanoid, humanoid-full, hand-detailed, foot-detailed, simple-chain).')),
       preset: z
-        .enum(['walk', 'idle', 'wave', 'bow', 'run', 'jump', 'action', 'sway', 'hand-clench', 'foot-roll'])
+        .enum(['walk', 'idle', 'wave', 'bow', 'run', 'jump', 'fall', 'land', 'action', 'sway', 'hand-clench', 'foot-roll'])
         .optional()
         .describe(d('Procedural motion preset to generate.', 'Chuyển động mẫu tự động sinh.')),
+      view_angle: z.enum(['front', 'diagonal', 'side', 'back']).optional().describe(d('Character facing view angle for procedural motion presets ("front" = 0° front-facing default, "diagonal" = 45° 3/4 view, "side" = 90° profile).', 'Góc nhìn nhân vật khi sinh chuyển động mẫu ("front" = 0° chính diện mặc định, "diagonal" = 45° chéo 3/4, "side" = 90° ngang).')),
       clip_id: z.string().optional().describe(d('Animation clip ID to switch, duplicate, rename or delete.', 'ID clip động tác cần chuyển, nhân bản, đổi tên hoặc xóa.')),
       clip_name: z.string().optional().describe(d('New clip name when adding, duplicating or inheriting.', 'Tên clip mới khi thêm, nhân bản hoặc kế thừa.')),
       as_new_clip: z.boolean().optional().describe(d('Generate motion preset into a new clip.', 'Tạo chuyển động mẫu thành clip mới độc lập.')),
@@ -384,11 +391,11 @@ export const LAYER_ASSEMBLY_TOOLS = [
     name: 'layer_assembly_plant_spine',
     cat: 'layer_assembly',
     doc: L(
-      'Manage plant spines in the open 2.5D Layer Assembly workshop: a hand-drawn curve from ROOT to TIP that makes bound plant layers (grass, trees, branches, flowers, seaweed) bend and sway in the wind. Actions: list, add, update, delete, clear, phase (stagger/sync phase offsets so a field of plants never sways in unison), copy_motion (reuse one spine motion on others). Besides procedural wind, a spine can carry a RECORDED hand-drawn motion (tip angle over time, loops seamlessly): pass motion_keys directly, or motion_samples to simulate grabbing the tip (smoothed, idle-trimmed, loop-closed; motion_end spring = springs back after release). Supports undo (Ctrl+Z) and is exported with the composite into the scene/video.',
-      'Quản lý Xương motion trong Xưởng Lắp Ráp Layer 2.5D đang mở: đường cong vẽ từ GỐC lên NGỌN giúp các layer cây cỏ (cỏ, cây, cành, hoa, rong biển) gắn vào uốn cong đung đưa theo gió. Hành động: list, add, update, delete, clear, phase (so le/đồng bộ lệch pha để cả bụi cây không lắc đồng loạt), copy_motion (dùng lại nhịp một xương cho xương khác). Ngoài gió tự động, xương có thể mang CHUYỂN ĐỘNG VẼ TAY đã ghi (góc ngọn theo thời gian, lặp liền mạch): truyền thẳng motion_keys, hoặc motion_samples để mô phỏng nắm ngọn kéo (tự làm mượt, cắt đoạn chờ, khép vòng; motion_end spring = nảy về khi thả). Hỗ trợ hoàn tác (Ctrl+Z) và được mang theo khi thêm cụm vào cảnh/xuất video.'
+      'Manage plant wind spines in the open 2.5D Layer Assembly workshop: a curve from ROOT to TIP that makes bound layers (grass, trees, branches, flowers, hair, capes, ribbons) bend and sway in the wind. Actions: list, add (auto-generates 4-point spine along direction up/horizontal/down if points omitted), update, delete, clear, phase (stagger/sync phase offsets), copy_motion, apply_weather (1-click Beaufort wind presets breeze/moderate/strong/storm + wind lean direction; auto-creates first spine if none exists). Also supports recorded hand-drawn tip motions (motion_keys / motion_samples). Supports undo (Ctrl+Z) and exports with the composite.',
+      'Quản lý Trục xương gió trong Xưởng Lắp Ráp Layer 2.5D đang mở: đường cong từ GỐC tới NGỌN giúp các layer (cỏ, cây, cành, hoa, mái tóc, áo choàng, dải lụa) uốn cong đung đưa theo gió. Hành động: list, add (tự sinh trục 4 điểm theo direction up/horizontal/down nếu không truyền points), update, delete, clear, phase (so le/đồng bộ lệch pha), copy_motion, apply_weather (áp nhanh cấp độ gió Beaufort breeze/moderate/strong/storm + hướng gió tạt lean; tự tạo trục đầu tiên nếu chưa có). Hỗ trợ chuyển động vẽ tay (motion_keys / motion_samples), hoàn tác (Ctrl+Z) và xuất kèm cụm layer.'
     ),
     shape: (d) => ({
-      action: z.enum(['list', 'add', 'update', 'delete', 'clear', 'phase', 'copy_motion']).describe(d('Operation to perform. "phase" staggers (mode stagger) or syncs (mode sync) the phase offsets of all spines; "copy_motion" copies the motion / wind params of spine_id to other spines (target_spine_ids, default all) with optional stagger seconds.', 'Thao tác cần thực hiện. "phase" so le (mode stagger) hoặc đồng bộ (mode sync) độ lệch pha mọi xương; "copy_motion" sao chép nhịp / thông số gió của spine_id sang xương khác (target_spine_ids, mặc định tất cả) kèm lệch pha stagger giây.')),
+      action: z.enum(['list', 'add', 'update', 'delete', 'clear', 'phase', 'copy_motion', 'apply_weather']).describe(d('Operation to perform. "phase" staggers (mode stagger) or syncs (mode sync) phase offsets; "copy_motion" copies motion/wind params of spine_id to other spines; "apply_weather" applies Beaufort weather preset and/or wind lean across spines (auto-creating a spine if none exists).', 'Thao tác cần thực hiện. "phase" so le (mode stagger) hoặc đồng bộ (mode sync) độ lệch pha; "copy_motion" sao chép nhịp/thông số gió sang xương khác; "apply_weather" áp cấp độ gió Beaufort và/hoặc hướng gió tạt (tự tạo trục đầu tiên nếu chưa có).')),
       mode: z.enum(['stagger', 'sync']).optional().describe(d('phase: "stagger" = golden-ratio phase offsets within spread seconds (default) · "sync" = all 0.', 'phase: "stagger" = lệch pha theo tỉ lệ vàng trong khoảng spread giây (mặc định) · "sync" = tất cả về 0.')),
       spread: z.number().min(0).max(3).optional().describe(d('phase stagger: max phase offset in seconds (default 1.2).', 'phase stagger: độ lệch pha tối đa (giây, mặc định 1.2).')),
       target_spine_ids: z.array(z.string()).optional().describe(d('copy_motion: spines receiving the motion (default = every other spine).', 'copy_motion: các xương nhận nhịp (mặc định = mọi xương khác).')),
@@ -401,6 +408,9 @@ export const LAYER_ASSEMBLY_TOOLS = [
       layer_ids: z.array(z.string()).optional().describe(d('Layer IDs that bend with this spine.', 'Danh sách ID layer uốn theo xương.')),
       apply_to: z.enum(['selected', 'all']).optional().describe(d('When layer_ids is omitted on add: bind to the selected layers or all visible layers. Default "selected".', 'Khi không truyền layer_ids lúc add: gắn vào layer đang chọn hoặc toàn bộ layer đang hiện. Mặc định "selected".')),
       preset: z.enum(['grass', 'sapling', 'branch', 'canopy', 'flower', 'seaweed']).optional().describe(d('Plant motion preset (grass, sapling, branch, canopy = big tree, flower, seaweed/vine).', 'Kiểu cây mẫu (grass = cỏ lau, sapling = cây non, branch = cành, canopy = đại thụ, flower = hoa, seaweed = rong biển/dây leo).')),
+      direction: z.enum(['up', 'horizontal', 'down']).optional().describe(d('Auto-generated spine growth direction when points is omitted on add/apply_weather: "up" (bottom root to top tip), "horizontal" (left root to right tip), "down" (top root hanging down for vines/hair/capes).', 'Hướng mọc tự động khi không truyền points lúc add/apply_weather: "up" (gốc dưới mọc lên), "horizontal" (vươn ngang trái sang phải), "down" (gốc trên rủ xuống cho dây leo/tóc/áo choàng).')),
+      weather: z.enum(['breeze', 'moderate', 'strong', 'storm']).optional().describe(d('apply_weather: Beaufort wind level preset ("breeze" = gentle ±6°, "moderate" = ±13°, "strong" = gusty ±22°, "storm" = gale ±32°).', 'apply_weather: cấp độ gió Beaufort mẫu ("breeze" = hiu hiu ±6°, "moderate" = gió vừa ±13°, "strong" = gió mạnh ±22°, "storm" = gió lốc ±32°).')),
+      stagger_phase: z.boolean().optional().describe(d('apply_weather: automatically stagger golden-ratio phase offsets across multiple spines (default true).', 'apply_weather: tự động rải lệch pha tỉ lệ vàng khi có nhiều trục gió (mặc định true).')),
       name: z.string().optional().describe(d('Spine display name.', 'Tên hiển thị của xương.')),
       amplitude: z.number().optional().describe(d('Max bend at the tip in degrees.', 'Góc uốn tối đa tại ngọn (độ).')),
       speed: z.number().optional().describe(d('Sway cycles per second.', 'Số nhịp đung đưa mỗi giây.')),

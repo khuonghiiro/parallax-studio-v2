@@ -1,0 +1,669 @@
+/* ==========================================================================
+   Layer Assembly Workshop — Moho / Adobe Animate Timing, Presets & Wind Studio
+   Dual-Theme Standard (Dark & Light) · Unified Rectangular Geometry (4–6px)
+   ========================================================================== */
+
+/* 1.Sidebar Adaptive Asset Grid (2 cols on Desktop Sidebar, 3–6 cols in iPad/Phone Drawer) */
+.lw-sidebar-asset-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* 2. Animate Panel Spacing & Transport Polish */
+.lw-animation-panel .lw-card-section {
+  padding: 10px 11px;
+  margin-bottom: 9px;
+  border-radius: var(--radius-md);
+}
+
+.lw-anim-transport-card {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.lw-anim-transport-card .lw-anim-transport-row {
+  display: grid;
+  grid-template-columns: minmax(68px, 1.15fr) auto minmax(76px, 1.1fr) auto;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 0;
+}
+
+.lw-play-main-btn {
+  justify-content: center;
+  font-weight: 700;
+  height: 26px;
+}
+
+.lw-anim-transport-card .lw-moho-opt-pill {
+  height: 26px;
+  padding: 0 7px;
+  font-size: 10px;
+}
+
+/* FPS Segmented Selector (12 / 24 / 30 / 60 fps) + Proportional Key Retime Toggle */
+.lw-fps-retime-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 0;
+}
+
+.lw-fps-seg {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 5px 2px 2px;
+  border-radius: var(--radius);
+  background: var(--bg-0);
+  border: 1px solid var(--line-soft);
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.lw-fps-seg-btn {
+  flex: 1 1 0;
+  min-width: 24px;
+  height: 21px;
+  padding: 0 4px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 10.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+
+.lw-fps-seg-btn:hover {
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-3));
+  color: var(--text);
+}
+
+.lw-fps-seg-btn.active {
+  background: color-mix(in srgb, var(--accent) 78%, #0f172a);
+  border-color: var(--accent);
+  color: #ffffff;
+}
+
+.lw-fps-unit {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: var(--text-faint);
+  padding-left: 3px;
+  text-transform: lowercase;
+  user-select: none;
+}
+
+.lw-scale-keys-pill {
+  flex-shrink: 0;
+  height: 25px;
+}
+
+/* 2x2 Frame <-> Seconds Calculator Grid */
+.lw-anim-time-grid {
+  gap: 6px 8px;
+  padding: 7px 8px;
+  border-radius: var(--radius);
+  background: var(--bg-0);
+  border: 1px solid var(--line-soft);
+}
+
+.lw-anim-time-grid .lw-field-input,
+.lw-anim-time-grid input[type='number'] {
+  height: 25px;
+  background: var(--bg-1);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+/* Step-by-Step Pose Stepper Bar (Enter + +F pills) */
+.lw-step-record-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding-top: 2px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.lw-step-record-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.lw-confirm-step-btn {
+  flex: 1 1 auto;
+  justify-content: center;
+  height: 25px;
+  font-weight: 600;
+  gap: 4px;
+}
+
+.lw-confirm-step-btn.pending {
+  background: var(--key);
+  border-color: color-mix(in srgb, var(--key) 75%, #0f172a);
+  color: var(--on-key);
+  font-weight: 700;
+}
+
+.lw-confirm-step-btn kbd,
+.lw-animate-fkey-bar kbd {
+  padding: 0 3.5px;
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 14px;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  background: rgba(15, 23, 42, 0.22);
+  color: inherit;
+  border: 1px solid currentColor;
+  opacity: 0.85;
+}
+
+.lw-step-duration-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--radius);
+  background: var(--bg-0);
+  border: 1px solid var(--line-soft);
+  flex-shrink: 0;
+}
+
+.lw-step-dur-pill {
+  height: 20px;
+  padding: 0 5px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 9.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.lw-step-dur-pill:hover {
+  background: var(--bg-2);
+  color: var(--text);
+}
+
+.lw-step-dur-pill.active {
+  background: color-mix(in srgb, var(--accent) 78%, #0f172a);
+  border-color: var(--accent);
+  color: #ffffff;
+}
+
+.lw-step-record-status {
+  padding: 3px 7px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-0);
+  border: 1px solid var(--line-soft);
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+[data-theme='dark'] .lw-step-record-status {
+  color: var(--accent-cyan);
+}
+
+/* 3. Pose Fields, Adobe Animate F6/F5/F7 Bar & Full-Body 3x2 Grid */
+.lw-pose-fields-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.lw-pose-fields-row3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.lw-pose-fields-stack .lw-rig-grid {
+  margin: 0;
+  gap: 6px;
+}
+
+.lw-animate-fkey-bar {
+  display: grid;
+  grid-template-columns: 1.25fr 1.1fr 0.85fr auto;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.lw-animate-fkey-bar .btn {
+  justify-content: center;
+  gap: 3px;
+  height: 26px;
+  padding: 0 5px;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.lw-pose-fullbody-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.lw-pose-fullbody-grid .btn {
+  justify-content: center;
+  height: 25px;
+  font-size: 10.5px;
+}
+
+.lw-muted-danger-btn {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 30%, var(--line-soft));
+}
+
+.lw-muted-danger-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--danger) 78%, #0f172a);
+  border-color: var(--danger);
+  color: #ffffff;
+}
+
+/* 4. Quick Motion Preset Card & Angle Selector (0° Chính diện | 45° Chéo | 90° Ngang) */
+.lw-inline-seg {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--radius);
+  background: var(--bg-0);
+  border: 1px solid var(--line-soft);
+}
+
+.lw-inline-seg-btn {
+  height: 20px;
+  padding: 0 7px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.12s ease;
+}
+
+.lw-inline-seg-btn:hover {
+  color: var(--text);
+  background: var(--bg-2);
+}
+
+.lw-inline-seg-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+
+.lw-angle-seg-bar {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 3px;
+  padding: 2px;
+  margin-bottom: 8px;
+  border-radius: var(--radius);
+  background: var(--bg-0);
+  border: 1px solid var(--line-soft);
+}
+
+.lw-angle-seg-bar.compact {
+  margin-bottom: 7px;
+}
+
+.lw-angle-seg-btn {
+  height: 23px;
+  padding: 0 5px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: all 0.12s ease;
+}
+
+.lw-angle-seg-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-3));
+  color: var(--text);
+}
+
+.lw-angle-seg-btn:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+.lw-angle-seg-btn.active {
+  background: color-mix(in srgb, var(--accent) 78%, #0f172a);
+  border-color: var(--accent);
+  color: #ffffff;
+}
+
+.lw-studio-preset-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.lw-studio-preset-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 1px;
+  min-height: 38px;
+  padding: 5px 8px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line-soft);
+  background: var(--bg-2);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease, transform 0.1s ease;
+}
+
+.lw-studio-preset-item:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg-3));
+  border-color: var(--line-focus);
+}
+
+.lw-studio-preset-item:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.lw-studio-preset-item:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.lw-studio-preset-item.active {
+  background: color-mix(in srgb, var(--accent) 78%, #0f172a);
+  border-color: var(--accent);
+  color: #ffffff;
+}
+
+.lw-studio-preset-item.active .lw-studio-preset-name,
+.lw-studio-preset-item.active .lw-studio-preset-meta {
+  color: #ffffff;
+}
+
+.lw-studio-preset-item.is-danger {
+  border-color: color-mix(in srgb, var(--danger) 32%, var(--line-soft));
+}
+
+.lw-studio-preset-item.is-danger .lw-studio-preset-name {
+  color: var(--danger);
+}
+
+.lw-studio-preset-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.25;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lw-studio-preset-meta {
+  font-size: 9.5px;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 5. Keyframe Accordion & Clips List Tags */
+.lw-animation-key-list {
+  margin-top: 8px;
+  padding-top: 7px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.lw-key-list-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-dim);
+  list-style: none;
+}
+
+.lw-key-list-summary::-webkit-details-marker {
+  display: none;
+}
+
+.lw-key-clear-btn {
+  height: 20px;
+  padding: 0 6px;
+  font-size: 9.5px;
+}
+
+.lw-key-empty-hint {
+  width: 100%;
+  padding: 8px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-0);
+  border: 1px dashed var(--line);
+  font-size: 10.5px;
+  color: var(--text-dim);
+  text-align: center;
+  line-height: 1.45;
+}
+
+.lw-key-chip-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 24px;
+  gap: 4px;
+}
+
+.lw-key-chip-pair .btn:first-child {
+  justify-content: flex-start;
+  font-variant-numeric: tabular-nums;
+}
+
+.lw-key-chip-pair .btn.active {
+  background: color-mix(in srgb, var(--accent) 78%, #0f172a);
+  border-color: var(--accent);
+  color: #ffffff;
+}
+
+.lw-clip-head-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.lw-clip-angle-tag {
+  display: inline-flex;
+  align-items: center;
+  height: 15px;
+  padding: 0 4px;
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+.lw-clip-angle-tag.tone-front {
+  background: color-mix(in srgb, #10b981 20%, var(--bg-2));
+  color: #059669;
+}
+
+[data-theme='dark'] .lw-clip-angle-tag.tone-front {
+  color: #34d399;
+}
+
+.lw-clip-angle-tag.tone-diagonal {
+  background: color-mix(in srgb, var(--accent) 20%, var(--bg-2));
+  color: var(--accent);
+}
+
+[data-theme='dark'] .lw-clip-angle-tag.tone-diagonal {
+  color: var(--accent-cyan);
+}
+
+.lw-clip-angle-tag.tone-side {
+  background: color-mix(in srgb, var(--key) 22%, var(--bg-2));
+  color: #b45309;
+}
+
+[data-theme='dark'] .lw-clip-angle-tag.tone-side {
+  color: var(--key);
+}
+
+.lw-clip-angle-tag.tone-back {
+  background: color-mix(in srgb, #a855f7 20%, var(--bg-2));
+  color: #7e22ce;
+}
+
+[data-theme='dark'] .lw-clip-angle-tag.tone-back {
+  color: #c084fc;
+}
+
+.lw-clip-chip-name {
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lw-clip-chip-dur {
+  color: var(--text-faint);
+  font-size: 9.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.lw-clip-rename-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+}
+
+.lw-retarget-cta-btn {
+  margin-left: auto;
+  border-color: color-mix(in srgb, var(--accent) 42%, var(--line));
+  color: var(--accent);
+  font-weight: 600;
+}
+
+[data-theme='dark'] .lw-retarget-cta-btn {
+  color: var(--accent-cyan);
+}
+
+/* 6. Tab "Gió" Wind Weather Studio & 2.5D Harmony Styles */
+.lw-wind-studio-card {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 10px 11px;
+  margin-bottom: 0;
+  border-radius: var(--radius-md);
+}
+
+.lw-wind-studio-card .lw-frame-mode-badge {
+  gap: 5px;
+}
+
+.lw-wind-head-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.lw-wind-weather-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.lw-plant-panel > .pxs-tabs {
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.lw-plant-pattern-sliders {
+  margin-top: 6px;
+}
+
+.lw-plant-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+}
+
+.lw-plant-empty p {
+  margin: 0;
+}
+
+.lw-motion-harmony-card {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-bottom: 0;
+}
+
+.lw-harmony-desc {
+  margin: 0;
+  font-size: 10.5px;
+  line-height: 1.45;
+  color: var(--text-dim);
+}
+
+.lw-harmony-stagger-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 3px;
+  font-size: 10.5px;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.lw-harmony-status {
+  padding: 5px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-0);
+  border: 1px solid var(--line-soft);
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+[data-theme='dark'] .lw-harmony-status {
+  color: var(--accent-cyan);
+}

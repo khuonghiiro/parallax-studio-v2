@@ -1,9 +1,10 @@
-import type { LayerBone } from '@shared/layerRig'
+import type { LayerBone, MotionViewAngle } from '@shared/layerRig'
 import type { Handler, Params } from '../types'
 import { ParamError } from '../types'
 import { bool, num, str, toPlain } from '../params'
 import { getActiveLayerAssemblySession } from '../../ui/layerAssembly/layerAssemblyBridge'
 import { applyRigAction, type RigAction } from '../../ui/layerAssembly/workshopRig'
+import type { LayerComposite } from '../../ui/layerAssembly/types'
 import { parseWorkshopAnimation } from './layerWorkshopAnimationParams'
 import { getStoredComposites } from '../../ui/layerAssembly/layerAssemblyStorage'
 import { setPlantSpineEditorState, getPlantSpineEditorState } from '../../ui/layerAssembly/plantSpineEditorStore'
@@ -26,18 +27,57 @@ function bonePatch(p: Params): Partial<Omit<LayerBone, 'id'>> {
   const patch: Partial<Omit<LayerBone, 'id'>> = {}
   if (p.name !== undefined) patch.name = str(p, 'name', true)
   if (p.parent_id !== undefined) patch.parentId = str(p, 'parent_id') || undefined
-  for (const field of ['x', 'y', 'length', 'angle', 'strength'] as const) if (p[field] !== undefined) patch[field] = num(p, field, true)
+  for (const field of ['x', 'y', 'length', 'angle', 'strength'] as const) {
+    if (p[field] !== undefined) patch[field] = num(p, field, true)
+  }
   if (p.pin !== undefined) patch.pin = bool(p, 'pin')
   return patch
 }
 
-function rigAction(p: Params): RigAction {
+function rigAction(p: Params, composite?: LayerComposite, currentTime = 0): RigAction {
   const animation = parseWorkshopAnimation(p)
   if (animation) return animation
   const action = str(p, 'action', true)
-  if (action === 'add-bone') return { action, bone: { id: str(p, 'bone_id') ?? `bone-${crypto.randomUUID()}`,
-    name: 'Xương mới', x: 0, y: 0, length: 80, angle: -90, ...bonePatch(p) } }
-  if (action === 'settings') return { action, duration: num(p, 'duration'), loop: bool(p, 'loop') }
+  if (action === 'add-bone') {
+    return {
+      action,
+      bone: {
+        id: str(p, 'bone_id') ?? `bone-${crypto.randomUUID()}`,
+        name: 'Xương mới',
+        x: 0,
+        y: 0,
+        length: 80,
+        angle: -90,
+        ...bonePatch(p)
+      }
+    }
+  }
+  if (action === 'snap-joints') return { action }
+  if (action === 'hold-frames') {
+    const time = num(p, 'time') ?? currentTime
+    const fps = Math.max(4, Math.min(120, num(p, 'fps') ?? composite?.rig?.fps ?? 30))
+    const holdFrames = num(p, 'hold_frames')
+    const holdSeconds =
+      num(p, 'hold_seconds') ?? (holdFrames !== undefined ? holdFrames / fps : 3 / fps)
+    if (!Number.isFinite(holdSeconds) || holdSeconds <= 0) {
+      throw new ParamError('hold_seconds or hold_frames must be positive')
+    }
+    return {
+      action,
+      time,
+      holdSeconds,
+      boneId: str(p, 'bone_id') || undefined
+    }
+  }
+  if (action === 'settings') {
+    return {
+      action,
+      duration: num(p, 'duration'),
+      loop: bool(p, 'loop'),
+      fps: num(p, 'fps'),
+      scaleKeys: bool(p, 'scale_keys')
+    }
+  }
   if (action === 'apply-template') {
     const template = (str(p, 'template') ?? 'humanoid') as any
     const validTemplates = ['humanoid', 'humanoid-full', 'hand-detailed', 'foot-detailed', 'simple-chain']
@@ -48,11 +88,16 @@ function rigAction(p: Params): RigAction {
     const preset = (str(p, 'preset') ?? 'walk') as any
     const validPresets = ['walk', 'idle', 'wave', 'bow', 'run', 'jump', 'fall', 'land', 'action', 'sway', 'hand-clench', 'foot-roll']
     if (!validPresets.includes(preset)) throw new ParamError(`preset must be one of: ${validPresets.join(', ')}`)
+    const viewAngleRaw = str(p, 'view_angle')
+    if (viewAngleRaw !== undefined && !['front', 'diagonal', 'side', 'back'].includes(viewAngleRaw)) {
+      throw new ParamError('view_angle must be one of: front, diagonal, side, back')
+    }
     return {
       action,
       preset,
       asNewClip: bool(p, 'as_new_clip') ?? false,
-      clipName: str(p, 'clip_name') || undefined
+      clipName: str(p, 'clip_name') || undefined,
+      viewAngle: viewAngleRaw as MotionViewAngle | undefined
     }
   }
   if (action === 'clear-animation') return { action }
@@ -64,8 +109,8 @@ function rigAction(p: Params): RigAction {
     const baseLm =
       scale !== undefined
         ? createScaledLandmarks(scale)
-        : getActiveLayerAssemblySession()
-          ? autoDetectLandmarksFromComposite(getActiveLayerAssemblySession()!.getComposite())
+        : composite
+          ? autoDetectLandmarksFromComposite(composite)
           : createScaledLandmarks(1)
     const landmarks = p.landmarks && typeof p.landmarks === 'object' ? { ...baseLm, ...(p.landmarks as any) } : baseLm
     const bones = Array.isArray(p.bones) ? (p.bones as LayerBone[]) : buildHumanoidBonesFromLandmarks(landmarks)
@@ -89,15 +134,16 @@ function rigAction(p: Params): RigAction {
     }
   }
   if (action === 'add-clip') {
-    const clip = p.clip && typeof p.clip === 'object'
-      ? (p.clip as any)
-      : {
-          id: str(p, 'clip_id') ?? `clip-${Date.now().toString(36)}`,
-          name: str(p, 'name') ?? 'Động tác mới',
-          duration: num(p, 'duration') ?? 2.0,
-          loop: bool(p, 'loop') ?? true,
-          tracks: (p.tracks as any) || {}
-        }
+    const clip =
+      p.clip && typeof p.clip === 'object'
+        ? (p.clip as any)
+        : {
+            id: str(p, 'clip_id') ?? `clip-${Date.now().toString(36)}`,
+            name: str(p, 'name') ?? 'Động tác mới',
+            duration: num(p, 'duration') ?? 2.0,
+            loop: bool(p, 'loop') ?? true,
+            tracks: (p.tracks as any) || {}
+          }
     return { action, clip }
   }
   if (action === 'switch-clip') {
@@ -148,7 +194,9 @@ function rigAction(p: Params): RigAction {
     }
   }
   if (action === 'bind') {
-    if (!Array.isArray(p.layer_ids) || p.layer_ids.some((id) => typeof id !== 'string')) throw new ParamError('layer_ids must be a string array')
+    if (!Array.isArray(p.layer_ids) || p.layer_ids.some((id) => typeof id !== 'string')) {
+      throw new ParamError('layer_ids must be a string array')
+    }
     const mode = str(p, 'binding_mode') ?? 'rigid'
     if (mode !== 'rigid' && mode !== 'soft') throw new ParamError('binding_mode must be rigid or soft')
     return { action, boneId: str(p, 'bone_id') || undefined, layerIds: p.layer_ids, mode }
@@ -166,15 +214,23 @@ function rigAction(p: Params): RigAction {
 export const layerWorkshopRigCommands: Record<string, Handler> = {
   layer_assembly_rig: (p) => {
     const session = activeWorkshop()
-    const action = rigAction(p)
-    const next = applyRigAction(session.getComposite(), action)
+    const current = session.getComposite()
+    const action = rigAction(p, current, session.getTime())
+    const next = applyRigAction(current, action)
     session.setComposite(next)
-    return { ok: true, boneId: action.action === 'add-bone' ? action.bone.id : 'boneId' in action ? action.boneId : null, composite: toPlain(next) }
+    return {
+      ok: true,
+      boneId: action.action === 'add-bone' ? action.bone.id : 'boneId' in action ? (action.boneId ?? null) : null,
+      composite: toPlain(next)
+    }
   },
   set_layer_assembly_playback: (p) => {
     const session = activeWorkshop()
-    const time = num(p, 'time'), playing = bool(p, 'playing')
-    if (time !== undefined && (time < 0 || time > (session.getComposite().rig?.duration ?? 4))) throw new ParamError('Time outside clip duration')
+    const time = num(p, 'time')
+    const playing = bool(p, 'playing')
+    if (time !== undefined && (time < 0 || time > (session.getComposite().rig?.duration ?? 4))) {
+      throw new ParamError('Time outside clip duration')
+    }
     if (time !== undefined) session.setTime(time)
     if (playing !== undefined) session.setIsPlaying(playing)
     if (session.getComposite().rig) session.setTab?.('animation')

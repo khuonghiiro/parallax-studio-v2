@@ -5,6 +5,7 @@ import type { AssemblyWorkspaceView } from './LayerAssemblyDialog'
 import { LayerAssemblyViewport } from './LayerAssemblyViewport'
 import { LayerAssembly3DViewport } from './LayerAssembly3DViewport'
 import { LayerAssemblyTransportBar } from './LayerAssemblyTransportBar'
+import { useResponsiveViewport } from '../primitives'
 import { IconCube, IconImage } from '../icons'
 import { evaluateRig, transformRigLayer } from '../../engine/layerRig'
 import { ensureRigClips, extraSoftBoneIdsForLayer } from './workshopRig'
@@ -53,6 +54,8 @@ export function WorkshopWorkspace({
   const splitContainerRef = useRef<HTMLDivElement | null>(null)
   const prevTabRef = useRef(tab)
   const rigTool = useRigToolStore()
+  const { width: viewportWidth } = useResponsiveViewport()
+  const isStackedSplit = view === 'split' && viewportWidth <= 820
 
   const brushMode = useCallback(
     (editing: boolean) => {
@@ -247,8 +250,9 @@ export function WorkshopWorkspace({
       const container = splitContainerRef.current
       if (!container) return
       const rect = container.getBoundingClientRect()
-      if (rect.width <= 100) return
-      const raw = (ev.clientX - rect.left) / rect.width
+      const span = isStackedSplit ? rect.height : rect.width
+      if (span <= 100) return
+      const raw = isStackedSplit ? (ev.clientY - rect.top) / span : (ev.clientX - rect.left) / span
       onChangeCenterSplitRatio(Math.max(0.2, Math.min(0.8, Number(raw.toFixed(3)))))
     }
     const onUp = () => {
@@ -275,7 +279,10 @@ export function WorkshopWorkspace({
 
   return (
     <div className="layer-workshop-center-area">
-      <div ref={splitContainerRef} className="layer-workshop-split-container">
+      <div
+        ref={splitContainerRef}
+        className={`layer-workshop-split-container${isStackedSplit ? ' is-stacked' : ''}`}
+      >
         {view !== '3d' && (
           <div
             className="layer-workshop-split-pane left-pane"
@@ -340,12 +347,12 @@ export function WorkshopWorkspace({
         {view === 'split' && (
           <div
             role="separator"
-            aria-orientation="vertical"
+            aria-orientation={isStackedSplit ? 'horizontal' : 'vertical'}
             aria-label="Co dãn tỷ lệ khung 2D và 3D"
-            className={`lw-col-splitter${resizingSplit ? ' active' : ''}`}
+            className={`lw-col-splitter${isStackedSplit ? ' is-horizontal' : ''}${resizingSplit ? ' active' : ''}`}
             onPointerDown={handleStartSplitDrag}
             onDoubleClick={() => onResetCenterSplitRatio?.()}
-            title="Kéo trái/phải để co dãn khung 2D và 3D (Nháy đúp để về 50/50)"
+            title="Kéo để co dãn khung 2D và 3D (Nháy đúp để về 50/50)"
           >
             <span className="lw-col-splitter-grip" />
           </div>

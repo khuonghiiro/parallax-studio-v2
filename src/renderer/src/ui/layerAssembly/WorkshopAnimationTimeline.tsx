@@ -51,9 +51,11 @@ export function WorkshopAnimationTimeline(props: Props) {
 }
 
 function AnimationTimeline({ state, playback, boneId, selectBone, rig }: Props & { rig: LayerRig }) {
-  const fps = useEditor((s) => s.project.comp.fps) || 30
+  const projectFps = useEditor((s) => s.project.comp.fps) || 30
+  const fps = rig.fps || projectFps
   const assist = useAnimAssist()
   const [zoom, setZoom] = useState(1)
+  const [collapsed, setCollapsed] = useState(false)
   const [error, setError] = useState('')
 
   const seek = (time: number) => {
@@ -125,6 +127,13 @@ function AnimationTimeline({ state, playback, boneId, selectBone, rig }: Props &
     }
   }
 
+  const holdThreeFrames = () => {
+    const holdSeconds = Number((3 / Math.max(4, fps)).toFixed(4))
+    if (run({ action: 'hold-frames', time: playback.time, holdSeconds, boneId: boneId ?? undefined })) {
+      playback.setTime(Math.min(120, Number((playback.time + holdSeconds).toFixed(4))))
+    }
+  }
+
   const applyQuickEasing = (easing: BoneEasing) => {
     if (!boneId) return
     if (selectedKey) {
@@ -142,11 +151,12 @@ function AnimationTimeline({ state, playback, boneId, selectBone, rig }: Props &
   }
 
   const playheadPct = Math.max(0, Math.min(100, (playback.time / rig.duration) * 100))
+  const totalFrames = Math.max(2, Math.round(rig.duration * fps))
   const rulerTicks = 8
 
   return (
     <section
-      className="lw-animation-timeline"
+      className={`lw-animation-timeline${collapsed ? ' is-collapsed' : ''}`}
       data-mcp-region="layer_assembly_dopesheet"
       aria-label="Dope Sheet Timeline từng xương"
       tabIndex={0}
@@ -154,11 +164,18 @@ function AnimationTimeline({ state, playback, boneId, selectBone, rig }: Props &
         if (e.key === 'Escape') {
           e.stopPropagation()
           drag.cancel()
-        }
-        if (e.key === 'Delete' || e.key === 'Backspace') {
+        } else if (e.key === 'Delete' || e.key === 'Backspace' || e.key === 'F7') {
           e.preventDefault()
           e.stopPropagation()
           remove()
+        } else if (e.key === 'F6') {
+          e.preventDefault()
+          e.stopPropagation()
+          addKey()
+        } else if (e.key === 'F5') {
+          e.preventDefault()
+          e.stopPropagation()
+          holdThreeFrames()
         }
       }}
     >
@@ -201,7 +218,7 @@ function AnimationTimeline({ state, playback, boneId, selectBone, rig }: Props &
             ◆▶
           </button>
           <span className="lw-animation-timecode">
-            F{Math.round(playback.time * fps)} · {playback.time.toFixed(2)}s
+            F{Math.round(playback.time * fps)}/{totalFrames} · {playback.time.toFixed(2)}s
           </span>
         </div>
 
@@ -211,16 +228,24 @@ function AnimationTimeline({ state, playback, boneId, selectBone, rig }: Props &
             className="btn xs primary"
             disabled={!boneId}
             onClick={addKey}
-            title="Đặt Keyframe tại đầu phát hiện tại (F6)"
+            title="Đặt Keyframe tại đầu phát hiện tại (Adobe Animate F6)"
           >
             + Key
           </button>
           <button
             type="button"
             className="btn xs"
+            onClick={holdThreeFrames}
+            title="Giữ nguyên tư thế thêm +3 Frame và đẩy các key sau lùi lại (Adobe Animate F5)"
+          >
+            +3F
+          </button>
+          <button
+            type="button"
+            className="btn xs"
             disabled={!selectedKey}
             onClick={remove}
-            title="Xóa Keyframe đang đứng (Delete)"
+            title="Xóa Keyframe đang đứng (F7 / Delete)"
           >
             Xóa
           </button>
@@ -289,6 +314,14 @@ function AnimationTimeline({ state, playback, boneId, selectBone, rig }: Props &
               +
             </button>
           </div>
+          <button
+            type="button"
+            className="btn xs"
+            onClick={() => setCollapsed((v) => !v)}
+            title={collapsed ? 'Mở rộng bảng rãnh Dope Sheet' : 'Thu gọn bảng rãnh Dope Sheet để nhường không gian sân khấu'}
+          >
+            {collapsed ? '▴ Rãnh' : '▾ Gọn'}
+          </button>
         </div>
       </div>
 
@@ -298,139 +331,140 @@ function AnimationTimeline({ state, playback, boneId, selectBone, rig }: Props &
         </div>
       )}
 
-      <div className="lw-animation-track-scroll">
-        <div className="lw-animation-track-content" style={{ width: `${zoom * 100}%` }}>
-          {/* Thước Frame + Giây (Dual Frame & Timecode Ruler) */}
-          <div className="lw-animation-track-row lw-animation-ruler-row">
-            <span className="lw-animation-track-name lw-ruler-corner">
-              KHỚP ({bones.length}/{rig.bones.length}) · {fps}fps
-            </span>
-            <div className="lw-animation-track-lane lw-animation-ruler" onPointerDown={scrub} onPointerMove={scrub}>
-              {Array.from({ length: rulerTicks + 1 }, (_, i) => {
-                const t = (rig.duration * i) / rulerTicks
-                const f = Math.round(t * fps)
-                return (
-                  <span key={i} className="lw-ruler-tick" style={{ left: `${(i / rulerTicks) * 100}%` }}>
-                    <b>F{f}</b>
-                    <small>{t.toFixed(1)}s</small>
-                  </span>
-                )
-              })}
-              <span className="lw-animation-playhead-cap" style={{ left: `${playheadPct}%` }} />
-            </div>
-          </div>
-
-          {/* Hàng tổng hợp tư thế toàn thân (Moho Consolidated Master Channel: TẤT CẢ KHỚP) */}
-          <div className="lw-animation-track-row lw-master-pose-row">
-            <span className="lw-animation-track-name lw-master-track-label" title="Tổng hợp mọi mốc tư thế của toàn bộ khung xương">
-              <span>◆ TẤT CẢ KHỚP</span>
-              <small>{masterPoseTimes.length}</small>
-            </span>
-            <div className="lw-animation-track-lane lw-master-track-lane" onPointerDown={scrub} onPointerMove={scrub}>
-              <span className="lw-animation-playhead" style={{ left: `${playheadPct}%` }} />
-              {masterPoseTimes.map((t) => {
-                const isAtPlayhead = sameKeyTime(t, playback.time)
-                return (
-                  <button
-                    key={`master-${t}`}
-                    type="button"
-                    className={`lw-animation-key master-key${isAtPlayhead ? ' active' : ''}`}
-                    style={{ left: `${(t / rig.duration) * 100}%` }}
-                    title={`Tư thế toàn thân tại F${Math.round(t * fps)} (${t.toFixed(2)}s) — Bấm để nhảy tới`}
-                    onPointerDown={(e) => {
-                      e.stopPropagation()
-                      seek(t)
-                    }}
-                  />
-                )
-              })}
-            </div>
-          </div>
-
-          {/* Từng hàng xương kèm thanh khoảng nội suy Tween Span kiểu Adobe Animate */}
-          {bones.map((bone) => {
-            const track = rig.tracks[bone.id] ?? []
-            const side = classifyBoneSide(bone)
-            const depth = Math.min(5, depthMap.get(bone.id) ?? 0)
-            const spans = computeTweenSpans(track, rig.duration)
-
-            return (
-              <div
-                className={`lw-animation-track-row side-${side}${bone.id === boneId ? ' selected' : ''}`}
-                key={bone.id}
-              >
-                <button
-                  type="button"
-                  className="lw-animation-track-name"
-                  title={bone.name}
-                  style={{ paddingLeft: `${8 + depth * 9}px` }}
-                  onClick={() => selectBone(bone.id)}
-                >
-                  <span className="lw-dope-bone-title">
-                    <span className={`lw-bone-side-dot side-${side}`} />
-                    <span className="lw-dope-bone-text">{bone.name}</span>
-                  </span>
-                  <small>{track.length}</small>
-                </button>
-                <div
-                  className="lw-animation-track-lane"
-                  onPointerDown={(e) => {
-                    selectBone(bone.id)
-                    scrub(e)
-                  }}
-                  onPointerMove={scrub}
-                >
-                  {/* Adobe Animate Tween Span Bars */}
-                  {spans.map((span) => (
-                    <span
-                      key={`span-${span.startTime}`}
-                      className={`lw-tween-span kind-${span.kind}`}
-                      style={{ left: `${span.leftPct}%`, width: `${span.widthPct}%` }}
-                      title={`Tween ${span.easing}: ${span.startTime.toFixed(2)}s → ${span.endTime.toFixed(2)}s`}
-                    />
-                  ))}
-
-                  <span className="lw-animation-playhead" style={{ left: `${playheadPct}%` }} />
-
-                  {track.map((key) => {
-                    const ghost =
-                      drag.ghost?.boneId === bone.id && sameKeyTime(drag.ghost.time, key.time) ? drag.ghost : null
-                    const isActive = bone.id === boneId && sameKeyTime(key.time, playback.time)
-                    const easeClass =
-                      key.easing === 'hold' ? 'ease-hold' : key.easing === 'linear' ? 'ease-linear' : 'ease-motion'
-                    return (
-                      <button
-                        key={key.time}
-                        type="button"
-                        className={`lw-animation-key ${easeClass}${isActive ? ' active' : ''}${ghost ? ' dragging' : ''}`}
-                        data-bone-id={bone.id}
-                        data-key-time={key.time}
-                        aria-label={`${bone.name} · ${key.time.toFixed(4)}s · ${key.easing}`}
-                        title={`${bone.name} · F${Math.round(key.time * fps)} (${key.time.toFixed(3)}s) · ${key.easing} · Kéo để dời key, Alt bỏ bắt frame`}
-                        style={{ left: `${((ghost?.target ?? key.time) / rig.duration) * 100}%` }}
-                        onPointerDown={(e) => drag.start(e, { boneId: bone.id, time: key.time })}
-                        onPointerMove={(e) => {
-                          e.stopPropagation()
-                          drag.move(e)
-                        }}
-                        onPointerUp={drag.end}
-                        onPointerCancel={drag.cancel}
-                        onLostPointerCapture={drag.cancel}
-                        onClick={(e) => {
-                          if (e.detail === 0) {
-                            selectBone(bone.id)
-                            seek(key.time)
-                          }
-                        }}
-                      />
-                    )
-                  })}
-                </div>
+      {!collapsed && (
+        <div className="lw-animation-track-scroll">
+          <div className="lw-animation-track-content" style={{ width: `${zoom * 100}%` }}>
+            {/* Thước Frame + Giây (Dual Frame & Timecode Ruler) */}
+            <div className="lw-animation-track-row lw-animation-ruler-row">
+              <span className="lw-animation-track-name lw-ruler-corner">
+                KHỚP ({bones.length}/{rig.bones.length}) · {fps}fps
+              </span>
+              <div className="lw-animation-track-lane lw-animation-ruler" onPointerDown={scrub} onPointerMove={scrub}>
+                {Array.from({ length: rulerTicks + 1 }, (_, i) => {
+                  const t = (rig.duration * i) / rulerTicks
+                  const f = Math.round(t * fps)
+                  return (
+                    <span key={i} className="lw-ruler-tick" style={{ left: `${(i / rulerTicks) * 100}%` }}>
+                      <b>F{f}</b>
+                      <small>{t.toFixed(1)}s</small>
+                    </span>
+                  )
+                })}
+                <span className="lw-animation-playhead-cap" style={{ left: `${playheadPct}%` }} />
               </div>
-            )
-          })}
+            </div>
+
+            {/* Hàng tổng hợp tư thế toàn thân (Moho Consolidated Master Channel: TẤT CẢ KHỚP) */}
+            <div className="lw-animation-track-row lw-master-pose-row">
+              <span className="lw-animation-track-name lw-master-track-label" title="Tổng hợp mọi mốc tư thế của toàn bộ khung xương">
+                <span>◆ TẤT CẢ KHỚP</span>
+                <small>{masterPoseTimes.length}</small>
+              </span>
+              <div className="lw-animation-track-lane lw-master-track-lane" onPointerDown={scrub} onPointerMove={scrub}>
+                <span className="lw-animation-playhead" style={{ left: `${playheadPct}%` }} />
+                {masterPoseTimes.map((t) => {
+                  const isAtPlayhead = sameKeyTime(t, playback.time)
+                  return (
+                    <button
+                      key={`master-${t}`}
+                      type="button"
+                      className={`lw-animation-key master-key${isAtPlayhead ? ' active' : ''}`}
+                      style={{ left: `${(t / rig.duration) * 100}%` }}
+                      title={`Tư thế toàn thân tại F${Math.round(t * fps)} (${t.toFixed(2)}s) — Bấm để nhảy tới`}
+                      onPointerDown={(e) => {
+                        e.stopPropagation()
+                        seek(t)
+                      }}
+                    />
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Từng hàng xương kèm thanh khoảng nội suy Tween Span kiểu Adobe Animate */}
+            {bones.map((bone) => {
+              const track = rig.tracks[bone.id] ?? []
+              const side = classifyBoneSide(bone)
+              const depth = Math.min(5, depthMap.get(bone.id) ?? 0)
+              const spans = computeTweenSpans(track, rig.duration)
+
+              return (
+                <div
+                  className={`lw-animation-track-row side-${side}${bone.id === boneId ? ' selected' : ''}`}
+                  key={bone.id}
+                >
+                  <button
+                    type="button"
+                    className="lw-animation-track-name"
+                    title={bone.name}
+                    style={{ paddingLeft: `${8 + depth * 9}px` }}
+                    onClick={() => selectBone(bone.id)}
+                  >
+                    <span className="lw-dope-bone-title">
+                      <span className={`lw-bone-side-dot side-${side}`} />
+                      <span className="lw-dope-bone-text">{bone.name}</span>
+                    </span>
+                    <small>{track.length}</small>
+                  </button>
+                  <div
+                    className="lw-animation-track-lane"
+                    onPointerDown={(e) => {
+                      selectBone(bone.id)
+                      scrub(e)
+                    }}
+                    onPointerMove={scrub}
+                  >
+                    {spans.map((span) => (
+                      <span
+                        key={`span-${span.startTime}`}
+                        className={`lw-tween-span kind-${span.kind}`}
+                        style={{ left: `${span.leftPct}%`, width: `${span.widthPct}%` }}
+                        title={`Tween ${span.easing}: ${span.startTime.toFixed(2)}s → ${span.endTime.toFixed(2)}s`}
+                      />
+                    ))}
+
+                    <span className="lw-animation-playhead" style={{ left: `${playheadPct}%` }} />
+
+                    {track.map((key) => {
+                      const ghost =
+                        drag.ghost?.boneId === bone.id && sameKeyTime(drag.ghost.time, key.time) ? drag.ghost : null
+                      const isActive = bone.id === boneId && sameKeyTime(key.time, playback.time)
+                      const easeClass =
+                        key.easing === 'hold' ? 'ease-hold' : key.easing === 'linear' ? 'ease-linear' : 'ease-motion'
+                      return (
+                        <button
+                          key={key.time}
+                          type="button"
+                          className={`lw-animation-key ${easeClass}${isActive ? ' active' : ''}${ghost ? ' dragging' : ''}`}
+                          data-bone-id={bone.id}
+                          data-key-time={key.time}
+                          aria-label={`${bone.name} · ${key.time.toFixed(4)}s · ${key.easing}`}
+                          title={`${bone.name} · F${Math.round(key.time * fps)} (${key.time.toFixed(3)}s) · ${key.easing} · Kéo để dời key, Alt bỏ bắt frame`}
+                          style={{ left: `${((ghost?.target ?? key.time) / rig.duration) * 100}%` }}
+                          onPointerDown={(e) => drag.start(e, { boneId: bone.id, time: key.time })}
+                          onPointerMove={(e) => {
+                            e.stopPropagation()
+                            drag.move(e)
+                          }}
+                          onPointerUp={drag.end}
+                          onPointerCancel={drag.cancel}
+                          onLostPointerCapture={drag.cancel}
+                          onClick={(e) => {
+                            if (e.detail === 0) {
+                              selectBone(bone.id)
+                              seek(key.time)
+                            }
+                          }}
+                        />
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
         </div>
-      </div>
+      )}
     </section>
   )
 }

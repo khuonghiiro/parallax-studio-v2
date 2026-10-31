@@ -75,4 +75,22 @@ describe('workshop animation commands', () => {
     expect(() => command({ action: 'set-interpolation', bone_id: 'root', time: 0,
       easing: 'bezier', bezier: [-1, 0, 1, 1] })).toThrow()
   })
+  it('supports Moho/Adobe Animate fps, scale_keys, hold-frames, snap-joints and view_angle presets via MCP', () => {
+    command({ action: 'settings', fps: 24, duration: 4, scale_keys: true })
+    expect(history.current.rig?.fps).toBe(24)
+    expect(history.current.rig?.duration).toBe(4)
+    expect(keys()[1].time).toBeCloseTo(4, 3)
+
+    command({ action: 'hold-frames', time: 0, hold_frames: 6, fps: 24 })
+    expect(history.current.rig?.duration).toBeCloseTo(4.25, 3)
+
+    command({ action: 'add-bone', bone_id: 'child', parent_id: 'root', x: 95, y: 12, length: 45, angle: 0 })
+    command({ action: 'snap-joints' })
+    const rootBone = history.current.rig!.bones.find((b) => b.id === 'root')!
+    expect(rootBone.length).toBeCloseTo(Math.hypot(95, 12), 1)
+
+    command({ action: 'apply-template', template: 'humanoid' })
+    command({ action: 'apply-preset-animation', preset: 'bow', view_angle: 'front' })
+    expect(history.current.rig?.tracks['bone-torso']?.[1]?.rotation).toBe(0)
+  })
 })

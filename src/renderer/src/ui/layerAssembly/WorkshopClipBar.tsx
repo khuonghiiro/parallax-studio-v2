@@ -63,13 +63,11 @@ export function WorkshopClipBar({
     setIsRenaming(false)
   }
 
-  const hasAnyKeyframes =
-    clips.length > 1 || Object.keys(activeClip.tracks || {}).length > 0
+  const hasAnyKeyframes = clips.length > 1 || Object.keys(activeClip.tracks || {}).length > 0
 
   const filteredClips = clips.filter((c) => {
     if (angleFilter === 'all') return true
     if (c.viewAngle) return c.viewAngle === angleFilter
-    // Heuristic dựa theo tên nếu chưa có field viewAngle (kiểm tra 90°/180°/45° trước 0°)
     if (angleFilter === 'side') return c.name.includes('90°') || c.name.includes('Ngang')
     if (angleFilter === 'diagonal') return c.name.includes('45°') || c.name.includes('Chéo')
     if (angleFilter === 'back') return c.name.includes('180°') || c.name.includes('Sau lưng')
@@ -77,66 +75,63 @@ export function WorkshopClipBar({
     return true
   })
 
-  const getAngleBadge = (clip: AnimationClip) => {
+  const getAngleBadge = (clip: AnimationClip): { text: string; tone: 'front' | 'diagonal' | 'side' | 'back' } | null => {
     const ang = clip.viewAngle
-    if (ang === 'side') return { text: '90°', color: 'var(--key)' }
-    if (ang === 'diagonal') return { text: '45°', color: 'var(--accent-cyan)' }
-    if (ang === 'back') return { text: '180°', color: '#c084fc' }
-    if (ang === 'front') return { text: '0°', color: 'var(--accent)' }
-    // Fallback nếu không có trường viewAngle
-    if (clip.name.includes('90°') || clip.name.includes('Ngang')) return { text: '90°', color: 'var(--key)' }
-    if (clip.name.includes('45°') || clip.name.includes('Chéo')) return { text: '45°', color: 'var(--accent-cyan)' }
-    if (clip.name.includes('180°') || clip.name.includes('Sau lưng')) return { text: '180°', color: '#c084fc' }
-    if (clip.name.includes('Chính diện') || /(?:^|[^\d])0°/.test(clip.name)) return { text: '0°', color: 'var(--accent)' }
+    if (ang === 'side') return { text: '90°', tone: 'side' }
+    if (ang === 'diagonal') return { text: '45°', tone: 'diagonal' }
+    if (ang === 'back') return { text: '180°', tone: 'back' }
+    if (ang === 'front') return { text: '0°', tone: 'front' }
+    if (clip.name.includes('90°') || clip.name.includes('Ngang')) return { text: '90°', tone: 'side' }
+    if (clip.name.includes('45°') || clip.name.includes('Chéo')) return { text: '45°', tone: 'diagonal' }
+    if (clip.name.includes('180°') || clip.name.includes('Sau lưng')) return { text: '180°', tone: 'back' }
+    if (clip.name.includes('Chính diện') || /(?:^|[^\d])0°/.test(clip.name)) return { text: '0°', tone: 'front' }
     return null
   }
 
   return (
-    <div className="lw-clip-section">
-      <div className="lw-clip-header">
-        <span>🎬 Động tác hoạt ảnh ({clips.length})</span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+    <div className="lw-card-section lw-clip-section">
+      <div className="lw-card-header">
+        <span className="lw-card-title">
+          <span>Danh sách Clips</span>
+          <span className="lw-card-badge">{clips.length}</span>
+        </span>
+        <div className="lw-clip-head-actions">
           {hasAnyKeyframes && (
             <button
               type="button"
-              className="btn xs"
+              className="btn xs lw-muted-danger-btn"
               onClick={handleDeleteAll}
               title="Xoá hết toàn bộ các động tác hoạt ảnh để đưa nhân vật về tư thế tĩnh (Ctrl+Z để hoàn tác)"
-              style={{
-                fontSize: '10.5px',
-                padding: '3px 7px',
-                color: 'var(--danger, #ef4444)'
-              }}
             >
-              <IconTrash width={10} height={10} /> Xoá hết
+              <IconTrash width={10} height={10} />
+              <span>Xoá hết</span>
             </button>
           )}
           <button
             type="button"
             className="btn xs primary"
             onClick={() => setIsNewMotionModalOpen(true)}
-            title="Mở thư viện mẫu người & xương Mixamo để gắn điểm khớp và áp động tác"
-            style={{ fontSize: '11px', padding: '3px 8px' }}
+            title="Mở Studio Mixamo để gắn điểm khớp và tạo bộ động tác mới"
           >
-            <IconPlus width={10} height={10} /> Thêm động tác
+            <IconPlus width={10} height={10} />
+            <span>Studio Mixamo</span>
           </button>
         </div>
       </div>
 
       {/* Thanh lọc nhanh theo góc nhìn */}
-      <div style={{ display: 'flex', gap: '3px', marginBottom: '6px' }}>
+      <div className="lw-angle-seg-bar compact" role="group" aria-label="Lọc clip theo góc nhìn">
         {[
           { id: 'all', label: 'Tất cả' },
-          { id: 'front', label: '🧭 0°' },
-          { id: 'diagonal', label: '📐 45°' },
-          { id: 'side', label: '↔️ 90°' }
+          { id: 'front', label: '0° Chính diện' },
+          { id: 'diagonal', label: '45° Chéo' },
+          { id: 'side', label: '90° Ngang' }
         ].map((f) => (
           <button
             key={f.id}
             type="button"
-            className={`btn xs ${angleFilter === f.id ? 'primary' : 'ghost'}`}
-            style={{ fontSize: '9.5px', padding: '1px 6px', height: '19px' }}
-            onClick={() => setAngleFilter(f.id as any)}
+            className={`lw-angle-seg-btn${angleFilter === f.id ? ' active' : ''}`}
+            onClick={() => setAngleFilter(f.id as MotionViewAngle | 'all')}
           >
             {f.label}
           </button>
@@ -152,37 +147,23 @@ export function WorkshopClipBar({
             <button
               key={clip.id}
               type="button"
-              className={`lw-clip-chip ${isActive ? 'active' : ''}`}
+              className={`lw-clip-chip${isActive ? ' active' : ''}`}
               onClick={() => handleSelectClip(clip.id)}
-              title={`${clip.name} (Thời lượng: ${clip.duration}s)`}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+              title={`${clip.name} · ${clip.duration.toFixed(2)}s`}
             >
-              {badge && (
-                <span
-                  style={{
-                    fontSize: '9px',
-                    fontWeight: 700,
-                    padding: '0 3px',
-                    borderRadius: '2px',
-                    background: 'rgba(0, 0, 0, 0.25)',
-                    color: badge.color
-                  }}
-                >
-                  {badge.text}
-                </span>
-              )}
-              <span>{clip.name}</span>
+              {badge && <span className={`lw-clip-angle-tag tone-${badge.tone}`}>{badge.text}</span>}
+              <span className="lw-clip-chip-name">{clip.name}</span>
+              <small className="lw-clip-chip-dur">{clip.duration.toFixed(1)}s</small>
             </button>
           )
         })}
         {filteredClips.length === 0 && (
-          <div style={{ fontSize: '10.5px', color: 'var(--text-faint)', padding: '6px 0' }}>
-            Không có động tác nào thuộc góc này. Bấm &ldquo;+ Thêm động tác&rdquo; để tạo.
+          <div className="lw-key-empty-hint">
+            Chưa có động tác thuộc góc này. Chọn mẫu động tác bên dưới hoặc mở &ldquo;Studio Mixamo&rdquo;.
           </div>
         )}
       </div>
 
-      {/* Modal Tạo động tác mới + Gắn điểm xương Mixamo */}
       <WorkshopNewMotionModal
         isOpen={isNewMotionModalOpen}
         onClose={() => setIsNewMotionModalOpen(false)}
@@ -204,14 +185,13 @@ export function WorkshopClipBar({
       {/* Thanh công cụ quản lý clip đang active */}
       <div className="lw-clip-toolbar">
         {isRenaming ? (
-          <div style={{ display: 'flex', gap: '4px', width: '100%' }}>
+          <div className="lw-clip-rename-row">
             <input
               type="text"
-              className="input-text xs"
+              className="lw-field-input"
               value={renameValue}
               onChange={(e) => setRenameValue(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSaveRename()}
-              style={{ flex: 1, fontSize: '11px', padding: '2px 6px' }}
               autoFocus
             />
             <button type="button" className="btn xs primary" onClick={handleSaveRename}>
@@ -223,45 +203,30 @@ export function WorkshopClipBar({
           </div>
         ) : (
           <>
-            <button
-              type="button"
-              className="btn xs"
-              onClick={handleStartRename}
-              title="Đổi tên động tác này"
-              style={{ fontSize: '10.5px', padding: '2px 6px' }}
-            >
-              <IconPen width={10} height={10} /> Đổi tên
+            <button type="button" className="btn xs" onClick={handleStartRename} title="Đổi tên động tác này">
+              <IconPen width={10} height={10} />
+              <span>Đổi tên</span>
+            </button>
+            <button type="button" className="btn xs" onClick={handleDuplicateCurrent} title="Nhân bản động tác này">
+              <IconCopy width={10} height={10} />
+              <span>Nhân bản</span>
             </button>
             <button
               type="button"
-              className="btn xs"
-              onClick={handleDuplicateCurrent}
-              title="Nhân bản động tác này"
-              style={{ fontSize: '10.5px', padding: '2px 6px' }}
-            >
-              <IconCopy width={10} height={10} /> Nhân bản
-            </button>
-            <button
-              type="button"
-              className="btn xs"
+              className="btn xs lw-muted-danger-btn"
               onClick={handleDelete}
-              title="Xóa động tác đang chọn (nếu chỉ còn 1 động tác sẽ xoá sạch keyframe về tư thế tĩnh)"
-              style={{
-                fontSize: '10.5px',
-                padding: '2px 6px',
-                color: 'var(--danger, #ef4444)'
-              }}
+              title="Xóa động tác đang chọn"
             >
-              <IconTrash width={10} height={10} /> Xoá
+              <IconTrash width={10} height={10} />
+              <span>Xoá</span>
             </button>
             <button
               type="button"
-              className="btn xs secondary"
+              className="btn xs lw-retarget-cta-btn"
               onClick={onOpenRetarget}
               title="Kế thừa góc xoay và vị trí chuyển động từ nhân vật/mẫu khác"
-              style={{ fontSize: '10.5px', padding: '2px 7px', marginLeft: 'auto', color: 'var(--accent)' }}
             >
-              🔄 Kế thừa động tác
+              <span>⇄ Kế thừa</span>
             </button>
           </>
         )}

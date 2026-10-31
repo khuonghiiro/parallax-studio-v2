@@ -570,3 +570,28 @@ Flags (PowerShell/CMD):
 ```text
 pnpm pxs call set_part_cue --node_id part-child-id --mode part_variant --variant_id variant-layer-id --start 3 --end 4
 ```
+
+### Xưởng Layer 2.5D — Hàn khớp xương, Diễn hoạt Moho/Animate & Studio Gió
+- **Tab Tạo xương (`layer_assembly_rig`):** tự động hàn khít điểm cuối xương cha với đầu khớp con (`weldConnectedLimbBones`) trên cả khung nhìn 2D lẫn 3D (giữ `Alt` khi kéo ở Frame 0 để tách khớp rời); lệnh `action: "snap-joints"` hàn khít toàn bộ khớp chuỗi chi trong 1 bước.
+- **Tab Animate (`layer_assembly_rig`):** các mẫu chuyển động (`idle`, `wave`, `bow`, `jump`, `fall`, `land`, `action`) hỗ trợ tham số `view_angle: "front" | "threeQuarter" | "side"` (mặc định `"front"` `0° Chính diện`); `action: "settings"` nhận `fps` (`12 | 24 | 30 | 60`), `duration` và `scale_keys: true` để co giãn tỉ lệ keyframe tự động theo chuẩn Moho / Adobe Animate; `action: "hold-frames"` giữ nguyên tư thế qua `hold_frames` hoặc `hold_seconds` (tương đương phím `F5`).
+- **Tab Gió (`layer_assembly_plant_spine`):** `action: "apply_weather"` áp dụng nhanh cấp gió Beaufort (`weather: "breeze" | "moderate" | "strong" | "storm"`), hướng gió tạt (`lean: -1..1`) và lệch pha tự nhiên (`stagger_phase`), tự khởi tạo trục gió đầu tiên nếu cụm chưa có; `action: "add"` hỗ trợ `direction: "up" | "horizontal" | "down"` tự sinh trục theo chiều mọc.
+
+PowerShell:
+```powershell
+pnpm pxs call layer_assembly_rig '{"action":"snap-joints"}'
+pnpm pxs call layer_assembly_rig '{"action":"apply-preset-animation","preset_id":"bow","view_angle":"front"}'
+pnpm pxs call layer_assembly_rig '{"action":"settings","fps":24,"duration":2,"scale_keys":true}'
+pnpm pxs call layer_assembly_plant_spine '{"action":"apply_weather","weather":"moderate","lean":0.35,"stagger_phase":true}'
+```
+CMD:
+```cmd
+pnpm pxs call layer_assembly_rig "{\"action\":\"snap-joints\"}"
+pnpm pxs call layer_assembly_rig "{\"action\":\"apply-preset-animation\",\"preset_id\":\"bow\",\"view_angle\":\"front\"}"
+pnpm pxs call layer_assembly_rig "{\"action\":\"settings\",\"fps\":24,\"duration\":2,\"scale_keys\":true}"
+pnpm pxs call layer_assembly_plant_spine "{\"action\":\"apply_weather\",\"weather\":\"moderate\",\"lean\":0.35,\"stagger_phase\":true}"
+```
+Flags (PowerShell/CMD):
+```text
+pnpm pxs call layer_assembly_rig --action apply-preset-animation --preset_id bow --view_angle front
+pnpm pxs call layer_assembly_plant_spine --action apply_weather --weather moderate --lean 0.35
+```

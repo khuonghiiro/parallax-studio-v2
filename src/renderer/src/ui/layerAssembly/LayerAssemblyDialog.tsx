@@ -22,6 +22,7 @@ import '../../styles/layerWorkshopRig.css'
 import '../../styles/layerWorkshopPanels.css'
 import '../../styles/layerWorkshopChrome.css'
 import '../../styles/layerWorkshopStudio.css'
+import '../../styles/layerWorkshopAnimateStudio.css'
 import { WorkshopRightPanel, type WorkshopTab } from './WorkshopRightPanel'
 import { ensureRigClips } from './workshopRig'
 import { CreateLayerAssemblyModal } from './CreateLayerAssemblyModal'
@@ -74,7 +75,7 @@ export function LayerAssemblyDialog({ initialComposite, onClose }: LayerAssembly
   const close = () => {
     if (!saving.busy) onClose()
   }
-  const { isDrawerMode, isPhone: isMobile } = useResponsiveViewport()
+  const { width: viewportWidth, breakpoint, isDrawerMode, isPhone: isMobile } = useResponsiveViewport()
   const [view, setView] = useState<AssemblyWorkspaceView>(() =>
     typeof window !== 'undefined' && window.innerWidth <= 768 ? '2d' : 'split'
   )
@@ -231,11 +232,21 @@ export function LayerAssemblyDialog({ initialComposite, onClose }: LayerAssembly
   const showLeftSidebar = isDrawerMode ? mobilePane === 'assets' : leftSidebarOpen
   const showCenterStage = isDrawerMode ? mobilePane === 'stage' : true
   const showRightPanel = isDrawerMode ? mobilePane === 'inspector' : rightPanelOpen
+  const effectiveLeftWidth = isDrawerMode
+    ? undefined
+    : breakpoint === 'laptop'
+      ? Math.max(196, Math.min(colPrefs.leftSidebarWidth, Math.round(viewportWidth * 0.2)))
+      : colPrefs.leftSidebarWidth
+  const effectiveRightWidth = isDrawerMode
+    ? undefined
+    : breakpoint === 'laptop'
+      ? Math.max(276, Math.min(colPrefs.rightPanelWidth, Math.round(viewportWidth * 0.255)))
+      : colPrefs.rightPanelWidth
 
   return (
     <div className="layer-workshop-overlay">
       <div
-        className={`layer-workshop-dialog${isDrawerMode ? ' is-responsive-drawer' : ''}${isMobile ? ' is-mobile' : ''}`}
+        className={`layer-workshop-dialog${isDrawerMode ? ' is-responsive-drawer' : ''}${isMobile ? ' is-mobile' : ''}${breakpoint === 'laptop' ? ' is-laptop' : ''}`}
         data-mcp-region="layer_assembly"
         data-mcp-dialog
         role="dialog"
@@ -353,7 +364,7 @@ export function LayerAssemblyDialog({ initialComposite, onClose }: LayerAssembly
                     }
                     if (isDrawerMode) setMobilePane('stage')
                   }}
-                  width={isDrawerMode ? undefined : colPrefs.leftSidebarWidth}
+                  width={effectiveLeftWidth}
                 />
               )}
 
@@ -425,7 +436,7 @@ export function LayerAssemblyDialog({ initialComposite, onClose }: LayerAssembly
                   setTab={setTab}
                   boneId={boneId}
                   selectBone={selectBone}
-                  width={isDrawerMode ? undefined : colPrefs.rightPanelWidth}
+                  width={effectiveRightWidth}
                 >
                   <LayerAssemblyInspector
                     composite={composite}

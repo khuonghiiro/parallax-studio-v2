@@ -286,3 +286,134 @@ export function collectMasterPoseTimes(rig: LayerRig): number[] {
   }
   return unique
 }
+
+/** Tính toạ độ khớp ngọn (tail) của xương ở trạng thái gốc Frame 0. */
+export function computeBoneTail(bone: Pick<LayerBone, 'x' | 'y' | 'length' | 'angle'>): { x: number; y: number } {
+  const rad = (bone.angle * Math.PI) / 180
+  return {
+    x: bone.x + Math.cos(rad) * bone.length,
+    y: bone.y + Math.sin(rad) * bone.length
+  }
+}
+
+/** Tính lại `{ length, angle }` để ngọn xương hướng chính xác tới điểm `target` mà không đổi khớp gốc `(x, y)`. */
+export function aimBoneAtPoint(
+  bone: Pick<LayerBone, 'x' | 'y' | 'length' | 'angle'>,
+  target: { x: number; y: number }
+): { length: number; angle: number } {
+  const dx = target.x - bone.x
+  const dy = target.y - bone.y
+  const dist = Math.hypot(dx, dy)
+  if (dist < 1) return { length: bone.length, angle: bone.angle }
+  return {
+    length: Number(Math.max(1, dist).toFixed(2)),
+    angle: Number(((Math.atan2(dy, dx) * 180) / Math.PI).toFixed(2))
+  }
+}
+
+/**
+ * Tìm xương con nối liền trực tiếp tại ngọn xương cha (VD: Bắp tay -> Cẳng tay -> Bàn tay, Đùi -> Cẳng chân -> Bàn chân, Hông -> Thân -> Đầu).
+ * Các nhánh phụ rẽ ngang từ xa (như 2 vai rẽ từ ngực, 2 đùi rẽ từ hông, hay xương con đồng tâm tại gốc cổ chân) được bỏ qua để giữ đường nét đứt chuẩn Moho.
+ */
+export function findPrimaryConnectedChild(
+  parent: LayerBone,
+  bones: LayerBone[],
+  maxGapRatio = 0.28
+): LayerBone | null {
+  if (parent.pin) return null
+  const tail = computeBoneTail(parent)
+  const threshold = Math.max(26, parent.length * maxGapRatio)
+  let best: LayerBone | null = null
+  let bestDist = Infinity
+
+  for (const candidate of bones) {
+    if (candidate.parentId !== parent.id) continue
+    // Bỏ qua xương con đặt trùng ngay tại khớp gốc của xương cha (VD gót chân & vòm bàn chân cùng chung pivot cổ chân)
+    if (Math.hypot(candidate.x - parent.x, candidate.y - parent.y) < 6) continue
+    const dist = Math.hypot(tail.x - candidate.x, tail.y - candidate.y)
+    if (dist <= threshold && dist < bestDist) {
+      bestDist = dist
+      best = candidate
+    }
+  }
+  return best
+}
+
+/**
+ * Hàn khớp nối chuỗi xương chuẩn Moho Pro / Spine 2D:
+ * Tự động căn chỉnh `{ length, angle }` của mọi xương cha có xương con nối tiếp để khớp tròn ngọn (tail)
+ * trùng khít 100% tâm khớp gốc (head) của xương con, triệt tiêu hoàn toàn hiện tượng 2 vòng tròn lệch nhau.
+ */
+export function weldConnectedLimbBones(bones: LayerBone[], maxGapRatio = 0.28): LayerBone[] {
+  return bones.map((bone) => {
+    const child = findPrimaryConnectedChild(bone, bones, maxGapRatio)
+    if (!child) return { ...bone }
+    return {
+      ...bone,
+      ...aimBoneAtPoint(bone, { x: child.x, y: child.y })
+    }
+  })
+}
+
+/** Kiểm tra xem khớp ngọn thực tế (sau biến đổi động) của xương có đang trùng khít với khớp gốc của ít nhất 1 xương con hay không. */
+export function isBoneTailCoincidentWithChild(
+  parent: LayerBone,
+  bones: LayerBone[],
+  transforms: Map<string, { x: number; y: number; rotation: number }>,
+  tolerance = 3
+): boolean {
+  if (parent.pin) return false
+  const pTf = transforms.get(parent.id)
+  if (!pTf) return false
+  const rad = ((parent.angle + pTf.rotation) * Math.PI) / 180
+  const tx = pTf.x + Math.cos(rad) * parent.length
+  const ty = pTf.y + Math.sin(rad) * parent.length
+
+  for (const child of bones) {
+    if (child.parentId !== parent.id) continue
+    const cTf = transforms.get(child.id)
+    if (!cTf) continue
+    if (Math.hypot(tx - cTf.x, ty - cTf.y) <= tolerance) return true
+  }
+  return false
+}
+
+/**
+ * Co giãn hoặc kẹp an toàn toàn bộ mốc thời gian keyframe khi đổi thời lượng / tổng số frame của clip:
+ * - `scaleKeys = true`: co giãn tỷ lệ `t' = (t / oldDuration) * newDuration` (Retime mượt toàn bộ động tác).
+ * - `scaleKeys = false`: giữ nguyên thời điểm các key nằm trong `[0, newDuration]` và cắt bỏ/gộp an toàn các key vượt quá `newDuration` để không bao giờ gây lỗi `validateRig`.
+ */
+export function retimeOrClampTracks(
+  tracks: Record<string, BoneKeyframe[]>,
+  oldDuration: number,
+  newDuration: number,
+  scaleKeys: boolean
+): Record<string, BoneKeyframe[]> {
+  const safeNew = Math.max(0.1, Math.min(120, Number(newDuration.toFixed(4))))
+  const safeOld = Math.max(0.001, oldDuration)
+  const out: Record<string, BoneKeyframe[]> = {}
+
+  for (const [boneId, keys] of Object.entries(tracks)) {
+    if (!Array.isArray(keys) || keys.length === 0) continue
+    const mapped = keys
+      .map((k) => {
+        const rawTime = scaleKeys ? (k.time / safeOld) * safeNew : Math.min(safeNew, k.time)
+        return {
+          ...k,
+          time: Math.max(0, Math.min(safeNew, Number(rawTime.toFixed(4))))
+        }
+      })
+      .sort((a, b) => a.time - b.time)
+
+    const deduped: BoneKeyframe[] = []
+    for (const k of mapped) {
+      if (deduped.length > 0 && k.time - deduped[deduped.length - 1].time <= 1e-4) {
+        deduped[deduped.length - 1] = k
+      } else {
+        deduped.push(k)
+      }
+    }
+    if (deduped.length > 0) out[boneId] = deduped
+  }
+  return out
+}

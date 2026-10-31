@@ -22,7 +22,7 @@ export function WorkshopRightPanel({
   setTab,
   boneId,
   selectBone,
-  width = 330,
+  width,
   children
 }: {
   state: ReturnType<typeof useLayerWorkshop>
@@ -63,7 +63,7 @@ export function WorkshopRightPanel({
     <aside
       className="lw-right-column lw-right"
       data-mcp-region="layer_assembly_inspector"
-      style={{ width: `${width}px`, minWidth: '250px' }}
+      style={width !== undefined ? { width: `${width}px`, minWidth: '250px' } : undefined}
     >
       <SegmentedTabs<WorkshopTab>
         variant="underline"
@@ -85,7 +85,7 @@ export function WorkshopRightPanel({
             label: 'Lớp',
             icon: <IconTabLayersStack width={13} height={13} />,
             badge: state.composite.layers.length || undefined,
-            title: 'Danh sách lớp, thuộc tính Z-Depth, Vật lý & Ánh sáng ảo'
+            title: 'Danh sách lớp, Bộ phận & Thay thế, Biến đổi 2.5D, Chiều sâu Z & Khung xương'
           },
           {
             id: 'bones',

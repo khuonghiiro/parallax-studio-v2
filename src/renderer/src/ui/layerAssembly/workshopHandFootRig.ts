@@ -1,5 +1,6 @@
 import type { BoneKeyframe, LayerBone } from '@shared/layerRig'
 import { createHumanoidBones } from './workshopRigPresets'
+import { weldConnectedLimbBones } from './mohoRigHelpers'
 
 function smoothKey(
   time: number,
@@ -27,7 +28,7 @@ function smoothKey(
  */
 export function createFullHumanoidBones(): LayerBone[] {
   const base = createHumanoidBones()
-  return [
+  return weldConnectedLimbBones([
     ...base,
     // Ngón tay trái & phải gắn tiếp sau bàn tay
     {
@@ -53,10 +54,10 @@ export function createFullHumanoidBones(): LayerBone[] {
       id: 'bone-toe-l',
       name: 'Mũi chân trái',
       parentId: 'bone-foot-l',
-      x: 5,
+      x: -55,
       y: 175,
       length: 20,
-      angle: 0
+      angle: 180
     },
     {
       id: 'bone-toe-r',
@@ -67,7 +68,7 @@ export function createFullHumanoidBones(): LayerBone[] {
       length: 20,
       angle: 0
     }
-  ]
+  ])
 }
 
 /**
@@ -76,7 +77,7 @@ export function createFullHumanoidBones(): LayerBone[] {
  * (mỗi ngón có đốt gốc và đốt ngọn), phục vụ cầm nắm đồ vật, chỉ trỏ, làm thủ ngữ hoặc nắm đấm.
  */
 export function createHandDetailedBones(): LayerBone[] {
-  return [
+  return weldConnectedLimbBones([
     { id: 'bone-wrist', name: 'Cổ tay (Root)', x: 0, y: 130, length: 45, angle: -90 },
     { id: 'bone-palm', name: 'Lòng bàn tay', parentId: 'bone-wrist', x: 0, y: 85, length: 50, angle: -90 },
 
@@ -99,7 +100,7 @@ export function createHandDetailedBones(): LayerBone[] {
     // Ngón út (Pinky - 2 đốt)
     { id: 'bone-pinky-base', name: 'Gốc ngón út', parentId: 'bone-palm', x: 28, y: 45, length: 28, angle: -72 },
     { id: 'bone-pinky-tip', name: 'Đốt ngón út', parentId: 'bone-pinky-base', x: 37, y: 18, length: 22, angle: -75 }
-  ]
+  ])
 }
 
 /**
@@ -109,7 +110,7 @@ export function createHandDetailedBones(): LayerBone[] {
  * Phục vụ các tư thế nhón chân, chạm gót, bước đi uốn cong mũi giày tự nhiên.
  */
 export function createFootDetailedBones(): LayerBone[] {
-  return [
+  return weldConnectedLimbBones([
     { id: 'bone-leg-thigh', name: 'Đùi trên (Root)', x: 0, y: -160, length: 80, angle: 90 },
     { id: 'bone-leg-shin', name: 'Đầu gối & Cẳng chân', parentId: 'bone-leg-thigh', x: 0, y: -80, length: 85, angle: 90 },
     { id: 'bone-foot-ankle', name: 'Khớp cổ chân', parentId: 'bone-leg-shin', x: 0, y: 5, length: 25, angle: 65 },
@@ -118,7 +119,7 @@ export function createFootDetailedBones(): LayerBone[] {
     { id: 'bone-foot-toe-ball', name: 'Khớp ức ngón chân', parentId: 'bone-foot-arch', x: 45, y: 5, length: 25, angle: 0 },
     { id: 'bone-foot-toe-tip', name: 'Mũi ngón chân', parentId: 'bone-foot-toe-ball', x: 70, y: 5, length: 20, angle: 0 },
     { id: 'bone-foot-ik-target', name: 'Tay nắm điều hướng bàn chân', parentId: 'bone-leg-shin', x: 0, y: 35, length: 30, angle: 0 }
-  ]
+  ])
 }
 
 /**
@@ -251,10 +252,10 @@ export function generateFootHeelToeRoll(bones: LayerBone[], duration = 2.0): Rec
 
   if (ankle) {
     tracks[ankle] = [
-      smoothKey(0, -22),      // Gót chạm sàn, mũi chân ngửa lên
-      smoothKey(d * 0.35, 0),  // Bàn chân đặt phẳng chạm đất
-      smoothKey(d * 0.7, 28),  // Gót nhấc lên, cổ chân duỗi
-      smoothKey(d * 0.85, 10), // Rời khỏi mặt đất
+      smoothKey(0, -22),
+      smoothKey(d * 0.35, 0),
+      smoothKey(d * 0.7, 28),
+      smoothKey(d * 0.85, 10),
       smoothKey(d, -22)
     ]
   }
@@ -263,16 +264,16 @@ export function generateFootHeelToeRoll(bones: LayerBone[], duration = 2.0): Rec
     tracks[footArch] = [
       smoothKey(0, 5),
       smoothKey(d * 0.35, 0),
-      smoothKey(d * 0.7, -10), // Mu bàn chân uốn cong theo lực đẩy
+      smoothKey(d * 0.7, -10),
       smoothKey(d, 5)
     ]
   }
 
   if (toeBall) {
     tracks[toeBall] = [
-      smoothKey(0, 10),       // Mũi chân hơi ngửa khi chạm gót
-      smoothKey(d * 0.35, 0), // Phẳng
-      smoothKey(d * 0.7, -32),// Mũi chân uốn gập mạnh bám sàn khi nhón gót
+      smoothKey(0, 10),
+      smoothKey(d * 0.35, 0),
+      smoothKey(d * 0.7, -32),
       smoothKey(d * 0.85, -8),
       smoothKey(d, 10)
     ]

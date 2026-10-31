@@ -7,15 +7,29 @@ import {
   collectMasterPoseTimes,
   computeBoneDepthMap,
   computeBoneInfluenceRadius,
+  computeBoneTail,
   computeStrengthFromPointerDistance,
   computeTweenSpans,
   createBoneFromCanvasDrag,
+  findPrimaryConnectedChild,
+  isBoneTailCoincidentWithChild,
   mirrorAngleAcrossYAxis,
   mirrorBoneId,
-  mirrorBoneName
+  mirrorBoneName,
+  weldConnectedLimbBones
 } from './mohoRigHelpers'
 import { applyRigAction } from './workshopRig'
+import {
+  createFullHumanoidBones,
+  createHumanoidBones,
+  generateBow,
+  generateJump,
+  generateLand
+} from './workshopRigPresets'
+import { CUTOUT_FRONT_BONES, CUTOUT_QUARTER_BONES } from './templates/humanoidTemplates'
+import { createQuadrupedBones } from './templates/creatureRigPresets'
 import { skinWeights } from '../../engine/layerSkinning'
+import { evaluateRig } from '../../engine/layerRig'
 
 describe('mohoRigHelpers — Moho Pro Rigging & Adobe Animate Dope Sheet', () => {
   it('phân loại đúng bên giải phẫu xương Left / Right / Center', () => {
@@ -184,5 +198,95 @@ describe('mohoRigHelpers — Moho Pro Rigging & Adobe Animate Dope Sheet', () =>
     const defaultRightW = wDefault.find((w) => w.id === 'right')?.weight ?? 0
     const boostedRightW = wBoosted.find((w) => w.id === 'right')?.weight ?? 0
     expect(boostedRightW).toBeGreaterThan(defaultRightW)
+  })
+
+  it('hàn khít 100% khớp ngọn xương cha trùng khớp gốc xương con cho mọi khung xương nhân vật/sinh vật', () => {
+    const skeletons = [
+      CUTOUT_FRONT_BONES,
+      CUTOUT_QUARTER_BONES,
+      createHumanoidBones(),
+      createFullHumanoidBones(),
+      createQuadrupedBones()
+    ]
+    for (const bones of skeletons) {
+      const tf = evaluateRig({ bones, duration: 2, loop: true, tracks: {} }, 0, true)
+      for (const parent of bones) {
+        const primaryChild = findPrimaryConnectedChild(parent, bones)
+        if (!primaryChild) continue
+        const tail = computeBoneTail(parent)
+        const gap = Math.hypot(tail.x - primaryChild.x, tail.y - primaryChild.y)
+        expect(gap).toBeLessThanOrEqual(1.2)
+        expect(isBoneTailCoincidentWithChild(parent, bones, tf)).toBe(true)
+      }
+    }
+
+    // Kiểm tra hàn khớp tự động (snap-joints) khi xương bị lệch 18px như ảnh chụp người dùng
+    const misaligned: LayerBone[] = [
+      { id: 'arm_r', name: 'Bắp tay phải', x: 72, y: -110, length: 111, angle: 77 },
+      { id: 'forearm_r', name: 'Cẳng tay phải', parentId: 'arm_r', x: 115, y: -2, length: 82, angle: 87 }
+    ]
+    const welded = weldConnectedLimbBones(misaligned)
+    const weldedTail = computeBoneTail(welded[0])
+    const weldedTf = evaluateRig({ bones: welded, duration: 2, loop: true, tracks: {} }, 0, true)
+    expect(Math.hypot(weldedTail.x - welded[1].x, weldedTail.y - welded[1].y)).toBeLessThan(0.8)
+    expect(isBoneTailCoincidentWithChild(welded[0], welded, weldedTf)).toBe(true)
+  })
+
+  it('sinh động tác mẫu chính diện 0° đối xứng Trái/Phải và foreshortening 2.5D (không nghiêng 90°)', () => {
+    const bones = createHumanoidBones()
+    const bowFront = generateBow(bones, 2.0, 'front')
+    expect(bowFront['bone-torso']?.[1]?.rotation).toBe(0)
+    expect(bowFront['bone-torso']?.[1]?.scaleY).toBeLessThan(0.9)
+    expect(bowFront['bone-arm-l']?.[1]?.rotation).toBe(-(bowFront['bone-arm-r']?.[1]?.rotation ?? 0))
+
+    const jumpFront = generateJump(bones, 1.4, 'front')
+    expect(jumpFront['bone-torso']?.[1]?.rotation).toBe(0)
+    expect(jumpFront['bone-arm-l']?.[1]?.rotation).toBe(-(jumpFront['bone-arm-r']?.[1]?.rotation ?? 0))
+    expect(jumpFront['bone-thigh-l']?.[1]?.rotation).toBe(-(jumpFront['bone-thigh-r']?.[1]?.rotation ?? 0))
+
+    const landFront = generateLand(bones, 1.2, 'front')
+    expect(landFront['bone-torso']?.[1]?.rotation).toBe(0)
+    expect(landFront['bone-arm-l']?.[1]?.rotation).toBe(-(landFront['bone-arm-r']?.[1]?.rotation ?? 0))
+  })
+
+  it('hỗ trợ FPS, co giãn tỷ lệ keyframe (scaleKeys) và chèn khung giữ dáng F5 (hold-frames)', () => {
+    let comp: LayerComposite = {
+      id: 'comp-timing',
+      name: 'Timing Studio',
+      category: 'character',
+      width: 600,
+      height: 600,
+      layers: [],
+      rig: {
+        duration: 2.0,
+        loop: true,
+        fps: 30,
+        bones: [{ id: 'arm', name: 'Tay', x: 0, y: 0, length: 80, angle: 90 }],
+        tracks: {
+          arm: [
+            { time: 0, x: 0, y: 0, rotation: 0, easing: 'smooth' },
+            { time: 1.0, x: 0, y: 0, rotation: 40, easing: 'smooth' },
+            { time: 2.0, x: 0, y: 0, rotation: 0, easing: 'smooth' }
+          ]
+        }
+      }
+    }
+
+    // Đổi FPS và co giãn thời lượng gấp đôi (2s -> 4s) kèm scaleKeys
+    comp = applyRigAction(comp, { action: 'settings', fps: 24, duration: 4.0, scaleKeys: true })
+    expect(comp.rig?.fps).toBe(24)
+    expect(comp.rig?.duration).toBe(4.0)
+    expect(comp.rig?.tracks.arm[1].time).toBeCloseTo(2.0, 3)
+    expect(comp.rig?.tracks.arm[2].time).toBeCloseTo(4.0, 3)
+
+    // Rút ngắn thời lượng không bật scaleKeys vẫn an toàn không văng lỗi validateRig
+    comp = applyRigAction(comp, { action: 'settings', duration: 2.5, scaleKeys: false })
+    expect(comp.rig?.duration).toBe(2.5)
+    expect(comp.rig?.tracks.arm.every((k) => k.time <= 2.5)).toBe(true)
+
+    // Chèn giữ khung F5 (+0.5s tại t = 1.0) đẩy các keyframe phía sau lùi lại 0.5s
+    comp = applyRigAction(comp, { action: 'hold-frames', time: 1.0, holdSeconds: 0.5 })
+    expect(comp.rig?.duration).toBeCloseTo(3.0, 3)
+    expect(comp.rig?.tracks.arm.some((k) => Math.abs(k.time - 2.5) < 0.01 && k.rotation === 40)).toBe(true)
   })
 })

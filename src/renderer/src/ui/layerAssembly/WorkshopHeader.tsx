@@ -218,6 +218,7 @@ export function WorkshopHeader({
 
         <Menu
           id="lw-file-menu"
+          portal
           label={hasBase64Images ? 'Tệp · Git ●' : 'Tệp…'}
           btnClassName="sm"
           align="right"
@@ -253,16 +254,16 @@ export function WorkshopHeader({
 
         <button
           type="button"
-          className="btn sm"
           onClick={save}
           disabled={busy || !composite.layers.length}
+          className="btn sm lw-btn-save-model"
           title="Lưu mẫu vào kho ứng dụng để tái sử dụng nhanh"
         >
           {busy ? 'Đang lưu…' : 'Lưu mẫu'}
         </button>
         <button
           type="button"
-          className="btn sm primary"
+          className="btn sm primary lw-btn-insert-scene"
           onClick={insert}
           disabled={busy || !composite.layers.length}
           title="Đưa cụm layer 2.5D kèm xương & hoạt ảnh vào phân cảnh hiện tại"

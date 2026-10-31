@@ -102,5 +102,37 @@ describe('layer_assembly_plant_spine', () => {
     await expect(runCommand('layer_assembly_plant_spine', {
       action: 'update', spine_id: added.spineId, motion_keys: [[0, 0], [1, 500]], motion_duration: 2
     })).rejects.toThrow()
+
+  })
+
+  it('supports auto-directional spine generation (direction) and 1-click Beaufort apply_weather', async () => {
+    const ws = openWorkshop()
+    const weatherInit = (await runCommand('layer_assembly_plant_spine', {
+      action: 'apply_weather',
+      weather: 'strong',
+      lean: 7,
+      direction: 'down'
+    })) as { spineId: string; spines: Array<{ amplitude: number; lean: number; points: number[][] }> }
+    expect(weatherInit.spines).toHaveLength(1)
+    expect(weatherInit.spines[0].amplitude).toBe(22)
+    expect(weatherInit.spines[0].lean).toBe(7)
+    expect(weatherInit.spines[0].points[0][1]).toBeLessThan(weatherInit.spines[0].points[3][1])
+
+    await runCommand('layer_assembly_plant_spine', {
+      action: 'add',
+      direction: 'horizontal',
+      preset: 'branch'
+    })
+    expect(ws.get().plantSpines).toHaveLength(2)
+
+    await runCommand('layer_assembly_plant_spine', {
+      action: 'apply_weather',
+      weather: 'storm',
+      lean: -10
+    })
+    expect(ws.get().plantSpines![0].amplitude).toBe(32)
+    expect(ws.get().plantSpines![1].amplitude).toBe(32)
+    expect(ws.get().plantSpines![1].lean).toBe(-10)
+
   })
 })

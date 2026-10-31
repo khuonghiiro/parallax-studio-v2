@@ -41,55 +41,51 @@ export function WorkshopLayerMotionHarmonyCard({
     )
     const meta = LAYER_HARMONY_PRESETS.find((p) => p.id === preset)
     if (preset === 'reset-none') {
-      setStatus('✓ Đã tắt chuyển động rời của các mảnh Layer')
+      setStatus('Đã tắt dao động rời của các lớp')
     } else {
       setStatus(
-        `✓ Đã áp dụng "${meta?.label ?? preset}" (${targetIds ? `${targetIds.length} lớp chọn` : `toàn cụm ${totalLayers} lớp`})`
+        `Đã áp "${meta?.label ?? preset}" (${targetIds ? `${targetIds.length} lớp chọn` : `toàn cụm ${totalLayers} lớp`})`
       )
     }
   }
 
   return (
-    <div
-      className="lw-plant-create-card lw-motion-harmony-card"
-      data-mcp-region="layer_assembly_motion_harmony"
-      style={{ marginBottom: '10px' }}
-    >
-      <div className="lw-plant-create-head">
-        <span className="lw-plant-create-title">🌊 Hòa âm Motion Layer 2.5D</span>
-        <span className="lw-plant-create-sub">
-          {activeMotionLayers}/{totalLayers} lớp đang bật
+    <div className="lw-card-section lw-motion-harmony-card" data-mcp-region="layer_assembly_motion_harmony">
+      <div className="lw-card-header">
+        <span className="lw-card-title">Hòa âm dao động Layer 2.5D</span>
+        <span className="lw-card-badge">
+          {activeMotionLayers}/{totalLayers} lớp bật
         </span>
       </div>
 
-      <p style={{ margin: '2px 0 8px', fontSize: '11px', color: 'var(--text-dim)', lineHeight: 1.45 }}>
-        Tự động phân bổ chuyển động sóng hài (Thở, Đung đưa, Lượn sóng, Lơ lửng) theo giải phẫu và độ sâu Z 2.5D kèm lệch pha Tỉ lệ vàng (0.618s).
+      <p className="lw-harmony-desc">
+        Phân bổ dao động sóng hài (Thở, Đung đưa, Lượn sóng, Lơ lửng) theo độ sâu Z 2.5D kèm lệch pha tỉ lệ vàng (0.618s) mà không cần vẽ trục xương.
       </p>
 
-      {/* Phạm vi áp dụng */}
-      <div style={{ display: 'flex', gap: '4px', marginBottom: '6px' }}>
+      <div className="lw-angle-seg-bar compact" role="radiogroup" aria-label="Phạm vi áp dụng Hòa âm 2.5D">
         <button
           type="button"
-          className={`lw-plant-chip${scope === 'all' ? ' active' : ''}`}
+          role="radio"
+          aria-checked={scope === 'all'}
+          className={`lw-angle-seg-btn${scope === 'all' ? ' active' : ''}`}
           onClick={() => setScope('all')}
-          style={{ flex: 1 }}
         >
-          🌐 Toàn cụm ({totalLayers} lớp)
+          Toàn cụm ({totalLayers})
         </button>
         <button
           type="button"
-          className={`lw-plant-chip${scope === 'selected' ? ' active' : ''}`}
+          role="radio"
+          aria-checked={scope === 'selected'}
+          className={`lw-angle-seg-btn${scope === 'selected' ? ' active' : ''}`}
           onClick={() => setScope('selected')}
           disabled={selectedIds.length === 0}
-          style={{ flex: 1 }}
-          title={selectedIds.length === 0 ? 'Chọn ít nhất 1 layer ở tab Layer để bật chế độ này' : undefined}
+          title={selectedIds.length === 0 ? 'Chọn ít nhất 1 lớp trên sân khấu hoặc tab Lớp để bật chế độ này' : undefined}
         >
-          🎯 Lớp đang chọn ({selectedIds.length})
+          Lớp chọn ({selectedIds.length})
         </button>
       </div>
 
-      {/* Thanh trượt tốc độ & biên độ */}
-      <div className="lw-plant-sliders lw-plant-init-box" style={{ marginBottom: '6px' }}>
+      <div className="lw-plant-sliders lw-plant-init-box">
         <label className="lw-plant-slider" title="Hệ số nhân biên độ dao động của các mảnh Layer">
           <span className="lw-plant-slider-label">Hệ số biên độ</span>
           <input
@@ -100,7 +96,7 @@ export function WorkshopLayerMotionHarmonyCard({
             value={ampMul}
             onChange={(e) => setAmpMul(Number(e.target.value))}
           />
-          <span className="lw-plant-slider-val">{ampMul}x</span>
+          <span className="lw-plant-slider-val">{ampMul}×</span>
         </label>
         <label className="lw-plant-slider" title="Hệ số nhân tốc độ chu kỳ chuyển động">
           <span className="lw-plant-slider-label">Hệ số tốc độ</span>
@@ -112,68 +108,42 @@ export function WorkshopLayerMotionHarmonyCard({
             value={speedMul}
             onChange={(e) => setSpeedMul(Number(e.target.value))}
           />
-          <span className="lw-plant-slider-val">{speedMul}x</span>
+          <span className="lw-plant-slider-val">{speedMul}×</span>
         </label>
         <label
-          style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10.5px', color: 'var(--text-dim)', cursor: 'pointer', marginTop: '2px' }}
-          title="Mỗi layer lệch nhau 0.618 giây để chuyển động tự nhiên, không bị đồng loạt như robot"
+          className="lw-harmony-stagger-check"
+          title="Mỗi layer lệch nhau 0.618 giây để chuyển động tự nhiên, không bị đồng loạt"
         >
           <input
             type="checkbox"
             checked={staggerPhase}
             onChange={(e) => setStaggerPhase(e.target.checked)}
           />
-          <span>So le nhịp Tỉ lệ vàng (φ = 0.618s)</span>
+          <span>So le nhịp tỉ lệ vàng (φ = 0.618s)</span>
         </label>
       </div>
 
-      {/* Lưới 6 nút Hòa âm Motion 2.5D */}
-      <div
-        role="group"
-        aria-label="Mẫu hòa âm chuyển động Layer 2.5D"
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-          gap: '5px'
-        }}
-      >
-        {LAYER_HARMONY_PRESETS.map((p) => (
-          <button
-            key={p.id}
-            type="button"
-            className={`btn xs ${p.id === 'reset-none' ? 'ghost' : ''}`}
-            disabled={totalLayers === 0}
-            onClick={() => handleApplyPreset(p.id)}
-            title={p.hint}
-            style={{
-              justifyContent: 'flex-start',
-              padding: '5px 7px',
-              fontSize: '10.5px',
-              borderRadius: 'var(--radius-sm, 4px)',
-              color: p.id === 'reset-none' ? 'var(--danger, #ef4444)' : undefined
-            }}
-          >
-            <span aria-hidden="true">{p.icon}</span>
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {p.label}
-            </span>
-          </button>
-        ))}
+      <div className="lw-studio-preset-grid" role="group" aria-label="Mẫu hòa âm chuyển động Layer 2.5D">
+        {LAYER_HARMONY_PRESETS.map((p) => {
+          const isReset = p.id === 'reset-none'
+          return (
+            <button
+              key={p.id}
+              type="button"
+              className={`lw-studio-preset-item${isReset ? ' is-danger' : ''}`}
+              disabled={totalLayers === 0}
+              onClick={() => handleApplyPreset(p.id)}
+              title={p.hint}
+            >
+              <span className="lw-studio-preset-name">{p.label}</span>
+              <small className="lw-studio-preset-meta">{isReset ? 'Tắt dao động rời' : 'Theo tầng Z 2.5D'}</small>
+            </button>
+          )
+        })}
       </div>
 
       {status && (
-        <div
-          role="status"
-          style={{
-            marginTop: '6px',
-            padding: '4px 8px',
-            borderRadius: '4px',
-            background: 'var(--bg-1)',
-            border: '1px solid var(--line-soft)',
-            fontSize: '10.5px',
-            color: 'var(--accent-cyan)'
-          }}
-        >
+        <div role="status" className="lw-harmony-status">
           {status}
         </div>
       )}

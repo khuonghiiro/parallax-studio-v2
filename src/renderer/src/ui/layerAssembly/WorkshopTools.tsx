@@ -126,7 +126,7 @@ export function WorkshopTools({
           />
         </label>
         <Menu
-          id="lw-frame-preset"
+          id="lw-frame-preset" portal
           label="Khổ mẫu…"
           btnClassName="sm"
           title="Chọn khổ khung hình mẫu"
@@ -185,7 +185,7 @@ export function WorkshopTools({
       {/* 6. Thao tác hàng loạt */}
       <div className="lw-tool-group" style={{ borderRight: 'none' }}>
         <Menu
-          id="lw-batch-actions"
+          id="lw-batch-actions" portal
           label="Thao tác…"
           btnClassName="sm"
           align="right"

@@ -1,6 +1,7 @@
 import type { AnimationClip, BoneKeyframe, LayerBone, MotionViewAngle } from '@shared/layerRig'
 import type { LayerComposite } from './types'
 import { createClipFromPreset, type ProceduralMotionPreset } from './workshopRigPresets'
+import { retimeOrClampTracks, weldConnectedLimbBones } from './mohoRigHelpers'
 
 /**
  * Hệ thống Gắn Điểm Định Vị Khớp Xương & Kế Thừa Động Tác Tự Động (Mixamo-style Auto-Rigger 2.5D).
@@ -502,7 +503,8 @@ export function buildHumanoidBonesFromLandmarks(lm: MixamoLandmarks): LayerBone[
   const shinRSeg = segmentLengthAndAngle(lm.kneeR, lm.ankleR)
   const footRLen = Math.max(10, Math.round(shinRSeg.length * 0.42))
 
-  return [
+
+  return weldConnectedLimbBones([
     { id: 'bone-pelvis', name: 'Hông (Root)', x: lm.pelvis.x, y: lm.pelvis.y, length: pelvisSeg.length, angle: pelvisSeg.angle },
     { id: 'bone-torso', name: 'Thân / Ngực', parentId: 'bone-pelvis', x: lm.chest.x, y: lm.chest.y, length: torsoSeg.length, angle: torsoSeg.angle },
     { id: 'bone-head', name: 'Đầu', parentId: 'bone-torso', x: lm.neck.x, y: lm.neck.y, length: headSeg.length, angle: headSeg.angle },
@@ -514,11 +516,11 @@ export function buildHumanoidBonesFromLandmarks(lm: MixamoLandmarks): LayerBone[
     { id: 'bone-hand-r', name: 'Bàn tay phải', parentId: 'bone-forearm-r', x: lm.wristR.x, y: lm.wristR.y, length: handRLen, angle: forearmRSeg.angle },
     { id: 'bone-thigh-l', name: 'Đùi trái', parentId: 'bone-pelvis', x: hipL.x, y: hipL.y, length: thighLSeg.length, angle: thighLSeg.angle },
     { id: 'bone-shin-l', name: 'Cẳng chân trái', parentId: 'bone-thigh-l', x: lm.kneeL.x, y: lm.kneeL.y, length: shinLSeg.length, angle: shinLSeg.angle },
-    { id: 'bone-foot-l', name: 'Bàn chân trái', parentId: 'bone-shin-l', x: lm.ankleL.x, y: lm.ankleL.y, length: footLLen, angle: 0 },
+    { id: 'bone-foot-l', name: 'Bàn chân trái', parentId: 'bone-shin-l', x: lm.ankleL.x, y: lm.ankleL.y, length: footLLen, angle: 180 },
     { id: 'bone-thigh-r', name: 'Đùi phải', parentId: 'bone-pelvis', x: hipR.x, y: hipR.y, length: thighRSeg.length, angle: thighRSeg.angle },
     { id: 'bone-shin-r', name: 'Cẳng chân phải', parentId: 'bone-thigh-r', x: lm.kneeR.x, y: lm.kneeR.y, length: shinRSeg.length, angle: shinRSeg.angle },
     { id: 'bone-foot-r', name: 'Bàn chân phải', parentId: 'bone-shin-r', x: lm.ankleR.x, y: lm.ankleR.y, length: footRLen, angle: 0 }
-  ]
+  ])
 }
 
 /**
@@ -547,7 +549,11 @@ export function buildMixamoClipForBones(options: {
   }
 
   const rawClip = createClipFromPreset(preset, bones, name, viewAngle)
-  rawClip.duration = Math.max(0.2, duration || rawClip.duration)
+  const targetDuration = Math.max(0.2, duration || rawClip.duration)
+  if (Math.abs(targetDuration - rawClip.duration) > 1e-4) {
+    rawClip.tracks = retimeOrClampTracks(rawClip.tracks, rawClip.duration, targetDuration, true)
+  }
+  rawClip.duration = targetDuration
   rawClip.loop = loop
   rawClip.viewAngle = viewAngle
 

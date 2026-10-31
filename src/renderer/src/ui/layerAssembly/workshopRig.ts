@@ -1,4 +1,4 @@
-import type { AnimationClip, BoneEasing, BoneKeyframe, LayerBone, LayerRig, MotionViewAngle } from '@shared/layerRig'
+import type { AnimationClip, BoneKeyframe, LayerBone, LayerRig, MotionViewAngle } from '@shared/layerRig'
 import { sampleBonePose } from '../../engine/layerRig'
 import type { LayerComposite } from './types'
 import {
@@ -13,10 +13,10 @@ import {
 } from './workshopRigPresets'
 import { applyAnimationAction, isAnimationAction, validateCurve, type AnimationAction, type AnimationBatch } from './workshopAnimation'
 export type { BonePoseEntry } from './workshopAnimation'
-import { retargetAnimationClip } from './workshopRetarget'
-import { buildMirroredBoneChain } from './mohoRigHelpers'
+import { buildMirroredBoneChain, retimeOrClampTracks, weldConnectedLimbBones } from './mohoRigHelpers'
 import { autoBindLayersToMixamoBones } from './workshopMixamoAutoRig'
 import { applyAnimTool, type AnimToolOp } from './workshopAnimTools'
+import { applyHoldFramesAction, applyRigClipAction, isRigClipAction, type RigClipAction } from './workshopRigClips'
 import {
   autoSortLayersZDepth25D,
   buildAnatomicalBonesFromLayers,
@@ -62,6 +62,7 @@ export function ensureRigClips(rig: LayerRig): { rig: LayerRig; activeClip: Anim
             name: 'Động tác 1',
             duration: rig.duration || 2.0,
             loop: rig.loop ?? true,
+            fps: rig.fps,
             tracks: structuredClone(rig.tracks || {})
           }
         ]
@@ -80,6 +81,7 @@ export function ensureRigClips(rig: LayerRig): { rig: LayerRig; activeClip: Anim
     activeClipId: activeClip.id,
     duration: activeClip.duration,
     loop: activeClip.loop,
+    fps: activeClip.fps ?? rig.fps,
     tracks: activeClip.tracks
   }
 
@@ -108,26 +110,25 @@ export function extraSoftBoneIdsForLayer(
     .map((b) => b.id)
 }
 
-export type RigAction = AnimationAction | AnimationBatch
+export type RigAction =
+  | AnimationAction
+  | AnimationBatch
+  | RigClipAction
   | { action: 'add-bone'; bone: LayerBone }
   | { action: 'update-bone'; boneId: string; patch: Partial<Omit<LayerBone, 'id'>> }
+  | { action: 'update-bones'; patches: Array<{ boneId: string; patch: Partial<Omit<LayerBone, 'id'>> }> }
+  | { action: 'snap-joints' }
   | { action: 'delete-bone'; boneId: string }
   | { action: 'mirror-bone'; boneId: string }
   | { action: 'bind'; boneId?: string; layerIds: string[]; mode?: 'rigid' | 'soft' }
   | { action: 'mirror-pose'; time: number }
-  | { action: 'settings'; duration?: number; loop?: boolean }
+  | { action: 'hold-frames'; time: number; holdSeconds: number; boneId?: string }
+  | { action: 'settings'; duration?: number; loop?: boolean; fps?: number; scaleKeys?: boolean }
   | { action: 'apply-template'; template: RigTemplateType }
   | { action: 'apply-preset-animation'; preset: ProceduralMotionPreset; asNewClip?: boolean; clipName?: string; viewAngle?: MotionViewAngle }
   | { action: 'clear-animation' }
   | { action: 'clear-bone-track'; boneId: string }
   | { action: 'anim-tool'; tool: AnimToolOp }
-  | { action: 'add-clip'; clip: AnimationClip }
-  | { action: 'switch-clip'; clipId: string }
-  | { action: 'rename-clip'; clipId: string; name: string }
-  | { action: 'delete-clip'; clipId: string }
-  | { action: 'delete-all-clips' }
-  | { action: 'duplicate-clip'; clipId: string }
-  | { action: 'inherit-clip'; sourceClip: AnimationClip; sourceBones: LayerBone[]; clipName?: string }
   | { action: 'smart-auto-rig-25d'; archetype?: SmartRigArchetype; bindMode?: 'auto' | 'rigid' | 'soft'; includeStarterClips?: boolean; sortZDepth?: boolean }
   | { action: 'smart-auto-bind-25d'; bindMode?: 'auto' | 'rigid' | 'soft' }
   | { action: 'auto-sort-z-25d' }
@@ -157,6 +158,9 @@ export function validateRig(composite: LayerComposite): void {
   }
   if (!Number.isFinite(rig.duration) || rig.duration < 0.1 || rig.duration > 120 || typeof rig.loop !== 'boolean') {
     throw new Error('Duration must be 0.1–120 seconds; loop must be boolean')
+  }
+  if (rig.fps !== undefined && (!Number.isFinite(rig.fps) || rig.fps < 4 || rig.fps > 120)) {
+    throw new Error('FPS must be 4–120')
   }
   const ids = new Set(rig.bones.map((b) => b.id))
   if (ids.size !== rig.bones.length) throw new Error('Duplicate bone ID')
@@ -252,6 +256,19 @@ export function applyRigAction(composite: LayerComposite, action: RigAction): La
   if (action.action === 'update-bone') {
     rig.bones = rig.bones.map((b) => (b.id === action.boneId ? { ...b, ...action.patch, id: b.id } : b))
   }
+  if (action.action === 'update-bones') {
+    const patchMap = new Map(action.patches.map((p) => [p.boneId, p.patch]))
+    for (const id of patchMap.keys()) {
+      if (!rig.bones.some((b) => b.id === id)) throw new Error('Unknown bone ID')
+    }
+    rig.bones = rig.bones.map((b) => {
+      const patch = patchMap.get(b.id)
+      return patch ? { ...b, ...patch, id: b.id } : b
+    })
+  }
+  if (action.action === 'snap-joints') {
+    rig.bones = weldConnectedLimbBones(rig.bones, 0.45)
+  }
   if (action.action === 'delete-bone') {
     const removed = new Set([action.boneId])
     for (let i = 0; i < rig.bones.length; i++) {
@@ -280,6 +297,9 @@ export function applyRigAction(composite: LayerComposite, action: RigAction): La
   if (action.action === 'batch') {
     if (!action.operations.length || action.operations.length > 200) throw new Error('Batch requires 1–200 operations')
     for (const operation of action.operations) applyAnimationAction(rig, operation)
+  }
+  if (action.action === 'hold-frames') {
+    applyHoldFramesAction(rig, action.time, action.holdSeconds, action.boneId)
   }
   if (action.action === 'mirror-pose') {
     const time = action.time
@@ -332,7 +352,19 @@ export function applyRigAction(composite: LayerComposite, action: RigAction): La
     }
   }
   if (action.action === 'settings') {
-    if (action.duration !== undefined) rig.duration = action.duration
+    if (action.fps !== undefined) {
+      if (!Number.isFinite(action.fps) || action.fps < 4 || action.fps > 120) {
+        throw new Error('FPS must be 4–120')
+      }
+      rig.fps = Math.round(action.fps)
+    }
+    if (action.duration !== undefined) {
+      const nextDuration = Number(action.duration.toFixed(4))
+      if (Number.isFinite(nextDuration) && nextDuration >= 0.1 && nextDuration <= 120) {
+        rig.tracks = retimeOrClampTracks(rig.tracks, rig.duration, nextDuration, Boolean(action.scaleKeys))
+      }
+      rig.duration = action.duration
+    }
     if (action.loop !== undefined) rig.loop = action.loop
   }
   if (action.action === 'apply-template') {
@@ -363,6 +395,7 @@ export function applyRigAction(composite: LayerComposite, action: RigAction): La
     }
     rig.bones = templateBones
     const initialClip = createClipFromPreset(defaultPreset, templateBones, undefined, 'front')
+    if (rig.fps) initialClip.fps = rig.fps
     rig.tracks = structuredClone(initialClip.tracks)
     rig.duration = initialClip.duration
     rig.loop = initialClip.loop
@@ -374,6 +407,7 @@ export function applyRigAction(composite: LayerComposite, action: RigAction): La
   if (action.action === 'apply-preset-animation') {
     if (action.asNewClip) {
       const clip = createClipFromPreset(action.preset, rig.bones, action.clipName, action.viewAngle)
+      if (rig.fps) clip.fps = rig.fps
       rig.clips = [...(rig.clips ?? []), clip]
       rig.activeClipId = clip.id
       rig.tracks = structuredClone(clip.tracks)
@@ -461,120 +495,12 @@ export function applyRigAction(composite: LayerComposite, action: RigAction): La
     }
   }
 
-  // --- Quản lý Clips Động Tác ---
-  if (action.action === 'add-clip') {
-    const existing = rig.clips ?? []
-    const isOnlyEmptyDefault =
-      existing.length === 1 &&
-      existing[0].id === 'clip-default' &&
-      Object.keys(existing[0].tracks || {}).length === 0
+  if (isRigClipAction(action)) {
+    applyRigClipAction(rig, action)
+  }
 
-    rig.clips = isOnlyEmptyDefault ? [action.clip] : [...existing, action.clip]
-    rig.activeClipId = action.clip.id
-    rig.tracks = structuredClone(action.clip.tracks)
-    rig.duration = action.clip.duration
-    rig.loop = action.clip.loop
-  }
-  if (action.action === 'switch-clip') {
-    const targetClip = rig.clips?.find((c) => c.id === action.clipId)
-    if (targetClip) {
-      // Lưu lại tracks/duration/loop hiện tại vào clip cũ
-      if (rig.activeClipId && rig.clips) {
-        rig.clips = rig.clips.map((c) =>
-          c.id === rig.activeClipId
-            ? { ...c, duration: rig.duration, loop: rig.loop, tracks: structuredClone(rig.tracks) }
-            : c
-        )
-      }
-      rig.activeClipId = targetClip.id
-      rig.tracks = structuredClone(targetClip.tracks)
-      rig.duration = targetClip.duration
-      rig.loop = targetClip.loop
-    }
-  }
-  if (action.action === 'rename-clip') {
-    if (rig.clips) {
-      rig.clips = rig.clips.map((c) => (c.id === action.clipId ? { ...c, name: action.name } : c))
-    }
-  }
-  if (action.action === 'delete-clip') {
-    const remaining = (rig.clips ?? []).filter((c) => c.id !== action.clipId)
-    if (remaining.length > 0) {
-      rig.clips = remaining
-      if (rig.activeClipId === action.clipId) {
-        const nextActive = remaining[0]
-        rig.activeClipId = nextActive.id
-        rig.tracks = structuredClone(nextActive.tracks)
-        rig.duration = nextActive.duration
-        rig.loop = nextActive.loop
-      }
-    } else {
-      const emptyClip: AnimationClip = {
-        id: 'clip-default',
-        name: 'Tư thế tĩnh',
-        duration: 2.0,
-        loop: true,
-        tracks: {}
-      }
-      rig.clips = [emptyClip]
-      rig.activeClipId = emptyClip.id
-      rig.tracks = {}
-      rig.duration = emptyClip.duration
-      rig.loop = emptyClip.loop
-    }
-  }
-  if (action.action === 'delete-all-clips') {
-    const emptyClip: AnimationClip = {
-      id: 'clip-default',
-      name: 'Tư thế tĩnh',
-      duration: 2.0,
-      loop: true,
-      tracks: {}
-    }
-    rig.clips = [emptyClip]
-    rig.activeClipId = emptyClip.id
-    rig.tracks = {}
-    rig.duration = emptyClip.duration
-    rig.loop = emptyClip.loop
-  }
-  if (action.action === 'duplicate-clip') {
-    const source = rig.clips?.find((c) => c.id === action.clipId)
-    if (source) {
-      const dup: AnimationClip = {
-        ...structuredClone(source),
-        id: `clip-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
-        name: `${source.name} (Bản sao)`
-      }
-      rig.clips = [...(rig.clips ?? []), dup]
-      rig.activeClipId = dup.id
-      rig.tracks = structuredClone(dup.tracks)
-      rig.duration = dup.duration
-      rig.loop = dup.loop
-    }
-  }
-  if (action.action === 'inherit-clip') {
-    const retargeted = retargetAnimationClip(action.sourceClip, action.sourceBones, rig.bones, {
-      clipName: action.clipName,
-      scalePositionWithBoneLength: true
-    })
-    const existing = rig.clips ?? []
-    const isOnlyEmptyDefault =
-      existing.length === 1 &&
-      existing[0].id === 'clip-default' &&
-      Object.keys(existing[0].tracks || {}).length === 0
-
-    if (isOnlyEmptyDefault) {
-      rig.clips = [retargeted]
-    } else {
-      rig.clips = [...existing, retargeted]
-    }
-    rig.activeClipId = retargeted.id
-    rig.tracks = structuredClone(retargeted.tracks)
-    rig.duration = retargeted.duration
-    rig.loop = retargeted.loop
-  }
   if (action.action === 'apply-mixamo-rig-motion') {
-    rig.bones = action.bones.map((b) => ({ ...b }))
+    rig.bones = weldConnectedLimbBones(action.bones.map((b) => ({ ...b })))
     if (action.autoBindSoft !== false) {
       layers = autoBindLayersToMixamoBones(layers, rig.bones)
     } else {
@@ -583,9 +509,7 @@ export function applyRigAction(composite: LayerComposite, action: RigAction): La
     }
 
     const existing = rig.clips ?? []
-    const isOnlyEmptyDefault =
-      existing.length === 1 &&
-      Object.keys(existing[0].tracks || {}).length === 0
+    const isOnlyEmptyDefault = existing.length === 1 && Object.keys(existing[0].tracks || {}).length === 0
 
     if (action.clips && action.clips.length > 0) {
       const incoming = action.clips.map((c) => structuredClone(c))
@@ -596,11 +520,7 @@ export function applyRigAction(composite: LayerComposite, action: RigAction): La
       rig.duration = first.duration
       rig.loop = first.loop
     } else if (action.clip) {
-      if (action.replaceClips || isOnlyEmptyDefault || existing.length === 0) {
-        rig.clips = [action.clip]
-      } else {
-        rig.clips = [...existing, action.clip]
-      }
+      rig.clips = action.replaceClips || isOnlyEmptyDefault || existing.length === 0 ? [action.clip] : [...existing, action.clip]
       rig.activeClipId = action.clip.id
       rig.tracks = structuredClone(action.clip.tracks)
       rig.duration = action.clip.duration
@@ -608,7 +528,7 @@ export function applyRigAction(composite: LayerComposite, action: RigAction): La
     }
   }
 
-  // Đồng bộ tracks/duration/loop thay đổi vào activeClip trong clips
+  // Đồng bộ tracks/duration/loop/fps thay đổi vào activeClip trong clips
   if (rig.clips && rig.activeClipId) {
     rig.clips = rig.clips.map((c) =>
       c.id === rig.activeClipId
@@ -616,6 +536,7 @@ export function applyRigAction(composite: LayerComposite, action: RigAction): La
             ...c,
             duration: rig.duration,
             loop: rig.loop,
+            fps: rig.fps ?? c.fps,
             tracks: structuredClone(rig.tracks)
           }
         : c
@@ -626,4 +547,3 @@ export function applyRigAction(composite: LayerComposite, action: RigAction): La
   validateRig(next)
   return next
 }
-

@@ -43,6 +43,8 @@ export interface AnimationClip {
   /** Source preset metadata for template catalog consumers. */
   presetKey?: string
   viewAngle?: MotionViewAngle
+  /** Tốc độ khung hình riêng của clip (12 | 24 | 30 | 60 fps, mặc định kế thừa từ dự án). */
+  fps?: number
 }
 
 export interface LayerRig {
@@ -50,6 +52,8 @@ export interface LayerRig {
   duration: number
   loop: boolean
   tracks: Record<string, BoneKeyframe[]>
+  /** Tốc độ khung hình mặc định của rig trên Dope Sheet (12 | 24 | 30 | 60 fps). */
+  fps?: number
   /** Danh sách các clips động tác của khung xương */
   clips?: AnimationClip[]
   /** ID của động tác đang được kích hoạt và chỉnh sửa */

@@ -37,7 +37,7 @@
 .lw-pane-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px 6px; flex-shrink: 0; }
 .lw-pane-title { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 12px; font-weight: 600; color: var(--text); white-space: nowrap; }
 .lw-pane-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
-.lw-count { display: inline-flex; align-items: center; height: 16px; padding: 0 6px; border-radius: var(--radius-pill); background: var(--bg-3); color: var(--text-dim); font-size: 10px; font-weight: 700; line-height: 1; flex-shrink: 0; }
+.lw-count { display: inline-flex; align-items: center; height: 16px; padding: 0 6px; border-radius: var(--radius-sm); background: var(--bg-3); color: var(--text-dim); font-size: 10px; font-weight: 700; line-height: 1; flex-shrink: 0; }
 .lw-hint { margin: 0; padding: 0 10px 8px; font-size: 10.5px; line-height: 1.5; color: var(--text-faint); }
 .lw-empty { padding: 22px 14px; text-align: center; font-size: 11px; line-height: 1.6; color: var(--text-dim); }
 .lw-empty strong { color: var(--text); }
@@ -57,7 +57,7 @@
 .lw-icon-btn:disabled { opacity: 0.3; cursor: default; }
 .lw-icon-btn.on { color: var(--accent); }
 .lw-icon-btn.danger:hover:not(:disabled) { color: var(--danger); background: color-mix(in srgb, var(--danger) 12%, transparent); border-color: color-mix(in srgb, var(--danger) 40%, transparent); }
-.lw-chip { display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 9px; border: 1px solid var(--line-soft); border-radius: var(--radius-pill); background: var(--bg-2); color: var(--text-dim); font: inherit; font-size: 10.5px; font-weight: 500; white-space: nowrap; cursor: pointer; transition: all 0.12s; }
+.lw-chip { display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 9px; border: 1px solid var(--line-soft); border-radius: var(--radius-sm); background: var(--bg-2); color: var(--text-dim); font: inherit; font-size: 10.5px; font-weight: 500; white-space: nowrap; cursor: pointer; transition: all 0.12s; }
 .lw-chip:hover { color: var(--text); border-color: var(--line-focus); }
 .lw-chip.active { color: var(--accent); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--bg-2)); }
 .lw-tag { display: inline-flex; align-items: center; gap: 3px; height: 16px; padding: 0 5px; border-radius: 4px; background: var(--bg-3); color: var(--text-dim); font-size: 9.5px; font-weight: 600; white-space: nowrap; flex-shrink: 0; }

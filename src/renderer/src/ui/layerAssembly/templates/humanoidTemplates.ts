@@ -8,55 +8,56 @@ import {
   generateWaveHand,
   generateBow
 } from '../workshopRigPresets'
+import { weldConnectedLimbBones } from '../mohoRigHelpers'
 
 /**
- * Khung xương mẫu Nam Sinh Kính Cận — toạ độ tuyệt đối khớp đúng vị trí ghép bộ phận:
- * khớp vai đặt tại mép vai áo, khuỷu tay nằm trong gấu tay áo, đầu gối nằm trong ống quần.
+ * Khung xương mẫu Nam Sinh Kính Cận — toạ độ tuyệt đối khớp đúng vị trí ghép bộ phận,
+ * đã hàn khít 100% khớp ngọn cha (tail) trùng tâm khớp gốc con (head) chuẩn Moho Pro.
  */
-export const CUTOUT_FRONT_BONES: LayerBone[] = [
-  { id: 'bone-pelvis', name: 'Hông (Root)', x: 0, y: 65, length: 95, angle: -90 },
-  { id: 'bone-torso', name: 'Thân / Ngực', parentId: 'bone-pelvis', x: 0, y: -35, length: 130, angle: -90 },
+export const CUTOUT_FRONT_BONES: LayerBone[] = weldConnectedLimbBones([
+  { id: 'bone-pelvis', name: 'Hông (Root)', x: 0, y: 65, length: 100, angle: -90 },
+  { id: 'bone-torso', name: 'Thân / Ngực', parentId: 'bone-pelvis', x: 0, y: -35, length: 140, angle: -90 },
   { id: 'bone-head', name: 'Đầu', parentId: 'bone-torso', x: 0, y: -175, length: 130, angle: -90 },
-  { id: 'bone-arm-l', name: 'Bắp tay trái', parentId: 'bone-torso', x: -96, y: -160, length: 158, angle: 90 },
+  { id: 'bone-arm-l', name: 'Bắp tay trái', parentId: 'bone-torso', x: -96, y: -160, length: 159, angle: 97 },
   { id: 'bone-forearm-l', name: 'Cẳng tay trái', parentId: 'bone-arm-l', x: -115, y: -2, length: 122, angle: 90 },
   { id: 'bone-hand-l', name: 'Bàn tay trái', parentId: 'bone-forearm-l', x: -115, y: 120, length: 30, angle: 90 },
-  { id: 'bone-arm-r', name: 'Bắp tay phải', parentId: 'bone-torso', x: 97, y: -160, length: 158, angle: 90 },
+  { id: 'bone-arm-r', name: 'Bắp tay phải', parentId: 'bone-torso', x: 97, y: -160, length: 159, angle: 83 },
   { id: 'bone-forearm-r', name: 'Cẳng tay phải', parentId: 'bone-arm-r', x: 115, y: -2, length: 122, angle: 90 },
   { id: 'bone-hand-r', name: 'Bàn tay phải', parentId: 'bone-forearm-r', x: 115, y: 120, length: 30, angle: 90 },
-  { id: 'bone-thigh-l', name: 'Đùi trái', parentId: 'bone-pelvis', x: -46, y: 75, length: 172, angle: 90 },
-  { id: 'bone-shin-l', name: 'Cẳng chân trái', parentId: 'bone-thigh-l', x: -54, y: 247, length: 198, angle: 90 },
+  { id: 'bone-thigh-l', name: 'Đùi trái', parentId: 'bone-pelvis', x: -46, y: 75, length: 172, angle: 93 },
+  { id: 'bone-shin-l', name: 'Cẳng chân trái', parentId: 'bone-thigh-l', x: -54, y: 247, length: 198, angle: 92 },
   { id: 'bone-foot-l', name: 'Bàn chân trái', parentId: 'bone-shin-l', x: -60, y: 445, length: 40, angle: 180 },
-  { id: 'bone-thigh-r', name: 'Đùi phải', parentId: 'bone-pelvis', x: 42, y: 75, length: 172, angle: 90 },
-  { id: 'bone-shin-r', name: 'Cẳng chân phải', parentId: 'bone-thigh-r', x: 38, y: 247, length: 198, angle: 90 },
-  { id: 'bone-foot-r', name: 'Bàn chân phải', parentId: 'bone-shin-r', x: 32, y: 445, length: 40, angle: 180 }
-]
+  { id: 'bone-thigh-r', name: 'Đùi phải', parentId: 'bone-pelvis', x: 42, y: 75, length: 172, angle: 91 },
+  { id: 'bone-shin-r', name: 'Cẳng chân phải', parentId: 'bone-thigh-r', x: 38, y: 247, length: 198, angle: 92 },
+  { id: 'bone-foot-r', name: 'Bàn chân phải', parentId: 'bone-shin-r', x: 32, y: 445, length: 40, angle: 0 }
+])
 
-/** Khung xương riêng của mẫu Nam Sinh Học Viện (bộ ảnh character_human_quarter). */
-export const CUTOUT_QUARTER_BONES: LayerBone[] = [
-  { id: 'bone-pelvis', name: 'Hông (Root)', x: 0, y: 65, length: 95, angle: -90 },
-  { id: 'bone-torso', name: 'Thân / Ngực', parentId: 'bone-pelvis', x: 0, y: -35, length: 130, angle: -90 },
+/** Khung xương riêng của mẫu Nam Sinh Học Viện (bộ ảnh character_human_quarter), đã hàn khít khớp nối. */
+export const CUTOUT_QUARTER_BONES: LayerBone[] = weldConnectedLimbBones([
+  { id: 'bone-pelvis', name: 'Hông (Root)', x: 0, y: 65, length: 100, angle: -90 },
+  { id: 'bone-torso', name: 'Thân / Ngực', parentId: 'bone-pelvis', x: 0, y: -35, length: 140, angle: -90 },
   { id: 'bone-head', name: 'Đầu', parentId: 'bone-torso', x: 0, y: -175, length: 130, angle: -90 },
-  { id: 'bone-arm-l', name: 'Bắp tay trái', parentId: 'bone-torso', x: -88, y: -115, length: 135, angle: 90 },
+  { id: 'bone-arm-l', name: 'Bắp tay trái', parentId: 'bone-torso', x: -88, y: -115, length: 136, angle: 96 },
   { id: 'bone-forearm-l', name: 'Cẳng tay trái', parentId: 'bone-arm-l', x: -102, y: 20, length: 120, angle: 90 },
   { id: 'bone-hand-l', name: 'Bàn tay trái', parentId: 'bone-forearm-l', x: -102, y: 140, length: 45, angle: 90 },
-  { id: 'bone-arm-r', name: 'Bắp tay phải', parentId: 'bone-torso', x: 88, y: -115, length: 135, angle: 90 },
+  { id: 'bone-arm-r', name: 'Bắp tay phải', parentId: 'bone-torso', x: 88, y: -115, length: 136, angle: 84 },
   { id: 'bone-forearm-r', name: 'Cẳng tay phải', parentId: 'bone-arm-r', x: 102, y: 20, length: 120, angle: 90 },
   { id: 'bone-hand-r', name: 'Bàn tay phải', parentId: 'bone-forearm-r', x: 102, y: 140, length: 45, angle: 90 },
-  { id: 'bone-thigh-l', name: 'Đùi trái', parentId: 'bone-pelvis', x: -46, y: 80, length: 175, angle: 90 },
+  { id: 'bone-thigh-l', name: 'Đùi trái', parentId: 'bone-pelvis', x: -46, y: 80, length: 175, angle: 91 },
   { id: 'bone-shin-l', name: 'Cẳng chân trái', parentId: 'bone-thigh-l', x: -48, y: 255, length: 175, angle: 90 },
   { id: 'bone-foot-l', name: 'Bàn chân trái', parentId: 'bone-shin-l', x: -48, y: 430, length: 50, angle: 180 },
-  { id: 'bone-thigh-r', name: 'Đùi phải', parentId: 'bone-pelvis', x: 46, y: 80, length: 175, angle: 90 },
+  { id: 'bone-thigh-r', name: 'Đùi phải', parentId: 'bone-pelvis', x: 46, y: 80, length: 175, angle: 89 },
   { id: 'bone-shin-r', name: 'Cẳng chân phải', parentId: 'bone-thigh-r', x: 48, y: 255, length: 175, angle: 90 },
-  { id: 'bone-foot-r', name: 'Bàn chân phải', parentId: 'bone-shin-r', x: 48, y: 430, length: 50, angle: 180 }
-]
+  { id: 'bone-foot-r', name: 'Bàn chân phải', parentId: 'bone-shin-r', x: 48, y: 430, length: 50, angle: 0 }
+])
 
 function buildClipsForBones(bones: LayerBone[]): AnimationClip[] {
   return [
-    { id: 'clip-idle', name: 'Đứng thở (Idle)', duration: 2.4, loop: true, presetKey: 'idle', tracks: generateIdleBreathe(bones, 2.4) },
-    { id: 'clip-walk', name: 'Bước đi (Walk)', duration: 1.6, loop: true, presetKey: 'walk', tracks: generateWalkCycle(bones, 1.6) },
-    { id: 'clip-wave', name: 'Vẫy tay chào (Wave)', duration: 1.8, loop: true, presetKey: 'wave', tracks: generateWaveHand(bones, 1.8) },
-    { id: 'clip-bow', name: 'Cúi chào (Bow)', duration: 2.0, loop: false, presetKey: 'bow', tracks: generateBow(bones, 2.0) },
-    { id: 'clip-action', name: 'Vung kiếm (Slash)', duration: 1.5, loop: true, presetKey: 'action', tracks: generateActionSlash(bones, 1.5) }
+    { id: 'clip-idle', name: 'Đứng thở (Idle)', duration: 2.4, loop: true, presetKey: 'idle', viewAngle: 'front', tracks: generateIdleBreathe(bones, 2.4, 'front') },
+    { id: 'clip-walk', name: 'Bước đi (Walk)', duration: 1.6, loop: true, presetKey: 'walk', viewAngle: 'front', tracks: generateWalkCycle(bones, 1.6, 'front') },
+    { id: 'clip-wave', name: 'Vẫy tay chào (Wave)', duration: 1.8, loop: true, presetKey: 'wave', viewAngle: 'front', tracks: generateWaveHand(bones, 1.8, 'front') },
+    { id: 'clip-bow', name: 'Cúi chào (Bow)', duration: 2.0, loop: false, presetKey: 'bow', viewAngle: 'front', tracks: generateBow(bones, 2.0, 'front') },
+    { id: 'clip-action', name: 'Vung đòn (Action)', duration: 1.5, loop: true, presetKey: 'action', viewAngle: 'front', tracks: generateActionSlash(bones, 1.5, 'front') }
   ]
 }
 

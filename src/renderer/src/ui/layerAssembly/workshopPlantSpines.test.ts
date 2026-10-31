@@ -134,4 +134,33 @@ describe('workshop plant spines', () => {
     expect(applyPlantSpineAction(c, { action: 'delete', id: 's1' }).plantSpines).toEqual([])
     expect(() => applyPlantSpineAction(c, { action: 'delete', id: 'x' })).toThrow()
   })
+
+  it('builds valid 4-point spines in all 3 directions (up, horizontal, down) and applies Beaufort wind weather presets', () => {
+    const c = composite()
+    const ptsUp = buildAutoPlantSpinePoints(c, ['trunk'], 0, 'up')
+    expect(ptsUp).toHaveLength(4)
+    expect(ptsUp[0].y).toBeGreaterThan(ptsUp[3].y)
+
+    const ptsHoriz = buildAutoPlantSpinePoints(c, ['trunk'], 0, 'horizontal')
+    expect(ptsHoriz).toHaveLength(4)
+    expect(ptsHoriz[0].x).toBeLessThan(ptsHoriz[3].x)
+
+    const ptsDown = buildAutoPlantSpinePoints(c, ['trunk'], 0, 'down')
+    expect(ptsDown).toHaveLength(4)
+    expect(ptsDown[0].y).toBeLessThan(ptsDown[3].y)
+
+    const s1 = createPlantSpine({ points: ptsUp, layerIds: ['trunk'], id: 's1' })
+    const s2 = createPlantSpine({ points: ptsDown, layerIds: ['leaves'], id: 's2' })
+    let next = applyPlantSpineAction(c, { action: 'add', spine: s1 })
+    next = applyPlantSpineAction(next, { action: 'add', spine: s2 })
+    next = applyPlantSpineAction(next, {
+      action: 'apply-weather',
+      patch: { amplitude: 22, speed: 1.25, lean: 9 },
+      stagger: true
+    })
+    expect(next.plantSpines![0].amplitude).toBe(22)
+    expect(next.plantSpines![1].amplitude).toBe(22)
+    expect(next.plantSpines![0].lean).toBe(9)
+    expect(next.plantSpines![1].phaseOffset).toBeGreaterThan(0)
+  })
 })

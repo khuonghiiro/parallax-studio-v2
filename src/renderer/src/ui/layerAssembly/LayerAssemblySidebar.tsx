@@ -58,7 +58,7 @@ export function LayerAssemblySidebar({
   onDeleteLayer,
   onDuplicateLayer,
   onLoadComposite,
-  width = 260
+  width
 }: LayerAssemblySidebarProps) {
   const [activeTab, setActiveTab] = useState<'builtin' | 'presets' | 'project'>('project')
   const [searchTerm, setSearchTerm] = useState('')
@@ -235,10 +235,10 @@ export function LayerAssemblySidebar({
 
   return (
     <div
-      className="layer-workshop-sidebar"
+      className="layer-workshop-sidebar lw-sidebar" data-mcp-region="layer_assembly_sidebar"
       style={{
-        width: `${width}px`,
-        minWidth: '190px',
+        ...(width !== undefined ? { width: `${width}px`, minWidth: '190px' } : {}),
+        boxSizing: 'border-box',
         background: 'var(--bg-2)',
         borderRight: '1px solid var(--line-soft)',
         display: 'flex',
@@ -413,7 +413,7 @@ export function LayerAssemblySidebar({
         {/* TAB 1: CÓ SẴN - Ảnh & Đạo cụ có sẵn + Ảnh người dùng thêm vào */}
         {activeTab === 'builtin' && (
           filteredAssets.length > 0 ? (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '8px', width: '100%', boxSizing: 'border-box' }}>
+            <div className="lw-sidebar-asset-grid">
               {filteredAssets.map((item) => (
                 <AssetCard
                   key={item.id}
@@ -462,7 +462,7 @@ export function LayerAssemblySidebar({
         {/* TAB 3: DỰ ÁN - Các layer đang tạo trong mẫu hiện tại */}
         {activeTab === 'project' && (
           filteredLayers.length > 0 ? (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '8px', width: '100%', boxSizing: 'border-box' }}>
+            <div className="lw-sidebar-asset-grid">
               {filteredLayers.map((layer) => {
                 const isSelected = selectedLayerId === layer.id
                 return (

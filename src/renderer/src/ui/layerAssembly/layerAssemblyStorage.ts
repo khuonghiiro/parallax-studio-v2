@@ -1,6 +1,7 @@
 import type { LayerComposite, LayerCompositeCategory, AssetTable } from './types'
 import { BUILTIN_COMPOSITES } from './layerAssemblyDefaultComposites'
 import { BUILTIN_NATURE_SPINE_KEYS, natureSpines } from './templates/natureDefaultSpines'
+import { weldConnectedLimbBones } from './mohoRigHelpers'
 
 export { BUILTIN_COMPOSITES }
 
@@ -15,7 +16,7 @@ export const COMPOSITE_CATEGORIES: LayerCompositeCategory[] = [
 ]
 
 const STORAGE_KEY = 'pxs.layerComposites'
-const SEED_VERSION = 'v28_scene_cave_portal_physics_light'
+const SEED_VERSION = 'v30_welded_joints_front_motion_studio'
 const SEED_KEY = 'pxs.layerComposites.seeded_version'
 const DELETED_KEY = 'pxs.layerComposites.deleted'
 
@@ -356,7 +357,7 @@ export function importLayerCompositeFromJson(jsonString: string): LayerComposite
     height: typeof raw.height === 'number' ? raw.height : 600,
     assets: raw.assets,
     layers: raw.layers,
-    rig: raw.rig,
+    rig: raw.rig ? { ...raw.rig, bones: weldConnectedLimbBones(raw.rig.bones || []) } : undefined,
     lighting: raw.lighting,
     createdAt: raw.createdAt || Date.now(),
     updatedAt: Date.now()

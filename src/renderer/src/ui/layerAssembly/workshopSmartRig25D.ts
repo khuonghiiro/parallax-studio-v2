@@ -18,6 +18,7 @@ import {
   generateQuadrupedWalk
 } from './templates/creatureRigPresets'
 import { createSimpleChainBones, generateSway } from './workshopRigPresets'
+import { weldConnectedLimbBones } from './mohoRigHelpers'
 
 /**
  * Hệ thống Gắn Xương & Liên Kết Giải Phẫu Thông Minh 2.5D (Smart Auto-Rig & Auto-Bind 2.5D).
@@ -91,12 +92,12 @@ function computeLayersBounds(layers: AssembledLayerItem[], width = 480, height =
 }
 
 function scaleBoneList(bones: LayerBone[], scale: number, cx: number, cy: number): LayerBone[] {
-  return bones.map((b) => ({
+  return weldConnectedLimbBones(bones.map((b) => ({
     ...b,
-    x: Math.round(b.x * scale + (b.parentId ? 0 : cx)),
-    y: Math.round(b.y * scale + (b.parentId ? 0 : cy)),
+    x: Math.round(b.x * scale + cx),
+    y: Math.round(b.y * scale + cy),
     length: Math.max(10, Math.round(b.length * scale))
-  }))
+  })))
 }
 
 /** Bổ sung xương phụ (tóc sau, áo choàng, đuôi, vũ khí) nếu phát hiện layer tương ứng trong cụm Nhân vật 2.5D */

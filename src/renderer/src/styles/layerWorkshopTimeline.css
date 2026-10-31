@@ -445,8 +445,32 @@ button.lw-animation-track-name:hover {
   stroke-width: 2;
 }
 
+.lw-animation-timeline.is-collapsed .lw-animation-timeline-toolbar {
+  border-bottom: 0;
+}
+
 @media (max-width: 900px) {
   .lw-animation-track-row {
-    grid-template-columns: 124px minmax(0, 1fr);
+    grid-template-columns: 120px minmax(0, 1fr);
+  }
+
+  .lw-animation-track-scroll {
+    max-height: 164px;
+  }
+}
+
+@media (max-width: 640px) {
+  .lw-animation-timeline-toolbar {
+    padding: 4px 7px;
+    gap: 5px;
+  }
+
+  .lw-animation-track-row {
+    grid-template-columns: 98px minmax(0, 1fr);
+    height: 26px;
+  }
+
+  .lw-animation-track-scroll {
+    max-height: 136px;
   }
 }

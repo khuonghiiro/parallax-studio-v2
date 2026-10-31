@@ -89,6 +89,40 @@
   border-bottom: 1px solid var(--line);
 }
 
+/* Layer Assembly 2.5D Vertical Split Stacking (Tablet Portrait / Phone) */
+.layer-workshop-split-container.is-stacked {
+  flex-direction: column;
+}
+
+.layer-workshop-split-container.is-stacked .layer-workshop-split-pane {
+  width: 100%;
+  height: auto;
+  min-height: 0;
+}
+
+.lw-col-splitter.is-horizontal {
+  width: 100%;
+  min-width: 0;
+  height: 6px;
+  min-height: 6px;
+  cursor: row-resize;
+  border-left: 0;
+  border-right: 0;
+  border-top: 1px solid var(--line-soft);
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.lw-col-splitter.is-horizontal .lw-col-splitter-grip {
+  width: 32px;
+  height: 2px;
+}
+
+.lw-col-splitter.is-horizontal:hover .lw-col-splitter-grip,
+.lw-col-splitter.is-horizontal.active .lw-col-splitter-grip {
+  width: 48px;
+  height: 2px;
+}
+
 /* ==========================================================================
    1. Laptop / Compact Desktop (<= 1366px)
    ========================================================================== */
@@ -101,6 +135,30 @@
   .assembly-modal-content {
     width: calc(100dvw - 16px);
     height: calc(100dvh - 16px);
+  }
+
+  .layer-workshop-dialog {
+    width: calc(100dvw - 16px);
+    height: calc(100dvh - 16px);
+  }
+
+  .layer-workshop-header {
+    padding: 0 10px;
+    gap: 7px;
+  }
+
+  .layer-workshop-header .lw-brand small {
+    display: none;
+  }
+
+  .layer-workshop-header .lw-name {
+    width: clamp(110px, 13vw, 175px);
+    min-width: 96px;
+  }
+
+  .layer-workshop-header .lw-category-select {
+    width: 144px;
+    min-width: 118px;
   }
 
   .assembly-modal-header .header-title span {
@@ -154,12 +212,23 @@
   }
 
   .layer-workshop-dialog.is-responsive-drawer .lw-sidebar,
-  .layer-workshop-dialog.is-responsive-drawer .lw-right {
+  .layer-workshop-dialog.is-responsive-drawer .layer-workshop-sidebar,
+  .layer-workshop-dialog.is-responsive-drawer .lw-right,
+  .layer-workshop-dialog.is-responsive-drawer .lw-right-column {
     width: 100% !important;
+    min-width: 0 !important;
     max-width: none;
     flex: 1 1 0%;
     border-left: 0;
     border-right: 0;
+  }
+
+  .layer-workshop-dialog.is-responsive-drawer .lw-sidebar-asset-grid {
+    grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  }
+
+  .layer-workshop-header .lw-category-select {
+    display: none;
   }
 
   /* Nested Mixamo Motion Studio inside Layer Assembly */
@@ -362,6 +431,53 @@
   .lw-workspace.split {
     flex-direction: column;
   }
+
+  /* Layer Assembly 2.5D Header & Toolbar Responsive Reflow on Phone */
+  .layer-workshop-header {
+    height: auto;
+    min-height: 40px;
+    flex-wrap: wrap;
+    padding: 6px 8px;
+    row-gap: 5px;
+  }
+
+  .layer-workshop-header .lw-header-left {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .layer-workshop-header .lw-brand strong {
+    display: none;
+  }
+
+  .layer-workshop-header .lw-name {
+    flex: 1 1 110px;
+    width: auto;
+    min-width: 90px;
+    max-width: none;
+  }
+
+  .layer-workshop-header .layer-workshop-header-actions {
+    margin-left: auto;
+    gap: 4px;
+  }
+
+  .layer-workshop-header .lw-btn-new-model span {
+    display: none;
+  }
+
+  .layer-workshop-header .lw-header-center {
+    order: 3;
+    flex: 1 1 100%;
+    width: 100%;
+    justify-content: space-between;
+    padding-top: 4px;
+    border-top: 1px solid var(--line-soft);
+  }
+
+  .layer-workshop-dialog.is-responsive-drawer .lw-sidebar-asset-grid {
+    grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+  }
 }
 
 /* ==========================================================================
@@ -389,6 +505,23 @@
   .workshop-responsive-bar .pxs-tab {
     padding: 0 6px;
     font-size: 10.5px;
+  }
+
+  .layer-workshop-header .lw-btn-insert-scene span {
+    font-size: 10.5px;
+  }
+
+  .layer-workshop-header .view-mode-tab-btn {
+    padding: 0 7px;
+    font-size: 10.5px;
+  }
+
+  .lw-anim-transport-card .lw-anim-transport-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .lw-fps-retime-bar {
+    flex-wrap: wrap;
   }
 }
 
@@ -421,6 +554,10 @@
   .modal-head p,
   .lw-status {
     display: none;
+  }
+
+  .layer-workshop-dialog .lw-animation-track-scroll {
+    max-height: 104px;
   }
 
   .camera-sketch-canvas {
