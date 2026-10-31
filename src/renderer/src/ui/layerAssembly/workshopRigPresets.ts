@@ -163,38 +163,36 @@ export function generateIdleBreathe(
     return tracks
   }
 
-  const sideLean = viewAngle === 'side' ? 2.4 : viewAngle === 'diagonal' ? 1.0 : 0
+  // Hông (pelvis) và toàn bộ hai chân (đùi, cẳng chân, bàn chân) giữ cố định bám mặt đất 100%,
+  // chỉ phần thân trên (ngực torso, đầu, hai vai/tay) nở nhẹ theo nhịp hít thở để không bị cảm giác bay bổng.
+  const sideLean = viewAngle === 'side' ? 2.2 : viewAngle === 'diagonal' ? 1.1 : 0.75
   if (ids.pelvis) {
-    tracks[ids.pelvis] = [
-      k(0, 0, 0, 0),
-      k(d * 0.25, 0.85, 0, -1),
-      k(d * 0.5, 0, 0, -2),
-      k(d * 0.75, -0.85, 0, -1),
-      k(d, 0, 0, 0)
-    ]
+    tracks[ids.pelvis] = [k(0, 0, 0, 0), k(d * 0.5, 0, 0, 0), k(d, 0, 0, 0)]
   }
   if (ids.torso) {
     tracks[ids.torso] = [
       k(0, 0, 0, 0, 1, 1),
-      k(d * 0.5, sideLean, 0, -2.5, 1.022, 1.018),
+      k(d * 0.25, sideLean * 0.5, 0, -1.6, 1.012, 1.01),
+      k(d * 0.5, sideLean, 0, -3.4, 1.026, 1.022),
+      k(d * 0.75, -sideLean * 0.35, 0, -1.4, 1.01, 1.008),
       k(d, 0, 0, 0, 1, 1)
     ]
   }
   if (ids.head) {
     tracks[ids.head] = [
       k(0, 0, 0, 0),
-      k(d * 0.55, viewAngle === 'side' ? -1.8 : -0.8, 0, -3),
+      k(d * 0.55, viewAngle === 'side' ? -1.8 : -1.1, 0, -2.0),
       k(d, 0, 0, 0)
     ]
   }
-  // Hai tay mở nhẹ đối xứng khi hít vào (trái +θ ra ngoài trái, phải -θ ra ngoài phải)
-  const armOpen = viewAngle === 'side' ? -3 : 3.2
-  if (ids.armL) tracks[ids.armL] = [k(0, 0), k(d * 0.5, armOpen), k(d, 0)]
-  if (ids.armR) tracks[ids.armR] = [k(0, 0), k(d * 0.5, viewAngle === 'side' ? -3 : -armOpen), k(d, 0)]
-  if (ids.forearmL) tracks[ids.forearmL] = [k(0, 0), k(d * 0.55, -2.2), k(d, 0)]
-  if (ids.forearmR) tracks[ids.forearmR] = [k(0, 0), k(d * 0.55, viewAngle === 'side' ? -2.2 : 2.2), k(d, 0)]
-  if (ids.handL) tracks[ids.handL] = [k(0, 0), k(d * 0.55, 2.5), k(d, 0)]
-  if (ids.handR) tracks[ids.handR] = [k(0, 0), k(d * 0.55, -2.5), k(d, 0)]
+  // Hai vai/tay nâng mở nhẹ khi ngực hít vào, hạ mềm khi thở ra
+  const armOpen = viewAngle === 'side' ? -2.6 : 2.8
+  if (ids.armL) tracks[ids.armL] = [k(0, 0, 0, 0), k(d * 0.5, armOpen, 0, -1.5), k(d, 0, 0, 0)]
+  if (ids.armR) tracks[ids.armR] = [k(0, 0, 0, 0), k(d * 0.5, viewAngle === 'side' ? -2.6 : -armOpen, 0, -1.5), k(d, 0, 0, 0)]
+  if (ids.forearmL) tracks[ids.forearmL] = [k(0, 0), k(d * 0.55, -2.0), k(d, 0)]
+  if (ids.forearmR) tracks[ids.forearmR] = [k(0, 0), k(d * 0.55, viewAngle === 'side' ? -2.0 : 2.0), k(d, 0)]
+  if (ids.handL) tracks[ids.handL] = [k(0, 0), k(d * 0.55, 2.2), k(d, 0)]
+  if (ids.handR) tracks[ids.handR] = [k(0, 0), k(d * 0.55, -2.2), k(d, 0)]
 
   return fillRestTracks(bones, tracks, d)
 }

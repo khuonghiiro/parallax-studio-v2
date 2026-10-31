@@ -46,7 +46,6 @@ import {
   type LayerDragState
 } from './layerAssembly3DPointer'
 import { evaluateRig } from '../../engine/layerRig'
-import { ensureRigClips } from './workshopRig'
 import {
   applyCameraPreset,
   applyQuickAngle,
@@ -77,6 +76,7 @@ export interface LayerAssembly3DViewportProps {
   onToggleShowMesh?: () => void
   boneId?: string | null
   selectBone?: (id: string | null) => void
+  active?: boolean
 }
 
 export function LayerAssembly3DViewport({
@@ -94,9 +94,12 @@ export function LayerAssembly3DViewport({
   showMesh = false,
   onToggleShowMesh,
   boneId,
-  selectBone
+  selectBone,
+  active = true
 }: LayerAssembly3DViewportProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
+  const activeRef = useRef(active)
+  activeRef.current = active
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
 
   // Three.js instances
@@ -297,7 +300,8 @@ export function LayerAssembly3DViewport({
       const r = rendererRef.current
       const s = sceneRef.current
       const cam = cameraRef.current
-      if (r && s && cam) {
+      const cEl = containerRef.current
+      if (activeRef.current && r && s && cam && cEl && cEl.clientWidth > 0 && cEl.clientHeight > 0) {
         const o = orbitRef.current
         updateOrbitCameraPosition(cam, o)
 
@@ -345,6 +349,8 @@ export function LayerAssembly3DViewport({
         orbitRef.current.distance = fitD
         setCamDistance(fitD)
       }
+      updateOrbitCameraPosition(cameraRef.current, orbitRef.current)
+      rendererRef.current.render(scene, cameraRef.current)
     })
     ro.observe(container)
 
@@ -451,7 +457,8 @@ export function LayerAssembly3DViewport({
     const r = rendererRef.current
     const s = sceneRef.current
     const cam = cameraRef.current
-    if (r && s && cam) {
+    const cEl = containerRef.current
+    if (activeRef.current && r && s && cam && cEl && cEl.clientWidth > 0 && cEl.clientHeight > 0) {
       updateOrbitCameraPosition(cam, orbitRef.current)
       r.render(s, cam)
     }
@@ -463,6 +470,7 @@ export function LayerAssembly3DViewport({
 
   // ------------------------------------------------------------- 6. Đồng bộ hóa Mesh các Layers & Khung xương 3D
   useEffect(() => {
+    if (!active) return
     const layersGroup = layersGroupRef.current
     if (layersGroup) {
       syncLayersGroupMeshes({
@@ -480,7 +488,7 @@ export function LayerAssembly3DViewport({
     }
     const bonesGroup = bonesGroupRef.current
     if (bonesGroup) {
-      const rig = composite.rig ? ensureRigClips(composite.rig).rig : undefined
+      const rig = composite.rig
       const transforms = rig ? evaluateRig(rig, time) : undefined
       const selectedBone = boneId || composite.layers.find((l) => l.id === selectedLayerId)?.boneId || null
       update3DBonesGroup({
@@ -495,7 +503,7 @@ export function LayerAssembly3DViewport({
       })
     }
     flushImmediateRender()
-  }, [composite.rig, composite.layers, time, effectiveZExaggeration, selectedLayerId, selectedIds, boneId, hoveredBoneId, showBones, onTextureReady, flushImmediateRender, renderTrigger, cameraClippingPlanes, showMesh])
+  }, [active, composite.rig, composite.layers, time, effectiveZExaggeration, selectedLayerId, selectedIds, boneId, hoveredBoneId, showBones, onTextureReady, flushImmediateRender, renderTrigger, cameraClippingPlanes, showMesh])
 
   // Native non-passive wheel listener để Chromium không chặn zoom
   useEffect(() => {

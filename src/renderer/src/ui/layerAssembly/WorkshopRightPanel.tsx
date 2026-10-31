@@ -66,9 +66,8 @@ export function WorkshopRightPanel({
       style={width !== undefined ? { width: `${width}px`, minWidth: '250px' } : undefined}
     >
       <SegmentedTabs<WorkshopTab>
-        variant="underline"
+        variant="segmented"
         size="sm"
-        adaptiveCompact
         ariaLabel="Chế độ thanh tra Xưởng Layer"
         className="lw-right-segmented-tabs"
         value={tab}

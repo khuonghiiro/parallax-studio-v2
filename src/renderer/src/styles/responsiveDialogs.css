@@ -433,46 +433,57 @@
   }
 
   /* Layer Assembly 2.5D Header & Toolbar Responsive Reflow on Phone */
-  .layer-workshop-header {
+  .layer-workshop-dialog .layer-workshop-header {
     height: auto;
     min-height: 40px;
     flex-wrap: wrap;
     padding: 6px 8px;
-    row-gap: 5px;
+    gap: 5px 6px;
   }
 
-  .layer-workshop-header .lw-header-left {
-    flex: 1 1 auto;
-    min-width: 0;
+  .layer-workshop-dialog .layer-workshop-header .lw-header-left {
+    flex: 1 1 130px;
+    min-width: 105px;
+    gap: 6px;
   }
 
-  .layer-workshop-header .lw-brand strong {
+  .layer-workshop-dialog .layer-workshop-header .lw-brand strong,
+  .layer-workshop-dialog .layer-workshop-header .lw-brand small {
     display: none;
   }
 
-  .layer-workshop-header .lw-name {
-    flex: 1 1 110px;
+  .layer-workshop-dialog .layer-workshop-header .lw-name {
+    flex: 1 1 95px;
     width: auto;
-    min-width: 90px;
+    min-width: 78px;
     max-width: none;
   }
 
-  .layer-workshop-header .layer-workshop-header-actions {
+  .layer-workshop-dialog .layer-workshop-header .layer-workshop-header-actions {
     margin-left: auto;
     gap: 4px;
+    flex-shrink: 0;
   }
 
-  .layer-workshop-header .lw-btn-new-model span {
+  .layer-workshop-dialog .layer-workshop-header .lw-btn-new-model {
+    padding: 0 7px;
+  }
+
+  .layer-workshop-dialog .layer-workshop-header .lw-btn-new-model span {
     display: none;
   }
 
-  .layer-workshop-header .lw-header-center {
+  .layer-workshop-dialog .layer-workshop-header .lw-header-center {
     order: 3;
     flex: 1 1 100%;
     width: 100%;
     justify-content: space-between;
     padding-top: 4px;
     border-top: 1px solid var(--line-soft);
+  }
+
+  .layer-workshop-dialog .lw-selection-hint {
+    display: none;
   }
 
   .layer-workshop-dialog.is-responsive-drawer .lw-sidebar-asset-grid {
@@ -503,17 +514,35 @@
   }
 
   .workshop-responsive-bar .pxs-tab {
+    padding: 0 5px;
+    font-size: 10px;
+    gap: 3px;
+  }
+
+  .layer-workshop-dialog .layer-workshop-header .lw-header-left {
+    flex: 1 1 100%;
+  }
+
+  .layer-workshop-dialog .layer-workshop-header .layer-workshop-header-actions {
+    flex: 1 1 100%;
+    width: 100%;
+    justify-content: space-between;
+    margin-left: 0;
+  }
+
+  .layer-workshop-dialog .layer-workshop-header .lw-btn-insert-scene {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+
+  .layer-workshop-dialog .layer-workshop-header .lw-btn-insert-scene span,
+  .layer-workshop-dialog .layer-workshop-header .lw-btn-save-model {
+    font-size: 10.5px;
+  }
+
+  .layer-workshop-dialog .layer-workshop-header .view-mode-tab-btn {
     padding: 0 6px;
-    font-size: 10.5px;
-  }
-
-  .layer-workshop-header .lw-btn-insert-scene span {
-    font-size: 10.5px;
-  }
-
-  .layer-workshop-header .view-mode-tab-btn {
-    padding: 0 7px;
-    font-size: 10.5px;
+    font-size: 10px;
   }
 
   .lw-anim-transport-card .lw-anim-transport-row {

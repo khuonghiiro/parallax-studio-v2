@@ -8,6 +8,8 @@ import { sameKeyTime, type AnimationAction, type BonePoseEntry } from './worksho
 export interface StepRecordState {
   /** Khoảng thời gian tự động nhảy tới sau mỗi lần nhấn Enter xác nhận vị trí (giây). */
   stepDuration: number
+  /** Số Frame tương ứng cho mỗi bước nhấn Enter (đồng bộ với FPS của clip, mặc định 1 hoặc N frame). */
+  stepFrames: number
   /** Đánh dấu người dùng vừa dùng chuột trái chỉnh xương và đang chờ nhấn Enter để chốt vị trí. */
   pendingConfirm: boolean
   /** Số mốc tư thế đã chốt liên tiếp trong phiên. */
@@ -18,6 +20,7 @@ export interface StepRecordState {
 
 let state: StepRecordState = {
   stepDuration: 0.3,
+  stepFrames: 9,
   pendingConfirm: false,
   confirmedCount: 0,
   status: ''
@@ -35,11 +38,35 @@ export function setStepRecordState(patch: Partial<StepRecordState>): void {
   emit()
 }
 
+/** Đặt bước nhảy Enter theo số Frame (ví dụ +1F, +2F, +6F, +12F) và tự quy đổi ra giây theo FPS hiện tại. */
+export function setStepRecordFrames(frames: number, fps = 30): void {
+  const safeFps = Math.max(1, Math.min(120, fps))
+  const safeFrames = Math.max(1, Math.min(240, Math.round(frames)))
+  const stepDuration = Number((safeFrames / safeFps).toFixed(4))
+  setStepRecordState({
+    stepFrames: safeFrames,
+    stepDuration,
+    status: `Bước Enter: +${safeFrames} Frame (${stepDuration.toFixed(2)}s / bước @ ${safeFps}fps)`
+  })
+}
+
+/** Đặt bước nhảy Enter theo khoảng cách giây mỗi bước (ví dụ 0.04s, 0.25s, 0.50s, 1.00s) và đồng bộ số Frame. */
+export function setStepRecordSeconds(seconds: number, fps = 30): void {
+  const safeFps = Math.max(1, Math.min(120, fps))
+  const safeSec = Math.max(0.01, Math.min(10, Number(seconds.toFixed(4))))
+  const stepFrames = Math.max(1, Math.round(safeSec * safeFps))
+  setStepRecordState({
+    stepDuration: safeSec,
+    stepFrames,
+    status: `Bước Enter: +${safeSec.toFixed(2)}s (~${stepFrames}F @ ${safeFps}fps)`
+  })
+}
+
 export function markBoneAdjusted(boneName?: string, time?: number): void {
   const timeText = time !== undefined ? ` tại ${time.toFixed(2)}s` : ''
   setStepRecordState({
     pendingConfirm: true,
-    status: `Đã chỉnh ${boneName ? `"${boneName}"` : 'xương'}${timeText} — Nhấn Enter ⏎ để xác nhận vị trí & sang bước tiếp`
+    status: `Đã chỉnh ${boneName ? `"${boneName}"` : 'xương'}${timeText} — Nhấn Enter ⏎ để chốt tư thế & tiến +${state.stepDuration.toFixed(2)}s`
   })
 }
 
@@ -82,14 +109,14 @@ export interface ConfirmPoseResult {
 
 /**
  * Xác nhận (chốt) vị trí tư thế toàn bộ khung xương tại thời điểm hiện tại khi người dùng nhấn Enter,
- * sau đó tự động đẩy đầu phát sang mốc thời gian kế tiếp (+stepDuration) để chỉnh tiếp theo thứ tự.
+ * sau đó tự động đẩy đầu phát sang mốc thời gian kế tiếp (+stepDuration) và giữ nguyên tư thế vừa chốt trên cả 2D & 3D.
  */
 export function confirmPoseAndStep(
   composite: LayerComposite,
   currentTime: number,
   stepDuration = state.stepDuration
 ): ConfirmPoseResult {
-  const step = Math.max(0.05, Number(stepDuration.toFixed(2)))
+  const step = Math.max(1 / 120, Number(stepDuration.toFixed(4)))
   const { rig } = ensureRigClips(composite.rig ?? emptyRig())
   if (!rig.bones.length) {
     return {
@@ -113,11 +140,9 @@ export function confirmPoseAndStep(
     }
   })
 
-  // Kiểm tra xem clip hiện tại đã có keyframe nào sau t = 0 chưa
   const hasAnyKeyAfterZero = Object.values(rig.tracks).some((track) =>
     (track ?? []).some((k) => k.time > 0.001)
   )
-  // Kiểm tra xem tại t = 0 người dùng đã xoay/dời xương lệch khỏi dáng nghỉ (0°) chưa
   const isModifiedAtZero =
     currentTime <= 0.001 &&
     !hasAnyKeyAfterZero &&
@@ -131,14 +156,21 @@ export function confirmPoseAndStep(
     )
 
   let next = composite
-  let confirmedTime = Number(currentTime.toFixed(2))
-  let nextTime = Number((currentTime + step).toFixed(2))
+  let confirmedTime = Number(currentTime.toFixed(4))
+  let nextTime = Number((currentTime + step).toFixed(4))
 
   if (isModifiedAtZero) {
-    // Người dùng mở clip ở 0.00s, chỉnh xương rồi nhấn Enter ngay cho bước 1:
-    // Giữ 0.00s ở dáng nghỉ ban đầu (0°) và đặt dáng vừa chỉnh vào mốc +step, rồi nhảy tiếp tới +2*step!
     confirmedTime = step
-    nextTime = Number((step * 2).toFixed(2))
+    nextTime = Number((step * 2).toFixed(4))
+  }
+
+  // Tự động nới thời lượng clip trước để cả confirmedTime và nextTime luôn nằm trong biên hợp lệ
+  if (nextTime > rig.duration - 0.02) {
+    const newDuration = Math.min(120, Math.max(rig.duration, Number((nextTime + Math.max(step, 0.2)).toFixed(2))))
+    next = applyRigAction(next, { action: 'settings', duration: newDuration })
+  }
+
+  if (isModifiedAtZero) {
     const restPoses: BonePoseEntry[] = rig.bones.map((b) => ({
       boneId: b.id,
       x: 0,
@@ -150,7 +182,6 @@ export function confirmPoseAndStep(
     next = applyRigAction(next, { action: 'set-pose', time: 0, poses: restPoses })
     next = applyRigAction(next, { action: 'set-pose', time: confirmedTime, poses: currentPoses })
   } else {
-    // Nếu đang ở t > 0 mà có xương chưa có mốc gốc ở 0.00s thì neo dáng nghỉ ở 0.00s trước
     if (currentTime > 0.001) {
       const zeroOps: AnimationAction[] = []
       for (const b of rig.bones) {
@@ -171,16 +202,20 @@ export function confirmPoseAndStep(
     next = applyRigAction(next, { action: 'set-pose', time: confirmedTime, poses: currentPoses })
   }
 
-  // Tự động nới thời lượng clip nếu mốc kế tiếp vượt quá thời lượng hiện tại
-  if (nextTime > rig.duration - 0.05) {
-    const newDuration = Math.min(120, Math.max(rig.duration, Number((nextTime + step).toFixed(2))))
-    next = applyRigAction(next, { action: 'settings', duration: newDuration })
+  // Nếu phía sau confirmedTime đã có keyframe cũ (ví dụ chỉnh tiếp trên clip có sẵn), neo luôn tư thế vừa chốt tại nextTime
+  // để cả sân khấu 2D và 3D giữ nguyên 100% tư thế khi nhảy sang bước kế tiếp, không bị nội suy trôi khớp!
+  const updatedTracks = ensureRigClips(next.rig ?? emptyRig()).rig.tracks
+  const hasLaterKeysAfterConfirmed = Object.values(updatedTracks).some((track) =>
+    (track ?? []).some((k) => k.time > confirmedTime + 1e-4)
+  )
+  if (hasLaterKeysAfterConfirmed) {
+    next = applyRigAction(next, { action: 'set-pose', time: nextTime, poses: currentPoses })
   }
 
   const confirmedCount = state.confirmedCount + 1
   const status = isModifiedAtZero
-    ? `✓ Đã chốt Bước 1 (0.00s → ${confirmedTime.toFixed(2)}s) · Sẵn sàng chỉnh Bước 2 tại ${nextTime.toFixed(2)}s`
-    : `✓ Đã xác nhận vị trí tại ${confirmedTime.toFixed(2)}s · Sẵn sàng chỉnh tiếp tại ${nextTime.toFixed(2)}s`
+    ? `✓ Đã chốt Bước 1 (0.00s → ${confirmedTime.toFixed(2)}s) · Giữ tư thế sang Bước 2 tại ${nextTime.toFixed(2)}s`
+    : `✓ Đã chốt tư thế tại ${confirmedTime.toFixed(2)}s · Giữ tư thế chỉnh tiếp tại ${nextTime.toFixed(2)}s`
 
   setStepRecordState({
     pendingConfirm: false,

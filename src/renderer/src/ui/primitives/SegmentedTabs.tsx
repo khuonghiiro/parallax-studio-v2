@@ -51,7 +51,6 @@ export function SegmentedTabs<T extends string = string>({
     'pxs-tabs',
     `pxs-tabs--${variant}`,
     `pxs-tabs--${size}`,
-    variant === 'underline' ? 'tabs' : '',
     adaptiveCompact ? 'pxs-tabs--adaptive' : '',
     dockBottom ? 'pxs-tabs--dock-bottom' : '',
     className
@@ -71,7 +70,6 @@ export function SegmentedTabs<T extends string = string>({
           const active = value === item.id
           const btnClasses = [
             'pxs-tab',
-            variant === 'underline' ? 'tab' : '',
             active ? 'active' : '',
             tabClassName,
             item.className ?? ''

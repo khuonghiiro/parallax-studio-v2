@@ -15,15 +15,26 @@ import { WorkshopMotionSketchCard } from './WorkshopMotionSketchCard'
 import { WorkshopAnimAssistCard, WorkshopSecondaryMotionCard } from './WorkshopAnimAssistCards'
 import { setAnimAssist, useAnimAssist } from './animAssistStore'
 import { toggleMotionSketchArmed, useMotionSketch } from './motionSketchStore'
-import { confirmPoseAndStep, setStepRecordState, useStepRecord } from './workshopStepRecord'
+import {
+  confirmPoseAndStep,
+  setStepRecordFrames,
+  setStepRecordSeconds,
+  useStepRecord
+} from './workshopStepRecord'
 import { WorkshopAnimToolsCard } from './WorkshopAnimToolsCard'
 import { WorkshopParallax25DCard } from './WorkshopParallax25DCard'
-import { AnimationKeyList, AnimationPoseActions, QuickMotionPresetCard } from './WorkshopAnimPoseParts'
+import {
+  ActiveActionClipHeader,
+  AnimationKeyList,
+  AnimationPoseActions,
+  QuickMotionPresetCard
+} from './WorkshopAnimPoseParts'
 import { useEditor } from '../../store/editor'
 import type { LayerComposite } from './types'
 import {
   IconAutoKeyRec,
   IconClipsAction,
+  IconLoopCycle,
   IconOnionSkin,
   IconPhysicsSpring,
   IconPoseKey,
@@ -71,13 +82,9 @@ export function WorkshopAnimationPanel({
 
   const handleConfirmStep = () => {
     playback.setIsPlaying(false)
-    let nextTime = playback.time
-    setComposite((c) => {
-      const res = confirmPoseAndStep(c, playback.time)
-      nextTime = res.nextTime
-      return res.composite
-    })
-    playback.setTime(nextTime)
+    const res = confirmPoseAndStep(composite, playback.time)
+    setComposite(() => res.composite)
+    playback.setTime(res.nextTime)
   }
 
   useEffect(() => {
@@ -139,6 +146,16 @@ export function WorkshopAnimationPanel({
 
   return (
     <div className="lw-rig-panel lw-animation-panel" data-mcp-region="layer_assembly_animation_panel">
+      {/* 0. Thanh chọn Clip đang sửa + Tạo Động tác mới (Blank / Từ dáng hiện tại) ngay đầu tab */}
+      <ActiveActionClipHeader
+        rig={rig}
+        activeClip={activeClip}
+        fps={fps}
+        time={time}
+        playback={playback}
+        run={run}
+      />
+
       {/* 1. Bảng điều khiển Nhịp độ, FPS, Tổng Frame ⇄ Giây chuẩn Moho Pro & Adobe Animate */}
       <AnimationTransportCard
         rig={rig}
@@ -316,7 +333,15 @@ export function WorkshopAnimationPanel({
                   canPaste={!!copiedPose}
                 />
 
-                <AnimationKeyList bone={bone} keys={keys} time={time} fps={fps} playback={playback} run={run} />
+                <AnimationKeyList
+                  bone={bone}
+                  keys={keys}
+                  time={time}
+                  duration={rig.duration}
+                  fps={fps}
+                  playback={playback}
+                  run={run}
+                />
               </>
             ) : (
               <p className="lw-empty-note">Chọn một xương trên sân khấu 2D hoặc hàng Dope Sheet phía dưới để tạo dáng.</p>
@@ -489,7 +514,8 @@ function AnimationTransportCard({
           aria-pressed={rig.loop}
           title="Bật/tắt tự động lặp vòng khi phát hết động tác"
         >
-          <span>{rig.loop ? '🔁 Lặp' : '↦ 1 lần'}</span>
+          {rig.loop && <IconLoopCycle width={11} height={11} />}
+          <span>{rig.loop ? 'Lặp' : '↦ 1 lần'}</span>
         </button>
       </div>
 
@@ -570,34 +596,76 @@ function AnimationTransportCard({
         />
       </div>
 
-      {/* Thanh Chốt bước nhanh (Pose-by-Pose Stepper) */}
+      {/* Thanh Chốt bước nhanh (Pose-by-Pose Stepper: chỉnh được số Frame mỗi bước & mỗi bước cách bao nhiêu giây) */}
       <div className="lw-step-record-bar">
         <div className="lw-step-record-main">
           <button
             type="button"
             className={`btn xs lw-confirm-step-btn${stepRecord.pendingConfirm ? ' pending' : ''}`}
             onClick={onConfirmStep}
-            title="Chốt tư thế toàn bộ xương tại mốc hiện tại và tự động nhảy sang bước kế tiếp (Phím tắt: Enter)"
+            title="Chốt tư thế toàn bộ xương tại mốc hiện tại, giữ nguyên tư thế trên 2D/3D và nhảy sang bước kế tiếp (Phím tắt: Enter)"
           >
             ✓ Chốt bước <kbd>Enter</kbd>
           </button>
-          <div className="lw-step-duration-group" role="group" aria-label="Bước nhảy mỗi lần nhấn Enter">
-            {[0.15, 0.25, 0.5, 1.0].map((d) => {
-              const stepF = Math.max(1, Math.round(d * fps))
+          <div className="lw-step-duration-group" role="group" aria-label="Bước nhảy Frame mỗi lần nhấn Enter">
+            {[1, 3, 6, 12].map((f) => {
+              const sec = Number((f / fps).toFixed(4))
+              const active = Math.abs(stepRecord.stepDuration - sec) < 0.008
               return (
                 <button
-                  key={d}
+                  key={f}
                   type="button"
-                  className={`lw-step-dur-pill${Math.abs(stepRecord.stepDuration - d) < 0.01 ? ' active' : ''}`}
-                  onClick={() => setStepRecordState({ stepDuration: d })}
-                  title={`Mỗi lần nhấn Enter nhảy tiếp +${stepF} frame (+${d}s)`}
+                  className={`lw-step-dur-pill${active ? ' active' : ''}`}
+                  onClick={() => setStepRecordFrames(f, fps)}
+                  title={`Mỗi lần nhấn Enter tiến +${f} Frame (+${sec.toFixed(2)}s @ ${fps}fps)`}
                 >
-                  +{stepF}F
+                  +{f}F
                 </button>
               )
             })}
           </div>
         </div>
+
+        <div className="lw-step-custom-row">
+          <label className="lw-step-custom-field" title="Mỗi lần nhấn Enter nhảy tiếp bao nhiêu Frame">
+            <span>Bước</span>
+            <input
+              type="number"
+              min={1}
+              max={120}
+              step={1}
+              value={Math.max(1, Math.round(stepRecord.stepDuration * fps))}
+              onChange={(e) => setStepRecordFrames(Number(e.target.value) || 1, fps)}
+            />
+            <small>F</small>
+          </label>
+          <label className="lw-step-custom-field" title="Mỗi bước nhấn Enter cách nhau bao nhiêu giây (VD 0.04s, 0.25s, 0.50s, 1.00s)">
+            <span>Cách</span>
+            <input
+              type="number"
+              min={0.02}
+              max={10}
+              step={0.05}
+              value={Number(stepRecord.stepDuration.toFixed(2))}
+              onChange={(e) => setStepRecordSeconds(Number(e.target.value) || 0.1, fps)}
+            />
+            <small>s</small>
+          </label>
+          <div className="lw-step-sec-presets">
+            {[0.1, 0.25, 0.5, 1.0].map((sec) => (
+              <button
+                key={sec}
+                type="button"
+                className={`lw-step-dur-pill${Math.abs(stepRecord.stepDuration - sec) < 0.008 ? ' active' : ''}`}
+                onClick={() => setStepRecordSeconds(sec, fps)}
+                title={`Mỗi bước nhấn Enter cách nhau ${sec}s`}
+              >
+                {sec}s
+              </button>
+            ))}
+          </div>
+        </div>
+
         {stepRecord.status && (
           <div className="lw-step-record-status" role="status">
             {stepRecord.status}

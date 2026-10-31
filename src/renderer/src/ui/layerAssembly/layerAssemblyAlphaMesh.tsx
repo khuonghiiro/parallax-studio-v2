@@ -3,13 +3,40 @@ import * as THREE from 'three'
 import { getImageSilhouette, silhouetteFromBoolGrid } from '../assets/models3d/silhouette'
 import { computeContourCells, type ContourCell } from '../assets/models3d/contourMesh'
 
-const MAX_CACHE_ENTRIES = 128
+const MAX_CACHE_ENTRIES = 160
 
-/** Cache các contour cells đã tính toán theo URL ảnh để tối ưu hiệu năng 60fps */
+/** Cache các contour cells đã tính toán theo khóa URL rút gọn O(1) để tối ưu hiệu năng 60fps (tránh băm chuỗi data:image 400KB) */
 const cellsCache = new Map<string, ContourCell[]>()
-/** Cache chuỗi SVG path duy nhất để render 1 phần tử <path> duy nhất 0ms */
+/** Cache chuỗi SVG path duy nhất (khởi tạo lười khi thực sự bật xem lưới Mesh) */
 const svgPathCache = new Map<string, string>()
 const pendingLoads = new Map<string, Array<(cells: ContourCell[]) => void>>()
+const canvasObjectIds = new WeakMap<object, string>()
+let nextCanvasObjSeq = 1
+
+function makeFastImageCacheKey(url: string, cols: number, rows: number): string {
+  if (url.length <= 240) return `${url}_${cols}x${rows}`
+  let hash = 2166136261
+  const samples = 64
+  const step = Math.max(1, Math.floor(url.length / samples))
+  for (let i = 0; i < url.length; i += step) {
+    hash ^= url.charCodeAt(i)
+    hash = Math.imul(hash, 16777619)
+  }
+  hash ^= url.charCodeAt(url.length - 1)
+  hash = Math.imul(hash, 16777619)
+  return `${url.slice(0, 64)}#${url.length}#${(hash >>> 0).toString(36)}_${cols}x${rows}`
+}
+
+function storeCellsCache(cacheKey: string, cells: ContourCell[]): void {
+  cellsCache.set(cacheKey, cells)
+  if (cellsCache.size > MAX_CACHE_ENTRIES) {
+    const oldest = cellsCache.keys().next().value
+    if (oldest !== undefined) {
+      cellsCache.delete(oldest)
+      svgPathCache.delete(oldest)
+    }
+  }
+}
 
 /**
  * Chuyển đổi các tam giác trong tế bào contour thành chuỗi SVG path duy nhất dạng M...L...L...Z
@@ -44,7 +71,7 @@ export function getLayerMeshSvgPath(
   rows = 20
 ): string | null {
   if (!imageUrl) return null
-  const cacheKey = `${imageUrl}_${cols}x${rows}`
+  const cacheKey = makeFastImageCacheKey(imageUrl, cols, rows)
   const cachedPath = svgPathCache.get(cacheKey)
   if (cachedPath !== undefined) return cachedPath
   const cells = cellsCache.get(cacheKey)
@@ -65,13 +92,14 @@ export function invalidateLayerMeshCache(imageUrlOrPrefix?: string): void {
     svgPathCache.clear()
     return
   }
+  const shortPrefix = imageUrlOrPrefix.length > 64 ? imageUrlOrPrefix.slice(0, 64) : imageUrlOrPrefix
   for (const key of Array.from(cellsCache.keys())) {
-    if (key.startsWith(imageUrlOrPrefix)) {
+    if (key.startsWith(imageUrlOrPrefix) || key.startsWith(shortPrefix)) {
       cellsCache.delete(key)
     }
   }
   for (const key of Array.from(svgPathCache.keys())) {
-    if (key.startsWith(imageUrlOrPrefix)) {
+    if (key.startsWith(imageUrlOrPrefix) || key.startsWith(shortPrefix)) {
       svgPathCache.delete(key)
     }
   }
@@ -95,7 +123,7 @@ export function getLayerContourCells(
   onReady?: (cells: ContourCell[]) => void
 ): ContourCell[] | null {
   if (!imageUrl) return null
-  const cacheKey = `${imageUrl}_${cols}x${rows}`
+  const cacheKey = makeFastImageCacheKey(imageUrl, cols, rows)
   const cached = cellsCache.get(cacheKey)
   if (cached) {
     if (onReady) onReady(cached)
@@ -109,33 +137,25 @@ export function getLayerContourCells(
   }
   pendingLoads.set(cacheKey, onReady ? [onReady] : [])
 
-  // Tải ảnh vào đối tượng Image ngầm để đọc alpha silhouette
   const img = new Image()
   img.crossOrigin = 'anonymous'
   img.onload = () => {
     try {
       const sil = getImageSilhouette(img, true)
       const cells = sil ? computeContourCells(cols, rows, sil, 0, true) : []
-      cellsCache.set(cacheKey, cells)
-      svgPathCache.set(cacheKey, buildMeshSvgPath(cells))
-      if (cellsCache.size > MAX_CACHE_ENTRIES) {
-        cellsCache.delete(cellsCache.keys().next().value!)
-        svgPathCache.delete(svgPathCache.keys().next().value!)
-      }
+      storeCellsCache(cacheKey, cells)
       const callbacks = pendingLoads.get(cacheKey)
       pendingLoads.delete(cacheKey)
       callbacks?.forEach((cb) => cb(cells))
     } catch {
-      cellsCache.set(cacheKey, [])
-      svgPathCache.set(cacheKey, '')
+      storeCellsCache(cacheKey, [])
       const callbacks = pendingLoads.get(cacheKey)
       pendingLoads.delete(cacheKey)
       callbacks?.forEach((cb) => cb([]))
     }
   }
   img.onerror = () => {
-    cellsCache.set(cacheKey, [])
-    svgPathCache.set(cacheKey, '')
+    storeCellsCache(cacheKey, [])
     const callbacks = pendingLoads.get(cacheKey)
     pendingLoads.delete(cacheKey)
     callbacks?.forEach((cb) => cb([]))
@@ -145,7 +165,7 @@ export function getLayerContourCells(
 }
 
 /**
- * Tạo BufferGeometry 3D bám sát pixel đục (loại bỏ pixel trong suốt) cho Three.js với bộ đệm cache.
+ * Tạo BufferGeometry 3D bám sát pixel đục (loại bỏ pixel trong suốt) cho Three.js với bộ đệm cache O(1).
  */
 export function createLayerAlphaTrimmedGeometry(
   width: number,
@@ -155,15 +175,27 @@ export function createLayerAlphaTrimmedGeometry(
   rows = 20
 ): THREE.BufferGeometry {
   if (!image) {
-    return new THREE.PlaneGeometry(width, height, cols, rows)
+    const fallback = new THREE.PlaneGeometry(width, height, cols, rows)
+    const pos = fallback.getAttribute('position')
+    if (pos) {
+      fallback.userData = { basePositions: new Float32Array(pos.array as Float32Array), width, height }
+    }
+    return fallback
   }
   try {
     let cells: ContourCell[] | undefined
     let cacheKey: string | null = null
 
-    // Tận dụng cache nếu là HTMLImageElement có src
     if (typeof HTMLImageElement !== 'undefined' && image instanceof HTMLImageElement && image.src) {
-      cacheKey = `${image.src}_${cols}x${rows}`
+      cacheKey = makeFastImageCacheKey(image.src, cols, rows)
+      cells = cellsCache.get(cacheKey)
+    } else if (!Array.isArray(image) && typeof image === 'object') {
+      let objId = canvasObjectIds.get(image)
+      if (!objId) {
+        objId = `canvas#${nextCanvasObjSeq++}`
+        canvasObjectIds.set(image, objId)
+      }
+      cacheKey = `${objId}_${cols}x${rows}`
       cells = cellsCache.get(cacheKey)
     }
 
@@ -173,17 +205,11 @@ export function createLayerAlphaTrimmedGeometry(
         : getImageSilhouette(image, true)
       cells = silhouette ? computeContourCells(cols, rows, silhouette, 0, true) : []
       if (cacheKey) {
-        cellsCache.set(cacheKey, cells)
-        svgPathCache.set(cacheKey, buildMeshSvgPath(cells))
-        if (cellsCache.size > MAX_CACHE_ENTRIES) {
-          cellsCache.delete(cellsCache.keys().next().value!)
-          svgPathCache.delete(svgPathCache.keys().next().value!)
-        }
+        storeCellsCache(cacheKey, cells)
       }
     }
 
-    const geometry = geometryFromLayerCells(width, height, cells)
-    return geometry
+    return geometryFromLayerCells(width, height, cells)
   } catch (error) {
     console.warn('[Layer mesh] Cannot read alpha', error)
     return geometryFromLayerCells(width, height, [])
@@ -195,18 +221,12 @@ export interface LayerAssembly2DMeshOverlayProps {
   showMesh: boolean
 }
 
-/**
- * Lớp SVG Mesh hiển thị đa giác lưới bám sát pixel ảnh trên khung vẽ 2D:
- * - Dùng chuỗi SVG path duy nhất (1 phần tử <path>) được cache trong bộ nhớ.
- * - Triệt tiêu 100% hiện tượng đơ/giật khi bật/tắt mesh.
- * - Bọc React.memo để không bị re-render vô ích khi parent cập nhật hoạt ảnh animation.
- */
 export const LayerAssembly2DMeshOverlay = React.memo(function LayerAssembly2DMeshOverlay({
   imageUrl,
   showMesh
 }: LayerAssembly2DMeshOverlayProps) {
   const [svgPath, setSvgPath] = useState<string | null>(() => {
-    return imageUrl ? getLayerMeshSvgPath(imageUrl) : null
+    return showMesh && imageUrl ? getLayerMeshSvgPath(imageUrl) : null
   })
 
   useEffect(() => {

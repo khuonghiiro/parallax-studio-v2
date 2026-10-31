@@ -12,10 +12,14 @@ export type MohoRigTool = 'select' | 'add' | 'strength' | 'manipulate'
 
 export interface RigToolState {
   tool: MohoRigTool
-  /** Hiện lớp vỏ viên nang Vùng ảnh hưởng (Bone Strength Capsule) trên khung 2D. */
+  /** Hiện lớp vỏ viên nang Vùng ảnh hưởng (Bone Strength Capsule) & tay kéo bán kính uốn trên khung 2D. */
   showInfluence: boolean
-  /** Tự động sinh xương đối xứng Trái ⇄ Phải qua trục X = 0 khi vẽ xương bằng công cụ `add` (A). */
+  /** Chế độ Đối xứng Trái ⇄ Phải qua trục X = 0 (vẽ xương, chỉnh khớp, chỉnh vùng uốn & thử bẻ khớp đối xứng). */
   mirrorDraw: boolean
+  /** Tự động hàn khít khớp nối cha-con khi kéo chỉnh xương ở Frame 0 (giữ Alt để tách rời tạm thời). */
+  autoWeld: boolean
+  /** Dòng phản hồi trạng thái tức thì khi bật/tắt công cụ Vỏ / Đối xứng / Hàn khớp. */
+  statusHint: string | null
   /** Tư thế bẻ thử tạm thời khi dùng công cụ `manipulate` (Z) ở tab Tạo xương. */
   testPoses: Record<string, BonePose>
 }
@@ -24,6 +28,8 @@ const INITIAL_STATE: RigToolState = {
   tool: 'select',
   showInfluence: true,
   mirrorDraw: false,
+  autoWeld: true,
+  statusHint: null,
   testPoses: {}
 }
 

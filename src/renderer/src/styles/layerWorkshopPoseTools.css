@@ -97,4 +97,9 @@
 .lw-pose-chip.active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, var(--bg-0)); color: var(--accent); }
 .lw-pose-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; }
 .lw-pose-grid .btn { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; justify-content: center; }
+.lw-pose-icon-btn { display: inline-flex; align-items: center; gap: 5px; }
+.lw-pose-icon-btn > svg { flex-shrink: 0; color: currentColor; }
+.lw-pose-icon-title { display: inline-flex; align-items: center; gap: 5px; }
+.lw-pose-icon-title > svg { flex-shrink: 0; color: var(--accent); }
+[data-theme='dark'] .lw-pose-icon-title > svg { color: var(--accent-cyan); }
 .lw-pose-hint { margin: 0; font-size: 10px; line-height: 1.4; color: var(--text-faint); }

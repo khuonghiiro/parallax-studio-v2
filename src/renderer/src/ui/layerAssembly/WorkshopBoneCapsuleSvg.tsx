@@ -16,7 +16,8 @@ export interface BoneCapsuleLayerProps {
 
 /**
  * Hiển thị viên nang Vùng ảnh hưởng xương (Moho Pro Bone Strength / Influence Envelope Capsule).
- * Khi ở công cụ `strength` (Phím T), cho phép kéo trực tiếp viền viên nang để tăng/giảm bán kính uốn Mesh.
+ * - Ở công cụ `strength` (Phím T): toàn bộ viên nang và tay nắm đều kéo được để chỉnh bán kính uốn Mesh.
+ * - Ở các công cụ khác khi bật `Vỏ vùng uốn`: xương đang chọn luôn hiện 2 tay nắm viền viên nang + nhãn `%` để kéo chỉnh nhanh ngay lập tức.
  */
 export function WorkshopBoneCapsuleSvg({
   bones,
@@ -37,6 +38,8 @@ export function WorkshopBoneCapsuleSvg({
         const len = bone.pin ? 0 : bone.length
         const capsuleW = len + radius * 2
         const capsuleH = radius * 2
+        const showHandles = Boolean(onStartStrengthDrag && (interactive || isSelected))
+        const pctLabel = `${Math.round((bone.strength ?? 1) * 100)}%`
 
         return (
           <g
@@ -51,6 +54,7 @@ export function WorkshopBoneCapsuleSvg({
               height={capsuleH}
               rx={radius}
               ry={radius}
+              pointerEvents={interactive ? 'auto' : 'none'}
               onPointerDown={
                 interactive && onStartStrengthDrag
                   ? (e) => onStartStrengthDrag(e, bone, tf.x, tf.y, angle)
@@ -59,34 +63,51 @@ export function WorkshopBoneCapsuleSvg({
             >
               {interactive && (
                 <title>
-                  {`Vùng ảnh hưởng "${bone.name}" (${((bone.strength ?? 1) * 100).toFixed(0)}%) — Kéo ra/vào để chỉnh bán kính uốn Mesh`}
+                  {`Vùng ảnh hưởng "${bone.name}" (${pctLabel}) — Kéo ra/vào để chỉnh bán kính uốn Mesh`}
                 </title>
               )}
             </rect>
-            {interactive && (
+            {showHandles && (
               <>
                 <circle
                   cx={len * 0.5}
                   cy={-radius}
-                  r={isSelected ? 5 : 4}
+                  r={isSelected ? 5.5 : 4.5}
                   className="lw-bone-capsule-handle"
+                  style={{ pointerEvents: 'all' }}
                   onPointerDown={
                     onStartStrengthDrag
                       ? (e) => onStartStrengthDrag(e, bone, tf.x, tf.y, angle)
                       : undefined
                   }
-                />
+                >
+                  <title>{`Kéo tay nắm để chỉnh Vùng uốn "${bone.name}" (${pctLabel})`}</title>
+                </circle>
                 <circle
                   cx={len * 0.5}
                   cy={radius}
-                  r={isSelected ? 5 : 4}
+                  r={isSelected ? 5.5 : 4.5}
                   className="lw-bone-capsule-handle"
+                  style={{ pointerEvents: 'all' }}
                   onPointerDown={
                     onStartStrengthDrag
                       ? (e) => onStartStrengthDrag(e, bone, tf.x, tf.y, angle)
                       : undefined
                   }
-                />
+                >
+                  <title>{`Kéo tay nắm để chỉnh Vùng uốn "${bone.name}" (${pctLabel})`}</title>
+                </circle>
+                {isSelected && (
+                  <text
+                    x={len * 0.5}
+                    y={-radius - 8}
+                    textAnchor="middle"
+                    className="lw-bone-capsule-badge"
+                    pointerEvents="none"
+                  >
+                    Vỏ {pctLabel}
+                  </text>
+                )}
               </>
             )}
           </g>

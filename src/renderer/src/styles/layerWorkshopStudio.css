@@ -138,23 +138,77 @@
   color: var(--accent-cyan);
 }
 
-/* Right Column Segmented Tabs Header */
-.lw-right-segmented-tabs {
+/* Right Column & Left Sidebar Cohesive Studio Segmented Tabs (Container-Query Responsive) */
+.lw-right-column,
+.layer-workshop-sidebar {
+  container-type: inline-size;
+}
+
+.lw-right-segmented-tabs,
+.lw-sidebar-source-tabs {
   flex-shrink: 0;
-  padding: 4px 4px 0;
+  padding: 6px 8px;
   background: var(--bg-1);
-  border-bottom: 1px solid var(--line-soft);
+  border-bottom: 1px solid var(--line);
 }
 
-.lw-right-segmented-tabs .pxs-tab {
-  padding: 0 5px;
+.lw-right-segmented-tabs .pxs-tabs-track,
+.lw-sidebar-source-tabs .pxs-tabs-track {
+  background: var(--bg-2);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-md);
+  padding: 3px;
   gap: 3px;
-  font-size: 11px;
-  flex: 0 1 auto;
 }
 
-.lw-right-segmented-tabs .pxs-tabs-track {
-  justify-content: space-between;
+.lw-right-segmented-tabs .pxs-tab,
+.lw-sidebar-source-tabs .pxs-tab {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 27px;
+  padding: 0 7px;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+}
+
+@container (max-width: 345px) {
+  .lw-right-segmented-tabs {
+    padding: 5px 6px;
+  }
+
+  .lw-right-segmented-tabs .pxs-tab {
+    padding: 0 5px;
+    gap: 3px;
+    font-size: 10.5px;
+  }
+
+  .lw-right-segmented-tabs .pxs-tab:not(.active) .pxs-tab-icon {
+    display: none;
+  }
+}
+
+@container (max-width: 280px) {
+  .lw-right-segmented-tabs .pxs-tab .pxs-tab-icon,
+  .lw-right-segmented-tabs .pxs-tab:not(.active) .pxs-tab-badge {
+    display: none;
+  }
+
+  .lw-sidebar-source-tabs {
+    padding: 5px 6px;
+  }
+
+  .lw-sidebar-source-tabs .pxs-tab {
+    padding: 0 5px;
+    gap: 3px;
+    font-size: 10.5px;
+  }
+
+  .lw-sidebar-source-tabs .pxs-tab .pxs-tab-icon,
+  .lw-sidebar-source-tabs .pxs-tab:not(.active) .pxs-tab-badge {
+    display: none;
+  }
 }
 
 /* Chống cắt cụt thanh chip nổi trên Sân khấu 2D khi chia đôi 2D & 3D */
@@ -363,6 +417,40 @@
 }
 
 [data-theme='dark'] .lw-moho-opt-pill.active {
+  color: var(--accent-cyan);
+}
+
+.lw-moho-opt-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 5px 8px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--accent) 9%, var(--bg-0));
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--line-soft));
+  color: var(--text);
+  font-size: 10px;
+  line-height: 1.38;
+}
+
+.lw-mirror-pair-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 4px 7px;
+  margin-bottom: 6px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg-0));
+  border: 1px solid color-mix(in srgb, var(--accent) 32%, var(--line-soft));
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+[data-theme='dark'] .lw-mirror-pair-note {
   color: var(--accent-cyan);
 }
 
@@ -604,10 +692,45 @@
 }
 
 .lw-bone-capsule.selected rect {
-  fill: rgba(245, 158, 11, 0.13);
+  fill: rgba(245, 158, 11, 0.16);
   stroke: var(--key);
-  stroke-width: 1.7px;
+  stroke-width: 1.9px;
   stroke-dasharray: 5 2.5;
+}
+
+[data-theme='light'] .lw-bone-capsule rect {
+  fill: rgba(37, 99, 235, 0.08);
+  stroke: rgba(37, 99, 235, 0.62);
+}
+
+[data-theme='light'] .lw-bone-capsule.side-left rect {
+  fill: rgba(8, 145, 178, 0.08);
+  stroke: rgba(8, 145, 178, 0.68);
+}
+
+[data-theme='light'] .lw-bone-capsule.side-right rect {
+  fill: rgba(234, 88, 12, 0.08);
+  stroke: rgba(234, 88, 12, 0.68);
+}
+
+[data-theme='light'] .lw-bone-capsule.selected rect {
+  fill: rgba(245, 158, 11, 0.16);
+  stroke: #d97706;
+  stroke-width: 2.1px;
+}
+
+.lw-bone-capsule-badge {
+  fill: var(--key);
+  font-size: 10px;
+  font-weight: 700;
+  font-family: system-ui, sans-serif;
+  paint-order: stroke;
+  stroke: var(--bg-1);
+  stroke-width: 3px;
+}
+
+[data-theme='light'] .lw-bone-capsule-badge {
+  fill: #b45309;
 }
 
 .lw-bone-capsule.interactive rect {

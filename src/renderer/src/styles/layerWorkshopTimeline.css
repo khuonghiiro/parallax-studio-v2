@@ -69,6 +69,44 @@
   color: var(--accent-cyan);
 }
 
+.lw-dope-keytime-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-0);
+  border: 1px solid color-mix(in srgb, var(--accent) 42%, var(--line));
+  color: var(--text-dim);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.lw-dope-keytime-box input {
+  width: 40px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  outline: none;
+}
+
+.lw-dope-del-active {
+  border-color: color-mix(in srgb, var(--danger) 48%, var(--line));
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.lw-dope-del-active:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--danger) 78%, #0f172a);
+  border-color: var(--danger);
+  color: #ffffff;
+}
+
 /* 1-Click Segmented Pills for Tween Easing & Track Filter */
 .lw-dope-seg {
   display: inline-flex;
@@ -377,7 +415,14 @@ button.lw-animation-track-name:hover {
   height: 10px;
   background: var(--key);
   border-color: var(--bg-0);
-  cursor: pointer;
+  cursor: ew-resize;
+}
+
+.lw-animation-key.multi-selected {
+  outline: 2px solid var(--accent-cyan);
+  outline-offset: 1px;
+  background: var(--accent);
+  z-index: 5;
 }
 
 .lw-animation-key.active,

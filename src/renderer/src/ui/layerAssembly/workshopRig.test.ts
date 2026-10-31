@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { applyRigAction, emptyRig, validateRig } from './workshopRig'
+import { applyRigAction, emptyRig, findMirrorBoneId, validateRig } from './workshopRig'
 import type { LayerComposite } from './types'
-import { evaluateRig, transformRigLayer } from '../../engine/layerRig'
+import { evaluateRig, sampleBonePose, transformRigLayer } from '../../engine/layerRig'
 import { deformSkin } from '../../engine/layerSkinning'
 import { bakeWorkshopRig } from './bakeWorkshopRig'
 import { createImageLayer } from '../../project/factory'
 import { BUILTIN_COMPOSITES } from './layerAssemblyDefaultComposites'
-import { createHumanoidBones, generateWaveHand } from './workshopRigPresets'
+import { createHumanoidBones, generateIdleBreathe, generateWaveHand } from './workshopRigPresets'
+import { confirmPoseAndStep, setStepRecordFrames, setStepRecordSeconds } from './workshopStepRecord'
+import { weldConnectedLimbBones, withSymmetricBoneAction } from './mohoRigHelpers'
 
 describe('workshopRig & layerRig engine', () => {
   const baseComposite: LayerComposite = {
@@ -125,20 +127,28 @@ describe('workshopRig & layerRig engine', () => {
     expect(posed.rotation).toBeCloseTo(90, 1)
   })
 
-  it('bakes workshop rig into native ImageLayer keyframes', () => {
+  it('bakes workshop rig into native ImageLayer keyframes while keeping lower body grounded during idle breathe', () => {
     let comp = applyRigAction(baseComposite, {
       action: 'apply-template',
       template: 'humanoid'
     })
     comp = applyRigAction(comp, {
       action: 'bind',
-      boneId: 'bone-pelvis',
+      boneId: 'bone-torso',
       layerIds: ['l-body']
     })
     comp = applyRigAction(comp, {
       action: 'apply-preset-animation',
       preset: 'idle'
     })
+
+    // Hông và hai chân phải bám cố định mặt đất (không nhấp nhô bay bổng) khi đứng thở tại t = 1.2s
+    const midTransforms = evaluateRig(comp.rig!, 1.2)
+    const restTransforms = evaluateRig(comp.rig!, 0, true)
+    for (const groundedId of ['bone-pelvis', 'bone-thigh-l', 'bone-thigh-r', 'bone-shin-l', 'bone-shin-r', 'bone-foot-l', 'bone-foot-r']) {
+      expect(midTransforms.get(groundedId)?.y).toBeCloseTo(restTransforms.get(groundedId)!.y, 3)
+      expect(midTransforms.get(groundedId)?.rotation).toBeCloseTo(0, 3)
+    }
 
     const compMeta = { name: 'Test Comp', background: '#000000', width: 1920, height: 1080, fps: 30, duration: 10 }
     const assetMeta = { id: 'asset-1', name: 'body.png', kind: 'image' as const, mime: 'image/png', width: 200, height: 200, path: 'assets/body.png', format: 'png' as const }
@@ -377,5 +387,129 @@ describe('workshopRig & layerRig engine', () => {
     comp = applyRigAction(comp, { action: 'clear-animation' })
     expect(Object.keys(comp.rig?.tracks || {}).length).toBe(0)
     expect(comp.rig?.clips?.[0].tracks).toEqual({})
+  })
+
+  it('keeps lower body planted on the ground during idle breathing while upper body breathes', () => {
+    const bones = createHumanoidBones()
+    const tracks = generateIdleBreathe(bones, 2.4, 'front')
+    for (const lowerId of ['bone-pelvis', 'bone-thigh-l', 'bone-thigh-r', 'bone-shin-l', 'bone-shin-r', 'bone-foot-l', 'bone-foot-r']) {
+      for (const kf of tracks[lowerId] ?? []) {
+        expect(kf.y).toBe(0)
+        expect(kf.rotation).toBe(0)
+      }
+    }
+    const torsoYs = (tracks['bone-torso'] ?? []).map((k) => k.y)
+    expect(torsoYs.some((y) => y < 0)).toBe(true)
+  })
+
+  it('supports Moho-style move-keys (1.0s -> 0.5s keeping 2.0s untouched & conflict-free shifts) and delete-keys', () => {
+    let comp = applyRigAction(baseComposite, { action: 'apply-template', template: 'humanoid' })
+    comp = applyRigAction(comp, { action: 'clear-animation' })
+    comp = applyRigAction(comp, { action: 'settings', duration: 3.0 })
+
+    for (const t of [0, 1.0, 2.0]) {
+      comp = applyRigAction(comp, {
+        action: 'set-pose',
+        time: t,
+        poses: [
+          { boneId: 'bone-arm-l', rotation: t * 30 },
+          { boneId: 'bone-arm-r', rotation: -t * 25 }
+        ]
+      })
+    }
+
+    // Retime key 1.0s -> 0.5s while keeping 0.0s and 2.0s intact
+    comp = applyRigAction(comp, {
+      action: 'move-keys',
+      overwrite: true,
+      moves: [
+        { boneId: 'bone-arm-l', time: 1.0, targetTime: 0.5 },
+        { boneId: 'bone-arm-r', time: 1.0, targetTime: 0.5 }
+      ]
+    })
+
+    expect(comp.rig?.tracks['bone-arm-l']?.map((k) => k.time)).toEqual([0, 0.5, 2.0])
+    expect(comp.rig?.tracks['bone-arm-r']?.map((k) => k.time)).toEqual([0, 0.5, 2.0])
+
+    // Conflict-safe shift of adjacent keys [0.5, 2.0] -> [2.0, 2.5]
+    comp = applyRigAction(comp, {
+      action: 'move-keys',
+      moves: [
+        { boneId: 'bone-arm-l', time: 0.5, targetTime: 2.0 },
+        { boneId: 'bone-arm-l', time: 2.0, targetTime: 2.5 }
+      ]
+    })
+    expect(comp.rig?.tracks['bone-arm-l']?.map((k) => k.time)).toEqual([0, 2.0, 2.5])
+
+    // Batch delete-keys across multiple bones
+    comp = applyRigAction(comp, {
+      action: 'delete-keys',
+      keys: [
+        { boneId: 'bone-arm-l', time: 2.0 },
+        { boneId: 'bone-arm-r', time: 0.5 }
+      ]
+    })
+    expect(comp.rig?.tracks['bone-arm-l']?.map((k) => k.time)).toEqual([0, 2.5])
+    expect(comp.rig?.tracks['bone-arm-r']?.map((k) => k.time)).toEqual([0, 2.0])
+  })
+
+  it('retains posed posture in confirmPoseAndStep (Enter) at nextTime even when later keys exist', () => {
+    let comp = applyRigAction(baseComposite, { action: 'apply-template', template: 'humanoid' })
+    comp = applyRigAction(comp, { action: 'clear-animation' })
+    comp = applyRigAction(comp, { action: 'settings', duration: 2.0, fps: 24 })
+
+    // Pose thigh-l at t=0.0s (45 deg) while a later key exists at t=2.0s (0 deg)
+    comp = applyRigAction(comp, {
+      action: 'set-key',
+      boneId: 'bone-thigh-l',
+      key: { time: 0, rotation: 45 }
+    })
+    comp = applyRigAction(comp, {
+      action: 'set-key',
+      boneId: 'bone-thigh-l',
+      key: { time: 2.0, rotation: 0 }
+    })
+
+    setStepRecordSeconds(0.5, 24)
+    const stepped = confirmPoseAndStep(comp, 0)
+    expect(stepped.nextTime).toBeCloseTo(0.5, 3)
+
+    // At nextTime (0.5s), thigh-l must hold 45 deg across both 2D & 3D instead of snapping back toward 0 deg
+    const sampled = sampleBonePose({ ...stepped.composite.rig!, loop: false }, 'bone-thigh-l', stepped.nextTime)
+    expect(sampled.rotation).toBeCloseTo(45, 2)
+
+    // Also supports +1F stepping
+    setStepRecordFrames(1, 24)
+    const oneFrameStep = confirmPoseAndStep(stepped.composite, stepped.nextTime)
+    expect(oneFrameStep.nextTime).toBeCloseTo(0.5 + 1 / 24, 3)
+  })
+
+  it('mirrors bone edits across X=0 with withSymmetricBoneAction and welds single-child drifted limbs', () => {
+    const bones = createHumanoidBones()
+    const symmetric = withSymmetricBoneAction(
+      bones,
+      { action: 'update-bone' as const, boneId: 'bone-arm-l', patch: { x: -52, y: -96, length: 78, angle: 110, strength: 1.4 } },
+      true,
+      findMirrorBoneId
+    )
+    expect(symmetric.action).toBe('update-bones')
+    if (symmetric.action === 'update-bones') {
+      const twin = symmetric.patches.find((p) => p.boneId === 'bone-arm-r')
+      expect(twin).toBeDefined()
+      expect(twin?.patch.x).toBe(52)
+      expect(twin?.patch.y).toBe(-96)
+      expect(twin?.patch.length).toBe(78)
+      expect(twin?.patch.angle).toBe(70)
+      expect(twin?.patch.strength).toBe(1.4)
+    }
+
+    // Drift forearm-r 50px away from arm-r tail and verify weldConnectedLimbBones snaps arm-r tail onto forearm-r head
+    const drifted = bones.map((b) => (b.id === 'bone-forearm-r' ? { ...b, x: b.x + 35, y: b.y + 20 } : b))
+    const welded = weldConnectedLimbBones(drifted, 0.45)
+    const armR = welded.find((b) => b.id === 'bone-arm-r')!
+    const forearmR = welded.find((b) => b.id === 'bone-forearm-r')!
+    const tailX = armR.x + Math.cos((armR.angle * Math.PI) / 180) * armR.length
+    const tailY = armR.y + Math.sin((armR.angle * Math.PI) / 180) * armR.length
+    expect(Math.hypot(tailX - forearmR.x, tailY - forearmR.y)).toBeLessThan(0.5)
   })
 })

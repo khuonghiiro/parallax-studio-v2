@@ -18,6 +18,7 @@ import {
   hideOrDeletePublicAsset
 } from '../assets/publicAssetStorage'
 import { clearLayerTextureCache } from './layerAssembly3DMesh'
+import { SegmentedTabs } from '../primitives'
 import '../../styles/assets.css'
 
 export interface LayerAssemblySidebarProps {
@@ -249,71 +250,37 @@ export function LayerAssemblySidebar({
       }}
     >
       {/* 1. Tabs Switcher: 1. Có sẵn -> 2. Mẫu layer -> 3. Dự án */}
-      <div
-        style={{
-          display: 'flex',
-          borderBottom: '1px solid var(--line-soft)',
-          background: 'var(--bg-1)',
-          flexShrink: 0
-        }}
-      >
-        <button
-          type="button"
-          className={`tab${activeTab === 'builtin' ? ' active' : ''}`}
-          style={{
-            flex: 1,
-            height: '34px',
-            fontSize: '11px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '4px',
-            padding: 0
-          }}
-          onClick={() => setActiveTab('builtin')}
-          title="Kho ảnh & vật liệu có sẵn"
-        >
-          <IconGlobe width={12} height={12} /> Tất cả ({allAvailableAssets.length})
-        </button>
-
-        <button
-          type="button"
-          className={`tab${activeTab === 'presets' ? ' active' : ''}`}
-          style={{
-            flex: 1,
-            height: '34px',
-            fontSize: '11px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '4px',
-            padding: 0
-          }}
-          onClick={() => setActiveTab('presets')}
-          title="Kho mẫu asset layer xếp chồng đã lưu & tạo sẵn"
-        >
-          <IconLayers width={12} height={12} /> Mẫu layer ({storedComposites.length})
-        </button>
-
-        <button
-          type="button"
-          className={`tab${activeTab === 'project' ? ' active' : ''}`}
-          style={{
-            flex: 1,
-            height: '34px',
-            fontSize: '11px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '4px',
-            padding: 0
-          }}
-          onClick={() => setActiveTab('project')}
-          title="Tài nguyên các layer đang tạo trong mẫu hiện tại"
-        >
-          <IconImage width={12} height={12} /> Dự án ({currentLayers.length})
-        </button>
-      </div>
+      <SegmentedTabs<'builtin' | 'presets' | 'project'>
+        variant="segmented"
+        size="sm"
+        ariaLabel="Nguồn tài nguyên xưởng layer"
+        className="lw-sidebar-source-tabs"
+        value={activeTab}
+        onChange={setActiveTab}
+        items={[
+          {
+            id: 'builtin',
+            label: 'Tất cả',
+            icon: <IconGlobe width={12} height={12} />,
+            badge: allAvailableAssets.length,
+            title: 'Kho ảnh & vật liệu có sẵn'
+          },
+          {
+            id: 'presets',
+            label: 'Mẫu sẵn',
+            icon: <IconLayers width={12} height={12} />,
+            badge: storedComposites.length,
+            title: 'Kho mẫu asset layer xếp chồng đã lưu & tạo sẵn'
+          },
+          {
+            id: 'project',
+            label: 'Dự án',
+            icon: <IconImage width={12} height={12} />,
+            badge: currentLayers.length,
+            title: 'Tài nguyên các layer đang tạo trong mẫu hiện tại'
+          }
+        ]}
+      />
 
       {/* 2. Search & Action Header */}
       <div

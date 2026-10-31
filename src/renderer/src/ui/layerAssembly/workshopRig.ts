@@ -214,6 +214,13 @@ export function findMirrorBoneId(boneId: string, bones: LayerBone[]): string | n
   const name = b.name.toLowerCase()
   const id = b.id.toLowerCase()
 
+  const camelMatch = b.id.match(/^([a-zA-Z0-9_-]*[a-z])(L|R)$/)
+  if (camelMatch) {
+    const targetId = `${camelMatch[1]}${camelMatch[2] === 'L' ? 'R' : 'L'}`
+    const direct = bones.find((item) => item.id === targetId)
+    if (direct && direct.id !== boneId) return direct.id
+  }
+
   const patterns: [RegExp, (m: string) => string][] = [
     [/\bleft\b/i, () => 'right'],
     [/\bright\b/i, () => 'left'],
@@ -221,6 +228,8 @@ export function findMirrorBoneId(boneId: string, bones: LayerBone[]): string | n
     [/[-_]r\b/i, (m) => m[0] + 'l'],
     [/\.l\b/i, () => '.r'],
     [/\.r\b/i, () => '.l'],
+    [/\(l\)/i, () => '(r)'],
+    [/\(r\)/i, () => '(l)'],
     [/\btrái\b/i, () => 'phải'],
     [/\bphải\b/i, () => 'trái']
   ]
@@ -230,7 +239,15 @@ export function findMirrorBoneId(boneId: string, bones: LayerBone[]): string | n
     const oname = other.name.toLowerCase()
     const oid = other.id.toLowerCase()
     for (const [pat, rep] of patterns) {
-      if (name.replace(pat, rep) === oname || id.replace(pat, rep) === oid) {
+      if (pat.test(name) && name.replace(pat, rep) === oname) return other.id
+      if (pat.test(id) && id.replace(pat, rep) === oid) return other.id
+    }
+  }
+
+  if (Math.abs(b.x) > 8) {
+    for (const other of bones) {
+      if (other.id === boneId) continue
+      if (Math.abs(other.x + b.x) <= 14 && Math.abs(other.y - b.y) <= 10) {
         return other.id
       }
     }

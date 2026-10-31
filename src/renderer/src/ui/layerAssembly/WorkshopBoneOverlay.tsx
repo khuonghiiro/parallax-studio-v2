@@ -3,7 +3,7 @@ import type { BonePose, LayerBone, LayerRig } from '@shared/layerRig'
 import { evaluateRig, rotatePoint } from '../../engine/layerRig'
 import type { LayerComposite } from './types'
 import { startBoneDrag, boneDragAction, type BoneDragMode } from './workshopBoneDrag'
-import { applyRigAction, emptyRig } from './workshopRig'
+import { applyRigAction, emptyRig, findMirrorBoneId, type RigAction } from './workshopRig'
 import { useAnimAssist } from './animAssistStore'
 import {
   SKETCH_MAX_DURATION,
@@ -33,7 +33,8 @@ import {
   computeBoneInfluenceRadius,
   computeStrengthFromPointerDistance,
   createBoneFromCanvasDrag,
-  isBoneTailCoincidentWithChild
+  isBoneTailCoincidentWithChild,
+  withSymmetricBoneAction
 } from './mohoRigHelpers'
 import { WorkshopBoneCapsuleSvg } from './WorkshopBoneCapsuleSvg'
 
@@ -130,7 +131,7 @@ export function WorkshopBoneOverlay({
   const isStrengthTool = editing && rigTool.tool === 'strength'
   const isManipulateTool = editing && rigTool.tool === 'manipulate'
 
-  if (!rig.bones.length && !isAddBoneTool) return null
+  if (!rig.bones.length && !isAddBoneTool && !(editing && rigTool.mirrorDraw)) return null
 
   const activeRigForEval = isManipulateTool ? buildManipulateTestRig(rig, rigTool.testPoses) : { ...rig, loop: false }
   const transforms = evaluateRig(activeRigForEval, isManipulateTool ? 0 : time, editing && !isManipulateTool)
@@ -219,7 +220,7 @@ export function WorkshopBoneOverlay({
     headY: number,
     angleDeg: number
   ) => {
-    if (e.button !== 0 || !isStrengthTool) return
+    if (e.button !== 0 || !editing || (!isStrengthTool && !rigTool.showInfluence)) return
     e.stopPropagation()
     stopPlayback?.()
     selectBone(bone.id)
@@ -364,12 +365,17 @@ export function WorkshopBoneOverlay({
       const ny = Math.cos(rad)
       const perpDist = Math.abs((point.x - sDrag.headX) * nx + (point.y - sDrag.headY) * ny)
       const strength = computeStrengthFromPointerDistance(sDrag.bone, perpDist)
-      setComposite((c) => applyRigAction(c, { action: 'update-bone', boneId: sDrag.bone.id, patch: { strength } }))
+      const mirrorOn = rigTool.mirrorDraw && !e.altKey
+      setComposite((c) => {
+        const baseAction: RigAction = { action: 'update-bone', boneId: sDrag.bone.id, patch: { strength } }
+        const finalAction = withSymmetricBoneAction(c.rig?.bones ?? [], baseAction, mirrorOn, findMirrorBoneId) as RigAction
+        return applyRigAction(c, finalAction)
+      })
       const radiusPx = computeBoneInfluenceRadius({ ...sDrag.bone, strength })
       setDragAngle({
         x: point.x,
         y: point.y,
-        text: `Vùng uốn "${sDrag.bone.name}": ${Math.round(strength * 100)}% (R=${Math.round(radiusPx)}px)`
+        text: `Vùng uốn "${sDrag.bone.name}": ${Math.round(strength * 100)}% (R=${Math.round(radiusPx)}px)${mirrorOn ? ' · 🪞 Đối xứng' : ''}`
       })
       return
     }
@@ -377,17 +383,31 @@ export function WorkshopBoneOverlay({
     if (manipulateDragRef.current) {
       const mDrag = manipulateDragRef.current
       const action = boneDragAction(mDrag, point, e.shiftKey)
+      const mirrorOn = rigTool.mirrorDraw && !e.altKey
+      const applyTestPoseWithMirror = (targetBoneId: string, key: Partial<BonePose>) => {
+        setTestBonePose(targetBoneId, key)
+        if (mirrorOn) {
+          const twinId = findMirrorBoneId(targetBoneId, rig.bones)
+          if (twinId && twinId !== targetBoneId) {
+            setTestBonePose(twinId, {
+              ...(key.rotation !== undefined ? { rotation: -key.rotation } : {}),
+              ...(key.x !== undefined ? { x: -key.x } : {}),
+              ...(key.y !== undefined ? { y: key.y } : {})
+            })
+          }
+        }
+      }
       if (action.action === 'set-key') {
-        setTestBonePose(action.boneId, action.key)
+        applyTestPoseWithMirror(action.boneId, action.key)
       } else if (action.action === 'batch') {
         for (const op of action.operations) {
-          if (op.action === 'set-key') setTestBonePose(op.boneId, op.key)
+          if (op.action === 'set-key') applyTestPoseWithMirror(op.boneId, op.key)
         }
       }
       setDragAngle({
         x: point.x,
         y: point.y,
-        text: mDrag.ik ? `Thử khớp IK (${mDrag.ik.chain.boneIds.length} xương)` : `Thử khớp "${mDrag.bone.name}"`
+        text: `${mDrag.ik ? `Thử khớp IK (${mDrag.ik.chain.boneIds.length} xương)` : `Thử khớp "${mDrag.bone.name}"`}${mirrorOn ? ' · 🪞 Đối xứng' : ''}`
       })
       return
     }
@@ -419,21 +439,29 @@ export function WorkshopBoneOverlay({
     const drag = dragRef.current
     if (!drag) return
     movedRef.current = true
-    const action = boneDragAction(drag, point, e.shiftKey, e.altKey)
-    setComposite((c) => applyRigAction(c, action))
+    const detachJoints = e.altKey || !rigTool.autoWeld
+    const rawAction = boneDragAction(drag, point, e.shiftKey, detachJoints)
+    const mirrorOn = drag.editing && rigTool.mirrorDraw && !e.altKey
+    setComposite((c) => {
+      const finalAction = (
+        mirrorOn ? withSymmetricBoneAction(c.rig?.bones ?? [], rawAction, true, findMirrorBoneId) : rawAction
+      ) as RigAction
+      return applyRigAction(c, finalAction)
+    })
+    const mirrorSuffix = mirrorOn ? ' · 🪞 Đối xứng' : ''
     const text =
-      action.action === 'batch'
+      rawAction.action === 'batch'
         ? drag.ik
           ? `IK · ${drag.ik.chain.boneIds.length} xương · Enter ⏎ chốt`
           : `${drag.bone.name} · Enter ⏎ chốt`
-        : action.action === 'set-key'
-          ? action.key.rotation !== undefined
-            ? `${action.key.rotation.toFixed(1)}° · Enter ⏎ chốt`
-            : `${action.key.x?.toFixed(0)}, ${action.key.y?.toFixed(0)} · Enter ⏎ chốt`
-          : action.action === 'update-bones'
-            ? `${drag.bone.name} · 🔗 Hàn khớp (Alt: tách rời)`
-            : action.action === 'update-bone'
-              ? `${action.patch.angle !== undefined ? `${action.patch.angle.toFixed(0)}°` : `${Math.round(action.patch.x ?? drag.bone.x)}, ${Math.round(action.patch.y ?? drag.bone.y)}`}`
+        : rawAction.action === 'set-key'
+          ? rawAction.key.rotation !== undefined
+            ? `${rawAction.key.rotation.toFixed(1)}° · Enter ⏎ chốt`
+            : `${rawAction.key.x?.toFixed(0)}, ${rawAction.key.y?.toFixed(0)} · Enter ⏎ chốt`
+          : rawAction.action === 'update-bones'
+            ? `${drag.bone.name} · 🔗 Hàn khớp${mirrorSuffix}`
+            : rawAction.action === 'update-bone'
+              ? `${rawAction.patch.angle !== undefined ? `${rawAction.patch.angle.toFixed(0)}°` : `${Math.round(rawAction.patch.x ?? drag.bone.x)}, ${Math.round(rawAction.patch.y ?? drag.bone.y)}`}${mirrorSuffix}`
               : ''
     setDragAngle({ x: point.x, y: point.y, text })
   }
@@ -615,18 +643,40 @@ export function WorkshopBoneOverlay({
         />
       )}
 
-      {isAddBoneTool && rigTool.mirrorDraw && (
-        <line
-          x1={0}
-          y1={-composite.height / 2}
-          x2={0}
-          y2={composite.height / 2}
-          stroke="var(--accent-cyan)"
-          strokeWidth={1.2}
-          strokeDasharray="5 5"
-          opacity={0.55}
-          pointerEvents="none"
-        />
+      {editing && rigTool.mirrorDraw && (
+        <g pointerEvents="none" className="lw-symmetry-axis-guide">
+          <line
+            x1={0}
+            y1={-composite.height / 2}
+            x2={0}
+            y2={composite.height / 2}
+            stroke="var(--accent)"
+            strokeWidth={1.6}
+            strokeDasharray="6 4"
+            opacity={0.78}
+          />
+          <rect
+            x={-68}
+            y={-composite.height / 2 + 8}
+            width={136}
+            height={18}
+            rx={4}
+            fill="var(--bg-1)"
+            stroke="var(--accent)"
+            strokeWidth={1.1}
+          />
+          <text
+            x={0}
+            y={-composite.height / 2 + 20}
+            textAnchor="middle"
+            fill="var(--text)"
+            fontSize={9.5}
+            fontWeight={700}
+            fontFamily="system-ui, sans-serif"
+          >
+            ĐỐI XỨNG L ⇄ R (X = 0)
+          </text>
+        </g>
       )}
 
       {/* Moho Pro Bone Influence Capsules (Vùng ảnh hưởng uốn Mesh) */}

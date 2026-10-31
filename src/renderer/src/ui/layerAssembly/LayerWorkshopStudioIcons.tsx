@@ -235,3 +235,68 @@ export const IconMotionHarmonyWave = (p: P) => (
     <path d="M2.5 15.5c2.4-3 4.8-3 7.2 0s4.8 3 7.2 0 3.2-2 4.6-.5" />
   </svg>
 )
+
+/** Pose-to-pose & Nhịp: Đồng hồ bấm nhịp Keyframe */
+export const IconTimingClock = (p: P) => (
+  <svg {...base(p)}>
+    <circle cx="12" cy="13" r="8" />
+    <polyline points="12 8.8 12 13 15.2 14.8" />
+    <line x1="9.5" y1="2.5" x2="14.5" y2="2.5" />
+  </svg>
+)
+
+/** Khép vòng lặp mượt (Close Loop Cycle) */
+export const IconLoopCycle = (p: P) => (
+  <svg {...base(p)}>
+    <polyline points="17 2.8 20.5 6.3 17 9.8" />
+    <path d="M3.5 11.5V9.8a3.5 3.5 0 0 1 3.5-3.5h13.5" />
+    <polyline points="7 21.2 3.5 17.7 7 14.2" />
+    <path d="M20.5 12.5v1.7a3.5 3.5 0 0 1-3.5 3.5H3.5" />
+  </svg>
+)
+
+/** Đảo ngược chiều động tác (Reverse Keyframes) */
+export const IconReverseTime = (p: P) => (
+  <svg {...base(p)}>
+    <polyline points="7.5 4.5 3.5 8.5 7.5 12.5" />
+    <line x1="3.5" y1="8.5" x2="20.5" y2="8.5" />
+    <polyline points="16.5 11.5 20.5 15.5 16.5 19.5" />
+    <line x1="20.5" y1="15.5" x2="3.5" y2="15.5" />
+  </svg>
+)
+
+/** Giãn chậm nhịp ×1.25 (Slow / Expand Timing) */
+export const IconRetimeSlow = (p: P) => (
+  <svg {...base(p)}>
+    <circle cx="12" cy="14" r="7.5" />
+    <line x1="12" y1="14" x2="8.6" y2="10.8" />
+    <path d="M6.5 3.8h11" strokeDasharray="2.2 2.2" />
+  </svg>
+)
+
+/** Nén nhanh nhịp ×0.8 (Fast / Compress Timing — thay thế hoàn toàn icon ô vuông lỗi font) */
+export const IconRetimeFast = (p: P) => (
+  <svg {...base(p)}>
+    <polygon points="3.5 6.5 11.8 12 3.5 17.5" />
+    <polygon points="12.2 6.5 20.5 12 12.2 17.5" />
+  </svg>
+)
+
+/** Chèn thêm khoảng thời gian (+0.25s) */
+export const IconTimeInsert = (p: P) => (
+  <svg {...base(p)}>
+    <line x1="4" y1="5" x2="4" y2="19" />
+    <line x1="20" y1="5" x2="20" y2="19" />
+    <line x1="12" y1="8.5" x2="12" y2="15.5" />
+    <line x1="8.5" y1="12" x2="15.5" y2="12" />
+  </svg>
+)
+
+/** Rút bớt khoảng thời gian (-0.25s) */
+export const IconTimeRemove = (p: P) => (
+  <svg {...base(p)}>
+    <line x1="4" y1="5" x2="4" y2="19" />
+    <line x1="20" y1="5" x2="20" y2="19" />
+    <line x1="8.2" y1="12" x2="15.8" y2="12" />
+  </svg>
+)

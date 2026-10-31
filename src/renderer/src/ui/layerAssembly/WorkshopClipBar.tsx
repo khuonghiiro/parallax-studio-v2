@@ -88,6 +88,20 @@ export function WorkshopClipBar({
     return null
   }
 
+  const handleCreateBlankClip = () => {
+    const newClip: AnimationClip = {
+      id: `clip-custom-${Date.now().toString(36)}`,
+      name: `Động tác ${clips.length + 1}`,
+      duration: 2.0,
+      fps: rig.fps,
+      loop: true,
+      tracks: {}
+    }
+    run({ action: 'add-clip', clip: newClip })
+    setRenameValue(newClip.name)
+    setIsRenaming(true)
+  }
+
   return (
     <div className="lw-card-section lw-clip-section">
       <div className="lw-card-header">
@@ -110,11 +124,19 @@ export function WorkshopClipBar({
           <button
             type="button"
             className="btn xs primary"
-            onClick={() => setIsNewMotionModalOpen(true)}
-            title="Mở Studio Mixamo để gắn điểm khớp và tạo bộ động tác mới"
+            onClick={handleCreateBlankClip}
+            title="Tạo ngay một động tác trống mới từ dáng gốc để tự đặt Keyframe"
           >
             <IconPlus width={10} height={10} />
-            <span>Studio Mixamo</span>
+            <span>Động tác mới</span>
+          </button>
+          <button
+            type="button"
+            className="btn xs"
+            onClick={() => setIsNewMotionModalOpen(true)}
+            title="Mở Studio Mixamo để gắn điểm khớp tự động và tạo bộ mẫu động tác"
+          >
+            <span>Mixamo</span>
           </button>
         </div>
       </div>

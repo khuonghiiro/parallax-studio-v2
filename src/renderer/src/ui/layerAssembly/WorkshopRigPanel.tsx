@@ -1,19 +1,26 @@
 import { useMemo, useState } from 'react'
 import type { LayerBone } from '@shared/layerRig'
 import type { LayerComposite } from './types'
-import type { RigAction } from './workshopRig'
+import { findMirrorBoneId, type RigAction } from './workshopRig'
 import { Select } from '../controls'
-import { IconLayers, IconPlus, IconTrash } from '../icons'
+import { IconPlus, IconTrash } from '../icons'
 import { SegmentedTabs } from '../primitives'
 import { WorkshopMixamoRigCard } from './WorkshopMixamoRigCard'
 import { WorkshopSmartRig25DCard } from './WorkshopSmartRig25DCard'
+import { WorkshopRigBindingSection } from './WorkshopRigBindingSection'
 import {
   resetTestPoses,
   setRigToolState,
   useRigToolStore,
   type MohoRigTool
 } from './rigToolStore'
-import { classifyBoneSide, computeBoneDepthMap, computeBoneInfluenceRadius } from './mohoRigHelpers'
+import {
+  classifyBoneSide,
+  computeBoneDepthMap,
+  computeBoneInfluenceRadius,
+  summarizeWeldableJoints,
+  withSymmetricBoneAction
+} from './mohoRigHelpers'
 import {
   IconAutoRigSpark,
   IconBoneAdd,
@@ -128,11 +135,19 @@ export function WorkshopRigPanel({
   const [subTab, setSubTab] = useState<RigSubTab>(() => (bones.length > 0 ? 'hierarchy' : 'autorig'))
   const rigTool = useRigToolStore()
   const depthMap = useMemo(() => computeBoneDepthMap(bones), [bones])
+  const weldSummary = useMemo(() => summarizeWeldableJoints(bones, 0.45), [bones])
   const hasTestPose = Object.keys(rigTool.testPoses).length > 0
+  const mirrorTwinId = useMemo(
+    () => (bone ? findMirrorBoneId(bone.id, bones) : null),
+    [bone, bones]
+  )
+  const mirrorTwin = useMemo(
+    () => (mirrorTwinId ? bones.find((b) => b.id === mirrorTwinId) ?? null : null),
+    [mirrorTwinId, bones]
+  )
 
   const activeLayerId =
     (selected.length > 0 ? selected[0].id : localLayerId || selectedLayerId) || composite.layers[0]?.id || ''
-  const activeLayer = composite.layers.find((l) => l.id === activeLayerId)
   const targetIds = selected.length > 0 ? selectedIds : activeLayerId ? [activeLayerId] : []
   const boundLayersTotal = composite.layers.filter((l) => Boolean(l.boneId)).length
 
@@ -146,6 +161,51 @@ export function WorkshopRigPanel({
     setRigToolState({
       tool: nextTool,
       ...(nextTool === 'strength' ? { showInfluence: true } : {})
+    })
+  }
+
+  const handleToggleInfluence = () => {
+    const next = !rigTool.showInfluence
+    setRigToolState({
+      showInfluence: next,
+      statusHint: next
+        ? 'Vỏ uốn BẬT: hiển thị viên nang bán kính uốn Mesh & nút kéo trên xương đang chọn.'
+        : 'Vỏ uốn TẮT: đã ẩn khung viên nang vùng ảnh hưởng trên sân khấu 2D.'
+    })
+  }
+
+  const handleToggleMirror = () => {
+    const next = !rigTool.mirrorDraw
+    setRigToolState({
+      mirrorDraw: next,
+      statusHint: next
+        ? 'Đối xứng L⇄R BẬT: hiện trục X = 0, mọi thao tác chỉnh / vẽ / bẻ xương tự phản chiếu sang bên kia.'
+        : 'Đối xứng L⇄R TẮT: chỉnh từng bên xương độc lập.'
+    })
+  }
+
+  const handleToggleWeld = () => {
+    if (rigTool.autoWeld && weldSummary.looseCount > 0 && bones.length >= 2) {
+      run({ action: 'snap-joints' })
+      setRigToolState({
+        autoWeld: true,
+        statusHint: `Đã hàn khít ${weldSummary.looseCount} khớp lệch (${weldSummary.totalChains} khớp chuỗi khít 100%).`
+      })
+      return
+    }
+    const next = !rigTool.autoWeld
+    if (next && bones.length >= 2) {
+      run({ action: 'snap-joints' })
+    }
+    setRigToolState({
+      autoWeld: next,
+      statusHint: next
+        ? bones.length < 2
+          ? 'Hàn khớp BẬT: khi thêm từ 2 xương nối nhau sẽ tự động bám khít khớp cha-con.'
+          : weldSummary.looseCount > 0
+            ? `Hàn khớp BẬT & đã khít ngay ${weldSummary.looseCount} khớp hở (${weldSummary.totalChains} khớp chuỗi).`
+            : `Hàn khớp BẬT: ${weldSummary.totalChains} khớp chuỗi đang khít 100% (giữ Alt khi kéo để tách rời).`
+        : 'Hàn khớp TẮT: kéo khớp gốc/ngọn tự do, không tự co giãn xương cha nối cùng.'
     })
   }
 
@@ -163,6 +223,9 @@ export function WorkshopRigPanel({
       strength: 1
     }
     run({ action: 'add-bone', bone: next })
+    if (rigTool.mirrorDraw && Math.abs(next.x) > 10) {
+      run({ action: 'mirror-bone', boneId: next.id })
+    }
     const unboundTargets = targetIds.filter((id) => !composite.layers.find((l) => l.id === id)?.boneId)
     if (unboundTargets.length > 0) {
       run({ action: 'bind', boneId: next.id, layerIds: unboundTargets, mode: 'soft' })
@@ -173,7 +236,9 @@ export function WorkshopRigPanel({
 
   const patch = (nextPatch: Partial<LayerBone>) => {
     if (!bone) return
-    run({ action: 'update-bone', boneId: bone.id, patch: nextPatch })
+    const baseAction: RigAction = { action: 'update-bone', boneId: bone.id, patch: nextPatch }
+    const finalAction = withSymmetricBoneAction(bones, baseAction, rigTool.mirrorDraw, findMirrorBoneId) as RigAction
+    run(finalAction)
   }
 
   const handleDeleteBone = (id: string, e?: React.MouseEvent) => {
@@ -181,19 +246,6 @@ export function WorkshopRigPanel({
     run({ action: 'delete-bone', boneId: id })
     if (boneId === id) selectBone(null)
   }
-
-  const layerOptions = [
-    { value: '', label: '-- Chọn layer để gắn xương --' },
-    ...composite.layers.map((l) => {
-      const currentBone = bones.find((b) => b.id === l.boneId)
-      const status = currentBone
-        ? l.bindingMode === 'soft'
-          ? `[Flexi-Mesh: ${currentBone.name}]`
-          : `[Layer-Bind: ${currentBone.name}]`
-        : '[Chưa gắn]'
-      return { value: l.id, label: l.name, sub: status }
-    })
-  ]
 
   return (
     <div className="lw-rig-panel" data-mcp-region="layer_assembly_rig_panel">
@@ -249,36 +301,64 @@ export function WorkshopRigPanel({
         <div className="lw-moho-tool-options">
           <button
             type="button"
+            aria-pressed={rigTool.showInfluence}
             className={`lw-moho-opt-pill${rigTool.showInfluence ? ' active' : ''}`}
-            onClick={() => setRigToolState({ showInfluence: !rigTool.showInfluence })}
-            title="Hiện/ẩn lớp vỏ viên nang Vùng ảnh hưởng xương (Moho Bone Strength Envelope)"
+            onClick={handleToggleInfluence}
+            title="Hiện/ẩn lớp vỏ viên nang Vùng ảnh hưởng xương (Moho Bone Strength Envelope) & nút kéo bán kính trên xương đang chọn"
           >
             <IconBoneStrength width={12} height={12} />
-            <span>Vỏ vùng uốn</span>
+            <span>Vỏ uốn</span>
           </button>
           <button
             type="button"
+            aria-pressed={rigTool.mirrorDraw}
             className={`lw-moho-opt-pill${rigTool.mirrorDraw ? ' active' : ''}`}
-            onClick={() => setRigToolState({ mirrorDraw: !rigTool.mirrorDraw })}
-            title="Khi bật: dùng công cụ Vẽ xương (A) bên trái/phải sẽ tự động sinh xương đối xứng qua trục X = 0"
+            onClick={handleToggleMirror}
+            title="Chế độ Đối xứng L⇄R qua trục X = 0: tự động phản chiếu khi vẽ xương, kéo chỉnh khớp, chỉnh vùng uốn và thử bẻ khớp"
           >
             <IconBoneMirror width={12} height={12} />
-            <span>Đối xứng L⇄R</span>
+            <span>Đối xứng</span>
           </button>
           <button
             type="button"
-            className="lw-moho-opt-pill"
-            disabled={bones.length < 2}
-            onClick={() => run({ action: 'snap-joints' })}
-            title="Hàn khớp chuỗi xương (Moho Weld Joints): tự căn độ dài & góc xương cha để khớp tròn ngọn trùng khít 100% tâm khớp con"
+            aria-pressed={rigTool.autoWeld}
+            className={`lw-moho-opt-pill${rigTool.autoWeld ? ' active' : ''}`}
+            onClick={handleToggleWeld}
+            title="Tự động hàn khít khớp nối cha-con khi kéo chỉnh xương & hàn ngay các khớp chuỗi đang bị lệch (giữ Alt khi kéo để tách rời)"
           >
             <IconBoneWeld width={12} height={12} />
-            <span>Hàn khớp</span>
+            <span>
+              Hàn khớp{weldSummary.looseCount > 0 ? ` (${weldSummary.looseCount})` : ''}
+            </span>
           </button>
         </div>
+
+        {(rigTool.statusHint || weldSummary.looseCount > 0) && (
+          <div className="lw-moho-opt-status">
+            <span>
+              {rigTool.statusHint ||
+                `Phát hiện ${weldSummary.looseCount} khớp chuỗi đang hở — bấm "Hàn khớp" để khít ngay 100%.`}
+            </span>
+            {weldSummary.looseCount > 0 && bones.length >= 2 && (
+              <button
+                type="button"
+                className="btn xs primary"
+                onClick={() => {
+                  run({ action: 'snap-joints' })
+                  setRigToolState({
+                    autoWeld: true,
+                    statusHint: `Đã hàn khít ${weldSummary.looseCount} khớp hở (${weldSummary.totalChains} khớp chuỗi).`
+                  })
+                }}
+              >
+                Khít ngay
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* 2. Thanh 3 Sub-Tabs gọn gàng (loại bỏ cuộn dọc dài 6 thẻ) */}
+      {/* 2. Thanh 3 Sub-Tabs gọn gàng */}
       <SegmentedTabs<RigSubTab>
         variant="segmented"
         size="sm"
@@ -325,7 +405,7 @@ export function WorkshopRigPanel({
                       title="Tạo bản sao đối xứng Trái ⇄ Phải qua trục X = 0 cho xương này và toàn bộ nhánh con"
                     >
                       <IconBoneMirror width={11} height={11} />
-                      <span>Đối xứng L⇄R</span>
+                      <span>Nhân bản L⇄R</span>
                     </button>
                     <button
                       type="button"
@@ -398,6 +478,13 @@ export function WorkshopRigPanel({
                 </span>
               </div>
 
+              {rigTool.mirrorDraw && mirrorTwin && (
+                <div className="lw-mirror-pair-note">
+                  <IconBoneMirror width={11} height={11} />
+                  <span>Đang đồng bộ đối xứng với &ldquo;{mirrorTwin.name}&rdquo;</span>
+                </div>
+              )}
+
               <div className="lw-form-group">
                 <label className="lw-form-label" htmlFor="lw-bone-name-input">
                   Tên xương:
@@ -433,7 +520,6 @@ export function WorkshopRigPanel({
                 <RigNumber label="Hướng xương (°)" value={bone.angle} onChange={(angle) => patch({ angle })} />
               </div>
 
-              {/* Moho Bone Strength / Influence Slider */}
               <div className="lw-moho-strength-row">
                 <div className="lw-moho-strength-head">
                   <span>Vùng ảnh hưởng Mesh (Strength)</span>
@@ -513,132 +599,15 @@ export function WorkshopRigPanel({
 
       {/* SUB-TAB 2: FLEXI-BIND MESH MỀM & LAYER-BIND */}
       {subTab === 'binding' && (
-        <div className="lw-card-section">
-          <div className="lw-card-header">
-            <span className="lw-card-title">Liên kết Moho Flexi-Bind & Layer-Bind</span>
-          </div>
-
-          <button
-            type="button"
-            className="btn sm lw-smart-autobind-btn"
-            disabled={!bones.length || !composite.layers.length}
-            onClick={() => run({ action: 'smart-auto-bind-25d', bindMode: 'auto' })}
-            title="Tự động phân tích khoảng cách không gian và gắn từng bộ phận layer vào xương gần nhất"
-          >
-            ⚡ Tự động gắn thông minh toàn bộ lớp ({composite.layers.length} lớp)
-          </button>
-
-          <div className="lw-form-group" style={{ marginTop: 8 }}>
-            <span className="lw-form-label" style={{ fontWeight: 600 }}>
-              Lớp mục tiêu:
-            </span>
-            <Select
-              size="sm"
-              dropdownWidth={320}
-              style={{ width: '100%' }}
-              value={activeLayerId}
-              options={layerOptions}
-              onChange={(val) => handleLayerSelectChange(String(val))}
-            />
-          </div>
-
-          {activeLayer && (
-            <div className="lw-bind-status-box">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                <IconLayers width={12} height={12} style={{ opacity: 0.75 }} />
-                <strong>{activeLayer.name}</strong>
-              </div>
-              <div style={{ color: 'var(--text-dim)', fontSize: '10.5px', marginTop: '3px' }}>
-                Chế độ:{' '}
-                {activeLayer.boneId ? (
-                  <span
-                    style={{
-                      color: activeLayer.bindingMode === 'soft' ? 'var(--accent-cyan)' : 'var(--key)',
-                      fontWeight: 600
-                    }}
-                  >
-                    {activeLayer.bindingMode === 'soft' ? 'Flexi-Bind (Uốn mềm Mesh 2D)' : 'Layer-Bind (Gắn cứng khớp)'} →{' '}
-                    &ldquo;{bones.find((b) => b.id === activeLayer.boneId)?.name || activeLayer.boneId}&rdquo;
-                  </span>
-                ) : (
-                  <span style={{ color: 'var(--text-faint)' }}>Tự do (chưa gắn xương)</span>
-                )}
-              </div>
-            </div>
-          )}
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <button
-              type="button"
-              className="btn sm primary"
-              disabled={!bone || !targetIds.length}
-              onClick={() => bone && targetIds.length && run({ action: 'bind', boneId: bone.id, layerIds: targetIds, mode: 'soft' })}
-              title="Moho Flexi-Bind: Biến dạng lưới tam giác Alpha Mesh mềm mại theo chuỗi xương và bán kính Strength"
-            >
-              <IconFlexiMeshBind width={13} height={13} />
-              <span>Flexi-Bind · Uốn mềm Mesh {bone ? `(${bone.name})` : '(chọn xương)'}</span>
-            </button>
-
-            <div style={{ display: 'flex', gap: '6px' }}>
-              <button
-                type="button"
-                className="btn sm"
-                style={{ flex: 1 }}
-                disabled={!bone || !targetIds.length}
-                onClick={() =>
-                  bone && targetIds.length && run({ action: 'bind', boneId: bone.id, layerIds: targetIds, mode: 'rigid' })
-                }
-                title="Moho Layer-Bind: Gắn cứng toàn bộ tấm layer xoay theo khớp xương (phù hợp đạo cụ, mũ, kiếm)"
-              >
-                Layer-Bind · Gắn cứng
-              </button>
-              <button
-                type="button"
-                className="btn sm"
-                disabled={!targetIds.length || !targetIds.some((id) => composite.layers.find((l) => l.id === id)?.boneId)}
-                onClick={() => run({ action: 'bind', layerIds: targetIds })}
-                title="Gỡ liên kết xương khỏi layer đang chọn"
-              >
-                Tháo gắn
-              </button>
-            </div>
-          </div>
-
-          {bone && (
-            <div style={{ marginTop: '10px', paddingTop: '8px', borderTop: '1px solid var(--line-soft)' }}>
-              <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-dim)' }}>
-                Lớp đang đi theo xương &ldquo;{bone.name}&rdquo;:
-              </span>
-              {composite.layers.filter((l) => l.boneId === bone.id).length === 0 ? (
-                <p style={{ fontSize: '10.5px', color: 'var(--text-faint)', margin: '4px 0 0' }}>
-                  Chưa có lớp nào gắn trực tiếp vào xương này.
-                </p>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '6px' }}>
-                  {composite.layers
-                    .filter((l) => l.boneId === bone.id)
-                    .map((l) => (
-                      <div key={l.id} className="lw-bound-layer-chip">
-                        <span onClick={() => handleLayerSelectChange(l.id)} title="Bấm để chọn lớp này">
-                          {l.name}{' '}
-                          <small style={{ color: l.bindingMode === 'soft' ? 'var(--accent-cyan)' : 'var(--key)' }}>
-                            ({l.bindingMode === 'soft' ? 'Flexi-Mesh' : 'Layer-Bind'})
-                          </small>
-                        </span>
-                        <button
-                          type="button"
-                          className="btn xs"
-                          onClick={() => run({ action: 'bind', layerIds: [l.id] })}
-                        >
-                          Tháo
-                        </button>
-                      </div>
-                    ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+        <WorkshopRigBindingSection
+          composite={composite}
+          bones={bones}
+          bone={bone}
+          activeLayerId={activeLayerId}
+          targetIds={targetIds}
+          onSelectLayer={handleLayerSelectChange}
+          run={run}
+        />
       )}
 
       {/* SUB-TAB 3: AUTO-RIG MIXAMO, SMART 2.5D & KHUÔN MẪU XƯƠNG */}

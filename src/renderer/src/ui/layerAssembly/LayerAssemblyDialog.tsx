@@ -384,33 +384,32 @@ export function LayerAssemblyDialog({ initialComposite, onClose }: LayerAssembly
                 </div>
               )}
 
-              {showCenterStage && (
-                <div className="lw-workspace-column">
-                  <WorkshopWorkspace
+              <div className="lw-workspace-column" style={!showCenterStage ? { display: 'none' } : undefined}>
+                <WorkshopWorkspace
+                  state={state}
+                  playback={playback}
+                  view={view}
+                  stageVisible={showCenterStage}
+                  tab={tab}
+                  onSelectTab={setTab}
+                  boneId={boneId}
+                  selectBone={selectBone}
+                  onBrushModeChange={setIsBrushActive}
+                  centerSplitRatio={colPrefs.centerSplitRatio}
+                  onChangeCenterSplitRatio={(r) => updateColPrefs({ centerSplitRatio: r })}
+                  onResetCenterSplitRatio={() =>
+                    updateColPrefs({ centerSplitRatio: DEFAULT_LAYER_WORKSHOP_COLUMN_PREFS.centerSplitRatio })
+                  }
+                />
+                {tab === 'animation' && (
+                  <WorkshopAnimationTimeline
                     state={state}
                     playback={playback}
-                    view={view}
-                    tab={tab}
-                    onSelectTab={setTab}
                     boneId={boneId}
                     selectBone={selectBone}
-                    onBrushModeChange={setIsBrushActive}
-                    centerSplitRatio={colPrefs.centerSplitRatio}
-                    onChangeCenterSplitRatio={(r) => updateColPrefs({ centerSplitRatio: r })}
-                    onResetCenterSplitRatio={() =>
-                      updateColPrefs({ centerSplitRatio: DEFAULT_LAYER_WORKSHOP_COLUMN_PREFS.centerSplitRatio })
-                    }
                   />
-                  {tab === 'animation' && (
-                    <WorkshopAnimationTimeline
-                      state={state}
-                      playback={playback}
-                      boneId={boneId}
-                      selectBone={selectBone}
-                    />
-                  )}
-                </div>
-              )}
+                )}
+              </div>
 
               {!isDrawerMode && rightPanelOpen && (
                 <div

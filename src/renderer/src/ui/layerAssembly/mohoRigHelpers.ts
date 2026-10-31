@@ -2,6 +2,15 @@ import type { BoneEasing, BoneKeyframe, LayerBone, LayerRig } from '@shared/laye
 
 export type BoneAnatomicalSide = 'left' | 'right' | 'center'
 
+export type BonePatchMapItem = {
+  boneId: string
+  patch: Partial<Omit<LayerBone, 'id'>>
+}
+
+export type BoneEditRigAction =
+  | { action: 'update-bone'; boneId: string; patch: Partial<Omit<LayerBone, 'id'>> }
+  | { action: 'update-bones'; patches: BonePatchMapItem[] }
+
 export interface TweenSpanSegment {
   startTime: number
   endTime: number
@@ -18,9 +27,16 @@ export interface TweenSpanSegment {
  * - `center` (Royal Blue): trục cột sống / đầu / gốc trung tâm
  */
 export function classifyBoneSide(bone: Pick<LayerBone, 'id' | 'name' | 'x'>): BoneAnatomicalSide {
-  const token = `${bone.id} ${bone.name}`.toLowerCase()
-  if (/(?:^|[-_.\s])(left|trái|l)(?:$|[-_.\s])|\(l\)/i.test(token)) return 'left'
-  if (/(?:^|[-_.\s])(right|phải|r)(?:$|[-_.\s])|\(r\)/i.test(token)) return 'right'
+  const token = `${bone.id} ${bone.name}`
+  if (/(?:^|[-_.\s])(left|trái|l)(?:$|[-_.\s])|\(l\)|[a-z]L\b/i.test(token)) {
+    if (/[a-z]R\b/.test(bone.id)) return 'right'
+    if (/[a-z]L\b/.test(bone.id)) return 'left'
+    if (/(?:^|[-_.\s])(left|trái|l)(?:$|[-_.\s])|\(l\)/i.test(token.toLowerCase())) return 'left'
+  }
+  if (/(?:^|[-_.\s])(right|phải|r)(?:$|[-_.\s])|\(r\)|[a-z]R\b/i.test(token)) {
+    if (/[a-z]R\b/.test(bone.id)) return 'right'
+    if (/(?:^|[-_.\s])(right|phải|r)(?:$|[-_.\s])|\(r\)/i.test(token.toLowerCase())) return 'right'
+  }
   if (Math.abs(bone.x) > 28) return bone.x < 0 ? 'left' : 'right'
   return 'center'
 }
@@ -137,13 +153,18 @@ export function mirrorBoneName(name: string): string {
 
 /** Đổi ID xương đối xứng hoặc sinh ID mới sạch sẽ. */
 export function mirrorBoneId(id: string, existingIds: Set<string>): string {
-  const rules: Array<[RegExp, string]> = [
-    [/([-_.])l(?=$|[-_.])/i, '$1r'],
-    [/([-_.])r(?=$|[-_.])/i, '$1l'],
-    [/left/i, 'right'],
-    [/right/i, 'left']
+  const camelMatch = id.match(/^([a-zA-Z0-9_-]*[a-z])(L|R)$/)
+  if (camelMatch) {
+    const candidate = `${camelMatch[1]}${camelMatch[2] === 'L' ? 'R' : 'L'}`
+    if (!existingIds.has(candidate)) return candidate
+  }
+  const rules: Array<RegExp> = [
+    /([-_.])l(?=$|[-_.])/i,
+    /([-_.])r(?=$|[-_.])/i,
+    /left/i,
+    /right/i
   ]
-  for (const [pat, rep] of rules) {
+  for (const pat of rules) {
     if (pat.test(id)) {
       const candidate = id.replace(pat, (match) => {
         if (/^[-_.]l$/i.test(match)) return match[0] + (match[1] === 'L' ? 'R' : 'r')
@@ -166,7 +187,53 @@ export function mirrorAngleAcrossYAxis(angleDeg: number): number {
   let mirrored = 180 - angleDeg
   while (mirrored > 180) mirrored -= 360
   while (mirrored <= -180) mirrored += 360
-  return Number(mirrored.toFixed(1))
+  return Number(mirrored.toFixed(2))
+}
+
+/**
+ * Tự động phản chiếu các chỉnh sửa xương (`update-bone` / `update-bones`: vị trí X/Y, chiều dài, hướng góc, vùng ảnh hưởng)
+ * sang xương đối xứng bên kia qua trục `X = 0` khi chế độ `Đối xứng L⇄R` đang bật.
+ */
+export function withSymmetricBoneAction<T extends { action: string }>(
+  bones: LayerBone[],
+  action: T,
+  mirrorEnabled: boolean,
+  findMirrorFn: (boneId: string, list: LayerBone[]) => string | null
+): T | BoneEditRigAction {
+  if (!mirrorEnabled) return action
+  if (action.action !== 'update-bone' && action.action !== 'update-bones') return action
+
+  const basePatches: BonePatchMapItem[] =
+    action.action === 'update-bone'
+      ? [{ boneId: (action as unknown as { boneId: string }).boneId, patch: (action as unknown as { patch: Partial<Omit<LayerBone, 'id'>> }).patch }]
+      : [...(action as unknown as { patches: BonePatchMapItem[] }).patches]
+
+  const patchedIds = new Set(basePatches.map((p) => p.boneId))
+  const mirroredPatches: BonePatchMapItem[] = []
+
+  for (const item of basePatches) {
+    const twinId = findMirrorFn(item.boneId, bones)
+    if (!twinId || twinId === item.boneId || patchedIds.has(twinId)) continue
+
+    const twinPatch: Partial<Omit<LayerBone, 'id'>> = {}
+    if (item.patch.x !== undefined) twinPatch.x = Number((-item.patch.x).toFixed(2)) || 0
+    if (item.patch.y !== undefined) twinPatch.y = item.patch.y
+    if (item.patch.length !== undefined) twinPatch.length = item.patch.length
+    if (item.patch.angle !== undefined) twinPatch.angle = mirrorAngleAcrossYAxis(item.patch.angle)
+    if (item.patch.strength !== undefined) twinPatch.strength = item.patch.strength
+    if (item.patch.pin !== undefined) twinPatch.pin = item.patch.pin
+
+    if (Object.keys(twinPatch).length > 0) {
+      mirroredPatches.push({ boneId: twinId, patch: twinPatch })
+      patchedIds.add(twinId)
+    }
+  }
+
+  if (mirroredPatches.length === 0) return action
+  const combined = [...basePatches, ...mirroredPatches]
+  return combined.length === 1
+    ? { action: 'update-bone', boneId: combined[0].boneId, patch: combined[0].patch }
+    : { action: 'update-bones', patches: combined }
 }
 
 /**
@@ -313,7 +380,8 @@ export function aimBoneAtPoint(
 
 /**
  * Tìm xương con nối liền trực tiếp tại ngọn xương cha (VD: Bắp tay -> Cẳng tay -> Bàn tay, Đùi -> Cẳng chân -> Bàn chân, Hông -> Thân -> Đầu).
- * Các nhánh phụ rẽ ngang từ xa (như 2 vai rẽ từ ngực, 2 đùi rẽ từ hông, hay xương con đồng tâm tại gốc cổ chân) được bỏ qua để giữ đường nét đứt chuẩn Moho.
+ * Nếu xương cha chỉ có đúng 1 xương con không trùng tâm (chuỗi chi đơn), cho phép ngưỡng rộng hơn (`>= 0.95`) để hàn lại cả những khớp bị kéo lệch xa;
+ * các khớp rẽ nhiều nhánh (như ngực rẽ 2 vai + cổ, hông rẽ 2 đùi + thân) giữ ngưỡng `maxGapRatio` để bảo toàn đường nét đứt vai/hông chuẩn Moho.
  */
 export function findPrimaryConnectedChild(
   parent: LayerBone,
@@ -322,14 +390,17 @@ export function findPrimaryConnectedChild(
 ): LayerBone | null {
   if (parent.pin) return null
   const tail = computeBoneTail(parent)
-  const threshold = Math.max(26, parent.length * maxGapRatio)
+  const nonCoincidentChildren = bones.filter(
+    (c) => c.parentId === parent.id && Math.hypot(c.x - parent.x, c.y - parent.y) >= 6
+  )
+  if (nonCoincidentChildren.length === 0) return null
+
+  const effectiveRatio = nonCoincidentChildren.length === 1 ? Math.max(maxGapRatio, 0.95) : maxGapRatio
+  const threshold = Math.max(28, parent.length * effectiveRatio)
   let best: LayerBone | null = null
   let bestDist = Infinity
 
-  for (const candidate of bones) {
-    if (candidate.parentId !== parent.id) continue
-    // Bỏ qua xương con đặt trùng ngay tại khớp gốc của xương cha (VD gót chân & vòm bàn chân cùng chung pivot cổ chân)
-    if (Math.hypot(candidate.x - parent.x, candidate.y - parent.y) < 6) continue
+  for (const candidate of nonCoincidentChildren) {
     const dist = Math.hypot(tail.x - candidate.x, tail.y - candidate.y)
     if (dist <= threshold && dist < bestDist) {
       bestDist = dist
@@ -337,6 +408,25 @@ export function findPrimaryConnectedChild(
     }
   }
   return best
+}
+
+/** Thống kê số khớp chuỗi xương nối liền và số khớp đang bị hở (> 0.5px). */
+export function summarizeWeldableJoints(
+  bones: LayerBone[],
+  maxGapRatio = 0.45
+): { totalChains: number; looseCount: number } {
+  let totalChains = 0
+  let looseCount = 0
+  for (const bone of bones) {
+    const child = findPrimaryConnectedChild(bone, bones, maxGapRatio)
+    if (!child) continue
+    totalChains += 1
+    const tail = computeBoneTail(bone)
+    if (Math.hypot(tail.x - child.x, tail.y - child.y) > 0.5) {
+      looseCount += 1
+    }
+  }
+  return { totalChains, looseCount }
 }
 
 /**

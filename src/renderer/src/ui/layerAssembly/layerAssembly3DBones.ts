@@ -15,6 +15,12 @@ export interface Sync3DBonesOptions {
   visible: boolean
 }
 
+const SHARED_UNIT_SPHERE = (() => {
+  const geom = new THREE.SphereGeometry(1, 14, 14)
+  geom.userData = { shared: true }
+  return geom
+})()
+
 export function create3DBonesGroup(): THREE.Group {
   const group = new THREE.Group()
   group.name = 'skeleton-3d-root'
@@ -23,8 +29,9 @@ export function create3DBonesGroup(): THREE.Group {
 
 export function dispose3DBonesGroup(group: THREE.Group): void {
   group.traverse((obj) => {
-    if ((obj as THREE.Mesh).geometry) {
-      ;(obj as THREE.Mesh).geometry.dispose()
+    const geom = (obj as THREE.Mesh).geometry
+    if (geom && !geom.userData?.shared) {
+      geom.dispose()
     }
     if ((obj as THREE.Mesh).material) {
       const mat = (obj as THREE.Mesh).material
@@ -126,14 +133,15 @@ export function update3DBonesGroup({
     const tx = hx + ux * L
     const ty = hy - uy * L
 
-    // Khớp gốc Head (Pivot Sphere)
-    const headGeom = new THREE.SphereGeometry(isSelected ? 8 : isHovered ? 7.5 : 6, 16, 16)
+    // Khớp gốc Head (Pivot Sphere dùng chung unit geometry để không cấp phát lại 30 mesh mỗi frame)
+    const headRadius = isSelected ? 8 : isHovered ? 7.5 : 6
     const headMat = new THREE.MeshBasicMaterial({
       color: isSelected ? 0x00e5ff : isHovered ? 0x38bdf8 : 0xffb703,
       depthTest: false
     })
-    const headMesh = new THREE.Mesh(headGeom, headMat)
+    const headMesh = new THREE.Mesh(SHARED_UNIT_SPHERE, headMat)
     headMesh.position.set(hx, hy, zPos)
+    headMesh.scale.setScalar(headRadius)
     headMesh.renderOrder = 5003
     headMesh.userData = { type: 'bone', boneId: bone.id, part: 'head' }
     group.add(headMesh)
@@ -141,13 +149,14 @@ export function update3DBonesGroup({
     // Khớp ngọn Tail (chỉ hiển thị khi là đầu mút cuối hoặc xương đang chọn/hover để tránh chồng 2 quả cầu)
     const hideDuplicateTail = !isSelected && !isHovered && isBoneTailCoincidentWithChild(bone, rig.bones, transforms, 3)
     if (!hideDuplicateTail) {
-      const tailGeom = new THREE.SphereGeometry(isSelected ? 6 : isHovered ? 5.5 : 4.5, 14, 14)
+      const tailRadius = isSelected ? 6 : isHovered ? 5.5 : 4.5
       const tailMat = new THREE.MeshBasicMaterial({
         color: isSelected ? 0x00e5ff : isHovered ? 0x38bdf8 : 0xfb8500,
         depthTest: false
       })
-      const tailMesh = new THREE.Mesh(tailGeom, tailMat)
+      const tailMesh = new THREE.Mesh(SHARED_UNIT_SPHERE, tailMat)
       tailMesh.position.set(tx, ty, zPos)
+      tailMesh.scale.setScalar(tailRadius)
       tailMesh.renderOrder = 5003
       tailMesh.userData = { type: 'bone', boneId: bone.id, part: 'tail' }
       group.add(tailMesh)

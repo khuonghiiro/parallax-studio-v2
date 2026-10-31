@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import type { useLayerWorkshop } from './useLayerWorkshop'
 import type { useWorkshopPlayback } from './useWorkshopPlayback'
 import type { AssemblyWorkspaceView } from './LayerAssemblyDialog'
@@ -25,6 +25,7 @@ export function WorkshopWorkspace({
   state,
   playback,
   view,
+  stageVisible = true,
   tab,
   onSelectTab,
   boneId,
@@ -37,6 +38,7 @@ export function WorkshopWorkspace({
   state: ReturnType<typeof useLayerWorkshop>
   playback: ReturnType<typeof useWorkshopPlayback>
   view: AssemblyWorkspaceView
+  stageVisible?: boolean
   tab: WorkshopTab
   onSelectTab?: (tab: WorkshopTab) => void
   boneId: string | null
@@ -48,6 +50,7 @@ export function WorkshopWorkspace({
 }) {
   const [showBones, setShowBones] = useState(() => loadLayerWorkshopViewPrefs().showBones)
   const [showMesh, setShowMesh] = useState(() => loadLayerWorkshopViewPrefs().showMesh)
+  const [hasOpened3D, setHasOpened3D] = useState(() => view !== '2d')
   const [brushEditing, setBrushEditing] = useState(false)
   const [brushPreview, setBrushPreview] = useState<BrushPreview | null>(null)
   const [resizingSplit, setResizingSplit] = useState(false)
@@ -82,15 +85,15 @@ export function WorkshopWorkspace({
     })
   }, [])
 
+  useEffect(() => {
+    if (view !== '2d' && !hasOpened3D) setHasOpened3D(true)
+  }, [view, hasOpened3D])
+
   const handleConfirmStep = useCallback(() => {
     playback.setIsPlaying(false)
-    let nextTime = playback.time
-    state.setComposite((c) => {
-      const res = confirmPoseAndStep(c, playback.time)
-      nextTime = res.nextTime
-      return res.composite
-    })
-    playback.setTime(nextTime)
+    const res = confirmPoseAndStep(state.composite, playback.time)
+    state.setComposite(res.composite)
+    playback.setTime(res.nextTime)
   }, [playback, state])
 
   useEffect(() => {
@@ -183,32 +186,42 @@ export function WorkshopWorkspace({
   const evalTime = isManipulatingRigTest ? 0 : playback.time
   const isErasing = brushEditing && tab === 'layers' && !playback.isPlaying
   const animated = !isErasing && (isManipulatingRigTest || tab === 'animation' || playback.isPlaying || playback.time > 0) && rig
+  const effectiveRig = useMemo(() => {
+    if (!rig) return undefined
+    if (animated) return rig
+    return { ...rig, loop: false, tracks: {} }
+  }, [rig, animated])
   const transforms = animated ? evaluateRig(animated, evalTime) : undefined
 
-  const composite = {
-    ...state.composite,
-    rig: rig ?? state.composite.rig,
-    layers: state.composite.layers.map((l) => {
-      const bindPose = { x: l.x, y: l.y, rotation: l.rotation }
-      const implicitSingleSoft = !l.boneId && state.composite.layers.length === 1 && Boolean(rig?.bones.length)
-      const effectiveSoft = l.bindingMode === 'soft' || implicitSingleSoft
-      const effectiveBoneId = l.boneId ?? (implicitSingleSoft ? rig!.bones[0]?.id : undefined)
-      const extraBoneIds =
-        effectiveSoft && rig ? extraSoftBoneIdsForLayer(state.composite.layers, rig, l.id, effectiveBoneId) : undefined
-      const transformed = transforms && !effectiveSoft ? transformRigLayer(l, transforms) : l
-      const layerSpines = !isErasing && !l.hidden ? spinesForLayer(shiftedSpines, l.id) : undefined
-      return {
-        ...transformed,
-        ...(implicitSingleSoft ? { bindingMode: 'soft' as const, boneId: effectiveBoneId } : {}),
-        ...(extraBoneIds?.length ? { extraBoneIds } : {}),
-        ...(brushPreview?.id === l.id ? { imageUrl: brushPreview.imageUrl } : {}),
-        ...(rig && !isErasing ? { previewRig: rig, bindPose } : {}),
-        ...(layerSpines?.length ? { previewPlantSpines: layerSpines } : {}),
-        ...(isErasing ? { bindingMode: 'rigid' as const, motion: { ...l.motion, type: 'none' as const } } : {}),
-        locked: l.locked
-      }
-    })
-  }
+  const composite = useMemo(
+    () => ({
+      ...state.composite,
+      rig: effectiveRig ?? state.composite.rig,
+      layers: state.composite.layers.map((l) => {
+        const bindPose = { x: l.x, y: l.y, rotation: l.rotation }
+        const implicitSingleSoft = !l.boneId && state.composite.layers.length === 1 && Boolean(effectiveRig?.bones.length)
+        const effectiveSoft = l.bindingMode === 'soft' || implicitSingleSoft
+        const effectiveBoneId = l.boneId ?? (implicitSingleSoft ? effectiveRig!.bones[0]?.id : undefined)
+        const extraBoneIds =
+          effectiveSoft && effectiveRig
+            ? extraSoftBoneIdsForLayer(state.composite.layers, effectiveRig, l.id, effectiveBoneId)
+            : undefined
+        const transformed = transforms && !effectiveSoft ? transformRigLayer(l, transforms) : l
+        const layerSpines = !isErasing && !l.hidden ? spinesForLayer(shiftedSpines, l.id) : undefined
+        return {
+          ...transformed,
+          ...(implicitSingleSoft ? { bindingMode: 'soft' as const, boneId: effectiveBoneId } : {}),
+          ...(extraBoneIds?.length ? { extraBoneIds } : {}),
+          ...(brushPreview?.id === l.id ? { imageUrl: brushPreview.imageUrl } : {}),
+          ...(effectiveRig && !isErasing ? { previewRig: effectiveRig, bindPose } : {}),
+          ...(layerSpines?.length ? { previewPlantSpines: layerSpines } : {}),
+          ...(isErasing ? { bindingMode: 'rigid' as const, motion: { ...l.motion, type: 'none' as const } } : {}),
+          locked: l.locked
+        }
+      })
+    }),
+    [state.composite, effectiveRig, transforms, isErasing, shiftedSpines, brushPreview]
+  )
 
   const boneOverlay: BoneOverlayProps = {
     composite: { ...state.composite, rig: normalizedRig ?? state.composite.rig },
@@ -357,8 +370,12 @@ export function WorkshopWorkspace({
             <span className="lw-col-splitter-grip" />
           </div>
         )}
-        {view !== '2d' && (
-          <div className="layer-workshop-split-pane right-pane" data-mcp-region="layer_assembly_viewport_3d">
+        {(hasOpened3D || view !== '2d') && (
+          <div
+            className="layer-workshop-split-pane right-pane"
+            data-mcp-region="layer_assembly_viewport_3d"
+            style={view === '2d' ? { display: 'none' } : undefined}
+          >
             <div className="pane-header-tab">
               <span className="pane-title">
                 <IconCube width={13} height={13} /> Chiều sâu 3D
@@ -367,6 +384,7 @@ export function WorkshopWorkspace({
             </div>
             <LayerAssembly3DViewport
               {...props}
+              active={stageVisible && view !== '2d'}
               showBones={showBones}
               onToggleShowBones={toggleBones}
               showMesh={showMesh}

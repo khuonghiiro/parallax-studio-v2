@@ -1,9 +1,20 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import type { LayerRig } from '@shared/layerRig'
 import type { RigAction } from './workshopRig'
 import type { useWorkshopPlayback } from './useWorkshopPlayback'
 import { canBreakdown, keyTimes, neighborKeyTime, type AnimToolOp } from './workshopAnimTools'
 import { sameKeyTime } from './workshopAnimation'
+import {
+  IconLoopCycle,
+  IconMotionHarmonyWave,
+  IconPoseKey,
+  IconRetimeFast,
+  IconRetimeSlow,
+  IconReverseTime,
+  IconTimeInsert,
+  IconTimeRemove,
+  IconTimingClock
+} from './LayerWorkshopStudioIcons'
 import '../../styles/layerWorkshopPoseTools.css'
 
 type Playback = ReturnType<typeof useWorkshopPlayback>
@@ -67,7 +78,8 @@ function BreakdownBlock({ rig, time, tool }: { rig: LayerRig; time: number; tool
         <input type="range" min={0} max={1} step={0.05} value={favor} aria-label="Mức nghiêng về key sau" onChange={(e) => setFavor(Number(e.target.value))} />
         <button type="button" className="btn xs primary" disabled={!ready} onClick={() => tool({ op: 'breakdown', time, favor })}
           title="Ghi dáng trung gian cho mọi xương đang nằm giữa 2 key tại đầu phát">
-          ◆ Chèn
+          <IconPoseKey width={11} height={11} />
+          <span>Chèn</span>
         </button>
       </div>
       {!ready && <p className="lw-pose-hint">Đặt đầu phát vào giữa 2 key (dùng ◀ ▶ rồi tua) để chèn dáng trung gian.</p>}
@@ -76,20 +88,59 @@ function BreakdownBlock({ rig, time, tool }: { rig: LayerRig; time: number; tool
 }
 
 function TimingBlock({ rig, time, tool }: { rig: LayerRig; time: number; tool: ToolFn }) {
-  const items: Array<[string, string, AnimToolOp]> = [
-    ['🔁 Khép vòng lặp', 'Đặt key cuối clip trùng dáng đầu clip → lặp lại không giật', { op: 'close-loop' }],
-    ['⇄ Đảo ngược', 'Đảo ngược thứ tự toàn bộ động tác (đổi ease-in ↔ ease-out)', { op: 'reverse' }],
-    ['🐢 Chậm ×1.25', 'Giãn toàn bộ key: động tác chậm hơn 25%', { op: 'retime', factor: 1.25 }],
-    ['🐇 Nhanh ×0.8', 'Nén toàn bộ key: động tác nhanh hơn 20%', { op: 'retime', factor: 0.8 }],
-    [`＋ Chèn ${SHIFT_STEP}s`, `Chèn ${SHIFT_STEP}s khoảng lặng tại đầu phát (đẩy các key phía sau)`, { op: 'shift-time', from: time, delta: SHIFT_STEP }],
-    [`－ Bớt ${SHIFT_STEP}s`, `Bớt ${SHIFT_STEP}s ngay sau đầu phát (kéo các key phía sau lại gần)`, { op: 'shift-time', from: time, delta: -SHIFT_STEP }]
+  const items: Array<{ key: string; icon: ReactNode; label: string; hint: string; op: AnimToolOp }> = [
+    {
+      key: 'close-loop',
+      icon: <IconLoopCycle width={12} height={12} />,
+      label: 'Khép vòng lặp',
+      hint: 'Đặt key cuối clip trùng dáng đầu clip → lặp lại không giật',
+      op: { op: 'close-loop' }
+    },
+    {
+      key: 'reverse',
+      icon: <IconReverseTime width={12} height={12} />,
+      label: 'Đảo ngược',
+      hint: 'Đảo ngược thứ tự toàn bộ động tác (đổi ease-in ↔ ease-out)',
+      op: { op: 'reverse' }
+    },
+    {
+      key: 'slow',
+      icon: <IconRetimeSlow width={12} height={12} />,
+      label: 'Chậm ×1.25',
+      hint: 'Giãn toàn bộ key: động tác chậm hơn 25%',
+      op: { op: 'retime', factor: 1.25 }
+    },
+    {
+      key: 'fast',
+      icon: <IconRetimeFast width={12} height={12} />,
+      label: 'Nhanh ×0.8',
+      hint: 'Nén toàn bộ key: động tác nhanh hơn 20%',
+      op: { op: 'retime', factor: 0.8 }
+    },
+    {
+      key: 'insert',
+      icon: <IconTimeInsert width={12} height={12} />,
+      label: `Chèn ${SHIFT_STEP}s`,
+      hint: `Chèn ${SHIFT_STEP}s khoảng lặng tại đầu phát (đẩy các key phía sau)`,
+      op: { op: 'shift-time', from: time, delta: SHIFT_STEP }
+    },
+    {
+      key: 'remove',
+      icon: <IconTimeRemove width={12} height={12} />,
+      label: `Bớt ${SHIFT_STEP}s`,
+      hint: `Bớt ${SHIFT_STEP}s ngay sau đầu phát (kéo các key phía sau lại gần)`,
+      op: { op: 'shift-time', from: time, delta: -SHIFT_STEP }
+    }
   ]
   return (
     <div className="lw-pose-block">
       <div className="lw-pose-block-head"><span>Nhịp &amp; vòng lặp</span><span className="lw-pose-block-val">{rig.duration.toFixed(2)}s</span></div>
       <div className="lw-pose-grid">
-        {items.map(([label, hint, op]) => (
-          <button key={label} type="button" className="btn xs" title={hint} onClick={() => tool(op)}>{label}</button>
+        {items.map((it) => (
+          <button key={it.key} type="button" className="btn xs lw-pose-icon-btn" title={it.hint} onClick={() => tool(it.op)}>
+            {it.icon}
+            <span>{it.label}</span>
+          </button>
         ))}
       </div>
     </div>
@@ -109,9 +160,10 @@ function OverlapBlock({ rig, boneId, tool }: { rig: LayerRig; boneId: string | n
             {d.toFixed(2)}s
           </button>
         ))}
-        <button type="button" className="btn xs primary lw-pose-grow" disabled={!hasChildren} onClick={() => bone && tool({ op: 'overlap', rootBoneId: bone.id, delay })}
+        <button type="button" className="btn xs primary lw-pose-grow lw-pose-icon-btn" disabled={!hasChildren} onClick={() => bone && tool({ op: 'overlap', rootBoneId: bone.id, delay })}
           title="Các xương con của xương đang chọn trễ nhịp theo cấp → cử động lan dần như roi (tay, tóc, đuôi)">
-          <span>〰 Lệch pha {bone ? `“${bone.name}”` : 'nhánh'}</span>
+          <IconMotionHarmonyWave width={12} height={12} />
+          <span>Lệch pha {bone ? `“${bone.name}”` : 'nhánh'}</span>
         </button>
       </div>
       {!hasChildren && <p className="lw-pose-hint">Chọn một xương có xương con (VD vai, gốc tóc, gốc đuôi) để lệch pha cả nhánh.</p>}
@@ -156,7 +208,10 @@ export function WorkshopAnimToolsCard({ rig, boneId, playback, run }: {
   return (
     <div className="lw-card-section lw-pose-tools" data-mcp-region="layer_assembly_pose_tools">
       <div className="lw-card-header">
-        <span className="lw-card-title">⏱ Pose-to-pose &amp; Nhịp</span>
+        <span className="lw-card-title lw-pose-icon-title">
+          <IconTimingClock width={13} height={13} />
+          <span>Pose-to-pose &amp; Nhịp</span>
+        </span>
         <span className="lw-card-badge">{keyTimes(rig).length} mốc key</span>
       </div>
       <PoseNav rig={rig} time={time} scopeBone={scopeBone} boneId={boneId} onlyBone={onlyBone} setOnlyBone={setOnlyBone} jump={jump} />

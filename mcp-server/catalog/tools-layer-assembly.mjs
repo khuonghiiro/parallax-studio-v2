@@ -274,6 +274,9 @@ export const LAYER_ASSEMBLY_TOOLS = [
           'bind',
           'set-key',
           'delete-key',
+          'delete-keys',
+          'move-key',
+          'move-keys',
           'set-pose',
           'mirror-pose',
           'settings',
@@ -302,6 +305,29 @@ export const LAYER_ASSEMBLY_TOOLS = [
       binding_mode: z.enum(['rigid', 'soft']).optional().describe(d('Bind rigidly or deform the alpha mesh with the selected bone and its descendants.', 'Gắn cứng hoặc uốn mesh alpha theo xương đã chọn và các xương con.')),
       layer_ids: z.array(z.string()).optional().describe(d('Layer IDs to bind to the bone.', 'Danh sách ID layer cần gắn vào xương.')),
       time: z.number().optional().describe(d('Keyframe time in seconds.', 'Thời điểm keyframe tính bằng giây.')),
+      target_time: z.number().optional().describe(d('move-key: destination keyframe time in seconds.', 'move-key: thời điểm giây đích cần dời keyframe tới.')),
+      overwrite: z.boolean().optional().describe(d('move-keys: replace existing non-selected keys at destination timestamps (default false).', 'move-keys: ghi đè lên các key không chọn nằm trùng tại thời điểm đích (mặc định false).')),
+      keys: z
+        .array(
+          z.object({
+            bone_id: z.string().optional(),
+            boneId: z.string().optional(),
+            time: z.number()
+          })
+        )
+        .optional()
+        .describe(d('delete-keys: batch list of { bone_id, time } keyframes to remove at once.', 'delete-keys: danh sách hàng loạt các keyframe { bone_id, time } cần xóa cùng lúc.')),
+      moves: z
+        .array(
+          z.object({
+            bone_id: z.string().optional(),
+            boneId: z.string().optional(),
+            time: z.number(),
+            target_time: z.number()
+          })
+        )
+        .optional()
+        .describe(d('move-keys: batch list of { bone_id, time, target_time } keyframe shifts (e.g. retiming 1.0s to 0.5s while keeping later keys unchanged).', 'move-keys: danh sách dời thời gian hàng loạt { bone_id, time, target_time } (vd kéo mốc 1.0s về 0.5s mà vẫn giữ nguyên các mốc sau).')),
       rotation: z.number().optional().describe(d('Keyframe rotation angle in degrees.', 'Góc xoay keyframe.')),
       scale_x: z.number().optional().describe(d('Keyframe scale X factor (for squash/stretch or horizontal flip).', 'Tỷ lệ co giãn trục X (squash/stretch hoặc lật ngang).')),
       scale_y: z.number().optional().describe(d('Keyframe scale Y factor.', 'Tỷ lệ co giãn trục Y.')),

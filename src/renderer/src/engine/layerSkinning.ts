@@ -16,6 +16,25 @@ export interface SkinBinding {
 }
 export interface SkinInfluence { id: string; weight: number }
 const weightCache = new WeakMap<Float32Array, { key: string; weights: SkinInfluence[][] }>()
+const sharedTopologyWeightCache = new Map<string, SkinInfluence[][]>()
+const MAX_SHARED_TOPOLOGY_CACHE = 96
+
+function buildBonesSignature(bones: LayerRig['bones']): string {
+  let sig = ''
+  for (let i = 0; i < bones.length; i++) {
+    const b = bones[i]
+    sig += `${b.id}|${b.parentId ?? ''}|${b.x.toFixed(2)},${b.y.toFixed(2)},${b.length.toFixed(2)},${b.angle.toFixed(2)},${(b.strength ?? 1).toFixed(2)},${b.pin ? 1 : 0};`
+  }
+  return sig
+}
+
+function buildGeometrySignature(positions: Float32Array, indices?: ArrayLike<number>): string {
+  const n = positions.length
+  if (n < 6) return `v${n}`
+  const mid = Math.floor(n / 6) * 3
+  const end = n - 3
+  return `v${n}:i${indices?.length ?? 0}:${positions[0].toFixed(2)},${positions[1].toFixed(2)}:${positions[mid].toFixed(2)},${positions[mid + 1].toFixed(2)}:${positions[end].toFixed(2)},${positions[end + 1].toFixed(2)}`
+}
 
 function buildBoneChains(bones: LayerRig['bones']): Array<LayerRig['bones']> {
   const byId = new Map(bones.map((b) => [b.id, b]))
@@ -112,14 +131,16 @@ function cachedWeights(
   const by = binding.bindPose?.y ?? binding.y ?? 0
   const vCount = positions.length / 3
   const useCorridor = Boolean(indices && indices.length >= 3 && vCount > 3)
-  const key = JSON.stringify([
-    bx, by, rot, scale,
-    binding.scaleX ?? 1, binding.scaleY ?? 1,
-    useCorridor ? indices!.length : 0,
-    bones
-  ])
+  const key = `${bx.toFixed(2)}:${by.toFixed(2)}:${rot.toFixed(2)}:${scale.toFixed(4)}:${(binding.scaleX ?? 1).toFixed(4)}:${(binding.scaleY ?? 1).toFixed(4)}:${useCorridor ? indices!.length : 0}:${buildBonesSignature(bones)}`
   const cached = weightCache.get(positions)
   if (cached?.key === key) return cached.weights
+
+  const topoKey = `${buildGeometrySignature(positions, useCorridor ? indices : undefined)}|${key}`
+  const shared = sharedTopologyWeightCache.get(topoKey)
+  if (shared) {
+    weightCache.set(positions, { key, weights: shared })
+    return shared
+  }
 
   const sx = scale * (binding.scaleX ?? 1)
   const sy = scale * (binding.scaleY ?? 1)
@@ -141,6 +162,11 @@ function cachedWeights(
     }
   }
   weightCache.set(positions, { key, weights })
+  sharedTopologyWeightCache.set(topoKey, weights)
+  if (sharedTopologyWeightCache.size > MAX_SHARED_TOPOLOGY_CACHE) {
+    const oldest = sharedTopologyWeightCache.keys().next().value
+    if (oldest !== undefined) sharedTopologyWeightCache.delete(oldest)
+  }
   return weights
 }
 
@@ -192,8 +218,6 @@ export function deformSkin(
   const output = out && out.length === positions.length ? out : positions.slice()
   if (output !== positions) output.set(positions)
   const transforms = evaluateRig(rig, time)
-  const weights = cachedWeights(positions, binding, bones, indices)
-  const boneById = new Map(bones.map((b) => [b.id, b]))
   const scale = binding.scale ?? 1
   const restRot = binding.bindPose?.rotation ?? binding.rotation ?? 0
   const restBx = binding.bindPose?.x ?? binding.x ?? 0
@@ -201,6 +225,34 @@ export function deformSkin(
   const curRot = binding.rotation ?? restRot
   const curBx = binding.x ?? restBx
   const curBy = binding.y ?? restBy
+
+  // Fast-path: nếu toàn bộ xương của nhánh đang ở tư thế nghỉ gốc (0°, không tịnh tiến/co giãn) thì trả về ngay (~0.002ms)
+  if (
+    Math.abs(curRot - restRot) < 1e-4 &&
+    Math.abs(curBx - restBx) < 1e-4 &&
+    Math.abs(curBy - restBy) < 1e-4
+  ) {
+    let allAtRest = true
+    for (let i = 0; i < bones.length; i++) {
+      const b = bones[i]
+      const tf = transforms.get(b.id)
+      if (!tf) continue
+      if (
+        Math.abs(tf.x - b.x) > 1e-4 ||
+        Math.abs(tf.y - b.y) > 1e-4 ||
+        Math.abs(tf.rotation) > 1e-4 ||
+        Math.abs((tf.scaleX ?? 1) - 1) > 1e-4 ||
+        Math.abs((tf.scaleY ?? 1) - 1) > 1e-4
+      ) {
+        allAtRest = false
+        break
+      }
+    }
+    if (allAtRest) return output
+  }
+
+  const weights = cachedWeights(positions, binding, bones, indices)
+  const boneById = new Map(bones.map((b) => [b.id, b]))
 
   const sx = scale * (binding.scaleX ?? 1), sy = scale * (binding.scaleY ?? 1)
   if (Math.abs(sx * sy) < 1e-10) return output
