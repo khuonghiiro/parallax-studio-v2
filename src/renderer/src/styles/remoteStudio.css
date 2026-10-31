@@ -213,7 +213,7 @@ html[data-remote-effective='tablet'] .audio-preview-btn {
   position: fixed;
   right: calc(10px + env(safe-area-inset-right, 0px));
   bottom: calc(10px + env(safe-area-inset-bottom, 0px));
-  z-index: 48000;
+  z-index: 9500;
   pointer-events: auto;
 }
 

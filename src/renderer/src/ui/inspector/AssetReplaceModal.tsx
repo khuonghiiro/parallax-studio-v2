@@ -163,7 +163,7 @@ export function AssetReplaceModal({
     <div
       className="modal-backdrop"
       onPointerDown={(e) => e.target === e.currentTarget && onClose()}
-      style={{ zIndex: 1200 }}
+      style={{ zIndex: 28000 }}
     >
       <div
         className="modal wide"

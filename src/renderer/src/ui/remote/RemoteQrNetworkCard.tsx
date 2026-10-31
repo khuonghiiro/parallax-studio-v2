@@ -71,7 +71,7 @@ export function RemoteQrNetworkCard({
   onActiveUrlChange
 }: RemoteQrNetworkCardProps) {
   const [selectedIpIdx, setSelectedIpIdx] = useState(() => findBestWifiIpIndex(status.ips))
-  const [protocol, setProtocol] = useState<'https' | 'http'>('http')
+  const [protocol, setProtocol] = useState<'https' | 'http'>('https')
   const [qrMode, setQrMode] = useState<RemoteLayoutProfile>('auto')
   const [customIp, setCustomIp] = useState('')
   const [copied, setCopied] = useState(false)
@@ -228,7 +228,7 @@ export function RemoteQrNetworkCard({
         </div>
       </div>
 
-      {/* Protocol Segmented Switch (HTTP Default for Instant Zero-Cert QR Scan vs HTTPS) */}
+      {/* Protocol Segmented Switch (HTTPS Default for HTTPS-Only Browsers vs HTTP Fallback) */}
       <div
         style={{
           display: 'grid',
@@ -243,23 +243,8 @@ export function RemoteQrNetworkCard({
         <button
           type="button"
           className="btn sm ghost"
-          onClick={() => setProtocol('http')}
-          style={{
-            fontSize: '11px',
-            fontWeight: 600,
-            padding: '5px 8px',
-            borderRadius: 'var(--radius-sm)',
-            background: protocol === 'http' ? 'var(--accent)' : 'transparent',
-            color: protocol === 'http' ? 'var(--on-accent)' : 'var(--text-dim)',
-            borderColor: protocol === 'http' ? 'var(--accent)' : 'transparent'
-          }}
-        >
-          🌐 HTTP Nhanh (Khuyên dùng)
-        </button>
-        <button
-          type="button"
-          className="btn sm ghost"
           onClick={() => setProtocol('https')}
+          title="Mặc định: Tương thích 100% với trình duyệt bật tùy chọn HTTPS-Only"
           style={{
             fontSize: '11px',
             fontWeight: 600,
@@ -270,7 +255,24 @@ export function RemoteQrNetworkCard({
             borderColor: protocol === 'https' ? 'var(--accent)' : 'transparent'
           }}
         >
-          🔒 HTTPS (Vượt HTTPS-Only)
+          🔒 HTTPS (HTTPS-Only)
+        </button>
+        <button
+          type="button"
+          className="btn sm ghost"
+          onClick={() => setProtocol('http')}
+          title="Chỉ dùng khi trình duyệt đã tắt chế độ HTTPS-Only"
+          style={{
+            fontSize: '11px',
+            fontWeight: 600,
+            padding: '5px 8px',
+            borderRadius: 'var(--radius-sm)',
+            background: protocol === 'http' ? 'var(--accent)' : 'transparent',
+            color: protocol === 'http' ? 'var(--on-accent)' : 'var(--text-dim)',
+            borderColor: protocol === 'http' ? 'var(--accent)' : 'transparent'
+          }}
+        >
+          🌐 HTTP Thường
         </button>
       </div>
 

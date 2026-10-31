@@ -74,7 +74,7 @@ export class RemoteControlServer {
   private lastActiveAt: number | null = null
   private lastAction: string | null = null
   private error?: string
-  private cachedCert: { key: string; cert: string } | null = null
+  private cachedCert: { key: string; cert: string; ipsKey: string } | null = null
   readonly hub: RemoteStudioHub
 
   constructor(
@@ -147,14 +147,14 @@ export class RemoteControlServer {
     const devices = this.hub.getActiveDevices()
     const ips = detectLanIpv4Addresses()
     const primaryIp = ips[0] ?? '127.0.0.1'
-    const urls = ips.map((ip) => `http://${ip}:${this.port}/?t=${this.token}`)
+    const urls = ips.map((ip) => `https://${ip}:${this.port}/?t=${this.token}`)
     return {
       listening: this.listening,
       port: this.port,
       ips,
       primaryIp,
       token: this.token,
-      url: urls[0] ?? `http://127.0.0.1:${this.port}/?t=${this.token}`,
+      url: urls[0] ?? `https://127.0.0.1:${this.port}/?t=${this.token}`,
       urls,
       connectedDevices: devices.length,
       devices,
@@ -191,8 +191,9 @@ export class RemoteControlServer {
       let httpsSrv: HttpsServer | null = null
       try {
         const ips = detectLanIpv4Addresses()
-        if (!this.cachedCert) {
-          this.cachedCert = generateSelfSignedCert(ips)
+        const ipsKey = ips.join(',')
+        if (!this.cachedCert || this.cachedCert.ipsKey !== ipsKey) {
+          this.cachedCert = { ...generateSelfSignedCert(ips), ipsKey }
         }
         httpsSrv = createHttpsServer({ key: this.cachedCert.key, cert: this.cachedCert.cert }, handler)
         httpsSrv.on('upgrade', forwardRemoteWsUpgrade)

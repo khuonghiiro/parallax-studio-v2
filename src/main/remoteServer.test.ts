@@ -1,3 +1,4 @@
+import { X509Certificate } from 'crypto'
 import { mkdtempSync, rmSync, writeFileSync } from 'fs'
 import { request as httpsRequest } from 'https'
 import { tmpdir } from 'os'
@@ -18,6 +19,7 @@ vi.mock('electron', () => ({
 
 import { classifyRemoteDevice, normalizeLayoutProfile, parseRemoteCookies } from './remoteDeviceDetect'
 import { buildRemoteViteClientShim, stripInlineSourceMap } from './remoteBootShim'
+import { generateSelfSignedCert } from './selfSignedCert'
 import { RemoteControlServer } from './remoteServer'
 import type { McpBridge } from './mcpBridge'
 
@@ -282,5 +284,15 @@ describe('RemoteControlServer — Multi-Device Full Studio Web App & Bi-Directio
 
     const bloatedJs = `const x = 1;\n//# sourceMappingURL=data:application/json;base64,AAAA`
     expect(stripInlineSourceMap(bloatedJs)).toBe('const x = 1;\n')
+
+    // 8. Self-signed TLS leaf certificate complies with iOS Safari / Chromium <=398-day HTTPS-Only & SAN rules
+    const pair = generateSelfSignedCert(['192.168.100.239'])
+    const x509 = new X509Certificate(pair.cert)
+    expect(x509.ca).toBe(false)
+    expect(x509.subjectAltName).toContain('IP Address:192.168.100.239')
+    expect(x509.subjectAltName).toContain('DNS:localhost')
+    const validMs = new Date(x509.validTo).getTime() - new Date(x509.validFrom).getTime()
+    expect(validMs).toBeLessThanOrEqual(398 * 24 * 3600 * 1000)
+    expect(server.getStatus().url.startsWith('https://')).toBe(true)
   })
 })

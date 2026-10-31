@@ -11,7 +11,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10000;
+  z-index: 25000;
   padding: 20px;
   animation: fade 0.12s ease-out;
   transform: translateZ(0);

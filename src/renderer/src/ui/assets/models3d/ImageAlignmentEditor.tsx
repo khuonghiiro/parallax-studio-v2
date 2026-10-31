@@ -121,7 +121,7 @@ export function ImageAlignmentEditor({
   const previewW = Math.round((previewH * wRatio) / hRatio)
 
   return (
-    <div className="c3d-overlay" style={{ zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div className="c3d-overlay" style={{ zIndex: 28000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div className="c3d-modal" style={{ maxWidth: 840, width: '92%', maxHeight: '90vh', overflowY: 'auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
           <h3 style={{ margin: 0, fontSize: 16 }}>

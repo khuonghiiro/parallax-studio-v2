@@ -306,7 +306,7 @@ export function ColorInput({
               position: 'fixed',
               top: `${pos.top}px`,
               left: `${pos.left}px`,
-              zIndex: 9999
+              zIndex: 70000
             }}
           >
             {/* 2D Saturation / Value Area */}

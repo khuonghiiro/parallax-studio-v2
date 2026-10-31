@@ -176,11 +176,11 @@ export async function enrichRemoteStatusWithHttps(status: RemoteServerStatus): P
     })
   }
   const activePort = (await checkingPromise) ?? bridgePort ?? status.port
-  const urls = status.ips.map((ip) => `http://${ip}:${activePort}/?t=${status.token}`)
+  const urls = status.ips.map((ip) => `https://${ip}:${activePort}/?t=${status.token}`)
   return {
     ...status,
     port: activePort,
-    url: urls[0] ?? `http://127.0.0.1:${activePort}/?t=${status.token}`,
+    url: urls[0] ?? `https://127.0.0.1:${activePort}/?t=${status.token}`,
     urls
   }
 }

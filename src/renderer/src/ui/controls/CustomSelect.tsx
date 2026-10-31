@@ -53,7 +53,7 @@ export function CustomSelect<T extends string | number = string>({
   placeholder,
   style,
   dropdownWidth,
-  zIndex = 50000,
+  zIndex = 70000,
   size
 }: CustomSelectProps<T>) {
   const [isOpen, setIsOpen] = useState(false)

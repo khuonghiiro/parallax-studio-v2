@@ -148,18 +148,18 @@ export function buildRemoteBootSplashHtml(): string {
     `if(msg)msg.textContent=reason||'Trình duyệt đang tải chậm hoặc chặn chứng chỉ tự ký. Hãy thử mở bằng HTTP Nhanh hoặc Safari/Chrome.';` +
     `if(act&&act.children.length===0){` +
     `act.style.display='flex';` +
+    `var bReload=document.createElement('button');` +
+    `bReload.type='button';bReload.textContent='↻ Tải lại Studio';` +
+    `bReload.style.cssText='padding:8px 10px;border-radius:5px;border:none;background:#2563eb;color:#fff;font-size:12px;font-weight:600;cursor:pointer';` +
+    `bReload.onclick=function(){location.reload();};` +
+    `act.appendChild(bReload);` +
     `if(location.protocol==='https:'){` +
     `var bHttp=document.createElement('a');` +
     `bHttp.href='http://'+location.host+location.pathname+location.search;` +
-    `bHttp.textContent='🌐 Mở bằng HTTP Nhanh';` +
-    `bHttp.style.cssText='display:block;padding:8px 10px;border-radius:5px;background:#2563eb;color:#fff;text-decoration:none;font-size:12px;font-weight:600';` +
+    `bHttp.textContent='🌐 Thử HTTP Thường (nếu trình duyệt tắt HTTPS-Only)';` +
+    `bHttp.style.cssText='display:block;padding:7px 10px;border-radius:5px;border:1px solid #334155;background:#1e293b;color:#e2e8f0;text-decoration:none;font-size:11px;font-weight:600';` +
     `act.appendChild(bHttp);` +
     `}` +
-    `var bReload=document.createElement('button');` +
-    `bReload.type='button';bReload.textContent='↻ Tải lại trang';` +
-    `bReload.style.cssText='padding:7px 10px;border-radius:5px;border:1px solid #334155;background:#1e293b;color:#e2e8f0;font-size:12px;font-weight:600;cursor:pointer';` +
-    `bReload.onclick=function(){location.reload();};` +
-    `act.appendChild(bReload);` +
     `}` +
     `}` +
     `window.addEventListener('error',function(e){` +

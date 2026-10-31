@@ -24,7 +24,7 @@ export function MenuPortal({ anchor, popup, className, children, close }: {
     }
   }, [anchor, popup, close])
   return createPortal(<div ref={popup} role="menu" className={`menu ${className}`}
-    style={{ position: 'fixed', zIndex: 50000, top: position?.top ?? 0, left: position?.left ?? 0,
+    style={{ position: 'fixed', zIndex: 70000, top: position?.top ?? 0, left: position?.left ?? 0,
       visibility: position ? 'visible' : 'hidden', maxHeight: 'calc(100vh - 16px)', overflowY: 'auto' }}
     onClick={close}>{children}</div>, document.body)
 }
