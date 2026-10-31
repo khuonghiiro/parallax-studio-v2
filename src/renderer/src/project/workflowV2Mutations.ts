@@ -875,6 +875,7 @@ function syncSingleWorkflowV2NodeToProject(
           ? { windPreset: nextWindPreset, windStrength: WIND_STRENGTH_VALUES[nextWindPreset] }
           : {}),
         ...(params.lightRayIntensity !== undefined ? { rayIntensity: params.lightRayIntensity } : {}),
+        ...(params.lightRayDynamic !== undefined ? { rayDynamic: params.lightRayDynamic } : {}),
         ...(params.lightEnvBounce !== undefined ? { envBounce: params.lightEnvBounce } : {}),
         enabled: node.enabled,
         kind: lightOpt.virtualKind,

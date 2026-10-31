@@ -106,6 +106,13 @@ export interface WorkflowCustomActionRule {
   amount?: number
   enabled: boolean
 }
+export interface LayerBboxTargetConfig {
+  targetX: number
+  targetY: number
+  targetScalePct?: number
+  targetZ?: number
+}
+
 export interface WorkflowNodeParams {
   /** Cường độ tổng thể của khâu xử lý (0.1 .. 2.5, mặc định 1.0) */
   intensity?: number
@@ -276,6 +283,8 @@ export interface WorkflowNodeParams {
   motionTriggerHoldSec?: number
   /** [Workflow V2] Chế độ di chuyển khi nhiều Layer nối chung 1 Node Motion BBox ('group_offset' = giữ đội hình, 'converge_target' = cùng hội tụ về đích) */
   bboxMultiMode?: 'group_offset' | 'converge_target'
+  /** Toạ độ và kích thước BBox đích riêng cho từng Layer/Cụm khi kết nối đa Layer vào 1 Motion BBox */
+  layerBboxTargets?: Record<string, LayerBboxTargetConfig>
   /** [Workflow V2] ID động tác đặt tên động của Cụm 2.5D đang chọn trên Node Animation */
   customActionId?: string
   /** [Workflow V2] Tên động tác đặt tên động của Cụm 2.5D đang chọn trên Node Animation */
@@ -375,6 +384,8 @@ export interface WorkflowNodeParams {
   lightWindPreset?: 'none' | 'gentle' | 'strong' | 'storm'
   /** [Workflow V2] Cường độ tỉa tia sáng khí quyển ra ngoài môi trường (0..1) */
   lightRayIntensity?: number
+  /** [Workflow V2] Toggle bật/tắt tia sáng xuất hiện ngẫu nhiên & động theo gió / nhịp (mặc định true) */
+  lightRayDynamic?: boolean
   /** [Workflow V2] Hệ số ánh xạ ánh sáng sang các layer môi trường lân cận (0..1.5) */
   lightEnvBounce?: number
   /** [Workflow V2] Hình dáng vòm cửa hang của Node Hang động */

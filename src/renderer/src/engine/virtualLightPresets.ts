@@ -27,6 +27,7 @@ export interface VirtualLightPreset {
   behaviorMode: VirtualLightBehaviorMode
   pulseDepth: number
   rayIntensity: number
+  rayDynamic: boolean
   rayCount: number
   hotspotFocus: number
   envBounce: number
@@ -269,6 +270,7 @@ export function createDefaultVirtualLight(kind: VirtualLightKind = 'candle'): La
     behaviorMode: preset.behaviorMode,
     pulseDepth: preset.pulseDepth,
     rayIntensity: preset.rayIntensity,
+    rayDynamic: preset.rayDynamic ?? true,
     rayCount: preset.rayCount,
     hotspotFocus: preset.hotspotFocus,
     envBounce: preset.envBounce

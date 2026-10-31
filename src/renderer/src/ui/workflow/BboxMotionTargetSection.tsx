@@ -1,4 +1,6 @@
-import React from 'react'
+import React, { useState } from 'react'
+import type { LayerBboxTargetConfig } from '@shared/types'
+import { bboxStartPosition } from '../../project/workflowMotionStart'
 import { toast } from '../../actions'
 import { snapCameraToEntityBBox } from '../../project/shotSpatial3D'
 import { syncWorkflowV2NodeToProject } from '../../project/workflowV2Engine'
@@ -19,12 +21,145 @@ export function BboxMotionTargetSection({ model }: { model: BboxMotionModel }): 
     targetScalePct,
     depthMode,
     startZ,
+    targetZ,
     applyBboxPatch,
     onScrubTime
   } = model
 
-  const sharedCount = p.sharedLayerNodeIds?.length ?? 1
+  const connectedEntities = model.connectedEntities ?? []
+  const hasMultiple = connectedEntities.length > 1
+  const [activeEntityId, setActiveEntityId] = useState<string>('all')
+  const primaryEnt = connectedEntities[0]
+  const currentEnt = activeEntityId !== 'all' ? connectedEntities.find((e) => e.id === activeEntityId) : undefined
+  const sharedCount = Math.max(p.sharedLayerNodeIds?.length ?? 1, connectedEntities.length)
   const multiMode = p.bboxMultiMode ?? 'group_offset'
+
+
+  const currentCustom = currentEnt ? p.layerBboxTargets?.[currentEnt.id] : undefined
+  const activeTargetX = currentCustom?.targetX ?? (
+    currentEnt && currentEnt.id !== primaryEnt?.id && multiMode === 'group_offset'
+      ? Math.round(targetX + (bboxStartPosition(currentEnt.rootLayer, tStart, node.id)[0] - startPos[0]))
+      : targetX
+  )
+  const activeTargetY = currentCustom?.targetY ?? (
+    currentEnt && currentEnt.id !== primaryEnt?.id && multiMode === 'group_offset'
+      ? Math.round(targetY + (bboxStartPosition(currentEnt.rootLayer, tStart, node.id)[1] - startPos[1]))
+      : targetY
+  )
+  const activeTargetScalePct = currentCustom?.targetScalePct ?? targetScalePct
+
+  const handleScaleChange = (nextPct: number): void => {
+    if (activeEntityId === 'all') {
+      const existing = p.layerBboxTargets ?? {}
+      const nextMap: Record<string, LayerBboxTargetConfig> = {}
+      for (const ent of connectedEntities) {
+        const cur = existing[ent.id]
+        nextMap[ent.id] = {
+          targetX: cur?.targetX ?? (ent.id === primaryEnt?.id || multiMode === 'converge_target' ? targetX : Math.round(targetX + (bboxStartPosition(ent.rootLayer, tStart, node.id)[0] - startPos[0]))),
+          targetY: cur?.targetY ?? (ent.id === primaryEnt?.id || multiMode === 'converge_target' ? targetY : Math.round(targetY + (bboxStartPosition(ent.rootLayer, tStart, node.id)[1] - startPos[1]))),
+          targetScalePct: nextPct,
+          targetZ: cur?.targetZ ?? targetZ
+        }
+      }
+      applyBboxPatch({ bboxTargetScalePct: nextPct, layerBboxTargets: nextMap }, 'wf-bbox-scale')
+    } else if (currentEnt) {
+      const existing = p.layerBboxTargets ?? {}
+      const cur = existing[currentEnt.id]
+      const updatedTargets = {
+        ...existing,
+        [currentEnt.id]: {
+          targetX: cur?.targetX ?? activeTargetX,
+          targetY: cur?.targetY ?? activeTargetY,
+          targetScalePct: nextPct,
+          targetZ: cur?.targetZ ?? targetZ
+        }
+      }
+      const isPrimary = currentEnt.id === primaryEnt?.id
+      applyBboxPatch({
+        layerBboxTargets: updatedTargets,
+        ...(isPrimary ? { bboxTargetScalePct: nextPct } : {})
+      }, 'wf-bbox-scale')
+    } else {
+      applyBboxPatch({ bboxTargetScalePct: nextPct }, 'wf-bbox-scale')
+    }
+  }
+
+  const handleXChange = (nextX: number): void => {
+    if (activeEntityId === 'all') {
+      const deltaX = nextX - targetX
+      const existing = p.layerBboxTargets ?? {}
+      const nextMap: Record<string, LayerBboxTargetConfig> = {}
+      for (const ent of connectedEntities) {
+        const cur = existing[ent.id]
+        const baseCurX = cur?.targetX ?? (ent.id === primaryEnt?.id || multiMode === 'converge_target' ? targetX : Math.round(targetX + (bboxStartPosition(ent.rootLayer, tStart, node.id)[0] - startPos[0])))
+        nextMap[ent.id] = {
+          targetX: baseCurX + deltaX,
+          targetY: cur?.targetY ?? (ent.id === primaryEnt?.id || multiMode === 'converge_target' ? targetY : Math.round(targetY + (bboxStartPosition(ent.rootLayer, tStart, node.id)[1] - startPos[1]))),
+          targetScalePct: cur?.targetScalePct ?? targetScalePct,
+          targetZ: cur?.targetZ ?? targetZ
+        }
+      }
+      applyBboxPatch({ bboxTargetX: nextX, layerBboxTargets: nextMap }, 'wf-bbox-x')
+    } else if (currentEnt) {
+      const existing = p.layerBboxTargets ?? {}
+      const cur = existing[currentEnt.id]
+      const updatedTargets = {
+        ...existing,
+        [currentEnt.id]: {
+          targetX: nextX,
+          targetY: cur?.targetY ?? activeTargetY,
+          targetScalePct: cur?.targetScalePct ?? activeTargetScalePct,
+          targetZ: cur?.targetZ ?? targetZ
+        }
+      }
+      const isPrimary = currentEnt.id === primaryEnt?.id
+      applyBboxPatch({
+        layerBboxTargets: updatedTargets,
+        ...(isPrimary ? { bboxTargetX: nextX } : {})
+      }, 'wf-bbox-x')
+    } else {
+      applyBboxPatch({ bboxTargetX: nextX }, 'wf-bbox-x')
+    }
+  }
+
+  const handleYChange = (nextY: number): void => {
+    if (activeEntityId === 'all') {
+      const deltaY = nextY - targetY
+      const existing = p.layerBboxTargets ?? {}
+      const nextMap: Record<string, LayerBboxTargetConfig> = {}
+      for (const ent of connectedEntities) {
+        const cur = existing[ent.id]
+        const baseCurY = cur?.targetY ?? (ent.id === primaryEnt?.id || multiMode === 'converge_target' ? targetY : Math.round(targetY + (bboxStartPosition(ent.rootLayer, tStart, node.id)[1] - startPos[1])))
+        nextMap[ent.id] = {
+          targetX: cur?.targetX ?? (ent.id === primaryEnt?.id || multiMode === 'converge_target' ? targetX : Math.round(targetX + (bboxStartPosition(ent.rootLayer, tStart, node.id)[0] - startPos[0]))),
+          targetY: baseCurY + deltaY,
+          targetScalePct: cur?.targetScalePct ?? targetScalePct,
+          targetZ: cur?.targetZ ?? targetZ
+        }
+      }
+      applyBboxPatch({ bboxTargetY: nextY, layerBboxTargets: nextMap }, 'wf-bbox-y')
+    } else if (currentEnt) {
+      const existing = p.layerBboxTargets ?? {}
+      const cur = existing[currentEnt.id]
+      const updatedTargets = {
+        ...existing,
+        [currentEnt.id]: {
+          targetX: cur?.targetX ?? activeTargetX,
+          targetY: nextY,
+          targetScalePct: cur?.targetScalePct ?? activeTargetScalePct,
+          targetZ: cur?.targetZ ?? targetZ
+        }
+      }
+      const isPrimary = currentEnt.id === primaryEnt?.id
+      applyBboxPatch({
+        layerBboxTargets: updatedTargets,
+        ...(isPrimary ? { bboxTargetY: nextY } : {})
+      }, 'wf-bbox-y')
+    } else {
+      applyBboxPatch({ bboxTargetY: nextY }, 'wf-bbox-y')
+    }
+  }
+
 
   const handleCameraTrackMotion = (): void => {
     const layerIds = p.targetLayerIds?.length ? p.targetLayerIds : rootLayer ? [rootLayer.id] : []
@@ -93,44 +228,70 @@ export function BboxMotionTargetSection({ model }: { model: BboxMotionModel }): 
         </span>
       </button>
 
+      {hasMultiple && (
+        <div style={{ marginTop: 8, marginBottom: 6 }}>
+          <div className="wf-v2-subsec-head" style={{ marginBottom: 4 }}>
+            <span>🎯 Chọn BBox Đích để điều chỉnh:</span>
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+            <button
+              type="button"
+              className={`vl-pill-btn ${activeEntityId === 'all' ? 'active-amber' : ''}`}
+              onClick={() => setActiveEntityId('all')}
+              title="Điều chỉnh đồng thời tất cả BBox đích của các Layer đang kết nối"
+              style={{ fontWeight: activeEntityId === 'all' ? 600 : 400 }}
+            >
+              🔗 Tất cả ({connectedEntities.length})
+            </button>
+            {connectedEntities.map((ent, idx) => {
+              const isAct = activeEntityId === ent.id
+              return (
+                <button
+                  key={ent.id}
+                  type="button"
+                  className={`vl-pill-btn ${isAct ? 'active-amber' : ''}`}
+                  onClick={() => setActiveEntityId(ent.id)}
+                  title={`Điều chỉnh BBox đích riêng của "${ent.name}"`}
+                  style={{ fontWeight: isAct ? 600 : 400 }}
+                >
+                  🎯 #{idx + 1} {ent.name}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
       <div className="vl-row-header" style={{ marginBottom: 4, marginTop: 6 }}>
-        <span className="vl-subtitle">Vị trí &amp; kích thước đích</span>
+        <span className="vl-subtitle">
+          Vị trí &amp; kích thước đích {currentEnt ? `· ${currentEnt.name}` : hasMultiple ? '· Tất cả BBox' : ''}
+        </span>
         <span className="vl-value-badge">
-          ({targetX}, {targetY}) · {targetScalePct}%
+          ({activeTargetX}, {activeTargetY}) · {activeTargetScalePct}%
         </span>
       </div>
 
       <div className="vl-pill-grid" style={{ gridTemplateColumns: 'repeat(2, 1fr)', marginBottom: 6 }}>
         <button
           type="button"
-          className={`vl-pill-btn ${targetScalePct === 165 ? 'active-amber' : ''}`}
-          onClick={() =>
-            applyBboxPatch({
-              bboxTargetScalePct: 165,
-              ...(depthMode === 'depth_z' ? { bboxTargetZ: startZ - 110 } : {})
-            })
-          }
+          className={`vl-pill-btn ${activeTargetScalePct === 165 ? 'active-amber' : ''}`}
+          onClick={() => handleScaleChange(165)}
           title="Cho BBox đích to hơn: khi di chuyển tới đích sẽ to dần lên cho tới khi vừa khít BBox đích"
         >
           Phóng to · 165%
         </button>
         <button
           type="button"
-          className={`vl-pill-btn ${targetScalePct === 55 ? 'active-amber' : ''}`}
-          onClick={() =>
-            applyBboxPatch({
-              bboxTargetScalePct: 55,
-              ...(depthMode === 'depth_z' ? { bboxTargetZ: startZ + 110 } : {})
-            })
-          }
+          className={`vl-pill-btn ${activeTargetScalePct === 55 ? 'active-amber' : ''}`}
+          onClick={() => handleScaleChange(55)}
           title="Cho BBox đích nhỏ hơn: khi di chuyển tới đích sẽ nhỏ dần đi cho tới khi vừa khít BBox đích"
         >
           Thu nhỏ · 55%
         </button>
         <button
           type="button"
-          className={`vl-pill-btn ${targetScalePct === 100 ? 'active-amber' : ''}`}
-          onClick={() => applyBboxPatch({ bboxTargetScalePct: 100 })}
+          className={`vl-pill-btn ${activeTargetScalePct === 100 ? 'active-amber' : ''}`}
+          onClick={() => handleScaleChange(100)}
         >
           Giữ cỡ · 100%
         </button>
@@ -138,18 +299,32 @@ export function BboxMotionTargetSection({ model }: { model: BboxMotionModel }): 
           type="button"
           className="vl-pill-btn"
           onClick={() => {
-            if (!rootLayer) return
-            const curX = Math.round(startPos[0])
-            const curY = Math.round(startPos[1])
+            const swapTargetLayer = currentEnt ? currentEnt.rootLayer : rootLayer
+            if (!swapTargetLayer) return
+            const cPos = bboxStartPosition(swapTargetLayer, tStart, node.id)
+            const curX = Math.round(cPos[0])
+            const curY = Math.round(cPos[1])
             useEditor.getState().update((d) => {
-              const rl = d.layers.find((l) => l.id === rootLayer.id)
-              if (rl) rl.transform.position.value = [targetX, targetY, startZ]
+              const rl = d.layers.find((l) => l.id === swapTargetLayer.id)
+              if (rl) rl.transform.position.value = [activeTargetX, activeTargetY, startZ]
               const wfNode = d.workflow?.nodes.find((n) => n.id === node.id)
               if (wfNode?.params) {
-                wfNode.params.bboxTargetX = curX
-                wfNode.params.bboxTargetY = curY
+                if (currentEnt && currentEnt.id !== primaryEnt?.id) {
+                  wfNode.params.layerBboxTargets = {
+                    ...(wfNode.params.layerBboxTargets ?? {}),
+                    [currentEnt.id]: {
+                      ...(wfNode.params.layerBboxTargets?.[currentEnt.id] ?? {}),
+                      targetX: curX,
+                      targetY: curY,
+                      targetScalePct: activeTargetScalePct
+                    }
+                  }
+                } else {
+                  wfNode.params.bboxTargetX = curX
+                  wfNode.params.bboxTargetY = curY
+                }
               }
-              if (wfNode) syncWorkflowV2NodeToProject(d, wfNode, { bboxTargetX: curX, bboxTargetY: curY })
+              if (wfNode) syncWorkflowV2NodeToProject(d, wfNode, wfNode.params ?? {})
             }, 'wf-bbox-swap12')
           }}
           title="Đổi chỗ vị trí xuất phát đầu và vị trí đích"
@@ -164,9 +339,9 @@ export function BboxMotionTargetSection({ model }: { model: BboxMotionModel }): 
         min={20}
         max={300}
         step={5}
-        value={targetScalePct}
+        value={activeTargetScalePct}
         format={(v) => `${Math.round(v)}%`}
-        onChange={(v) => applyBboxPatch({ bboxTargetScalePct: Math.round(v) }, 'wf-bbox-scale')}
+        onChange={handleScaleChange}
       />
       <ParamSlider
         layout="stacked"
@@ -174,9 +349,9 @@ export function BboxMotionTargetSection({ model }: { model: BboxMotionModel }): 
         min={-960}
         max={960}
         step={10}
-        value={targetX}
+        value={activeTargetX}
         format={(v) => `${Math.round(v)}px`}
-        onChange={(v) => applyBboxPatch({ bboxTargetX: Math.round(v) }, 'wf-bbox-x')}
+        onChange={handleXChange}
       />
       <ParamSlider
         layout="stacked"
@@ -184,9 +359,9 @@ export function BboxMotionTargetSection({ model }: { model: BboxMotionModel }): 
         min={-540}
         max={540}
         step={10}
-        value={targetY}
+        value={activeTargetY}
         format={(v) => `${Math.round(v)}px`}
-        onChange={(v) => applyBboxPatch({ bboxTargetY: Math.round(v) }, 'wf-bbox-y')}
+        onChange={handleYChange}
       />
     </div>
   )

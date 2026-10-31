@@ -662,6 +662,7 @@
           "lightBehavior": "steady",
           "lightWindPreset": "none",
           "lightRayIntensity": 0.52,
+          "lightRayDynamic": true,
           "lightEnvBounce": 0.92
         }
       },

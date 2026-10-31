@@ -1003,6 +1003,7 @@
           "lightBehavior": "wind_reactive",
           "lightWindPreset": "gentle",
           "lightRayIntensity": 0.24,
+          "lightRayDynamic": true,
           "lightEnvBounce": 0.9
         }
       }

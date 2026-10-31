@@ -615,7 +615,7 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
                         if (e.shiftKey) onSelectNode?.(v2LayerNodeId(l.id))
                         return
                       }
-                      if (isTarget && selectedProjLayer) {
+                      if (isTarget && selectedProjLayer && !isMotionNode) {
                         startLayerDrag(e, selectedProjLayer, 'move')
                         return
                       }
@@ -752,13 +752,16 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
             {/* Khung BBox tương tác trực tiếp của Layer hoặc Toàn bộ Cụm */}
             {selectedProjLayer && !isCollisionNode && (
               <div
-                className="wf-v2-direct-layer-bbox"
+                className={`wf-v2-direct-layer-bbox${isMotionNode ? ' is-locked-start' : ''}`}
                 style={{
                   left: shotLeft + shotScreenW / 2 + selectedProjLayer.offsetX * zoom - Math.max(18, selectedProjLayer.width * zoom) / 2,
                   top: shotTop + shotScreenH / 2 + selectedProjLayer.offsetY * zoom - Math.max(18, selectedProjLayer.height * zoom) / 2,
                   width: Math.max(18, selectedProjLayer.width * zoom),
                   height: Math.max(18, selectedProjLayer.height * zoom),
-                  ['--wf-v2-accent' as string]: theme.accent
+                  ['--wf-v2-accent' as string]: isMotionNode ? 'var(--line-focus)' : theme.accent,
+                  pointerEvents: isMotionNode ? 'none' : 'auto',
+                  border: isMotionNode ? '1.5px dashed var(--line-focus)' : undefined,
+                  opacity: isMotionNode ? 0.72 : 1
                 }}
                 title={
                   useClusterBbox
@@ -766,14 +769,14 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
                     : `Kéo để chỉnh vị trí riêng "${selectedProjLayer.name}" · Kéo 4 góc để đổi kích thước`
                 }
                 onPointerDown={(e) => {
-                  if (e.button === 0) startLayerDrag(e, selectedProjLayer, 'move')
+                  if (!isMotionNode && e.button === 0) startLayerDrag(e, selectedProjLayer, 'move')
                 }}
               >
                 <span className="wf-v2-direct-bbox-tag">
-                  {node.params?.logicCategory === 'action' ? `#${bboxStepNumber(workflow, node.id)} Đầu` : useClusterBbox ? 'Cụm' : 'BBox'}
+                  {isMotionNode ? `#${bboxStepNumber(workflow, node.id)} Đầu (Cố định)` : useClusterBbox ? 'Cụm' : 'BBox'}
                 </span>
                 <span className="wf-v2-direct-bbox-crosshair" />
-                {!hasPreviousMotion && handles.map((h) => (
+                {!isMotionNode && !hasPreviousMotion && handles.map((h) => (
                   <span
                     key={h.key}
                     className={`wf-v2-bbox-handle ${h.cls}`}
@@ -803,6 +806,7 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
               shotScreenH={shotScreenH}
               zoom={zoom}
               sampleTime={sampleTime}
+              layers2D={layers2D}
               onSelectNode={onSelectNode}
             />}
           </div>

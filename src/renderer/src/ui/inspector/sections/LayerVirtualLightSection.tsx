@@ -98,6 +98,7 @@ export function LayerVirtualLightSection({ layer, set }: { layer: Layer; set: Se
           if (patch.behaviorMode === undefined) next.behaviorMode = p.behaviorMode
           if (patch.pulseDepth === undefined) next.pulseDepth = p.pulseDepth
           if (patch.rayIntensity === undefined) next.rayIntensity = p.rayIntensity
+          if (patch.rayDynamic === undefined) next.rayDynamic = p.rayDynamic
           if (patch.rayCount === undefined) next.rayCount = p.rayCount
           if (patch.hotspotFocus === undefined) next.hotspotFocus = p.hotspotFocus
           if (patch.envBounce === undefined) next.envBounce = p.envBounce

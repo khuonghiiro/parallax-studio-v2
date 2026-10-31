@@ -278,6 +278,23 @@ export function WorkflowV2LightRaysPanel({
         })}
       </div>
 
+      <div style={{ marginBottom: 6 }}>
+        <button
+          type="button"
+          className={`vl-pill-btn ${vlight.rayDynamic !== false ? 'active-amber' : ''}`}
+          style={{ width: '100%', justifyContent: 'center' }}
+          onClick={() =>
+            onPatch(
+              { rayDynamic: vlight.rayDynamic === false ? true : false },
+              'wf-light-ray-dynamic'
+            )
+          }
+          title="Bật/Tắt tính chất động ngẫu nhiên: khi BẬT, tia sáng sẽ lay động theo gió, nhấp nháy theo nhịp đèn và xuất hiện ngẫu nhiên sinh động"
+        >
+          <span>{vlight.rayDynamic !== false ? '🎲 Tia động ngẫu nhiên (Gió & Nhịp): BẬT' : '⏸ Tia tĩnh: CỐ ĐỊNH'}</span>
+        </button>
+      </div>
+
       <Row label="Độ rõ tia tỉa" title="Cường độ các luồng tia sáng tỉa xuyên qua bụi/sương ra ngoài môi trường (0 = mịn, 1 = tia sắc rõ)">
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%' }}>
           <input

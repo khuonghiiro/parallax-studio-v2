@@ -25,6 +25,8 @@ export interface PhysicalLightDynamicsResult {
   plumeStretch: number
   /** Độ dịch nhiệt độ màu vật lý (-0.5 = đỏ cam trầm thiếu oxy / sụt áp, +0.4 = bùng sáng vàng trắng) */
   thermalDelta: number
+  /** Hệ số khuếch đại tia sáng động ngẫu nhiên kết hợp theo nhịp và gió */
+  rayIntensityMultiplier: number
   /** Pha thời gian truyền xuống shader để tia Tyndall chuyển động sống động */
   rayAnimPhase: number
 }
@@ -75,6 +77,7 @@ export function getDefaultOpticalProfile(kind: VirtualLightKind): {
   behaviorMode: VirtualLightBehaviorMode
   pulseDepth: number
   rayIntensity: number
+  rayDynamic: boolean
   rayCount: number
   hotspotFocus: number
   envBounce: number
@@ -85,6 +88,7 @@ export function getDefaultOpticalProfile(kind: VirtualLightKind): {
         behaviorMode: 'wind_reactive',
         pulseDepth: 0.22,
         rayIntensity: 0.24,
+        rayDynamic: true,
         rayCount: 10,
         hotspotFocus: 0.42,
         envBounce: 0.9
@@ -94,6 +98,7 @@ export function getDefaultOpticalProfile(kind: VirtualLightKind): {
         behaviorMode: 'wind_reactive',
         pulseDepth: 0.3,
         rayIntensity: 0.3,
+        rayDynamic: true,
         rayCount: 12,
         hotspotFocus: 0.36,
         envBounce: 1.05
@@ -103,6 +108,7 @@ export function getDefaultOpticalProfile(kind: VirtualLightKind): {
         behaviorMode: 'steady',
         pulseDepth: 0.2,
         rayIntensity: 0.52,
+        rayDynamic: true,
         rayCount: 9,
         hotspotFocus: 0.62,
         envBounce: 0.92
@@ -112,6 +118,7 @@ export function getDefaultOpticalProfile(kind: VirtualLightKind): {
         behaviorMode: 'subtle_flicker',
         pulseDepth: 0.1,
         rayIntensity: 0.28,
+        rayDynamic: true,
         rayCount: 12,
         hotspotFocus: 0.38,
         envBounce: 0.88
@@ -121,6 +128,7 @@ export function getDefaultOpticalProfile(kind: VirtualLightKind): {
         behaviorMode: 'breathing',
         pulseDepth: 0.24,
         rayIntensity: 0.38,
+        rayDynamic: true,
         rayCount: 11,
         hotspotFocus: 0.46,
         envBounce: 0.95
@@ -130,6 +138,7 @@ export function getDefaultOpticalProfile(kind: VirtualLightKind): {
         behaviorMode: 'breathing',
         pulseDepth: 0.28,
         rayIntensity: 0.42,
+        rayDynamic: true,
         rayCount: 14,
         hotspotFocus: 0.44,
         envBounce: 0.92
@@ -139,6 +148,7 @@ export function getDefaultOpticalProfile(kind: VirtualLightKind): {
         behaviorMode: 'steady',
         pulseDepth: 0,
         rayIntensity: 0,
+        rayDynamic: false,
         rayCount: 8,
         hotspotFocus: 0.35,
         envBounce: 0.8
@@ -238,11 +248,12 @@ export function evaluatePhysicalSourceDynamics(
   let plumeStretch = 0
   let plumeDir: [number, number] = isCone ? baseBeamDir : [0, 1]
   let thermalDelta = 0
+  const presetWind = WIND_PRESET_STRENGTH[vl.windPreset ?? 'gentle'] ?? 0.38
+  const rawWind = vl.windPreset !== undefined ? presetWind : (vl.windStrength ?? presetWind)
+  const wEff = Math.max(0, rawWind * (vl.windSensitivity ?? 1.0))
 
   if (behavior === 'wind_reactive') {
-    const presetWind = WIND_PRESET_STRENGTH[vl.windPreset ?? 'gentle'] ?? 0.38
-    const rawWind = vl.windPreset !== undefined ? presetWind : (vl.windStrength ?? presetWind)
-    const wEff = Math.max(0, rawWind * (vl.windSensitivity ?? 1.0))
+
     const windRad = ((vl.windDirectionDeg ?? 0) * Math.PI) / 180
     const wCos = Math.cos(windRad)
     const wSin = Math.sin(windRad)
@@ -363,6 +374,24 @@ export function evaluatePhysicalSourceDynamics(
     ? baseBeamDir
     : [plumeDir[0] * plumeStretch, plumeDir[1] * plumeStretch]
 
+  const isDynamicRays = vl.rayDynamic !== false
+  let rayAnimPhase = 0
+  let rayIntensityMultiplier = 1.0
+
+  if (isDynamicRays) {
+    const windRayShift =
+      wEff > 0.01
+        ? (windOffsetX * 0.06 - windOffsetY * 0.04 + Math.sin(t * 3.6 * speed + seed) * wEff * 0.42)
+        : 0
+    const stochasticNoise = smoothNoise(t * 2.1 * speed + seed * 1.5, 3.7)
+    rayIntensityMultiplier = clamp(
+      (0.68 + 0.32 * intensityMul) * (1 + stochasticNoise * 0.22),
+      0.1,
+      1.6
+    )
+    rayAnimPhase = (t * (0.42 + speed * 0.28) + windRayShift + seed) % 62.8318
+  }
+
   return {
     effectiveBehavior: behavior,
     intensityMultiplier: intensityMul,
@@ -371,7 +400,8 @@ export function evaluatePhysicalSourceDynamics(
     plumeVector: finalPlumeVector,
     plumeStretch: isCone ? 0 : plumeStretch,
     thermalDelta,
-    rayAnimPhase: (t * (0.35 + speed * 0.22) + seed) % 62.8318
+    rayIntensityMultiplier,
+    rayAnimPhase
   }
 }
 
@@ -395,7 +425,8 @@ export function computePhysicalRayStriation(
   const s1 = Math.sin(thetaRad * freq + animPhase * 0.75)
   const s2 = Math.sin(thetaRad * (freq * 1.93) - animPhase * 0.52 + 1.4)
   const s3 = Math.sin(thetaRad * (freq * 3.17) + animPhase * 1.15 + 2.7)
-  const rawWave = s1 * 0.52 + s2 * 0.31 + s3 * 0.17
+  const s4 = Math.sin(thetaRad * (freq * 0.71) + animPhase * 1.85 + Math.sin(animPhase * 0.4) * 2.2)
+  const rawWave = s1 * 0.44 + s2 * 0.28 + s3 * 0.16 + s4 * 0.12
   const ridge = Math.pow(clamp(rawWave * 0.5 + 0.5, 0, 1), 1.55)
 
   const emerge = smoothstep(0.05, 0.26, rNorm)
@@ -408,7 +439,9 @@ export function computePhysicalRayStriation(
 export function describeActiveLightPhysicsVi(vl: LayerVirtualLight): string {
   const mode = resolveEffectiveLightBehavior(vl.kind, vl.behaviorMode)
   const rays = (vl.rayIntensity ?? getDefaultOpticalProfile(vl.kind).rayIntensity) > 0.05
-  const raySuffix = rays ? ` · Tỉa ${vl.rayCount ?? getDefaultOpticalProfile(vl.kind).rayCount} luồng tia` : ''
+  const raySuffix = rays
+    ? ` · Tỉa ${vl.rayCount ?? getDefaultOpticalProfile(vl.kind).rayCount} tia${vl.rayDynamic !== false ? ' (Động theo gió & nhịp)' : ' (Tĩnh)'}`
+    : ''
 
   if (mode === 'wind_reactive') {
     const wp = vl.windPreset ?? 'gentle'

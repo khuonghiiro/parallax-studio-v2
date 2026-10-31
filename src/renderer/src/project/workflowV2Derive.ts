@@ -193,6 +193,7 @@ function deriveLight(layer: Layer, compDur: number, glowOwnedByFx: boolean, curr
       ...(vlOn && vl?.behaviorMode ? { lightBehavior: vl.behaviorMode } : {}),
       ...(vlOn && vl?.windPreset ? { lightWindPreset: vl.windPreset } : {}),
       ...(vlOn && vl?.rayIntensity !== undefined ? { lightRayIntensity: r2(vl.rayIntensity) } : {}),
+      ...(vlOn && vl?.rayDynamic !== undefined ? { lightRayDynamic: vl.rayDynamic } : {}),
       ...(vlOn && vl?.envBounce !== undefined ? { lightEnvBounce: r2(vl.envBounce) } : {}),
       timeStart: r2(start),
       timeEnd: r2(end)

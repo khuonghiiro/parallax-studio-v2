@@ -17,7 +17,7 @@
       ],
       "keyframes": [
         {
-          "id": "rQCfjNzq",
+          "id": "yScITw5u",
           "t": 0,
           "value": [
             0,
@@ -27,7 +27,7 @@
           "ease": "easeInOut"
         },
         {
-          "id": "x-Oa9WdT",
+          "id": "FadnmL77",
           "t": 2.2,
           "value": [
             60,
@@ -37,7 +37,7 @@
           "ease": "hold"
         },
         {
-          "id": "demo-hold-x-Oa9WdT",
+          "id": "demo-hold-FadnmL77",
           "t": 4,
           "value": [
             60,
@@ -47,7 +47,7 @@
           "ease": "easeInOut"
         },
         {
-          "id": "vtJsw6yY",
+          "id": "wuLEWLch",
           "t": 5,
           "value": [
             10560,
@@ -57,7 +57,7 @@
           "ease": "easeInOut"
         },
         {
-          "id": "_iLdbU95",
+          "id": "KP-OP0z1",
           "t": 7.2,
           "value": [
             10635,
@@ -67,7 +67,7 @@
           "ease": "hold"
         },
         {
-          "id": "demo-hold-_iLdbU95",
+          "id": "demo-hold-KP-OP0z1",
           "t": 9,
           "value": [
             10635,
@@ -77,7 +77,7 @@
           "ease": "easeInOut"
         },
         {
-          "id": "GUvb8UJH",
+          "id": "WXOyJPFj",
           "t": 10,
           "value": [
             21120,
@@ -87,7 +87,7 @@
           "ease": "easeInOut"
         },
         {
-          "id": "VZNfInqr",
+          "id": "yq3H5HIC",
           "t": 12.4,
           "value": [
             21175,
@@ -97,7 +97,7 @@
           "ease": "easeInOut"
         },
         {
-          "id": "G3Xzqhwg",
+          "id": "z-L-xW-1",
           "t": 15,
           "value": [
             21215,
@@ -116,7 +116,7 @@
       ],
       "keyframes": [
         {
-          "id": "Phe10Ypm",
+          "id": "MlP5BUCP",
           "t": 0,
           "value": [
             0,
@@ -126,7 +126,7 @@
           "ease": "easeInOut"
         },
         {
-          "id": "kfwXhd_6",
+          "id": "m88HsaMF",
           "t": 2.2,
           "value": [
             60,
@@ -136,7 +136,7 @@
           "ease": "hold"
         },
         {
-          "id": "demo-hold-kfwXhd_6",
+          "id": "demo-hold-m88HsaMF",
           "t": 4,
           "value": [
             60,
@@ -146,7 +146,7 @@
           "ease": "easeInOut"
         },
         {
-          "id": "_xaXTBdB",
+          "id": "RIt5XN0U",
           "t": 5,
           "value": [
             10560,
@@ -156,7 +156,7 @@
           "ease": "easeInOut"
         },
         {
-          "id": "3dafoQuO",
+          "id": "wpkBAk7t",
           "t": 7.2,
           "value": [
             10635,
@@ -166,7 +166,7 @@
           "ease": "hold"
         },
         {
-          "id": "demo-hold-3dafoQuO",
+          "id": "demo-hold-wpkBAk7t",
           "t": 9,
           "value": [
             10635,
@@ -176,7 +176,7 @@
           "ease": "easeInOut"
         },
         {
-          "id": "SsMA9i1o",
+          "id": "Xjpb3A5v",
           "t": 10,
           "value": [
             21120,
@@ -186,7 +186,7 @@
           "ease": "easeInOut"
         },
         {
-          "id": "cFF0Q26c",
+          "id": "CkUjLQWr",
           "t": 12.4,
           "value": [
             21175,
@@ -196,7 +196,7 @@
           "ease": "easeInOut"
         },
         {
-          "id": "ADHLUJUm",
+          "id": "T0_oVWcK",
           "t": 15,
           "value": [
             21215,
@@ -2043,6 +2043,7 @@
         "behaviorMode": "wind_reactive",
         "pulseDepth": 0.22,
         "rayIntensity": 0.24,
+        "rayDynamic": true,
         "rayCount": 10,
         "hotspotFocus": 0.42,
         "envBounce": 0.9,
@@ -3898,6 +3899,7 @@
         "behaviorMode": "steady",
         "pulseDepth": 0.2,
         "rayIntensity": 0.52,
+        "rayDynamic": true,
         "rayCount": 9,
         "hotspotFocus": 0.62,
         "envBounce": 0.92,
@@ -6241,6 +6243,7 @@
           "lightBehavior": "wind_reactive",
           "lightWindPreset": "gentle",
           "lightRayIntensity": 0.24,
+          "lightRayDynamic": true,
           "lightEnvBounce": 0.9
         }
       },
@@ -6276,6 +6279,7 @@
           "lightBehavior": "steady",
           "lightWindPreset": "none",
           "lightRayIntensity": 0.52,
+          "lightRayDynamic": true,
           "lightEnvBounce": 0.92
         }
       },

@@ -400,6 +400,8 @@ export interface LayerVirtualLight {
   pulseDepth?: number
   /** Cường độ tỉa tia sáng khí quyển Tyndall ra ngoài môi trường (0 .. 1, mặc định 0.48 cho đèn pin, 0.26 cho nến) */
   rayIntensity?: number
+  /** Toggle bật/tắt tia sáng xuất hiện ngẫu nhiên & động theo gió / nhịp (mặc định true) */
+  rayDynamic?: boolean
   /** Số luồng tia tỉa ra ngoài môi trường (3 .. 24, mặc định 9 cho đèn pin, 12 cho tỏa tròn) */
   rayCount?: number
   /** Độ hội tụ lõi chóa đèn Hotspot so với quầng loang môi trường Spill (0 .. 1, mặc định 0.58 cho đèn pin) */

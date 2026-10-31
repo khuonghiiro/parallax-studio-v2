@@ -4,8 +4,8 @@ import { resolveMotionMode } from '../../project/workflowMotionMode'
 import { useShiftToFocus } from './workflowFocusGuard'
 import { bboxStartPosition, bboxStartScale } from '../../project/workflowMotionStart'
 import { bboxStepNumber } from '../../project/workflowBboxSteps'
-import React, { useCallback } from 'react'
-import type { Layer, Project, Vec3, WorkflowGraph, WorkflowNode, WorkflowNodeParams } from '@shared/types'
+import React, { useCallback, useMemo } from 'react'
+import type { ImageProps, Layer, Project, Vec3, WorkflowGraph, WorkflowNode, WorkflowNodeParams } from '@shared/types'
 import { evaluate } from '../../animation/keyframes'
 import { assetStore } from '../../project/assets'
 import {
@@ -13,6 +13,8 @@ import {
 } from '../../project/workflowV2BboxMotionAndCollision'
 import {
   attachLogicNodeToLayerV2,
+  getClusterMemberLayers,
+  getClusterRootLayer,
   syncWorkflowV2NodeToProject
 } from '../../project/workflowV2Engine'
 import { useEditor } from '../../store/editor'
@@ -25,6 +27,7 @@ export interface StageBboxMotionOverlayProps {
   node: WorkflowNode
   selectedProjLayer?: ProjectedLayer2D
   coordRefLayer?: Layer
+  layers2D?: ProjectedLayer2D[]
   useClusterBbox: boolean
   clusterInstId?: string
   stageW: number
@@ -78,6 +81,7 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
   node,
   selectedProjLayer,
   coordRefLayer,
+  layers2D,
   useClusterBbox,
   clusterInstId,
   stageW,
@@ -183,57 +187,278 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
 
   const tStart = mp?.timeStart ?? coordRefLayer.inPoint ?? 0
   const tEnd = mp?.timeEnd ?? Number((tStart + 3).toFixed(2))
-  // Đọc vị trí gốc đầu tại tStart (bỏ qua keyframe đã bake để BBox đầu và đích không bị nhân kép tỷ lệ khi tua tới tEnd)
   const startPos: Vec3 = bboxStartPosition(coordRefLayer, tStart, motionNode?.id)
-  const startCleanScale: Vec3 = bboxStartScale(coordRefLayer, tStart, motionNode?.id)
-  const curEvalScale: Vec3 = evaluate(coordRefLayer.transform.scale, sampleTime)
-  const unbakedRatioX = Math.abs(startCleanScale[0] || 1) / Math.max(0.05, Math.abs(curEvalScale[0] || 1))
-  const unbakedRatioY = Math.abs(startCleanScale[1] || 1) / Math.max(0.05, Math.abs(curEvalScale[1] || 1))
   const refD = 1483.64
   const pFactorStart = refD / Math.max(80, refD + (startPos[2] ?? 0))
 
-  const targetX = mp?.bboxTargetX ?? Math.round(startPos[0] + 280)
-  const targetY = mp?.bboxTargetY ?? Math.round(startPos[1])
-  const targetScalePct = mp?.bboxTargetScalePct ?? 135
-  const scaleRatio = Math.max(0.15, Math.min(4.0, targetScalePct / 100))
+  const defaultTargetX = mp?.bboxTargetX ?? Math.round(startPos[0] + 280)
+  const defaultTargetY = mp?.bboxTargetY ?? Math.round(startPos[1])
+  const defaultTargetScalePct = mp?.bboxTargetScalePct ?? 135
+  const defaultScaleRatio = Math.max(0.15, Math.min(4.0, defaultTargetScalePct / 100))
   const depthMode = mp?.depthMode ?? 'flat_2d'
-  const startZ = mp?.bboxStartZ ?? Math.round(startPos[2] ?? 0)
-  const targetZ =
+  const defaultStartZ = mp?.bboxStartZ ?? Math.round(startPos[2] ?? 0)
+  const defaultTargetZ =
     depthMode === 'depth_z'
-      ? (mp?.bboxTargetZ ?? Math.round(startZ - (scaleRatio - 1) * 180))
-      : startZ
+      ? (mp?.bboxTargetZ ?? Math.round(defaultStartZ - (defaultScaleRatio - 1) * 180))
+      : defaultStartZ
+  const multiMode = mp?.bboxMultiMode ?? 'group_offset'
 
-  // Tọa độ màn hình của BBox đầu (Xuất phát)
-  const startOffsetX = startPos[0] * pFactorStart
-  const startOffsetY = -startPos[1] * pFactorStart
-  const baseStageW = Math.max(16, selectedProjLayer.width * unbakedRatioX)
-  const baseStageH = Math.max(16, selectedProjLayer.height * unbakedRatioY)
-  const baseW = Math.max(22, baseStageW * zoom)
-  const baseH = Math.max(22, baseStageH * zoom)
-  const box1Cx = shotLeft + shotScreenW / 2 + startOffsetX * zoom
-  const box1Cy = shotTop + shotScreenH / 2 + startOffsetY * zoom
+  // Tìm tất cả các Layer / Cụm kết nối vào Node Motion này
+  const connectedEntities = useMemo(() => {
+    const ids = new Set<string>()
+    if (mp?.targetLayerIds?.length) {
+      for (const id of mp.targetLayerIds) ids.add(id)
+    }
+    if (motionNode) {
+      const inEdges = workflow.edges.filter((e) => e.toNode === motionNode.id && !e.disabled)
+      for (const e of inEdges) {
+        const srcNode = workflow.nodes.find((n) => n.id === e.fromNode)
+        if (srcNode?.params?.targetLayerIds?.length) {
+          for (const id of srcNode.params.targetLayerIds) ids.add(id)
+        }
+        if (srcNode?.params?.instanceId) {
+          const members = getClusterMemberLayers(project, srcNode.params.instanceId)
+          for (const m of members) ids.add(m.id)
+        }
+      }
+    }
+    if (coordRefLayer && !ids.has(coordRefLayer.id)) {
+      ids.add(coordRefLayer.id)
+    }
 
-  // Tọa độ màn hình của Ghost BBox đích (Đích)
-  const pFactorEnd = refD / Math.max(80, refD + targetZ)
-  const targetOffsetX = targetX * pFactorEnd
-  const targetOffsetY = -targetY * pFactorEnd
-  const box2W = Math.max(20, baseW * scaleRatio)
-  const box2H = Math.max(20, baseH * scaleRatio)
-  const box2Cx = shotLeft + shotScreenW / 2 + targetOffsetX * zoom
-  const box2Cy = shotTop + shotScreenH / 2 + targetOffsetY * zoom
-  const box2Left = box2Cx - box2W / 2
-  const box2Top = box2Cy - box2H / 2
+    const entityMap = new Map<
+      string,
+      {
+        id: string
+        rootLayer: Layer
+        isCluster: boolean
+        name: string
+        projLayer?: ProjectedLayer2D
+      }
+    >()
 
-  const runtimeAsset = selectedProjLayer.assetId ? assetStore.get(selectedProjLayer.assetId) : undefined
-  const projAsset = selectedProjLayer.assetId
-    ? project.assets.find((a) => a.id === selectedProjLayer.assetId)
-    : undefined
-  const ghostImgUrl =
-    runtimeAsset?.url || runtimeAsset?.thumbUrl || projAsset?.dataUrl || projAsset?.path
+    for (const lid of Array.from(ids)) {
+      const l = project.layers.find((ly) => ly.id === lid)
+      if (!l) continue
+      const inst = l.composite?.instanceId ?? l.model3d?.instanceId
+      if (inst) {
+        if (!entityMap.has(inst)) {
+          const members = getClusterMemberLayers(project, inst)
+          const rootL = getClusterRootLayer(members) ?? members[0] ?? l
+          const memberIds = new Set(members.map((m) => m.id))
+          const memberProjs = layers2D?.filter((lp) => memberIds.has(lp.id)) ?? []
+          let proj: ProjectedLayer2D | undefined
+          if (memberProjs.length > 0) {
+            let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity
+            for (const p of memberProjs) {
+              minX = Math.min(minX, p.offsetX - p.width / 2)
+              maxX = Math.max(maxX, p.offsetX + p.width / 2)
+              minY = Math.min(minY, p.offsetY - p.height / 2)
+              maxY = Math.max(maxY, p.offsetY + p.height / 2)
+            }
+            const baseP = memberProjs.find((p) => p.id === rootL.id) ?? memberProjs[0]
+            proj = {
+              ...baseP,
+              name: rootL.name.replace(/\s*\(.*?\)\s*/g, '') || 'Cụm 2.5D',
+              offsetX: (minX + maxX) / 2,
+              offsetY: (minY + maxY) / 2,
+              width: Math.max(24, maxX - minX),
+              height: Math.max(24, maxY - minY)
+            }
+          }
+          entityMap.set(inst, {
+            id: inst,
+            rootLayer: rootL,
+            isCluster: true,
+            name: rootL.name.replace(/\s*\(.*?\)\s*/g, '') || 'Cụm 2.5D',
+            projLayer: proj ?? (rootL.id === coordRefLayer?.id ? selectedProjLayer : undefined)
+          })
+        }
+      } else {
+        if (!entityMap.has(l.id)) {
+          const proj =
+            layers2D?.find((p) => p.id === l.id) ??
+            (l.id === coordRefLayer?.id ? selectedProjLayer : undefined)
+          entityMap.set(l.id, {
+            id: l.id,
+            rootLayer: l,
+            isCluster: false,
+            name: l.name,
+            projLayer: proj
+          })
+        }
+      }
+    }
 
-  const startBbox2Drag = (
+    if (entityMap.size === 0 && coordRefLayer) {
+      entityMap.set(coordRefLayer.id, {
+        id: coordRefLayer.id,
+        rootLayer: coordRefLayer,
+        isCluster: false,
+        name: coordRefLayer.name,
+        projLayer: selectedProjLayer
+      })
+    }
+
+    return Array.from(entityMap.values())
+  }, [mp?.targetLayerIds, motionNode, workflow, project, coordRefLayer, layers2D, selectedProjLayer])
+
+  const primaryEntity =
+    connectedEntities.find((e) => e.rootLayer.id === coordRefLayer.id) ?? connectedEntities[0]
+
+  const ENT_ACCENTS = ['#f59e0b', '#38bdf8', '#10b981', '#ec4899', '#a855f7', '#f97316']
+
+  const renderedEntities = useMemo(() => {
+    return connectedEntities.map((ent, idx) => {
+      const isPrimary = ent.id === primaryEntity?.id
+      const entStartPos: Vec3 = bboxStartPosition(ent.rootLayer, tStart, motionNode?.id)
+      const entStartCleanScale: Vec3 = bboxStartScale(ent.rootLayer, tStart, motionNode?.id)
+      const curScale: Vec3 = evaluate(ent.rootLayer.transform.scale, sampleTime)
+      const ratioX = Math.abs(entStartCleanScale[0] || 1) / Math.max(0.05, Math.abs(curScale[0] || 1))
+      const ratioY = Math.abs(entStartCleanScale[1] || 1) / Math.max(0.05, Math.abs(curScale[1] || 1))
+      const pStart = refD / Math.max(80, refD + (entStartPos[2] ?? 0))
+
+      const customTarget = mp?.layerBboxTargets?.[ent.id]
+      const entTargetX =
+        customTarget?.targetX ??
+        (isPrimary || multiMode === 'converge_target'
+          ? defaultTargetX
+          : Math.round(defaultTargetX + (entStartPos[0] - startPos[0])))
+      const entTargetY =
+        customTarget?.targetY ??
+        (isPrimary || multiMode === 'converge_target'
+          ? defaultTargetY
+          : Math.round(defaultTargetY + (entStartPos[1] - startPos[1])))
+      const entTargetScalePct = customTarget?.targetScalePct ?? defaultTargetScalePct
+      const entScaleRatio = Math.max(0.15, Math.min(4.0, entTargetScalePct / 100))
+      const entStartZ = Math.round(entStartPos[2] ?? 0)
+      const entTargetZ =
+        customTarget?.targetZ ??
+        (depthMode === 'depth_z'
+          ? isPrimary
+            ? defaultTargetZ
+            : Math.round(entStartZ - (entScaleRatio - 1) * 180)
+          : entStartZ)
+
+      const pEnd = refD / Math.max(80, refD + entTargetZ)
+      const startOffX = entStartPos[0] * pStart
+      const startOffY = -entStartPos[1] * pStart
+      const entProjW = ent.projLayer?.width ?? (ent.rootLayer.props as ImageProps)?.width ?? 400
+      const entProjH = ent.projLayer?.height ?? (ent.rootLayer.props as ImageProps)?.height ?? 300
+      const baseStageW = Math.max(16, entProjW * ratioX)
+      const baseStageH = Math.max(16, entProjH * ratioY)
+      const baseW = Math.max(22, baseStageW * zoom)
+      const baseH = Math.max(22, baseStageH * zoom)
+
+      const box1Cx = shotLeft + shotScreenW / 2 + startOffX * zoom
+      const box1Cy = shotTop + shotScreenH / 2 + startOffY * zoom
+      const targetOffX = entTargetX * pEnd
+      const targetOffY = -entTargetY * pEnd
+      const box2W = Math.max(20, baseW * entScaleRatio)
+      const box2H = Math.max(20, baseH * entScaleRatio)
+      const box2Cx = shotLeft + shotScreenW / 2 + targetOffX * zoom
+      const box2Cy = shotTop + shotScreenH / 2 + targetOffY * zoom
+      const box2Left = box2Cx - box2W / 2
+      const box2Top = box2Cy - box2H / 2
+
+      const entAssetId = ent.projLayer?.assetId ?? (ent.rootLayer.props as ImageProps)?.assetId
+      const rtAsset = entAssetId ? assetStore.get(entAssetId) : undefined
+      const pAsset = entAssetId ? project.assets.find((a) => a.id === entAssetId) : undefined
+      const ghostImg = rtAsset?.url || rtAsset?.thumbUrl || pAsset?.dataUrl || pAsset?.path
+
+      const pathPts: [number, number][] = []
+      if (hasBboxMotion) {
+        const steps = 24
+        const activeStroke = mp?.customMotionPath
+        const pType = mp?.bboxPathType ?? 'shortest'
+        for (let i = 0; i <= steps; i++) {
+          const u = i / steps
+          const pt = evaluateBboxTrajectoryAt(
+            entStartPos,
+            entTargetX,
+            entTargetY,
+            entStartZ,
+            entTargetZ,
+            entScaleRatio,
+            u,
+            pType,
+            activeStroke
+          )
+          const pf = refD / Math.max(80, refD + pt.z)
+          pathPts.push([
+            shotLeft + shotScreenW / 2 + pt.x * pf * zoom,
+            shotTop + shotScreenH / 2 - pt.y * pf * zoom
+          ])
+        }
+      }
+
+      const accentColor = ENT_ACCENTS[idx % ENT_ACCENTS.length]
+
+      return {
+        ent,
+        idx,
+        isPrimary,
+        accentColor,
+        entStartPos,
+        entTargetX,
+        entTargetY,
+        entTargetScalePct,
+        entScaleRatio,
+        entStartZ,
+        entTargetZ,
+        pEnd,
+        baseStageW,
+        baseStageH,
+        baseW,
+        baseH,
+        box1Cx,
+        box1Cy,
+        box2W,
+        box2H,
+        box2Cx,
+        box2Cy,
+        box2Left,
+        box2Top,
+        ghostImg,
+        pathPts
+      }
+    })
+  }, [
+    connectedEntities,
+    primaryEntity,
+    tStart,
+    motionNode?.id,
+    sampleTime,
+    refD,
+    mp?.layerBboxTargets,
+    multiMode,
+    defaultTargetX,
+    startPos,
+    defaultTargetY,
+    defaultTargetScalePct,
+    depthMode,
+    defaultTargetZ,
+    shotLeft,
+    shotScreenW,
+    zoom,
+    shotTop,
+    shotScreenH,
+    project.assets,
+    hasBboxMotion,
+    mp?.customMotionPath,
+    mp?.bboxPathType
+  ])
+
+  const startBbox2DragForEntity = (
     e: React.PointerEvent,
-    dragMode: 'move' | 'nw' | 'ne' | 'sw' | 'se'
+    dragMode: 'move' | 'nw' | 'ne' | 'sw' | 'se',
+    ent: (typeof connectedEntities)[0],
+    entTargetX: number,
+    entTargetY: number,
+    entScalePct: number,
+    entBaseStageW: number,
+    entStartZ: number,
+    entPFactorEnd: number
   ): void => {
     e.stopPropagation()
     e.preventDefault()
@@ -241,35 +466,86 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
     setPlaying(false)
     const sx = e.clientX
     const sy = e.clientY
-    const origX = targetX
-    const origY = targetY
-    const origPct = targetScalePct
+    const origX = entTargetX
+    const origY = entTargetY
+    const origPct = entScalePct
     const safeZoom = Math.max(0.02, zoom)
 
     const onMove = (pev: PointerEvent): void => {
       const dxStage = (pev.clientX - sx) / safeZoom
       const dyStage = (pev.clientY - sy) / safeZoom
       if (dragMode === 'move') {
-        const nx = Math.round(origX + dxStage / pFactorEnd)
-        const ny = Math.round(origY - dyStage / pFactorEnd)
-        patchMotionNode({ bboxTargetX: nx, bboxTargetY: ny }, 'wf-bbox2-move')
+        const nx = Math.round(origX + dxStage / entPFactorEnd)
+        const ny = Math.round(origY - dyStage / entPFactorEnd)
+        if (connectedEntities.length === 1) {
+          patchMotionNode({ bboxTargetX: nx, bboxTargetY: ny }, 'wf-bbox2-move')
+        } else {
+          const existing = mp?.layerBboxTargets ?? {}
+          const cur = existing[ent.id]
+          const updatedTargets = {
+            ...existing,
+            [ent.id]: {
+              ...(cur ?? {}),
+              targetX: nx,
+              targetY: ny,
+              targetScalePct: cur?.targetScalePct ?? origPct,
+              targetZ: cur?.targetZ ?? entStartZ
+            }
+          }
+          const isPrimary = ent.id === primaryEntity?.id
+          patchMotionNode(
+            {
+              layerBboxTargets: updatedTargets,
+              ...(isPrimary ? { bboxTargetX: nx, bboxTargetY: ny } : {})
+            },
+            'wf-bbox2-move'
+          )
+        }
       } else {
         const signX = dragMode === 'ne' || dragMode === 'se' ? 1 : -1
         const signY = dragMode === 'sw' || dragMode === 'se' ? 1 : -1
         const delta = (dxStage * signX + dyStage * signY) * 0.5
-        const ratio = Math.max(0.2, Math.min(3.5, (baseStageW * (origPct / 100) + delta * 2) / Math.max(16, baseStageW)))
+        const ratio = Math.max(
+          0.2,
+          Math.min(3.5, (entBaseStageW * (origPct / 100) + delta * 2) / Math.max(16, entBaseStageW))
+        )
         const nextPct = Math.round(ratio * 100)
         const autoZ =
           depthMode === 'depth_z' && !mp?.depthRefLayerId
-            ? Math.round(startZ - (ratio - 1) * 180)
+            ? Math.round(entStartZ - (ratio - 1) * 180)
             : mp?.bboxTargetZ
-        patchMotionNode(
-          {
-            bboxTargetScalePct: nextPct,
-            ...(autoZ !== undefined ? { bboxTargetZ: autoZ } : {})
-          },
-          'wf-bbox2-scale'
-        )
+        if (connectedEntities.length === 1) {
+          patchMotionNode(
+            {
+              bboxTargetScalePct: nextPct,
+              ...(autoZ !== undefined ? { bboxTargetZ: autoZ } : {})
+            },
+            'wf-bbox2-scale'
+          )
+        } else {
+          const existing = mp?.layerBboxTargets ?? {}
+          const cur = existing[ent.id]
+          const updatedTargets = {
+            ...existing,
+            [ent.id]: {
+              ...(cur ?? {}),
+              targetX: cur?.targetX ?? entTargetX,
+              targetY: cur?.targetY ?? entTargetY,
+              targetScalePct: nextPct,
+              targetZ: autoZ ?? cur?.targetZ ?? entStartZ
+            }
+          }
+          const isPrimary = ent.id === primaryEntity?.id
+          patchMotionNode(
+            {
+              layerBboxTargets: updatedTargets,
+              ...(isPrimary
+                ? { bboxTargetScalePct: nextPct, ...(autoZ !== undefined ? { bboxTargetZ: autoZ } : {}) }
+                : {})
+            },
+            'wf-bbox2-scale'
+          )
+        }
       }
     }
 
@@ -281,162 +557,209 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
     window.addEventListener('pointerup', onUp)
   }
 
-  // Tính các điểm đường đi từ BBox đầu -> BBox đích để vẽ trên SVG
-  const pathPointsScreen: [number, number][] = []
-  if (hasBboxMotion) {
-    const steps = 24
-    const activeStroke = mp?.customMotionPath
-    const pType = mp?.bboxPathType ?? 'shortest'
-    for (let i = 0; i <= steps; i++) {
-      const u = i / steps
-      const pt = evaluateBboxTrajectoryAt(
-        startPos,
-        targetX,
-        targetY,
-        startZ,
-        targetZ,
-        scaleRatio,
-        u,
-        pType,
-        activeStroke
-      )
-      const pf = refD / Math.max(80, refD + pt.z)
-      const sx = shotLeft + shotScreenW / 2 + pt.x * pf * zoom
-      const sy = shotTop + shotScreenH / 2 - pt.y * pf * zoom
-      pathPointsScreen.push([sx, sy])
-    }
-  }
+  const primaryItem = renderedEntities.find((i) => i.isPrimary) ?? renderedEntities[0]
 
   return (
     <>
       {motionNode?.id === node.id && (hasBboxMotion || resolveMotionMode(mp ?? {}) === 'path') && (
-        <WorkflowMotionStageTools toolbarHost={toolbarHost} mode={hasBboxMotion ? 'bbox' : 'path'} nodeId={node.id} params={mp ?? {}}
-          width={stageW} height={stageH} zoom={zoom} perspective={pFactorStart} start={[box1Cx, box1Cy]}
-          path={coordRefLayer.transform.position.keyframes.filter(k => k.id.includes(`-motpath-p-${node.id}-`) && !k.id.endsWith('-pre')).map(k => {
-            const pf = refD / Math.max(80, refD + k.value[2])
-            return [shotLeft + shotScreenW / 2 + k.value[0] * pf * zoom, shotTop + shotScreenH / 2 - k.value[1] * pf * zoom]
-          })}
+        <WorkflowMotionStageTools
+          toolbarHost={toolbarHost}
+          mode={hasBboxMotion ? 'bbox' : 'path'}
+          nodeId={node.id}
+          params={mp ?? {}}
+          width={stageW}
+          height={stageH}
+          zoom={zoom}
+          perspective={pFactorStart}
+          start={[primaryItem?.box1Cx ?? 0, primaryItem?.box1Cy ?? 0]}
+          path={coordRefLayer.transform.position.keyframes
+            .filter((k) => k.id.includes(`-motpath-p-${node.id}-`) && !k.id.endsWith('-pre'))
+            .map((k) => {
+              const pf = refD / Math.max(80, refD + k.value[2])
+              return [
+                shotLeft + shotScreenW / 2 + k.value[0] * pf * zoom,
+                shotTop + shotScreenH / 2 - k.value[1] * pf * zoom
+              ]
+            })}
           patch={patchMotionNode}
         />
       )}
       {!motionNode && node.type === 'layer_assembly' && !node.params?.logicCategory && (
         <div className="wf-motion-stage-tools">
-          <button type="button" title="Thêm Motion BBox đích" aria-label="Thêm Motion BBox đích" onClick={handleSpawnOrEnableBbox2}><WorkflowMotionIcon name="target"/></button>
+          <button
+            type="button"
+            title="Thêm Motion BBox đích"
+            aria-label="Thêm Motion BBox đích"
+            onClick={handleSpawnOrEnableBbox2}
+          >
+            <WorkflowMotionIcon name="target" />
+          </button>
         </div>
       )}
 
-      {/* Đường nối đầu -> đích và điểm va chạm trên SVG */}
-      {hasBboxMotion && pathPointsScreen.length >= 2 && (
+      {/* Đường nối đầu -> đích và điểm va chạm trên SVG cho từng Layer/Cụm kết nối */}
+      {hasBboxMotion && (
         <svg
           className="wf-v2-direct-cam-svg"
           width={stageW}
           height={stageH}
           style={{ zIndex: 24, pointerEvents: 'none' }}
         >
-          <polyline
-            fill="none"
-            stroke="rgba(16, 185, 129, 0.28)"
-            strokeWidth={5}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            points={pathPointsScreen.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ')}
-          />
-          <polyline
-            fill="none"
-            stroke="#10b981"
-            strokeWidth={2}
-            strokeDasharray="5 3"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            points={pathPointsScreen.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ')}
-          />
-          {/* Các bóng khung trung gian thể hiện to/nhỏ dần dọc đường đi */}
-          {[0.33, 0.66].map((uStep) => {
-            const idx = Math.min(pathPointsScreen.length - 1, Math.round(uStep * (pathPointsScreen.length - 1)))
-            const [mx, my] = pathPointsScreen[idx]
-            const stepRatio = 1 + (scaleRatio - 1) * uStep
-            const sw = Math.max(12, baseW * stepRatio)
-            const sh = Math.max(12, baseH * stepRatio)
-            return (
-              <rect
-                key={`step-${uStep}`}
-                x={mx - sw / 2}
-                y={my - sh / 2}
-                width={sw}
-                height={sh}
-                rx={3}
-                fill="none"
-                stroke="rgba(56, 189, 248, 0.32)"
-                strokeWidth={1}
-                strokeDasharray="2 2"
-              />
-            )
-          })}
-          <circle cx={box1Cx} cy={box1Cy} r={4.5} fill="#10b981" stroke="#0f172a" strokeWidth={1.5} />
-          <circle cx={box2Cx} cy={box2Cy} r={5} fill="#f59e0b" stroke="#0f172a" strokeWidth={1.5} />
-
+          {renderedEntities.map(
+            (item) =>
+              item.pathPts.length >= 2 && (
+                <React.Fragment key={`svg-${item.ent.id}`}>
+                  <polyline
+                    fill="none"
+                    stroke={item.accentColor}
+                    strokeOpacity={0.28}
+                    strokeWidth={5}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    points={item.pathPts.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ')}
+                  />
+                  <polyline
+                    fill="none"
+                    stroke={item.accentColor}
+                    strokeWidth={2}
+                    strokeDasharray="5 3"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    points={item.pathPts.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ')}
+                  />
+                  {[0.33, 0.66].map((uStep) => {
+                    const pIdx = Math.min(
+                      item.pathPts.length - 1,
+                      Math.round(uStep * (item.pathPts.length - 1))
+                    )
+                    const [mx, my] = item.pathPts[pIdx]
+                    const stepRatio = 1 + (item.entScaleRatio - 1) * uStep
+                    const sw = Math.max(12, item.baseW * stepRatio)
+                    const sh = Math.max(12, item.baseH * stepRatio)
+                    return (
+                      <rect
+                        key={`step-${item.ent.id}-${uStep}`}
+                        x={mx - sw / 2}
+                        y={my - sh / 2}
+                        width={sw}
+                        height={sh}
+                        rx={3}
+                        fill="none"
+                        stroke={item.accentColor}
+                        strokeOpacity={0.35}
+                        strokeWidth={1}
+                        strokeDasharray="2 2"
+                      />
+                    )
+                  })}
+                  <circle
+                    cx={item.box1Cx}
+                    cy={item.box1Cy}
+                    r={4.5}
+                    fill="#10b981"
+                    stroke="#0f172a"
+                    strokeWidth={1.5}
+                  />
+                  <circle
+                    cx={item.box2Cx}
+                    cy={item.box2Cy}
+                    r={5}
+                    fill={item.accentColor}
+                    stroke="#0f172a"
+                    strokeWidth={1.5}
+                  />
+                </React.Fragment>
+              )
+          )}
         </svg>
       )}
 
-      {/* Khung BBox đích dạng mờ (Ghost Target BBox) */}
-      {hasBboxMotion && (
-        <div
-          className="wf-v2-direct-layer-bbox is-ghost-target"
-          data-mcp-region="workflow_motion_ghost"
-          style={{
-            pointerEvents: motionNode?.id === node.id || shiftToFocus ? 'auto' : 'none',
-            left: box2Left,
-            top: box2Top,
-            width: box2W,
-            height: box2H,
-            border: '1.5px dashed var(--key)',
-            background: 'color-mix(in srgb, var(--key) 8%, transparent)',
-            boxShadow: '0 0 0 1px rgba(15, 23, 42, 0.55), 0 0 14px rgba(245, 158, 11, 0.25)',
-            zIndex: 28,
-            ['--wf-v2-accent' as string]: '#f59e0b'
-          }}
-          title={`BBox đích (${targetScalePct}%) — Kéo để đặt vị trí kết thúc, kéo 4 góc để phóng to/thu nhỏ dần khi di chuyển tới đích`}
-          onPointerDown={(e) => {
-            if (e.button === 0) startBbox2Drag(e, 'move')
-          }}
-        >
-          {ghostImgUrl && (
-            <img
-              src={ghostImgUrl}
-              alt="Ghost Target đích"
-              draggable={false}
-              style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'contain',
-                opacity: 0.44,
-                filter: 'drop-shadow(0 0 6px rgba(245, 158, 11, 0.65))',
-                pointerEvents: 'none'
-              }}
-            />
-          )}
-          <span
-            className="wf-v2-direct-bbox-tag"
+      {/* Khung BBox đích dạng mờ (Ghost Target BBox) cho từng Layer/Cụm kết nối */}
+      {hasBboxMotion &&
+        renderedEntities.map((item) => (
+          <div
+            key={`ghost-${item.ent.id}`}
+            className="wf-v2-direct-layer-bbox is-ghost-target"
+            data-mcp-region="workflow_motion_ghost"
             style={{
-              top: box2Top < 18 ? 2 : -16,
-              right: 0,
-              left: 'auto',
-              background: 'color-mix(in srgb, #f59e0b 82%, #0f172a)',
-              color: '#ffffff'
+              pointerEvents: motionNode?.id === node.id || shiftToFocus ? 'auto' : 'none',
+              left: item.box2Left,
+              top: item.box2Top,
+              width: item.box2W,
+              height: item.box2H,
+              border: `1.5px dashed ${item.accentColor}`,
+              background: `color-mix(in srgb, ${item.accentColor} 8%, transparent)`,
+              boxShadow: `0 0 0 1px rgba(15, 23, 42, 0.55), 0 0 14px color-mix(in srgb, ${item.accentColor} 25%, transparent)`,
+              zIndex: item.isPrimary ? 28 : 27,
+              ['--wf-v2-accent' as string]: item.accentColor
+            }}
+            title={`BBox đích của "${item.ent.name}" (${item.entTargetScalePct}%) — Kéo để đặt vị trí, kéo 4 góc để đổi kích thước`}
+            onPointerDown={(e) => {
+              if (e.button === 0) {
+                startBbox2DragForEntity(
+                  e,
+                  'move',
+                  item.ent,
+                  item.entTargetX,
+                  item.entTargetY,
+                  item.entTargetScalePct,
+                  item.baseStageW,
+                  item.entStartZ,
+                  item.pEnd
+                )
+              }
             }}
           >
-            #{bboxStepNumber(workflow, motionNode?.id ?? node.id) + 1} Đích
-          </span>
-          <span className="wf-v2-direct-bbox-crosshair" />
-          {HANDLES.map((h) => (
+            {item.ghostImg && (
+              <img
+                src={item.ghostImg}
+                alt={`Ghost Target ${item.ent.name}`}
+                draggable={false}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'contain',
+                  opacity: 0.44,
+                  filter: `drop-shadow(0 0 6px ${item.accentColor})`,
+                  pointerEvents: 'none'
+                }}
+              />
+            )}
             <span
-              key={h.key}
-              className={`wf-v2-bbox-handle ${h.cls}`}
-              onPointerDown={(e) => startBbox2Drag(e, h.key)}
-            />
-          ))}
-        </div>
-      )}
+              className="wf-v2-direct-bbox-tag"
+              style={{
+                top: item.box2Top < 18 ? 2 : -16,
+                right: 0,
+                left: 'auto',
+                background: `color-mix(in srgb, ${item.accentColor} 82%, #0f172a)`,
+                color: '#ffffff'
+              }}
+            >
+              #{bboxStepNumber(workflow, motionNode?.id ?? node.id) + 1} Đích
+              {renderedEntities.length > 1 ? ` · ${item.ent.name}` : ''}
+            </span>
+            <span className="wf-v2-direct-bbox-crosshair" />
+            {HANDLES.map((h) => (
+              <span
+                key={h.key}
+                className={`wf-v2-bbox-handle ${h.cls}`}
+                onPointerDown={(e) =>
+                  startBbox2DragForEntity(
+                    e,
+                    h.key,
+                    item.ent,
+                    item.entTargetX,
+                    item.entTargetY,
+                    item.entTargetScalePct,
+                    item.baseStageW,
+                    item.entStartZ,
+                    item.pEnd
+                  )
+                }
+              />
+            ))}
+          </div>
+        ))}
     </>
   )
 }

@@ -345,13 +345,34 @@ export function bakeBboxTargetMotionToScene(
   for (const m of effectiveLayers) {
     const mBasePos: Vec3 = bboxStartPosition(m, tStart, nodeId)
     const mBaseScale: Vec3 = bboxStartScale(m, tStart, nodeId)
-    const entityRoot = convergeEachEntity ? (entityRootByLayerId.get(m.id) ?? m) : rootLayer
+    const entityRoot = entityRootByLayerId.get(m.id) ?? m
     const entityStartPos: Vec3 =
       entityRoot.id === rootLayer.id ? rootBasePos : bboxStartPosition(entityRoot, tStart, nodeId)
     const entityStartZ = entityRoot.id === rootLayer.id ? startZ : entityStartPos[2]
     const relX = mBasePos[0] - entityStartPos[0]
     const relY = mBasePos[1] - entityStartPos[1]
     const relZ = mBasePos[2] - entityStartPos[2]
+
+    const entityTargetConfig = params.layerBboxTargets?.[entityRoot.id] ?? params.layerBboxTargets?.[m.id]
+    const isRoot = entityRoot.id === rootLayer.id
+    const entityTargetX = entityTargetConfig?.targetX ?? (
+      isRoot || convergeEachEntity
+        ? targetX
+        : Math.round(targetX + (entityStartPos[0] - rootBasePos[0]))
+    )
+    const entityTargetY = entityTargetConfig?.targetY ?? (
+      isRoot || convergeEachEntity
+        ? targetY
+        : Math.round(targetY + (entityStartPos[1] - rootBasePos[1]))
+    )
+    const entityTargetScaleRatio = typeof entityTargetConfig?.targetScalePct === 'number'
+      ? Math.max(0.15, Math.min(4.0, entityTargetConfig.targetScalePct / 100))
+      : targetScaleRatio
+    const entityTargetZ = entityTargetConfig?.targetZ ?? (
+      isRoot || convergeEachEntity
+        ? targetZ
+        : Math.round(targetZ + (entityStartZ - startZ))
+    )
 
     // Nếu tStart > 0.05s, neo giữ trạng thái gốc ngay trước tStart để layer không bị trôi trước mốc chạy
     if (tStart > 0.05 && !m.transform.position.keyframes.some(k => k.t <= tStart)) {
@@ -394,11 +415,11 @@ export function bakeBboxTargetMotionToScene(
 
         const pt = evaluateBboxTrajectoryAt(
           entityStartPos,
-          targetX,
-          targetY,
+          entityTargetX,
+          entityTargetY,
           entityStartZ,
-          targetZ,
-          targetScaleRatio,
+          entityTargetZ,
+          entityTargetScaleRatio,
           effU,
           pathType,
           params.customMotionPath

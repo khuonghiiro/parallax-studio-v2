@@ -2687,6 +2687,7 @@
               "lightBehavior": "wind_reactive",
               "lightWindPreset": "gentle",
               "lightRayIntensity": 0.24,
+              "lightRayDynamic": true,
               "lightEnvBounce": 0.9
             }
           }
@@ -3506,6 +3507,7 @@
               "lightBehavior": "steady",
               "lightWindPreset": "none",
               "lightRayIntensity": 0.52,
+              "lightRayDynamic": true,
               "lightEnvBounce": 0.92
             }
           },
@@ -6418,6 +6420,7 @@
               "lightBehavior": "wind_reactive",
               "lightWindPreset": "gentle",
               "lightRayIntensity": 0.24,
+              "lightRayDynamic": true,
               "lightEnvBounce": 0.9
             }
           }
@@ -7237,6 +7240,7 @@
               "lightBehavior": "steady",
               "lightWindPreset": "none",
               "lightRayIntensity": 0.52,
+              "lightRayDynamic": true,
               "lightEnvBounce": 0.92
             }
           },

@@ -57,6 +57,8 @@ export interface EvaluatedVirtualLight {
   plumeStretch: number
   /** Cường độ tỉa tia sáng khí quyển Tyndall (0..1) */
   rayIntensity: number
+  /** Toggle bật/tắt tia sáng xuất hiện ngẫu nhiên & động theo gió / nhịp (mặc định true) */
+  rayDynamic: boolean
   /** Số lượng luồng tia tỉa ra môi trường (3..24) */
   rayCount: number
   /** Độ hội tụ lõi chóa đèn Hotspot vs vành Spill (0..1) */
@@ -341,7 +343,8 @@ export function evaluateVirtualLightAtTime(
     softness,
     beamCurvature,
     plumeStretch: dyn.plumeStretch,
-    rayIntensity: Math.max(0, Math.min(1, vl.rayIntensity ?? optDefaults.rayIntensity)),
+    rayIntensity: Math.max(0, Math.min(1, (vl.rayIntensity ?? optDefaults.rayIntensity) * dyn.rayIntensityMultiplier)),
+    rayDynamic: vl.rayDynamic !== false,
     rayCount: Math.max(3, Math.min(24, Math.round(vl.rayCount ?? optDefaults.rayCount))),
     hotspotFocus: Math.max(0, Math.min(1, vl.hotspotFocus ?? optDefaults.hotspotFocus)),
     envBounce: Math.max(0, Math.min(2, vl.envBounce ?? optDefaults.envBounce)),

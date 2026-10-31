@@ -24,6 +24,39 @@ export function useBboxMotionModel(props: WorkflowV2NodeParamsProps) {
     [clusterMembers, project.layers, targetIds]
   )
 
+  const connectedEntities = useMemo(() => {
+    const entityMap = new Map<string, { id: string; rootLayer: Layer; isCluster: boolean; instanceId?: string; name: string }>()
+    for (const lid of targetIds) {
+      const l = project.layers.find((ly) => ly.id === lid)
+      if (!l) continue
+      const inst = l.composite?.instanceId ?? l.model3d?.instanceId
+      if (inst) {
+        if (!entityMap.has(inst)) {
+          const members = getClusterMemberLayers(project, inst)
+          const rootL = getClusterRootLayer(members) ?? members[0] ?? l
+          entityMap.set(inst, {
+            id: inst,
+            rootLayer: rootL,
+            isCluster: true,
+            instanceId: inst,
+            name: rootL.name.replace(/\s*\(.*?\)\s*/g, '') || 'Cụm 2.5D'
+          })
+        }
+      } else {
+        if (!entityMap.has(l.id)) {
+          entityMap.set(l.id, {
+            id: l.id,
+            rootLayer: l,
+            isCluster: false,
+            name: l.name
+          })
+        }
+      }
+    }
+    return Array.from(entityMap.values())
+  }, [targetIds, project]
+  )
+
   const compDur = Math.max(1, project.comp.duration || 5)
   const tStart = Number((p.timeStart ?? rootLayer?.inPoint ?? 0).toFixed(2))
   const tEnd = Number(
@@ -111,7 +144,7 @@ export function useBboxMotionModel(props: WorkflowV2NodeParamsProps) {
   const distPx = Math.round(Math.hypot(targetX - startPos[0], targetY - startPos[1]))
   const speedPxPerSec = Math.round(distPx / Math.max(0.2, runDuration))
 
-  return { p, node, project, onScrubTime, onSelectNode, rootLayer, compDur, tStart, tEnd, runDuration, startPos, pathType, targetX, targetY, targetScalePct, depthMode, startZ, targetZ, applyBboxPatch, sceneObstacleLayers, distPx, speedPxPerSec, isPlaying, handleTogglePreview }
+  return { p, node, project, onScrubTime, onSelectNode, rootLayer, compDur, tStart, tEnd, runDuration, startPos, pathType, targetX, targetY, targetScalePct, depthMode, startZ, targetZ, applyBboxPatch, sceneObstacleLayers, distPx, speedPxPerSec, isPlaying, handleTogglePreview, connectedEntities }
 }
 
 export type BboxMotionModel = ReturnType<typeof useBboxMotionModel>

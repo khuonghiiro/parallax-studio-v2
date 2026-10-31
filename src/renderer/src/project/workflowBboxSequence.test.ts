@@ -114,3 +114,52 @@ describe('BBox follow-up continuity', () => {
     expect(evaluate(a.transform.position, 6)[0]).toBeCloseTo(500)
   })
 })
+
+describe('Multi-layer Motion BBox with per-entity targets', () => {
+  it('supports group_offset and custom layerBboxTargets per layer', () => {
+    const { project, a, b } = fixture()
+    project.workflow = syncWorkflowV2Graph(project)
+    const attachRes = attachLogicNodeToLayerV2(
+      project.workflow,
+      v2LayerNodeId(a.id),
+      'action',
+      'v2:action:bbox_target',
+      {
+        timeStart: 0,
+        timeEnd: 2,
+        targetLayerIds: [a.id, b.id],
+        bboxTargetX: 100,
+        bboxTargetY: 0,
+        bboxTargetScalePct: 150,
+        bboxMultiMode: 'group_offset',
+        layerBboxTargets: {
+          [b.id]: { targetX: 450, targetY: 50, targetScalePct: 200 }
+        }
+      }
+    )
+    project.workflow = attachRes.workflow
+    project.workflow = {
+      ...project.workflow,
+      edges: [
+        ...project.workflow.edges,
+        {
+          id: `e-${v2LayerNodeId(b.id)}-${attachRes.createdNodeId}`,
+          fromNode: v2LayerNodeId(b.id),
+          fromPort: 'layers_tree',
+          toNode: attachRes.createdNodeId,
+          toPort: 'layers_tree'
+        }
+      ]
+    }
+    const n = project.workflow.nodes.find((node) => node.id === attachRes.createdNodeId)!
+    n.params = { ...n.params, targetLayerIds: [a.id, b.id] }
+    syncWorkflowV2NodeToProject(project, n)
+
+    expect(evaluate(a.transform.position, 2)[0]).toBeCloseTo(100)
+    expect(evaluate(a.transform.scale, 2)[0]).toBeCloseTo(1.5)
+
+    expect(evaluate(b.transform.position, 2)[0]).toBeCloseTo(450)
+    expect(evaluate(b.transform.position, 2)[1]).toBeCloseTo(50)
+    expect(evaluate(b.transform.scale, 2)[0]).toBeCloseTo(2.0)
+  })
+})

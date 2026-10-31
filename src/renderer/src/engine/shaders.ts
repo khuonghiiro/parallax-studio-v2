@@ -233,7 +233,8 @@ void main() {
           float s1 = sin(rayTheta * freq + rayPhase * 0.75);
           float s2 = sin(rayTheta * (freq * 1.93) - rayPhase * 0.52 + 1.4);
           float s3 = sin(rayTheta * (freq * 3.17) + rayPhase * 1.15 + 2.7);
-          float rawW = s1 * 0.52 + s2 * 0.31 + s3 * 0.17;
+          float s4 = sin(rayTheta * (freq * 0.71) + rayPhase * 1.85 + sin(rayPhase * 0.4) * 2.2);
+          float rawW = s1 * 0.44 + s2 * 0.28 + s3 * 0.16 + s4 * 0.12;
           float ridge = pow(max(0.0001, clamp(rawW * 0.5 + 0.5, 0.0, 1.0)), 1.55);
           float emerge = smoothstep(0.05, 0.26, effRNorm);
           float outerFade = 1.0 - smoothstep(0.75, 1.06, effRNorm) * 0.35;
@@ -444,7 +445,8 @@ void main() {
     float s1 = sin(rayTheta * freq + rayPhase * 0.75);
     float s2 = sin(rayTheta * (freq * 1.93) - rayPhase * 0.52 + 1.4);
     float s3 = sin(rayTheta * (freq * 3.17) + rayPhase * 1.15 + 2.7);
-    float rawW = s1 * 0.52 + s2 * 0.31 + s3 * 0.17;
+    float s4 = sin(rayTheta * (freq * 0.71) + rayPhase * 1.85 + sin(rayPhase * 0.4) * 2.2);
+    float rawW = s1 * 0.44 + s2 * 0.28 + s3 * 0.16 + s4 * 0.12;
     float ridge = pow(max(0.0001, clamp(rawW * 0.5 + 0.5, 0.0, 1.0)), 1.55);
     float emerge = smoothstep(0.05, 0.26, effRNorm);
     float outerFade = 1.0 - smoothstep(0.75, 1.06, effRNorm) * 0.35;
@@ -453,13 +455,12 @@ void main() {
 
   float halo = radialAtten * coneAtten * rayFactor * intensity;
 
-  float coreRadPx = clamp(radPx * 0.035, 7.0, 20.0);
-  float wick = exp(-2.4 * (dist2D * dist2D) / (coreRadPx * coreRadPx)) * min(1.0, intensity * 0.9);
-  float rayBoostAlpha = isCone ? (0.28 + rayAmt * 0.07) : (0.18 + rayAmt * 0.06);
-  float beamAlpha = clamp(halo * rayBoostAlpha + wick * 0.55, 0.0, 0.72);
+  // Triệt tiêu hoàn toàn điểm hội tụ tâm (wick dot) để luồng sáng khí quyển tan mềm mại tự nhiên
+  float rayBoostAlpha = isCone ? (0.28 + rayAmt * 0.08) : (0.18 + rayAmt * 0.07);
+  float beamAlpha = clamp(halo * rayBoostAlpha, 0.0, 0.72);
   if (beamAlpha < 0.003) discard;
 
-  vec3 col = mix(vlightColor, vec3(1.0, 0.98, 0.92), clamp(wick * 0.75 + halo * 0.15, 0.0, 0.85));
+  vec3 col = mix(vlightColor, vec3(1.0, 0.98, 0.92), clamp(halo * 0.25, 0.0, 0.6));
   gl_FragColor = vec4(col * beamAlpha, beamAlpha);
 }
 `
