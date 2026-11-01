@@ -115,9 +115,9 @@ export function computeSmartTimeEdgeRoute(
   let controlPoint: [number, number]
 
   // A. Node đối tác ở BÊN TRÁI của Node Time (ví dụ Camera Waypoint ở cột 48)
-  if (dx < -timeW * 0.4) {
-    pTime = [timeNode.position.x - 8, Math.round(timeNode.position.y + 25)]
-    pOther = [otherNode.position.x + otherW + 8, Math.round(otherNode.position.y + WF_V2_PORT_Y)]
+  if (dx < -timeW * 0.3) {
+    pTime = [timeNode.position.x, Math.round(timeNode.position.y + timeH / 2)]
+    pOther = [otherNode.position.x + otherW, Math.round(otherNode.position.y + WF_V2_PORT_Y)]
     const gap = pTime[0] - pOther[0]
     const channelX = Math.round(pOther[0] + Math.max(18, Math.min(gap - 18, gap * 0.5 + lane * 18)))
     points = [
@@ -129,9 +129,9 @@ export function computeSmartTimeEdgeRoute(
     controlPoint = [channelX, Math.round((pTime[1] + pOther[1]) / 2)]
   }
   // B. Node đối tác ở BÊN PHẢI của Node Time (ví dụ Layer 2.5D ở các cột bên phải)
-  else if (dx > timeW * 0.4) {
-    pTime = [timeNode.position.x + timeW + 8, Math.round(timeNode.position.y + 25)]
-    pOther = [otherNode.position.x - 8, Math.round(otherNode.position.y + WF_V2_PORT_Y)]
+  else if (dx > timeW * 0.3) {
+    pTime = [timeNode.position.x + timeW, Math.round(timeNode.position.y + timeH / 2)]
+    pOther = [otherNode.position.x, Math.round(otherNode.position.y + WF_V2_PORT_Y)]
     const gap = pOther[0] - pTime[0]
     const channelX = Math.round(pTime[0] + Math.max(18, Math.min(gap - 18, gap * 0.5 + lane * 22)))
     points = [
@@ -144,8 +144,8 @@ export function computeSmartTimeEdgeRoute(
   }
   // C. Node đối tác ở THẲNG DƯỚI Node Time
   else if (dy > 0) {
-    pTime = [Math.round(timeCenter.x + lane * 16), timeNode.position.y + timeH + 8]
-    pOther = [Math.round(otherCenter.x + lane * 16), otherNode.position.y - 8]
+    pTime = [Math.round(timeCenter.x + lane * 16), timeNode.position.y + timeH]
+    pOther = [Math.round(otherCenter.x + lane * 16), otherNode.position.y]
     if (Math.abs(pOther[0] - pTime[0]) <= 8) {
       points = [pTime, pOther]
       controlPoint = [pTime[0], Math.round((pTime[1] + pOther[1]) / 2)]
@@ -162,8 +162,8 @@ export function computeSmartTimeEdgeRoute(
   }
   // D. Node đối tác ở THẲNG TRÊN Node Time
   else {
-    pTime = [Math.round(timeCenter.x + lane * 16), timeNode.position.y - 8]
-    pOther = [Math.round(otherCenter.x + lane * 16), otherNode.position.y + otherH + 8]
+    pTime = [Math.round(timeCenter.x + lane * 16), timeNode.position.y]
+    pOther = [Math.round(otherCenter.x + lane * 16), otherNode.position.y + otherH]
     if (Math.abs(pOther[0] - pTime[0]) <= 8) {
       points = [pTime, pOther]
       controlPoint = [pTime[0], Math.round((pTime[1] + pOther[1]) / 2)]

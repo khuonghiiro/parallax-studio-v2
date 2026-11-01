@@ -62,6 +62,43 @@ export function resolveV2NodeLevel(node: WorkflowNode): WorkflowV2NodeLevel {
   return 'logic'
 }
 
+/** Tên hành động camera trực quan, dễ hiểu (Khung gốc, Đẩy tới, Lia máy, Kéo rộng, Dừng ngắm, Cắt cảnh...) */
+export function resolveCameraActionName(node: WorkflowNode): string {
+  const p = node.params ?? {}
+  const localIdx = p.waypointLocalIndex ?? 0
+  if (localIdx === 0) return 'Khung gốc'
+  if (p.camTagLabel) {
+    const cleaned = p.camTagLabel.replace(/^[#\d\s·]+/, '').replace(/\([^)]*\)/g, '').trim()
+    if (cleaned) return cleaned
+  }
+  const mode = String(p.camActionMode ?? '')
+  switch (mode) {
+    case 'establishing': return 'Khung gốc'
+    case 'push-in': return 'Đẩy tới'
+    case 'pull-out': return 'Kéo rộng'
+    case 'extreme-closeup': return 'Đặc tả cận'
+    case 'pan': return 'Lia máy'
+    case 'hold': return 'Dừng ngắm'
+    case 'cut': return 'Cắt cảnh'
+    case 'whip-pan': return 'Lia vút'
+    case 'crane-up': return 'Nâng máy'
+    case 'crane-down': return 'Hạ máy'
+    case 'sweep-left': return 'Quét trái'
+    case 'sweep-right': return 'Quét phải'
+    case 'tilt-sky': return 'Ngước lên'
+    case 'aerial-dive': return 'Lao từ trên cao'
+    case 'orbit-left': return 'Quỹ đạo trái'
+    case 'orbit-right': return 'Quỹ đạo phải'
+    case 'hero-low': return 'Góc hùng vĩ'
+    case 'bird-eye': return 'Góc toàn không'
+    case 'dutch-tilt': return 'Nghiêng máy'
+    default:
+      if ((p.camZoomPct ?? 100) > 105) return 'Đẩy tới'
+      if ((p.camZoomPct ?? 100) < 95) return 'Kéo rộng'
+      return 'Lia máy'
+  }
+}
+
 export function resolveV2NodeTheme(node: WorkflowNode): WorkflowV2NodeTheme {
   const level = resolveV2NodeLevel(node)
   if (level === 'root') {
@@ -94,8 +131,10 @@ export function resolveV2NodeTheme(node: WorkflowNode): WorkflowV2NodeTheme {
     const stepNo = localIdx + 1
     const accent = CAM_STEP_ACCENTS[localIdx % CAM_STEP_ACCENTS.length]
     const circle = STEP_CIRCLES[localIdx] ?? `${stepNo}`
+    const actionName = resolveCameraActionName(node)
+    const badgeAction = localIdx === 0 ? 'KHUNG GỐC' : actionName.toUpperCase()
     return {
-      badge: node.params.isSubWaypoint ? `BƯỚC ${stepNo} · NHÁNH PHỤ` : `CẢNH CON · BƯỚC ${stepNo}`,
+      badge: node.params.isSubWaypoint ? `BƯỚC ${stepNo} · NHÁNH PHỤ` : `BƯỚC ${stepNo} · ${badgeAction}`,
       icon: node.params.isSubWaypoint ? `↳${circle}` : circle,
       accent,
       portIn: 'camera_cut',

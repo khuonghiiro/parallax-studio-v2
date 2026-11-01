@@ -2,6 +2,7 @@ import React from 'react'
 import type { WorkflowEdge, WorkflowNode } from '@shared/types'
 import { WF_V2_CAMERA_LANE_X, type V2Cluster } from '../../project/workflowV2Engine'
 import { IconFit, IconZoomIn, IconZoomOut } from '../icons'
+import { resolveCameraActionName } from './workflowV2Theme'
 import { WF_V2_PORT_Y, buildEdgePath, computeSmartTimeEdgeRoute, type V2EdgeKind } from './workflowV2Edges'
 import {
   IconWfFitAll,
@@ -133,9 +134,18 @@ export const WorkflowV2EdgeLayer: React.FC<{
         const isWaypointStep = Boolean(to.params?.isCameraWaypoint) && Math.abs(from.position.x - to.position.x) < 40
         const stepBadgeText = isWaypointStep
           ? from.params?.isCameraWaypoint
-            ? `▼ Bước ${(from.params.waypointLocalIndex ?? 0) + 1} → ${(to.params?.waypointLocalIndex ?? 0) + 1}`
-            : `▼ Mở đầu #${to.params?.waypointLabel ?? 1}`
+            ? (() => {
+                const fromStep = (from.params.waypointLocalIndex ?? 0) + 1
+                const toStep = (to.params?.waypointLocalIndex ?? 0) + 1
+                const action = resolveCameraActionName(to)
+                const t1 = Number((from.params.timeStart ?? 0).toFixed(1))
+                const t2 = Number((to.params?.timeStart ?? to.params?.timeEnd ?? 0).toFixed(1))
+                const dur = Number(Math.max(0.1, t2 - t1).toFixed(1))
+                return `▼ Bước ${fromStep} → ${toStep}: ${action} · ${t1}s ➔ ${t2}s (+${dur}s)`
+              })()
+            : `▼ Bước 1: Khung gốc (${(to.params?.timeStart ?? 0).toFixed(1)}s)`
           : null
+        const stepBadgeW = stepBadgeText ? Math.max(92, Math.round(stepBadgeText.length * 6.5 + 20)) : 84
         const [midX, midY] = computeEdgeControlPoint(from, to, wireStyle, isToClusterLock, lane, kind)
         const pillW = disconnectable && onToggleEdgeDisable ? 44 : 24
         const showAura = !isDisabled && (running || (lineageActive && lit))
@@ -258,13 +268,13 @@ export const WorkflowV2EdgeLayer: React.FC<{
               <g transform={`translate(${Math.round(from.position.x + 118)} ${Math.round((from.position.y + 64 + to.position.y) / 2)})`}>
                 <rect
                   className="wf-v2-step-label-bg"
-                  x={-42}
-                  y={-8.5}
-                  width={84}
-                  height={17}
-                  rx={4}
+                  x={-stepBadgeW / 2}
+                  y={-10.5}
+                  width={stepBadgeW}
+                  height={21}
+                  rx={5}
                 />
-                <text className="wf-v2-step-label" x={0} y={3}>
+                <text className="wf-v2-step-label" x={0} y={3.5}>
                   {stepBadgeText}
                 </text>
               </g>
