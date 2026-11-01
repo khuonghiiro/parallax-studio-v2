@@ -1,4 +1,4 @@
-import type { WorkflowEdge, WorkflowNode } from '@shared/types'
+import type { WorkflowEdge, WorkflowGraph, WorkflowNode } from '@shared/types'
 
 /** Trục X của 4 cột phân cấp: Root/Camera → Nhóm → Layer → Logic (khoảng hở 120px để dây nối dễ nhìn) */
 export const WF_V2_COL_X = {
@@ -39,6 +39,20 @@ const isParentCamera = (n: WorkflowNode): boolean => n.type === 'camera_director
 const isCameraWaypoint = (n: WorkflowNode): boolean => n.type === 'camera_director' && Boolean(n.params?.isCameraWaypoint)
 const isLogic = (n: WorkflowNode): boolean => !isRoot(n) && !isCamera(n) && !isGroup(n) && !isLayer(n)
 
+/** Thứ tự ưu tiên sắp xếp các nhóm logic từ trên xuống dưới trong cùng Layer */
+const LOGIC_CATEGORY_PRIORITY: Record<string, number> = {
+  action: 1,
+  anim_fx: 2,
+  cluster_lock: 3,
+  part_swap: 4,
+  light: 5,
+  cave: 6,
+  fx: 7,
+  material: 8,
+  collision: 9,
+  audio: 10
+}
+
 /**
  * Tập Node bị ẩn khi thu gọn Nhóm hoặc Camera:
  * - Layer con của Nhóm đang thu gọn bị ẩn; các cảnh con lộ trình quay của Camera đang thu gọn bị ẩn.
@@ -62,9 +76,8 @@ export function resolveHiddenV2NodeIds(nodes: WorkflowNode[], edges: WorkflowEdg
   // Nếu một Node Khoá Cụm đang bật thu gọn mảnh con (`collapsedSubLayers`), ẩn các Node Layer con phụ (chỉ giữ lại Node Gốc neo)
   for (const n of nodes) {
     if (n.params?.logicCategory !== 'cluster_lock' || !n.params.collapsedSubLayers) continue
-    const rootLayerNodeId = n.params.rootLayerId ? `v2-layer-${n.params.rootLayerId}` : undefined
     for (const e of edges) {
-      if (e.toNode === n.id && e.fromNode !== rootLayerNodeId) {
+      if (e.toNode === n.id && e.fromNode !== (n.params.rootLayerId ? `v2-layer-${n.params.rootLayerId}` : undefined)) {
         const subLayer = byId.get(e.fromNode)
         if (subLayer && isLayer(subLayer)) hidden.add(subLayer.id)
       }
@@ -123,6 +136,193 @@ function assignLogicOwners(layers: WorkflowNode[], edges: WorkflowEdge[], byId: 
   return owned
 }
 
+/** Xây dựng bản đồ quan hệ cha-con giữa các node logic trong cùng một Layer */
+function buildLogicChildrenMap(logics: WorkflowNode[], edges: WorkflowEdge[]): Map<string, WorkflowNode[]> {
+  const byId = new Map(logics.map((n) => [n.id, n]))
+  const childMap = new Map<string, WorkflowNode[]>()
+  const visited = new Set<string>()
+
+  for (const e of edges) {
+    if (!byId.has(e.fromNode) || !byId.has(e.toNode)) continue
+    const child = byId.get(e.toNode)!
+    const list = childMap.get(e.fromNode) ?? []
+    if (!list.includes(child)) {
+      list.push(child)
+      childMap.set(e.fromNode, list)
+      visited.add(child.id)
+    }
+  }
+
+  // Quan hệ cấu trúc phân cấp (ví dụ Part Child -> Part Hub)
+  for (const n of logics) {
+    const parentId = n.params?.hierarchyParentNodeId ?? n.params?.linkedMotionNodeId
+    if (parentId && byId.has(parentId) && !visited.has(n.id)) {
+      const list = childMap.get(parentId) ?? []
+      if (!list.includes(n)) {
+        list.push(n)
+        childMap.set(parentId, list)
+        visited.add(n.id)
+      }
+    }
+  }
+
+  return childMap
+}
+
+/** Tìm các node gốc của từng nhánh logic trong Layer (những node không có cha logic trong layer) */
+function findBranchRoots(logics: WorkflowNode[], childMap: Map<string, WorkflowNode[]>): WorkflowNode[] {
+  const childIds = new Set<string>()
+  for (const list of childMap.values()) {
+    for (const c of list) childIds.add(c.id)
+  }
+  const roots = logics.filter((n) => !childIds.has(n.id))
+  roots.sort((a, b) => {
+    const pA = LOGIC_CATEGORY_PRIORITY[a.params?.logicCategory ?? ''] ?? 99
+    const pB = LOGIC_CATEGORY_PRIORITY[b.params?.logicCategory ?? ''] ?? 99
+    if (pA !== pB) return pA - pB
+    const tA = a.params?.timeStart ?? 0
+    const tB = b.params?.timeStart ?? 0
+    if (tA !== tB) return tA - tB
+    return a.id.localeCompare(b.id)
+  })
+  return roots
+}
+
+interface LogicLayoutResult {
+  nextY: number
+  centerY: number
+}
+
+/**
+ * Đệ quy tính toạ độ cho một nhánh logic:
+ * - Chuỗi tuyến tính (1 con duy nhất như Followup BBox #1 → #2 → #3): xếp THẲNG HÀNG NGANG trên cùng một hàng Y.
+ * - Rẽ nhánh (nhiều con như Part Hub → các Part Child): xếp các con dọc, cha nằm ở TRUNG TÂM của các con.
+ */
+function layoutLogicBranch(
+  node: WorkflowNode,
+  depth: number,
+  startY: number,
+  childMap: Map<string, WorkflowNode[]>,
+  hidden: Set<string>,
+  visited: Set<string>
+): LogicLayoutResult {
+  visited.add(node.id)
+  node.position = { x: WF_V2_COL_X.LOGIC + depth * 356, y: startY }
+  const rawChildren = (childMap.get(node.id) ?? []).filter((c) => !visited.has(c.id))
+  const visibleChildren = rawChildren.filter((c) => !hidden.has(c.id))
+
+  // Đặt toạ độ các con bị ẩn bằng toạ độ của cha hiển thị
+  rawChildren
+    .filter((c) => hidden.has(c.id))
+    .forEach((c) => {
+      c.position = { ...node.position }
+      visited.add(c.id)
+    })
+
+  if (visibleChildren.length === 0) {
+    return { nextY: startY + WF_V2_NODE_H + LOGIC_GAP, centerY: startY + WF_V2_NODE_H / 2 }
+  }
+
+  // Chuỗi nối tiếp tuyến tính (1 con duy nhất): giữ cùng Y để dây nối đi thẳng ngang tuyệt đẹp
+  if (visibleChildren.length === 1) {
+    const child = visibleChildren[0]
+    const childRes = layoutLogicBranch(child, depth + 1, startY, childMap, hidden, visited)
+    return { nextY: childRes.nextY, centerY: startY + WF_V2_NODE_H / 2 }
+  }
+
+  // Rẽ nhiều nhánh: các con xếp dọc, cha căn giữa theo các con
+  let childCursorY = startY
+  const centers: number[] = []
+  for (const child of visibleChildren) {
+    const res = layoutLogicBranch(child, depth + 1, childCursorY, childMap, hidden, visited)
+    centers.push(res.centerY)
+    childCursorY = res.nextY
+  }
+  const midCenter = (centers[0] + centers[centers.length - 1]) / 2
+  node.position.y = Math.round(midCenter - WF_V2_NODE_H / 2)
+  return { nextY: childCursorY, centerY: midCenter }
+}
+
+/** Sắp xếp toàn bộ các nhánh logic của một Layer và căn giữa Layer theo các nhánh */
+function layoutLayerLogics(
+  layer: WorkflowNode,
+  logics: WorkflowNode[],
+  edges: WorkflowEdge[],
+  startY: number,
+  hidden: Set<string>
+): number {
+  if (logics.length === 0) {
+    layer.position = { x: WF_V2_COL_X.LAYER, y: startY }
+    return startY + WF_V2_NODE_H + LAYER_GAP
+  }
+
+  const childMap = buildLogicChildrenMap(logics, edges)
+  const roots = findBranchRoots(logics, childMap)
+  const visited = new Set<string>()
+  let cursorY = startY
+  const branchCenters: number[] = []
+
+  for (const r of roots) {
+    if (visited.has(r.id)) continue
+    const res = layoutLogicBranch(r, 0, cursorY, childMap, hidden, visited)
+    branchCenters.push(res.centerY)
+    cursorY = res.nextY
+  }
+
+  // Bất kỳ node nào chưa được duyệt (trường hợp cạnh vòng)
+  for (const n of logics) {
+    if (!visited.has(n.id)) {
+      const res = layoutLogicBranch(n, 0, cursorY, childMap, hidden, visited)
+      branchCenters.push(res.centerY)
+      cursorY = res.nextY
+    }
+  }
+
+  // Căn giữa Layer cha theo các nhánh logic của nó
+  const midCenter = branchCenters.length
+    ? (branchCenters[0] + branchCenters[branchCenters.length - 1]) / 2
+    : startY + WF_V2_NODE_H / 2
+  layer.position = { x: WF_V2_COL_X.LAYER, y: Math.max(startY, Math.round(midCenter - WF_V2_NODE_H / 2)) }
+
+  const clusterBottom = Math.max(cursorY - LOGIC_GAP, layer.position.y + WF_V2_NODE_H)
+  return clusterBottom + LAYER_GAP
+}
+
+/** Xếp chuỗi mốc lộ trình Camera bên dưới Camera ở cột ROOT */
+function layoutCameraWaypoints(
+  cam: WorkflowNode,
+  startCamY: number,
+  edges: WorkflowEdge[],
+  byId: Map<string, WorkflowNode>
+): number {
+  cam.position = { x: WF_V2_COL_X.ROOT, y: startCamY }
+  let camBottom = startCamY + WF_V2_NODE_H
+  let wpY = startCamY + WF_V2_NODE_H + LAYER_GAP
+  const waypoints: WorkflowNode[] = []
+  let curId = cam.id
+  const visited = new Set<string>([cam.id])
+
+  while (true) {
+    const next = childrenOf(curId, edges, byId, isCameraWaypoint).find((w) => !visited.has(w.id))
+    if (!next) break
+    visited.add(next.id)
+    waypoints.push(next)
+    curId = next.id
+  }
+
+  if (cam.params?.collapsedGroup) {
+    waypoints.forEach((wp) => (wp.position = { ...cam.position }))
+    return camBottom
+  }
+
+  for (const wp of waypoints) {
+    wp.position = { x: WF_V2_COL_X.ROOT, y: wpY }
+    camBottom = Math.max(camBottom, wp.position.y + WF_V2_NODE_H)
+    wpY += WF_V2_NODE_H + LAYER_GAP
+  }
+  return camBottom
+}
+
 /** Xếp 1 cụm cảnh bắt đầu tại `startY`, trả về đáy cụm */
 function layoutCluster(
   root: WorkflowNode,
@@ -135,80 +335,51 @@ function layoutCluster(
   root.position = { x: WF_V2_COL_X.ROOT, y: startY }
   let bottom = startY + WF_V2_NODE_H
   let camCursorY = startY + WF_V2_NODE_H + LAYER_GAP
-  for (const cam of childrenOf(root.id, edges, byId, isParentCamera)) {
-    cam.position = { x: WF_V2_COL_X.ROOT, y: camCursorY }
-    bottom = Math.max(bottom, cam.position.y + WF_V2_NODE_H)
-    camCursorY += WF_V2_NODE_H + LAYER_GAP
 
-    // Xếp chuỗi các node con lộ trình quay / cảnh con ngay bên dưới Node Camera của cảnh đó
-    const waypoints: WorkflowNode[] = []
-    let curId = cam.id
-    const visited = new Set<string>([cam.id])
-    while (true) {
-      const next = childrenOf(curId, edges, byId, isCameraWaypoint).find((w) => !visited.has(w.id))
-      if (!next) break
-      visited.add(next.id)
-      waypoints.push(next)
-      curId = next.id
-    }
-    if (cam.params?.collapsedGroup) {
-      waypoints.forEach((wp) => (wp.position = { ...cam.position }))
-      continue
-    }
-    for (const wp of waypoints) {
-      wp.position = { x: WF_V2_COL_X.ROOT, y: camCursorY }
-      bottom = Math.max(bottom, wp.position.y + WF_V2_NODE_H)
-      camCursorY += WF_V2_NODE_H + LAYER_GAP
-    }
+  for (const cam of childrenOf(root.id, edges, byId, isParentCamera)) {
+    const camEnd = layoutCameraWaypoints(cam, camCursorY, edges, byId)
+    bottom = Math.max(bottom, camEnd)
+    camCursorY = camEnd + LAYER_GAP
   }
+
   let cursorY = startY
   for (const grp of childrenOf(root.id, edges, byId, isGroup)) {
     const layers = childrenOf(grp.id, edges, byId, isLayer)
-    grp.position = { x: WF_V2_COL_X.GROUP, y: cursorY }
     if (grp.params?.collapsedGroup || layers.length === 0) {
+      grp.position = { x: WF_V2_COL_X.GROUP, y: cursorY }
       layers.forEach((ln) => (ln.position = { x: WF_V2_COL_X.LAYER, y: cursorY }))
       cursorY += WF_V2_NODE_H + GROUP_GAP
       continue
     }
+
+    const startGroupLayerY = cursorY
+    const layerPositions: number[] = []
+
     for (const layer of layers) {
       if (hidden.has(layer.id)) {
         layer.position = { x: WF_V2_COL_X.LAYER, y: cursorY }
         continue
       }
-      layer.position = { x: WF_V2_COL_X.LAYER, y: cursorY }
       const logics = owners.get(layer.id) ?? []
-      const isPartChildNode = (ln: WorkflowNode): boolean => Boolean(ln.params?.isPartChild)
-      const isClusterDownstream = (ln: WorkflowNode): boolean =>
-        !isPartChildNode(ln) &&
-        edges.some((e) => e.toNode === ln.id && byId.get(e.fromNode)?.params?.logicCategory === 'cluster_lock')
-      const directLogics = logics.filter((ln) => !isClusterDownstream(ln) && !isPartChildNode(ln))
-      const clusterChildLogics = logics.filter(isClusterDownstream)
-      const partChildLogics = logics.filter(isPartChildNode)
-      directLogics.forEach((ln, idx) => (ln.position = { x: WF_V2_COL_X.LOGIC, y: cursorY + idx * (WF_V2_NODE_H + LOGIC_GAP) }))
-      clusterChildLogics.forEach(
-        (ln, idx) => (ln.position = { x: WF_V2_COL_X.LOGIC + 356, y: cursorY + idx * (WF_V2_NODE_H + LOGIC_GAP) })
-      )
-      const visiblePartChildren = partChildLogics.filter((ln) => !hidden.has(ln.id))
-      partChildLogics.forEach((ln) => {
-        if (hidden.has(ln.id)) {
-          const hub = byId.get(ln.params?.hierarchyParentNodeId ?? '')
-          ln.position = hub ? { ...hub.position } : { x: WF_V2_COL_X.LOGIC + 356 * 2, y: cursorY }
-        }
-      })
-      visiblePartChildren.forEach(
-        (ln, idx) => (ln.position = { x: WF_V2_COL_X.LOGIC + 356 * 2, y: cursorY + idx * (WF_V2_NODE_H + LOGIC_GAP) })
-      )
-      const rows = Math.max(1, directLogics.length, clusterChildLogics.length, visiblePartChildren.length)
-      cursorY += rows * WF_V2_NODE_H + (rows - 1) * LOGIC_GAP + LAYER_GAP
+      cursorY = layoutLayerLogics(layer, logics, edges, cursorY, hidden)
+      layerPositions.push(layer.position.y)
     }
+
+    // Căn giữa Group cha theo các Layer con hiển thị
+    const midGroupY = layerPositions.length
+      ? Math.round((Math.min(...layerPositions) + Math.max(...layerPositions)) / 2)
+      : startGroupLayerY
+    grp.position = { x: WF_V2_COL_X.GROUP, y: midGroupY }
     cursorY += GROUP_GAP - LAYER_GAP
   }
+
   return Math.max(bottom, cursorY - GROUP_GAP)
 }
 
 /**
- * Xếp toàn bộ không gian Workflow: các cụm cảnh xếp chồng theo thứ tự camera, mỗi cụm 4 cột căn đỉnh theo nhánh.
- * Node đã ghim (`pinned`) giữ nguyên vị trí; các thẻ còn lại được đẩy tránh đè lên nhau.
+ * Xếp toàn bộ không gian Workflow: các cụm cảnh xếp chồng theo thứ tự camera, mỗi cụm phân cấp từ trái sang phải.
+ * - Node đã ghim thủ công (`pinned: true`) giữ nguyên 100% toạ độ người dùng đã đặt.
+ * - Các thẻ còn lại tự động tính toán khoảng cách chuẩn, luồng kết nối thẳng hàng và né thẻ cố định.
  */
 export function layoutWorkflowV2Tree(nodes: WorkflowNode[], edges: WorkflowEdge[]): WorkflowNode[] {
   const pinnedPos = new Map(nodes.filter((n) => n.params?.pinned).map((n) => [n.id, { ...n.position }]))
@@ -221,14 +392,18 @@ export function layoutWorkflowV2Tree(nodes: WorkflowNode[], edges: WorkflowEdge[
   )
   const owners = assignLogicOwners(orderedLayers, edges, byId, hidden)
   let cursorY = TOP_Y
+
   for (const root of roots) {
     cursorY = layoutCluster(root, cursorY, edges, byId, owners, hidden) + CLUSTER_GAP + WF_V2_CLUSTER_HEADER
   }
+
   const ownedIds = new Set([...owners.values()].flat().map((n) => n.id))
   let orphanY = cursorY
   let timeY = TOP_Y
+
   for (const ln of cloned) {
     if (!isLogic(ln) || ownedIds.has(ln.id)) continue
+    // Node Time chung nằm ở cột riêng bên trái (-340)
     if (ln.params?.logicCategory === 'time') {
       ln.position = { x: WF_V2_TIME_COL_X, y: timeY }
       timeY += WF_V2_NODE_H + LOGIC_GAP
@@ -242,7 +417,12 @@ export function layoutWorkflowV2Tree(nodes: WorkflowNode[], edges: WorkflowEdge[
     ln.position = { x: WF_V2_COL_X.LOGIC, y: orphanY }
     orphanY += WF_V2_NODE_H + LOGIC_GAP
   }
-  for (const [id, pos] of pinnedPos) byId.get(id)!.position = pos
+
+  for (const [id, pos] of pinnedPos) {
+    const node = byId.get(id)
+    if (node) node.position = pos
+  }
+
   return pinnedPos.size ? resolveV2Overlaps(cloned, edges, new Set(pinnedPos.keys())) : cloned
 }
 
@@ -257,7 +437,10 @@ export function resolveV2Overlaps(nodes: WorkflowNode[], edges: WorkflowEdge[], 
   const hidden = resolveHiddenV2NodeIds(nodes, edges)
   const visible = nodes.filter((n) => !hidden.has(n.id))
   const placed = visible.filter((n) => fixedIds.has(n.id)).map((n) => n.position)
-  const movable = visible.filter((n) => !fixedIds.has(n.id)).sort((a, b) => a.position.y - b.position.y || a.position.x - b.position.x)
+  const movable = visible
+    .filter((n) => !fixedIds.has(n.id))
+    .sort((a, b) => a.position.y - b.position.y || a.position.x - b.position.x)
+
   for (const n of movable) {
     let guard = 0
     let hit = placed.find((p) => overlaps(p, n.position))
@@ -271,7 +454,12 @@ export function resolveV2Overlaps(nodes: WorkflowNode[], edges: WorkflowEdge[], 
 }
 
 /** Vị trí trống gần nhất cho thẻ vừa kéo thả (không đè thẻ khác), làm tròn theo lưới 8px */
-export function findFreeV2Spot(nodes: WorkflowNode[], edges: WorkflowEdge[], nodeId: string, desired: { x: number; y: number }): { x: number; y: number } {
+export function findFreeV2Spot(
+  nodes: WorkflowNode[],
+  edges: WorkflowEdge[],
+  nodeId: string,
+  desired: { x: number; y: number }
+): { x: number; y: number } {
   const hidden = resolveHiddenV2NodeIds(nodes, edges)
   const others = nodes.filter((n) => n.id !== nodeId && !hidden.has(n.id)).map((n) => n.position)
   const snap = (v: number): number => Math.round(v / 8) * 8
@@ -310,10 +498,17 @@ export function computeV2Clusters(nodes: WorkflowNode[], edges: WorkflowEdge[], 
       if (n.params?.shotId) rootByShot.set(n.params.shotId, n.id)
     }
   }
-  for (const n of nodes) if (isParentCamera(n) || isGroup(n)) clusterOf.set(n.id, parentOf(n.id, isRoot)?.id ?? (n.params?.shotId ? rootByShot.get(n.params.shotId) ?? '' : ''))
+  for (const n of nodes) {
+    if (isParentCamera(n) || isGroup(n)) {
+      clusterOf.set(n.id, parentOf(n.id, isRoot)?.id ?? (n.params?.shotId ? rootByShot.get(n.params.shotId) ?? '' : ''))
+    }
+  }
   for (const n of nodes) {
     if (isCameraWaypoint(n)) {
-      const parentCluster = clusterOf.get(n.params?.hierarchyParentNodeId ?? '') ?? (n.params?.shotId ? rootByShot.get(n.params.shotId) : '') ?? ''
+      const parentCluster =
+        clusterOf.get(n.params?.hierarchyParentNodeId ?? '') ??
+        (n.params?.shotId ? rootByShot.get(n.params.shotId) : '') ??
+        ''
       clusterOf.set(n.id, parentCluster)
     }
   }

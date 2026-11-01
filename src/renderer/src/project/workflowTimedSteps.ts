@@ -53,8 +53,7 @@ export function spawnTimedFollowupNodeV2(
       bboxStartZ: undefined,
       ...(isBboxStep(src) ? { bboxTargetScalePct: 100, collisionOnPathEnabled: false,
         bboxTargetX: (src.params?.bboxTargetX ?? 0) + 280,
-        bboxPathType: 'shortest' as const, customMotionPath: undefined } : {}),
-      pinned: true
+        bboxPathType: 'shortest' as const, customMotionPath: undefined } : {})
     }
   }
   const chained = ['action', 'collision'].includes(src.params?.logicCategory ?? '')
@@ -64,5 +63,3 @@ export function spawnTimedFollowupNodeV2(
     createdNodeId: newId
   }
 }
-
-

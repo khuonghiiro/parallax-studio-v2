@@ -49,8 +49,7 @@ export function createTimeNode(project: Project, opts: CreateTimeNodeOptions = {
       logicId: 'logic-shared-time',
       timeStart: Number(start.toFixed(2)),
       timeEnd: Number(end.toFixed(2)),
-      timeGroupColor: color,
-      pinned: true
+      timeGroupColor: color
     }
   }
 }
