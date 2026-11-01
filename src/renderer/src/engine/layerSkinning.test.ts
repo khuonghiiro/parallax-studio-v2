@@ -167,4 +167,29 @@ describe('2D mesh skinning', () => {
       expect(out[v * 3 + 1]).toBeCloseTo(pos[v * 3 + 1], 5)
     }
   })
+
+  it('preserves joint volume and limb cross-section thickness at sharp 90-degree bend', () => {
+    const legRig: LayerRig = {
+      duration: 1,
+      loop: false,
+      bones: [
+        { id: 'b-thigh', name: 'Thigh', x: 0, y: 0, length: 50, angle: 90 },
+        { id: 'b-calf', name: 'Calf', parentId: 'b-thigh', x: 0, y: 50, length: 50, angle: 90 }
+      ],
+      tracks: {
+        'b-calf': [{ time: 0.5, x: 0, y: 0, rotation: -90, easing: 'linear' }]
+      }
+    }
+    const kneeVertex = new Float32Array([12, -50, 0])
+    const out = deformSkin(
+      kneeVertex,
+      { boneId: 'b-thigh', x: 0, y: 0, rotation: 0, scale: 1 },
+      legRig,
+      0.5
+    )
+    const jointPos = { x: 0, y: -50 }
+    const deformedRadius = Math.hypot(out[0] - jointPos.x, out[1] - jointPos.y)
+    expect(deformedRadius).toBeGreaterThan(11.0)
+    expect(deformedRadius).toBeLessThanOrEqual(13.0)
+  })
 })

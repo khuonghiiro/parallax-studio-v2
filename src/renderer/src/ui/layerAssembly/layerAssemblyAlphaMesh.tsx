@@ -165,17 +165,39 @@ export function getLayerContourCells(
 }
 
 /**
+ * Tính số cột và hàng lưới đa giác thích ứng theo kích thước ảnh (bảo đảm khớp gập có đủ độ phân giải mịn).
+ */
+export function computeAdaptiveMeshSubdivision(
+  width: number,
+  height: number,
+  preferredCols?: number,
+  preferredRows?: number
+): { cols: number; rows: number } {
+  if (preferredCols !== undefined && preferredRows !== undefined) {
+    return { cols: preferredCols, rows: preferredRows }
+  }
+  const cellSize = 22
+  const cols = preferredCols ?? Math.max(16, Math.min(36, Math.round(width / cellSize)))
+  const rows = preferredRows ?? Math.max(20, Math.min(56, Math.round(height / cellSize)))
+  return { cols, rows }
+}
+
+/**
  * Tạo BufferGeometry 3D bám sát pixel đục (loại bỏ pixel trong suốt) cho Three.js với bộ đệm cache O(1).
  */
 export function createLayerAlphaTrimmedGeometry(
   width: number,
   height: number,
   image: HTMLImageElement | HTMLCanvasElement | boolean[][] | null | undefined,
-  cols = 16,
-  rows = 20
+  cols?: number,
+  rows?: number
 ): THREE.BufferGeometry {
+  const sub = computeAdaptiveMeshSubdivision(width, height, cols, rows)
+  const effectiveCols = sub.cols
+  const effectiveRows = sub.rows
+
   if (!image) {
-    const fallback = new THREE.PlaneGeometry(width, height, cols, rows)
+    const fallback = new THREE.PlaneGeometry(width, height, effectiveCols, effectiveRows)
     const pos = fallback.getAttribute('position')
     if (pos) {
       fallback.userData = { basePositions: new Float32Array(pos.array as Float32Array), width, height }
@@ -187,7 +209,7 @@ export function createLayerAlphaTrimmedGeometry(
     let cacheKey: string | null = null
 
     if (typeof HTMLImageElement !== 'undefined' && image instanceof HTMLImageElement && image.src) {
-      cacheKey = makeFastImageCacheKey(image.src, cols, rows)
+      cacheKey = makeFastImageCacheKey(image.src, effectiveCols, effectiveRows)
       cells = cellsCache.get(cacheKey)
     } else if (!Array.isArray(image) && typeof image === 'object') {
       let objId = canvasObjectIds.get(image)
@@ -195,7 +217,7 @@ export function createLayerAlphaTrimmedGeometry(
         objId = `canvas#${nextCanvasObjSeq++}`
         canvasObjectIds.set(image, objId)
       }
-      cacheKey = `${objId}_${cols}x${rows}`
+      cacheKey = `${objId}_${effectiveCols}x${effectiveRows}`
       cells = cellsCache.get(cacheKey)
     }
 
@@ -203,7 +225,7 @@ export function createLayerAlphaTrimmedGeometry(
       const silhouette = Array.isArray(image)
         ? silhouetteFromBoolGrid(image, image[0]?.length ?? 1, image.length)
         : getImageSilhouette(image, true)
-      cells = silhouette ? computeContourCells(cols, rows, silhouette, 0, true) : []
+      cells = silhouette ? computeContourCells(effectiveCols, effectiveRows, silhouette, 0, true) : []
       if (cacheKey) {
         storeCellsCache(cacheKey, cells)
       }

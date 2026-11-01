@@ -257,9 +257,7 @@ export function createLayer3DInstance(
           mesh.geometry = createLayerAlphaTrimmedGeometry(
             w,
             h,
-            texture?.image as HTMLImageElement,
-            16,
-            20
+            texture?.image as HTMLImageElement
           )
           if (wireframeMesh) {
             wireframeMesh.geometry = mesh.geometry
@@ -273,13 +271,7 @@ export function createLayer3DInstance(
 
   const { w, h } = computePlaneDimensions(texture)
   // Lưới đa giác bám sát pixel đục (alpha silhouette), triệt tiêu pixel trong suốt
-  const geom = createLayerAlphaTrimmedGeometry(
-    w,
-    h,
-    texture?.image as HTMLImageElement,
-    16,
-    20
-  )
+  const geom = createLayerAlphaTrimmedGeometry(w, h, texture?.image as HTMLImageElement)
 
   const opacity = Math.max(0, Math.min(1, layer.opacity ?? 1))
   const material = new THREE.MeshLambertMaterial({
@@ -369,13 +361,7 @@ export function updateLayerInstanceTexture(
     if (getTextureDimensions(texture)) {
       const { w, h } = computePlaneDimensions(texture)
       inst.mesh.geometry.dispose()
-      inst.mesh.geometry = createLayerAlphaTrimmedGeometry(
-        w,
-        h,
-        texture?.image as HTMLImageElement,
-        16,
-        20
-      )
+      inst.mesh.geometry = createLayerAlphaTrimmedGeometry(w, h, texture?.image as HTMLImageElement)
       if (inst.wireframeMesh) {
         inst.wireframeMesh.geometry = inst.mesh.geometry
       }
@@ -405,13 +391,7 @@ export function updateLayerInstanceTexture(
     if (getTextureDimensions(texture)) {
       const { w, h } = computePlaneDimensions(texture)
       inst.mesh.geometry.dispose()
-      inst.mesh.geometry = createLayerAlphaTrimmedGeometry(
-        w,
-        h,
-        texture?.image as HTMLImageElement,
-        16,
-        20
-      )
+      inst.mesh.geometry = createLayerAlphaTrimmedGeometry(w, h, texture?.image as HTMLImageElement)
       if (inst.wireframeMesh) {
         inst.wireframeMesh.geometry = inst.mesh.geometry
       }

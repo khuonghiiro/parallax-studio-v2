@@ -96,13 +96,21 @@ function buildCorridorWeights(
       for (let s = lo; s <= hi; s++) {
         const b = chain[s]
         const end = ends[s]
-        const len2 = b.length * b.length || 1
+        const len = b.length
+        const len2 = len * len || 1
         const rawT = ((x - b.x) * end.x + (y - b.y) * end.y) / len2
-        const t = Math.max(0, Math.min(1, rawT))
-        const distance = Math.hypot(x - b.x - t * end.x, y - b.y - t * end.y)
+        const perpX = x - b.x - rawT * end.x
+        const perpY = y - b.y - rawT * end.y
+        const dPerp = Math.hypot(perpX, perpY)
+        let dAxial = 0
+        if (!b.pin) {
+          if (rawT < 0) dAxial = -rawT * len
+          else if (rawT > 1) dAxial = (rawT - 1) * len
+        }
         const sMult = Math.max(0.1, b.strength ?? 1)
-        const radius = Math.max(1, b.length * 0.15 * sMult)
-        const affinity = (sMult * sMult) / (distance * distance + radius * radius) ** 2
+        const radius = Math.max(1, len * 0.15 * sMult)
+        const dEff2 = dPerp * dPerp + 5.0 * dAxial * dAxial
+        const affinity = (sMult * sMult) / (dEff2 + radius * radius) ** 2
         active.push({ id: b.id, raw: cw * affinity, cw })
       }
     }
@@ -186,16 +194,46 @@ export function skinBones(rig: LayerRig, root?: string, extraRoots?: string[]) {
 }
 
 export function skinWeights(x: number, y: number, bones: LayerRig['bones']): SkinInfluence[] {
-  const weights = bones.map((b) => {
-    const end = rotatePoint(b.length, 0, b.angle)
-    const t = Math.max(0, Math.min(1, ((x - b.x) * end.x + (y - b.y) * end.y) / (b.length * b.length)))
-    const distance = Math.hypot(x - b.x - t * end.x, y - b.y - t * end.y)
-    const sMult = Math.max(0.1, b.strength ?? 1)
-    const radius = Math.max(1, b.length * 0.15 * sMult)
-    return { id: b.id, weight: (sMult * sMult) / (distance * distance + radius * radius) ** 2 }
-  }).sort((a, b) => b.weight - a.weight).slice(0, 4)
-  const sum = weights.reduce((s, w) => s + w.weight, 0)
+  const weights = bones
+    .map((b) => {
+      const end = rotatePoint(b.length, 0, b.angle)
+      const len = b.length
+      const len2 = len * len || 1
+      const rawT = ((x - b.x) * end.x + (y - b.y) * end.y) / len2
+      const perpX = x - b.x - rawT * end.x
+      const perpY = y - b.y - rawT * end.y
+      const dPerp = Math.hypot(perpX, perpY)
+      let dAxial = 0
+      if (!b.pin) {
+        if (rawT < 0) dAxial = -rawT * len
+        else if (rawT > 1) dAxial = (rawT - 1) * len
+      }
+      const sMult = Math.max(0.1, b.strength ?? 1)
+      const radius = Math.max(1, len * 0.15 * sMult)
+      const dEff2 = dPerp * dPerp + 5.0 * dAxial * dAxial
+      return { id: b.id, weight: (sMult * sMult) / (dEff2 + radius * radius) ** 2 }
+    })
+    .sort((a, b) => b.weight - a.weight)
+    .slice(0, 4)
+  const sum = weights.reduce((s, w) => s + w.weight, 0) || 1
   return weights.map((w) => ({ id: w.id, weight: w.weight / sum }))
+}
+
+function findJointCenter(
+  b0: LayerRig['bones'][number],
+  b1: LayerRig['bones'][number],
+  tf0: import('./layerRig').BoneTransform,
+  tf1: import('./layerRig').BoneTransform
+): { restX: number; restY: number; curX: number; curY: number } {
+  if (b1.parentId === b0.id) {
+    return { restX: b1.x, restY: b1.y, curX: tf1.x, curY: tf1.y }
+  }
+  if (b0.parentId === b1.id) {
+    return { restX: b0.x, restY: b0.y, curX: tf0.x, curY: tf0.y }
+  }
+  const child = b1.parentId ? b1 : b0
+  const tf = b1.parentId ? tf1 : tf0
+  return { restX: child.x, restY: child.y, curX: tf.x, curY: tf.y }
 }
 
 /** Returns local Y-up mesh positions; bind coordinates and bone transforms are Y-down. */
@@ -279,19 +317,38 @@ export function deformSkin(
       const transform = transforms.get(influence.id)
       const bone = boneById.get(influence.id)
       if (!transform || !bone) continue
-      const delta = rotatePoint(
-        (wx - bone.x) * (transform.scaleX ?? 1),
-        (wy - bone.y) * (transform.scaleY ?? 1),
-        transform.rotation
-      )
-      x += (transform.x + delta.x) * influence.weight
-      y += (transform.y + delta.y) * influence.weight
-      totalW += influence.weight
+      const scaleX = transform.scaleX ?? 1
+      const scaleY = transform.scaleY ?? 1
+      const dxRel = (wx - bone.x) * scaleX
+      const dyRel = (wy - bone.y) * scaleY
+      const delta = rotatePoint(dxRel, dyRel, transform.rotation)
+      const ptX = transform.x + delta.x
+      const ptY = transform.y + delta.y
+      const w = influence.weight
+      x += ptX * w
+      y += ptY * w
+      totalW += w
     }
     if (totalW <= 1e-6) continue
     if (totalW < 1) {
       x += wx * (1 - totalW)
       y += wy * (1 - totalW)
+    } else if (influences.length > 1 && influences[0].weight < 0.96) {
+      // Bù trừ thể tích khớp (Volume-Preserving Joint Compensation): bảo tồn bán kính vòng khớp, triệt tiêu sập khớp LBS
+      const b0 = boneById.get(influences[0].id)
+      const b1 = boneById.get(influences[1].id)
+      const tf0 = transforms.get(influences[0].id)
+      const tf1 = transforms.get(influences[1].id)
+      if (b0 && b1 && tf0 && tf1) {
+        const joint = findJointCenter(b0, b1, tf0, tf1)
+        const restRadius = Math.hypot(wx - joint.restX, wy - joint.restY)
+        const curRadius = Math.hypot(x - joint.curX, y - joint.curY)
+        if (restRadius > 1.5 && curRadius > 0.5 && curRadius < restRadius) {
+          const factor = Math.min(1.55, restRadius / curRadius)
+          x = joint.curX + (x - joint.curX) * factor
+          y = joint.curY + (y - joint.curY) * factor
+        }
+      }
     }
     const dx = x - curBx
     const dy = y - curBy
