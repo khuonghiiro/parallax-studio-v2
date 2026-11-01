@@ -184,11 +184,9 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
     }, 'wf-spawn-bbox2')
   }, [coordRefLayer, mp, motionNode, patchMotionNode, onSelectNode, update, node.id])
 
-  if (!selectedProjLayer || !coordRefLayer) return null
-
-  const tStart = mp?.timeStart ?? coordRefLayer.inPoint ?? 0
+  const tStart = mp?.timeStart ?? coordRefLayer?.inPoint ?? 0
   const tEnd = mp?.timeEnd ?? Number((tStart + 3).toFixed(2))
-  const startPos: Vec3 = bboxStartPosition(coordRefLayer, tStart, motionNode?.id)
+  const startPos: Vec3 = coordRefLayer ? bboxStartPosition(coordRefLayer, tStart, motionNode?.id) : [0, 0, 0]
   const refD = 1483.64
   const pFactorStart = refD / Math.max(80, refD + (startPos[2] ?? 0))
 
@@ -323,7 +321,7 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
   }, [mp?.targetLayerIds, motionNode, workflow, project, coordRefLayer, layers2D, selectedProjLayer])
 
   const primaryEntity =
-    connectedEntities.find((e) => e.rootLayer.id === coordRefLayer.id) ?? connectedEntities[0]
+    connectedEntities.find((e) => coordRefLayer && e.rootLayer.id === coordRefLayer.id) ?? connectedEntities[0]
 
   const ENT_ACCENTS = ['#f59e0b', '#38bdf8', '#10b981', '#ec4899', '#a855f7', '#f97316']
 
@@ -644,6 +642,8 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
       return 0
     })
   }, [renderedEntities, isMultiEntity, focusedEntityId])
+
+  if (!selectedProjLayer || !coordRefLayer) return null
 
   return (
     <>

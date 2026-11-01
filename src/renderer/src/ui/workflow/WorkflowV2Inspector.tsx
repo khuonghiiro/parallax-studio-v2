@@ -241,6 +241,11 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
         : { parentKind: 'other' as const, categories: [], dynamicParts: [] },
     [node, project]
   )
+  const nodeLevel = node ? resolveV2NodeLevel(node) : null
+  const linkedEnts = useMemo(
+    () => (node && nodeLevel === 'logic' ? resolveLinkedEntities(node, project, workflow) : []),
+    [node, nodeLevel, project, workflow]
+  )
 
   const toggleDirectStage = (): void => {
     setDirectStageOpen((prev) => {
@@ -393,10 +398,6 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
   const motionTriggerSrc = logicCat === 'part_swap' && !node.params?.isPartHub ? findLinkedMotionNodeForPart(project, node) : undefined
   const timeLocked = level === 'root' || Boolean(source) || Boolean(motionTriggerSrc)
   const childCount = workflow.edges.filter((e) => e.fromNode === node.id).length
-  const linkedEnts = useMemo(
-    () => (level === 'logic' ? resolveLinkedEntities(node, project, workflow) : []),
-    [level, node, project, workflow]
-  )
   const linked = logicCat === 'time'
     ? workflow.edges.filter(e => e.fromNode === node.id && e.fromPort === 'time_range' && !e.disabled).map(e => workflow.nodes.find(n => n.id === e.toNode)?.title ?? e.toNode)
     : level === 'logic' ? (linkedEnts.length > 0 ? linkedEnts.map(e => e.name) : linkedLayerNames(node, project)) : []

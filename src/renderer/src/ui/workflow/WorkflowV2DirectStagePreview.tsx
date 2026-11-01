@@ -123,11 +123,22 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
   const isWaypointNode = Boolean(node.params?.isCameraWaypoint)
   const isClusterLockNode = node.params?.logicCategory === 'cluster_lock'
   const hasBboxMotion = node.params?.logicCategory === 'action' && (node.params?.motionMode === 'bbox' || node.params?.actionPreset === 'bbox_target')
-  const repLayerId =
-    (node.params?.activeMotionTargetEntityId as string | undefined) ??
-    node.params?.targetLayerIds?.[0] ??
-    null
-  const activeLayerObj = repLayerId ? project.layers.find((l) => l.id === repLayerId) : undefined
+  const targetEntityParam = node.params?.activeMotionTargetEntityId as string | undefined
+  const preferredEntityId = targetEntityParam && targetEntityParam !== 'all' ? targetEntityParam : undefined
+  const repLayerId = preferredEntityId ?? node.params?.targetLayerIds?.[0] ?? null
+  const activeLayerObj = useMemo(() => {
+    if (!repLayerId) return undefined
+    const byId = project.layers.find((l) => l.id === repLayerId)
+    if (byId) return byId
+    const byCluster = project.layers.find(
+      (l) => l.composite?.instanceId === repLayerId || l.model3d?.instanceId === repLayerId
+    )
+    if (byCluster) return byCluster
+    if (node.params?.targetLayerIds?.[0]) {
+      return project.layers.find((l) => l.id === node.params?.targetLayerIds?.[0])
+    }
+    return undefined
+  }, [project.layers, repLayerId, node.params?.targetLayerIds])
 
   const clusterInstId =
     node.params?.instanceId ??
