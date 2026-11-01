@@ -161,56 +161,59 @@ export const WorkflowV2Toolbar: React.FC<WorkflowV2ToolbarProps> = (props) => {
         >
           <span className={`wf-v2-scope-dot${isolateShotPlayback ? ' active' : ''}`} />
           <span className="wf-v2-scope-isolate-txt">
-            {isAll ? '⏱️ Chạy khoảng time' : '🎯 Duy nhất cảnh'}
+            {isAll ? '⏱️ Khoanh vùng' : '🎯 Duy nhất'}
           </span>
         </button>
 
-        {isAll ? (
-          <div className="wf-v2-scope-range" role="group" aria-label="Khoảng thời gian phát toàn cảnh">
-            <span className="wf-v2-scope-range-lbl">Từ</span>
-            <input
-              type="number"
-              className="wf-v2-scope-time-input"
-              min={0}
-              max={compDur}
-              step={0.1}
-              value={customPlaybackRange?.start ?? 0}
-              onChange={(e) => handleStartChange(e.target.value)}
-              title="Thời gian bắt đầu phát (giây)"
-            />
-            <span className="wf-v2-scope-range-sep">→</span>
-            <span className="wf-v2-scope-range-lbl">Đến</span>
-            <input
-              type="number"
-              className="wf-v2-scope-time-input"
-              min={0}
-              max={compDur}
-              step={0.1}
-              value={customPlaybackRange?.end ?? compDur}
-              onChange={(e) => handleEndChange(e.target.value)}
-              title="Thời gian kết thúc phát (giây)"
-            />
-            <span className="wf-v2-scope-unit">s</span>
-          </div>
-        ) : shotRange ? (
-          <div
-            className="wf-v2-scope-shot-range"
-            role="button"
-            tabIndex={0}
-            title={`Cảnh #${activeShotItem ? activeShotItem.index + 1 : ''}: ${shotRange.start.toFixed(1)}s – ${shotRange.end.toFixed(1)}s. Nhấp để nhảy về đầu cảnh.`}
-            onClick={() => setTime(shotRange.start)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') setTime(shotRange.start)
-            }}
-          >
-            <span className="wf-v2-scope-time-badge">
-              {shotRange.start.toFixed(1)}s – {shotRange.end.toFixed(1)}s
-            </span>
-            <span className="wf-v2-scope-time-dur">
-              ({(shotRange.end - shotRange.start).toFixed(1)}s)
-            </span>
-          </div>
-        ) : null}
+        {/* Chỉ hiển thị khoảng thời gian khi đang BẬT chế độ khoanh vùng / duy nhất cảnh để giữ giao diện gọn gàng */}
+        {isolateShotPlayback && (
+          isAll ? (
+            <div className="wf-v2-scope-range" role="group" aria-label="Khoảng thời gian phát toàn cảnh">
+              <span className="wf-v2-scope-range-lbl">Từ</span>
+              <input
+                type="number"
+                className="wf-v2-scope-time-input"
+                min={0}
+                max={compDur}
+                step={0.1}
+                value={customPlaybackRange?.start ?? 0}
+                onChange={(e) => handleStartChange(e.target.value)}
+                title="Thời gian bắt đầu phát (giây)"
+              />
+              <span className="wf-v2-scope-range-sep">→</span>
+              <span className="wf-v2-scope-range-lbl">Đến</span>
+              <input
+                type="number"
+                className="wf-v2-scope-time-input"
+                min={0}
+                max={compDur}
+                step={0.1}
+                value={customPlaybackRange?.end ?? compDur}
+                onChange={(e) => handleEndChange(e.target.value)}
+                title="Thời gian kết thúc phát (giây)"
+              />
+              <span className="wf-v2-scope-unit">s</span>
+            </div>
+          ) : shotRange ? (
+            <div
+              className="wf-v2-scope-shot-range"
+              role="button"
+              tabIndex={0}
+              title={`Cảnh #${activeShotItem ? activeShotItem.index + 1 : ''}: ${shotRange.start.toFixed(1)}s – ${shotRange.end.toFixed(1)}s. Nhấp để nhảy về đầu cảnh.`}
+              onClick={() => setTime(shotRange.start)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') setTime(shotRange.start)
+              }}
+            >
+              <span className="wf-v2-scope-time-badge">
+                {shotRange.start.toFixed(1)}s – {shotRange.end.toFixed(1)}s
+              </span>
+              <span className="wf-v2-scope-time-dur">
+                ({(shotRange.end - shotRange.start).toFixed(1)}s)
+              </span>
+            </div>
+          ) : null
+        )}
       </div>
 
       <div className="wf-v2-toolbar-actions">

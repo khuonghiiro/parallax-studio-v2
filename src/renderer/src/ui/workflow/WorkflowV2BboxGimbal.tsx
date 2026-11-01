@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 
 export interface WorkflowV2BboxGimbalProps {
   cx: number
@@ -35,6 +35,7 @@ export const WorkflowV2BboxGimbal: React.FC<WorkflowV2BboxGimbalProps> = ({
   onStartDrag
 }) => {
   const [activeAxis, setActiveAxis] = useState<'z' | 'y' | 'x' | null>(null)
+  const svgRef = useRef<SVGSVGElement | null>(null)
   const r = Math.max(38, Math.min(112, Math.round(Math.hypot(boxW, boxH) * 0.46)))
   const safeZoom = Math.max(0.02, zoom)
 
@@ -46,14 +47,19 @@ export const WorkflowV2BboxGimbal: React.FC<WorkflowV2BboxGimbalProps> = ({
 
     const sx = e.clientX
     const sy = e.clientY
-    const startAngle = Math.atan2(e.clientY - cy, e.clientX - cx)
+
+    // Tính tâm xoay thực tế trên viewport màn hình (screen client coords) để Math.atan2 chuẩn xác 100%
+    const rect = svgRef.current?.getBoundingClientRect()
+    const screenCx = (rect?.left ?? 0) + cx
+    const screenCy = (rect?.top ?? 0) + cy
+    const startAngle = Math.atan2(e.clientY - screenCy, e.clientX - screenCx)
     const initialZ = rotZ
     const initialY = rotY
     const initialX = rotX
 
     const onMove = (pev: PointerEvent): void => {
       if (axis === 'z') {
-        const curAngle = Math.atan2(pev.clientY - cy, pev.clientX - cx)
+        const curAngle = Math.atan2(pev.clientY - screenCy, pev.clientX - screenCx)
         const deltaDeg = Math.round(((curAngle - startAngle) * 180) / Math.PI)
         let nextZ = Math.round((initialZ + deltaDeg) % 360)
         if (nextZ > 180) nextZ -= 360
@@ -96,6 +102,7 @@ export const WorkflowV2BboxGimbal: React.FC<WorkflowV2BboxGimbalProps> = ({
       }}
     >
       <svg
+        ref={svgRef}
         className="wf-v2-bbox-gimbal-svg"
         style={{
           position: 'absolute',
@@ -257,21 +264,34 @@ export const WorkflowV2BboxGimbal: React.FC<WorkflowV2BboxGimbalProps> = ({
       >
         <span
           style={{ color: '#38bdf8', fontWeight: 600, cursor: 'pointer' }}
-          title="Góc xoay Z (Roll): Kéo vòng tròn cyan bên ngoài"
+          title="Nhấp để xoay Z +15° (hoặc kéo vòng tròn cyan quanh BBox)"
+          onClick={() => {
+            let nextZ = Math.round((rotZ + 15) % 360)
+            if (nextZ > 180) nextZ -= 360
+            onRotate(nextZ, rotY, rotX)
+          }}
         >
           ↻ Z: {rotZ}°
         </span>
         <span style={{ opacity: 0.35 }}>|</span>
         <span
           style={{ color: '#10b981', fontWeight: 600, cursor: 'pointer' }}
-          title="Góc nghiêng Y (Yaw): Kéo elip đứng màu xanh lục"
+          title="Nhấp để lật Y +15° (hoặc kéo elip đứng màu xanh)"
+          onClick={() => {
+            const nextY = Math.max(-80, Math.min(80, rotY + 15))
+            onRotate(rotZ, nextY, rotX)
+          }}
         >
           ↔ Y: {rotY}°
         </span>
         <span style={{ opacity: 0.35 }}>|</span>
         <span
           style={{ color: '#f43f5e', fontWeight: 600, cursor: 'pointer' }}
-          title="Góc ngửa cúi X (Pitch): Kéo elip ngang màu đỏ"
+          title="Nhấp để ngửa X +15° (hoặc kéo elip ngang màu đỏ)"
+          onClick={() => {
+            const nextX = Math.max(-80, Math.min(80, rotX + 15))
+            onRotate(rotZ, rotY, nextX)
+          }}
         >
           ↕ X: {rotX}°
         </span>

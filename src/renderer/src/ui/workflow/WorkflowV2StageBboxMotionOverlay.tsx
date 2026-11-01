@@ -1,6 +1,7 @@
 import { WorkflowMotionStageTools } from './WorkflowMotionStageTools'
 import { WorkflowMotionIcon } from './WorkflowMotionIcons'
 import { WorkflowV2BboxGimbal } from './WorkflowV2BboxGimbal'
+import { WorkflowV2StageEntityTags } from './WorkflowV2StageEntityTags'
 import { resolveMotionMode } from '../../project/workflowMotionMode'
 import { useShiftToFocus } from './workflowFocusGuard'
 import { bboxStartPosition, bboxStartScale } from '../../project/workflowMotionStart'
@@ -210,12 +211,30 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
     if (mp?.targetLayerIds?.length) {
       for (const id of mp.targetLayerIds) ids.add(id)
     }
+    if (mp?.sharedLayerNodeIds?.length) {
+      for (const nid of mp.sharedLayerNodeIds) {
+        if (nid.startsWith('v2-layer-')) ids.add(nid.slice('v2-layer-'.length))
+        const nObj = workflow.nodes.find((n) => n.id === nid)
+        const nodeLayerId = nObj?.params?.rootLayerId ?? (nObj?.params as Record<string, any> | undefined)?.layerId
+        if (nodeLayerId) ids.add(nodeLayerId)
+        if (nObj?.params?.instanceId) {
+          const members = getClusterMemberLayers(project, nObj.params.instanceId)
+          for (const m of members) ids.add(m.id)
+        }
+      }
+    }
     if (motionNode) {
       const inEdges = workflow.edges.filter((e) => e.toNode === motionNode.id && !e.disabled)
       for (const e of inEdges) {
         const srcNode = workflow.nodes.find((n) => n.id === e.fromNode)
         if (srcNode?.params?.targetLayerIds?.length) {
           for (const id of srcNode.params.targetLayerIds) ids.add(id)
+        }
+        const srcLayerId = srcNode?.params?.rootLayerId ?? (srcNode?.params as Record<string, any> | undefined)?.layerId
+        if (srcLayerId) {
+          ids.add(srcLayerId)
+        } else if (srcNode?.id?.startsWith('v2-layer-')) {
+          ids.add(srcNode.id.slice('v2-layer-'.length))
         }
         if (srcNode?.params?.instanceId) {
           const members = getClusterMemberLayers(project, srcNode.params.instanceId)
@@ -617,6 +636,16 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
     return primaryEntity?.id ?? renderedEntities[0]?.ent.id
   }, [isMultiEntity, localFocusedId, mp?.activeMotionTargetEntityId, primaryEntity?.id, renderedEntities])
 
+  // Đảm bảo entity đang focus luôn được render sau cùng trong DOM để nằm trên cùng, không bị layer to hơn che khuất
+  const displayEntities = useMemo(() => {
+    if (!isMultiEntity) return renderedEntities
+    return [...renderedEntities].sort((a, b) => {
+      if (a.ent.id === focusedEntityId) return 1
+      if (b.ent.id === focusedEntityId) return -1
+      return 0
+    })
+  }, [renderedEntities, isMultiEntity, focusedEntityId])
+
   return (
     <>
       {motionNode?.id === node.id && (hasBboxMotion || resolveMotionMode(mp ?? {}) === 'path') && (
@@ -687,32 +716,6 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
                   strokeLinejoin="round"
                   points={item.pathPts.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ')}
                 />
-                {isFocused &&
-                  [0.33, 0.66].map((uStep) => {
-                    const pIdx = Math.min(
-                      item.pathPts.length - 1,
-                      Math.round(uStep * (item.pathPts.length - 1))
-                    )
-                    const [mx, my] = item.pathPts[pIdx]
-                    const stepRatio = 1 + (item.entScaleRatio - 1) * uStep
-                    const sw = Math.max(12, item.baseW * stepRatio)
-                    const sh = Math.max(12, item.baseH * stepRatio)
-                    return (
-                      <rect
-                        key={`step-${item.ent.id}-${uStep}`}
-                        x={mx - sw / 2}
-                        y={my - sh / 2}
-                        width={sw}
-                        height={sh}
-                        rx={3}
-                        fill="none"
-                        stroke={item.accentColor}
-                        strokeOpacity={0.35}
-                        strokeWidth={1}
-                        strokeDasharray="2 2"
-                      />
-                    )
-                  })}
                 <circle
                   cx={item.box1Cx}
                   cy={item.box1Cy}
@@ -737,10 +740,23 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
         </svg>
       )}
 
-      {/* Khung BBox đích cho từng Layer/Cụm kết nối. Khi có 2+ layer, chỉ entity được focus mới hiện đầy đủ handle, các entity còn lại hiện bóng mờ tinh tế */}
+      {/* Khi có 2+ layer kết nối, hiển thị thanh Chip Tag ở góc trên của Stage để chọn ngay BBox, không lo bị layer to che khuất */}
+      {hasBboxMotion && isMultiEntity && (
+        <WorkflowV2StageEntityTags
+          entities={renderedEntities}
+          focusedEntityId={focusedEntityId}
+          onSelectEntity={(id) => {
+            setLocalFocusedId(id)
+            patchMotionNode({ activeMotionTargetEntityId: id }, 'wf-stage-focus-bbox')
+          }}
+        />
+      )}
+
+      {/* Khung BBox đích cho từng Layer/Cụm kết nối. Dùng displayEntities để entity được focus luôn render sau cùng, nằm trên cùng */}
       {hasBboxMotion &&
-        renderedEntities.map((item) => {
+        displayEntities.map((item) => {
           const isFocused = !isMultiEntity || item.ent.id === focusedEntityId
+          const shortName = item.ent.name.length > 11 ? `${item.ent.name.slice(0, 9)}…` : item.ent.name
 
           return (
             <div
@@ -762,7 +778,7 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
                 boxShadow: isFocused
                   ? `0 0 0 1px rgba(15, 23, 42, 0.65), 0 0 16px color-mix(in srgb, ${item.accentColor} 40%, transparent)`
                   : 'none',
-                zIndex: isFocused ? 32 : 25,
+                zIndex: isFocused ? 35 : 25,
                 cursor: isFocused ? 'move' : 'pointer',
                 transform: `rotateZ(${item.entRotZ}deg) rotateY(${item.entRotY}deg) rotateX(${item.entRotX}deg)`,
                 transformOrigin: '50% 50%',
@@ -811,14 +827,19 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
                 />
               )}
 
-              {/* Tag nhãn: Nếu đang focus thì hiển thị đầy đủ, nếu là bóng mờ thì hiển thị nhãn mini mờ nhẹ */}
+              {/* Tag nhãn: Tên rút gọn gàng, không dài tràn viền, hỗ trợ nhấp trực tiếp vào nhãn mờ để chọn BBox */}
               {isFocused ? (
                 <span
                   className="wf-v2-direct-bbox-tag"
+                  title={item.ent.name}
                   style={{
                     top: item.box2Top < 18 ? 2 : -17,
                     right: 0,
                     left: 'auto',
+                    maxWidth: 125,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
                     background: `color-mix(in srgb, ${item.accentColor} 84%, #0f172a)`,
                     color: '#ffffff',
                     boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
@@ -826,24 +847,36 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
                   }}
                 >
                   #{bboxStepNumber(workflow, motionNode?.id ?? node.id) + 1} Đích
-                  {isMultiEntity ? ` · ${item.ent.name}` : ''}
+                  {isMultiEntity ? ` · ${shortName}` : ''}
                 </span>
               ) : (
                 <span
                   className="wf-v2-direct-bbox-tag is-ghost-silhouette"
+                  title={`Nhấp để chọn BBox "${item.ent.name}"`}
                   style={{
                     top: item.box2Top < 18 ? 2 : -15,
                     right: 0,
                     left: 'auto',
-                    background: 'rgba(15, 23, 42, 0.70)',
-                    color: 'rgba(255, 255, 255, 0.75)',
+                    maxWidth: 105,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    background: 'rgba(15, 23, 42, 0.85)',
+                    color: 'rgba(255, 255, 255, 0.85)',
                     fontSize: 8,
-                    padding: '0 4px',
-                    border: `1px solid color-mix(in srgb, ${item.accentColor} 35%, transparent)`,
-                    pointerEvents: 'none'
+                    padding: '0 5px',
+                    border: `1px solid color-mix(in srgb, ${item.accentColor} 50%, transparent)`,
+                    pointerEvents: 'auto',
+                    cursor: 'pointer',
+                    zIndex: 42
+                  }}
+                  onPointerDown={(e) => {
+                    e.stopPropagation()
+                    setLocalFocusedId(item.ent.id)
+                    patchMotionNode({ activeMotionTargetEntityId: item.ent.id }, 'wf-stage-focus-bbox')
                   }}
                 >
-                  {item.ent.name} (Bóng mờ)
+                  {shortName} (Mờ)
                 </span>
               )}
 

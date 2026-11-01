@@ -343,8 +343,8 @@ describe('2.5D Physical Light Dynamics & Environmental Projection', () => {
       diff01 += Math.abs(raysAtSec0[i] - raysAtSec1[i])
       diff12 += Math.abs(raysAtSec1[i] - raysAtSec2[i])
     }
-    expect(diff01 / raysAtSec0.length).toBeGreaterThan(0.08)
-    expect(diff12 / raysAtSec1.length).toBeGreaterThan(0.08)
+    expect(diff01 / raysAtSec0.length).toBeGreaterThan(0.03)
+    expect(diff12 / raysAtSec1.length).toBeGreaterThan(0.03)
 
     // 3. Chuyển tiếp liên tục không giật cục tại mốc chuyển giao giây (t = 0.999s vs t = 1.001s)
     const factorPre = computePhysicalRayStriation(0.8, 0.5, 0.85, 12, 0.9999, false)

@@ -50,6 +50,9 @@ export function BboxMotionTargetSection({ model }: { model: BboxMotionModel }): 
       : targetY
   )
   const activeTargetScalePct = currentCustom?.targetScalePct ?? targetScalePct
+  const activeTargetRotZ = currentCustom?.targetRotZ ?? p.bboxTargetRotZ ?? 0
+  const activeTargetRotY = currentCustom?.targetRotY ?? p.bboxTargetRotY ?? 0
+  const activeTargetRotX = currentCustom?.targetRotX ?? p.bboxTargetRotX ?? 0
 
   const handleScaleChange = (nextPct: number): void => {
     if (activeEntityId === 'all') {
@@ -184,6 +187,126 @@ export function BboxMotionTargetSection({ model }: { model: BboxMotionModel }): 
     if (ok) {
       onScrubTime(tStart)
       toast(`🎥 Camera 3D đã tự tạo lộ trình lia bám BBox #1 ➔ #2 (${tStart.toFixed(1)}s – ${tEnd.toFixed(1)}s)`)
+    }
+  }
+
+  const handleRotChange = (axis: 'z' | 'y' | 'x', nextDeg: number): void => {
+    const clamped = axis === 'z'
+      ? Math.round(nextDeg)
+      : Math.max(-80, Math.min(80, Math.round(nextDeg)))
+    const zVal = axis === 'z' ? clamped : activeTargetRotZ
+    const yVal = axis === 'y' ? clamped : activeTargetRotY
+    const xVal = axis === 'x' ? clamped : activeTargetRotX
+
+    if (activeEntityId === 'all') {
+      const existing = p.layerBboxTargets ?? {}
+      const nextMap: Record<string, LayerBboxTargetConfig> = {}
+      for (const ent of connectedEntities) {
+        const cur = existing[ent.id]
+        nextMap[ent.id] = {
+          ...(cur ?? {}),
+          targetX: cur?.targetX ?? (ent.id === primaryEnt?.id || multiMode === 'converge_target' ? targetX : Math.round(targetX + (bboxStartPosition(ent.rootLayer, tStart, node.id)[0] - startPos[0]))),
+          targetY: cur?.targetY ?? (ent.id === primaryEnt?.id || multiMode === 'converge_target' ? targetY : Math.round(targetY + (bboxStartPosition(ent.rootLayer, tStart, node.id)[1] - startPos[1]))),
+          targetScalePct: cur?.targetScalePct ?? targetScalePct,
+          targetZ: cur?.targetZ ?? targetZ,
+          targetRotZ: zVal,
+          targetRotY: yVal,
+          targetRotX: xVal
+        }
+      }
+      applyBboxPatch({
+        bboxTargetRotZ: zVal,
+        bboxTargetRotY: yVal,
+        bboxTargetRotX: xVal,
+        layerBboxTargets: nextMap
+      }, 'wf-bbox-rot')
+    } else if (currentEnt) {
+      const existing = p.layerBboxTargets ?? {}
+      const cur = existing[currentEnt.id]
+      const isPrimary = currentEnt.id === primaryEnt?.id
+      applyBboxPatch({
+        layerBboxTargets: {
+          ...existing,
+          [currentEnt.id]: {
+            ...(cur ?? {}),
+            targetX: cur?.targetX ?? activeTargetX,
+            targetY: cur?.targetY ?? activeTargetY,
+            targetScalePct: cur?.targetScalePct ?? activeTargetScalePct,
+            targetZ: cur?.targetZ ?? targetZ,
+            targetRotZ: zVal,
+            targetRotY: yVal,
+            targetRotX: xVal
+          }
+        },
+        ...(isPrimary ? {
+          bboxTargetRotZ: zVal,
+          bboxTargetRotY: yVal,
+          bboxTargetRotX: xVal
+        } : {})
+      }, 'wf-bbox-rot')
+    } else {
+      applyBboxPatch({
+        bboxTargetRotZ: zVal,
+        bboxTargetRotY: yVal,
+        bboxTargetRotX: xVal
+      }, 'wf-bbox-rot')
+    }
+  }
+
+  const handleResetRotation = (): void => {
+    handleRotChange('z', 0)
+    if (activeEntityId === 'all') {
+      const existing = p.layerBboxTargets ?? {}
+      const nextMap: Record<string, LayerBboxTargetConfig> = {}
+      for (const ent of connectedEntities) {
+        const cur = existing[ent.id]
+        nextMap[ent.id] = {
+          ...(cur ?? {}),
+          targetX: cur?.targetX ?? activeTargetX,
+          targetY: cur?.targetY ?? activeTargetY,
+          targetScalePct: cur?.targetScalePct ?? activeTargetScalePct,
+          targetZ: cur?.targetZ ?? targetZ,
+          targetRotZ: 0,
+          targetRotY: 0,
+          targetRotX: 0
+        }
+      }
+      applyBboxPatch({
+        bboxTargetRotZ: 0,
+        bboxTargetRotY: 0,
+        bboxTargetRotX: 0,
+        layerBboxTargets: nextMap
+      }, 'wf-bbox-rot')
+    } else if (currentEnt) {
+      const existing = p.layerBboxTargets ?? {}
+      const cur = existing[currentEnt.id]
+      const isPrimary = currentEnt.id === primaryEnt?.id
+      applyBboxPatch({
+        layerBboxTargets: {
+          ...existing,
+          [currentEnt.id]: {
+            ...(cur ?? {}),
+            targetX: cur?.targetX ?? activeTargetX,
+            targetY: cur?.targetY ?? activeTargetY,
+            targetScalePct: cur?.targetScalePct ?? activeTargetScalePct,
+            targetZ: cur?.targetZ ?? targetZ,
+            targetRotZ: 0,
+            targetRotY: 0,
+            targetRotX: 0
+          }
+        },
+        ...(isPrimary ? {
+          bboxTargetRotZ: 0,
+          bboxTargetRotY: 0,
+          bboxTargetRotX: 0
+        } : {})
+      }, 'wf-bbox-rot')
+    } else {
+      applyBboxPatch({
+        bboxTargetRotZ: 0,
+        bboxTargetRotY: 0,
+        bboxTargetRotX: 0
+      }, 'wf-bbox-rot')
     }
   }
 
@@ -365,6 +488,90 @@ export function BboxMotionTargetSection({ model }: { model: BboxMotionModel }): 
         value={activeTargetY}
         format={(v) => `${Math.round(v)}px`}
         onChange={handleYChange}
+      />
+
+      {/* Cụm Góc xoay BBox 3D nằm ngay bên dưới Slider Vị trí Y */}
+      <div className="vl-row-header" style={{ marginBottom: 4, marginTop: 10 }}>
+        <span className="vl-subtitle" style={{ color: 'var(--accent-cyan, #38bdf8)' }}>
+          🔄 Góc xoay BBox 3D {currentEnt ? `· ${currentEnt.name}` : ''}
+        </span>
+        {(activeTargetRotZ !== 0 || activeTargetRotY !== 0 || activeTargetRotX !== 0) && (
+          <button
+            type="button"
+            className="btn ghost sm"
+            style={{ padding: '1px 6px', fontSize: 10, height: 20 }}
+            onClick={handleResetRotation}
+            title="Đưa toàn bộ góc xoay Z, Y, X về 0°"
+          >
+            ↺ Đặt lại 0°
+          </button>
+        )}
+      </div>
+
+      <div className="vl-pill-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', marginBottom: 6 }}>
+        <button
+          type="button"
+          className={`vl-pill-btn ${activeTargetRotZ === 0 && activeTargetRotY === 0 && activeTargetRotX === 0 ? 'active-amber' : ''}`}
+          onClick={handleResetRotation}
+          title="Reset toàn bộ góc xoay về 0°"
+        >
+          0° Thẳng
+        </button>
+        <button
+          type="button"
+          className={`vl-pill-btn ${activeTargetRotZ === 45 ? 'active-amber' : ''}`}
+          onClick={() => handleRotChange('z', 45)}
+          title="Nghiêng góc mặt phẳng Z 45°"
+        >
+          Z +45°
+        </button>
+        <button
+          type="button"
+          className={`vl-pill-btn ${activeTargetRotY === 40 ? 'active-amber' : ''}`}
+          onClick={() => handleRotChange('y', 40)}
+          title="Xoay lật ngang 3D Y 40°"
+        >
+          Y +40°
+        </button>
+        <button
+          type="button"
+          className={`vl-pill-btn ${activeTargetRotX === 30 ? 'active-amber' : ''}`}
+          onClick={() => handleRotChange('x', 30)}
+          title="Ngửa cúi 3D X 30°"
+        >
+          X +30°
+        </button>
+      </div>
+
+      <ParamSlider
+        layout="stacked"
+        label="Xoay Z (Mặt phẳng / Roll)"
+        min={-180}
+        max={180}
+        step={5}
+        value={activeTargetRotZ}
+        format={(v) => `${Math.round(v)}°`}
+        onChange={(v) => handleRotChange('z', v)}
+      />
+      <ParamSlider
+        layout="stacked"
+        label="Lật Y (Xoay ngang / Yaw)"
+        min={-80}
+        max={80}
+        step={5}
+        value={activeTargetRotY}
+        format={(v) => `${Math.round(v)}°`}
+        onChange={(v) => handleRotChange('y', v)}
+      />
+      <ParamSlider
+        layout="stacked"
+        label="Ngửa X (Cúi / Ngửa / Pitch)"
+        min={-80}
+        max={80}
+        step={5}
+        value={activeTargetRotX}
+        format={(v) => `${Math.round(v)}°`}
+        onChange={(v) => handleRotChange('x', v)}
       />
     </div>
   )

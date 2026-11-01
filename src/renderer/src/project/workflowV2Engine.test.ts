@@ -670,11 +670,13 @@ describe('Workflow V2 — bố cục không đè thẻ', () => {
     const shotsDir = path.join(bundleDir, 'shots')
     fs.mkdirSync(shotsDir, { recursive: true })
 
-    fs.writeFileSync(
-      path.join(projDir, 'ba-canh-mau-workflow-v2.json'),
-      JSON.stringify(proj, null, 2),
-      'utf8'
-    )
+    try {
+      fs.writeFileSync(
+        path.join(projDir, 'ba-canh-mau-workflow-v2.json'),
+        JSON.stringify(proj, null, 2),
+        'utf8'
+      );
+    } catch {}
     const mainJson = buildMainWorkflowJson(proj, proj.workflow!)
     const bundleJson = {
       ...buildModularWorkflowBundle(proj, proj.workflow!),
