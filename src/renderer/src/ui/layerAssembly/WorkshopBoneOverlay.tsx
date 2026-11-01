@@ -805,7 +805,11 @@ export function WorkshopBoneOverlay({
         const ty = hy + uy * L
 
         const waistFraction = 0.22
-        const waistW = Math.max(6, Math.min(20, L * 0.16))
+        const waistW = Math.max(2.2, Math.min(9.5, L * 0.08))
+        const headBaseR = Math.max(3.2, Math.min(6.2, L * 0.065))
+        const headR = isSelected ? headBaseR + 1.8 : editing && mixamoLandmarks && !isHovered ? 2.8 : headBaseR
+        const tailBaseR = Math.max(2.2, Math.min(4.5, L * 0.045))
+        const tailR = isSelected ? tailBaseR + 1.5 : editing && mixamoLandmarks && !isHovered ? 2.2 : tailBaseR
         const wx = hx + ux * (L * waistFraction)
         const wy = hy + uy * (L * waistFraction)
         const leftX = wx + nx * waistW
@@ -834,7 +838,7 @@ export function WorkshopBoneOverlay({
                 <circle
                   cx={hx}
                   cy={hy}
-                  r={isSelected ? 11 : 9}
+                  r={isSelected ? 7.5 : 6}
                   className="lw-pin-bone-ring"
                   onPointerDown={(e) => handlePointerDown(e, bone.id, headMode(e, bone))}
                 />
@@ -885,7 +889,7 @@ export function WorkshopBoneOverlay({
                   <circle
                     cx={tx}
                     cy={ty}
-                    r={isSelected ? 6.5 : editing && mixamoLandmarks && !isHovered ? 3 : 5}
+                    r={tailR}
                     className={`lw-bone-tail-joint${(!editing || isManipulateTool) && assist.ik ? ' ik' : ''}`}
                     style={editing && mixamoLandmarks && !isSelected && !isHovered ? { opacity: 0.45 } : undefined}
                     onPointerDown={(e) => handlePointerDown(e, bone.id, tailMode(e))}
@@ -903,7 +907,7 @@ export function WorkshopBoneOverlay({
                 <circle
                   cx={hx}
                   cy={hy}
-                  r={isSelected ? 8.5 : editing && mixamoLandmarks && !isHovered ? 3.5 : 7}
+                  r={headR}
                   className="lw-bone-head-joint"
                   style={editing && mixamoLandmarks && !isSelected && !isHovered ? { opacity: 0.45 } : undefined}
                   onPointerDown={(e) => handlePointerDown(e, bone.id, headMode(e, bone))}

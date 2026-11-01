@@ -182,3 +182,93 @@ export const IconPad25D = (p: P) => (
     <circle cx="12" cy="8.5" r="1.8" fill="currentColor" />
   </svg>
 )
+
+/** Kiểu nội suy Tween mượt mà (Spline / Smooth) */
+export const IconEaseSmooth = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M3 19C9 19 9 5 21 5" />
+    <circle cx="3" cy="19" r="2" fill="currentColor" />
+    <circle cx="21" cy="5" r="2" fill="currentColor" />
+  </svg>
+)
+
+/** Kiểu nội suy Tween đều đặn (Linear) */
+export const IconEaseLinear = (p: P) => (
+  <svg {...base(p)}>
+    <line x1="3" y1="19" x2="21" y2="5" />
+    <circle cx="3" cy="19" r="2" fill="currentColor" />
+    <circle cx="21" cy="5" r="2" fill="currentColor" />
+  </svg>
+)
+
+/** Kiểu nội suy giảm tốc cuối (Ease Out: nhanh đầu, chậm dần cuối) */
+export const IconEaseOut = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M3 19Q3 5 21 5" />
+    <circle cx="3" cy="19" r="2" fill="currentColor" />
+    <circle cx="21" cy="5" r="2" fill="currentColor" />
+  </svg>
+)
+
+/** Kiểu nội suy tăng tốc cuối (Ease In: chậm đầu, nhanh dần cuối) */
+export const IconEaseIn = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M3 19Q21 19 21 5" />
+    <circle cx="3" cy="19" r="2" fill="currentColor" />
+    <circle cx="21" cy="5" r="2" fill="currentColor" />
+  </svg>
+)
+
+/** Kiểu nội suy giữ bậc dừng (Hold / Step Frame) */
+export const IconEaseHold = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M3 19H12V5H21" />
+    <circle cx="3" cy="19" r="2" fill="currentColor" />
+    <circle cx="21" cy="5" r="2" fill="currentColor" />
+  </svg>
+)
+
+/** Lọc toàn bộ danh sách xương trên DopeSheet */
+export const IconFilterAll = (p: P) => (
+  <svg {...base(p)}>
+    <line x1="3" y1="6" x2="21" y2="6" />
+    <line x1="3" y1="12" x2="21" y2="12" />
+    <line x1="3" y1="18" x2="21" y2="18" />
+  </svg>
+)
+
+/** Lọc chỉ hiện các xương có Keyframe */
+export const IconFilterKeyed = (p: P) => (
+  <svg {...base(p)}>
+    <polygon points="12 4 19 12 12 20 5 12" fill="currentColor" stroke="none" />
+  </svg>
+)
+
+/** Lọc chỉ hiện xương đang chọn */
+export const IconFilterSelected = (p: P) => (
+  <svg {...base(p)}>
+    <circle cx="12" cy="12" r="7" />
+    <circle cx="12" cy="12" r="2" fill="currentColor" stroke="none" />
+    <line x1="12" y1="2" x2="12" y2="5" />
+    <line x1="12" y1="19" x2="12" y2="22" />
+    <line x1="2" y1="12" x2="5" y2="12" />
+    <line x1="19" y1="12" x2="22" y2="12" />
+  </svg>
+)
+
+/** Căn chỉnh tỷ lệ nhân vật vừa vặn sân khấu */
+export const IconFitCharacter = (p: P) => (
+  <svg {...base(p)}>
+    <rect x="3" y="3" width="18" height="18" rx="2" strokeDasharray="3 3" />
+    <circle cx="12" cy="8" r="2.5" />
+    <path d="M8 18v-3a4 4 0 0 1 8 0v3" />
+  </svg>
+)
+
+/** Co khung sân khấu vừa khít bao quanh nhân vật */
+export const IconFitCanvas = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M8 3H4a1 1 0 0 0-1 1v4M16 3h4a1 1 0 0 1 1 1v4M8 21H4a1 1 0 0 1-1-1v-4M16 21h4a1 1 0 0 0 1-1v-4" />
+    <rect x="7" y="7" width="10" height="10" rx="1.5" />
+  </svg>
+)

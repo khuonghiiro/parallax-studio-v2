@@ -7,6 +7,7 @@ import {
   IconPerspective2D,
   IconCrop,
   IconBoundingBox,
+  IconFitCharacter,
   IconBone,
   IconMeshWireframe,
   IconSun
@@ -26,6 +27,7 @@ export interface LayerAssembly2DToolbarProps {
   zoom: number
   onResetZoom: () => void
   onFitView: () => void
+  onFitCharacter?: (mode?: 'scale' | 'frame') => void
   show3DPerspective: boolean
   onToggle3DPerspective: () => void
   clipToCamera: boolean
@@ -63,6 +65,7 @@ export function LayerAssembly2DToolbar({
   zoom,
   onResetZoom,
   onFitView,
+  onFitCharacter,
   show3DPerspective,
   onToggle3DPerspective,
   clipToCamera,
@@ -136,6 +139,12 @@ export function LayerAssembly2DToolbar({
         sub: 'Tỉ lệ hiển thị canvas',
         desc: 'Bấm để đặt lại tỉ lệ 100% chuẩn gốc. Cuộn chuột để phóng to/thu nhỏ.',
         tip: '🔍 Bấm để đặt về 100%'
+      },
+      fitCharacter: {
+        title: 'Căn vừa vặn nhân vật (Fit Character)',
+        sub: 'Phóng to vừa sân khấu / Co khung',
+        desc: 'Tự động phóng to nhân vật chiếm 84% khung sân khấu (Click). Giữ Alt để co khung canvas ôm sát nhân vật.',
+        tip: '📐 Bấm để phóng vừa sân khấu · Alt+Click để co khung'
       },
       fit: {
         title: 'Căn giữa vừa vặn khung vẽ (Fit View)',
@@ -257,6 +266,23 @@ export function LayerAssembly2DToolbar({
         >
           {Math.round(zoom * 100)}%
         </button>
+
+        {/* 4b. Căn kích thước vừa nhân vật */}
+        {onFitCharacter && (
+          <button
+            type='button'
+            className='layer-3d-dock-btn'
+            onClick={(e) => {
+              onFitCharacter(e.altKey ? 'frame' : 'scale')
+              hideTooltip()
+            }}
+            onMouseEnter={(e) => showTooltip(e, 'fitCharacter')}
+            onMouseLeave={hideTooltip}
+            aria-label='Căn vừa vặn nhân vật'
+          >
+            <IconFitCharacter width={15} height={15} />
+          </button>
+        )}
 
         {/* 4. Căn giữa vừa vặn (Fit) */}
         <button

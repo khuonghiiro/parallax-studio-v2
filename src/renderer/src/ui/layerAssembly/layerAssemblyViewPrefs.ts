@@ -13,6 +13,8 @@ export interface LayerWorkshopViewPrefs {
   clipToCamera2D: boolean
   showBbox2D: boolean
   showBones: boolean
+  showBones2D: boolean
+  showBones3D: boolean
   showMesh: boolean
 }
 
@@ -31,6 +33,8 @@ export const DEFAULT_LAYER_WORKSHOP_VIEW_PREFS: LayerWorkshopViewPrefs = {
   clipToCamera2D: true,
   showBbox2D: true,
   showBones: true,
+  showBones2D: true,
+  showBones3D: true,
   showMesh: false
 }
 
@@ -62,6 +66,8 @@ export function loadLayerWorkshopViewPrefs(): LayerWorkshopViewPrefs {
       clipToCamera2D: typeof parsed.clipToCamera2D === 'boolean' ? parsed.clipToCamera2D : DEFAULT_LAYER_WORKSHOP_VIEW_PREFS.clipToCamera2D,
       showBbox2D: typeof parsed.showBbox2D === 'boolean' ? parsed.showBbox2D : DEFAULT_LAYER_WORKSHOP_VIEW_PREFS.showBbox2D,
       showBones: typeof parsed.showBones === 'boolean' ? parsed.showBones : DEFAULT_LAYER_WORKSHOP_VIEW_PREFS.showBones,
+      showBones2D: typeof parsed.showBones2D === 'boolean' ? parsed.showBones2D : (typeof parsed.showBones === 'boolean' ? parsed.showBones : true),
+      showBones3D: typeof parsed.showBones3D === 'boolean' ? parsed.showBones3D : (typeof parsed.showBones === 'boolean' ? parsed.showBones : true),
       showMesh: typeof parsed.showMesh === 'boolean' ? parsed.showMesh : DEFAULT_LAYER_WORKSHOP_VIEW_PREFS.showMesh
     }
   } catch (err) {

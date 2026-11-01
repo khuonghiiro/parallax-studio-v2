@@ -20,6 +20,16 @@ import {
   computeTweenSpans
 } from './mohoRigHelpers'
 import { IconAutoKeyRec } from './LayerWorkshopStudioIcons'
+import {
+  IconEaseSmooth,
+  IconEaseLinear,
+  IconEaseOut,
+  IconEaseIn,
+  IconEaseHold,
+  IconFilterAll,
+  IconFilterKeyed,
+  IconFilterSelected
+} from '../icons'
 import '../../styles/layerWorkshopTimeline.css'
 
 interface Props {
@@ -29,18 +39,18 @@ interface Props {
   selectBone: (id: string | null) => void
 }
 
-const QUICK_EASINGS: Array<{ id: BoneEasing; label: string; title: string }> = [
-  { id: 'smooth', label: 'Mượt', title: 'Motion Tween mượt tự nhiên (Smooth Spline)' },
-  { id: 'linear', label: 'Đều', title: 'Chuyển động tốc độ đều (Linear Tween)' },
-  { id: 'ease-out', label: 'Giảm tốc', title: 'Nhanh đầu, chậm dần cuối (Ease Out)' },
-  { id: 'ease-in', label: 'Tăng tốc', title: 'Chậm đầu, nhanh dần cuối (Ease In)' },
-  { id: 'hold', label: 'Giữ bậc', title: 'Giữ nguyên tư thế đến mốc kế tiếp (Step / Hold Frame)' }
+const QUICK_EASINGS = [
+  { id: 'smooth' as const, label: 'Mượt', title: 'Motion Tween mượt tự nhiên (Smooth Spline)', Icon: IconEaseSmooth },
+  { id: 'linear' as const, label: 'Đều', title: 'Chuyển động tốc độ đều (Linear Tween)', Icon: IconEaseLinear },
+  { id: 'ease-out' as const, label: 'Giảm tốc', title: 'Nhanh đầu, chậm dần cuối (Ease Out)', Icon: IconEaseOut },
+  { id: 'ease-in' as const, label: 'Tăng tốc', title: 'Chậm đầu, nhanh dần cuối (Ease In)', Icon: IconEaseIn },
+  { id: 'hold' as const, label: 'Giữ bậc', title: 'Giữ nguyên tư thế đến mốc kế tiếp (Step / Hold Frame)', Icon: IconEaseHold }
 ]
 
-const FILTER_OPTIONS: Array<{ id: DopeSheetTrackFilter; label: string; title: string }> = [
-  { id: 'all', label: 'Tất cả', title: 'Hiện toàn bộ xương trên Dope Sheet' },
-  { id: 'keyed', label: 'Có Key', title: 'Chỉ hiện các xương đã có Keyframe' },
-  { id: 'selected', label: 'Đang chọn', title: 'Chỉ hiện xương đang chọn' }
+const FILTER_OPTIONS = [
+  { id: 'all' as const, label: 'Tất cả', title: 'Hiện toàn bộ xương trên Dope Sheet', Icon: IconFilterAll },
+  { id: 'keyed' as const, label: 'Có Key', title: 'Chỉ hiện các xương đã có Keyframe', Icon: IconFilterKeyed },
+  { id: 'selected' as const, label: 'Đang chọn', title: 'Chỉ hiện xương đang chọn', Icon: IconFilterSelected }
 ]
 
 function collectPoseKeysAtTime(rig: LayerRig, time: number): TimelineKey[] {
@@ -467,7 +477,7 @@ function AnimationTimeline({ state, playback, boneId, selectBone, rig }: Props &
                   onClick={() => applyQuickEasing(item.id)}
                   title={item.title}
                 >
-                  {item.label}
+                  <span className="lw-seg-icon"><item.Icon width={12} height={12} /></span><span className="lw-seg-label">{item.label}</span>
                 </button>
               )
             })}
@@ -484,7 +494,7 @@ function AnimationTimeline({ state, playback, boneId, selectBone, rig }: Props &
                 onClick={() => setAnimAssist({ dopeFilter: f.id })}
                 title={f.title}
               >
-                {f.label}
+                <span className="lw-seg-icon"><f.Icon width={11} height={11} /></span><span className="lw-seg-label">{f.label}</span>
               </button>
             ))}
           </div>

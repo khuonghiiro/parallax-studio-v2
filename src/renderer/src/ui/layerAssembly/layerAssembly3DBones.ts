@@ -152,7 +152,8 @@ export function update3DBonesGroup({
     const ty = hy - uy * L
 
     // Khớp gốc Head (Pivot Sphere dùng chung unit geometry để không cấp phát lại 30 mesh mỗi frame)
-    const headRadius = isSelected ? 8 : isHovered ? 7.5 : 6
+    const headBaseR = Math.max(3.2, Math.min(6.2, L * 0.065))
+    const headRadius = isSelected ? headBaseR + 1.8 : isHovered ? headBaseR + 1.2 : headBaseR
     const headMat = new THREE.MeshBasicMaterial({
       color: isSelected ? 0x00e5ff : isHovered ? 0x38bdf8 : 0xffb703,
       depthTest: false
@@ -167,7 +168,8 @@ export function update3DBonesGroup({
     // Khớp ngọn Tail (chỉ hiển thị khi là đầu mút cuối hoặc xương đang chọn/hover để tránh chồng 2 quả cầu)
     const hideDuplicateTail = !isSelected && !isHovered && isBoneTailCoincidentWithChild(bone, rig.bones, transforms, 3)
     if (!hideDuplicateTail) {
-      const tailRadius = isSelected ? 6 : isHovered ? 5.5 : 4.5
+      const tailBaseR = Math.max(2.2, Math.min(4.5, L * 0.045))
+      const tailRadius = isSelected ? tailBaseR + 1.5 : isHovered ? tailBaseR + 1.0 : tailBaseR
       const tailMat = new THREE.MeshBasicMaterial({
         color: isSelected ? 0x00e5ff : isHovered ? 0x38bdf8 : 0xfb8500,
         depthTest: false
@@ -181,7 +183,7 @@ export function update3DBonesGroup({
     }
 
     const waistFrac = 0.22
-    const waistW = Math.max(6, Math.min(18, L * 0.16))
+    const waistW = Math.max(2.2, Math.min(9.5, L * 0.08))
     const wx = hx + ux * (L * waistFrac)
     const wy = hy - uy * (L * waistFrac)
 

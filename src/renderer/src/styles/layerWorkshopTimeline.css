@@ -35,6 +35,8 @@
   scrollbar-width: none;
   z-index: 5000;
   background: var(--bg-1);
+  container-type: inline-size;
+  container-name: timeline-toolbar;
 }
 
 .lw-animation-timeline-toolbar::-webkit-scrollbar {
@@ -132,6 +134,10 @@
 .lw-dope-seg-btn {
   height: 20px;
   padding: 0 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
   background: transparent;
@@ -158,6 +164,39 @@
   background: color-mix(in srgb, var(--accent) 78%, #0f172a);
   border-color: var(--accent);
   color: #ffffff;
+}
+
+.lw-dope-seg-btn .lw-seg-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.lw-dope-seg-btn .lw-seg-label {
+  display: inline;
+  white-space: nowrap;
+}
+
+@container timeline-toolbar (max-width: 1080px) {
+  .lw-dope-seg-btn .lw-seg-label {
+    display: none;
+  }
+  .lw-dope-seg-btn {
+    padding: 0 5px;
+    min-width: 22px;
+  }
+}
+
+@media (max-width: 1340px) {
+  .lw-dope-seg-btn .lw-seg-label {
+    display: none;
+  }
+  .lw-dope-seg-btn {
+    padding: 0 5px;
+    min-width: 22px;
+  }
 }
 
 .lw-dope-zoom {

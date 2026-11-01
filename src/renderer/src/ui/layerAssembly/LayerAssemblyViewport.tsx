@@ -22,6 +22,7 @@ import {
 } from './layerAssembly2DBbox'
 import { AssembledLayerItemView } from './AssembledLayerItemView'
 import { LayerAssembly2DToolbar } from './LayerAssembly2DToolbar'
+import { fitCharacterToCanvas, fitCanvasToCharacter } from './layerAssemblyFit'
 import { useLayerBrushEraser, type BrushPreview, type Assembly2DTool } from './useLayerBrushEraser'
 import { EraserIsolatedCanvas } from './LayerAssemblyEraser'
 import { LayerAssemblyCalloutOverlay } from './LayerAssemblyCalloutOverlay'
@@ -789,6 +790,11 @@ export function LayerAssemblyViewport({
             setPan({ x: 0, y: 0 })
           }}
           onFitView={() => handleFitView(true)}
+          onFitCharacter={(mode) => {
+            if (!onChangeComposite) return
+            if (mode === 'frame') onChangeComposite(fitCanvasToCharacter(composite))
+            else onChangeComposite(fitCharacterToCanvas(composite))
+          }}
           show3DPerspective={show3DPerspective}
           onToggle3DPerspective={() =>
             setShow3DPerspective((v) => {

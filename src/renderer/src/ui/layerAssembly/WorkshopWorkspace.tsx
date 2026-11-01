@@ -48,7 +48,9 @@ export function WorkshopWorkspace({
   onChangeCenterSplitRatio?: (ratio: number) => void
   onResetCenterSplitRatio?: () => void
 }) {
-  const [showBones, setShowBones] = useState(() => loadLayerWorkshopViewPrefs().showBones)
+  const initialPrefs = useMemo(() => loadLayerWorkshopViewPrefs(), [])
+  const [showBones2D, setShowBones2D] = useState(() => initialPrefs.showBones2D)
+  const [showBones3D, setShowBones3D] = useState(() => initialPrefs.showBones3D)
   const [showMesh, setShowMesh] = useState(() => loadLayerWorkshopViewPrefs().showMesh)
   const [hasOpened3D, setHasOpened3D] = useState(() => view !== '2d')
   const [brushEditing, setBrushEditing] = useState(false)
@@ -69,10 +71,18 @@ export function WorkshopWorkspace({
     [playback.setIsPlaying, onBrushModeChange]
   )
 
-  const toggleBones = useCallback(() => {
-    setShowBones((v) => {
+  const toggleBones2D = useCallback(() => {
+    setShowBones2D((v) => {
       const next = !v
-      saveLayerWorkshopViewPrefs({ showBones: next })
+      saveLayerWorkshopViewPrefs({ showBones2D: next, showBones: next })
+      return next
+    })
+  }, [])
+
+  const toggleBones3D = useCallback(() => {
+    setShowBones3D((v) => {
+      const next = !v
+      saveLayerWorkshopViewPrefs({ showBones3D: next })
       return next
     })
   }, [])
@@ -98,8 +108,13 @@ export function WorkshopWorkspace({
 
   useEffect(() => {
     if (prevTabRef.current !== tab) {
-      if ((tab === 'bones' || tab === 'animation') && !showBones) {
-        setShowBones(true)
+      if (tab === 'bones' || tab === 'animation') {
+        if (view === '2d' && !showBones2D) setShowBones2D(true)
+        else if (view === '3d' && !showBones3D) setShowBones3D(true)
+        else if (view === 'split') {
+          if (!showBones2D) setShowBones2D(true)
+          if (!showBones3D) setShowBones3D(true)
+        }
       }
       if (prevTabRef.current === 'animation') toggleMotionSketchArmed(false)
       if (prevTabRef.current === 'bones') {
@@ -108,7 +123,7 @@ export function WorkshopWorkspace({
       }
       prevTabRef.current = tab
     }
-  }, [tab, showBones, rigTool.tool])
+  }, [tab, view, showBones2D, showBones3D, rigTool.tool])
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -147,14 +162,15 @@ export function WorkshopWorkspace({
         }
       }
       if ((e.shiftKey && (e.key === 'b' || e.key === 'B')) || ((e.key === 'b' || e.key === 'B') && tab === 'bones')) {
-        toggleBones()
+        if (view === '3d') toggleBones3D()
+        else toggleBones2D()
       } else if (e.key === 'm' || e.key === 'M') {
         toggleMesh()
       }
     }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
-  }, [toggleBones, toggleMesh, tab, handleConfirmStep])
+  }, [toggleBones2D, toggleBones3D, toggleMesh, tab, view, handleConfirmStep])
 
   const normalizedRig = state.composite.rig ? ensureRigClips(state.composite.rig).rig : undefined
   const plantOffset = usePlantClockOffset(playback.time, playback.isPlaying, normalizedRig?.duration ?? 4)
@@ -324,8 +340,8 @@ export function WorkshopWorkspace({
               brushSourceLayer={state.composite.layers.find((l) => l.id === state.selectedLayerId) ?? null}
               onBrushPreview={setBrushPreview}
               onBrushModeChange={brushMode}
-              showBones={showBones}
-              onToggleShowBones={toggleBones}
+              showBones={showBones2D}
+              onToggleShowBones={toggleBones2D}
               showMesh={showMesh}
               onToggleShowMesh={toggleMesh}
               sketchOverlay={
@@ -391,8 +407,8 @@ export function WorkshopWorkspace({
             <LayerAssembly3DViewport
               {...props}
               active={stageVisible && view !== '2d'}
-              showBones={showBones}
-              onToggleShowBones={toggleBones}
+              showBones={showBones3D}
+              onToggleShowBones={toggleBones3D}
               showMesh={showMesh}
               onToggleShowMesh={toggleMesh}
               onChangeComposite={state.setComposite}
