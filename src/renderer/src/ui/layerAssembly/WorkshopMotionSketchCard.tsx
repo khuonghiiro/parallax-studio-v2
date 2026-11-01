@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { RigNumber } from './WorkshopRigPanel'
+import { RigNumber } from './RigNumber'
 import { setMotionSketchSettings, toggleMotionSketchArmed, useMotionSketch } from './motionSketchStore'
 import type { MotionSketchMode, MotionSketchTiming } from './workshopMotionSketch'
 

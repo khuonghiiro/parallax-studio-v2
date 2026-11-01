@@ -21,7 +21,12 @@ let esbuild = null
 try {
   esbuild = require('esbuild')
 } catch {
-  /* fallback nếu chưa cài node_modules */
+  try {
+    const vitePath = require.resolve('vite')
+    esbuild = createRequire(vitePath)('esbuild')
+  } catch {
+    /* fallback nếu chưa cài node_modules */
+  }
 }
 
 export const MAX_FILE_LINES = 1000

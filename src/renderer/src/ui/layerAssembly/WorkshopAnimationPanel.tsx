@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import type { AnimationClip, BoneKeyframe, LayerBone, LayerRig } from '@shared/layerRig'
 import { sampleBonePose } from '../../engine/layerRig'
-import { RigNumber, type RigPanelProps } from './WorkshopRigPanel'
+import { RigNumber } from './RigNumber'
+import type { RigPanelProps } from './WorkshopRigPanel'
 import { emptyRig, ensureRigClips } from './workshopRig'
 import { sameKeyTime, type BonePoseEntry } from './workshopAnimation'
 import type { useWorkshopPlayback } from './useWorkshopPlayback'
@@ -326,7 +327,7 @@ export function WorkshopAnimationPanel({
 
                 <WorkshopInterpolation
                   keyframe={key}
-                  onChange={(patch) => {
+                  onChange={(patch: Partial<BoneKeyframe>) => {
                     if (exact && patch.easing) {
                       run({
                         action: 'set-interpolation',

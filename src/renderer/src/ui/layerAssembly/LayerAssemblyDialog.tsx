@@ -28,6 +28,10 @@ import { WorkshopRightPanel, type WorkshopTab } from './WorkshopRightPanel'
 import { ensureRigClips } from './workshopRig'
 import { CreateLayerAssemblyModal } from './CreateLayerAssemblyModal'
 import {
+  clearActiveWorkshopSession,
+  updateActiveWorkshopDraft
+} from './layerAssemblySessionStorage'
+import {
   DEFAULT_LAYER_WORKSHOP_COLUMN_PREFS,
   clampLeftSidebarWidth,
   clampRightPanelWidth,
@@ -43,6 +47,9 @@ type LayerWorkshopResponsivePane = 'assets' | 'stage' | 'inspector'
 
 export interface LayerAssemblyDialogProps {
   initialComposite?: LayerComposite | null
+  initialTab?: WorkshopTab
+  initialPrimaryMode?: WorkshopPrimaryMode
+  initialBoneId?: string | null
   onClose: () => void
 }
 
@@ -65,22 +72,29 @@ function IconAlert() {
   )
 }
 
-export function LayerAssemblyDialog({ initialComposite, onClose }: LayerAssemblyDialogProps) {
+export function LayerAssemblyDialog({
+  initialComposite,
+  initialTab,
+  initialPrimaryMode,
+  initialBoneId,
+  onClose
+}: LayerAssemblyDialogProps) {
   const state = useLayerWorkshop(initialComposite)
   const { composite, setComposite, history, undo, redo, createNew } = state
   const activeRig = composite.rig ? ensureRigClips(composite.rig).rig : undefined
   const playback = useWorkshopPlayback(activeRig?.duration, activeRig?.loop)
-  const [tab, setTab] = useState<WorkshopTab>('layers')
-  const [boneId, selectBone] = useState<string | null>(null)
+  const [tab, setTab] = useState<WorkshopTab>(() => initialTab ?? 'layers')
+  const [boneId, selectBone] = useState<string | null>(() => initialBoneId ?? null)
   const saving = useWorkshopSave(() => history.current, onClose, () => playback.time)
   const close = () => {
+    clearActiveWorkshopSession()
     if (!saving.busy) onClose()
   }
   const { width: viewportWidth, breakpoint, isDrawerMode, isPhone: isMobile } = useResponsiveViewport()
   const [view, setView] = useState<AssemblyWorkspaceView>(() =>
     typeof window !== 'undefined' && window.innerWidth <= 768 ? '2d' : 'split'
   )
-  const [primaryMode, setPrimaryMode] = useState<WorkshopPrimaryMode>('assembly')
+  const [primaryMode, setPrimaryMode] = useState<WorkshopPrimaryMode>(() => initialPrimaryMode ?? 'assembly')
   const [showNewConfirm, setShowNewConfirm] = useState(false)
   const [isBrushActive, setIsBrushActive] = useState(false)
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false)
@@ -177,6 +191,17 @@ export function LayerAssemblyDialog({ initialComposite, onClose }: LayerAssembly
   const handleCancelNew = () => {
     setShowNewConfirm(false)
   }
+
+  useEffect(() => {
+    if (composite && composite.id) {
+      updateActiveWorkshopDraft(composite, {
+        tab,
+        primaryMode,
+        selectedBoneId: boneId,
+        time: playback.time
+      })
+    }
+  }, [composite, tab, primaryMode, boneId, playback.time])
 
   useWorkshopShortcuts(state, playback.toggle, close, {
     primaryMode,

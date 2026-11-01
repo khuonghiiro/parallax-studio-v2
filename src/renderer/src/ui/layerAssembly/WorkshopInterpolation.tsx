@@ -1,6 +1,6 @@
 import type { BoneKeyframe } from '@shared/layerRig'
 import { Select } from '../controls'
-import { RigNumber } from './WorkshopRigPanel'
+import { RigNumber } from './RigNumber'
 import { DEFAULT_BEZIER } from './workshopAnimation'
 import { cubicBezierProgress } from '../../engine/boneEasing'
 

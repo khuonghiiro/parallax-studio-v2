@@ -26,7 +26,6 @@ import {
 } from './LayerWorkshopStudioIcons'
 import '../../styles/layerWorkshopRigLayout.css'
 
-export { RigNumber } from './RigNumber'
 
 export interface RigPanelProps {
   composite: LayerComposite
