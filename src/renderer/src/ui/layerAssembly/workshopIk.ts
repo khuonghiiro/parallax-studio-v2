@@ -1,5 +1,6 @@
 import type { LayerRig } from '@shared/layerRig'
 import { evaluateRig, rotatePoint, sampleBonePose } from '../../engine/layerRig'
+import { hasAngleLimit } from './boneConstraints'
 
 /**
  * IK (Inverse Kinematics) cho khung xương 2D của Xưởng lắp ráp layer — giống Spine / Moho / Cartoon Animator:
@@ -19,6 +20,8 @@ export interface IkChain {
   points: Point2D[]
   /** Góc xoay (pose.rotation) ban đầu của từng xương. */
   baseRotations: number[]
+  /** Giới hạn góc khớp [min, max] (Adobe Animate Constrain Rotation) của từng xương; null = xoay tự do. */
+  limits?: Array<[number, number] | null>
 }
 
 export const IK_CHAIN_MAX = 4
@@ -57,7 +60,24 @@ export function buildIkChain(rig: LayerRig, endBoneId: string, length: number, t
   const endTf = transforms.get(end.id)!
   const tip = rotatePoint(end.length, 0, end.angle + endTf.rotation)
   points.push({ x: endTf.x + tip.x, y: endTf.y + tip.y })
-  return { boneIds, points, baseRotations: boneIds.map((id) => sampleBonePose(flat, id, time).rotation) }
+  const limits = boneIds.map((id) => {
+    const bone = rig.bones.find((b) => b.id === id)
+    return bone && hasAngleLimit(bone) ? ([bone.minAngle, bone.maxAngle] as [number, number]) : null
+  })
+  return {
+    boneIds,
+    points,
+    baseRotations: boneIds.map((id) => sampleBonePose(flat, id, time).rotation),
+    ...(limits.some(Boolean) ? { limits } : {})
+  }
+}
+
+/** Kẹp delta của khớp j để góc tuyệt đối base + delta nằm trong giới hạn khớp. */
+function clampDelta(chain: IkChain, j: number, delta: number): number {
+  const limit = chain.limits?.[j]
+  if (!limit) return delta
+  const base = chain.baseRotations[j] ?? 0
+  return Math.max(limit[0], Math.min(limit[1], base + delta)) - base
 }
 
 /** Vị trí các khớp sau khi mỗi xương xoay thêm deltas[i] độ (xoay xương cha kéo theo cả phần con). */
@@ -91,7 +111,7 @@ export function solveCcd(chain: IkChain, target: Point2D, deltas0?: number[], it
       if (Math.hypot(end.x - target.x, end.y - target.y) < tolerance) return deltas
       const pivot = pos[j]
       if (Math.hypot(end.x - pivot.x, end.y - pivot.y) < 1e-6) continue
-      deltas[j] += wrap(angleOf(pivot, target) - angleOf(pivot, end))
+      deltas[j] = clampDelta(chain, j, deltas[j] + wrap(angleOf(pivot, target) - angleOf(pivot, end)))
     }
   }
   return deltas

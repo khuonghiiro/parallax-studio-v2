@@ -37,6 +37,7 @@ import {
   withSymmetricBoneAction
 } from './mohoRigHelpers'
 import { WorkshopBoneCapsuleSvg } from './WorkshopBoneCapsuleSvg'
+import { WorkshopBoneConstraintArc } from './WorkshopBoneConstraintArc'
 
 export interface BoneOverlayProps {
   composite: LayerComposite
@@ -80,6 +81,9 @@ const toPath = (pts: Point2D[]) =>
   pts.map((p, i) => `${i ? 'L' : 'M'}${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ')
 
 /** Tạo rig giả lập tại t=0 phục vụ công cụ Thử bẻ khớp Moho `Z` (Manipulate Bones) trong tab Tạo xương. */
+/** Khung xương đông xương (nhện, rết, bạch tuộc…) chỉ hiện tên khi rê / chọn để sân khấu không rối chữ. */
+const LABEL_ALL_MAX_BONES = 18
+
 export function buildManipulateTestRig(baseRig: LayerRig, testPoses: Record<string, BonePose>): LayerRig {
   const tracks: LayerRig['tracks'] = {}
   for (const [id, pose] of Object.entries(testPoses)) {
@@ -690,6 +694,9 @@ export function WorkshopBoneOverlay({
         />
       )}
 
+      {/* Cung giới hạn góc khớp (Adobe Animate Constrain Rotation / Moho Angle Constraints) */}
+      {editing && <WorkshopBoneConstraintArc bone={rig.bones.find((b) => b.id === boneId)} transforms={transforms} />}
+
       {/* Đường vẽ quỹ đạo khi giữ Shift + Chuột trái ghi Realtime trên xương */}
       {liveStroke && liveStroke.length > 1 && (
         <path d={toPath(liveStroke)} className="lw-sketch-path" pointerEvents="none" />
@@ -729,7 +736,7 @@ export function WorkshopBoneOverlay({
         const isSelected = bone.id === boneId
         const isDragging = activeDrag === bone.id || chainIds.includes(bone.id)
         const isHovered = hoveredBoneId === bone.id
-        const showLabel = (editing && !mixamoLandmarks) || isSelected || isDragging || isHovered
+        const showLabel = (editing && !mixamoLandmarks && rig.bones.length <= LABEL_ALL_MAX_BONES) || isSelected || isDragging || isHovered
         const angle = bone.angle + tf.rotation
         const rad = (angle * Math.PI) / 180
         const ux = Math.cos(rad)

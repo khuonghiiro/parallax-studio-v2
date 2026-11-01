@@ -13,6 +13,7 @@ import {
 } from '../../ui/layerAssembly/workshopBoneDepthOrder'
 import type { LayerComposite } from '../../ui/layerAssembly/types'
 import { parseWorkshopAnimation } from './layerWorkshopAnimationParams'
+import { parseRigStructureAction } from './layerWorkshopRigStructureParams'
 import { getStoredComposites } from '../../ui/layerAssembly/layerAssemblyStorage'
 import { setPlantSpineEditorState, getPlantSpineEditorState } from '../../ui/layerAssembly/plantSpineEditorStore'
 import { setAnimAssist, getAnimAssist } from '../../ui/layerAssembly/animAssistStore'
@@ -38,12 +39,21 @@ function bonePatch(p: Params): Partial<Omit<LayerBone, 'id'>> {
     if (p[field] !== undefined) patch[field] = num(p, field, true)
   }
   if (p.pin !== undefined) patch.pin = bool(p, 'pin')
+  if (bool(p, 'limit_angle') === false) {
+    patch.minAngle = undefined
+    patch.maxAngle = undefined
+  } else if (p.min_angle !== undefined || p.max_angle !== undefined) {
+    patch.minAngle = num(p, 'min_angle', true)
+    patch.maxAngle = num(p, 'max_angle', true)
+  }
   return patch
 }
 
 function rigAction(p: Params, composite?: LayerComposite, currentTime = 0): RigAction {
   const animation = parseWorkshopAnimation(p)
   if (animation) return animation
+  const structure = parseRigStructureAction(p, composite)
+  if (structure) return structure
   const action = str(p, 'action', true)
   if (action === 'add-bone') {
     return {
@@ -270,6 +280,9 @@ export const layerWorkshopRigCommands: Record<string, Handler> = {
     return {
       ok: true,
       boneId: action.action === 'add-bone' ? action.bone.id : 'boneId' in action ? (action.boneId ?? null) : null,
+      ...(action.action === 'apply-creature-rig'
+        ? { species: action.species, boneCount: next.rig?.bones.length ?? 0, clips: next.rig?.clips?.map((c) => c.id) ?? [] }
+        : {}),
       composite: toPlain(next)
     }
   },

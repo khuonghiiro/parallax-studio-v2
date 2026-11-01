@@ -244,6 +244,9 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   layer_assembly_pose_tools: region('layer_assembly_pose_tools', '.lw-pose-tools'),
   layer_assembly_plant_graph: region('layer_assembly_plant_graph', '.lw-plant-motion-graph'),
   layer_assembly_smart_rig_25d: region('layer_assembly_smart_rig_25d', '.lw-smart-rig-25d-card'),
+  layer_assembly_creature_rig: region('layer_assembly_creature_rig', '.lw-creature-rig-card'),
+  layer_assembly_bone_builder: region('layer_assembly_bone_builder', '.lw-bone-builder-card'),
+  layer_assembly_bone_constraints: region('layer_assembly_bone_constraints', '.lw-joint-limit-card'),
   layer_assembly_parallax_25d: region('layer_assembly_parallax_25d', '.lw-parallax-25d-card'),
   layer_assembly_motion_harmony: region('layer_assembly_motion_harmony', '.lw-motion-harmony-card'),
 

@@ -312,3 +312,34 @@ export const IconLayerDepthOrder = (p: P) => (
     <polyline points="17 17.2 19.5 20 22 17.2" />
   </svg>
 )
+
+/** Sub-tab Dựng xương thủ công: chuỗi đốt xương nối tiếp (Adobe Animate Bone Tool) */
+export const IconBoneChainBuild = (p: P) => (
+  <svg {...base(p)}>
+    <circle cx="4.5" cy="18.5" r="2" />
+    <path d="M6 17l4-4" />
+    <circle cx="11.5" cy="11.5" r="2" />
+    <path d="M13.2 10.2l3.6-2.6" />
+    <circle cx="18.5" cy="6.5" r="2" />
+    <path d="M18 14v6M15 17h6" />
+  </svg>
+)
+
+/** Nhân bản nhánh xương sang bên đối diện (trục X = 0 + 2 xương phản chiếu) */
+export const IconBoneDuplicateLR = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M12 3v18" strokeDasharray="2.5 2.5" />
+    <path d="M9 7L4 12l5 5" />
+    <path d="M15 7l5 5-5 5" />
+  </svg>
+)
+
+/** Giới hạn góc khớp (cung min–max quanh khớp xoay) */
+export const IconJointLimitArc = (p: P) => (
+  <svg {...base(p)}>
+    <circle cx="6" cy="18" r="2" />
+    <path d="M7.6 16.6L18 8" />
+    <path d="M6 9.5a8.5 8.5 0 0 1 8.5 8.5" />
+    <path d="M6 9.5v2.6M14.5 18h-2.6" />
+  </svg>
+)

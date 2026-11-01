@@ -1,0 +1,490 @@
+/* =========================================================================
+   Tạo xương: Thư viện khung xương sinh vật · Dựng thủ công · Giới hạn góc khớp
+   (Moho Character Wizard / Adobe Animate Bone Tool & Joint Constraints)
+   ========================================================================= */
+
+/* ---------- Pills & option rows dùng chung ---------- */
+.lw-creature-option,
+.lw-bone-builder-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.lw-creature-option-label {
+  flex: 0 0 auto;
+  min-width: 74px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.lw-creature-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.lw-creature-pill {
+  min-width: 26px;
+  height: 24px;
+  padding: 0 7px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-soft);
+  background: var(--bg-2);
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 10.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+
+.lw-creature-pill:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-3));
+  border-color: var(--line-focus);
+  color: var(--text);
+}
+
+.lw-creature-pill.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+
+.lw-creature-pill:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.lw-creature-stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lw-creature-stepper strong {
+  min-width: 22px;
+  text-align: center;
+  font-size: 11.5px;
+  color: var(--text);
+}
+
+.lw-creature-desc {
+  margin: 2px 0 8px;
+  font-size: 10.5px;
+  line-height: 1.45;
+  color: var(--text-dim);
+}
+
+/* ---------- Thư viện khung xương sinh vật ---------- */
+.lw-creature-detected {
+  height: 22px;
+  padding: 0 7px;
+  border-radius: var(--radius-sm);
+  border: 1px solid color-mix(in srgb, var(--accent-cyan) 45%, var(--line-soft));
+  background: color-mix(in srgb, var(--accent-cyan) 12%, var(--bg-2));
+  color: var(--text);
+  font: inherit;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.lw-creature-detected:hover {
+  border-color: var(--accent-cyan);
+}
+
+.lw-creature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(78px, 1fr));
+  gap: 5px;
+  margin-bottom: 8px;
+}
+
+.lw-creature-species {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 52px;
+  padding: 5px 4px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line-soft);
+  background: var(--bg-2);
+  color: var(--text-dim);
+  font: inherit;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease, transform 0.12s ease;
+}
+
+.lw-creature-species:hover {
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-3));
+  border-color: var(--line-focus);
+  color: var(--text);
+}
+
+.lw-creature-species.active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 16%, var(--bg-2));
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.lw-creature-species.detected::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 6px;
+  height: 6px;
+  border-radius: 2px;
+  background: var(--accent-cyan);
+}
+
+.lw-creature-species-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.lw-creature-species-label {
+  max-width: 100%;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lw-creature-body {
+  display: grid;
+  grid-template-columns: minmax(96px, 38%) minmax(0, 1fr);
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.lw-creature-preview {
+  position: relative;
+  min-height: 132px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line-soft);
+  background:
+    linear-gradient(var(--line-soft) 1px, transparent 1px) 0 0 / 16px 16px,
+    linear-gradient(90deg, var(--line-soft) 1px, transparent 1px) 0 0 / 16px 16px,
+    var(--bg-0);
+  overflow: hidden;
+}
+
+.lw-creature-preview-svg {
+  position: absolute;
+  inset: 6px 6px 20px;
+  width: calc(100% - 12px);
+  height: calc(100% - 26px);
+}
+
+.lw-creature-preview-bone line {
+  stroke: var(--accent);
+}
+
+.lw-creature-preview-bone circle {
+  fill: var(--bg-1);
+  stroke: var(--accent);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.lw-creature-preview-bone.side-l line,
+.lw-creature-preview-bone.side-l circle {
+  stroke: #06b6d4;
+}
+
+.lw-creature-preview-bone.side-r line,
+.lw-creature-preview-bone.side-r circle {
+  stroke: #f97316;
+}
+
+.lw-creature-preview-badge {
+  position: absolute;
+  left: 6px;
+  bottom: 4px;
+  font-size: 9.5px;
+  font-weight: 700;
+  color: var(--text-dim);
+}
+
+.lw-creature-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.lw-creature-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-bottom: 8px;
+  font-size: 10.5px;
+  color: var(--text);
+}
+
+.lw-creature-checks label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+}
+
+.lw-creature-apply {
+  width: 100%;
+  justify-content: center;
+  gap: 6px;
+  min-height: 34px;
+}
+
+.lw-creature-note {
+  margin: 6px 0 0;
+  font-size: 10px;
+  color: var(--text-faint);
+}
+
+.lw-creature-status {
+  margin-top: 6px;
+  padding: 5px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid color-mix(in srgb, var(--ok) 40%, var(--line-soft));
+  background: color-mix(in srgb, var(--ok) 9%, var(--bg-1));
+  color: var(--text);
+  font-size: 10.5px;
+  line-height: 1.4;
+}
+
+/* ---------- Dựng xương thủ công ---------- */
+.lw-bone-builder-tools {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: 5px;
+  margin-bottom: 6px;
+}
+
+.lw-bone-builder-tools .lw-moho-opt-pill:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.lw-bone-builder-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 8px;
+}
+
+.lw-bone-builder-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line-soft);
+  background: var(--bg-1);
+  min-width: 0;
+}
+
+.lw-bone-builder-section h4 {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.lw-bone-builder-section > .btn {
+  justify-content: center;
+  min-height: 28px;
+  white-space: normal;
+  text-align: center;
+}
+
+.lw-bone-builder-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  align-items: end;
+}
+
+.lw-bone-builder-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.lw-bone-builder-fields .lw-field-input {
+  width: 100%;
+  min-width: 0;
+}
+
+.lw-bone-builder-check {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 5px !important;
+  font-size: 10.5px;
+  color: var(--text);
+  cursor: pointer;
+  min-height: 26px;
+}
+
+/* ---------- Giới hạn góc khớp ---------- */
+.lw-joint-limit-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 8px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line-soft);
+  background: var(--bg-1);
+}
+
+.lw-joint-limit-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.lw-joint-limit-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.lw-card-badge.is-on {
+  color: var(--on-key);
+  background: var(--key);
+}
+
+.lw-joint-limit-body {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+}
+
+.lw-joint-limit-dial {
+  width: 64px;
+  height: 64px;
+}
+
+.lw-joint-limit-ring {
+  fill: var(--bg-0);
+  stroke: var(--line);
+  stroke-width: 1;
+}
+
+.lw-joint-limit-wedge {
+  fill: color-mix(in srgb, var(--key) 32%, transparent);
+  stroke: var(--key);
+  stroke-width: 1.2;
+}
+
+.lw-joint-limit-wedge.free {
+  fill: color-mix(in srgb, var(--accent-cyan) 12%, transparent);
+  stroke: var(--accent-cyan);
+  stroke-dasharray: 3 3;
+}
+
+.lw-joint-limit-bone {
+  stroke: var(--accent);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.lw-joint-limit-pivot {
+  fill: var(--bg-1);
+  stroke: var(--accent);
+  stroke-width: 1.5;
+}
+
+.lw-joint-limit-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.lw-joint-limit-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.lw-joint-limit-fields .lw-field-input {
+  width: 100%;
+  min-width: 0;
+}
+
+.lw-joint-limit-hint {
+  margin: 0;
+  font-size: 9.5px;
+  line-height: 1.4;
+  color: var(--text-faint);
+}
+
+.lw-bone-item-limit {
+  flex-shrink: 0;
+  padding: 0 4px;
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--on-key);
+  background: var(--key);
+}
+
+/* Cung giới hạn trên sân khấu 2D */
+.lw-joint-limit-overlay-wedge {
+  fill: color-mix(in srgb, var(--key) 22%, transparent);
+  stroke: var(--key);
+  stroke-width: 1.4;
+  stroke-dasharray: 5 3;
+}
+
+.lw-joint-limit-overlay-edge {
+  stroke: var(--key);
+  stroke-width: 1.6;
+}
+
+.lw-joint-limit-overlay-label {
+  fill: var(--key);
+  font-size: 10px;
+  font-weight: 700;
+  font-family: system-ui, sans-serif;
+  paint-order: stroke;
+  stroke: var(--bg-0);
+  stroke-width: 3px;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 768px) {
+  .lw-creature-body {
+    grid-template-columns: 1fr;
+  }
+
+  .lw-creature-pill,
+  .lw-creature-species {
+    min-height: 36px;
+  }
+
+  .lw-creature-option-label {
+    min-width: 100%;
+  }
+}

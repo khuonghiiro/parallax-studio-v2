@@ -11,6 +11,12 @@ export interface LayerBone {
   strength?: number
   /** True when created as a Moho Pin Bone (point-pivot bone with compact capsule). */
   pin?: boolean
+  /**
+   * Giới hạn góc xoay khớp (Adobe Animate "Constrain Rotation" / Moho "Angle Constraints"), tính bằng độ
+   * tương đối so với dáng gốc Frame 0 (dương = xoay theo chiều kim đồng hồ). Bỏ trống = xoay tự do.
+   */
+  minAngle?: number
+  maxAngle?: number
 }
 
 export interface BonePose {

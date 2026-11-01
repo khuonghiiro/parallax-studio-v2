@@ -1,4 +1,5 @@
 import type { BoneEasing, BoneKeyframe, LayerBone, LayerRig } from '@shared/layerRig'
+import { mirrorAngleLimits } from './boneConstraints'
 
 export type BoneAnatomicalSide = 'left' | 'right' | 'center'
 
@@ -222,6 +223,11 @@ export function withSymmetricBoneAction<T extends { action: string }>(
     if (item.patch.angle !== undefined) twinPatch.angle = mirrorAngleAcrossYAxis(item.patch.angle)
     if (item.patch.strength !== undefined) twinPatch.strength = item.patch.strength
     if (item.patch.pin !== undefined) twinPatch.pin = item.patch.pin
+    if ('minAngle' in item.patch || 'maxAngle' in item.patch) {
+      const mirroredLimit = mirrorAngleLimits(item.patch)
+      twinPatch.minAngle = mirroredLimit.minAngle
+      twinPatch.maxAngle = mirroredLimit.maxAngle
+    }
 
     if (Object.keys(twinPatch).length > 0) {
       mirroredPatches.push({ boneId: twinId, patch: twinPatch })
@@ -302,7 +308,8 @@ export function buildMirroredBoneChain(
       parentId: mirroredParentId,
       x: Math.round(-b.x) || 0,
       y: b.y,
-      angle: mirrorAngleAcrossYAxis(b.angle)
+      angle: mirrorAngleAcrossYAxis(b.angle),
+      ...mirrorAngleLimits(b)
     })
   }
 

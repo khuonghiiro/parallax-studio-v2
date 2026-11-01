@@ -17,6 +17,8 @@ import { buildMirroredBoneChain, retimeOrClampTracks, weldConnectedLimbBones } f
 import { autoBindLayersToMixamoBones } from './workshopMixamoAutoRig'
 import { applyAnimTool, type AnimToolOp } from './workshopAnimTools'
 import { applyHoldFramesAction, applyRigClipAction, isRigClipAction, type RigClipAction } from './workshopRigClips'
+import { applyRigStructureAction, isRigStructureAction, type RigStructureAction } from './workshopRigStructure'
+import { assertValidAngleLimits, stripEmptyAngleLimit } from './boneConstraints'
 import {
   autoSortLayersZDepth25D,
   buildAnatomicalBonesFromLayers,
@@ -114,6 +116,7 @@ export type RigAction =
   | AnimationAction
   | AnimationBatch
   | RigClipAction
+  | RigStructureAction
   | { action: 'add-bone'; bone: LayerBone }
   | { action: 'update-bone'; boneId: string; patch: Partial<Omit<LayerBone, 'id'>> }
   | { action: 'update-bones'; patches: Array<{ boneId: string; patch: Partial<Omit<LayerBone, 'id'>> }> }
@@ -178,6 +181,7 @@ export function validateRig(composite: LayerComposite): void {
     if (bone.strength !== undefined && (!Number.isFinite(bone.strength) || bone.strength < 0.05 || bone.strength > 10)) {
       throw new Error('Invalid bone strength')
     }
+    assertValidAngleLimits(bone)
     const chain = new Set([bone.id])
     let parent = bone.parentId
     while (parent) {
@@ -272,7 +276,7 @@ export function applyRigAction(composite: LayerComposite, action: RigAction): La
     rig.bones.push(...mirrored)
   }
   if (action.action === 'update-bone') {
-    rig.bones = rig.bones.map((b) => (b.id === action.boneId ? { ...b, ...action.patch, id: b.id } : b))
+    rig.bones = rig.bones.map((b) => (b.id === action.boneId ? stripEmptyAngleLimit({ ...b, ...action.patch, id: b.id }) : b))
   }
   if (action.action === 'update-bones') {
     const patchMap = new Map(action.patches.map((p) => [p.boneId, p.patch]))
@@ -281,7 +285,7 @@ export function applyRigAction(composite: LayerComposite, action: RigAction): La
     }
     rig.bones = rig.bones.map((b) => {
       const patch = patchMap.get(b.id)
-      return patch ? { ...b, ...patch, id: b.id } : b
+      return patch ? stripEmptyAngleLimit({ ...b, ...patch, id: b.id }) : b
     })
   }
   if (action.action === 'snap-joints') {
@@ -518,6 +522,10 @@ export function applyRigAction(composite: LayerComposite, action: RigAction): La
 
   if (isRigClipAction(action)) {
     applyRigClipAction(rig, action)
+  }
+
+  if (isRigStructureAction(action)) {
+    layers = applyRigStructureAction(rig, composite, layers, action)
   }
 
   if (action.action === 'apply-mixamo-rig-motion') {

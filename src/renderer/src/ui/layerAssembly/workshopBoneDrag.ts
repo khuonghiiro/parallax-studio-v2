@@ -4,6 +4,7 @@ import type { RigAction } from './workshopRig'
 import { buildIkChain, ikRotations, solveCcd, type IkChain } from './workshopIk'
 import { buildZeroAnchorOps } from './workshopStepRecord'
 import { aimBoneAtPoint, computeBoneTail } from './mohoRigHelpers'
+import { clampBoneRotation } from './boneConstraints'
 
 /** head = dời khớp · tail = chỉnh xương (tạo xương) · rotate = xoay FK · ik = kéo ngọn, chuỗi xương cha xoay theo. */
 export type BoneDragMode = 'head' | 'tail' | 'rotate' | 'ik'
@@ -194,7 +195,7 @@ export function boneDragAction(
 
   const angle = (Math.atan2(point.y - transform.y, point.x - transform.x) * 180) / Math.PI
   const delta = (((angle - drag.mouseAngle + 180) % 360) + 360) % 360 - 180
-  const rotation = pose.rotation + delta
+  const rotation = clampBoneRotation(bone, pose.rotation + delta)
   const keyOp = {
     action: 'set-key' as const,
     boneId: bone.id,

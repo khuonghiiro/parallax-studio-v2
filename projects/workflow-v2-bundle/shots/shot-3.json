@@ -314,7 +314,7 @@
         "enabled": true,
         "position": {
           "x": 48,
-          "y": 2128
+          "y": 2422
         },
         "preset": "deep_parallax_stage",
         "aiAgentRole": "SceneLayoutAgent",
@@ -333,7 +333,7 @@
         "enabled": true,
         "position": {
           "x": 48,
-          "y": 2222
+          "y": 2528
         },
         "preset": "cinematic_fly_push",
         "aiAgentRole": "CameraDirectorAgent",
@@ -356,7 +356,7 @@
         "enabled": true,
         "position": {
           "x": 48,
-          "y": 2316
+          "y": 2660
         },
         "preset": "cinematic_fly_push",
         "aiAgentRole": "CameraDirectorAgent",
@@ -393,7 +393,7 @@
         "enabled": true,
         "position": {
           "x": 48,
-          "y": 2410
+          "y": 2792
         },
         "preset": "cinematic_fly_push",
         "aiAgentRole": "CameraDirectorAgent",
@@ -430,7 +430,7 @@
         "enabled": true,
         "position": {
           "x": 48,
-          "y": 2504
+          "y": 2924
         },
         "preset": "cinematic_fly_push",
         "aiAgentRole": "CameraDirectorAgent",
@@ -466,8 +466,8 @@
         "title": "Nhóm Layer 2.5D",
         "enabled": true,
         "position": {
-          "x": 404,
-          "y": 2128
+          "x": 464,
+          "y": 2700
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -496,8 +496,8 @@
         "title": "Thùng Hàng & Biển Báo Vỉa Hè",
         "enabled": true,
         "position": {
-          "x": 760,
-          "y": 2128
+          "x": 880,
+          "y": 2466
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -524,8 +524,8 @@
         "title": "Cột Đèn Đường Neon & Cây Vỉa Hè",
         "enabled": true,
         "position": {
-          "x": 760,
-          "y": 2304
+          "x": 880,
+          "y": 2616
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -552,8 +552,8 @@
         "title": "Tay Đua Scooter Điện",
         "enabled": true,
         "position": {
-          "x": 760,
-          "y": 2398
+          "x": 880,
+          "y": 2722
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -580,8 +580,8 @@
         "title": "Mặt Đường Nhựa & Vỉa Hè",
         "enabled": true,
         "position": {
-          "x": 760,
-          "y": 2492
+          "x": 880,
+          "y": 2828
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -608,8 +608,8 @@
         "title": "Bầu Trời Phố Đêm & Tòa Nhà Xa",
         "enabled": true,
         "position": {
-          "x": 760,
-          "y": 2586
+          "x": 880,
+          "y": 2934
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -636,8 +636,8 @@
         "title": "Ánh sáng: Đèn pin (Chùm nón)",
         "enabled": true,
         "position": {
-          "x": 1116,
-          "y": 2304
+          "x": 1296,
+          "y": 2616
         },
         "preset": "rim_glow_particles",
         "aiAgentRole": "PhysicsLightFxAgent",
@@ -674,8 +674,8 @@
         "title": "Vật liệu: 🌳 Gỗ / Thân cây đàn hồi",
         "enabled": true,
         "position": {
-          "x": 1116,
-          "y": 2128
+          "x": 1296,
+          "y": 2422
         },
         "preset": "rim_glow_particles",
         "aiAgentRole": "PhysicsLightFxAgent",
@@ -707,8 +707,8 @@
         "title": "Motion: BBox #1 → #2 (To dần 135% · Đụng Thùng Hàng)",
         "enabled": true,
         "position": {
-          "x": 1116,
-          "y": 2398
+          "x": 1296,
+          "y": 2722
         },
         "preset": "organic_wind_breathe",
         "aiAgentRole": "MotionChoreographyAgent",
@@ -750,8 +750,8 @@
         "title": "Va chạm: Scooter 💥 Thùng Hàng Vỉa Hè",
         "enabled": true,
         "position": {
-          "x": 1116,
-          "y": 2210
+          "x": 1296,
+          "y": 2510
         },
         "preset": "rim_glow_particles",
         "aiAgentRole": "PhysicsLightFxAgent",

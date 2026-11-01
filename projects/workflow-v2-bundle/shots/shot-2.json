@@ -374,7 +374,7 @@
         "enabled": true,
         "position": {
           "x": 48,
-          "y": 1294
+          "y": 1506
         },
         "preset": "deep_parallax_stage",
         "aiAgentRole": "SceneLayoutAgent",
@@ -393,7 +393,7 @@
         "enabled": true,
         "position": {
           "x": 48,
-          "y": 1388
+          "y": 1612
         },
         "preset": "cinematic_fly_push",
         "aiAgentRole": "CameraDirectorAgent",
@@ -416,7 +416,7 @@
         "enabled": true,
         "position": {
           "x": 48,
-          "y": 1482
+          "y": 1744
         },
         "preset": "cinematic_fly_push",
         "aiAgentRole": "CameraDirectorAgent",
@@ -453,7 +453,7 @@
         "enabled": true,
         "position": {
           "x": 48,
-          "y": 1576
+          "y": 1876
         },
         "preset": "cinematic_fly_push",
         "aiAgentRole": "CameraDirectorAgent",
@@ -490,7 +490,7 @@
         "enabled": true,
         "position": {
           "x": 48,
-          "y": 1670
+          "y": 2008
         },
         "preset": "cinematic_fly_push",
         "aiAgentRole": "CameraDirectorAgent",
@@ -526,8 +526,8 @@
         "title": "Nhóm 3D & Lắp ráp",
         "enabled": true,
         "position": {
-          "x": 404,
-          "y": 1294
+          "x": 464,
+          "y": 1731
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -555,8 +555,8 @@
         "title": "Mèo Máy Quản Gia — Thân Máy",
         "enabled": true,
         "position": {
-          "x": 760,
-          "y": 1294
+          "x": 880,
+          "y": 1550
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -588,8 +588,8 @@
         "title": "Màn Hình Mặt — Mắt Cười",
         "enabled": true,
         "position": {
-          "x": 760,
-          "y": 1470
+          "x": 880,
+          "y": 1700
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -620,8 +620,8 @@
         "title": "Màn Hình Mặt — Đang Nói",
         "enabled": true,
         "position": {
-          "x": 760,
-          "y": 1564
+          "x": 880,
+          "y": 1806
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -652,8 +652,8 @@
         "title": "Khay Trà Nóng (Đạo Cụ)",
         "enabled": true,
         "position": {
-          "x": 760,
-          "y": 1658
+          "x": 880,
+          "y": 1912
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -684,8 +684,8 @@
         "title": "Khoá cụm: Mèo Máy Quản Gia",
         "enabled": true,
         "position": {
-          "x": 1116,
-          "y": 1294
+          "x": 1296,
+          "y": 1550
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "LayerTransformAgent",
@@ -728,8 +728,8 @@
         "title": "Nhóm Layer 2.5D",
         "enabled": true,
         "position": {
-          "x": 404,
-          "y": 1766
+          "x": 464,
+          "y": 2134
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -756,8 +756,8 @@
         "title": "Bàn Trà & Đèn Bàn Ấm Áp",
         "enabled": true,
         "position": {
-          "x": 760,
-          "y": 1766
+          "x": 880,
+          "y": 2028
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -784,8 +784,8 @@
         "title": "Kệ Sách Gỗ & Ghế Sofa",
         "enabled": true,
         "position": {
-          "x": 760,
-          "y": 1860
+          "x": 880,
+          "y": 2134
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -812,8 +812,8 @@
         "title": "Tường Gỗ & Cửa Sổ Đêm Trăng",
         "enabled": true,
         "position": {
-          "x": 760,
-          "y": 1954
+          "x": 880,
+          "y": 2240
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -840,8 +840,8 @@
         "title": "Bộ phận: Cụm 2.5D",
         "enabled": true,
         "position": {
-          "x": 1472,
-          "y": 1294
+          "x": 1712,
+          "y": 1506
         },
         "preset": "rim_glow_particles",
         "aiAgentRole": "LayerTransformAgent",
@@ -877,8 +877,8 @@
         "title": "Bộ phận: Khuôn mặt (2) — Đổi Đang nói",
         "enabled": true,
         "position": {
-          "x": 1828,
-          "y": 1294
+          "x": 2128,
+          "y": 1506
         },
         "preset": "composite_part_swap",
         "aiAgentRole": "AssemblyRigAgent",
@@ -917,8 +917,8 @@
         "title": "Motion: BBox #1 ↝ #2 (Vẽ đường đi tới Bàn Trà)",
         "enabled": true,
         "position": {
-          "x": 1472,
-          "y": 1376
+          "x": 1712,
+          "y": 1594
         },
         "preset": "organic_wind_breathe",
         "aiAgentRole": "MotionChoreographyAgent",
@@ -977,8 +977,8 @@
         "title": "Ánh sáng: Ngọn nến (Gió)",
         "enabled": true,
         "position": {
-          "x": 1116,
-          "y": 1766
+          "x": 1296,
+          "y": 2028
         },
         "preset": "rim_glow_particles",
         "aiAgentRole": "PhysicsLightFxAgent",

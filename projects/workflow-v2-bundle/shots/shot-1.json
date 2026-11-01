@@ -534,7 +534,7 @@
         "enabled": true,
         "position": {
           "x": 48,
-          "y": 190
+          "y": 202
         },
         "preset": "cinematic_fly_push",
         "aiAgentRole": "CameraDirectorAgent",
@@ -557,7 +557,7 @@
         "enabled": true,
         "position": {
           "x": 48,
-          "y": 284
+          "y": 334
         },
         "preset": "cinematic_fly_push",
         "aiAgentRole": "CameraDirectorAgent",
@@ -594,7 +594,7 @@
         "enabled": true,
         "position": {
           "x": 48,
-          "y": 378
+          "y": 466
         },
         "preset": "cinematic_fly_push",
         "aiAgentRole": "CameraDirectorAgent",
@@ -631,7 +631,7 @@
         "enabled": true,
         "position": {
           "x": 48,
-          "y": 472
+          "y": 598
         },
         "preset": "cinematic_fly_push",
         "aiAgentRole": "CameraDirectorAgent",
@@ -667,8 +667,8 @@
         "title": "Nhóm 3D & Lắp ráp",
         "enabled": true,
         "position": {
-          "x": 404,
-          "y": 96
+          "x": 464,
+          "y": 517
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -697,8 +697,8 @@
         "title": "Cậu Bé Du Hành — Thân & Áo Choàng",
         "enabled": true,
         "position": {
-          "x": 760,
-          "y": 96
+          "x": 880,
+          "y": 250
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -730,8 +730,8 @@
         "title": "Khuôn Mặt — Tươi Cười",
         "enabled": true,
         "position": {
-          "x": 760,
-          "y": 354
+          "x": 880,
+          "y": 466
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -762,8 +762,8 @@
         "title": "Khuôn Mặt — Hào Hứng",
         "enabled": true,
         "position": {
-          "x": 760,
-          "y": 448
+          "x": 880,
+          "y": 572
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -794,8 +794,8 @@
         "title": "Tay Phải — Vẫy Chào",
         "enabled": true,
         "position": {
-          "x": 760,
-          "y": 542
+          "x": 880,
+          "y": 678
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -826,8 +826,8 @@
         "title": "Tay Phải — Cầm Chong Chóng",
         "enabled": true,
         "position": {
-          "x": 760,
-          "y": 636
+          "x": 880,
+          "y": 784
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -858,8 +858,8 @@
         "title": "Khoá cụm: Cậu Bé Du Hành",
         "enabled": true,
         "position": {
-          "x": 1116,
-          "y": 96
+          "x": 1296,
+          "y": 250
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "LayerTransformAgent",
@@ -904,8 +904,8 @@
         "title": "Nhóm Layer 2.5D",
         "enabled": true,
         "position": {
-          "x": 404,
-          "y": 744
+          "x": 464,
+          "y": 1112
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -934,8 +934,8 @@
         "title": "Hoa Bồ Công Anh Tiền Cảnh",
         "enabled": true,
         "position": {
-          "x": 760,
-          "y": 744
+          "x": 880,
+          "y": 900
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -962,8 +962,8 @@
         "title": "Cây Sồi Cổ Thụ",
         "enabled": true,
         "position": {
-          "x": 760,
-          "y": 838
+          "x": 880,
+          "y": 1006
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -990,8 +990,8 @@
         "title": "Cánh Đồng Lúa Vàng",
         "enabled": true,
         "position": {
-          "x": 760,
-          "y": 932
+          "x": 880,
+          "y": 1112
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -1018,8 +1018,8 @@
         "title": "Đồi Xa & Cối Xay Gió",
         "enabled": true,
         "position": {
-          "x": 760,
-          "y": 1026
+          "x": 880,
+          "y": 1218
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -1046,8 +1046,8 @@
         "title": "Bầu Trời Hoàng Hôn",
         "enabled": true,
         "position": {
-          "x": 760,
-          "y": 1120
+          "x": 880,
+          "y": 1324
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -1074,8 +1074,8 @@
         "title": "Bộ phận: Cụm 2.5D",
         "enabled": true,
         "position": {
-          "x": 1472,
-          "y": 96
+          "x": 1712,
+          "y": 140
         },
         "preset": "rim_glow_particles",
         "aiAgentRole": "LayerTransformAgent",
@@ -1112,7 +1112,7 @@
         "title": "Bộ phận: Khuôn mặt (2) — Đổi Hào hứng",
         "enabled": true,
         "position": {
-          "x": 1828,
+          "x": 2128,
           "y": 96
         },
         "preset": "composite_part_swap",
@@ -1152,8 +1152,8 @@
         "title": "Bộ phận: Tay phải (2) — Cầm Chong Chóng",
         "enabled": true,
         "position": {
-          "x": 1828,
-          "y": 178
+          "x": 2128,
+          "y": 184
         },
         "preset": "composite_part_swap",
         "aiAgentRole": "AssemblyRigAgent",
@@ -1192,8 +1192,8 @@
         "title": "Motion: BBox #1 → #2 (To dần 145% · Qua trước Cây Sồi)",
         "enabled": true,
         "position": {
-          "x": 1472,
-          "y": 178
+          "x": 1712,
+          "y": 272
         },
         "preset": "organic_wind_breathe",
         "aiAgentRole": "MotionChoreographyAgent",
@@ -1237,8 +1237,8 @@
         "title": "Hoạt ảnh Xương: Bước đi",
         "enabled": true,
         "position": {
-          "x": 1472,
-          "y": 260
+          "x": 1712,
+          "y": 360
         },
         "preset": "organic_wind_breathe",
         "aiAgentRole": "MotionChoreographyAgent",
@@ -1278,8 +1278,8 @@
         "title": "Vật liệu: 🌳 Gỗ / Thân cây đàn hồi",
         "enabled": true,
         "position": {
-          "x": 1116,
-          "y": 838
+          "x": 1296,
+          "y": 1006
         },
         "preset": "rim_glow_particles",
         "aiAgentRole": "PhysicsLightFxAgent",
@@ -1311,8 +1311,8 @@
         "title": "Vật liệu: 🍃 Lá cây / Cỏ mềm",
         "enabled": true,
         "position": {
-          "x": 1116,
-          "y": 744
+          "x": 1296,
+          "y": 900
         },
         "preset": "rim_glow_particles",
         "aiAgentRole": "PhysicsLightFxAgent",

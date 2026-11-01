@@ -93,4 +93,32 @@ describe('workshop animation commands', () => {
     command({ action: 'apply-preset-animation', preset: 'bow', view_angle: 'front' })
     expect(history.current.rig?.tracks['bone-torso']?.[1]?.rotation).toBe(0)
   })
+
+  it('dựng khung xương sinh vật, chuỗi đốt, chia đốt, nhân chi & giới hạn góc khớp qua MCP', () => {
+    const res = command({ action: 'apply-creature-rig', species: 'spider', leg_pairs: 4, leg_segments: 3, fit_to_layers: false }) as {
+      species: string
+      boneCount: number
+      clips: string[]
+    }
+    expect(res.species).toBe('spider')
+    expect(res.boneCount).toBe(history.current.rig!.bones.length)
+    expect(res.clips).toContain('clip-spider-walk')
+    expect(() => command({ action: 'apply-creature-rig', species: 'unicorn' })).toThrow(/species/)
+
+    command({ action: 'apply-creature-rig', species: 'fish', facing: 'right', binding_mode: 'soft', include_clips: false })
+    expect(history.current.rig!.bones.find((b) => b.id === 'bone-fish-head')!.x).toBeGreaterThan(0)
+
+    command({ action: 'add-bone-chain', parent_id: 'bone-fish-root', segments: 3, length: 90, angle: 90, name: 'Râu', id_prefix: 'whisker' })
+    expect(history.current.rig!.bones.filter((b) => b.id.startsWith('whisker-'))).toHaveLength(3)
+    command({ action: 'subdivide-bone', bone_id: 'whisker-1', segments: 2 })
+    expect(history.current.rig!.bones.some((b) => b.id === 'whisker-1-d2')).toBe(true)
+    command({ action: 'radial-array-bone', bone_id: 'whisker-1', count: 3, step_angle: 20 })
+    expect(history.current.rig!.bones.some((b) => b.id === 'whisker-1-a3')).toBe(true)
+
+    command({ action: 'update-bone', bone_id: 'whisker-2', min_angle: -20, max_angle: 35 })
+    expect(history.current.rig!.bones.find((b) => b.id === 'whisker-2')).toMatchObject({ minAngle: -20, maxAngle: 35 })
+    expect(() => command({ action: 'update-bone', bone_id: 'whisker-2', min_angle: 10 })).toThrow(/max_angle/)
+    command({ action: 'update-bone', bone_id: 'whisker-2', limit_angle: false })
+    expect(history.current.rig!.bones.find((b) => b.id === 'whisker-2')!.minAngle).toBeUndefined()
+  })
 })

@@ -164,7 +164,7 @@ Khi kiểm tra và tương tác với Parallax Studio, AI Agent **BẮT BUỘC**
   - Thanh tiêu đề & Dock Responsive: `toolbar`, `toolbar_left` (menu tệp & undo/redo), `toolbar_doc` (tiêu đề dự án & thông số comp), `toolbar_actions` (cụm tiện ích Studio, MCP & Xuất MP4), `studio_menu` (menu Studio & Đạo diễn), `mcp_chip` (chỉ báo AI), `remote_chip` (nút QR Remote điều khiển qua điện thoại), `responsive_dock` (thanh dock chuyển vùng làm việc trên Tablet/Phone), `ai_hud` (badge viền neon).
   - Hộp thoại: `active` (tự chọn dialog/modal **nổi trên cùng** đang hiển thị — ví dụ Studio Mixamo mở trên Xưởng Lắp Ráp Layer thì chỉ chụp Studio Mixamo; nên dùng ngay sau khi mở bất kỳ hộp thoại nào), `dialog` (cũng chọn dialog trên cùng thay vì phần tử khớp đầu tiên).
   - Xưởng 3D & từng cột: `assembly_3d` (toàn bộ), `assembly_sidebar` (cột trái tài nguyên/mặt), `assembly_viewport` (cột giữa 3D/2D), `assembly_inspector` (cột phải thuộc tính), `assembly_header`, `assembly_footer`, `assembly_hud`, `assembly_responsive_tabs` (thanh chuyển cột trên Tablet/Phone).
-  - Xưởng Layer 2.5D & từng cột: `layer_assembly` (toàn bộ), `layer_assembly_sidebar` (cột trái kho mẫu/layer), `layer_assembly_workspace` (cột giữa canvas), `layer_assembly_inspector` (cột phải rig/xương/motion), `layer_assembly_responsive_tabs` (thanh chuyển 3 vùng trên Tablet/Phone), `layer_assembly_tools`, `layer_assembly_header`, `layer_assembly_toolbar`, `layer_assembly_viewport_2d`, `layer_assembly_viewport_3d`, `layer_assembly_layers`, `layer_assembly_parts` (nhóm bộ phận), `layer_assembly_properties`, `layer_assembly_physics` (nhãn vật lý, sub-mesh, cửa hang & ánh sáng ảo), `layer_assembly_swap` (slot hoán đổi), `layer_assembly_rig_panel`, `layer_assembly_rig_tools` (thanh công cụ Tạo xương Moho S/A/T/Z), `layer_assembly_dopesheet` (bảng Dope Sheet Timeline & Tween Spans chuẩn Adobe Animate / Moho), `layer_assembly_animation_panel`, `layer_assembly_bone_depth` (thẻ Thứ tự lớp Z-Index xương phân cấp cha-con), `layer_assembly_retarget`, `layer_assembly_create`, `layer_assembly_confirm`, `layer_assembly_cutter`, `layer_assembly_source`, `layer_assembly_target`, `layer_assembly_motion_sketch`, `layer_assembly_anim_tools`, `layer_assembly_pose_tools`, `layer_assembly_anim_chips`, `layer_assembly_anim_assist`, `layer_assembly_anim_secondary`, `layer_assembly_plant_motion`, `layer_assembly_plant_graph`, `layer_assembly_plant_chips`, `layer_assembly_plant_panel`.
+  - Xưởng Layer 2.5D & từng cột: `layer_assembly` (toàn bộ), `layer_assembly_sidebar` (cột trái kho mẫu/layer), `layer_assembly_workspace` (cột giữa canvas), `layer_assembly_inspector` (cột phải rig/xương/motion), `layer_assembly_responsive_tabs` (thanh chuyển 3 vùng trên Tablet/Phone), `layer_assembly_tools`, `layer_assembly_header`, `layer_assembly_toolbar`, `layer_assembly_viewport_2d`, `layer_assembly_viewport_3d`, `layer_assembly_layers`, `layer_assembly_parts` (nhóm bộ phận), `layer_assembly_properties`, `layer_assembly_physics` (nhãn vật lý, sub-mesh, cửa hang & ánh sáng ảo), `layer_assembly_swap` (slot hoán đổi), `layer_assembly_rig_panel`, `layer_assembly_rig_tools` (thanh công cụ Tạo xương Moho S/A/T/Z), `layer_assembly_creature_rig` (Thư viện khung xương sinh vật), `layer_assembly_bone_builder` (Dựng xương thủ công), `layer_assembly_bone_constraints` (Giới hạn góc khớp), `layer_assembly_dopesheet` (bảng Dope Sheet Timeline & Tween Spans chuẩn Adobe Animate / Moho), `layer_assembly_animation_panel`, `layer_assembly_bone_depth` (thẻ Thứ tự lớp Z-Index xương phân cấp cha-con), `layer_assembly_retarget`, `layer_assembly_create`, `layer_assembly_confirm`, `layer_assembly_cutter`, `layer_assembly_source`, `layer_assembly_target`, `layer_assembly_motion_sketch`, `layer_assembly_anim_tools`, `layer_assembly_pose_tools`, `layer_assembly_anim_chips`, `layer_assembly_anim_assist`, `layer_assembly_anim_secondary`, `layer_assembly_plant_motion`, `layer_assembly_plant_graph`, `layer_assembly_plant_chips`, `layer_assembly_plant_panel`.
   - Studio Mixamo (modal lồng trong Xưởng Layer): `layer_assembly_mixamo_card`, `layer_assembly_mixamo_studio`, `layer_assembly_mixamo_stage`, `layer_assembly_mixamo_sidebar`.
   - Audio Studio & từng cột: `audio_studio` (toàn bộ), `audio_studio_sidebar` (cột trái danh sách luồng âm), `audio_studio_editor` (cột phải trình biên tập), `audio_studio_waveform` (biểu đồ sóng âm), `audio_studio_tone` (âm điệu & EQ), `audio_studio_mixer` (bộ trộn âm lượng), `audio_studio_console` (bàn trộn đa luồng).
   - Hiệu năng & bộ nhớ: `perf_dialog` (toàn bộ), `perf_hardware` (khối CPU/GPU/RAM), `perf_meter` (thước đo VRAM thời gian thực), `perf_settings` (cấu hình VRAM).
@@ -606,4 +606,33 @@ Flags (PowerShell/CMD):
 ```text
 pnpm pxs call layer_assembly_rig --action apply-preset-animation --preset_id bow --view_angle front
 pnpm pxs call layer_assembly_plant_spine --action apply_weather --weather moderate --lean 0.35
+```
+
+### Xưởng Layer 2.5D — Tạo xương kết cấu Tự động & Thủ công (chuẩn Moho / Adobe Animate)
+Tab **Tạo xương** chia 4 phân khu: `Cây xương` (thuộc tính khớp + **Giới hạn góc khớp**), `Thủ công` (dựng kết cấu bằng tay), `Gắn Mesh`, `Tự động` (Thư viện khung xương sinh vật, Mixamo, Smart 2.5D).
+- **`action: "apply-creature-rig"`** — Thư viện 12 loài kiểu Moho Character Wizard: `species: "spider" | "insect" | "crab" | "octopus" | "snake" | "fish" | "bird" | "butterfly" | "horse" | "dog" | "lizard" | "dragon"` (bỏ trống = tự nhận diện từ tên cụm/tên layer). Tuỳ chọn `leg_pairs`, `leg_segments`, `chain_segments`, `wings`, `facing: "auto" | "left" | "right"`, `fit_to_layers` (khớp vừa ảnh thật), `auto_bind` + `binding_mode: "auto" | "rigid" | "soft"`, `include_clips` (sinh sẵn dáng đi so le 4-4 / 3-3 / 4 nhịp, nước kiệu, bơi, trườn, vỗ cánh, bò ngang, kẹp càng, thở). Mỗi xương có sẵn giới hạn góc khớp và cặp đối xứng `-l`/`-r`.
+- **`action: "add-bone-chain"`** — chuỗi N đốt nối tiếp (Adobe Animate Bone Tool): `parent_id`, `segments` (1–16), `length` (tổng dài), `angle`, `x`/`y` (điểm bắt đầu tuỳ chọn), `name`, `id_prefix`.
+- **`action: "subdivide-bone"`** — chia xương `bone_id` thành `segments` đốt đều (2–16), xương con nối ở ngọn tự chuyển sang đốt cuối.
+- **`action: "radial-array-bone"`** — nhân cả nhánh `bone_id` quanh khớp gốc thành `count` chi, cách nhau `step_angle` độ, `mirror: true` để đối xứng L⇄R (chân nhện, xúc tu).
+- **Giới hạn góc khớp (Constrain Rotation / Angle Constraints):** `update-bone` nhận `min_angle` + `max_angle` (độ, tương đối dáng gốc Frame 0, dương = chiều kim đồng hồ) hoặc `limit_angle: false` để gỡ. IK CCD, xoay FK và công cụ Thử khớp (Z) đều dừng tại giới hạn; chế độ Đối xứng tự phản chiếu giới hạn sang xương đối diện.
+- Vùng chụp UI: `layer_assembly_creature_rig`, `layer_assembly_bone_builder`, `layer_assembly_bone_constraints`.
+
+PowerShell:
+```powershell
+pnpm pxs call layer_assembly_rig '{"action":"apply-creature-rig","species":"spider","leg_pairs":4,"leg_segments":3}'
+pnpm pxs call layer_assembly_rig '{"action":"add-bone-chain","parent_id":"bone-dog-hips","segments":5,"length":200,"angle":20,"name":"Đuôi"}'
+pnpm pxs call layer_assembly_rig '{"action":"radial-array-bone","bone_id":"leg-1","count":4,"step_angle":-25,"mirror":true}'
+pnpm pxs call layer_assembly_rig '{"action":"update-bone","bone_id":"bone-horse-front-s2-l","min_angle":-120,"max_angle":15}'
+```
+CMD:
+```cmd
+pnpm pxs call layer_assembly_rig "{\"action\":\"apply-creature-rig\",\"species\":\"spider\",\"leg_pairs\":4,\"leg_segments\":3}"
+pnpm pxs call layer_assembly_rig "{\"action\":\"add-bone-chain\",\"parent_id\":\"bone-dog-hips\",\"segments\":5,\"length\":200,\"angle\":20,\"name\":\"Đuôi\"}"
+pnpm pxs call layer_assembly_rig "{\"action\":\"radial-array-bone\",\"bone_id\":\"leg-1\",\"count\":4,\"step_angle\":-25,\"mirror\":true}"
+pnpm pxs call layer_assembly_rig "{\"action\":\"update-bone\",\"bone_id\":\"bone-horse-front-s2-l\",\"min_angle\":-120,\"max_angle\":15}"
+```
+Flags (PowerShell/CMD):
+```text
+pnpm pxs call layer_assembly_rig --action apply-creature-rig --species fish --facing right --binding_mode soft
+pnpm pxs call layer_assembly_rig --action subdivide-bone --bone_id bone-fish-spine-s1 --segments 3
 ```
