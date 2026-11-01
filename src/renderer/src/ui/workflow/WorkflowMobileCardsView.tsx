@@ -2,7 +2,6 @@ import React, { useMemo, useState } from 'react'
 import type { Project, WorkflowGraph, WorkflowNode, WorkflowNodeParams } from '@shared/types'
 import { computeV2Clusters, v2RootId } from '../../project/workflowV2Engine'
 import { effectiveTimeParams, timeSource } from '../../project/workflowTiming'
-import { WorkflowV2TimeLanes } from './WorkflowV2TimeLanes'
 import { setTimeGroupRangeAction } from './timeGroupActions'
 import { IconPlus, IconSliders, IconTrash } from '../icons'
 import { isDeletableV2Node } from './WorkflowNodeCardV2'
@@ -185,17 +184,6 @@ export const WorkflowMobileCardsView: React.FC<WorkflowMobileCardsViewProps> = (
           if (clock) setTimeGroupRangeAction(clock.id, s, en)
           else onUpdateNodeParams(id, { timeStart: s, timeEnd: en })
         }}
-        renderLanes={({ left, width }) => (
-          <WorkflowV2TimeLanes
-            project={project}
-            duration={maxDuration}
-            trackLeft={left}
-            trackWidth={width}
-            selectedNodeId={selectedNodeId}
-            onSelectNode={(id) => onSelectNode(id)}
-            onSetTime={onSetTime}
-          />
-        )}
       />
 
       <div className="wf-mcards-scroll">

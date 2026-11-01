@@ -177,8 +177,22 @@
 }
 .wf-v2-card.is-time-node .wf-v2-card-icon { color: var(--tg-c, var(--accent-cyan)); }
 .wf-v2-viewport.multi-mode { cursor: crosshair; }
-.wf-v2-studio .wf-v2-edge-group.kind-time .wf-v2-edge-fg { stroke-dasharray: 2 5; }
-.wf-v2-studio .wf-v2-edge-group.kind-time .wf-v2-edge-flow { stroke-dasharray: 2 10; }
+.wf-v2-studio .wf-v2-edge-group.kind-time .wf-v2-edge-fg {
+  stroke-dasharray: 8 5;
+  stroke-width: 2px;
+  stroke: var(--tg-c, var(--accent-cyan));
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--tg-c, var(--accent-cyan)) 60%, transparent));
+}
+.wf-v2-studio .wf-v2-edge-group.kind-time:hover .wf-v2-edge-fg,
+.wf-v2-studio .wf-v2-edge-group.kind-time.highlighted .wf-v2-edge-fg {
+  stroke-width: 2.6px;
+  stroke: var(--tg-c, var(--accent-cyan));
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--tg-c, var(--accent-cyan)) 85%, transparent));
+}
+.wf-v2-studio .wf-v2-edge-group.kind-time .wf-v2-edge-fg.flowing {
+  stroke-dasharray: 8 5;
+  animation: wfV2FlowDash 1.2s linear infinite;
+}
 
 .wf-v2-marquee {
   position: absolute;

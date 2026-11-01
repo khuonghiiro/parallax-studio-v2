@@ -15,8 +15,6 @@ export interface WorkflowTimeRulerV2Props {
   onSetTime: (t: number) => void
   onTogglePlay: () => void
   onUpdateNodeTimeRange?: (nodeId: string, nextStart: number, nextEnd: number) => void
-  /** Vẽ làn phụ thẳng hàng với rãnh thước (ví dụ làn nhóm Time chung) — nhận vị trí trái & bề rộng rãnh */
-  renderLanes?: (geometry: { left: number; width: number }) => React.ReactNode
 }
 
 /** Bước vạch chia động theo bề rộng thực tế của thước (chống đè nhãn `02s 4s 6 8.3s` trên điện thoại) */
@@ -27,8 +25,8 @@ function pickTickStep(duration: number, rulerWidth: number): number {
 }
 
 /**
- * Thước thời gian (Master Time Ruler) của Workflow V2, chia 2 làn tách bạch:
- * làn trên là nhãn giây, làn dưới là khoảng mốc của Node đang chọn (kéo 2 đầu mút / kéo thân để dịch).
+ * Thước thời gian (Master Time Ruler) của Workflow V2:
+ * hiển thị vạch chia giây, vùng chọn mốc của Node đang focus (kéo 2 đầu mút / kéo thân để dịch) và đầu phát hiện tại.
  */
 export const WorkflowTimeRulerV2: React.FC<WorkflowTimeRulerV2Props> = ({
   currentTime,
@@ -39,15 +37,12 @@ export const WorkflowTimeRulerV2: React.FC<WorkflowTimeRulerV2Props> = ({
   activeAtTimeCount,
   onSetTime,
   onTogglePlay,
-  onUpdateNodeTimeRange,
-  renderLanes
+  onUpdateNodeTimeRange
 }) => {
   const rulerRef = useRef<HTMLDivElement>(null)
   const [rulerWidth, setRulerWidth] = useState<number>(() =>
     typeof window !== 'undefined' ? Math.max(110, Math.min(720, window.innerWidth - 230)) : 420
   )
-  const [trackLeft, setTrackLeft] = useState(0)
-  const [trackWidth, setTrackWidth] = useState(0)
   const safeDuration = Math.max(1, duration || 5)
   const toPct = (t: number): number => Math.max(0, Math.min(100, (t / safeDuration) * 100))
 
@@ -57,8 +52,6 @@ export const WorkflowTimeRulerV2: React.FC<WorkflowTimeRulerV2Props> = ({
     const update = (): void => {
       const w = Math.floor(el.getBoundingClientRect().width)
       if (w > 24) setRulerWidth((prev) => (Math.abs(prev - w) < 6 ? prev : w))
-      setTrackLeft((prev) => (Math.abs(prev - el.offsetLeft) < 1 ? prev : el.offsetLeft))
-      setTrackWidth((prev) => (Math.abs(prev - el.clientWidth) < 1 ? prev : el.clientWidth))
     }
     update()
     const ro = new ResizeObserver(update)
@@ -112,7 +105,6 @@ export const WorkflowTimeRulerV2: React.FC<WorkflowTimeRulerV2Props> = ({
       const dt = ((ev.clientX - initX) / w) * safeDuration
       const [s, en] = dragTimeRange(mode, selStart, selEnd, dt, 0, safeDuration)
       onUpdateNodeTimeRange(selectedNode.id, s, en)
-      if (mode !== 'move') onSetTime(mode === 'start' ? s : en)
     }
     const onUp = (): void => {
       window.removeEventListener('pointermove', onMove)
@@ -127,7 +119,6 @@ export const WorkflowTimeRulerV2: React.FC<WorkflowTimeRulerV2Props> = ({
   const accent = selectedNode ? resolveV2NodeTheme(selectedNode).accent : 'var(--accent)'
 
   return (
-    <div className="wf-v2-ruler-stack">
     <div className="wf-v2-ruler-bar" data-mcp-region="workflow_ruler">
       <div className="wf-v2-ruler-controls">
         <button
@@ -183,8 +174,6 @@ export const WorkflowTimeRulerV2: React.FC<WorkflowTimeRulerV2Props> = ({
           <span className={`wf-v2-ruler-playhead-cap ${capAlign}`}>{currentTime.toFixed(1)}s</span>
         </div>
       </div>
-    </div>
-    {renderLanes && trackWidth > 0 && renderLanes({ left: trackLeft, width: trackWidth })}
     </div>
   )
 }

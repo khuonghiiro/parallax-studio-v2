@@ -96,8 +96,8 @@ export function buildEdgePath(from: WorkflowNode, to: WorkflowNode, kind: V2Edge
   const x2 = to.position.x - 8
   const y2 = to.position.y + WF_V2_PORT_Y
   if (style === 'bezier') return buildBezierWirePath(x1, y1, x2, y2)
-  const channel = Math.round(x1 + (x2 - x1) * 0.5 + lane * 10)
-  return buildSmoothStepWirePath(x1, y1, x2, y2, Math.max(x1 + 12, Math.min(x2 - 12, channel)))
+  const channel = Math.round(x1 + (x2 - x1) * 0.5 + lane * 22)
+  return buildSmoothStepWirePath(x1, y1, x2, y2, Math.max(x1 + 18, Math.min(x2 - 18, channel)))
 }
 
 /**

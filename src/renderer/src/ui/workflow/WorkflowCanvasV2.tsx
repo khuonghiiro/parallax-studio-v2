@@ -1,5 +1,4 @@
 import { acceptsSharedTime, effectiveTimeParams, isTimeNode, timeSource } from '../../project/workflowTiming'
-import { WorkflowV2TimeLanes } from './WorkflowV2TimeLanes'
 import { WorkflowV2SelectionBar } from './WorkflowV2SelectionBar'
 import { useWorkflowMultiSelect } from './workflowMultiSelect'
 import { createTimeGroupFrom, setTimeGroupRangeAction } from './timeGroupActions'
@@ -8,6 +7,7 @@ import type { Project, WorkflowGraph, WorkflowNode, WorkflowNodeParams, Workflow
 import {
   V2_SHARED_CLUSTER,
   WF_V2_CAMERA_LANE_X,
+  WF_V2_COL_STEP,
   WF_V2_COL_X,
   WF_V2_NODE_H,
   WF_V2_NODE_W,
@@ -69,8 +69,8 @@ const COLUMN_BANNERS = [
   { x: WF_V2_COL_X.GROUP, step: '02', label: 'NHÓM LAYER', minX: -Infinity },
   { x: WF_V2_COL_X.LAYER, step: '03', label: 'LAYER 2.5D / 3D', minX: -Infinity },
   { x: WF_V2_COL_X.LOGIC, step: '04', label: 'LOGIC CỦA LAYER', minX: -Infinity },
-  { x: WF_V2_COL_X.LOGIC + 356, step: '05', label: 'HOẠT ẢNH & NHÁNH CỤM', minX: WF_V2_COL_X.LOGIC + 280 },
-  { x: WF_V2_COL_X.LOGIC + 712, step: '06', label: 'BỘ PHẬN CHI TIẾT', minX: WF_V2_COL_X.LOGIC + 640 }
+  { x: WF_V2_COL_X.LOGIC + WF_V2_COL_STEP, step: '05', label: 'HOẠT ẢNH & NHÁNH CỤM', minX: WF_V2_COL_X.LOGIC + Math.round(WF_V2_COL_STEP * 0.75) },
+  { x: WF_V2_COL_X.LOGIC + WF_V2_COL_STEP * 2, step: '06', label: 'BỘ PHẬN CHI TIẾT', minX: WF_V2_COL_X.LOGIC + Math.round(WF_V2_COL_STEP * 1.75) }
 ]
 const CULL_MARGIN = 240
 
@@ -239,14 +239,13 @@ export const WorkflowCanvasV2: React.FC<WorkflowCanvasV2Props> = (props) => {
     [graph.clusters, vp]
   )
   useCanvasEvents(vp, workflow.id, graph.visibleNodes.length, focusCluster)
-  // Theo dõi cảnh: khi đang phát video và đầu phát chuyển sang cảnh khác, khung nhìn tự di chuyển tới cụm Workflow của cảnh đó
-  // (không tự nhảy về đầu cụm khi người dùng đang dừng để bấm chọn Node con ở các cột bên phải)
+  // Theo dõi cảnh: CHỈ khi đang phát video (playing && follow) và đầu phát chuyển sang cảnh khác,
+  // khung nhìn mới tự di chuyển tới cụm Workflow của cảnh đó. Khi đang dừng thao tác, không tự nhảy.
   useEffect(() => {
-    if (!props.follow || !activeRootId) return
-    if (!props.playing && selectedNodeId && graph.clusterOf.get(selectedNodeId) === activeRootId) return
+    if (!props.playing || !props.follow || !activeRootId) return
     focusCluster(activeRootId)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeRootId, props.follow])
+  }, [activeRootId, props.playing, props.follow])
 
   const wireStateOf = (n: WorkflowNode): 'valid' | 'invalid' | 'hover-valid' | 'hover-invalid' | undefined => {
     const w = ix.wireDrag
@@ -282,17 +281,6 @@ export const WorkflowCanvasV2: React.FC<WorkflowCanvasV2Props> = (props) => {
         onSetTime={onSetTime}
         onTogglePlay={props.onTogglePlay}
         onUpdateNodeTimeRange={updateNodeRange}
-        renderLanes={({ left, width }) => (
-          <WorkflowV2TimeLanes
-            project={project}
-            duration={maxDuration}
-            trackLeft={left}
-            trackWidth={width}
-            selectedNodeId={selectedNodeId}
-            onSelectNode={onSelectNode}
-            onSetTime={onSetTime}
-          />
-        )}
       />
 
       <div

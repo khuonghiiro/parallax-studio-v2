@@ -1,17 +1,20 @@
 import type { WorkflowEdge, WorkflowGraph, WorkflowNode } from '@shared/types'
 
-/** Trục X của 4 cột phân cấp: Root/Camera → Nhóm → Layer → Logic (khoảng hở 120px để dây nối dễ nhìn) */
+/** Khoảng cách tiêu chuẩn giữa các cột (thẻ 236px + hành lang dây nối 180px = 416px, rộng rãi và thoáng đãng) */
+export const WF_V2_COL_STEP = 416
+
+/** Trục X của 4 cột phân cấp: Root/Camera → Nhóm → Layer → Logic (khoảng hở 180px để dây nối thông thoáng) */
 export const WF_V2_COL_X = {
   ROOT: 48,
-  GROUP: 404,
-  LAYER: 760,
-  LOGIC: 1116
+  GROUP: 48 + WF_V2_COL_STEP, // 464
+  LAYER: 48 + WF_V2_COL_STEP * 2, // 880
+  LOGIC: 48 + WF_V2_COL_STEP * 3 // 1296
 } as const
 
 /** Làn dọc bên trái cột Root dành riêng cho dây Camera chuyển cảnh */
 export const WF_V2_CAMERA_LANE_X = -18
-/** Cột riêng cho các Node Time chung (bên trái làn Camera, ngoài mọi khung cụm cảnh) */
-export const WF_V2_TIME_COL_X = -340
+/** Cột riêng cho các Node Time chung độc lập (chia hết cho 8px) */
+export const WF_V2_TIME_COL_X = -336
 
 /** Kích thước thẻ Node cố định (CSS `.wf-v2-card` dùng đúng các giá trị này) */
 export const WF_V2_NODE_W = 236
@@ -21,10 +24,10 @@ export const WF_V2_NODE_GAP = 16
 
 export const WF_V2_CLUSTER_HEADER = 34
 const TOP_Y = 96
-const LOGIC_GAP = 18
-const LAYER_GAP = 30
-const GROUP_GAP = 44
-const CLUSTER_GAP = 76
+const LOGIC_GAP = 24
+const LAYER_GAP = 42
+const GROUP_GAP = 52
+const CLUSTER_GAP = 84
 
 /** Chiều cao chuẩn của mọi thẻ Workflow V2 (thẻ có chiều cao cố định để bố cục & hit-test chính xác) */
 export function estimateV2NodeHeight(_node?: WorkflowNode): number {
@@ -207,7 +210,7 @@ function layoutLogicBranch(
   visited: Set<string>
 ): LogicLayoutResult {
   visited.add(node.id)
-  node.position = { x: WF_V2_COL_X.LOGIC + depth * 356, y: startY }
+  node.position = { x: WF_V2_COL_X.LOGIC + depth * WF_V2_COL_STEP, y: startY }
   const rawChildren = (childMap.get(node.id) ?? []).filter((c) => !visited.has(c.id))
   const visibleChildren = rawChildren.filter((c) => !hidden.has(c.id))
 
@@ -379,6 +382,7 @@ function layoutCluster(
 /**
  * Xếp toàn bộ không gian Workflow: các cụm cảnh xếp chồng theo thứ tự camera, mỗi cụm phân cấp từ trái sang phải.
  * - Node đã ghim thủ công (`pinned: true`) giữ nguyên 100% toạ độ người dùng đã đặt.
+ * - Node Time chung được đặt ngay cạnh các node tiêu thụ của nó để đường nối ngắn và đẹp.
  * - Các thẻ còn lại tự động tính toán khoảng cách chuẩn, luồng kết nối thẳng hàng và né thẻ cố định.
  */
 export function layoutWorkflowV2Tree(nodes: WorkflowNode[], edges: WorkflowEdge[]): WorkflowNode[] {
@@ -403,10 +407,24 @@ export function layoutWorkflowV2Tree(nodes: WorkflowNode[], edges: WorkflowEdge[
 
   for (const ln of cloned) {
     if (!isLogic(ln) || ownedIds.has(ln.id)) continue
-    // Node Time chung nằm ở cột riêng bên trái (-340)
+    // Node Time chung: đặt ngay lân cận các node tiêu thụ để đường nối ngắn, gọn và trực quan
     if (ln.params?.logicCategory === 'time') {
-      ln.position = { x: WF_V2_TIME_COL_X, y: timeY }
-      timeY += WF_V2_NODE_H + LOGIC_GAP
+      const consumerIds = new Set(
+        edges.filter((e) => e.fromNode === ln.id && (e.fromPort === 'time_range' || !e.fromPort)).map((e) => e.toNode)
+      )
+      const consumers = cloned.filter((n) => consumerIds.has(n.id) && !hidden.has(n.id))
+      if (consumers.length > 0) {
+        const minX = Math.min(...consumers.map((c) => c.position.x))
+        const minY = Math.min(...consumers.map((c) => c.position.y))
+        const maxY = Math.max(...consumers.map((c) => c.position.y))
+        const midY = Math.round((minY + maxY) / 2)
+        const targetX = Math.max(WF_V2_COL_X.ROOT, minX - WF_V2_COL_STEP)
+        const targetY = Math.max(TOP_Y, midY - Math.round(WF_V2_NODE_H / 2))
+        ln.position = findFreeV2Spot(cloned, edges, ln.id, { x: targetX, y: targetY })
+      } else {
+        ln.position = findFreeV2Spot(cloned, edges, ln.id, { x: WF_V2_TIME_COL_X, y: timeY })
+        timeY += WF_V2_NODE_H + LOGIC_GAP
+      }
       continue
     }
     const parentEdge = edges.find((e) => e.toNode === ln.id && byId.has(e.fromNode))

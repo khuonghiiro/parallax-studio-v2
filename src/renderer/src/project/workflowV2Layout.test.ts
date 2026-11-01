@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { WorkflowEdge, WorkflowNode, WorkflowPortKind } from '@shared/types'
 import {
+  WF_V2_COL_STEP,
   WF_V2_COL_X,
   WF_V2_NODE_H,
   WF_V2_NODE_W,
@@ -86,8 +87,8 @@ describe('Workflow V2 Layout — Thuật toán sắp xếp thẩm mỹ & luồng
 
     // Phân cấp cột tăng dần từ trái sang phải
     expect(b1.position.x).toBe(WF_V2_COL_X.LOGIC)
-    expect(b2.position.x).toBe(WF_V2_COL_X.LOGIC + 356)
-    expect(b3.position.x).toBe(WF_V2_COL_X.LOGIC + 356 * 2)
+    expect(b2.position.x).toBe(WF_V2_COL_X.LOGIC + WF_V2_COL_STEP)
+    expect(b3.position.x).toBe(WF_V2_COL_X.LOGIC + WF_V2_COL_STEP * 2)
 
     // Thẳng hàng ngang trên cùng một toạ độ Y
     expect(b1.position.y).toBe(b2.position.y)
@@ -150,9 +151,9 @@ describe('Workflow V2 Layout — Thuật toán sắp xếp thẩm mỹ & luồng
 
     // Các con ở cột tiếp theo bên phải Hub
     expect(h.position.x).toBe(WF_V2_COL_X.LOGIC)
-    expect(p1.position.x).toBe(WF_V2_COL_X.LOGIC + 356)
-    expect(p2.position.x).toBe(WF_V2_COL_X.LOGIC + 356)
-    expect(p3.position.x).toBe(WF_V2_COL_X.LOGIC + 356)
+    expect(p1.position.x).toBe(WF_V2_COL_X.LOGIC + WF_V2_COL_STEP)
+    expect(p2.position.x).toBe(WF_V2_COL_X.LOGIC + WF_V2_COL_STEP)
+    expect(p3.position.x).toBe(WF_V2_COL_X.LOGIC + WF_V2_COL_STEP)
 
     // Các con xếp dọc từ trên xuống dưới
     expect(p1.position.y).toBeLessThan(p2.position.y)
@@ -191,7 +192,7 @@ describe('Workflow V2 Layout — Thuật toán sắp xếp thẩm mỹ & luồng
     assertNoOverlap(laidOut, edges)
   })
 
-  it('node Time chung nằm ở cột riêng bên trái (-340) ngoài không gian cảnh', () => {
+  it('node Time chung không có consumer thì rơi về cột ngoài (-340)', () => {
     const root = makeNode({ id: 'v2-root-s1', type: 'scene_shot', title: 'Cảnh 1', params: { shotId: 's1' } })
     const timeNode = makeNode({
       id: 'time-shared-a',
@@ -203,5 +204,34 @@ describe('Workflow V2 Layout — Thuật toán sắp xếp thẩm mỹ & luồng
     const laidOut = layoutWorkflowV2Tree([root, timeNode], [])
     const t = laidOut.find((n) => n.id === timeNode.id)!
     expect(t.position.x).toBe(WF_V2_TIME_COL_X)
+  })
+
+  it('node Time chung có consumer thì tự động đặt ngay bên cạnh các consumer thay vì ở xa', () => {
+    const root = makeNode({ id: 'v2-root-s1', type: 'scene_shot', title: 'Cảnh 1', params: { shotId: 's1' } })
+    const grp = makeNode({ id: 'v2-grp-s1', type: 'layer_assembly', title: 'Nhóm 1', params: { groupKind: 'group_25d', shotId: 's1' } })
+    const layer = makeNode({ id: 'v2-layer-torso', type: 'layer_assembly', title: 'Layer', params: { shotId: 's1' } })
+
+    const timeNode = makeNode({
+      id: 'time-shared-b',
+      type: 'motion_choreography',
+      title: 'Time B · Thời gian chung',
+      params: { logicCategory: 'time', timeStart: 0, timeEnd: 5 }
+    })
+
+    const edges: WorkflowEdge[] = [
+      makeEdge(root.id, grp.id),
+      makeEdge(grp.id, layer.id),
+      makeEdge(timeNode.id, layer.id, 'time_range', 'time_range')
+    ]
+
+    const laidOut = layoutWorkflowV2Tree([root, grp, layer, timeNode], edges)
+    const t = laidOut.find((n) => n.id === timeNode.id)!
+    const l = laidOut.find((n) => n.id === layer.id)!
+
+    // Không bị vứt ra tít -340 cách 1100px
+    expect(t.position.x).toBeGreaterThan(0)
+    // Nằm ở cột ngay trước consumer (khoảng cách 1 bước cột WF_V2_COL_STEP)
+    expect(l.position.x - t.position.x).toBe(WF_V2_COL_STEP)
+    assertNoOverlap(laidOut, edges)
   })
 })
