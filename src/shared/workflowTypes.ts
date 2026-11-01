@@ -187,6 +187,8 @@ export interface WorkflowNodeParams {
   timeStart?: number
   /** [Workflow V2] Mốc thời gian kết thúc (giây) của Node trên đường kẻ thời gian */
   timeEnd?: number
+  /** [Workflow V2] Màu nhận diện của Node Time chung (nhóm thời gian) trên Workflow, thước thời gian và Timeline */
+  timeGroupColor?: string
   /** [Workflow V2] Phân loại Node Group Layer ('group_3d' | 'group_25d' | 'group_env') */
   groupKind?: 'group_3d' | 'group_25d' | 'group_env'
   /** [Workflow V2] Trạng thái thu gọn nhánh con của Group hoặc Layer */

@@ -10,6 +10,8 @@ export const WF_V2_COL_X = {
 
 /** Làn dọc bên trái cột Root dành riêng cho dây Camera chuyển cảnh */
 export const WF_V2_CAMERA_LANE_X = -18
+/** Cột riêng cho các Node Time chung (bên trái làn Camera, ngoài mọi khung cụm cảnh) */
+export const WF_V2_TIME_COL_X = -340
 
 /** Kích thước thẻ Node cố định (CSS `.wf-v2-card` dùng đúng các giá trị này) */
 export const WF_V2_NODE_W = 236
@@ -224,8 +226,14 @@ export function layoutWorkflowV2Tree(nodes: WorkflowNode[], edges: WorkflowEdge[
   }
   const ownedIds = new Set([...owners.values()].flat().map((n) => n.id))
   let orphanY = cursorY
+  let timeY = TOP_Y
   for (const ln of cloned) {
     if (!isLogic(ln) || ownedIds.has(ln.id)) continue
+    if (ln.params?.logicCategory === 'time') {
+      ln.position = { x: WF_V2_TIME_COL_X, y: timeY }
+      timeY += WF_V2_NODE_H + LOGIC_GAP
+      continue
+    }
     const parentEdge = edges.find((e) => e.toNode === ln.id && byId.has(e.fromNode))
     if (hidden.has(ln.id) && parentEdge) {
       ln.position = { x: WF_V2_COL_X.LOGIC, y: byId.get(parentEdge.fromNode)!.position.y }
@@ -311,7 +319,8 @@ export function computeV2Clusters(nodes: WorkflowNode[], edges: WorkflowEdge[], 
   }
   for (const n of nodes) if (isLayer(n)) clusterOf.set(n.id, clusterOf.get(parentOf(n.id, isGroup)?.id ?? '') ?? '')
   for (const n of nodes) {
-    if (isLogic(n)) {
+    // Node Time chung nối được nhiều cảnh nên đứng ngoài mọi khung cụm cảnh
+    if (isLogic(n) && n.params?.logicCategory !== 'time') {
       const parentLayer = parentOf(n.id, isLayer)
       if (parentLayer) {
         clusterOf.set(n.id, clusterOf.get(parentLayer.id) ?? '')

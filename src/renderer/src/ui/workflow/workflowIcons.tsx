@@ -185,6 +185,36 @@ export const IconWfWireBezier = (p: WfIconProps) => (
   </svg>
 )
 
+/** HUD: Chế độ chọn nhiều Node (khung chọn + dấu tích) */
+export const IconWfMultiSelect = (p: WfIconProps) => (
+  <svg {...base(p)}>
+    <rect x="3" y="3" width="8" height="8" rx="1.6" strokeDasharray="2.4 2" />
+    <rect x="13" y="13" width="8" height="8" rx="1.6" />
+    <path d="M15.2 17.1l1.6 1.6 3-3.2" />
+    <path d="M13 6.5h4.5a2 2 0 0 1 2 2V11" />
+  </svg>
+)
+
+/** Nhóm Time chung: đồng hồ có các nhánh dây đi ra nhiều Node */
+export const IconWfTimeGroup = (p: WfIconProps) => (
+  <svg {...base(p)}>
+    <circle cx="8.5" cy="12" r="5.5" />
+    <path d="M8.5 9v3l2 1.4" />
+    <path d="M14 12h3.5M17.5 12l3-4.5M17.5 12l3 4.5" />
+    <circle cx="20.5" cy="7.5" r="1" fill="currentColor" />
+    <circle cx="20.5" cy="16.5" r="1" fill="currentColor" />
+  </svg>
+)
+
+/** Tách khỏi nhóm Time: đồng hồ có dây bị cắt */
+export const IconWfTimeUnlink = (p: WfIconProps) => (
+  <svg {...base(p)}>
+    <circle cx="8.5" cy="12" r="5.5" />
+    <path d="M8.5 9v3l2 1.4" />
+    <path d="M14 12h2M19 12h2.5M17 9.5l1.5 5" />
+  </svg>
+)
+
 export function renderWorkflowNodeIcon(type: WorkflowNodeType, props?: WfIconProps) {
   switch (type) {
     case 'scene_shot':

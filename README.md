@@ -220,7 +220,7 @@ pnpm pxs review --view app --region virtual_light_pad --out D:\_tmp\light-pad.pn
 
 ### Shared timing and multi-row timeline
 - Demo ba cảnh giữ đủ 15 giây: giữ khung rồi lia ở 4–5s và 9–10s; cảnh đến hiện từ đầu đoạn lia. Timeline không tự rút thời lượng khi render.
-- Workflow: **+ Time** tạo nguồn khoảng thời gian; kéo cổng ra tới Layer, Motion, Animation, FX, va chạm hoặc Audio. Một node nhận tối đa một nguồn Time. Ngắt/xoá/tắt nguồn trả về khoảng riêng; Camera và cấu trúc cảnh giữ lộ trình riêng.
+- Workflow: **+ Time** tạo nguồn khoảng thời gian; kéo cổng ra tới Layer, Motion, Animation, FX, va chạm, Audio hoặc **mốc lộ trình Camera**. Một node nhận tối đa một nguồn Time. Ngắt/xoá/tắt nguồn trả về khoảng riêng; cấu trúc cảnh (Root/Nhóm/Camera cha) giữ phạm vi riêng.
 - Timeline: bỏ checkbox. **Ctrl + click** thêm/bỏ chọn từng khoảng thời gian (thanh layer, đoạn giữa hai keyframe trong dòng thuộc tính, hoặc thanh hiệu ứng). Mở cây layer để chọn các đoạn thuộc tính riêng; chọn nhiều đoạn cùng dòng hoặc khác dòng. Kéo đoạn/mốc đã chọn để dời cả nhóm; **Đặt IN/OUT** (phím `[` / `]`) đặt biên các đoạn tại đầu phát; **Căn đầu** giữ thời lượng. Click vùng trống hoặc Escape bỏ chọn. Nền xanh, viền kép và vạch nhấn phân biệt vùng chọn ở cả hai theme. Mỗi lần kéo có một bước Undo; Escape hủy kéo. Bỏ qua layer khóa; từ chối đảo/chồng mốc hoặc xung đột mốc chung.
 - MCP: `set_workflow(create_time: true)`, `set_workflow(node_id, node_params)` với `timeStart/timeEnd`, `connect_workflow_ports(port: "time_range")`, `retime_layers(layer_ids, mode: "shift" | "align", seconds)`. Có Undo/Redo; main.json giữ nguồn và dây thời gian dùng chung.
 - Region mới: `timeline_batch_timing`; Workflow tiếp tục dùng `workflow_toolbar`, `workflow_canvas`, `workflow_inspector`.
@@ -230,6 +230,17 @@ pnpm pxs review --view app --region virtual_light_pad --out D:\_tmp\light-pad.pn
 - MCP `retime_layers(intervals, mode, seconds)` dùng cùng logic; `kind: layer | keys | effect`. `keys` nhận `prop/startId/endId`, `effect` nhận `effectId`, tất cả nhận `layerId`. `mode: shift | align | in | out`. `ui_click(ctrl: true)` hỗ trợ chọn nhiều đoạn. Không thêm region: dùng `timeline`, `timeline_properties`, `timeline_batch_timing`.
 - PowerShell: `pnpm pxs call retime_layers '{"intervals":[{"kind":"keys","layerId":"layer-1","prop":"opacity","startId":"key-a","endId":"key-b"}],"mode":"shift","seconds":1}'`.
 - CMD: `pnpm pxs call retime_layers "{\"intervals\":[{\"kind\":\"keys\",\"layerId\":\"layer-1\",\"prop\":\"opacity\",\"startId\":\"key-a\",\"endId\":\"key-b\"}],\"mode\":\"shift\",\"seconds\":1}"`.
+
+### Shared Time groups — nhóm Time chung (clip liên kết Workflow ⇄ Timeline)
+- Logic lõi: [`workflowTimeGroups.ts`](./src/renderer/src/project/workflowTimeGroups.ts) (tạo / nối / tách / đổi khoảng / dời nhóm), [`workflowTimeGroupSync.ts`](./src/renderer/src/project/workflowTimeGroupSync.ts) (lan truyền khoảng tới mọi thành viên), [`layerTimeShift.ts`](./src/renderer/src/project/layerTimeShift.ts) (dời nguyên khối keyframe/hiệu ứng/âm thanh của Layer). Timeline, Workflow, Inspector và MCP đều đi qua cùng các hàm này.
+- Sửa Node Time một lần → mọi Layer, Logic và mốc lộ trình Camera nối vào đều ăn theo. Layer cùng độ dài với nhóm được **dời nguyên khối** (keyframe, hiệu ứng, track âm thanh đi theo); mốc lộ trình Camera tới mốc lúc bắt đầu và bước kéo dài tới lúc kết thúc, các mốc sau dời theo (ripple), không bao giờ vượt qua nhau.
+- Workflow: làn **Thời gian chung** dưới thước (kéo thân = dời cả nhóm, kéo 2 đầu = đổi khoảng, nhấp = chọn Node Time); chọn nhiều Node bằng **Ctrl/⌘ + nhấp**, **Shift + kéo khung** hoặc nút HUD **Chọn nhiều** (cảm ứng); thanh chọn nhiều có **Gom Time chung**, nối vào nhóm có sẵn, **Tách**; phím tắt **Ctrl/⌘ + G** gom nhóm. Kéo thẻ đang chọn nhiều dời cả cụm thẻ. Node Time nằm ở cột riêng bên trái (ngoài khung cụm cảnh), dây Time chỉ hiện khi chọn Node Time hoặc thành viên; thành viên có chip màu ⏱ và thanh thời gian trên thẻ/Inspector sửa thẳng cả nhóm.
+- Timeline: thanh Layer trong nhóm có chip ⏱ màu nhóm; kéo / cắt IN-OUT một Layer là sửa cả nhóm (xem trước cả nhóm khi kéo); **Alt + kéo** chỉ dời riêng Layer đó và tách khỏi nhóm. Thanh chọn nhiều đoạn có **Gom Time**, nối vào nhóm có sẵn và **Tách**.
+- Khi tạo nhóm, khoảng mặc định theo **mục đầu tiên** (Layer đứng trước) để mốc Camera bám theo Layer.
+- MCP: `time_group` (`list | create | link | unlink | set_range | shift | rename`), mỗi lệnh một bước Undo. Region mới: `workflow_time_lanes`, `workflow_selection_bar`, `workflow_time_group`.
+- PowerShell: `pnpm pxs call time_group '{"action":"create","layer_ids":["layer-1","layer-2"],"node_ids":["v2-cam-wp-shot-1-1"]}'`.
+- CMD: `pnpm pxs call time_group "{\"action\":\"shift\",\"time_node_id\":\"time-abc\",\"delta\":1.5}"`.
+- Flags: `pnpm pxs call time_group --action list`.
 
 
 ### Workflow BBox: phạm vi chỉnh, chuỗi Motion và va chạm

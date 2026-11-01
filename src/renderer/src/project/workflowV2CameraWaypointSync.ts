@@ -137,3 +137,54 @@ export function spawnWorkflowV2CameraWaypoint(
     isSubWaypoint: res.isSubWaypoint
   }
 }
+
+
+const round2 = (v: number): number => Math.round(v * 100) / 100
+
+/** Tìm đúng mốc Camera của Node con lộ trình (ưu tiên chỉ số toàn cục, đối chiếu cảnh, rồi tới thời điểm gần nhất) */
+function resolveWaypointFrameIndex(frames: { time: number; shotId?: string | null }[], node: WorkflowNode): number {
+  const idx = node.params?.waypointIndex
+  if (typeof idx === 'number' && frames[idx] && (!node.params?.shotId || frames[idx].shotId === node.params.shotId)) return idx
+  const t = node.params?.timeStart ?? 0
+  let best = -1
+  for (let i = 0; i < frames.length; i++) {
+    if (best < 0 || Math.abs(frames[i].time - t) < Math.abs(frames[best].time - t)) best = i
+  }
+  return best
+}
+
+/**
+ * Cho mốc lộ trình Camera ăn theo một khoảng thời gian chung `[start, end]` (Node Time):
+ * camera tới mốc lúc `start` và bước chuyển sang mốc kế tiếp kéo dài tới `end`.
+ * Thứ tự cập nhật luôn giữ các mốc không vượt qua nhau (dời mốc sau trước khi tiến, dời mốc này trước khi lùi);
+ * các mốc phía sau được dời theo (ripple) giống như chỉnh "Thời lượng bước" thủ công.
+ */
+export function applyTimeRangeToCameraWaypoint(project: Project, node: WorkflowNode, start: number, end: number): void {
+  const layout = computeShotStageLayout(project, 0)
+  const frames = extractCameraFrames2D(project, layout)
+  const idx = resolveWaypointFrameIndex(frames, node)
+  const cur = frames[idx]
+  if (!cur) return
+  const prev = idx > 0 ? frames[idx - 1] : undefined
+  const next = idx + 1 < frames.length ? frames[idx + 1] : undefined
+  const desiredStart = idx === 0 ? cur.time : round2(Math.max(start, (prev?.time ?? 0) + 0.2))
+  const desiredEnd = round2(Math.max(desiredStart + 0.2, end))
+  const moveCur = (): void => {
+    if (Math.abs(desiredStart - cur.time) > 0.005) updateCameraWaypoint(project, layout, cur.time, { time: desiredStart, ripple: false })
+  }
+  if (!next) {
+    moveCur()
+    updateWaypointStepDuration(project, layout, idx, { stepDuration: round2(desiredEnd - desiredStart) })
+    return
+  }
+  const moveNext = (): void => {
+    if (Math.abs(desiredEnd - next.time) > 0.005) updateCameraWaypoint(project, layout, next.time, { time: desiredEnd, ripple: true })
+  }
+  if (desiredStart < cur.time) {
+    moveCur()
+    moveNext()
+  } else {
+    moveNext()
+    moveCur()
+  }
+}

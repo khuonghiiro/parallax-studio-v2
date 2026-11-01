@@ -38,7 +38,7 @@ describe('manual timeline clock movement', () => {
     expect(project.layers[1].inPoint).toBe(2)
   })
 
-  it('detaches only the moved consumer and retains its new local range after reconciliation', () => {
+  it('moves the whole Time group like linked clips; Alt-detach moves only the chosen consumer', () => {
     const project = fixture(), clock = createTimeNode(project)
     clock.params = { ...clock.params, timeStart: 2, timeEnd: 6 }
     project.workflow!.nodes.push(clock)
@@ -46,12 +46,15 @@ describe('manual timeline clock movement', () => {
     for (const id of ids) project.workflow = connectTimeNode(project.workflow!, clock.id, id)
     syncWorkflowV2NodeToProject(project, clock)
     moveTimelineLayers(project, [project.layers[0].id], 3)
+    expect(project.workflow!.edges.filter(edge => edge.fromPort === 'time_range').map(edge => edge.toNode).sort()).toEqual([...ids].sort())
+    expect(project.workflow!.nodes.find(n => n.id === clock.id)!.params?.timeStart).toBe(5)
+    expect(project.layers.map(l => [l.inPoint, l.outPoint])).toEqual([[5, 9], [5, 9]])
+    moveTimelineLayers(project, [project.layers[0].id], 2, 'shift', { detachLinked: true })
     expect(project.workflow!.edges.filter(edge => edge.fromPort === 'time_range').map(edge => edge.toNode)).toEqual([ids[1]])
-    expect(clock.params.timeStart).toBe(2)
     project.workflow = syncWorkflowV2Graph(project, project.workflow)
     const moved = project.workflow.nodes.find(node => node.id === ids[0])!
     syncWorkflowV2NodeToProject(project, moved)
-    expect([project.layers[0].inPoint, project.layers[0].outPoint]).toEqual([5, 9])
-    expect(project.layers[1].inPoint).toBe(2)
+    expect([project.layers[0].inPoint, project.layers[0].outPoint]).toEqual([7, 11])
+    expect(project.layers[1].inPoint).toBe(5)
   })
 })

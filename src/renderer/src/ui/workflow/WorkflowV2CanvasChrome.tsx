@@ -6,6 +6,7 @@ import { WF_V2_PORT_Y, buildEdgePath, type V2EdgeKind } from './workflowV2Edges'
 import {
   IconWfFitAll,
   IconWfFollowShot,
+  IconWfMultiSelect,
   IconWfWireBezier,
   IconWfWireStep
 } from './workflowIcons'
@@ -39,6 +40,7 @@ export interface EdgeRenderItem {
 function resolveRawBranchAccent(kind: V2EdgeKind, from: WorkflowNode, to: WorkflowNode): string {
   if (kind === 'camera') return '#38bdf8'
   if (kind === 'data') return '#f97316'
+  if (kind === 'time') return from.params?.timeGroupColor ?? '#06b6d4'
   if (kind === 'hierarchy' && (Boolean(from.params?.groupKind) || Boolean(from.params?.isPartHub))) {
     return resolveV2NodeTheme(from).accent
   }
@@ -122,7 +124,7 @@ export const WorkflowV2EdgeLayer: React.FC<{
         const rawAccent = resolveRawBranchAccent(kind, from, to)
         const isToClusterLock = to.params?.logicCategory === 'cluster_lock'
         const isGroupToLayer = kind === 'hierarchy' && Boolean(from.params?.groupKind) && to.type === 'layer_assembly'
-        const disconnectable = (kind === 'logic' || kind === 'data') && !to.params?.isCameraWaypoint
+        const disconnectable = kind === 'time' || ((kind === 'logic' || kind === 'data') && !to.params?.isCameraWaypoint)
         const canDisable = disconnectable || isGroupToLayer
         const isWaypointStep = Boolean(to.params?.isCameraWaypoint) && Math.abs(from.position.x - to.position.x) < 40
         const stepBadgeText = isWaypointStep
@@ -162,6 +164,8 @@ export const WorkflowV2EdgeLayer: React.FC<{
             <title>
               {kind === 'camera'
                 ? `Camera chuyển cảnh: ${from.title} → ${to.title}`
+                : kind === 'time'
+                  ? `Thời gian chung: ${to.title} ăn theo ${from.title} — nhấp đúp hoặc ✕ để tách, ⏻ để tạm dùng mốc riêng`
                 : isWaypointStep
                   ? `Lộ trình quay: ${from.title} → ${to.title}`
                   : isToClusterLock
@@ -311,6 +315,8 @@ export const WorkflowV2ClusterFrames: React.FC<{
 
 /** Cụm HUD dọc chỉ gồm icon vector sắc nét ở góc khung vẽ */
 export const WorkflowV2CanvasHud: React.FC<{
+  multiSelectMode?: boolean
+  onToggleMultiSelect?: () => void
   zoom: number
   wireStyle: 'smoothstep' | 'bezier'
   follow: boolean
@@ -320,8 +326,19 @@ export const WorkflowV2CanvasHud: React.FC<{
   onToggleWireStyle: () => void
   onToggleFollow: () => void
   onToggleLegend?: () => void
-}> = ({ zoom, wireStyle, follow, legendOpen, onFit, onZoom, onToggleWireStyle, onToggleFollow, onToggleLegend }) => (
+}> = ({ zoom, wireStyle, follow, legendOpen, onFit, onZoom, onToggleWireStyle, onToggleFollow, onToggleLegend, multiSelectMode, onToggleMultiSelect }) => (
   <div className="wf-canvas-hud vertical wf-v2-hud" data-mcp-region="workflow_canvas_hud" onPointerDown={(e) => e.stopPropagation()}>
+    {onToggleMultiSelect && (
+      <button
+        type="button"
+        className={`wf-hud-btn${multiSelectMode ? ' active' : ''}`}
+        title={multiSelectMode ? 'Đang ở chế độ Chọn nhiều — chạm thẻ để thêm/bỏ, kéo nền để quét khung. Nhấn để tắt' : 'Chọn nhiều Node (trên máy tính: Ctrl + nhấp hoặc Shift + kéo khung)'}
+        aria-pressed={Boolean(multiSelectMode)}
+        onClick={onToggleMultiSelect}
+      >
+        <IconWfMultiSelect width={14} height={14} />
+      </button>
+    )}
     <button
       type="button"
       className={`wf-hud-btn${follow ? ' active' : ''}`}

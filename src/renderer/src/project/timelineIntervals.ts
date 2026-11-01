@@ -1,7 +1,8 @@
 import type { Project, Transform } from '@shared/types'
 import { listLayerEffects } from '../animation/motionEffects'
 import { retimeLayerEffect } from '../animation/effectTiming'
-import { moveTimelineLayers } from './timelineTiming'
+import { moveTimelineLayers, type MoveTimelineOptions } from './timelineTiming'
+import { layerNodeIdOf, setTimeGroupRange, timeGroupOfLayer, unlinkFromTimeGroup } from './workflowTimeGroups'
 
 export type TimelineInterval = { layerId: string } & (
   { kind: 'layer' } | { kind: 'keys'; prop: keyof Transform; startId: string; endId: string } |
@@ -24,7 +25,7 @@ export function intervalBounds(project: Project, item: TimelineInterval) {
 }
 
 /** Resolve all targets before writing: invalid groups never partially mutate the project. */
-export function retimeTimelineIntervals(project: Project, items: TimelineInterval[], mode: IntervalMode, seconds: number): void {
+export function retimeTimelineIntervals(project: Project, items: TimelineInterval[], mode: IntervalMode, seconds: number, opts: MoveTimelineOptions = {}): void {
   if (!Number.isFinite(seconds)) throw new Error('Mốc thời gian không hợp lệ')
   const unique = [...new Map(items.map(item => [intervalId(item), item])).values()]
   const valid = unique.filter(item => intervalBounds(project, item))
@@ -70,10 +71,21 @@ export function retimeTimelineIntervals(project: Project, items: TimelineInterva
     }
   }
   const layerIds = plans.filter(p => p.item.kind === 'layer').map(p => p.item.layerId)
-  if (layerIds.length && (mode === 'shift' || mode === 'align')) moveTimelineLayers(project, layerIds, mode === 'shift' ? delta : snapped, mode)
+  if (layerIds.length && (mode === 'shift' || mode === 'align')) moveTimelineLayers(project, layerIds, mode === 'shift' ? delta : snapped, mode, opts)
+  const retimedGroups = new Set<string>()
   for (const { item, start, end } of plans) {
     const layer = project.layers.find(l => l.id === item.layerId)!
-    if (item.kind === 'layer' && mode !== 'shift' && mode !== 'align') { layer.inPoint = start; layer.outPoint = end }
+    if (item.kind === 'layer' && mode !== 'shift' && mode !== 'align') {
+      // Layer trong nhóm Time chung: cắt IN/OUT là chỉnh khoảng của cả nhóm (mọi thành viên ăn theo)
+      const group = opts.detachLinked ? undefined : timeGroupOfLayer(project, layer.id)
+      if (group) {
+        if (!retimedGroups.has(group.id)) setTimeGroupRange(project, group.id, start, end)
+        retimedGroups.add(group.id)
+      } else {
+        if (opts.detachLinked && timeGroupOfLayer(project, layer.id)) unlinkFromTimeGroup(project, [layerNodeIdOf(layer.id)])
+        layer.inPoint = start; layer.outPoint = end
+      }
+    }
     if (item.kind === 'effect') retimeLayerEffect(layer, item.effectId, { startTime: start, duration: end - start })
   }
   for (const [group, times] of keyTimes) {
@@ -82,4 +94,23 @@ export function retimeTimelineIntervals(project: Project, items: TimelineInterva
       if (times.has(key.id)) key.t = times.get(key.id)!
     }
   }
+}
+
+/** Bổ sung mọi Layer cùng nhóm Time chung với các đoạn đã chọn (xem trước kéo nhóm như clip liên kết) */
+export function expandIntervalsWithTimeGroups(project: Project, items: TimelineInterval[]): TimelineInterval[] {
+  const out = new Map(items.map(item => [intervalId(item), item]))
+  const groups = new Set<string>()
+  for (const item of items) {
+    if (item.kind !== 'layer') continue
+    const group = timeGroupOfLayer(project, item.layerId)
+    if (group) groups.add(group.id)
+  }
+  if (!groups.size) return items
+  for (const layer of project.layers) {
+    const group = timeGroupOfLayer(project, layer.id)
+    if (!group || !groups.has(group.id) || layer.locked) continue
+    const extra: TimelineInterval = { kind: 'layer', layerId: layer.id }
+    out.set(intervalId(extra), extra)
+  }
+  return [...out.values()]
 }

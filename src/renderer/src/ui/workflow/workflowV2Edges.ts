@@ -11,7 +11,7 @@ export const WF_V2_PORT_Y = 22
  * - `data`: Vật liệu → Va chạm (nét đứt — truyền chất liệu)
  * - `camera`: Camera cảnh trước → Camera cảnh sau (làn chuyển cảnh bên trái)
  */
-export type V2EdgeKind = 'hierarchy' | 'logic' | 'data' | 'camera'
+export type V2EdgeKind = 'hierarchy' | 'logic' | 'data' | 'camera' | 'time'
 
 /** Playback pulses describe active processing, independently of selection highlighting. */
 export function isV2EdgeFlowing(
@@ -32,6 +32,7 @@ export function isV2EdgeFlowing(
 
 export function classifyV2Edge(edge: WorkflowEdge, from: WorkflowNode, to: WorkflowNode): V2EdgeKind {
   if (isCameraChainEdge(edge)) return 'camera'
+  if (edge.fromPort === 'time_range') return 'time'
   if (from.params?.logicCategory === 'material' && to.params?.logicCategory === 'collision') return 'data'
   if (from.params?.logicCategory === 'action' && to.params?.logicCategory === 'part_swap') return 'data'
   if (to.params?.isCameraWaypoint) return 'logic'

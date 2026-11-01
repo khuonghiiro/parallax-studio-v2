@@ -1,4 +1,4 @@
-import { effectiveTimeParams, isTimeNode, timeSource } from '../../project/workflowTiming'
+import { effectiveTimeParams, isTimeNode, timeGroupColor, timeGroupLabel, timeSource } from '../../project/workflowTiming'
 import React, { memo } from 'react'
 import type { ImageProps, Project, WorkflowNode, WorkflowNodeParams, WorkflowPortKind } from '@shared/types'
 import {
@@ -37,6 +37,13 @@ export interface WorkflowNodeCardV2Props {
   onStartWireDrag: (e: React.PointerEvent, nodeId: string, port: WorkflowPortKind, isOutput: boolean) => void
   onScrubTime: (t: number) => void
   onSpawnCameraWaypoint?: (shotId: string, mode: 'pan' | 'zoom-in' | 'zoom-out' | 'hold', fromWaypointTime?: number) => void
+  /** Thẻ nằm trong vùng chọn nhiều */
+  multiSelected?: boolean
+  /** Chế độ chạm để chọn nhiều (thiết bị cảm ứng) */
+  multiMode?: boolean
+  onToggleMulti?: (nodeId: string) => void
+  /** Sửa khoảng của nhóm Time mà thẻ đang ăn theo (kéo thanh thời gian trên thẻ) */
+  onUpdateTimeGroupRange?: (timeId: string, start: number, end: number) => void
 }
 
 const pct = (v: number | undefined, fallback: number): string => `${Math.round((v ?? fallback) * 100)}%`
@@ -171,10 +178,18 @@ export const WorkflowNodeCardV2 = memo(function WorkflowNodeCardV2({
   onUpdateParams,
   onStartWireDrag,
   onScrubTime,
-  onSpawnCameraWaypoint
+  onSpawnCameraWaypoint,
+  multiSelected,
+  multiMode,
+  onToggleMulti,
+  onUpdateTimeGroupRange
 }: WorkflowNodeCardV2Props) {
   const timing = effectiveTimeParams(project, node, node.params ?? {})
   const sharedTime = timeSource(project.workflow, node.id)
+  const isTime = isTimeNode(node)
+  const groupColor = sharedTime ? timeGroupColor(sharedTime) : isTime ? timeGroupColor(node) : undefined
+  const timeConsumers = isTime ? (project.workflow?.edges ?? []).filter((e) => e.fromNode === node.id && e.fromPort === 'time_range' && !e.disabled).length : 0
+  const wantsMulti = (e: React.MouseEvent | React.PointerEvent): boolean => Boolean(onToggleMulti) && (e.ctrlKey || e.metaKey || Boolean(multiMode))
   const theme = resolveV2NodeTheme(node)
   const level = resolveV2NodeLevel(node)
   const cat = resolveV2LogicCategory(node)
@@ -206,6 +221,8 @@ export const WorkflowNodeCardV2 = memo(function WorkflowNodeCardV2({
         'wf-v2-card',
         theme.levelClass,
         selected ? 'selected' : '',
+        multiSelected ? 'multi-selected' : '',
+        isTime ? 'is-time-node' : '',
         isConnectedToSelected ? 'connected-highlight' : '',
         isDimmed ? 'dimmed' : '',
         node.enabled ? '' : 'disabled',
@@ -215,16 +232,25 @@ export const WorkflowNodeCardV2 = memo(function WorkflowNodeCardV2({
       ]
         .filter(Boolean)
         .join(' ')}
-      style={{ left: node.position.x, top: node.position.y, ['--wf-v2-accent' as string]: theme.accent }}
+      style={{ left: node.position.x, top: node.position.y, ['--wf-v2-accent' as string]: isTime ? groupColor : theme.accent, ['--tg-c' as string]: groupColor }}
       data-node-id={node.id}
       role="button"
       tabIndex={0}
       aria-pressed={selected}
       onPointerDown={(e) => {
+        if (wantsMulti(e)) {
+          onToggleMulti!(node.id)
+          onStartDragNode(e, node)
+          return
+        }
         onSelect(node.id)
         onStartDragNode(e, node)
       }}
-      onClick={() => onSelect(node.id)}
+      onClick={(e) => {
+        // Nhấp từ bàn phím / MCP (detail = 0) không có pointerdown trước đó nên tự bật/tắt chọn nhiều tại đây
+        if (wantsMulti(e)) { if (e.detail === 0) onToggleMulti!(node.id) }
+        else onSelect(node.id)
+      }}
       onKeyDown={(e) => {
         if (e.key === 'Enter') onSelect(node.id)
         if (e.key === 'Delete' && isDeletableV2Node(node)) onDeleteNode(node.id)
@@ -251,8 +277,15 @@ export const WorkflowNodeCardV2 = memo(function WorkflowNodeCardV2({
             </span>
             {node.params?.isCameraWaypoint && isActiveAtCurrentTime && node.enabled ? (
               <span className="wf-v2-cam-live-pill" title="Camera đang quay tại bước này">● QUAY</span>
+            ) : isTime ? (
+              <span className="wf-v2-card-sub">{timeConsumers} mục ăn theo</span>
             ) : (
               <span className="wf-v2-card-sub">{summarizeV2Node(node, childCount)}</span>
+            )}
+            {sharedTime && (
+              <span className="wf-v2-time-chip" title={`Đang ăn theo ${sharedTime.title} (${(timing.timeStart ?? 0).toFixed(1)}–${(timing.timeEnd ?? 0).toFixed(1)}s) — kéo thanh thời gian là sửa cả nhóm`}>
+                ⏱ {timeGroupLabel(sharedTime)}
+              </span>
             )}
           </div>
           <span className="wf-v2-card-title" title={node.title}>{cleanV2NodeTitle(node.title)}</span>
@@ -360,9 +393,9 @@ export const WorkflowNodeCardV2 = memo(function WorkflowNodeCardV2({
           minTime={0}
           maxTime={maxDuration}
           currentTime={currentTime}
-          accentColor={theme.accent}
-          readOnly={level === 'root' || Boolean(sharedTime)}
-          onChangeRange={(s, e) => onUpdateParams(node.id, { timeStart: s, timeEnd: e })}
+          accentColor={groupColor ?? theme.accent}
+          readOnly={level === 'root' || (Boolean(sharedTime) && !onUpdateTimeGroupRange)}
+          onChangeRange={(s, e) => (sharedTime && onUpdateTimeGroupRange ? onUpdateTimeGroupRange(sharedTime.id, s, e) : onUpdateParams(node.id, { timeStart: s, timeEnd: e }))}
           onScrubTime={onScrubTime}
         />
       </div>

@@ -493,6 +493,25 @@ export const FX_TOOLS = [
     example: '{"action":"connect","from_node":"node-assembly","to_node":"node-motion","port":"actors_rig"}'
   },
   {
+    name: 'time_group', cat: 'timeline',
+    doc: L(
+      'Manage shared Time groups (Time nodes): many layers, logic nodes and camera route waypoints follow ONE time range, so editing the group once retimes all of them on Workflow and Timeline (linked clips). Actions: list, create (from layer_ids/node_ids; range defaults to the first item, layers first), link, unlink, set_range, shift, rename. Timeline drags of a linked layer move the whole group; Alt-drag detaches. One Undo step per call.',
+      'Quản lý nhóm Time chung (Node Time): nhiều layer, node logic và mốc lộ trình Camera cùng ăn theo MỘT khoảng thời gian, sửa nhóm 1 lần là cả Workflow lẫn Timeline cập nhật (clip liên kết). Thao tác: list, create (từ layer_ids/node_ids; khoảng mặc định theo mục đầu tiên, layer trước), link, unlink, set_range, shift, rename. Kéo layer trong nhóm trên Timeline là dời cả nhóm; Alt + kéo để tách. Mỗi lệnh là một bước Undo.'
+    ),
+    shape: (d) => ({
+      action: z.enum(['list', 'create', 'link', 'unlink', 'set_range', 'shift', 'rename']).optional().describe(d('Operation; defaults to list.', 'Thao tác; mặc định list.')),
+      time_node_id: z.string().optional().describe(d('Target Time node ID (required for link, set_range, shift, rename).', 'ID Node Time đích (bắt buộc với link, set_range, shift, rename).')),
+      node_ids: z.array(z.string()).optional().describe(d('Workflow node IDs (layer, logic or camera waypoint nodes such as v2-cam-wp-<shot>-<n>).', 'ID node Workflow (layer, logic hoặc mốc lộ trình Camera như v2-cam-wp-<cảnh>-<n>).')),
+      layer_ids: z.array(z.string()).optional().describe(d('Layer IDs; mapped to their layer nodes.', 'ID layer; tự ánh xạ sang node layer tương ứng.')),
+      start: z.number().min(0).optional().describe(d('Range start in seconds (create, set_range).', 'Mốc bắt đầu (giây) cho create, set_range.')),
+      end: z.number().min(0).optional().describe(d('Range end in seconds (create, set_range).', 'Mốc kết thúc (giây) cho create, set_range.')),
+      delta: z.number().optional().describe(d('Seconds to move the whole group (shift); clamped to the project duration.', 'Số giây dời cả nhóm (shift); kẹp trong thời lượng dự án.')),
+      title: z.string().optional().describe(d('Group name (create, rename).', 'Tên nhóm (create, rename).')),
+      color: z.string().optional().describe(d('Group color as #rrggbb (create, rename).', 'Màu nhóm dạng #rrggbb (create, rename).'))
+    }),
+    example: '{"action":"create","layer_ids":["layer-1","layer-2"],"start":2,"end":6}'
+  },
+  {
     name: 'apply_workflow', cat: 'timeline',
     doc: L(
       'Execute the connected video production workflow onto the current project (or a specific shot): configures depth layout, 2.5D/3D assembly rigs, motion choreography, physics/virtual lighting FX, camera flight path, audio lip-sync, and atmospheric color grading in one step.',

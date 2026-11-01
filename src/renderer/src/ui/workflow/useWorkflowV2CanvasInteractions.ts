@@ -6,6 +6,10 @@ import type { WireDragState } from './WorkflowV2CanvasChrome'
 import type { WorkflowV2Viewport } from './useWorkflowV2Viewport'
 import { WF_V2_PORT_Y } from './workflowV2Edges'
 import { resolveV2NodeLevel, resolveV2NodeTheme } from './workflowV2Theme'
+import { useWorkflowMultiSelect } from './workflowMultiSelect'
+
+/** Khung chọn nhiều (toạ độ màn hình tương đối khung nhìn) */
+export interface MarqueeRect { x0: number; y0: number; x1: number; y1: number }
 
 type Positions = Record<string, { x: number; y: number }>
 
@@ -40,6 +44,7 @@ export function useWorkflowV2CanvasInteractions(
 ) {
   const [wireDrag, setWireDrag] = useState<WireDragState | null>(null)
   const [spawnMenu, setSpawnMenu] = useState<{ layerNodeId: string; clientX: number; clientY: number } | null>(null)
+  const [marquee, setMarquee] = useState<MarqueeRect | null>(null)
   const nodesRef = useRef<WorkflowNode[]>(visibleNodes)
   nodesRef.current = visibleNodes
   const handlersRef = useRef(handlers)
@@ -66,6 +71,10 @@ export function useWorkflowV2CanvasInteractions(
       return
     }
     setSpawnMenu(null)
+    if ((e.shiftKey && e.pointerType === 'mouse') || useWorkflowMultiSelect.getState().mode) {
+      startMarquee(e)
+      return
+    }
     let start = { x: e.clientX, y: e.clientY }
     let initPan = { ...vp.pan }
     let moved = false
@@ -98,12 +107,51 @@ export function useWorkflowV2CanvasInteractions(
     )
   }
 
+  /** Shift + kéo nền (hoặc chế độ Chọn nhiều trên cảm ứng): vẽ khung chọn mọi thẻ nằm trong / chạm khung */
+  const startMarquee = (e: React.PointerEvent<HTMLDivElement>): void => {
+    const host = e.currentTarget.getBoundingClientRect()
+    const ox = e.clientX - host.left
+    const oy = e.clientY - host.top
+    let rect: MarqueeRect = { x0: ox, y0: oy, x1: ox, y1: oy }
+    let moved = false
+    const additive = e.ctrlKey || e.metaKey
+    trackPointer(
+      (ev) => {
+        if (ev.pointerId !== e.pointerId) return
+        rect = { x0: ox, y0: oy, x1: ev.clientX - host.left, y1: ev.clientY - host.top }
+        if (!moved && Math.hypot(rect.x1 - ox, rect.y1 - oy) > 4) moved = true
+        if (moved) setMarquee(rect)
+      },
+      (ev) => {
+        if (ev.pointerId !== e.pointerId) return
+        setMarquee(null)
+        const multi = useWorkflowMultiSelect.getState()
+        if (!moved) {
+          if (!multi.mode) { multi.clear(); handlersRef.current.onSelectNode(null) }
+          return
+        }
+        const a = vp.clientToWorld(host.left + Math.min(rect.x0, rect.x1), host.top + Math.min(rect.y0, rect.y1))
+        const b = vp.clientToWorld(host.left + Math.max(rect.x0, rect.x1), host.top + Math.max(rect.y0, rect.y1))
+        const hits = nodesRef.current
+          .filter((n) => n.position.x + WF_V2_NODE_W >= a.x && n.position.x <= b.x && n.position.y + WF_V2_NODE_H >= a.y && n.position.y <= b.y)
+          .map((n) => n.id)
+        if (additive || multi.mode) multi.add(hits)
+        else multi.set(hits)
+      }
+    )
+  }
+
   const onStartDragNode = useCallback(
     (e: React.PointerEvent, node: WorkflowNode) => {
       if (e.button !== 0) return
       e.stopPropagation()
       const startW = vp.clientToWorld(e.clientX, e.clientY)
       const initPos = { ...node.position }
+      const multiIds = useWorkflowMultiSelect.getState().ids
+      // Kéo một thẻ đang nằm trong vùng chọn nhiều → dời cả nhóm thẻ đã chọn cùng lúc
+      const group = multiIds.length > 1 && multiIds.includes(node.id)
+        ? nodesRef.current.filter((n) => multiIds.includes(n.id)).map((n) => ({ id: n.id, pos: { ...n.position } }))
+        : [{ id: node.id, pos: initPos }]
       let latest: Positions | null = null
       let abortedByMultiTouch = false
       trackPointer(
@@ -118,7 +166,7 @@ export function useWorkflowV2CanvasInteractions(
           if (abortedByMultiTouch) return
           const cur = vp.clientToWorld(ev.clientX, ev.clientY)
           if (!latest && Math.hypot(cur.x - startW.x, cur.y - startW.y) < 3) return
-          latest = { [node.id]: { x: Math.round(initPos.x + cur.x - startW.x), y: Math.round(initPos.y + cur.y - startW.y) } }
+          latest = Object.fromEntries(group.map((g) => [g.id, { x: Math.round(g.pos.x + cur.x - startW.x), y: Math.round(g.pos.y + cur.y - startW.y) }]))
           setDragPositions(latest)
         },
         (ev) => {
@@ -177,5 +225,5 @@ export function useWorkflowV2CanvasInteractions(
     [vp]
   )
 
-  return { wireDrag, spawnMenu, setSpawnMenu, onCanvasPointerDown, onStartDragNode, onStartWireDrag }
+  return { wireDrag, spawnMenu, setSpawnMenu, marquee, onCanvasPointerDown, onStartDragNode, onStartWireDrag }
 }

@@ -1,4 +1,6 @@
 import { logicPointerDown, canOpenTimelineLogic } from './timelineLogicModifiers'
+import { timeGroupColor, timeGroupLabel, timeSource } from '../../project/workflowTiming'
+import '../../styles/workflowTimeGroups.css'
 import { useTimelineSelection } from './timelineSelection'
 import { TimelinePropertyRow } from './TimelinePropertyRow'
 
@@ -126,6 +128,8 @@ function TimelineLayerRowComponent({
     const wfCats = new Set(raw.filter((b) => b.kind === 'workflow_node').map((b) => b.category))
     return raw.filter((b) => b.kind !== 'capability' || !wfCats.has(b.category))
   }, [layer, workflow])
+  // Nhóm Time chung đang điều khiển Layer này (đồng bộ với Workflow): kéo / cắt đoạn là sửa cả nhóm
+  const timeGroup = useMemo(() => timeSource(workflow ?? undefined, `v2-layer-${layer.id}`), [workflow, layer.id])
   const [isDragOver, setIsDragOver] = useState(false)
 
   // Clear dashed drop indicator whenever drag ends, drops anywhere or mouse is released
@@ -322,7 +326,7 @@ function TimelineLayerRowComponent({
         track={
           <>
             <div
-              className={`tl-bar${multiSelected ? ' interval-selected' : ''}${isDragOver ? ' drag-over-replace' : ''}`}
+              className={`tl-bar${multiSelected ? ' interval-selected' : ''}${isDragOver ? ' drag-over-replace' : ''}${timeGroup ? ' time-linked' : ''}`}
               data-timeline-interval={JSON.stringify({ kind: 'layer', layerId: layer.id })}
               role="button" aria-pressed={multiSelected}
               onClick={e => { if (e.detail === 0 && !layer.locked) { useTimelineSelection.getState().pick({ kind: 'layer', layerId: layer.id }, e.ctrlKey || e.metaKey); onSelect() } }}
@@ -335,7 +339,8 @@ function TimelineLayerRowComponent({
                   ? `linear-gradient(180deg, ${color}66, ${color}36)`
                   : `linear-gradient(180deg, ${color}48, ${color}22)`,
                 borderColor: `${color}${isSelected ? 'ff' : '88'}`,
-                opacity: layer.visible ? 0.95 : 0.35
+                opacity: layer.visible ? 0.95 : 0.35,
+                ['--tg-c' as string]: timeGroup ? timeGroupColor(timeGroup) : undefined
               }}
               title={
                 layer.type === 'image'
@@ -422,6 +427,11 @@ function TimelineLayerRowComponent({
               </div>
               <span className="tl-bar-label">
                 <span className="tl-bar-label-left">
+                  {timeGroup && (
+                    <span className="tl-bar-time-chip" title={`Ăn theo ${timeGroup.title} — kéo / cắt đoạn này là sửa cả nhóm (Alt + kéo để chỉ dời riêng)`}>
+                      ⏱ {timeGroupLabel(timeGroup)}
+                    </span>
+                  )}
                   <span className="bar-span">{(layer.outPoint - layer.inPoint).toFixed(1)}s</span>
                   {logicBadges.length > 0 && (
                     <span className="tl-bar-logic-badges">

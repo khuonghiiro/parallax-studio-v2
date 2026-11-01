@@ -1,7 +1,7 @@
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import { useEditor } from '../../store/editor'
 import { toast } from '../../actions'
-import { intervalBounds, intervalId, retimeTimelineIntervals, type TimelineInterval } from '../../project/timelineIntervals'
+import { expandIntervalsWithTimeGroups, intervalBounds, intervalId, retimeTimelineIntervals, type TimelineInterval } from '../../project/timelineIntervals'
 import { selectedIntervals, useTimelineSelection } from './timelineSelection'
 
 type PreviewGeometry = { el: HTMLElement; left: string; width: string; item: TimelineInterval }
@@ -44,8 +44,10 @@ export function startIntervalDrag(event: ReactPointerEvent, item: TimelineInterv
   selection.pick(item, event.ctrlKey || event.metaKey)
   useEditor.getState().selectLayer(item.layerId)
   if (event.ctrlKey || event.metaKey || pixelsPerSecond <= 0) return
-  const items = selectedIntervals()
   const source = useEditor.getState().project
+  // Alt + kéo: chỉ dời riêng đoạn đã chọn (tách khỏi nhóm Time); mặc định cả nhóm Time chung đi theo như clip liên kết
+  const detachLinked = event.altKey
+  const items = detachLinked ? selectedIntervals() : expandIntervalsWithTimeGroups(source, selectedIntervals())
   const element = event.currentTarget as HTMLElement
   const startX = event.clientX
   let finished = false
@@ -83,7 +85,7 @@ export function startIntervalDrag(event: ReactPointerEvent, item: TimelineInterv
     try {
       const anchor = intervalBounds(source, item)!
       useEditor.getState().update(d => retimeTimelineIntervals(d, items, mode === 'move' ? 'shift' : mode,
-        mode === 'move' ? pending : (mode === 'in' ? anchor.start : anchor.end) + pending))
+        mode === 'move' ? pending : (mode === 'in' ? anchor.start : anchor.end) + pending, { detachLinked }))
     } catch (error) { toast(error instanceof Error ? error.message : String(error)) }
   }
   const up = (e: PointerEvent): void => { if (e.pointerId === event.pointerId) finish(true) }

@@ -1,4 +1,6 @@
-import { connectTimeNode, createTimeNode, isTimeNode } from '../../project/workflowTiming'
+import { acceptsSharedTime, connectTimeNode, isTimeNode } from '../../project/workflowTiming'
+import { createTimeGroupFrom } from './timeGroupActions'
+import { useWorkflowMultiSelect } from './workflowMultiSelect'
 import { ensureClusterPartTimeline } from '../../project/workflowPartEditing'
 import { useCallback } from 'react'
 import type { Project, WorkflowGraph, WorkflowNode, WorkflowNodeParams, WorkflowPortKind } from '@shared/types'
@@ -212,11 +214,16 @@ export function useWorkflowV2Actions(workflow: WorkflowGraph, selectedNodeId: st
   const connect = useCallback(
     (fromNode: string, fromPort: WorkflowPortKind, toNode: string, toPort: WorkflowPortKind) => {
       if (workflow.nodes.some(n => n.id === fromNode && isTimeNode(n))) {
-        useEditor.getState().update(d => {
-          d.workflow = connectTimeNode(workflow, fromNode, toNode)
-          const target = d.workflow.nodes.find(n => n.id === toNode)!
-          syncWorkflowV2NodeToProject(d as Project, target)
-        })
+        try {
+          useEditor.getState().update(d => {
+            d.workflow = connectTimeNode(workflow, fromNode, toNode)
+            const target = d.workflow.nodes.find(n => n.id === toNode)!
+            syncWorkflowV2NodeToProject(d as Project, target)
+          })
+          showToast('Đã nối vào nhóm Time — Node này giờ ăn theo khoảng thời gian chung')
+        } catch (error) {
+          showToast(error instanceof Error ? error.message : String(error))
+        }
         return
       }
       const check = validateWorkflowV2Connection(workflow, fromNode, toNode)
@@ -450,13 +457,17 @@ export function useWorkflowV2Actions(workflow: WorkflowGraph, selectedNodeId: st
     showToast('Đã áp dụng toàn bộ cây Workflow vào cảnh')
   }, [workflow, showToast])
 
+  /** Nút "Time": gom các Node đang chọn nhiều (hoặc Node đang chọn) vào một nhóm Time chung mới */
   const addTime = () => {
-    const node = createTimeNode(useEditor.getState().project)
-    node.position = findFreeV2Spot(workflow.nodes, workflow.edges, node.id, node.position)
-    useEditor.getState().update(d => { d.workflow = { ...workflow, nodes: [...workflow.nodes, node] } })
-    setSelectedNodeId(node.id)
+    const multi = useWorkflowMultiSelect.getState()
+    const sel = workflow.nodes.find((n) => n.id === selectedNodeId)
+    const ids = multi.ids.length ? multi.ids : sel && acceptsSharedTime(sel) ? [sel.id] : []
+    const created = createTimeGroupFrom(ids)
+    if (!created) return
+    multi.clear()
+    setSelectedNodeId(created)
     useEditor.getState().setInspectorTab('node')
-    fitSoon()
+    window.dispatchEvent(new CustomEvent('pxs:wf-focus-node', { detail: { nodeId: created } }))
   }
 
   return {

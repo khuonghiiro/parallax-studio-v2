@@ -1,7 +1,9 @@
 import { patchPartCue } from '../../project/workflowPartEditing'
 import { WorkflowPartPreview } from './WorkflowPartPreview'
 import '../../styles/workflowNodeUpgrades.css'
-import { effectiveTimeParams, timeSource } from '../../project/workflowTiming'
+import { effectiveTimeParams, timeGroupColor, timeGroupLabel, timeSource } from '../../project/workflowTiming'
+import { WorkflowV2TimeGroupSection } from './WorkflowV2TimeGroupSection'
+import { setTimeGroupRangeAction } from './timeGroupActions'
 import { findLinkedMotionNodeForPart } from '../../project/workflowPartMotionTrigger'
 import React, { useEffect, useMemo, useState } from 'react'
 import type { Project, Shot, WorkflowGraph, WorkflowNode, WorkflowNodeParams } from '@shared/types'
@@ -396,7 +398,8 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
   const tStart = timing.timeStart ?? 0
   const tEnd = timing.timeEnd ?? duration
   const motionTriggerSrc = logicCat === 'part_swap' && !node.params?.isPartHub ? findLinkedMotionNodeForPart(project, node) : undefined
-  const timeLocked = level === 'root' || Boolean(source) || Boolean(motionTriggerSrc)
+  // Node ăn theo Time vẫn chỉnh được: sửa ở đây là sửa khoảng của cả nhóm Time
+  const timeLocked = level === 'root' || Boolean(motionTriggerSrc)
   const childCount = workflow.edges.filter((e) => e.fromNode === node.id).length
   const linked = logicCat === 'time'
     ? workflow.edges.filter(e => e.fromNode === node.id && e.fromPort === 'time_range' && !e.disabled).map(e => workflow.nodes.find(n => n.id === e.toNode)?.title ?? e.toNode)
@@ -405,6 +408,10 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
     if (node.params?.isPartChild) {
       useEditor.getState().update(d => patchPartCue(d, node.id, patch), `part-timing-${node.id}`)
     } else props.onUpdateParams(node.id, patch, title)
+  }
+  const commitTime = (patch: { timeStart?: number; timeEnd?: number }): void => {
+    if (source) setTimeGroupRangeAction(source.id, patch.timeStart ?? tStart, patch.timeEnd ?? tEnd)
+    else update(patch)
   }
 
   const handleSpawnFollowup = (stepDur = 3.0): void => {
@@ -533,7 +540,11 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
           <div className="wf-v2-insp-sec-title">
             <span>Tiến trình Thời gian</span>
             {timeLocked ? (
-              <span className="wf-v2-insp-note">{motionTriggerSrc ? `🏃 Theo vị trí ${cleanV2NodeTitle(motionTriggerSrc.title)}` : source ? `Theo ${source.title} · ngắt dây để dùng riêng` : 'theo phạm vi cảnh'}</span>
+              <span className="wf-v2-insp-note">{motionTriggerSrc ? `🏃 Theo vị trí ${cleanV2NodeTitle(motionTriggerSrc.title)}` : 'theo phạm vi cảnh'}</span>
+            ) : source ? (
+              <span className="wf-v2-time-chip" style={{ ['--tg-c' as string]: timeGroupColor(source) }} title={`Đang ăn theo ${source.title} — sửa mốc ở đây là sửa cả nhóm`}>
+                ⏱ {timeGroupLabel(source)} · cả nhóm
+              </span>
             ) : linked.length > 0 ? (
               <span className="wf-v2-insp-target-badge" title={`Áp dụng cho: ${linked.join(', ')}`}>
                 🎯 {linked[0]}{linked.length > 1 ? ` +${linked.length - 1}` : ''}
@@ -541,8 +552,8 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
             ) : null}
           </div>
           <div className="wf-v2-time-fields">
-            <TimeField label="Từ" value={tStart} min={0} max={tEnd - 0.1} disabled={timeLocked} onCommit={(v) => update({ timeStart: v })} />
-            <TimeField label="Đến" value={tEnd} min={tStart + 0.1} max={duration} disabled={timeLocked} onCommit={(v) => update({ timeEnd: v })} />
+            <TimeField label="Từ" value={tStart} min={0} max={tEnd - 0.1} disabled={timeLocked} onCommit={(v) => commitTime({ timeStart: v })} />
+            <TimeField label="Đến" value={tEnd} min={tStart + 0.1} max={duration} disabled={timeLocked} onCommit={(v) => commitTime({ timeEnd: v })} />
             <span className="wf-v2-time-dur">{(tEnd - tStart).toFixed(2)}s</span>
           </div>
           {!timeLocked && (
@@ -555,7 +566,7 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
                   const span = Math.max(0.5, Number((tEnd - tStart).toFixed(2)))
                   const s = Number(Math.max(0, Math.min(duration - 0.2, currentTime)).toFixed(2))
                   const e = Number(Math.min(duration, s + span).toFixed(2))
-                  update({ timeStart: s, timeEnd: Math.max(s + 0.2, e) })
+                  commitTime({ timeStart: s, timeEnd: Math.max(s + 0.2, e) })
                 }}
               >
                 📍 Từ Playhead
@@ -564,7 +575,7 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
                 type="button"
                 className={`wf-v2-time-quick-btn${Math.abs(tEnd - tStart - 1.5) < 0.08 ? ' active' : ''}`}
                 title="Đặt thời lượng hành động 1.5 giây"
-                onClick={() => update({ timeEnd: Number(Math.min(duration, tStart + 1.5).toFixed(2)) })}
+                onClick={() => commitTime({ timeEnd: Number(Math.min(duration, tStart + 1.5).toFixed(2)) })}
               >
                 1.5s
               </button>
@@ -572,7 +583,7 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
                 type="button"
                 className={`wf-v2-time-quick-btn${Math.abs(tEnd - tStart - 3.0) < 0.08 ? ' active' : ''}`}
                 title="Đặt thời lượng hành động 3.0 giây (ví dụ: 15s – 18s)"
-                onClick={() => update({ timeEnd: Number(Math.min(duration, tStart + 3.0).toFixed(2)) })}
+                onClick={() => commitTime({ timeEnd: Number(Math.min(duration, tStart + 3.0).toFixed(2)) })}
               >
                 3.0s
               </button>
@@ -580,7 +591,7 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
                 type="button"
                 className={`wf-v2-time-quick-btn${tStart <= 0.05 && tEnd >= duration - 0.05 ? ' active' : ''}`}
                 title="Kéo dài xuyên suốt toàn cảnh"
-                onClick={() => update({ timeStart: 0, timeEnd: duration })}
+                onClick={() => commitTime({ timeStart: 0, timeEnd: duration })}
               >
                 ↔ Toàn cảnh
               </button>
@@ -621,17 +632,19 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
             timeEnd={tEnd}
             maxTime={duration}
             currentTime={currentTime}
-            accentColor={theme.accent}
+            accentColor={source ? timeGroupColor(source) : theme.accent}
             readOnly={timeLocked}
-            onChangeRange={(s, e) => update({ timeStart: s, timeEnd: e })}
+            onChangeRange={(s, e) => commitTime({ timeStart: s, timeEnd: e })}
             onScrubTime={props.onScrubTime}
           />
+          <WorkflowV2TimeGroupSection node={node} project={project} onSelectNode={props.onSelectNode} />
         </section>}
 
         {level === 'logic' &&
           node.type !== 'camera_director' &&
           !node.params?.isPartChild &&
-          (logicCat === 'time' || logicCat === 'collision' || linkedEnts.length === 0 || linkedEnts.length > 1 || node.params?.motionMode === 'bbox' || node.params?.actionPreset === 'bbox_target') && (
+          logicCat !== 'time' &&
+          (logicCat === 'collision' || linkedEnts.length === 0 || linkedEnts.length > 1 || node.params?.motionMode === 'bbox' || node.params?.actionPreset === 'bbox_target') && (
           <section className="wf-v2-insp-sec" data-mcp-region="workflow_motion_entity_tags">
             <div className="wf-v2-insp-sec-title">
               <span>Áp dụng cho</span>
@@ -642,13 +655,7 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
               )}
             </div>
             <div className="wf-v2-linked">
-              {logicCat === 'time' ? (
-                linked.length ? (
-                  linked.map((name) => <span key={name}>{name}</span>)
-                ) : (
-                  <em>Kéo cổng ra của Time tới Layer hoặc node cần dùng chung thời gian.</em>
-                )
-              ) : linkedEnts.length > 0 ? (
+              {linkedEnts.length > 0 ? (
                 linkedEnts.map((ent, idx) => {
                   const entColor = ENT_ACCENTS[idx % ENT_ACCENTS.length]
                   const isAct = (node.params?.activeMotionTargetEntityId ?? linkedEnts[0]?.id) === ent.id

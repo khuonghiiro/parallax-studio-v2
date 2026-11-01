@@ -1,6 +1,7 @@
 import { resolveMotionMode } from './workflowMotionMode'
 import { syncMotionExecution } from './workflowMotionExecution'
-import { effectiveTimeParams, isTimeNode } from './workflowTiming'
+import { effectiveTimeParams, isTimeNode, timeSource } from './workflowTiming'
+import { syncTimeGroupConsumers } from './workflowTimeGroupSync'
 import { createDefaultVirtualLight, WIND_STRENGTH_VALUES } from '../engine/virtualLight'
 import type { GlowSide, Layer, LayerGlow, LayerMotionType, Project, WorkflowEdge, WorkflowGraph, WorkflowNode, WorkflowNodeParams } from '@shared/types'
 import { getProjectAudioTracks } from './audioTracks'
@@ -14,6 +15,7 @@ import {
 } from '../ui/timeline/fxKeyGenerators'
 import { deleteLayerEffect, toggleLayerEffect } from '../ui/timeline/timelineEffects'
 import {
+  applyTimeRangeToCameraWaypoint,
   spawnWorkflowV2CameraWaypoint,
   syncCameraWaypointNodeToProject
 } from './workflowV2CameraWaypointSync'
@@ -502,13 +504,7 @@ function syncSingleWorkflowV2NodeToProject(
   patch?: Partial<WorkflowNodeParams>
 ): void {
   if (isTimeNode(node)) {
-    const start = node.params?.timeStart ?? 0, end = node.params?.timeEnd ?? project.comp.duration
-    if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || end <= start || end > project.comp.duration) throw new Error('Khoảng Time không hợp lệ.')
-    for (const edge of project.workflow?.edges ?? []) {
-      if (edge.fromNode !== node.id || edge.fromPort !== 'time_range') continue
-      const target = project.workflow?.nodes.find(n => n.id === edge.toNode)
-      if (target) syncWorkflowV2NodeToProject(project, target)
-    }
+    syncTimeGroupConsumers(project, node, syncWorkflowV2NodeToProject)
     return
   }
   if (patch && ('timeStart' in patch || 'timeEnd' in patch) && node.params?.localTimeRange) {
@@ -922,6 +918,12 @@ function syncSingleWorkflowV2NodeToProject(
   // 8. Node Camera 3D hoặc Node con lộ trình quay / cảnh con của Camera
   if (node.type === 'camera_director' || params.logicCategory === 'camera') {
     if (params.isCameraWaypoint) {
+      // Mốc lộ trình nối vào Node Time: thời điểm đến mốc và độ dài bước ăn theo khoảng của Time
+      const clock = timeSource(project.workflow, node.id)
+      if (clock) {
+        applyTimeRangeToCameraWaypoint(project, node, clock.params?.timeStart ?? 0, clock.params?.timeEnd ?? project.comp.duration)
+        return
+      }
       syncCameraWaypointNodeToProject(project, node, params, patch)
       return
     }

@@ -1,6 +1,6 @@
 {
   "$comment": "Single source for the AI guide (MCP server instructions, get_ai_guide, CLI help, McpDialog prompt). Every section MUST keep the same number of lines in en and vi - catalog.test.mjs enforces it.",
-  "toolCount": 146,
+  "toolCount": 147,
   "sections": [
     {
       "id": "overview",
@@ -184,6 +184,29 @@
           "Vùng preview: workflow_part_preview, workflow_part_stage, workflow_part_cues, workflow_part_hub, workflow_part_editor. Toàn cảnh xem ngữ cảnh Motion; Cận cụm tách riêng cụm.",
           "PowerShell: pnpm pxs call get_part_cues '{\"node_id\":\"part-child-id\",\"time\":3}'. CMD: pnpm pxs call get_part_cues \"{\\\"node_id\\\":\\\"part-child-id\\\",\\\"time\\\":3}\".",
           "Flags (PowerShell/CMD): pnpm pxs call set_part_cue --node_id part-child-id --action add --at 3 --duration 1 --rotation 25 --wave hold."
+        ]
+      }
+    },
+    {
+      "id": "time_groups",
+      "title": {
+        "en": "Shared Time groups (linked timing)",
+        "vi": "Nhóm Time chung (thời gian liên kết)"
+      },
+      "lines": {
+        "en": [
+          "A Time node owns ONE range; every layer, logic node or camera route waypoint wired to its time_range port follows it, on Workflow and Timeline alike.",
+          "time_group {action:create, layer_ids|node_ids} groups items (range = the first item, layers first, unless start/end given); link/unlink add or remove members; the set-range and shift actions retime the whole group in one Undo step.",
+          "Camera waypoints (v2-cam-wp-<shot>-<n>) can join a group: the camera arrives at start and the step lasts until end, later waypoints ripple.",
+          "Timeline: dragging or trimming a linked layer edits its group (linked clips); Alt + drag detaches only that clip. UI regions: workflow_time_lanes, workflow_selection_bar, workflow_time_group.",
+          "PowerShell: pnpm pxs call time_group '{\"action\":\"shift\",\"time_node_id\":\"time-abc\",\"delta\":1.5}'. CMD: pnpm pxs call time_group \"{\\\"action\\\":\\\"list\\\"}\". Flags: pnpm pxs call time_group --action list."
+        ],
+        "vi": [
+          "Node Time giữ MỘT khoảng thời gian; mọi layer, node logic hoặc mốc lộ trình Camera nối vào cổng time_range đều ăn theo, đồng bộ cả Workflow lẫn Timeline.",
+          "time_group {action:create, layer_ids|node_ids} gom các mục (khoảng = theo mục đầu tiên, layer trước, nếu không truyền start/end); link/unlink thêm hoặc tách thành viên; thao tác set-range và shift đổi thời gian cả nhóm trong một bước Undo.",
+          "Mốc lộ trình Camera (v2-cam-wp-<cảnh>-<n>) có thể vào nhóm: camera tới mốc lúc bắt đầu và bước kéo dài tới lúc kết thúc, các mốc sau dời theo.",
+          "Timeline: kéo hoặc cắt layer trong nhóm là sửa cả nhóm (clip liên kết); Alt + kéo chỉ dời riêng clip đó và tách khỏi nhóm. Vùng UI: workflow_time_lanes, workflow_selection_bar, workflow_time_group.",
+          "PowerShell: pnpm pxs call time_group '{\"action\":\"shift\",\"time_node_id\":\"time-abc\",\"delta\":1.5}'. CMD: pnpm pxs call time_group \"{\\\"action\\\":\\\"list\\\"}\". Flags: pnpm pxs call time_group --action list."
         ]
       }
     }

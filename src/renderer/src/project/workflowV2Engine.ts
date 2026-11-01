@@ -26,6 +26,7 @@ export {
 } from './workflowV2Mutations'
 export {
   WF_V2_CAMERA_LANE_X,
+  WF_V2_TIME_COL_X,
   WF_V2_CLUSTER_HEADER,
   WF_V2_COL_X,
   WF_V2_NODE_GAP,

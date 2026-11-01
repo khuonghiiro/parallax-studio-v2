@@ -1,4 +1,8 @@
-import { effectiveTimeParams, isTimeNode } from '../../project/workflowTiming'
+import { acceptsSharedTime, effectiveTimeParams, isTimeNode, timeSource } from '../../project/workflowTiming'
+import { WorkflowV2TimeLanes } from './WorkflowV2TimeLanes'
+import { WorkflowV2SelectionBar } from './WorkflowV2SelectionBar'
+import { useWorkflowMultiSelect } from './workflowMultiSelect'
+import { createTimeGroupFrom, setTimeGroupRangeAction } from './timeGroupActions'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import type { Project, WorkflowGraph, WorkflowNode, WorkflowNodeParams, WorkflowPortKind } from '@shared/types'
 import {
@@ -7,6 +11,7 @@ import {
   WF_V2_COL_X,
   WF_V2_NODE_H,
   WF_V2_NODE_W,
+  WF_V2_TIME_COL_X,
   computeV2Clusters,
   resolveHiddenV2NodeIds,
   v2RootId,
@@ -117,7 +122,8 @@ function buildEdgeItems(
   lineage: { edgeIds: Set<string>; active: boolean },
   view: ViewRect,
   t: number,
-  playing: boolean
+  playing: boolean,
+  focusIds: Set<string>
 ): EdgeRenderItem[] {
   const incoming = new Map<string, WorkflowNode[]>()
   for (const e of graph.visibleEdges) {
@@ -130,6 +136,8 @@ function buildEdgeItems(
     const from = graph.visibleMap.get(edge.fromNode)!
     const to = graph.visibleMap.get(edge.toNode)!
     const kind = classifyV2Edge(edge, from, to)
+    // Dây Time chỉ hiện khi đang chọn Node Time hoặc Node ăn theo nó (còn lại nhận diện bằng chip màu) để sơ đồ gọn
+    if (kind === 'time' && !focusIds.has(from.id) && !focusIds.has(to.id)) continue
     const minX = Math.min(from.position.x, to.position.x, kind === 'camera' ? WF_V2_CAMERA_LANE_X : Infinity)
     const maxX = Math.max(from.position.x, to.position.x) + WF_V2_NODE_W
     const minY = Math.min(from.position.y, to.position.y)
@@ -199,7 +207,24 @@ export const WorkflowCanvasV2: React.FC<WorkflowCanvasV2Props> = (props) => {
     }
     return set
   }, [graph, activeRootId, sharedRootId, isLive])
-  const edgeItems = useMemo(() => buildEdgeItems(graph, running, lineage, view, currentTime, props.playing), [graph, running, lineage, view.x0, view.y0, view.x1, view.y1, currentTime, props.playing])
+  const multiIds = useWorkflowMultiSelect((s) => s.ids)
+  const multiMode = useWorkflowMultiSelect((s) => s.mode)
+  const multiSet = useMemo(() => new Set(multiIds), [multiIds])
+  const focusIds = useMemo(() => new Set([...multiIds, ...(selectedNodeId ? [selectedNodeId] : [])]), [multiIds, selectedNodeId])
+  const edgeItems = useMemo(() => buildEdgeItems(graph, running, lineage, view, currentTime, props.playing, focusIds), [graph, running, lineage, view.x0, view.y0, view.x1, view.y1, currentTime, props.playing, focusIds])
+  const selectedRaw = graph.nodes.find((n) => n.id === selectedNodeId) ?? null
+  const selectedForRuler = selectedRaw ? { ...selectedRaw, params: effectiveTimeParams(project, selectedRaw, selectedRaw.params ?? {}) } : null
+  /** Kéo khoảng trên thước: Node đang ăn theo Time thì sửa cả nhóm (đúng tinh thần "sửa 1 chỗ, cả nhóm ăn theo") */
+  const updateNodeRange = (id: string, s: number, en: number): void => {
+    const src = timeSource(workflow, id)
+    if (src) setTimeGroupRangeAction(src.id, s, en)
+    else props.onUpdateNodeParams(id, { timeStart: s, timeEnd: en })
+  }
+  // Node đang chọn (nếu nhận được Time) được gom vào vùng chọn nhiều ngay lần Ctrl + nhấp đầu tiên
+  const toggleMulti = useCallback(
+    (id: string) => useWorkflowMultiSelect.getState().toggle(id, selectedRaw && acceptsSharedTime(selectedRaw) ? selectedRaw.id : null),
+    [selectedRaw]
+  )
   const cards = graph.visibleNodes.filter((n) => nodeInView(n, view) || n.id === selectedNodeId)
   const maxVisibleX = useMemo(
     () => graph.visibleNodes.reduce((mx, n) => Math.max(mx, n.position.x), 0),
@@ -235,8 +260,13 @@ export const WorkflowCanvasV2: React.FC<WorkflowCanvasV2Props> = (props) => {
     const sel = workflow.nodes.find((n) => n.id === selectedNodeId)
     if ((e.key === 'Delete' || e.key === 'Backspace') && sel && isDeletableV2Node(sel)) props.onDeleteNode(sel.id)
     else if (e.key === 'f' || e.key === 'F') vp.fitToView(e.shiftKey)
-    else if (e.key === 'Escape') onSelectNode(null)
-    else return
+    else if (e.key === 'Escape') { useWorkflowMultiSelect.getState().clear(); onSelectNode(null) }
+    else if ((e.ctrlKey || e.metaKey) && (e.key === 'g' || e.key === 'G')) {
+      // Ctrl/⌘ + G: gom các Node đang chọn vào một nhóm Time chung (giống Group trong các app dựng phim)
+      const ids = multiIds.length ? multiIds : sel && acceptsSharedTime(sel) ? [sel.id] : []
+      const created = ids.length ? createTimeGroupFrom(ids) : undefined
+      if (created) { useWorkflowMultiSelect.getState().clear(); onSelectNode(created) }
+    } else return
     e.preventDefault()
   }
 
@@ -246,17 +276,28 @@ export const WorkflowCanvasV2: React.FC<WorkflowCanvasV2Props> = (props) => {
         currentTime={currentTime}
         duration={maxDuration}
         playing={props.playing}
-        selectedNode={graph.nodes.find((n) => n.id === selectedNodeId) ?? null}
+        selectedNode={selectedForRuler}
         scopeRange={graph.clusters.find((c) => c.rootId === activeRootId)?.range ?? { start: 0, end: maxDuration }}
         activeAtTimeCount={running.size}
         onSetTime={onSetTime}
         onTogglePlay={props.onTogglePlay}
-        onUpdateNodeTimeRange={(id, s, en) => props.onUpdateNodeParams(id, { timeStart: s, timeEnd: en })}
+        onUpdateNodeTimeRange={updateNodeRange}
+        renderLanes={({ left, width }) => (
+          <WorkflowV2TimeLanes
+            project={project}
+            duration={maxDuration}
+            trackLeft={left}
+            trackWidth={width}
+            selectedNodeId={selectedNodeId}
+            onSelectNode={onSelectNode}
+            onSetTime={onSetTime}
+          />
+        )}
       />
 
       <div
         ref={vp.viewportRef}
-        className={`wf-canvas-viewport wf-v2-viewport${ix.wireDrag ? ' wiring' : ''}`}
+        className={`wf-canvas-viewport wf-v2-viewport${ix.wireDrag ? ' wiring' : ''}${multiMode ? ' multi-mode' : ''}`}
         data-mcp-region="workflow_canvas"
         tabIndex={0}
         onKeyDown={onKeyDown}
@@ -272,11 +313,19 @@ export const WorkflowCanvasV2: React.FC<WorkflowCanvasV2Props> = (props) => {
           onToggleWireStyle={() => setWireStyle((s) => (s === 'smoothstep' ? 'bezier' : 'smoothstep'))}
           onToggleFollow={props.onToggleFollow}
           onToggleLegend={toggleLegend}
+          multiSelectMode={multiMode}
+          onToggleMultiSelect={() => useWorkflowMultiSelect.getState().setMode(!multiMode)}
         />
         <WorkflowV2Legend open={legendOpen} onToggle={toggleLegend} />
 
         <div className="wf-v2-world" style={{ left: vp.pan.x, top: vp.pan.y }}>
         <div className="wf-v2-world-content" style={{ zoom: vp.zoom }}>
+          {graph.visibleNodes.some(isTimeNode) && (
+            <div className="wf-v2-col-banner is-time" style={{ left: WF_V2_TIME_COL_X, width: WF_V2_NODE_W }}>
+              <span className="wf-v2-col-step">⏱</span>
+              <span className="wf-v2-col-label">THỜI GIAN CHUNG</span>
+            </div>
+          )}
           {COLUMN_BANNERS.filter((b) => maxVisibleX >= b.minX).map((b) => (
             <div key={b.step} className="wf-v2-col-banner" style={{ left: b.x, width: WF_V2_NODE_W }}>
               <span className="wf-v2-col-step">{b.step}</span>
@@ -301,6 +350,10 @@ export const WorkflowCanvasV2: React.FC<WorkflowCanvasV2Props> = (props) => {
               node={node}
               project={project}
               selected={node.id === selectedNodeId}
+              multiSelected={multiSet.has(node.id)}
+              multiMode={multiMode}
+              onToggleMulti={toggleMulti}
+              onUpdateTimeGroupRange={setTimeGroupRangeAction}
               isConnectedToSelected={lineage.active && lineage.nodeIds.has(node.id) && node.id !== selectedNodeId}
               isDimmed={lineage.active && !lineage.nodeIds.has(node.id)}
               isActiveAtCurrentTime={isLive(node)}
@@ -322,6 +375,18 @@ export const WorkflowCanvasV2: React.FC<WorkflowCanvasV2Props> = (props) => {
         </div>
         </div>
 
+        {ix.marquee && (
+          <div
+            className="wf-v2-marquee"
+            style={{
+              left: Math.min(ix.marquee.x0, ix.marquee.x1),
+              top: Math.min(ix.marquee.y0, ix.marquee.y1),
+              width: Math.abs(ix.marquee.x1 - ix.marquee.x0),
+              height: Math.abs(ix.marquee.y1 - ix.marquee.y0)
+            }}
+          />
+        )}
+        <WorkflowV2SelectionBar project={project} onSelectNode={onSelectNode} />
         {ix.wireDrag?.hoverNodeId && !ix.wireDrag.hoverValid && ix.wireDrag.hoverReason && (
           <div className="wf-v2-wire-reason" role="status">{ix.wireDrag.hoverReason}</div>
         )}
@@ -330,7 +395,7 @@ export const WorkflowCanvasV2: React.FC<WorkflowCanvasV2Props> = (props) => {
         )}
         {(() => {
           const sel = selectedNodeId ? graph.nodes.find((n) => n.id === selectedNodeId) : undefined
-          if (!sel) return null
+          if (!sel || multiIds.length > 0) return null
           const selTheme = resolveV2NodeTheme(sel)
           const canSpawnLogic = resolveV2NodeLevel(sel) === 'layer' || sel.params?.logicCategory === 'cluster_lock'
           const camShotId = sel.type === 'camera_director' ? sel.params?.shotId : undefined

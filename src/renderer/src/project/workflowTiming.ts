@@ -3,18 +3,42 @@ import type { Project, WorkflowGraph, WorkflowNode, WorkflowNodeParams } from '@
 import { resolvePartMotionTriggerWindow } from './workflowPartMotionTrigger'
 import { stepTimeParams } from './workflowStepGraph'
 
+/** Bảng màu nhận diện các nhóm Time chung (đủ tương phản trên cả Dark và Light Theme) */
+export const TIME_GROUP_PALETTE = ['#06b6d4', '#f59e0b', '#a855f7', '#22c55e', '#ef4444', '#3b82f6', '#ec4899', '#14b8a6'] as const
+
 export const acceptsSharedTime = (node: WorkflowNode): boolean =>
-  !node.params?.groupKind &&
-  !['time', 'material', 'cave', 'rig_bone'].includes(node.params?.logicCategory ?? '') &&
-  ['layer_assembly', 'motion_choreography', 'physics_fx', 'audio_lipsync'].includes(node.type)
+  Boolean(node.params?.isCameraWaypoint) ||
+  (!node.params?.groupKind &&
+    !['time', 'material', 'cave', 'rig_bone'].includes(node.params?.logicCategory ?? '') &&
+    ['layer_assembly', 'motion_choreography', 'physics_fx', 'audio_lipsync'].includes(node.type))
 
 export const isTimeNode = (node: WorkflowNode): boolean => node.params?.logicCategory === 'time'
 
-export function createTimeNode(project: Project): WorkflowNode {
+/** Màu nhận diện của một nhóm Time (Node Time cũ chưa có màu dùng màu cyan mặc định) */
+export const timeGroupColor = (node?: WorkflowNode | null): string => node?.params?.timeGroupColor ?? TIME_GROUP_PALETTE[0]
+
+/** Tên ngắn của nhóm Time để hiển thị trên chip (bỏ phần mô tả sau dấu `·`) */
+export const timeGroupLabel = (node?: { title?: string } | null): string => (node?.title ?? 'Time').split('·')[0].trim() || 'Time'
+
+export interface CreateTimeNodeOptions {
+  start?: number
+  end?: number
+  title?: string
+  color?: string
+}
+
+/** Tạo Node Time chung; tự chọn màu chưa dùng và tên nối tiếp (Time A, Time B…) để phân biệt nhiều nhóm */
+export function createTimeNode(project: Project, opts: CreateTimeNodeOptions = {}): WorkflowNode {
+  const existing = (project.workflow?.nodes ?? []).filter(isTimeNode)
+  const used = new Set(existing.map((n) => n.params?.timeGroupColor))
+  const color = opts.color ?? TIME_GROUP_PALETTE.find((c) => !used.has(c)) ?? TIME_GROUP_PALETTE[existing.length % TIME_GROUP_PALETTE.length]
+  const letter = String.fromCharCode(65 + (existing.length % 26))
+  const start = opts.start ?? 0
+  const end = opts.end ?? project.comp.duration
   return {
     id: `time-${nanoid(8)}`,
     type: 'motion_choreography',
-    title: 'Time · Thời gian chung',
+    title: opts.title ?? `Time ${letter} · Thời gian chung`,
     enabled: true,
     position: { x: 48, y: 16 },
     preset: 'shared_time',
@@ -23,8 +47,9 @@ export function createTimeNode(project: Project): WorkflowNode {
     params: {
       logicCategory: 'time',
       logicId: 'logic-shared-time',
-      timeStart: 0,
-      timeEnd: project.comp.duration,
+      timeStart: Number(start.toFixed(2)),
+      timeEnd: Number(end.toFixed(2)),
+      timeGroupColor: color,
       pinned: true
     }
   }
@@ -38,7 +63,8 @@ export function timeSource(workflow: WorkflowGraph | undefined, nodeId: string):
 /** Local timing stays on the consumer; only the evaluated copy inherits shared Time or Motion BBox trigger timing. */
 export function effectiveTimeParams(project: Project, node: WorkflowNode, params: WorkflowNodeParams): WorkflowNodeParams {
   const source = timeSource(project.workflow, node.id)
-  if (source) {
+  // Mốc lộ trình Camera hiển thị thời gian THẬT của keyframe Camera (đã được Node Time đẩy tới, có thể bị kẹp bởi mốc trước)
+  if (source && !node.params?.isCameraWaypoint) {
     const start = source.params?.timeStart ?? 0
     const end = source.params?.timeEnd ?? project.comp.duration
     if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || end <= start || end > project.comp.duration) {
@@ -75,10 +101,12 @@ export function connectTimeNode(workflow: WorkflowGraph, sourceId: string, targe
   const source = workflow.nodes.find((n) => n.id === sourceId)
   const target = workflow.nodes.find((n) => n.id === targetId)
   if (!source || !target || !isTimeNode(source) || !acceptsSharedTime(target)) {
-    throw new Error('Time nối tới Layer, Motion, Animation, ánh sáng/FX, va chạm hoặc âm thanh; Camera và cấu trúc cảnh dùng lộ trình riêng.')
+    throw new Error('Time nối tới Layer, Motion, Animation, ánh sáng/FX, va chạm, âm thanh hoặc mốc lộ trình Camera; cấu trúc cảnh dùng phạm vi riêng.')
   }
+  // Mốc lộ trình Camera lấy thời gian thật từ keyframe Camera nên không cần lưu khoảng riêng
+  const keepLocal = (n: WorkflowNode): boolean => n.id !== targetId || Boolean(n.params?.localTimeRange) || Boolean(n.params?.isCameraWaypoint)
   const nodes = workflow.nodes.map((n) =>
-    n.id !== targetId || n.params?.localTimeRange
+    keepLocal(n)
       ? n
       : { ...n, params: { ...n.params, localTimeRange: { start: n.params?.timeStart ?? 0, end: n.params?.timeEnd ?? 1 } } }
   )
