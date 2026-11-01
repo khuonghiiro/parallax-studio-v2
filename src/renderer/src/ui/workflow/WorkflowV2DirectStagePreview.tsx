@@ -122,7 +122,11 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
   const isCamNode = node.type === 'camera_director'
   const isWaypointNode = Boolean(node.params?.isCameraWaypoint)
   const isClusterLockNode = node.params?.logicCategory === 'cluster_lock'
-  const repLayerId = node.params?.targetLayerIds?.[0] ?? null
+  const hasBboxMotion = node.params?.logicCategory === 'action' && (node.params?.motionMode === 'bbox' || node.params?.actionPreset === 'bbox_target')
+  const repLayerId =
+    (node.params?.activeMotionTargetEntityId as string | undefined) ??
+    node.params?.targetLayerIds?.[0] ??
+    null
   const activeLayerObj = repLayerId ? project.layers.find((l) => l.id === repLayerId) : undefined
 
   const clusterInstId =
@@ -750,7 +754,7 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
               })}
 
             {/* Khung BBox tương tác trực tiếp của Layer hoặc Toàn bộ Cụm */}
-            {selectedProjLayer && !isCollisionNode && (
+            {selectedProjLayer && !isCollisionNode && (!isMotionNode || !hasBboxMotion) && (
               <div
                 className={`wf-v2-direct-layer-bbox${isMotionNode ? ' is-locked-start' : ''}`}
                 style={{

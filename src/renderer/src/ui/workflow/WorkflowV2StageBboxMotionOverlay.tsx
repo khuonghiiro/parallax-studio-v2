@@ -1,7 +1,6 @@
 import { WorkflowMotionStageTools } from './WorkflowMotionStageTools'
 import { WorkflowMotionIcon } from './WorkflowMotionIcons'
 import { WorkflowV2BboxGimbal } from './WorkflowV2BboxGimbal'
-import { WorkflowV2StageEntityTags } from './WorkflowV2StageEntityTags'
 import { resolveMotionMode } from '../../project/workflowMotionMode'
 import { useShiftToFocus } from './workflowFocusGuard'
 import { bboxStartPosition, bboxStartScale } from '../../project/workflowMotionStart'
@@ -740,17 +739,75 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
         </svg>
       )}
 
-      {/* Khi có 2+ layer kết nối, hiển thị thanh Chip Tag ở góc trên của Stage để chọn ngay BBox, không lo bị layer to che khuất */}
-      {hasBboxMotion && isMultiEntity && (
-        <WorkflowV2StageEntityTags
-          entities={renderedEntities}
-          focusedEntityId={focusedEntityId}
-          onSelectEntity={(id) => {
-            setLocalFocusedId(id)
-            patchMotionNode({ activeMotionTargetEntityId: id }, 'wf-stage-focus-bbox')
-          }}
-        />
-      )}
+      {/* Khung BBox #1 (Đầu) cho từng Layer/Cụm kết nối. CHỈ hiện title khi active (isFocused)! */}
+      {hasBboxMotion &&
+        displayEntities.map((item) => {
+          const isFocused = !isMultiEntity || item.ent.id === focusedEntityId
+          const shortName = item.ent.name.length > 11 ? `${item.ent.name.slice(0, 9)}…` : item.ent.name
+          const isNearTarget = Math.hypot(item.box2Cx - item.box1Cx, item.box2Cy - item.box1Cy) < 45
+          const box1Left = item.box1Cx - item.baseW / 2
+          const box1Top = item.box1Cy - item.baseH / 2
+
+          return (
+            <div
+              key={`start-bbox-${item.ent.id}`}
+              className={`wf-v2-direct-layer-bbox is-start-bbox${isFocused ? ' is-focused is-locked-start' : ' is-silhouette'}`}
+              style={{
+                pointerEvents: isFocused ? 'none' : 'auto',
+                left: box1Left,
+                top: box1Top,
+                width: item.baseW,
+                height: item.baseH,
+                border: isFocused
+                  ? `1.5px dashed ${item.accentColor}`
+                  : `1px dashed color-mix(in srgb, ${item.accentColor} 30%, transparent)`,
+                background: isFocused
+                  ? `color-mix(in srgb, ${item.accentColor} 4%, transparent)`
+                  : 'transparent',
+                opacity: isFocused ? 0.78 : 0.35,
+                zIndex: isFocused ? 28 : 18,
+                cursor: isFocused ? 'default' : 'pointer',
+                ['--wf-v2-accent' as string]: item.accentColor
+              }}
+              title={
+                isFocused
+                  ? `Vị trí xuất phát BBox #1 của "${item.ent.name}" (Cố định)`
+                  : `Vị trí xuất phát BBox #1 của "${item.ent.name}" — Nhấp để chọn BBox này`
+              }
+              onPointerDown={(e) => {
+                if (!isFocused && e.button === 0) {
+                  e.stopPropagation()
+                  setLocalFocusedId(item.ent.id)
+                  patchMotionNode({ activeMotionTargetEntityId: item.ent.id }, 'wf-stage-focus-bbox')
+                }
+              }}
+            >
+              {/* CHỈ hiện title ở BBox đầu KHI active (isFocused)! Không active thì ẩn title đi cho đỡ rối */}
+              {isFocused && (
+                <span
+                  className="wf-v2-direct-bbox-tag"
+                  title={item.ent.name}
+                  style={{
+                    top: isNearTarget ? 'auto' : box1Top < 18 ? 2 : -17,
+                    bottom: isNearTarget ? -17 : 'auto',
+                    left: 0,
+                    maxWidth: 125,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    background: `color-mix(in srgb, ${item.accentColor} 75%, #0f172a)`,
+                    color: '#ffffff',
+                    border: `1px solid color-mix(in srgb, ${item.accentColor} 45%, #ffffff)`
+                  }}
+                >
+                  #{bboxStepNumber(workflow, motionNode?.id ?? node.id)} Đầu (Cố định)
+                  {isMultiEntity ? ` · ${shortName}` : ''}
+                </span>
+              )}
+              {isFocused && <span className="wf-v2-direct-bbox-crosshair" />}
+            </div>
+          )
+        })}
 
       {/* Khung BBox đích cho từng Layer/Cụm kết nối. Dùng displayEntities để entity được focus luôn render sau cùng, nằm trên cùng */}
       {hasBboxMotion &&
@@ -827,8 +884,8 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
                 />
               )}
 
-              {/* Tag nhãn: Tên rút gọn gàng, không dài tràn viền, hỗ trợ nhấp trực tiếp vào nhãn mờ để chọn BBox */}
-              {isFocused ? (
+              {/* Tag nhãn: CHỈ hiện khi BBox ĐÍCH active (isFocused)! Không active thì ẩn title đi cho đỡ rối */}
+              {isFocused && (
                 <span
                   className="wf-v2-direct-bbox-tag"
                   title={item.ent.name}
@@ -848,35 +905,6 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
                 >
                   #{bboxStepNumber(workflow, motionNode?.id ?? node.id) + 1} Đích
                   {isMultiEntity ? ` · ${shortName}` : ''}
-                </span>
-              ) : (
-                <span
-                  className="wf-v2-direct-bbox-tag is-ghost-silhouette"
-                  title={`Nhấp để chọn BBox "${item.ent.name}"`}
-                  style={{
-                    top: item.box2Top < 18 ? 2 : -15,
-                    right: 0,
-                    left: 'auto',
-                    maxWidth: 105,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                    background: 'rgba(15, 23, 42, 0.85)',
-                    color: 'rgba(255, 255, 255, 0.85)',
-                    fontSize: 8,
-                    padding: '0 5px',
-                    border: `1px solid color-mix(in srgb, ${item.accentColor} 50%, transparent)`,
-                    pointerEvents: 'auto',
-                    cursor: 'pointer',
-                    zIndex: 42
-                  }}
-                  onPointerDown={(e) => {
-                    e.stopPropagation()
-                    setLocalFocusedId(item.ent.id)
-                    patchMotionNode({ activeMotionTargetEntityId: item.ent.id }, 'wf-stage-focus-bbox')
-                  }}
-                >
-                  {shortName} (Mờ)
                 </span>
               )}
 

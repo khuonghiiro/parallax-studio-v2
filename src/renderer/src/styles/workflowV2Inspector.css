@@ -281,17 +281,28 @@
   font-size: 10px;
   color: var(--text-dim);
 }
-.wf-v2-linked { display: flex; flex-wrap: wrap; gap: 4px; }
-.wf-v2-linked span {
-  max-width: 100%;
-  padding: 2px 7px;
-  border-radius: var(--radius-sm);
-  background: var(--bg-1);
-  border: 1px solid var(--line-soft);
-  font-size: 10.5px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.wf-v2-linked { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+.wf-v2-linked span, .wf-v2-linked-chip {
+  display: inline-flex; align-items: center; gap: 5px; max-width: 100%;
+  padding: 3px 8px; border-radius: var(--radius-sm); background: var(--bg-1);
+  border: 1px solid var(--line-soft); font-size: 10.5px; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; cursor: pointer; color: var(--text-dim);
+  transition: all 0.15s ease;
+}
+.wf-v2-linked-chip:hover {
+  background: var(--bg-2); border-color: var(--line); color: var(--text);
+}
+.wf-v2-linked-chip.is-active {
+  background: color-mix(in srgb, var(--ent-accent, var(--accent)) 18%, var(--bg-2));
+  border-color: var(--ent-accent, var(--accent)); color: var(--text); font-weight: 600;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+.wf-v2-linked-chip-dot {
+  width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+  box-shadow: 0 0 4px color-mix(in srgb, var(--ent-accent, var(--accent)) 60%, transparent);
+}
+.wf-v2-linked-chip-check {
+  font-size: 9.5px; font-weight: 700; color: var(--ent-accent, var(--accent)); margin-left: 2px;
 }
 .wf-v2-linked em { font-size: 10.5px; color: var(--text-faint); }
 
@@ -870,68 +881,34 @@
   color: #ffffff;
 }
 .wf-v2-member-line-btn.off {
-  background: var(--bg-3);
-  border-color: var(--line);
-  color: var(--text-dim);
+  background: var(--bg-3); border-color: var(--line); color: var(--text-dim);
 }
 .wf-v2-member-line-btn.off:hover {
-  background: color-mix(in srgb, var(--accent) 14%, var(--bg-3));
-  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 14%, var(--bg-3)); color: var(--text);
 }
 .wf-v2-mini-btn {
-  width: auto;
-  min-width: 24px;
-  padding: 0 6px;
-  font-size: 10px;
-  font-weight: 600;
+  width: auto; min-width: 24px; padding: 0 6px; font-size: 10px; font-weight: 600;
 }
 .wf-v2-mini-btn.active {
   background: color-mix(in srgb, var(--wf-v2-accent, var(--accent)) 78%, #0f172a);
-  border-color: var(--wf-v2-accent, var(--accent));
-  color: #ffffff;
+  border-color: var(--wf-v2-accent, var(--accent)); color: #ffffff;
 }
-
 .wf-v2-inline-editor-frame {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  padding: 6px;
-  border-radius: var(--radius);
-  border: 1px solid var(--line);
-  background: var(--bg-1);
+  display: flex; flex-direction: column; gap: 5px; padding: 6px;
+  border-radius: var(--radius); border: 1px solid var(--line); background: var(--bg-1);
 }
 .wf-v2-inline-editor-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--text);
-  min-width: 0;
+  display: flex; align-items: center; justify-content: space-between; gap: 6px;
+  font-size: 10px; font-weight: 700; color: var(--text); min-width: 0;
 }
 .wf-v2-inline-editor-head > span:first-child {
-  flex: 1 1 0;
-  min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  flex: 1 1 0; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.wf-v2-inline-tabs {
-  display: inline-flex;
-  gap: 3px;
-  flex-shrink: 0;
-}
+.wf-v2-inline-tabs { display: inline-flex; gap: 3px; flex-shrink: 0; }
 .wf-v2-inline-rig-svg,
 .wf-v2-inline-motion-svg {
-  width: 100%;
-  height: 156px;
-  min-height: 156px;
-  max-height: 156px;
-  flex-shrink: 0;
-  display: block;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--line-soft);
+  width: 100%; height: 156px; min-height: 156px; max-height: 156px; flex-shrink: 0;
+  display: block; border-radius: var(--radius-sm); border: 1px solid var(--line-soft);
   background: var(--bg-0);
   cursor: crosshair;
   touch-action: none;

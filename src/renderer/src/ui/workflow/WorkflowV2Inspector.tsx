@@ -6,6 +6,8 @@ import { findLinkedMotionNodeForPart } from '../../project/workflowPartMotionTri
 import React, { useEffect, useMemo, useState } from 'react'
 import type { Project, Shot, WorkflowGraph, WorkflowNode, WorkflowNodeParams } from '@shared/types'
 import {
+  getClusterMemberLayers,
+  getClusterRootLayer,
   getCompatibleLogicCatalogForNode,
   getLayerDisplayName,
   spawnTimedFollowupNodeV2,
@@ -132,6 +134,78 @@ function linkedLayerNames(node: WorkflowNode, project: Project): string[] {
   const roots = matched.filter((l) => !l.composite || l.composite.isRoot)
   const names = (roots.length > 0 ? roots : matched).map(getLayerDisplayName)
   return Array.from(new Set(names))
+}
+
+export interface LinkedEntityItem {
+  id: string
+  name: string
+  isCluster: boolean
+}
+
+const ENT_ACCENTS = ['#f59e0b', '#38bdf8', '#10b981', '#ec4899', '#a855f7', '#f97316']
+
+function resolveLinkedEntities(node: WorkflowNode, project: Project, workflow: WorkflowGraph): LinkedEntityItem[] {
+  const ids = new Set<string>()
+  if (node.params?.targetLayerIds?.length) {
+    for (const id of node.params.targetLayerIds) ids.add(id)
+  }
+  if (node.params?.sharedLayerNodeIds?.length) {
+    for (const nid of node.params.sharedLayerNodeIds) {
+      if (nid.startsWith('v2-layer-')) ids.add(nid.slice('v2-layer-'.length))
+      const nObj = workflow.nodes.find((n) => n.id === nid)
+      const nodeLayerId = nObj?.params?.rootLayerId ?? (nObj?.params as Record<string, any> | undefined)?.layerId
+      if (nodeLayerId) ids.add(nodeLayerId)
+      if (nObj?.params?.instanceId) {
+        const members = getClusterMemberLayers(project, nObj.params.instanceId)
+        for (const m of members) ids.add(m.id)
+      }
+    }
+  }
+  const inEdges = workflow.edges.filter((e) => e.toNode === node.id && !e.disabled)
+  for (const e of inEdges) {
+    const srcNode = workflow.nodes.find((n) => n.id === e.fromNode)
+    if (srcNode?.params?.targetLayerIds?.length) {
+      for (const id of srcNode.params.targetLayerIds) ids.add(id)
+    }
+    const srcLayerId = srcNode?.params?.rootLayerId ?? (srcNode?.params as Record<string, any> | undefined)?.layerId
+    if (srcLayerId) {
+      ids.add(srcLayerId)
+    } else if (srcNode?.id?.startsWith('v2-layer-')) {
+      ids.add(srcNode.id.slice('v2-layer-'.length))
+    }
+    if (srcNode?.params?.instanceId) {
+      const members = getClusterMemberLayers(project, srcNode.params.instanceId)
+      for (const m of members) ids.add(m.id)
+    }
+  }
+
+  const entityMap = new Map<string, LinkedEntityItem>()
+  for (const lid of Array.from(ids)) {
+    const l = project.layers.find((ly) => ly.id === lid)
+    if (!l) continue
+    const inst = l.composite?.instanceId ?? l.model3d?.instanceId
+    if (inst) {
+      if (!entityMap.has(inst)) {
+        const members = getClusterMemberLayers(project, inst)
+        const rootL = getClusterRootLayer(members) ?? members[0] ?? l
+        entityMap.set(inst, {
+          id: inst,
+          name: rootL.name.replace(/\s*\(.*?\)\s*/g, '') || 'Cụm 2.5D',
+          isCluster: true
+        })
+      }
+    } else {
+      if (!entityMap.has(l.id)) {
+        entityMap.set(l.id, {
+          id: l.id,
+          name: l.name,
+          isCluster: false
+        })
+      }
+    }
+  }
+
+  return Array.from(entityMap.values())
 }
 
 const DIRECT_STAGE_KEY = 'pxs:wf-v2-direct-stage-open'
@@ -319,9 +393,13 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
   const motionTriggerSrc = logicCat === 'part_swap' && !node.params?.isPartHub ? findLinkedMotionNodeForPart(project, node) : undefined
   const timeLocked = level === 'root' || Boolean(source) || Boolean(motionTriggerSrc)
   const childCount = workflow.edges.filter((e) => e.fromNode === node.id).length
+  const linkedEnts = useMemo(
+    () => (level === 'logic' ? resolveLinkedEntities(node, project, workflow) : []),
+    [level, node, project, workflow]
+  )
   const linked = logicCat === 'time'
     ? workflow.edges.filter(e => e.fromNode === node.id && e.fromPort === 'time_range' && !e.disabled).map(e => workflow.nodes.find(n => n.id === e.toNode)?.title ?? e.toNode)
-    : level === 'logic' ? linkedLayerNames(node, project) : []
+    : level === 'logic' ? (linkedEnts.length > 0 ? linkedEnts.map(e => e.name) : linkedLayerNames(node, project)) : []
   const update = (patch: Partial<WorkflowNodeParams>, title?: string): void => {
     if (node.params?.isPartChild) {
       useEditor.getState().update(d => patchPartCue(d, node.id, patch), `part-timing-${node.id}`)
@@ -552,11 +630,53 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
         {level === 'logic' &&
           node.type !== 'camera_director' &&
           !node.params?.isPartChild &&
-          (logicCat === 'time' || logicCat === 'collision' || linked.length === 0 || linked.length > 1) && (
-          <section className="wf-v2-insp-sec">
-            <div className="wf-v2-insp-sec-title">Áp dụng cho</div>
+          (logicCat === 'time' || logicCat === 'collision' || linkedEnts.length === 0 || linkedEnts.length > 1 || node.params?.motionMode === 'bbox' || node.params?.actionPreset === 'bbox_target') && (
+          <section className="wf-v2-insp-sec" data-mcp-region="workflow_motion_entity_tags">
+            <div className="wf-v2-insp-sec-title">
+              <span>Áp dụng cho</span>
+              {linkedEnts.length > 1 && (
+                <span className="wf-v2-insp-note" style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--text-dim)' }}>
+                  (Nhấp chọn để điều chỉnh BBox)
+                </span>
+              )}
+            </div>
             <div className="wf-v2-linked">
-              {linked.length ? linked.map((name) => <span key={name}>{name}</span>) : <em>{logicCat === 'time' ? 'Kéo cổng ra của Time tới Layer hoặc node cần dùng chung thời gian.' : 'Chưa nối Layer nào — kéo dây từ một Layer vào Node này'}</em>}
+              {logicCat === 'time' ? (
+                linked.length ? (
+                  linked.map((name) => <span key={name}>{name}</span>)
+                ) : (
+                  <em>Kéo cổng ra của Time tới Layer hoặc node cần dùng chung thời gian.</em>
+                )
+              ) : linkedEnts.length > 0 ? (
+                linkedEnts.map((ent, idx) => {
+                  const entColor = ENT_ACCENTS[idx % ENT_ACCENTS.length]
+                  const isAct = (node.params?.activeMotionTargetEntityId ?? linkedEnts[0]?.id) === ent.id
+                  return (
+                    <button
+                      key={ent.id}
+                      type="button"
+                      className={`wf-v2-linked-chip${isAct ? ' is-active' : ''}`}
+                      onClick={() => {
+                        update({ activeMotionTargetEntityId: ent.id }, 'wf-select-target-entity')
+                      }}
+                      title={`BBox: "${ent.name}" — Nhấp để chọn BBox này điều chỉnh`}
+                      style={{
+                        ['--ent-accent' as string]: entColor,
+                        borderColor: isAct ? entColor : undefined,
+                        background: isAct ? `color-mix(in srgb, ${entColor} 18%, var(--bg-2))` : undefined,
+                        color: isAct ? 'var(--text)' : undefined,
+                        fontWeight: isAct ? 600 : 400
+                      }}
+                    >
+                      <span className="wf-v2-linked-chip-dot" style={{ backgroundColor: entColor }} />
+                      <span>{ent.name}</span>
+                      {isAct && <span className="wf-v2-linked-chip-check">✓</span>}
+                    </button>
+                  )
+                })
+              ) : (
+                <em>Chưa nối Layer nào — kéo dây từ một Layer vào Node này</em>
+              )}
             </div>
             {node.params?.logicCategory === 'collision' && (node.params?.sharedLayerNodeIds?.length ?? 0) < 2 && (
               <CollisionPartnerPicker workflow={workflow} node={node} onPick={(layerNodeId) => props.onConnectLayer(layerNodeId, node.id)} />
