@@ -69,7 +69,12 @@ export function resolveCameraActionName(node: WorkflowNode): string {
   if (localIdx === 0) return 'Khung gốc'
   if (p.camTagLabel) {
     const cleaned = p.camTagLabel.replace(/^[#\d\s·]+/, '').replace(/\([^)]*\)/g, '').trim()
-    if (cleaned) return cleaned
+    if (cleaned) {
+      return cleaned
+        .replace(/ tức thì/g, '')
+        .replace(/ không chuyển tiếp/g, '')
+        .trim()
+    }
   }
   const mode = String(p.camActionMode ?? '')
   switch (mode) {
@@ -131,10 +136,8 @@ export function resolveV2NodeTheme(node: WorkflowNode): WorkflowV2NodeTheme {
     const stepNo = localIdx + 1
     const accent = CAM_STEP_ACCENTS[localIdx % CAM_STEP_ACCENTS.length]
     const circle = STEP_CIRCLES[localIdx] ?? `${stepNo}`
-    const actionName = resolveCameraActionName(node)
-    const badgeAction = localIdx === 0 ? 'KHUNG GỐC' : actionName.toUpperCase()
     return {
-      badge: node.params.isSubWaypoint ? `BƯỚC ${stepNo} · NHÁNH PHỤ` : `BƯỚC ${stepNo} · ${badgeAction}`,
+      badge: node.params.isSubWaypoint ? `BƯỚC ${stepNo} · PHỤ` : `BƯỚC ${stepNo}`,
       icon: node.params.isSubWaypoint ? `↳${circle}` : circle,
       accent,
       portIn: 'camera_cut',

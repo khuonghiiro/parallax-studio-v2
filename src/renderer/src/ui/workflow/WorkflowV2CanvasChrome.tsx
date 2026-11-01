@@ -141,11 +141,11 @@ export const WorkflowV2EdgeLayer: React.FC<{
                 const t1 = Number((from.params.timeStart ?? 0).toFixed(1))
                 const t2 = Number((to.params?.timeStart ?? to.params?.timeEnd ?? 0).toFixed(1))
                 const dur = Number(Math.max(0.1, t2 - t1).toFixed(1))
-                return `▼ Bước ${fromStep} → ${toStep}: ${action} · ${t1}s ➔ ${t2}s (+${dur}s)`
+                return `▼ Bước ${fromStep}➔${toStep}: ${action} · ${dur}s (${t1}s–${t2}s)`
               })()
-            : `▼ Bước 1: Khung gốc (${(to.params?.timeStart ?? 0).toFixed(1)}s)`
+            : `▼ Khung gốc · ${(to.params?.timeStart ?? 0).toFixed(1)}s`
           : null
-        const stepBadgeW = stepBadgeText ? Math.max(92, Math.round(stepBadgeText.length * 6.5 + 20)) : 84
+        const stepBadgeW = stepBadgeText ? Math.min(214, Math.max(90, Math.round(stepBadgeText.length * 6.2 + 20))) : 84
         const [midX, midY] = computeEdgeControlPoint(from, to, wireStyle, isToClusterLock, lane, kind)
         const pillW = disconnectable && onToggleEdgeDisable ? 44 : 24
         const showAura = !isDisabled && (running || (lineageActive && lit))

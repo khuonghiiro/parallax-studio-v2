@@ -565,13 +565,16 @@
   top: 15px;
   width: 14px;
   height: 14px;
-  box-sizing: border-box;
+  box-sizing: border-box !important;
+  padding: 0 !important;
+  margin: 0 !important;
   border-radius: 50%;
   background: var(--bg-1);
   border: 2px solid var(--wf-v2-accent, var(--accent));
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-direction: row !important;
   cursor: crosshair;
   z-index: 30;
   transition: transform 0.12s ease;
@@ -583,19 +586,19 @@
   border-color: var(--tg-c, var(--accent-cyan));
   box-shadow: 0 0 6px rgba(6, 182, 212, 0.4);
 }
-.wf-v2-socket.time-port.left {
+.wf-v2-socket.time-port.port-left {
   left: -7px;
   top: calc(50% - 7px);
 }
-.wf-v2-socket.time-port.right {
+.wf-v2-socket.time-port.port-right {
   right: -7px;
   top: calc(50% - 7px);
 }
-.wf-v2-socket.time-port.top {
+.wf-v2-socket.time-port.port-top {
   top: -7px;
   left: calc(50% - 7px);
 }
-.wf-v2-socket.time-port.bottom {
+.wf-v2-socket.time-port.port-bottom {
   bottom: -7px;
   top: auto;
   left: calc(50% - 7px);
@@ -605,12 +608,15 @@
   box-shadow: 0 0 10px rgba(6, 182, 212, 0.85);
 }
 .wf-v2-socket-dot {
-  width: 4px;
-  height: 4px;
-  flex-shrink: 0;
-  border-radius: 50%;
-  background: var(--wf-v2-accent, var(--accent));
-  pointer-events: none;
+  width: 4px !important;
+  height: 4px !important;
+  box-sizing: border-box !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  flex-shrink: 0 !important;
+  border-radius: 50% !important;
+  background: var(--wf-v2-accent, var(--accent)) !important;
+  pointer-events: none !important;
 }
 .wf-v2-card-header {
   display: flex;

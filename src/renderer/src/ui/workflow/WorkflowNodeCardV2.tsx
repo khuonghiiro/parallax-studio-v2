@@ -8,6 +8,7 @@ import {
 import { WorkflowTimeRangeBar } from './WorkflowTimeRangeBar'
 import {
   cleanV2NodeTitle,
+  resolveCameraActionName,
   resolveV2LogicCategory,
   resolveV2NodeLevel,
   resolveV2NodeTheme
@@ -265,7 +266,7 @@ export const WorkflowNodeCardV2 = memo(function WorkflowNodeCardV2({
       {isTime ? (
         <>
           <div
-            className="wf-v2-socket time-port left"
+            className="wf-v2-socket time-port port-left"
             title="Cổng Trái — Kéo sang Node bên trái hoặc nhận kết nối"
             onPointerDown={(e) => {
               e.stopPropagation()
@@ -275,7 +276,7 @@ export const WorkflowNodeCardV2 = memo(function WorkflowNodeCardV2({
             <span className="wf-v2-socket-dot" />
           </div>
           <div
-            className="wf-v2-socket time-port right"
+            className="wf-v2-socket time-port port-right"
             title="Cổng Phải — Kéo sang Node bên phải hoặc nhận kết nối"
             onPointerDown={(e) => {
               e.stopPropagation()
@@ -285,7 +286,7 @@ export const WorkflowNodeCardV2 = memo(function WorkflowNodeCardV2({
             <span className="wf-v2-socket-dot" />
           </div>
           <div
-            className="wf-v2-socket time-port top"
+            className="wf-v2-socket time-port port-top"
             title="Cổng Trên — Kéo sang Node phía trên hoặc nhận kết nối"
             onPointerDown={(e) => {
               e.stopPropagation()
@@ -295,7 +296,7 @@ export const WorkflowNodeCardV2 = memo(function WorkflowNodeCardV2({
             <span className="wf-v2-socket-dot" />
           </div>
           <div
-            className="wf-v2-socket time-port bottom"
+            className="wf-v2-socket time-port port-bottom"
             title="Cổng Dưới — Kéo sang Node phía dưới hoặc nhận kết nối"
             onPointerDown={(e) => {
               e.stopPropagation()
@@ -343,7 +344,13 @@ export const WorkflowNodeCardV2 = memo(function WorkflowNodeCardV2({
               </span>
             ) : null}
           </div>
-          <span className="wf-v2-card-title" title={node.title}>{cleanV2NodeTitle(node.title)}</span>
+          {node.params?.isCameraWaypoint ? (
+            <span className="wf-v2-card-title" title={node.title}>
+              {(node.params.waypointLocalIndex ?? 0) === 0 ? 'Khung gốc' : resolveCameraActionName(node)}
+            </span>
+          ) : (
+            <span className="wf-v2-card-title" title={node.title}>{cleanV2NodeTitle(node.title)}</span>
+          )}
         </div>
         <div className="wf-v2-card-actions" onPointerDown={(e) => e.stopPropagation()}>
           {node.type === 'camera_director' && node.params?.shotId && onSpawnCameraWaypoint && (

@@ -26,6 +26,7 @@ export const WF_V2_CLUSTER_HEADER = 34
 const TOP_Y = 96
 const LOGIC_GAP = 24
 const LAYER_GAP = 42
+export const CAM_WAYPOINT_GAP = 68
 const GROUP_GAP = 52
 const CLUSTER_GAP = 84
 
@@ -300,7 +301,7 @@ function layoutCameraWaypoints(
 ): number {
   cam.position = { x: WF_V2_COL_X.ROOT, y: startCamY }
   let camBottom = startCamY + WF_V2_NODE_H
-  let wpY = startCamY + WF_V2_NODE_H + LAYER_GAP
+  let wpY = startCamY + WF_V2_NODE_H + CAM_WAYPOINT_GAP
   const waypoints: WorkflowNode[] = []
   let curId = cam.id
   const visited = new Set<string>([cam.id])
@@ -321,7 +322,7 @@ function layoutCameraWaypoints(
   for (const wp of waypoints) {
     wp.position = { x: WF_V2_COL_X.ROOT, y: wpY }
     camBottom = Math.max(camBottom, wp.position.y + WF_V2_NODE_H)
-    wpY += WF_V2_NODE_H + LAYER_GAP
+    wpY += WF_V2_NODE_H + CAM_WAYPOINT_GAP
   }
   return camBottom
 }
