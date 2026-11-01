@@ -578,6 +578,31 @@
 .wf-v2-socket:hover { transform: scale(1.3); }
 .wf-v2-socket.in { left: -8px; }
 .wf-v2-socket.out { right: -8px; }
+.wf-v2-socket.time-port {
+  border-color: var(--tg-c, var(--accent-cyan));
+  box-shadow: 0 0 6px rgba(6, 182, 212, 0.4);
+}
+.wf-v2-socket.time-port.left {
+  left: -8px;
+  top: 25px;
+}
+.wf-v2-socket.time-port.right {
+  right: -8px;
+  top: 25px;
+}
+.wf-v2-socket.time-port.top {
+  top: -8px;
+  left: calc(50% - 7px);
+}
+.wf-v2-socket.time-port.bottom {
+  bottom: -8px;
+  top: auto;
+  left: calc(50% - 7px);
+}
+.wf-v2-socket.time-port:hover {
+  transform: scale(1.35);
+  box-shadow: 0 0 10px rgba(6, 182, 212, 0.85);
+}
 .wf-v2-socket-dot {
   width: 4px;
   height: 4px;

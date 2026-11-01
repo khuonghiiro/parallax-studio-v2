@@ -183,9 +183,10 @@ export function useWorkflowV2CanvasInteractions(
     (e: React.PointerEvent, nodeId: string, port: WorkflowPortKind, isOutput: boolean) => {
       const src = nodesRef.current.find((n) => n.id === nodeId)
       if (!src) return
-      const sx = isOutput ? src.position.x + WF_V2_NODE_W + 6 : src.position.x - 8
-      const sy = src.position.y + WF_V2_PORT_Y
       const w = vp.clientToWorld(e.clientX, e.clientY)
+      const isTime = src.params?.logicCategory === 'time'
+      const sx = isTime ? Math.round(w.x) : (isOutput ? src.position.x + WF_V2_NODE_W + 6 : src.position.x - 8)
+      const sy = isTime ? Math.round(w.y) : src.position.y + WF_V2_PORT_Y
       setWireDrag({ nodeId, isOutput, startX: sx, startY: sy, curX: w.x, curY: w.y })
       trackPointer(
         (ev) => {

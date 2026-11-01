@@ -82,8 +82,116 @@ export function buildCameraChainPath(from: WorkflowNode, to: WorkflowNode): stri
  * Đường nối giữa 2 thẻ. `lane` (0..n) tách nhẹ kênh dọc khi nhiều dây cùng đổ vào 1 Node dùng chung
  * để các đoạn dọc không chồng khít lên nhau.
  */
+/**
+ * Tự động tính toán cổng kết nối thông minh 4 hướng (Trái / Phải / Trên / Dưới) cho Node Time:
+ * - Chọn cổng tối ưu hướng thẳng về phía Node đối tác để không bao giờ bị xiên chéo,
+ * - Bo góc 12px mượt mà (Orthogonal Rounded Step),
+ * - Tách kênh song song khi nhiều dây cùng đổ vào một hướng.
+ */
+export function computeSmartTimeEdgeRoute(
+  from: WorkflowNode,
+  to: WorkflowNode,
+  lane = 0
+): { path: string; controlPoint: [number, number] } {
+  const isFromTime = from.params?.logicCategory === 'time'
+  const timeNode = isFromTime ? from : to
+  const otherNode = isFromTime ? to : from
+  const reverse = !isFromTime
+
+  const timeW = WF_V2_NODE_W
+  const timeH = WF_V2_NODE_H
+  const otherW = WF_V2_NODE_W
+  const otherH = WF_V2_NODE_H
+
+  const timeCenter = { x: timeNode.position.x + timeW / 2, y: timeNode.position.y + timeH / 2 }
+  const otherCenter = { x: otherNode.position.x + otherW / 2, y: otherNode.position.y + otherH / 2 }
+
+  const dx = otherCenter.x - timeCenter.x
+  const dy = otherCenter.y - timeCenter.y
+
+  let pTime: [number, number]
+  let pOther: [number, number]
+  let points: [number, number][]
+  let controlPoint: [number, number]
+
+  // A. Node đối tác ở BÊN TRÁI của Node Time (ví dụ Camera Waypoint ở cột 48)
+  if (dx < -timeW * 0.4) {
+    pTime = [timeNode.position.x - 8, Math.round(timeNode.position.y + 25)]
+    pOther = [otherNode.position.x + otherW + 8, Math.round(otherNode.position.y + WF_V2_PORT_Y)]
+    const gap = pTime[0] - pOther[0]
+    const channelX = Math.round(pOther[0] + Math.max(18, Math.min(gap - 18, gap * 0.5 + lane * 18)))
+    points = [
+      pTime,
+      [channelX, pTime[1]],
+      [channelX, pOther[1]],
+      pOther
+    ]
+    controlPoint = [channelX, Math.round((pTime[1] + pOther[1]) / 2)]
+  }
+  // B. Node đối tác ở BÊN PHẢI của Node Time (ví dụ Layer 2.5D ở các cột bên phải)
+  else if (dx > timeW * 0.4) {
+    pTime = [timeNode.position.x + timeW + 8, Math.round(timeNode.position.y + 25)]
+    pOther = [otherNode.position.x - 8, Math.round(otherNode.position.y + WF_V2_PORT_Y)]
+    const gap = pOther[0] - pTime[0]
+    const channelX = Math.round(pTime[0] + Math.max(18, Math.min(gap - 18, gap * 0.5 + lane * 22)))
+    points = [
+      pTime,
+      [channelX, pTime[1]],
+      [channelX, pOther[1]],
+      pOther
+    ]
+    controlPoint = [Math.round(pOther[0] - 28), pOther[1]]
+  }
+  // C. Node đối tác ở THẲNG DƯỚI Node Time
+  else if (dy > 0) {
+    pTime = [Math.round(timeCenter.x + lane * 16), timeNode.position.y + timeH + 8]
+    pOther = [Math.round(otherCenter.x + lane * 16), otherNode.position.y - 8]
+    if (Math.abs(pOther[0] - pTime[0]) <= 8) {
+      points = [pTime, pOther]
+      controlPoint = [pTime[0], Math.round((pTime[1] + pOther[1]) / 2)]
+    } else {
+      const midY = Math.round((pTime[1] + pOther[1]) / 2)
+      points = [
+        pTime,
+        [pTime[0], midY],
+        [pOther[0], midY],
+        pOther
+      ]
+      controlPoint = [Math.round((pTime[0] + pOther[0]) / 2), midY]
+    }
+  }
+  // D. Node đối tác ở THẲNG TRÊN Node Time
+  else {
+    pTime = [Math.round(timeCenter.x + lane * 16), timeNode.position.y - 8]
+    pOther = [Math.round(otherCenter.x + lane * 16), otherNode.position.y + otherH + 8]
+    if (Math.abs(pOther[0] - pTime[0]) <= 8) {
+      points = [pTime, pOther]
+      controlPoint = [pTime[0], Math.round((pTime[1] + pOther[1]) / 2)]
+    } else {
+      const midY = Math.round((pTime[1] + pOther[1]) / 2)
+      points = [
+        pTime,
+        [pTime[0], midY],
+        [pOther[0], midY],
+        pOther
+      ]
+      controlPoint = [Math.round((pTime[0] + pOther[0]) / 2), midY]
+    }
+  }
+
+  const finalPoints = reverse ? [...points].reverse() : points
+  const path = points.length === 2
+    ? `M ${finalPoints[0][0]} ${finalPoints[0][1]} L ${finalPoints[1][0]} ${finalPoints[1][1]}`
+    : roundedOrthogonal(finalPoints, 12)
+
+  return { path, controlPoint }
+}
+
 export function buildEdgePath(from: WorkflowNode, to: WorkflowNode, kind: V2EdgeKind, style: 'smoothstep' | 'bezier', lane = 0): string {
   if (kind === 'camera') return buildCameraChainPath(from, to)
+  if (kind === 'time' || from.params?.logicCategory === 'time' || to.params?.logicCategory === 'time') {
+    return computeSmartTimeEdgeRoute(from, to, lane).path
+  }
   if (Math.abs(from.position.x - to.position.x) < 40) {
     const cx = Math.round(from.position.x + WF_V2_NODE_W / 2)
     const down = to.position.y > from.position.y

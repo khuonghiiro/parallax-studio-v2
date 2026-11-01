@@ -2,7 +2,7 @@ import React from 'react'
 import type { WorkflowEdge, WorkflowNode } from '@shared/types'
 import { WF_V2_CAMERA_LANE_X, type V2Cluster } from '../../project/workflowV2Engine'
 import { IconFit, IconZoomIn, IconZoomOut } from '../icons'
-import { WF_V2_PORT_Y, buildEdgePath, type V2EdgeKind } from './workflowV2Edges'
+import { WF_V2_PORT_Y, buildEdgePath, computeSmartTimeEdgeRoute, type V2EdgeKind } from './workflowV2Edges'
 import {
   IconWfFitAll,
   IconWfFollowShot,
@@ -53,8 +53,12 @@ function computeEdgeControlPoint(
   to: WorkflowNode,
   wireStyle: 'smoothstep' | 'bezier',
   isToClusterLock: boolean,
-  lane: number
+  lane: number,
+  kind?: V2EdgeKind
 ): [number, number] {
+  if (kind === 'time' || from.params?.logicCategory === 'time' || to.params?.logicCategory === 'time') {
+    return computeSmartTimeEdgeRoute(from, to, lane).controlPoint
+  }
   const x1 = from.position.x + 236 + 6
   const y1 = from.position.y + WF_V2_PORT_Y
   const x2 = to.position.x - 8
@@ -132,7 +136,7 @@ export const WorkflowV2EdgeLayer: React.FC<{
             ? `▼ Bước ${(from.params.waypointLocalIndex ?? 0) + 1} → ${(to.params?.waypointLocalIndex ?? 0) + 1}`
             : `▼ Mở đầu #${to.params?.waypointLabel ?? 1}`
           : null
-        const [midX, midY] = computeEdgeControlPoint(from, to, wireStyle, isToClusterLock, lane)
+        const [midX, midY] = computeEdgeControlPoint(from, to, wireStyle, isToClusterLock, lane, kind)
         const pillW = disconnectable && onToggleEdgeDisable ? 44 : 24
         const showAura = !isDisabled && (running || (lineageActive && lit))
 

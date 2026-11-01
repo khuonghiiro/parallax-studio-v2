@@ -258,8 +258,55 @@ export const WorkflowNodeCardV2 = memo(function WorkflowNodeCardV2({
       }}
     >
       <div className="wf-v2-card-accent-bar" />
-      {level !== 'root' && !isTimeNode(node) && socket('in')}
-      {hasOutput && socket('out')}
+      {isTime ? (
+        <>
+          <div
+            className="wf-v2-socket time-port left"
+            title="Cổng Trái — Kéo sang Node bên trái hoặc nhận kết nối"
+            onPointerDown={(e) => {
+              e.stopPropagation()
+              onStartWireDrag(e, node.id, 'time_range', true)
+            }}
+          >
+            <span className="wf-v2-socket-dot" />
+          </div>
+          <div
+            className="wf-v2-socket time-port right"
+            title="Cổng Phải — Kéo sang Node bên phải hoặc nhận kết nối"
+            onPointerDown={(e) => {
+              e.stopPropagation()
+              onStartWireDrag(e, node.id, 'time_range', true)
+            }}
+          >
+            <span className="wf-v2-socket-dot" />
+          </div>
+          <div
+            className="wf-v2-socket time-port top"
+            title="Cổng Trên — Kéo sang Node phía trên hoặc nhận kết nối"
+            onPointerDown={(e) => {
+              e.stopPropagation()
+              onStartWireDrag(e, node.id, 'time_range', true)
+            }}
+          >
+            <span className="wf-v2-socket-dot" />
+          </div>
+          <div
+            className="wf-v2-socket time-port bottom"
+            title="Cổng Dưới — Kéo sang Node phía dưới hoặc nhận kết nối"
+            onPointerDown={(e) => {
+              e.stopPropagation()
+              onStartWireDrag(e, node.id, 'time_range', true)
+            }}
+          >
+            <span className="wf-v2-socket-dot" />
+          </div>
+        </>
+      ) : (
+        <>
+          {level !== 'root' && socket('in')}
+          {hasOutput && socket('out')}
+        </>
+      )}
 
       <div className="wf-v2-card-header">
         {thumb ? (

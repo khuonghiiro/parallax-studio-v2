@@ -249,7 +249,7 @@ export function validateWorkflowV2Connection(
   }
 
   if (src.params?.logicCategory === 'time') return { valid: acceptsSharedTime(dst), reason: 'Node này không có khoảng thời gian xử lý độc lập; hãy nối Time tới Layer, Motion, Animation, FX hoặc Audio.' }
-  if (dst.params?.logicCategory === 'time') return { valid: false, reason: 'Time là nguồn thời gian, không nhận dây vào.' }
+  if (dst.params?.logicCategory === 'time') return { valid: acceptsSharedTime(src), reason: 'Node này không có khoảng thời gian độc lập để ăn theo nhóm Time.' }
 
   const srcIsRoot = src.type === 'scene_shot'
   const dstIsRoot = dst.type === 'scene_shot'

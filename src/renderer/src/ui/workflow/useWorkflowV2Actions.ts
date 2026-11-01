@@ -226,6 +226,19 @@ export function useWorkflowV2Actions(workflow: WorkflowGraph, selectedNodeId: st
         }
         return
       }
+      if (workflow.nodes.some(n => n.id === toNode && isTimeNode(n))) {
+        try {
+          useEditor.getState().update(d => {
+            d.workflow = connectTimeNode(workflow, toNode, fromNode)
+            const target = d.workflow.nodes.find(n => n.id === fromNode)!
+            syncWorkflowV2NodeToProject(d as Project, target)
+          })
+          showToast('Đã nối vào nhóm Time — Node này giờ ăn theo khoảng thời gian chung')
+        } catch (error) {
+          showToast(error instanceof Error ? error.message : String(error))
+        }
+        return
+      }
       const check = validateWorkflowV2Connection(workflow, fromNode, toNode)
       if (!check.valid) {
         showToast(check.reason ?? 'Kết nối không hợp lệ')
