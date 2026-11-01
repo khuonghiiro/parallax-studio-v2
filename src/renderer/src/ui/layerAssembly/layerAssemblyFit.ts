@@ -1,4 +1,5 @@
 import type { LayerComposite } from './types'
+import { measureWorkshopLayerSizes } from './workshopLayerMeasure'
 
 export interface ContentBounds {
   minX: number
@@ -30,16 +31,30 @@ export function computeCompositeContentBounds(composite: LayerComposite): Conten
     }
   }
 
-  // 2. Thu thập phạm vi của các layer
+  // 2. Thu thập phạm vi thực tế của các layer
   const visibleLayers = composite.layers.filter((l) => !l.hidden)
   if (visibleLayers.length > 0) {
+    const measuredSizes = measureWorkshopLayerSizes(visibleLayers)
     for (const l of visibleLayers) {
       const scale = Math.max(0.05, l.scale || 1)
-      // Ước tính kích thước mảnh layer dựa trên scale (khoảng 80-160px xung quanh tâm)
-      const radius = Math.max(40, Math.min(220, 110 * scale))
+      let halfW = 100 * scale
+      let halfH = 100 * scale
+
+      const m = measuredSizes[l.id]
+      if (m && m.w > 1 && m.h > 1) {
+        halfW = (m.w * scale) / 2
+        halfH = (m.h * scale) / 2
+      } else {
+        const match = l.name.match(/\((\d+)\s*[x×]\s*(\d+)\)/)
+        if (match) {
+          halfW = (parseInt(match[1], 10) * scale) / 2
+          halfH = (parseInt(match[2], 10) * scale) / 2
+        }
+      }
+
       points.push(
-        { x: l.x - radius, y: l.y - radius },
-        { x: l.x + radius, y: l.y + radius }
+        { x: l.x - halfW, y: l.y - halfH },
+        { x: l.x + halfW, y: l.y + halfH }
       )
     }
   }
@@ -74,8 +89,9 @@ export function computeCompositeContentBounds(composite: LayerComposite): Conten
 }
 
 /**
- * Phóng to / thu nhỏ nhân vật để vừa vặn chiếm ~84% chiều cao hoặc chiều rộng của khung sân khấu hiện tại.
- * Đồng thời căn tâm nhân vật về chính giữa (0, 0).
+ * Phóng to / thu nhỏ nhân vật để vừa vặn chiếm ~76% chiều cao khung sân khấu.
+ * Giữ khoảng đệm an toàn phía trên (40-60px) để đầu nhân vật không bao giờ bị cắt hay chạm vào banner.
+ * Đồng thời căn tâm nhân vật về chính giữa.
  */
 export function fitCharacterToCanvas(composite: LayerComposite): LayerComposite {
   const bounds = computeCompositeContentBounds(composite)
@@ -84,9 +100,9 @@ export function fitCharacterToCanvas(composite: LayerComposite): LayerComposite 
   const canvasW = composite.width
   const canvasH = composite.height
 
-  // Mục tiêu: nhân vật chiếm 84% sân khấu
-  const targetW = canvasW * 0.84
-  const targetH = canvasH * 0.84
+  // Mục tiêu: nhân vật chiếm khoảng 76% sân khấu để đầu và chân không chạm mép
+  const targetW = canvasW * 0.76
+  const targetH = canvasH * 0.76
 
   const factorW = targetW / bounds.width
   const factorH = targetH / bounds.height
@@ -97,7 +113,8 @@ export function fitCharacterToCanvas(composite: LayerComposite): LayerComposite 
   }
 
   const cx = bounds.centerX
-  const cy = bounds.centerY
+  // Dịch nhẹ xuống 14px để đỉnh đầu cách xa thanh banner thông báo phía trên
+  const cy = bounds.centerY - 14 / factor
 
   // Scale các layer quanh tâm nhân vật
   const nextLayers = composite.layers.map((l) => ({

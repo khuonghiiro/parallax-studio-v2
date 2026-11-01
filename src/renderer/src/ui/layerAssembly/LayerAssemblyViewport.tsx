@@ -223,9 +223,10 @@ export function LayerAssemblyViewport({
     mouseX: number
     mouseY: number
     initPositions: Map<string, { x: number; y: number }>
+    initBonePositions: Map<string, { x: number; y: number }>
     initPanX: number
     initPanY: number
-  }>({ mouseX: 0, mouseY: 0, initPositions: new Map(), initPanX: 0, initPanY: 0 })
+  }>({ mouseX: 0, mouseY: 0, initPositions: new Map(), initBonePositions: new Map(), initPanX: 0, initPanY: 0 })
 
   useEffect(() => {
     const cancel = (e: KeyboardEvent) => {
@@ -236,7 +237,21 @@ export function LayerAssemblyViewport({
         handleDragRef.current = null
         setIsDraggingHandle(false)
       }
-      if (isDraggingLayer) dragStartRef.current.initPositions.forEach((position, id) => onUpdateLayer(id, position))
+      if (isDraggingLayer) {
+        dragStartRef.current.initPositions.forEach((position, id) => onUpdateLayer(id, position))
+        if (dragStartRef.current.initBonePositions.size > 0 && onChangeComposite) {
+          const initBones = dragStartRef.current.initBonePositions
+          onChangeComposite((prev) => {
+            if (!prev.rig) return prev
+            const nextBones = prev.rig.bones.map((b) => {
+              const init = initBones.get(b.id)
+              if (!init) return b
+              return { ...b, x: init.x, y: init.y }
+            })
+            return { ...prev, rig: { ...prev.rig, bones: nextBones } }
+          })
+        }
+      }
       if (isPanning) setPan({ x: dragStartRef.current.initPanX, y: dragStartRef.current.initPanY })
       setIsDraggingLayer(false); setIsPanning(false)
       e.preventDefault(); e.stopImmediatePropagation()
@@ -364,12 +379,26 @@ export function LayerAssemblyViewport({
     if (!isDraggingLayer) return
     const dx = (e.clientX - dragStartRef.current.mouseX) / zoom
     const dy = (e.clientY - dragStartRef.current.mouseY) / zoom
+    const roundDx = Math.round(dx)
+    const roundDy = Math.round(dy)
     dragStartRef.current.initPositions.forEach((pos, id) => {
       onUpdateLayer(id, {
-        x: Math.round(pos.x + dx),
-        y: Math.round(pos.y + dy)
+        x: pos.x + roundDx,
+        y: pos.y + roundDy
       })
     })
+    if (dragStartRef.current.initBonePositions.size > 0 && onChangeComposite) {
+      const initBones = dragStartRef.current.initBonePositions
+      onChangeComposite((prev) => {
+        if (!prev.rig || !prev.rig.bones) return prev
+        const nextBones = prev.rig.bones.map((b) => {
+          const init = initBones.get(b.id)
+          if (!init) return b
+          return { ...b, x: init.x + roundDx, y: init.y + roundDy }
+        })
+        return { ...prev, rig: { ...prev.rig, bones: nextBones } }
+      })
+    }
   }
 
   const handlePointerUp = (e: React.PointerEvent) => {
@@ -450,10 +479,23 @@ export function LayerAssemblyViewport({
         initPositions.set(l.id, { x: l.x, y: l.y })
       }
     })
+    const initBonePositions = new Map<string, { x: number; y: number }>()
+    if (composite.rig && composite.rig.bones.length > 0) {
+      const hasRigAttachment = activeSelection.some((id) => {
+        const l = composite.layers.find((item) => item.id === id)
+        return l?.boneId || composite.layers.length === 1
+      })
+      if (hasRigAttachment) {
+        composite.rig.bones.forEach((b) => {
+          initBonePositions.set(b.id, { x: b.x, y: b.y })
+        })
+      }
+    }
     dragStartRef.current = {
       mouseX: e.clientX,
       mouseY: e.clientY,
       initPositions,
+      initBonePositions,
       initPanX: pan.x,
       initPanY: pan.y
     }

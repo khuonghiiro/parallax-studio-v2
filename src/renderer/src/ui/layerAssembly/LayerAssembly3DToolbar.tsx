@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import {
   IconCube,
-  IconEye,
+  IconGrid3D,
   IconFocus,
   IconCamera,
   IconFit,
@@ -623,7 +623,7 @@ export function LayerAssembly3DToolbar({
           onMouseLeave={hideTooltip}
           aria-label="Lưới mặt sàn 3D"
         >
-          <IconEye width={15} height={15} />
+          <IconGrid3D width={15} height={15} />
         </button>
 
         {onToggleShowBones && (

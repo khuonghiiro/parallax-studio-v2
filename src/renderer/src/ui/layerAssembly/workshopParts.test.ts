@@ -76,6 +76,29 @@ describe('linked movement', () => {
     c = updatePartGroup(c, 'part-head', { locked: false })
     expect(expandLinkedSelection(c, ['gl'])).toEqual(['gl'])
   })
+
+  it('moves rig bones together with character when moving rigged layer', () => {
+    const singleRigged: LayerComposite = {
+      id: 'crig',
+      name: 'RiggedChar',
+      category: 'character',
+      width: 600,
+      height: 900,
+      layers: [layer('char', 'char', { x: 50, y: 100 })],
+      rig: {
+        bones: [
+          { id: 'b1', name: 'Root', x: 50, y: 100, length: 80, angle: 90 },
+          { id: 'b2', name: 'Spine', x: 50, y: 180, length: 120, angle: 90 }
+        ],
+        duration: 2, loop: true, tracks: {}, clips: []
+      }
+    }
+    const moved = moveLinked(singleRigged, 'char', 70, 140)
+    expect(moved.layers[0].x).toBe(70)
+    expect(moved.layers[0].y).toBe(140)
+    expect(moved.rig?.bones[0]).toMatchObject({ x: 70, y: 140 })
+    expect(moved.rig?.bones[1]).toMatchObject({ x: 70, y: 220 })
+  })
 })
 
 describe('variants & replacement', () => {

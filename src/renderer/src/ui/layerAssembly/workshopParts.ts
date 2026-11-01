@@ -39,16 +39,33 @@ export function expandLinkedSelection(composite: LayerComposite, ids: string[]):
   return [...out]
 }
 
-/** Áp dụng dịch chuyển X/Y cho layer và mọi thành viên của nhóm đang khoá liên kết. */
+/** Áp dụng dịch chuyển X/Y cho layer và mọi thành viên của nhóm đang khoá liên kết (kèm đồng bộ xương nếu có). */
 export function moveLinked(composite: LayerComposite, id: string, x: number, y: number): LayerComposite {
   const layer = composite.layers.find((l) => l.id === id)
   if (!layer || layer.locked) return composite
   const dx = x - layer.x
   const dy = y - layer.y
   const targets = new Set(expandLinkedSelection(composite, [id]))
+  const shouldMoveBones = Boolean(
+    composite.rig?.bones?.length &&
+      (layer.boneId || composite.layers.length === 1 || targets.size === composite.layers.length)
+  )
+  const nextLayers = composite.layers.map((l) => (targets.has(l.id) ? { ...l, x: l.x + dx, y: l.y + dy } : l))
+  const nextRig =
+    shouldMoveBones && composite.rig
+      ? {
+          ...composite.rig,
+          bones: composite.rig.bones.map((b) => ({
+            ...b,
+            x: Math.round(b.x + dx),
+            y: Math.round(b.y + dy)
+          }))
+        }
+      : composite.rig
   return {
     ...composite,
-    layers: composite.layers.map((l) => (targets.has(l.id) ? { ...l, x: l.x + dx, y: l.y + dy } : l))
+    layers: nextLayers,
+    rig: nextRig
   }
 }
 

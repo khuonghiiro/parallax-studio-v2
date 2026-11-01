@@ -110,6 +110,7 @@ export function LayerAssembly3DViewport({
   const lightRigRef = useRef<SceneLightRig | null>(null)
   const layersGroupRef = useRef<THREE.Group | null>(null)
   const helpersGroupRef = useRef<THREE.Group | null>(null)
+  const needsRenderRef = useRef(true)
   const canvasBoxRef = useRef<THREE.Group | null>(null)
   const frustumHelperRef = useRef<THREE.LineSegments | null>(null)
   const depthGuideRef = useRef<THREE.Line | null>(null)
@@ -418,18 +419,37 @@ export function LayerAssembly3DViewport({
     frustumHelperRef.current = newFrustum
   }, [composite.width, composite.height, getFitDistance, showFrustum, cameraPreset, isLight])
 
+  const [renderTrigger, setRenderTrigger] = useState(0)
+  const flushImmediateRender = useCallback(() => {
+    needsRenderRef.current = true
+    const r = rendererRef.current
+    const s = sceneRef.current
+    const cam = cameraRef.current
+    const cEl = containerRef.current
+    if (activeRef.current && r && s && cam && cEl && cEl.clientWidth > 0 && cEl.clientHeight > 0) {
+      updateOrbitCameraPosition(cam, orbitRef.current)
+      r.render(s, cam)
+    }
+  }, [])
+  const onTextureReady = useCallback(() => {
+    setRenderTrigger((t) => (t + 1) | 0)
+  }, [])
+  const requestRender = flushImmediateRender
+
   // ------------------------------------------------------------- 3. Bật tắt Helpers Lưới & Tháp Camera
   useEffect(() => {
     if (helpersGroupRef.current) {
       helpersGroupRef.current.visible = showGrid
+      flushImmediateRender()
     }
-  }, [showGrid])
+  }, [showGrid, flushImmediateRender])
 
   useEffect(() => {
     if (frustumHelperRef.current) {
       frustumHelperRef.current.visible = showFrustum && cameraPreset !== 'front'
+      flushImmediateRender()
     }
-  }, [showFrustum, cameraPreset])
+  }, [showFrustum, cameraPreset, flushImmediateRender])
 
   // Khi ở góc nhìn chính diện (front / Căn vừa khung hình), đưa độ tách lớp Z về 0 để đồng bộ chính xác 1:1 với Bố cục 2D
   const effectiveZExaggeration = cameraPreset === 'front' ? 0 : zExaggeration
@@ -452,22 +472,6 @@ export function LayerAssembly3DViewport({
     }
   }, [selectedLayer?.id, selectedLayer?.x, selectedLayer?.y, selectedLayer?.z, effectiveZExaggeration])
 
-  // Kích hoạt render lại và cập nhật hình học layer khi ảnh load xong
-  const [renderTrigger, setRenderTrigger] = useState(0)
-  const flushImmediateRender = useCallback(() => {
-    const r = rendererRef.current
-    const s = sceneRef.current
-    const cam = cameraRef.current
-    const cEl = containerRef.current
-    if (activeRef.current && r && s && cam && cEl && cEl.clientWidth > 0 && cEl.clientHeight > 0) {
-      updateOrbitCameraPosition(cam, orbitRef.current)
-      r.render(s, cam)
-    }
-  }, [])
-  const onTextureReady = useCallback(() => {
-    setRenderTrigger((t) => (t + 1) | 0)
-  }, [])
-  const requestRender = flushImmediateRender
 
   // ------------------------------------------------------------- 6. Đồng bộ hóa Mesh các Layers & Khung xương 3D
   useEffect(() => {
