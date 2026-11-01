@@ -297,6 +297,14 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   remote_devices_list: region('remote_devices_list', '.remote-devices-card'),
   remote_client_hud: region('remote_client_hud', '.remote-client-hud'),
 
+  // 10. Xưởng Tách Hoạt Ảnh Lặp (Loop Sprite Animator Dialog)
+  loop_animator: region('loop_animator', '.loop-animator-dialog'),
+  loop_animator_stage: region('loop_animator_stage', '.loop-player-card'),
+  loop_animator_toolbar: region('loop_animator_toolbar', '.loop-source-card'),
+  loop_animator_chroma: region('loop_animator_chroma', '.loop-chroma-bar'),
+  loop_animator_frames: region('loop_animator_frames', '.loop-frame-strip-panel'),
+  assets_loop: region('assets_loop', '.loop-assets-container'),
+
   // AI Neon HUD
   ai_hud: ['.ai-neon-hud-badge']
 }

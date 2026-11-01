@@ -897,3 +897,32 @@ export const IconSmartphone = (p: P) => (
     <circle cx="12" cy="18.5" r="1" fill="currentColor" stroke="none" />
   </svg>
 )
+/** Hoạt ảnh lặp (Loop Animate / Sprite Sheet Loop) - Biểu tượng 4 cell chuyển động lặp tuần hoàn */
+export const IconLoopAnimate = (p: P) => (
+  <svg {...base(p)}>
+    <rect x="2.5" y="3" width="7" height="6" rx="1.5" />
+    <rect x="14.5" y="3" width="7" height="6" rx="1.5" />
+    <rect x="2.5" y="15" width="7" height="6" rx="1.5" />
+    <rect x="14.5" y="15" width="7" height="6" rx="1.5" />
+    <path d="M10 6h4m-2 -2l2 2-2 2" />
+    <path d="M18 9.5v5m-2 -2l2 2 2-2" />
+    <path d="M14 18h-4m2 2l-2-2 2-2" />
+    <path d="M6 14.5v-5m-2 2l2-2 2 2" />
+  </svg>
+)
+
+/** Ngọn lửa (Flame / Campfire) */
+export const IconFlame = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M8.5 14.5A3.5 3.5 0 0 0 12 18a3.5 3.5 0 0 0 3.5-3.5c0-2-1.5-3.5-2.5-5 0 2-1 2.5-1 2.5s-.5-1.5-.5-3c-1.5 2-3 3.5-3 5.5z" />
+    <path d="M12 2c1 3 4 5 4 9a6 6 0 1 1-12 0c0-3.5 3-6.5 4.5-9 0 2 1.5 3 2.5 3s1-2 1-3z" />
+  </svg>
+)
+
+/** Hiện bóng mờ khung hình (Onion Skinning) */
+export const IconOnionSkin = (p: P) => (
+  <svg {...base(p)}>
+    <circle cx="9" cy="12" r="5.5" strokeDasharray="2 2" opacity="0.65" />
+    <circle cx="15" cy="12" r="5.5" />
+  </svg>
+)

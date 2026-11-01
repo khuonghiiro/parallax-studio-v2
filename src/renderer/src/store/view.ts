@@ -7,11 +7,11 @@ export type PrimaryView = 'camera' | 'editor' | 'topview' | 'animate2d'
 export type TopViewMode = 'top' | 'side'
 export type Theme = 'dark' | 'light'
 export type LeftTab = 'shots' | 'assets' | 'topview'
-export type AssetSubTab = 'builtin' | 'project' | '3d' | 'assembly' | 'music'
+export type AssetSubTab = 'builtin' | 'project' | '3d' | 'assembly' | 'loop' | 'music'
 export type TimelineMainTab = 'timeline' | 'workflow'
 export type MobileWorkspaceTab = 'timeline' | 'left' | 'right'
 export type TabletSideTab = 'left' | 'right'
-export type DialogKind = 'path' | 'sketch' | 'performance' | 'mcp' | 'remote' | 'audio' | 'export' | null
+export type DialogKind = 'path' | 'sketch' | 'performance' | 'mcp' | 'remote' | 'audio' | 'export' | 'loop_animator' | null
 
 interface ViewPrefs {
   activeViews?: PrimaryView[]
@@ -83,6 +83,8 @@ export interface ViewState extends ViewPrefs {
   openAudioDialog(mode?: 'levels' | 'waveform' | 'mixer'): void
   openAssemblyWorkshop(model: Model3D): void
   closeAssemblyWorkshop(): void
+  loopAnimatorInitialImage: string | null
+  openLoopAnimator(imageUrl?: string): void
   /** Frame something without changing the user-selected visible views. */
   requestFocus(kind: FocusRequest['kind'], id?: string): void
 }
@@ -107,7 +109,7 @@ function loadLeftTab(): LeftTab {
 function loadAssetSubTab(): AssetSubTab {
   try {
     const raw = localStorage.getItem(ASSET_SUBTAB_KEY)
-    if (raw === 'builtin' || raw === 'project' || raw === '3d' || raw === 'assembly' || raw === 'music') {
+    if (raw === 'builtin' || raw === 'project' || raw === '3d' || raw === 'assembly' || raw === 'loop' || raw === 'music') {
       return raw
     }
   } catch {
@@ -299,6 +301,12 @@ export const useView = create<ViewState>((set, get) => ({
   },
   closeAssemblyWorkshop() {
     set({ assemblyModalModel: null })
+  },
+  loopAnimatorInitialImage: null,
+  openLoopAnimator(imageUrl) {
+    useEditor.getState().setPlaying(false)
+    closeLayerAssemblyOverlay()
+    set({ dialog: 'loop_animator', loopAnimatorInitialImage: imageUrl ?? null, assemblyModalModel: null })
   },
   toggleTheme() {
     const next: Theme = get().theme === 'light' ? 'dark' : 'light'

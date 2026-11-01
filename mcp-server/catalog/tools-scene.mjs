@@ -95,6 +95,7 @@ export const SCENE_TOOLS = [
         'camera_path', 'camera_path_presets', 'camera_path_steps',
         'mcp_dialog', 'mcp_status', 'mcp_config', 'mcp_guide',
         'remote_dialog', 'remote_qr_card', 'remote_mode_picker', 'remote_touchpad_card', 'remote_devices_list', 'remote_client_hud',
+        'loop_animator', 'loop_animator_stage', 'loop_animator_toolbar', 'loop_animator_chroma', 'loop_animator_frames', 'assets_loop',
         'ai_hud', 'window'
       ]).optional().describe(d('Predefined UI region to capture. Use "active" to capture the TOPMOST open dialog automatically (e.g. Studio Mixamo opened inside the Layer Workshop) instead of the whole window; "dialog" also picks the topmost dialog. Sub-regions (e.g. layer_assembly_mixamo_stage, layer_assembly_parts, audio_studio_waveform) crop a single control to save tokens. Any element with data-mcp-region="<name>" is matched automatically.', 'Vùng UI định sẵn cần chụp. Dùng "active" để tự chụp đúng dialog đang mở TRÊN CÙNG (VD Studio Mixamo mở bên trong Xưởng Layer) thay vì cả cửa sổ; "dialog" cũng chọn dialog trên cùng. Vùng con (VD layer_assembly_mixamo_stage, layer_assembly_parts, audio_studio_waveform) chỉ cắt đúng một control để tiết kiệm token. Mọi phần tử có data-mcp-region="<tên>" đều tự khớp.')),
       selector: z.string().optional().describe(d('CSS selector of a specific element to capture (e.g. ".music-panel-layout", "#music-tab-add-btn"). Falls back to whole window if not found.', 'CSS selector của phần tử cụ thể cần chụp. Tự động chụp toàn bộ app nếu không tìm thấy selector.')),
@@ -129,7 +130,7 @@ export const SCENE_TOOLS = [
       model_id: z.string().optional().describe(d('3D model ID when opening assembly_3d.', 'ID mô hình 3D khi mở xưởng assembly_3d.')),
       composite_id: z.string().optional().describe(d('2.5D composite ID when opening layer_assembly.', 'ID cụm 2.5D khi mở xưởng layer_assembly.')),
       left_tab: z.enum(['shots', 'assets', 'topview']).optional().describe(d('Switch Left Sidebar tab.', 'Chuyển tab thanh bên trái.')),
-      asset_subtab: z.enum(['builtin', '3d', 'assembly', 'music', 'project']).optional().describe(d('Switch Asset Library sub-tab and focus Assets tab.', 'Chuyển sub-tab Kho tài nguyên và mở tab Tài nguyên.')),
+      asset_subtab: z.enum(['builtin', '3d', 'assembly', 'loop', 'music', 'project']).optional().describe(d('Switch Asset Library sub-tab and focus Assets tab.', 'Chuyển sub-tab Kho tài nguyên và mở tab Tài nguyên.')),
       timeline_tab: z.enum(['timeline', 'workflow']).optional().describe(d('Switch bottom panel between Timeline and Workflow Studio tab.', 'Chuyển tab khu vực dưới cùng giữa Timeline và Workflow Studio.')),
       inspector_tab: z.enum(['layer', 'camera', 'route', 'scene', 'node', 'json']).optional().describe(d('Switch Right Inspector tab (layer, camera, route, scene, node, json).', 'Chuyển tab bảng thuộc tính bên phải (layer, camera, route, scene, node, json).')),
       mobile_tab: z.enum(['timeline', 'left', 'right']).optional().describe(d('Switch active workspace dock tab on Tablet/Phone.', 'Chuyển tab vùng làm việc đang mở trên Máy tính bảng/Điện thoại.')),

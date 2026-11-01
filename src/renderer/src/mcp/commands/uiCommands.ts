@@ -397,14 +397,15 @@ function applyDialogSwitch(p: Params): void {
       dialog === 'performance' ||
       dialog === 'mcp' ||
       dialog === 'remote' ||
-      dialog === 'export'
+      dialog === 'export' ||
+      dialog === 'loop_animator'
     ) {
       v.openDialog(dialog)
     } else if (dialog === 'layer_assembly' || dialog === 'layer_assembly_create') {
       requestOpenLayerAssembly(str(p, 'composite_id') ?? undefined)
     } else {
       throw new ParamError(
-        `Invalid dialog "${dialog}". Expected none, path, sketch, performance, mcp, remote, audio, export, layer_assembly, or layer_assembly_create.`
+        `Invalid dialog "${dialog}". Expected none, path, sketch, performance, mcp, remote, audio, export, loop_animator, layer_assembly, or layer_assembly_create.`
       )
     }
   } else if (audioMode === 'levels' || audioMode === 'mixer' || audioMode === 'waveform') {

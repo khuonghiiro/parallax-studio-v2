@@ -9,7 +9,8 @@ import {
   IconCube,
   IconLayerAssembly,
   IconMusic,
-  IconPlus
+  IconPlus,
+  IconLoopAnimate
 } from '../icons'
 import { SegmentedTabs, type SegmentedTabItem } from '../primitives'
 import { AssetCatalogModal } from './AssetCatalogModal'
@@ -18,9 +19,12 @@ import { BuiltInAssetGrid } from './BuiltInAssetGrid'
 import { ProjectAssetList } from './ProjectAssetList'
 import { Model3DList } from './Model3DList'
 import { LayerAssemblyList } from '../layerAssembly/LayerAssemblyList'
+import { LoopAnimationList } from './LoopAnimationList'
 import { MusicPanel } from './MusicPanel'
 import { getStoredComposites } from '../layerAssembly/layerAssemblyStorage'
 import { getStoredModels3D, fetchAsset3DsCatalog } from './models3d/models3dStorage'
+import { getStoredLoopTemplates } from '../loopAnimator/loopAnimatorStorage'
+import { BUILTIN_LOOP_PRESETS } from '../loopAnimator/sampleLoops'
 import { sortAssetCategories } from './types'
 import { getVisiblePublicAssets, addCustomPublicAsset, isPrivateModularAsset } from './publicAssetStorage'
 import { getAudioCount } from './music/builtinAudios'
@@ -35,6 +39,7 @@ export function AssetPanel() {
   const [isJsonModalOpen, setIsJsonModalOpen] = useState(false)
   const [assemblyCount, setAssemblyCount] = useState<number>(() => getStoredComposites().length)
   const [model3DCount, setModel3DCount] = useState<number>(() => getStoredModels3D().length)
+  const [loopCount, setLoopCount] = useState<number>(() => BUILTIN_LOOP_PRESETS.length + getStoredLoopTemplates().length)
   const [publicVersion, setPublicVersion] = useState(0)
 
   useEffect(() => {
@@ -56,6 +61,13 @@ export function AssetPanel() {
     const handleCompChange = () => setAssemblyCount(getStoredComposites().length)
     window.addEventListener('layerComposites:changed', handleCompChange)
     return () => window.removeEventListener('layerComposites:changed', handleCompChange)
+  }, [])
+
+  useEffect(() => {
+    const handleLoopChange = () =>
+      setLoopCount(BUILTIN_LOOP_PRESETS.length + getStoredLoopTemplates().length)
+    window.addEventListener('loopAnimations:changed', handleLoopChange)
+    return () => window.removeEventListener('loopAnimations:changed', handleLoopChange)
   }, [])
 
   useEffect(() => {
@@ -145,6 +157,14 @@ export function AssetPanel() {
         title: `Cụm layer lắp ráp 2.5D (${assemblyCount} cụm)`
       },
       {
+        id: 'loop',
+        domId: 'asset-subtab-loop-btn',
+        label: 'Loop Animate',
+        icon: <IconLoopAnimate width={13} height={13} />,
+        badge: loopCount,
+        title: `Hoạt ảnh lặp Sprite Sheet Loop (${loopCount} mẫu)`
+      },
+      {
         id: 'music',
         domId: 'asset-subtab-music-btn',
         label: 'Nhạc',
@@ -161,7 +181,7 @@ export function AssetPanel() {
         title: `Tệp tài nguyên trong dự án (${projectAssets.length} tệp)`
       }
     ],
-    [visiblePublicItems.length, model3DCount, assemblyCount, audioCount, projectAssets.length]
+    [visiblePublicItems.length, model3DCount, assemblyCount, loopCount, audioCount, projectAssets.length]
   )
 
   const handleImportItem = async (item: BuiltInAssetItem, addLayer: boolean) => {
@@ -244,12 +264,14 @@ export function AssetPanel() {
           {subTab === 'builtin' && <IconGrid width={14} height={14} />}
           {subTab === '3d' && <IconCube width={14} height={14} />}
           {subTab === 'assembly' && <IconLayerAssembly width={14} height={14} />}
+          {subTab === 'loop' && <IconLoopAnimate width={14} height={14} />}
           {subTab === 'music' && <IconMusic width={14} height={14} />}
           {subTab === 'project' && <IconBriefcase width={14} height={14} />}
           <span>
             {subTab === 'builtin' && 'Kho mẫu có sẵn'}
             {subTab === '3d' && 'Mô hình 3D'}
             {subTab === 'assembly' && 'Cụm layer lắp ráp'}
+            {subTab === 'loop' && 'Hoạt ảnh lặp (Loop)'}
             {subTab === 'music' && 'Âm thanh & Nhạc nền'}
             {subTab === 'project' && 'Tệp trong dự án'}
           </span>
@@ -291,6 +313,15 @@ export function AssetPanel() {
             title="Mở xưởng lắp ráp layer xếp chồng 2.5D"
           >
             <IconPlus /> Tạo lắp ráp
+          </button>
+        ) : subTab === 'loop' ? (
+          <button
+            type="button"
+            className="btn sm asset-action-btn-highlight"
+            onClick={() => useView.getState().openLoopAnimator()}
+            title="Mở Xưởng Tách Hoạt Ảnh Lặp để phân tách ảnh thành các frame lặp"
+          >
+            <IconPlus /> Tạo Loop Animate
           </button>
         ) : subTab === 'music' ? (
           <button
@@ -352,6 +383,8 @@ export function AssetPanel() {
         <Model3DList />
       ) : subTab === 'assembly' ? (
         <LayerAssemblyList />
+      ) : subTab === 'loop' ? (
+        <LoopAnimationList />
       ) : subTab === 'music' ? (
         <MusicPanel catalogItems={visiblePublicItems} onImportItem={handleImportItem} />
       ) : (

@@ -49,6 +49,12 @@
     "demo_transparent/layer5_foreground_vines.png": {
       "name": "Vòm dây leo & đom đóm (Tiền cảnh)"
     },
+    "demo_transparent/campfire_loop_transparent.png": {
+      "name": "Lửa trại lặp 4x4 (Trong suốt)"
+    },
+    "demo_transparent/campfire_loop_chroma.jpg": {
+      "name": "Lửa trại lặp 4x4 (Nền hồng Magenta)"
+    },
     "audio/ambient_chime.wav": {
       "name": "Chuông gió ngân vang (Ambient Chime)"
     },
@@ -90,6 +96,9 @@
     },
     "uploads/Cô gái chibi tiên hoa tím lam.png": {
       "name": "Cô gái chibi tiên hoa tím lam"
+    },
+    "uploads/Chibi Hoàng Tử Vest Đen Bạc.png": {
+      "name": "Chibi Hoàng Tử Vest Đen Bạc"
     }
   }
 }

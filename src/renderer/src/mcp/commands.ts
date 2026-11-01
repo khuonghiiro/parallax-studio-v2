@@ -18,6 +18,7 @@ import { uiCommands } from './commands/uiCommands'
 import { workflowCommands } from './commands/workflowCommands'
 import { timeGroupCommands } from './commands/timeGroupCommands'
 import { remoteCommands } from './commands/remoteCommands'
+import { loopAnimatorCommands } from './commands/loopAnimatorCommands'
 
 /**
  * Commands an external AI can run through the MCP bridge.
@@ -44,7 +45,8 @@ const commands: Record<string, Handler> = {
   ...workflowPartCommands,
   ...systemCommands,
   ...uiCommands,
-  ...remoteCommands
+  ...remoteCommands,
+  ...loopAnimatorCommands
 }
 
 function getHandler(canonical: string): Handler | undefined {
@@ -53,6 +55,7 @@ function getHandler(canonical: string): Handler | undefined {
       ...Object.keys(commands),
       ...Object.keys(uiCommands),
       ...Object.keys(remoteCommands),
+      ...Object.keys(loopAnimatorCommands),
       ...Object.keys(workflowCommands),
       ...Object.keys(timeGroupCommands),
       ...Object.keys(workflowPartCommands),
@@ -73,6 +76,7 @@ function getHandler(canonical: string): Handler | undefined {
   return (
     uiCommands[canonical] ??
     remoteCommands[canonical] ??
+    loopAnimatorCommands[canonical] ??
     workflowCommands[canonical] ??
     timeGroupCommands[canonical] ??
     workflowPartCommands[canonical] ??

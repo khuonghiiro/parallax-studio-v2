@@ -12,6 +12,7 @@ import { PerformanceDialog } from './ui/PerformanceDialog'
 import { McpDialog } from './ui/McpDialog'
 import { MobileRemoteDialog } from './ui/MobileRemoteDialog'
 import { AudioStudioDialog } from './ui/AudioStudioDialog'
+import { LoopAnimatorDialog } from './ui/loopAnimator/LoopAnimatorDialog'
 import { Assembly3DDialog } from './ui/assets/models3d/Assembly3DDialog'
 import { GlobalLayerAssemblyHost } from './ui/layerAssembly/GlobalLayerAssemblyHost'
 import { AiControlOverlay } from './ui/AiControlOverlay'
@@ -243,6 +244,12 @@ export default function App() {
       {dialog === 'mcp' && <McpDialog />}
       {dialog === 'remote' && <MobileRemoteDialog />}
       {dialog === 'audio' && <AudioStudioDialog />}
+      {dialog === 'loop_animator' && (
+        <LoopAnimatorDialog
+          onClose={() => useView.getState().openDialog(null)}
+          initialImageUrl={useView.getState().loopAnimatorInitialImage}
+        />
+      )}
       {assemblyModalModel && (
         <Assembly3DDialog
           key={assemblyModalModel.id}
