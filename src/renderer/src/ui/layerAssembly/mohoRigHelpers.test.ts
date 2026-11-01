@@ -11,6 +11,7 @@ import {
   computeStrengthFromPointerDistance,
   computeTweenSpans,
   createBoneFromCanvasDrag,
+  findClosestBoneJoint,
   findPrimaryConnectedChild,
   isBoneTailCoincidentWithChild,
   mirrorAngleAcrossYAxis,
@@ -288,5 +289,83 @@ describe('mohoRigHelpers — Moho Pro Rigging & Adobe Animate Dope Sheet', () =>
     comp = applyRigAction(comp, { action: 'hold-frames', time: 1.0, holdSeconds: 0.5 })
     expect(comp.rig?.duration).toBeCloseTo(3.0, 3)
     expect(comp.rig?.tracks.arm.some((k) => Math.abs(k.time - 2.5) < 0.01 && k.rotation === 40)).toBe(true)
+  })
+
+  it('bắt dính khớp gần nhất (findClosestBoneJoint) phân biệt rõ Trục Gốc (Head) và Trục Ngọn (Tail)', () => {
+    // Xương thân cây thẳng đứng: Head ở (0, 0), dài 100px, góc -90° (hướng lên trên) -> Tail ở (0, -100)
+    const treeTrunk: LayerBone = { id: 'trunk', name: 'Thân cây', x: 0, y: 0, length: 100, angle: -90 }
+    const transforms = new Map([['trunk', { x: 0, y: 0, rotation: 0 }]])
+
+    // 1. Rê chuột gần ngọn cây (0, -96) -> bắt dính Trục Ngọn (tail)
+    const hitNearTail = findClosestBoneJoint([treeTrunk], transforms, { x: 2, y: -96 }, 24)
+    expect(hitNearTail).not.toBeNull()
+    expect(hitNearTail?.bone.id).toBe('trunk')
+    expect(hitNearTail?.joint).toBe('tail')
+    expect(hitNearTail?.point.x).toBeCloseTo(0, 1)
+    expect(hitNearTail?.point.y).toBeCloseTo(-100, 1)
+
+    // 2. Rê chuột gần gốc cây (0, 4) -> bắt dính Trục Gốc (head)
+    const hitNearHead = findClosestBoneJoint([treeTrunk], transforms, { x: 4, y: 6 }, 24)
+    expect(hitNearHead).not.toBeNull()
+    expect(hitNearHead?.bone.id).toBe('trunk')
+    expect(hitNearHead?.joint).toBe('head')
+    expect(hitNearHead?.point.x).toBe(0)
+    expect(hitNearHead?.point.y).toBe(0)
+
+    // 3. Chuột nằm ngoài bán kính cho phép (> 24px) -> không bắt dính (null)
+    const hitFar = findClosestBoneJoint([treeTrunk], transforms, { x: 60, y: -50 }, 24)
+    expect(hitFar).toBeNull()
+  })
+
+  it('tạo xương mới (createBoneFromCanvasDrag) gắn đúng parentJoint: head hoặc tail theo vị trí hoặc chỉ định', () => {
+    const treeTrunk: LayerBone = { id: 'trunk', name: 'Thân cây', x: 0, y: 0, length: 100, angle: -90 }
+
+    // 1. Vẽ cành từ ngọn (Tail: 0, -100) toả ra (50, -140) với parentJoint='tail'
+    const branch = createBoneFromCanvasDrag(
+      { x: 0, y: -100 },
+      { x: 50, y: -140 },
+      treeTrunk,
+      1,
+      'branch-1',
+      'tail'
+    )
+    expect(branch.parentId).toBe('trunk')
+    expect(branch.parentJoint).toBe('tail')
+    expect(branch.x).toBe(0)
+    expect(branch.y).toBe(-100)
+
+    // 2. Vẽ rễ từ gốc (Head: 0, 0) toả xuống (-40, 60) với parentJoint='head'
+    const rootBone = createBoneFromCanvasDrag(
+      { x: 0, y: 0 },
+      { x: -40, y: 60 },
+      treeTrunk,
+      2,
+      'root-1',
+      'head'
+    )
+    expect(rootBone.parentId).toBe('trunk')
+    expect(rootBone.parentJoint).toBe('head')
+    expect(rootBone.x).toBe(0)
+    expect(rootBone.y).toBe(0)
+
+    // 3. Tự động suy ra: nếu không truyền parentJoint nhưng vị trí bắt đầu gần gốc (0, 5) -> auto 'head'
+    const autoRoot = createBoneFromCanvasDrag(
+      { x: 2, y: 4 },
+      { x: 30, y: 50 },
+      treeTrunk,
+      3,
+      'auto-root'
+    )
+    expect(autoRoot.parentJoint).toBe('head')
+
+    // 4. Tự động suy ra: nếu không truyền parentJoint nhưng vị trí bắt đầu gần ngọn (0, -95) -> auto 'tail'
+    const autoBranch = createBoneFromCanvasDrag(
+      { x: 0, y: -95 },
+      { x: -40, y: -130 },
+      treeTrunk,
+      4,
+      'auto-branch'
+    )
+    expect(autoBranch.parentJoint).toBe('tail')
   })
 })

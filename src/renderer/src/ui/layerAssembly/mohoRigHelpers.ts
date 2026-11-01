@@ -88,7 +88,8 @@ export function createBoneFromCanvasDrag(
   end: { x: number; y: number },
   parentBone: LayerBone | null,
   existingCount: number,
-  customId?: string
+  customId?: string,
+  parentJoint?: 'head' | 'tail'
 ): LayerBone {
   const dx = end.x - start.x
   const dy = end.y - start.y
@@ -97,11 +98,26 @@ export function createBoneFromCanvasDrag(
   const idx = existingCount + 1
   const id = customId ?? `bone-${Math.random().toString(36).slice(2, 9)}`
 
+  // Tự động phân định khớp neo nếu chưa chỉ định rõ:
+  let resolvedJoint = parentJoint
+  if (!resolvedJoint && parentBone) {
+    const parentHead = { x: parentBone.x, y: parentBone.y }
+    const rad = (parentBone.angle * Math.PI) / 180
+    const parentTail = {
+      x: parentBone.x + Math.cos(rad) * parentBone.length,
+      y: parentBone.y + Math.sin(rad) * parentBone.length
+    }
+    const dHead = Math.hypot(start.x - parentHead.x, start.y - parentHead.y)
+    const dTail = Math.hypot(start.x - parentTail.x, start.y - parentTail.y)
+    resolvedJoint = dTail <= dHead ? 'tail' : 'head'
+  }
+
   if (isPin) {
     return {
       id,
       name: `Chốt Pin ${idx}`,
       parentId: parentBone?.id,
+      ...(resolvedJoint ? { parentJoint: resolvedJoint } : {}),
       x: Math.round(start.x),
       y: Math.round(start.y),
       length: 16,
@@ -116,12 +132,58 @@ export function createBoneFromCanvasDrag(
     id,
     name: `Xương ${idx}`,
     parentId: parentBone?.id,
+    ...(resolvedJoint ? { parentJoint: resolvedJoint } : {}),
     x: Math.round(start.x),
     y: Math.round(start.y),
     length: Math.max(12, Math.round(dist)),
     angle: Number(angleDeg.toFixed(1)),
     strength: 1
   }
+}
+
+export interface BoneJointHit {
+  bone: LayerBone
+  joint: 'head' | 'tail'
+  point: { x: number; y: number }
+  dist: number
+}
+
+/**
+ * Tìm khớp (Trục ngọn hoặc Trục gốc) của xương gần con trỏ nhất để bắt dính (snap)
+ * khi dùng công cụ Vẽ xương (Add Bone `A`).
+ */
+export function findClosestBoneJoint(
+  bones: LayerBone[],
+  transforms: Map<string, { x: number; y: number; rotation: number }>,
+  p: { x: number; y: number },
+  maxRadius = 24
+): BoneJointHit | null {
+  let best: BoneJointHit | null = null
+  let bestDist = maxRadius
+  for (const bone of bones) {
+    const tf = transforms.get(bone.id)
+    if (!tf) continue
+    // 1. Trục gốc (Head - vòng tròn to)
+    const hx = tf.x
+    const hy = tf.y
+    const dh = Math.hypot(p.x - hx, p.y - hy)
+    if (dh < bestDist) {
+      bestDist = dh
+      best = { bone, joint: 'head', point: { x: hx, y: hy }, dist: dh }
+    }
+    // 2. Trục ngọn (Tail - vòng tròn nhỏ)
+    if (!bone.pin) {
+      const rad = ((bone.angle + tf.rotation) * Math.PI) / 180
+      const tx = hx + Math.cos(rad) * bone.length
+      const ty = hy + Math.sin(rad) * bone.length
+      const dt = Math.hypot(p.x - tx, p.y - ty)
+      if (dt < bestDist) {
+        bestDist = dt
+        best = { bone, joint: 'tail', point: { x: tx, y: ty }, dist: dt }
+      }
+    }
+  }
+  return best
 }
 
 /** Đổi tên xương đối xứng Trái ⇄ Phải tự động. */

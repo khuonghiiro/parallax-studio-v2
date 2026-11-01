@@ -3,6 +3,11 @@ export interface LayerBone {
   id: string
   name: string
   parentId?: string
+  /**
+   * Khớp neo vào xương cha: 'tail' = Trục ngọn (đầu nhọn), 'head' = Trục gốc (vòng tròn to).
+   * Mặc định tự động nhận diện theo vị trí tương đối gần trục nào hơn.
+   */
+  parentJoint?: 'head' | 'tail'
   x: number
   y: number
   length: number

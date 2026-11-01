@@ -84,7 +84,10 @@ describe('workshop animation commands', () => {
     command({ action: 'hold-frames', time: 0, hold_frames: 6, fps: 24 })
     expect(history.current.rig?.duration).toBeCloseTo(4.25, 3)
 
-    command({ action: 'add-bone', bone_id: 'child', parent_id: 'root', x: 95, y: 12, length: 45, angle: 0 })
+    command({ action: 'add-bone', bone_id: 'child', parent_id: 'root', parent_joint: 'head', x: 95, y: 12, length: 45, angle: 0 })
+    expect(history.current.rig!.bones.find((b) => b.id === 'child')!.parentJoint).toBe('head')
+    command({ action: 'update-bone', bone_id: 'child', parent_joint: 'tail' })
+    expect(history.current.rig!.bones.find((b) => b.id === 'child')!.parentJoint).toBe('tail')
     command({ action: 'snap-joints' })
     const rootBone = history.current.rig!.bones.find((b) => b.id === 'root')!
     expect(rootBone.length).toBeCloseTo(Math.hypot(95, 12), 1)

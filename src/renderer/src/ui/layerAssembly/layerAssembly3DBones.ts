@@ -81,17 +81,35 @@ export function update3DBonesGroup({
     const childTf = transforms.get(bone.id)
     if (!parentTf || !childTf) return
 
+    // Tọa độ tư thế hiện tại của xương cha (Three.js Y hướng lên -> -y):
+    // 1. Trục gốc (Head - vòng tròn to)
+    const phx = parentTf.x
+    const phy = -parentTf.y
+
+    // 2. Trục ngọn (Tail - đầu nhọn)
     const parentRad = ((parent.angle + parentTf.rotation) * Math.PI) / 180
     const ptx = parentTf.x + Math.cos(parentRad) * parent.length
     const pty = -(parentTf.y + Math.sin(parentRad) * parent.length)
     const ptz = boneDepthMap.get(parent.id) ?? 0
 
+    // Phân định khớp neo: ưu tiên parentJoint nếu có; nếu chưa có thì đo khoảng cách ở dáng gốc
+    const dHead = Math.hypot(bone.x - parent.x, bone.y - parent.y)
+    const parentTailRestRad = (parent.angle * Math.PI) / 180
+    const dTail = Math.hypot(
+      bone.x - (parent.x + Math.cos(parentTailRestRad) * parent.length),
+      bone.y - (parent.y + Math.sin(parentTailRestRad) * parent.length)
+    )
+    const connectsToHead = bone.parentJoint === 'head' || (bone.parentJoint !== 'tail' && dHead < dTail)
+
+    const sourceX = connectsToHead ? phx : ptx
+    const sourceY = connectsToHead ? phy : pty
+
     const chx = childTf.x
     const chy = -childTf.y
     const chz = boneDepthMap.get(bone.id) ?? 0
 
-    if (Math.hypot(ptx - chx, pty - chy) > 3) {
-      relPoints.push(new THREE.Vector3(ptx, pty, ptz), new THREE.Vector3(chx, chy, chz))
+    if (Math.hypot(sourceX - chx, sourceY - chy) > 3) {
+      relPoints.push(new THREE.Vector3(sourceX, sourceY, ptz), new THREE.Vector3(chx, chy, chz))
     }
   })
 

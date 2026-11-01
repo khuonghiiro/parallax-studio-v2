@@ -384,7 +384,94 @@
   pointer-events: none;
   transform: none;
 }
-.lw-bone-relationship { stroke: var(--text-faint); stroke-dasharray: 4 3; stroke-width: 1.2px; vector-effect: non-scaling-stroke; }
+.lw-bone-relationship {
+  stroke: var(--text-faint);
+  stroke-dasharray: 4 3;
+  stroke-width: 1.2px;
+  vector-effect: non-scaling-stroke;
+}
+.lw-bone-relationship.to-head {
+  stroke: var(--accent-cyan);
+  stroke-dasharray: 5 3;
+  stroke-width: 1.4px;
+  opacity: 0.85;
+}
+.lw-bone-relationship.to-tail {
+  stroke: var(--key);
+  stroke-dasharray: 4 3;
+  stroke-width: 1.4px;
+  opacity: 0.85;
+}
+
+/* Hiển thị bắt dính khớp (Snapping Cue) khi vẽ xương (A) */
+.lw-snap-joint-cue { pointer-events: none; }
+@keyframes lwSnapPulse {
+  0%, 100% { transform: scale(1); opacity: 0.92; }
+  50% { transform: scale(1.18); opacity: 0.45; }
+}
+.lw-snap-ring-pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: lwSnapPulse 1.2s ease-in-out infinite;
+}
+
+/* Nhãn khớp neo cha trong cây xương */
+.lw-bone-joint-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 4px;
+  font-size: 8.5px;
+  font-weight: 700;
+  line-height: 13px;
+  border-radius: var(--radius-sm, 4px);
+  margin-left: 2px;
+  letter-spacing: 0.2px;
+}
+.lw-bone-joint-tag.head {
+  background: rgba(0, 229, 255, 0.14);
+  color: var(--accent-cyan);
+  border: 1px solid rgba(0, 229, 255, 0.35);
+}
+.lw-bone-joint-tag.tail {
+  background: rgba(245, 158, 11, 0.14);
+  color: var(--key);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+/* Nút chuyển nhanh Khớp neo cha (Trục Ngọn / Trục Gốc) */
+.lw-joint-pill-group {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+.lw-joint-pill {
+  flex: 1;
+  min-width: 0;
+  padding: 3px 6px;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: var(--radius-sm, 4px);
+  border: 1px solid var(--line-soft);
+  background: var(--bg-2);
+  color: var(--text-dim);
+  cursor: pointer;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: all 0.15s ease;
+}
+.lw-joint-pill:hover {
+  border-color: var(--line-focus);
+  background: var(--bg-3);
+  color: var(--text);
+}
+.lw-joint-pill.active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+}
 
 .lw-blender-bone { pointer-events: none; }
 .lw-blender-bone .lw-bone-facet {

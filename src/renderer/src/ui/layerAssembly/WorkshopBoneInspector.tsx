@@ -73,6 +73,14 @@ function BoneTreeRowItem({ row, selected, layers, onSelect, onToggle, onDelete }
         {b.pin && <IconPin width={10} height={10} className="lw-bone-item-pin" />}
         <span className="lw-bone-item-name">{b.name}</span>
         {collapsed && <span className="lw-bone-item-sub">+{childCount}</span>}
+        {b.parentId && (
+          <span
+            className={`lw-bone-joint-tag ${b.parentJoint === 'head' ? 'head' : 'tail'}`}
+            title={b.parentJoint === 'head' ? 'Neo vào Trục Gốc của cha' : 'Neo vào Trục Ngọn của cha'}
+          >
+            {b.parentJoint === 'head' ? 'Gốc' : 'Ngọn'}
+          </span>
+        )}
         {b.minAngle !== undefined && b.maxAngle !== undefined && (
           <span className="lw-bone-item-limit" title={`Giới hạn góc ${b.minAngle}° … ${b.maxAngle}°`}>
             ∠
@@ -273,6 +281,29 @@ export function BoneInspectorCard(props: BoneInspectorCardProps) {
           onChange={(val) => patch({ parentId: String(val) || undefined })}
         />
       </div>
+      {bone.parentId && (
+        <div className="lw-bone-insp-row">
+          <span className="lw-bone-insp-label">Khớp neo cha</span>
+          <div className="lw-joint-pill-group" role="group" aria-label="Khớp neo cha">
+            <button
+              type="button"
+              className={`lw-joint-pill${bone.parentJoint !== 'head' ? ' active' : ''}`}
+              title="Neo vào Trục Ngọn của xương cha (đầu nhọn/vòng nhỏ)"
+              onClick={() => patch({ parentJoint: 'tail' })}
+            >
+              Trục Ngọn (Tail)
+            </button>
+            <button
+              type="button"
+              className={`lw-joint-pill${bone.parentJoint === 'head' ? ' active' : ''}`}
+              title="Neo vào Trục Gốc của xương cha (vòng tròn to)"
+              onClick={() => patch({ parentJoint: 'head' })}
+            >
+              Trục Gốc (Head)
+            </button>
+          </div>
+        </div>
+      )}
       <div className="lw-bone-insp-grid">
         <RigNumber label="Khớp X" value={bone.x} onChange={(x) => patch({ x })} />
         <RigNumber label="Khớp Y" value={bone.y} onChange={(y) => patch({ y })} />

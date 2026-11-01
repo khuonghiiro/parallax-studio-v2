@@ -35,6 +35,10 @@ function bonePatch(p: Params): Partial<Omit<LayerBone, 'id'>> {
   const patch: Partial<Omit<LayerBone, 'id'>> = {}
   if (p.name !== undefined) patch.name = str(p, 'name', true)
   if (p.parent_id !== undefined) patch.parentId = str(p, 'parent_id') || undefined
+  if (p.parent_joint !== undefined) {
+    const pj = str(p, 'parent_joint')
+    patch.parentJoint = pj === 'head' ? 'head' : pj === 'tail' ? 'tail' : undefined
+  }
   for (const field of ['x', 'y', 'length', 'angle', 'strength'] as const) {
     if (p[field] !== undefined) patch[field] = num(p, field, true)
   }

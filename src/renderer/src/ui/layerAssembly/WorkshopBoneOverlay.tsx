@@ -33,11 +33,15 @@ import {
   computeBoneInfluenceRadius,
   computeStrengthFromPointerDistance,
   createBoneFromCanvasDrag,
+  findClosestBoneJoint,
   isBoneTailCoincidentWithChild,
-  withSymmetricBoneAction
+  withSymmetricBoneAction,
+  type BoneJointHit
 } from './mohoRigHelpers'
 import { WorkshopBoneCapsuleSvg } from './WorkshopBoneCapsuleSvg'
 import { WorkshopBoneConstraintArc } from './WorkshopBoneConstraintArc'
+import { WorkshopBoneRelationships } from './WorkshopBoneRelationships'
+import { WorkshopBoneDrawPreview, type DrawNewBoneDrag } from './WorkshopBoneDrawPreview'
 
 export interface BoneOverlayProps {
   composite: LayerComposite
@@ -64,11 +68,6 @@ interface LiveBoneRecordDrag {
   solve: SketchSolveState
 }
 
-interface DrawNewBoneDrag {
-  start: Point2D
-  current: Point2D
-  parentBone: LayerBone | null
-}
 
 interface StrengthEnvelopeDrag {
   bone: LayerBone
@@ -124,6 +123,7 @@ export function WorkshopBoneOverlay({
   const [hoveredBoneId, setHoveredBoneId] = useState<string | null>(null)
   const [dragAngle, setDragAngle] = useState<{ x: number; y: number; text: string; isLive?: boolean } | null>(null)
   const [drawPreview, setDrawPreview] = useState<DrawNewBoneDrag | null>(null)
+  const [snapTarget, setSnapTarget] = useState<BoneJointHit | null>(null)
   const [liveStroke, setLiveStroke] = useState<Point2D[] | null>(null)
   const [chainIds, setChainIds] = useState<string[]>([])
   const assist = useAnimAssist()
@@ -203,14 +203,43 @@ export function WorkshopBoneOverlay({
     const point = toLocalPoint(e)
     if (!point) return
     stopPlayback?.()
-    const parentBone = e.altKey ? null : (rig.bones.find((b) => b.id === boneId) ?? null)
+
+    // Bắt dính khớp gần nhất (Trục ngọn hoặc Trục gốc) trong bán kính 24px:
+    const hit = findClosestBoneJoint(rig.bones, transforms, point, 24)
+    let parentBone: LayerBone | null = null
+    let parentJoint: 'head' | 'tail' | undefined = undefined
+    let startPoint = { x: point.x, y: point.y }
+
+    if (hit) {
+      startPoint = { x: hit.point.x, y: hit.point.y }
+      parentBone = hit.bone
+      parentJoint = hit.joint
+      selectBone(hit.bone.id)
+    } else {
+      parentBone = e.altKey ? null : (rig.bones.find((b) => b.id === boneId) ?? null)
+      if (parentBone) {
+        const parentTf = transforms.get(parentBone.id)
+        if (parentTf) {
+          const rad = ((parentBone.angle + parentTf.rotation) * Math.PI) / 180
+          const ptx = parentTf.x + Math.cos(rad) * parentBone.length
+          const pty = parentTf.y + Math.sin(rad) * parentBone.length
+          const dHead = Math.hypot(point.x - parentTf.x, point.y - parentTf.y)
+          const dTail = Math.hypot(point.x - ptx, point.y - pty)
+          parentJoint = dTail <= dHead ? 'tail' : 'head'
+        }
+      }
+    }
+
     const drawState: DrawNewBoneDrag = {
-      start: { x: point.x, y: point.y },
+      start: startPoint,
       current: { x: point.x, y: point.y },
-      parentBone
+      parentBone,
+      parentJoint,
+      snapped: Boolean(hit)
     }
     drawBoneRef.current = drawState
     setDrawPreview(drawState)
+    setSnapTarget(null)
     try {
       svgRef.current?.setPointerCapture(e.pointerId)
     } catch {}
@@ -241,6 +270,64 @@ export function WorkshopBoneOverlay({
     if (e.button !== 0) return
     if (isAddBoneTool) {
       e.stopPropagation()
+      stopPlayback?.()
+      const bone = rig.bones.find((b) => b.id === id)
+      const tf = transforms.get(id)
+      if (bone && tf) {
+        selectBone(id)
+        let joint: 'head' | 'tail' = 'tail'
+        let startX = tf.x
+        let startY = tf.y
+        if (mode === 'head') {
+          joint = 'head'
+          startX = tf.x
+          startY = tf.y
+        } else if (mode === 'tail') {
+          joint = 'tail'
+          const rad = ((bone.angle + tf.rotation) * Math.PI) / 180
+          startX = tf.x + Math.cos(rad) * bone.length
+          startY = tf.y + Math.sin(rad) * bone.length
+        } else {
+          // Bấm trên thân xương: phân định xem gần đầu gốc (head) hay đầu ngọn (tail) hơn
+          const point = toLocalPoint(e)
+          const rad = ((bone.angle + tf.rotation) * Math.PI) / 180
+          const tx = tf.x + Math.cos(rad) * bone.length
+          const ty = tf.y + Math.sin(rad) * bone.length
+          if (point) {
+            const dh = Math.hypot(point.x - tf.x, point.y - tf.y)
+            const dt = Math.hypot(point.x - tx, point.y - ty)
+            if (dh <= dt && dh < 32) {
+              joint = 'head'
+              startX = tf.x
+              startY = tf.y
+            } else if (dt < dh && dt < 32) {
+              joint = 'tail'
+              startX = tx
+              startY = ty
+            } else {
+              // Bấm ở khoảng giữa thân xương => chọn xương này
+              return
+            }
+          }
+        }
+
+        const point = toLocalPoint(e) ?? { x: startX, y: startY }
+        const drawState: DrawNewBoneDrag = {
+          start: { x: startX, y: startY },
+          current: { x: point.x, y: point.y },
+          parentBone: bone,
+          parentJoint: joint,
+          snapped: true
+        }
+        drawBoneRef.current = drawState
+        setDrawPreview(drawState)
+        setSnapTarget(null)
+        try {
+          svgRef.current?.setPointerCapture(e.pointerId)
+        } catch {}
+        svgRef.current?.focus()
+        return
+      }
       selectBone(id)
       return
     }
@@ -351,15 +438,25 @@ export function WorkshopBoneOverlay({
       drawBoneRef.current = next
       setDrawPreview(next)
       const dist = Math.hypot(point.x - next.start.x, point.y - next.start.y)
+      const parentLabel = next.parentBone
+        ? ` · 🔗 ${next.parentJoint === 'tail' ? 'Trục Ngọn' : 'Trục Gốc'} (${next.parentBone.name})`
+        : ' · (Gốc mới)'
       setDragAngle({
         x: point.x,
         y: point.y,
         text:
           dist < 12
-            ? '📌 Nhả chuột để đặt Chốt Pin Bone · Kéo dài để vẽ xương'
-            : `🦴 Dài ${Math.round(dist)}px · ${(Math.atan2(point.y - next.start.y, point.x - next.start.x) * 180 / Math.PI).toFixed(0)}°${rigTool.mirrorDraw ? ' · 🪞 Đối xứng L⇄R' : ''}`
+            ? `📌 Nhả chuột để đặt Chốt Pin Bone · Kéo dài để vẽ xương${parentLabel}`
+            : `🦴 Dài ${Math.round(dist)}px · ${(Math.atan2(point.y - next.start.y, point.x - next.start.x) * 180 / Math.PI).toFixed(0)}°${parentLabel}${rigTool.mirrorDraw ? ' · 🪞 Đối xứng L⇄R' : ''}`
       })
       return
+    }
+
+    if (isAddBoneTool) {
+      const hit = findClosestBoneJoint(rig.bones, transforms, point, 24)
+      setSnapTarget(hit)
+    } else if (snapTarget) {
+      setSnapTarget(null)
     }
 
     if (strengthDragRef.current) {
@@ -496,6 +593,7 @@ export function WorkshopBoneOverlay({
     setChainIds([])
     setDragAngle(null)
     setLiveStroke(null)
+    setSnapTarget(null)
   }
 
   const endDrag = () => {
@@ -504,8 +602,9 @@ export function WorkshopBoneOverlay({
       drawBoneRef.current = null
       setDrawPreview(null)
       setDragAngle(null)
+      setSnapTarget(null)
       beginGesture?.()
-      const created = createBoneFromCanvasDrag(d.start, d.current, d.parentBone, rig.bones.length)
+      const created = createBoneFromCanvasDrag(d.start, d.current, d.parentBone, rig.bones.length, undefined, d.parentJoint)
       setComposite((c) => {
         let next = applyRigAction(c, { action: 'add-bone', bone: created })
         if (rigTool.mirrorDraw && Math.abs(created.x) > 10) {
@@ -702,31 +801,8 @@ export function WorkshopBoneOverlay({
         <path d={toPath(liveStroke)} className="lw-sketch-path" pointerEvents="none" />
       )}
 
-      {/* Relationship lines connecting child bone head to parent bone tail */}
-      {rig.bones.map((bone) => {
-        if (!bone.parentId) return null
-        const parent = rig.bones.find((b) => b.id === bone.parentId)
-        if (!parent) return null
-        const parentTf = transforms.get(parent.id)
-        const childTf = transforms.get(bone.id)
-        if (!parentTf || !childTf) return null
-        const parentTail = rotatePoint(parent.length, 0, parent.angle + parentTf.rotation)
-        const ptx = parentTf.x + parentTail.x
-        const pty = parentTf.y + parentTail.y
-        if (Math.hypot(ptx - childTf.x, pty - childTf.y) > 4) {
-          return (
-            <line
-              key={`rel-${bone.id}`}
-              x1={ptx}
-              y1={pty}
-              x2={childTf.x}
-              y2={childTf.y}
-              className="lw-bone-relationship"
-            />
-          )
-        }
-        return null
-      })}
+      {/* Relationship lines connecting child bone head to parent bone head or tail */}
+      <WorkshopBoneRelationships bones={rig.bones} transforms={transforms} />
 
       {/* Moho / Blender Octahedral & Pin Bones with L/C/R Anatomical Coloring */}
       {rig.bones.map((bone) => {
@@ -869,37 +945,13 @@ export function WorkshopBoneOverlay({
         )
       })}
 
-      {/* Live Preview when drawing a new bone on the 2D Stage (`A`) */}
-      {drawPreview && (
-        <g pointerEvents="none" className="lw-draw-bone-preview">
-          <line
-            x1={drawPreview.start.x}
-            y1={drawPreview.start.y}
-            x2={drawPreview.current.x}
-            y2={drawPreview.current.y}
-            stroke="var(--key)"
-            strokeWidth={3}
-            strokeDasharray="5 4"
-          />
-          <circle cx={drawPreview.start.x} cy={drawPreview.start.y} r={6.5} fill="var(--key)" />
-          <circle cx={drawPreview.current.x} cy={drawPreview.current.y} r={5} fill="var(--accent-cyan)" />
-          {rigTool.mirrorDraw && Math.abs(drawPreview.start.x) > 10 && (
-            <>
-              <line
-                x1={-drawPreview.start.x}
-                y1={drawPreview.start.y}
-                x2={-drawPreview.current.x}
-                y2={drawPreview.current.y}
-                stroke="var(--accent-cyan)"
-                strokeWidth={2.5}
-                strokeDasharray="4 4"
-                opacity={0.8}
-              />
-              <circle cx={-drawPreview.start.x} cy={drawPreview.start.y} r={5.5} fill="var(--accent-cyan)" opacity={0.8} />
-            </>
-          )}
-        </g>
-      )}
+      {/* Live Preview when drawing a new bone on the 2D Stage (`A`) & Snapping Indicator */}
+      <WorkshopBoneDrawPreview
+        drawPreview={drawPreview}
+        snapTarget={snapTarget}
+        isAddBoneTool={isAddBoneTool}
+        mirrorDraw={Boolean(rigTool.mirrorDraw)}
+      />
 
       {/* 8 vòng tròn màu chuẩn Mixamo (chỉ hiện ở công cụ Select để không vướng khi Vẽ xương / Vùng uốn / Thử khớp) */}
       {editing && mixamoLandmarks && (

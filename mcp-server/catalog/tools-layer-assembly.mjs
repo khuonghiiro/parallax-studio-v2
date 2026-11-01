@@ -302,6 +302,7 @@ export const LAYER_ASSEMBLY_TOOLS = [
       bone_id: z.string().optional().describe(d('Target bone ID.', 'ID xương mục tiêu.')),
       name: z.string().optional().describe(d('Bone name or clip name.', 'Tên xương hoặc tên clip động tác.')),
       parent_id: z.string().optional().describe(d('Parent bone ID for hierarchical transforms.', 'ID xương cha.')),
+      parent_joint: z.enum(['head', 'tail']).optional().describe(d('Parent joint anchor: "tail" (default, connects to parent tip) or "head" (connects to parent base, e.g. multiple tree roots or branches from base).', 'Khớp neo trên xương cha: "tail" (mặc định, nối vào ngọn/đầu nhọn của cha) hoặc "head" (nối vào gốc/vòng to của cha, ví dụ nhiều rễ cây cùng mọc từ gốc).')),
       x: z.number().optional().describe(d('Head joint X coordinate in canvas units.', 'Tọa độ X khớp gốc.')),
       y: z.number().optional().describe(d('Head joint Y coordinate in canvas units.', 'Tọa độ Y khớp gốc.')),
       length: z.number().optional().describe(d('Bone length in pixels.', 'Chiều dài xương theo pixel.')),
