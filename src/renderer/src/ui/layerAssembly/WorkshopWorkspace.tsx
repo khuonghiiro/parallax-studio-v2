@@ -215,12 +215,13 @@ export function WorkshopWorkspace({
       rig: effectiveRig ?? state.composite.rig,
       layers: state.composite.layers.map((l) => {
         const bindPose = { x: l.x, y: l.y, rotation: l.rotation }
-        const implicitSingleSoft = !l.boneId && state.composite.layers.length === 1 && Boolean(effectiveRig?.bones.length)
-        const effectiveSoft = l.bindingMode === 'soft' || implicitSingleSoft
-        const effectiveBoneId = l.boneId ?? (implicitSingleSoft ? effectiveRig!.bones[0]?.id : undefined)
+        const isSingleLayerChar = state.composite.layers.length === 1 && Boolean(effectiveRig?.bones.length)
+        const implicitSingleSoft = !l.boneId && isSingleLayerChar
+        const effectiveSoft = l.bindingMode === 'soft' || isSingleLayerChar
+        const effectiveBoneId = l.boneId ?? (isSingleLayerChar ? effectiveRig!.bones[0]?.id : undefined)
         const extraBoneIds =
           effectiveSoft && effectiveRig
-            ? extraSoftBoneIdsForLayer(state.composite.layers, effectiveRig, l.id, effectiveBoneId)
+            ? (l.extraBoneIds?.length ? l.extraBoneIds : extraSoftBoneIdsForLayer(state.composite.layers, effectiveRig, l.id, effectiveBoneId))
             : undefined
         const boneTf = transforms && effectiveBoneId ? transforms.get(effectiveBoneId) : undefined
         const transformed =
@@ -232,7 +233,7 @@ export function WorkshopWorkspace({
         const layerSpines = !isErasing && !l.hidden ? spinesForLayer(shiftedSpines, l.id) : undefined
         return {
           ...transformed,
-          ...(implicitSingleSoft ? { bindingMode: 'soft' as const, boneId: effectiveBoneId } : {}),
+          ...(effectiveSoft ? { bindingMode: 'soft' as const, boneId: effectiveBoneId } : {}),
           ...(extraBoneIds?.length ? { extraBoneIds } : {}),
           ...(brushPreview?.id === l.id ? { imageUrl: brushPreview.imageUrl } : {}),
           ...(effectiveRig && !isErasing ? { previewRig: effectiveRig, bindPose } : {}),

@@ -1,4 +1,5 @@
 import type { LayerComposite, AssembledLayerItem } from './types'
+import { fitCanvasToCharacter } from './layerAssemblyFit'
 
 export const WORKSHOP_ACTIONS = ['center-x', 'center-y', 'distribute-x', 'distribute-y', 'depth-forward',
   'depth-reverse', 'flatten', 'reset-transform', 'duplicate', 'delete', 'hide', 'show', 'lock', 'unlock', 'stagger', 'stop-motion', 'estimate-frame'] as const

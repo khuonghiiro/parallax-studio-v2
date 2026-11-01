@@ -129,6 +129,7 @@ export function WorkshopBoneOverlay({
   const [dragAngle, setDragAngle] = useState<{ x: number; y: number; text: string; isLive?: boolean } | null>(null)
   const [drawPreview, setDrawPreview] = useState<DrawNewBoneDrag | null>(null)
   const [snapTarget, setSnapTarget] = useState<BoneJointHit | null>(null)
+  const [hoverPoint, setHoverPoint] = useState<Point2D | null>(null)
   const [liveStroke, setLiveStroke] = useState<Point2D[] | null>(null)
   const [chainIds, setChainIds] = useState<string[]>([])
   const assist = useAnimAssist()

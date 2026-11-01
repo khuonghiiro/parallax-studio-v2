@@ -347,14 +347,21 @@ export function smartAutoBindCompositeLayers(
 ): AssembledLayerItem[] {
   if (!bones.length) return layers
   const totalVisible = layers.filter((l) => !l.hidden).length || layers.length
+  const isSingleOrFew = totalVisible <= 2
   return layers.map((layer) => {
     if (layer.locked) return layer
     const matched = matchBestBoneForLayer25D(layer, bones, totalVisible, bindModePref)
     if (!matched) return layer
+    const bindingMode = isSingleOrFew ? 'soft' : matched.bindingMode
+    const extraBoneIds =
+      isSingleOrFew && bones.length > 1
+        ? bones.filter((b) => b.id !== matched.boneId).map((b) => b.id)
+        : undefined
     return {
       ...layer,
       boneId: matched.boneId,
-      bindingMode: matched.bindingMode
+      bindingMode,
+      ...(extraBoneIds?.length ? { extraBoneIds } : {})
     }
   })
 }

@@ -309,11 +309,21 @@ export function applyRigAction(composite: LayerComposite, action: RigAction): La
   }
   if (action.action === 'bind') {
     if (action.layerIds.some((id) => !layers.some((l) => l.id === id))) throw new Error('Unknown layer ID')
-    layers = layers.map((l) =>
-      action.layerIds.includes(l.id) && !l.locked
-        ? { ...l, boneId: action.boneId, bindingMode: action.boneId ? (action.mode ?? 'rigid') : undefined }
-        : l
-    )
+    const isSingleOrFew = layers.length <= 2
+    layers = layers.map((l) => {
+      if (!action.layerIds.includes(l.id) || l.locked) return l
+      const mode = action.boneId ? (action.mode ?? (isSingleOrFew ? 'soft' : 'rigid')) : undefined
+      const extraBoneIds =
+        mode === 'soft' && isSingleOrFew && rig.bones.length > 1
+          ? rig.bones.filter((b) => b.id !== action.boneId).map((b) => b.id)
+          : undefined
+      return {
+        ...l,
+        boneId: action.boneId,
+        bindingMode: mode,
+        ...(extraBoneIds?.length ? { extraBoneIds } : {})
+      }
+    })
   }
   if (isAnimationAction(action)) applyAnimationAction(rig, action)
   if (action.action === 'batch') {

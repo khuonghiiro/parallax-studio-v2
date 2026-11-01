@@ -1,6 +1,8 @@
 import type { Point2D } from './workshopMotionSketch'
 import type { LayerBone } from '@shared/layerRig'
 import type { BoneJointHit } from './mohoRigHelpers'
+import type { BoneTransform } from '../../engine/layerRig'
+import { rotatePoint } from '../../engine/layerRig'
 
 export interface DrawNewBoneDrag {
   start: Point2D
@@ -15,6 +17,9 @@ export interface WorkshopBoneDrawPreviewProps {
   snapTarget: BoneJointHit | null
   isAddBoneTool: boolean
   mirrorDraw: boolean
+  transforms?: Map<string, BoneTransform>
+  parentBoneCandidate?: LayerBone | null
+  hoverPoint?: Point2D | null
 }
 
 /**
@@ -27,8 +32,58 @@ export function WorkshopBoneDrawPreview({
   drawPreview,
   snapTarget,
   isAddBoneTool,
-  mirrorDraw
+  mirrorDraw,
+  transforms,
+  parentBoneCandidate,
+  hoverPoint
 }: WorkshopBoneDrawPreviewProps) {
+  // 1. Tính toán điểm mốc của xương cha khi đang kéo vẽ liên kết nét đứt
+  let parentAnchor: Point2D | null = null
+  if (drawPreview?.parentBone && !drawPreview.snapped) {
+    const pb = drawPreview.parentBone
+    const pTf = transforms?.get(pb.id)
+    const phx = pTf?.x ?? pb.x
+    const phy = pTf?.y ?? pb.y
+    const pRot = pb.angle + (pTf?.rotation ?? 0)
+    const pTailVec = rotatePoint(pb.length, 0, pRot)
+    const ptx = phx + pTailVec.x
+    const pty = phy + pTailVec.y
+
+    const connectsToHead =
+      drawPreview.parentJoint === 'head' ||
+      (drawPreview.parentJoint !== 'tail' &&
+        Math.hypot(drawPreview.start.x - phx, drawPreview.start.y - phy) <
+          Math.hypot(drawPreview.start.x - ptx, drawPreview.start.y - pty))
+
+    parentAnchor = { x: connectsToHead ? phx : ptx, y: connectsToHead ? phy : pty }
+  }
+
+  // 2. Tính toán điểm mốc gợi ý khi hover trên canvas mà đang chọn một xương cha mốc
+  let hoverGuideAnchor: { pt: Point2D; label: string } | null = null
+  if (isAddBoneTool && !drawPreview && !snapTarget && parentBoneCandidate && hoverPoint && transforms) {
+    const pb = parentBoneCandidate
+    const pTf = transforms.get(pb.id)
+    const phx = pTf?.x ?? pb.x
+    const phy = pTf?.y ?? pb.y
+    const pRot = pb.angle + (pTf?.rotation ?? 0)
+    const pTailVec = rotatePoint(pb.length, 0, pRot)
+    const ptx = phx + pTailVec.x
+    const pty = phy + pTailVec.y
+
+    const dHead = Math.hypot(hoverPoint.x - phx, hoverPoint.y - phy)
+    const dTail = Math.hypot(hoverPoint.x - ptx, hoverPoint.y - pty)
+    const toHead = dHead < dTail
+    const chosen = { x: toHead ? phx : ptx, y: toHead ? phy : pty }
+    const dist = toHead ? dHead : dTail
+
+    if (dist > 18) {
+      hoverGuideAnchor = {
+        pt: chosen,
+        label: toHead ? `↖ Nối nét đứt từ Trục Gốc · ${pb.name}` : `↖ Nối nét đứt từ Trục Ngọn · ${pb.name}`
+      }
+    }
+  }
+
   return (
     <>
       {/* Vòng tròn bắt dính khớp khi hover công cụ Vẽ xương (A) và chưa kéo chuột */}
@@ -72,9 +127,55 @@ export function WorkshopBoneDrawPreview({
         </g>
       )}
 
+      {/* Đường chỉ báo nét đứt mờ từ xương cha đang focus tới con trỏ chuột khi hover */}
+      {hoverGuideAnchor && hoverPoint && (
+        <g pointerEvents="none" className="lw-hover-parent-cue" opacity={0.78}>
+          <line
+            x1={hoverGuideAnchor.pt.x}
+            y1={hoverGuideAnchor.pt.y}
+            x2={hoverPoint.x}
+            y2={hoverPoint.y}
+            stroke="var(--accent-cyan)"
+            strokeWidth={1.5}
+            strokeDasharray="4 3"
+          />
+          <circle cx={hoverGuideAnchor.pt.x} cy={hoverGuideAnchor.pt.y} r={4.5} fill="var(--accent-cyan)" />
+          <circle cx={hoverPoint.x} cy={hoverPoint.y} r={3.5} fill="var(--accent-cyan)" opacity={0.6} />
+        </g>
+      )}
+
       {/* Đường xem trước khi đang kéo chuột vẽ xương mới */}
       {drawPreview && (
         <g pointerEvents="none" className="lw-draw-bone-preview">
+          {/* Đường nét đứt nối từ mốc xương cha tới điểm bắt đầu của xương con mới */}
+          {parentAnchor && (
+            <>
+              <line
+                x1={parentAnchor.x}
+                y1={parentAnchor.y}
+                x2={drawPreview.start.x}
+                y2={drawPreview.start.y}
+                stroke="var(--key)"
+                strokeWidth={1.8}
+                strokeDasharray="4 3"
+                opacity={0.88}
+              />
+              <circle cx={parentAnchor.x} cy={parentAnchor.y} r={4.5} fill="var(--key)" opacity={0.9} />
+              {mirrorDraw && Math.abs(parentAnchor.x) > 10 && (
+                <line
+                  x1={-parentAnchor.x}
+                  y1={parentAnchor.y}
+                  x2={-drawPreview.start.x}
+                  y2={drawPreview.start.y}
+                  stroke="var(--accent-cyan)"
+                  strokeWidth={1.6}
+                  strokeDasharray="4 3"
+                  opacity={0.75}
+                />
+              )}
+            </>
+          )}
+
           <line
             x1={drawPreview.start.x}
             y1={drawPreview.start.y}

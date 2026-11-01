@@ -107,6 +107,25 @@ export function WorkshopRigBindingSection({
           <span>Flexi-Bind · Uốn mềm Mesh {bone ? `(${bone.name})` : '(chọn xương)'}</span>
         </button>
 
+        {bones.length > 1 && targetIds.length > 0 && (
+          <button
+            type="button"
+            className="btn sm"
+            style={{
+              borderColor: 'var(--accent-cyan)',
+              color: 'var(--accent-cyan)',
+              background: 'color-mix(in srgb, var(--accent-cyan) 8%, transparent)'
+            }}
+            onClick={() => {
+              const rootBone = bones.find((b) => !b.parentId) || bones[0]
+              run({ action: 'bind', boneId: rootBone.id, layerIds: targetIds, mode: 'soft' })
+            }}
+            title="Gắn toàn bộ khung xương vào lớp này để tất cả các khớp (đầu, thân, 2 tay, 2 chân) đều uốn mềm trên cùng 1 ảnh nhân vật"
+          >
+            🌟 Flexi-Bind Toàn thân ({bones.length} xương)
+          </button>
+        )}
+
         <div style={{ display: 'flex', gap: '6px' }}>
           <button
             type="button"

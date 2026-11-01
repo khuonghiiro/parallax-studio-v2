@@ -4,6 +4,7 @@ import { useWorkshopHistory } from './useWorkshopHistory'
 import { applyWorkshopAction, newLayerId, type WorkshopAction } from './workshopActions'
 import { invalidateLayerMeshCache } from './layerAssemblyAlphaMesh'
 import { moveLinked } from './workshopParts'
+import { trimImageTransparency } from './imageAutoTrim'
 
 export function computeNextLayerZ(layers: { z?: number }[], customZ?: number): number {
   if (typeof customZ === 'number') return customZ
@@ -65,11 +66,74 @@ export function useLayerWorkshop(initial?: LayerComposite | null) {
   ) => {
     const nextZ = computeFrontLayerZ(composite.layers, customZ)
     const safeScale = Number.isFinite(initialScale) && initialScale > 0 ? initialScale : 1
-    return append([{
-      id: '', name, assetPath, imageUrl, x: pos?.x ?? 0, y: pos?.y ?? 0,
+    const targetId = newLayerId()
+    const ox = pos?.x ?? 0
+    const oy = pos?.y ?? 0
+
+    const newLayer: AssembledLayerItem = {
+      id: targetId,
+      name,
+      assetPath,
+      imageUrl,
+      x: ox,
+      y: oy,
       z: nextZ,
-      scale: safeScale, rotation: 0, opacity: 1, motion: { type: 'none', speed: 1, amplitude: 15, anchor: 'bottom' }
-    }])
+      scale: safeScale,
+      rotation: 0,
+      opacity: 1,
+      motion: { type: 'none', speed: 1, amplitude: 15, anchor: 'bottom' }
+    }
+
+    setComposite((prev) => {
+      const nextLayers = [...prev.layers, newLayer]
+      return { ...prev, layers: nextLayers }
+    })
+    setIds([targetId])
+
+    // Tự động phân tích viền trong suốt thừa và co giãn kích thước sân khấu phù hợp
+    if (imageUrl) {
+      trimImageTransparency(imageUrl).then((res) => {
+        setComposite((prev) => {
+          const target = prev.layers.find((l) => l.id === targetId)
+          if (!target) return prev
+
+          let nextW = prev.width
+          let nextH = prev.height
+          const effW = res.trimmed ? res.width : res.originalWidth
+          const effH = res.trimmed ? res.height : res.originalHeight
+
+          // Nếu kích thước layer lớn hơn sân khấu hiện tại (tránh nhân vật bị tràn lố như ảnh 1), tự co giãn sân khấu
+          if (effW > nextW - 60 || effH > nextH - 60) {
+            const pad = 60
+            nextW = Math.min(4000, Math.max(nextW, Math.ceil((effW + pad * 2) / 20) * 20))
+            nextH = Math.min(4000, Math.max(nextH, Math.ceil((effH + pad * 2) / 20) * 20))
+          }
+
+          if (!res.trimmed && nextW === prev.width && nextH === prev.height) return prev
+
+          return {
+            ...prev,
+            width: nextW,
+            height: nextH,
+            layers: prev.layers.map((l) =>
+              l.id === targetId
+                ? {
+                    ...l,
+                    ...(res.trimmed
+                      ? {
+                          imageUrl: res.dataUrl || l.imageUrl,
+                          x: l.x + res.offsetX,
+                          y: l.y + res.offsetY,
+                          name: l.name.includes('(') ? l.name : `${l.name} (${res.width}×${res.height})`
+                        }
+                      : {})
+                  }
+                : l
+            )
+          }
+        })
+      }).catch(() => {})
+    }
   }
   const move = (id: string, direction: 'up' | 'down') => setComposite((prev) => {
     const index = prev.layers.findIndex((l) => l.id === id)
@@ -79,6 +143,20 @@ export function useLayerWorkshop(initial?: LayerComposite | null) {
     ;[layers[index], layers[target]] = [layers[target], layers[index]]
     return { ...prev, layers }
   })
+  const trimLayer = async (id: string): Promise<boolean> => {
+    const target = composite.layers.find((l) => l.id === id)
+    if (!target?.imageUrl) return false
+    const res = await trimImageTransparency(target.imageUrl)
+    if (!res.trimmed) return false
+    update(id, {
+      imageUrl: res.dataUrl || target.imageUrl,
+      x: target.x + res.offsetX,
+      y: target.y + res.offsetY,
+      name: target.name.includes('(') ? target.name : `${target.name} (${res.width}×${res.height})`
+    })
+    return true
+  }
+
   const createNew = (fresh?: Partial<LayerComposite>) => {
     const next: LayerComposite = {
       id: `comp-${crypto.randomUUID()}`,
@@ -92,5 +170,5 @@ export function useLayerWorkshop(initial?: LayerComposite | null) {
     state.resetComposite(next)
     setIds(next.layers[0] ? [next.layers[0].id] : [])
   }
-  return { ...state, selection, selectedLayerId, select, setIds, run, update, moveLayer, append, add, move, createNew }
+  return { ...state, selection, selectedLayerId, select, setIds, run, update, moveLayer, append, add, move, createNew, trimLayer }
 }

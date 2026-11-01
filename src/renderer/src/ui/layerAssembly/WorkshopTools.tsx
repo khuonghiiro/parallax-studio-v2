@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { WorkshopAction } from './workshopActions'
+import { fitCanvasToCharacter, fitCharacterToCanvas } from './layerAssemblyFit'
 import type { LayerComposite } from './types'
 import { Menu } from '../controls'
 
@@ -176,9 +177,18 @@ export function WorkshopTools({
           className="btn sm"
           disabled={!composite.layers.length}
           onClick={estimate}
-          title="Tự động co giãn khung vừa khít kích thước các layer"
+          title="Tự động co giãn khung sân khấu vừa khít kích thước nhân vật và các layer"
         >
           📐 Vừa khít
+        </button>
+        <button
+          type="button"
+          className="btn sm"
+          disabled={!composite.layers.length}
+          onClick={() => setComposite(fitCharacterToCanvas(composite))}
+          title="Căn chỉnh kích thước nhân vật vừa vặn 76% sân khấu 2D (tránh bị tràn lố)"
+        >
+          🔍 Vừa vặn
         </button>
       </div>
 
