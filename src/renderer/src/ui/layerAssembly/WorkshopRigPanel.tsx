@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState, type ReactNode } from 'react'
 import type { LayerBone } from '@shared/layerRig'
 import type { LayerComposite } from './types'
 import { findMirrorBoneId, type RigAction } from './workshopRig'
-import { IconPlus } from '../icons'
+import { IconPlus, IconX } from '../icons'
 import { SegmentedTabs } from '../primitives'
 import { WorkshopMixamoRigCard } from './WorkshopMixamoRigCard'
 import { WorkshopSmartRig25DCard } from './WorkshopSmartRig25DCard'
@@ -11,7 +11,7 @@ import { WorkshopCreatureRigCard } from './WorkshopCreatureRigCard'
 import { WorkshopBoneBuilderCard } from './WorkshopBoneBuilderCard'
 import { BoneInspectorCard, BoneTreeCard } from './WorkshopBoneInspector'
 import { resetTestPoses, setRigToolState, useRigToolStore, type MohoRigTool } from './rigToolStore'
-import { computeBoneDepthMap, summarizeWeldableJoints, withSymmetricBoneAction } from './mohoRigHelpers'
+import { summarizeWeldableJoints, withSymmetricBoneAction } from './mohoRigHelpers'
 import {
   IconAutoRigSpark,
   IconBoneAdd,
@@ -24,6 +24,7 @@ import {
   IconBoneWeld,
   IconFlexiMeshBind
 } from './LayerWorkshopStudioIcons'
+import '../../styles/layerWorkshopRigLayout.css'
 
 export { RigNumber } from './RigNumber'
 
@@ -83,24 +84,11 @@ function useRigToggles(bones: LayerBone[], run: (a: RigAction) => void) {
 
 function RigToolbelt({ bones, bone, run, onAdd, switchTool }: { bones: LayerBone[]; bone?: LayerBone; run: (a: RigAction) => void; onAdd: () => void; switchTool: (t: MohoRigTool) => void }) {
   const { rigTool, weldSummary, toggleInfluence, toggleMirror, toggleWeld, weld } = useRigToggles(bones, run)
+  const testing = rigTool.tool === 'manipulate'
   const hasTestPose = Object.keys(rigTool.testPoses).length > 0
+  const status = rigTool.statusHint || (weldSummary.looseCount > 0 ? `${weldSummary.looseCount} khớp chuỗi đang hở.` : '')
   return (
-    <div className="lw-moho-toolbelt-card" data-mcp-region="layer_assembly_rig_tools">
-      <div className="lw-moho-frame0-bar">
-        <span className={`lw-frame-mode-badge${rigTool.tool === 'manipulate' ? ' is-testing' : ' is-setup'}`}>
-          {rigTool.tool === 'manipulate' ? '⚡ THỬ KHỚP IK/FK (Z)' : '◇ FRAME 0 · DÁNG GỐC'}
-        </span>
-        {rigTool.tool === 'manipulate' && hasTestPose ? (
-          <button type="button" className="btn xs lw-reset-test-btn" onClick={resetTestPoses} title="Trả toàn bộ xương đang bẻ thử về tư thế gốc Frame 0">
-            ↺ Về Frame 0
-          </button>
-        ) : (
-          <button type="button" className="btn xs primary" onClick={onAdd} title="Thêm xương mới nối từ xương đang chọn (hoặc xương gốc)">
-            <IconPlus width={11} height={11} />
-            <span>{bone ? 'Xương con' : 'Xương gốc'}</span>
-          </button>
-        )}
-      </div>
+    <div className="lw-moho-toolbelt-card lw-rig-toolbelt" data-mcp-region="layer_assembly_rig_tools">
       <div className="lw-moho-tool-grid" role="radiogroup" aria-label="Công cụ tạo xương Moho">
         {MOHO_RIG_TOOLS.map(({ id, label, hotkey, title, Icon }) => (
           <button key={id} type="button" role="radio" aria-checked={rigTool.tool === id} className={`lw-moho-tool-btn${rigTool.tool === id ? ' active' : ''}`} onClick={() => switchTool(id)} title={title}>
@@ -110,7 +98,7 @@ function RigToolbelt({ bones, bone, run, onAdd, switchTool }: { bones: LayerBone
           </button>
         ))}
       </div>
-      <div className="lw-moho-tool-options">
+      <div className="lw-rig-toolbelt-row">
         <button type="button" aria-pressed={rigTool.showInfluence} className={`lw-moho-opt-pill${rigTool.showInfluence ? ' active' : ''}`} onClick={toggleInfluence} title="Hiện/ẩn lớp vỏ viên nang Vùng ảnh hưởng xương (Moho Bone Strength Envelope)">
           <IconBoneStrength width={12} height={12} />
           <span>Vỏ uốn</span>
@@ -123,13 +111,34 @@ function RigToolbelt({ bones, bone, run, onAdd, switchTool }: { bones: LayerBone
           <IconBoneWeld width={12} height={12} />
           <span>Hàn khớp{weldSummary.looseCount > 0 ? ` (${weldSummary.looseCount})` : ''}</span>
         </button>
+        {testing && hasTestPose ? (
+          <button type="button" className="btn xs lw-reset-test-btn lw-rig-toolbelt-cta" onClick={resetTestPoses} title="Trả toàn bộ xương đang bẻ thử về tư thế gốc Frame 0">
+            ↺ Frame 0
+          </button>
+        ) : (
+          <button type="button" className="btn xs primary lw-rig-toolbelt-cta" onClick={onAdd} title="Thêm xương mới nối từ xương đang chọn (hoặc xương gốc)">
+            <IconPlus width={11} height={11} />
+            <span>{bone ? 'Xương con' : 'Xương gốc'}</span>
+          </button>
+        )}
       </div>
-      {(rigTool.statusHint || weldSummary.looseCount > 0) && (
+      {testing && (
+        <div className="lw-rig-toolbelt-mode">
+          <span className="lw-frame-mode-badge is-testing">⚡ THỬ KHỚP IK/FK</span>
+          <span>Kéo bẻ xương trên khung 2D, không ghi keyframe.</span>
+        </div>
+      )}
+      {status && (
         <div className="lw-moho-opt-status">
-          <span>{rigTool.statusHint || `Phát hiện ${weldSummary.looseCount} khớp chuỗi đang hở — bấm "Hàn khớp" để khít ngay 100%.`}</span>
+          <span>{status}</span>
           {weldSummary.looseCount > 0 && bones.length >= 2 && (
             <button type="button" className="btn xs primary" onClick={weld}>
               Khít ngay
+            </button>
+          )}
+          {rigTool.statusHint && (
+            <button type="button" className="lw-rig-status-close" onClick={() => setRigToolState({ statusHint: null })} aria-label="Ẩn thông báo" title="Ẩn thông báo">
+              <IconX width={10} height={10} />
             </button>
           )}
         </div>
@@ -138,6 +147,55 @@ function RigToolbelt({ bones, bone, run, onAdd, switchTool }: { bones: LayerBone
   )
 }
 
+const TREE_HEIGHT_KEY = 'pxs:rig-tree-height'
+
+/**
+ * Phân khu Cây xương chia trên/dưới: cây xương giãn kín chiều cao khi chưa chọn xương;
+ * khi chọn xương, thanh kéo phân cách cho phép chỉnh tỉ lệ cây ⇄ thuộc tính (lưu localStorage, nháy đúp = mặc định).
+ */
+function HierarchySplit({ tree, inspector }: { tree: ReactNode; inspector: ReactNode | null }) {
+  const [treeHeight, setTreeHeight] = useState<number>(() => Number(localStorage.getItem(TREE_HEIGHT_KEY)) || 0)
+  const bodyRef = useRef<HTMLDivElement>(null)
+  const paneRef = useRef<HTMLDivElement>(null)
+  const startDrag = (e: React.PointerEvent<HTMLDivElement>) => {
+    const body = bodyRef.current
+    const pane = paneRef.current
+    if (!body || !pane) return
+    e.preventDefault()
+    const startY = e.clientY
+    const startH = pane.getBoundingClientRect().height
+    const maxH = Math.max(140, body.getBoundingClientRect().height - 190)
+    let last = startH
+    const move = (ev: PointerEvent) => {
+      last = Math.round(Math.max(120, Math.min(maxH, startH + ev.clientY - startY)))
+      setTreeHeight(last)
+    }
+    const up = () => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+      localStorage.setItem(TREE_HEIGHT_KEY, String(last))
+    }
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', up)
+  }
+  const resetSplit = () => {
+    setTreeHeight(0)
+    localStorage.removeItem(TREE_HEIGHT_KEY)
+  }
+  return (
+    <div className={`lw-rig-body is-tree${inspector ? ' has-inspector' : ''}`} ref={bodyRef}>
+      <div className="lw-rig-tree-pane" ref={paneRef} style={inspector && treeHeight ? { flexBasis: treeHeight } : undefined}>
+        {tree}
+      </div>
+      {inspector && (
+        <>
+          <div className="lw-rig-split" role="separator" aria-orientation="horizontal" aria-label="Kéo để đổi chiều cao cây xương" title="Kéo để đổi chiều cao · Nháy đúp để về mặc định" onPointerDown={startDrag} onDoubleClick={resetSplit} />
+          <div className="lw-rig-insp-pane">{inspector}</div>
+        </>
+      )}
+    </div>
+  )
+}
 const TEMPLATES = [
   { id: 'humanoid', label: 'Người 2D (15 khớp)', desc: 'Thân, đầu, tay, chân chuẩn' },
   { id: 'humanoid-full', label: 'Người chi tiết (19 khớp)', desc: 'Thêm bàn tay & mũi chân' },
@@ -146,37 +204,56 @@ const TEMPLATES = [
   { id: 'simple-chain', label: 'Chuỗi uốn (3 khớp)', desc: 'Đuôi, áo choàng, thân cây' }
 ] as const
 
+type AutoRigMode = 'creature' | 'mixamo' | 'smart' | 'templates'
+
+const AUTO_RIG_MODES: Array<{ id: AutoRigMode; label: string; hint: string }> = [
+  { id: 'creature', label: 'Sinh vật', hint: 'Thư viện 12 loài: nhện, côn trùng, cua, bạch tuộc, rắn, cá, chim, bướm, ngựa, chó, thằn lằn, rồng' },
+  { id: 'mixamo', label: 'Người', hint: 'Gắn điểm Mixamo: đặt vòng mốc lên ảnh người để tự dựng xương & động tác' },
+  { id: 'smart', label: 'Từ layer', hint: 'Smart 2.5D: phân tích vị trí các mảnh layer để đặt khớp & gắn tự động' },
+  { id: 'templates', label: 'Mẫu chi', hint: 'Khung xương mẫu người, bàn tay, bàn chân, chuỗi uốn' }
+]
+
+/** Phân khu Tự động: chọn 1 trong 4 cách dựng bằng Segmented Pills thay vì xếp chồng mọi thẻ dài. */
 function AutoRigSection({ composite, run, onApplied }: { composite: LayerComposite; run: (a: RigAction) => void; onApplied: () => void }) {
+  const [mode, setMode] = useState<AutoRigMode>('creature')
   return (
     <>
-      <WorkshopCreatureRigCard composite={composite} run={run} />
-      <WorkshopMixamoRigCard composite={composite} run={run} />
-      <WorkshopSmartRig25DCard composite={composite} run={run} />
-      <div className="lw-card-section">
-        <div className="lw-card-header">
-          <span className="lw-card-title">Mẫu khung xương người & chi</span>
-        </div>
-        <div className="lw-template-grid">
-          {TEMPLATES.map((tpl) => (
-            <button
-              key={tpl.id}
-              type="button"
-              className="lw-preset-btn lw-template-card-btn"
-              onClick={() => {
-                run({ action: 'apply-template', template: tpl.id })
-                onApplied()
-              }}
-            >
-              <strong>{tpl.label}</strong>
-              <small>{tpl.desc}</small>
-            </button>
-          ))}
-        </div>
+      <div className="lw-creature-pills lw-rig-auto-modes" role="radiogroup" aria-label="Cách dựng xương tự động">
+        {AUTO_RIG_MODES.map((m) => (
+          <button key={m.id} type="button" role="radio" aria-checked={mode === m.id} title={m.hint} className={`lw-creature-pill${mode === m.id ? ' active' : ''}`} onClick={() => setMode(m.id)}>
+            {m.label}
+          </button>
+        ))}
       </div>
+      {mode === 'creature' && <WorkshopCreatureRigCard composite={composite} run={run} />}
+      {mode === 'mixamo' && <WorkshopMixamoRigCard composite={composite} run={run} />}
+      {mode === 'smart' && <WorkshopSmartRig25DCard composite={composite} run={run} />}
+      {mode === 'templates' && (
+        <div className="lw-card-section">
+          <div className="lw-card-header">
+            <span className="lw-card-title">Mẫu khung xương người & chi</span>
+          </div>
+          <div className="lw-template-grid">
+            {TEMPLATES.map((tpl) => (
+              <button
+                key={tpl.id}
+                type="button"
+                className="lw-preset-btn lw-template-card-btn"
+                onClick={() => {
+                  run({ action: 'apply-template', template: tpl.id })
+                  onApplied()
+                }}
+              >
+                <strong>{tpl.label}</strong>
+                <small>{tpl.desc}</small>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </>
   )
 }
-
 export function WorkshopRigPanel({ composite, boneId, selectBone, selectedIds, selectedLayerId, selectLayer, run }: RigPanelProps) {
   const bones = composite.rig?.bones ?? []
   const bone = bones.find((b) => b.id === boneId)
@@ -184,7 +261,6 @@ export function WorkshopRigPanel({ composite, boneId, selectBone, selectedIds, s
   const [localLayerId, setLocalLayerId] = useState<string>('')
   const [subTab, setSubTab] = useState<RigSubTab>(() => (bones.length > 0 ? 'hierarchy' : 'autorig'))
   const rigTool = useRigToolStore()
-  const depthMap = useMemo(() => computeBoneDepthMap(bones), [bones])
   const mirrorTwin = useMemo(() => {
     const id = bone ? findMirrorBoneId(bone.id, bones) : null
     return id ? (bones.find((b) => b.id === id) ?? null) : null
@@ -231,56 +307,67 @@ export function WorkshopRigPanel({ composite, boneId, selectBone, selectedIds, s
     if (boneId === id) selectBone(null)
   }
 
+  const bindTarget = (id: string) => {
+    setLocalLayerId(id)
+    selectLayer?.(id || null)
+  }
+
   return (
-    <div className="lw-rig-panel" data-mcp-region="layer_assembly_rig_panel">
+    <div className="lw-rig-panel lw-rig-studio" data-mcp-region="layer_assembly_rig_panel">
       <RigToolbelt bones={bones} bone={bone} run={run} onAdd={add} switchTool={switchTool} />
       <SegmentedTabs<RigSubTab>
         variant="segmented"
         size="sm"
-        adaptiveCompact
         ariaLabel="Phân khu Tạo xương"
+        className="lw-rig-subtabs"
         value={subTab}
         onChange={setSubTab}
         items={[
           { id: 'hierarchy', label: 'Cây xương', icon: <IconBoneHierarchy width={12} height={12} />, title: `Cây phân cấp (${bones.length} xương), thuộc tính khớp & giới hạn góc` },
           { id: 'build', label: 'Thủ công', icon: <IconBoneChainBuild width={12} height={12} />, title: 'Dựng kết cấu xương bằng tay: chuỗi đốt, chia đốt, nhân chi vòng tròn, đối xứng' },
-          { id: 'binding', label: 'Gắn Mesh', icon: <IconFlexiMeshBind width={12} height={12} />, badge: `${boundLayersTotal}/${composite.layers.length}`, title: 'Gắn layer cứng / uốn mềm Flexi-Bind' },
+          { id: 'binding', label: 'Gắn Mesh', icon: <IconFlexiMeshBind width={12} height={12} />, title: `Gắn layer cứng / uốn mềm Flexi-Bind (${boundLayersTotal}/${composite.layers.length} layer đã gắn)` },
           { id: 'autorig', label: 'Tự động', icon: <IconAutoRigSpark width={12} height={12} />, title: 'Thư viện khung xương sinh vật (nhện, cá, ngựa, chim…), Mixamo & Smart 2.5D' }
         ]}
       />
       {subTab === 'hierarchy' && (
-        <>
-          <BoneTreeCard
-            composite={composite}
-            bones={bones}
-            boneId={boneId}
-            depthMap={depthMap}
-            selectBone={selectBone}
-            onDelete={handleDeleteBone}
-            onMirror={(id) => run({ action: 'mirror-bone', boneId: id })}
-            onStartDraw={() => switchTool('add')}
-            onOpenBuild={() => setSubTab('build')}
-            onOpenAuto={() => setSubTab('autorig')}
-          />
-          {bone && <BoneInspectorCard bone={bone} bones={bones} mirrorTwin={mirrorTwin} mirrorDraw={rigTool.mirrorDraw} patch={patch} onDelete={handleDeleteBone} />}
-        </>
-      )}
-      {subTab === 'build' && <WorkshopBoneBuilderCard bones={bones} bone={bone} run={run} selectBone={selectBone} switchTool={switchTool} />}
-      {subTab === 'binding' && (
-        <WorkshopRigBindingSection
-          composite={composite}
-          bones={bones}
-          bone={bone}
-          activeLayerId={activeLayerId}
-          targetIds={targetIds}
-          onSelectLayer={(id) => {
-            setLocalLayerId(id)
-            selectLayer?.(id || null)
-          }}
-          run={run}
+        <HierarchySplit
+          tree={
+            <BoneTreeCard
+              composite={composite}
+              bones={bones}
+              boneId={boneId}
+              selectBone={selectBone}
+              onDelete={handleDeleteBone}
+              onStartDraw={() => switchTool('add')}
+              onOpenBuild={() => setSubTab('build')}
+              onOpenAuto={() => setSubTab('autorig')}
+            />
+          }
+          inspector={
+            bone ? (
+              <BoneInspectorCard
+                bone={bone}
+                bones={bones}
+                mirrorTwin={mirrorTwin}
+                mirrorDraw={rigTool.mirrorDraw}
+                patch={patch}
+                onDelete={handleDeleteBone}
+                onMirror={(id) => run({ action: 'mirror-bone', boneId: id })}
+                onDeselect={() => selectBone(null)}
+              />
+            ) : null
+          }
         />
       )}
-      {subTab === 'autorig' && <AutoRigSection composite={composite} run={run} onApplied={() => setSubTab('hierarchy')} />}
+      {subTab !== 'hierarchy' && (
+        <div className="lw-rig-body">
+          {subTab === 'build' && <WorkshopBoneBuilderCard bones={bones} bone={bone} run={run} selectBone={selectBone} switchTool={switchTool} />}
+          {subTab === 'binding' && (
+            <WorkshopRigBindingSection composite={composite} bones={bones} bone={bone} activeLayerId={activeLayerId} targetIds={targetIds} onSelectLayer={bindTarget} run={run} />
+          )}
+          {subTab === 'autorig' && <AutoRigSection composite={composite} run={run} onApplied={() => setSubTab('hierarchy')} />}
+        </div>
+      )}
     </div>
   )
 }

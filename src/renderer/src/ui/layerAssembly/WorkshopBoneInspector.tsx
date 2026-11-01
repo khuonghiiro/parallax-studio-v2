@@ -1,98 +1,180 @@
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { LayerBone } from '@shared/layerRig'
 import type { LayerComposite } from './types'
 import { Select } from '../controls'
-import { IconTrash } from '../icons'
+import { IconChevronDown, IconPin, IconSearch, IconTrash, IconX } from '../icons'
 import { RigNumber } from './RigNumber'
 import { WorkshopBoneConstraintCard } from './WorkshopBoneConstraintCard'
 import { classifyBoneSide, computeBoneInfluenceRadius } from './mohoRigHelpers'
-import { IconAutoRigSpark, IconBoneAdd, IconBoneChainBuild, IconBoneMirror } from './LayerWorkshopStudioIcons'
+import { boneAncestorIds, buildBoneTreeRows, type BoneTreeRow } from './workshopBoneTree'
+import { IconAutoRigSpark, IconBoneAdd, IconBoneChainBuild, IconBoneDuplicateLR, IconBoneMirror } from './LayerWorkshopStudioIcons'
 
 export interface BoneTreeCardProps {
   composite: LayerComposite
   bones: LayerBone[]
   boneId: string | null
-  depthMap: Map<string, number>
   selectBone: (id: string | null) => void
   onDelete: (id: string, e?: React.MouseEvent) => void
-  onMirror: (id: string) => void
   onStartDraw: () => void
   onOpenBuild: () => void
   onOpenAuto: () => void
 }
 
-/** Cây phân cấp xương (Moho Bone List): thụt lề theo độ sâu, màu L/C/R, số layer đang gắn. */
-export function BoneTreeCard(props: BoneTreeCardProps) {
-  const { composite, bones, boneId, depthMap, selectBone, onDelete, onMirror } = props
-  const bone = bones.find((b) => b.id === boneId)
+function BoneTreeEmpty({ onStartDraw, onOpenBuild, onOpenAuto }: Pick<BoneTreeCardProps, 'onStartDraw' | 'onOpenBuild' | 'onOpenAuto'>) {
   return (
-    <div className="lw-card-section">
-      <div className="lw-card-header">
+    <div className="lw-rig-empty-hint">
+      <p>Chưa có xương nào trên nhân vật / vật thể.</p>
+      <div className="lw-rig-empty-actions">
+        <button type="button" className="btn xs primary" onClick={onStartDraw}>
+          <IconBoneAdd width={12} height={12} /> Vẽ xương (A) trên khung 2D
+        </button>
+        <button type="button" className="btn xs" onClick={onOpenBuild}>
+          <IconBoneChainBuild width={12} height={12} /> Dựng thủ công
+        </button>
+        <button type="button" className="btn xs" onClick={onOpenAuto}>
+          <IconAutoRigSpark width={12} height={12} /> Tự động: nhện, cá, ngựa, chim…
+        </button>
+      </div>
+    </div>
+  )
+}
+
+interface BoneTreeRowItemProps {
+  row: BoneTreeRow
+  selected: boolean
+  layers: number
+  onSelect: () => void
+  onToggle: (e: React.MouseEvent) => void
+  onDelete: (e: React.MouseEvent) => void
+}
+
+function BoneTreeRowItem({ row, selected, layers, onSelect, onToggle, onDelete }: BoneTreeRowItemProps) {
+  const { bone: b, depth, childCount, collapsed } = row
+  const side = classifyBoneSide(b)
+  return (
+    <div
+      role="treeitem"
+      aria-selected={selected}
+      aria-expanded={childCount > 0 ? !collapsed : undefined}
+      data-bone-row={b.id}
+      onClick={onSelect}
+      className={`lw-bone-item side-${side}${selected ? ' active' : ''}`}
+      style={{ paddingLeft: `${4 + Math.min(8, depth) * 12}px` }}
+    >
+      <div className="lw-bone-item-label">
+        {childCount > 0 ? (
+          <button type="button" className={`lw-bone-item-toggle${collapsed ? ' collapsed' : ''}`} onClick={onToggle} aria-label={collapsed ? 'Mở nhánh' : 'Thu nhánh'}>
+            <IconChevronDown width={10} height={10} />
+          </button>
+        ) : (
+          <span className="lw-bone-item-toggle-spacer" />
+        )}
+        <span className={`lw-bone-side-dot side-${side}`} title={`Nhóm ${side.toUpperCase()}`} />
+        {b.pin && <IconPin width={10} height={10} className="lw-bone-item-pin" />}
+        <span className="lw-bone-item-name">{b.name}</span>
+        {collapsed && <span className="lw-bone-item-sub">+{childCount}</span>}
+        {b.minAngle !== undefined && b.maxAngle !== undefined && (
+          <span className="lw-bone-item-limit" title={`Giới hạn góc ${b.minAngle}° … ${b.maxAngle}°`}>
+            ∠
+          </span>
+        )}
+        {layers > 0 && (
+          <span className="lw-bone-item-count" title={`${layers} layer đang gắn`}>
+            {layers}
+          </span>
+        )}
+      </div>
+      <button type="button" className="lw-bone-item-delete" onClick={onDelete} title="Xóa xương này và nhánh con (Del)" aria-label={`Xóa xương ${b.name}`}>
+        <IconTrash width={11} height={11} />
+      </button>
+    </div>
+  )
+}
+
+/** Cây phân cấp xương (Moho Bone List): duyệt sâu cha → con, thu gọn nhánh, lọc theo tên, tự cuộn tới xương đang chọn. */
+export function BoneTreeCard(props: BoneTreeCardProps) {
+  const { composite, bones, boneId, selectBone, onDelete } = props
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set())
+  const [filter, setFilter] = useState('')
+  const listRef = useRef<HTMLDivElement>(null)
+  const rows = useMemo(() => buildBoneTreeRows(bones, collapsed, filter), [bones, collapsed, filter])
+  const boundCount = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const l of composite.layers) if (l.boneId) map.set(l.boneId, (map.get(l.boneId) ?? 0) + 1)
+    return map
+  }, [composite.layers])
+  const branchIds = useMemo(() => new Set(bones.map((b) => b.parentId).filter(Boolean) as string[]), [bones])
+
+  useEffect(() => {
+    if (!boneId) return
+    const hidden = boneAncestorIds(bones, boneId).filter((id) => collapsed.has(id))
+    if (hidden.length) {
+      setCollapsed((prev) => new Set([...prev].filter((id) => !hidden.includes(id))))
+      return
+    }
+    listRef.current?.querySelector<HTMLElement>(`[data-bone-row="${CSS.escape(boneId)}"]`)?.scrollIntoView({ block: 'nearest' })
+  }, [boneId, bones, collapsed])
+
+  const toggle = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setCollapsed((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+  const allCollapsed = branchIds.size > 0 && [...branchIds].every((id) => collapsed.has(id))
+
+  return (
+    <div className="lw-card-section lw-bone-tree-card" data-mcp-region="layer_assembly_bone_tree">
+      <div className="lw-bone-tree-head">
         <span className="lw-card-title">
-          <span>Cây phân cấp xương</span>
+          <span>Cây xương</span>
           <span className="lw-card-badge">{bones.length}</span>
         </span>
-        {bone && (
-          <div style={{ display: 'flex', gap: '4px' }}>
-            <button type="button" className="btn xs" onClick={() => onMirror(bone.id)} title="Tạo bản sao đối xứng Trái ⇄ Phải qua trục X = 0 cho xương này và toàn bộ nhánh con">
-              <IconBoneMirror width={11} height={11} />
-              <span>Nhân bản L⇄R</span>
-            </button>
-            <button type="button" className="btn xs" onClick={() => selectBone(null)} title="Bỏ chọn xương hiện tại">
-              Bỏ chọn
-            </button>
+        {bones.length > 0 && (
+          <div className="lw-bone-tree-tools">
+            <label className="lw-bone-tree-search" title="Lọc xương theo tên">
+              <IconSearch width={11} height={11} />
+              <input value={filter} placeholder="Tìm xương…" aria-label="Tìm xương" onChange={(e) => setFilter(e.target.value)} />
+              {filter && (
+                <button type="button" aria-label="Xoá lọc" onClick={() => setFilter('')}>
+                  <IconX width={10} height={10} />
+                </button>
+              )}
+            </label>
+            {branchIds.size > 0 && (
+              <button
+                type="button"
+                className="lw-bone-tree-btn"
+                onClick={() => setCollapsed(allCollapsed ? new Set() : new Set(branchIds))}
+                title={allCollapsed ? 'Mở rộng mọi nhánh' : 'Thu gọn mọi nhánh'}
+              >
+                {allCollapsed ? 'Mở hết' : 'Thu gọn'}
+              </button>
+            )}
           </div>
         )}
       </div>
-      <div className="lw-bone-list" role="listbox" aria-label="Danh sách xương">
-        {bones.map((b) => {
-          const isSelected = b.id === boneId
-          const side = classifyBoneSide(b)
-          const depth = Math.min(6, depthMap.get(b.id) ?? 0)
-          const boundLayersCount = composite.layers.filter((l) => l.boneId === b.id).length
-          const limited = b.minAngle !== undefined && b.maxAngle !== undefined
-          return (
-            <div
-              key={b.id}
-              role="option"
-              aria-selected={isSelected}
-              onClick={() => selectBone(b.id)}
-              className={`lw-bone-item side-${side}${isSelected ? ' active' : ''}`}
-              style={{ paddingLeft: `${8 + depth * 12}px` }}
-            >
-              <div className="lw-bone-item-label">
-                <span className={`lw-bone-side-dot side-${side}`} title={`Nhóm ${side.toUpperCase()}`} />
-                <span className="lw-bone-item-indent">{b.pin ? '📌' : depth > 0 ? '↳' : '◇'}</span>
-                <span className="lw-bone-item-name">{b.name}</span>
-                {limited && (
-                  <span className="lw-bone-item-limit" title={`Giới hạn góc ${b.minAngle}° … ${b.maxAngle}°`}>
-                    ∠
-                  </span>
-                )}
-                {boundLayersCount > 0 && <span className="lw-bone-item-count">{boundLayersCount} lớp</span>}
-              </div>
-              <button type="button" className="lw-bone-item-delete" onClick={(e) => onDelete(b.id, e)} title="Xóa xương này (Del)" aria-label={`Xóa xương ${b.name}`}>
-                <IconTrash width={11} height={11} />
-              </button>
-            </div>
-          )
-        })}
-        {!bones.length && (
-          <div className="lw-rig-empty-hint">
-            <p>Chưa có xương nào trên nhân vật / vật thể.</p>
-            <div className="lw-rig-empty-actions">
-              <button type="button" className="btn xs primary" onClick={props.onStartDraw}>
-                <IconBoneAdd width={12} height={12} /> Vẽ xương (A) trên khung 2D
-              </button>
-              <button type="button" className="btn xs" onClick={props.onOpenBuild}>
-                <IconBoneChainBuild width={12} height={12} /> Dựng thủ công
-              </button>
-              <button type="button" className="btn xs" onClick={props.onOpenAuto}>
-                <IconAutoRigSpark width={12} height={12} /> Tự động: nhện, cá, ngựa, chim…
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
+      {bones.length === 0 ? (
+        <BoneTreeEmpty onStartDraw={props.onStartDraw} onOpenBuild={props.onOpenBuild} onOpenAuto={props.onOpenAuto} />
+      ) : (
+        <div className="lw-bone-list" role="tree" aria-label="Danh sách xương" ref={listRef}>
+          {rows.map((row) => (
+            <BoneTreeRowItem
+              key={row.bone.id}
+              row={row}
+              selected={row.bone.id === boneId}
+              layers={boundCount.get(row.bone.id) ?? 0}
+              onSelect={() => selectBone(row.bone.id)}
+              onToggle={(e) => toggle(row.bone.id, e)}
+              onDelete={(e) => onDelete(row.bone.id, e)}
+            />
+          ))}
+          {rows.length === 0 && <div className="lw-bone-tree-noresult">Không có xương khớp “{filter}”.</div>}
+        </div>
+      )}
     </div>
   )
 }
@@ -115,13 +197,12 @@ function LimbQuickAngles({ bone, patch }: { bone: LayerBone; patch: (p: Partial<
   const isHand = /hand|wrist|finger|palm|bàn tay|cổ tay|ngón/i.test(tag)
   const isFoot = /foot|ankle|toe|heel|bàn chân|cổ chân|mũi chân|gót/i.test(tag)
   if (!isHand && !isFoot) return null
-  const presets = isHand ? HAND_PRESETS : FOOT_PRESETS
   return (
-    <div className="lw-limb-quick-box">
-      <div className="lw-limb-quick-title">{isHand ? 'Góc nhanh Bàn tay:' : 'Góc nhanh Bàn chân:'}</div>
-      <div className="lw-limb-quick-pills">
-        {presets.map((item) => (
-          <button key={item.label} type="button" className="btn xs" onClick={() => patch({ angle: item.angle })}>
+    <div className="lw-bone-insp-row">
+      <span className="lw-bone-insp-label">{isHand ? 'Bàn tay' : 'Bàn chân'}</span>
+      <div className="lw-creature-pills">
+        {(isHand ? HAND_PRESETS : FOOT_PRESETS).map((item) => (
+          <button key={item.label} type="button" className="lw-creature-pill" onClick={() => patch({ angle: item.angle })}>
             {item.label}
           </button>
         ))}
@@ -137,68 +218,75 @@ export interface BoneInspectorCardProps {
   mirrorDraw: boolean
   patch: (p: Partial<LayerBone>) => void
   onDelete: (id: string) => void
+  onMirror: (id: string) => void
+  onDeselect: () => void
 }
 
-/** Thuộc tính khớp đang chọn: tên, xương cha, toạ độ, độ dài, vùng uốn, giới hạn góc, Pin Bone. */
-export function BoneInspectorCard({ bone, bones, mirrorTwin, mirrorDraw, patch, onDelete }: BoneInspectorCardProps) {
+function InspectorHeader({ bone, patch, onDelete, onMirror, onDeselect }: Pick<BoneInspectorCardProps, 'bone' | 'patch' | 'onDelete' | 'onMirror' | 'onDeselect'>) {
+  const side = classifyBoneSide(bone)
   return (
-    <div className="lw-card-section">
-      <div className="lw-card-header">
-        <span className="lw-card-title">Khớp: {bone.name}</span>
-        <span className="lw-card-badge">{bone.pin ? 'Pin Bone' : `R=${Math.round(computeBoneInfluenceRadius(bone))}px`}</span>
-      </div>
+    <div className="lw-bone-insp-head">
+      <span className={`lw-bone-side-dot side-${side}`} />
+      <input className="lw-field-input lw-bone-insp-name" aria-label="Tên xương" value={bone.name} onChange={(e) => e.target.value.trim() && patch({ name: e.target.value })} />
+      <button
+        type="button"
+        className={`lw-bone-insp-icon${bone.pin ? ' active' : ''}`}
+        onClick={() => patch({ pin: !bone.pin, length: bone.pin ? Math.max(40, bone.length) : 16 })}
+        title={bone.pin ? 'Đổi Pin Bone thành xương dài' : 'Đổi thành chốt Pin Bone (Moho)'}
+        aria-pressed={Boolean(bone.pin)}
+      >
+        <IconPin width={12} height={12} />
+      </button>
+      <button type="button" className="lw-bone-insp-icon" onClick={() => onMirror(bone.id)} title="Nhân bản xương + nhánh con sang bên kia trục X = 0">
+        <IconBoneDuplicateLR width={12} height={12} />
+      </button>
+      <button type="button" className="lw-bone-insp-icon danger" onClick={() => onDelete(bone.id)} title="Xóa xương này và toàn bộ nhánh con (Del)">
+        <IconTrash width={12} height={12} />
+      </button>
+      <button type="button" className="lw-bone-insp-icon" onClick={onDeselect} title="Bỏ chọn xương (Esc)">
+        <IconX width={12} height={12} />
+      </button>
+    </div>
+  )
+}
+
+/** Thuộc tính khớp đang chọn, gọn trong 1 khung cuộn riêng: tên + thao tác nhanh, xương cha, hình học, vùng uốn, giới hạn góc. */
+export function BoneInspectorCard(props: BoneInspectorCardProps) {
+  const { bone, bones, mirrorTwin, mirrorDraw, patch } = props
+  return (
+    <div className="lw-card-section lw-bone-insp-card" data-mcp-region="layer_assembly_bone_inspector">
+      <InspectorHeader {...props} />
       {mirrorDraw && mirrorTwin && (
         <div className="lw-mirror-pair-note">
           <IconBoneMirror width={11} height={11} />
-          <span>Đang đồng bộ đối xứng với &ldquo;{mirrorTwin.name}&rdquo;</span>
+          <span>Đồng bộ đối xứng với &ldquo;{mirrorTwin.name}&rdquo;</span>
         </div>
       )}
-      <div className="lw-form-group">
-        <label className="lw-form-label" htmlFor="lw-bone-name-input">
-          Tên xương:
-        </label>
-        <input id="lw-bone-name-input" className="lw-field-input" aria-label="Tên xương" value={bone.name} onChange={(e) => e.target.value.trim() && patch({ name: e.target.value })} />
-      </div>
-      <div className="lw-form-group">
-        <span className="lw-form-label">Xương cha (Phân cấp FK/IK):</span>
+      <div className="lw-bone-insp-row">
+        <span className="lw-bone-insp-label">Xương cha</span>
         <Select
           size="sm"
-          dropdownWidth={280}
-          style={{ width: '100%' }}
+          dropdownWidth={260}
+          style={{ flex: 1, minWidth: 0 }}
           value={bone.parentId ?? ''}
-          options={[{ value: '', label: 'Không có (Xương gốc Root)' }, ...bones.filter((b) => b.id !== bone.id).map((b) => ({ value: b.id, label: b.name }))]}
+          options={[{ value: '', label: 'Không có (Root)' }, ...bones.filter((b) => b.id !== bone.id).map((b) => ({ value: b.id, label: b.name }))]}
           onChange={(val) => patch({ parentId: String(val) || undefined })}
         />
       </div>
-      <div className="lw-rig-grid">
+      <div className="lw-bone-insp-grid">
         <RigNumber label="Khớp X" value={bone.x} onChange={(x) => patch({ x })} />
         <RigNumber label="Khớp Y" value={bone.y} onChange={(y) => patch({ y })} />
-        <RigNumber label="Chiều dài (px)" value={bone.length} min={10} onChange={(length) => patch({ length })} />
-        <RigNumber label="Hướng xương (°)" value={bone.angle} onChange={(angle) => patch({ angle })} />
+        <RigNumber label="Dài (px)" value={bone.length} min={1} onChange={(length) => patch({ length })} />
+        <RigNumber label="Góc (°)" value={bone.angle} onChange={(angle) => patch({ angle })} />
       </div>
-      <div className="lw-moho-strength-row">
-        <div className="lw-moho-strength-head">
-          <span>Vùng ảnh hưởng Mesh (Strength)</span>
-          <strong>{Math.round((bone.strength ?? 1) * 100)}%</strong>
-        </div>
+      <div className="lw-bone-insp-row" title="Vùng ảnh hưởng uốn Mesh (Moho Bone Strength)">
+        <span className="lw-bone-insp-label">Vùng uốn</span>
         <input type="range" min={0.15} max={3.0} step={0.05} value={bone.strength ?? 1} aria-label="Vùng ảnh hưởng xương" onChange={(e) => patch({ strength: Number(e.target.value) })} />
+        <strong className="lw-bone-insp-value">{Math.round((bone.strength ?? 1) * 100)}%</strong>
+        <span className="lw-bone-insp-hint">R {Math.round(computeBoneInfluenceRadius(bone))}px</span>
       </div>
-      {!bone.pin && <WorkshopBoneConstraintCard bone={bone} patch={patch} />}
       <LimbQuickAngles bone={bone} patch={patch} />
-      <div style={{ marginTop: '8px', display: 'flex', justifyContent: 'space-between', gap: '6px' }}>
-        <button
-          type="button"
-          className="btn xs"
-          onClick={() => patch({ pin: !bone.pin, ...(bone.pin ? { length: Math.max(40, bone.length) } : { length: 16 }) })}
-          title="Chuyển đổi giữa Xương thường và Chốt Pin Bone (Moho Pin Bone)"
-        >
-          {bone.pin ? '🦴 Đổi thành Xương dài' : '📌 Đổi thành Pin Bone'}
-        </button>
-        <button type="button" className="btn xs danger" style={{ color: 'var(--danger, #ef4444)' }} onClick={() => onDelete(bone.id)} title="Xóa xương này và toàn bộ nhánh con (Del)">
-          <IconTrash width={11} height={11} />
-          <span>Xóa xương</span>
-        </button>
-      </div>
+      {!bone.pin && <WorkshopBoneConstraintCard bone={bone} patch={patch} />}
     </div>
   )
 }

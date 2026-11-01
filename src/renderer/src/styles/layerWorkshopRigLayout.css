@@ -1,0 +1,481 @@
+/* =========================================================================
+   Tab Tạo xương — bố cục gọn: thanh công cụ cố định · sub-tabs cố định · thân cuộn riêng.
+   Phân khu Cây xương: cây giãn kín chiều cao; khi chọn xương chia trên/dưới có thanh kéo.
+   ========================================================================= */
+
+.lw-rig-studio {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px 0;
+  overflow: hidden;
+}
+
+.lw-rig-studio > .lw-moho-toolbelt-card,
+.lw-rig-studio > .lw-rig-subtabs {
+  flex-shrink: 0;
+  margin: 0;
+}
+
+/* ---------- Thanh công cụ gọn (S / A / T / Z + tuỳ chọn + CTA) ---------- */
+.lw-rig-toolbelt {
+  gap: 6px;
+  padding: 8px;
+}
+
+.lw-rig-toolbelt .lw-moho-tool-btn {
+  flex-direction: row;
+  gap: 4px;
+  min-height: 32px;
+  padding: 0 12px 0 5px;
+}
+
+.lw-rig-toolbelt .lw-moho-tool-label {
+  font-size: 10.5px;
+}
+
+.lw-rig-toolbelt .lw-moho-tool-btn kbd {
+  top: 2px;
+  right: 2px;
+  padding: 0 2.5px;
+  font-size: 7.5px;
+  line-height: 11px;
+}
+
+.lw-rig-toolbelt-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+  gap: 4px;
+  align-items: stretch;
+}
+
+.lw-rig-toolbelt-row .lw-moho-opt-pill {
+  height: 28px;
+  padding: 0 5px;
+}
+
+.lw-rig-toolbelt-cta {
+  height: 28px;
+  padding: 0 9px;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.lw-rig-toolbelt-mode {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+.lw-rig-toolbelt-mode > span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lw-rig-toolbelt .lw-moho-opt-status {
+  padding: 4px 6px 4px 8px;
+}
+
+.lw-rig-status-close {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.lw-rig-status-close:hover {
+  background: var(--bg-3);
+  color: var(--text);
+  border-color: var(--line-soft);
+}
+
+/* ---------- Thân cuộn ---------- */
+.lw-rig-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding-bottom: 12px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.lw-rig-body.is-tree {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding-bottom: 10px;
+}
+
+.lw-rig-tree-pane {
+  flex: 1 1 auto;
+  min-height: 140px;
+  display: flex;
+  flex-direction: column;
+}
+
+.lw-rig-body.has-inspector .lw-rig-tree-pane {
+  flex: 0 0 38%;
+}
+
+.lw-rig-split {
+  position: relative;
+  flex: 0 0 12px;
+  cursor: row-resize;
+  touch-action: none;
+}
+
+.lw-rig-split::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 44px;
+  height: 4px;
+  transform: translate(-50%, -50%);
+  border-radius: var(--radius-sm);
+  background: var(--line);
+  transition: background 0.12s ease;
+}
+
+.lw-rig-split:hover::before,
+.lw-rig-split:active::before {
+  background: var(--accent);
+}
+
+.lw-rig-insp-pane {
+  flex: 1 1 0;
+  min-height: 180px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.lw-rig-insp-pane > .lw-card-section,
+.lw-rig-tree-pane > .lw-card-section {
+  margin: 0;
+}
+
+/* ---------- Cây xương ---------- */
+.lw-bone-tree-card {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 8px 10px 10px;
+}
+
+.lw-bone-tree-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 0;
+}
+
+.lw-bone-tree-head .lw-card-title {
+  flex-shrink: 0;
+}
+
+.lw-bone-tree-tools {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  flex: 1 1 auto;
+  justify-content: flex-end;
+}
+
+.lw-bone-tree-search {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 26px;
+  min-width: 0;
+  flex: 0 1 150px;
+  padding: 0 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--bg-0);
+  color: var(--text-faint);
+}
+
+.lw-bone-tree-search:focus-within {
+  border-color: var(--line-focus);
+  color: var(--text-dim);
+}
+
+.lw-rig-studio .lw-bone-tree-search input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text);
+  font-size: 10.5px;
+}
+
+.lw-bone-tree-search button,
+.lw-bone-tree-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  font: inherit;
+}
+
+.lw-bone-tree-search button {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+}
+
+.lw-bone-tree-btn {
+  height: 26px;
+  padding: 0 7px;
+  font-size: 10px;
+  font-weight: 600;
+  border-color: var(--line-soft);
+  white-space: nowrap;
+}
+
+.lw-bone-tree-search button:hover,
+.lw-bone-tree-btn:hover {
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-3));
+  color: var(--text);
+}
+
+.lw-rig-studio .lw-bone-tree-card .lw-bone-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+  margin: 8px 0 0;
+}
+
+.lw-rig-studio .lw-bone-item {
+  height: 28px;
+  gap: 4px;
+  padding-right: 4px;
+}
+
+.lw-bone-item-toggle,
+.lw-bone-item-toggle-spacer {
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+}
+
+.lw-bone-item-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: transform 0.12s ease, background 0.12s ease;
+}
+
+.lw-bone-item-toggle:hover {
+  background: var(--bg-3);
+  color: var(--text);
+}
+
+.lw-bone-item-toggle.collapsed svg {
+  transform: rotate(-90deg);
+}
+
+.lw-bone-item-pin {
+  flex-shrink: 0;
+  color: var(--key);
+}
+
+.lw-bone-item-sub {
+  flex-shrink: 0;
+  font-size: 9.5px;
+  color: var(--text-faint);
+}
+
+.lw-bone-item.active .lw-bone-item-name {
+  color: var(--text);
+}
+
+.lw-bone-tree-noresult {
+  padding: 10px;
+  font-size: 10.5px;
+  color: var(--text-faint);
+  text-align: center;
+}
+
+/* ---------- Thuộc tính khớp ---------- */
+.lw-bone-insp-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 10px 10px;
+}
+
+.lw-bone-insp-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.lw-rig-studio .lw-bone-insp-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 28px;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.lw-bone-insp-icon {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-soft);
+  background: var(--bg-2);
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.lw-bone-insp-icon:hover {
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-3));
+  border-color: var(--line-focus);
+  color: var(--text);
+}
+
+.lw-bone-insp-icon.active {
+  background: var(--key);
+  border-color: var(--key);
+  color: var(--on-key);
+}
+
+.lw-bone-insp-icon.danger:hover {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 45%, var(--line-soft));
+  background: color-mix(in srgb, var(--danger) 10%, var(--bg-2));
+}
+
+.lw-bone-insp-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.lw-bone-insp-label {
+  flex: 0 0 62px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.lw-bone-insp-row input[type='range'] {
+  flex: 1 1 auto;
+  min-width: 0;
+  accent-color: var(--accent);
+}
+
+.lw-bone-insp-value {
+  flex: 0 0 auto;
+  min-width: 36px;
+  text-align: right;
+  font-size: 10.5px;
+  color: var(--text);
+}
+
+.lw-bone-insp-hint {
+  flex: 0 0 auto;
+  font-size: 9.5px;
+  color: var(--text-faint);
+}
+
+.lw-bone-insp-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.lw-bone-insp-grid .lw-num-label {
+  font-size: 9.5px;
+}
+
+.lw-bone-insp-card .lw-joint-limit-card {
+  margin-top: 0;
+  padding: 6px 8px 8px;
+}
+
+.lw-bone-insp-card .lw-joint-limit-body {
+  grid-template-columns: 52px minmax(0, 1fr);
+}
+
+.lw-bone-insp-card .lw-joint-limit-dial {
+  width: 52px;
+  height: 52px;
+}
+
+.lw-bone-insp-card .lw-mirror-pair-note {
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+/* ---------- Màn hình thấp / điện thoại: cho cả thân cuộn thay vì chia khung ---------- */
+@media (max-height: 640px), (max-width: 768px) {
+  .lw-rig-body.is-tree {
+    overflow-y: auto;
+  }
+
+  .lw-rig-body.has-inspector .lw-rig-tree-pane {
+    flex: 0 0 auto;
+    height: 240px;
+  }
+
+  .lw-rig-insp-pane {
+    flex: 0 0 auto;
+    overflow: visible;
+  }
+
+  .lw-rig-split {
+    display: none;
+  }
+
+  .lw-bone-insp-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Bộ chọn cách dựng tự động */
+.lw-rig-auto-modes {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-bottom: 8px;
+}
+
+.lw-rig-auto-modes .lw-creature-pill {
+  height: 28px;
+}

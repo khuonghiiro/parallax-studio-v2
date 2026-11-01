@@ -50,9 +50,9 @@ export function WorkshopBoneConstraintCard({ bone, patch }: WorkshopBoneConstrai
   }
   return (
     <div className="lw-joint-limit-card" data-mcp-region="layer_assembly_bone_constraints">
-      <div className="lw-joint-limit-head">
+      <div className="lw-joint-limit-head" title="Góc tính từ dáng gốc Frame 0, dương = theo chiều kim đồng hồ. IK, xoay FK và công cụ Thử khớp (Z) đều dừng tại giới hạn.">
         <span className="lw-joint-limit-title">
-          <IconJointLimitArc width={13} height={13} /> Giới hạn góc khớp
+          <IconJointLimitArc width={13} height={13} /> Giới hạn góc khớp (∠)
         </span>
         <span className={`lw-card-badge${limited ? ' is-on' : ''}`}>{limited ? `${min}° … ${max}°` : 'Xoay tự do'}</span>
       </div>
@@ -84,7 +84,6 @@ export function WorkshopBoneConstraintCard({ bone, patch }: WorkshopBoneConstrai
           </button>
         ))}
       </div>
-      <p className="lw-joint-limit-hint">Góc tính từ dáng gốc Frame 0, dương = theo chiều kim đồng hồ. IK, xoay FK và công cụ Thử khớp (Z) đều dừng tại giới hạn.</p>
     </div>
   )
 }
