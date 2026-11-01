@@ -176,9 +176,9 @@ export function computeAdaptiveMeshSubdivision(
   if (preferredCols !== undefined && preferredRows !== undefined) {
     return { cols: preferredCols, rows: preferredRows }
   }
-  const cellSize = 22
-  const cols = preferredCols ?? Math.max(16, Math.min(36, Math.round(width / cellSize)))
-  const rows = preferredRows ?? Math.max(20, Math.min(56, Math.round(height / cellSize)))
+  const cellSize = 12
+  const cols = preferredCols ?? Math.max(20, Math.min(64, Math.round(width / cellSize)))
+  const rows = preferredRows ?? Math.max(24, Math.min(128, Math.round(height / cellSize)))
   return { cols, rows }
 }
 

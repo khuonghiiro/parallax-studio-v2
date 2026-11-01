@@ -277,6 +277,8 @@ export function createLayer3DInstance(
   const material = new THREE.MeshLambertMaterial({
     map: texture,
     color: texture ? 0xffffff : 0x4a5568,
+    emissive: texture ? 0x2b2b2b : 0x000000,
+    emissiveMap: texture,
     transparent: true,
     alphaTest: 0.05,
     side: THREE.DoubleSide,
@@ -370,6 +372,8 @@ export function updateLayerInstanceTexture(
     }
     inst.material.map = texture
     inst.material.color.setHex(0xffffff)
+    inst.material.emissive.setHex(0x2b2b2b)
+    inst.material.emissiveMap = texture
     inst.material.needsUpdate = true
     inst.mesh.customDepthMaterial = new THREE.MeshDepthMaterial({
       depthPacking: THREE.RGBADepthPacking,
@@ -382,6 +386,8 @@ export function updateLayerInstanceTexture(
   if (texture) {
     inst.material.map = texture
     inst.material.color.setHex(0xffffff)
+    inst.material.emissive.setHex(0x2b2b2b)
+    inst.material.emissiveMap = texture
     inst.material.needsUpdate = true
     inst.mesh.customDepthMaterial = new THREE.MeshDepthMaterial({
       depthPacking: THREE.RGBADepthPacking,
@@ -440,6 +446,16 @@ export function updateLayer3DInstance(
       attribute.copyArray(positions)
       attribute.needsUpdate = true
       geometry.userData.wasDeformed = hasSkin || hasSpines
+      const normalAttr = geometry.getAttribute('normal') as THREE.BufferAttribute | undefined
+      if (normalAttr) {
+        const normals = normalAttr.array as Float32Array
+        for (let ni = 0; ni < normals.length; ni += 3) {
+          normals[ni] = 0
+          normals[ni + 1] = 0
+          normals[ni + 2] = 1
+        }
+        normalAttr.needsUpdate = true
+      }
     }
   }
   // 1. Tính toán chuyển động hoạt ảnh
@@ -517,6 +533,11 @@ export function updateLayer3DInstance(
   }
 
   // 6. Thuộc tính hiển thị & Cắt góc nhìn camera
+  if (material.map && (!material.emissiveMap || material.emissive.getHex() < 0x222222)) {
+    material.emissiveMap = material.map
+    material.emissive.setHex(0x383838)
+    material.needsUpdate = true
+  }
   const op = Math.max(0, Math.min(1, layer.opacity ?? 1))
   material.opacity = op
   material.depthTest = !isFlatFrontView

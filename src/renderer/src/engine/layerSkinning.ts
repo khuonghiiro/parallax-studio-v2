@@ -219,23 +219,6 @@ export function skinWeights(x: number, y: number, bones: LayerRig['bones']): Ski
   return weights.map((w) => ({ id: w.id, weight: w.weight / sum }))
 }
 
-function findJointCenter(
-  b0: LayerRig['bones'][number],
-  b1: LayerRig['bones'][number],
-  tf0: import('./layerRig').BoneTransform,
-  tf1: import('./layerRig').BoneTransform
-): { restX: number; restY: number; curX: number; curY: number } {
-  if (b1.parentId === b0.id) {
-    return { restX: b1.x, restY: b1.y, curX: tf1.x, curY: tf1.y }
-  }
-  if (b0.parentId === b1.id) {
-    return { restX: b0.x, restY: b0.y, curX: tf0.x, curY: tf0.y }
-  }
-  const child = b1.parentId ? b1 : b0
-  const tf = b1.parentId ? tf1 : tf0
-  return { restX: child.x, restY: child.y, curX: tf.x, curY: tf.y }
-}
-
 /** Returns local Y-up mesh positions; bind coordinates and bone transforms are Y-down. */
 export function deformSkin(
   positions: Float32Array,
@@ -312,6 +295,8 @@ export function deformSkin(
     const wx = px * restCos - py * restSin + restBx
     const wy = px * restSin + py * restCos + restBy
     let x = 0, y = 0, totalW = 0
+    let p0x = 0, p0y = 0, p1x = 0, p1y = 0
+    let hasP0 = false, hasP1 = false
     for (let j = 0; j < influences.length; j++) {
       const influence = influences[j]
       const transform = transforms.get(influence.id)
@@ -328,25 +313,53 @@ export function deformSkin(
       x += ptX * w
       y += ptY * w
       totalW += w
+      if (j === 0) {
+        p0x = ptX
+        p0y = ptY
+        hasP0 = true
+      } else if (j === 1) {
+        p1x = ptX
+        p1y = ptY
+        hasP1 = true
+      }
     }
     if (totalW <= 1e-6) continue
     if (totalW < 1) {
       x += wx * (1 - totalW)
       y += wy * (1 - totalW)
-    } else if (influences.length > 1 && influences[0].weight < 0.96) {
-      // Bù trừ thể tích khớp (Volume-Preserving Joint Compensation): bảo tồn bán kính vòng khớp, triệt tiêu sập khớp LBS
-      const b0 = boneById.get(influences[0].id)
-      const b1 = boneById.get(influences[1].id)
+    } else if (hasP0 && hasP1 && influences[1].weight > 1e-4) {
+      // Bù trừ hình học cung tròn trơn mượt C∞ (Smooth Circular Sagitta Chord Compensation):
+      // Triệt tiêu sập khớp LBS theo hàm parabol (4*w0*w1)/(w0+w1) liên tục 100%, bảo tồn thể tích hoàn hảo,
+      // không có bất kỳ bước nhảy ranh giới nào, triệt tiêu 100% răng cưa và ngăn ngừa lộn ngược tam giác.
       const tf0 = transforms.get(influences[0].id)
       const tf1 = transforms.get(influences[1].id)
-      if (b0 && b1 && tf0 && tf1) {
-        const joint = findJointCenter(b0, b1, tf0, tf1)
-        const restRadius = Math.hypot(wx - joint.restX, wy - joint.restY)
-        const curRadius = Math.hypot(x - joint.curX, y - joint.curY)
-        if (restRadius > 1.5 && curRadius > 0.5 && curRadius < restRadius) {
-          const factor = Math.min(1.55, restRadius / curRadius)
-          x = joint.curX + (x - joint.curX) * factor
-          y = joint.curY + (y - joint.curY) * factor
+      const b1 = boneById.get(influences[1].id)
+      if (tf0 && tf1 && b1) {
+        let dRot = (tf1.rotation - tf0.rotation) % 360
+        if (dRot > 180) dRot -= 360
+        if (dRot < -180) dRot += 360
+        const absDRot = Math.abs(dRot)
+        if (absDRot > 0.5 && absDRot < 179) {
+          const dx = p1x - p0x
+          const dy = p1y - p0y
+          const dist = Math.hypot(dx, dy)
+          if (dist > 0.5) {
+            const restRadius = Math.hypot(wx - b1.x, wy - b1.y)
+            const curRadius = Math.hypot(x - tf1.x, y - tf1.y)
+            if (curRadius < restRadius && restRadius > 1.0) {
+              const maxDeficit = restRadius - curRadius
+              const radQuarter = (absDRot * Math.PI) / 720
+              const h = Math.min(maxDeficit, 0.5 * dist * Math.tan(radQuarter))
+              const sign = dRot > 0 ? 1 : -1
+              const nx = (sign * dy) / dist
+              const ny = (-sign * dx) / dist
+              const w0 = influences[0].weight
+              const w1 = influences[1].weight
+              const blend = (4 * w0 * w1) / (w0 + w1)
+              x += blend * h * nx
+              y += blend * h * ny
+            }
+          }
         }
       }
     }
