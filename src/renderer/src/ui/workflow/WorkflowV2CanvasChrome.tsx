@@ -120,7 +120,7 @@ export const WorkflowV2EdgeLayer: React.FC<{
       </defs>
       {items.map(({ edge, from, to, kind, lane, running, lit, label }) => {
         const d = buildEdgePath(from, to, kind, wireStyle, lane)
-        const isDisabled = Boolean(edge.disabled)
+        const isDisabled = Boolean(edge.disabled) || !from.enabled
         const rawAccent = resolveRawBranchAccent(kind, from, to)
         const isToClusterLock = to.params?.logicCategory === 'cluster_lock'
         const isGroupToLayer = kind === 'hierarchy' && Boolean(from.params?.groupKind) && to.type === 'layer_assembly'

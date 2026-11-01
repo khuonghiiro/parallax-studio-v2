@@ -152,6 +152,16 @@
 .wf-v2-time-bar-live { font-family: var(--mono); font-weight: 700; color: var(--text); }
 
 /* ------------------------------------------------------------------ Chip & thẻ */
+.wf-v2-time-chip.is-disabled {
+  opacity: 0.55;
+  border-style: dashed;
+  filter: grayscale(0.5);
+}
+.wf-v2-studio .wf-v2-edge-group.kind-time.is-disabled .wf-v2-edge-fg {
+  opacity: 0.35;
+  stroke: var(--text-faint);
+  filter: none;
+}
 .wf-v2-time-chip {
   flex-shrink: 0;
   display: inline-flex;

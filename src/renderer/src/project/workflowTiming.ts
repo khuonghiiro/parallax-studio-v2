@@ -59,6 +59,12 @@ export function timeSource(workflow: WorkflowGraph | undefined, nodeId: string):
   return edge ? workflow?.nodes.find((n) => n.id === edge.fromNode && n.enabled && isTimeNode(n)) : undefined
 }
 
+/** Node Time đang kết nối vào node này (kể cả khi Node Time đang bật hay tắt) */
+export function timeGroupConnection(workflow: WorkflowGraph | undefined, nodeId: string): WorkflowNode | undefined {
+  const edge = workflow?.edges.find((e) => e.toNode === nodeId && e.fromPort === 'time_range' && !e.disabled)
+  return edge ? workflow?.nodes.find((n) => n.id === edge.fromNode && isTimeNode(n)) : undefined
+}
+
 /** Local timing stays on the consumer; only the evaluated copy inherits shared Time or Motion BBox trigger timing. */
 export function effectiveTimeParams(project: Project, node: WorkflowNode, params: WorkflowNodeParams): WorkflowNodeParams {
   const source = timeSource(project.workflow, node.id)

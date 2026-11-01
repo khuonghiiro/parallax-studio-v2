@@ -136,8 +136,6 @@ function buildEdgeItems(
     const from = graph.visibleMap.get(edge.fromNode)!
     const to = graph.visibleMap.get(edge.toNode)!
     const kind = classifyV2Edge(edge, from, to)
-    // Dây Time chỉ hiện khi đang chọn Node Time hoặc Node ăn theo nó (còn lại nhận diện bằng chip màu) để sơ đồ gọn
-    if (kind === 'time' && !focusIds.has(from.id) && !focusIds.has(to.id)) continue
     const minX = Math.min(from.position.x, to.position.x, kind === 'camera' ? WF_V2_CAMERA_LANE_X : Infinity)
     const maxX = Math.max(from.position.x, to.position.x) + WF_V2_NODE_W
     const minY = Math.min(from.position.y, to.position.y)

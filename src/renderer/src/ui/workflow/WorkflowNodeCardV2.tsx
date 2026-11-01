@@ -1,4 +1,4 @@
-import { effectiveTimeParams, isTimeNode, timeGroupColor, timeGroupLabel, timeSource } from '../../project/workflowTiming'
+import { effectiveTimeParams, isTimeNode, timeGroupColor, timeGroupConnection, timeGroupLabel, timeSource } from '../../project/workflowTiming'
 import React, { memo } from 'react'
 import type { ImageProps, Project, WorkflowNode, WorkflowNodeParams, WorkflowPortKind } from '@shared/types'
 import {
@@ -186,8 +186,9 @@ export const WorkflowNodeCardV2 = memo(function WorkflowNodeCardV2({
 }: WorkflowNodeCardV2Props) {
   const timing = effectiveTimeParams(project, node, node.params ?? {})
   const sharedTime = timeSource(project.workflow, node.id)
+  const connectedTime = timeGroupConnection(project.workflow, node.id)
   const isTime = isTimeNode(node)
-  const groupColor = sharedTime ? timeGroupColor(sharedTime) : isTime ? timeGroupColor(node) : undefined
+  const groupColor = sharedTime ? timeGroupColor(sharedTime) : connectedTime ? timeGroupColor(connectedTime) : isTime ? timeGroupColor(node) : undefined
   const timeConsumers = isTime ? (project.workflow?.edges ?? []).filter((e) => e.fromNode === node.id && e.fromPort === 'time_range' && !e.disabled).length : 0
   const wantsMulti = (e: React.MouseEvent | React.PointerEvent): boolean => Boolean(onToggleMulti) && (e.ctrlKey || e.metaKey || Boolean(multiMode))
   const theme = resolveV2NodeTheme(node)
@@ -282,11 +283,15 @@ export const WorkflowNodeCardV2 = memo(function WorkflowNodeCardV2({
             ) : (
               <span className="wf-v2-card-sub">{summarizeV2Node(node, childCount)}</span>
             )}
-            {sharedTime && (
+            {sharedTime ? (
               <span className="wf-v2-time-chip" title={`Đang ăn theo ${sharedTime.title} (${(timing.timeStart ?? 0).toFixed(1)}–${(timing.timeEnd ?? 0).toFixed(1)}s) — kéo thanh thời gian là sửa cả nhóm`}>
                 ⏱ {timeGroupLabel(sharedTime)}
               </span>
-            )}
+            ) : connectedTime && !connectedTime.enabled ? (
+              <span className="wf-v2-time-chip is-disabled" title={`Nhóm ${connectedTime.title} đang tạm tắt — Layer đang dùng mốc thời gian riêng (${(timing.timeStart ?? 0).toFixed(1)}–${(timing.timeEnd ?? 0).toFixed(1)}s)`}>
+                ⏱ {timeGroupLabel(connectedTime)} (Tắt)
+              </span>
+            ) : null}
           </div>
           <span className="wf-v2-card-title" title={node.title}>{cleanV2NodeTitle(node.title)}</span>
         </div>

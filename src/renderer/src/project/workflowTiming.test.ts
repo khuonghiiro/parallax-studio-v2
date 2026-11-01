@@ -41,6 +41,25 @@ describe('shared timing and timeline movement', () => {
     expect([project.layers[1].inPoint, project.layers[1].outPoint]).toEqual([5, 10])
   })
 
+  it('toggling Time node off restores individual local time ranges to project layers', () => {
+    const project = fixture()
+    const clock = createTimeNode(project)
+    clock.params = { ...clock.params, timeStart: 2, timeEnd: 8 }
+    project.workflow!.nodes.push(clock)
+    const id = "v2-layer-" + project.layers[0].id;
+    project.workflow = connectTimeNode(project.workflow!, clock.id, id)
+    syncWorkflowV2NodeToProject(project, clock)
+    expect([project.layers[0].inPoint, project.layers[0].outPoint]).toEqual([2, 8])
+
+    clock.enabled = false
+    syncWorkflowV2NodeToProject(project, clock)
+    expect([project.layers[0].inPoint, project.layers[0].outPoint]).toEqual([1, 4])
+
+    clock.enabled = true
+    syncWorkflowV2NodeToProject(project, clock)
+    expect([project.layers[0].inPoint, project.layers[0].outPoint]).toEqual([2, 8])
+  })
+
   it('moves a group by one clamped delta and skips locked layers', () => {
     const project = fixture(); project.layers[2].locked = true
     moveTimelineLayers(project, project.layers.map(l => l.id), -5)
