@@ -22,26 +22,36 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  flex-wrap: wrap;
+  gap: 6px;
+  flex-wrap: nowrap;
+  height: 36px;
   min-height: 36px;
-  padding: 5px 10px;
+  max-height: 36px;
+  box-sizing: border-box;
+  padding: 0 10px;
   position: relative;
-  overflow: visible;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
   z-index: 5000;
   background: var(--bg-1);
+}
+
+.lw-animation-timeline-toolbar::-webkit-scrollbar {
+  display: none;
 }
 
 .lw-dope-cluster {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  flex-shrink: 0;
   min-width: 0;
 }
 
 .lw-dope-center-cluster {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   justify-content: center;
 }
 
@@ -74,13 +84,14 @@
   align-items: center;
   gap: 3px;
   height: 22px;
-  padding: 0 6px;
+  padding: 0 5px;
   border-radius: var(--radius-sm);
   background: var(--bg-0);
   border: 1px solid color-mix(in srgb, var(--accent) 42%, var(--line));
   color: var(--text-dim);
   font-size: 10px;
   font-weight: 600;
+  flex-shrink: 0;
 }
 
 .lw-dope-keytime-box input {

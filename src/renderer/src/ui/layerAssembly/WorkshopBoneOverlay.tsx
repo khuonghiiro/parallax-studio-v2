@@ -41,7 +41,12 @@ import {
 import { WorkshopBoneCapsuleSvg } from './WorkshopBoneCapsuleSvg'
 import { WorkshopBoneConstraintArc } from './WorkshopBoneConstraintArc'
 import { WorkshopBoneRelationships } from './WorkshopBoneRelationships'
-import { WorkshopBoneDrawPreview, type DrawNewBoneDrag } from './WorkshopBoneDrawPreview'
+import {
+  WorkshopBoneDrawPreview,
+  WorkshopSymmetryGuide,
+  WorkshopBoneHudBadge,
+  type DrawNewBoneDrag
+} from './WorkshopBoneDrawPreview'
 
 export interface BoneOverlayProps {
   composite: LayerComposite
@@ -159,6 +164,13 @@ export function WorkshopBoneOverlay({
     if (editing && !isManipulateTool) return 'tail'
     const useIk = e.ctrlKey || e.metaKey ? !assist.ik : assist.ik
     return useIk ? 'ik' : 'rotate'
+  }
+
+  /** Kéo gốc: ở tab Tạo xương di chuyển khớp gốc; ở Animation chỉ di chuyển Root bone hoặc khi giữ Alt, xương con thì xoay khớp an toàn. */
+  const headMode = (e: PointerEvent, bone: LayerBone): BoneDragMode => {
+    if (editing && !isManipulateTool) return 'head'
+    if (!bone.parentId || e.altKey) return 'head'
+    return 'rotate'
   }
 
   const advanceLiveRecord = (liveDrag: LiveBoneRecordDrag, p: Point2D) => {
@@ -746,41 +758,7 @@ export function WorkshopBoneOverlay({
         />
       )}
 
-      {editing && rigTool.mirrorDraw && (
-        <g pointerEvents="none" className="lw-symmetry-axis-guide">
-          <line
-            x1={0}
-            y1={-composite.height / 2}
-            x2={0}
-            y2={composite.height / 2}
-            stroke="var(--accent)"
-            strokeWidth={1.6}
-            strokeDasharray="6 4"
-            opacity={0.78}
-          />
-          <rect
-            x={-68}
-            y={-composite.height / 2 + 8}
-            width={136}
-            height={18}
-            rx={4}
-            fill="var(--bg-1)"
-            stroke="var(--accent)"
-            strokeWidth={1.1}
-          />
-          <text
-            x={0}
-            y={-composite.height / 2 + 20}
-            textAnchor="middle"
-            fill="var(--text)"
-            fontSize={9.5}
-            fontWeight={700}
-            fontFamily="system-ui, sans-serif"
-          >
-            ĐỐI XỨNG L ⇄ R (X = 0)
-          </text>
-        </g>
-      )}
+      {editing && rigTool.mirrorDraw && <WorkshopSymmetryGuide height={composite.height} />}
 
       {/* Moho Pro Bone Influence Capsules (Vùng ảnh hưởng uốn Mesh) */}
       {editing && (rigTool.showInfluence || isStrengthTool) && rig.bones.length > 0 && (
@@ -850,15 +828,15 @@ export function WorkshopBoneOverlay({
                   cy={hy}
                   r={18}
                   fill="transparent"
-                  style={{ cursor: editing && !isManipulateTool ? 'move' : 'grab', pointerEvents: 'all' }}
-                  onPointerDown={(e) => handlePointerDown(e, bone.id, 'head')}
+                  style={{ cursor: editing && !isManipulateTool ? 'move' : !bone.parentId ? 'move' : 'grab', pointerEvents: 'all' }}
+                  onPointerDown={(e) => handlePointerDown(e, bone.id, headMode(e, bone))}
                 />
                 <circle
                   cx={hx}
                   cy={hy}
                   r={isSelected ? 11 : 9}
                   className="lw-pin-bone-ring"
-                  onPointerDown={(e) => handlePointerDown(e, bone.id, 'head')}
+                  onPointerDown={(e) => handlePointerDown(e, bone.id, headMode(e, bone))}
                 />
                 <line x1={hx - 6} y1={hy} x2={hx + 6} y2={hy} className="lw-bone-ridge" pointerEvents="none" />
                 <line x1={hx} y1={hy - 6} x2={hx} y2={hy + 6} className="lw-bone-ridge" pointerEvents="none" />
@@ -919,8 +897,8 @@ export function WorkshopBoneOverlay({
                   cy={hy}
                   r={18}
                   fill="transparent"
-                  style={{ cursor: 'move', pointerEvents: 'all' }}
-                  onPointerDown={(e) => handlePointerDown(e, bone.id, 'head')}
+                  style={{ cursor: editing && !isManipulateTool ? 'move' : !bone.parentId ? 'move' : 'grab', pointerEvents: 'all' }}
+                  onPointerDown={(e) => handlePointerDown(e, bone.id, headMode(e, bone))}
                 />
                 <circle
                   cx={hx}
@@ -928,7 +906,7 @@ export function WorkshopBoneOverlay({
                   r={isSelected ? 8.5 : editing && mixamoLandmarks && !isHovered ? 3.5 : 7}
                   className="lw-bone-head-joint"
                   style={editing && mixamoLandmarks && !isSelected && !isHovered ? { opacity: 0.45 } : undefined}
-                  onPointerDown={(e) => handlePointerDown(e, bone.id, 'head')}
+                  onPointerDown={(e) => handlePointerDown(e, bone.id, headMode(e, bone))}
                 />
               </>
             )}
@@ -964,34 +942,7 @@ export function WorkshopBoneOverlay({
       )}
 
       {/* Live Dragging Tooltip HUD Badge */}
-      {dragAngle && (() => {
-        const badgeW = Math.max(96, dragAngle.text.length * 7.0 + 22)
-        return (
-          <g transform={`translate(${dragAngle.x + 14}, ${dragAngle.y - 14})`} pointerEvents="none">
-            <rect
-              x={-6}
-              y={-15}
-              width={badgeW}
-              height={22}
-              rx={5}
-              fill="var(--bg-1)"
-              stroke={dragAngle.isLive ? 'var(--key)' : 'var(--accent-cyan)'}
-              strokeWidth={1.5}
-            />
-            <text
-              x={(badgeW - 12) / 2}
-              y={0}
-              textAnchor="middle"
-              fill={dragAngle.isLive ? 'var(--key)' : 'var(--text)'}
-              fontSize={11}
-              fontWeight={700}
-              fontFamily="system-ui, sans-serif"
-            >
-              {dragAngle.text}
-            </text>
-          </g>
-        )
-      })()}
+      <WorkshopBoneHudBadge hud={dragAngle} />
     </svg>
   )
 }

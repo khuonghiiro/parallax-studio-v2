@@ -125,3 +125,75 @@ export function WorkshopBoneDrawPreview({
     </>
   )
 }
+
+export function WorkshopSymmetryGuide({ height }: { height: number }) {
+  return (
+    <g pointerEvents="none" className="lw-symmetry-axis-guide">
+      <line
+        x1={0}
+        y1={-height / 2}
+        x2={0}
+        y2={height / 2}
+        stroke="var(--accent)"
+        strokeWidth={1.6}
+        strokeDasharray="6 4"
+        opacity={0.78}
+      />
+      <rect
+        x={-68}
+        y={-height / 2 + 8}
+        width={136}
+        height={18}
+        rx={4}
+        fill="var(--bg-1)"
+        stroke="var(--accent)"
+        strokeWidth={1.1}
+      />
+      <text
+        x={0}
+        y={-height / 2 + 20}
+        textAnchor="middle"
+        fill="var(--text)"
+        fontSize={9.5}
+        fontWeight={700}
+        fontFamily="system-ui, sans-serif"
+      >
+        ĐỐI XỨNG L ⇄ R (X = 0)
+      </text>
+    </g>
+  )
+}
+
+export function WorkshopBoneHudBadge({
+  hud
+}: {
+  hud: { x: number; y: number; text: string; isLive?: boolean } | null
+}) {
+  if (!hud) return null
+  const badgeW = Math.max(96, hud.text.length * 7.0 + 22)
+  return (
+    <g transform={`translate(${hud.x + 14}, ${hud.y - 14})`} pointerEvents="none">
+      <rect
+        x={-6}
+        y={-15}
+        width={badgeW}
+        height={22}
+        rx={5}
+        fill="var(--bg-1)"
+        stroke={hud.isLive ? 'var(--key)' : 'var(--accent-cyan)'}
+        strokeWidth={1.5}
+      />
+      <text
+        x={(badgeW - 12) / 2}
+        y={0}
+        textAnchor="middle"
+        fill={hud.isLive ? 'var(--key)' : 'var(--text)'}
+        fontSize={11}
+        fontWeight={700}
+        fontFamily="system-ui, sans-serif"
+      >
+        {hud.text}
+      </text>
+    </g>
+  )
+}
