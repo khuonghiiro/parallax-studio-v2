@@ -114,6 +114,8 @@ export interface LayerBboxTargetConfig {
   targetRotZ?: number
   targetRotY?: number
   targetRotX?: number
+  bboxPathType?: 'shortest' | 'custom_curve'
+  customMotionPath?: [number, number][]
 }
 
 export interface WorkflowNodeParams {

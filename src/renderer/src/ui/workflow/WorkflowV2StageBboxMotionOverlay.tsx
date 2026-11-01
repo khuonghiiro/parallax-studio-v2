@@ -6,7 +6,7 @@ import { useShiftToFocus } from './workflowFocusGuard'
 import { bboxStartPosition, bboxStartScale } from '../../project/workflowMotionStart'
 import { bboxStepNumber } from '../../project/workflowBboxSteps'
 import React, { useCallback, useMemo, useState } from 'react'
-import type { ImageProps, Layer, Project, Vec3, WorkflowGraph, WorkflowNode, WorkflowNodeParams } from '@shared/types'
+import type { ImageProps, Layer, LayerBboxTargetConfig, Project, Vec3, WorkflowGraph, WorkflowNode, WorkflowNodeParams } from '@shared/types'
 import { evaluate } from '../../animation/keyframes'
 import { assetStore } from '../../project/assets'
 import {
@@ -42,38 +42,8 @@ export interface StageBboxMotionOverlayProps {
   onSelectNode?: (nodeId: string) => void
 }
 
-const HANDLES: { key: 'nw' | 'ne' | 'sw' | 'se'; cls: string }[] = [
-  { key: 'nw', cls: 'nw' },
-  { key: 'ne', cls: 'ne' },
-  { key: 'sw', cls: 'sw' },
-  { key: 'se', cls: 'se' }
-]
-
-/**
- * Tìm Node Motion (`action`) đang gắn với Node hiện tại (hoặc chính nó nếu đang chọn Node Motion).
- */
-export function resolveActiveMotionNode(
-  workflow: WorkflowGraph,
-  node: WorkflowNode,
-  repLayerId?: string,
-  clusterInstId?: string
-): WorkflowNode | undefined {
-  if (node.params?.logicCategory === 'action' || (!node.params?.logicCategory && node.type === 'motion_choreography')) {
-    return node
-  }
-  // Nếu đang chọn Node Va chạm, tìm Node Motion của Chủ thể A (strikerLayerId)
-  const lookupLayerId =
-    node.params?.logicCategory === 'collision'
-      ? (node.params?.strikerLayerId ?? node.params?.targetLayerIds?.[0])
-      : repLayerId
-
-  return workflow.nodes.find((n) => {
-    if (n.params?.logicCategory !== 'action' && (n.params?.logicCategory || n.type !== 'motion_choreography')) return false
-    if (clusterInstId && n.params?.instanceId === clusterInstId) return true
-    if (lookupLayerId && n.params?.targetLayerIds?.includes(lookupLayerId)) return true
-    return workflow.edges.some((e) => !e.disabled && e.fromNode === node.id && e.toNode === n.id)
-  })
-}
+import { HANDLES, resolveActiveMotionNode } from './WorkflowV2StageBboxHelpers'
+export { resolveActiveMotionNode } from './WorkflowV2StageBboxHelpers'
 
 export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayProps> = ({
   toolbarHost = null,
@@ -200,7 +170,6 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
     depthMode === 'depth_z'
       ? (mp?.bboxTargetZ ?? Math.round(defaultStartZ - (defaultScaleRatio - 1) * 180))
       : defaultStartZ
-  const multiMode = mp?.bboxMultiMode ?? 'group_offset'
 
   // Tìm tất cả các Layer / Cụm kết nối vào Node Motion này
   const connectedEntities = useMemo(() => {
@@ -338,12 +307,12 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
       const customTarget = mp?.layerBboxTargets?.[ent.id]
       const entTargetX =
         customTarget?.targetX ??
-        (isPrimary || multiMode === 'converge_target'
+        (isPrimary
           ? defaultTargetX
           : Math.round(defaultTargetX + (entStartPos[0] - startPos[0])))
       const entTargetY =
         customTarget?.targetY ??
-        (isPrimary || multiMode === 'converge_target'
+        (isPrimary
           ? defaultTargetY
           : Math.round(defaultTargetY + (entStartPos[1] - startPos[1])))
       const entTargetScalePct = customTarget?.targetScalePct ?? defaultTargetScalePct
@@ -390,8 +359,10 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
       const pathPts: [number, number][] = []
       if (hasBboxMotion) {
         const steps = 24
-        const activeStroke = mp?.customMotionPath
-        const pType = mp?.bboxPathType ?? 'shortest'
+        const activeStroke = customTarget?.customMotionPath !== undefined
+          ? customTarget.customMotionPath
+          : (isPrimary ? mp?.customMotionPath : undefined)
+        const pType = customTarget?.bboxPathType ?? (isPrimary ? (mp?.bboxPathType ?? 'shortest') : 'shortest')
         for (let i = 0; i <= steps; i++) {
           const u = i / steps
           const pt = evaluateBboxTrajectoryAt(
@@ -458,7 +429,6 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
     mp?.bboxTargetRotZ,
     mp?.bboxTargetRotY,
     mp?.bboxTargetRotX,
-    multiMode,
     defaultTargetX,
     startPos,
     defaultTargetY,
@@ -643,6 +613,53 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
     })
   }, [renderedEntities, isMultiEntity, focusedEntityId])
 
+  const focusedItem = renderedEntities.find((i) => i.ent.id === focusedEntityId) ?? primaryItem ?? renderedEntities[0]
+  const focusedCustomTarget = focusedEntityId ? mp?.layerBboxTargets?.[focusedEntityId] : undefined
+  const isFocusedPrimary = !focusedEntityId || focusedEntityId === primaryEntity?.id
+
+  const activeParamsForTools: WorkflowNodeParams = useMemo(() => ({
+    ...(mp ?? {}),
+    bboxPathType: focusedCustomTarget?.bboxPathType ?? (isFocusedPrimary ? (mp?.bboxPathType ?? 'shortest') : 'shortest'),
+    customMotionPath: focusedCustomTarget?.customMotionPath !== undefined
+      ? focusedCustomTarget.customMotionPath
+      : (isFocusedPrimary ? mp?.customMotionPath : undefined)
+  }), [mp, focusedCustomTarget, isFocusedPrimary])
+
+  const patchMotionForTools = useCallback(
+    (patch: Partial<WorkflowNodeParams>, mergeKey = 'wf-stage-bbox2'): void => {
+      if (!motionNode) return
+      if (patch.customMotionPath !== undefined || patch.bboxPathType !== undefined) {
+        const existing = mp?.layerBboxTargets ?? {}
+        const curFocusedId = focusedEntityId ?? primaryEntity?.id
+        const curTarget: Partial<LayerBboxTargetConfig> = (curFocusedId ? existing[curFocusedId] : undefined) ?? {}
+        const nextPathType = patch.bboxPathType ?? curTarget.bboxPathType ?? mp?.bboxPathType ?? 'shortest'
+        const nextCustomPath = patch.customMotionPath !== undefined ? patch.customMotionPath : curTarget.customMotionPath
+
+        if (curFocusedId) {
+          const updatedTargets = {
+            ...existing,
+            [curFocusedId]: {
+              ...curTarget,
+              targetX: curTarget.targetX ?? focusedItem?.entTargetX ?? defaultTargetX,
+              targetY: curTarget.targetY ?? focusedItem?.entTargetY ?? defaultTargetY,
+              targetScalePct: curTarget.targetScalePct ?? focusedItem?.entTargetScalePct ?? defaultTargetScalePct,
+              targetZ: curTarget.targetZ ?? focusedItem?.entTargetZ ?? defaultStartZ,
+              bboxPathType: nextPathType,
+              customMotionPath: nextCustomPath
+            }
+          }
+          patchMotionNode({
+            layerBboxTargets: updatedTargets,
+            ...(isFocusedPrimary ? patch : {})
+          }, mergeKey)
+          return
+        }
+      }
+      patchMotionNode(patch, mergeKey)
+    },
+    [motionNode, mp, focusedEntityId, primaryEntity?.id, isFocusedPrimary, focusedItem, defaultTargetX, defaultTargetY, defaultTargetScalePct, defaultStartZ, patchMotionNode]
+  )
+
   if (!selectedProjLayer || !coordRefLayer) return null
 
   return (
@@ -652,12 +669,12 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
           toolbarHost={toolbarHost}
           mode={hasBboxMotion ? 'bbox' : 'path'}
           nodeId={node.id}
-          params={mp ?? {}}
+          params={activeParamsForTools}
           width={stageW}
           height={stageH}
           zoom={zoom}
           perspective={pFactorStart}
-          start={[primaryItem?.box1Cx ?? 0, primaryItem?.box1Cy ?? 0]}
+          start={[focusedItem?.box1Cx ?? 0, focusedItem?.box1Cy ?? 0]}
           path={coordRefLayer.transform.position.keyframes
             .filter((k) => k.id.includes(`-motpath-p-${node.id}-`) && !k.id.endsWith('-pre'))
             .map((k) => {
@@ -667,7 +684,7 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
                 shotTop + shotScreenH / 2 - k.value[1] * pf * zoom
               ]
             })}
-          patch={patchMotionNode}
+          patch={patchMotionForTools}
         />
       )}
       {!motionNode && node.type === 'layer_assembly' && !node.params?.logicCategory && (

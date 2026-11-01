@@ -189,6 +189,25 @@ describe('Workflow V2 Logic Upgrades (Part Swap + Motion BBox + 3D Shots + Camer
     syncWorkflowV2NodeToProject(project, motionNode)
     expect(Math.round(evaluate(layerB.transform.position, 4)[0])).toBe(300)
     expect(Math.round(evaluate(layerB.transform.position, 4)[1])).toBe(0)
+
+    // Mỗi tag BBox có logic riêng biệt: BBox B có thể vẽ line cong riêng (custom_curve) trong khi BBox A đi thẳng (shortest)
+    motionNode.params.layerBboxTargets = {
+      [layerB.id]: {
+        targetX: 300,
+        targetY: 0,
+        bboxPathType: 'custom_curve',
+        customMotionPath: [
+          [0.1, 0.2],
+          [0.5, 0.8],
+          [0.9, 0.2]
+        ]
+      }
+    }
+    syncWorkflowV2NodeToProject(project, motionNode)
+    // Layer A đi thẳng ngắn nhất: tại t = 2s (50%), X của A là điểm giữa (50)
+    expect(Math.round(evaluate(layerA.transform.position, 2)[0])).toBe(50)
+    // Layer B đi theo đường cong riêng biệt
+    expect(evaluate(layerB.transform.position, 2)[0]).not.toBeNaN()
   })
 
   it('triggers Part Swap automatically at the exact spatial % / (X, Y) along a moving Motion BBox', () => {

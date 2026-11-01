@@ -323,24 +323,6 @@ export function bakeBboxTargetMotionToScene(
     : span
   const cycles = isLoop ? Math.max(1, Math.ceil(span / cycleDur)) : 1
 
-  // Xây dựng tập điểm mẫu tiến độ `uSteps` tối giản để di chuyển mượt tuyệt đối (không chia đoạn easeInOut thừa!)
-  let uSteps: number[]
-  if (pathType === 'shortest') {
-    if (hitRatio === null) {
-      // Đường thẳng ngắn nhất không va chạm: chỉ 2 keyframe đầu-cuối giúp easeInOut mượt 60fps liền mạch!
-      uSteps = [0, 1]
-    } else if (colResponse === 'stop' || colResponse === 'bounce' || colResponse === 'push') {
-      uSteps = [0, hitRatio, 1]
-    } else {
-      const pre = Number(Math.max(0.05, hitRatio - 0.08).toFixed(3))
-      const post = Number(Math.min(0.95, hitRatio + 0.08).toFixed(3))
-      uSteps = Array.from(new Set([0, pre, hitRatio, post, 1])).sort((a, b) => a - b)
-    }
-  } else {
-    // Đường cong vẽ tay: lấy 14 mẫu cách đều độ dài cung với nội suy tuyến tính mượt
-    uSteps = Array.from({ length: 15 }, (_, idx) => Number((idx / 14).toFixed(4)))
-  }
-
   const convergeEachEntity = params.bboxMultiMode === 'converge_target'
   for (const m of effectiveLayers) {
     const mBasePos: Vec3 = bboxStartPosition(m, tStart, nodeId)
@@ -373,6 +355,26 @@ export function bakeBboxTargetMotionToScene(
         ? targetZ
         : Math.round(targetZ + (entityStartZ - startZ))
     )
+
+    const entityPathType = entityTargetConfig?.bboxPathType ?? (isRoot ? pathType : 'shortest')
+    const entityCustomPath = entityTargetConfig?.customMotionPath !== undefined
+      ? entityTargetConfig.customMotionPath
+      : (isRoot ? params.customMotionPath : undefined)
+
+    let entityUSteps: number[]
+    if (entityPathType === 'shortest') {
+      if (hitRatio === null) {
+        entityUSteps = [0, 1]
+      } else if (colResponse === 'stop' || colResponse === 'bounce' || colResponse === 'push') {
+        entityUSteps = [0, hitRatio, 1]
+      } else {
+        const pre = Number(Math.max(0.05, hitRatio - 0.08).toFixed(3))
+        const post = Number(Math.min(0.95, hitRatio + 0.08).toFixed(3))
+        entityUSteps = Array.from(new Set([0, pre, hitRatio, post, 1])).sort((a, b) => a - b)
+      }
+    } else {
+      entityUSteps = Array.from({ length: 15 }, (_, idx) => Number((idx / 14).toFixed(4)))
+    }
 
     const entityTargetRotZ = entityTargetConfig?.targetRotZ ?? params.bboxTargetRotZ ?? 0
     const entityTargetRotY = entityTargetConfig?.targetRotY ?? params.bboxTargetRotY ?? 0
@@ -417,9 +419,9 @@ export function bakeBboxTargetMotionToScene(
       const cStart = tStart + c * cycleDur
       if (cStart >= tEnd - 0.01) break
 
-      for (let s = 0; s < uSteps.length; s++) {
+      for (let s = 0; s < entityUSteps.length; s++) {
         if (c > 0 && s === 0) continue
-        const rawU = uSteps[s]
+        const rawU = entityUSteps[s]
         const t = Number((cStart + rawU * cycleDur).toFixed(3))
         if (t > tEnd + 0.005) break
 
@@ -442,8 +444,8 @@ export function bakeBboxTargetMotionToScene(
           entityTargetZ,
           entityTargetScaleRatio,
           effU,
-          pathType,
-          params.customMotionPath
+          entityPathType,
+          entityCustomPath
         )
 
         let shakeX = 0

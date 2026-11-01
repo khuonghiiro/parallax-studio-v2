@@ -35,18 +35,19 @@ export function BboxMotionTargetSection({ model }: { model: BboxMotionModel }): 
   const primaryEnt = connectedEntities[0]
   const currentEnt = activeEntityId !== 'all' ? connectedEntities.find((e) => e.id === activeEntityId) : undefined
   const sharedCount = Math.max(p.sharedLayerNodeIds?.length ?? 1, connectedEntities.length)
-  const multiMode = p.bboxMultiMode ?? 'group_offset'
-
 
   const currentCustom = currentEnt ? p.layerBboxTargets?.[currentEnt.id] : undefined
+  const currentStartPos = currentEnt
+    ? bboxStartPosition(currentEnt.rootLayer, tStart, node.id)
+    : startPos
   const activeTargetX = currentCustom?.targetX ?? (
-    currentEnt && currentEnt.id !== primaryEnt?.id && multiMode === 'group_offset'
-      ? Math.round(targetX + (bboxStartPosition(currentEnt.rootLayer, tStart, node.id)[0] - startPos[0]))
+    currentEnt && currentEnt.id !== primaryEnt?.id
+      ? Math.round(currentStartPos[0] + 280)
       : targetX
   )
   const activeTargetY = currentCustom?.targetY ?? (
-    currentEnt && currentEnt.id !== primaryEnt?.id && multiMode === 'group_offset'
-      ? Math.round(targetY + (bboxStartPosition(currentEnt.rootLayer, tStart, node.id)[1] - startPos[1]))
+    currentEnt && currentEnt.id !== primaryEnt?.id
+      ? Math.round(currentStartPos[1])
       : targetY
   )
   const activeTargetScalePct = currentCustom?.targetScalePct ?? targetScalePct
@@ -60,9 +61,10 @@ export function BboxMotionTargetSection({ model }: { model: BboxMotionModel }): 
       const nextMap: Record<string, LayerBboxTargetConfig> = {}
       for (const ent of connectedEntities) {
         const cur = existing[ent.id]
+        const entStart = bboxStartPosition(ent.rootLayer, tStart, node.id)
         nextMap[ent.id] = {
-          targetX: cur?.targetX ?? (ent.id === primaryEnt?.id || multiMode === 'converge_target' ? targetX : Math.round(targetX + (bboxStartPosition(ent.rootLayer, tStart, node.id)[0] - startPos[0]))),
-          targetY: cur?.targetY ?? (ent.id === primaryEnt?.id || multiMode === 'converge_target' ? targetY : Math.round(targetY + (bboxStartPosition(ent.rootLayer, tStart, node.id)[1] - startPos[1]))),
+          targetX: cur?.targetX ?? (ent.id === primaryEnt?.id ? targetX : Math.round(entStart[0] + 280)),
+          targetY: cur?.targetY ?? (ent.id === primaryEnt?.id ? targetY : Math.round(entStart[1])),
           targetScalePct: nextPct,
           targetZ: cur?.targetZ ?? targetZ
         }
@@ -97,10 +99,11 @@ export function BboxMotionTargetSection({ model }: { model: BboxMotionModel }): 
       const nextMap: Record<string, LayerBboxTargetConfig> = {}
       for (const ent of connectedEntities) {
         const cur = existing[ent.id]
-        const baseCurX = cur?.targetX ?? (ent.id === primaryEnt?.id || multiMode === 'converge_target' ? targetX : Math.round(targetX + (bboxStartPosition(ent.rootLayer, tStart, node.id)[0] - startPos[0])))
+        const entStart = bboxStartPosition(ent.rootLayer, tStart, node.id)
+        const baseCurX = cur?.targetX ?? (ent.id === primaryEnt?.id ? targetX : Math.round(entStart[0] + 280))
         nextMap[ent.id] = {
           targetX: baseCurX + deltaX,
-          targetY: cur?.targetY ?? (ent.id === primaryEnt?.id || multiMode === 'converge_target' ? targetY : Math.round(targetY + (bboxStartPosition(ent.rootLayer, tStart, node.id)[1] - startPos[1]))),
+          targetY: cur?.targetY ?? (ent.id === primaryEnt?.id ? targetY : Math.round(entStart[1])),
           targetScalePct: cur?.targetScalePct ?? targetScalePct,
           targetZ: cur?.targetZ ?? targetZ
         }
@@ -135,9 +138,10 @@ export function BboxMotionTargetSection({ model }: { model: BboxMotionModel }): 
       const nextMap: Record<string, LayerBboxTargetConfig> = {}
       for (const ent of connectedEntities) {
         const cur = existing[ent.id]
-        const baseCurY = cur?.targetY ?? (ent.id === primaryEnt?.id || multiMode === 'converge_target' ? targetY : Math.round(targetY + (bboxStartPosition(ent.rootLayer, tStart, node.id)[1] - startPos[1])))
+        const entStart = bboxStartPosition(ent.rootLayer, tStart, node.id)
+        const baseCurY = cur?.targetY ?? (ent.id === primaryEnt?.id ? targetY : Math.round(entStart[1]))
         nextMap[ent.id] = {
-          targetX: cur?.targetX ?? (ent.id === primaryEnt?.id || multiMode === 'converge_target' ? targetX : Math.round(targetX + (bboxStartPosition(ent.rootLayer, tStart, node.id)[0] - startPos[0]))),
+          targetX: cur?.targetX ?? (ent.id === primaryEnt?.id ? targetX : Math.round(entStart[0] + 280)),
           targetY: baseCurY + deltaY,
           targetScalePct: cur?.targetScalePct ?? targetScalePct,
           targetZ: cur?.targetZ ?? targetZ
@@ -203,10 +207,11 @@ export function BboxMotionTargetSection({ model }: { model: BboxMotionModel }): 
       const nextMap: Record<string, LayerBboxTargetConfig> = {}
       for (const ent of connectedEntities) {
         const cur = existing[ent.id]
+        const entStart = bboxStartPosition(ent.rootLayer, tStart, node.id)
         nextMap[ent.id] = {
           ...(cur ?? {}),
-          targetX: cur?.targetX ?? (ent.id === primaryEnt?.id || multiMode === 'converge_target' ? targetX : Math.round(targetX + (bboxStartPosition(ent.rootLayer, tStart, node.id)[0] - startPos[0]))),
-          targetY: cur?.targetY ?? (ent.id === primaryEnt?.id || multiMode === 'converge_target' ? targetY : Math.round(targetY + (bboxStartPosition(ent.rootLayer, tStart, node.id)[1] - startPos[1]))),
+          targetX: cur?.targetX ?? (ent.id === primaryEnt?.id ? targetX : Math.round(entStart[0] + 280)),
+          targetY: cur?.targetY ?? (ent.id === primaryEnt?.id ? targetY : Math.round(entStart[1])),
           targetScalePct: cur?.targetScalePct ?? targetScalePct,
           targetZ: cur?.targetZ ?? targetZ,
           targetRotZ: zVal,
@@ -312,36 +317,6 @@ export function BboxMotionTargetSection({ model }: { model: BboxMotionModel }): 
 
   return (
     <div className="vl-subcard" style={{ padding: '6px 7px' }}>
-      {sharedCount > 1 && (
-        <div className="wf-bbox-multi-card">
-          <div className="wf-v2-subsec-head">
-            <span>🔗 Đang kết hợp di chuyển chung {sharedCount} BBox</span>
-          </div>
-          <div className="wf-v2-seg-tabs" role="tablist" aria-label="Cách di chuyển nhiều BBox">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={multiMode === 'group_offset'}
-              className={`wf-v2-seg-tab${multiMode === 'group_offset' ? ' active' : ''}`}
-              title="Các BBox cùng dịch chuyển song song, giữ nguyên khoảng cách đội hình ban đầu"
-              onClick={() => applyBboxPatch({ bboxMultiMode: 'group_offset' }, 'wf-bbox-multimode')}
-            >
-              🔗 Giữ đội hình
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={multiMode === 'converge_target'}
-              className={`wf-v2-seg-tab${multiMode === 'converge_target' ? ' active' : ''}`}
-              title="Mỗi BBox xuất phát từ vị trí riêng của nó và cùng tiến về toạ độ BBox Đích #2"
-              onClick={() => applyBboxPatch({ bboxMultiMode: 'converge_target' }, 'wf-bbox-multimode')}
-            >
-              🎯 Cùng hội tụ về Đích
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* 1-Click khớp Camera 3D lia bám theo Motion BBox mà không cần dựng lộ trình Camera thủ công */}
       <button
         type="button"
