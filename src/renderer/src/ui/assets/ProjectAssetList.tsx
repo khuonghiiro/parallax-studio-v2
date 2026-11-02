@@ -59,7 +59,15 @@ export function ProjectAssetList() {
               onMouseEnter={() => setHover(a.id)}
               onMouseLeave={() => setHover(null)}
               draggable
-              onDragStart={(e) => e.dataTransfer.setData('application/x-pxs-asset', a.id)}
+              onDragStart={(e) => {
+                e.dataTransfer.setData('application/x-pxs-asset', a.id)
+                const img = e.currentTarget.querySelector('img') as HTMLImageElement | null
+                if (img && e.dataTransfer.setDragImage) {
+                  const w = img.naturalWidth > 0 ? Math.min(img.offsetWidth || 80, 120) : 40
+                  const h = img.naturalHeight > 0 ? Math.min(img.offsetHeight || 80, 120) : 40
+                  e.dataTransfer.setDragImage(img, w / 2, h / 2)
+                }
+              }}
               onDragEnd={() => setHover(null)}
             >
               {/* Badge góc trên bên trái: Scope (Public/Private) ở trên, Type Audio/GIF ở dưới */}

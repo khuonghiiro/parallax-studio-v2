@@ -229,29 +229,22 @@
 }
 
 .loop-lib-actions {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 26px 26px;
+  display: flex;
   align-items: center;
-  gap: 4px;
+  justify-content: flex-end;
+  gap: 5px;
   padding: 4px 7px 7px;
 }
 
-.loop-lib-insert {
-  min-width: 0;
-  padding: 0 6px;
-  overflow: hidden;
-}
-
 .loop-lib-actions .la-icon-btn {
-  width: 26px;
-  height: 28px;
-}
-
-/* Thẻ quá hẹp: nút Chèn chỉ giữ icon, không bao giờ tràn hay che các nút khác */
-@container (max-width: 112px) {
-  .loop-lib-insert span {
-    display: none;
-  }
+  width: 25px;
+  height: 25px;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
 }
 
 .loop-lib-empty {

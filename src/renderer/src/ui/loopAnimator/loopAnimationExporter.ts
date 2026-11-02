@@ -2,7 +2,12 @@ import type { AssetMeta } from '@shared/types'
 import { assetStore, type AnimatedGifData, type GifFrame } from '../../project/assets'
 import { createImageLayer } from '../../project/factory'
 import { useEditor } from '../../store/editor'
-import { applyChromaKeyToImageData, buildGridFrames, extractFrameCanvas } from './loopFrameExtractor'
+import {
+  applyChromaKeyToImageData,
+  buildGridFrames,
+  extractFrameCanvas,
+  getCachedLoopTemplateSheet
+} from './loopFrameExtractor'
 import { getAllLoopTemplates } from './loopAnimatorStorage'
 import { SAMPLE_LOOP_PRESETS, resolveLoopAssetUrl } from './sampleLoops'
 import type {
@@ -59,17 +64,17 @@ export async function applyLoopAnimationToProject(
   let currentTime = 0
   let firstFrameCanvas: HTMLCanvasElement | null = null
 
+  const frameCanvases = enabledFrames.map((f) => extractFrameCanvas(sourceCanvas, f, maxW, maxH))
+  firstFrameCanvas = frameCanvases[0] ?? null
+
+  const bitmaps = await Promise.all(frameCanvases.map((fc) => createLoopFrameBitmap(fc)))
+
   for (let i = 0; i < enabledFrames.length; i++) {
     const f = enabledFrames[i]
-    const frameCanvas = extractFrameCanvas(sourceCanvas, f, maxW, maxH)
-    if (i === 0) {
-      firstFrameCanvas = frameCanvas
-    }
-    const bitmap = await createLoopFrameBitmap(frameCanvas)
     const duration = Math.max(0.016, baseFrameDuration * (f.durationRatio || 1))
     gifFrames.push({
       index: i,
-      bitmap,
+      bitmap: bitmaps[i],
       duration,
       startTime: currentTime
     })
@@ -230,15 +235,16 @@ export async function buildLoopAnimatedAsset(options: {
   let currentTime = 0
   let firstFrameCanvas: HTMLCanvasElement | null = null
 
+  const frameCanvases = normalizedFrames.map((f) => extractFrameCanvas(canvas, f, maxW, maxH))
+  if (frameCanvases.length > 0) firstFrameCanvas = frameCanvases[0]
+  const bitmaps = await Promise.all(frameCanvases.map((fc) => createLoopFrameBitmap(fc)))
+
   for (let i = 0; i < normalizedFrames.length; i++) {
     const f = normalizedFrames[i]
-    const frameCanvas = extractFrameCanvas(canvas, f, maxW, maxH)
-    if (i === 0) firstFrameCanvas = frameCanvas
-    const bitmap = await createLoopFrameBitmap(frameCanvas)
     const duration = Math.max(0.016, baseFrameDuration * (f.durationRatio || 1))
     gifFrames.push({
       index: i,
-      bitmap,
+      bitmap: bitmaps[i],
       duration,
       startTime: currentTime
     })
@@ -320,35 +326,56 @@ export async function exportLoopPresetDirectly(
       }
     })()
 
-  // Phân giải đường dẫn asset tương đối (assets/...) qua IPC → blob URL trước khi nạp ảnh
-  const resolvedUrl = (await resolveLoopAssetUrl(template.imageUrl)) || template.imageUrl
-  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
-    const el = new Image()
-    el.crossOrigin = 'anonymous'
-    el.onload = () => resolve(el)
-    el.onerror = () => reject(new Error(`Không thể tải ảnh preset: ${template.imageUrl}`))
-    el.src = resolvedUrl
-  })
+  // Ưu tiên tận dụng sheet đã khử chroma key từ cache trong RAM để chèn tức thì không đơ lag
+  const cached = await getCachedLoopTemplateSheet(template)
+  let canvas: HTMLCanvasElement
+  let frames: LoopFrameBox[]
 
-  const w = img.naturalWidth || img.width || 1024
-  const h = img.naturalHeight || img.height || 1024
-  const canvas = document.createElement('canvas')
-  canvas.width = w
-  canvas.height = h
-  const ctx = canvas.getContext('2d', { willReadFrequently: true })
-  if (!ctx) throw new Error('Không thể khởi tạo Canvas 2D')
+  if (cached && cached.canvas && cached.frames.length > 0) {
+    canvas = cached.canvas
+    frames = cached.frames.map((f, idx) => ({
+      id: f.id || `f_${idx}`,
+      index: idx,
+      x: f.x,
+      y: f.y,
+      width: f.width,
+      height: f.height,
+      offsetX: f.offsetX ?? 0,
+      offsetY: f.offsetY ?? 0,
+      enabled: true,
+      durationRatio: f.durationRatio ?? 1
+    }))
+  } else {
+    // Phân giải đường dẫn asset tương đối (assets/...) qua IPC → blob URL trước khi nạp ảnh
+    const resolvedUrl = (await resolveLoopAssetUrl(template.imageUrl)) || template.imageUrl
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image()
+      el.crossOrigin = 'anonymous'
+      el.onload = () => resolve(el)
+      el.onerror = () => reject(new Error(`Không thể tải ảnh preset: ${template.imageUrl}`))
+      el.src = resolvedUrl
+    })
 
-  ctx.drawImage(img, 0, 0, w, h)
-  if (template.chromaKey.enabled) {
-    const imgData = ctx.getImageData(0, 0, w, h)
-    applyChromaKeyToImageData(imgData, template.chromaKey)
-    ctx.putImageData(imgData, 0, 0)
+    const w = img.naturalWidth || img.width || 1024
+    const h = img.naturalHeight || img.height || 1024
+    canvas = document.createElement('canvas')
+    canvas.width = w
+    canvas.height = h
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })
+    if (!ctx) throw new Error('Không thể khởi tạo Canvas 2D')
+
+    ctx.drawImage(img, 0, 0, w, h)
+    if (template.chromaKey.enabled) {
+      const imgData = ctx.getImageData(0, 0, w, h)
+      applyChromaKeyToImageData(imgData, template.chromaKey)
+      ctx.putImageData(imgData, 0, 0)
+    }
+
+    frames =
+      template.frames && template.frames.length > 0
+        ? template.frames
+        : buildGridFrames(w, h, template.gridConfig)
   }
-
-  const frames =
-    template.frames && template.frames.length > 0
-      ? template.frames
-      : buildGridFrames(w, h, template.gridConfig)
 
   return applyLoopAnimationToProject({
     layerName: overrides?.layerName ?? template.name,

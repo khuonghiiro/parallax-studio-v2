@@ -140,6 +140,12 @@ function LoopTemplateCard({ template, isPlaying, busy, onTogglePlay, onInsert, o
           JSON.stringify({ type: 'loop_template', templateId: template.id, template })
         )
         e.dataTransfer.effectAllowed = 'copy'
+        const cv = e.currentTarget.querySelector('canvas') as HTMLCanvasElement | null
+        if (cv && e.dataTransfer.setDragImage) {
+          const w = cv.offsetWidth > 0 ? Math.min(cv.offsetWidth, 120) : 60
+          const h = cv.offsetHeight > 0 ? Math.min(cv.offsetHeight, 120) : 60
+          e.dataTransfer.setDragImage(cv, w / 2, h / 2)
+        }
       }}
     >
       <div className="loop-lib-thumb">
@@ -195,9 +201,15 @@ function LoopTemplateCard({ template, isPlaying, busy, onTogglePlay, onInsert, o
         </span>
       </div>
       <div className="loop-lib-actions">
-        <button type="button" className="la-btn la-btn--primary la-btn--sm loop-lib-insert" disabled={busy} onClick={onInsert} title="Chèn hoạt ảnh này vào cảnh hiện tại">
-          <IconPlus width={12} height={12} />
-          <span>{busy ? 'Đang chèn…' : 'Chèn'}</span>
+        <button
+          type="button"
+          className="la-icon-btn la-icon-btn--primary"
+          disabled={busy}
+          onClick={onInsert}
+          title="Chèn hoạt ảnh này vào cảnh hiện tại"
+          aria-label="Chèn vào cảnh"
+        >
+          <IconPlus width={13} height={13} />
         </button>
         <button type="button" className="la-icon-btn la-icon-btn--bordered" onClick={onEdit} title="Chỉnh sửa trong Xưởng Tách Hoạt Ảnh Loop" aria-label="Chỉnh sửa">
           <IconPen width={13} height={13} />

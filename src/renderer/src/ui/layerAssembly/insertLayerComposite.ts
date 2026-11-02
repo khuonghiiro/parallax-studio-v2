@@ -149,44 +149,62 @@ export async function insertLayerCompositeToScene({
   const activeItems = composite.layers.filter((item) => !item.hidden || isSwappableHiddenVariant(item))
   const rootItemId = (activeItems.find((item) => !item.hidden) ?? activeItems[0])?.id
 
-  for (let idx = 0; idx < activeItems.length; idx++) {
-    const item = activeItems[idx]
-    let asset: AssetMeta
-    if (
-      item.loopConfig?.enabled &&
-      item.loopConfig.spriteSheetUrl &&
-      item.loopConfig.frames &&
-      item.loopConfig.frames.length > 0
-    ) {
-      const built = await buildLoopAnimatedAsset({
-        name: item.name,
-        spriteSheetUrl: item.loopConfig.spriteSheetUrl,
-        frames: item.loopConfig.frames,
-        chromaKey: item.loopConfig.chromaKey,
-        fps: item.loopConfig.fps || 12
-      })
-      asset = built.assetMeta
-      newAssets.push(asset)
-    } else {
-      const resolved = await resolveCompositeItemAsset(item, composite, [...projectAssets, ...newAssets])
-      asset = resolved.asset
-      if (resolved.isNew && !newAssets.some((a) => a.id === asset.id)) newAssets.push(asset)
-    }
-    const layer = buildSceneLayer({
-      item,
-      asset,
-      composite,
-      comp,
-      shotId,
-      instanceId,
-      isRoot: item.id === rootItemId,
-      globalScale,
-      positionOffset
+  // Tối ưu hoá tải tài nguyên song song (Promise.all) triệt tiêu độ trễ khi chèn cụm lắp ráp nhiều lớp
+  const resolvedItems = await Promise.all(
+    activeItems.map(async (item) => {
+      let asset: AssetMeta
+      let isNew = false
+      if (
+        item.loopConfig?.enabled &&
+        item.loopConfig.spriteSheetUrl &&
+        item.loopConfig.frames &&
+        item.loopConfig.frames.length > 0
+      ) {
+        const built = await buildLoopAnimatedAsset({
+          name: item.name,
+          spriteSheetUrl: item.loopConfig.spriteSheetUrl,
+          frames: item.loopConfig.frames,
+          chromaKey: item.loopConfig.chromaKey,
+          fps: item.loopConfig.fps || 12
+        })
+        asset = built.assetMeta
+        isNew = true
+      } else {
+        const resolved = await resolveCompositeItemAsset(item, composite, projectAssets)
+        asset = resolved.asset
+        isNew = resolved.isNew
+      }
+      return { item, asset, isNew }
     })
-    await exportWorkshopSkin(layer, item, composite, assetStore.get(asset.id)?.url ?? item.imageUrl)
-    bakeWorkshopRig(layer, item, composite, comp.duration, comp.fps, globalScale, positionOffset)
-    layersToAdd.push(layer)
+  )
+
+  for (const { asset, isNew } of resolvedItems) {
+    if (isNew && !newAssets.some((a) => a.id === asset.id)) {
+      newAssets.push(asset)
+    }
   }
+
+  // Khởi tạo và nướng rig song song cho toàn bộ các layer giữ đúng thứ tự
+  const builtLayers = await Promise.all(
+    resolvedItems.map(async ({ item, asset }) => {
+      const layer = buildSceneLayer({
+        item,
+        asset,
+        composite,
+        comp,
+        shotId,
+        instanceId,
+        isRoot: item.id === rootItemId,
+        globalScale,
+        positionOffset
+      })
+      await exportWorkshopSkin(layer, item, composite, assetStore.get(asset.id)?.url ?? item.imageUrl)
+      bakeWorkshopRig(layer, item, composite, comp.duration, comp.fps, globalScale, positionOffset)
+      return layer
+    })
+  )
+
+  layersToAdd.push(...builtLayers)
 
   if (layersToAdd.length > 0) {
     useEditor.getState().update((p) => {

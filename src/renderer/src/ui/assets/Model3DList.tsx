@@ -188,6 +188,12 @@ export function Model3DList() {
                     JSON.stringify({ type: 'model3d', modelId: m.id, model: m })
                   )
                   e.dataTransfer.effectAllowed = 'copy'
+                  const img = e.currentTarget.querySelector('.model-3d-thumb-img') as HTMLImageElement | null
+                  if (img && e.dataTransfer.setDragImage) {
+                    const w = img.naturalWidth > 0 ? Math.min(img.offsetWidth || 80, 120) : 40
+                    const h = img.naturalHeight > 0 ? Math.min(img.offsetHeight || 80, 120) : 40
+                    e.dataTransfer.setDragImage(img, w / 2, h / 2)
+                  }
                 }}
               >
                 {/* Review Image Preview with 3D Badge & Face Count on Top-Left */}
@@ -225,17 +231,17 @@ export function Model3DList() {
                   )}
                 </div>
 
-                {/* Card Actions ở footer: Bố cục thanh ngang gọn gàng, nút to rõ, không che khuất ảnh */}
+                {/* Card Actions ở footer: Bố cục thanh ngang gọn gàng, 4 nút icon đồng bộ không che khuất */}
                 <div className="model-3d-card-actions">
                   <button
                     type="button"
-                    className="la-btn la-btn--primary la-btn--sm model-3d-insert-btn"
+                    className="la-icon-btn la-icon-btn--primary"
                     onClick={() => handleInsert(m)}
                     disabled={insertingId === m.id}
                     title="Chèn mô hình 3D này vào cảnh hiện tại"
+                    aria-label="Chèn mô hình 3D"
                   >
-                    <IconPlus width={12} height={12} />
-                    <span>{insertingId === m.id ? 'Đang thêm…' : 'Chèn'}</span>
+                    <IconPlus width={13} height={13} />
                   </button>
                   <button
                     type="button"

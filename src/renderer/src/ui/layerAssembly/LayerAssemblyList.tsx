@@ -241,6 +241,12 @@ function LayerCardItem({
       onDragStart={(e) => {
         e.dataTransfer.setData('application/json', JSON.stringify({ type: 'composite', composite: item }))
         e.dataTransfer.effectAllowed = 'copy'
+        const img = e.currentTarget.querySelector('.model-3d-thumb-img') as HTMLImageElement | null
+        if (img && e.dataTransfer.setDragImage) {
+          const w = img.naturalWidth > 0 ? Math.min(img.offsetWidth || 80, 120) : 40
+          const h = img.naturalHeight > 0 ? Math.min(img.offsetHeight || 80, 120) : 40
+          e.dataTransfer.setDragImage(img, w / 2, h / 2)
+        }
       }}
       style={{ cursor: 'grab' }}
     >
@@ -325,17 +331,17 @@ function LayerCardItem({
         </div>
       </div>
 
-      {/* Card Footer Actions */}
+      {/* Card Footer Actions: 4 nút icon đồng bộ không che khuất */}
       <div className="model-3d-card-actions">
         <button
           type="button"
-          className="la-btn la-btn--primary la-btn--sm model-3d-insert-btn"
+          className="la-icon-btn la-icon-btn--primary"
           onClick={onInsert}
           disabled={isInserting}
           title="Chèn ngay vào cảnh hiện tại của dự án"
+          aria-label="Chèn vào cảnh"
         >
-          <IconPlus width={12} height={12} />
-          <span>{isInserting ? 'Đang chèn…' : 'Chèn'}</span>
+          <IconPlus width={13} height={13} />
         </button>
         <button
           type="button"
