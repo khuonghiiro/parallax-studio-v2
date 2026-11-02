@@ -391,5 +391,79 @@ describe('chromaKey algorithms', () => {
     expect(shadowIslands[0].x).toBeGreaterThanOrEqual(20)
     expect(shadowIslands[0].y).toBeGreaterThanOrEqual(20)
   })
+
+  it('unmixes semi-transparent star halos on both bright green (#0AF804) and magenta (#FB05FC) without color rings', async () => {
+    const { processAdvancedChromaPixelData } = await import('./chromaAdvancedProcessor')
+    const w = 24
+    const h = 24
+
+    // 1. Green screen star halo ([10, 248, 4] background, [142, 243, 147] 55% halo, [255, 255, 255] core)
+    const greenBuf = new Uint8ClampedArray(w * h * 4)
+    for (let i = 0; i < w * h; i++) {
+      greenBuf[i * 4] = 10
+      greenBuf[i * 4 + 1] = 248
+      greenBuf[i * 4 + 2] = 4
+      greenBuf[i * 4 + 3] = 255
+    }
+    const haloIdx = (12 * w + 10) * 4
+    greenBuf[haloIdx] = 142
+    greenBuf[haloIdx + 1] = 243
+    greenBuf[haloIdx + 2] = 147
+    const coreIdx = (12 * w + 12) * 4
+    greenBuf[coreIdx] = 255
+    greenBuf[coreIdx + 1] = 255
+    greenBuf[coreIdx + 2] = 255
+
+    processAdvancedChromaPixelData(greenBuf, w, h, {
+      ...DEFAULT_CHROMA_SETTINGS,
+      enabled: true,
+      keyColorType: 'custom',
+      keyColorHex: '#0AF804',
+      shadowMode: 'include',
+      shadowType: 'auto',
+      shadowRetention: 68,
+      shadowSolidThreshold: 62,
+      shadowUnmixColor: true
+    })
+
+    // Background is removed
+    expect(greenBuf[3]).toBe(0)
+    // Halo pixel is semi-transparent and green tint is completely unmixed to neutral white
+    expect(greenBuf[haloIdx + 3]).toBeGreaterThan(80)
+    expect(greenBuf[haloIdx + 3]).toBeLessThan(250)
+    expect(greenBuf[haloIdx]).toBeGreaterThanOrEqual(230)
+    expect(greenBuf[haloIdx + 2]).toBeGreaterThanOrEqual(230)
+    expect(greenBuf[haloIdx + 1]).toBeLessThanOrEqual(Math.max(greenBuf[haloIdx], greenBuf[haloIdx + 2]) + 4)
+
+    // 2. Magenta screen star halo ([251, 5, 252] background, [237, 104, 249] 40% halo)
+    const magBuf = new Uint8ClampedArray(w * h * 4)
+    for (let i = 0; i < w * h; i++) {
+      magBuf[i * 4] = 251
+      magBuf[i * 4 + 1] = 5
+      magBuf[i * 4 + 2] = 252
+      magBuf[i * 4 + 3] = 255
+    }
+    magBuf[haloIdx] = 237
+    magBuf[haloIdx + 1] = 104
+    magBuf[haloIdx + 2] = 249
+
+    processAdvancedChromaPixelData(magBuf, w, h, {
+      ...DEFAULT_CHROMA_SETTINGS,
+      enabled: true,
+      keyColorType: 'custom',
+      keyColorHex: '#FB05FC',
+      shadowMode: 'include',
+      shadowType: 'auto',
+      shadowRetention: 68,
+      shadowSolidThreshold: 62,
+      shadowUnmixColor: true
+    })
+
+    expect(magBuf[3]).toBe(0)
+    expect(magBuf[haloIdx + 3]).toBeGreaterThan(60)
+    expect(magBuf[haloIdx + 3]).toBeLessThan(240)
+    // Unmixed from magenta to neutral bright white/cyan (G channel lifted from 104 to >= 230)
+    expect(magBuf[haloIdx + 1]).toBeGreaterThanOrEqual(230)
+  })
 })
 

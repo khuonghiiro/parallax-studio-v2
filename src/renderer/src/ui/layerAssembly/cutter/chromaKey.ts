@@ -233,7 +233,7 @@ export function scanRawIslandsFromData(
       const area = tail
       const w = maxX - minX + 1
       const h = maxY - minY + 1
-      if (area >= 12 && w >= 3 && h >= 3) {
+      if (area >= 2 && w >= 1 && h >= 1) {
         const padMinX = Math.max(0, minX - 2)
         const padMinY = Math.max(0, minY - 2)
         const padMaxX = Math.min(width - 1, maxX + 2)
@@ -287,9 +287,12 @@ export function clusterAndFilterIslands(
           const b = islands[j]
           if (a.width > maxClusterW || a.height > maxClusterH) continue
           if (b.width > maxClusterW || b.height > maxClusterH) continue
+          const isSmallSparkle = a.area < 240 || b.area < 240
+          const limitX = isSmallSparkle ? Math.round(effGapX * 2.1) : effGapX
+          const limitY = isSmallSparkle ? Math.round(effGapY * 2.1) : effGapY
           const gapX = Math.max(0, Math.max(a.x, b.x) - Math.min(a.x + a.width, b.x + b.width))
           const gapY = Math.max(0, Math.max(a.y, b.y) - Math.min(a.y + a.height, b.y + b.height))
-          if (gapX <= effGapX && gapY <= effGapY) {
+          if (gapX <= limitX && gapY <= limitY) {
             const nx = Math.min(a.x, b.x)
             const ny = Math.min(a.y, b.y)
             const nw = Math.max(a.x + a.width, b.x + b.width) - nx
@@ -315,7 +318,7 @@ export function clusterAndFilterIslands(
   }
 
   const sizeFiltered = islands.filter(
-    (isl) => isl.area >= minArea && isl.width >= 12 && isl.height >= 12
+    (isl) => isl.area >= minArea && isl.width >= 6 && isl.height >= 6
   )
 
   const filtered = sizeFiltered.filter((isl, i) => {

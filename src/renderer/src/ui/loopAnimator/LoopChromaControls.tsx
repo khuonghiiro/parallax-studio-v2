@@ -2,6 +2,7 @@ import React from 'react'
 import { ColorInput } from '../controls/ColorPicker'
 import { IconEyedropper, IconWand } from '../icons'
 import { useLoopAnimator } from './loopAnimatorState'
+import type { LoopShadowMode, LoopShadowType } from './types'
 
 interface Props {
   eyedropperActive: boolean
@@ -38,11 +39,29 @@ export function LoopRangeField({
 
 const KEY_SWATCHES = ['#00ff00', '#ff00ff', '#0000ff', '#ffffff', '#000000']
 
-/** Khối tách nền Chroma Key: bật/tắt, chọn màu nền, chấm màu, tự nhận nền và 3 thanh tinh chỉnh */
+const SHADOW_MODES: { id: LoopShadowMode; label: string; title: string }[] = [
+  { id: 'off', label: 'Xoá bóng', title: 'Xoá toàn bộ bóng và quầng bán trong suốt cùng nền' },
+  { id: 'include', label: '☁️ Lấy cả bóng', title: 'Giữ lại cả vật thể chính lẫn bóng mờ / hào quang bán trong suốt' },
+  { id: 'only', label: '👻 Chỉ lấy bóng', title: 'Chỉ trích xuất riêng lớp bóng mờ / hào quang bán trong suốt' }
+]
+
+const SHADOW_TYPES: { id: LoopShadowType; label: string; title: string }[] = [
+  { id: 'auto', label: 'Tự động', title: 'Tự nhận diện cả hào quang sáng và bóng tối' },
+  { id: 'light', label: 'Mây/Sáng', title: 'Chỉ giữ hào quang sáng / tia sáng / mây khói' },
+  { id: 'dark', label: 'Bóng tối', title: 'Chỉ giữ bóng đổ tối dưới chân vật thể' }
+]
+
+/** Khối tách nền Chroma Key: bật/tắt, chọn màu nền, chấm màu, tự nhận nền, 3 thanh tinh chỉnh và thanh Bóng mờ */
 export function LoopChromaControls({ eyedropperActive, onToggleEyedropper, onAutoDetect }: Props): React.ReactElement {
   const chromaKey = useLoopAnimator((s) => s.chromaKey)
   const setChromaKey = useLoopAnimator((s) => s.setChromaKey)
   const pct = (v: number): string => `${Math.round(v * 100)}%`
+
+  const shadowMode: LoopShadowMode = chromaKey.shadowMode ?? 'off'
+  const shadowType: LoopShadowType = chromaKey.shadowType ?? 'auto'
+  const shadowRetention = chromaKey.shadowRetention ?? 68
+  const shadowSolidThreshold = chromaKey.shadowSolidThreshold ?? 62
+  const shadowUnmixColor = chromaKey.shadowUnmixColor !== false
 
   return (
     <div className={`loop-chroma-bar${chromaKey.enabled ? ' is-on' : ''}`} data-mcp-region="loop_animator_chroma">
@@ -80,11 +99,82 @@ export function LoopChromaControls({ eyedropperActive, onToggleEyedropper, onAut
         )}
       </div>
       {chromaKey.enabled && (
-        <div className="loop-chroma-sliders">
-          <LoopRangeField label="Độ nhạy" value={chromaKey.similarity} display={pct(chromaKey.similarity)} min={0.05} max={0.75} step={0.01} onChange={(v) => setChromaKey({ similarity: v })} />
-          <LoopRangeField label="Mềm biên" value={chromaKey.smoothness} display={pct(chromaKey.smoothness)} min={0.01} max={0.35} step={0.01} onChange={(v) => setChromaKey({ smoothness: v })} />
-          <LoopRangeField label="Khử ám màu" value={chromaKey.spill} display={pct(chromaKey.spill)} min={0} max={1} step={0.05} onChange={(v) => setChromaKey({ spill: v })} />
-        </div>
+        <>
+          <div className="loop-chroma-sliders">
+            <LoopRangeField label="Độ nhạy" value={chromaKey.similarity} display={pct(chromaKey.similarity)} min={0.05} max={0.75} step={0.01} onChange={(v) => setChromaKey({ similarity: v })} />
+            <LoopRangeField label="Mềm biên" value={chromaKey.smoothness} display={pct(chromaKey.smoothness)} min={0.01} max={0.35} step={0.01} onChange={(v) => setChromaKey({ smoothness: v })} />
+            <LoopRangeField label="Khử ám màu" value={chromaKey.spill} display={pct(chromaKey.spill)} min={0} max={1} step={0.05} onChange={(v) => setChromaKey({ spill: v })} />
+          </div>
+
+          <div className="loop-shadow-row">
+            <div className="loop-ctrl-group">
+              <span className="la-label">Bóng mờ:</span>
+              <div className="la-seg" role="group" aria-label="Chế độ tách bóng mờ">
+                {SHADOW_MODES.map((m) => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    className={`la-seg-btn${shadowMode === m.id ? ' active' : ''}`}
+                    onClick={() => setChromaKey({ shadowMode: m.id })}
+                    title={m.title}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {shadowMode !== 'off' && (
+              <>
+                <div className="loop-ctrl-group">
+                  <span className="la-label">Loại:</span>
+                  <div className="la-seg" role="group" aria-label="Loại bóng mờ">
+                    {SHADOW_TYPES.map((t) => (
+                      <button
+                        key={t.id}
+                        type="button"
+                        className={`la-seg-btn${shadowType === t.id ? ' active' : ''}`}
+                        onClick={() => setChromaKey({ shadowType: t.id })}
+                        title={t.title}
+                      >
+                        {t.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="loop-shadow-sliders">
+                  <LoopRangeField
+                    label="Độ đậm"
+                    value={shadowRetention}
+                    display={`${Math.round(shadowRetention)}%`}
+                    min={5}
+                    max={100}
+                    step={1}
+                    onChange={(v) => setChromaKey({ shadowRetention: v })}
+                  />
+                  <LoopRangeField
+                    label="Độ đặc"
+                    value={shadowSolidThreshold}
+                    display={`${Math.round(shadowSolidThreshold)}%`}
+                    min={30}
+                    max={90}
+                    step={1}
+                    onChange={(v) => setChromaKey({ shadowSolidThreshold: v })}
+                  />
+                  <label className="la-check" title="Tự động giải phương trình pha màu (Color Unmixing) để khử sạch ánh xanh/hồng ám trên bóng mờ và hào quang">
+                    <input
+                      type="checkbox"
+                      checked={shadowUnmixColor}
+                      onChange={(e) => setChromaKey({ shadowUnmixColor: e.target.checked })}
+                    />
+                    <span>Khử ám nền</span>
+                  </label>
+                </div>
+              </>
+            )}
+          </div>
+        </>
       )}
     </div>
   )

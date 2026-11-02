@@ -4,11 +4,21 @@ import { IconGrid, IconLightning, IconScissors } from '../icons'
 import { LoopChromaControls } from './LoopChromaControls'
 import { LoopSlicerControls } from './LoopSlicerControls'
 import { LoopSourceEmptyState } from './LoopSourceEmptyState'
-import { applyChromaKeyToImageData, detectCornerKeyColor } from './loopFrameExtractor'
+import {
+  applyChromaKeyToImageData,
+  clearGridBorderPadding,
+  detectCornerKeyColor
+} from './loopFrameExtractor'
 import { loadLoopImageFile } from './loopAnimatorLauncher'
 import { useLoopAnimator } from './loopAnimatorState'
 import { resolveLoopAssetUrl } from './sampleLoops'
-import type { ChromaKeyConfig, LoopAnimationTemplate, LoopFrameBox, SlicerMode } from './types'
+import type {
+  ChromaKeyConfig,
+  GridSlicerConfig,
+  LoopAnimationTemplate,
+  LoopFrameBox,
+  SlicerMode
+} from './types'
 
 interface Props {
   sourceCanvasRef: React.RefObject<HTMLCanvasElement | null>
@@ -27,12 +37,28 @@ function drawFrameOverlay(
   frames: LoopFrameBox[],
   selected: number,
   playing: number,
-  isPlaying: boolean
+  isPlaying: boolean,
+  slicerMode: SlicerMode,
+  borderPadding: number
 ): void {
+  const pad = slicerMode === 'grid' ? Math.max(0, Math.round(borderPadding)) : 0
   frames.forEach((f, idx) => {
     const isSelected = idx === selected
     const isCursor = isPlaying && idx === playing
     ctx.save()
+    if (pad > 0) {
+      // Vẽ dải viền lưới mở rộng theo đúng độ dày Padding viền đã cắt bỏ
+      ctx.strokeStyle = isSelected
+        ? 'rgba(245, 158, 11, 0.38)'
+        : 'rgba(56, 189, 248, 0.28)'
+      ctx.lineWidth = pad
+      ctx.strokeRect(
+        f.x - pad * 0.5,
+        f.y - pad * 0.5,
+        f.width + pad,
+        f.height + pad
+      )
+    }
     if (!f.enabled) {
       ctx.fillStyle = 'rgba(15, 23, 42, 0.65)'
       ctx.fillRect(f.x, f.y, f.width, f.height)
@@ -65,6 +91,7 @@ export function LoopAnimatorSourcePane({ sourceCanvasRef, onRequestUpload, templ
   const sourceWidth = useLoopAnimator((s) => s.sourceWidth)
   const sourceHeight = useLoopAnimator((s) => s.sourceHeight)
   const slicerMode = useLoopAnimator((s) => s.slicerMode)
+  const gridConfig = useLoopAnimator((s) => s.gridConfig)
   const chromaKey = useLoopAnimator((s) => s.chromaKey)
   const frames = useLoopAnimator((s) => s.frames)
   const selectedFrameIndex = useLoopAnimator((s) => s.selectedFrameIndex)
@@ -95,10 +122,22 @@ export function LoopAnimatorSourcePane({ sourceCanvasRef, onRequestUpload, templ
     const ctx = ov.getContext('2d')
     if (!ctx) return
     ctx.clearRect(0, 0, ov.width, ov.height)
-    drawFrameOverlay(ctx, frames, selectedFrameIndex, playingFrameIndex, isPlaying)
+    drawFrameOverlay(
+      ctx,
+      frames,
+      selectedFrameIndex,
+      playingFrameIndex,
+      isPlaying,
+      slicerMode,
+      gridConfig.borderPadding ?? 0
+    )
   }
 
-  function renderProcessedSource(img: HTMLImageElement, chroma: ChromaKeyConfig): void {
+  function renderProcessedSource(
+    img: HTMLImageElement,
+    chroma: ChromaKeyConfig,
+    grid: GridSlicerConfig
+  ): void {
     const canvas = sourceCanvasRef.current
     if (!canvas) return
     const w = img.naturalWidth || 1024
@@ -111,9 +150,15 @@ export function LoopAnimatorSourcePane({ sourceCanvasRef, onRequestUpload, templ
     if (!ctx) return
     ctx.clearRect(0, 0, w, h)
     ctx.drawImage(img, 0, 0, w, h)
-    if (chroma.enabled) {
+    const hasBorderPad = (grid.borderPadding ?? 0) > 0
+    if (hasBorderPad || chroma.enabled) {
       const data = ctx.getImageData(0, 0, w, h)
-      applyChromaKeyToImageData(data, chroma)
+      if (hasBorderPad) {
+        clearGridBorderPadding(data, grid)
+      }
+      if (chroma.enabled) {
+        applyChromaKeyToImageData(data, chroma)
+      }
       ctx.putImageData(data, 0, 0)
     }
     drawOverlay()
@@ -139,7 +184,8 @@ export function LoopAnimatorSourcePane({ sourceCanvasRef, onRequestUpload, templ
       if (cancelled) return
       rawImageRef.current = img
       setSourceDimensions(img.naturalWidth || 1024, img.naturalHeight || 1024)
-      renderProcessedSource(img, useLoopAnimator.getState().chromaKey)
+      const st = useLoopAnimator.getState()
+      renderProcessedSource(img, st.chromaKey, st.gridConfig)
       bumpSourceVersion()
     }
     img.onerror = () => !cancelled && toast('⚠ Không đọc được ảnh nguồn')
@@ -153,13 +199,13 @@ export function LoopAnimatorSourcePane({ sourceCanvasRef, onRequestUpload, templ
 
   useEffect(() => {
     if (!rawImageRef.current) return
-    renderProcessedSource(rawImageRef.current, chromaKey)
+    renderProcessedSource(rawImageRef.current, chromaKey, gridConfig)
     bumpSourceVersion()
-  }, [chromaKey])
+  }, [chromaKey, gridConfig.borderPadding, gridConfig.cols, gridConfig.rows, gridConfig.marginX, gridConfig.marginY, gridConfig.paddingX, gridConfig.paddingY])
 
   useEffect(() => {
     drawOverlay()
-  }, [frames, selectedFrameIndex, playingFrameIndex, isPlaying, slicerMode])
+  }, [frames, selectedFrameIndex, playingFrameIndex, isPlaying, slicerMode, gridConfig.borderPadding])
 
   function canvasCoords(e: React.MouseEvent<HTMLCanvasElement>): { px: number; py: number } | null {
     const ov = overlayCanvasRef.current
@@ -202,7 +248,15 @@ export function LoopAnimatorSourcePane({ sourceCanvasRef, onRequestUpload, templ
     const img = rawImageRef.current
     const ctx = img ? readRawImage(img) : null
     if (!img || !ctx) return
-    setChromaKey({ enabled: true, keyColor: detectCornerKeyColor(ctx, img.naturalWidth || 1024, img.naturalHeight || 1024) })
+    setChromaKey({
+      enabled: true,
+      keyColor: detectCornerKeyColor(
+        ctx,
+        img.naturalWidth || 1024,
+        img.naturalHeight || 1024,
+        gridConfig.borderPadding ?? 0
+      )
+    })
   }
 
   function handleRunContour(): void {

@@ -77,14 +77,27 @@ const DEFAULT_PRESET = SAMPLE_LOOP_PRESETS[0]
 
 export const BLANK_LOOP_NAME = 'Hoạt ảnh Loop mới'
 
-const BLANK_GRID: GridSlicerConfig = { cols: 4, rows: 4, marginX: 0, marginY: 0, paddingX: 0, paddingY: 0 }
+const BLANK_GRID: GridSlicerConfig = {
+  cols: 4,
+  rows: 4,
+  marginX: 0,
+  marginY: 0,
+  paddingX: 0,
+  paddingY: 0,
+  borderPadding: 0
+}
 
 const BLANK_CHROMA: ChromaKeyConfig = {
   enabled: false,
   keyColor: '#00ff00',
   similarity: 0.28,
   smoothness: 0.1,
-  spill: 0.35
+  spill: 0.35,
+  shadowMode: 'off',
+  shadowType: 'auto',
+  shadowRetention: 68,
+  shadowSolidThreshold: 62,
+  shadowUnmixColor: true
 }
 
 const DEFAULT_RHYTHM: LoopRhythmConfig = {
@@ -108,7 +121,7 @@ export const useLoopAnimator = create<LoopAnimatorStore>((set, get) => ({
   gridConfig: { ...DEFAULT_PRESET.defaultGrid },
   contourConfig: {
     alphaThreshold: 24,
-    minArea: 180,
+    minArea: 48,
     mergeGap: 8,
     uniformSize: true,
     alignAnchor: 'bottom',

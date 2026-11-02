@@ -145,6 +145,28 @@
   flex: 1 1 100%;
 }
 
+.loop-shadow-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  flex: 1 1 100%;
+  padding-top: 7px;
+  border-top: 1px dashed var(--line-soft);
+}
+
+.loop-shadow-sliders {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  flex: 1 1 320px;
+}
+
+.loop-shadow-sliders .la-range {
+  flex: 1 1 170px;
+}
+
 /* ---------------------------------------------------------------- Source canvas */
 .loop-source-pane {
   display: flex;

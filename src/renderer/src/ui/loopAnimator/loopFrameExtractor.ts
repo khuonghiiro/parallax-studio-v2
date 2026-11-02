@@ -1,3 +1,9 @@
+import {
+  applyChromaKeyToImageData,
+  clearGridBorderPadding,
+  detectCornerKeyColor,
+  parseHexRgb
+} from './loopChromaProcessor'
 import { resolveLoopAssetUrl } from './sampleLoops'
 import type {
   ChromaKeyConfig,
@@ -7,8 +13,16 @@ import type {
   LoopFrameBox
 } from './types'
 
+export {
+  applyChromaKeyToImageData,
+  clearGridBorderPadding,
+  detectCornerKeyColor,
+  parseHexRgb
+}
+
 /**
  * Generate a list of LoopFrameBox rectangles from a uniform grid configuration.
+ * Supports `borderPadding` to inset each cell inward and strip out grid border lines.
  */
 export function buildGridFrames(
   imageWidth: number,
@@ -17,6 +31,7 @@ export function buildGridFrames(
 ): LoopFrameBox[] {
   const cols = Math.max(1, Math.min(32, Math.round(grid.cols)))
   const rows = Math.max(1, Math.min(32, Math.round(grid.rows)))
+  const borderPad = Math.max(0, Math.round(grid.borderPadding ?? 0))
   const usableW = Math.max(1, imageWidth - grid.marginX * 2 - grid.paddingX * (cols - 1))
   const usableH = Math.max(1, imageHeight - grid.marginY * 2 - grid.paddingY * (rows - 1))
   const cellW = Math.max(1, Math.floor(usableW / cols))
@@ -26,15 +41,19 @@ export function buildGridFrames(
   let index = 0
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
-      const x = Math.round(grid.marginX + c * (cellW + grid.paddingX))
-      const y = Math.round(grid.marginY + r * (cellH + grid.paddingY))
+      const baseX = Math.round(grid.marginX + c * (cellW + grid.paddingX))
+      const baseY = Math.round(grid.marginY + r * (cellH + grid.paddingY))
+      const x = Math.max(0, Math.min(imageWidth - 1, baseX + borderPad))
+      const y = Math.max(0, Math.min(imageHeight - 1, baseY + borderPad))
+      const innerW = Math.max(1, cellW - borderPad * 2)
+      const innerH = Math.max(1, cellH - borderPad * 2)
       frames.push({
         id: `frame_${index}`,
         index,
-        x: Math.max(0, Math.min(imageWidth - 1, x)),
-        y: Math.max(0, Math.min(imageHeight - 1, y)),
-        width: Math.max(1, Math.min(imageWidth - x, cellW)),
-        height: Math.max(1, Math.min(imageHeight - y, cellH)),
+        x,
+        y,
+        width: Math.max(1, Math.min(imageWidth - x, innerW)),
+        height: Math.max(1, Math.min(imageHeight - y, innerH)),
         offsetX: 0,
         offsetY: 0,
         enabled: true,
@@ -44,100 +63,6 @@ export function buildGridFrames(
     }
   }
   return frames
-}
-
-/**
- * Parse a hex color string (#rrggbb) into [r, g, b] in 0..255.
- */
-export function parseHexRgb(hex: string): [number, number, number] {
-  const clean = hex.replace('#', '').trim()
-  if (clean.length === 3) {
-    const r = parseInt(clean[0] + clean[0], 16) || 0
-    const g = parseInt(clean[1] + clean[1], 16) || 0
-    const b = parseInt(clean[2] + clean[2], 16) || 0
-    return [r, g, b]
-  }
-  const num = parseInt(clean, 16)
-  if (Number.isNaN(num)) return [0, 255, 0]
-  return [(num >> 16) & 255, (num >> 8) & 255, num & 255]
-}
-
-/**
- * Sample the dominant corner pixel color of an image to auto-detect background key color.
- */
-export function detectCornerKeyColor(ctx: CanvasRenderingContext2D, width: number, height: number): string {
-  const pts: [number, number][] = [
-    [2, 2],
-    [Math.max(0, width - 3), 2],
-    [2, Math.max(0, height - 3)],
-    [Math.max(0, width - 3), Math.max(0, height - 3)]
-  ]
-  let rSum = 0
-  let gSum = 0
-  let bSum = 0
-  for (const [x, y] of pts) {
-    const d = ctx.getImageData(x, y, 1, 1).data
-    rSum += d[0]
-    gSum += d[1]
-    bSum += d[2]
-  }
-  const r = Math.round(rSum / pts.length)
-  const g = Math.round(gSum / pts.length)
-  const b = Math.round(bSum / pts.length)
-  const toHex = (n: number): string => n.toString(16).padStart(2, '0')
-  return `#${toHex(r)}${toHex(g)}${toHex(b)}`
-}
-
-/**
- * Apply Chroma Key background removal and green-spill suppression in-place on ImageData.
- */
-export function applyChromaKeyToImageData(imageData: ImageData, chroma: ChromaKeyConfig): void {
-  if (!chroma.enabled) return
-  const data = imageData.data
-  const [kr, kg, kb] = parseHexRgb(chroma.keyColor)
-  const sim = Math.max(0.01, chroma.similarity)
-  const smooth = Math.max(0.001, chroma.smoothness)
-  const spill = Math.max(0, Math.min(1, chroma.spill))
-
-  const maxDist = 441.67295593
-  const lowThresh = sim * maxDist
-  const highThresh = (sim + smooth) * maxDist
-  const range = Math.max(1, highThresh - lowThresh)
-
-  const isGreenDominant = kg > kr + 20 && kg > kb + 20
-
-  for (let i = 0; i < data.length; i += 4) {
-    const a = data[i + 3]
-    if (a === 0) continue
-
-    const r = data[i]
-    const g = data[i + 1]
-    const b = data[i + 2]
-
-    const dr = r - kr
-    const dg = g - kg
-    const db = b - kb
-    const dist = Math.sqrt(dr * dr + dg * dg + db * db)
-
-    if (dist <= lowThresh) {
-      data[i + 3] = 0
-    } else if (dist < highThresh) {
-      const factor = (dist - lowThresh) / range
-      data[i + 3] = Math.round(a * factor)
-
-      if (spill > 0 && isGreenDominant) {
-        const avgRB = (r + b) * 0.5
-        if (g > avgRB) {
-          data[i + 1] = Math.round(g - (g - avgRB) * spill)
-        }
-      }
-    } else if (spill > 0 && isGreenDominant && dist < highThresh * 1.35) {
-      const avgRB = (r + b) * 0.5
-      if (g > avgRB) {
-        data[i + 1] = Math.round(g - (g - avgRB) * spill * 0.5)
-      }
-    }
-  }
 }
 
 /**
@@ -327,6 +252,34 @@ export function detectContourFrames(
         }
       }
     }
+    // Also cluster nearby small particle fragments (e.g. fading sparks or star dust in a cell)
+    const maxCellSpan = Math.max(64, Math.min(w, h) * 0.23)
+    const particleGap = Math.max(mergeGap, 28)
+    let sparkMerged = true
+    while (sparkMerged) {
+      sparkMerged = false
+      for (let i = 0; i < boxes.length; i++) {
+        for (let j = i + 1; j < boxes.length; j++) {
+          const a = boxes[i]
+          const b = boxes[j]
+          const hDist = Math.max(0, Math.max(a.minX - b.maxX, b.minX - a.maxX))
+          const vDist = Math.max(0, Math.max(a.minY - b.maxY, b.minY - a.maxY))
+          if (hDist > particleGap || vDist > particleGap) continue
+          const combW = Math.max(a.maxX, b.maxX) - Math.min(a.minX, b.minX)
+          const combH = Math.max(a.maxY, b.maxY) - Math.min(a.minY, b.minY)
+          if (combW <= maxCellSpan && combH <= maxCellSpan) {
+            a.minX = Math.min(a.minX, b.minX)
+            a.minY = Math.min(a.minY, b.minY)
+            a.maxX = Math.max(a.maxX, b.maxX)
+            a.maxY = Math.max(a.maxY, b.maxY)
+            boxes.splice(j, 1)
+            sparkMerged = true
+            break
+          }
+        }
+        if (sparkMerged) break
+      }
+    }
   }
 
   // Pass 3: Post-merge dedup — eliminate boxes that significantly overlap with others.
@@ -360,18 +313,10 @@ export function detectContourFrames(
     }
   }
 
-  // Filter by minimum area and discard orphan noise fragments (< 10% of major sprites)
+  // Filter by minimum area while preserving small opening/closing frames in the animation cycle
   const valid = boxes.filter((b) => {
     const area = (b.maxX - b.minX) * (b.maxY - b.minY)
-    if (area < minArea) return false
-    if (boxes.length > 2) {
-      const sortedAreas = boxes
-        .map((bx) => (bx.maxX - bx.minX) * (bx.maxY - bx.minY))
-        .sort((a, b) => b - a)
-      const majorArea = sortedAreas[Math.floor(sortedAreas.length * 0.25)] || sortedAreas[0] || 1000
-      if (area < majorArea * 0.1) return false
-    }
-    return true
+    return area >= minArea
   })
   if (valid.length === 0) return []
 
@@ -408,6 +353,32 @@ export function detectContourFrames(
         const centerY = (b.minY + b.maxY) * 0.5
         y = Math.max(0, Math.min(h - height, Math.round(centerY - height * 0.5)))
       }
+
+      // Chống tràn sang vùng nội dung của frame hàng/cột kế cận khi mở rộng khung đồng cỡ
+      let minXLimit = 0
+      let maxXLimit = w
+      let minYLimit = 0
+      let maxYLimit = h
+      for (let j = 0; j < sortedBoxes.length; j++) {
+        if (j === index) continue
+        const other = sortedBoxes[j]
+        const hOverlap = Math.min(x + width, other.maxX) - Math.max(x, other.minX)
+        if (hOverlap > 0) {
+          if (other.maxY <= b.minY) minYLimit = Math.max(minYLimit, other.maxY + 2)
+          if (other.minY >= b.maxY) maxYLimit = Math.min(maxYLimit, other.minY - 2)
+        }
+        const vOverlap = Math.min(y + height, other.maxY) - Math.max(y, other.minY)
+        if (vOverlap > 0) {
+          if (other.maxX <= b.minX) minXLimit = Math.max(minXLimit, other.maxX + 2)
+          if (other.minX >= b.maxX) maxXLimit = Math.min(maxXLimit, other.minX - 2)
+        }
+      }
+      if (y < minYLimit) y = minYLimit
+      if (y + height > maxYLimit) y = Math.max(minYLimit, maxYLimit - height)
+      if (y + height > maxYLimit) height = Math.max(1, maxYLimit - y)
+      if (x < minXLimit) x = minXLimit
+      if (x + width > maxXLimit) x = Math.max(minXLimit, maxXLimit - width)
+      if (x + width > maxXLimit) width = Math.max(1, maxXLimit - x)
     } else {
       x = Math.max(0, b.minX - pad)
       y = Math.max(0, b.minY - pad)
@@ -703,7 +674,11 @@ export function getCachedLoopTemplateSheet(
     'id' | 'imageUrl' | 'gridConfig' | 'chromaKey' | 'frames' | 'updatedAt'
   >
 ): Promise<CachedLoopSpriteSheet | null> {
-  const cacheKey = `${template.id}:${template.updatedAt ?? 0}:${template.imageUrl.slice(0, 64)}:${template.chromaKey.enabled}:${template.chromaKey.keyColor}:${template.chromaKey.similarity}`
+  const pad = template.gridConfig?.borderPadding ?? 0
+  const shMode = template.chromaKey?.shadowMode ?? 'off'
+  const shType = template.chromaKey?.shadowType ?? 'auto'
+  const shRet = template.chromaKey?.shadowRetention ?? 68
+  const cacheKey = `${template.id}:${template.updatedAt ?? 0}:${template.imageUrl.slice(0, 64)}:${pad}:${template.chromaKey.enabled}:${template.chromaKey.keyColor}:${template.chromaKey.similarity}:${shMode}:${shType}:${shRet}`
   const existing = _spriteSheetCache.get(cacheKey)
   if (existing) return existing
 
@@ -722,9 +697,14 @@ export function getCachedLoopTemplateSheet(
         return
       }
       ctx.drawImage(img, 0, 0)
-      if (template.chromaKey?.enabled) {
+      if (pad > 0 || template.chromaKey?.enabled) {
         const imgData = ctx.getImageData(0, 0, w, h)
-        applyChromaKeyToImageData(imgData, template.chromaKey)
+        if (pad > 0 && template.gridConfig) {
+          clearGridBorderPadding(imgData, template.gridConfig)
+        }
+        if (template.chromaKey?.enabled) {
+          applyChromaKeyToImageData(imgData, template.chromaKey)
+        }
         ctx.putImageData(imgData, 0, 0)
       }
       const allFrames =

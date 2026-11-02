@@ -43,8 +43,8 @@ export const LOOP_ANIMATOR_TOOLS = [
     name: 'configure_loop_chroma',
     cat: 'loop',
     doc: L(
-      'Configure background chroma key removal for the Loop Animator: toggle enabled, key color (magenta, green, blue, white, black, custom hex), tolerance, smoothness, and despill.',
-      'Cấu hình khử màu nền Chroma Key trong Xưởng Hoạt Ảnh Lặp: bật/tắt, màu nền (magenta, xanh lá, xanh dương, trắng, đen, mã màu hex), độ lệch, độ mịn biên và khử ám màu.'
+      'Configure background chroma key removal and semi-transparent shadow/glow extraction for the Loop Animator: toggle enabled, key color, tolerance, smoothness, despill, and shadow mode (off, include, only).',
+      'Cấu hình khử màu nền Chroma Key và tách bóng mờ / hào quang bán trong suốt trong Xưởng Hoạt Ảnh Lặp: bật/tắt, màu nền, độ lệch, độ mịn biên, khử ám màu và chế độ bóng mờ (off, include, only).'
     ),
     shape: (d) => ({
       enabled: z.boolean().optional().describe(d('Enable or disable chroma keying.', 'Bật hoặc tắt tách nền chroma key.')),
@@ -52,26 +52,32 @@ export const LOOP_ANIMATOR_TOOLS = [
       custom_hex: z.string().optional().describe(d('Custom hex color when key_color_type is "custom" (e.g. "#ff00ff").', 'Mã màu hex tự chọn khi dùng "custom" (VD "#ff00ff").')),
       tolerance: z.number().int().min(1).max(100).optional().describe(d('Color distance tolerance 1-100 (default 36).', 'Độ lệch màu 1-100 (mặc định 36).')),
       smoothness: z.number().int().min(0).max(50).optional().describe(d('Edge softness 0-50 (default 12).', 'Độ mịn biên 0-50 (mặc định 12).')),
-      despill: z.number().int().min(0).max(100).optional().describe(d('Color despill suppression 0-100 (default 25).', 'Khử ám màu viền 0-100 (mặc định 25).'))
+      despill: z.number().int().min(0).max(100).optional().describe(d('Color despill suppression 0-100 (default 25).', 'Khử ám màu viền 0-100 (mặc định 25).')),
+      shadow_mode: z.enum(['off', 'include', 'only']).optional().describe(d('Semi-transparent shadow/glow extraction mode: "off", "include" (keep body + shadow/glow), or "only" (shadow/glow only).', 'Chế độ tách bóng mờ / hào quang bán trong suốt: "off" (Xoá bóng), "include" (Lấy cả bóng) hoặc "only" (Chỉ lấy bóng).')),
+      shadow_type: z.enum(['auto', 'light', 'dark']).optional().describe(d('Shadow/glow polarity: "auto" (both), "light" (glow/mist), or "dark" (drop shadow).', 'Loại bóng cần giữ: "auto" (Tự động), "light" (Mây/Sáng) hoặc "dark" (Bóng tối).')),
+      shadow_retention: z.number().int().min(5).max(100).optional().describe(d('Shadow/glow opacity retention 5-100% (default 68).', 'Độ đậm giữ bóng / quầng sáng 5-100% (mặc định 68).')),
+      shadow_solid_threshold: z.number().int().min(30).max(90).optional().describe(d('Solid core cutoff threshold 30-90% (default 62).', 'Ngưỡng độ đặc tách phần thân đặc khỏi bóng mờ 30-90% (mặc định 62).')),
+      shadow_unmix_color: z.boolean().optional().describe(d('Enable color unmixing to remove green/magenta/blue background tint from semi-transparent glow/shadow.', 'Bật giải pha màu (Color Unmixing) để khử sạch ám màu nền trên bóng mờ và hào quang.'))
     }),
-    example: '{"enabled":true,"key_color_type":"chroma_magenta","tolerance":38}'
+    example: '{"enabled":true,"key_color_type":"chroma_green","tolerance":36,"shadow_mode":"include"}'
   },
   {
     name: 'split_loop_frames',
     cat: 'loop',
     doc: L(
-      'Split the loop animation source image into frames using grid slicing (rows, cols, padding, order) or contour detection, with optional auto-trimming of transparent borders.',
-      'Phân tách ảnh nguồn thành các khung hình hoạt ảnh lặp theo lưới (hàng, cột, lùi biên, thứ tự) hoặc tự động phát hiện chi tiết, hỗ trợ tự thu hẹp viền trong suốt.'
+      'Split the loop animation source image into frames using grid slicing (rows, cols, border_padding to strip black grid lines, order) or contour detection.',
+      'Phân tách ảnh nguồn thành các khung hình hoạt ảnh lặp theo lưới (hàng, cột, border_padding để khử vạch kẻ khung đen, thứ tự) hoặc tự động phát hiện chi tiết.'
     ),
     shape: (d) => ({
       mode: z.enum(['grid', 'contour']).optional().describe(d('Slicing mode: "grid" for regular NxM cells, "contour" for opaque islands.', 'Chế độ phân tách: "grid" cho lưới đều NxM, "contour" cho các đảo pixel có biên.')),
       rows: z.number().int().min(1).max(32).optional().describe(d('Grid rows count.', 'Số hàng lưới.')),
       cols: z.number().int().min(1).max(32).optional().describe(d('Grid columns count.', 'Số cột lưới.')),
-      padding: z.number().int().min(0).max(40).optional().describe(d('Padding inset inside each cell in pixels.', 'Lùi viền đệm bên trong từng ô (pixel).')),
+      border_padding: z.number().int().min(0).max(80).optional().describe(d('Border padding in pixels to expand grid lines and strip black cell borders.', 'Padding viền (px) mở rộng đường lưới để loại bỏ vạch kẻ khung đen quanh các ô.')),
+      padding: z.number().int().min(0).max(80).optional().describe(d('Alias for border_padding (inset inside each cell in pixels).', 'Bí danh của border_padding (lùi viền bên trong từng ô theo pixel).')),
       order: z.enum(['row_first', 'col_first']).optional().describe(d('Frame order: "row_first" (left-to-right, top-to-bottom) or "col_first" (top-to-bottom, left-to-right).', 'Thứ tự khung hình: "row_first" (trái qua phải, trên xuống dưới) hoặc "col_first" (trên xuống dưới, trái qua phải).')),
       auto_trim: z.boolean().optional().describe(d('Automatically trim transparent margins around each frame.', 'Tự động thu hẹp viền trong suốt xung quanh từng frame.'))
     }),
-    example: '{"mode":"grid","rows":4,"cols":4,"order":"row_first"}'
+    example: '{"mode":"grid","rows":4,"cols":4,"border_padding":6}'
   },
   {
     name: 'reorder_loop_frames',

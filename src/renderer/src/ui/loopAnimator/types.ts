@@ -24,6 +24,9 @@ export interface LoopFrameBox {
   durationRatio: number
 }
 
+export type LoopShadowMode = 'off' | 'include' | 'only'
+export type LoopShadowType = 'auto' | 'light' | 'dark'
+
 export interface ChromaKeyConfig {
   enabled: boolean
   /** Hex color to remove, e.g. '#00ff00' */
@@ -34,6 +37,16 @@ export interface ChromaKeyConfig {
   smoothness: number
   /** Green/color spill suppression on semi-transparent edges (0..1, default 0.35) */
   spill: number
+  /** Chế độ giữ bóng mờ / quầng sáng bán trong suốt: 'off' | 'include' (Lấy cả bóng) | 'only' (Chỉ lấy bóng) */
+  shadowMode?: LoopShadowMode
+  /** Phân loại bóng cần giữ: 'auto' | 'light' (Mây/Sáng) | 'dark' (Bóng tối) */
+  shadowType?: LoopShadowType
+  /** Độ đậm giữ bóng / quầng sáng (5..100, mặc định 68) */
+  shadowRetention?: number
+  /** Ngưỡng tách biên đặc khỏi bóng mờ (30..90, mặc định 62) */
+  shadowSolidThreshold?: number
+  /** Tự động khử màu nền pha trộn trong bóng mờ / quầng sáng (Color Unmixing) */
+  shadowUnmixColor?: boolean
 }
 
 export interface GridSlicerConfig {
@@ -43,6 +56,8 @@ export interface GridSlicerConfig {
   marginY: number
   paddingX: number
   paddingY: number
+  /** Độ dày viền lưới cần loại bỏ quanh từng ô (px, mặc định 0) để khử sạch khung viền đen */
+  borderPadding?: number
 }
 
 export interface ContourSlicerConfig {

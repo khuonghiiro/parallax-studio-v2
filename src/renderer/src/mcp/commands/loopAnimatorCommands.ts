@@ -104,10 +104,32 @@ export const loopAnimatorCommands: Record<string, Handler> = {
 
   configure_loop_chroma: async (p: Params) => {
     const enabled = bool(p, 'enabled')
-    const keyColor = str(p, 'key_color') ?? str(p, 'custom_hex')
-    const similarity = num(p, 'similarity') ?? num(p, 'tolerance')
-    const smoothness = num(p, 'smoothness')
-    const spill = num(p, 'spill') ?? num(p, 'despill')
+    const keyColorType = str(p, 'key_color_type')
+    const presetHex =
+      keyColorType === 'chroma_magenta'
+        ? '#ff00ff'
+        : keyColorType === 'chroma_green'
+          ? '#00ff00'
+          : keyColorType === 'chroma_blue'
+            ? '#0000ff'
+            : keyColorType === 'white'
+              ? '#ffffff'
+              : keyColorType === 'black'
+                ? '#000000'
+                : undefined
+    const keyColor = str(p, 'key_color') ?? str(p, 'custom_hex') ?? presetHex
+    const rawSim = num(p, 'similarity') ?? num(p, 'tolerance')
+    const similarity = rawSim !== undefined ? (rawSim > 1 ? rawSim / 100 : rawSim) : undefined
+    const rawSmooth = num(p, 'smoothness')
+    const smoothness =
+      rawSmooth !== undefined ? (rawSmooth > 1 ? rawSmooth / 100 : rawSmooth) : undefined
+    const rawSpill = num(p, 'spill') ?? num(p, 'despill')
+    const spill = rawSpill !== undefined ? (rawSpill > 1 ? rawSpill / 100 : rawSpill) : undefined
+    const shadowMode = str(p, 'shadow_mode') as 'off' | 'include' | 'only' | undefined
+    const shadowType = str(p, 'shadow_type') as 'auto' | 'light' | 'dark' | undefined
+    const shadowRetention = num(p, 'shadow_retention')
+    const shadowSolidThreshold = num(p, 'shadow_solid_threshold')
+    const shadowUnmixColor = bool(p, 'shadow_unmix_color')
 
     const animator = useLoopAnimator.getState()
     animator.setChromaKey({
@@ -115,7 +137,12 @@ export const loopAnimatorCommands: Record<string, Handler> = {
       ...(keyColor ? { keyColor } : {}),
       ...(similarity !== undefined ? { similarity } : {}),
       ...(smoothness !== undefined ? { smoothness } : {}),
-      ...(spill !== undefined ? { spill } : {})
+      ...(spill !== undefined ? { spill } : {}),
+      ...(shadowMode ? { shadowMode } : {}),
+      ...(shadowType ? { shadowType } : {}),
+      ...(shadowRetention !== undefined ? { shadowRetention } : {}),
+      ...(shadowSolidThreshold !== undefined ? { shadowSolidThreshold } : {}),
+      ...(shadowUnmixColor !== undefined ? { shadowUnmixColor } : {})
     })
 
     return {
@@ -128,23 +155,44 @@ export const loopAnimatorCommands: Record<string, Handler> = {
     const mode = str(p, 'mode') as SlicerMode | undefined
     const rows = num(p, 'rows')
     const cols = num(p, 'cols')
-    const padding = num(p, 'padding')
+    const borderPadding = num(p, 'border_padding') ?? num(p, 'padding')
+    const paddingX = num(p, 'padding_x')
+    const paddingY = num(p, 'padding_y')
+    const marginX = num(p, 'margin_x')
+    const marginY = num(p, 'margin_y')
 
     const animator = useLoopAnimator.getState()
-    if (mode === 'grid' || mode === 'contour' || mode === 'manual') {
-      animator.setSlicerMode(mode)
-    }
-
-    if (rows !== undefined || cols !== undefined || padding !== undefined) {
+    if (
+      rows !== undefined ||
+      cols !== undefined ||
+      borderPadding !== undefined ||
+      paddingX !== undefined ||
+      paddingY !== undefined ||
+      marginX !== undefined ||
+      marginY !== undefined
+    ) {
       animator.setGridConfig({
         ...(rows !== undefined ? { rows } : {}),
         ...(cols !== undefined ? { cols } : {}),
-        ...(padding !== undefined ? { paddingX: padding, paddingY: padding } : {})
+        ...(borderPadding !== undefined ? { borderPadding } : {}),
+        ...(paddingX !== undefined ? { paddingX } : {}),
+        ...(paddingY !== undefined ? { paddingY } : {}),
+        ...(marginX !== undefined ? { marginX } : {}),
+        ...(marginY !== undefined ? { marginY } : {})
       })
+    }
+
+    if (mode === 'grid' || mode === 'contour' || mode === 'manual') {
+      animator.setSlicerMode(mode)
+      if (mode === 'contour' && typeof document !== 'undefined') {
+        const srcCanvas = document.querySelector<HTMLCanvasElement>('.loop-source-canvas')
+        if (srcCanvas) animator.runContourSlicer(srcCanvas)
+      }
     }
 
     return {
       ok: true,
+      grid_config: useLoopAnimator.getState().gridConfig,
       frames_count: useLoopAnimator.getState().frames.length
     }
   },

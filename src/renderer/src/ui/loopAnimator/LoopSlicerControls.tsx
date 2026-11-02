@@ -57,6 +57,18 @@ function GridControls({ grid, set }: { grid: GridSlicerConfig; set: (p: Partial<
         <LoopNumField label="Hàng" value={grid.rows} min={1} max={32} onChange={(v) => set({ rows: v })} />
       </div>
       <div className="loop-ctrl-group">
+        <span className="la-label">Khử viền khung</span>
+        <LoopNumField
+          label="Padding viền"
+          unit="px"
+          value={grid.borderPadding ?? 0}
+          min={0}
+          max={80}
+          onChange={(v) => set({ borderPadding: v })}
+          title="Mở rộng độ dày viền lưới để loại bỏ vạch kẻ khung đen nằm dọc theo đường lưới"
+        />
+      </div>
+      <div className="loop-ctrl-group">
         <span className="la-label">Lề ngoài</span>
         <LoopNumField label="X" unit="px" value={grid.marginX} min={0} max={400} onChange={(v) => set({ marginX: v })} title="Lề trái/phải của sprite sheet" />
         <LoopNumField label="Y" unit="px" value={grid.marginY} min={0} max={400} onChange={(v) => set({ marginY: v })} title="Lề trên/dưới của sprite sheet" />

@@ -575,7 +575,7 @@ function applyDespeckleAndWhiteCrumbs(
       for (let k = s; k < e; k++) data[queue[k] * 4 + 3] = 0
       continue
     }
-    if (despeckleSize > 0 && len <= minPixelArea) {
+    if (despeckleSize > 0 && len <= minPixelArea && !excludeShadowMask) {
       const isDarkLine = darkCounts[i] >= Math.max(3, len * 0.25)
       if (!isDarkLine) {
         for (let k = s; k < e; k++) data[queue[k] * 4 + 3] = 0
