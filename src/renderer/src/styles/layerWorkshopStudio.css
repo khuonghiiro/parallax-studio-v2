@@ -698,6 +698,19 @@
   stroke-dasharray: 5 2.5;
 }
 
+.lw-bone-capsule.is-mesh-envelope rect {
+  stroke-dasharray: 4 2;
+  stroke: var(--accent-cyan, #06b6d4);
+  fill: rgba(6, 182, 212, 0.12);
+}
+
+.lw-bone-capsule.is-mesh-envelope.selected rect {
+  stroke: var(--accent-cyan, #06b6d4);
+  stroke-width: 2.2px;
+  stroke-dasharray: 4 2;
+  fill: rgba(6, 182, 212, 0.22);
+}
+
 [data-theme='light'] .lw-bone-capsule rect {
   fill: rgba(37, 99, 235, 0.08);
   stroke: rgba(37, 99, 235, 0.62);
@@ -717,6 +730,19 @@
   fill: rgba(245, 158, 11, 0.16);
   stroke: #d97706;
   stroke-width: 2.1px;
+}
+
+[data-theme='light'] .lw-bone-capsule.is-mesh-envelope rect {
+  stroke-dasharray: 4 2;
+  stroke: #0284c7;
+  fill: rgba(2, 132, 199, 0.12);
+}
+
+[data-theme='light'] .lw-bone-capsule.is-mesh-envelope.selected rect {
+  stroke: #0369a1;
+  stroke-width: 2.2px;
+  stroke-dasharray: 4 2;
+  fill: rgba(3, 105, 161, 0.2);
 }
 
 .lw-bone-capsule-badge {

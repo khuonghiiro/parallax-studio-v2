@@ -225,7 +225,7 @@ export interface BoneInspectorCardProps {
   mirrorTwin: LayerBone | null
   mirrorDraw: boolean
   patch: (p: Partial<LayerBone>) => void
-  patchAll?: (p: Partial<LayerBone>) => void
+  patchAllDelta?: (delta: BoneEnvelopeDeltaPatch) => void
   onDelete: (id: string) => void
   onMirror: (id: string) => void
   onDeselect: () => void
@@ -260,33 +260,61 @@ function InspectorHeader({ bone, patch, onDelete, onMirror, onDeselect }: Pick<B
 }
 
 
+export interface BoneEnvelopeDeltaPatch {
+  lengthDelta?: number
+  strengthDelta?: number
+  reachDelta?: number
+  meshEnvelope?: boolean
+}
+
 interface BoneEnvelopeControlsProps {
   bone: LayerBone
   bones: LayerBone[]
   patch: (p: Partial<LayerBone>) => void
-  patchAll?: (p: Partial<LayerBone>) => void
+  patchAllDelta?: (delta: BoneEnvelopeDeltaPatch) => void
 }
 
-function BoneEnvelopeControls({ bone, bones, patch, patchAll }: BoneEnvelopeControlsProps) {
+function BoneEnvelopeControls({ bone, bones, patch, patchAllDelta }: BoneEnvelopeControlsProps) {
   const [applyAll, setApplyAll] = useState(false)
 
-  const handleApply = (p: Partial<LayerBone>) => {
-    if (applyAll && patchAll) {
-      patchAll(p)
+  // 1. Độ rộng vùng uốn (strength)
+  const handleWidthChange = (val: number) => {
+    const cur = bone.strength ?? 1
+    const delta = Number((val - cur).toFixed(2))
+    if (applyAll && patchAllDelta) {
+      patchAllDelta({ strengthDelta: delta })
     } else {
-      patch(p)
+      patch({ strength: val })
     }
   }
 
-  const handleScaleBones = (targetLen: number) => {
-    if (applyAll && patchAll) {
-      const cur = Math.max(1, bone.length)
-      const ratio = targetLen / cur
-      bones.forEach((b) => {
-        patchAll({ length: Math.max(10, Math.round(b.length * ratio)) })
-      })
+  // 2. Độ dài vùng uốn (influenceReach)
+  const handleReachChange = (val: number) => {
+    const cur = bone.influenceReach ?? 1
+    const delta = Number((val - cur).toFixed(2))
+    if (applyAll && patchAllDelta) {
+      patchAllDelta({ reachDelta: delta })
+    } else {
+      patch({ influenceReach: val })
+    }
+  }
+
+  // 3. Kích thước xương (length): Cộng trừ delta tương đối cho từng xương theo kích thước có sẵn
+  const handleLengthChange = (targetLen: number) => {
+    const delta = targetLen - bone.length
+    if (applyAll && patchAllDelta) {
+      patchAllDelta({ lengthDelta: delta })
     } else {
       patch({ length: targetLen })
+    }
+  }
+
+  // 4. Toggle Vùng uốn theo Mesh
+  const handleToggleMeshEnvelope = (nextVal: boolean) => {
+    if (applyAll && patchAllDelta) {
+      patchAllDelta({ meshEnvelope: nextVal })
+    } else {
+      patch({ meshEnvelope: nextVal })
     }
   }
 
@@ -313,7 +341,7 @@ function BoneEnvelopeControls({ bone, bones, patch, patchAll }: BoneEnvelopeCont
             aria-checked={applyAll}
             className={`lw-creature-pill${applyAll ? ' active' : ''}`}
             onClick={() => setApplyAll(true)}
-            title="Áp dụng cấu hình này cho toàn bộ xương trong cơ thể"
+            title="Cộng/trừ tương đối theo kích thước có sẵn của từng xương trên toàn cơ thể (không ép bằng nhau)"
           >
             Toàn bộ xương ({bones.length})
           </button>
@@ -329,7 +357,7 @@ function BoneEnvelopeControls({ bone, bones, patch, patchAll }: BoneEnvelopeCont
           step={0.05}
           value={bone.strength ?? 1}
           aria-label="Độ rộng vùng uốn"
-          onChange={(e) => handleApply({ strength: Number(e.target.value) })}
+          onChange={(e) => handleWidthChange(Number(e.target.value))}
         />
         <strong className="lw-bone-insp-value">{Math.round((bone.strength ?? 1) * 100)}%</strong>
         <span className="lw-bone-insp-hint">R {Math.round(computeBoneInfluenceRadius(bone))}px</span>
@@ -344,13 +372,13 @@ function BoneEnvelopeControls({ bone, bones, patch, patchAll }: BoneEnvelopeCont
           step={0.05}
           value={reach}
           aria-label="Độ dài vùng uốn"
-          onChange={(e) => handleApply({ influenceReach: Number(e.target.value) })}
+          onChange={(e) => handleReachChange(Number(e.target.value))}
         />
         <strong className="lw-bone-insp-value">{Math.round(reach * 100)}%</strong>
         <span className="lw-bone-insp-hint">{Math.round(bone.length * reach)}px</span>
       </div>
 
-      <div className="lw-bone-insp-row" title="Kích thước độ dài xương">
+      <div className="lw-bone-insp-row" title="Kích thước độ dài xương (Cộng/trừ tương đối từng xương khi chọn Toàn bộ xương)">
         <span className="lw-bone-insp-label">Kích thước</span>
         <input
           type="range"
@@ -359,9 +387,24 @@ function BoneEnvelopeControls({ bone, bones, patch, patchAll }: BoneEnvelopeCont
           step={1}
           value={bone.length}
           aria-label="Kích thước xương"
-          onChange={(e) => handleScaleBones(Number(e.target.value))}
+          onChange={(e) => handleLengthChange(Number(e.target.value))}
         />
         <strong className="lw-bone-insp-value">{Math.round(bone.length)}px</strong>
+      </div>
+
+      <div className="lw-bone-insp-row" style={{ marginTop: 4 }} title="Vùng uốn theo Mesh: Sử dụng trực tiếp vùng bao Mesh của bộ phận, đảm bảo không hụt đỉnh và không lấn sang bộ phận khác">
+        <span className="lw-bone-insp-label">Theo Mesh</span>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={Boolean(bone.meshEnvelope)}
+          className={`lw-moho-opt-pill${bone.meshEnvelope ? ' active' : ''}`}
+          onClick={() => handleToggleMeshEnvelope(!bone.meshEnvelope)}
+          style={{ flex: 1, justifyContent: 'center' }}
+          title="Bật: Sử dụng trực tiếp vùng bao Mesh của bộ phận (không hụt đỉnh, không lấn sang bên khác)"
+        >
+          <span>{bone.meshEnvelope ? '📐 Bám sát Mesh (BẬT)' : 'Viên nang mặc định'}</span>
+        </button>
       </div>
     </div>
   )
@@ -419,7 +462,7 @@ export function BoneInspectorCard(props: BoneInspectorCardProps) {
         <RigNumber label="Dài (px)" value={bone.length} min={1} onChange={(length) => patch({ length })} />
         <RigNumber label="Góc (°)" value={bone.angle} onChange={(angle) => patch({ angle })} />
       </div>
-<BoneEnvelopeControls bone={bone} bones={bones} patch={patch} patchAll={props.patchAll} />
+<BoneEnvelopeControls bone={bone} bones={bones} patch={patch} patchAllDelta={props.patchAllDelta} />
       <LimbQuickAngles bone={bone} patch={patch} />
       {!bone.pin && <WorkshopBoneConstraintCard bone={bone} patch={patch} />}
     </div>

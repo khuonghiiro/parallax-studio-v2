@@ -133,11 +133,14 @@ function buildCorridorWeights(
           else if (rawT > reachMult) dAxial = (rawT - reachMult) * len
         }
         const sMult = Math.max(0.1, b.strength ?? 1)
-        const radius = Math.max(1, len * 0.15 * sMult)
+        const isMeshEnvelope = Boolean(b.meshEnvelope)
+        // Vùng uốn theo Mesh: Sử dụng trực tiếp vùng bao mesh của bộ phận, đảm bảo đủ diện tích và không hụt đỉnh
+        const effCw = isMeshEnvelope ? 1.0 : cw
+        const radius = isMeshEnvelope ? Math.max(len * 0.4, 32) * sMult : Math.max(1, len * 0.15 * sMult)
         const dEff = Math.hypot(dPerp, Math.sqrt(5.0) * dAxial)
         const dEff2 = dPerp * dPerp + 5.0 * dAxial * dAxial
         const affinity = (sMult * sMult) / (dEff2 + radius * radius) ** 2
-        items.push({ id: b.id, dEff, raw: cw * affinity, cw })
+        items.push({ id: b.id, dEff, raw: effCw * affinity, cw: effCw })
         if (dEff < cMinDist) cMinDist = dEff
       }
 
@@ -178,7 +181,9 @@ function buildCorridorWeights(
     list.sort((a, b) => b.raw - a.raw)
     const top = list.slice(0, 4)
     const rawSum = top.reduce((s, w) => s + w.raw, 0) || 1
-    const envelope = Math.min(1, top.reduce((s, w) => s + w.cw, 0))
+    const hasMeshEnvelope = selectedChains.some((sc) => sc.items.some((it) => bones.find((b) => b.id === it.id)?.meshEnvelope))
+    const rawEnvelope = top.reduce((s, w) => s + w.cw, 0)
+    const envelope = hasMeshEnvelope ? 1.0 : Math.min(1, rawEnvelope)
     out[i] = top.map((w) => ({ id: w.id, weight: (w.raw / rawSum) * envelope }))
   }
   return out

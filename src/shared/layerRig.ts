@@ -16,6 +16,12 @@ export interface LayerBone {
   strength?: number
   /** Độ dài vươn xa của vùng uốn dọc thân xương (0.5..3.0, mặc định 1.0). */
   influenceReach?: number
+  /**
+   * Vùng uốn theo Mesh (Mesh-bound Envelope):
+   * Sử dụng trực tiếp vùng bao tam giác Mesh của layer gán với xương đó làm vùng uốn,
+   * đảm bảo 100% không bị thiếu đỉnh và không lấn sang bộ phận khác.
+   */
+  meshEnvelope?: boolean
   /** True when created as a Moho Pin Bone (point-pivot bone with compact capsule). */
   pin?: boolean
   /**
@@ -78,4 +84,6 @@ export interface LayerRig {
   clips?: AnimationClip[]
   /** ID của động tác đang được kích hoạt và chỉnh sửa */
   activeClipId?: string
+  /** Bật Vùng uốn theo Mesh cho toàn bộ khung xương của nhân vật. */
+  meshEnvelope?: boolean
 }

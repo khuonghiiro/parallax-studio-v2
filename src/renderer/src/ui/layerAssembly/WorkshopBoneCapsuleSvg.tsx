@@ -41,12 +41,13 @@ export function WorkshopBoneCapsuleSvg({
         const capsuleH = radius * 2
         const showHandles = Boolean(onStartStrengthDrag && (interactive || isSelected))
         const pctLabel = `${Math.round((bone.strength ?? 1) * 100)}%${bone.influenceReach && Math.abs(bone.influenceReach - 1) > 0.05 ? ` · L${Math.round(bone.influenceReach * 100)}%` : ''}`
+        const envelopePrefix = bone.meshEnvelope ? '📐 Mesh · ' : 'Vỏ '
 
         return (
           <g
             key={`cap-${bone.id}`}
             transform={`translate(${tf.x}, ${tf.y}) rotate(${angle})`}
-            className={`lw-bone-capsule side-${side}${isSelected ? ' selected' : ''}${interactive ? ' interactive' : ''}`}
+            className={`lw-bone-capsule side-${side}${isSelected ? ' selected' : ''}${interactive ? ' interactive' : ''}${bone.meshEnvelope ? ' is-mesh-envelope' : ''}`}
           >
             <rect
               x={-radius}
@@ -64,7 +65,7 @@ export function WorkshopBoneCapsuleSvg({
             >
               {interactive && (
                 <title>
-                  {`Vùng ảnh hưởng "${bone.name}" (${pctLabel}) — Kéo ra/vào để chỉnh bán kính uốn Mesh`}
+                  {`${bone.meshEnvelope ? '[Bám sát Mesh] ' : ''}Vùng ảnh hưởng "${bone.name}" (${pctLabel}) — Kéo ra/vào để chỉnh bán kính uốn Mesh`}
                 </title>
               )}
             </rect>
@@ -106,7 +107,7 @@ export function WorkshopBoneCapsuleSvg({
                     className="lw-bone-capsule-badge"
                     pointerEvents="none"
                   >
-                    Vỏ {pctLabel}
+                    {envelopePrefix}{pctLabel}
                   </text>
                 )}
               </>

@@ -9,7 +9,7 @@ import { WorkshopSmartRig25DCard } from './WorkshopSmartRig25DCard'
 import { WorkshopRigBindingSection } from './WorkshopRigBindingSection'
 import { WorkshopCreatureRigCard } from './WorkshopCreatureRigCard'
 import { WorkshopBoneBuilderCard } from './WorkshopBoneBuilderCard'
-import { BoneInspectorCard, BoneTreeCard } from './WorkshopBoneInspector'
+import { BoneInspectorCard, BoneTreeCard, type BoneEnvelopeDeltaPatch } from './WorkshopBoneInspector'
 import { resetTestPoses, setRigToolState, useRigToolStore, type MohoRigTool } from './rigToolStore'
 import { summarizeWeldableJoints, withSymmetricBoneAction } from './mohoRigHelpers'
 import {
@@ -300,9 +300,14 @@ export function WorkshopRigPanel({ composite, boneId, selectBone, selectedIds, s
     run(withSymmetricBoneAction(bones, baseAction, rigTool.mirrorDraw, findMirrorBoneId) as RigAction)
   }
 
-  const patchAll = (nextPatch: Partial<LayerBone>) => {
+  const patchAllDelta = (delta: BoneEnvelopeDeltaPatch) => {
     bones.forEach((b) => {
-      run({ action: 'update-bone', boneId: b.id, patch: nextPatch })
+      const nextPatch: Partial<LayerBone> = {}
+      if (delta.lengthDelta !== undefined) nextPatch.length = Math.max(10, Math.round(b.length + delta.lengthDelta))
+      if (delta.strengthDelta !== undefined) nextPatch.strength = Math.max(0.15, Math.min(3.5, Number(((b.strength ?? 1) + delta.strengthDelta).toFixed(2))))
+      if (delta.reachDelta !== undefined) nextPatch.influenceReach = Math.max(0.5, Math.min(3.0, Number(((b.influenceReach ?? 1) + delta.reachDelta).toFixed(2))))
+      if (delta.meshEnvelope !== undefined) nextPatch.meshEnvelope = delta.meshEnvelope
+      if (Object.keys(nextPatch).length > 0) run({ action: 'update-bone', boneId: b.id, patch: nextPatch })
     })
   }
 
@@ -356,7 +361,7 @@ export function WorkshopRigPanel({ composite, boneId, selectBone, selectedIds, s
                 mirrorTwin={mirrorTwin}
                 mirrorDraw={rigTool.mirrorDraw}
                 patch={patch}
-                patchAll={patchAll}
+                patchAllDelta={patchAllDelta}
                 onDelete={handleDeleteBone}
                 onMirror={(id) => run({ action: 'mirror-bone', boneId: id })}
                 onDeselect={() => selectBone(null)}

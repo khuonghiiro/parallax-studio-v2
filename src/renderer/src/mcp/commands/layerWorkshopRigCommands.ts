@@ -42,6 +42,10 @@ function bonePatch(p: Params): Partial<Omit<LayerBone, 'id'>> {
   for (const field of ['x', 'y', 'length', 'angle', 'strength'] as const) {
     if (p[field] !== undefined) patch[field] = num(p, field, true)
   }
+  const reach = num(p, 'influence_reach') ?? num(p, 'influenceReach')
+  if (reach !== undefined) patch.influenceReach = Math.max(0.5, Math.min(3.0, reach))
+  const me = bool(p, 'mesh_envelope') ?? bool(p, 'meshEnvelope')
+  if (me !== undefined) patch.meshEnvelope = me
   if (p.pin !== undefined) patch.pin = bool(p, 'pin')
   if (bool(p, 'limit_angle') === false) {
     patch.minAngle = undefined
@@ -224,6 +228,40 @@ function rigAction(p: Params, composite?: LayerComposite, currentTime = 0): RigA
   }
   if (action === 'mirror-pose') {
     return { action, time: num(p, 'time', true) }
+  }
+  if (action === 'scale-bones' || (action === 'update-bone' && bool(p, 'all_bones'))) {
+    const bones = composite?.rig?.bones ?? []
+    if (!bones.length) throw new ParamError('Khung xương chưa có xương nào')
+    const deltaLength = num(p, 'delta_length') ?? num(p, 'deltaLength')
+    const deltaStrength = num(p, 'delta_strength') ?? num(p, 'deltaStrength')
+    const deltaReach = num(p, 'delta_reach') ?? num(p, 'deltaReach')
+    const scaleFactor = num(p, 'scale_factor') ?? num(p, 'scaleFactor')
+    const meshEnvelope = bool(p, 'mesh_envelope') ?? bool(p, 'meshEnvelope')
+    const absStrength = num(p, 'strength')
+    const absReach = num(p, 'influence_reach') ?? num(p, 'influenceReach')
+    const patches = bones.map((b) => {
+      const patch: Partial<Omit<LayerBone, 'id'>> = {}
+      if (deltaLength !== undefined) {
+        patch.length = Math.max(10, Math.round(b.length + deltaLength))
+      } else if (scaleFactor !== undefined) {
+        patch.length = Math.max(10, Math.round(b.length * scaleFactor))
+      }
+      if (deltaStrength !== undefined) {
+        patch.strength = Math.max(0.15, Math.min(3.5, Number(((b.strength ?? 1) + deltaStrength).toFixed(2))))
+      } else if (absStrength !== undefined) {
+        patch.strength = Math.max(0.15, Math.min(3.5, absStrength))
+      }
+      if (deltaReach !== undefined) {
+        patch.influenceReach = Math.max(0.5, Math.min(3.0, Number(((b.influenceReach ?? 1) + deltaReach).toFixed(2))))
+      } else if (absReach !== undefined) {
+        patch.influenceReach = Math.max(0.5, Math.min(3.0, absReach))
+      }
+      if (meshEnvelope !== undefined) {
+        patch.meshEnvelope = meshEnvelope
+      }
+      return { boneId: b.id, patch }
+    })
+    return { action: 'update-bones', patches }
   }
   const boneId = str(p, 'bone_id', true)
   if (action === 'update-bone') return { action, boneId, patch: bonePatch(p) }

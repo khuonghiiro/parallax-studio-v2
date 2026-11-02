@@ -124,4 +124,27 @@ describe('workshop animation commands', () => {
     command({ action: 'update-bone', bone_id: 'whisker-2', limit_angle: false })
     expect(history.current.rig!.bones.find((b) => b.id === 'whisker-2')!.minAngle).toBeUndefined()
   })
-})
+  it('hỗ trợ scale-bones tương đối, all_bones, delta length/strength/reach và mesh_envelope qua MCP', () => {
+    command({ action: 'add-bone', bone_id: 'bone-arm', parent_id: 'root', length: 50, strength: 1.2 })
+    expect(history.current.rig!.bones).toHaveLength(2)
+
+    command({ action: 'update-bone', bone_id: 'bone-arm', mesh_envelope: true, influence_reach: 1.5 })
+    const armBone = history.current.rig!.bones.find((b) => b.id === 'bone-arm')!
+    expect(armBone.meshEnvelope).toBe(true)
+    expect(armBone.influenceReach).toBe(1.5)
+
+    command({ action: 'scale-bones', delta_length: 15, delta_strength: 0.3, mesh_envelope: true })
+    const updatedRoot = history.current.rig!.bones.find((b) => b.id === 'root')!
+    const updatedArm = history.current.rig!.bones.find((b) => b.id === 'bone-arm')!
+    expect(updatedRoot.length).toBe(95)
+    expect(updatedArm.length).toBe(65)
+    expect(updatedRoot.strength).toBeCloseTo(1.3, 2)
+    expect(updatedArm.strength).toBeCloseTo(1.5, 2)
+    expect(updatedRoot.meshEnvelope).toBe(true)
+    expect(updatedArm.meshEnvelope).toBe(true)
+
+    command({ action: 'update-bone', all_bones: true, delta_length: -10, delta_reach: 0.2 })
+    expect(history.current.rig!.bones.find((b) => b.id === 'root')!.length).toBe(85)
+    expect(history.current.rig!.bones.find((b) => b.id === 'bone-arm')!.length).toBe(55)
+  })
+});
