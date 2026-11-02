@@ -403,6 +403,24 @@
   opacity: 0.85;
 }
 
+.lw-bone-rel-node {
+  fill: var(--bg-1);
+  stroke: var(--text-faint);
+  stroke-width: 1.5px;
+  vector-effect: non-scaling-stroke;
+}
+.lw-bone-rel-node.to-head {
+  stroke: var(--accent-cyan);
+  fill: color-mix(in srgb, var(--accent-cyan) 30%, var(--bg-1));
+}
+.lw-bone-rel-node.to-tail {
+  stroke: var(--key);
+  fill: color-mix(in srgb, var(--key) 30%, var(--bg-1));
+}
+.lw-bone-rel-node.child-node {
+  stroke-width: 2px;
+}
+
 /* Hiển thị bắt dính khớp (Snapping Cue) khi vẽ xương (A) */
 .lw-snap-joint-cue { pointer-events: none; }
 @keyframes lwSnapPulse {

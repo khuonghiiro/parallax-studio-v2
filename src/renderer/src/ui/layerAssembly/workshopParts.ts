@@ -39,27 +39,73 @@ export function expandLinkedSelection(composite: LayerComposite, ids: string[]):
   return [...out]
 }
 
-/** Áp dụng dịch chuyển X/Y cho layer và mọi thành viên của nhóm đang khoá liên kết (kèm đồng bộ xương nếu có). */
+/**
+ * Xác định các xương thuộc về các layer được chọn:
+ * - Bao gồm xương gắn trực tiếp (boneId, extraBoneIds).
+ * - Bao gồm các xương con cháu (descendants) của các xương này (nếu chưa gán cho layer khác).
+ */
+export function getBonesForLayers(composite: LayerComposite, layerIds: string[]): string[] {
+  if (!composite.rig?.bones?.length || !layerIds.length) return []
+  const bones = composite.rig.bones
+
+  const targetBoneIds = new Set<string>()
+  for (const lid of layerIds) {
+    const l = composite.layers.find((item) => item.id === lid)
+    if (!l) continue
+    if (l.boneId) targetBoneIds.add(l.boneId)
+    if (l.extraBoneIds) {
+      for (const eid of l.extraBoneIds) targetBoneIds.add(eid)
+    }
+  }
+
+  const result = new Set<string>(targetBoneIds)
+  let added = true
+  while (added) {
+    added = false
+    for (const b of bones) {
+      if (b.parentId && result.has(b.parentId) && !result.has(b.id)) {
+        const assignedToOther = composite.layers.some(
+          (other) => !layerIds.includes(other.id) && (other.boneId === b.id || other.extraBoneIds?.includes(b.id))
+        )
+        if (!assignedToOther) {
+          result.add(b.id)
+          added = true
+        }
+      }
+    }
+  }
+
+  return [...result]
+}
+
+/** Áp dụng dịch chuyển X/Y cho layer và mọi thành viên của nhóm đang khoá liên kết (kèm đồng bộ xương thuộc bộ phận đó). */
 export function moveLinked(composite: LayerComposite, id: string, x: number, y: number): LayerComposite {
   const layer = composite.layers.find((l) => l.id === id)
   if (!layer || layer.locked) return composite
   const dx = x - layer.x
   const dy = y - layer.y
   const targets = new Set(expandLinkedSelection(composite, [id]))
-  const shouldMoveBones = Boolean(
-    composite.rig?.bones?.length &&
-      (layer.boneId || composite.layers.length === 1 || targets.size === composite.layers.length)
-  )
+
+  const isAllSelected = targets.size === composite.layers.length || composite.layers.length === 1
+  const bonesToMove = isAllSelected
+    ? composite.rig?.bones?.map((b) => b.id) ?? []
+    : getBonesForLayers(composite, [...targets])
+  const shouldMoveBones = Boolean(composite.rig?.bones?.length && bonesToMove.length > 0)
+
   const nextLayers = composite.layers.map((l) => (targets.has(l.id) ? { ...l, x: l.x + dx, y: l.y + dy } : l))
   const nextRig =
     shouldMoveBones && composite.rig
       ? {
           ...composite.rig,
-          bones: composite.rig.bones.map((b) => ({
-            ...b,
-            x: Math.round(b.x + dx),
-            y: Math.round(b.y + dy)
-          }))
+          bones: composite.rig.bones.map((b) =>
+            bonesToMove.includes(b.id)
+              ? {
+                  ...b,
+                  x: Math.round(b.x + dx),
+                  y: Math.round(b.y + dy)
+                }
+              : b
+          )
         }
       : composite.rig
   return {

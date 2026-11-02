@@ -28,7 +28,7 @@ import { EraserIsolatedCanvas } from './LayerAssemblyEraser'
 import { LayerAssemblyCalloutOverlay } from './LayerAssemblyCalloutOverlay'
 import type { WorkshopTab } from './WorkshopRightPanel'
 import type { AssemblyWorkspaceView } from './LayerAssemblyDialog'
-import { expandLinkedSelection } from './workshopParts'
+import { expandLinkedSelection, getBonesForLayers } from './workshopParts'
 import { usePinchPanGesture } from '../../hooks/usePinchPanGesture'
 
 export interface LayerAssemblyViewportProps {
@@ -481,13 +481,16 @@ export function LayerAssemblyViewport({
     })
     const initBonePositions = new Map<string, { x: number; y: number }>()
     if (composite.rig && composite.rig.bones.length > 0) {
-      const hasRigAttachment = activeSelection.some((id) => {
-        const l = composite.layers.find((item) => item.id === id)
-        return l?.boneId || composite.layers.length === 1
-      })
-      if (hasRigAttachment) {
+      const isAllSelected = activeSelection.length === composite.layers.length || composite.layers.length === 1
+      const bonesToMove = isAllSelected
+        ? composite.rig.bones.map((b) => b.id)
+        : getBonesForLayers(composite, activeSelection)
+
+      if (bonesToMove.length > 0) {
         composite.rig.bones.forEach((b) => {
-          initBonePositions.set(b.id, { x: b.x, y: b.y })
+          if (bonesToMove.includes(b.id)) {
+            initBonePositions.set(b.id, { x: b.x, y: b.y })
+          }
         })
       }
     }

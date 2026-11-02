@@ -46,15 +46,19 @@ export function WorkshopBoneRelationships({ bones, transforms }: WorkshopBoneRel
 
         // Nếu khớp đã trùng khít (welded joint ≤ 4px), không cần vẽ đường đứt đoạn
         if (Math.hypot(sourceX - childTf.x, sourceY - childTf.y) > 4) {
+          const typeClass = connectsToHead ? 'to-head' : 'to-tail'
           return (
-            <line
-              key={`rel-${bone.id}`}
-              x1={sourceX}
-              y1={sourceY}
-              x2={childTf.x}
-              y2={childTf.y}
-              className={`lw-bone-relationship${connectsToHead ? ' to-head' : ' to-tail'}`}
-            />
+            <g key={`rel-${bone.id}`} className="lw-bone-rel-group">
+              <line
+                x1={sourceX}
+                y1={sourceY}
+                x2={childTf.x}
+                y2={childTf.y}
+                className={`lw-bone-relationship ${typeClass}`}
+              />
+              <circle cx={sourceX} cy={sourceY} r={3.2} className={`lw-bone-rel-node parent-node ${typeClass}`} />
+              <circle cx={childTf.x} cy={childTf.y} r={3.6} className={`lw-bone-rel-node child-node ${typeClass}`} />
+            </g>
           )
         }
         return null

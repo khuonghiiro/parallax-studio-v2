@@ -14,6 +14,8 @@ export interface LayerBone {
   angle: number
   /** Moho Bone Strength / Influence Envelope multiplier (0.1..4.0, default 1.0). */
   strength?: number
+  /** Độ dài vươn xa của vùng uốn dọc thân xương (0.5..3.0, mặc định 1.0). */
+  influenceReach?: number
   /** True when created as a Moho Pin Bone (point-pivot bone with compact capsule). */
   pin?: boolean
   /**

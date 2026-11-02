@@ -293,4 +293,70 @@ describe('2D mesh skinning', () => {
       expect(out[v * 3 + 1]).toBeCloseTo(pos[v * 3 + 1], 4)
     }
   })
-})
+
+  it('splits inverted-V character legs: bending left leg never drags right leg or its shoe sole', () => {
+    // 2 chân dạng chữ V ngược tách ra từ hông (0, 100 theo toạ độ mesh Y-up):
+    // Đỉnh 0, 1: Hông / đáy quần
+    // Đỉnh 2, 3: Đầu gối trái, 4, 5: Bàn chân trái, 6, 7: Đế giày trái (Y = -5..0)
+    // Đỉnh 8, 9: Đầu gối phải, 10, 11: Bàn chân phải, 12, 13: Đế giày phải (Y = -5..0)
+    const pos = new Float32Array([
+      // 0, 1: Hông (x = -6..6, y = 100)
+      -6, 100, 0, 6, 100, 0,
+      // 2, 3: Đầu gối trái (x = -24..-16, y = 50)
+      -24, 50, 0, -16, 50, 0,
+      // 4, 5: Bàn chân trái (x = -36..-24, y = 10)
+      -36, 10, 0, -24, 10, 0,
+      // 6, 7: Đế giày trái (x = -40..-20, y = 0)
+      -40, 0, 0, -20, 0, 0,
+      // 8, 9: Đầu gối phải (x = 16..24, y = 50)
+      16, 50, 0, 24, 50, 0,
+      // 10, 11: Bàn chân phải (x = 24..36, y = 10)
+      24, 10, 0, 36, 10, 0,
+      // 12, 13: Đế giày phải (x = 20..40, y = 0)
+      20, 0, 0, 40, 0, 0
+    ])
+
+    const indices = [
+      // Chân trái
+      0, 1, 2, 1, 3, 2,
+      2, 3, 4, 3, 5, 4,
+      4, 5, 6, 5, 7, 6,
+      // Chân phải
+      0, 1, 8, 1, 9, 8,
+      8, 9, 10, 9, 11, 10,
+      10, 11, 12, 11, 13, 12
+    ]
+
+    // Xương chân trái và xương chân phải độc lập cùng xuất phát từ hông (x=0, y=-100 Y-down)
+    const legRig: LayerRig = {
+      duration: 1,
+      loop: false,
+      bones: [
+        { id: 'b-leg-l', name: 'Chân Trái', x: 0, y: -100, length: 104, angle: 107 },
+        { id: 'b-leg-r', name: 'Chân Phải', x: 0, y: -100, length: 104, angle: 73 }
+      ],
+      // Co chân trái lên 35 độ
+      tracks: {
+        'b-leg-l': [{ time: 0.5, x: 0, y: 0, rotation: 35, easing: 'linear' }]
+      }
+    }
+
+    const out = deformSkin(
+      pos,
+      { boneId: 'b-leg-l', extraBoneIds: ['b-leg-r'], x: 0, y: 0, rotation: 0, scale: 1 },
+      legRig,
+      0.5,
+      indices
+    )
+
+    // 1. Chân trái và đế giày trái (đỉnh 4, 5, 6, 7) uốn rõ rệt theo chân trái
+    expect(Math.hypot(out[4 * 3] - pos[4 * 3], out[4 * 3 + 1] - pos[4 * 3 + 1])).toBeGreaterThan(10)
+    expect(Math.hypot(out[6 * 3] - pos[6 * 3], out[6 * 3 + 1] - pos[6 * 3 + 1])).toBeGreaterThan(10)
+
+    // 2. Chân phải và đế giày phải (đỉnh 8, 9, 10, 11, 12, 13) ĐỨNG YÊN HOÀN TOÀN (không bị ghim dẹt hay kéo dính)
+    for (const v of [8, 9, 10, 11, 12, 13]) {
+      expect(out[v * 3]).toBeCloseTo(pos[v * 3], 4)
+      expect(out[v * 3 + 1]).toBeCloseTo(pos[v * 3 + 1], 4)
+    }
+  })
+});

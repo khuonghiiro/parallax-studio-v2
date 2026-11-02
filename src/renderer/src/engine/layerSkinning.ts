@@ -97,44 +97,81 @@ function buildCorridorWeights(
   for (let i = 0; i < vCount; i++) {
     const x = world[i * 2]
     const y = world[i * 2 + 1]
-    const candidates: Array<{ id: string; dEff: number; raw: number; cw: number }> = []
-    let minDist = Infinity
-    for (const { chain, ends, corridor } of chainMeta) {
+
+    // 1. Gom candidates theo từng chuỗi xương hợp lệ (cw > 1e-4)
+    const chainCandidates: Array<{
+      chainIdx: number
+      minDist: number
+      items: Array<{ id: string; dEff: number; raw: number; cw: number }>
+    }> = []
+
+    for (let c = 0; c < chainMeta.length; c++) {
+      const { chain, ends, corridor } = chainMeta[c]
       if (!corridor) continue
       const cw = corridor.weights[i]
       if (cw <= 1e-4) continue
+
+      let cMinDist = Infinity
+      const items: Array<{ id: string; dEff: number; raw: number; cw: number }> = []
       const lastIdx = chain.length - 1
       const lo = Math.max(0, Math.min(lastIdx, corridor.segMin[i] - 1))
       const hi = lastIdx
+
       for (let s = lo; s <= hi; s++) {
         const b = chain[s]
         const end = ends[s]
-        const len = b.length
-        const len2 = len * len || 1
-        const rawT = ((x - b.x) * end.x + (y - b.y) * end.y) / len2
-        const perpX = x - b.x - rawT * end.x
-        const perpY = y - b.y - rawT * end.y
+        const reachMult = Math.max(0.5, Math.min(3.0, b.influenceReach ?? 1.0))
+        const len = b.length * reachMult
+        const baseLen2 = b.length * b.length || 1
+        const rawT = ((x - b.x) * end.x + (y - b.y) * end.y) / baseLen2
+        const perpX = x - b.x - Math.min(1, Math.max(0, rawT)) * end.x
+        const perpY = y - b.y - Math.min(1, Math.max(0, rawT)) * end.y
         const dPerp = Math.hypot(perpX, perpY)
         let dAxial = 0
         if (!b.pin) {
           if (rawT < 0) dAxial = -rawT * len
-          else if (rawT > 1) dAxial = (rawT - 1) * len
+          else if (rawT > reachMult) dAxial = (rawT - reachMult) * len
         }
         const sMult = Math.max(0.1, b.strength ?? 1)
         const radius = Math.max(1, len * 0.15 * sMult)
         const dEff = Math.hypot(dPerp, Math.sqrt(5.0) * dAxial)
         const dEff2 = dPerp * dPerp + 5.0 * dAxial * dAxial
         const affinity = (sMult * sMult) / (dEff2 + radius * radius) ** 2
-        candidates.push({ id: b.id, dEff, raw: cw * affinity, cw })
-        if (dEff < minDist) minDist = dEff
+        items.push({ id: b.id, dEff, raw: cw * affinity, cw })
+        if (dEff < cMinDist) cMinDist = dEff
+      }
+
+      if (items.length > 0) {
+        chainCandidates.push({ chainIdx: c, minDist: cMinDist, items })
       }
     }
-    if (!candidates.length) {
+
+    if (!chainCandidates.length) {
       out[i] = []
       continue
     }
 
-    // Lọc bỏ xương ở nhánh khác qua khoảng không gian rỗng (chữ V, cành đối diện)
+    // 2. Voronoi Bone Chain Partitioning (Tự động tách 2 nhánh/2 chân chữ V):
+    // Khi một đỉnh nhận ảnh hưởng từ 2 chuỗi trở lên (chân trái và chân phải),
+    // ta chọn chuỗi có xương gần nhất (Voronoi winner). Chỉ giữ lại cả 2 chuỗi nếu khoảng cách
+    // tới cả 2 chuỗi chênh lệch rất nhỏ (vùng chạc hông / đáy quần tiếp giáp).
+    let selectedChains = chainCandidates
+    if (chainCandidates.length > 1) {
+      const best = chainCandidates.reduce((prev, cur) => (cur.minDist < prev.minDist ? cur : prev))
+      const closeChains = chainCandidates.filter((cc) => cc.minDist <= Math.min(best.minDist * 1.35, best.minDist + 16))
+      selectedChains = closeChains.length > 0 ? closeChains : [best]
+    }
+
+    const candidates: Array<{ id: string; dEff: number; raw: number; cw: number }> = []
+    let minDist = Infinity
+    for (const sc of selectedChains) {
+      for (const item of sc.items) {
+        candidates.push(item)
+        if (item.dEff < minDist) minDist = item.dEff
+      }
+    }
+
+    // Lọc bỏ xương ở nhánh xa trong cùng chuỗi
     const maxAllowed = Math.max(minDist * 2.0, minDist + 16)
     const active = candidates.filter((c) => candidates.length === 1 || c.dEff <= maxAllowed)
     const list = active.length > 0 ? active : candidates
@@ -219,16 +256,17 @@ export function skinWeights(x: number, y: number, bones: LayerRig['bones']): Ski
   let minDist = Infinity
   for (const b of bones) {
     const end = rotatePoint(b.length, 0, b.angle)
-    const len = b.length
-    const len2 = len * len || 1
-    const rawT = ((x - b.x) * end.x + (y - b.y) * end.y) / len2
-    const perpX = x - b.x - rawT * end.x
-    const perpY = y - b.y - rawT * end.y
+    const reachMult = Math.max(0.5, Math.min(3.0, b.influenceReach ?? 1.0))
+    const len = b.length * reachMult
+    const baseLen2 = b.length * b.length || 1
+    const rawT = ((x - b.x) * end.x + (y - b.y) * end.y) / baseLen2
+    const perpX = x - b.x - Math.min(1, Math.max(0, rawT)) * end.x
+    const perpY = y - b.y - Math.min(1, Math.max(0, rawT)) * end.y
     const dPerp = Math.hypot(perpX, perpY)
     let dAxial = 0
     if (!b.pin) {
       if (rawT < 0) dAxial = -rawT * len
-      else if (rawT > 1) dAxial = (rawT - 1) * len
+      else if (rawT > reachMult) dAxial = (rawT - reachMult) * len
     }
     const sMult = Math.max(0.1, b.strength ?? 1)
     const radius = Math.max(1, len * 0.15 * sMult)

@@ -35,11 +35,12 @@ export function WorkshopBoneCapsuleSvg({
         const isSelected = bone.id === selectedBoneId
         const radius = computeBoneInfluenceRadius(bone)
         const angle = bone.angle + tf.rotation
-        const len = bone.pin ? 0 : bone.length
+        const reach = Math.max(0.5, Math.min(3.0, bone.influenceReach ?? 1.0))
+        const len = bone.pin ? 0 : bone.length * reach
         const capsuleW = len + radius * 2
         const capsuleH = radius * 2
         const showHandles = Boolean(onStartStrengthDrag && (interactive || isSelected))
-        const pctLabel = `${Math.round((bone.strength ?? 1) * 100)}%`
+        const pctLabel = `${Math.round((bone.strength ?? 1) * 100)}%${bone.influenceReach && Math.abs(bone.influenceReach - 1) > 0.05 ? ` · L${Math.round(bone.influenceReach * 100)}%` : ''}`
 
         return (
           <g

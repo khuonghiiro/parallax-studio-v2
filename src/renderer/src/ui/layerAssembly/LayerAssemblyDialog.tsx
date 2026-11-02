@@ -91,9 +91,21 @@ export function LayerAssemblyDialog({
     if (!saving.busy) onClose()
   }
   const { width: viewportWidth, breakpoint, isDrawerMode, isPhone: isMobile } = useResponsiveViewport()
-  const [view, setView] = useState<AssemblyWorkspaceView>(() =>
-    typeof window !== 'undefined' && window.innerWidth <= 768 ? '2d' : 'split'
-  )
+  const [view, setView] = useState<AssemblyWorkspaceView>(() => {
+    if (typeof window !== 'undefined' && window.innerWidth <= 768) return '2d'
+    try {
+      const saved = localStorage.getItem('pxs:layer-workshop-view')
+      if (saved === '2d' || saved === 'split' || saved === '3d') return saved as AssemblyWorkspaceView
+    } catch {}
+    return '2d'
+  })
+
+  const handleSetView = (nextView: AssemblyWorkspaceView) => {
+    setView(nextView)
+    try {
+      localStorage.setItem('pxs:layer-workshop-view', nextView)
+    } catch {}
+  }
   const [primaryMode, setPrimaryMode] = useState<WorkshopPrimaryMode>(() => initialPrimaryMode ?? 'assembly')
   const [showNewConfirm, setShowNewConfirm] = useState(false)
   const [isBrushActive, setIsBrushActive] = useState(false)
@@ -288,7 +300,7 @@ export function LayerAssemblyDialog({
           primaryMode={primaryMode}
           setPrimaryMode={setPrimaryMode}
           view={view}
-          setView={setView}
+          setView={handleSetView}
           busy={saving.busy}
           save={() => void saving.save()}
           insert={() => void saving.insert()}

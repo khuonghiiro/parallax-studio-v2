@@ -225,6 +225,7 @@ export interface BoneInspectorCardProps {
   mirrorTwin: LayerBone | null
   mirrorDraw: boolean
   patch: (p: Partial<LayerBone>) => void
+  patchAll?: (p: Partial<LayerBone>) => void
   onDelete: (id: string) => void
   onMirror: (id: string) => void
   onDeselect: () => void
@@ -254,6 +255,114 @@ function InspectorHeader({ bone, patch, onDelete, onMirror, onDeselect }: Pick<B
       <button type="button" className="lw-bone-insp-icon" onClick={onDeselect} title="Bỏ chọn xương (Esc)">
         <IconX width={12} height={12} />
       </button>
+    </div>
+  )
+}
+
+
+interface BoneEnvelopeControlsProps {
+  bone: LayerBone
+  bones: LayerBone[]
+  patch: (p: Partial<LayerBone>) => void
+  patchAll?: (p: Partial<LayerBone>) => void
+}
+
+function BoneEnvelopeControls({ bone, bones, patch, patchAll }: BoneEnvelopeControlsProps) {
+  const [applyAll, setApplyAll] = useState(false)
+
+  const handleApply = (p: Partial<LayerBone>) => {
+    if (applyAll && patchAll) {
+      patchAll(p)
+    } else {
+      patch(p)
+    }
+  }
+
+  const handleScaleBones = (targetLen: number) => {
+    if (applyAll && patchAll) {
+      const cur = Math.max(1, bone.length)
+      const ratio = targetLen / cur
+      bones.forEach((b) => {
+        patchAll({ length: Math.max(10, Math.round(b.length * ratio)) })
+      })
+    } else {
+      patch({ length: targetLen })
+    }
+  }
+
+  const reach = bone.influenceReach ?? 1.0
+
+  return (
+    <div className="lw-card-section lw-envelope-control-box" style={{ marginTop: 8, padding: '8px 10px', background: 'var(--bg-2)', borderRadius: 'var(--radius)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text)' }}>Vùng uốn & Kích thước</span>
+        <div className="lw-creature-pills" role="radiogroup" aria-label="Phạm vi áp dụng">
+          <button
+            type="button"
+            role="radio"
+            aria-checked={!applyAll}
+            className={`lw-creature-pill${!applyAll ? ' active' : ''}`}
+            onClick={() => setApplyAll(false)}
+            title="Chỉ áp dụng cho xương đang chọn"
+          >
+            Chỉ xương này
+          </button>
+          <button
+            type="button"
+            role="radio"
+            aria-checked={applyAll}
+            className={`lw-creature-pill${applyAll ? ' active' : ''}`}
+            onClick={() => setApplyAll(true)}
+            title="Áp dụng cấu hình này cho toàn bộ xương trong cơ thể"
+          >
+            Toàn bộ xương ({bones.length})
+          </button>
+        </div>
+      </div>
+
+      <div className="lw-bone-insp-row" title="Độ rộng vùng ảnh hưởng uốn Mesh (Bán kính viên nang Moho)">
+        <span className="lw-bone-insp-label">Độ rộng</span>
+        <input
+          type="range"
+          min={0.15}
+          max={3.5}
+          step={0.05}
+          value={bone.strength ?? 1}
+          aria-label="Độ rộng vùng uốn"
+          onChange={(e) => handleApply({ strength: Number(e.target.value) })}
+        />
+        <strong className="lw-bone-insp-value">{Math.round((bone.strength ?? 1) * 100)}%</strong>
+        <span className="lw-bone-insp-hint">R {Math.round(computeBoneInfluenceRadius(bone))}px</span>
+      </div>
+
+      <div className="lw-bone-insp-row" title="Độ dài vươn xa của vùng uốn dọc theo thân xương">
+        <span className="lw-bone-insp-label">Độ dài uốn</span>
+        <input
+          type="range"
+          min={0.5}
+          max={2.5}
+          step={0.05}
+          value={reach}
+          aria-label="Độ dài vùng uốn"
+          onChange={(e) => handleApply({ influenceReach: Number(e.target.value) })}
+        />
+        <strong className="lw-bone-insp-value">{Math.round(reach * 100)}%</strong>
+        <span className="lw-bone-insp-hint">{Math.round(bone.length * reach)}px</span>
+      </div>
+
+      <div className="lw-bone-insp-row" title="Kích thước độ dài xương">
+        <span className="lw-bone-insp-label">Kích thước</span>
+        <input
+          type="range"
+          min={10}
+          max={300}
+          step={1}
+          value={bone.length}
+          aria-label="Kích thước xương"
+          onChange={(e) => handleScaleBones(Number(e.target.value))}
+        />
+        <strong className="lw-bone-insp-value">{Math.round(bone.length)}px</strong>
+      </div>
     </div>
   )
 }
@@ -310,12 +419,7 @@ export function BoneInspectorCard(props: BoneInspectorCardProps) {
         <RigNumber label="Dài (px)" value={bone.length} min={1} onChange={(length) => patch({ length })} />
         <RigNumber label="Góc (°)" value={bone.angle} onChange={(angle) => patch({ angle })} />
       </div>
-      <div className="lw-bone-insp-row" title="Vùng ảnh hưởng uốn Mesh (Moho Bone Strength)">
-        <span className="lw-bone-insp-label">Vùng uốn</span>
-        <input type="range" min={0.15} max={3.0} step={0.05} value={bone.strength ?? 1} aria-label="Vùng ảnh hưởng xương" onChange={(e) => patch({ strength: Number(e.target.value) })} />
-        <strong className="lw-bone-insp-value">{Math.round((bone.strength ?? 1) * 100)}%</strong>
-        <span className="lw-bone-insp-hint">R {Math.round(computeBoneInfluenceRadius(bone))}px</span>
-      </div>
+<BoneEnvelopeControls bone={bone} bones={bones} patch={patch} patchAll={props.patchAll} />
       <LimbQuickAngles bone={bone} patch={patch} />
       {!bone.pin && <WorkshopBoneConstraintCard bone={bone} patch={patch} />}
     </div>

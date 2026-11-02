@@ -134,4 +134,38 @@ describe('variants & replacement', () => {
     ])
     expect(list.map((c) => c.path)).toEqual(['hero/face-cry.png', 'hero/arm-left.png'])
   })
+  it('moves only the bones assigned to the dragged part (arm) while keeping torso bones stationary', () => {
+    const multiRigged: LayerComposite = {
+      id: 'cmulti',
+      name: 'MultiChar',
+      category: 'character',
+      width: 600,
+      height: 900,
+      layers: [
+        layer('torso', 'torso', { x: 0, y: 0, boneId: 'b-torso' }),
+        layer('arm', 'arm', { x: -50, y: 0, boneId: 'b-arm' })
+      ],
+      rig: {
+        bones: [
+          { id: 'b-torso', name: 'Thân', x: 0, y: 0, length: 100, angle: 90 },
+          { id: 'b-arm', name: 'Tay', parentId: 'b-torso', x: -50, y: 0, length: 60, angle: 160 }
+        ],
+        duration: 2, loop: true, tracks: {}, clips: []
+      }
+    }
+    // Kéo tay từ x=-50 ra xa thân x=-120 (dx = -70)
+    const moved = moveLinked(multiRigged, 'arm', -120, 20)
+    expect(moved.layers.find((l) => l.id === 'arm')!.x).toBe(-120)
+    expect(moved.layers.find((l) => l.id === 'torso')!.x).toBe(0)
+
+    // Xương tay di chuyển theo tay
+    const armBone = moved.rig?.bones.find((b) => b.id === 'b-arm')
+    expect(armBone?.x).toBe(-120)
+    expect(armBone?.y).toBe(20)
+
+    // Xương thân ĐỨNG YÊN HOÀN TOÀN
+    const torsoBone = moved.rig?.bones.find((b) => b.id === 'b-torso')
+    expect(torsoBone?.x).toBe(0)
+    expect(torsoBone?.y).toBe(0)
+  })
 })

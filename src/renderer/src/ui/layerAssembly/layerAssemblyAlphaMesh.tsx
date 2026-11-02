@@ -141,7 +141,7 @@ export function getLayerContourCells(
   img.crossOrigin = 'anonymous'
   img.onload = () => {
     try {
-      const sil = getImageSilhouette(img, true)
+      const sil = getImageSilhouette(img, false)
       const cells = sil ? computeContourCells(cols, rows, sil, 0, true) : []
       storeCellsCache(cacheKey, cells)
       const callbacks = pendingLoads.get(cacheKey)
@@ -224,7 +224,7 @@ export function createLayerAlphaTrimmedGeometry(
     if (!cells) {
       const silhouette = Array.isArray(image)
         ? silhouetteFromBoolGrid(image, image[0]?.length ?? 1, image.length)
-        : getImageSilhouette(image, true)
+        : getImageSilhouette(image, false)
       cells = silhouette ? computeContourCells(effectiveCols, effectiveRows, silhouette, 0, true) : []
       if (cacheKey) {
         storeCellsCache(cacheKey, cells)

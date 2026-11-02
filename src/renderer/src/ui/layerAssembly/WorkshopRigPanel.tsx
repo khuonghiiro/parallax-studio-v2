@@ -300,6 +300,12 @@ export function WorkshopRigPanel({ composite, boneId, selectBone, selectedIds, s
     run(withSymmetricBoneAction(bones, baseAction, rigTool.mirrorDraw, findMirrorBoneId) as RigAction)
   }
 
+  const patchAll = (nextPatch: Partial<LayerBone>) => {
+    bones.forEach((b) => {
+      run({ action: 'update-bone', boneId: b.id, patch: nextPatch })
+    })
+  }
+
   const handleDeleteBone = (id: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation()
     run({ action: 'delete-bone', boneId: id })
@@ -350,6 +356,7 @@ export function WorkshopRigPanel({ composite, boneId, selectBone, selectedIds, s
                 mirrorTwin={mirrorTwin}
                 mirrorDraw={rigTool.mirrorDraw}
                 patch={patch}
+                patchAll={patchAll}
                 onDelete={handleDeleteBone}
                 onMirror={(id) => run({ action: 'mirror-bone', boneId: id })}
                 onDeselect={() => selectBone(null)}
