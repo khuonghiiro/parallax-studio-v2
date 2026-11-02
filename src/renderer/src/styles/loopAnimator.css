@@ -455,15 +455,57 @@
 }
 
 .loop-contour-controls {
-  grid-template-columns: repeat(3, minmax(0, 130px)) 1fr;
-  align-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px 12px;
+}
+
+.loop-contour-controls .loop-ctrl-field {
+  flex: 0 0 auto;
+  min-width: 80px;
+}
+
+.loop-mini-pills {
+  display: inline-flex;
+  align-items: center;
+  background: var(--bg-0);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+  gap: 2px;
+}
+
+.loop-mini-pill {
+  padding: 3px 8px;
+  border-radius: 3px;
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.loop-mini-pill:hover {
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.loop-mini-pill.active {
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
 }
 
 .loop-contour-btns {
   display: flex;
   align-items: center;
-  gap: 8px;
-  justify-content: flex-end;
+  gap: 6px;
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
 .loop-manual-hint-bar {
@@ -609,6 +651,46 @@
   background: var(--bg-1);
   min-height: 0;
   overflow-y: auto;
+}
+
+.loop-toolbar-right-cluster {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.loop-anchor-pills {
+  display: inline-flex;
+  align-items: center;
+  background: var(--bg-0);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+  gap: 2px;
+}
+
+.loop-anchor-pill {
+  padding: 2px 7px;
+  border-radius: 3px;
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  white-space: nowrap;
+}
+
+.loop-anchor-pill:hover {
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.loop-anchor-pill.active {
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
 }
 
 .loop-bg-pills {

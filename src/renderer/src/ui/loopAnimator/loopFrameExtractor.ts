@@ -271,23 +271,46 @@ export function detectContourFrames(
   const valid = boxes.filter((b) => (b.maxX - b.minX) * (b.maxY - b.minY) >= minArea)
   if (valid.length === 0) return []
 
-  // Sort in reading order (group into rows by vertical overlap / average height)
-  const avgH = valid.reduce((acc, b) => acc + (b.maxY - b.minY), 0) / valid.length
-  const rowTolerance = Math.max(12, avgH * 0.55)
-  valid.sort((a, b) => {
-    const cyA = (a.minY + a.maxY) * 0.5
-    const cyB = (b.minY + b.maxY) * 0.5
-    if (Math.abs(cyA - cyB) > rowTolerance) return cyA - cyB
-    return a.minX - b.minX
-  })
+  // Deterministic 2-pass row & column clustering to eliminate intransitive sort anomalies
+  const sortedBoxes = clusterAndSortBoxes(valid, config.readingOrder ?? 'row_first')
 
-  // Normalize to uniform max width/height if desired, or keep tight bounds with centered offset
-  return valid.map((b, index) => {
-    const pad = 2
-    const x = Math.max(0, b.minX - pad)
-    const y = Math.max(0, b.minY - pad)
-    const width = Math.max(1, Math.min(w - x, b.maxX - b.minX + pad * 2))
-    const height = Math.max(1, Math.min(h - y, b.maxY - b.minY + pad * 2))
+  const pad = 2
+  const uniformSize = config.uniformSize ?? true
+  const alignAnchor = config.alignAnchor ?? 'bottom'
+
+  let targetW = 0
+  let targetH = 0
+  if (uniformSize) {
+    targetW = Math.max(...sortedBoxes.map((b) => b.maxX - b.minX + pad * 2))
+    targetH = Math.max(...sortedBoxes.map((b) => b.maxY - b.minY + pad * 2))
+  }
+
+  return sortedBoxes.map((b, index) => {
+    let x: number
+    let y: number
+    let width: number
+    let height: number
+
+    if (uniformSize && targetW > 0 && targetH > 0) {
+      width = Math.min(w, targetW)
+      height = Math.min(h, targetH)
+      const centerX = (b.minX + b.maxX) * 0.5
+      x = Math.max(0, Math.min(w - width, Math.round(centerX - width * 0.5)))
+
+      if (alignAnchor === 'bottom') {
+        const bottomY = b.maxY + pad
+        y = Math.max(0, Math.min(h - height, Math.round(bottomY - height)))
+      } else {
+        const centerY = (b.minY + b.maxY) * 0.5
+        y = Math.max(0, Math.min(h - height, Math.round(centerY - height * 0.5)))
+      }
+    } else {
+      x = Math.max(0, b.minX - pad)
+      y = Math.max(0, b.minY - pad)
+      width = Math.max(1, Math.min(w - x, b.maxX - b.minX + pad * 2))
+      height = Math.max(1, Math.min(h - y, b.maxY - b.minY + pad * 2))
+    }
+
     return {
       id: `frame_${index}`,
       index,
@@ -303,14 +326,125 @@ export function detectContourFrames(
   })
 }
 
+interface RawBoundingBox {
+  minX: number
+  minY: number
+  maxX: number
+  maxY: number
+}
+
+/**
+ * Robust 2-pass cluster and sort algorithm:
+ * Partitions boxes into discrete spatial rows or columns using vertical/horizontal overlap
+ * and sorts elements strictly within each row/column. Prevents random frame-order inversions.
+ */
+export function clusterAndSortBoxes(
+  boxes: RawBoundingBox[],
+  readingOrder: 'row_first' | 'col_first' | 'snake' = 'row_first'
+): RawBoundingBox[] {
+  if (boxes.length <= 1) return [...boxes]
+
+  if (readingOrder === 'col_first') {
+    const avgW = boxes.reduce((acc, b) => acc + (b.maxX - b.minX), 0) / boxes.length
+    const colThresh = Math.max(12, avgW * 0.45)
+    const sortedByX = [...boxes].sort((a, b) => a.minX - b.minX)
+    interface BoxCol {
+      minX: number
+      maxX: number
+      cx: number
+      boxes: RawBoundingBox[]
+    }
+    const cols: BoxCol[] = []
+    for (const b of sortedByX) {
+      const cx = (b.minX + b.maxX) * 0.5
+      let best: BoxCol | null = null
+      let bestDist = Infinity
+      for (const c of cols) {
+        const overlap = Math.min(b.maxX, c.maxX) - Math.max(b.minX, c.minX)
+        const dist = Math.abs(cx - c.cx)
+        if (overlap > 0 || dist <= colThresh) {
+          if (dist < bestDist) {
+            bestDist = dist
+            best = c
+          }
+        }
+      }
+      if (best) {
+        best.boxes.push(b)
+        best.minX = Math.min(best.minX, b.minX)
+        best.maxX = Math.max(best.maxX, b.maxX)
+        best.cx = (best.minX + best.maxX) * 0.5
+      } else {
+        cols.push({ minX: b.minX, maxX: b.maxX, cx, boxes: [b] })
+      }
+    }
+    cols.sort((a, b) => a.cx - b.cx)
+    const res: RawBoundingBox[] = []
+    cols.forEach((col) => {
+      col.boxes.sort((a, b) => a.minY - b.minY)
+      res.push(...col.boxes)
+    })
+    return res
+  }
+
+  const avgH = boxes.reduce((acc, b) => acc + (b.maxY - b.minY), 0) / boxes.length
+  const rowThresh = Math.max(12, avgH * 0.45)
+  const sortedByY = [...boxes].sort((a, b) => a.minY - b.minY)
+
+  interface BoxRow {
+    minY: number
+    maxY: number
+    cy: number
+    boxes: RawBoundingBox[]
+  }
+  const rows: BoxRow[] = []
+
+  for (const b of sortedByY) {
+    const cy = (b.minY + b.maxY) * 0.5
+    let best: BoxRow | null = null
+    let bestDist = Infinity
+    for (const r of rows) {
+      const overlap = Math.min(b.maxY, r.maxY) - Math.max(b.minY, r.minY)
+      const dist = Math.abs(cy - r.cy)
+      if (overlap > 0 || dist <= rowThresh) {
+        if (dist < bestDist) {
+          bestDist = dist
+          best = r
+        }
+      }
+    }
+    if (best) {
+      best.boxes.push(b)
+      best.minY = Math.min(best.minY, b.minY)
+      best.maxY = Math.max(best.maxY, b.maxY)
+      best.cy = (best.minY + best.maxY) * 0.5
+    } else {
+      rows.push({ minY: b.minY, maxY: b.maxY, cy, boxes: [b] })
+    }
+  }
+
+  rows.sort((a, b) => a.cy - b.cy)
+  const result: RawBoundingBox[] = []
+  rows.forEach((row, rIdx) => {
+    if (readingOrder === 'snake' && rIdx % 2 === 1) {
+      row.boxes.sort((a, b) => b.minX - a.minX)
+    } else {
+      row.boxes.sort((a, b) => a.minX - b.minX)
+    }
+    result.push(...row.boxes)
+  })
+  return result
+}
+
 /**
  * Auto-calculates per-frame `offsetX` and `offsetY` so that the alpha centroid / tight bounding box
- * of every frame aligns to a common center, eliminating sprite sheet jitter.
+ * of every frame aligns to a common ground or center, eliminating sprite sheet jitter.
  */
 export function autoCenterLoopFrames(
   sourceCanvas: HTMLCanvasElement,
   frames: LoopFrameBox[],
-  alphaThreshold = 24
+  alphaThreshold = 24,
+  anchor: 'bottom' | 'center' = 'bottom'
 ): LoopFrameBox[] {
   const ctx = sourceCanvas.getContext('2d')
   if (!ctx || frames.length === 0) return frames
@@ -344,13 +478,23 @@ export function autoCenterLoopFrames(
 
     if (!found) return { ...frame, offsetX: 0, offsetY: 0 }
     const contentCenterX = (minX + maxX) * 0.5
-    const contentCenterY = (minY + maxY) * 0.5
     const boxCenterX = frame.width * 0.5
-    const boxCenterY = frame.height * 0.5
+    const offsetX = Math.round(boxCenterX - contentCenterX)
+
+    let offsetY: number
+    if (anchor === 'bottom') {
+      const targetBaseY = frame.height - 2
+      offsetY = Math.round(targetBaseY - maxY)
+    } else {
+      const contentCenterY = (minY + maxY) * 0.5
+      const boxCenterY = frame.height * 0.5
+      offsetY = Math.round(boxCenterY - contentCenterY)
+    }
+
     return {
       ...frame,
-      offsetX: Math.round(boxCenterX - contentCenterX),
-      offsetY: Math.round(boxCenterY - contentCenterY)
+      offsetX,
+      offsetY
     }
   })
 }
@@ -362,7 +506,8 @@ export function extractFrameCanvas(
   sourceCanvas: HTMLCanvasElement,
   frame: LoopFrameBox,
   targetWidth?: number,
-  targetHeight?: number
+  targetHeight?: number,
+  anchor: 'bottom' | 'center' = 'bottom'
 ): HTMLCanvasElement {
   const outW = targetWidth ?? frame.width
   const outH = targetHeight ?? frame.height
@@ -374,7 +519,12 @@ export function extractFrameCanvas(
 
   ctx.clearRect(0, 0, canvas.width, canvas.height)
   const drawX = Math.round((canvas.width - frame.width) * 0.5 + frame.offsetX)
-  const drawY = Math.round((canvas.height - frame.height) * 0.5 + frame.offsetY)
+  let drawY: number
+  if (anchor === 'bottom') {
+    drawY = Math.round(canvas.height - frame.height + frame.offsetY)
+  } else {
+    drawY = Math.round((canvas.height - frame.height) * 0.5 + frame.offsetY)
+  }
 
   ctx.drawImage(
     sourceCanvas,

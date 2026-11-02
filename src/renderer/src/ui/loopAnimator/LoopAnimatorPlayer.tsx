@@ -49,6 +49,12 @@ export function LoopAnimatorPlayer({ sourceCanvasRef }: Props): React.ReactEleme
 
       ctx.clearRect(0, 0, stageW, stageH)
 
+      // Calculate global uniform scale across ALL active frames to prevent pulsing
+      const maxW = Math.max(1, ...frames.map((f) => f.width))
+      const maxH = Math.max(1, ...frames.map((f) => f.height))
+      const globalScale = Math.min((stageW - 36) / maxW, (stageH - 36) / maxH)
+      const anchor = playback.anchor ?? 'bottom'
+
       // Onion skin previous enabled frame when paused or editing
       if (playback.onionSkin && frames.length > 1) {
         let prevIdx = frameIndex - 1
@@ -65,7 +71,7 @@ export function LoopAnimatorPlayer({ sourceCanvasRef }: Props): React.ReactEleme
         if (prevFrame && prevIdx !== frameIndex) {
           ctx.save()
           ctx.globalAlpha = playback.onionSkinOpacity
-          drawCenteredFrame(ctx, srcCanvas, prevFrame, stageW, stageH, 1)
+          drawCenteredFrame(ctx, srcCanvas, prevFrame, stageW, stageH, globalScale, anchor)
           ctx.restore()
         }
       }
@@ -89,10 +95,27 @@ export function LoopAnimatorPlayer({ sourceCanvasRef }: Props): React.ReactEleme
 
       ctx.save()
       ctx.globalAlpha = rhythmEval.opacityMultiplier
-      drawCenteredFrame(ctx, srcCanvas, currentFrame, stageW, stageH, rhythmEval.scaleMultiplier)
+      drawCenteredFrame(
+        ctx,
+        srcCanvas,
+        currentFrame,
+        stageW,
+        stageH,
+        globalScale * rhythmEval.scaleMultiplier,
+        anchor
+      )
       ctx.restore()
     },
-    [frames, playback.onionSkin, playback.onionSkinOpacity, playback.isPlaying, playback.rhythm, playback.speed, sourceCanvasRef]
+    [
+      frames,
+      playback.onionSkin,
+      playback.onionSkinOpacity,
+      playback.isPlaying,
+      playback.rhythm,
+      playback.speed,
+      playback.anchor,
+      sourceCanvasRef
+    ]
   )
 
   function drawCenteredFrame(
@@ -101,13 +124,19 @@ export function LoopAnimatorPlayer({ sourceCanvasRef }: Props): React.ReactEleme
     frame: LoopFrameBox,
     stageW: number,
     stageH: number,
-    rhythmScale = 1
+    scale: number,
+    anchor: 'bottom' | 'center' = 'bottom'
   ): void {
-    const scale = Math.min((stageW - 36) / Math.max(1, frame.width), (stageH - 36) / Math.max(1, frame.height)) * rhythmScale
     const drawW = Math.round(frame.width * scale)
     const drawH = Math.round(frame.height * scale)
     const drawX = Math.round((stageW - drawW) * 0.5 + frame.offsetX * scale)
-    const drawY = Math.round((stageH - drawH) * 0.5 + frame.offsetY * scale)
+    let drawY: number
+    if (anchor === 'bottom') {
+      const groundY = Math.round(stageH - 24)
+      drawY = Math.round(groundY - drawH + frame.offsetY * scale)
+    } else {
+      drawY = Math.round((stageH - drawH) * 0.5 + frame.offsetY * scale)
+    }
 
     ctx.drawImage(
       srcCanvas,
@@ -226,16 +255,36 @@ export function LoopAnimatorPlayer({ sourceCanvasRef }: Props): React.ReactEleme
     <div className="loop-player-pane" data-mcp-region="loop_animator_player">
       <div className="loop-pane-toolbar">
         <span className="loop-pane-title">▶ Sân Khấu Xem Trước &amp; Logic Loop</span>
-        <div className="loop-bg-pills" title="Màu nền sân khấu xem trước">
-          {(['checker', 'dark', 'light', 'green'] as const).map((bg) => (
+        <div className="loop-toolbar-right-cluster">
+          <div className="loop-anchor-pills" title="Điểm neo căn chỉnh: Chân (Đáy cố định chống nảy) hoặc Tâm (Giữa)">
             <button
-              key={bg}
               type="button"
-              className={`loop-bg-pill bg-${bg} ${playback.previewBg === bg ? 'active' : ''}`}
-              onClick={() => setPlayback({ previewBg: bg })}
-              title={`Nền: ${bg}`}
-            />
-          ))}
+              className={`loop-anchor-pill ${playback.anchor !== 'center' ? 'active' : ''}`}
+              onClick={() => setPlayback({ anchor: 'bottom' })}
+              title="Căn chân sàn: Giữ đáy frame cố định, triệt tiêu nảy nhịp"
+            >
+              ⚓ Chân
+            </button>
+            <button
+              type="button"
+              className={`loop-anchor-pill ${playback.anchor === 'center' ? 'active' : ''}`}
+              onClick={() => setPlayback({ anchor: 'center' })}
+              title="Căn tâm giữa: Phù hợp vật thể bay, phép thuật"
+            >
+              🎯 Tâm
+            </button>
+          </div>
+          <div className="loop-bg-pills" title="Màu nền sân khấu xem trước">
+            {(['checker', 'dark', 'light', 'green'] as const).map((bg) => (
+              <button
+                key={bg}
+                type="button"
+                className={`loop-bg-pill bg-${bg} ${playback.previewBg === bg ? 'active' : ''}`}
+                onClick={() => setPlayback({ previewBg: bg })}
+                title={`Nền: ${bg}`}
+              />
+            ))}
+          </div>
         </div>
       </div>
 

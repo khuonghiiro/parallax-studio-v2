@@ -52,6 +52,12 @@ export interface ContourSlicerConfig {
   minArea: number
   /** Merge nearby bounding boxes within this pixel distance */
   mergeGap: number
+  /** Automatically normalize all detected frames to uniform max width & height to prevent pulsing */
+  uniformSize?: boolean
+  /** Anchor alignment for uniform sizing: 'bottom' (ground) or 'center' */
+  alignAnchor?: 'bottom' | 'center'
+  /** Reading order: row_first (left to right), col_first, or snake (boustrophedon) */
+  readingOrder?: 'row_first' | 'col_first' | 'snake'
 }
 
 export interface LoopRhythmConfig {
@@ -71,6 +77,8 @@ export interface LoopPlaybackConfig {
   onionSkinOpacity: number
   previewBg: 'checker' | 'dark' | 'light' | 'green'
   rhythm: LoopRhythmConfig
+  /** Stage anchor alignment: 'bottom' aligns sprite base to ground line, 'center' aligns to stage center */
+  anchor?: 'bottom' | 'center'
 }
 
 export interface SampleLoopPreset {

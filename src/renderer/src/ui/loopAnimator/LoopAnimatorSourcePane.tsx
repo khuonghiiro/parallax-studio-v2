@@ -26,6 +26,7 @@ export function LoopAnimatorSourcePane({ sourceCanvasRef }: Props): React.ReactE
   const setContourConfig = useLoopAnimator((s) => s.setContourConfig)
   const runContourSlicer = useLoopAnimator((s) => s.runContourSlicer)
   const autoCenterFrames = useLoopAnimator((s) => s.autoCenterFrames)
+  const equalizeFrameSizes = useLoopAnimator((s) => s.equalizeFrameSizes)
   const setChromaKey = useLoopAnimator((s) => s.setChromaKey)
   const selectFrame = useLoopAnimator((s) => s.selectFrame)
   const updateFrame = useLoopAnimator((s) => s.updateFrame)
@@ -417,6 +418,64 @@ export function LoopAnimatorSourcePane({ sourceCanvasRef }: Props): React.ReactE
               onChange={(e) => setContourConfig({ minArea: Math.max(16, Number(e.target.value) || 180) })}
             />
           </div>
+          <div className="loop-ctrl-field">
+            <label>Điểm neo sàn</label>
+            <div className="loop-mini-pills">
+              <button
+                type="button"
+                className={`loop-mini-pill ${(contourConfig.alignAnchor ?? 'bottom') === 'bottom' ? 'active' : ''}`}
+                onClick={() => setContourConfig({ alignAnchor: 'bottom' })}
+                title="Căn đáy sàn - Cố định chân đế hoạt ảnh"
+              >
+                ⚓ Đáy
+              </button>
+              <button
+                type="button"
+                className={`loop-mini-pill ${contourConfig.alignAnchor === 'center' ? 'active' : ''}`}
+                onClick={() => setContourConfig({ alignAnchor: 'center' })}
+                title="Căn tâm giữa - Thích hợp phép thuật, vật thể bay"
+              >
+                🎯 Tâm
+              </button>
+            </div>
+          </div>
+          <div className="loop-ctrl-field">
+            <label>Thứ tự quét</label>
+            <div className="loop-mini-pills">
+              <button
+                type="button"
+                className={`loop-mini-pill ${(contourConfig.readingOrder ?? 'row_first') === 'row_first' ? 'active' : ''}`}
+                onClick={() => setContourConfig({ readingOrder: 'row_first' })}
+                title="Hàng ngang: Trái qua phải, trên xuống dưới"
+              >
+                Z Hàng
+              </button>
+              <button
+                type="button"
+                className={`loop-mini-pill ${contourConfig.readingOrder === 'snake' ? 'active' : ''}`}
+                onClick={() => setContourConfig({ readingOrder: 'snake' })}
+                title="Zic-zắc: Hàng 1 trái qua phải, hàng 2 phải qua trái"
+              >
+                S Rắn
+              </button>
+              <button
+                type="button"
+                className={`loop-mini-pill ${contourConfig.readingOrder === 'col_first' ? 'active' : ''}`}
+                onClick={() => setContourConfig({ readingOrder: 'col_first' })}
+                title="Cột dọc: Trên xuống dưới, trái qua phải"
+              >
+                N Cột
+              </button>
+            </div>
+          </div>
+          <label className="loop-checkbox-label" title="Đồng bộ kích thước tất cả khung hình theo kích thước chuẩn để loại bỏ hoàn toàn nhịp đập co giãn">
+            <input
+              type="checkbox"
+              checked={contourConfig.uniformSize ?? true}
+              onChange={(e) => setContourConfig({ uniformSize: e.target.checked })}
+            />
+            <span>Đồng bộ cỡ khung</span>
+          </label>
           <div className="loop-contour-btns">
             <button
               type="button"
@@ -424,18 +483,29 @@ export function LoopAnimatorSourcePane({ sourceCanvasRef }: Props): React.ReactE
               onClick={handleRunContourScan}
               title="Quét tự động các đảo pixel không trong suốt để đóng khung từng frame"
             >
-              ⚡ Quét tách tự động
+              ⚡ Quét tách
+            </button>
+            <button
+              type="button"
+              className="btn ghost sm"
+              onClick={() => {
+                equalizeFrameSizes()
+                toast('📏 Đã đồng bộ kích thước khung hình chuẩn!')
+              }}
+              title="Đồng bộ kích thước tất cả khung hình hiện tại theo chiều rộng/cao tối đa"
+            >
+              📏 Đồng bộ cỡ
             </button>
             <button
               type="button"
               className="btn ghost sm"
               onClick={() => {
                 autoCenterFrames(sourceCanvasRef.current)
-                toast('🎯 Đã tự động căn tâm chống giật cho tất cả frame!')
+                toast('🎯 Đã tự động căn tâm và đáy sàn chống nảy cho tất cả frame!')
               }}
-              title="Căn chỉnh tâm trọng lượng của từng frame để hoạt ảnh không bị lệch"
+              title="Căn chỉnh tâm trọng lượng và đáy sàn của từng frame để hoạt ảnh không bị lệch"
             >
-              🎯 Căn tâm
+              🎯 Căn chân
             </button>
           </div>
         </div>

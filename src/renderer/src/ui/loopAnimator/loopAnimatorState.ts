@@ -50,6 +50,7 @@ export interface LoopAnimatorStore {
   setContourConfig: (patch: Partial<ContourSlicerConfig>) => void
   runContourSlicer: (sourceCanvas: HTMLCanvasElement | null) => number
   autoCenterFrames: (sourceCanvas: HTMLCanvasElement | null) => void
+  equalizeFrameSizes: () => void
   setChromaKey: (patch: Partial<ChromaKeyConfig>) => void
   selectFrame: (index: number) => void
   setPlayingFrame: (index: number) => void
@@ -90,7 +91,14 @@ export const useLoopAnimator = create<LoopAnimatorStore>((set, get) => ({
   sourceVersion: 0,
   slicerMode: 'grid',
   gridConfig: { ...DEFAULT_PRESET.defaultGrid },
-  contourConfig: { alphaThreshold: 24, minArea: 180, mergeGap: 8 },
+  contourConfig: {
+    alphaThreshold: 24,
+    minArea: 180,
+    mergeGap: 8,
+    uniformSize: true,
+    alignAnchor: 'bottom',
+    readingOrder: 'row_first'
+  },
   chromaKey: { ...DEFAULT_PRESET.defaultChroma },
   frames: buildGridFrames(1024, 1024, DEFAULT_PRESET.defaultGrid),
   selectedFrameIndex: 0,
@@ -269,9 +277,41 @@ export const useLoopAnimator = create<LoopAnimatorStore>((set, get) => ({
     const centered = autoCenterLoopFrames(
       sourceCanvas,
       s.frames,
-      s.contourConfig.alphaThreshold || 24
+      s.contourConfig.alphaThreshold || 24,
+      s.contourConfig.alignAnchor ?? 'bottom'
     )
     set({ frames: centered })
+  },
+
+  equalizeFrameSizes: () => {
+    const s = get()
+    if (s.frames.length === 0) return
+    const maxW = Math.max(1, ...s.frames.map((f) => f.width))
+    const maxH = Math.max(1, ...s.frames.map((f) => f.height))
+    const anchor = s.contourConfig.alignAnchor ?? 'bottom'
+    const w = s.sourceWidth || 1024
+    const h = s.sourceHeight || 1024
+
+    const equalized = s.frames.map((f) => {
+      const centerX = f.x + f.width * 0.5
+      const newX = Math.max(0, Math.min(w - maxW, Math.round(centerX - maxW * 0.5)))
+      let newY: number
+      if (anchor === 'bottom') {
+        const bottomY = f.y + f.height
+        newY = Math.max(0, Math.min(h - maxH, Math.round(bottomY - maxH)))
+      } else {
+        const centerY = f.y + f.height * 0.5
+        newY = Math.max(0, Math.min(h - maxH, Math.round(centerY - maxH * 0.5)))
+      }
+      return {
+        ...f,
+        x: newX,
+        y: newY,
+        width: maxW,
+        height: maxH
+      }
+    })
+    set({ frames: equalized })
   },
 
   setChromaKey: (patch) =>
