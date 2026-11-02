@@ -48,6 +48,7 @@ export function AssetReplaceModal({
 
   // Project assets search state
   const [projectSearch, setProjectSearch] = useState('')
+  const [syncByMesh, setSyncByMesh] = useState(true)
 
   const loadCatalog = useCallback(async () => {
     setLoading(true)
@@ -110,7 +111,7 @@ export function AssetReplaceModal({
       setLoading(true)
       const assetId = await importBuiltInAsset(item, false)
       if (assetId) {
-        replaceLayerAsset(layerId, assetId)
+        replaceLayerAsset(layerId, assetId, { syncByMesh })
         onClose()
       }
     } catch (err) {
@@ -126,7 +127,7 @@ export function AssetReplaceModal({
       onClose()
       return
     }
-    replaceLayerAsset(layerId, assetId)
+    replaceLayerAsset(layerId, assetId, { syncByMesh })
     onClose()
   }
 
@@ -144,7 +145,7 @@ export function AssetReplaceModal({
       useEditor.getState().update((d) => {
         d.assets.push(asset.meta)
       })
-      replaceLayerAsset(layerId, asset.meta.id)
+      replaceLayerAsset(layerId, asset.meta.id, { syncByMesh })
       onClose()
     } catch (err) {
       console.error('Error uploading image file:', err)
@@ -202,6 +203,16 @@ export function AssetReplaceModal({
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <button
+              type="button"
+              className={`btn sm ${syncByMesh ? 'primary' : 'ghost'}`}
+              onClick={() => setSyncByMesh((v) => !v)}
+              title="Khi bật: đồng bộ kích thước và vị trí theo tỉ lệ vùng Alpha Mesh (giúp nâng cấp ảnh lên 2K/4K giữ nguyên tỉ lệ xương, bộ lắp ráp và vị trí dù ảnh mới khác kích thước hoặc viền trong suốt)"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}
+            >
+              <IconCheck width={12} height={12} />
+              <span>{syncByMesh ? 'Đồng bộ tỉ lệ Mesh (2K/4K)' : 'Theo size pixel ảnh gốc'}</span>
+            </button>
             <button
               type="button"
               className="btn sm accent"

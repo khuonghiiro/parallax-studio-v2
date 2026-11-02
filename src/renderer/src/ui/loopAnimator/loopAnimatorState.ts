@@ -1,5 +1,9 @@
 import { create } from 'zustand'
 import {
+  rescaleLoopFramesByMeshRatio,
+  rescaleLoopGridConfig
+} from '../../project/meshRatioSync'
+import {
   autoCenterLoopFrames,
   buildGridFrames,
   detectContourFrames,
@@ -28,6 +32,11 @@ export interface LoopAnimatorStore {
   sourceImageUrl: string | null
   sourceWidth: number
   sourceHeight: number
+  /** Kích thước mặt phẳng Mesh chuẩn trong cảnh/xưởng (độc lập với độ phân giải pixel ảnh 2K/4K) */
+  baseMeshWidth: number
+  baseMeshHeight: number
+  /** Đánh dấu đang nâng cấp ảnh nguồn 2K/4K giữ nguyên tỉ lệ Mesh */
+  pendingMeshUpgrade: boolean
   sourceVersion: number
   slicerMode: SlicerMode
   gridConfig: GridSlicerConfig
@@ -44,6 +53,10 @@ export interface LoopAnimatorStore {
   close: () => void
   loadPreset: (presetId: string) => void
   loadCustomImage: (dataUrl: string, name?: string) => void
+  /** Nâng cấp ảnh Sprite Sheet lên 2K/4K giữ nguyên tỉ lệ Mesh, cấu hình cắt và khớp khung hình */
+  upgradeSourceImageKeepMesh: (dataUrl: string, name?: string) => void
+  /** Tinh chỉnh offsetX/offsetY theo vùng Alpha Mesh sau khi ảnh nâng cấp 2K/4K đã tách nền xong */
+  alignUpgradedFramesByMesh: (sourceCanvas: HTMLCanvasElement | null) => void
   setSourceDimensions: (width: number, height: number) => void
   bumpSourceVersion: () => void
   setLayerName: (name: string) => void
@@ -116,6 +129,9 @@ export const useLoopAnimator = create<LoopAnimatorStore>((set, get) => ({
   sourceImageUrl: DEFAULT_PRESET.imageUrl,
   sourceWidth: 1024,
   sourceHeight: 1024,
+  baseMeshWidth: Math.round(1024 / DEFAULT_PRESET.defaultGrid.cols),
+  baseMeshHeight: Math.round(1024 / DEFAULT_PRESET.defaultGrid.rows),
+  pendingMeshUpgrade: false,
   sourceVersion: 0,
   slicerMode: 'grid',
   gridConfig: { ...DEFAULT_PRESET.defaultGrid },
@@ -155,6 +171,9 @@ export const useLoopAnimator = create<LoopAnimatorStore>((set, get) => ({
       layerName: BLANK_LOOP_NAME,
       category: 'custom',
       sourceImageUrl: null,
+      baseMeshWidth: 0,
+      baseMeshHeight: 0,
+      pendingMeshUpgrade: false,
       sourceVersion: s.sourceVersion + 1,
       slicerMode: 'grid',
       gridConfig: { ...BLANK_GRID },
@@ -180,17 +199,24 @@ export const useLoopAnimator = create<LoopAnimatorStore>((set, get) => ({
     const saved = allTemplates.find((t) => t.id === presetId)
     if (saved) {
       const s = get()
-      const w = s.sourceWidth || 1024
-      const h = s.sourceHeight || 1024
+      const w = saved.sourceWidth || s.sourceWidth || 1024
+      const h = saved.sourceHeight || s.sourceHeight || 1024
       const nextFrames =
         saved.frames && saved.frames.length > 0
           ? saved.frames.map((f, idx) => ({ ...f, index: idx }))
           : buildGridFrames(w, h, saved.gridConfig)
+      const fW = Math.max(1, ...nextFrames.map((f) => f.width), 256)
+      const fH = Math.max(1, ...nextFrames.map((f) => f.height), 256)
       set({
         activePresetId: saved.id,
         layerName: saved.name,
         category: saved.category,
         sourceImageUrl: saved.imageUrl,
+        sourceWidth: w,
+        sourceHeight: h,
+        baseMeshWidth: saved.baseMeshWidth || fW,
+        baseMeshHeight: saved.baseMeshHeight || fH,
+        pendingMeshUpgrade: false,
         slicerMode: saved.slicerMode || 'grid',
         gridConfig: { ...saved.gridConfig },
         contourConfig: saved.contourConfig
@@ -224,15 +250,19 @@ export const useLoopAnimator = create<LoopAnimatorStore>((set, get) => ({
     const s = get()
     const w = s.sourceWidth || 1024
     const h = s.sourceHeight || 1024
+    const nextFrames = buildGridFrames(w, h, preset.defaultGrid)
     set({
       activePresetId: preset.id,
       layerName: preset.name,
       category: preset.category,
       sourceImageUrl: preset.imageUrl,
+      baseMeshWidth: nextFrames[0]?.width || 256,
+      baseMeshHeight: nextFrames[0]?.height || 256,
+      pendingMeshUpgrade: false,
       slicerMode: 'grid',
       gridConfig: { ...preset.defaultGrid },
       chromaKey: { ...preset.defaultChroma },
-      frames: buildGridFrames(w, h, preset.defaultGrid),
+      frames: nextFrames,
       selectedFrameIndex: 0,
       playingFrameIndex: 0,
       playback: {
@@ -255,26 +285,112 @@ export const useLoopAnimator = create<LoopAnimatorStore>((set, get) => ({
   loadCustomImage: (dataUrl, name) => {
     const s = get()
     const cleanName = name ? name.replace(/\.[^.]+$/, '') : 'Hoạt ảnh Loop mới'
+    const nextFrames = buildGridFrames(s.sourceWidth, s.sourceHeight, s.gridConfig)
     set({
       activePresetId: `loop_custom_${Date.now().toString(36)}`,
       layerName: cleanName,
       category: 'custom',
       sourceImageUrl: dataUrl,
+      baseMeshWidth: 0,
+      baseMeshHeight: 0,
+      pendingMeshUpgrade: false,
       slicerMode: 'grid',
       selectedFrameIndex: 0,
       playingFrameIndex: 0,
-      frames: buildGridFrames(s.sourceWidth, s.sourceHeight, s.gridConfig)
+      frames: nextFrames
     })
+  },
+
+  upgradeSourceImageKeepMesh: (dataUrl, name) => {
+    const s = get()
+    const enabled = s.frames.filter((f) => f.enabled)
+    const refList = enabled.length > 0 ? enabled : s.frames
+    const maxW = refList.length > 0 ? Math.max(1, ...refList.map((f) => f.width)) : 256
+    const maxH = refList.length > 0 ? Math.max(1, ...refList.map((f) => f.height)) : 256
+    const cleanName =
+      s.layerName && s.layerName !== BLANK_LOOP_NAME
+        ? s.layerName
+        : name
+          ? name.replace(/\.[^.]+$/, '')
+          : 'Hoạt ảnh Loop 2K/4K'
+    set({
+      activePresetId: s.activePresetId || `loop_custom_${Date.now().toString(36)}`,
+      layerName: cleanName,
+      sourceImageUrl: dataUrl,
+      baseMeshWidth: s.baseMeshWidth > 0 ? s.baseMeshWidth : maxW,
+      baseMeshHeight: s.baseMeshHeight > 0 ? s.baseMeshHeight : maxH,
+      pendingMeshUpgrade: true
+    })
+  },
+
+  alignUpgradedFramesByMesh: (sourceCanvas) => {
+    const s = get()
+    if (!s.pendingMeshUpgrade) return
+    if (!sourceCanvas || s.frames.length === 0) {
+      set({ pendingMeshUpgrade: false })
+      return
+    }
+    const aligned = rescaleLoopFramesByMeshRatio(
+      s.frames,
+      sourceCanvas.width,
+      sourceCanvas.height,
+      sourceCanvas.width,
+      sourceCanvas.height,
+      sourceCanvas,
+      s.contourConfig.alignAnchor ?? 'bottom',
+      s.contourConfig.alphaThreshold || 16
+    )
+    set({ frames: aligned, pendingMeshUpgrade: false })
   },
 
   setSourceDimensions: (width, height) => {
     const s = get()
-    const nextFrames =
-      s.slicerMode === 'grid' ? buildGridFrames(width, height, s.gridConfig) : s.frames
+    const oldW = s.sourceWidth || width
+    const oldH = s.sourceHeight || height
+    const changed = (oldW !== width || oldH !== height) && oldW > 0 && oldH > 0
+    const nextGrid = changed
+      ? rescaleLoopGridConfig(s.gridConfig, oldW, oldH, width, height)
+      : s.gridConfig
+
+    let nextFrames: LoopFrameBox[]
+    if (s.slicerMode === 'grid') {
+      const freshGridFrames = buildGridFrames(width, height, nextGrid)
+      if (s.frames.length === freshGridFrames.length && changed) {
+        const sx = width / oldW
+        const sy = height / oldH
+        nextFrames = freshGridFrames.map((gf, idx) => {
+          const prev = s.frames[idx]
+          return prev
+            ? {
+                ...gf,
+                enabled: prev.enabled,
+                durationRatio: prev.durationRatio,
+                offsetX: Math.round((prev.offsetX || 0) * sx),
+                offsetY: Math.round((prev.offsetY || 0) * sy)
+              }
+            : gf
+        })
+      } else {
+        nextFrames = freshGridFrames
+      }
+    } else if (changed && s.frames.length > 0) {
+      nextFrames = rescaleLoopFramesByMeshRatio(s.frames, oldW, oldH, width, height)
+    } else {
+      nextFrames = s.frames
+    }
+
+    const enabled = nextFrames.filter((f) => f.enabled)
+    const refList = enabled.length > 0 ? enabled : nextFrames
+    const fW = refList.length > 0 ? Math.max(1, ...refList.map((f) => f.width)) : 256
+    const fH = refList.length > 0 ? Math.max(1, ...refList.map((f) => f.height)) : 256
+
     set({
       sourceWidth: width,
       sourceHeight: height,
-      frames: nextFrames
+      gridConfig: nextGrid,
+      frames: nextFrames,
+      baseMeshWidth: s.baseMeshWidth > 0 ? s.baseMeshWidth : fW,
+      baseMeshHeight: s.baseMeshHeight > 0 ? s.baseMeshHeight : fH
     })
   },
 
@@ -514,6 +630,11 @@ export const useLoopAnimator = create<LoopAnimatorStore>((set, get) => ({
       ? sourceCanvas.toDataURL('image/png')
       : undefined
 
+    const enabledFrames = s.frames.filter((f) => f.enabled)
+    const refFrames = enabledFrames.length > 0 ? enabledFrames : s.frames
+    const maxFrameW = refFrames.length > 0 ? Math.max(1, ...refFrames.map((f) => f.width)) : 256
+    const maxFrameH = refFrames.length > 0 ? Math.max(1, ...refFrames.map((f) => f.height)) : 256
+
     const template: LoopAnimationTemplate = {
       id,
       name: s.layerName.trim() || 'Hoạt ảnh Loop',
@@ -533,6 +654,10 @@ export const useLoopAnimator = create<LoopAnimatorStore>((set, get) => ({
       loopMode: s.playback.loopMode,
       rhythm: { ...s.playback.rhythm },
       frameCount: enabledCount,
+      sourceWidth: s.sourceWidth || undefined,
+      sourceHeight: s.sourceHeight || undefined,
+      baseMeshWidth: s.baseMeshWidth > 0 ? s.baseMeshWidth : maxFrameW,
+      baseMeshHeight: s.baseMeshHeight > 0 ? s.baseMeshHeight : maxFrameH,
       frames: s.frames.map((f) => ({ ...f }))
     }
     const saved = saveLoopTemplate(template)

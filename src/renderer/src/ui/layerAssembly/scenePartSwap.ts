@@ -2,6 +2,11 @@ import type { ImageLayer, Layer } from '@shared/types'
 import type { AssembledLayerItem, LayerComposite } from './types'
 import { useEditor } from '../../store/editor'
 import { assetStore } from '../../project/assets'
+import {
+  computeAlphaMeshBoundsFromMask,
+  computeMeshSyncedReplacement,
+  syncImageMeshDefinition
+} from '../../project/meshRatioSync'
 import { BUILTIN_COMPOSITES, getStoredComposites } from './layerAssemblyStorage'
 import { resolveCompositeItemAsset } from './compositeAssetLoader'
 import { exportWorkshopSkin } from './exportWorkshopSkin'
@@ -75,7 +80,7 @@ function buildSwapItem(base: AssembledLayerItem | undefined, layer: Layer, cand:
   return { ...seed, name: label, asset: undefined, assetPath: isData ? undefined : cand.path, imageUrl: isData ? cand.path : undefined, variant: inferSlot(label)?.variant ?? label }
 }
 
-/** Đổi ảnh bộ phận của layer cảnh (có Undo). Giữ nguyên vị trí/keyframe; dựng lại skin mesh nếu là layer uốn mềm. */
+/** Đổi ảnh bộ phận của layer cảnh (có Undo). Giữ nguyên vị trí/keyframe; đồng bộ theo tỉ lệ Alpha Mesh (2K/4K) và dựng lại skin mesh nếu là layer uốn mềm. */
 export async function swapScenePart(layerId: string, cand: ScenePartCandidate): Promise<void> {
   const state = useEditor.getState()
   const layer = state.project.layers.find((l) => l.id === layerId)
@@ -84,21 +89,66 @@ export async function swapScenePart(layerId: string, cand: ScenePartCandidate): 
   const item = buildSwapItem(sceneSourceItem(layer, template), layer, cand, template)
   const tableSource = template ?? { assets: undefined, width: layer.props.width, height: layer.props.height }
   const { asset, isNew } = await resolveCompositeItemAsset(item, tableSource, state.project.assets)
+
+  // Đồng bộ theo tỉ lệ Alpha Mesh để khi thay bằng ảnh 2K/4K không bị phình to hay lệch khớp xương
+  const oldRt = assetStore.get(layer.props.assetId)
+  const newRt = assetStore.get(asset.id)
+  const oldBounds = oldRt?.alpha
+    ? computeAlphaMeshBoundsFromMask(oldRt.alpha, oldRt.meta.width, oldRt.meta.height)
+    : null
+  const newBounds = newRt?.alpha
+    ? computeAlphaMeshBoundsFromMask(newRt.alpha, asset.width, asset.height)
+    : null
+  const synced = computeMeshSyncedReplacement({
+    oldMeshW: layer.props.width,
+    oldMeshH: layer.props.height,
+    oldBounds,
+    newBounds,
+    newImgW: asset.width || layer.props.width,
+    newImgH: asset.height || layer.props.height,
+    scaleX: layer.transform.scale.value[0] ?? 1,
+    scaleY: layer.transform.scale.value[1] ?? 1,
+    anchor: 'center',
+    invertY: true
+  })
+
+  const targetMeshW = item.meshWidth || synced.meshWidth
+  const targetMeshH = item.meshHeight || synced.meshHeight
+  item.meshWidth = targetMeshW
+  item.meshHeight = targetMeshH
+
   let mesh: ImageLayer['mesh'] | undefined = layer.mesh
   if (layer.mesh && template) {
     const draft = structuredClone(layer) as ImageLayer
-    await exportWorkshopSkin(draft, item, template, assetStore.get(asset.id)?.url ?? item.imageUrl)
+    draft.props.width = targetMeshW
+    draft.props.height = targetMeshH
+    await exportWorkshopSkin(draft, item, template, newRt?.url ?? item.imageUrl)
     mesh = draft.mesh
+  } else if (layer.mesh) {
+    mesh = syncImageMeshDefinition(layer.mesh, targetMeshW, targetMeshH)
   }
+
   const prefix = layer.name.match(/^\[[^\]]+\]\s*/)?.[0] ?? ''
   useEditor.getState().update((p) => {
     if (isNew && !p.assets.some((a) => a.id === asset.id)) p.assets.push(asset)
     const target = p.layers.find((l) => l.id === layerId)
     if (!target || target.type !== 'image') return
     target.props.assetId = asset.id
-    if (asset.width && asset.height) {
-      target.props.width = asset.width
-      target.props.height = asset.height
+    target.props.width = targetMeshW
+    target.props.height = targetMeshH
+    if ((synced.deltaX !== 0 || synced.deltaY !== 0) && target.transform.position.keyframes.length === 0) {
+      target.transform.position.value = [
+        Math.round((target.transform.position.value[0] + synced.deltaX) * 100) / 100,
+        Math.round((target.transform.position.value[1] + synced.deltaY) * 100) / 100,
+        target.transform.position.value[2]
+      ]
+      if (target.composite?.rootOffset) {
+        target.composite.rootOffset = [
+          Math.round((target.composite.rootOffset[0] + synced.deltaX) * 100) / 100,
+          Math.round((target.composite.rootOffset[1] + synced.deltaY) * 100) / 100,
+          target.composite.rootOffset[2]
+        ]
+      }
     }
     if (mesh) target.mesh = mesh
     target.name = `${prefix}${item.name}`

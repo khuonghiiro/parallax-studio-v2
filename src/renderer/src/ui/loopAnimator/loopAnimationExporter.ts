@@ -29,6 +29,9 @@ export interface LoopExportOptions {
   rhythm?: LoopRhythmConfig
   shotId?: string | null
   initialPosition?: [number, number, number]
+  /** Kích thước mặt phẳng Mesh chuẩn trong không gian 3D (độc lập với độ phân giải texture 2K/4K) */
+  baseMeshWidth?: number
+  baseMeshHeight?: number
 }
 
 /**
@@ -115,6 +118,11 @@ export async function applyLoopAnimationToProject(
   const layer = createImageLayer(meta, editor.project.comp, 0)
   layer.name = layerName.trim() || 'Hoạt ảnh Loop'
   layer.shotId = targetShotId
+  // Giữ kích thước mặt phẳng Mesh chuẩn (baseMeshWidth × baseMeshHeight) độc lập với độ phân giải texture 2K/4K
+  if (options.baseMeshWidth && options.baseMeshWidth > 0 && options.baseMeshHeight && options.baseMeshHeight > 0) {
+    layer.props.width = options.baseMeshWidth
+    layer.props.height = options.baseMeshHeight
+  }
   if (initialPosition) {
     layer.transform.position.value = [initialPosition[0], initialPosition[1], initialPosition[2] ?? 0]
   }
@@ -189,6 +197,8 @@ export async function buildLoopAnimatedAsset(options: {
   gridConfig?: { cols: number; rows: number; marginX: number; marginY: number; paddingX: number; paddingY: number }
   chromaKey?: ChromaKeyConfig
   fps: number
+  meshWidth?: number
+  meshHeight?: number
 }): Promise<{ assetMeta: AssetMeta; gifData: AnimatedGifData; width: number; height: number }> {
   // 1. Tối ưu cực hạn: Nếu đã lưu sẵn các frame PNG tách nền (renderedFrames), giải mã trực tiếp 0ms CPU
   if (options.renderedFrames && options.renderedFrames.length > 0) {
@@ -229,8 +239,10 @@ export async function buildLoopAnimatedAsset(options: {
       thumbCanvas
     )
     const meta = runtimeAsset.meta
-    meta.width = maxW
-    meta.height = maxH
+    const effectiveMeshW = options.meshWidth && options.meshWidth > 1 ? options.meshWidth : maxW
+    const effectiveMeshH = options.meshHeight && options.meshHeight > 1 ? options.meshHeight : maxH
+    meta.width = effectiveMeshW
+    meta.height = effectiveMeshH
     meta.isAnimated = true
     meta.frameCount = gifFrames.length
     meta.duration = Math.max(0.05, currentTime)
@@ -243,7 +255,7 @@ export async function buildLoopAnimatedAsset(options: {
     }
     runtimeAsset.gif = gifData
 
-    return { assetMeta: meta, gifData, width: maxW, height: maxH }
+    return { assetMeta: meta, gifData, width: effectiveMeshW, height: effectiveMeshH }
   }
   const resolvedUrl = await resolveLoopAssetUrl(options.spriteSheetUrl)
   const img = await new Promise<HTMLImageElement>((resolve, reject) => {
@@ -328,8 +340,10 @@ export async function buildLoopAnimatedAsset(options: {
     thumbCanvas
   )
   const meta = runtimeAsset.meta
-  meta.width = maxW
-  meta.height = maxH
+  const effectiveMeshW = options.meshWidth && options.meshWidth > 1 ? options.meshWidth : maxW
+  const effectiveMeshH = options.meshHeight && options.meshHeight > 1 ? options.meshHeight : maxH
+  meta.width = effectiveMeshW
+  meta.height = effectiveMeshH
   meta.isAnimated = true
   meta.frameCount = gifFrames.length
   meta.duration = Math.max(0.05, currentTime)
@@ -342,7 +356,7 @@ export async function buildLoopAnimatedAsset(options: {
   }
   runtimeAsset.gif = gifData
 
-  return { assetMeta: meta, gifData, width: maxW, height: maxH }
+  return { assetMeta: meta, gifData, width: effectiveMeshW, height: effectiveMeshH }
 }
 
 /**
@@ -451,6 +465,62 @@ export async function exportLoopPresetDirectly(
     templateId: template.id,
     rhythm: template.rhythm,
     shotId: overrides?.shotId,
-    initialPosition: overrides?.initialPosition
+    initialPosition: overrides?.initialPosition,
+    baseMeshWidth: template.baseMeshWidth,
+    baseMeshHeight: template.baseMeshHeight
   })
+}
+
+/**
+ * Khi người dùng nâng cấp / lưu lại một mẫu Loop Animation (ví dụ thay Sprite Sheet 2K/4K),
+ * tự động đồng bộ các layer đang dùng mẫu này trong Cảnh 3D và trong kho Xưởng Lắp Ráp 2.5D:
+ * - Cập nhật bộ frame mới sắc nét (2K/4K) nhưng GIỮ NGUYÊN kích thước mặt phẳng Mesh (`width × height`)
+ *   và vị trí/xương hiện tại để không bị phóng to lệch bố cục.
+ */
+export async function syncSceneAndCompositesWithLoopTemplate(
+  template: LoopAnimationTemplate
+): Promise<number> {
+  const editor = useEditor.getState()
+  const matchingLayers = editor.project.layers.filter(
+    (l) => l.type === 'image' && l.props.loopTemplateId === template.id
+  )
+  let updatedCount = 0
+
+  if (matchingLayers.length > 0) {
+    const built = await buildLoopAnimatedAsset({
+      name: template.name,
+      spriteSheetUrl: template.transparentSheetUrl || template.imageUrl,
+      frames: template.frames,
+      renderedFrames: template.renderedFrames,
+      gridConfig: template.gridConfig,
+      chromaKey: template.transparentSheetUrl
+        ? { ...template.chromaKey, enabled: false }
+        : template.chromaKey,
+      fps: template.fps
+    })
+
+    editor.update((p) => {
+      if (!p.assets.some((a) => a.id === built.assetMeta.id)) {
+        p.assets.push(built.assetMeta)
+      }
+      for (const l of p.layers) {
+        if (l.type === 'image' && l.props.loopTemplateId === template.id) {
+          // Bảo toàn 100% kích thước mặt phẳng Mesh (l.props.width × l.props.height) trên cảnh!
+          l.props.assetId = built.assetMeta.id
+          l.props.loopMode = template.loopMode
+          l.props.speed = template.speed ?? l.props.speed ?? 1
+          if (template.rhythm) {
+            l.props.loopRhythmMode = template.rhythm.rhythmMode
+            l.props.loopRhythmRateHz = template.rhythm.rhythmRateHz
+            l.props.loopRhythmIntensity = template.rhythm.rhythmIntensity
+            l.props.loopMinOpacity = template.rhythm.minOpacity
+            l.props.loopScaleBeatPct = template.rhythm.scaleBeatPct
+          }
+          updatedCount++
+        }
+      }
+    }, `Đồng bộ Mesh hoạt ảnh Loop: ${template.name}`)
+  }
+
+  return updatedCount
 }

@@ -121,7 +121,8 @@ export function SoftLayerImage({ url, layer, time, showMesh, filter }: Props) {
     loadMeshImage(url)
       .then((image) => {
         if (!active) return
-        const width = image.naturalWidth, height = image.naturalHeight
+        const width = layer.meshWidth && layer.meshWidth > 0 ? layer.meshWidth : image.naturalWidth
+        const height = layer.meshHeight && layer.meshHeight > 0 ? layer.meshHeight : image.naturalHeight
         geometry = createLayerAlphaTrimmedGeometry(width, height, image)
         allocRef.current = null
         setData({ image, geometry, width, height })
@@ -132,7 +133,7 @@ export function SoftLayerImage({ url, layer, time, showMesh, filter }: Props) {
         setLoadFailed(true)
       })
     return () => { active = false; geometry?.dispose() }
-  }, [url, MESH_BUILD_REV])
+  }, [url, layer.meshWidth, layer.meshHeight, MESH_BUILD_REV])
 
   useEffect(() => {
     const canvas = ref.current, ctx = canvas?.getContext('2d')
@@ -174,9 +175,14 @@ export function SoftLayerImage({ url, layer, time, showMesh, filter }: Props) {
         <img
           src={url}
           alt={layer.name}
+          width={layer.meshWidth && layer.meshWidth > 0 ? layer.meshWidth : undefined}
+          height={layer.meshHeight && layer.meshHeight > 0 ? layer.meshHeight : undefined}
           style={{
             display: 'block',
             pointerEvents: 'none',
+            ...(layer.meshWidth && layer.meshHeight && layer.meshWidth > 0 && layer.meshHeight > 0
+              ? { width: `${layer.meshWidth}px`, height: `${layer.meshHeight}px` }
+              : {}),
             imageRendering: '-webkit-optimize-contrast',
             transform: 'translateZ(0)',
             backfaceVisibility: 'hidden'

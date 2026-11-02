@@ -18,6 +18,22 @@ export function loadLoopImageFile(file: File): boolean {
 }
 
 /**
+ * Nâng cấp ảnh Sprite Sheet lên chất lượng cao (2K/4K) từ tệp máy tính nhưng GIỮ NGUYÊN
+ * tỉ lệ Mesh, cấu hình cắt khung, nhịp phát và tự động căn lại tâm Alpha Mesh.
+ */
+export function upgradeLoopImageFileKeepMesh(file: File): boolean {
+  if (!file.type.startsWith('image/')) return false
+  const reader = new FileReader()
+  reader.onload = () => {
+    if (typeof reader.result === 'string') {
+      useLoopAnimator.getState().upgradeSourceImageKeepMesh(reader.result, file.name)
+    }
+  }
+  reader.readAsDataURL(file)
+  return true
+}
+
+/**
  * Mở Xưởng Tách Hoạt Ảnh Loop ở trạng thái trống hoàn toàn
  * (dùng cho mọi nút "Tạo Loop Animate" — không mang theo tài nguyên cũ).
  */

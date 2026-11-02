@@ -14,12 +14,16 @@ interface LoopSpriteCanvasProps {
   loopConfig: LoopWorkshopLayerConfig
   time: number
   filter?: string
+  meshWidth?: number
+  meshHeight?: number
 }
 
 const WorkshopLoopSpriteCanvas = React.memo(function WorkshopLoopSpriteCanvas({
   loopConfig,
   time,
-  filter
+  filter,
+  meshWidth,
+  meshHeight
 }: LoopSpriteCanvasProps): React.ReactElement {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const [sheetReady, setSheetReady] = useState(false)
@@ -117,6 +121,9 @@ const WorkshopLoopSpriteCanvas = React.memo(function WorkshopLoopSpriteCanvas({
     loopConfig.timeOffset
   ])
 
+  const dispW = meshWidth && meshWidth > 0 ? meshWidth : loopConfig.meshWidth
+  const dispH = meshHeight && meshHeight > 0 ? meshHeight : loopConfig.meshHeight
+
   return (
     <canvas
       ref={canvasRef}
@@ -125,6 +132,7 @@ const WorkshopLoopSpriteCanvas = React.memo(function WorkshopLoopSpriteCanvas({
       style={{
         display: 'block',
         pointerEvents: 'none',
+        ...(dispW && dispH ? { width: `${dispW}px`, height: `${dispH}px` } : {}),
         filter
       }}
     />
@@ -275,6 +283,8 @@ export function AssembledLayerItemView({
             loopConfig={layer.loopConfig}
             time={time}
             filter={lightingResult.combinedFilter}
+            meshWidth={layer.meshWidth}
+            meshHeight={layer.meshHeight}
           />
         ) : imageUrl && usesMeshCanvas ? (
           <SoftLayerImage
@@ -288,9 +298,14 @@ export function AssembledLayerItemView({
           <img
             src={imageUrl}
             alt={layer.name}
+            width={layer.meshWidth && layer.meshWidth > 0 ? layer.meshWidth : undefined}
+            height={layer.meshHeight && layer.meshHeight > 0 ? layer.meshHeight : undefined}
             style={{
               display: 'block',
               pointerEvents: 'none',
+              ...(layer.meshWidth && layer.meshHeight && layer.meshWidth > 0 && layer.meshHeight > 0
+                ? { width: `${layer.meshWidth}px`, height: `${layer.meshHeight}px` }
+                : {}),
               imageRendering: '-webkit-optimize-contrast',
               transform: 'translateZ(0)',
               backfaceVisibility: 'hidden',

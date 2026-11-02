@@ -54,6 +54,9 @@ export interface LoopWorkshopLayerConfig {
   scaleBeatPct?: number
   /** Các frame ảnh PNG trong suốt đã tách nền sẵn (Data URLs) để tái sử dụng ngay lập tức */
   renderedFrames?: string[]
+  /** Kích thước mặt phẳng Mesh chuẩn của hoạt ảnh lặp trong không gian Xưởng (giữ nguyên khi nâng cấp ảnh 2K/4K) */
+  meshWidth?: number
+  meshHeight?: number
 }
 
 export interface AssembledLayerItem {
@@ -71,6 +74,11 @@ export interface AssembledLayerItem {
   asset?: string
   assetPath?: string
   imageUrl?: string
+  /** Kích thước mặt phẳng Mesh chuẩn trong Xưởng/Cảnh (giữ khớp xương & bộ phận khi thay ảnh 2K/4K) */
+  meshWidth?: number
+  meshHeight?: number
+  /** Hộp bao vùng lưới Alpha Mesh chuẩn hoá UV [0..1] để căn tâm & tỉ lệ khi nâng cấp ảnh 2K/4K */
+  meshBounds?: import('../../project/meshRatioSync').AlphaMeshBounds
   x: number // Offset ngang tính từ tâm cụm
   y: number // Offset dọc tính từ tâm cụm
   z: number // Độ sâu thứ tự layer: Z càng lớn thì càng ở xa phía sau, Z càng nhỏ càng ở phía trước

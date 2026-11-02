@@ -186,6 +186,9 @@ export function LoopAnimatorSourcePane({ sourceCanvasRef, onRequestUpload, templ
       setSourceDimensions(img.naturalWidth || 1024, img.naturalHeight || 1024)
       const st = useLoopAnimator.getState()
       renderProcessedSource(img, st.chromaKey, st.gridConfig)
+      if (st.pendingMeshUpgrade) {
+        st.alignUpgradedFramesByMesh(sourceCanvasRef.current)
+      }
       bumpSourceVersion()
     }
     img.onerror = () => !cancelled && toast('⚠ Không đọc được ảnh nguồn')

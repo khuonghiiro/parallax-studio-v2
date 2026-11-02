@@ -73,9 +73,11 @@ function buildSceneLayer({
   layer.shotId = shotId
   layer.visible = !item.hidden
   layer.autoScale = false
-  if (asset.width && asset.height) {
-    layer.props.width = asset.width
-    layer.props.height = asset.height
+  const meshW = item.meshWidth ?? item.loopConfig?.meshWidth ?? asset.width
+  const meshH = item.meshHeight ?? item.loopConfig?.meshHeight ?? asset.height
+  if (meshW && meshH) {
+    layer.props.width = meshW
+    layer.props.height = meshH
   }
   if (item.loopConfig?.enabled) {
     layer.props.speed = item.loopConfig.speed ?? 1
@@ -166,7 +168,9 @@ export async function insertLayerCompositeToScene({
           frames: item.loopConfig.frames,
           renderedFrames: item.loopConfig.renderedFrames,
           chromaKey: item.loopConfig.chromaKey,
-          fps: item.loopConfig.fps || 12
+          fps: item.loopConfig.fps || 12,
+          meshWidth: item.meshWidth ?? item.loopConfig.meshWidth,
+          meshHeight: item.meshHeight ?? item.loopConfig.meshHeight
         })
         asset = built.assetMeta
         isNew = true

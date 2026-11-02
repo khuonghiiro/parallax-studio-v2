@@ -134,6 +134,12 @@ export interface LoopAnimationTemplate {
   loopMode: LoopAnimationMode
   rhythm?: LoopRhythmConfig
   frameCount: number
+  /** Kích thước pixel của ảnh Sprite Sheet nguồn khi lưu mẫu (để quy đổi tỉ lệ khi nâng cấp ảnh 2K/4K) */
+  sourceWidth?: number
+  sourceHeight?: number
+  /** Kích thước mặt phẳng Mesh chuẩn trong không gian 3D/Xưởng (giữ nguyên bố cục khi nâng cấp texture lên 2K/4K) */
+  baseMeshWidth?: number
+  baseMeshHeight?: number
   /** Optional custom frame boxes if edited manually or via contour */
   frames?: LoopFrameBox[]
   isBuiltin?: boolean

@@ -218,9 +218,16 @@ function getTextureDimensions(texture: THREE.Texture | null): { width: number; h
 }
 
 /**
- * Tính toán kích thước w, h vừa vặn bảo toàn tỉ lệ ảnh (Aspect Ratio)
+ * Tính toán kích thước w, h vừa vặn bảo toàn tỉ lệ mặt phẳng Mesh (hoặc tỉ lệ ảnh tự nhiên khi chưa cố định Mesh)
  */
-function computePlaneDimensions(texture: THREE.Texture | null, maxDim = 4096): { w: number; h: number } {
+function computePlaneDimensions(
+  texture: THREE.Texture | null,
+  maxDim = 4096,
+  layer?: Pick<AssembledLayerItem, 'meshWidth' | 'meshHeight'>
+): { w: number; h: number } {
+  if (layer?.meshWidth && layer?.meshHeight && layer.meshWidth > 1 && layer.meshHeight > 1) {
+    return { w: Math.round(layer.meshWidth), h: Math.round(layer.meshHeight) }
+  }
   const dims = getTextureDimensions(texture)
   if (dims) {
     const origW = dims.width
@@ -252,7 +259,7 @@ export function createLayer3DInstance(
   const texture = textureUrl
     ? getOrCreateLayerTexture(textureUrl, () => {
         if (getTextureDimensions(texture)) {
-          const { w, h } = computePlaneDimensions(texture)
+          const { w, h } = computePlaneDimensions(texture, 4096, layer)
           mesh.geometry.dispose()
           mesh.geometry = createLayerAlphaTrimmedGeometry(
             w,
@@ -269,7 +276,7 @@ export function createLayer3DInstance(
       })
     : null
 
-  const { w, h } = computePlaneDimensions(texture)
+  const { w, h } = computePlaneDimensions(texture, 4096, layer)
   // Lưới đa giác bám sát pixel đục (alpha silhouette), triệt tiêu pixel trong suốt
   const geom = createLayerAlphaTrimmedGeometry(w, h, texture?.image as HTMLImageElement)
 
@@ -344,7 +351,8 @@ export function createLayer3DInstance(
 export function updateLayerInstanceTexture(
   inst: Layer3DMeshInstance,
   textureUrl: string | null,
-  onRequestRender: () => void
+  onRequestRender: () => void,
+  layer?: Pick<AssembledLayerItem, 'meshWidth' | 'meshHeight'>
 ): void {
   if (inst.currentTextureUrl === textureUrl) return
   inst.currentTextureUrl = textureUrl || undefined
@@ -361,7 +369,7 @@ export function updateLayerInstanceTexture(
   const texture = getOrCreateLayerTexture(textureUrl, () => {
     if (inst.currentTextureUrl !== textureUrl) return
     if (getTextureDimensions(texture)) {
-      const { w, h } = computePlaneDimensions(texture)
+      const { w, h } = computePlaneDimensions(texture, 4096, layer)
       inst.mesh.geometry.dispose()
       inst.mesh.geometry = createLayerAlphaTrimmedGeometry(w, h, texture?.image as HTMLImageElement)
       if (inst.wireframeMesh) {
@@ -395,7 +403,7 @@ export function updateLayerInstanceTexture(
       alphaTest: 0.1
     })
     if (getTextureDimensions(texture)) {
-      const { w, h } = computePlaneDimensions(texture)
+      const { w, h } = computePlaneDimensions(texture, 4096, layer)
       inst.mesh.geometry.dispose()
       inst.mesh.geometry = createLayerAlphaTrimmedGeometry(w, h, texture?.image as HTMLImageElement)
       if (inst.wireframeMesh) {
@@ -429,6 +437,21 @@ export function updateLayer3DInstance(
     anchorDot.visible = false
     if (wireframeMesh) wireframeMesh.visible = false
     return
+  }
+
+  // Đồng bộ mặt phẳng Mesh 3D ngay khi kích thước Mesh của layer thay đổi (VD sau khi nâng cấp ảnh 2K/4K theo tỉ lệ Mesh)
+  if (layer.meshWidth && layer.meshHeight && layer.meshWidth > 1 && layer.meshHeight > 1) {
+    const curW = mesh.geometry.userData.width ?? 0
+    const curH = mesh.geometry.userData.height ?? 0
+    if (Math.abs(curW - layer.meshWidth) >= 0.5 || Math.abs(curH - layer.meshHeight) >= 0.5) {
+      const w = Math.round(layer.meshWidth)
+      const h = Math.round(layer.meshHeight)
+      mesh.geometry.dispose()
+      mesh.geometry = createLayerAlphaTrimmedGeometry(w, h, material.map?.image as HTMLImageElement | undefined)
+      if (wireframeMesh) wireframeMesh.geometry = mesh.geometry
+      outline.geometry.dispose()
+      outline.geometry = createRectOutline(w + 4, h + 4, 0x38bdf8).geometry
+    }
   }
 
   const geometry = mesh.geometry

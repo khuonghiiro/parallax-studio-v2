@@ -234,27 +234,38 @@ function assetFields(composite: LayerComposite, cand: PartAssetCandidate): { pat
 }
 
 /**
- * Thay ảnh một bộ phận nhưng GIỮ nguyên vị trí/xương/nhóm. `mode = 'variant'` giữ layer cũ làm biến thể ẩn
- * và thêm layer mới cùng khe (dựng nhanh bộ biểu cảm). Trả về composite mới + id layer đang hiển thị.
+ * Thay ảnh một bộ phận nhưng GIỮ nguyên vị trí/xương/nhóm và kích thước mặt phẳng Mesh (`meshPatch`).
+ * `mode = 'variant'` giữ layer cũ làm biến thể ẩn và thêm layer mới cùng khe (dựng nhanh bộ biểu cảm).
+ * Trả về composite mới + id layer đang hiển thị.
  */
 export function replacePartAsset(
   composite: LayerComposite,
   layerId: string,
   cand: PartAssetCandidate,
-  mode: 'replace' | 'variant' = 'replace'
+  mode: 'replace' | 'variant' = 'replace',
+  meshPatch?: Partial<Pick<AssembledLayerItem, 'meshWidth' | 'meshHeight' | 'meshBounds' | 'x' | 'y'>>
 ): { composite: LayerComposite; layerId: string } {
   const layer = composite.layers.find((l) => l.id === layerId)
   if (!layer) throw new Error(`Unknown layer: ${layerId}`)
   const { patch, assets } = assetFields(composite, cand)
   const label = cand.name.replace(/\.[a-z0-9]+$/i, '')
+  const mergedPatch = meshPatch ? { ...patch, ...meshPatch } : patch
   if (mode === 'replace') {
-    const layers = composite.layers.map((l) => (l.id === layerId ? { ...l, ...patch, name: label } : l))
+    const layers = composite.layers.map((l) => (l.id === layerId ? { ...l, ...mergedPatch, name: label } : l))
     return { composite: { ...composite, assets, layers }, layerId }
   }
   const slot = layer.slot || inferSlot(layer.name)?.slot || layer.name.toLowerCase().replace(/[\s_.]+/g, '-')
   const id = newLayerId()
   const variant = inferSlot(label)?.variant || label
-  const added: AssembledLayerItem = { ...structuredClone(layer), ...patch, id, name: label, slot, variant, hidden: false }
+  const added: AssembledLayerItem = {
+    ...structuredClone(layer),
+    ...mergedPatch,
+    id,
+    name: label,
+    slot,
+    variant,
+    hidden: false
+  }
   const index = composite.layers.findIndex((l) => l.id === layerId)
   const layers = composite.layers.map((l) =>
     l.id === layerId ? { ...l, slot, variant: l.variant || inferSlot(l.name)?.variant || l.name, hidden: true } : l.slot === slot ? { ...l, hidden: true } : l

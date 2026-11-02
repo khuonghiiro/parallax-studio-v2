@@ -20,8 +20,8 @@ export async function exportWorkshopSkin(
   const spines = spinesForLayer(composite.plantSpines, item.id)
   if (!skinned && !spines.length) return
 
-  const width = layer.props.width || composite.width || 400
-  const height = layer.props.height || composite.height || 400
+  const width = item.meshWidth || item.loopConfig?.meshWidth || layer.props.width || composite.width || 400
+  const height = item.meshHeight || item.loopConfig?.meshHeight || layer.props.height || composite.height || 400
   const geometry = new THREE.PlaneGeometry(width, height, 16, 20)
   const { x, y, rotation, scale, scaleX, scaleY } = item
   const boneId = item.boneId ?? (implicitSingleSoft ? composite.rig!.bones[0]?.id : undefined)

@@ -12,6 +12,7 @@ import {
   IconLoopAnimate,
   IconPlay,
   IconPlus,
+  IconReplace,
   IconSave,
   IconSparkles,
   IconTree,
@@ -21,8 +22,15 @@ import {
 import { LoopAnimatorFrameStrip } from './LoopAnimatorFrameStrip'
 import { LoopAnimatorPlayer } from './LoopAnimatorPlayer'
 import { LoopAnimatorSourcePane } from './LoopAnimatorSourcePane'
-import { applyLoopAnimationToProject } from './loopAnimationExporter'
-import { LOOP_IMAGE_ACCEPT, loadLoopImageFile } from './loopAnimatorLauncher'
+import {
+  applyLoopAnimationToProject,
+  syncSceneAndCompositesWithLoopTemplate
+} from './loopAnimationExporter'
+import {
+  LOOP_IMAGE_ACCEPT,
+  loadLoopImageFile,
+  upgradeLoopImageFileKeepMesh
+} from './loopAnimatorLauncher'
 import { LOOP_STORAGE_UPDATED_EVENT, getAllLoopTemplates } from './loopAnimatorStorage'
 import { useLoopAnimator } from './loopAnimatorState'
 import type { LoopAnimationTemplate } from './types'
@@ -78,6 +86,7 @@ export function LoopAnimatorDialog({ isOpen = true, onClose, initialImageUrl }: 
 
   const sourceCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const upgradeFileInputRef = useRef<HTMLInputElement | null>(null)
   const [isExporting, setIsExporting] = useState(false)
   const [mobileTab, setMobileTab] = useState<MobileTab>('source')
   const templates = useLoopTemplates(isOpen)
@@ -102,12 +111,14 @@ export function LoopAnimatorDialog({ isOpen = true, onClose, initialImageUrl }: 
   const enabledCount = frames.filter((f) => f.enabled).length
   const canExport = hasSource && enabledCount > 0
   const requestUpload = (): void => fileInputRef.current?.click()
+  const requestUpgradeMesh = (): void => upgradeFileInputRef.current?.click()
 
   async function handleApplyToScene(): Promise<void> {
     if (!sourceCanvasRef.current || isExporting) return
     setIsExporting(true)
     try {
       const saved = saveCurrentToLibrary(sourceCanvasRef.current)
+      if (saved) void syncSceneAndCompositesWithLoopTemplate(saved)
       const res = await applyLoopAnimationToProject({
         layerName,
         sourceCanvas: sourceCanvasRef.current,
@@ -116,7 +127,9 @@ export function LoopAnimatorDialog({ isOpen = true, onClose, initialImageUrl }: 
         speed: playback.speed,
         loopMode: playback.loopMode,
         templateId: saved?.id ?? activePresetId ?? undefined,
-        rhythm: playback.rhythm
+        rhythm: playback.rhythm,
+        baseMeshWidth: saved?.baseMeshWidth,
+        baseMeshHeight: saved?.baseMeshHeight
       })
       toast(`✨ Đã tạo layer hoạt ảnh lặp "${layerName}" (${res.frameCount} frames @ ${playback.fps} FPS)`)
       onClose()
@@ -129,7 +142,15 @@ export function LoopAnimatorDialog({ isOpen = true, onClose, initialImageUrl }: 
 
   function handleSaveToLibrary(): void {
     const saved = saveCurrentToLibrary(sourceCanvasRef.current)
-    if (saved) toast(`💾 Đã lưu "${saved.name}" (${saved.frameCount} frame) vào kho Loop Animate`)
+    if (saved) {
+      void syncSceneAndCompositesWithLoopTemplate(saved).then((syncedCount) => {
+        if (syncedCount > 0) {
+          toast(`💾 Đã lưu "${saved.name}" và đồng bộ ${syncedCount} layer trên cảnh theo tỉ lệ Mesh`)
+        } else {
+          toast(`💾 Đã lưu "${saved.name}" (${saved.frameCount} frame) vào kho Loop Animate`)
+        }
+      })
+    }
   }
 
   return (
@@ -143,6 +164,23 @@ export function LoopAnimatorDialog({ isOpen = true, onClose, initialImageUrl }: 
           onChange={(e) => {
             const file = e.target.files?.[0]
             if (file && !loadLoopImageFile(file)) toast('⚠ Tệp không phải ảnh hợp lệ')
+            e.target.value = ''
+          }}
+        />
+        <input
+          ref={upgradeFileInputRef}
+          type="file"
+          accept={LOOP_IMAGE_ACCEPT}
+          hidden
+          onChange={(e) => {
+            const file = e.target.files?.[0]
+            if (file) {
+              if (upgradeLoopImageFileKeepMesh(file)) {
+                toast('✨ Đã nâng cấp ảnh 2K/4K và đồng bộ khung cắt theo tỉ lệ Mesh')
+              } else {
+                toast('⚠ Tệp không phải ảnh hợp lệ')
+              }
+            }
             e.target.value = ''
           }}
         />
@@ -183,10 +221,21 @@ export function LoopAnimatorDialog({ isOpen = true, onClose, initialImageUrl }: 
                 </button>
               ))}
             </Menu>
-            <button type="button" className="la-btn la-btn--outline" onClick={requestUpload} title="Tải ảnh sprite sheet từ máy tính">
+            <button type="button" className="la-btn la-btn--outline" onClick={requestUpload} title="Tải ảnh sprite sheet mới từ máy tính">
               <IconUpload width={13} height={13} />
               <span>Tải ảnh</span>
             </button>
+            {hasSource && (
+              <button
+                type="button"
+                className="la-btn la-btn--outline"
+                onClick={requestUpgradeMesh}
+                title="Thay ảnh Sprite Sheet chất lượng cao (2K/4K) nhưng giữ nguyên tỉ lệ Mesh, cấu hình cắt và khớp khung hình"
+              >
+                <IconReplace width={13} height={13} />
+                <span>Đổi 2K/4K (Giữ Mesh)</span>
+              </button>
+            )}
             <button type="button" className="la-icon-btn la-icon-btn--bordered loop-close-btn" onClick={onClose} title="Đóng xưởng (Esc)" aria-label="Đóng xưởng">
               <IconX width={14} height={14} />
             </button>

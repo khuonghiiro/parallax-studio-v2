@@ -63,13 +63,13 @@ export function syncLayersGroupMeshes({
       meshInstances.set(layer.id, inst)
       layersGroup.add(inst.group)
     } else if (fullResUrl && inst.currentTextureUrl !== fullResUrl) {
-      updateLayerInstanceTexture(inst, fullResUrl, requestRender)
+      updateLayerInstanceTexture(inst, fullResUrl, requestRender, layer)
     }
 
     if (!fullResUrl && layer.assetPath) {
       resolveFaceTexture(layer.assetPath).then((res) => {
         if (res?.url && inst) {
-          updateLayerInstanceTexture(inst, res.url, requestRender)
+          updateLayerInstanceTexture(inst, res.url, requestRender, layer)
         }
       })
     }

@@ -3,6 +3,7 @@ import { PartThumb } from './PartThumb'
 import { PartEditableTitle } from './PartEditableTitle'
 import { IconFaceSwap, IconPlus, IconX } from '../icons'
 import { activateVariant, layerAssetPath, replacePartAsset } from './workshopParts'
+import { measureWorkshopLayerSizes, syncWorkshopLayerMeshOnReplace } from './workshopLayerMeasure'
 import { addAssetToVariant, addLayersToVariant, dissolveSlot, renameSlot, renameVariant, slotVariantGroups } from './workshopPartSets'
 import { usePartDropTarget, type PartDrop } from './partsDnd'
 import type { PartCardCommon } from './WorkshopPartGroupCard'
@@ -35,8 +36,19 @@ function AddVariantTile({ composite, slot, activeLayerId, apply, onError, onOpen
 }) {
   const onDrop = (drop: PartDrop) => {
     if (drop.kind === 'layer') return apply(addLayersToVariant(composite, [drop.id], slot), drop.id)
-    const res = replacePartAsset(composite, activeLayerId, drop.cand, 'variant')
+    const baseLayer = composite.layers.find((l) => l.id === activeLayerId)
+    const measured = baseLayer ? measureWorkshopLayerSizes([baseLayer])[baseLayer.id] : undefined
+    const meshPatch =
+      (baseLayer?.meshWidth && baseLayer?.meshHeight) || (measured?.w && measured?.h)
+        ? { meshWidth: baseLayer?.meshWidth ?? measured?.w, meshHeight: baseLayer?.meshHeight ?? measured?.h }
+        : undefined
+    const res = replacePartAsset(composite, activeLayerId, drop.cand, 'variant', meshPatch)
     apply(res.composite, res.layerId)
+    if (baseLayer) {
+      void syncWorkshopLayerMeshOnReplace(res.composite, res.layerId, baseLayer, composite.assets, measured).then(
+        (synced) => apply(synced, res.layerId)
+      )
+    }
   }
   const { over, handlers } = usePartDropTarget(composite, onDrop, onError)
   return (
