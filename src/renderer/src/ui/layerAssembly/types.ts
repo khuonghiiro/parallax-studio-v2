@@ -52,6 +52,8 @@ export interface LoopWorkshopLayerConfig {
   rhythmIntensity?: number
   minOpacity?: number
   scaleBeatPct?: number
+  /** Các frame ảnh PNG trong suốt đã tách nền sẵn (Data URLs) để tái sử dụng ngay lập tức */
+  renderedFrames?: string[]
 }
 
 export interface AssembledLayerItem {

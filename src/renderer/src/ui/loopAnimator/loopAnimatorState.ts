@@ -3,7 +3,8 @@ import {
   autoCenterLoopFrames,
   buildGridFrames,
   detectContourFrames,
-  extractFirstFramePreviewUrl
+  extractFirstFramePreviewUrl,
+  extractAllFramesAsDataUrls
 } from './loopFrameExtractor'
 import { getAllLoopTemplates, saveLoopTemplate } from './loopAnimatorStorage'
 import { SAMPLE_LOOP_PRESETS } from './sampleLoops'
@@ -493,6 +494,12 @@ export const useLoopAnimator = create<LoopAnimatorStore>((set, get) => ({
     const thumbUrl = sourceCanvas
       ? extractFirstFramePreviewUrl(sourceCanvas, s.frames, 256)
       : undefined
+    const renderedFrames = sourceCanvas
+      ? extractAllFramesAsDataUrls(sourceCanvas, s.frames)
+      : undefined
+    const transparentSheetUrl = sourceCanvas
+      ? sourceCanvas.toDataURL('image/png')
+      : undefined
 
     const template: LoopAnimationTemplate = {
       id,
@@ -502,6 +509,8 @@ export const useLoopAnimator = create<LoopAnimatorStore>((set, get) => ({
       description: `Hoạt ảnh lặp ${enabledCount} frame (${s.playback.fps} FPS • ${s.playback.loopMode})`,
       imageUrl: s.sourceImageUrl,
       thumbUrl,
+      renderedFrames,
+      transparentSheetUrl,
       slicerMode: s.slicerMode,
       gridConfig: { ...s.gridConfig },
       contourConfig: { ...s.contourConfig },

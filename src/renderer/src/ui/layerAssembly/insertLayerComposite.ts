@@ -164,6 +164,7 @@ export async function insertLayerCompositeToScene({
           name: item.name,
           spriteSheetUrl: item.loopConfig.spriteSheetUrl,
           frames: item.loopConfig.frames,
+          renderedFrames: item.loopConfig.renderedFrames,
           chromaKey: item.loopConfig.chromaKey,
           fps: item.loopConfig.fps || 12
         })
@@ -205,6 +206,22 @@ export async function insertLayerCompositeToScene({
   )
 
   layersToAdd.push(...builtLayers)
+
+  // Pre-warm giải mã texture song song cho các asset mới tạo để SceneRenderer hiển thị tức thì không bị chớp hay lag
+  if (newAssets.length > 0) {
+    await Promise.all(
+      newAssets.map(async (a) => {
+        if (a.width && a.height) {
+          try {
+            const bmp = await assetStore.decode(a.id, Math.min(a.width, 1024), Math.min(a.height, 1024))
+            bmp.close()
+          } catch {
+            /* ignore pre-warm error */
+          }
+        }
+      })
+    )
+  }
 
   if (layersToAdd.length > 0) {
     useEditor.getState().update((p) => {

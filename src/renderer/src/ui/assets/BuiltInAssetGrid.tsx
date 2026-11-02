@@ -22,6 +22,7 @@ import {
 import { AssetDetailModal } from './AssetDetailModal'
 import { AssetDeleteConfirmModal } from './AssetDeleteConfirmModal'
 import { AudioCardPreview } from './AudioCardPreview'
+import { setCleanDragGhost } from '../utils/dragPreviewHelper'
 
 interface BuiltInAssetGridProps {
   categories: BuiltInAssetCategory[]
@@ -228,12 +229,7 @@ export function BuiltInAssetGrid({
                   draggable
                   onDragStart={(e) => {
                     e.dataTransfer.setData('application/x-pxs-builtin-asset', JSON.stringify(item))
-                    const img = e.currentTarget.querySelector('img') as HTMLImageElement | null
-                    if (img && e.dataTransfer.setDragImage) {
-                      const w = img.naturalWidth > 0 ? Math.min(img.offsetWidth || 80, 120) : 40
-                      const h = img.naturalHeight > 0 ? Math.min(img.offsetHeight || 80, 120) : 40
-                      e.dataTransfer.setDragImage(img, w / 2, h / 2)
-                    }
+                    setCleanDragGhost(e, item.previewUrl)
                   }}
                   onDragEnd={() => {
                     setHoveredId(null)

@@ -24,6 +24,7 @@ import { exportLoopPresetDirectly } from '../loopAnimator/loopAnimationExporter'
 import { openLoopAnimatorBlank, openLoopAnimatorTemplate } from '../loopAnimator/loopAnimatorLauncher'
 import { LOOP_STORAGE_UPDATED_EVENT, getAllLoopTemplates } from '../loopAnimator/loopAnimatorStorage'
 import type { LoopAnimationTemplate } from '../loopAnimator/types'
+import { setCleanDragGhost } from '../utils/dragPreviewHelper'
 
 const LOOP_CATEGORIES = [
   { id: 'all', title: 'Tất cả hoạt ảnh lặp' },
@@ -141,11 +142,7 @@ function LoopTemplateCard({ template, isPlaying, busy, onTogglePlay, onInsert, o
         )
         e.dataTransfer.effectAllowed = 'copy'
         const cv = e.currentTarget.querySelector('canvas') as HTMLCanvasElement | null
-        if (cv && e.dataTransfer.setDragImage) {
-          const w = cv.offsetWidth > 0 ? Math.min(cv.offsetWidth, 120) : 60
-          const h = cv.offsetHeight > 0 ? Math.min(cv.offsetHeight, 120) : 60
-          e.dataTransfer.setDragImage(cv, w / 2, h / 2)
-        }
+        setCleanDragGhost(e, cv || template.thumbUrl)
       }}
     >
       <div className="loop-lib-thumb">

@@ -106,6 +106,10 @@ export interface LoopAnimationTemplate {
   imageUrl: string
   /** Cropped Frame #1 preview PNG data URL (with Chroma Key removed) */
   thumbUrl?: string
+  /** Các frame ảnh PNG trong suốt đã tách nền sẵn (Data URLs) để tái sử dụng ngay lập tức mà không phải khử nền hay cắt lại */
+  renderedFrames?: string[]
+  /** Toàn bộ sprite sheet đã khử nền trong suốt hoàn toàn (PNG Data URL) */
+  transparentSheetUrl?: string
   slicerMode: SlicerMode
   gridConfig: GridSlicerConfig
   contourConfig?: ContourSlicerConfig

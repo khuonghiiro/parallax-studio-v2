@@ -22,6 +22,7 @@ import {
   ROOM_THUMBNAIL
 } from './models3d/templateThumbnails'
 import { IconCube, IconPlus, IconPen, IconTrash, IconCopy } from '../icons'
+import { setCleanDragGhost } from '../utils/dragPreviewHelper'
 import '../../styles/model3dLibrary.css'
 
 const DEFAULT_CATEGORIES: Asset3DsCategory[] = [
@@ -188,12 +189,7 @@ export function Model3DList() {
                     JSON.stringify({ type: 'model3d', modelId: m.id, model: m })
                   )
                   e.dataTransfer.effectAllowed = 'copy'
-                  const img = e.currentTarget.querySelector('.model-3d-thumb-img') as HTMLImageElement | null
-                  if (img && e.dataTransfer.setDragImage) {
-                    const w = img.naturalWidth > 0 ? Math.min(img.offsetWidth || 80, 120) : 40
-                    const h = img.naturalHeight > 0 ? Math.min(img.offsetHeight || 80, 120) : 40
-                    e.dataTransfer.setDragImage(img, w / 2, h / 2)
-                  }
+                  setCleanDragGhost(e, thumb)
                 }}
               >
                 {/* Review Image Preview with 3D Badge & Face Count on Top-Left */}

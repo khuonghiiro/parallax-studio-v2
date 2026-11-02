@@ -35,7 +35,7 @@ export interface RuntimeAsset {
 type Listener = () => void
 
 const THUMB = 256
-const MAX_CONCURRENT_DECODES = 3
+const MAX_CONCURRENT_DECODES = Math.max(16, (typeof navigator !== 'undefined' && navigator.hardwareConcurrency ? navigator.hardwareConcurrency * 2 : 16))
 
 /**
  * Holds binary asset data outside the (serializable, undoable) project state.

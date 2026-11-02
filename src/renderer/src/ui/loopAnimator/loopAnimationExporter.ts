@@ -152,12 +152,20 @@ export async function applyLoopAnimationToProject(
  * ảnh/GIF chuẩn của assetStore vì TexturePool tải texture với `flipY = false` — thiếu bước này
  * hoạt ảnh sẽ bị lộn ngược khi chèn vào cảnh hoặc chèn cụm 2.5D có mảnh Loop.
  */
-export function createLoopFrameBitmap(frameCanvas: HTMLCanvasElement): Promise<ImageBitmap> {
-  return createImageBitmap(frameCanvas, {
+export async function createLoopFrameBitmap(
+  source: HTMLCanvasElement | ImageBitmapSource | string
+): Promise<ImageBitmap> {
+  const bitmapOpts: ImageBitmapOptions = {
     imageOrientation: 'flipY',
     premultiplyAlpha: 'none',
     colorSpaceConversion: 'none'
-  })
+  }
+  if (typeof source === 'string') {
+    const res = await fetch(source)
+    const blob = await res.blob()
+    return createImageBitmap(blob, bitmapOpts)
+  }
+  return createImageBitmap(source, bitmapOpts)
 }
 
 /**
@@ -177,10 +185,66 @@ export async function buildLoopAnimatedAsset(options: {
     durationRatio?: number
     enabled?: boolean
   }>
+  renderedFrames?: string[]
   gridConfig?: { cols: number; rows: number; marginX: number; marginY: number; paddingX: number; paddingY: number }
   chromaKey?: ChromaKeyConfig
   fps: number
 }): Promise<{ assetMeta: AssetMeta; gifData: AnimatedGifData; width: number; height: number }> {
+  // 1. Tối ưu cực hạn: Nếu đã lưu sẵn các frame PNG tách nền (renderedFrames), giải mã trực tiếp 0ms CPU
+  if (options.renderedFrames && options.renderedFrames.length > 0) {
+    const urls = options.renderedFrames
+    const baseFrameDuration = 1 / Math.max(1, Math.min(60, options.fps || 12))
+    const bitmaps = await Promise.all(urls.map((u) => createLoopFrameBitmap(u)))
+    const maxW = Math.max(1, ...bitmaps.map((b) => b.width))
+    const maxH = Math.max(1, ...bitmaps.map((b) => b.height))
+    const gifFrames: GifFrame[] = []
+    let currentTime = 0
+    for (let i = 0; i < bitmaps.length; i++) {
+      const bmp = bitmaps[i]
+      const duration = Math.max(0.016, baseFrameDuration)
+      gifFrames.push({
+        index: i,
+        bitmap: bmp,
+        duration,
+        startTime: currentTime
+      })
+      currentTime += duration
+    }
+    const safeSlug =
+      options.name
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/^_|_$/g, '') || 'loop_sprite'
+
+    const thumbBmp = bitmaps[0]
+    const thumbCanvas = document.createElement('canvas')
+    thumbCanvas.width = thumbBmp.width
+    thumbCanvas.height = thumbBmp.height
+    const tctx = thumbCanvas.getContext('2d')
+    if (tctx) tctx.drawImage(thumbBmp, 0, 0)
+
+    const runtimeAsset = await assetStore.addCanvas(
+      `${safeSlug}_${Date.now().toString(36)}.png`,
+      thumbCanvas
+    )
+    const meta = runtimeAsset.meta
+    meta.width = maxW
+    meta.height = maxH
+    meta.isAnimated = true
+    meta.frameCount = gifFrames.length
+    meta.duration = Math.max(0.05, currentTime)
+
+    const gifData: AnimatedGifData = {
+      frames: gifFrames,
+      totalDuration: Math.max(0.05, currentTime),
+      width: maxW,
+      height: maxH
+    }
+    runtimeAsset.gif = gifData
+
+    return { assetMeta: meta, gifData, width: maxW, height: maxH }
+  }
   const resolvedUrl = await resolveLoopAssetUrl(options.spriteSheetUrl)
   const img = await new Promise<HTMLImageElement>((resolve, reject) => {
     const el = new Image()

@@ -11,6 +11,7 @@ import {
 } from './layerAssemblyStorage'
 import { captureCompositeThumbnail } from './layerAssemblyThumbnail'
 import { insertLayerCompositeToScene } from './insertLayerComposite'
+import { setCleanDragGhost } from '../utils/dragPreviewHelper'
 import { LayerAssemblyCategoryBar } from './LayerAssemblyCategoryBar'
 import { IconPlus, IconPen, IconTrash, IconCopy, IconLayers } from '../icons'
 import { requestOpenLayerAssembly } from './layerAssemblyBridge'
@@ -241,12 +242,7 @@ function LayerCardItem({
       onDragStart={(e) => {
         e.dataTransfer.setData('application/json', JSON.stringify({ type: 'composite', composite: item }))
         e.dataTransfer.effectAllowed = 'copy'
-        const img = e.currentTarget.querySelector('.model-3d-thumb-img') as HTMLImageElement | null
-        if (img && e.dataTransfer.setDragImage) {
-          const w = img.naturalWidth > 0 ? Math.min(img.offsetWidth || 80, 120) : 40
-          const h = img.naturalHeight > 0 ? Math.min(img.offsetHeight || 80, 120) : 40
-          e.dataTransfer.setDragImage(img, w / 2, h / 2)
-        }
+        setCleanDragGhost(e, thumb || item.thumbnail)
       }}
       style={{ cursor: 'grab' }}
     >

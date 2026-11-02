@@ -67,7 +67,7 @@ export function bakeWorkshopRig(
       if (
         isBoundary ||
         !lastP ||
-        Math.hypot(s.pos[0] - lastP[0], s.pos[1] - lastP[1], s.pos[2] - lastP[2]) >= 0.02
+        Math.hypot(s.pos[0] - lastP[0], s.pos[1] - lastP[1], s.pos[2] - lastP[2]) >= 0.05
       ) {
         layer.transform.position.keyframes.push({
           id: `${layer.id}-rig-p-${f}`,
@@ -89,7 +89,7 @@ export function bakeWorkshopRig(
       if (
         isBoundary ||
         !lastR ||
-        Math.hypot(s.rot[0] - lastR[0], s.rot[1] - lastR[1], s.rot[2] - lastR[2]) >= 0.02
+        Math.hypot(s.rot[0] - lastR[0], s.rot[1] - lastR[1], s.rot[2] - lastR[2]) >= 0.05
       ) {
         layer.transform.rotation.keyframes.push({
           id: `${layer.id}-rig-r-${f}`,

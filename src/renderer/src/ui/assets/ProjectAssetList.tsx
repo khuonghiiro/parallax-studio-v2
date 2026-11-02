@@ -4,6 +4,7 @@ import { addAudioTrackFromAsset, addLayerFromAsset, removeAsset } from '../../ac
 import { assetStore } from '../../project/assets'
 import { useEditor } from '../../store/editor'
 import { IconGlobe, IconInfo, IconLock, IconMusic, IconPause, IconPlay, IconPlus, IconTrash } from '../icons'
+import { setCleanDragGhost } from '../utils/dragPreviewHelper'
 import { useAudioPreview } from './audioPreviewManager'
 import { AssetDetailModal } from './AssetDetailModal'
 import { AssetDeleteConfirmModal } from './AssetDeleteConfirmModal'
@@ -61,12 +62,7 @@ export function ProjectAssetList() {
               draggable
               onDragStart={(e) => {
                 e.dataTransfer.setData('application/x-pxs-asset', a.id)
-                const img = e.currentTarget.querySelector('img') as HTMLImageElement | null
-                if (img && e.dataTransfer.setDragImage) {
-                  const w = img.naturalWidth > 0 ? Math.min(img.offsetWidth || 80, 120) : 40
-                  const h = img.naturalHeight > 0 ? Math.min(img.offsetHeight || 80, 120) : 40
-                  e.dataTransfer.setDragImage(img, w / 2, h / 2)
-                }
+                setCleanDragGhost(e, rt?.thumbUrl)
               }}
               onDragEnd={() => setHover(null)}
             >

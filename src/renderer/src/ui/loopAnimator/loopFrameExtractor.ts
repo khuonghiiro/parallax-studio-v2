@@ -647,6 +647,22 @@ export function extractFrameCanvas(
 /**
  * Extract the cropped First Frame (Frame #1) as a compact PNG DataURL for library thumbnails.
  */
+/**
+ * Trích xuất toàn bộ các frame ảnh PNG trong suốt đã qua khử nền Chroma Key và căn chỉnh,
+ * phục vụ lưu vào template để tái sử dụng ngay lập tức mà không phải chạy lại thuật toán chroma key.
+ */
+export function extractAllFramesAsDataUrls(
+  sourceCanvas: HTMLCanvasElement,
+  frames: LoopFrameBox[]
+): string[] {
+  const enabled = frames.filter((f) => f.enabled)
+  const list = enabled.length > 0 ? enabled : frames
+  return list.map((frame) => {
+    const raw = extractFrameCanvas(sourceCanvas, frame, frame.width, frame.height)
+    return raw.toDataURL('image/png')
+  })
+}
+
 export function extractFirstFramePreviewUrl(
   sourceCanvas: HTMLCanvasElement,
   frames: LoopFrameBox[],
