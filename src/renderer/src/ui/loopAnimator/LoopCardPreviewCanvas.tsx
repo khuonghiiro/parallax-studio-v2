@@ -41,6 +41,7 @@ function nextCursor(
 /**
  * Canvas xem trước mẫu hoạt ảnh lặp: khi dừng chỉ vẽ Frame #1 (đã khử nền),
  * khi chạy thì phát vòng lặp 60fps theo FPS, kiểu lặp và logic Nhịp & Nháy của mẫu.
+ * Đi kèm thẻ <img> bóng mờ tách nền để phục vụ tính năng kéo thả mượt mà 100% trong Electron / Chromium.
  */
 export const LoopCardPreviewCanvas = React.memo(function LoopCardPreviewCanvas({
   template,
@@ -52,6 +53,7 @@ export const LoopCardPreviewCanvas = React.memo(function LoopCardPreviewCanvas({
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const sheetRef = useRef<Sheet>(null)
   const [sheetVersion, setSheetVersion] = useState(0)
+  const [ghostThumbUrl, setGhostThumbUrl] = useState<string | null>(template.thumbUrl || null)
 
   useEffect(() => {
     let cancelled = false
@@ -59,6 +61,23 @@ export const LoopCardPreviewCanvas = React.memo(function LoopCardPreviewCanvas({
       if (cancelled) return
       sheetRef.current = sheet
       setSheetVersion((v) => v + 1)
+      if (sheet && sheet.frames.length > 0) {
+        try {
+          const f0 = sheet.frames[0]
+          if (f0) {
+            const c = document.createElement('canvas')
+            c.width = f0.width
+            c.height = f0.height
+            const ctx = c.getContext('2d')
+            if (ctx) {
+              ctx.drawImage(sheet.canvas, f0.x, f0.y, f0.width, f0.height, 0, 0, f0.width, f0.height)
+              setGhostThumbUrl(c.toDataURL('image/png'))
+            }
+          }
+        } catch {
+          /* ignore */
+        }
+      }
     })
     return () => {
       cancelled = true
@@ -143,5 +162,26 @@ export const LoopCardPreviewCanvas = React.memo(function LoopCardPreviewCanvas({
     return () => cancelAnimationFrame(rafId)
   }, [isPlaying, sheetVersion, template.fps, template.speed, template.loopMode, template.rhythm])
 
-  return <canvas ref={canvasRef} width={width} height={height} className={className} />
+  return (
+    <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <canvas ref={canvasRef} width={width} height={height} className={className} />
+      {ghostThumbUrl && (
+        <img
+          src={ghostThumbUrl}
+          alt={template.name}
+          className="loop-card-ghost-img"
+          draggable={false}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'contain',
+            pointerEvents: 'none',
+            display: isPlaying ? 'none' : 'block'
+          }}
+        />
+      )}
+    </div>
+  )
 })

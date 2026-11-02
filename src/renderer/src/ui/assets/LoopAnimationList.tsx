@@ -141,8 +141,9 @@ function LoopTemplateCard({ template, isPlaying, busy, onTogglePlay, onInsert, o
           JSON.stringify({ type: 'loop_template', templateId: template.id, template })
         )
         e.dataTransfer.effectAllowed = 'copy'
+        const img = e.currentTarget.querySelector('img.loop-card-ghost-img, img') as HTMLImageElement | null
         const cv = e.currentTarget.querySelector('canvas') as HTMLCanvasElement | null
-        setCleanDragGhost(e, cv || template.thumbUrl)
+        setCleanDragGhost(e, img || cv || template.thumbUrl)
       }}
     >
       <div className="loop-lib-thumb">

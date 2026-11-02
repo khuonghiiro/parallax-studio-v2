@@ -242,7 +242,8 @@ function LayerCardItem({
       onDragStart={(e) => {
         e.dataTransfer.setData('application/json', JSON.stringify({ type: 'composite', composite: item }))
         e.dataTransfer.effectAllowed = 'copy'
-        setCleanDragGhost(e, thumb || item.thumbnail)
+        const img = e.currentTarget.querySelector('.model-3d-thumb-img') as HTMLImageElement | null
+        setCleanDragGhost(e, img || thumb || item.thumbnail)
       }}
       style={{ cursor: 'grab' }}
     >
