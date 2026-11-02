@@ -182,18 +182,30 @@ function insertLayerBottom(d: Project, layer: Project['layers'][number]): void {
   else d.layers.splice(last + 1, 0, layer)
 }
 
-function applyPlacedImageLayer(d: Project, shotId: string | null, meta: import('@shared/types').AssetMeta): string {
+function applyPlacedImageLayer(
+  d: Project,
+  shotId: string | null,
+  meta: import('@shared/types').AssetMeta,
+  initialPos?: { x: number; y: number; z?: number }
+): string {
   const placement = resolveNewLayerPlacement(d, shotId, meta)
-  const layer = createImageLayer(meta, d.comp, placement.z)
-  if (placement.y !== 0) layer.transform.position.value = [0, placement.y, placement.z]
+  const layerZ = initialPos?.z !== undefined ? initialPos.z : placement.z
+  const layer = createImageLayer(meta, d.comp, layerZ)
+  const posX = initialPos?.x !== undefined ? initialPos.x : 0
+  const posY = initialPos?.y !== undefined ? initialPos.y : placement.y
+  layer.transform.position.value = [posX, posY, layerZ]
   if (placement.scale !== 1) layer.transform.scale.value = [placement.scale, placement.scale, 1]
   layer.shotId = shotId
-  if (placement.z >= 1400) insertLayerBottom(d, layer)
+  if (layerZ >= 1400) insertLayerBottom(d, layer)
   else insertLayerTop(d, layer)
   return layer.id
 }
 
-async function registerImages(files: { name: string; mime: string; data: Uint8Array }[], addLayers: boolean): Promise<void> {
+async function registerImages(
+  files: { name: string; mime: string; data: Uint8Array }[],
+  addLayers: boolean,
+  initialPos?: { x: number; y: number; z?: number }
+): Promise<void> {
   const shotId = activeShotId()
   let lastId: string | null = null
   for (const f of files) {
@@ -239,7 +251,7 @@ async function registerImages(files: { name: string; mime: string; data: Uint8Ar
         }
         d.assets.push(asset.meta)
         if (addLayers) {
-          lastId = applyPlacedImageLayer(d as Project, shotId, asset.meta)
+          lastId = applyPlacedImageLayer(d as Project, shotId, asset.meta, initialPos)
         }
       })
     } catch (err) {
@@ -385,7 +397,10 @@ export function updateAudioTrack(trackId: string, patch: Partial<AudioTrackItem>
 }
 
 /** Handle files dropped onto the window. */
-export async function importDroppedFiles(list: FileList): Promise<void> {
+export async function importDroppedFiles(
+  list: FileList,
+  initialPos?: { x: number; y: number; z?: number }
+): Promise<void> {
   const images: { name: string; mime: string; data: Uint8Array }[] = []
   for (const file of Array.from(list)) {
     const data = new Uint8Array(await file.arrayBuffer())
@@ -405,13 +420,14 @@ export async function importDroppedFiles(list: FileList): Promise<void> {
       return
     }
   }
-  if (images.length) await registerImages(images, true)
+  if (images.length) await registerImages(images, true, initialPos)
 }
 
 export async function importBuiltInAsset(
   item: { relativePath: string; name: string; kind: 'image' | 'audio'; mime?: string },
   addLayer = true,
-  targetTime?: number | unknown
+  targetTime?: number | unknown,
+  initialPos?: { x: number; y: number; z?: number }
 ): Promise<string | null> {
   const file = await window.api.loadBuiltInAssetBytes(item.relativePath)
   if (!file) {
@@ -460,7 +476,7 @@ export async function importBuiltInAsset(
       }
       d.assets.push(asset.meta)
       if (addLayer) {
-        layerId = applyPlacedImageLayer(d as Project, shotId, asset.meta)
+        layerId = applyPlacedImageLayer(d as Project, shotId, asset.meta, initialPos)
       }
     })
     if (layerId) {
@@ -476,13 +492,16 @@ export async function importBuiltInAsset(
   }
 }
 
-export function addLayerFromAsset(assetId: string): void {
+export function addLayerFromAsset(
+  assetId: string,
+  initialPos?: { x: number; y: number; z?: number }
+): void {
   const meta = editor().project.assets.find((a) => a.id === assetId)
   if (!meta || meta.kind !== 'image') return
   const shotId = activeShotId()
   let layerId = ''
   editor().update((d) => {
-    layerId = applyPlacedImageLayer(d as Project, shotId, meta)
+    layerId = applyPlacedImageLayer(d as Project, shotId, meta, initialPos)
   })
   if (layerId) editor().selectLayer(layerId)
 }

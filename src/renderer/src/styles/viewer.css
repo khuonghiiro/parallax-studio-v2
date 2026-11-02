@@ -21,6 +21,12 @@
   justify-content: center;
   overflow: hidden;
   min-height: 0;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.viewer.dropzone-active {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 2px var(--accent), 0 0 16px color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
 .viewer canvas {

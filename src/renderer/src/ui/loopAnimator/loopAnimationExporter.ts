@@ -23,6 +23,7 @@ export interface LoopExportOptions {
   templateId?: string
   rhythm?: LoopRhythmConfig
   shotId?: string | null
+  initialPosition?: [number, number, number]
 }
 
 /**
@@ -42,7 +43,8 @@ export async function applyLoopAnimationToProject(
     loopMode,
     templateId,
     rhythm,
-    shotId
+    shotId,
+    initialPosition
   } = options
   const enabledFrames = frames.filter((f) => f.enabled)
   if (enabledFrames.length === 0) {
@@ -63,10 +65,7 @@ export async function applyLoopAnimationToProject(
     if (i === 0) {
       firstFrameCanvas = frameCanvas
     }
-    const bitmap = await createImageBitmap(frameCanvas, {
-      premultiplyAlpha: 'none',
-      colorSpaceConversion: 'none'
-    })
+    const bitmap = await createLoopFrameBitmap(frameCanvas)
     const duration = Math.max(0.016, baseFrameDuration * (f.durationRatio || 1))
     gifFrames.push({
       index: i,
@@ -111,6 +110,9 @@ export async function applyLoopAnimationToProject(
   const layer = createImageLayer(meta, editor.project.comp, 0)
   layer.name = layerName.trim() || 'Hoạt ảnh Loop'
   layer.shotId = targetShotId
+  if (initialPosition) {
+    layer.transform.position.value = [initialPosition[0], initialPosition[1], initialPosition[2] ?? 0]
+  }
   layer.inPoint = 0
   layer.outPoint = editor.project.comp.duration
   layer.props.loopMode = loopMode
@@ -138,6 +140,19 @@ export async function applyLoopAnimationToProject(
     assetId: meta.id,
     frameCount: gifFrames.length
   }
+}
+
+/**
+ * Tạo ImageBitmap cho 1 frame hoạt ảnh lặp. Bắt buộc lật dọc (flipY) giống hệt luồng giải mã
+ * ảnh/GIF chuẩn của assetStore vì TexturePool tải texture với `flipY = false` — thiếu bước này
+ * hoạt ảnh sẽ bị lộn ngược khi chèn vào cảnh hoặc chèn cụm 2.5D có mảnh Loop.
+ */
+export function createLoopFrameBitmap(frameCanvas: HTMLCanvasElement): Promise<ImageBitmap> {
+  return createImageBitmap(frameCanvas, {
+    imageOrientation: 'flipY',
+    premultiplyAlpha: 'none',
+    colorSpaceConversion: 'none'
+  })
 }
 
 /**
@@ -219,10 +234,7 @@ export async function buildLoopAnimatedAsset(options: {
     const f = normalizedFrames[i]
     const frameCanvas = extractFrameCanvas(canvas, f, maxW, maxH)
     if (i === 0) firstFrameCanvas = frameCanvas
-    const bitmap = await createImageBitmap(frameCanvas, {
-      premultiplyAlpha: 'none',
-      colorSpaceConversion: 'none'
-    })
+    const bitmap = await createLoopFrameBitmap(frameCanvas)
     const duration = Math.max(0.016, baseFrameDuration * (f.durationRatio || 1))
     gifFrames.push({
       index: i,
@@ -274,6 +286,7 @@ export async function exportLoopPresetDirectly(
     speed?: number
     loopMode?: LoopAnimationMode
     shotId?: string | null
+    initialPosition?: [number, number, number]
   }
 ): Promise<{ layerId: string; assetId: string; frameCount: number }> {
   const allTemplates = getAllLoopTemplates()
@@ -346,6 +359,7 @@ export async function exportLoopPresetDirectly(
     loopMode: overrides?.loopMode ?? template.loopMode ?? 'loop',
     templateId: template.id,
     rhythm: template.rhythm,
-    shotId: overrides?.shotId
+    shotId: overrides?.shotId,
+    initialPosition: overrides?.initialPosition
   })
 }

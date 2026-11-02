@@ -4,7 +4,11 @@ import { computeTaggedLayout, effectiveDeviceViews } from './viewer/taggedLayout
 import { useResponsiveViewport } from './primitives'
 import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
-import { flyToShot } from '../actions'
+import { flyToShot, addLayerFromAsset, importBuiltInAsset, importDroppedFiles, toast } from '../actions'
+import { screenToScenePoint } from './viewer/viewerDropCoords'
+import { exportLoopPresetDirectly } from './loopAnimator/loopAnimationExporter'
+import { insertLayerCompositeToScene } from './layerAssembly/insertLayerComposite'
+import { insertModel3DToScene } from './assets/models3d/insertModel3D'
 import { EditorCamera } from '../engine/EditorCamera'
 import { evaluateScene } from '../engine/evaluateScene'
 import { SceneRenderer, type ResidencyStats } from '../engine/SceneRenderer'
@@ -54,6 +58,141 @@ export function Viewer() {
   const playing = useEditor((s) => s.playing)
   const view = useView()
   const { breakpoint } = useResponsiveViewport()
+  const [isDragOver, setIsDragOver] = useState(false)
+
+  const handleDragOver = (e: React.DragEvent): void => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'copy'
+    if (!isDragOver) setIsDragOver(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent): void => {
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setIsDragOver(false)
+    }
+  }
+
+  const handleDrop = async (e: React.DragEvent): Promise<void> => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragOver(false)
+
+    const canvasEl = canvasRef.current
+    const r = rendererRef.current
+    if (!canvasEl || !r) return
+
+    const st = useEditor.getState()
+    const targetShotId = st.selectedShotId ?? st.project.shots[0]?.id ?? null
+
+    const dropPos = screenToScenePoint({
+      clientX: e.clientX,
+      clientY: e.clientY,
+      canvasEl,
+      layout: layoutRef.current,
+      renderer: r,
+      edCam,
+      project: st.project,
+      time: st.time,
+      targetShotId
+    })
+
+    // 1. Kiểm tra Drop Hoạt Ảnh Loop
+    const loopTemplateId = e.dataTransfer.getData('application/x-pxs-loop-template')
+    if (loopTemplateId) {
+      try {
+        await exportLoopPresetDirectly(loopTemplateId, {
+          shotId: targetShotId,
+          initialPosition: dropPos
+        })
+        toast(`✨ Đã chèn hoạt ảnh loop tại (${dropPos[0]}, ${dropPos[1]})!`)
+      } catch (err) {
+        toast(`Lỗi chèn hoạt ảnh loop: ${err instanceof Error ? err.message : String(err)}`)
+      }
+      return
+    }
+
+    // 2. Kiểm tra Payload JSON (Composite, Model3D, Loop Template, Builtin Asset)
+    const rawJson = e.dataTransfer.getData('application/json')
+    if (rawJson) {
+      try {
+        const data = JSON.parse(rawJson)
+        if (data.type === 'loop_template' && data.templateId) {
+          await exportLoopPresetDirectly(data.templateId, {
+            shotId: targetShotId,
+            initialPosition: dropPos
+          })
+          toast(`✨ Đã chèn hoạt ảnh loop tại (${dropPos[0]}, ${dropPos[1]})!`)
+          return
+        }
+        if (data.type === 'composite' && data.composite) {
+          await insertLayerCompositeToScene({
+            composite: data.composite,
+            targetShotId,
+            positionOffset: dropPos
+          })
+          toast(`✨ Đã lắp ráp chi tiết "${data.composite.name}" tại (${dropPos[0]}, ${dropPos[1]})!`)
+          return
+        }
+        if (data.type === 'model3d' && data.model) {
+          await insertModel3DToScene({
+            model: data.model,
+            targetShotId,
+            positionOffset: dropPos
+          })
+          toast(`✨ Đã chèn mô hình 3D "${data.model.name}" tại (${dropPos[0]}, ${dropPos[1]})!`)
+          return
+        }
+        if (data.type === 'builtin-asset' && data.assetPath) {
+          await importBuiltInAsset(
+            { relativePath: data.assetPath, name: data.name || '', kind: 'image' },
+            true,
+            undefined,
+            { x: dropPos[0], y: dropPos[1], z: dropPos[2] }
+          )
+          return
+        }
+      } catch {
+        /* fallback to mime checks */
+      }
+    }
+
+    // 3. Kiểm tra Model 3D qua custom mime
+    const model3dId = e.dataTransfer.getData('application/x-pxs-model3d')
+    if (model3dId) {
+      const { getStoredModels3D } = await import('./assets/models3d/models3dStorage')
+      const m = getStoredModels3D().find((x) => x.id === model3dId)
+      if (m) {
+        await insertModel3DToScene({ model: m, targetShotId, positionOffset: dropPos })
+        toast(`✨ Đã chèn mô hình 3D "${m.name}" tại (${dropPos[0]}, ${dropPos[1]})!`)
+        return
+      }
+    }
+
+    // 4. Kiểm tra Built-in Asset qua custom mime
+    const builtinPath = e.dataTransfer.getData('application/x-pxs-builtin-asset')
+    if (builtinPath) {
+      await importBuiltInAsset(
+        { relativePath: builtinPath, name: '', kind: 'image' },
+        true,
+        undefined,
+        { x: dropPos[0], y: dropPos[1], z: dropPos[2] }
+      )
+      return
+    }
+
+    // 5. Kiểm tra Project Asset qua custom mime
+    const assetId = e.dataTransfer.getData('application/x-pxs-asset')
+    if (assetId) {
+      addLayerFromAsset(assetId, { x: dropPos[0], y: dropPos[1], z: dropPos[2] })
+      return
+    }
+
+    // 6. Tệp kéo từ máy tính vào
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      await importDroppedFiles(e.dataTransfer.files, { x: dropPos[0], y: dropPos[1], z: dropPos[2] })
+      return
+    }
+  }
 
   edCam.setKind(view.editorKind)
   const focusShotId = useFocusShotId()
@@ -624,7 +763,13 @@ export function Viewer() {
   }
 
   return (
-    <div className="viewer" ref={wrapRef}>
+    <div
+      className={`viewer${isDragOver ? ' dropzone-active' : ''}`}
+      ref={wrapRef}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
       <canvas
         key={canvasEpoch}
         id="viewer-canvas"

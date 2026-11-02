@@ -77,16 +77,106 @@ interface CardProps {
   onDelete: () => void
 }
 
+export const LOOP_CATEGORY_THEMES: Record<
+  string,
+  {
+    accent: string
+    badgeBg: string
+    badgeColor: string
+    label: string
+    icon: string
+  }
+> = {
+  magic: {
+    accent: '#a855f7',
+    badgeBg: 'color-mix(in srgb, #a855f7 78%, #0f172a)',
+    badgeColor: '#ffffff',
+    label: 'Phép thuật',
+    icon: '✨'
+  },
+  fire: {
+    accent: '#f97316',
+    badgeBg: 'color-mix(in srgb, #ea580c 78%, #0f172a)',
+    badgeColor: '#ffffff',
+    label: 'Lửa & Nhiệt',
+    icon: '🔥'
+  },
+  nature: {
+    accent: '#10b981',
+    badgeBg: 'color-mix(in srgb, #16a34a 78%, #0f172a)',
+    badgeColor: '#ffffff',
+    label: 'Tự nhiên',
+    icon: '🌿'
+  },
+  electric: {
+    accent: '#06b6d4',
+    badgeBg: 'color-mix(in srgb, #0284c7 78%, #0f172a)',
+    badgeColor: '#ffffff',
+    label: 'Tia điện',
+    icon: '⚡'
+  },
+  custom: {
+    accent: '#6366f1',
+    badgeBg: 'color-mix(in srgb, #4f46e5 78%, #0f172a)',
+    badgeColor: '#ffffff',
+    label: 'Kho lưu',
+    icon: '📦'
+  }
+}
+
 function LoopTemplateCard({ template, isPlaying, busy, onTogglePlay, onInsert, onEdit, onDelete }: CardProps): React.ReactElement {
   const hasRhythm = Boolean(template.rhythm && template.rhythm.rhythmMode !== 'none')
+  const theme = LOOP_CATEGORY_THEMES[template.category] ?? LOOP_CATEGORY_THEMES.custom
   return (
-    <article className={`loop-lib-card${isPlaying ? ' is-playing' : ''}`} title={template.name}>
+    <article
+      className={`loop-lib-card${isPlaying ? ' is-playing' : ''}`}
+      title={`${template.name} — Nhấn giữ kéo thả vào cảnh hoặc bấm + Chèn`}
+      style={{ ['--item-accent' as string]: theme.accent, cursor: 'grab' }}
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.setData('application/x-pxs-loop-template', template.id)
+        e.dataTransfer.setData(
+          'application/json',
+          JSON.stringify({ type: 'loop_template', templateId: template.id, template })
+        )
+        e.dataTransfer.effectAllowed = 'copy'
+      }}
+    >
       <div className="loop-lib-thumb">
         <button type="button" className="loop-lib-thumb-hit" onClick={onEdit} title="Mở trong Xưởng Tách Hoạt Ảnh Loop để chỉnh sửa">
           <LoopCardPreviewCanvas template={template} isPlaying={isPlaying} width={200} height={140} />
         </button>
         <span className="loop-lib-chip loop-lib-chip--frames">{template.frameCount}F</span>
-        {hasRhythm && <span className="loop-lib-chip loop-lib-chip--rhythm">Nhịp</span>}
+        {/* Badge danh mục thể hiện màu sắc đúng logic phân loại (magic: tím, fire: cam, nature: xanh, electric: cyan) */}
+        <span
+          className="loop-lib-chip loop-lib-chip--category"
+          style={{
+            top: 6,
+            left: 6,
+            backgroundColor: theme.badgeBg,
+            color: theme.badgeColor,
+            boxShadow: `0 2px 6px rgba(0, 0, 0, 0.45), 0 0 0 1px color-mix(in srgb, ${theme.accent} 40%, transparent)`
+          }}
+          title={`Chủ đề: ${theme.label}`}
+        >
+          <span style={{ fontSize: '10px' }}>{theme.icon}</span>
+          <span style={{ marginLeft: 3 }}>{theme.label}</span>
+        </span>
+        {hasRhythm && (
+          <span
+            className="loop-lib-chip loop-lib-chip--rhythm"
+            style={{
+              top: 27,
+              left: 6,
+              background: 'color-mix(in srgb, var(--bg-1) 85%, #0f172a)',
+              color: 'var(--text)',
+              border: `1px solid color-mix(in srgb, ${theme.accent} 60%, transparent)`
+            }}
+            title="Có hiệu ứng nhịp điệu (pulse / beat)"
+          >
+            〰 Nhịp
+          </span>
+        )}
         {!template.isBuiltin && <span className="loop-lib-chip loop-lib-chip--own">Của tôi</span>}
         <button
           type="button"

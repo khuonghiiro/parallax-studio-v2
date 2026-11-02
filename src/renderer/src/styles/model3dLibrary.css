@@ -176,7 +176,7 @@
   font-size: 11px;
 }
 
-/* Actions in top-right of card / thumbnail: Mặc định ẩn để lộ trọn vẹn preview, chỉ hiện khi hover */
+/* Actions in top-right of card / thumbnail: Giữ tương thích nếu nơi nào khác cần */
 .model-3d-card-actions-top {
   position: absolute;
   top: 4px;
@@ -190,6 +190,38 @@
   pointer-events: none;
   transform: translateX(5px);
   transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+/* Card footer actions: Bố cục thanh ngang gọn gàng, nút bấm to rõ, không che khuất preview */
+.model-3d-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 2px;
+}
+
+.model-3d-insert-btn {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 24px;
+  font-size: 10.5px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 0 6px;
+}
+
+.model-3d-card-actions .la-icon-btn {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
 }
 
 .model-3d-card:hover .model-3d-card-actions-top,

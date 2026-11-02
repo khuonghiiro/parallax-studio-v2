@@ -102,12 +102,13 @@
 }
 
 .loop-lib-card:hover {
-  border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
+  border-color: color-mix(in srgb, var(--item-accent, var(--accent)) 65%, var(--line));
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
 }
 
 .loop-lib-card.is-playing {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 1px var(--accent);
+  border-color: var(--item-accent, var(--accent));
+  box-shadow: 0 0 0 1px var(--item-accent, var(--accent));
 }
 
 .loop-lib-thumb-hit {

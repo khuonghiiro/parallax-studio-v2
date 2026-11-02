@@ -234,9 +234,23 @@ function LayerCardItem({
   }
 
   return (
-    <div className="model-3d-card" onClick={onEdit} style={{ cursor: 'pointer' }}>
+    <div
+      className="model-3d-card"
+      title={`${item.name} — Nhấn giữ kéo thả vào cảnh hoặc bấm + Chèn`}
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.setData('application/json', JSON.stringify({ type: 'composite', composite: item }))
+        e.dataTransfer.effectAllowed = 'copy'
+      }}
+      style={{ cursor: 'grab' }}
+    >
       {/* Thumbnail Area */}
-      <div className="model-3d-card-thumb">
+      <div
+        className="model-3d-card-thumb"
+        onClick={onEdit}
+        title="Nhấn để chỉnh sửa trong Xưởng Lắp Ráp Layer"
+        style={{ cursor: 'pointer' }}
+      >
         {/* Badges on Top-Left */}
         <div className="model-3d-badge-stack">
           <span
@@ -254,43 +268,6 @@ function LayerCardItem({
           <span className="model-3d-faces-badge">
             {item.layers.length} lớp
           </span>
-        </div>
-
-        {/* Action Buttons Top-Right */}
-        <div className="model-3d-card-actions-top" onClick={(e) => e.stopPropagation()}>
-          <button
-            type="button"
-            className="icon-action-btn add-btn"
-            onClick={onInsert}
-            disabled={isInserting}
-            title="Chèn ngay vào cảnh hiện tại của dự án"
-          >
-            <IconPlus width={11} height={11} />
-          </button>
-          <button
-            type="button"
-            className="icon-action-btn edit-btn"
-            onClick={onEdit}
-            title="Chỉnh sửa chi tiết trong Xưởng Lắp Ráp Layer"
-          >
-            <IconPen width={10} height={10} />
-          </button>
-          <button
-            type="button"
-            className="icon-action-btn duplicate-btn"
-            onClick={onDuplicate}
-            title="Nhân bản chi tiết này"
-          >
-            <IconCopy width={10} height={10} />
-          </button>
-          <button
-            type="button"
-            className="icon-action-btn delete-btn"
-            onClick={onDelete}
-            title="Xóa chi tiết này"
-          >
-            <IconTrash width={10} height={10} />
-          </button>
         </div>
 
         {/* Thumbnail Graphic Preview */}
@@ -346,6 +323,47 @@ function LayerCardItem({
         >
           {categoryLabels[item.category] || 'Chi tiết'} • {item.width}×{item.height}
         </div>
+      </div>
+
+      {/* Card Footer Actions */}
+      <div className="model-3d-card-actions">
+        <button
+          type="button"
+          className="la-btn la-btn--primary la-btn--sm model-3d-insert-btn"
+          onClick={onInsert}
+          disabled={isInserting}
+          title="Chèn ngay vào cảnh hiện tại của dự án"
+        >
+          <IconPlus width={12} height={12} />
+          <span>{isInserting ? 'Đang chèn…' : 'Chèn'}</span>
+        </button>
+        <button
+          type="button"
+          className="la-icon-btn la-icon-btn--bordered"
+          onClick={onEdit}
+          title="Chỉnh sửa chi tiết trong Xưởng Lắp Ráp Layer"
+          aria-label="Chỉnh sửa"
+        >
+          <IconPen width={12} height={12} />
+        </button>
+        <button
+          type="button"
+          className="la-icon-btn la-icon-btn--bordered"
+          onClick={onDuplicate}
+          title="Nhân bản chi tiết này"
+          aria-label="Nhân bản"
+        >
+          <IconCopy width={12} height={12} />
+        </button>
+        <button
+          type="button"
+          className="la-icon-btn la-icon-btn--bordered la-icon-btn--danger"
+          onClick={onDelete}
+          title="Xóa chi tiết này"
+          aria-label="Xóa"
+        >
+          <IconTrash width={12} height={12} />
+        </button>
       </div>
     </div>
   )
