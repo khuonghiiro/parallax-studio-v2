@@ -38,6 +38,8 @@ export interface LoopAnimatorStore {
   playback: LoopPlaybackConfig
 
   open: (presetId?: string) => void
+  /** Bắt đầu phiên tách mới hoàn toàn trống (chưa có ảnh, chưa có frame) */
+  startBlank: () => void
   close: () => void
   loadPreset: (presetId: string) => void
   loadCustomImage: (dataUrl: string, name?: string) => void
@@ -71,6 +73,18 @@ export interface LoopAnimatorStore {
 }
 
 const DEFAULT_PRESET = SAMPLE_LOOP_PRESETS[0]
+
+export const BLANK_LOOP_NAME = 'Hoạt ảnh Loop mới'
+
+const BLANK_GRID: GridSlicerConfig = { cols: 4, rows: 4, marginX: 0, marginY: 0, paddingX: 0, paddingY: 0 }
+
+const BLANK_CHROMA: ChromaKeyConfig = {
+  enabled: false,
+  keyColor: '#00ff00',
+  similarity: 0.28,
+  smoothness: 0.1,
+  spill: 0.35
+}
 
 const DEFAULT_RHYTHM: LoopRhythmConfig = {
   rhythmMode: DEFAULT_PRESET.defaultRhythm?.rhythmMode ?? 'flicker_opacity',
@@ -115,13 +129,35 @@ export const useLoopAnimator = create<LoopAnimatorStore>((set, get) => ({
   },
 
   open: (presetId) => {
-    if (presetId) {
-      get().loadPreset(presetId)
-    } else if (!get().sourceImageUrl) {
-      get().loadPreset(DEFAULT_PRESET.id)
-    }
+    // Không truyền mẫu → giữ nguyên phiên hiện tại (kể cả phiên trống), không tự nạp mẫu cũ
+    if (presetId) get().loadPreset(presetId)
     set({ isOpen: true })
   },
+
+  startBlank: () =>
+    set((s) => ({
+      isOpen: true,
+      activePresetId: null,
+      layerName: BLANK_LOOP_NAME,
+      category: 'custom',
+      sourceImageUrl: null,
+      sourceVersion: s.sourceVersion + 1,
+      slicerMode: 'grid',
+      gridConfig: { ...BLANK_GRID },
+      chromaKey: { ...BLANK_CHROMA },
+      frames: [],
+      selectedFrameIndex: 0,
+      playingFrameIndex: 0,
+      playback: {
+        ...s.playback,
+        fps: 12,
+        speed: 1,
+        loopMode: 'loop',
+        isPlaying: true,
+        onionSkin: false,
+        rhythm: { ...DEFAULT_RHYTHM, rhythmMode: 'none' }
+      }
+    })),
 
   close: () => set({ isOpen: false }),
 
@@ -210,6 +246,7 @@ export const useLoopAnimator = create<LoopAnimatorStore>((set, get) => ({
       layerName: cleanName,
       category: 'custom',
       sourceImageUrl: dataUrl,
+      slicerMode: 'grid',
       selectedFrameIndex: 0,
       playingFrameIndex: 0,
       frames: buildGridFrames(s.sourceWidth, s.sourceHeight, s.gridConfig)

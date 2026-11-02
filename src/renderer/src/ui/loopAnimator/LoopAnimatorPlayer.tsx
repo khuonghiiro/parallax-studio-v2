@@ -1,10 +1,64 @@
 import React, { useCallback, useEffect, useRef } from 'react'
 import { evaluateLoopLayerRhythm } from '../../project/gifHelper'
+import { IconFilm, IconPause, IconPlay, IconStepBack, IconStepFwd } from '../icons'
+import { LoopPlayerSettings } from './LoopPlayerSettings'
 import { useLoopAnimator } from './loopAnimatorState'
-import type { LoopAnimationMode, LoopFrameBox, LoopRhythmMode } from './types'
+import type { LoopFrameBox, LoopPlaybackConfig } from './types'
 
 interface Props {
   sourceCanvasRef: React.RefObject<HTMLCanvasElement | null>
+}
+
+const STAGE = 360
+const BG_OPTIONS: { id: LoopPlaybackConfig['previewBg']; label: string }[] = [
+  { id: 'checker', label: 'Ô caro trong suốt' },
+  { id: 'dark', label: 'Nền tối' },
+  { id: 'light', label: 'Nền sáng' },
+  { id: 'green', label: 'Nền xanh lá' }
+]
+
+function drawFrame(
+  ctx: CanvasRenderingContext2D,
+  src: HTMLCanvasElement,
+  f: LoopFrameBox,
+  scale: number,
+  anchor: 'bottom' | 'center'
+): void {
+  const w = Math.round(f.width * scale)
+  const h = Math.round(f.height * scale)
+  const x = Math.round((STAGE - w) * 0.5 + f.offsetX * scale)
+  const y = anchor === 'bottom' ? Math.round(STAGE - 24 - h + f.offsetY * scale) : Math.round((STAGE - h) * 0.5 + f.offsetY * scale)
+  ctx.drawImage(src, f.x, f.y, f.width, f.height, x, y, w, h)
+}
+
+function prevEnabledIndex(frames: LoopFrameBox[], from: number): number {
+  for (let step = 1; step < frames.length; step++) {
+    const i = (from - step + frames.length) % frames.length
+    if (frames[i]?.enabled) return i
+  }
+  return -1
+}
+
+/** Vị trí kế tiếp trong danh sách frame đang bật theo kiểu lặp; -1 = dừng (chế độ 1 lần) */
+function advanceCursor(mode: LoopPlaybackConfig['loopMode'], pos: number, total: number, dir: React.MutableRefObject<1 | -1>): number {
+  if (mode === 'random') {
+    let c = Math.floor(Math.random() * total)
+    if (c === pos && total > 1) c = (c + 1) % total
+    return c
+  }
+  if (mode === 'ping-pong') {
+    let n = pos + dir.current
+    if (n >= total) {
+      dir.current = -1
+      n = Math.max(0, total - 2)
+    } else if (n < 0) {
+      dir.current = 1
+      n = Math.min(total - 1, 1)
+    }
+    return n
+  }
+  if (mode === 'once') return pos + 1 < total ? pos + 1 : -1
+  return (pos + 1) % total
 }
 
 export function LoopAnimatorPlayer({ sourceCanvasRef }: Props): React.ReactElement {
@@ -16,449 +70,159 @@ export function LoopAnimatorPlayer({ sourceCanvasRef }: Props): React.ReactEleme
   const selectFrame = useLoopAnimator((s) => s.selectFrame)
   const setPlayingFrame = useLoopAnimator((s) => s.setPlayingFrame)
   const setPlayback = useLoopAnimator((s) => s.setPlayback)
-  const setRhythm = useLoopAnimator((s) => s.setRhythm)
   const togglePlaying = useLoopAnimator((s) => s.togglePlaying)
-  const setFps = useLoopAnimator((s) => s.setFps)
-  const setSpeed = useLoopAnimator((s) => s.setSpeed)
-  const setLoopMode = useLoopAnimator((s) => s.setLoopMode)
 
   const previewCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const pingPongDirRef = useRef<1 | -1>(1)
-  const cursorRef = useRef<number>(0)
-
+  const cursorRef = useRef(0)
   const activeFrameIndex = playback.isPlaying ? playingFrameIndex : selectedFrameIndex
+  const hasFrames = frames.length > 0
+  const showPause = playback.isPlaying && hasFrames
 
   const drawPreviewFrame = useCallback(
     (frameIndex: number, nowSec = 0) => {
-      const pCanvas = previewCanvasRef.current
-      const srcCanvas = sourceCanvasRef.current
-      if (!pCanvas || !srcCanvas || srcCanvas.width === 0) return
-
-      const ctx = pCanvas.getContext('2d')
+      const canvas = previewCanvasRef.current
+      const src = sourceCanvasRef.current
+      if (!canvas) return
+      if (canvas.width !== STAGE) canvas.width = canvas.height = STAGE
+      const ctx = canvas.getContext('2d')
       if (!ctx) return
+      ctx.clearRect(0, 0, STAGE, STAGE)
+      const current = frames[frameIndex] ?? frames[0]
+      if (!src || src.width === 0 || !current) return
 
-      const currentFrame: LoopFrameBox | undefined = frames[frameIndex] ?? frames[0]
-      if (!currentFrame) return
-
-      const stageW = 360
-      const stageH = 360
-      if (pCanvas.width !== stageW || pCanvas.height !== stageH) {
-        pCanvas.width = stageW
-        pCanvas.height = stageH
-      }
-
-      ctx.clearRect(0, 0, stageW, stageH)
-
-      // Calculate global uniform scale across ALL active frames to prevent pulsing
+      // Tỉ lệ chung cho mọi frame để hoạt ảnh không bị co giãn nhịp
       const maxW = Math.max(1, ...frames.map((f) => f.width))
       const maxH = Math.max(1, ...frames.map((f) => f.height))
-      const globalScale = Math.min((stageW - 36) / maxW, (stageH - 36) / maxH)
+      const scale = Math.min((STAGE - 36) / maxW, (STAGE - 36) / maxH)
       const anchor = playback.anchor ?? 'bottom'
 
-      // Onion skin previous enabled frame when paused or editing
-      if (playback.onionSkin && frames.length > 1) {
-        let prevIdx = frameIndex - 1
-        while (prevIdx >= 0 && !frames[prevIdx]?.enabled) prevIdx--
-        if (prevIdx < 0) {
-          for (let i = frames.length - 1; i > frameIndex; i--) {
-            if (frames[i]?.enabled) {
-              prevIdx = i
-              break
-            }
-          }
-        }
-        const prevFrame = frames[prevIdx]
-        if (prevFrame && prevIdx !== frameIndex) {
-          ctx.save()
-          ctx.globalAlpha = playback.onionSkinOpacity
-          drawCenteredFrame(ctx, srcCanvas, prevFrame, stageW, stageH, globalScale, anchor)
-          ctx.restore()
-        }
+      const prevIdx = playback.onionSkin ? prevEnabledIndex(frames, frameIndex) : -1
+      if (prevIdx >= 0 && prevIdx !== frameIndex) {
+        ctx.save()
+        ctx.globalAlpha = playback.onionSkinOpacity
+        drawFrame(ctx, src, frames[prevIdx], scale, anchor)
+        ctx.restore()
       }
 
-      // Evaluate rhythm modulation (opacity flicker & scale pulse)
-      const rhythmEval =
-        playback.isPlaying && playback.rhythm.rhythmMode !== 'none'
+      const r = playback.rhythm
+      const fx =
+        playback.isPlaying && r.rhythmMode !== 'none'
           ? evaluateLoopLayerRhythm(
               {
-                loopRhythmMode: playback.rhythm.rhythmMode,
-                loopRhythmRateHz: playback.rhythm.rhythmRateHz,
-                loopRhythmIntensity: playback.rhythm.rhythmIntensity,
-                loopMinOpacity: playback.rhythm.minOpacity,
-                loopScaleBeatPct: playback.rhythm.scaleBeatPct,
+                loopRhythmMode: r.rhythmMode,
+                loopRhythmRateHz: r.rhythmRateHz,
+                loopRhythmIntensity: r.rhythmIntensity,
+                loopMinOpacity: r.minOpacity,
+                loopScaleBeatPct: r.scaleBeatPct,
                 speed: playback.speed
               },
               nowSec,
               0
             )
           : { opacityMultiplier: 1, scaleMultiplier: 1 }
-
       ctx.save()
-      ctx.globalAlpha = rhythmEval.opacityMultiplier
-      drawCenteredFrame(
-        ctx,
-        srcCanvas,
-        currentFrame,
-        stageW,
-        stageH,
-        globalScale * rhythmEval.scaleMultiplier,
-        anchor
-      )
+      ctx.globalAlpha = fx.opacityMultiplier
+      drawFrame(ctx, src, current, scale * fx.scaleMultiplier, anchor)
       ctx.restore()
     },
-    [
-      frames,
-      playback.onionSkin,
-      playback.onionSkinOpacity,
-      playback.isPlaying,
-      playback.rhythm,
-      playback.speed,
-      playback.anchor,
-      sourceCanvasRef
-    ]
+    [frames, playback.onionSkin, playback.onionSkinOpacity, playback.isPlaying, playback.rhythm, playback.speed, playback.anchor, sourceCanvasRef]
   )
 
-  function drawCenteredFrame(
-    ctx: CanvasRenderingContext2D,
-    srcCanvas: HTMLCanvasElement,
-    frame: LoopFrameBox,
-    stageW: number,
-    stageH: number,
-    scale: number,
-    anchor: 'bottom' | 'center' = 'bottom'
-  ): void {
-    const drawW = Math.round(frame.width * scale)
-    const drawH = Math.round(frame.height * scale)
-    const drawX = Math.round((stageW - drawW) * 0.5 + frame.offsetX * scale)
-    let drawY: number
-    if (anchor === 'bottom') {
-      const groundY = Math.round(stageH - 24)
-      drawY = Math.round(groundY - drawH + frame.offsetY * scale)
-    } else {
-      drawY = Math.round((stageH - drawH) * 0.5 + frame.offsetY * scale)
-    }
-
-    ctx.drawImage(
-      srcCanvas,
-      frame.x,
-      frame.y,
-      frame.width,
-      frame.height,
-      drawX,
-      drawY,
-      drawW,
-      drawH
-    )
-  }
-
-  // Redraw when paused or when source/frame changes
   useEffect(() => {
     drawPreviewFrame(activeFrameIndex, performance.now() / 1000)
   }, [activeFrameIndex, sourceVersion, drawPreviewFrame])
 
-  // Smooth RAF loop for live playback without tearing down on every frame
+  // Vòng RAF mượt 60fps, chỉ đổi frame khi đủ thời lượng (FPS × tốc độ × hệ số giữ frame)
   useEffect(() => {
     if (!playback.isPlaying) return
-    const enabledIndices = frames.map((f, idx) => (f.enabled ? idx : -1)).filter((idx) => idx >= 0)
-    if (enabledIndices.length <= 1) return
-
+    const enabled = frames.map((f, i) => (f.enabled ? i : -1)).filter((i) => i >= 0)
+    if (enabled.length <= 1) return
     let rafId = 0
-    let lastSwitchTime = performance.now()
-    cursorRef.current = Math.max(0, enabledIndices.indexOf(playingFrameIndex))
+    let last = performance.now()
+    cursorRef.current = Math.max(0, enabled.indexOf(playingFrameIndex))
 
     const tick = (now: number): void => {
-      const currentGlobalIdx = enabledIndices[cursorRef.current] ?? enabledIndices[0]
-      const currentFrame = frames[currentGlobalIdx]
-      const ratio = currentFrame?.durationRatio ?? 1
-      const effectiveFps = Math.max(1, playback.fps * (playback.speed || 1))
-      const intervalMs = (1000 / effectiveFps) * ratio
-
-      if (now - lastSwitchTime >= intervalMs) {
-        lastSwitchTime = now
-        let nextPos = cursorRef.current
-
-        if (playback.loopMode === 'random') {
-          if (enabledIndices.length > 1) {
-            let candidate = Math.floor(Math.random() * enabledIndices.length)
-            if (candidate === nextPos) candidate = (candidate + 1) % enabledIndices.length
-            nextPos = candidate
-          }
-        } else if (playback.loopMode === 'ping-pong') {
-          nextPos += pingPongDirRef.current
-          if (nextPos >= enabledIndices.length) {
-            pingPongDirRef.current = -1
-            nextPos = Math.max(0, enabledIndices.length - 2)
-          } else if (nextPos < 0) {
-            pingPongDirRef.current = 1
-            nextPos = Math.min(enabledIndices.length - 1, 1)
-          }
-        } else if (playback.loopMode === 'once') {
-          if (nextPos + 1 < enabledIndices.length) {
-            nextPos += 1
-          } else {
-            setPlayback({ isPlaying: false })
-            return
-          }
-        } else {
-          nextPos = (nextPos + 1) % enabledIndices.length
+      const idx = enabled[cursorRef.current] ?? enabled[0]
+      const interval = (1000 / Math.max(1, playback.fps * (playback.speed || 1))) * (frames[idx]?.durationRatio ?? 1)
+      if (now - last >= interval) {
+        last = now
+        const next = advanceCursor(playback.loopMode, cursorRef.current, enabled.length, pingPongDirRef)
+        if (next < 0) {
+          setPlayback({ isPlaying: false })
+          return
         }
-
-        cursorRef.current = nextPos
-        const nextFrameIdx = enabledIndices[nextPos] ?? 0
-        setPlayingFrame(nextFrameIdx)
-        drawPreviewFrame(nextFrameIdx, now / 1000)
+        cursorRef.current = next
+        setPlayingFrame(enabled[next] ?? 0)
+        drawPreviewFrame(enabled[next] ?? 0, now / 1000)
       } else if (playback.rhythm.rhythmMode !== 'none') {
-        drawPreviewFrame(currentGlobalIdx, now / 1000)
+        drawPreviewFrame(idx, now / 1000)
       }
-
       rafId = requestAnimationFrame(tick)
     }
-
     rafId = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(rafId)
-  }, [
-    playback.isPlaying,
-    playback.fps,
-    playback.speed,
-    playback.loopMode,
-    playback.rhythm.rhythmMode,
-    frames,
-    setPlayingFrame,
-    setPlayback,
-    drawPreviewFrame
-  ])
+  }, [playback.isPlaying, playback.fps, playback.speed, playback.loopMode, playback.rhythm.rhythmMode, frames, setPlayingFrame, setPlayback, drawPreviewFrame])
 
   const stepFrame = (delta: -1 | 1): void => {
+    if (!hasFrames) return
     setPlayback({ isPlaying: false })
-    const next = (selectedFrameIndex + delta + frames.length) % Math.max(1, frames.length)
-    selectFrame(next)
+    selectFrame((selectedFrameIndex + delta + frames.length) % frames.length)
   }
-
-  const LOOP_MODES: { id: LoopAnimationMode; label: string }[] = [
-    { id: 'loop', label: '🔁 Lặp vòng' },
-    { id: 'ping-pong', label: '↔ Đảo chiều' },
-    { id: 'once', label: '1️⃣ 1 Lần' },
-    { id: 'random', label: '🎲 Ngẫu nhiên' }
-  ]
-
-  const RHYTHM_MODES: { id: LoopRhythmMode; label: string }[] = [
-    { id: 'none', label: 'Tắt' },
-    { id: 'flicker_opacity', label: '✨ Nháy mờ' },
-    { id: 'pulse_scale', label: '💓 Nhịp Scale' },
-    { id: 'sync_both', label: '🔥 Nhịp + Nháy' },
-    { id: 'strobe_beat', label: '⚡ Chớp Beat' }
-  ]
-
-  const SPEEDS = [0.5, 1, 1.5, 2]
 
   return (
     <div className="loop-player-pane" data-mcp-region="loop_animator_player">
       <div className="loop-pane-toolbar">
-        <span className="loop-pane-title">▶ Sân Khấu Xem Trước &amp; Logic Loop</span>
-        <div className="loop-toolbar-right-cluster">
-          <div className="loop-anchor-pills" title="Điểm neo căn chỉnh: Chân (Đáy cố định chống nảy) hoặc Tâm (Giữa)">
-            <button
-              type="button"
-              className={`loop-anchor-pill ${playback.anchor !== 'center' ? 'active' : ''}`}
-              onClick={() => setPlayback({ anchor: 'bottom' })}
-              title="Căn chân sàn: Giữ đáy frame cố định, triệt tiêu nảy nhịp"
-            >
-              ⚓ Chân
-            </button>
-            <button
-              type="button"
-              className={`loop-anchor-pill ${playback.anchor === 'center' ? 'active' : ''}`}
-              onClick={() => setPlayback({ anchor: 'center' })}
-              title="Căn tâm giữa: Phù hợp vật thể bay, phép thuật"
-            >
-              🎯 Tâm
-            </button>
-          </div>
-          <div className="loop-bg-pills" title="Màu nền sân khấu xem trước">
-            {(['checker', 'dark', 'light', 'green'] as const).map((bg) => (
-              <button
-                key={bg}
-                type="button"
-                className={`loop-bg-pill bg-${bg} ${playback.previewBg === bg ? 'active' : ''}`}
-                onClick={() => setPlayback({ previewBg: bg })}
-                title={`Nền: ${bg}`}
-              />
-            ))}
-          </div>
+        <div className="loop-pane-heading">
+          <span className="loop-step">2</span>
+          <span>Xem trước</span>
+        </div>
+        <div className="la-seg" title="Điểm neo khi phát">
+          <button type="button" className={`la-seg-btn${playback.anchor !== 'center' ? ' active' : ''}`} onClick={() => setPlayback({ anchor: 'bottom' })} title="Giữ đáy frame cố định trên mặt sàn">
+            Chân
+          </button>
+          <button type="button" className={`la-seg-btn${playback.anchor === 'center' ? ' active' : ''}`} onClick={() => setPlayback({ anchor: 'center' })} title="Căn giữa sân khấu">
+            Tâm
+          </button>
+        </div>
+        <div className="loop-bg-pills" role="radiogroup" aria-label="Nền sân khấu">
+          {BG_OPTIONS.map((bg) => (
+            <button key={bg.id} type="button" role="radio" aria-checked={playback.previewBg === bg.id} className={`loop-bg-pill bg-${bg.id}${playback.previewBg === bg.id ? ' active' : ''}`} onClick={() => setPlayback({ previewBg: bg.id })} title={bg.label} aria-label={bg.label} />
+          ))}
         </div>
       </div>
 
-      <div className={`loop-player-stage bg-${playback.previewBg}`}>
+      <div className={`loop-player-stage bg-${playback.previewBg}`} data-mcp-region="loop_animator_stage">
         <canvas ref={previewCanvasRef} className="loop-player-canvas" />
-        <div className="loop-player-hud-badge">
-          Frame #{activeFrameIndex + 1} / {frames.length} • {playback.fps} FPS × {playback.speed}x
-        </div>
-        <button
-          type="button"
-          className={`loop-stage-floating-play ${playback.isPlaying ? 'playing' : 'paused'}`}
-          onClick={togglePlaying}
-          title={playback.isPlaying ? 'Tạm dừng hoạt ảnh' : 'Chạy hoạt ảnh'}
-        >
-          {playback.isPlaying ? '⏸ Tạm dừng' : '▶ Chạy thử'}
-        </button>
+        {hasFrames ? (
+          <span className="loop-player-hud-badge">
+            #{activeFrameIndex + 1} / {frames.length}
+          </span>
+        ) : (
+          <div className="loop-player-empty">
+            <IconFilm width={22} height={22} />
+            <span>Chưa có khung hình</span>
+          </div>
+        )}
       </div>
 
-      {/* Transport Bar */}
       <div className="loop-transport-bar">
-        <button
-          type="button"
-          className="btn ghost sm"
-          onClick={() => stepFrame(-1)}
-          title="Lùi 1 frame"
-        >
-          ⏮
+        <button type="button" className="la-icon-btn la-icon-btn--bordered" disabled={!hasFrames} onClick={() => stepFrame(-1)} title="Lùi 1 frame" aria-label="Lùi 1 frame">
+          <IconStepBack width={14} height={14} />
         </button>
-        <button
-          type="button"
-          className={`btn ${playback.isPlaying ? 'secondary' : 'primary'} sm loop-play-btn`}
-          onClick={togglePlaying}
-        >
-          {playback.isPlaying ? '⏸ Tạm dừng' : '▶ Phát Loop'}
+        <button type="button" className={`la-btn ${showPause ? 'la-btn--outline' : 'la-btn--primary'} loop-play-btn`} disabled={!hasFrames} onClick={togglePlaying}>
+          {showPause ? <IconPause width={13} height={13} /> : <IconPlay width={13} height={13} />}
+          <span>{showPause ? 'Tạm dừng' : 'Phát loop'}</span>
         </button>
-        <button
-          type="button"
-          className="btn ghost sm"
-          onClick={() => stepFrame(1)}
-          title="Tiến 1 frame"
-        >
-          ⏭
+        <button type="button" className="la-icon-btn la-icon-btn--bordered" disabled={!hasFrames} onClick={() => stepFrame(1)} title="Tiến 1 frame" aria-label="Tiến 1 frame">
+          <IconStepFwd width={14} height={14} />
         </button>
-
-        <div className="loop-fps-control">
-          <span>FPS: <strong>{playback.fps}</strong></span>
-          <input
-            type="range"
-            min={2}
-            max={30}
-            value={playback.fps}
-            onChange={(e) => setFps(Number(e.target.value))}
-          />
-        </div>
+        <span className="loop-transport-info">
+          {playback.fps} FPS × {playback.speed}
+        </span>
       </div>
 
-      {/* Loop Mode & Speed Pills */}
-      <div className="loop-player-options">
-        <div className="loop-opt-row">
-          <span className="loop-opt-label">Chế độ lặp:</span>
-          <div className="loop-mode-pills">
-            {LOOP_MODES.map((m) => (
-              <button
-                key={m.id}
-                type="button"
-                className={`loop-mode-pill ${playback.loopMode === m.id ? 'active' : ''}`}
-                onClick={() => setLoopMode(m.id)}
-              >
-                {m.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="loop-opt-row">
-          <span className="loop-opt-label">Tốc độ chạy:</span>
-          <div className="loop-mode-pills">
-            {SPEEDS.map((spd) => (
-              <button
-                key={spd}
-                type="button"
-                className={`loop-mode-pill ${Math.abs(playback.speed - spd) < 0.05 ? 'active' : ''}`}
-                onClick={() => setSpeed(spd)}
-              >
-                {spd}x
-              </button>
-            ))}
-          </div>
-          <label className="loop-onion-check" title="Hiển thị bóng mờ của frame liền trước để căn tâm">
-            <input
-              type="checkbox"
-              checked={playback.onionSkin}
-              onChange={(e) => setPlayback({ onionSkin: e.target.checked })}
-            />
-            <span>🧅 Onion</span>
-          </label>
-        </div>
-
-        {/* Loop Rhythm & Flicker Logic Config */}
-        <div className="loop-rhythm-box">
-          <div className="loop-rhythm-header">
-            <span className="loop-opt-label">⚡ Logic Nhịp &amp; Nháy (Rhythm FX):</span>
-          </div>
-          <div className="loop-mode-pills">
-            {RHYTHM_MODES.map((rm) => (
-              <button
-                key={rm.id}
-                type="button"
-                className={`loop-mode-pill ${playback.rhythm.rhythmMode === rm.id ? 'active' : ''}`}
-                onClick={() => setRhythm({ rhythmMode: rm.id })}
-              >
-                {rm.label}
-              </button>
-            ))}
-          </div>
-
-          {playback.rhythm.rhythmMode !== 'none' && (
-            <div className="loop-rhythm-sliders">
-              <div className="loop-slider-inline">
-                <span>Tần số ({playback.rhythm.rhythmRateHz.toFixed(1)} Hz)</span>
-                <input
-                  type="range"
-                  min={0.5}
-                  max={10}
-                  step={0.2}
-                  value={playback.rhythm.rhythmRateHz}
-                  onChange={(e) => setRhythm({ rhythmRateHz: Number(e.target.value) })}
-                />
-              </div>
-              <div className="loop-slider-inline">
-                <span>Cường độ ({Math.round(playback.rhythm.rhythmIntensity * 100)}%)</span>
-                <input
-                  type="range"
-                  min={0.05}
-                  max={1}
-                  step={0.05}
-                  value={playback.rhythm.rhythmIntensity}
-                  onChange={(e) => setRhythm({ rhythmIntensity: Number(e.target.value) })}
-                />
-              </div>
-              {(playback.rhythm.rhythmMode === 'flicker_opacity' ||
-                playback.rhythm.rhythmMode === 'sync_both' ||
-                playback.rhythm.rhythmMode === 'strobe_beat') && (
-                <div className="loop-slider-inline">
-                  <span>Độ mờ đáy ({Math.round(playback.rhythm.minOpacity * 100)}%)</span>
-                  <input
-                    type="range"
-                    min={0.05}
-                    max={0.95}
-                    step={0.05}
-                    value={playback.rhythm.minOpacity}
-                    onChange={(e) => setRhythm({ minOpacity: Number(e.target.value) })}
-                  />
-                </div>
-              )}
-              {(playback.rhythm.rhythmMode === 'pulse_scale' ||
-                playback.rhythm.rhythmMode === 'sync_both' ||
-                playback.rhythm.rhythmMode === 'strobe_beat') && (
-                <div className="loop-slider-inline">
-                  <span>Biên độ nhịp (+{playback.rhythm.scaleBeatPct}%)</span>
-                  <input
-                    type="range"
-                    min={2}
-                    max={40}
-                    step={1}
-                    value={playback.rhythm.scaleBeatPct}
-                    onChange={(e) => setRhythm({ scaleBeatPct: Number(e.target.value) })}
-                  />
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
+      <LoopPlayerSettings />
     </div>
   )
 }

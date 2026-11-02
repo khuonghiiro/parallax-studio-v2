@@ -5,10 +5,14 @@ import { useLoopAnimator } from '../../ui/loopAnimator/loopAnimatorState'
 import type { LoopAnimationMode, LoopRhythmMode, SlicerMode } from '../../ui/loopAnimator/types'
 import { bool, num, str } from '../params'
 import type { Handler, Params } from '../types'
+import { loopLibraryCommands } from './loopLibraryCommands'
 
 export const loopAnimatorCommands: Record<string, Handler> = {
+  ...loopLibraryCommands,
+
   open_loop_animator: async (p: Params) => {
     const presetId = str(p, 'preset_id')
+    const blank = bool(p, 'blank') ?? false
     const imageUrl = str(p, 'image_url')
     const rows = num(p, 'rows')
     const cols = num(p, 'cols')
@@ -17,6 +21,7 @@ export const loopAnimatorCommands: Record<string, Handler> = {
 
     const animator = useLoopAnimator.getState()
 
+    if (blank) animator.startBlank()
     if (presetId) {
       animator.open(presetId)
     } else if (imageUrl) {

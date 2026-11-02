@@ -9,6 +9,7 @@ export const LOOP_ANIMATOR_TOOLS = [
       'Mở Xưởng Tách Hoạt Ảnh Lặp, tùy chọn nạp URL ảnh, mẫu tích hợp sẵn (campfire_transparent, campfire_chroma), số hàng/cột lưới hoặc khử nền chroma.'
     ),
     shape: (d) => ({
+      blank: z.boolean().optional().describe(d('Start a completely blank session (no image, no frames) like the UI "Create Loop Animate" button.', 'Bắt đầu phiên trống hoàn toàn (chưa có ảnh, chưa có frame) giống nút "Tạo Loop Animate" trên giao diện.')),
       preset_id: z.string().optional().describe(d('Built-in preset ID (e.g. "campfire_transparent", "campfire_chroma").', 'ID mẫu có sẵn (VD "campfire_transparent", "campfire_chroma").')),
       image_url: z.string().optional().describe(d('Direct image path, asset path, or data URL to open in the animator.', 'Đường dẫn ảnh, tệp tài nguyên hoặc data URL cần mở trong xưởng.')),
       rows: z.number().int().min(1).max(32).optional().describe(d('Grid rows count (default 4).', 'Số hàng lưới (mặc định 4).')),

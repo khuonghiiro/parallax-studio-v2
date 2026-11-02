@@ -1,9 +1,5 @@
-import { useEffect, useState, type ReactNode } from 'react'
-import { toast } from '../../actions'
+import { useState, type ReactNode } from 'react'
 import { IconLoopAnimate } from '../icons'
-import { PENDING_WORKSHOP_LOOP_TEMPLATE_KEY } from '../loopAnimator/LoopAnimatorDialog'
-import { getAllLoopTemplates } from '../loopAnimator/loopAnimatorStorage'
-import type { LoopAnimationTemplate } from '../loopAnimator/types'
 import { SegmentedTabs } from '../primitives'
 import {
   IconTabAnimateFilm,
@@ -12,13 +8,10 @@ import {
   IconTabWindMotion
 } from './LayerWorkshopStudioIcons'
 import { WorkshopAnimationPanel } from './WorkshopAnimationPanel'
-import {
-  WorkshopLoopLogicPanel,
-  buildWorkshopLoopConfigFromTemplate
-} from './WorkshopLoopLogicPanel'
+import { WorkshopLoopLogicPanel } from './WorkshopLoopLogicPanel'
+import { useWorkshopLoopActions } from './useWorkshopLoopActions'
 import { WorkshopPlantPanel } from './WorkshopPlantPanel'
 import { WorkshopRigPanel } from './WorkshopRigPanel'
-import type { AssembledLayerItem } from './types'
 import type { useLayerWorkshop } from './useLayerWorkshop'
 import type { useWorkshopPlayback } from './useWorkshopPlayback'
 import { applyRigAction, ensureRigClips, type RigAction } from './workshopRig'
@@ -54,45 +47,7 @@ export function WorkshopRightPanel({
     }
   }
 
-  const handleAddLoopTemplateLayer = (tpl: LoopAnimationTemplate): void => {
-    const newId = `layer_loop_${Date.now().toString(36)}`
-    const newItem: AssembledLayerItem = {
-      id: newId,
-      name: tpl.name,
-      imageUrl: tpl.thumbUrl || tpl.imageUrl,
-      x: 0,
-      y: 0,
-      z: -10,
-      scale: 1,
-      rotation: 0,
-      opacity: 1,
-      motion: { type: 'none', speed: 1, amplitude: 0, anchor: 'center' },
-      loopConfig: buildWorkshopLoopConfigFromTemplate(tpl)
-    }
-    state.setComposite((c) => ({
-      ...c,
-      layers: [...c.layers, newItem]
-    }))
-    state.select(newId)
-    setTab('loop')
-    playback.setIsPlaying(true)
-    toast(`✨ Đã thêm mảnh hoạt ảnh lặp "${tpl.name}" vào Cụm 2.5D!`)
-  }
-
-  // Auto-consume pending loop template sent from Loop Animator or Loop Asset List
-  useEffect(() => {
-    try {
-      const pendingId = sessionStorage.getItem(PENDING_WORKSHOP_LOOP_TEMPLATE_KEY)
-      if (!pendingId) return
-      sessionStorage.removeItem(PENDING_WORKSHOP_LOOP_TEMPLATE_KEY)
-      const tpl = getAllLoopTemplates().find((t) => t.id === pendingId)
-      if (tpl) {
-        handleAddLoopTemplateLayer(tpl)
-      }
-    } catch {
-      // ignore storage errors
-    }
-  }, [])
+  const loopActions = useWorkshopLoopActions(state, playback, setTab)
 
   const rigInfo = state.composite.rig ? ensureRigClips(state.composite.rig).rig : undefined
   const boneCount = rigInfo?.bones.length ?? 0
@@ -202,7 +157,7 @@ export function WorkshopRightPanel({
             isPlaying={playback.isPlaying}
             onTogglePlaying={playback.toggle}
             onUpdateLayer={state.update}
-            onAddLoopTemplateLayer={handleAddLoopTemplateLayer}
+            onBindLoopTemplate={loopActions.bindLoopTemplate}
           />
         ) : (
           <WorkshopAnimationPanel {...props} playback={playback} setComposite={state.setComposite} />

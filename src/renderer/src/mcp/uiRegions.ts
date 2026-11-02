@@ -28,6 +28,7 @@ export const DIALOG_SELECTORS = [
   '.camera-path-modal',
   '.camera-sketch-modal',
   '.wf-node-config-modal',
+  '.loop-del-dialog',
   '.modal[role="dialog"]',
   '.modal',
   '[role="dialog"]',
@@ -299,7 +300,12 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
 
   // 10. Xưởng Tách Hoạt Ảnh Lặp (Loop Sprite Animator Dialog)
   loop_animator: region('loop_animator', '.loop-animator-modal', '.loop-animator-dialog'),
-  loop_animator_presets: region('loop_animator_presets', '.loop-header-presets'),
+  loop_animator_header: region('loop_animator_header', '.loop-animator-header'),
+  loop_animator_presets: region('loop_animator_presets', '.loop-header-actions'),
+  loop_animator_empty: region('loop_animator_empty', '.loop-empty-state'),
+  loop_animator_settings: region('loop_animator_settings', '.loop-player-settings'),
+  loop_animator_footer: region('loop_animator_footer', '.loop-animator-footer'),
+  loop_delete_confirm: region('loop_delete_confirm', '.loop-del-dialog'),
   loop_animator_source: region('loop_animator_source', '.loop-source-pane'),
   loop_animator_player: region('loop_animator_player', '.loop-player-pane'),
   loop_animator_stage: region('loop_animator_stage', '.loop-player-stage', '.loop-player-card'),
@@ -309,7 +315,8 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   assets_loop: region('assets_loop', '.loop-assets-layout', '.loop-assets-container'),
   inspector_loop_logic: region('inspector_loop_logic'),
   workflow_loop_params: region('workflow_loop_params'),
-  layer_assembly_loop_logic: region('layer_assembly_loop_logic'),
+  layer_assembly_loop_logic: region('layer_assembly_loop_logic', '.lw-loop-panel'),
+  layer_assembly_loop_assets: region('layer_assembly_loop_assets', '.lw-loop-assets'),
 
   // AI Neon HUD
   ai_hud: ['.ai-neon-hud-badge']

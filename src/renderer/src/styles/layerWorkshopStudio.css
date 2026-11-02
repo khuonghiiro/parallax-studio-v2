@@ -189,6 +189,19 @@
   }
 }
 
+/* Sidebar Tài nguyên có 4 tab (Tất cả · Mẫu sẵn · Dự án · Loop): tab không chọn chỉ giữ chữ để không bị cắt nhãn */
+@container (max-width: 380px) {
+  .lw-sidebar-source-tabs .pxs-tab {
+    padding: 0 6px;
+    gap: 3px;
+  }
+
+  .lw-sidebar-source-tabs .pxs-tab:not(.active) .pxs-tab-icon,
+  .lw-sidebar-source-tabs .pxs-tab:not(.active) .pxs-tab-badge {
+    display: none;
+  }
+}
+
 @container (max-width: 280px) {
   .lw-right-segmented-tabs .pxs-tab .pxs-tab-icon,
   .lw-right-segmented-tabs .pxs-tab:not(.active) .pxs-tab-badge {

@@ -307,12 +307,14 @@ export async function exportLoopPresetDirectly(
       }
     })()
 
+  // Phân giải đường dẫn asset tương đối (assets/...) qua IPC → blob URL trước khi nạp ảnh
+  const resolvedUrl = (await resolveLoopAssetUrl(template.imageUrl)) || template.imageUrl
   const img = await new Promise<HTMLImageElement>((resolve, reject) => {
     const el = new Image()
     el.crossOrigin = 'anonymous'
     el.onload = () => resolve(el)
     el.onerror = () => reject(new Error(`Không thể tải ảnh preset: ${template.imageUrl}`))
-    el.src = template.imageUrl
+    el.src = resolvedUrl
   })
 
   const w = img.naturalWidth || img.width || 1024

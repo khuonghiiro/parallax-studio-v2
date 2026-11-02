@@ -11,9 +11,8 @@ import {
   v2LayerNodeId
 } from '../../../project/workflowV2Engine'
 import { frameTolerance, useEditor } from '../../../store/editor'
-import { useView } from '../../../store/view'
 import { NumberInput, Row, Select, Slider, Switch } from '../../controls'
-import { useLoopAnimator } from '../../loopAnimator/loopAnimatorState'
+import { openLoopAnimatorInPlace } from '../../loopAnimator/loopAnimatorLauncher'
 import { AssetReplaceModal } from '../AssetReplaceModal'
 import type { Setter } from '../types'
 
@@ -46,8 +45,7 @@ export function ImageSection({ layer, set }: { layer: Layer & { type: 'image' };
   }
 
   const handleOpenInLoopStudio = (): void => {
-    useLoopAnimator.getState().open(layer.props.loopTemplateId)
-    useView.getState().openDialog('loop_animator')
+    openLoopAnimatorInPlace(layer.props.loopTemplateId)
   }
 
   const handleAttachWorkflowLoopNode = (): void => {

@@ -20,6 +20,7 @@ import { ProjectAssetList } from './ProjectAssetList'
 import { Model3DList } from './Model3DList'
 import { LayerAssemblyList } from '../layerAssembly/LayerAssemblyList'
 import { LoopAnimationList } from './LoopAnimationList'
+import { openLoopAnimatorBlank } from '../loopAnimator/loopAnimatorLauncher'
 import { MusicPanel } from './MusicPanel'
 import { getStoredComposites } from '../layerAssembly/layerAssemblyStorage'
 import { getStoredModels3D, fetchAsset3DsCatalog } from './models3d/models3dStorage'
@@ -318,8 +319,8 @@ export function AssetPanel() {
           <button
             type="button"
             className="btn sm asset-action-btn-highlight"
-            onClick={() => useView.getState().openLoopAnimator()}
-            title="Mở Xưởng Tách Hoạt Ảnh Lặp để phân tách ảnh thành các frame lặp"
+            onClick={openLoopAnimatorBlank}
+            title="Mở Xưởng Tách Hoạt Ảnh Loop trống để tạo hoạt ảnh lặp mới từ ảnh sprite sheet"
           >
             <IconPlus /> Tạo Loop Animate
           </button>

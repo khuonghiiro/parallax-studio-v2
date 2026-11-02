@@ -1,7 +1,6 @@
 import React from 'react'
 import type { Layer, WorkflowNodeParams } from '@shared/types'
-import { useView } from '../../store/view'
-import { useLoopAnimator } from '../loopAnimator/loopAnimatorState'
+import { openLoopAnimatorInPlace } from '../loopAnimator/loopAnimatorLauncher'
 import { OptionPills, ParamSlider } from './WorkflowV2NodeParams'
 
 interface Props {
@@ -13,8 +12,7 @@ interface Props {
 export function WorkflowV2LoopSpriteParams({ p, layer, onUpdate }: Props): React.ReactElement {
   const handleOpenLoopStudio = (): void => {
     const templateId = layer?.type === 'image' ? layer.props.loopTemplateId : undefined
-    useLoopAnimator.getState().open(templateId)
-    useView.getState().openDialog('loop_animator')
+    openLoopAnimatorInPlace(templateId)
   }
 
   return (

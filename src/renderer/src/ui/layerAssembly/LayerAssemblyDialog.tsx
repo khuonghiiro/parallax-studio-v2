@@ -25,6 +25,7 @@ import '../../styles/layerWorkshopStudio.css'
 import '../../styles/layerWorkshopAnimateStudio.css'
 import '../../styles/layerWorkshopBoneDepth.css'
 import { WorkshopRightPanel, type WorkshopTab } from './WorkshopRightPanel'
+import { useWorkshopLoopActions } from './useWorkshopLoopActions'
 import { ensureRigClips } from './workshopRig'
 import { CreateLayerAssemblyModal } from './CreateLayerAssemblyModal'
 import {
@@ -84,6 +85,7 @@ export function LayerAssemblyDialog({
   const activeRig = composite.rig ? ensureRigClips(composite.rig).rig : undefined
   const playback = useWorkshopPlayback(activeRig?.duration, activeRig?.loop)
   const [tab, setTab] = useState<WorkshopTab>(() => initialTab ?? 'layers')
+  const loopActions = useWorkshopLoopActions(state, playback, setTab)
   const [boneId, selectBone] = useState<string | null>(() => initialBoneId ?? null)
   const saving = useWorkshopSave(() => history.current, onClose, () => playback.time)
   const close = () => {
@@ -395,6 +397,8 @@ export function LayerAssemblyDialog({
                     state.add(name, path, url)
                   }}
                   onAppendPresetLayers={state.append}
+                  onAddLoopTemplate={loopActions.addLoopTemplateLayer}
+                  onBindLoopTemplate={loopActions.bindLoopTemplate}
                   onDeleteLayer={(id) => state.run('delete', undefined, [id])}
                   onDuplicateLayer={(id) => state.run('duplicate', undefined, [id])}
                   onLoadComposite={(loaded) => {

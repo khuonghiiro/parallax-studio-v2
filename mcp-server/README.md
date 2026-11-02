@@ -639,8 +639,24 @@ pnpm pxs call layer_assembly_rig --action subdivide-bone --bone_id bone-fish-spi
 
 
 ### Xưởng Tách Hoạt Ảnh Loop, Logic Nhịp & Nháy (Scene / Workflow V2 / Xưởng 2.5D)
-- **Kho Loop Animate (`assets_loop`):** Hiển thị preview **Frame #1** đã tách nền khi tạm dừng, nút `▶ Chạy / ⏸ Dừng` trên từng thẻ và `▶ Phát tất cả / ⏸ Dừng tất cả` trên thanh công cụ.
-- **Xưởng Tách Hoạt Ảnh Loop (`loop_animator`):** Hỗ trợ 3 chế độ cắt (`grid`, `contour` quét tách đảo tự động, `manual`), căn tâm tự động (`🎯 Căn tâm`), nút `▶ Chạy thử / ⏸ Tạm dừng` tốc độ 60fps không lag, và cấu hình **Logic Nhịp & Nháy** (`flicker_opacity`, `pulse_scale`, `sync_both`, `strobe_beat`).
+- **Kho Loop Animate (`assets_loop`):** Lưới thẻ 2 cột co giãn, preview **Frame #1** đã tách nền khi tạm dừng, nút `▶` trên ảnh và hàng nút luôn hiển thị `+ Chèn` (vào cảnh) · `✎ Sửa` · `🗑 Xoá`; `▶ Phát tất cả` trên thanh công cụ.
+- **Xoá có kiểm tra ràng buộc (`loop_delete_confirm`):** Mẫu đang được dùng (layer trong cảnh hoặc mảnh trong mẫu Xưởng 2.5D) sẽ liệt kê từng vị trí kèm nút `Gỡ liên kết` / `Xoá layer`; không có ràng buộc thì chỉ hỏi xác nhận. Mẫu có sẵn bị xoá sẽ được ẩn khỏi kho.
+- **Xưởng Tách Hoạt Ảnh Loop (`loop_animator`):** Nút `Tạo Loop Animate` luôn mở **phiên trống** (`loop_animator_empty`: kéo thả / chọn ảnh, hoặc mở nhanh mẫu trong kho). 3 bước rõ ràng: `1 · Cắt khung hình` (`grid`, `contour`, `manual` + Tách nền Chroma Key), `2 · Xem trước` (`loop_animator_settings`: FPS, hệ số tốc độ, kiểu lặp, Nhịp & Nháy), `3 · Dải khung hình` (X/Y/W/H, lệch tâm, hệ số giữ frame). Footer (`loop_animator_footer`): `Đóng` · `Lưu vào kho` (xanh lá) · `Đưa vào cảnh` (xanh dương).
 - **Tích hợp Cảnh, Timeline & Workflow V2:** Node Animation (`anim_fx`) chế độ `🔁 Loop & Nhịp` (`animMode: "loop_sprite"`, mẫu `v2:anim_fx:loop_rhythm`, `v2:anim_fx:loop_flicker`) điều khiển tốc độ chạy, kiểu lặp, lệch pha, tần số nhịp (Hz), độ mờ đáy và biên độ nhịp co giãn.
-- **Tích hợp Xưởng Lắp Ráp 2.5D:** Tab `Logic Loop` (`tab: "loop"`) gắn trực tiếp mẫu Loop Animate vào mảnh 2.5D và đồng bộ Nguồn sáng ảo 2.5D nháy theo nhịp Loop.
-- Vùng chụp UI: `assets_loop`, `loop_animator`, `loop_animator_presets`, `loop_animator_source`, `loop_animator_player`, `inspector_loop_logic`, `workflow_loop_params`, `layer_assembly_loop_logic`.
+- **Tích hợp Xưởng Lắp Ráp 2.5D:** Tab tài nguyên **Loop** ở cột trái (`layer_assembly_loop_assets`) để `+ Thêm` mẫu thành mảnh mới hoặc `Gán` vào mảnh đang chọn; tab `Loop` bên phải (`layer_assembly_loop_logic`, `tab: "loop"`) cấu hình mẫu đang gắn (Đổi mẫu / Sửa mẫu, FPS, kiểu lặp, tốc độ, lệch pha, Nhịp & Nháy, Nguồn sáng ảo nháy theo Loop).
+- **Quản lý kho qua MCP:** `open_loop_animator {"blank":true}` (phiên trống), `list_loop_templates`, `get_loop_template_usages`, `detach_loop_template_usage` (`remove_layer` để xoá layer trong cảnh), `delete_loop_template` (`force` để tự gỡ liên kết còn lại).
+- Vùng chụp UI: `assets_loop`, `loop_animator`, `loop_animator_header`, `loop_animator_presets`, `loop_animator_empty`, `loop_animator_source`, `loop_animator_player`, `loop_animator_stage`, `loop_animator_settings`, `loop_animator_toolbar`, `loop_animator_chroma`, `loop_animator_frames`, `loop_animator_footer`, `loop_delete_confirm`, `inspector_loop_logic`, `workflow_loop_params`, `layer_assembly_loop_logic`, `layer_assembly_loop_assets`.
+
+```powershell
+# PowerShell
+pnpm pxs call open_loop_animator '{"blank":true}'
+pnpm pxs call get_loop_template_usages '{"template_id":"loop_preset_campfire"}'
+pnpm pxs call delete_loop_template '{"template_id":"loop_custom_x1","force":true}'
+```
+
+```bat
+:: CMD
+pnpm pxs call open_loop_animator "{\"blank\":true}"
+pnpm pxs call get_loop_template_usages "{\"template_id\":\"loop_preset_campfire\"}"
+pnpm pxs call delete_loop_template "{\"template_id\":\"loop_custom_x1\",\"force\":true}"
+```

@@ -39,13 +39,13 @@ describe('loopAnimatorCommands', () => {
     await runCmd('open_loop_animator', { preset_id: 'campfire_transparent' })
     const res = await runCmd('configure_loop_chroma', {
       enabled: true,
-      key_color_type: 'chroma_green',
-      tolerance: 45
+      key_color: '#00ff00',
+      tolerance: 0.45
     })
     expect(res.ok).toBe(true)
     expect(res.chroma_config.enabled).toBe(true)
-    expect(res.chroma_config.keyColorType).toBe('chroma_green')
-    expect(res.chroma_config.tolerance).toBe(45)
+    expect(res.chroma_config.keyColor).toBe('#00ff00')
+    expect(res.chroma_config.similarity).toBe(0.45)
   })
 
   it('splits frames and updates playback', async () => {
@@ -78,7 +78,7 @@ describe('loopAnimatorCommands', () => {
     })
     expect(frameRes.ok).toBe(true)
     expect(frameRes.frame.enabled).toBe(false)
-    expect(frameRes.frame.durationMultiplier).toBe(2)
+    expect(frameRes.frame.durationRatio).toBe(2)
 
     const reorderRes = await runCmd('reorder_loop_frames', {
       action: 'reverse'

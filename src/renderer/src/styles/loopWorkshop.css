@@ -1,0 +1,275 @@
+/* ============================================================================
+ * XƯỞNG LAYER 2.5D — TAB TÀI NGUYÊN LOOP & PANEL CẤU HÌNH LOOP (Dark & Light)
+ * ============================================================================ */
+@import './loopControls.css';
+
+/* ---------------------------------------------------------------- Workshop 2.5D: Loop asset tab */
+.lw-loop-assets {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lw-loop-assets-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.lw-loop-assets-hint {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10.5px;
+  color: var(--text-dim);
+}
+
+.lw-loop-assets-hint strong {
+  color: var(--text);
+}
+
+.lw-loop-assets-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lw-loop-asset {
+  display: flex;
+  flex-shrink: 0;
+  gap: 8px;
+  padding: 6px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line-soft);
+  background: var(--bg-1);
+  transition: border-color 0.12s ease;
+}
+
+.lw-loop-asset:hover {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
+}
+
+.lw-loop-asset.is-bound {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg-1));
+}
+
+.lw-loop-asset-thumb {
+  position: relative;
+  flex-shrink: 0;
+  width: 72px;
+  height: 64px;
+  padding: 0;
+  overflow: hidden;
+  border-radius: var(--radius);
+  border: 1px solid var(--line-soft);
+  cursor: pointer;
+  background-color: var(--bg-0);
+  background-image:
+    linear-gradient(45deg, var(--bg-2) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--bg-2) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--bg-2) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--bg-2) 75%);
+  background-size: 10px 10px;
+  background-position: 0 0, 0 5px, 5px -5px, -5px 0;
+}
+
+.lw-loop-asset-thumb canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+}
+
+.lw-loop-asset-play {
+  position: absolute;
+  left: 3px;
+  bottom: 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-sm);
+  background: rgba(15, 23, 42, 0.8);
+  color: #f8fafc;
+}
+
+.lw-loop-asset-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.lw-loop-asset-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.lw-loop-asset-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+.lw-loop-asset-used {
+  padding: 0 5px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--ok) 18%, transparent);
+  color: var(--ok);
+  font-weight: 700;
+}
+
+.lw-loop-asset-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: auto;
+}
+
+.lw-loop-asset-actions .la-btn--sm {
+  height: 26px;
+  padding: 0 7px;
+}
+
+.lw-loop-asset-actions .la-icon-btn {
+  width: 26px;
+  height: 26px;
+}
+
+.lw-loop-assets-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 24px 10px;
+  color: var(--text-dim);
+  font-size: 11px;
+  text-align: center;
+}
+
+/* ---------------------------------------------------------------- Workshop 2.5D: Loop config panel */
+.lw-loop-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+}
+
+.lw-loop-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 20px 12px;
+  border-radius: var(--radius-md);
+  border: 1px dashed var(--line);
+  color: var(--text-dim);
+  text-align: center;
+}
+
+.lw-loop-empty p {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+.lw-loop-bound {
+  display: flex;
+  gap: 10px;
+  padding: 8px;
+  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line-soft));
+  background: color-mix(in srgb, var(--accent) 6%, var(--bg-2));
+}
+
+.lw-loop-bound-thumb {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 84px;
+  height: 64px;
+  overflow: hidden;
+  border-radius: var(--radius);
+  border: 1px solid var(--line-soft);
+  background: var(--bg-0);
+  color: var(--text-faint);
+}
+
+.lw-loop-bound-thumb canvas {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.lw-loop-bound-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.lw-loop-bound-info .la-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lw-loop-bound-info strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--text);
+}
+
+.lw-loop-bound-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: auto;
+}
+
+.lw-loop-menu-btn {
+  height: 28px;
+  gap: 4px;
+}
+
+.lw-loop-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line-soft);
+  background: var(--bg-2);
+}
+
+.lw-loop-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.lw-loop-section .la-range {
+  grid-template-columns: 62px minmax(0, 1fr) 48px;
+}
+
+.lw-loop-light-btn {
+  width: 100%;
+}

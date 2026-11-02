@@ -6,7 +6,7 @@ import {
   BUILTIN_COMPOSITES
 } from './layerAssemblyStorage'
 import type { AssembledLayerItem, LayerComposite } from './types'
-import { IconGlobe, IconImage, IconInfo, IconLayers, IconLock, IconPlus, IconTrash, IconX } from '../icons'
+import { IconGlobe, IconImage, IconInfo, IconLayers, IconLock, IconLoopAnimate, IconPlus, IconTrash, IconX } from '../icons'
 import { useLayerAssetImage } from './useLayerAssetImage'
 import { CompositeCard } from './CompositeCard'
 import { LayerItemCard, AssetCard } from './LayerWorkshopCards'
@@ -19,6 +19,8 @@ import {
 } from '../assets/publicAssetStorage'
 import { clearLayerTextureCache } from './layerAssembly3DMesh'
 import { SegmentedTabs } from '../primitives'
+import type { LoopAnimationTemplate } from '../loopAnimator/types'
+import { WorkshopLoopAssetTab, useLoopTemplateList } from './WorkshopLoopAssetTab'
 import '../../styles/assets.css'
 
 export interface LayerAssemblySidebarProps {
@@ -30,8 +32,14 @@ export interface LayerAssemblySidebarProps {
   onDeleteLayer?: (layerId: string) => void
   onDuplicateLayer?: (layerId: string) => void
   onLoadComposite?: (composite: LayerComposite) => void
+  /** Thêm mẫu hoạt ảnh Loop thành mảnh mới */
+  onAddLoopTemplate?: (tpl: LoopAnimationTemplate) => void
+  /** Gán mẫu hoạt ảnh Loop vào mảnh đang chọn */
+  onBindLoopTemplate?: (tpl: LoopAnimationTemplate) => void
   width?: number
 }
+
+type SidebarTab = 'builtin' | 'presets' | 'project' | 'loop'
 
 interface CustomAssetItem {
   id: string
@@ -59,9 +67,12 @@ export function LayerAssemblySidebar({
   onDeleteLayer,
   onDuplicateLayer,
   onLoadComposite,
+  onAddLoopTemplate,
+  onBindLoopTemplate,
   width
 }: LayerAssemblySidebarProps) {
-  const [activeTab, setActiveTab] = useState<'builtin' | 'presets' | 'project'>('project')
+  const [activeTab, setActiveTab] = useState<SidebarTab>('project')
+  const loopTemplates = useLoopTemplateList()
   const [searchTerm, setSearchTerm] = useState('')
   const [storedComposites, setStoredComposites] = useState<LayerComposite[]>(getStoredComposites)
   const [detailTarget, setDetailTarget] = useState<CustomAssetItem | null>(null)
@@ -250,7 +261,7 @@ export function LayerAssemblySidebar({
       }}
     >
       {/* 1. Tabs Switcher: 1. Có sẵn -> 2. Mẫu layer -> 3. Dự án */}
-      <SegmentedTabs<'builtin' | 'presets' | 'project'>
+      <SegmentedTabs<SidebarTab>
         variant="segmented"
         size="sm"
         ariaLabel="Nguồn tài nguyên xưởng layer"
@@ -278,6 +289,13 @@ export function LayerAssemblySidebar({
             icon: <IconImage width={12} height={12} />,
             badge: currentLayers.length,
             title: 'Tài nguyên các layer đang tạo trong mẫu hiện tại'
+          },
+          {
+            id: 'loop',
+            label: 'Loop',
+            icon: <IconLoopAnimate width={12} height={12} />,
+            badge: loopTemplates.length,
+            title: 'Kho hoạt ảnh lặp (Loop Animate): thêm thành mảnh mới hoặc gán vào mảnh đang chọn'
           }
         ]}
       />
@@ -301,7 +319,9 @@ export function LayerAssemblySidebar({
               ? 'Tìm layer trong mẫu…'
               : activeTab === 'builtin'
                 ? 'Tìm ảnh & vật liệu…'
-                : 'Tìm mẫu layer xếp chồng…'
+                : activeTab === 'loop'
+                  ? 'Tìm hoạt ảnh Loop…'
+                  : 'Tìm mẫu layer xếp chồng…'
           }
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
@@ -424,6 +444,17 @@ export function LayerAssemblySidebar({
               Không có mẫu layer nào. Bạn có thể nhấn &quot;Lưu mẫu&quot; ở thanh tiêu đề để lưu mẫu mới vào đây!
             </div>
           )
+        )}
+
+        {/* TAB 4: LOOP - Kho hoạt ảnh lặp dùng trực tiếp trong xưởng */}
+        {activeTab === 'loop' && onAddLoopTemplate && onBindLoopTemplate && (
+          <WorkshopLoopAssetTab
+            searchTerm={searchTerm}
+            layers={currentLayers}
+            selectedLayer={currentLayers.find((l) => l.id === selectedLayerId) ?? null}
+            onAddLoopTemplate={onAddLoopTemplate}
+            onBindLoopTemplate={onBindLoopTemplate}
+          />
         )}
 
         {/* TAB 3: DỰ ÁN - Các layer đang tạo trong mẫu hiện tại */}

@@ -125,7 +125,10 @@ Claude Desktop, Cursor và các client MCP khác dùng cùng cấu hình `comman
 | Xưởng 3D | `list_models3d`, `get_model3d`, `get_assembly_state`, `list_assembly_templates`, `apply_assembly_template`, `append_assembly_model`, `save_assembly_model`, `insert_assembly_model`, `add_assembly_face`, `update_assembly_face`, `delete_assembly_face`, `join_assembly_faces`, `auto_assembly_clip`, `set_assembly_lighting`, `get_assembly_screenshot`, `set_assembly_camera` |
 | Keyframe | `set_keyframe`, `remove_keyframe`, `clear_keyframes` |
 | Camera | `set_camera`, `apply_camera_preset`, `camera_fly_to_shot`, `build_camera_path` |
+| Loop Animate | `open_loop_animator` (`blank: true` = phiên trống), `close_loop_animator`, `get_loop_animator_state`, `configure_loop_chroma`, `split_loop_frames`, `reorder_loop_frames`, `update_loop_frame`, `set_loop_playback`, `apply_loop_animation`, `list_loop_templates`, `get_loop_template_usages`, `detach_loop_template_usage`, `delete_loop_template` |
 | Khác | `set_look`, `set_time`, `set_playing`, `select`, `set_view`, `export_video`, `execute_script` |
+
+**Loop Animate:** nút `Tạo Loop Animate` mở Xưởng Tách Hoạt Ảnh Loop trống (kéo thả sprite sheet → cắt lưới / tự dò vùng → tách nền → chỉnh FPS, kiểu lặp, nhịp nháy → `Lưu vào kho` / `Đưa vào cảnh`). Mẫu trong kho dùng lại được ở tab tài nguyên **Loop** của Xưởng Layer 2.5D. Xoá mẫu sẽ liệt kê các layer / mảnh đang dùng để gỡ trước (`get_loop_template_usages`, `delete_loop_template`).
 
 Ví dụ prompt cho AI: *"Tạo 3 cảnh: rừng đêm, biển lúc bình minh, thành phố neon. Mỗi cảnh có 4–5 layer ở các độ sâu khác nhau và một tiêu đề. Camera bay vòng cung giữa các cảnh, mỗi cảnh dừng 3 giây. Chụp 3D view cho tôi xem, rồi xuất MP4 1080p ra D:/Videos/demo.mp4."*
 

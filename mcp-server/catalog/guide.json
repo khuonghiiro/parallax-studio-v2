@@ -1,6 +1,6 @@
 {
   "$comment": "Single source for the AI guide (MCP server instructions, get_ai_guide, CLI help, McpDialog prompt). Every section MUST keep the same number of lines in en and vi - catalog.test.mjs enforces it.",
-  "toolCount": 156,
+  "toolCount": 160,
   "sections": [
     {
       "id": "overview",
@@ -222,14 +222,20 @@
           "Supports background removal with Chroma Key (magenta, green, blue, custom hex, tolerance, despill).",
           "Slices on regular grids (rows, cols, row-first / col-first) or automatic transparent contour clustering.",
           "Adjust playback FPS (1-60), loop modes (loop, ping-pong, once), frame hold durations, and onion skinning.",
-          "Bake and insert directly into Parallax Studio project as a live animated 2.5D ImageLayer via apply_loop_animation."
+          "Bake and insert directly into Parallax Studio project as a live animated 2.5D ImageLayer via apply_loop_animation.",
+          "open_loop_animator {\"blank\":true} starts an empty session exactly like the UI \"Create Loop Animate\" button.",
+          "Before deleting a template call get_loop_template_usages; detach_loop_template_usage unlinks (or removes) each dependency, delete_loop_template force=true auto-unlinks the rest.",
+          "The 2.5D Layer Workshop has a Loop resource tab (layer_assembly_loop_assets) to add or bind templates, configured in the right Loop tab."
         ],
         "vi": [
           "Xưởng Tách Hoạt Ảnh Lặp phân tách sprite sheet / lưới ảnh thành chuỗi frame chuyển động lặp tuần hoàn.",
           "Hỗ trợ tách màu nền tự động với Chroma Key (hồng magenta, xanh lá, xanh dương, màu tự chọn, độ lệch, khử ám).",
           "Phân tách theo lưới đều (hàng, cột, thứ tự hàng/cột) hoặc tự động phát hiện cụm chi tiết đảo pixel.",
           "Tuỳ chỉnh tốc độ FPS (1-60), quy luật lặp (loop, ping-pong, once), thời lượng từng frame và bóng mờ onion skin.",
-          "Xuất và chèn trực tiếp vào dự án Parallax Studio thành một ImageLayer động 2.5D qua apply_loop_animation."
+          "Xuất và chèn trực tiếp vào dự án Parallax Studio thành một ImageLayer động 2.5D qua apply_loop_animation.",
+          "open_loop_animator {\"blank\":true} mở phiên trống y hệt nút \"Tạo Loop Animate\" trên giao diện.",
+          "Trước khi xoá mẫu hãy gọi get_loop_template_usages; detach_loop_template_usage gỡ liên kết (hoặc xoá) từng ràng buộc, delete_loop_template force=true tự gỡ phần còn lại.",
+          "Xưởng Layer 2.5D có tab tài nguyên Loop (layer_assembly_loop_assets) để thêm hoặc gán mẫu, cấu hình ở tab Loop bên phải."
         ]
       }
     }
