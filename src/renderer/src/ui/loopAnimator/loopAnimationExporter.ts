@@ -1,142 +1,349 @@
-import type { LoopFrame, LoopPlaybackConfig } from './types'
+import type { AssetMeta } from '@shared/types'
 import { assetStore, type AnimatedGifData, type GifFrame } from '../../project/assets'
-import { useEditor } from '../../store/editor'
 import { createImageLayer } from '../../project/factory'
-import { toast } from '../../actions'
+import { useEditor } from '../../store/editor'
+import { applyChromaKeyToImageData, buildGridFrames, extractFrameCanvas } from './loopFrameExtractor'
+import { getAllLoopTemplates } from './loopAnimatorStorage'
+import { SAMPLE_LOOP_PRESETS, resolveLoopAssetUrl } from './sampleLoops'
+import type {
+  ChromaKeyConfig,
+  LoopAnimationMode,
+  LoopAnimationTemplate,
+  LoopFrameBox,
+  LoopRhythmConfig
+} from './types'
 
-export interface ApplyLoopToProjectOptions {
-  name: string
+export interface LoopExportOptions {
+  layerName: string
   sourceCanvas: HTMLCanvasElement
-  frames: LoopFrame[]
-  playback: LoopPlaybackConfig
-  shotId?: string | null
+  frames: LoopFrameBox[]
+  fps: number
   speed?: number
-  position?: [number, number, number]
+  loopMode: LoopAnimationMode
+  templateId?: string
+  rhythm?: LoopRhythmConfig
+  shotId?: string | null
 }
 
 /**
- * Đưa hoạt ảnh lặp trực tiếp vào Dự án thành một ImageLayer động.
- * Động cơ Parallax Studio sẽ tự động phát loop tuần hoàn trong không gian 2.5D!
+ * Extracts enabled frames from the processed source canvas, builds an in-memory AnimatedGifData
+ * with ImageBitmaps, registers the asset (using Frame #1 as the static PNG thumbnail), and adds
+ * a new animated ImageLayer to the active shot.
  */
 export async function applyLoopAnimationToProject(
-  options: ApplyLoopToProjectOptions
-): Promise<string | null> {
-  const { name, sourceCanvas, frames, playback, shotId, speed = 1, position } = options
-
+  options: LoopExportOptions
+): Promise<{ layerId: string; assetId: string; frameCount: number }> {
+  const {
+    layerName,
+    sourceCanvas,
+    frames,
+    fps,
+    speed = 1,
+    loopMode,
+    templateId,
+    rhythm,
+    shotId
+  } = options
   const enabledFrames = frames.filter((f) => f.enabled)
   if (enabledFrames.length === 0) {
-    window.alert('Cần ít nhất 1 khung hình được bật để đưa vào dự án!')
-    return null
+    throw new Error('Cần bật ít nhất 1 khung hình (frame) để tạo hoạt ảnh lặp.')
   }
 
-  const fps = Math.max(1, Math.min(60, playback.fps || 12))
-  const baseFrameDur = 1 / fps
+  const maxW = Math.max(1, ...enabledFrames.map((f) => f.width))
+  const maxH = Math.max(1, ...enabledFrames.map((f) => f.height))
+  const baseFrameDuration = 1 / Math.max(1, Math.min(60, fps))
 
-  try {
-    const gifFrames: GifFrame[] = []
-    let totalDuration = 0
+  const gifFrames: GifFrame[] = []
+  let currentTime = 0
+  let firstFrameCanvas: HTMLCanvasElement | null = null
 
-    for (let i = 0; i < enabledFrames.length; i++) {
-      const f = enabledFrames[i]
-      const durSec = baseFrameDur * Math.max(0.1, f.durationMultiplier || 1)
-
-      // Cắt bitmap cho frame này
-      const frameCanvas = document.createElement('canvas')
-      frameCanvas.width = Math.max(1, f.width)
-      frameCanvas.height = Math.max(1, f.height)
-      const fctx = frameCanvas.getContext('2d')
-      if (fctx) {
-        fctx.drawImage(
-          sourceCanvas,
-          f.x,
-          f.y,
-          f.width,
-          f.height,
-          0,
-          0,
-          f.width,
-          f.height
-        )
-      }
-
-      const bmp = await createImageBitmap(frameCanvas, {
-        imageOrientation: 'flipY',
-        premultiplyAlpha: 'none'
-      })
-
-      gifFrames.push({
-        index: i,
-        duration: durSec,
-        startTime: totalDuration,
-        bitmap: bmp
-      })
-
-      totalDuration += durSec
+  for (let i = 0; i < enabledFrames.length; i++) {
+    const f = enabledFrames[i]
+    const frameCanvas = extractFrameCanvas(sourceCanvas, f, maxW, maxH)
+    if (i === 0) {
+      firstFrameCanvas = frameCanvas
     }
-
-    const firstFrame = enabledFrames[0]
-    const width = firstFrame.width
-    const height = firstFrame.height
-
-    const animatedData: AnimatedGifData = {
-      frames: gifFrames,
-      totalDuration: Math.max(0.04, totalDuration),
-      width,
-      height
-    }
-
-    // Xuất frame đầu tiên làm thumbnail/preview image binary
-    const previewDataUrl = sourceCanvas.toDataURL('image/png')
-    const base64Data = previewDataUrl.split(',')[1]
-    const binStr = atob(base64Data)
-    const binLen = binStr.length
-    const bytes = new Uint8Array(binLen)
-    for (let i = 0; i < binLen; i++) {
-      bytes[i] = binStr.charCodeAt(i)
-    }
-
-    const assetName = `${name || 'Loop_Animation'}.png`
-    const runtimeAsset = await assetStore.add(assetName, 'image/png', bytes, 'image')
-
-    // Gán dữ liệu hoạt họa thời gian thực vào RuntimeAsset
-    runtimeAsset.gif = animatedData
-    runtimeAsset.meta.isAnimated = true
-    runtimeAsset.meta.frameCount = gifFrames.length
-    runtimeAsset.meta.duration = animatedData.totalDuration
-    runtimeAsset.meta.width = width
-    runtimeAsset.meta.height = height
-
-    // Tạo Layer trong dự án
-    let createdLayerId: string | null = null
-
-    useEditor.getState().update((d) => {
-      d.assets.push(runtimeAsset.meta)
-
-      const targetShotId = shotId !== undefined ? shotId : useEditor.getState().selectedShotId
-      const layer = createImageLayer(runtimeAsset.meta, d.comp, 0, targetShotId || undefined)
-
-      layer.name = name || 'Hoạt ảnh lặp'
-      layer.props.loopMode = playback.loopMode
-      layer.props.speed = speed
-      layer.props.autoPlayPaused = true
-
-      if (position) {
-        layer.transform.position.value = [position[0], position[1], position[2]]
-      }
-
-      d.layers.unshift(layer)
-      createdLayerId = layer.id
+    const bitmap = await createImageBitmap(frameCanvas, {
+      premultiplyAlpha: 'none',
+      colorSpaceConversion: 'none'
     })
-
-    if (createdLayerId) {
-      useEditor.getState().selectLayer(createdLayerId)
-    }
-
-    toast(`Đã thêm Hoạt ảnh lặp "${name}" (${enabledFrames.length} frames) vào cảnh!`)
-    return createdLayerId
-  } catch (err) {
-    console.error('[loopAnimationExporter] Error creating animated layer:', err)
-    window.alert(`Lỗi khi tạo layer hoạt ảnh:\n${String(err)}`)
-    return null
+    const duration = Math.max(0.016, baseFrameDuration * (f.durationRatio || 1))
+    gifFrames.push({
+      index: i,
+      bitmap,
+      duration,
+      startTime: currentTime
+    })
+    currentTime += duration
   }
+
+  // Export Frame #1 as the static PNG canvas (NOT the full 4x4 sprite sheet!)
+  const thumbCanvas = firstFrameCanvas ?? extractFrameCanvas(sourceCanvas, enabledFrames[0], maxW, maxH)
+  const safeSlug =
+    layerName
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_|_$/g, '') || 'loop_sprite'
+
+  const runtimeAsset = await assetStore.addCanvas(
+    `${safeSlug}_${Date.now().toString(36)}.png`,
+    thumbCanvas
+  )
+  const meta = runtimeAsset.meta
+  meta.width = maxW
+  meta.height = maxH
+  meta.isAnimated = true
+  meta.frameCount = gifFrames.length
+  meta.duration = Math.max(0.05, currentTime)
+
+  const gifData: AnimatedGifData = {
+    frames: gifFrames,
+    totalDuration: Math.max(0.05, currentTime),
+    width: maxW,
+    height: maxH
+  }
+  runtimeAsset.gif = gifData
+
+  const editor = useEditor.getState()
+  const targetShotId =
+    shotId !== undefined ? shotId : editor.selectedShotId ?? editor.project.shots[0]?.id ?? null
+  const layer = createImageLayer(meta, editor.project.comp, 0)
+  layer.name = layerName.trim() || 'Hoạt ảnh Loop'
+  layer.shotId = targetShotId
+  layer.inPoint = 0
+  layer.outPoint = editor.project.comp.duration
+  layer.props.loopMode = loopMode
+  layer.props.speed = speed
+  layer.props.autoPlayPaused = true
+  if (templateId) {
+    layer.props.loopTemplateId = templateId
+  }
+  if (rhythm && rhythm.rhythmMode !== 'none') {
+    layer.props.loopRhythmMode = rhythm.rhythmMode
+    layer.props.loopRhythmRateHz = rhythm.rhythmRateHz
+    layer.props.loopRhythmIntensity = rhythm.rhythmIntensity
+    layer.props.loopMinOpacity = rhythm.minOpacity
+    layer.props.loopScaleBeatPct = rhythm.scaleBeatPct
+  }
+
+  editor.update((p) => {
+    p.assets.push(meta)
+    p.layers.unshift(layer)
+  })
+  editor.selectLayer(layer.id)
+
+  return {
+    layerId: layer.id,
+    assetId: meta.id,
+    frameCount: gifFrames.length
+  }
+}
+
+/**
+ * Builds an AnimatedGifData + Frame #1 PNG asset from a sprite sheet URL, frame rects, and Chroma Key.
+ * Used both for direct preset insertion and for 2.5D Composite layers with `loopConfig`.
+ */
+export async function buildLoopAnimatedAsset(options: {
+  name: string
+  spriteSheetUrl: string
+  frames?: Array<{
+    x: number
+    y: number
+    width: number
+    height: number
+    offsetX?: number
+    offsetY?: number
+    durationRatio?: number
+    enabled?: boolean
+  }>
+  gridConfig?: { cols: number; rows: number; marginX: number; marginY: number; paddingX: number; paddingY: number }
+  chromaKey?: ChromaKeyConfig
+  fps: number
+}): Promise<{ assetMeta: AssetMeta; gifData: AnimatedGifData; width: number; height: number }> {
+  const resolvedUrl = await resolveLoopAssetUrl(options.spriteSheetUrl)
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const el = new Image()
+    el.crossOrigin = 'anonymous'
+    el.onload = () => resolve(el)
+    el.onerror = () => reject(new Error(`Không thể tải ảnh Sprite Sheet: ${options.spriteSheetUrl}`))
+    el.src = resolvedUrl || options.spriteSheetUrl
+  })
+
+  const w = img.naturalWidth || img.width || 1024
+  const h = img.naturalHeight || img.height || 1024
+  const canvas = document.createElement('canvas')
+  canvas.width = w
+  canvas.height = h
+  const ctx = canvas.getContext('2d', { willReadFrequently: true })
+  if (!ctx) throw new Error('Không thể khởi tạo Canvas 2D')
+
+  ctx.drawImage(img, 0, 0, w, h)
+  if (options.chromaKey?.enabled) {
+    const imgData = ctx.getImageData(0, 0, w, h)
+    applyChromaKeyToImageData(imgData, options.chromaKey)
+    ctx.putImageData(imgData, 0, 0)
+  }
+
+  const normalizedFrames: LoopFrameBox[] =
+    options.frames && options.frames.length > 0
+      ? options.frames
+          .filter((f) => f.enabled !== false)
+          .map((f, idx) => ({
+            id: `frame_${idx}`,
+            index: idx,
+            x: f.x,
+            y: f.y,
+            width: f.width,
+            height: f.height,
+            offsetX: f.offsetX ?? 0,
+            offsetY: f.offsetY ?? 0,
+            enabled: true,
+            durationRatio: f.durationRatio ?? 1
+          }))
+      : buildGridFrames(
+          w,
+          h,
+          options.gridConfig ?? { cols: 4, rows: 4, marginX: 0, marginY: 0, paddingX: 0, paddingY: 0 }
+        )
+
+  const maxW = Math.max(1, ...normalizedFrames.map((f) => f.width))
+  const maxH = Math.max(1, ...normalizedFrames.map((f) => f.height))
+  const baseFrameDuration = 1 / Math.max(1, Math.min(60, options.fps || 12))
+
+  const gifFrames: GifFrame[] = []
+  let currentTime = 0
+  let firstFrameCanvas: HTMLCanvasElement | null = null
+
+  for (let i = 0; i < normalizedFrames.length; i++) {
+    const f = normalizedFrames[i]
+    const frameCanvas = extractFrameCanvas(canvas, f, maxW, maxH)
+    if (i === 0) firstFrameCanvas = frameCanvas
+    const bitmap = await createImageBitmap(frameCanvas, {
+      premultiplyAlpha: 'none',
+      colorSpaceConversion: 'none'
+    })
+    const duration = Math.max(0.016, baseFrameDuration * (f.durationRatio || 1))
+    gifFrames.push({
+      index: i,
+      bitmap,
+      duration,
+      startTime: currentTime
+    })
+    currentTime += duration
+  }
+
+  const thumbCanvas = firstFrameCanvas ?? extractFrameCanvas(canvas, normalizedFrames[0], maxW, maxH)
+  const safeSlug =
+    options.name
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_|_$/g, '') || 'loop_sprite'
+
+  const runtimeAsset = await assetStore.addCanvas(
+    `${safeSlug}_${Date.now().toString(36)}.png`,
+    thumbCanvas
+  )
+  const meta = runtimeAsset.meta
+  meta.width = maxW
+  meta.height = maxH
+  meta.isAnimated = true
+  meta.frameCount = gifFrames.length
+  meta.duration = Math.max(0.05, currentTime)
+
+  const gifData: AnimatedGifData = {
+    frames: gifFrames,
+    totalDuration: Math.max(0.05, currentTime),
+    width: maxW,
+    height: maxH
+  }
+  runtimeAsset.gif = gifData
+
+  return { assetMeta: meta, gifData, width: maxW, height: maxH }
+}
+
+/**
+ * Headless helper to directly slice and add a builtin or saved loop preset by ID (used by MCP and quick-insert).
+ */
+export async function exportLoopPresetDirectly(
+  presetId: string,
+  overrides?: {
+    layerName?: string
+    fps?: number
+    speed?: number
+    loopMode?: LoopAnimationMode
+    shotId?: string | null
+  }
+): Promise<{ layerId: string; assetId: string; frameCount: number }> {
+  const allTemplates = getAllLoopTemplates()
+  const template: LoopAnimationTemplate | undefined =
+    allTemplates.find((t) => t.id === presetId) ??
+    (() => {
+      const p = SAMPLE_LOOP_PRESETS.find((x) => x.id === presetId) ?? SAMPLE_LOOP_PRESETS[0]
+      return {
+        id: p.id,
+        name: p.name,
+        category: p.category,
+        badge: p.badge,
+        description: p.description,
+        imageUrl: p.imageUrl,
+        slicerMode: 'grid',
+        gridConfig: p.defaultGrid,
+        chromaKey: p.defaultChroma,
+        fps: p.defaultFps,
+        speed: p.defaultSpeed ?? 1,
+        loopMode: p.defaultLoopMode ?? 'loop',
+        rhythm: p.defaultRhythm
+          ? {
+              rhythmMode: p.defaultRhythm.rhythmMode ?? 'none',
+              rhythmRateHz: p.defaultRhythm.rhythmRateHz ?? 2.2,
+              rhythmIntensity: p.defaultRhythm.rhythmIntensity ?? 0.35,
+              minOpacity: p.defaultRhythm.minOpacity ?? 0.5,
+              scaleBeatPct: p.defaultRhythm.scaleBeatPct ?? 12
+            }
+          : undefined,
+        frameCount: p.defaultGrid.cols * p.defaultGrid.rows
+      }
+    })()
+
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const el = new Image()
+    el.crossOrigin = 'anonymous'
+    el.onload = () => resolve(el)
+    el.onerror = () => reject(new Error(`Không thể tải ảnh preset: ${template.imageUrl}`))
+    el.src = template.imageUrl
+  })
+
+  const w = img.naturalWidth || img.width || 1024
+  const h = img.naturalHeight || img.height || 1024
+  const canvas = document.createElement('canvas')
+  canvas.width = w
+  canvas.height = h
+  const ctx = canvas.getContext('2d', { willReadFrequently: true })
+  if (!ctx) throw new Error('Không thể khởi tạo Canvas 2D')
+
+  ctx.drawImage(img, 0, 0, w, h)
+  if (template.chromaKey.enabled) {
+    const imgData = ctx.getImageData(0, 0, w, h)
+    applyChromaKeyToImageData(imgData, template.chromaKey)
+    ctx.putImageData(imgData, 0, 0)
+  }
+
+  const frames =
+    template.frames && template.frames.length > 0
+      ? template.frames
+      : buildGridFrames(w, h, template.gridConfig)
+
+  return applyLoopAnimationToProject({
+    layerName: overrides?.layerName ?? template.name,
+    sourceCanvas: canvas,
+    frames,
+    fps: overrides?.fps ?? template.fps,
+    speed: overrides?.speed ?? template.speed ?? 1,
+    loopMode: overrides?.loopMode ?? template.loopMode ?? 'loop',
+    templateId: template.id,
+    rhythm: template.rhythm,
+    shotId: overrides?.shotId
+  })
 }

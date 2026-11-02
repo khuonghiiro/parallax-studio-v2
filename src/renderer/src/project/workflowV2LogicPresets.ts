@@ -194,7 +194,19 @@ export const WORKFLOW_V2_LOGIC_PRESETS: WorkflowV2LogicPreset[] = [
       animFxPreset: o.id,
       intensity: o.defaultIntensity,
       animFxCount: o.defaultCount,
-      animFxColor: o.defaultColor
+      animFxColor: o.defaultColor,
+      ...(o.id === 'loop_rhythm' || o.id === 'loop_flicker'
+        ? {
+            animMode: 'loop_sprite',
+            loopSpeed: 1,
+            loopMode: 'loop',
+            loopRhythmMode: o.id === 'loop_flicker' ? 'flicker_opacity' : 'sync_both',
+            loopRhythmRateHz: 2.5,
+            loopRhythmIntensity: o.defaultIntensity,
+            loopMinOpacity: 0.55,
+            loopScaleBeatPct: 12
+          }
+        : {})
     })
   ),
   preset('anim_fx', 'rig_idle', '🌬️ Clip Animation: Đứng thở (Idle)', { rigActionPreset: 'idle', animFxPreset: 'breathe', intensity: 1 }),

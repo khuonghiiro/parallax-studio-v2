@@ -1,175 +1,255 @@
-import React, { useRef, useEffect } from 'react'
-import {
-  IconTrash,
-  IconCopy,
-  IconStepBack,
-  IconStepFwd,
-  IconEye,
-  IconEyeOff,
-  IconRefresh
-} from '../icons'
+import React, { useEffect, useRef, useState } from 'react'
 import { useLoopAnimator } from './loopAnimatorState'
-import { extractFrameDataUrl } from './loopFrameExtractor'
+import type { LoopFrameBox } from './types'
 
-export interface LoopAnimatorFrameStripProps {
+interface Props {
   sourceCanvasRef: React.RefObject<HTMLCanvasElement | null>
 }
 
-export function LoopAnimatorFrameStrip({ sourceCanvasRef }: LoopAnimatorFrameStripProps) {
+interface FrameThumbProps {
+  sourceCanvasRef: React.RefObject<HTMLCanvasElement | null>
+  sourceVersion: number
+  frame: LoopFrameBox
+}
+
+const FrameThumbCanvas = React.memo(function FrameThumbCanvas({
+  sourceCanvasRef,
+  sourceVersion,
+  frame
+}: FrameThumbProps): React.ReactElement {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null)
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    const src = sourceCanvasRef.current
+    if (!canvas || !src || src.width <= 0 || src.height <= 0) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    const cw = canvas.width
+    const ch = canvas.height
+    ctx.clearRect(0, 0, cw, ch)
+    if (frame.width <= 0 || frame.height <= 0) return
+
+    const scale = Math.min((cw - 6) / frame.width, (ch - 6) / frame.height)
+    const dw = Math.max(1, Math.round(frame.width * scale))
+    const dh = Math.max(1, Math.round(frame.height * scale))
+    const dx = Math.round((cw - dw) * 0.5 + frame.offsetX * scale)
+    const dy = Math.round((ch - dh) * 0.5 + frame.offsetY * scale)
+
+    ctx.drawImage(src, frame.x, frame.y, frame.width, frame.height, dx, dy, dw, dh)
+  }, [
+    sourceCanvasRef,
+    sourceVersion,
+    frame.x,
+    frame.y,
+    frame.width,
+    frame.height,
+    frame.offsetX,
+    frame.offsetY
+  ])
+
+  return <canvas ref={canvasRef} width={76} height={68} className="loop-frame-thumb-canvas" />
+})
+
+export function LoopAnimatorFrameStrip({ sourceCanvasRef }: Props): React.ReactElement {
   const frames = useLoopAnimator((s) => s.frames)
   const selectedFrameIndex = useLoopAnimator((s) => s.selectedFrameIndex)
+  const playingFrameIndex = useLoopAnimator((s) => s.playingFrameIndex)
+  const isPlaying = useLoopAnimator((s) => s.playback.isPlaying)
+  const sourceVersion = useLoopAnimator((s) => s.sourceVersion)
   const selectFrame = useLoopAnimator((s) => s.selectFrame)
-  const updateFrame = useLoopAnimator((s) => s.updateFrame)
-  const reorderFrames = useLoopAnimator((s) => s.reorderFrames)
+  const toggleFrameEnabled = useLoopAnimator((s) => s.toggleFrameEnabled)
+  const reorderFrame = useLoopAnimator((s) => s.reorderFrame)
   const reverseFrames = useLoopAnimator((s) => s.reverseFrames)
-  const expandPingPong = useLoopAnimator((s) => s.expandPingPong)
   const duplicateFrame = useLoopAnimator((s) => s.duplicateFrame)
   const deleteFrame = useLoopAnimator((s) => s.deleteFrame)
+  const addManualFrame = useLoopAnimator((s) => s.addManualFrame)
+  const updateFrame = useLoopAnimator((s) => s.updateFrame)
+  const autoCenterFrames = useLoopAnimator((s) => s.autoCenterFrames)
 
+  const [dragFrom, setDragFrom] = useState<number | null>(null)
+  const [dragOver, setDragOver] = useState<number | null>(null)
   const activeCardRef = useRef<HTMLDivElement | null>(null)
 
-  // Cuộn tới frame đang chọn khi playback chạy
   useEffect(() => {
-    if (activeCardRef.current) {
-      activeCardRef.current.scrollIntoView({
-        behavior: 'smooth',
-        block: 'nearest',
-        inline: 'nearest'
-      })
+    if (activeCardRef.current && !isPlaying) {
+      activeCardRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' })
     }
-  }, [selectedFrameIndex])
+  }, [selectedFrameIndex, isPlaying])
+
+  const selectedFrame = frames[selectedFrameIndex]
+  const enabledCount = frames.filter((f) => f.enabled).length
 
   return (
-    <div className="loop-frame-strip-panel" data-mcp-region="loop_animator_frames">
-      {/* Header thanh cuộn frame */}
+    <div className="loop-frame-strip" data-mcp-region="loop_animator_frames">
       <div className="loop-strip-header">
-        <span className="loop-strip-title">
-          🎞️ Dãy Khung Hình Diễn Hoạt ({frames.length} frames)
-        </span>
+        <div className="loop-strip-title">
+          <span className="loop-strip-badge">🎞 Dải Khung Hình (Frame Strip)</span>
+          <span className="loop-strip-count">
+            Đang bật <strong>{enabledCount}</strong> / {frames.length} frames
+          </span>
+        </div>
+
+        {selectedFrame && (
+          <div className="loop-strip-frame-inspector">
+            <span className="loop-strip-inspector-tag">Frame #{selectedFrameIndex + 1}</span>
+            <label title="Tọa độ cắt X trên ảnh gốc">
+              <span>X</span>
+              <input
+                type="number"
+                value={selectedFrame.x}
+                onChange={(e) => updateFrame(selectedFrameIndex, { x: Number(e.target.value) || 0 })}
+              />
+            </label>
+            <label title="Tọa độ cắt Y trên ảnh gốc">
+              <span>Y</span>
+              <input
+                type="number"
+                value={selectedFrame.y}
+                onChange={(e) => updateFrame(selectedFrameIndex, { y: Number(e.target.value) || 0 })}
+              />
+            </label>
+            <label title="Chiều rộng khung cắt">
+              <span>W</span>
+              <input
+                type="number"
+                min={1}
+                value={selectedFrame.width}
+                onChange={(e) => updateFrame(selectedFrameIndex, { width: Math.max(1, Number(e.target.value) || 1) })}
+              />
+            </label>
+            <label title="Chiều cao khung cắt">
+              <span>H</span>
+              <input
+                type="number"
+                min={1}
+                value={selectedFrame.height}
+                onChange={(e) => updateFrame(selectedFrameIndex, { height: Math.max(1, Number(e.target.value) || 1) })}
+              />
+            </label>
+            <label title="Độ lệch tâm ngang (chống giật)">
+              <span>Lệch X</span>
+              <input
+                type="number"
+                value={selectedFrame.offsetX}
+                onChange={(e) => updateFrame(selectedFrameIndex, { offsetX: Number(e.target.value) || 0 })}
+              />
+            </label>
+            <label title="Độ lệch tâm dọc (chống giật)">
+              <span>Lệch Y</span>
+              <input
+                type="number"
+                value={selectedFrame.offsetY}
+                onChange={(e) => updateFrame(selectedFrameIndex, { offsetY: Number(e.target.value) || 0 })}
+              />
+            </label>
+          </div>
+        )}
+
         <div className="loop-strip-actions">
           <button
             type="button"
-            className="btn sm ghost"
-            title="Đảo ngược thứ tự từ cuối lên đầu"
-            onClick={reverseFrames}
+            className="btn ghost sm"
+            onClick={() => autoCenterFrames(sourceCanvasRef.current)}
+            title="Tự động căn tâm tất cả frame theo vùng ảnh để khử rung giật"
           >
-            <IconRefresh width={13} height={13} />
-            <span>Đảo chiều</span>
+            🎯 Căn tâm tự động
           </button>
           <button
             type="button"
-            className="btn sm ghost"
-            title="Nhân bản chuỗi frame quay lui tạo chu kỳ mượt mà"
-            onClick={expandPingPong}
+            className="btn ghost sm"
+            onClick={reverseFrames}
+            title="Đảo ngược thứ tự toàn bộ các frame"
           >
-            <span>Mở rộng Ping-Pong</span>
+            ⇄ Đảo thứ tự
+          </button>
+          <button
+            type="button"
+            className="btn ghost sm"
+            onClick={() => duplicateFrame(selectedFrameIndex)}
+            title="Nhân bản frame đang chọn"
+          >
+            ⧉ Nhân bản
+          </button>
+          <button
+            type="button"
+            className="btn ghost sm"
+            onClick={addManualFrame}
+            title="Thêm 1 khung cắt thủ công mới"
+          >
+            + Thêm Frame
+          </button>
+          <button
+            type="button"
+            className="btn ghost sm danger"
+            onClick={() => deleteFrame(selectedFrameIndex)}
+            disabled={frames.length <= 1}
+            title="Xóa frame đang chọn"
+          >
+            🗑 Xóa
           </button>
         </div>
       </div>
 
-      {/* Danh sách các thẻ Card Khung hình */}
-      <div className="loop-strip-scroll">
-        {frames.map((frame, idx) => {
-          const isSelected = frame.index === selectedFrameIndex
-          const thumbUrl = sourceCanvasRef.current
-            ? extractFrameDataUrl(sourceCanvasRef.current, frame)
-            : ''
+      <div className="loop-strip-cards">
+        {frames.map((frame: LoopFrameBox, idx: number) => {
+          const isSelected = idx === selectedFrameIndex
+          const isPlayingNow = isPlaying && idx === playingFrameIndex
+          const isDragOver = idx === dragOver
 
           return (
             <div
               key={frame.id}
-              ref={isSelected ? activeCardRef : null}
-              className={`loop-frame-card${isSelected ? ' is-selected' : ''}${!frame.enabled ? ' is-disabled' : ''}`}
-              onClick={() => selectFrame(frame.index)}
+              ref={isSelected ? activeCardRef : undefined}
+              className={`loop-frame-card ${isSelected ? 'selected' : ''} ${isPlayingNow ? 'playing-now' : ''} ${!frame.enabled ? 'disabled' : ''} ${isDragOver ? 'drag-over' : ''}`}
+              draggable
+              onClick={() => selectFrame(idx)}
+              onDragStart={() => setDragFrom(idx)}
+              onDragOver={(e) => {
+                e.preventDefault()
+                setDragOver(idx)
+              }}
+              onDragLeave={() => setDragOver(null)}
+              onDrop={() => {
+                if (dragFrom !== null && dragFrom !== idx) {
+                  reorderFrame(dragFrom, idx)
+                }
+                setDragFrom(null)
+                setDragOver(null)
+              }}
             >
-              {/* Đầu thẻ Card: Số thứ tự & Nút ẩn/hiện */}
-              <div className="loop-card-top">
-                <span className="loop-card-badge">#{idx + 1}</span>
+              <div className="loop-frame-card-top">
+                <span className="loop-frame-number">#{idx + 1}</span>
                 <button
                   type="button"
-                  className="btn icon sm ghost"
-                  title={frame.enabled ? 'Tắt frame này khỏi chuỗi' : 'Bật lại frame này'}
+                  className={`loop-frame-toggle ${frame.enabled ? 'on' : 'off'}`}
                   onClick={(e) => {
                     e.stopPropagation()
-                    updateFrame(frame.index, { enabled: !frame.enabled })
+                    toggleFrameEnabled(idx)
                   }}
+                  title={frame.enabled ? 'Bỏ qua frame này khi phát' : 'Bật lại frame này'}
                 >
-                  {frame.enabled ? (
-                    <IconEye width={12} height={12} />
-                  ) : (
-                    <IconEyeOff width={12} height={12} />
-                  )}
+                  {frame.enabled ? '✓' : '✕'}
                 </button>
               </div>
-
-              {/* Vùng xem trước Thumbnail */}
-              <div className="loop-card-thumb-wrap">
-                {thumbUrl ? (
-                  <img
-                    src={thumbUrl}
-                    alt={`Frame ${idx + 1}`}
-                    className="loop-card-thumb"
-                  />
-                ) : (
-                  <div className="loop-card-thumb-placeholder">
-                    {frame.width}×{frame.height}
-                  </div>
+              <div className="loop-frame-thumb-wrap">
+                <FrameThumbCanvas
+                  sourceCanvasRef={sourceCanvasRef}
+                  sourceVersion={sourceVersion}
+                  frame={frame}
+                />
+              </div>
+              <div className="loop-frame-card-meta">
+                <span>
+                  {frame.width}×{frame.height}
+                </span>
+                {(frame.offsetX !== 0 || frame.offsetY !== 0) && (
+                  <span className="loop-frame-offset-tag">
+                    {frame.offsetX >= 0 ? `+${frame.offsetX}` : frame.offsetX},
+                    {frame.offsetY >= 0 ? `+${frame.offsetY}` : frame.offsetY}
+                  </span>
                 )}
-              </div>
-
-              {/* Tùy chỉnh Thời lượng (Hold Duration) */}
-              <div className="loop-card-params" onClick={(e) => e.stopPropagation()}>
-                <span className="loop-param-mini-label">Thời lượng:</span>
-                <div className="loop-duration-pills">
-                  {[1, 1.5, 2, 3].map((dur) => (
-                    <button
-                      key={dur}
-                      type="button"
-                      className={`loop-dur-pill${(frame.durationMultiplier || 1) === dur ? ' active' : ''}`}
-                      onClick={() => updateFrame(frame.index, { durationMultiplier: dur })}
-                    >
-                      {dur}x
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Thanh thao tác: Dời trái/phải, nhân bản, xóa */}
-              <div className="loop-card-footer" onClick={(e) => e.stopPropagation()}>
-                <button
-                  type="button"
-                  className="btn icon sm ghost"
-                  disabled={idx === 0}
-                  title="Dời sang trái"
-                  onClick={() => reorderFrames(idx, idx - 1)}
-                >
-                  <IconStepBack width={11} height={11} />
-                </button>
-                <button
-                  type="button"
-                  className="btn icon sm ghost"
-                  disabled={idx === frames.length - 1}
-                  title="Dời sang phải"
-                  onClick={() => reorderFrames(idx, idx + 1)}
-                >
-                  <IconStepFwd width={11} height={11} />
-                </button>
-                <button
-                  type="button"
-                  className="btn icon sm ghost"
-                  title="Nhân bản frame"
-                  onClick={() => duplicateFrame(frame.index)}
-                >
-                  <IconCopy width={11} height={11} />
-                </button>
-                <button
-                  type="button"
-                  className="btn icon sm ghost danger"
-                  title="Xóa frame"
-                  onClick={() => deleteFrame(frame.index)}
-                >
-                  <IconTrash width={11} height={11} />
-                </button>
               </div>
             </div>
           )

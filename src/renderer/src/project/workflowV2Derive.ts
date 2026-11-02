@@ -107,6 +107,45 @@ function deriveAction(layer: Layer, compDur: number, current?: WorkflowNode): De
 }
 
 function deriveAnimFx(layer: Layer, compDur: number, current?: WorkflowNode): Derived {
+  const hasLoopRhythm =
+    layer.type === 'image' &&
+    Boolean(layer.props.loopRhythmMode && layer.props.loopRhythmMode !== 'none')
+  const isCurrentLoopSprite =
+    current &&
+    (current.params?.animMode === 'loop_sprite' ||
+      current.params?.animFxPreset === 'loop_rhythm' ||
+      current.params?.animFxPreset === 'loop_flicker')
+
+  if (layer.type === 'image' && (hasLoopRhythm || isCurrentLoopSprite)) {
+    const range = resolveLayerNodeTimeRange(layer, compDur)
+    const rhythmMode =
+      layer.props.loopRhythmMode && layer.props.loopRhythmMode !== 'none'
+        ? layer.props.loopRhythmMode
+        : (current?.params?.loopRhythmMode ?? 'sync_both')
+    const speed = layer.props.speed ?? current?.params?.loopSpeed ?? 1
+    const loopMode = layer.props.loopMode ?? current?.params?.loopMode ?? 'loop'
+    return {
+      present: hasLoopRhythm || Boolean(layer.props.loopTemplateId) || Boolean(isCurrentLoopSprite),
+      enabled: hasLoopRhythm ? true : Boolean(current?.enabled),
+      params: {
+        animMode: 'loop_sprite',
+        animFxPreset: rhythmMode === 'flicker_opacity' ? 'loop_flicker' : 'loop_rhythm',
+        loopSpeed: speed,
+        loopMode,
+        loopRhythmMode: rhythmMode,
+        loopRhythmRateHz: layer.props.loopRhythmRateHz ?? current?.params?.loopRhythmRateHz ?? 2.5,
+        loopRhythmIntensity: layer.props.loopRhythmIntensity ?? current?.params?.loopRhythmIntensity ?? 0.45,
+        loopMinOpacity: layer.props.loopMinOpacity ?? current?.params?.loopMinOpacity ?? 0.55,
+        loopScaleBeatPct: layer.props.loopScaleBeatPct ?? current?.params?.loopScaleBeatPct ?? 12,
+        loopTimeOffset: layer.props.timeOffset ?? current?.params?.loopTimeOffset ?? 0,
+        loopAutoPlayPaused: layer.props.autoPlayPaused ?? current?.params?.loopAutoPlayPaused ?? true,
+        intensity: layer.props.loopRhythmIntensity ?? current?.params?.intensity ?? 0.45,
+        timeStart: r2(current?.params?.timeStart ?? range.start),
+        timeEnd: r2(current?.params?.timeEnd ?? range.end)
+      },
+      title: `Animation Loop: ${speed.toFixed(1)}x · ${rhythmMode === 'flicker_opacity' ? 'Nháy mờ' : rhythmMode === 'pulse_scale' ? 'Nhịp Scale' : 'Nhịp & Nháy'}`
+    }
+  }
   if (
     current &&
     (current.params?.animMode === 'rig_clip' ||

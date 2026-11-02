@@ -1,237 +1,443 @@
 import { create } from 'zustand'
-import type {
-  LoopFrame,
-  LoopSlicerMode,
-  GridSlicerConfig,
-  ContourSlicerConfig,
-  LoopChromaConfig,
-  LoopPlaybackConfig,
-  LoopAnimationPreset
-} from './types'
 import {
-  DEFAULT_GRID_CONFIG,
-  DEFAULT_CONTOUR_CONFIG,
-  DEFAULT_CHROMA_CONFIG,
-  DEFAULT_PLAYBACK_CONFIG
+  autoCenterLoopFrames,
+  buildGridFrames,
+  detectContourFrames,
+  extractFirstFramePreviewUrl
+} from './loopFrameExtractor'
+import { getAllLoopTemplates, saveLoopTemplate } from './loopAnimatorStorage'
+import { SAMPLE_LOOP_PRESETS } from './sampleLoops'
+import type {
+  ChromaKeyConfig,
+  ContourSlicerConfig,
+  GridSlicerConfig,
+  LoopAnimationMode,
+  LoopAnimationTemplate,
+  LoopFrameBox,
+  LoopPlaybackConfig,
+  LoopRhythmConfig,
+  SlicerMode
 } from './types'
-import { computeLoopGridFrames } from './loopFrameExtractor'
-import { BUILTIN_LOOP_PRESETS, SAMPLE_CAMPFIRE_TRANSPARENT } from './sampleLoops'
 
-export interface LoopAnimatorState {
+export interface LoopAnimatorStore {
   isOpen: boolean
-  name: string
-  imageUrl: string
   activePresetId: string | null
-  imageNaturalSize: { width: number; height: number }
-  frames: LoopFrame[]
-  selectedFrameIndex: number
-  slicerMode: LoopSlicerMode
+  layerName: string
+  category: LoopAnimationTemplate['category']
+  sourceImageUrl: string | null
+  sourceWidth: number
+  sourceHeight: number
+  sourceVersion: number
+  slicerMode: SlicerMode
   gridConfig: GridSlicerConfig
   contourConfig: ContourSlicerConfig
-  chromaConfig: LoopChromaConfig
+  chromaKey: ChromaKeyConfig
+  frames: LoopFrameBox[]
+  selectedFrameIndex: number
+  playingFrameIndex: number
   playback: LoopPlaybackConfig
 
-  // Actions
-  open: (presetOrUrl?: string | LoopAnimationPreset) => void
+  open: (presetId?: string) => void
   close: () => void
-  setName: (name: string) => void
-  setImageUrl: (url: string) => void
-  setImageNaturalSize: (size: { width: number; height: number }) => void
-  setSlicerMode: (mode: LoopSlicerMode) => void
+  loadPreset: (presetId: string) => void
+  loadCustomImage: (dataUrl: string, name?: string) => void
+  setSourceDimensions: (width: number, height: number) => void
+  bumpSourceVersion: () => void
+  setLayerName: (name: string) => void
+  setCategory: (category: LoopAnimationTemplate['category']) => void
+  setSlicerMode: (mode: SlicerMode) => void
   setGridConfig: (patch: Partial<GridSlicerConfig>) => void
   setContourConfig: (patch: Partial<ContourSlicerConfig>) => void
-  setChromaConfig: (patch: Partial<LoopChromaConfig>) => void
-  setPlayback: (patch: Partial<LoopPlaybackConfig>) => void
-  setFrames: (frames: LoopFrame[]) => void
+  runContourSlicer: (sourceCanvas: HTMLCanvasElement | null) => number
+  autoCenterFrames: (sourceCanvas: HTMLCanvasElement | null) => void
+  setChromaKey: (patch: Partial<ChromaKeyConfig>) => void
   selectFrame: (index: number) => void
-  updateFrame: (index: number, patch: Partial<LoopFrame>) => void
-  reorderFrames: (fromIndex: number, toIndex: number) => void
+  setPlayingFrame: (index: number) => void
+  updateFrame: (index: number, patch: Partial<LoopFrameBox>) => void
+  toggleFrameEnabled: (index: number) => void
+  reorderFrame: (fromIndex: number, toIndex: number) => void
   reverseFrames: () => void
-  expandPingPong: () => void
   duplicateFrame: (index: number) => void
   deleteFrame: (index: number) => void
-  autoGenerateGridFrames: (w?: number, h?: number) => void
+  addManualFrame: () => void
+  setPlayback: (patch: Partial<LoopPlaybackConfig>) => void
+  setRhythm: (patch: Partial<LoopRhythmConfig>) => void
+  togglePlaying: () => void
+  setFps: (fps: number) => void
+  setSpeed: (speed: number) => void
+  setLoopMode: (mode: LoopAnimationMode) => void
+  saveCurrentToLibrary: (sourceCanvas?: HTMLCanvasElement | null) => LoopAnimationTemplate | null
 }
 
-export const useLoopAnimator = create<LoopAnimatorState>((set, get) => ({
+const DEFAULT_PRESET = SAMPLE_LOOP_PRESETS[0]
+
+const DEFAULT_RHYTHM: LoopRhythmConfig = {
+  rhythmMode: DEFAULT_PRESET.defaultRhythm?.rhythmMode ?? 'flicker_opacity',
+  rhythmRateHz: DEFAULT_PRESET.defaultRhythm?.rhythmRateHz ?? 3.2,
+  rhythmIntensity: DEFAULT_PRESET.defaultRhythm?.rhythmIntensity ?? 0.25,
+  minOpacity: DEFAULT_PRESET.defaultRhythm?.minOpacity ?? 0.72,
+  scaleBeatPct: DEFAULT_PRESET.defaultRhythm?.scaleBeatPct ?? 8
+}
+
+export const useLoopAnimator = create<LoopAnimatorStore>((set, get) => ({
   isOpen: false,
-  name: 'Lửa trại hoạt ảnh lặp',
-  imageUrl: SAMPLE_CAMPFIRE_TRANSPARENT.imageUrl,
-  activePresetId: SAMPLE_CAMPFIRE_TRANSPARENT.id,
-  imageNaturalSize: { width: 1024, height: 1024 },
-  frames: computeLoopGridFrames(1024, 1024, DEFAULT_GRID_CONFIG),
-  selectedFrameIndex: 0,
+  activePresetId: DEFAULT_PRESET.id,
+  layerName: DEFAULT_PRESET.name,
+  category: DEFAULT_PRESET.category,
+  sourceImageUrl: DEFAULT_PRESET.imageUrl,
+  sourceWidth: 1024,
+  sourceHeight: 1024,
+  sourceVersion: 0,
   slicerMode: 'grid',
-  gridConfig: { ...DEFAULT_GRID_CONFIG },
-  contourConfig: { ...DEFAULT_CONTOUR_CONFIG },
-  chromaConfig: { ...DEFAULT_CHROMA_CONFIG },
-  playback: { ...DEFAULT_PLAYBACK_CONFIG },
-
-  open: (presetOrUrl) => {
-    if (typeof presetOrUrl === 'object' && presetOrUrl !== null) {
-      const p = presetOrUrl as LoopAnimationPreset
-      const grid = { ...DEFAULT_GRID_CONFIG, ...p.defaultGrid }
-      const chroma = { ...DEFAULT_CHROMA_CONFIG, ...(p.chromaConfig || {}) }
-      set({
-        isOpen: true,
-        name: p.name,
-        imageUrl: p.imageUrl,
-        activePresetId: p.id,
-        gridConfig: grid,
-        chromaConfig: chroma,
-        playback: { ...get().playback, fps: p.defaultFps || 12, isPlaying: true, currentFrame: 0 }
-      })
-      get().autoGenerateGridFrames()
-      return
-    }
-
-    const matchedPreset = BUILTIN_LOOP_PRESETS.find(
-      (p) => p.id === presetOrUrl || p.imageUrl === presetOrUrl
-    )
-
-    if (matchedPreset) {
-      get().open(matchedPreset)
-      return
-    }
-
-    if (typeof presetOrUrl === 'string' && presetOrUrl.length > 0) {
-      set({
-        isOpen: true,
-        activePresetId: null,
-        imageUrl: presetOrUrl,
-        playback: { ...get().playback, isPlaying: true, currentFrame: 0 }
-      })
-      get().autoGenerateGridFrames()
-    } else {
-      set({
-        isOpen: true,
-        playback: { ...get().playback, isPlaying: true, currentFrame: 0 }
-      })
-    }
+  gridConfig: { ...DEFAULT_PRESET.defaultGrid },
+  contourConfig: { alphaThreshold: 24, minArea: 180, mergeGap: 8 },
+  chromaKey: { ...DEFAULT_PRESET.defaultChroma },
+  frames: buildGridFrames(1024, 1024, DEFAULT_PRESET.defaultGrid),
+  selectedFrameIndex: 0,
+  playingFrameIndex: 0,
+  playback: {
+    fps: DEFAULT_PRESET.defaultFps,
+    speed: DEFAULT_PRESET.defaultSpeed ?? 1,
+    loopMode: DEFAULT_PRESET.defaultLoopMode ?? 'loop',
+    isPlaying: true,
+    onionSkin: false,
+    onionSkinOpacity: 0.3,
+    previewBg: 'checker',
+    rhythm: { ...DEFAULT_RHYTHM }
   },
 
-  close: () => {
+  open: (presetId) => {
+    if (presetId) {
+      get().loadPreset(presetId)
+    } else if (!get().sourceImageUrl) {
+      get().loadPreset(DEFAULT_PRESET.id)
+    }
+    set({ isOpen: true })
+  },
+
+  close: () => set({ isOpen: false }),
+
+  loadPreset: (presetId) => {
+    const allTemplates = getAllLoopTemplates()
+    const saved = allTemplates.find((t) => t.id === presetId)
+    if (saved) {
+      const s = get()
+      const w = s.sourceWidth || 1024
+      const h = s.sourceHeight || 1024
+      const nextFrames =
+        saved.frames && saved.frames.length > 0
+          ? saved.frames.map((f, idx) => ({ ...f, index: idx }))
+          : buildGridFrames(w, h, saved.gridConfig)
+      set({
+        activePresetId: saved.id,
+        layerName: saved.name,
+        category: saved.category,
+        sourceImageUrl: saved.imageUrl,
+        slicerMode: saved.slicerMode || 'grid',
+        gridConfig: { ...saved.gridConfig },
+        contourConfig: saved.contourConfig
+          ? { ...saved.contourConfig }
+          : { alphaThreshold: 24, minArea: 180, mergeGap: 8 },
+        chromaKey: { ...saved.chromaKey },
+        frames: nextFrames,
+        selectedFrameIndex: 0,
+        playingFrameIndex: 0,
+        playback: {
+          ...s.playback,
+          fps: saved.fps,
+          speed: saved.speed ?? 1,
+          loopMode: saved.loopMode || 'loop',
+          isPlaying: true,
+          rhythm: saved.rhythm
+            ? { ...saved.rhythm }
+            : {
+                rhythmMode: 'none',
+                rhythmRateHz: 2.2,
+                rhythmIntensity: 0.35,
+                minOpacity: 0.5,
+                scaleBeatPct: 12
+              }
+        }
+      })
+      return
+    }
+
+    const preset = SAMPLE_LOOP_PRESETS.find((p) => p.id === presetId) ?? DEFAULT_PRESET
+    const s = get()
+    const w = s.sourceWidth || 1024
+    const h = s.sourceHeight || 1024
     set({
-      isOpen: false,
-      playback: { ...get().playback, isPlaying: false }
+      activePresetId: preset.id,
+      layerName: preset.name,
+      category: preset.category,
+      sourceImageUrl: preset.imageUrl,
+      slicerMode: 'grid',
+      gridConfig: { ...preset.defaultGrid },
+      chromaKey: { ...preset.defaultChroma },
+      frames: buildGridFrames(w, h, preset.defaultGrid),
+      selectedFrameIndex: 0,
+      playingFrameIndex: 0,
+      playback: {
+        ...s.playback,
+        fps: preset.defaultFps,
+        speed: preset.defaultSpeed ?? 1,
+        loopMode: preset.defaultLoopMode ?? 'loop',
+        isPlaying: true,
+        rhythm: {
+          rhythmMode: preset.defaultRhythm?.rhythmMode ?? 'none',
+          rhythmRateHz: preset.defaultRhythm?.rhythmRateHz ?? 2.2,
+          rhythmIntensity: preset.defaultRhythm?.rhythmIntensity ?? 0.35,
+          minOpacity: preset.defaultRhythm?.minOpacity ?? 0.5,
+          scaleBeatPct: preset.defaultRhythm?.scaleBeatPct ?? 12
+        }
+      }
     })
   },
 
-  setName: (name) => set({ name }),
-  setImageUrl: (imageUrl) => set({ imageUrl, activePresetId: null }),
-  setImageNaturalSize: (imageNaturalSize) => {
-    set({ imageNaturalSize })
-    get().autoGenerateGridFrames(imageNaturalSize.width, imageNaturalSize.height)
+  loadCustomImage: (dataUrl, name) => {
+    const s = get()
+    const cleanName = name ? name.replace(/\.[^.]+$/, '') : 'Hoạt ảnh Loop mới'
+    set({
+      activePresetId: `loop_custom_${Date.now().toString(36)}`,
+      layerName: cleanName,
+      category: 'custom',
+      sourceImageUrl: dataUrl,
+      selectedFrameIndex: 0,
+      playingFrameIndex: 0,
+      frames: buildGridFrames(s.sourceWidth, s.sourceHeight, s.gridConfig)
+    })
   },
 
-  setSlicerMode: (slicerMode) => set({ slicerMode }),
+  setSourceDimensions: (width, height) => {
+    const s = get()
+    const nextFrames =
+      s.slicerMode === 'grid' ? buildGridFrames(width, height, s.gridConfig) : s.frames
+    set({
+      sourceWidth: width,
+      sourceHeight: height,
+      frames: nextFrames
+    })
+  },
+
+  bumpSourceVersion: () => set((s) => ({ sourceVersion: s.sourceVersion + 1 })),
+
+  setLayerName: (layerName) => set({ layerName }),
+  setCategory: (category) => set({ category }),
+
+  setSlicerMode: (slicerMode) => {
+    const s = get()
+    const nextFrames =
+      slicerMode === 'grid'
+        ? buildGridFrames(s.sourceWidth, s.sourceHeight, s.gridConfig)
+        : s.frames
+    set({ slicerMode, frames: nextFrames })
+  },
 
   setGridConfig: (patch) => {
-    const next = { ...get().gridConfig, ...patch }
-    set({ gridConfig: next })
-    get().autoGenerateGridFrames()
-  },
-
-  setContourConfig: (patch) => {
-    set({ contourConfig: { ...get().contourConfig, ...patch } })
-  },
-
-  setChromaConfig: (patch) => {
-    set({ chromaConfig: { ...get().chromaConfig, ...patch } })
-  },
-
-  setPlayback: (patch) => {
-    set({ playback: { ...get().playback, ...patch } })
-  },
-
-  setFrames: (frames) => {
+    const s = get()
+    const nextGrid = { ...s.gridConfig, ...patch }
+    const nextFrames = buildGridFrames(s.sourceWidth, s.sourceHeight, nextGrid)
     set({
-      frames,
-      selectedFrameIndex: Math.min(get().selectedFrameIndex, Math.max(0, frames.length - 1))
+      gridConfig: nextGrid,
+      slicerMode: 'grid',
+      frames: nextFrames,
+      selectedFrameIndex: Math.min(s.selectedFrameIndex, Math.max(0, nextFrames.length - 1)),
+      playingFrameIndex: 0
     })
   },
 
-  selectFrame: (selectedFrameIndex) => set({ selectedFrameIndex }),
+  setContourConfig: (patch) =>
+    set((s) => ({ contourConfig: { ...s.contourConfig, ...patch } })),
 
-  updateFrame: (index, patch) => {
-    const list = [...get().frames]
-    if (index >= 0 && index < list.length) {
-      list[index] = { ...list[index], ...patch }
-      set({ frames: list })
-    }
+  runContourSlicer: (sourceCanvas) => {
+    if (!sourceCanvas) return 0
+    const s = get()
+    const detected = detectContourFrames(sourceCanvas, s.contourConfig)
+    if (detected.length === 0) return 0
+    set({
+      slicerMode: 'contour',
+      frames: detected,
+      selectedFrameIndex: 0,
+      playingFrameIndex: 0
+    })
+    return detected.length
   },
 
-  reorderFrames: (fromIndex, toIndex) => {
-    const list = [...get().frames]
-    if (
-      fromIndex < 0 ||
-      fromIndex >= list.length ||
-      toIndex < 0 ||
-      toIndex >= list.length ||
-      fromIndex === toIndex
+  autoCenterFrames: (sourceCanvas) => {
+    if (!sourceCanvas) return
+    const s = get()
+    const centered = autoCenterLoopFrames(
+      sourceCanvas,
+      s.frames,
+      s.contourConfig.alphaThreshold || 24
     )
-      return
-    const [moved] = list.splice(fromIndex, 1)
-    list.splice(toIndex, 0, moved)
-    const reindexed = list.map((f, i) => ({ ...f, index: i }))
-    set({ frames: reindexed, selectedFrameIndex: toIndex })
+    set({ frames: centered })
   },
 
-  reverseFrames: () => {
-    const list = [...get().frames].reverse()
-    const reindexed = list.map((f, i) => ({ ...f, index: i }))
-    set({ frames: reindexed })
-  },
+  setChromaKey: (patch) =>
+    set((s) => ({
+      chromaKey: { ...s.chromaKey, ...patch }
+    })),
 
-  expandPingPong: () => {
-    const list = [...get().frames]
-    if (list.length <= 2) return
-    const middle = list.slice(1, -1).reverse()
-    const expanded = [
-      ...list,
-      ...middle.map((f) => ({
-        ...f,
-        id: `f_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
-      }))
-    ]
-    const reindexed = expanded.map((f, i) => ({ ...f, index: i }))
-    set({ frames: reindexed })
-  },
+  selectFrame: (index) =>
+    set((s) => ({
+      selectedFrameIndex: Math.max(0, Math.min(Math.max(0, s.frames.length - 1), index)),
+      playingFrameIndex: Math.max(0, Math.min(Math.max(0, s.frames.length - 1), index))
+    })),
 
-  duplicateFrame: (index) => {
-    const list = [...get().frames]
-    if (index < 0 || index >= list.length) return
-    const target = list[index]
-    const copy: LoopFrame = {
-      ...target,
-      id: `frame_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-      label: `${target.label} (sao chép)`
+  setPlayingFrame: (index) =>
+    set((s) => {
+      if (s.playingFrameIndex === index) return s
+      return { playingFrameIndex: index }
+    }),
+
+  updateFrame: (index, patch) =>
+    set((s) => ({
+      frames: s.frames.map((f, i) => (i === index ? { ...f, ...patch } : f))
+    })),
+
+  toggleFrameEnabled: (index) =>
+    set((s) => ({
+      frames: s.frames.map((f, i) => (i === index ? { ...f, enabled: !f.enabled } : f))
+    })),
+
+  reorderFrame: (fromIndex, toIndex) =>
+    set((s) => {
+      if (fromIndex < 0 || fromIndex >= s.frames.length) return s
+      if (toIndex < 0 || toIndex >= s.frames.length || fromIndex === toIndex) return s
+      const copy = [...s.frames]
+      const [moved] = copy.splice(fromIndex, 1)
+      copy.splice(toIndex, 0, moved)
+      return {
+        frames: copy.map((f, idx) => ({ ...f, index: idx })),
+        selectedFrameIndex: toIndex
+      }
+    }),
+
+  reverseFrames: () =>
+    set((s) => ({
+      frames: [...s.frames].reverse().map((f, idx) => ({ ...f, index: idx }))
+    })),
+
+  duplicateFrame: (index) =>
+    set((s) => {
+      const target = s.frames[index]
+      if (!target) return s
+      const clone: LoopFrameBox = {
+        ...target,
+        id: `frame_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
+      }
+      const next = [...s.frames]
+      next.splice(index + 1, 0, clone)
+      return {
+        frames: next.map((f, idx) => ({ ...f, index: idx })),
+        selectedFrameIndex: index + 1
+      }
+    }),
+
+  deleteFrame: (index) =>
+    set((s) => {
+      if (s.frames.length <= 1) return s
+      const next = s.frames.filter((_, i) => i !== index).map((f, idx) => ({ ...f, index: idx }))
+      return {
+        frames: next,
+        selectedFrameIndex: Math.min(s.selectedFrameIndex, Math.max(0, next.length - 1)),
+        playingFrameIndex: 0
+      }
+    }),
+
+  addManualFrame: () =>
+    set((s) => {
+      const size = Math.round(Math.min(s.sourceWidth, s.sourceHeight) * 0.25)
+      const newFrame: LoopFrameBox = {
+        id: `frame_manual_${Date.now()}`,
+        index: s.frames.length,
+        x: Math.round((s.sourceWidth - size) * 0.5),
+        y: Math.round((s.sourceHeight - size) * 0.5),
+        width: size,
+        height: size,
+        offsetX: 0,
+        offsetY: 0,
+        enabled: true,
+        durationRatio: 1
+      }
+      return {
+        slicerMode: 'manual',
+        frames: [...s.frames, newFrame],
+        selectedFrameIndex: s.frames.length
+      }
+    }),
+
+  setPlayback: (patch) =>
+    set((s) => ({
+      playback: { ...s.playback, ...patch }
+    })),
+
+  setRhythm: (patch) =>
+    set((s) => ({
+      playback: {
+        ...s.playback,
+        rhythm: { ...s.playback.rhythm, ...patch }
+      }
+    })),
+
+  togglePlaying: () =>
+    set((s) => ({
+      playback: { ...s.playback, isPlaying: !s.playback.isPlaying }
+    })),
+
+  setFps: (fps) =>
+    set((s) => ({
+      playback: { ...s.playback, fps: Math.max(1, Math.min(60, Math.round(fps))) }
+    })),
+
+  setSpeed: (speed) =>
+    set((s) => ({
+      playback: { ...s.playback, speed: Math.max(0.1, Math.min(4, Number(speed.toFixed(2)))) }
+    })),
+
+  setLoopMode: (loopMode) =>
+    set((s) => ({
+      playback: { ...s.playback, loopMode }
+    })),
+
+  saveCurrentToLibrary: (sourceCanvas) => {
+    const s = get()
+    if (!s.sourceImageUrl) return null
+    const id = s.activePresetId || `loop_${Date.now().toString(36)}`
+    const enabledCount = s.frames.filter((f) => f.enabled).length
+    const categoryBadgeMap: Record<LoopAnimationTemplate['category'], string> = {
+      fire: `🔥 Lửa ${enabledCount}F`,
+      magic: `✨ Phép ${enabledCount}F`,
+      nature: `🦋 Sinh vật ${enabledCount}F`,
+      electric: `⚡ Điện ${enabledCount}F`,
+      custom: `🎞 Loop ${enabledCount}F`
     }
-    list.splice(index + 1, 0, copy)
-    const reindexed = list.map((f, i) => ({ ...f, index: i }))
-    set({ frames: reindexed, selectedFrameIndex: index + 1 })
-  },
+    const thumbUrl = sourceCanvas
+      ? extractFirstFramePreviewUrl(sourceCanvas, s.frames, 256)
+      : undefined
 
-  deleteFrame: (index) => {
-    const list = [...get().frames]
-    if (list.length <= 1) {
-      window.alert('Không thể xóa khung hình cuối cùng!')
-      return
+    const template: LoopAnimationTemplate = {
+      id,
+      name: s.layerName.trim() || 'Hoạt ảnh Loop',
+      category: s.category,
+      badge: categoryBadgeMap[s.category] || `🎞 Loop ${enabledCount}F`,
+      description: `Hoạt ảnh lặp ${enabledCount} frame (${s.playback.fps} FPS • ${s.playback.loopMode})`,
+      imageUrl: s.sourceImageUrl,
+      thumbUrl,
+      slicerMode: s.slicerMode,
+      gridConfig: { ...s.gridConfig },
+      contourConfig: { ...s.contourConfig },
+      chromaKey: { ...s.chromaKey },
+      fps: s.playback.fps,
+      speed: s.playback.speed,
+      loopMode: s.playback.loopMode,
+      rhythm: { ...s.playback.rhythm },
+      frameCount: enabledCount,
+      frames: s.frames.map((f) => ({ ...f }))
     }
-    if (index >= 0 && index < list.length) {
-      list.splice(index, 1)
-      const reindexed = list.map((f, i) => ({ ...f, index: i }))
-      set({
-        frames: reindexed,
-        selectedFrameIndex: Math.min(index, reindexed.length - 1)
-      })
-    }
-  },
-
-  autoGenerateGridFrames: (w, h) => {
-    const width = w ?? get().imageNaturalSize.width ?? 1024
-    const height = h ?? get().imageNaturalSize.height ?? 1024
-    const frames = computeLoopGridFrames(width, height, get().gridConfig)
-    set({ frames, selectedFrameIndex: 0 })
+    const saved = saveLoopTemplate(template)
+    set({ activePresetId: saved.id })
+    return saved
   }
 }))

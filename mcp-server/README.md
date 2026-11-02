@@ -636,3 +636,11 @@ Flags (PowerShell/CMD):
 pnpm pxs call layer_assembly_rig --action apply-creature-rig --species fish --facing right --binding_mode soft
 pnpm pxs call layer_assembly_rig --action subdivide-bone --bone_id bone-fish-spine-s1 --segments 3
 ```
+
+
+### Xưởng Tách Hoạt Ảnh Loop, Logic Nhịp & Nháy (Scene / Workflow V2 / Xưởng 2.5D)
+- **Kho Loop Animate (`assets_loop`):** Hiển thị preview **Frame #1** đã tách nền khi tạm dừng, nút `▶ Chạy / ⏸ Dừng` trên từng thẻ và `▶ Phát tất cả / ⏸ Dừng tất cả` trên thanh công cụ.
+- **Xưởng Tách Hoạt Ảnh Loop (`loop_animator`):** Hỗ trợ 3 chế độ cắt (`grid`, `contour` quét tách đảo tự động, `manual`), căn tâm tự động (`🎯 Căn tâm`), nút `▶ Chạy thử / ⏸ Tạm dừng` tốc độ 60fps không lag, và cấu hình **Logic Nhịp & Nháy** (`flicker_opacity`, `pulse_scale`, `sync_both`, `strobe_beat`).
+- **Tích hợp Cảnh, Timeline & Workflow V2:** Node Animation (`anim_fx`) chế độ `🔁 Loop & Nhịp` (`animMode: "loop_sprite"`, mẫu `v2:anim_fx:loop_rhythm`, `v2:anim_fx:loop_flicker`) điều khiển tốc độ chạy, kiểu lặp, lệch pha, tần số nhịp (Hz), độ mờ đáy và biên độ nhịp co giãn.
+- **Tích hợp Xưởng Lắp Ráp 2.5D:** Tab `Logic Loop` (`tab: "loop"`) gắn trực tiếp mẫu Loop Animate vào mảnh 2.5D và đồng bộ Nguồn sáng ảo 2.5D nháy theo nhịp Loop.
+- Vùng chụp UI: `assets_loop`, `loop_animator`, `loop_animator_presets`, `loop_animator_source`, `loop_animator_player`, `inspector_loop_logic`, `workflow_loop_params`, `layer_assembly_loop_logic`.

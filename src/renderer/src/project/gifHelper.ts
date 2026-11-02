@@ -1,9 +1,14 @@
-import type { ImageProps } from '@shared/types'
+import type { ImageProps, LoopRhythmMode } from '@shared/types'
 import type { AnimatedGifData } from './assets'
 
+export interface LoopRhythmEvaluation {
+  opacityMultiplier: number
+  scaleMultiplier: number
+}
+
 /**
- * Computes the active frame index of an animated GIF/WebP at a given timeline time `t`.
- * Supports playback speed, loop modes (loop, ping-pong, once), and time offset.
+ * Computes the active frame index of an animated GIF/WebP/Loop Sprite at a given timeline time `t`.
+ * Supports playback speed, loop modes ('loop', 'ping-pong', 'once', 'random'), and time offset.
  */
 export function getAnimatedGifFrameIndex(
   gif: AnimatedGifData,
@@ -22,6 +27,13 @@ export function getAnimatedGifFrameIndex(
   let localT = (t + offset) * speed
   if (isNaN(localT) || localT < 0) localT = 0
 
+  if (loopMode === 'random') {
+    const avgDur = Math.max(0.016, duration / Math.max(1, frames.length))
+    const slot = Math.floor(localT / avgDur)
+    const hash = Math.abs(Math.sin(slot * 12.9898 + 78.233) * 43758.5453)
+    return Math.floor((hash - Math.floor(hash)) * frames.length) % frames.length
+  }
+
   let frameT: number
   if (loopMode === 'once') {
     frameT = Math.min(localT, Math.max(0, duration - 1e-4))
@@ -30,7 +42,6 @@ export function getAnimatedGifFrameIndex(
     const rem = localT % cycle
     frameT = rem < duration ? rem : cycle - rem
   } else {
-    // 'loop'
     frameT = localT % duration
   }
 
@@ -53,4 +64,66 @@ export function getAnimatedGifFrameIndex(
     }
   }
   return Math.max(0, Math.min(frames.length - 1, low))
+}
+
+/**
+ * Evaluates rhythmic opacity flicker & scale pulse synchronized with a Loop Animate layer.
+ */
+export function evaluateLoopLayerRhythm(
+  props: {
+    loopRhythmMode?: LoopRhythmMode
+    loopRhythmRateHz?: number
+    loopRhythmIntensity?: number
+    loopMinOpacity?: number
+    loopScaleBeatPct?: number
+    timeOffset?: number
+    speed?: number
+  },
+  t: number,
+  layerInPoint = 0
+): LoopRhythmEvaluation {
+  const mode = props.loopRhythmMode ?? 'none'
+  if (mode === 'none') {
+    return { opacityMultiplier: 1, scaleMultiplier: 1 }
+  }
+
+  const rateHz = Math.max(0.1, Math.min(20, props.loopRhythmRateHz ?? 2.2))
+  const intensity = Math.max(0, Math.min(1, props.loopRhythmIntensity ?? 0.45))
+  const minOpacity = Math.max(0, Math.min(1, props.loopMinOpacity ?? Math.max(0.15, 1 - intensity * 0.85)))
+  const scaleBeatPct = Math.max(0, Math.min(60, props.loopScaleBeatPct ?? 12))
+  const offset = props.timeOffset ?? 0
+  const elapsed = Math.max(0, t - layerInPoint + offset)
+  const phase = elapsed * rateHz * Math.PI * 2
+
+  // Smooth harmonic wave (0..1) + organic flicker harmonic
+  const wave = Math.sin(phase) * 0.5 + 0.5
+  const flickerWave =
+    Math.sin(phase) * 0.45 +
+    Math.sin(phase * 2.37 + 1.3) * 0.3 +
+    Math.cos(phase * 4.13 + 2.7) * 0.25
+  const flicker01 = Math.max(0, Math.min(1, flickerWave * 0.5 + 0.5))
+
+  let opacityMultiplier = 1
+  let scaleMultiplier = 1
+
+  if (mode === 'flicker_opacity') {
+    opacityMultiplier = minOpacity + (1 - minOpacity) * (1 - intensity + intensity * flicker01)
+  } else if (mode === 'pulse_scale') {
+    const beat = Math.pow(wave, 1.6)
+    scaleMultiplier = 1 + (scaleBeatPct / 100) * intensity * beat
+  } else if (mode === 'sync_both') {
+    const beat = Math.pow(wave, 1.5)
+    opacityMultiplier = minOpacity + (1 - minOpacity) * (1 - intensity * 0.8 + intensity * 0.8 * flicker01)
+    scaleMultiplier = 1 + (scaleBeatPct / 100) * intensity * beat
+  } else if (mode === 'strobe_beat') {
+    const step = Math.sin(phase) > -0.15 ? 1 : 0
+    const kick = Math.pow(Math.max(0, Math.sin(phase)), 3)
+    opacityMultiplier = step ? 1 : minOpacity
+    scaleMultiplier = 1 + (scaleBeatPct / 100) * intensity * kick
+  }
+
+  return {
+    opacityMultiplier: Math.max(0, Math.min(1, opacityMultiplier)),
+    scaleMultiplier: Math.max(0.1, Math.min(3, scaleMultiplier))
+  }
 }

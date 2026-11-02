@@ -95,7 +95,7 @@ export const SCENE_TOOLS = [
         'camera_path', 'camera_path_presets', 'camera_path_steps',
         'mcp_dialog', 'mcp_status', 'mcp_config', 'mcp_guide',
         'remote_dialog', 'remote_qr_card', 'remote_mode_picker', 'remote_touchpad_card', 'remote_devices_list', 'remote_client_hud',
-        'loop_animator', 'loop_animator_stage', 'loop_animator_toolbar', 'loop_animator_chroma', 'loop_animator_frames', 'assets_loop',
+        'loop_animator', 'loop_animator_presets', 'loop_animator_source', 'loop_animator_player', 'loop_animator_stage', 'loop_animator_toolbar', 'loop_animator_chroma', 'loop_animator_frames', 'assets_loop', 'inspector_loop_logic', 'workflow_loop_params', 'layer_assembly_loop_logic',
         'ai_hud', 'window'
       ]).optional().describe(d('Predefined UI region to capture. Use "active" to capture the TOPMOST open dialog automatically (e.g. Studio Mixamo opened inside the Layer Workshop) instead of the whole window; "dialog" also picks the topmost dialog. Sub-regions (e.g. layer_assembly_mixamo_stage, layer_assembly_parts, audio_studio_waveform) crop a single control to save tokens. Any element with data-mcp-region="<name>" is matched automatically.', 'Vùng UI định sẵn cần chụp. Dùng "active" để tự chụp đúng dialog đang mở TRÊN CÙNG (VD Studio Mixamo mở bên trong Xưởng Layer) thay vì cả cửa sổ; "dialog" cũng chọn dialog trên cùng. Vùng con (VD layer_assembly_mixamo_stage, layer_assembly_parts, audio_studio_waveform) chỉ cắt đúng một control để tiết kiệm token. Mọi phần tử có data-mcp-region="<tên>" đều tự khớp.')),
       selector: z.string().optional().describe(d('CSS selector of a specific element to capture (e.g. ".music-panel-layout", "#music-tab-add-btn"). Falls back to whole window if not found.', 'CSS selector của phần tử cụ thể cần chụp. Tự động chụp toàn bộ app nếu không tìm thấy selector.')),
@@ -123,7 +123,7 @@ export const SCENE_TOOLS = [
     ),
     shape: (d) => ({
       dialog: z.enum([
-        'none', 'path', 'sketch', 'performance', 'mcp', 'remote', 'audio', 'export', 'assembly_3d', 'layer_assembly', 'layer_assembly_create'
+        'none', 'path', 'sketch', 'performance', 'mcp', 'remote', 'audio', 'export', 'assembly_3d', 'layer_assembly', 'layer_assembly_create', 'loop_animator'
       ]).optional().describe(d('Dialog or workshop to open, or "none" to close all modals.', 'Hộp thoại hoặc xưởng cần mở, hoặc "none" để đóng tất cả hộp thoại.')),
       audio_mode: z.enum(['waveform', 'levels', 'mixer']).optional().describe(d('Audio Studio tab mode when opening or switching Audio Studio.', 'Chế độ tab Phòng thu âm thanh khi mở hoặc chuyển tab (waveform, levels, mixer).')),
       track_id: z.string().optional().describe(d('Audio track ID to select in Audio Studio.', 'ID track âm thanh cần chọn trong Phòng thu.')),

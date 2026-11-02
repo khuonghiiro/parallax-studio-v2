@@ -27,7 +27,10 @@ export interface WorkflowV2AnimFxOption {
     | 'neonBreathe'
     | 'neonBlink'
     | 'neonFlicker'
+    | 'neonFlicker'
     | 'neonSolid'
+    | 'loop_rhythm'
+    | 'loop_flicker'
   label: string
   shortLabel: string
   badge: string
@@ -49,7 +52,9 @@ export const WORKFLOW_V2_ANIM_FX_OPTIONS: WorkflowV2AnimFxOption[] = [
   { id: 'neonBreathe', label: 'Viền Neon Thở (Breathe)', shortLabel: '✨ Neon Thở', badge: '✨', fxCategory: 'glow', defaultDuration: 1.5, defaultIntensity: 1.5, defaultColor: '#3dd6f5' },
   { id: 'neonBlink', label: 'Viền Neon Nhấp nháy (Blink)', shortLabel: '🚨 Neon Chớp', badge: '🚨', fxCategory: 'glow', defaultDuration: 1.0, defaultIntensity: 1.6, defaultCount: 4, defaultColor: '#f59e0b' },
   { id: 'neonFlicker', label: 'Viền Neon Chập chờn (Flicker)', shortLabel: '💡 Neon Chập chờn', badge: '💡', fxCategory: 'glow', defaultDuration: 1.2, defaultIntensity: 1.8, defaultColor: '#ec4899' },
-  { id: 'neonSolid', label: 'Viền Neon Tĩnh (Solid Glow)', shortLabel: '🔮 Neon Tĩnh', badge: '🔮', fxCategory: 'glow', defaultDuration: 1.0, defaultIntensity: 1.3, defaultColor: '#3dd6f5' }
+  { id: 'neonSolid', label: 'Viền Neon Tĩnh (Solid Glow)', shortLabel: '🔮 Neon Tĩnh', badge: '🔮', fxCategory: 'glow', defaultDuration: 1.0, defaultIntensity: 1.3, defaultColor: '#3dd6f5' },
+  { id: 'loop_rhythm', label: 'Loop: Nhịp đập & Nháy sáng', shortLabel: '🔁 Nhịp Loop', badge: '🔁', fxCategory: 'transform', defaultDuration: 2.0, defaultIntensity: 0.45 },
+  { id: 'loop_flicker', label: 'Loop: Chập chờn Ánh lửa / Sét', shortLabel: '🔥 Chập chờn Loop', badge: '🔥', fxCategory: 'opacity', defaultDuration: 2.0, defaultIntensity: 0.4 }
 ]
 
 export interface WorkflowV2ActionOption {

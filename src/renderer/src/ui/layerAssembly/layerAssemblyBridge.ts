@@ -3,8 +3,8 @@ import type { LayerComposite } from './types'
 export interface ActiveLayerAssemblySession {
   getPrimaryMode?: () => 'assembly' | 'cutter'
   setPrimaryMode?: (mode: 'assembly' | 'cutter') => void
-  getTab?: () => 'layers' | 'bones' | 'animation' | 'plant'
-  setTab?: (tab: 'layers' | 'bones' | 'animation' | 'plant') => void
+  getTab?: () => 'layers' | 'bones' | 'animation' | 'plant' | 'loop'
+  setTab?: (tab: 'layers' | 'bones' | 'animation' | 'plant' | 'loop') => void
   getSelectedBoneId?: () => string | null
   setSelectedBoneId?: (id: string | null) => void
   getComposite: () => LayerComposite

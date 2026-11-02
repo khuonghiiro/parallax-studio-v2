@@ -1,14 +1,15 @@
 import { nanoid } from 'nanoid'
-import type { LayerComposite, AssembledLayerItem } from './types'
-import { useEditor } from '../../store/editor'
-import { assetStore } from '../../project/assets'
-import { createImageLayer } from '../../project/factory'
 import type { AssetMeta, Composition, ImageLayer, LayerMotion } from '@shared/types'
 import { toast } from '../../actions'
-import { exportWorkshopSkin } from './exportWorkshopSkin'
+import { assetStore } from '../../project/assets'
+import { createImageLayer } from '../../project/factory'
+import { useEditor } from '../../store/editor'
+import { buildLoopAnimatedAsset } from '../loopAnimator/loopAnimationExporter'
 import { bakeWorkshopRig } from './bakeWorkshopRig'
-import { validateRig } from './workshopRig'
 import { resolveCompositeItemAsset } from './compositeAssetLoader'
+import { exportWorkshopSkin } from './exportWorkshopSkin'
+import type { AssembledLayerItem, LayerComposite } from './types'
+import { validateRig } from './workshopRig'
 
 export interface InsertCompositeOptions {
   composite: LayerComposite
@@ -76,6 +77,22 @@ function buildSceneLayer({
     layer.props.width = asset.width
     layer.props.height = asset.height
   }
+  if (item.loopConfig?.enabled) {
+    layer.props.speed = item.loopConfig.speed ?? 1
+    layer.props.loopMode = item.loopConfig.loopMode ?? 'loop'
+    layer.props.timeOffset = item.loopConfig.timeOffset ?? 0
+    layer.props.autoPlayPaused = true
+    if (item.loopConfig.templateId) {
+      layer.props.loopTemplateId = item.loopConfig.templateId
+    }
+    if (item.loopConfig.rhythmMode && item.loopConfig.rhythmMode !== 'none') {
+      layer.props.loopRhythmMode = item.loopConfig.rhythmMode
+      layer.props.loopRhythmRateHz = item.loopConfig.rhythmRateHz ?? 2.5
+      layer.props.loopRhythmIntensity = item.loopConfig.rhythmIntensity ?? 0.4
+      layer.props.loopMinOpacity = item.loopConfig.minOpacity ?? 0.6
+      layer.props.loopScaleBeatPct = item.loopConfig.scaleBeatPct ?? 12
+    }
+  }
   layer.transform.position.value = pos
   layer.transform.scale.value = [
     item.scale * (item.scaleX ?? 1) * globalScale,
@@ -84,7 +101,6 @@ function buildSceneLayer({
   ]
   layer.transform.rotation.value = [item.rotationX || 0, item.rotationY || 0, item.rotation || 0]
   layer.transform.opacity.value = item.opacity
-  // Liên kết cụm (khoá cụm, di chuyển đồng bộ) + thông tin bộ phận để đổi biểu cảm / bộ phận nhanh trong cảnh
   layer.composite = {
     instanceId,
     compositeId: composite.id,
@@ -135,8 +151,27 @@ export async function insertLayerCompositeToScene({
 
   for (let idx = 0; idx < activeItems.length; idx++) {
     const item = activeItems[idx]
-    const { asset, isNew } = await resolveCompositeItemAsset(item, composite, [...projectAssets, ...newAssets])
-    if (isNew && !newAssets.some((a) => a.id === asset.id)) newAssets.push(asset)
+    let asset: AssetMeta
+    if (
+      item.loopConfig?.enabled &&
+      item.loopConfig.spriteSheetUrl &&
+      item.loopConfig.frames &&
+      item.loopConfig.frames.length > 0
+    ) {
+      const built = await buildLoopAnimatedAsset({
+        name: item.name,
+        spriteSheetUrl: item.loopConfig.spriteSheetUrl,
+        frames: item.loopConfig.frames,
+        chromaKey: item.loopConfig.chromaKey,
+        fps: item.loopConfig.fps || 12
+      })
+      asset = built.assetMeta
+      newAssets.push(asset)
+    } else {
+      const resolved = await resolveCompositeItemAsset(item, composite, [...projectAssets, ...newAssets])
+      asset = resolved.asset
+      if (resolved.isNew && !newAssets.some((a) => a.id === asset.id)) newAssets.push(asset)
+    }
     const layer = buildSceneLayer({
       item,
       asset,
@@ -156,7 +191,6 @@ export async function insertLayerCompositeToScene({
   if (layersToAdd.length > 0) {
     useEditor.getState().update((p) => {
       if (newAssets.length > 0) p.assets.push(...newAssets.filter((a) => !p.assets.some((x) => x.id === a.id)))
-      // Chèn layer lên trên cùng của shot hiện tại để hiển thị ngay trước mắt người xem
       const firstShotIdx = p.layers.findIndex((l) => l.shotId === shotId)
       if (firstShotIdx < 0) p.layers.unshift(...layersToAdd)
       else p.layers.splice(firstShotIdx, 0, ...layersToAdd)

@@ -159,6 +159,31 @@ export interface LayerCapabilityPlugin {
  */
 export const LAYER_CAPABILITY_PLUGINS: LayerCapabilityPlugin[] = [
   {
+    id: 'cap-loop-animate',
+    category: 'motion',
+    inspect: (layer) => {
+      if (layer.type !== 'image') return null
+      const hasLoop =
+        Boolean(layer.props.loopTemplateId) ||
+        (Boolean(layer.props.loopRhythmMode) && layer.props.loopRhythmMode !== 'none')
+      if (!hasLoop) return null
+      const spd = (layer.props.speed ?? 1).toFixed(1)
+      const mode = layer.props.loopMode ?? 'loop'
+      const rhythm =
+        layer.props.loopRhythmMode && layer.props.loopRhythmMode !== 'none'
+          ? ` · Nhịp ${layer.props.loopRhythmMode}`
+          : ''
+      return {
+        icon: '🔁',
+        label: `Loop ${spd}x`,
+        tooltip: `Hoạt ảnh lặp Loop (${spd}x · ${mode}${rhythm}) — Click để chỉnh tốc độ & nhịp nháy`,
+        accent: '#a855f7',
+        enabled: true,
+        inspectorSection: 'layer'
+      }
+    }
+  },
+  {
     id: 'cap-virtual-light',
     category: 'light_fx',
     inspect: (layer) => {

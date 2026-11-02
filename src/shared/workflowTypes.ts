@@ -229,7 +229,16 @@ export interface WorkflowNodeParams {
   /** [Workflow V2] Kiểu nhịp cử động của Bộ phận con ('smooth' = Vào-Giữ-Trả về, 'hold' = Giữ nguyên tư thế, 'oscillate' = Vẫy/Lắc liên tục) */
   partPoseWave?: 'smooth' | 'hold' | 'oscillate'
   /** [Workflow V2] Chế độ chính của Node Animation ('rig_clip' = Hành động Xương Nhân vật, 'keyframe_fx' = Nhịp Biến đổi Keyframe FX) */
-  animMode?: 'rig_clip' | 'keyframe_fx'
+  animMode?: 'rig_clip' | 'keyframe_fx' | 'loop_sprite'
+  loopSpeed?: number
+  loopMode?: 'loop' | 'ping-pong' | 'once' | 'random'
+  loopRhythmMode?: 'none' | 'flicker_opacity' | 'pulse_scale' | 'sync_both' | 'strobe_beat'
+  loopRhythmRateHz?: number
+  loopRhythmIntensity?: number
+  loopMinOpacity?: number
+  loopScaleBeatPct?: number
+  loopTimeOffset?: number
+  loopAutoPlayPaused?: boolean
   /** [Workflow V2] Chế độ chính của Node Motion ('bbox' = Đặt BBox đích #1->#2 thu phóng & chiều sâu, 'path' = Vẽ quỹ đạo di chuyển A->B, 'cycle' = Dao động chu kỳ tại chỗ) */
   motionMode?: 'bbox' | 'path' | 'cycle'
   /** [Workflow V2] Dạng đường đi giữa BBox #1 và BBox #2 ('shortest' = Tự động tìm khoảng cách ngắn nhất, 'custom_curve' = Đặt vị trí đích #2 rồi vẽ đường đi) */

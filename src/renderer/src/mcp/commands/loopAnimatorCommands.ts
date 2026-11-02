@@ -1,10 +1,10 @@
-import type { Handler, Params } from '../types'
-import { str, num, bool } from '../params'
 import { useView } from '../../store/view'
+import { exportLoopPresetDirectly } from '../../ui/loopAnimator/loopAnimationExporter'
+import { getAllLoopTemplates } from '../../ui/loopAnimator/loopAnimatorStorage'
 import { useLoopAnimator } from '../../ui/loopAnimator/loopAnimatorState'
-import { applyLoopAnimationToProject } from '../../ui/loopAnimator/loopAnimationExporter'
-import { BUILTIN_LOOP_PRESETS } from '../../ui/loopAnimator/sampleLoops'
-import type { LoopMode, GridOrder, ChromaKeyColorType } from '../../ui/loopAnimator/types'
+import type { LoopAnimationMode, LoopRhythmMode, SlicerMode } from '../../ui/loopAnimator/types'
+import { bool, num, str } from '../params'
+import type { Handler, Params } from '../types'
 
 export const loopAnimatorCommands: Record<string, Handler> = {
   open_loop_animator: async (p: Params) => {
@@ -18,14 +18,10 @@ export const loopAnimatorCommands: Record<string, Handler> = {
     const animator = useLoopAnimator.getState()
 
     if (presetId) {
-      const found = BUILTIN_LOOP_PRESETS.find((x) => x.id === presetId)
-      if (found) {
-        animator.open(found)
-      } else {
-        animator.open(presetId)
-      }
+      animator.open(presetId)
     } else if (imageUrl) {
-      animator.open(imageUrl)
+      animator.open()
+      animator.loadCustomImage(imageUrl)
     } else {
       animator.open()
     }
@@ -37,10 +33,10 @@ export const loopAnimatorCommands: Record<string, Handler> = {
       })
     }
 
-    if (chroma !== undefined) {
-      animator.setChromaConfig({
-        enabled: chroma,
-        ...(keyColor ? { keyColorType: keyColor as ChromaKeyColorType } : {})
+    if (chroma !== undefined || keyColor) {
+      animator.setChromaKey({
+        ...(chroma !== undefined ? { enabled: chroma } : {}),
+        ...(keyColor ? { keyColor } : {})
       })
     }
 
@@ -50,11 +46,13 @@ export const loopAnimatorCommands: Record<string, Handler> = {
     return {
       ok: true,
       is_open: true,
-      name: s.name,
-      image_url: s.imageUrl,
+      name: s.layerName,
+      image_url: s.sourceImageUrl,
       frames_count: s.frames.length,
       fps: s.playback.fps,
-      loop_mode: s.playback.loopMode
+      speed: s.playback.speed,
+      loop_mode: s.playback.loopMode,
+      rhythm: s.playback.rhythm
     }
   },
 
@@ -66,20 +64,24 @@ export const loopAnimatorCommands: Record<string, Handler> = {
 
   get_loop_animator_state: async () => {
     const s = useLoopAnimator.getState()
-    const viewDialog = useView.getState().dialog
+    const activeDialog = useView.getState().dialog
     return {
       ok: true,
-      is_open: viewDialog === 'loop_animator' && s.isOpen,
-      name: s.name,
-      image_url: s.imageUrl,
-      image_dimensions: s.imageNaturalSize,
+      is_open: activeDialog === 'loop_animator',
+      name: s.layerName,
+      category: s.category,
+      image_url: s.sourceImageUrl,
+      image_dimensions: { width: s.sourceWidth, height: s.sourceHeight },
       slicer_mode: s.slicerMode,
       grid_config: s.gridConfig,
-      chroma_config: s.chromaConfig,
+      contour_config: s.contourConfig,
+      chroma_config: s.chromaKey,
       frames_count: s.frames.length,
       enabled_frames_count: s.frames.filter((f) => f.enabled).length,
       selected_frame_index: s.selectedFrameIndex,
+      playing_frame_index: s.playingFrameIndex,
       playback: s.playback,
+      templates_count: getAllLoopTemplates().length,
       frames: s.frames.map((f) => ({
         id: f.id,
         index: f.index,
@@ -88,59 +90,52 @@ export const loopAnimatorCommands: Record<string, Handler> = {
         width: f.width,
         height: f.height,
         enabled: f.enabled,
-        duration_multiplier: f.durationMultiplier,
+        duration_ratio: f.durationRatio,
         offset_x: f.offsetX,
-        offset_y: f.offsetY,
-        label: f.label
+        offset_y: f.offsetY
       }))
     }
   },
 
   configure_loop_chroma: async (p: Params) => {
     const enabled = bool(p, 'enabled')
-    const keyColorType = str(p, 'key_color_type') as ChromaKeyColorType | undefined
-    const customHex = str(p, 'custom_hex')
-    const tolerance = num(p, 'tolerance')
+    const keyColor = str(p, 'key_color') ?? str(p, 'custom_hex')
+    const similarity = num(p, 'similarity') ?? num(p, 'tolerance')
     const smoothness = num(p, 'smoothness')
-    const despill = num(p, 'despill')
+    const spill = num(p, 'spill') ?? num(p, 'despill')
 
     const animator = useLoopAnimator.getState()
-    animator.setChromaConfig({
+    animator.setChromaKey({
       ...(enabled !== undefined ? { enabled } : {}),
-      ...(keyColorType ? { keyColorType } : {}),
-      ...(customHex ? { customHex } : {}),
-      ...(tolerance !== undefined ? { tolerance } : {}),
+      ...(keyColor ? { keyColor } : {}),
+      ...(similarity !== undefined ? { similarity } : {}),
       ...(smoothness !== undefined ? { smoothness } : {}),
-      ...(despill !== undefined ? { despill } : {})
+      ...(spill !== undefined ? { spill } : {})
     })
 
     return {
       ok: true,
-      chroma_config: useLoopAnimator.getState().chromaConfig
+      chroma_config: useLoopAnimator.getState().chromaKey
     }
   },
 
   split_loop_frames: async (p: Params) => {
-    const mode = str(p, 'mode')
+    const mode = str(p, 'mode') as SlicerMode | undefined
     const rows = num(p, 'rows')
     const cols = num(p, 'cols')
     const padding = num(p, 'padding')
-    const order = str(p, 'order') as GridOrder | undefined
 
     const animator = useLoopAnimator.getState()
-    if (mode === 'grid' || mode === 'contour') {
+    if (mode === 'grid' || mode === 'contour' || mode === 'manual') {
       animator.setSlicerMode(mode)
     }
 
-    if (rows !== undefined || cols !== undefined || padding !== undefined || order) {
+    if (rows !== undefined || cols !== undefined || padding !== undefined) {
       animator.setGridConfig({
         ...(rows !== undefined ? { rows } : {}),
         ...(cols !== undefined ? { cols } : {}),
-        ...(padding !== undefined ? { paddingInset: padding } : {}),
-        ...(order ? { order } : {})
+        ...(padding !== undefined ? { paddingX: padding, paddingY: padding } : {})
       })
-    } else {
-      animator.autoGenerateGridFrames()
     }
 
     return {
@@ -161,12 +156,9 @@ export const loopAnimatorCommands: Record<string, Handler> = {
       case 'reverse':
         animator.reverseFrames()
         break
-      case 'ping_pong':
-        animator.expandPingPong()
-        break
       case 'move':
         if (fromIndex !== undefined && toIndex !== undefined) {
-          animator.reorderFrames(fromIndex, toIndex)
+          animator.reorderFrame(fromIndex, toIndex)
         }
         break
       case 'duplicate':
@@ -186,21 +178,21 @@ export const loopAnimatorCommands: Record<string, Handler> = {
     return {
       ok: true,
       frames_count: useLoopAnimator.getState().frames.length,
-      frames: useLoopAnimator.getState().frames.map((f) => ({ id: f.id, index: f.index, label: f.label }))
+      frames: useLoopAnimator.getState().frames.map((f) => ({ id: f.id, index: f.index }))
     }
   },
 
   update_loop_frame: async (p: Params) => {
     const frameIndex = num(p, 'frame_index') ?? 0
     const enabled = bool(p, 'enabled')
-    const durationMultiplier = num(p, 'duration_multiplier')
+    const durationRatio = num(p, 'duration_ratio') ?? num(p, 'duration_multiplier')
     const offsetX = num(p, 'offset_x')
     const offsetY = num(p, 'offset_y')
 
     const animator = useLoopAnimator.getState()
     animator.updateFrame(frameIndex, {
       ...(enabled !== undefined ? { enabled } : {}),
-      ...(durationMultiplier !== undefined ? { durationMultiplier } : {}),
+      ...(durationRatio !== undefined ? { durationRatio } : {}),
       ...(offsetX !== undefined ? { offsetX } : {}),
       ...(offsetY !== undefined ? { offsetY } : {})
     })
@@ -213,19 +205,30 @@ export const loopAnimatorCommands: Record<string, Handler> = {
 
   set_loop_playback: async (p: Params) => {
     const fps = num(p, 'fps')
-    const loopMode = str(p, 'loop_mode') as LoopMode | undefined
+    const speed = num(p, 'speed')
+    const loopMode = str(p, 'loop_mode') as LoopAnimationMode | undefined
     const isPlaying = bool(p, 'is_playing')
     const currentFrame = num(p, 'current_frame')
     const onionSkin = bool(p, 'onion_skin')
+    const rhythmMode = str(p, 'rhythm_mode') as LoopRhythmMode | undefined
+    const rhythmRateHz = num(p, 'rhythm_rate_hz')
+    const rhythmIntensity = num(p, 'rhythm_intensity')
 
     const animator = useLoopAnimator.getState()
     animator.setPlayback({
       ...(fps !== undefined ? { fps } : {}),
+      ...(speed !== undefined ? { speed } : {}),
       ...(loopMode ? { loopMode } : {}),
       ...(isPlaying !== undefined ? { isPlaying } : {}),
-      ...(currentFrame !== undefined ? { currentFrame } : {}),
       ...(onionSkin !== undefined ? { onionSkin } : {})
     })
+    if (rhythmMode || rhythmRateHz !== undefined || rhythmIntensity !== undefined) {
+      animator.setRhythm({
+        ...(rhythmMode ? { rhythmMode } : {}),
+        ...(rhythmRateHz !== undefined ? { rhythmRateHz } : {}),
+        ...(rhythmIntensity !== undefined ? { rhythmIntensity } : {})
+      })
+    }
 
     if (currentFrame !== undefined) {
       animator.selectFrame(currentFrame)
@@ -238,41 +241,27 @@ export const loopAnimatorCommands: Record<string, Handler> = {
   },
 
   apply_loop_animation: async (p: Params) => {
-    const name = str(p, 'name') || useLoopAnimator.getState().name
-    const shotId = str(p, 'shot_id')
-    const speed = num(p, 'speed') || 1
-    const posArr = p.position as [number, number, number] | undefined
-
     const s = useLoopAnimator.getState()
-    // Tạo canvas nguồn offscreen để trích xuất
-    const sourceCanvas = document.createElement('canvas')
-    sourceCanvas.width = s.imageNaturalSize.width || 1024
-    sourceCanvas.height = s.imageNaturalSize.height || 1024
-    const sctx = sourceCanvas.getContext('2d')
+    const presetId = str(p, 'preset_id') || s.activePresetId || 'loop_preset_campfire'
+    const name = str(p, 'name') || s.layerName
+    const shotId = str(p, 'shot_id')
+    const speed = num(p, 'speed') ?? s.playback.speed
+    const fps = num(p, 'fps') ?? s.playback.fps
+    const loopMode = (str(p, 'loop_mode') as LoopAnimationMode | undefined) ?? s.playback.loopMode
 
-    if (sctx) {
-      const img = new Image()
-      img.crossOrigin = 'anonymous'
-      img.src = s.imageUrl
-      if (img.complete && img.naturalWidth > 0) {
-        sctx.drawImage(img, 0, 0)
-      }
-    }
-
-    const layerId = await applyLoopAnimationToProject({
-      name,
-      sourceCanvas,
-      frames: s.frames,
-      playback: s.playback,
-      shotId,
+    const res = await exportLoopPresetDirectly(presetId, {
+      layerName: name,
+      fps,
       speed,
-      position: posArr
+      loopMode,
+      shotId
     })
 
     return {
-      ok: Boolean(layerId),
-      layer_id: layerId,
-      frames_count: s.frames.filter((f) => f.enabled).length,
+      ok: Boolean(res.layerId),
+      layer_id: res.layerId,
+      asset_id: res.assetId,
+      frames_count: res.frameCount,
       name
     }
   }

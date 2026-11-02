@@ -396,6 +396,32 @@ function syncAnimFxNodeToProject(
   const presetId = params.animFxPreset ?? 'popIn'
   const opt = WORKFLOW_V2_ANIM_FX_OPTIONS.find((o) => o.id === presetId) ?? WORKFLOW_V2_ANIM_FX_OPTIONS[0]
   const tol = 1 / Math.max(1, (project.comp.fps || 30) * 2)
+  const isLoopSpriteMode =
+    params.animMode === 'loop_sprite' ||
+    presetId === 'loop_rhythm' ||
+    presetId === 'loop_flicker'
+
+  if (isLoopSpriteMode) {
+    for (const l of project.layers) {
+      if (!targetIds.has(l.id) || l.type !== 'image') continue
+      if (!node.enabled) {
+        l.props.loopRhythmMode = 'none'
+        continue
+      }
+      if (params.loopSpeed !== undefined) l.props.speed = params.loopSpeed
+      if (params.loopMode !== undefined) l.props.loopMode = params.loopMode
+      if (params.loopTimeOffset !== undefined) l.props.timeOffset = params.loopTimeOffset
+      if (params.loopAutoPlayPaused !== undefined) l.props.autoPlayPaused = params.loopAutoPlayPaused
+      l.props.loopRhythmMode =
+        params.loopRhythmMode ??
+        (presetId === 'loop_flicker' ? 'flicker_opacity' : 'sync_both')
+      l.props.loopRhythmRateHz = params.loopRhythmRateHz ?? params.animFxSpeed ?? 2.5
+      l.props.loopRhythmIntensity = params.loopRhythmIntensity ?? params.intensity ?? 0.45
+      l.props.loopMinOpacity = params.loopMinOpacity ?? params.animFxMinIntensity ?? 0.55
+      l.props.loopScaleBeatPct = params.loopScaleBeatPct ?? 12
+    }
+    return
+  }
 
   for (const l of project.layers) {
     if (!targetIds.has(l.id)) continue

@@ -298,12 +298,18 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   remote_client_hud: region('remote_client_hud', '.remote-client-hud'),
 
   // 10. Xưởng Tách Hoạt Ảnh Lặp (Loop Sprite Animator Dialog)
-  loop_animator: region('loop_animator', '.loop-animator-dialog'),
-  loop_animator_stage: region('loop_animator_stage', '.loop-player-card'),
-  loop_animator_toolbar: region('loop_animator_toolbar', '.loop-source-card'),
+  loop_animator: region('loop_animator', '.loop-animator-modal', '.loop-animator-dialog'),
+  loop_animator_presets: region('loop_animator_presets', '.loop-header-presets'),
+  loop_animator_source: region('loop_animator_source', '.loop-source-pane'),
+  loop_animator_player: region('loop_animator_player', '.loop-player-pane'),
+  loop_animator_stage: region('loop_animator_stage', '.loop-player-stage', '.loop-player-card'),
+  loop_animator_toolbar: region('loop_animator_toolbar', '.loop-pane-toolbar', '.loop-source-card'),
   loop_animator_chroma: region('loop_animator_chroma', '.loop-chroma-bar'),
-  loop_animator_frames: region('loop_animator_frames', '.loop-frame-strip-panel'),
-  assets_loop: region('assets_loop', '.loop-assets-container'),
+  loop_animator_frames: region('loop_animator_frames', '.loop-frame-strip', '.loop-frame-strip-panel'),
+  assets_loop: region('assets_loop', '.loop-assets-layout', '.loop-assets-container'),
+  inspector_loop_logic: region('inspector_loop_logic'),
+  workflow_loop_params: region('workflow_loop_params'),
+  layer_assembly_loop_logic: region('layer_assembly_loop_logic'),
 
   // AI Neon HUD
   ai_hud: ['.ai-neon-hud-badge']

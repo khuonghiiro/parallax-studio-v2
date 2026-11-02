@@ -1,454 +1,556 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react'
-import {
-  IconScissors,
-  IconEyedropper,
-  IconGrid,
-  IconLayers,
-  IconFlame
-} from '../icons'
-import { useLoopAnimator } from './loopAnimatorState'
-import {
-  applyLoopChromaKeyToImageData,
-  autoTrimLoopFrameBounds
-} from './loopFrameExtractor'
+import React, { useEffect, useRef, useState } from 'react'
+import { toast } from '../../actions'
+import { applyChromaKeyToImageData, detectCornerKeyColor } from './loopFrameExtractor'
 import { resolveLoopAssetUrl } from './sampleLoops'
-import type { ChromaKeyColorType, GridOrder } from './types'
+import { useLoopAnimator } from './loopAnimatorState'
+import type { SlicerMode } from './types'
 
-export interface LoopAnimatorSourcePaneProps {
+interface Props {
   sourceCanvasRef: React.RefObject<HTMLCanvasElement | null>
 }
 
-export function LoopAnimatorSourcePane({ sourceCanvasRef }: LoopAnimatorSourcePaneProps) {
-  const imageUrl = useLoopAnimator((s) => s.imageUrl)
-  const frames = useLoopAnimator((s) => s.frames)
-  const setFrames = useLoopAnimator((s) => s.setFrames)
-  const selectedFrameIndex = useLoopAnimator((s) => s.selectedFrameIndex)
-  const selectFrame = useLoopAnimator((s) => s.selectFrame)
+export function LoopAnimatorSourcePane({ sourceCanvasRef }: Props): React.ReactElement {
+  const sourceImageUrl = useLoopAnimator((s) => s.sourceImageUrl)
   const slicerMode = useLoopAnimator((s) => s.slicerMode)
-  const setSlicerMode = useLoopAnimator((s) => s.setSlicerMode)
   const gridConfig = useLoopAnimator((s) => s.gridConfig)
+  const contourConfig = useLoopAnimator((s) => s.contourConfig)
+  const chromaKey = useLoopAnimator((s) => s.chromaKey)
+  const frames = useLoopAnimator((s) => s.frames)
+  const selectedFrameIndex = useLoopAnimator((s) => s.selectedFrameIndex)
+  const playingFrameIndex = useLoopAnimator((s) => s.playingFrameIndex)
+  const isPlaying = useLoopAnimator((s) => s.playback.isPlaying)
+  const setSourceDimensions = useLoopAnimator((s) => s.setSourceDimensions)
+  const bumpSourceVersion = useLoopAnimator((s) => s.bumpSourceVersion)
+  const setSlicerMode = useLoopAnimator((s) => s.setSlicerMode)
   const setGridConfig = useLoopAnimator((s) => s.setGridConfig)
-  const chromaConfig = useLoopAnimator((s) => s.chromaConfig)
-  const setChromaConfig = useLoopAnimator((s) => s.setChromaConfig)
-  const autoGenerateGridFrames = useLoopAnimator((s) => s.autoGenerateGridFrames)
-  const setImageNaturalSize = useLoopAnimator((s) => s.setImageNaturalSize)
+  const setContourConfig = useLoopAnimator((s) => s.setContourConfig)
+  const runContourSlicer = useLoopAnimator((s) => s.runContourSlicer)
+  const autoCenterFrames = useLoopAnimator((s) => s.autoCenterFrames)
+  const setChromaKey = useLoopAnimator((s) => s.setChromaKey)
+  const selectFrame = useLoopAnimator((s) => s.selectFrame)
+  const updateFrame = useLoopAnimator((s) => s.updateFrame)
+  const loadCustomImage = useLoopAnimator((s) => s.loadCustomImage)
 
-  const rawCanvasRef = useRef<HTMLCanvasElement | null>(null)
-  const [isEyedropperActive, setIsEyedropperActive] = useState(false)
-  const [imageLoaded, setImageLoaded] = useState(false)
   const overlayCanvasRef = useRef<HTMLCanvasElement | null>(null)
+  const rawImageRef = useRef<HTMLImageElement | null>(null)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const [eyedropperActive, setEyedropperActive] = useState(false)
+  const [zoom, setZoom] = useState(1)
+  const dragBoxRef = useRef<{
+    frameIdx: number
+    startX: number
+    startY: number
+    origX: number
+    origY: number
+  } | null>(null)
 
-  // Nạp ảnh gốc và chuẩn bị canvas
+  // Load source image when URL changes
   useEffect(() => {
-    let active = true
-    let blobUrlToRevoke: string | null = null
-
-    async function loadImage() {
-      if (!imageUrl) return
-      let resolvedSrc = imageUrl
-
-      try {
-        const url = await resolveLoopAssetUrl(imageUrl)
-        if (url && url !== imageUrl) {
-          resolvedSrc = url
-          if (url.startsWith('blob:')) {
-            blobUrlToRevoke = url
-          }
-        }
-      } catch (err) {
-        console.warn('[LoopAnimatorSourcePane] Failed to resolve asset URL:', err)
-      }
-
-      if (!active) return
-
-      const img = new Image()
-      img.crossOrigin = 'anonymous'
-
-      img.onload = () => {
-        if (!active) return
-        const w = img.naturalWidth || img.width
-        const h = img.naturalHeight || img.height
-
-        let raw = rawCanvasRef.current
-        if (!raw) {
-          raw = document.createElement('canvas')
-          rawCanvasRef.current = raw
-        }
-        raw.width = w
-        raw.height = h
-        const rctx = raw.getContext('2d')
-        if (rctx) {
-          rctx.drawImage(img, 0, 0)
-        }
-
-        setImageNaturalSize({ width: w, height: h })
-        setImageLoaded(true)
-      }
-
-      img.onerror = () => {
-        console.warn('[LoopAnimatorSourcePane] Failed to load image from:', imageUrl, resolvedSrc)
-      }
-
-      img.src = resolvedSrc
+    if (!sourceImageUrl) return
+    let cancelled = false
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    img.onload = () => {
+      if (cancelled) return
+      rawImageRef.current = img
+      const w = img.naturalWidth || img.width || 1024
+      const h = img.naturalHeight || img.height || 1024
+      setSourceDimensions(w, h)
+      renderProcessedSource(img, chromaKey)
+      bumpSourceVersion()
     }
-
-    loadImage()
-
+    void resolveLoopAssetUrl(sourceImageUrl).then((resolved) => {
+      if (!cancelled) img.src = resolved || sourceImageUrl
+    })
     return () => {
-      active = false
-      if (blobUrlToRevoke) {
-        URL.revokeObjectURL(blobUrlToRevoke)
-      }
+      cancelled = true
     }
-  }, [imageUrl, setImageNaturalSize])
+  }, [sourceImageUrl])
 
-  // Xử lý Chroma Key và vẽ sang sourceCanvasRef
-  const processChroma = useCallback(() => {
-    const raw = rawCanvasRef.current
-    const source = sourceCanvasRef.current
-    if (!raw || !source) return
-
-    const w = raw.width
-    const h = raw.height
-    if (w === 0 || h === 0) return
-
-    source.width = w
-    source.height = h
-
-    const sctx = source.getContext('2d')
-    const rctx = raw.getContext('2d')
-    if (!sctx || !rctx) return
-
-    const rawData = rctx.getImageData(0, 0, w, h)
-
-    if (chromaConfig.enabled) {
-      applyLoopChromaKeyToImageData(rawData, chromaConfig)
-    }
-
-    sctx.putImageData(rawData, 0, 0)
-  }, [chromaConfig, sourceCanvasRef])
-
+  // Re-apply chroma key whenever settings change
   useEffect(() => {
-    if (imageLoaded) {
-      processChroma()
-    }
-  }, [imageLoaded, processChroma])
+    if (!rawImageRef.current) return
+    renderProcessedSource(rawImageRef.current, chromaKey)
+    bumpSourceVersion()
+  }, [chromaKey])
 
-  // Vẽ các đường cắt lưới & nhãn số thứ tự trên overlay
+  // Redraw grid & bounding boxes overlay when frames or selection change
   useEffect(() => {
-    const overlay = overlayCanvasRef.current
-    const raw = rawCanvasRef.current
-    if (!overlay || !raw) return
+    drawOverlay()
+  }, [frames, selectedFrameIndex, playingFrameIndex, isPlaying, slicerMode, gridConfig])
 
-    const w = raw.width
-    const h = raw.height
-    overlay.width = w
-    overlay.height = h
-
-    const ctx = overlay.getContext('2d')
+  function renderProcessedSource(img: HTMLImageElement, chroma: typeof chromaKey): void {
+    const canvas = sourceCanvasRef.current
+    if (!canvas) return
+    const w = img.naturalWidth || img.width || 1024
+    const h = img.naturalHeight || img.height || 1024
+    if (canvas.width !== w || canvas.height !== h) {
+      canvas.width = w
+      canvas.height = h
+    }
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })
     if (!ctx) return
-
     ctx.clearRect(0, 0, w, h)
+    ctx.drawImage(img, 0, 0, w, h)
+
+    if (chroma.enabled) {
+      const imgData = ctx.getImageData(0, 0, w, h)
+      applyChromaKeyToImageData(imgData, chroma)
+      ctx.putImageData(imgData, 0, 0)
+    }
+    drawOverlay()
+  }
+
+  function drawOverlay(): void {
+    const srcCanvas = sourceCanvasRef.current
+    const ovCanvas = overlayCanvasRef.current
+    if (!srcCanvas || !ovCanvas) return
+    if (ovCanvas.width !== srcCanvas.width || ovCanvas.height !== srcCanvas.height) {
+      ovCanvas.width = srcCanvas.width
+      ovCanvas.height = srcCanvas.height
+    }
+    const ctx = ovCanvas.getContext('2d')
+    if (!ctx) return
+    ctx.clearRect(0, 0, ovCanvas.width, ovCanvas.height)
 
     frames.forEach((f, idx) => {
-      const isSelected = f.index === selectedFrameIndex
-
-      // Đường bao khung hình
+      const isSelected = idx === selectedFrameIndex
+      const isPlayingCursor = isPlaying && idx === playingFrameIndex
+      ctx.save()
+      if (!f.enabled) {
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.65)'
+        ctx.fillRect(f.x, f.y, f.width, f.height)
+      }
       ctx.strokeStyle = isSelected
-        ? '#38bdf8'
-        : f.enabled
-          ? 'rgba(255, 255, 255, 0.45)'
-          : 'rgba(239, 68, 68, 0.35)'
-      ctx.lineWidth = isSelected ? 3 : 1
-      ctx.setLineDash(isSelected ? [] : [4, 4])
-      ctx.strokeRect(f.x, f.y, f.width, f.height)
+        ? '#f59e0b'
+        : isPlayingCursor
+          ? '#22c55e'
+          : f.enabled
+            ? 'rgba(56, 189, 248, 0.85)'
+            : 'rgba(148, 163, 184, 0.4)'
+      ctx.lineWidth = isSelected || isPlayingCursor ? 4 : 2
+      if (!f.enabled) ctx.setLineDash([6, 6])
+      ctx.strokeRect(f.x + 1, f.y + 1, Math.max(1, f.width - 2), Math.max(1, f.height - 2))
 
-      // Nhãn số thứ tự kèm mũi tên chuyển động
+      // Badge number in corner
+      const tagW = 34
+      const tagH = 22
       ctx.fillStyle = isSelected
-        ? '#0284c7'
-        : f.enabled
-          ? 'rgba(15, 23, 42, 0.85)'
-          : 'rgba(239, 68, 68, 0.85)'
-      ctx.fillRect(f.x + 4, f.y + 4, 28, 20)
-
-      ctx.fillStyle = '#ffffff'
-      ctx.font = 'bold 11px system-ui, sans-serif'
-      ctx.textAlign = 'center'
-      ctx.textBaseline = 'middle'
-      ctx.fillText(`#${idx + 1}`, f.x + 18, f.y + 14)
-
-      // Mũi tên chỉ hướng chuyển động (sang phải hoặc xuống dưới)
-      if (f.enabled && idx < frames.length - 1) {
-        ctx.strokeStyle = 'rgba(56, 189, 248, 0.6)'
-        ctx.lineWidth = 1.5
-        ctx.setLineDash([])
-        ctx.beginPath()
-        ctx.moveTo(f.x + f.width - 12, f.y + f.height / 2)
-        ctx.lineTo(f.x + f.width - 4, f.y + f.height / 2)
-        ctx.stroke()
-      }
+        ? '#f59e0b'
+        : isPlayingCursor
+          ? '#22c55e'
+          : f.enabled
+            ? 'rgba(15, 23, 42, 0.85)'
+            : 'rgba(51, 65, 85, 0.7)'
+      ctx.fillRect(f.x + 2, f.y + 2, tagW, tagH)
+      ctx.fillStyle = isSelected || isPlayingCursor ? '#0f172a' : '#f8fafc'
+      ctx.font = 'bold 13px Inter, system-ui, sans-serif'
+      ctx.fillText(`#${idx + 1}`, f.x + 6, f.y + 17)
+      ctx.restore()
     })
-  }, [frames, selectedFrameIndex, imageLoaded])
+  }
 
-  // Click vào canvas để chọn frame hoặc lấy màu Eyedropper
-  const handleCanvasClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    const overlay = overlayCanvasRef.current
-    if (!overlay) return
+  function getCanvasCoords(e: React.MouseEvent<HTMLCanvasElement>): { px: number; py: number } | null {
+    const ovCanvas = overlayCanvasRef.current
+    if (!ovCanvas) return null
+    const rect = ovCanvas.getBoundingClientRect()
+    const scaleX = ovCanvas.width / Math.max(1, rect.width)
+    const scaleY = ovCanvas.height / Math.max(1, rect.height)
+    return {
+      px: Math.floor((e.clientX - rect.left) * scaleX),
+      py: Math.floor((e.clientY - rect.top) * scaleY)
+    }
+  }
 
-    const rect = overlay.getBoundingClientRect()
-    const scaleX = overlay.width / rect.width
-    const scaleY = overlay.height / rect.height
-    const cx = Math.round((e.clientX - rect.left) * scaleX)
-    const cy = Math.round((e.clientY - rect.top) * scaleY)
+  function handleCanvasMouseDown(e: React.MouseEvent<HTMLCanvasElement>): void {
+    const coords = getCanvasCoords(e)
+    if (!coords) return
+    const { px, py } = coords
 
-    if (isEyedropperActive) {
-      const raw = rawCanvasRef.current
-      if (raw) {
-        const rctx = raw.getContext('2d')
-        if (rctx) {
-          const p = rctx.getImageData(cx, cy, 1, 1).data
-          const hex = `#${((1 << 24) + (p[0] << 16) + (p[1] << 8) + p[2]).toString(16).slice(1)}`
-          setChromaConfig({
-            enabled: true,
-            keyColorType: 'custom',
-            customHex: hex
-          })
-          setIsEyedropperActive(false)
-        }
+    if (eyedropperActive && rawImageRef.current) {
+      const temp = document.createElement('canvas')
+      temp.width = rawImageRef.current.naturalWidth || 1024
+      temp.height = rawImageRef.current.naturalHeight || 1024
+      const tctx = temp.getContext('2d')
+      if (tctx) {
+        tctx.drawImage(rawImageRef.current, 0, 0)
+        const d = tctx.getImageData(px, py, 1, 1).data
+        const hex = `#${d[0].toString(16).padStart(2, '0')}${d[1].toString(16).padStart(2, '0')}${d[2].toString(16).padStart(2, '0')}`
+        setChromaKey({ enabled: true, keyColor: hex })
       }
+      setEyedropperActive(false)
       return
     }
 
-    // Tìm frame được click trúng
-    const hitIdx = frames.findIndex(
-      (f) => cx >= f.x && cx <= f.x + f.width && cy >= f.y && cy <= f.y + f.height
+    const hitIndex = frames.findIndex(
+      (f) => px >= f.x && px <= f.x + f.width && py >= f.y && py <= f.y + f.height
     )
-    if (hitIdx >= 0) {
-      selectFrame(hitIdx)
+    if (hitIndex >= 0) {
+      selectFrame(hitIndex)
+      if (slicerMode === 'manual' || slicerMode === 'contour') {
+        const target = frames[hitIndex]
+        dragBoxRef.current = {
+          frameIdx: hitIndex,
+          startX: px,
+          startY: py,
+          origX: target.x,
+          origY: target.y
+        }
+      }
     }
   }
 
-  // Tự động khử viền trong suốt cho toàn bộ frame
-  const handleAutoTrimAll = () => {
-    const source = sourceCanvasRef.current
-    if (!source) return
-    const sctx = source.getContext('2d')
-    if (!sctx) return
-
-    const trimmed = frames.map((f) => {
-      const b = autoTrimLoopFrameBounds(sctx, f)
-      return {
-        ...f,
-        x: b.x,
-        y: b.y,
-        width: b.width,
-        height: b.height
-      }
+  function handleCanvasMouseMove(e: React.MouseEvent<HTMLCanvasElement>): void {
+    const drag = dragBoxRef.current
+    if (!drag) return
+    const coords = getCanvasCoords(e)
+    if (!coords) return
+    const dx = coords.px - drag.startX
+    const dy = coords.py - drag.startY
+    updateFrame(drag.frameIdx, {
+      x: Math.max(0, Math.round(drag.origX + dx)),
+      y: Math.max(0, Math.round(drag.origY + dy))
     })
-    setFrames(trimmed)
   }
 
+  function handleCanvasMouseUp(): void {
+    dragBoxRef.current = null
+  }
+
+  function handleAutoDetectKeyColor(): void {
+    if (!rawImageRef.current) return
+    const temp = document.createElement('canvas')
+    const w = rawImageRef.current.naturalWidth || 1024
+    const h = rawImageRef.current.naturalHeight || 1024
+    temp.width = w
+    temp.height = h
+    const tctx = temp.getContext('2d')
+    if (!tctx) return
+    tctx.drawImage(rawImageRef.current, 0, 0)
+    const hex = detectCornerKeyColor(tctx, w, h)
+    setChromaKey({ enabled: true, keyColor: hex })
+  }
+
+  function handleRunContourScan(): void {
+    const count = runContourSlicer(sourceCanvasRef.current)
+    if (count > 0) {
+      toast(`⚡ Đã tự động quét và tách ${count} khung hình theo vùng viền!`)
+    } else {
+      toast('⚠ Không tìm thấy vùng chi tiết tách biệt. Hãy bật Tách nền Chroma Key trước khi quét.')
+    }
+  }
+
+  function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>): void {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        loadCustomImage(reader.result, file.name)
+      }
+    }
+    reader.readAsDataURL(file)
+    e.target.value = ''
+  }
+
+  const MODES: { id: SlicerMode; label: string; icon: string }[] = [
+    { id: 'grid', label: 'Lưới đều (Grid)', icon: '⊞' },
+    { id: 'contour', label: 'Tự dò vùng (Contour)', icon: '⚡' },
+    { id: 'manual', label: 'Kéo khung tay', icon: '✂' }
+  ]
+
   return (
-    <div className="loop-source-card" data-mcp-region="loop_animator_toolbar">
-      {/* Toolbar chế độ cắt tách & Chroma */}
-      <div className="loop-source-toolbar">
-        <div className="loop-toolbar-group">
-          <span className="loop-toolbar-label">Chế độ tách:</span>
-          <button
-            type="button"
-            className={`btn sm ghost${slicerMode === 'grid' ? ' active' : ''}`}
-            onClick={() => setSlicerMode('grid')}
-            title="Tách theo lưới ma trận số hàng và số cột đều nhau"
-          >
-            <IconGrid width={13} height={13} />
-            <span>Tách lưới ({gridConfig.rows}×{gridConfig.cols})</span>
-          </button>
-          <button
-            type="button"
-            className={`btn sm ghost${slicerMode === 'contour' ? ' active' : ''}`}
-            onClick={() => setSlicerMode('contour')}
-            title="Tách theo cụm chi tiết hoặc đảo pixel có biên trong suốt"
-          >
-            <IconLayers width={13} height={13} />
-            <span>Tách chi tiết</span>
-          </button>
+    <div className="loop-source-pane" data-mcp-region="loop_animator_source">
+      <div className="loop-pane-toolbar">
+        <div className="loop-mode-pills" role="tablist" aria-label="Chế độ cắt khung">
+          {MODES.map((m) => (
+            <button
+              key={m.id}
+              type="button"
+              className={`loop-mode-pill ${slicerMode === m.id ? 'active' : ''}`}
+              onClick={() => {
+                setSlicerMode(m.id)
+                if (m.id === 'contour') {
+                  handleRunContourScan()
+                }
+              }}
+            >
+              <span>{m.icon}</span>
+              <span>{m.label}</span>
+            </button>
+          ))}
         </div>
 
-        <div className="loop-toolbar-divider" />
-
-        {/* Nút bật/tắt Chroma Key */}
-        <div className="loop-toolbar-group">
+        <div className="loop-source-actions">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp,image/gif"
+            style={{ display: 'none' }}
+            onChange={handleFileUpload}
+          />
           <button
             type="button"
-            className={`btn sm ${chromaConfig.enabled ? 'accent' : 'ghost'}`}
-            onClick={() => setChromaConfig({ enabled: !chromaConfig.enabled })}
-            title="Bật/Tắt tách nền tự động (Chroma Key)"
+            className="btn ghost sm"
+            onClick={() => fileInputRef.current?.click()}
+            title="Tải ảnh Sprite Sheet từ máy tính"
           >
-            <IconScissors width={13} height={13} />
-            <span>{chromaConfig.enabled ? 'Đang tách nền' : 'Tách nền'}</span>
+            📂 Tải ảnh Sheet
           </button>
-        </div>
-
-        <div className="loop-toolbar-divider" />
-
-        {/* Nút Khử viền trong suốt */}
-        <div className="loop-toolbar-group">
-          <button
-            type="button"
-            className="btn sm ghost"
-            onClick={handleAutoTrimAll}
-            title="Tự động thu hẹp bounding box bám sát phần hình ảnh của từng frame"
-          >
-            <span>Khử viền thừa</span>
-          </button>
+          <div className="loop-zoom-group">
+            <button
+              type="button"
+              className="btn ghost sm"
+              onClick={() => setZoom((z) => Math.max(0.5, Number((z - 0.25).toFixed(2))))}
+            >
+              −
+            </button>
+            <span className="loop-zoom-val">{Math.round(zoom * 100)}%</span>
+            <button
+              type="button"
+              className="btn ghost sm"
+              onClick={() => setZoom((z) => Math.min(2.5, Number((z + 0.25).toFixed(2))))}
+            >
+              +
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Thanh cấu hình Lưới (Grid Settings) */}
+      {/* Grid Controls */}
       {slicerMode === 'grid' && (
-        <div className="loop-grid-bar">
-          <div className="loop-param-item">
-            <span className="loop-param-label">Hàng:</span>
-            <input
-              type="number"
-              min={1}
-              max={16}
-              value={gridConfig.rows}
-              onChange={(e) => setGridConfig({ rows: Math.max(1, Number(e.target.value)) })}
-              className="loop-number-input"
-            />
-          </div>
-          <div className="loop-param-item">
-            <span className="loop-param-label">Cột:</span>
+        <div className="loop-grid-controls">
+          <div className="loop-ctrl-field">
+            <label>Số cột (Cols)</label>
             <input
               type="number"
               min={1}
               max={16}
               value={gridConfig.cols}
-              onChange={(e) => setGridConfig({ cols: Math.max(1, Number(e.target.value)) })}
-              className="loop-number-input"
+              onChange={(e) => setGridConfig({ cols: Math.max(1, Number(e.target.value) || 1) })}
             />
           </div>
-          <div className="loop-param-item">
-            <span className="loop-param-label">Lùi biên (px):</span>
+          <div className="loop-ctrl-field">
+            <label>Số hàng (Rows)</label>
+            <input
+              type="number"
+              min={1}
+              max={16}
+              value={gridConfig.rows}
+              onChange={(e) => setGridConfig({ rows: Math.max(1, Number(e.target.value) || 1) })}
+            />
+          </div>
+          <div className="loop-ctrl-field">
+            <label>Lề X (px)</label>
             <input
               type="number"
               min={0}
-              max={40}
-              value={gridConfig.paddingInset}
-              onChange={(e) => setGridConfig({ paddingInset: Math.max(0, Number(e.target.value)) })}
-              className="loop-number-input"
+              max={200}
+              value={gridConfig.marginX}
+              onChange={(e) => setGridConfig({ marginX: Math.max(0, Number(e.target.value) || 0) })}
             />
           </div>
-          <div className="loop-param-item">
-            <span className="loop-param-label">Thứ tự:</span>
-            <div className="loop-mode-segmented">
-              {(
-                [
-                  { id: 'row_first', label: 'Trái qua phải (Hàng)' },
-                  { id: 'col_first', label: 'Trên xuống dưới (Cột)' }
-                ] as { id: GridOrder; label: string }[]
-              ).map((o) => (
-                <button
-                  key={o.id}
-                  type="button"
-                  className={`loop-mode-btn${gridConfig.order === o.id ? ' active' : ''}`}
-                  onClick={() => setGridConfig({ order: o.id })}
-                >
-                  {o.label}
-                </button>
-              ))}
-            </div>
+          <div className="loop-ctrl-field">
+            <label>Lề Y (px)</label>
+            <input
+              type="number"
+              min={0}
+              max={200}
+              value={gridConfig.marginY}
+              onChange={(e) => setGridConfig({ marginY: Math.max(0, Number(e.target.value) || 0) })}
+            />
           </div>
+          <div className="loop-ctrl-field">
+            <label>Khe X (px)</label>
+            <input
+              type="number"
+              min={0}
+              max={100}
+              value={gridConfig.paddingX}
+              onChange={(e) => setGridConfig({ paddingX: Math.max(0, Number(e.target.value) || 0) })}
+            />
+          </div>
+          <div className="loop-ctrl-field">
+            <label>Khe Y (px)</label>
+            <input
+              type="number"
+              min={0}
+              max={100}
+              value={gridConfig.paddingY}
+              onChange={(e) => setGridConfig({ paddingY: Math.max(0, Number(e.target.value) || 0) })}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Contour Auto-Island Controls */}
+      {slicerMode === 'contour' && (
+        <div className="loop-grid-controls loop-contour-controls">
+          <div className="loop-ctrl-field">
+            <label>Ngưỡng Alpha</label>
+            <input
+              type="number"
+              min={1}
+              max={250}
+              value={contourConfig.alphaThreshold}
+              onChange={(e) => setContourConfig({ alphaThreshold: Math.max(1, Number(e.target.value) || 24) })}
+            />
+          </div>
+          <div className="loop-ctrl-field">
+            <label>Gộp mảnh (px)</label>
+            <input
+              type="number"
+              min={0}
+              max={64}
+              value={contourConfig.mergeGap}
+              onChange={(e) => setContourConfig({ mergeGap: Math.max(0, Number(e.target.value) || 0) })}
+            />
+          </div>
+          <div className="loop-ctrl-field">
+            <label>Diện tích tối thiểu</label>
+            <input
+              type="number"
+              min={16}
+              max={5000}
+              step={50}
+              value={contourConfig.minArea}
+              onChange={(e) => setContourConfig({ minArea: Math.max(16, Number(e.target.value) || 180) })}
+            />
+          </div>
+          <div className="loop-contour-btns">
+            <button
+              type="button"
+              className="btn primary sm"
+              onClick={handleRunContourScan}
+              title="Quét tự động các đảo pixel không trong suốt để đóng khung từng frame"
+            >
+              ⚡ Quét tách tự động
+            </button>
+            <button
+              type="button"
+              className="btn ghost sm"
+              onClick={() => {
+                autoCenterFrames(sourceCanvasRef.current)
+                toast('🎯 Đã tự động căn tâm chống giật cho tất cả frame!')
+              }}
+              title="Căn chỉnh tâm trọng lượng của từng frame để hoạt ảnh không bị lệch"
+            >
+              🎯 Căn tâm
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Manual Slicer Hint */}
+      {slicerMode === 'manual' && (
+        <div className="loop-manual-hint-bar">
+          <span>✂ Click và kéo trực tiếp từng ô trên ảnh để di chuyển vùng cắt, hoặc chỉnh tọa độ X/Y/W/H ở thanh dưới.</span>
           <button
             type="button"
-            className="btn sm ghost"
-            onClick={() => autoGenerateGridFrames()}
-            title="Phân chia lại lưới theo số hàng/cột mới"
+            className="btn ghost sm"
+            onClick={() => {
+              autoCenterFrames(sourceCanvasRef.current)
+              toast('🎯 Đã căn tâm tự động cho các frame!')
+            }}
           >
-            Tách lại
+            🎯 Căn tâm tự động
           </button>
         </div>
       )}
 
-      {/* Thanh cấu hình Tách nền Chroma Key */}
-      {chromaConfig.enabled && (
-        <div className="loop-chroma-bar" data-mcp-region="loop_animator_chroma">
-          <div className="loop-chroma-colors">
-            <span className="loop-param-label">Màu nền:</span>
-            {(
-              [
-                { id: 'chroma_magenta', label: 'Hồng Magenta', color: '#ff00ff' },
-                { id: 'chroma_green', label: 'Xanh lá Green', color: '#00ff00' },
-                { id: 'chroma_blue', label: 'Xanh dương Blue', color: '#0000ff' },
-                { id: 'white', label: 'Trắng', color: '#ffffff' },
-                { id: 'black', label: 'Đen', color: '#000000' }
-              ] as { id: ChromaKeyColorType; label: string; color: string }[]
-            ).map((c) => (
+      {/* Chroma Key Controls */}
+      <div className="loop-chroma-bar">
+        <label className="loop-chroma-toggle">
+          <input
+            type="checkbox"
+            checked={chromaKey.enabled}
+            onChange={(e) => setChromaKey({ enabled: e.target.checked })}
+          />
+          <span>🎨 Tách nền Chroma Key</span>
+        </label>
+
+        {chromaKey.enabled && (
+          <>
+            <div className="loop-color-picker-group">
+              <input
+                type="color"
+                value={chromaKey.keyColor}
+                onChange={(e) => setChromaKey({ keyColor: e.target.value })}
+                title="Màu nền cần xóa"
+              />
               <button
-                key={c.id}
                 type="button"
-                className={`loop-color-chip${chromaConfig.keyColorType === c.id ? ' active' : ''}`}
-                style={{ backgroundColor: c.color }}
-                title={c.label}
-                onClick={() => setChromaConfig({ keyColorType: c.id })}
-              />
-            ))}
+                className={`btn ghost sm ${eyedropperActive ? 'active' : ''}`}
+                onClick={() => setEyedropperActive((v) => !v)}
+                title="Chấm màu trực tiếp trên ảnh gốc"
+              >
+                💧 Chấm màu
+              </button>
+              <button
+                type="button"
+                className="btn ghost sm"
+                onClick={handleAutoDetectKeyColor}
+                title="Tự động nhận diện màu nền ở 4 góc ảnh"
+              >
+                🪄 Tự nhận nền
+              </button>
+            </div>
 
-            {/* Nút hút màu Eyedropper */}
-            <button
-              type="button"
-              className={`btn sm ghost${isEyedropperActive ? ' active' : ''}`}
-              title="Chấm vào ảnh để hút màu nền cần khử"
-              onClick={() => setIsEyedropperActive(!isEyedropperActive)}
-            >
-              <IconEyedropper width={13} height={13} />
-              <span>{isEyedropperActive ? 'Đang chấm màu…' : 'Hút màu'}</span>
-            </button>
-          </div>
-
-          <div className="loop-chroma-sliders">
-            <div className="loop-param-slider">
-              <span className="loop-param-label">Độ lệch: {chromaConfig.tolerance}</span>
+            <div className="loop-slider-inline">
+              <span>Độ nhạy ({Math.round(chromaKey.similarity * 100)}%)</span>
               <input
                 type="range"
-                min={1}
-                max={100}
-                value={chromaConfig.tolerance}
-                onChange={(e) => setChromaConfig({ tolerance: Number(e.target.value) })}
+                min={0.05}
+                max={0.75}
+                step={0.01}
+                value={chromaKey.similarity}
+                onChange={(e) => setChromaKey({ similarity: Number(e.target.value) })}
               />
             </div>
-            <div className="loop-param-slider">
-              <span className="loop-param-label">Làm mịn: {chromaConfig.smoothness}</span>
+
+            <div className="loop-slider-inline">
+              <span>Mềm biên ({Math.round(chromaKey.smoothness * 100)}%)</span>
+              <input
+                type="range"
+                min={0.01}
+                max={0.35}
+                step={0.01}
+                value={chromaKey.smoothness}
+                onChange={(e) => setChromaKey({ smoothness: Number(e.target.value) })}
+              />
+            </div>
+
+            <div className="loop-slider-inline">
+              <span>Khử ám xanh ({Math.round(chromaKey.spill * 100)}%)</span>
               <input
                 type="range"
                 min={0}
-                max={40}
-                value={chromaConfig.smoothness}
-                onChange={(e) => setChromaConfig({ smoothness: Number(e.target.value) })}
+                max={1}
+                step={0.05}
+                value={chromaKey.spill}
+                onChange={(e) => setChromaKey({ spill: Number(e.target.value) })}
               />
             </div>
-            <div className="loop-param-slider">
-              <span className="loop-param-label">Khử ám: {chromaConfig.despill}</span>
-              <input
-                type="range"
-                min={0}
-                max={100}
-                value={chromaConfig.despill}
-                onChange={(e) => setChromaConfig({ despill: Number(e.target.value) })}
-              />
-            </div>
-          </div>
+          </>
+        )}
+      </div>
+
+      {/* Canvas Viewport */}
+      <div className="loop-source-canvas-scroll">
+        <div
+          className={`loop-source-canvas-stage ${eyedropperActive ? 'eyedropper-cursor' : ''}`}
+          style={{ transform: `scale(${zoom})`, transformOrigin: 'top center' }}
+        >
+          <canvas ref={sourceCanvasRef} className="loop-source-canvas" />
+          <canvas
+            ref={overlayCanvasRef}
+            className="loop-overlay-canvas"
+            onMouseDown={handleCanvasMouseDown}
+            onMouseMove={handleCanvasMouseMove}
+            onMouseUp={handleCanvasMouseUp}
+            onMouseLeave={handleCanvasMouseUp}
+          />
         </div>
-      )}
-
-      {/* Vùng hiển thị Canvas Ảnh gốc & Lưới cắt */}
-      <div
-        className={`loop-source-viewport${isEyedropperActive ? ' cursor-crosshair' : ''}`}
-        onClick={handleCanvasClick}
-      >
-        <canvas ref={sourceCanvasRef} className="loop-source-canvas" />
-        <canvas ref={overlayCanvasRef} className="loop-overlay-canvas" />
       </div>
     </div>
   )

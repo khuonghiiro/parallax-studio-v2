@@ -312,7 +312,7 @@ describe('MCP layerAssemblyCommands', () => {
       ]
     }
 
-    let activeTab: 'layers' | 'bones' | 'animation' | 'plant' = 'layers'
+    let activeTab: 'layers' | 'bones' | 'animation' | 'plant' | 'loop' = 'layers'
     let selectedBone: string | null = null
     let isPlaying = false
     let currentTime = 0

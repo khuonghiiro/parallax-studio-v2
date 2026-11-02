@@ -6,7 +6,7 @@ export interface LayerAssemblyActiveSession {
   isOpen: boolean
   compositeId: string
   draftComposite: LayerComposite
-  tab?: 'layers' | 'bones' | 'animation' | 'plant'
+  tab?: 'layers' | 'bones' | 'animation' | 'plant' | 'loop'
   primaryMode?: 'assembly' | 'cutter'
   selectedBoneId?: string | null
   time?: number

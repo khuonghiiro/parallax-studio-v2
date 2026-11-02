@@ -12,6 +12,48 @@ export interface LayerMotionSettings {
 import type { AssetTable } from '../../project/json/assetTable'
 export type { AssetTable }
 
+export interface LoopWorkshopFrameRect {
+  x: number
+  y: number
+  width: number
+  height: number
+  offsetX?: number
+  offsetY?: number
+  durationRatio?: number
+}
+
+export interface LoopWorkshopLayerConfig {
+  enabled: boolean
+  /** ID of the LoopAnimationTemplate or SampleLoopPreset */
+  templateId?: string
+  /** Source sprite sheet URL or data URL */
+  spriteSheetUrl?: string
+  /** Extracted frames (bounding rects on the sprite sheet) */
+  frames?: LoopWorkshopFrameRect[]
+  /** Chroma key config to remove background on the sprite sheet */
+  chromaKey?: {
+    enabled: boolean
+    keyColor: string
+    similarity: number
+    smoothness: number
+    spill: number
+  }
+  /** Base FPS (default 12) */
+  fps: number
+  /** Speed multiplier (0.1 .. 4.0, default 1.0) */
+  speed: number
+  /** Loop playback mode */
+  loopMode: import('@shared/types').LoopAnimationMode
+  /** Time offset in seconds */
+  timeOffset?: number
+  /** Rhythmic modulation synchronized with the loop animation */
+  rhythmMode?: import('@shared/types').LoopRhythmMode
+  rhythmRateHz?: number
+  rhythmIntensity?: number
+  minOpacity?: number
+  scaleBeatPct?: number
+}
+
 export interface AssembledLayerItem {
   boneId?: string
   extraBoneIds?: string[]
@@ -49,7 +91,10 @@ export interface AssembledLayerItem {
   /** Nhãn chất liệu vật lý, mặt đất đỡ, vùng Sub-Mesh UV & cổng chiều sâu hang động gắn sẵn tại Xưởng */
   physics?: import('@shared/types').LayerPhysicsConfig
   /** Nguồn sáng ảo 2.5D (Ánh nến phản ứng gió, Đèn pin, Tinh thể hang động...) gắn sẵn tại Xưởng */
+  /** Nguồn sáng ảo 2.5D (Ánh nến phản ứng gió, Đèn pin, Tinh thể hang động...) gắn sẵn tại Xưởng */
   virtualLight?: import('@shared/types').LayerVirtualLight
+  /** Cấu hình Hoạt ảnh Lặp (Loop Animate Sprite & Logic Nhịp Nháy) gắn trực tiếp cho mảnh trong Xưởng 2.5D */
+  loopConfig?: LoopWorkshopLayerConfig
 }
 
 export type LayerPartKind = 'head' | 'torso' | 'arm' | 'leg' | 'accessory' | 'custom'

@@ -1,10 +1,9 @@
-import { useState, type ReactNode } from 'react'
-import type { useLayerWorkshop } from './useLayerWorkshop'
-import type { useWorkshopPlayback } from './useWorkshopPlayback'
-import { WorkshopRigPanel } from './WorkshopRigPanel'
-import { WorkshopAnimationPanel } from './WorkshopAnimationPanel'
-import { WorkshopPlantPanel } from './WorkshopPlantPanel'
-import { applyRigAction, ensureRigClips, type RigAction } from './workshopRig'
+import { useEffect, useState, type ReactNode } from 'react'
+import { toast } from '../../actions'
+import { IconLoopAnimate } from '../icons'
+import { PENDING_WORKSHOP_LOOP_TEMPLATE_KEY } from '../loopAnimator/LoopAnimatorDialog'
+import { getAllLoopTemplates } from '../loopAnimator/loopAnimatorStorage'
+import type { LoopAnimationTemplate } from '../loopAnimator/types'
 import { SegmentedTabs } from '../primitives'
 import {
   IconTabAnimateFilm,
@@ -12,8 +11,19 @@ import {
   IconTabLayersStack,
   IconTabWindMotion
 } from './LayerWorkshopStudioIcons'
+import { WorkshopAnimationPanel } from './WorkshopAnimationPanel'
+import {
+  WorkshopLoopLogicPanel,
+  buildWorkshopLoopConfigFromTemplate
+} from './WorkshopLoopLogicPanel'
+import { WorkshopPlantPanel } from './WorkshopPlantPanel'
+import { WorkshopRigPanel } from './WorkshopRigPanel'
+import type { AssembledLayerItem } from './types'
+import type { useLayerWorkshop } from './useLayerWorkshop'
+import type { useWorkshopPlayback } from './useWorkshopPlayback'
+import { applyRigAction, ensureRigClips, type RigAction } from './workshopRig'
 
-export type WorkshopTab = 'layers' | 'bones' | 'animation' | 'plant'
+export type WorkshopTab = 'layers' | 'bones' | 'animation' | 'plant' | 'loop'
 
 export function WorkshopRightPanel({
   state,
@@ -44,10 +54,53 @@ export function WorkshopRightPanel({
     }
   }
 
+  const handleAddLoopTemplateLayer = (tpl: LoopAnimationTemplate): void => {
+    const newId = `layer_loop_${Date.now().toString(36)}`
+    const newItem: AssembledLayerItem = {
+      id: newId,
+      name: tpl.name,
+      imageUrl: tpl.thumbUrl || tpl.imageUrl,
+      x: 0,
+      y: 0,
+      z: -10,
+      scale: 1,
+      rotation: 0,
+      opacity: 1,
+      motion: { type: 'none', speed: 1, amplitude: 0, anchor: 'center' },
+      loopConfig: buildWorkshopLoopConfigFromTemplate(tpl)
+    }
+    state.setComposite((c) => ({
+      ...c,
+      layers: [...c.layers, newItem]
+    }))
+    state.select(newId)
+    setTab('loop')
+    playback.setIsPlaying(true)
+    toast(`✨ Đã thêm mảnh hoạt ảnh lặp "${tpl.name}" vào Cụm 2.5D!`)
+  }
+
+  // Auto-consume pending loop template sent from Loop Animator or Loop Asset List
+  useEffect(() => {
+    try {
+      const pendingId = sessionStorage.getItem(PENDING_WORKSHOP_LOOP_TEMPLATE_KEY)
+      if (!pendingId) return
+      sessionStorage.removeItem(PENDING_WORKSHOP_LOOP_TEMPLATE_KEY)
+      const tpl = getAllLoopTemplates().find((t) => t.id === pendingId)
+      if (tpl) {
+        handleAddLoopTemplateLayer(tpl)
+      }
+    } catch {
+      // ignore storage errors
+    }
+  }, [])
+
   const rigInfo = state.composite.rig ? ensureRigClips(state.composite.rig).rig : undefined
   const boneCount = rigInfo?.bones.length ?? 0
   const clipCount = rigInfo?.clips?.length ?? 0
   const spineCount = state.composite.plantSpines?.length ?? 0
+  const loopCount = state.composite.layers.filter((l) => l.loopConfig?.enabled).length
+  const selectedLayer =
+    state.composite.layers.find((l) => l.id === state.selectedLayerId) ?? null
 
   const props = {
     composite: state.composite,
@@ -74,8 +127,10 @@ export function WorkshopRightPanel({
         onChange={(nextTab) => {
           setTab(nextTab)
           setError('')
-          playback.setIsPlaying(false)
-          playback.setTime(0)
+          if (nextTab !== 'loop') {
+            playback.setIsPlaying(false)
+            playback.setTime(0)
+          }
         }}
         items={[
           {
@@ -89,7 +144,7 @@ export function WorkshopRightPanel({
           {
             id: 'bones',
             domId: 'lw-tab-bones',
-            label: 'Tạo xương',
+            label: 'Xương',
             icon: <IconTabBoneRig width={13} height={13} />,
             badge: boneCount || undefined,
             badgeTone: boneCount > 0 ? 'cyan' : 'neutral',
@@ -98,7 +153,7 @@ export function WorkshopRightPanel({
           {
             id: 'animation',
             domId: 'lw-tab-animation',
-            label: 'Animate',
+            label: 'Anim',
             icon: <IconTabAnimateFilm width={13} height={13} />,
             badge: clipCount > 0 && boneCount > 0 ? clipCount : undefined,
             badgeTone: 'accent',
@@ -111,6 +166,15 @@ export function WorkshopRightPanel({
             icon: <IconTabWindMotion width={13} height={13} />,
             badge: spineCount || undefined,
             title: 'Vẽ đường sống lá / cành cây đung đưa tự nhiên theo gió'
+          },
+          {
+            id: 'loop',
+            domId: 'lw-tab-loop',
+            label: 'Loop',
+            icon: <IconLoopAnimate width={13} height={13} />,
+            badge: loopCount || undefined,
+            badgeTone: loopCount > 0 ? 'accent' : 'neutral',
+            title: 'Cấu hình Logic Hoạt ảnh Lặp (Loop Animate), Tốc độ, Kiểu lặp & Nhịp Nháy sáng trong Xưởng 2.5D'
           }
         ]}
       />
@@ -131,6 +195,14 @@ export function WorkshopRightPanel({
             selectedIds={state.selection}
             isPlaying={playback.isPlaying}
             onTogglePlay={playback.toggle}
+          />
+        ) : tab === 'loop' ? (
+          <WorkshopLoopLogicPanel
+            selectedLayer={selectedLayer}
+            isPlaying={playback.isPlaying}
+            onTogglePlaying={playback.toggle}
+            onUpdateLayer={state.update}
+            onAddLoopTemplateLayer={handleAddLoopTemplateLayer}
           />
         ) : (
           <WorkshopAnimationPanel {...props} playback={playback} setComposite={state.setComposite} />

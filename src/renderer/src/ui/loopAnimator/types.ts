@@ -1,124 +1,115 @@
-/**
- * Cấu trúc dữ liệu & Thiết lập cho Xưởng Tách Hoạt Ảnh Lặp (Loop Sprite Animator).
- */
+import type { LoopAnimationMode, LoopRhythmMode } from '@shared/types'
 
-export interface LoopFrame {
+export type SlicerMode = 'grid' | 'contour' | 'manual'
+export type { LoopAnimationMode, LoopRhythmMode }
+
+export interface LoopFrameBox {
   id: string
   index: number
+  /** Top-left X in source image pixels */
   x: number
+  /** Top-left Y in source image pixels */
   y: number
+  /** Width in source image pixels */
   width: number
+  /** Height in source image pixels */
   height: number
-  enabled: boolean
-  durationMultiplier: number
+  /** Frame-specific pivot/offset X adjustment (px) for stabilizing jittery sprites */
   offsetX: number
+  /** Frame-specific pivot/offset Y adjustment (px) */
   offsetY: number
-  label: string
-  dataUrl?: string
-  trimmedBounds?: { x: number; y: number; width: number; height: number }
+  /** Whether this frame is included in playback & export */
+  enabled: boolean
+  /** Frame duration multiplier (1.0 = standard 1/fps) */
+  durationRatio: number
 }
 
-export type LoopSlicerMode = 'grid' | 'contour' | 'manual'
-export type GridOrder = 'row_first' | 'col_first'
-export type LoopMode = 'loop' | 'ping-pong' | 'once'
-export type CanvasBgType = 'checker-dark' | 'checker-light' | 'black' | 'white'
+export interface ChromaKeyConfig {
+  enabled: boolean
+  /** Hex color to remove, e.g. '#00ff00' */
+  keyColor: string
+  /** Color distance tolerance (0..1, default 0.28) */
+  similarity: number
+  /** Edge feathering smoothness (0..1, default 0.10) */
+  smoothness: number
+  /** Green/color spill suppression on semi-transparent edges (0..1, default 0.35) */
+  spill: number
+}
 
 export interface GridSlicerConfig {
-  rows: number
   cols: number
-  paddingInset: number
-  order: GridOrder
+  rows: number
+  marginX: number
+  marginY: number
+  paddingX: number
+  paddingY: number
 }
 
 export interface ContourSlicerConfig {
-  minArea: number
-  mergeGap: number
+  /** Alpha threshold (1..254) for considering a pixel non-empty */
   alphaThreshold: number
+  /** Minimum bounding box area (px²) to ignore tiny dust specks */
+  minArea: number
+  /** Merge nearby bounding boxes within this pixel distance */
+  mergeGap: number
 }
 
-export type ChromaKeyColorType =
-  | 'chroma_magenta'
-  | 'chroma_green'
-  | 'chroma_blue'
-  | 'white'
-  | 'black'
-  | 'custom'
-
-export interface LoopChromaConfig {
-  enabled: boolean
-  keyColorType: ChromaKeyColorType
-  customHex: string
-  tolerance: number
-  smoothness: number
-  despill: number
+export interface LoopRhythmConfig {
+  rhythmMode: LoopRhythmMode
+  rhythmRateHz: number
+  rhythmIntensity: number
+  minOpacity: number
+  scaleBeatPct: number
 }
 
 export interface LoopPlaybackConfig {
   fps: number
-  loopMode: LoopMode
+  speed: number
+  loopMode: LoopAnimationMode
   isPlaying: boolean
-  currentFrame: number
   onionSkin: boolean
   onionSkinOpacity: number
-  canvasBg: CanvasBgType
+  previewBg: 'checker' | 'dark' | 'light' | 'green'
+  rhythm: LoopRhythmConfig
 }
 
-export interface LoopAnimationPreset {
+export interface SampleLoopPreset {
   id: string
   name: string
+  category: 'fire' | 'magic' | 'nature' | 'electric' | 'custom'
+  badge: string
   description: string
   imageUrl: string
-  isChroma: boolean
-  defaultGrid: { rows: number; cols: number }
+  defaultGrid: GridSlicerConfig
+  defaultChroma: ChromaKeyConfig
   defaultFps: number
-  chromaConfig?: Partial<LoopChromaConfig>
+  defaultLoopMode?: LoopAnimationMode
+  defaultSpeed?: number
+  defaultRhythm?: Partial<LoopRhythmConfig>
 }
 
 export interface LoopAnimationTemplate {
   id: string
   name: string
-  createdAt: number
-  updatedAt: number
-  frameCount: number
-  fps: number
-  loopMode: LoopMode
-  width: number
-  height: number
-  thumbUrl?: string
+  category: 'fire' | 'magic' | 'nature' | 'electric' | 'custom'
+  badge: string
+  description: string
+  /** Source sprite sheet url or data URL */
   imageUrl: string
+  /** Cropped Frame #1 preview PNG data URL (with Chroma Key removed) */
+  thumbUrl?: string
+  slicerMode: SlicerMode
   gridConfig: GridSlicerConfig
-  chromaConfig: LoopChromaConfig
-  frames: LoopFrame[]
-}
-
-export const DEFAULT_CHROMA_CONFIG: LoopChromaConfig = {
-  enabled: false,
-  keyColorType: 'chroma_magenta',
-  customHex: '#ff00ff',
-  tolerance: 36,
-  smoothness: 12,
-  despill: 25
-}
-
-export const DEFAULT_GRID_CONFIG: GridSlicerConfig = {
-  rows: 4,
-  cols: 4,
-  paddingInset: 0,
-  order: 'row_first'
-}
-
-export const DEFAULT_CONTOUR_CONFIG: ContourSlicerConfig = {
-  minArea: 80,
-  mergeGap: 16,
-  alphaThreshold: 20
-}
-
-export const DEFAULT_PLAYBACK_CONFIG: LoopPlaybackConfig = {
-  fps: 12,
-  loopMode: 'loop',
-  isPlaying: true,
-  currentFrame: 0,
-  onionSkin: false,
-  onionSkinOpacity: 0.35,
-  canvasBg: 'checker-dark'
+  contourConfig?: ContourSlicerConfig
+  chromaKey: ChromaKeyConfig
+  fps: number
+  speed?: number
+  loopMode: LoopAnimationMode
+  rhythm?: LoopRhythmConfig
+  frameCount: number
+  /** Optional custom frame boxes if edited manually or via contour */
+  frames?: LoopFrameBox[]
+  isBuiltin?: boolean
+  createdAt?: number
+  updatedAt?: number
 }

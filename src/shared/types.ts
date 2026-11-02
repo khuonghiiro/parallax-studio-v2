@@ -57,19 +57,34 @@ export interface Transform {
   anchor?: Animatable<Vec3>
 }
 
+export type LoopAnimationMode = 'loop' | 'ping-pong' | 'once' | 'random'
+export type LoopRhythmMode = 'none' | 'flicker_opacity' | 'pulse_scale' | 'sync_both' | 'strobe_beat'
+
 export interface ImageProps {
   assetId: string
   width: number
   height: number
   repeat?: [number, number]
-  /** Animated GIF playback speed multiplier (default 1). */
+  /** Animated GIF / Loop playback speed multiplier (default 1). */
   speed?: number
-  /** Animated GIF loop mode (default 'loop'). */
-  loopMode?: 'loop' | 'ping-pong' | 'once'
+  /** Animated GIF / Loop mode (default 'loop'). */
+  loopMode?: LoopAnimationMode
   /** Time offset in seconds to start animation. */
   timeOffset?: number
   /** Whether to continuously animate live in the editor viewport even when timeline playback is paused (default true). */
   autoPlayPaused?: boolean
+  /** Optional Loop Animator template ID that generated this layer (for quick re-editing). */
+  loopTemplateId?: string
+  /** Rhythmic modulation synchronized with the loop animation (opacity flicker, scale pulse, strobe beat). */
+  loopRhythmMode?: LoopRhythmMode
+  /** Frequency in Hz for loop rhythm modulation (default 2.0). */
+  loopRhythmRateHz?: number
+  /** Intensity (0..1) of the opacity flicker or scale pulse (default 0.35). */
+  loopRhythmIntensity?: number
+  /** Minimum opacity floor (0..1) when flickering (default 0.35). */
+  loopMinOpacity?: number
+  /** Scale pulse amplitude in percentage (0..50%, default 12). */
+  loopScaleBeatPct?: number
 }
 
 export interface TextProps {

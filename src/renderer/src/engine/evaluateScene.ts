@@ -6,6 +6,7 @@ import { evaluate } from '../animation/keyframes'
 import { autoScaleFactor, referenceDistance, smoothNoise } from '../animation/math'
 import { composeDepthMatrix, depthToThree, layerNominalSize, threeToDepth, transformedBox } from './spatial'
 import { evaluateCharacterLipSync } from '../project/lipSync'
+import { evaluateLoopLayerRhythm } from '../project/gifHelper'
 import { evaluateLayerPhysicsTransform } from './layerPhysics'
 import { evaluateVirtualLightAtTime } from './virtualLight'
 
@@ -254,6 +255,15 @@ export function evaluateScene(project: Project, rawT: number): EvaluatedScene {
       shadowTintRgb = phys.shadowTintRgb
     }
 
+    const loopRhythm =
+      layer.type === 'image' && layer.props.loopRhythmMode && layer.props.loopRhythmMode !== 'none'
+        ? evaluateLoopLayerRhythm(layer.props, t, layer.inPoint)
+        : null
+    if (loopRhythm) {
+      sc[0] *= loopRhythm.scaleMultiplier
+      sc[1] *= loopRhythm.scaleMultiplier
+    }
+
     const k = layer.autoScale ? autoScaleFactor(pos[2], comp) : 1
     const scale: Vec3 = [sc[0] * k, sc[1] * k, sc[2]]
     const shot = layer.shotId ? (shotById.get(layer.shotId) ?? null) : null
@@ -303,6 +313,9 @@ export function evaluateScene(project: Project, rawT: number): EvaluatedScene {
     }
 
     let opacity = Math.max(0, Math.min(1, evaluate(tr.opacity, t)))
+    if (loopRhythm) {
+      opacity *= loopRhythm.opacityMultiplier
+    }
     if (layer.fadeIn && layer.fadeIn > 0 && t >= layer.inPoint && t < layer.inPoint + layer.fadeIn) {
       opacity *= (t - layer.inPoint) / layer.fadeIn
     }

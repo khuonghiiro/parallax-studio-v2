@@ -1,12 +1,135 @@
-import { useRef, useMemo } from 'react'
-import type { AssembledLayerItem, AssetTable } from './types'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { evaluateLoopLayerRhythm } from '../../project/gifHelper'
 import type { AssemblyLighting } from '../assets/models3d/types'
-import { useLayerAssetImage } from './useLayerAssetImage'
-import { computeLayerMotion } from './layerAssemblyMotion'
-import { computeLayer2DLighting } from './layerAssembly2DLighting'
+import { getCachedLoopTemplateSheet } from '../loopAnimator/loopFrameExtractor'
 import { BBOX_2D_HANDLES, type Bbox2DHandle } from './layerAssembly2DBbox'
+import { computeLayer2DLighting } from './layerAssembly2DLighting'
 import { LayerAssembly2DMeshOverlay } from './layerAssemblyAlphaMesh'
+import { computeLayerMotion } from './layerAssemblyMotion'
 import { SoftLayerImage } from './SoftLayerImage'
+import type { AssembledLayerItem, AssetTable, LoopWorkshopLayerConfig } from './types'
+import { useLayerAssetImage } from './useLayerAssetImage'
+
+interface LoopSpriteCanvasProps {
+  loopConfig: LoopWorkshopLayerConfig
+  time: number
+  filter?: string
+}
+
+const WorkshopLoopSpriteCanvas = React.memo(function WorkshopLoopSpriteCanvas({
+  loopConfig,
+  time,
+  filter
+}: LoopSpriteCanvasProps): React.ReactElement {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  const [sheetReady, setSheetReady] = useState(false)
+  const sheetRef = useRef<Awaited<ReturnType<typeof getCachedLoopTemplateSheet>>>(null)
+
+  useEffect(() => {
+    if (!loopConfig.spriteSheetUrl) return
+    let cancelled = false
+    const mappedFrames = (loopConfig.frames ?? []).map((f, idx) => ({
+      id: `f_${idx}`,
+      index: idx,
+      x: f.x,
+      y: f.y,
+      width: f.width,
+      height: f.height,
+      offsetX: f.offsetX ?? 0,
+      offsetY: f.offsetY ?? 0,
+      enabled: true,
+      durationRatio: f.durationRatio ?? 1
+    }))
+    void getCachedLoopTemplateSheet({
+      id: loopConfig.templateId || 'workshop_loop',
+      imageUrl: loopConfig.spriteSheetUrl,
+      gridConfig: { cols: 4, rows: 4, marginX: 0, marginY: 0, paddingX: 0, paddingY: 0 },
+      chromaKey: loopConfig.chromaKey ?? {
+        enabled: true,
+        keyColor: '#00ff00',
+        similarity: 0.34,
+        smoothness: 0.12,
+        spill: 0.45
+      },
+      frames: mappedFrames
+    }).then((sheet) => {
+      if (cancelled) return
+      sheetRef.current = sheet
+      setSheetReady((v) => !v)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [
+    loopConfig.templateId,
+    loopConfig.spriteSheetUrl,
+    loopConfig.chromaKey?.enabled,
+    loopConfig.chromaKey?.keyColor,
+    loopConfig.chromaKey?.similarity,
+    loopConfig.frames?.length
+  ])
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    const sheet = sheetRef.current
+    if (!canvas || !sheet || sheet.frames.length === 0) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    const total = sheet.frames.length
+    const effectiveFps = Math.max(1, (loopConfig.fps || 12) * (loopConfig.speed || 1))
+    const elapsed = Math.max(0, time + (loopConfig.timeOffset || 0))
+    const rawSlot = Math.floor(elapsed * effectiveFps)
+
+    let frameIdx = 0
+    if (time <= 0.001 || total <= 1) {
+      frameIdx = 0
+    } else if (loopConfig.loopMode === 'once') {
+      frameIdx = Math.min(total - 1, rawSlot)
+    } else if (loopConfig.loopMode === 'ping-pong') {
+      const cycle = Math.max(1, (total - 1) * 2)
+      const rem = rawSlot % cycle
+      frameIdx = rem < total ? rem : cycle - rem
+    } else if (loopConfig.loopMode === 'random') {
+      const hash = Math.abs(Math.sin(rawSlot * 12.9898 + 78.233) * 43758.5453)
+      frameIdx = Math.floor((hash - Math.floor(hash)) * total) % total
+    } else {
+      frameIdx = rawSlot % total
+    }
+
+    const f = sheet.frames[frameIdx] ?? sheet.frames[0]
+    if (!f) return
+
+    if (canvas.width !== sheet.frameW || canvas.height !== sheet.frameH) {
+      canvas.width = sheet.frameW
+      canvas.height = sheet.frameH
+    }
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    const dx = Math.round((canvas.width - f.width) * 0.5 + (f.offsetX || 0))
+    const dy = Math.round((canvas.height - f.height) * 0.5 + (f.offsetY || 0))
+    ctx.drawImage(sheet.canvas, f.x, f.y, f.width, f.height, dx, dy, f.width, f.height)
+  }, [
+    sheetReady,
+    time,
+    loopConfig.fps,
+    loopConfig.speed,
+    loopConfig.loopMode,
+    loopConfig.timeOffset
+  ])
+
+  return (
+    <canvas
+      ref={canvasRef}
+      width={220}
+      height={220}
+      style={{
+        display: 'block',
+        pointerEvents: 'none',
+        filter
+      }}
+    />
+  )
+})
 
 interface AssembledLayerItemViewProps {
   layer: AssembledLayerItem
@@ -34,7 +157,6 @@ export function AssembledLayerItemView({
   isSelected,
   showBbox = true,
   showMesh = false,
-  zoom = 1.0,
   time,
   maxZ,
   lighting,
@@ -46,12 +168,10 @@ export function AssembledLayerItemView({
   const imageUrl = useLayerAssetImage(layer.asset || layer.assetPath, layer.imageUrl, assetTable)
   const boxRef = useRef<HTMLDivElement | null>(null)
 
-  // Tính hiệu ứng hướng nắng, bóng đổ theo chiều sâu Z và màu sắc hấp thụ ánh sáng ngày/đêm
   const lightingResult = useMemo(() => {
     return computeLayer2DLighting(layer, maxZ, lighting)
   }, [layer.z, maxZ, lighting])
 
-  // Tính chuyển động hoạt ảnh theo thời gian mượt mà
   const {
     animRotateDeg: animRotate,
     animScaleX,
@@ -59,7 +179,36 @@ export function AssembledLayerItemView({
     animTranslateX,
     animTranslateY
   } = computeLayerMotion(layer.motion, time)
-  const usesMeshCanvas = Boolean((layer.bindingMode === 'soft' && (layer.boneId || layer.extraBoneIds?.length)) || layer.previewPlantSpines?.length)
+
+  const loopRhythm = useMemo(() => {
+    if (!layer.loopConfig?.enabled || !layer.loopConfig.rhythmMode || layer.loopConfig.rhythmMode === 'none' || time <= 0.001) {
+      return { opacityMultiplier: 1, scaleMultiplier: 1 }
+    }
+    return evaluateLoopLayerRhythm(
+      {
+        loopRhythmMode: layer.loopConfig.rhythmMode,
+        loopRhythmRateHz: layer.loopConfig.rhythmRateHz,
+        loopRhythmIntensity: layer.loopConfig.rhythmIntensity,
+        loopMinOpacity: layer.loopConfig.minOpacity,
+        loopScaleBeatPct: layer.loopConfig.scaleBeatPct,
+        timeOffset: layer.loopConfig.timeOffset,
+        speed: layer.loopConfig.speed
+      },
+      time,
+      0
+    )
+  }, [layer.loopConfig, time])
+
+  const usesMeshCanvas = Boolean(
+    (layer.bindingMode === 'soft' && (layer.boneId || layer.extraBoneIds?.length)) ||
+      layer.previewPlantSpines?.length
+  )
+  const hasSpriteLoop = Boolean(
+    layer.loopConfig?.enabled &&
+      layer.loopConfig.spriteSheetUrl &&
+      layer.loopConfig.frames &&
+      layer.loopConfig.frames.length > 0
+  )
   const anchor = layer.boneId ? 'center' : layer.motion.anchor
 
   const anchorOrigin =
@@ -77,10 +226,9 @@ export function AssembledLayerItemView({
   const rotY = layer.rotationY || 0
   const rotZ = layer.rotation || 0
 
-  // Tách riêng scale cơ sở quanh tâm (50% 50%) và xoay/đàn hồi quanh điểm neo (anchorOrigin) để đồng bộ 100% với 3D
   const baseScale = Math.max(0.05, layer.scale || 1)
-  const squashScaleX = (layer.scaleX ?? 1) * animScaleX
-  const squashScaleY = (layer.scaleY ?? 1) * animScaleY
+  const squashScaleX = (layer.scaleX ?? 1) * animScaleX * loopRhythm.scaleMultiplier
+  const squashScaleY = (layer.scaleY ?? 1) * animScaleY * loopRhythm.scaleMultiplier
   const invScale = 1 / Math.max(0.2, baseScale)
 
   const layerTransform = show3DPerspective
@@ -112,7 +260,7 @@ export function AssembledLayerItemView({
           transform: layerTransform,
           transformOrigin: anchorOrigin,
           transformStyle: 'preserve-3d',
-          opacity: layer.opacity,
+          opacity: layer.opacity * loopRhythm.opacityMultiplier,
           cursor: layer.locked ? 'default' : 'move',
           outline: isSelected && !showBbox ? `${Math.max(1, 2 * invScale)}px solid var(--accent)` : 'none',
           outlineOffset: '2px',
@@ -122,8 +270,20 @@ export function AssembledLayerItemView({
         }}
         onPointerDown={onPointerDown}
       >
-        {imageUrl && usesMeshCanvas ? (
-          <SoftLayerImage url={imageUrl} layer={layer} time={time} showMesh={showMesh} filter={lightingResult.atmosphereFilter || undefined} />
+        {hasSpriteLoop && layer.loopConfig ? (
+          <WorkshopLoopSpriteCanvas
+            loopConfig={layer.loopConfig}
+            time={time}
+            filter={lightingResult.combinedFilter}
+          />
+        ) : imageUrl && usesMeshCanvas ? (
+          <SoftLayerImage
+            url={imageUrl}
+            layer={layer}
+            time={time}
+            showMesh={showMesh}
+            filter={lightingResult.atmosphereFilter || undefined}
+          />
         ) : imageUrl ? (
           <img
             src={imageUrl}
@@ -160,10 +320,11 @@ export function AssembledLayerItemView({
           </div>
         )}
 
-        {/* Lưới đa giác Mesh 2D bám sát pixel đục (loại bỏ hoàn toàn pixel trong suốt) */}
-        <LayerAssembly2DMeshOverlay imageUrl={imageUrl} showMesh={showMesh && !usesMeshCanvas} />
+        <LayerAssembly2DMeshOverlay
+          imageUrl={imageUrl}
+          showMesh={showMesh && !usesMeshCanvas && !hasSpriteLoop}
+        />
 
-        {/* Điểm neo (Anchor Dot Indicator) khi layer được chọn */}
         {isSelected && (
           <div
             style={{
@@ -184,7 +345,6 @@ export function AssembledLayerItemView({
           />
         )}
 
-        {/* Khung viền và 8 điểm mút Square co dãn Bbox theo chuẩn After Effects (cố định mép đối diện) */}
         {isSelected && showBbox && !layer.locked && (
           <>
             <div

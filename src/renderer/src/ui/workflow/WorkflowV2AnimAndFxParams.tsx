@@ -1,3 +1,4 @@
+import { WorkflowV2LoopSpriteParams } from './WorkflowV2LoopSpriteParams'
 import { WorkflowMotionPathSettings } from './WorkflowMotionPathSettings'
 import { resolveMotionMode } from '../../project/workflowMotionMode'
 import React, { useState } from 'react'
@@ -44,15 +45,23 @@ export function WorkflowV2AnimFxParams(props: WorkflowV2NodeParamsProps): React.
   const isGlow = opt.fxCategory === 'glow'
 
   const isComposite25D = Boolean(layer?.composite?.instanceId || p.instanceId)
-  const defaultTab: 'rig_clip' | 'keyframe_fx' =
+  const isLoopLayer =
+    layer?.type === 'image' &&
+    Boolean(
+      layer.props.loopTemplateId ||
+        (layer.props.loopRhythmMode && layer.props.loopRhythmMode !== 'none')
+    )
+  const defaultTab: 'rig_clip' | 'keyframe_fx' | 'loop_sprite' =
     p.animMode ??
-    (p.rigActionPreset && p.rigActionPreset !== 'none'
-      ? 'rig_clip'
-      : isComposite25D && !p.animFxPreset
+    (isLoopLayer || presetId === 'loop_rhythm' || presetId === 'loop_flicker'
+      ? 'loop_sprite'
+      : p.rigActionPreset && p.rigActionPreset !== 'none'
         ? 'rig_clip'
-        : 'keyframe_fx')
+        : isComposite25D && !p.animFxPreset
+          ? 'rig_clip'
+          : 'keyframe_fx')
 
-  const [tab, setTab] = useState<'rig_clip' | 'keyframe_fx'>(defaultTab)
+  const [tab, setTab] = useState<'rig_clip' | 'keyframe_fx' | 'loop_sprite'>(defaultTab)
   const activeTab = p.animMode ?? tab
 
   const countVal = p.animFxCount ?? opt.defaultCount ?? 2
@@ -92,9 +101,31 @@ export function WorkflowV2AnimFxParams(props: WorkflowV2NodeParamsProps): React.
         >
           ⚡ Nhịp Keyframe FX
         </button>
+        <button
+          type="button"
+          className={`wf-v2-seg-tab${activeTab === 'loop_sprite' ? ' active' : ''}`}
+          onClick={() => {
+            setTab('loop_sprite')
+            onUpdate({
+              animMode: 'loop_sprite',
+              animFxPreset: 'loop_rhythm',
+              loopSpeed: p.loopSpeed ?? (layer?.type === 'image' ? layer.props.speed : 1) ?? 1,
+              loopMode: p.loopMode ?? (layer?.type === 'image' ? layer.props.loopMode : 'loop') ?? 'loop',
+              loopRhythmMode: p.loopRhythmMode ?? 'sync_both',
+              loopRhythmRateHz: p.loopRhythmRateHz ?? 2.5,
+              loopRhythmIntensity: p.loopRhythmIntensity ?? 0.45,
+              loopMinOpacity: p.loopMinOpacity ?? 0.55,
+              loopScaleBeatPct: p.loopScaleBeatPct ?? 12
+            })
+          }}
+        >
+          🔁 Loop &amp; Nhịp
+        </button>
       </div>
 
-      {activeTab === 'rig_clip' ? (
+      {activeTab === 'loop_sprite' ? (
+        <WorkflowV2LoopSpriteParams p={p} layer={layer} onUpdate={onUpdate} />
+      ) : activeTab === 'rig_clip' ? (
         <>
           {dynamicActions.length > 0 && (
             <div className="vl-subcard" style={{ marginBottom: 6 }}>
