@@ -576,3 +576,14 @@ export function retimeOrClampTracks(
   }
   return out
 }
+
+/** Tạo rig giả lập tại t=0 phục vụ công cụ Thử bẻ khớp Moho `Z` (Manipulate Bones) trong tab Tạo xương. */
+export function buildManipulateTestRig(baseRig: LayerRig, testPoses: Record<string, import('@shared/layerRig').BonePose>): LayerRig {
+  const tracks: LayerRig['tracks'] = {}
+  for (const [id, pose] of Object.entries(testPoses)) {
+    if (baseRig.bones.some((b) => b.id === id)) {
+      tracks[id] = [{ time: 0, ...pose, easing: 'linear' }]
+    }
+  }
+  return { ...baseRig, duration: Math.max(1, baseRig.duration || 2), loop: false, tracks }
+}

@@ -36,6 +36,14 @@ function buildGeometrySignature(positions: Float32Array, indices?: ArrayLike<num
   return `v${n}:i${indices?.length ?? 0}:${positions[0].toFixed(2)},${positions[1].toFixed(2)}:${positions[mid].toFixed(2)},${positions[mid + 1].toFixed(2)}:${positions[end].toFixed(2)},${positions[end + 1].toFixed(2)}`
 }
 
+function isCoincidentWithTail(parent: LayerRig['bones'][number], child: LayerRig['bones'][number]): boolean {
+  if (child.parentJoint === 'head') return false
+  const pEnd = rotatePoint(parent.length, 0, parent.angle)
+  const pTailX = parent.x + pEnd.x
+  const pTailY = parent.y + pEnd.y
+  return Math.hypot(child.x - pTailX, child.y - pTailY) <= 8
+}
+
 function buildBoneChains(bones: LayerRig['bones']): Array<LayerRig['bones']> {
   const byId = new Map(bones.map((b) => [b.id, b]))
   const children = new Map<string, LayerRig['bones']>()
@@ -48,14 +56,18 @@ function buildBoneChains(bones: LayerRig['bones']): Array<LayerRig['bones']> {
   }
   const chains: Array<LayerRig['bones']> = []
   for (const b of bones) {
-    const isStart = !b.parentId || !byId.has(b.parentId) || (children.get(b.parentId)?.length ?? 0) > 1
+    const parent = b.parentId ? byId.get(b.parentId) : undefined
+    const isCoincident = parent ? isCoincidentWithTail(parent, b) : false
+    const isStart = !parent || (children.get(parent.id)?.length ?? 0) > 1 || !isCoincident
     if (!isStart) continue
     const chain: LayerRig['bones'] = [b]
     let cur = b
     while (true) {
       const kids = children.get(cur.id)
       if (!kids || kids.length !== 1) break
-      cur = kids[0]
+      const next = kids[0]
+      if (!isCoincidentWithTail(cur, next)) break
+      cur = next
       chain.push(cur)
     }
     chains.push(chain)
@@ -85,7 +97,8 @@ function buildCorridorWeights(
   for (let i = 0; i < vCount; i++) {
     const x = world[i * 2]
     const y = world[i * 2 + 1]
-    const active: Array<{ id: string; raw: number; cw: number }> = []
+    const candidates: Array<{ id: string; dEff: number; raw: number; cw: number }> = []
+    let minDist = Infinity
     for (const { chain, ends, corridor } of chainMeta) {
       if (!corridor) continue
       const cw = corridor.weights[i]
@@ -109,17 +122,24 @@ function buildCorridorWeights(
         }
         const sMult = Math.max(0.1, b.strength ?? 1)
         const radius = Math.max(1, len * 0.15 * sMult)
+        const dEff = Math.hypot(dPerp, Math.sqrt(5.0) * dAxial)
         const dEff2 = dPerp * dPerp + 5.0 * dAxial * dAxial
         const affinity = (sMult * sMult) / (dEff2 + radius * radius) ** 2
-        active.push({ id: b.id, raw: cw * affinity, cw })
+        candidates.push({ id: b.id, dEff, raw: cw * affinity, cw })
+        if (dEff < minDist) minDist = dEff
       }
     }
-    if (!active.length) {
+    if (!candidates.length) {
       out[i] = []
       continue
     }
-    active.sort((a, b) => b.raw - a.raw)
-    const top = active.slice(0, 4)
+
+    // Lọc bỏ xương ở nhánh khác qua khoảng không gian rỗng (chữ V, cành đối diện)
+    const maxAllowed = Math.max(minDist * 2.0, minDist + 16)
+    const active = candidates.filter((c) => candidates.length === 1 || c.dEff <= maxAllowed)
+    const list = active.length > 0 ? active : candidates
+    list.sort((a, b) => b.raw - a.raw)
+    const top = list.slice(0, 4)
     const rawSum = top.reduce((s, w) => s + w.raw, 0) || 1
     const envelope = Math.min(1, top.reduce((s, w) => s + w.cw, 0))
     out[i] = top.map((w) => ({ id: w.id, weight: (w.raw / rawSum) * envelope }))
@@ -194,29 +214,39 @@ export function skinBones(rig: LayerRig, root?: string, extraRoots?: string[]) {
 }
 
 export function skinWeights(x: number, y: number, bones: LayerRig['bones']): SkinInfluence[] {
-  const weights = bones
-    .map((b) => {
-      const end = rotatePoint(b.length, 0, b.angle)
-      const len = b.length
-      const len2 = len * len || 1
-      const rawT = ((x - b.x) * end.x + (y - b.y) * end.y) / len2
-      const perpX = x - b.x - rawT * end.x
-      const perpY = y - b.y - rawT * end.y
-      const dPerp = Math.hypot(perpX, perpY)
-      let dAxial = 0
-      if (!b.pin) {
-        if (rawT < 0) dAxial = -rawT * len
-        else if (rawT > 1) dAxial = (rawT - 1) * len
-      }
-      const sMult = Math.max(0.1, b.strength ?? 1)
-      const radius = Math.max(1, len * 0.15 * sMult)
-      const dEff2 = dPerp * dPerp + 5.0 * dAxial * dAxial
-      return { id: b.id, weight: (sMult * sMult) / (dEff2 + radius * radius) ** 2 }
-    })
-    .sort((a, b) => b.weight - a.weight)
-    .slice(0, 4)
-  const sum = weights.reduce((s, w) => s + w.weight, 0) || 1
-  return weights.map((w) => ({ id: w.id, weight: w.weight / sum }))
+  if (!bones.length) return []
+  const candidates: Array<{ id: string; dEff: number; weight: number }> = []
+  let minDist = Infinity
+  for (const b of bones) {
+    const end = rotatePoint(b.length, 0, b.angle)
+    const len = b.length
+    const len2 = len * len || 1
+    const rawT = ((x - b.x) * end.x + (y - b.y) * end.y) / len2
+    const perpX = x - b.x - rawT * end.x
+    const perpY = y - b.y - rawT * end.y
+    const dPerp = Math.hypot(perpX, perpY)
+    let dAxial = 0
+    if (!b.pin) {
+      if (rawT < 0) dAxial = -rawT * len
+      else if (rawT > 1) dAxial = (rawT - 1) * len
+    }
+    const sMult = Math.max(0.1, b.strength ?? 1)
+    const radius = Math.max(1, len * 0.15 * sMult)
+    const dEff = Math.hypot(dPerp, Math.sqrt(5.0) * dAxial)
+    const dEff2 = dPerp * dPerp + 5.0 * dAxial * dAxial
+    const weight = (sMult * sMult) / (dEff2 + radius * radius) ** 2
+    candidates.push({ id: b.id, dEff, weight })
+    if (dEff < minDist) minDist = dEff
+  }
+
+  // Lọc bỏ xương ở nhánh khác qua khoảng không gian rỗng (chữ V, cành đối diện)
+  const maxAllowed = Math.max(minDist * 2.0, minDist + 16)
+  const active = candidates.filter((c) => candidates.length === 1 || c.dEff <= maxAllowed)
+  const list = active.length > 0 ? active : candidates
+  list.sort((a, b) => b.weight - a.weight)
+  const top = list.slice(0, 4)
+  const sum = top.reduce((s, w) => s + w.weight, 0) || 1
+  return top.map((w) => ({ id: w.id, weight: w.weight / sum }))
 }
 
 /** Returns local Y-up mesh positions; bind coordinates and bone transforms are Y-down. */

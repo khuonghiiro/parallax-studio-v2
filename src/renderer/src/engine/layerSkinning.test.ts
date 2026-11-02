@@ -192,4 +192,105 @@ describe('2D mesh skinning', () => {
     expect(deformedRadius).toBeGreaterThan(11.0)
     expect(deformedRadius).toBeLessThanOrEqual(13.0)
   })
+
+  it('keeps the other branch of a V-shaped mesh completely still when deforming one branch', () => {
+    // Mesh chữ V: 2 nhánh tách nhau ở đỉnh, chỉ gặp nhau tại đáy chạc (0, 0)
+    const pos = new Float32Array([
+      // 0, 1: Đáy chạc chữ V (tiếp giáp)
+      -4, 0, 0, 4, 0, 0,
+      // 2, 3: Giữa nhánh trái, 4, 5: Ngọn nhánh trái (x = -50..-40, y_mesh = -100)
+      -26, 50, 0, -20, 50, 0, -52, 100, 0, -44, 100, 0,
+      // 6, 7: Giữa nhánh phải, 8, 9: Ngọn nhánh phải (x = 40..50, y_mesh = -100)
+      20, 50, 0, 26, 50, 0, 44, 100, 0, 52, 100, 0
+    ])
+    const indices = [
+      // Nhánh trái
+      0, 1, 2, 1, 3, 2,
+      2, 3, 4, 3, 5, 4,
+      // Nhánh phải
+      0, 1, 6, 1, 7, 6,
+      6, 7, 8, 7, 9, 8
+    ]
+    const vRig: LayerRig = {
+      duration: 1,
+      loop: false,
+      bones: [
+        { id: 'b-v-left', name: 'Nhánh Trái V', x: 0, y: 0, length: 111, angle: -115.6 },
+        { id: 'b-v-right', name: 'Nhánh Phải V', x: 0, y: 0, length: 111, angle: -64.4 }
+      ],
+      tracks: {
+        'b-v-left': [{ time: 0.5, x: 0, y: 0, rotation: 30, easing: 'linear' }]
+      }
+    }
+
+    const out = deformSkin(
+      pos,
+      { boneId: 'b-v-left', extraBoneIds: ['b-v-right'], x: 0, y: 0, rotation: 0, scale: 1 },
+      vRig,
+      0.5,
+      indices
+    )
+
+    // 1. Nhánh trái (đỉnh 4, 5) uốn rõ rệt theo xương trái
+    expect(Math.hypot(out[4 * 3] - pos[4 * 3], out[4 * 3 + 1] - pos[4 * 3 + 1])).toBeGreaterThan(10)
+    expect(Math.hypot(out[5 * 3] - pos[5 * 3], out[5 * 3 + 1] - pos[5 * 3 + 1])).toBeGreaterThan(10)
+
+    // 2. Nhánh phải (đỉnh 6, 7, 8, 9) KHÔNG BỊ DÍNH MESH: đứng yên hoàn toàn!
+    for (const v of [6, 7, 8, 9]) {
+      expect(out[v * 3]).toBeCloseTo(pos[v * 3], 4)
+      expect(out[v * 3 + 1]).toBeCloseTo(pos[v * 3 + 1], 4)
+    }
+  })
+
+  it('keeps left branch still when bending right bone in a connected V-chain (down to apex, up to right)', () => {
+    // Mesh chữ V: 2 nhánh tách nhau ở đỉnh, chỉ gặp nhau tại đáy chạc (0, 0)
+    const pos = new Float32Array([
+      // 0, 1: Đáy chạc chữ V (tiếp giáp)
+      -4, 0, 0, 4, 0, 0,
+      // 2, 3: Giữa nhánh trái, 4, 5: Ngọn nhánh trái (x = -50..-40, y_mesh = -100)
+      -26, 50, 0, -20, 50, 0, -52, 100, 0, -44, 100, 0,
+      // 6, 7: Giữa nhánh phải, 8, 9: Ngọn nhánh phải (x = 40..50, y_mesh = -100)
+      20, 50, 0, 26, 50, 0, 44, 100, 0, 52, 100, 0
+    ])
+    const indices = [
+      0, 1, 2, 1, 3, 2,
+      2, 3, 4, 3, 5, 4,
+      0, 1, 6, 1, 7, 6,
+      6, 7, 8, 7, 9, 8
+    ]
+    // Chuỗi xương hình V:
+    // Đốt 1: từ ngọn trái (-48, -100) đi xuống đáy (0, 0)
+    // Đốt 2: nối tiếp từ đuôi Đốt 1 tại (0, 0) đi lên ngọn phải (48, -100)
+    // y_comp = -y_mesh, nên y_comp từ 100 xuống 0 -> dx = 48, dy = 100 -> angle = 64.4°
+    const chainVRig: LayerRig = {
+      duration: 1,
+      loop: false,
+      bones: [
+        { id: 'b-down', name: 'Nhánh Trái Xuống', x: -48, y: -100, length: 111, angle: 64.4 },
+        { id: 'b-up', name: 'Nhánh Phải Lên', parentId: 'b-down', x: 0, y: 0, length: 111, angle: -64.4 }
+      ],
+      // Chỉ xoay uốn Đốt 2 (nhánh PHẢI) 30 độ
+      tracks: {
+        'b-up': [{ time: 0.5, x: 0, y: 0, rotation: 30, easing: 'linear' }]
+      }
+    }
+
+    const out = deformSkin(
+      pos,
+      { boneId: 'b-down', x: 0, y: 0, rotation: 0, scale: 1 },
+      chainVRig,
+      0.5,
+      indices
+    )
+
+    // 1. Nhánh phải (đỉnh 8, 9) uốn rõ rệt theo Đốt 2
+    expect(Math.hypot(out[8 * 3] - pos[8 * 3], out[8 * 3 + 1] - pos[8 * 3 + 1])).toBeGreaterThan(10)
+    expect(Math.hypot(out[9 * 3] - pos[9 * 3], out[9 * 3 + 1] - pos[9 * 3 + 1])).toBeGreaterThan(10)
+
+    // 2. Nhánh trái (đỉnh 2, 3, 4, 5) KHÔNG BỊ DÍNH MESH sang nhánh phải: đứng yên hoàn toàn!
+    for (const v of [2, 3, 4, 5]) {
+      expect(out[v * 3]).toBeCloseTo(pos[v * 3], 4)
+      expect(out[v * 3 + 1]).toBeCloseTo(pos[v * 3 + 1], 4)
+    }
+  })
 })

@@ -176,14 +176,15 @@ export function WorkshopBoneDrawPreview({
             </>
           )}
 
+          {/* Thân chiếc xương mới đang được kéo vẽ: hiển thị nét liền rõ nét (solid) */}
           <line
             x1={drawPreview.start.x}
             y1={drawPreview.start.y}
             x2={drawPreview.current.x}
             y2={drawPreview.current.y}
             stroke="var(--key)"
-            strokeWidth={3}
-            strokeDasharray="5 4"
+            strokeWidth={3.6}
+            strokeLinecap="round"
           />
           <circle cx={drawPreview.start.x} cy={drawPreview.start.y} r={drawPreview.snapped ? 7.5 : 6} fill="var(--key)" />
           {drawPreview.snapped && (
@@ -208,8 +209,8 @@ export function WorkshopBoneDrawPreview({
                 x2={-drawPreview.current.x}
                 y2={drawPreview.current.y}
                 stroke="var(--accent-cyan)"
-                strokeWidth={2.5}
-                strokeDasharray="4 4"
+                strokeWidth={3.2}
+                strokeLinecap="round"
                 opacity={0.8}
               />
               <circle
