@@ -2,6 +2,12 @@ import React, { useEffect, useRef, useState } from 'react'
 import { toast } from '../../actions'
 import '../../styles/loopAnimator.css'
 import { requestOpenLayerAssembly } from '../layerAssembly/layerAssemblyBridge'
+import {
+  IconFilm,
+  IconGrid,
+  IconPause,
+  IconPlay
+} from '../icons'
 import { LoopAnimatorFrameStrip } from './LoopAnimatorFrameStrip'
 import { LoopAnimatorPlayer } from './LoopAnimatorPlayer'
 import { LoopAnimatorSourcePane } from './LoopAnimatorSourcePane'
@@ -38,6 +44,7 @@ export function LoopAnimatorDialog({
   const sourceCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const [isExporting, setIsExporting] = useState(false)
   const [templates, setTemplates] = useState<LoopAnimationTemplate[]>(() => getAllLoopTemplates())
+  const [mobileTab, setMobileTab] = useState<'source' | 'player' | 'frames'>('source')
 
   useEffect(() => {
     if (isOpen) {
@@ -47,6 +54,18 @@ export function LoopAnimatorDialog({
       }
     }
   }, [isOpen, initialImageUrl, loadCustomImage])
+
+  // ESC key to close
+  useEffect(() => {
+    if (!isOpen) return
+    const handleKeyDown = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') {
+        onClose()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen, onClose])
 
   if (!isOpen) return null
 
@@ -110,12 +129,12 @@ export function LoopAnimatorDialog({
         data-mcp-dialog="loop_animator"
       >
         {/* Top Header */}
-        <div className="loop-animator-header">
+        <header className="loop-animator-header">
           <div className="loop-animator-brand">
             <span className="loop-brand-icon">🎞</span>
-            <div>
+            <div className="loop-brand-text">
               <h2>Xưởng Tách Hoạt Ảnh Loop (Sprite &amp; Loop Studio)</h2>
-              <p>Cắt khung Grid / Dò viền Contour • Tách nền Chroma Key • Cấu hình Nhịp &amp; Nháy 2.5D</p>
+              <p>Cắt khung Grid / Dò viền Contour • Khử phông Chroma Key • Cấu hình Nhịp &amp; Nháy 2.5D</p>
             </div>
           </div>
 
@@ -141,42 +160,86 @@ export function LoopAnimatorDialog({
               onClick={togglePlaying}
               title={playback.isPlaying ? 'Tạm dừng xem trước hoạt ảnh' : 'Chạy xem trước hoạt ảnh'}
             >
-              {playback.isPlaying ? '⏸ Tạm dừng' : '▶ Chạy thử'}
+              {playback.isPlaying ? (
+                <>
+                  <IconPause width={12} height={12} /> <span>Tạm dừng</span>
+                </>
+              ) : (
+                <>
+                  <IconPlay width={12} height={12} /> <span>Chạy thử</span>
+                </>
+              )}
             </button>
             <button
               type="button"
               className="loop-close-btn"
               onClick={onClose}
               title="Đóng xưởng (Esc)"
+              aria-label="Đóng xưởng"
             >
               ✕
             </button>
           </div>
-        </div>
+        </header>
+
+        {/* Mobile & Tablet Responsive View Switcher */}
+        <nav className="loop-mobile-view-tabs" aria-label="Chuyển góc nhìn xưởng">
+          <button
+            type="button"
+            className={`loop-mobile-tab-btn ${mobileTab === 'source' ? 'active' : ''}`}
+            onClick={() => setMobileTab('source')}
+          >
+            <IconGrid width={13} height={13} />
+            <span>1. Tách Khung Sheet</span>
+          </button>
+          <button
+            type="button"
+            className={`loop-mobile-tab-btn ${mobileTab === 'player' ? 'active' : ''}`}
+            onClick={() => setMobileTab('player')}
+          >
+            <IconPlay width={13} height={13} />
+            <span>2. Sân Khấu &amp; Nhịp</span>
+          </button>
+          <button
+            type="button"
+            className={`loop-mobile-tab-btn ${mobileTab === 'frames' ? 'active' : ''}`}
+            onClick={() => setMobileTab('frames')}
+          >
+            <IconFilm width={13} height={13} />
+            <span>3. Dải Frame ({enabledCount})</span>
+          </button>
+        </nav>
 
         {/* Main Workspace Split */}
-        <div className="loop-animator-body">
-          <LoopAnimatorSourcePane sourceCanvasRef={sourceCanvasRef} />
-          <LoopAnimatorPlayer sourceCanvasRef={sourceCanvasRef} />
+        <div className={`loop-animator-body loop-view-${mobileTab}`}>
+          <div className="loop-source-column">
+            <LoopAnimatorSourcePane sourceCanvasRef={sourceCanvasRef} />
+          </div>
+          <div className="loop-player-column">
+            <LoopAnimatorPlayer sourceCanvasRef={sourceCanvasRef} />
+          </div>
         </div>
 
         {/* Bottom Frame Strip */}
-        <LoopAnimatorFrameStrip sourceCanvasRef={sourceCanvasRef} />
+        <div className={`loop-frame-strip-wrap ${mobileTab === 'frames' ? 'mobile-visible-frames' : ''}`}>
+          <LoopAnimatorFrameStrip sourceCanvasRef={sourceCanvasRef} />
+        </div>
 
         {/* Footer Action Bar */}
-        <div className="loop-animator-footer">
+        <footer className="loop-animator-footer">
           <div className="loop-footer-left">
             <label className="loop-name-field">
-              <span>Tên hoạt ảnh:</span>
+              <span className="loop-field-label">Tên hoạt ảnh:</span>
               <input
                 type="text"
+                className="loop-name-input"
                 value={layerName}
                 onChange={(e) => setLayerName(e.target.value)}
                 placeholder="Nhập tên hoạt ảnh Loop..."
               />
             </label>
-            <label className="loop-name-field">
-              <span>Nhóm:</span>
+            <div className="loop-cat-field">
+              <span className="loop-field-label">Nhóm:</span>
               <div className="loop-cat-pills">
                 {(
                   [
@@ -190,26 +253,26 @@ export function LoopAnimatorDialog({
                   <button
                     key={cat.id}
                     type="button"
-                    className={`loop-mode-pill ${category === cat.id ? 'active' : ''}`}
+                    className={`loop-cat-pill ${category === cat.id ? 'active' : ''}`}
                     onClick={() => setCategory(cat.id)}
                   >
                     {cat.label}
                   </button>
                 ))}
               </div>
-            </label>
+            </div>
             <span className="loop-footer-stats">
-              Sẵn sàng xuất <strong>{enabledCount}</strong> frames @ <strong>{playback.fps} FPS</strong> ({playback.speed}x • {playback.loopMode})
+              Sẵn sàng xuất <strong>{enabledCount}</strong> frames @ <strong>{playback.fps} FPS</strong> ({playback.speed}× • {playback.loopMode})
             </span>
           </div>
 
           <div className="loop-footer-actions">
-            <button type="button" className="btn ghost" onClick={onClose}>
+            <button type="button" className="btn ghost sm loop-action-btn" onClick={onClose}>
               Đóng
             </button>
             <button
               type="button"
-              className="btn secondary"
+              className="btn secondary sm loop-action-btn"
               disabled={enabledCount === 0}
               onClick={handleSaveToLibrary}
               title="Lưu vào Kho Loop Animate (hiển thị Frame #1 làm ảnh đại diện)"
@@ -218,7 +281,7 @@ export function LoopAnimatorDialog({
             </button>
             <button
               type="button"
-              className="btn secondary"
+              className="btn secondary sm loop-action-btn"
               disabled={enabledCount === 0}
               onClick={handleSendToWorkshop25D}
               title="Lưu và đưa hoạt ảnh này vào Xưởng Lắp Ráp 2.5D"
@@ -227,14 +290,14 @@ export function LoopAnimatorDialog({
             </button>
             <button
               type="button"
-              className="btn primary"
+              className="btn primary sm loop-action-btn"
               disabled={enabledCount === 0 || isExporting}
               onClick={() => void handleApplyToScene()}
             >
               {isExporting ? '⏳ Đang đóng gói...' : '🎬 Đưa vào Cảnh'}
             </button>
           </div>
-        </div>
+        </footer>
       </div>
     </div>
   )

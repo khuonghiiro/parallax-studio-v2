@@ -11,8 +11,8 @@
 .loop-assets-subbar {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 8px;
+  gap: 8px;
+  padding: 6px 10px;
   border-bottom: 1px solid var(--line-soft);
   background: var(--bg-1);
   flex-shrink: 0;
@@ -21,8 +21,8 @@
 .loop-assets-search {
   flex: 1 1 auto;
   min-width: 0;
-  height: 26px;
-  padding: 0 8px;
+  height: 28px;
+  padding: 0 10px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--line);
   background: var(--bg-2);
@@ -39,17 +39,18 @@
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  height: 26px;
-  padding: 0 8px;
+  gap: 5px;
+  height: 28px;
+  padding: 0 10px;
   border-radius: var(--radius-sm);
   font-size: 11px;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .loop-item-card.is-playing {
   border-color: var(--accent);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent);
+  box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--accent) 55%, transparent);
 }
 
 .loop-card-thumb {
@@ -61,11 +62,7 @@
     linear-gradient(45deg, transparent 75%, var(--bg-2) 75%),
     linear-gradient(-45deg, transparent 75%, var(--bg-2) 75%);
   background-size: 12px 12px;
-  background-position:
-    0 0,
-    0 6px,
-    6px -6px,
-    -6px 0;
+  background-position: 0 0, 0 6px, 6px -6px, -6px 0;
 }
 
 .loop-card-preview-canvas {
@@ -77,11 +74,11 @@
 
 .loop-card-frame-badge {
   position: absolute;
-  top: 5px;
-  left: 5px;
-  padding: 2px 5px;
+  top: 6px;
+  left: 6px;
+  padding: 2px 6px;
   border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--bg-0) 86%, transparent);
+  background: color-mix(in srgb, var(--bg-0) 88%, transparent);
   border: 1px solid var(--line-soft);
   color: var(--text);
   font-size: 9.5px;
@@ -92,9 +89,9 @@
 
 .loop-card-rhythm-badge {
   position: absolute;
-  bottom: 5px;
-  right: 5px;
-  padding: 1px 5px;
+  bottom: 6px;
+  right: 6px;
+  padding: 1px 6px;
   border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--accent) 80%, #0f172a);
   color: #ffffff;
@@ -106,16 +103,16 @@
 
 .loop-card-play-toggle {
   position: absolute;
-  bottom: 5px;
-  left: 5px;
+  bottom: 6px;
+  left: 6px;
   display: inline-flex;
   align-items: center;
   gap: 3px;
   height: 22px;
-  padding: 0 6px;
+  padding: 0 7px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--line);
-  background: color-mix(in srgb, var(--bg-1) 90%, transparent);
+  background: color-mix(in srgb, var(--bg-1) 92%, transparent);
   color: var(--text);
   font-size: 10px;
   font-weight: 600;
@@ -132,28 +129,28 @@
 }
 
 /* ============================================================================
- * LOOP ANIMATOR MODAL DIALOG
+ * LOOP ANIMATOR MODAL DIALOG (Expansive & Responsive Multi-Device Architecture)
  * ============================================================================ */
 
 .loop-animator-backdrop {
   position: fixed;
   inset: 0;
   z-index: 12000;
-  background: rgba(8, 12, 22, 0.72);
-  backdrop-filter: blur(6px);
+  background: rgba(6, 10, 20, 0.78);
+  backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 14px;
+  padding: clamp(6px, 1.4vw, 18px);
 }
 
 .loop-animator-modal {
-  width: min(1420px, 97vw);
-  height: min(900px, 94vh);
+  width: min(1660px, 98vw);
+  height: min(960px, 96vh);
   background: var(--bg-1);
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 28px 72px rgba(0, 0, 0, 0.65), 0 0 0 1px color-mix(in srgb, var(--accent) 20%, transparent);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -165,7 +162,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 8px 14px;
+  padding: 8px 16px;
   background: var(--bg-2);
   border-bottom: 1px solid var(--line);
   flex-shrink: 0;
@@ -174,63 +171,67 @@
 .loop-animator-brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   flex-shrink: 0;
 }
 
 .loop-brand-icon {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border-radius: var(--radius);
-  background: color-mix(in srgb, var(--accent) 18%, var(--bg-3));
-  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--line));
+  background: color-mix(in srgb, var(--accent) 20%, var(--bg-3));
+  border: 1px solid color-mix(in srgb, var(--accent) 50%, var(--line));
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
+  font-size: 18px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
-.loop-animator-brand h2 {
+.loop-brand-text h2 {
   margin: 0;
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--text);
+  letter-spacing: -0.01em;
 }
 
-.loop-animator-brand p {
-  margin: 1px 0 0;
-  font-size: 10.5px;
+.loop-brand-text p {
+  margin: 2px 0 0;
+  font-size: 11px;
   color: var(--text-dim);
 }
 
 .loop-header-presets {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   flex: 1 1 auto;
   min-width: 0;
   overflow-x: auto;
-  padding: 2px 4px;
+  padding: 3px 6px;
+  scrollbar-width: thin;
 }
 
 .loop-preset-chip {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 4px 8px;
+  gap: 6px;
+  padding: 5px 10px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--line-soft);
   background: var(--bg-3);
   color: var(--text-dim);
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
   transition: all 0.14s ease;
+  user-select: none;
 }
 
 .loop-preset-chip-name {
-  max-width: 110px;
+  max-width: 125px;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -238,10 +239,11 @@
 .loop-preset-chip:hover {
   border-color: var(--accent);
   color: var(--text);
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-3));
 }
 
 .loop-preset-chip.active {
-  background: color-mix(in srgb, var(--accent) 80%, #0f172a);
+  background: color-mix(in srgb, var(--accent) 82%, #0f172a);
   border-color: var(--accent);
   color: #ffffff;
 }
@@ -254,13 +256,17 @@
 }
 
 .loop-header-play-btn {
-  min-width: 104px;
+  min-width: 108px;
+  height: 30px;
   font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
 
 .loop-close-btn {
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--line-soft);
   background: var(--bg-3);
@@ -269,7 +275,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
   flex-shrink: 0;
+  transition: all 0.14s ease;
 }
 
 .loop-close-btn:hover {
@@ -278,24 +287,60 @@
   color: #ffffff;
 }
 
+/* Mobile & Tablet Responsive View Navigation Tabs */
+.loop-mobile-view-tabs {
+  display: none;
+  align-items: center;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--line);
+  padding: 4px 8px;
+  gap: 6px;
+  flex-shrink: 0;
+  overflow-x: auto;
+}
+
+.loop-mobile-tab-btn {
+  flex: 1 1 auto;
+  min-width: 110px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-soft);
+  background: var(--bg-3);
+  color: var(--text-dim);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.14s ease;
+}
+
+.loop-mobile-tab-btn:hover {
+  color: var(--text);
+  border-color: var(--line-focus);
+}
+
+.loop-mobile-tab-btn.active {
+  background: color-mix(in srgb, var(--accent) 82%, #0f172a);
+  border-color: var(--accent);
+  color: #ffffff;
+}
+
 /* Main Split Workspace */
 .loop-animator-body {
   flex: 1 1 auto;
   min-height: 0;
   display: grid;
-  grid-template-columns: 1fr 410px;
+  grid-template-columns: minmax(0, 1fr) 430px;
   border-bottom: 1px solid var(--line);
   overflow: hidden;
 }
 
-@media (max-width: 1024px) {
-  .loop-animator-body {
-    grid-template-columns: 1fr;
-    overflow-y: auto;
-  }
-}
-
-.loop-source-pane {
+.loop-source-column {
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -304,19 +349,42 @@
   background: var(--bg-0);
 }
 
+.loop-player-column {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--bg-1);
+}
+
+.loop-frame-strip-wrap {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.loop-source-pane {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
 .loop-pane-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  padding: 6px 10px;
+  gap: 10px;
+  padding: 8px 12px;
   background: var(--bg-2);
   border-bottom: 1px solid var(--line-soft);
   flex-shrink: 0;
 }
 
 .loop-pane-title {
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--text);
 }
@@ -325,22 +393,24 @@
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: 5px;
 }
 
 .loop-mode-pill {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 3px 7px;
+  gap: 5px;
+  height: 26px;
+  padding: 0 9px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--line-soft);
   background: var(--bg-3);
   color: var(--text-dim);
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.14s ease;
+  user-select: none;
 }
 
 .loop-mode-pill:hover {
@@ -349,7 +419,7 @@
 }
 
 .loop-mode-pill.active {
-  background: color-mix(in srgb, var(--accent) 80%, #0f172a);
+  background: color-mix(in srgb, var(--accent) 82%, #0f172a);
   border-color: var(--accent);
   color: #ffffff;
 }
@@ -357,7 +427,7 @@
 .loop-source-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 
 .loop-zoom-group {
@@ -367,9 +437,9 @@
 }
 
 .loop-zoom-val {
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 600;
-  min-width: 36px;
+  min-width: 40px;
   text-align: center;
   color: var(--text-dim);
 }
@@ -377,22 +447,22 @@
 .loop-grid-controls {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 6px;
-  padding: 6px 10px;
+  gap: 8px;
+  padding: 8px 12px;
   background: var(--bg-1);
   border-bottom: 1px solid var(--line-soft);
   flex-shrink: 0;
 }
 
 .loop-contour-controls {
-  grid-template-columns: repeat(3, minmax(0, 120px)) 1fr;
+  grid-template-columns: repeat(3, minmax(0, 130px)) 1fr;
   align-items: end;
 }
 
 .loop-contour-btns {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   justify-content: flex-end;
 }
 
@@ -400,8 +470,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  padding: 5px 10px;
+  gap: 10px;
+  padding: 6px 12px;
   background: var(--bg-1);
   border-bottom: 1px solid var(--line-soft);
   font-size: 11px;
@@ -411,32 +481,37 @@
 .loop-ctrl-field {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
 }
 
 .loop-ctrl-field label {
-  font-size: 10px;
+  font-size: 10.5px;
   color: var(--text-dim);
   font-weight: 600;
 }
 
 .loop-ctrl-field input {
-  height: 24px;
-  padding: 0 6px;
+  height: 26px;
+  padding: 0 8px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--line);
   background: var(--bg-2);
   color: var(--text);
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 600;
+}
+
+.loop-ctrl-field input:focus {
+  outline: none;
+  border-color: var(--accent);
 }
 
 .loop-chroma-bar {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 10px;
-  padding: 6px 10px;
+  gap: 12px;
+  padding: 8px 12px;
   background: var(--bg-1);
   border-bottom: 1px solid var(--line-soft);
   flex-shrink: 0;
@@ -445,22 +520,23 @@
 .loop-chroma-toggle {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  font-size: 11px;
+  gap: 6px;
+  font-size: 11.5px;
   font-weight: 700;
   color: var(--text);
   cursor: pointer;
+  user-select: none;
 }
 
 .loop-color-picker-group {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
 }
 
 .loop-color-picker-group input[type='color'] {
-  width: 24px;
-  height: 22px;
+  width: 28px;
+  height: 24px;
   padding: 0;
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
@@ -471,13 +547,13 @@
 .loop-slider-inline {
   display: flex;
   align-items: center;
-  gap: 5px;
-  font-size: 10.5px;
+  gap: 6px;
+  font-size: 11px;
   color: var(--text-dim);
 }
 
 .loop-slider-inline input[type='range'] {
-  width: 72px;
+  width: 80px;
   accent-color: var(--accent);
 }
 
@@ -486,9 +562,9 @@
   min-height: 0;
   overflow: auto;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
-  padding: 12px;
+  padding: 16px;
   background-color: var(--bg-0);
   background-image:
     linear-gradient(45deg, var(--bg-2) 25%, transparent 25%),
@@ -496,20 +572,17 @@
     linear-gradient(45deg, transparent 75%, var(--bg-2) 75%),
     linear-gradient(-45deg, transparent 75%, var(--bg-2) 75%);
   background-size: 16px 16px;
-  background-position:
-    0 0,
-    0 8px,
-    8px -8px,
-    -8px 0;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0;
 }
 
 .loop-source-canvas-stage {
   position: relative;
-  width: min(100%, 440px);
+  width: min(100%, 580px);
+  max-height: calc(100% - 16px);
   aspect-ratio: 1 / 1;
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
 }
 
 .loop-source-canvas-stage.eyedropper-cursor {
@@ -529,7 +602,7 @@
   cursor: pointer;
 }
 
-/* Right Player Stage */
+/* Right Player Pane */
 .loop-player-pane {
   display: flex;
   flex-direction: column;
@@ -541,15 +614,20 @@
 .loop-bg-pills {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
 }
 
 .loop-bg-pill {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--line);
   cursor: pointer;
+  transition: transform 0.12s ease;
+}
+
+.loop-bg-pill:hover {
+  transform: scale(1.1);
 }
 
 .loop-bg-pill.active {
@@ -566,16 +644,12 @@
     linear-gradient(45deg, transparent 75%, var(--bg-2) 75%),
     linear-gradient(-45deg, transparent 75%, var(--bg-2) 75%);
   background-size: 16px 16px;
-  background-position:
-    0 0,
-    0 8px,
-    8px -8px,
-    -8px 0;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0;
 }
 
 .loop-bg-pill.bg-dark,
 .loop-player-stage.bg-dark {
-  background: #0b1120;
+  background: #090e1a;
 }
 
 .loop-bg-pill.bg-light,
@@ -589,7 +663,7 @@
 }
 
 .loop-player-stage {
-  height: 220px;
+  height: 250px;
   flex-shrink: 0;
   position: relative;
   display: flex;
