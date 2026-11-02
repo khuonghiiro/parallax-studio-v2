@@ -39,8 +39,13 @@ export function ResponsiveDockBar({
   const toggleMobileDrawerExpanded = useView((s) => s.toggleMobileDrawerExpanded)
   const { isPhone } = useResponsiveViewport()
 
-  const wf = ensureProjectWorkflow(project)
-  const { activeNodes } = resolveConnectedWorkflowNodes(wf)
+  const activeNodes = (() => {
+    const wf =
+      project.workflow && project.workflow.nodes.length > 0
+        ? project.workflow
+        : ensureProjectWorkflow(project)
+    return resolveConnectedWorkflowNodes(wf).activeNodes
+  })()
 
   const togglePlay = (): void => {
     const st = useEditor.getState()

@@ -246,7 +246,7 @@ export function BuiltInAssetGrid({
                       }}
                     />
                   ) : item.previewUrl ? (
-                    <img src={item.previewUrl} alt={item.name} draggable={false} loading="lazy" />
+                    <img src={item.previewUrl} alt={item.name} loading="lazy" />
                   ) : (
                     <div style={{ padding: 10, fontSize: '10px', color: 'var(--text-faint)' }}>{item.ext.toUpperCase()}</div>
                   )}

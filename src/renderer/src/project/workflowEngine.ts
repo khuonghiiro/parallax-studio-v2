@@ -61,7 +61,7 @@ import {
 import { validateWorkflowConnection } from './workflowConnectionRules'
 import { resolveConnectedWorkflowNodes } from './workflowExecutionOrder'
 import { getWorkflowRouting } from './workflowRouting'
-import { reconcileWorkflowV2WithProject } from './workflowV2Engine'
+import { reconcileWorkflowV2WithProject, resolveWorkflowV2 } from './workflowV2Engine'
 export { resolveConnectedWorkflowNodes } from './workflowExecutionOrder'
 
 export {
@@ -88,9 +88,26 @@ export function getWorkflowFromTemplate(_presetId?: string): WorkflowGraph {
   return createCanonicalWorkflow()
 }
 
+const ensuredWorkflowCache = new WeakMap<
+  Project,
+  { workflowRef: WorkflowGraph | undefined; layersRef: Layer[]; shotsLen: number; result: WorkflowGraph }
+>()
+
 export function ensureProjectWorkflow(project: Project): WorkflowGraph {
   if (project.workflow && project.workflow.presetId === 'v2_scene_hierarchy') {
-    return reconcileWorkflowV2WithProject(project, project.workflow)
+    return resolveWorkflowV2(project)
+  }
+  const isFrozen = Object.isFrozen(project)
+  if (isFrozen) {
+    const cached = ensuredWorkflowCache.get(project)
+    if (
+      cached &&
+      cached.workflowRef === project.workflow &&
+      cached.layersRef === project.layers &&
+      cached.shotsLen === project.shots.length
+    ) {
+      return cached.result
+    }
   }
   const raw =
     project.workflow && Array.isArray(project.workflow.nodes)
@@ -101,7 +118,16 @@ export function ensureProjectWorkflow(project: Project): WorkflowGraph {
           }
         : project.workflow
       : createDefaultWorkflow()
-  return syncWorkflowFromProject(project, raw)
+  const result = syncWorkflowFromProject(project, raw)
+  if (isFrozen) {
+    ensuredWorkflowCache.set(project, {
+      workflowRef: project.workflow,
+      layersRef: project.layers,
+      shotsLen: project.shots.length,
+      result
+    })
+  }
+  return result
 }
 
 /**

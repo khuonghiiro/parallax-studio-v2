@@ -240,7 +240,18 @@ export class SceneRenderer {
     if (!meshDef) return null
     let key = this.meshKeyCache.get(meshDef)
     if (key === undefined) {
-      key = JSON.stringify(meshDef)
+      const m = meshDef as {
+        id?: string
+        surface?: { width?: number; height?: number; subdivisions?: [number, number] }
+        skin?: { positions?: number[]; indices?: number[]; binding?: { boneId?: string } }
+        modifiers?: unknown[]
+      }
+      if (m.skin && Array.isArray(m.skin.positions)) {
+        const modKey = m.modifiers?.length ? JSON.stringify(m.modifiers) : ''
+        key = `${m.id ?? ''}|${m.surface?.width ?? 0}x${m.surface?.height ?? 0}|${m.skin.positions.length}:${m.skin.indices?.length ?? 0}:${m.skin.binding?.boneId ?? ''}|${modKey}`
+      } else {
+        key = JSON.stringify(meshDef)
+      }
       this.meshKeyCache.set(meshDef, key)
     }
     return key

@@ -142,7 +142,8 @@ export class TexturePool {
         // dropTexture() and LOD replacement below release bmp.close() deterministically.
         if (existing) {
           const prevSrc = existing.texture.image as ImageBitmap | undefined
-          if (!key.startsWith('gif:') && prevSrc && typeof prevSrc.close === 'function') {
+          const sharedInitial = assetStore.get(assetId)?.initialBitmap
+          if (!key.startsWith('gif:') && prevSrc && prevSrc !== sharedInitial && typeof prevSrc.close === 'function') {
             prevSrc.close()
           }
           existing.texture.dispose()
@@ -233,6 +234,21 @@ export class TexturePool {
       }
 
       let e = this.pool.get(node.texKey)
+      if (!e && asset?.initialBitmap && asset.initialBitmap.width > 0 && asset.initialBitmap.height > 0) {
+        const bmp = asset.initialBitmap
+        const tex = this.configureTexture(new THREE.Texture(bmp as unknown as HTMLImageElement))
+        tex.flipY = false
+        e = {
+          key: node.texKey,
+          texture: tex,
+          level: 0,
+          w: bmp.width,
+          h: bmp.height,
+          bytes: Math.round(bmp.width * bmp.height * 4 * 1.34),
+          lastUsed: this.tick
+        }
+        this.pool.set(node.texKey, e)
+      }
       if (!e || e.level > level) void this.requestDecode(layer.props.assetId, level)
       if (e) e.lastUsed = this.tick
       return e ?? null
@@ -285,7 +301,9 @@ export class TexturePool {
     const e = this.pool.get(key)
     if (!e) return
     const src = e.texture.image as ImageBitmap | undefined
-    if (!key.startsWith('gif:') && src && typeof (src as ImageBitmap).close === 'function') {
+    const assetId = key.startsWith('img:') ? key.slice(4) : undefined
+    const sharedInitial = assetId ? assetStore.get(assetId)?.initialBitmap : undefined
+    if (!key.startsWith('gif:') && src && src !== sharedInitial && typeof (src as ImageBitmap).close === 'function') {
       src.close()
     }
     e.texture.dispose()

@@ -147,9 +147,13 @@ function LoopTemplateCard({ template, isPlaying, busy, onTogglePlay, onInsert, o
       }}
     >
       <div className="loop-lib-thumb">
-        <button type="button" className="loop-lib-thumb-hit" onClick={onEdit} title="Mở trong Xưởng Tách Hoạt Ảnh Loop để chỉnh sửa">
+        <div
+          className="loop-lib-thumb-hit"
+          onClick={onEdit}
+          title="Nhấn để chỉnh sửa trong Xưởng Tách Hoạt Ảnh Loop · Nhấn giữ kéo thả vào cảnh"
+        >
           <LoopCardPreviewCanvas template={template} isPlaying={isPlaying} width={200} height={140} />
-        </button>
+        </div>
         <span className="loop-lib-chip loop-lib-chip--frames">{template.frameCount}F</span>
         {/* Badge danh mục thể hiện màu sắc đúng logic phân loại (magic: tím, fire: cam, nature: xanh, electric: cyan) */}
         <span

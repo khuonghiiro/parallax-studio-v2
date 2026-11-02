@@ -1,3 +1,4 @@
+import { isDraft } from 'immer'
 import type { Project, WorkflowGraph } from '@shared/types'
 import { syncWorkflowV2Graph } from './workflowV2Sync'
 
@@ -91,6 +92,36 @@ export {
   type ModularApplyResult
 } from './workflowV2ModularApply'
 
+const resolvedWorkflowCache = new WeakMap<Project, WorkflowGraph>()
+const liveDragWorkflowCache = new WeakMap<Project, WorkflowGraph>()
+
+/** Đồ thị Workflow V2 khớp dữ liệu Project hiện tại (giữ tham chiếu khi không đổi & cache theo tham chiếu Project) */
+export function resolveWorkflowV2(project: Project): WorkflowGraph {
+  const dragCached = liveDragWorkflowCache.get(project)
+  if (dragCached) return dragCached
+  if (!isDraft(project) && Object.isFrozen(project)) {
+    const cached = resolvedWorkflowCache.get(project)
+    if (cached) return cached
+  }
+  const next = syncWorkflowV2Graph(project, project.workflow)
+  if (!isDraft(project) && Object.isFrozen(project)) {
+    resolvedWorkflowCache.set(project, next)
+  }
+  return next
+}
+
+/** Giữ nguyên bộ nhớ đệm đồ thị Workflow V2 khi kéo thả toạ độ trực tiếp trên Viewport (60fps) */
+export function preserveWorkflowV2CacheForLiveDrag(prevProject: Project, nextProject: Project): void {
+  if (isDraft(nextProject)) return
+  const existing =
+    liveDragWorkflowCache.get(prevProject) ??
+    resolvedWorkflowCache.get(prevProject) ??
+    prevProject.workflow
+  if (existing) {
+    liveDragWorkflowCache.set(nextProject, existing)
+  }
+}
+
 /** Dựng mới cây Workflow V2 cho toàn dự án từ dữ liệu thật (tham số phạm vi cũ được giữ để tương thích, không còn dùng) */
 export function buildWorkflowV2SceneTree(project: Project, _legacyScope?: string, _legacyOptions?: unknown): WorkflowGraph {
   return syncWorkflowV2Graph(project, undefined)
@@ -98,5 +129,8 @@ export function buildWorkflowV2SceneTree(project: Project, _legacyScope?: string
 
 /** Khớp đồ thị hiện có với dữ liệu Project (giữ nguyên tham chiếu khi không đổi) */
 export function reconcileWorkflowV2WithProject(project: Project, workflow?: WorkflowGraph, _legacyScope?: string): WorkflowGraph {
+  if (workflow === project.workflow) {
+    return resolveWorkflowV2(project)
+  }
   return syncWorkflowV2Graph(project, workflow)
 }

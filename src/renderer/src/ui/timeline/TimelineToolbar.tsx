@@ -67,8 +67,16 @@ export function TimelineToolbar({
   const intervals = useTimelineSelection(s => s.intervals)
   const canRetime = hasSelectedLayer || intervals.some(i => intervalBounds(project, i))
   const canDelete = hasSelectedLayer || !!selectedAudioTrackId
-  const wf = ensureProjectWorkflow(project)
-  const { activeNodes } = resolveConnectedWorkflowNodes(wf)
+  const { wf, activeNodes } = React.useMemo(() => {
+    const resolvedWf =
+      project.workflow && project.workflow.nodes.length > 0
+        ? project.workflow
+        : ensureProjectWorkflow(project)
+    return {
+      wf: resolvedWf,
+      activeNodes: resolveConnectedWorkflowNodes(resolvedWf).activeNodes
+    }
+  }, [project.workflow, project.layers.length, project.shots.length])
 
   return (
     <div className="timeline-toolbar" data-mcp-region="timeline_toolbar">

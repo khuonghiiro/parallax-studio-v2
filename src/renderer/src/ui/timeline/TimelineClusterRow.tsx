@@ -309,4 +309,46 @@ function TimelineClusterRowComponent({
   )
 }
 
-export const TimelineClusterRow = React.memo(TimelineClusterRowComponent)
+function areTimelineClusterRowPropsEqual(
+  prev: TimelineClusterRowProps,
+  next: TimelineClusterRowProps
+): boolean {
+  if (
+    prev.isCollapsed !== next.isCollapsed ||
+    prev.isSelected !== next.isSelected ||
+    prev.trackWidth !== next.trackWidth ||
+    prev.x !== next.x
+  ) {
+    return false
+  }
+  const a = prev.cluster
+  const b = next.cluster
+  if (a === b) return true
+  if (
+    a.instanceId !== b.instanceId ||
+    a.name !== b.name ||
+    a.clusterType !== b.clusterType ||
+    a.inPoint !== b.inPoint ||
+    a.outPoint !== b.outPoint ||
+    a.layers.length !== b.layers.length ||
+    (a.audioTracks?.length ?? 0) !== (b.audioTracks?.length ?? 0)
+  ) {
+    return false
+  }
+  for (let i = 0; i < a.layers.length; i++) {
+    const la = a.layers[i]
+    const lb = b.layers[i]
+    if (
+      la.id !== lb.id ||
+      la.visible !== lb.visible ||
+      la.locked !== lb.locked ||
+      la.transform.position.keyframes.length !== lb.transform.position.keyframes.length ||
+      la.transform.rotation.keyframes.length !== lb.transform.rotation.keyframes.length
+    ) {
+      return false
+    }
+  }
+  return true
+}
+
+export const TimelineClusterRow = React.memo(TimelineClusterRowComponent, areTimelineClusterRowPropsEqual)

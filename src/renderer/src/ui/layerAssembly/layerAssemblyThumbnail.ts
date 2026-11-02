@@ -225,7 +225,7 @@ export async function captureCompositeThumbnail(
     const spines = spinesForLayer(composite.plantSpines, pair.layer.id)
     if (hasSkin || spines.length) {
       const width = pair.img.naturalWidth, height = pair.img.naturalHeight
-      const geometry = createLayerAlphaTrimmedGeometry(width, height, pair.img)
+      const geometry = createLayerAlphaTrimmedGeometry(width, height, null, 16, 20)
       const indices = geometry.getIndex()?.array
       const rest = geometry.userData.basePositions as Float32Array
       const skinned = hasSkin ? deformSkin(rest, pair.layer, composite.rig!, time, indices) : rest

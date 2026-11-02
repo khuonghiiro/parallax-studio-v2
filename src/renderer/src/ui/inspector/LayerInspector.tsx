@@ -31,11 +31,25 @@ export function LayerInspector({ layer }: { layer: Layer }) {
   const currentAnchor = layer.transform.anchor ? evaluate(layer.transform.anchor, time) : ([0, 0, 0] as Vec3)
 
   const logicBadges = useMemo(() => {
-    const wf = ensureProjectWorkflow(project)
+    const wf =
+      project.workflow && project.workflow.nodes.length > 0
+        ? project.workflow
+        : ensureProjectWorkflow(project)
     const raw = getLayerTimelineLogicBadges(layer, project, wf)
     const wfCats = new Set(raw.filter((b) => b.kind === 'workflow_node').map((b) => b.category))
     return raw.filter((b) => b.kind !== 'capability' || !wfCats.has(b.category))
-  }, [layer, project])
+  }, [
+    layer.id,
+    layer.type,
+    layer.shotId,
+    layer.autoOrient,
+    layer.virtualLight,
+    layer.physics,
+    layer.motion,
+    layer.glow,
+    layer.appliedEffects,
+    project.workflow
+  ])
 
   const setOrientation = (type: 'vertical' | 'ground' | 'tilted' | 'ceiling') => {
     set((l) => {

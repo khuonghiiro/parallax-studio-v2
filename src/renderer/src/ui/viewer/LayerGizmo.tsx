@@ -27,7 +27,28 @@ export function LayerGizmo({ controller }: { controller: React.RefObject<GizmoCo
   const scene = evaluateScene(project, time)
   const el = scene.layers.find((l) => l.layer.id === selected)
   useEffect(() => {
-    controller.current = { update: setFrames }
+    controller.current = {
+      update: (next) => {
+        setFrames((prev) => {
+          if (
+            prev.length === next.length &&
+            prev.every(
+              (p, i) =>
+                p.key === next[i].key &&
+                p.rect.x === next[i].rect.x &&
+                p.rect.y === next[i].rect.y &&
+                p.rect.w === next[i].rect.w &&
+                p.rect.h === next[i].rect.h &&
+                p.camera.matrixWorld.equals(next[i].camera.matrixWorld) &&
+                p.camera.projectionMatrix.equals(next[i].camera.projectionMatrix)
+            )
+          ) {
+            return prev
+          }
+          return next
+        })
+      }
+    }
     return () => { controller.current = null; cleanup.current?.() }
   }, [controller])
   if (!el || !el.active || el.layer.locked || playing) return null

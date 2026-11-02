@@ -57,9 +57,15 @@ async function loadItemBytes(item: AssembledLayerItem, resolvedPath: string | un
   return null
 }
 
+const inFlightByPath = new Map<string, Promise<AssetMeta | null>>()
+
 function findExisting(projectAssets: AssetMeta[], path: string | undefined): AssetMeta | undefined {
   if (!path) return undefined
-  return projectAssets.find((a) => a.path?.endsWith(path) || a.assetPath === path || a.id === path) ?? assetStore.get(path)?.meta
+  const fromProject = projectAssets.find((a) => a.path?.endsWith(path) || a.assetPath === path || a.id === path)
+  if (fromProject) return fromProject
+  const direct = assetStore.get(path)?.meta
+  if (direct) return direct
+  return assetStore.all().find((a) => a.meta.assetPath === path || a.meta.path?.endsWith(path))?.meta
 }
 
 /**
@@ -75,16 +81,37 @@ export async function resolveCompositeItemAsset(
   const resolvedPath = hasEditedImage ? undefined : resolveAssetAlias(item.asset || item.assetPath, composite.assets)
   const existing = hasEditedImage ? undefined : findExisting(projectAssets, resolvedPath)
   if (existing) return { asset: existing, isNew: !projectAssets.some((a) => a.id === existing.id) }
+  if (!hasEditedImage && resolvedPath) {
+    const pending = inFlightByPath.get(resolvedPath)
+    if (pending) {
+      const meta = await pending
+      if (meta) return { asset: meta, isNew: !projectAssets.some((a) => a.id === meta.id) }
+    }
+  }
   try {
-    const bytes = await loadItemBytes(item, resolvedPath)
-    if (bytes) {
+    const loadAndRegister = async (): Promise<AssetMeta | null> => {
+      const bytes = await loadItemBytes(item, resolvedPath)
+      if (!bytes) return null
       const fileName = (resolvedPath || item.assetPath || item.name || 'layer').split('/').pop() || 'layer.png'
       const added = await assetStore.add(fileName, bytes.mime, bytes.data, 'image')
       if (resolvedPath) {
         added.meta.assetPath = resolvedPath
         added.meta.path = resolvedPath
       }
-      return { asset: added.meta, isNew: true }
+      return added.meta
+    }
+    if (!hasEditedImage && resolvedPath) {
+      const task = loadAndRegister()
+      inFlightByPath.set(resolvedPath, task)
+      try {
+        const meta = await task
+        if (meta) return { asset: meta, isNew: true }
+      } finally {
+        inFlightByPath.delete(resolvedPath)
+      }
+    } else {
+      const meta = await loadAndRegister()
+      if (meta) return { asset: meta, isNew: true }
     }
   } catch (err) {
     console.warn('[resolveCompositeItemAsset] Failed to load asset bytes for item:', item.name, err)

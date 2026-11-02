@@ -123,11 +123,22 @@ function TimelineLayerRowComponent({
   const workflow = useEditor((s) => s.project.workflow)
   const logicBadges = useMemo(() => {
     const proj = useEditor.getState().project
-    const wf = ensureProjectWorkflow(proj)
+    const wf = workflow && workflow.nodes.length > 0 ? workflow : ensureProjectWorkflow(proj)
     const raw = getLayerTimelineLogicBadges(layer, proj, wf)
     const wfCats = new Set(raw.filter((b) => b.kind === 'workflow_node').map((b) => b.category))
     return raw.filter((b) => b.kind !== 'capability' || !wfCats.has(b.category))
-  }, [layer, workflow])
+  }, [
+    layer.id,
+    layer.type,
+    layer.shotId,
+    layer.autoOrient,
+    layer.virtualLight,
+    layer.physics,
+    layer.motion,
+    layer.glow,
+    layer.appliedEffects,
+    workflow
+  ])
   // Nhóm Time chung đang điều khiển Layer này (đồng bộ với Workflow): kéo / cắt đoạn là sửa cả nhóm
   const timeGroup = useMemo(() => timeSource(workflow ?? undefined, `v2-layer-${layer.id}`), [workflow, layer.id])
   const [isDragOver, setIsDragOver] = useState(false)
@@ -633,5 +644,63 @@ function TimelineLayerRowComponent({
   )
 }
 
-export const TimelineLayerRow = React.memo(TimelineLayerRowComponent)
+function areTimelineLayerRowPropsEqual(prev: TimelineLayerRowProps, next: TimelineLayerRowProps): boolean {
+  if (
+    prev.isOpen !== next.isOpen ||
+    prev.isSelected !== next.isSelected ||
+    prev.isRenaming !== next.isRenaming ||
+    prev.layerIndex !== next.layerIndex ||
+    prev.nested !== next.nested ||
+    prev.clusterRole !== next.clusterRole ||
+    prev.clusterType !== next.clusterType ||
+    prev.clusterName !== next.clusterName ||
+    prev.hasAudio !== next.hasAudio ||
+    prev.audioCount !== next.audioCount ||
+    prev.trackWidth !== next.trackWidth ||
+    prev.x !== next.x
+  ) {
+    return false
+  }
+  if (prev.layer === next.layer) return true
+  if (prev.isOpen) return false
+
+  const a = prev.layer
+  const b = next.layer
+  if (
+    a.id !== b.id ||
+    a.name !== b.name ||
+    a.type !== b.type ||
+    a.visible !== b.visible ||
+    a.locked !== b.locked ||
+    a.inPoint !== b.inPoint ||
+    a.outPoint !== b.outPoint ||
+    a.shotId !== b.shotId ||
+    a.autoOrient !== b.autoOrient ||
+    a.virtualLight !== b.virtualLight ||
+    a.physics !== b.physics ||
+    a.motion !== b.motion ||
+    a.glow !== b.glow ||
+    a.appliedEffects !== b.appliedEffects
+  ) {
+    return false
+  }
+
+  const az = Math.round(Array.isArray(a.transform.position.value) ? (a.transform.position.value[2] ?? 0) : 0)
+  const bz = Math.round(Array.isArray(b.transform.position.value) ? (b.transform.position.value[2] ?? 0) : 0)
+  if (az !== bz) return false
+
+  if (
+    a.transform.position.keyframes.length !== b.transform.position.keyframes.length ||
+    a.transform.rotation.keyframes.length !== b.transform.rotation.keyframes.length ||
+    a.transform.scale.keyframes.length !== b.transform.scale.keyframes.length ||
+    a.transform.opacity.keyframes.length !== b.transform.opacity.keyframes.length ||
+    a.transform.position.keyframes[0]?.t !== b.transform.position.keyframes[0]?.t
+  ) {
+    return false
+  }
+
+  return true
+}
+
+export const TimelineLayerRow = React.memo(TimelineLayerRowComponent, areTimelineLayerRowPropsEqual)
 

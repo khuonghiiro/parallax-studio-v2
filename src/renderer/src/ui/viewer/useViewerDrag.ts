@@ -5,6 +5,7 @@ import { evaluate, setValueAt } from '../../animation/keyframes'
 import { evaluateScene } from '../../engine/evaluateScene'
 import type { EditorCamera } from '../../engine/EditorCamera'
 import type { SceneRenderer, Rect } from '../../engine/SceneRenderer'
+import { preserveWorkflowV2CacheForLiveDrag } from '../../project/workflowV2Engine'
 import { frameTolerance, useEditor } from '../../store/editor'
 import type { Layout } from './viewerLayout'
 
@@ -94,6 +95,11 @@ export function useViewerDrag({
     const initialLayers = related.map((l) => ({
       id: l.layer.id,
       start: [...l.position] as Vec3,
+      startValue: [...l.layer.transform.position.value] as Vec3,
+      startKeyframes: l.layer.transform.position.keyframes.map((k) => [...k.value] as Vec3),
+      hasRigOrGroupKeys:
+        l.layer.transform.position.keyframes.length > 1 &&
+        (related.length > 1 || l.layer.transform.position.keyframes.some((k) => k.id.includes('-rig-'))),
       center: l.layer.model3d?.centerPosition
         ? [...l.layer.model3d.centerPosition] as Vec3
         : l.layer.composite?.centerPosition
@@ -114,6 +120,10 @@ export function useViewerDrag({
     if (!hit0) return
     const key = `drag-${nanoid(6)}`
     const depthPerPx = planeMode === 'depth' ? 6 : Math.max(2, edCam.distance * 0.003)
+    const initById = new Map(initialLayers.map((x) => [x.id, x]))
+    const useFastDirectUpdate = initialLayers.some((x) => x.hasRigOrGroupKeys)
+    const initialProjectSnapshot = s.project
+    let pushedHistory = false
     capture(e, (pev, _dx, dy) => {
       let delta: Vec3
       if (pev.altKey) {
@@ -131,6 +141,54 @@ export function useViewerDrag({
         }
       }
       const st = useEditor.getState()
+      const prevProject = st.project
+      if (useFastDirectUpdate) {
+        const nextLayers = prevProject.layers.map((l) => {
+          const init = initById.get(l.id)
+          if (!init || l.locked) return l
+          const nextValue: Vec3 = init.hasRigOrGroupKeys
+            ? [init.startValue[0] + delta[0], init.startValue[1] + delta[1], init.startValue[2] + delta[2]]
+            : [init.start[0] + delta[0], init.start[1] + delta[1], init.start[2] + delta[2]]
+          const nextKeyframes =
+            init.hasRigOrGroupKeys && l.transform.position.keyframes.length === init.startKeyframes.length
+              ? l.transform.position.keyframes.map((kf, idx) => {
+                  const kv = init.startKeyframes[idx]
+                  return {
+                    ...kf,
+                    value: [kv[0] + delta[0], kv[1] + delta[1], kv[2] + delta[2]] as Vec3
+                  }
+                })
+              : l.transform.position.keyframes
+          const nextCenter: Vec3 | undefined = init.center
+            ? [init.center[0] + delta[0], init.center[1] + delta[1], init.center[2] + delta[2]]
+            : undefined
+          return {
+            ...l,
+            transform: {
+              ...l.transform,
+              position: {
+                ...l.transform.position,
+                value: nextValue,
+                keyframes: nextKeyframes
+              }
+            },
+            ...(l.model3d && nextCenter ? { model3d: { ...l.model3d, centerPosition: nextCenter } } : {}),
+            ...(l.composite && nextCenter ? { composite: { ...l.composite, centerPosition: nextCenter } } : {})
+          }
+        })
+        const nextProject = { ...prevProject, layers: nextLayers }
+        preserveWorkflowV2CacheForLiveDrag(prevProject, nextProject)
+        const now = performance.now()
+        useEditor.setState({
+          project: nextProject,
+          past: pushedHistory ? st.past : [...st.past.slice(-49), initialProjectSnapshot],
+          future: [],
+          dirty: true,
+          lastMerge: { key, at: now }
+        })
+        pushedHistory = true
+        return
+      }
       st.update((dr) => {
         for (const init of initialLayers) {
           const l = dr.layers.find((x) => x.id === init.id)
@@ -157,6 +215,7 @@ export function useViewerDrag({
           }
         }
       }, key)
+      preserveWorkflowV2CacheForLiveDrag(prevProject, useEditor.getState().project)
     })
   }
 

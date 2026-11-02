@@ -71,7 +71,20 @@ function hasCycle(startId: string, workflow: WorkflowGraph, edges: WorkflowEdge[
   return false
 }
 
+const connectedNodesCache = new WeakMap<
+  WorkflowGraph,
+  {
+    nodesRef: WorkflowNode[]
+    edgesRef: WorkflowEdge[]
+    result: { activeNodes: WorkflowNode[]; disconnectedNodes: WorkflowNode[] }
+  }
+>()
+
 export function resolveConnectedWorkflowNodes(workflow: WorkflowGraph) {
+  const cached = connectedNodesCache.get(workflow)
+  if (cached && cached.nodesRef === workflow.nodes && cached.edgesRef === workflow.edges) {
+    return cached.result
+  }
   const enabled = workflow.nodes.filter((node) => node.enabled)
   const byId = new Map(enabled.map((node) => [node.id, node]))
   const edges = validEdges(workflow, byId)
@@ -108,5 +121,11 @@ export function resolveConnectedWorkflowNodes(workflow: WorkflowGraph) {
     }
     ready.sort((a, b) => order(a) - order(b))
   }
-  return { activeNodes, disconnectedNodes: workflow.nodes.filter((node) => !reachable.has(node.id)) }
+  const result = { activeNodes, disconnectedNodes: workflow.nodes.filter((node) => !reachable.has(node.id)) }
+  connectedNodesCache.set(workflow, {
+    nodesRef: workflow.nodes,
+    edgesRef: workflow.edges,
+    result
+  })
+  return result
 }

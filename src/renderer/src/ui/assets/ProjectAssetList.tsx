@@ -108,7 +108,7 @@ export function ProjectAssetList() {
                   }}
                 />
               ) : (
-                rt?.thumbUrl && <img src={rt.thumbUrl} alt={a.name} draggable={false} />
+                rt?.thumbUrl && <img src={rt.thumbUrl} alt={a.name} />
               )}
 
               <span className="asset-name">{a.name}</span>

@@ -13,6 +13,13 @@ interface Props {
 
 type Sheet = Awaited<ReturnType<typeof getCachedLoopTemplateSheet>>
 
+/** Bộ nhớ đệm RAM lưu ảnh PNG tách nền của Frame #1 theo khoá template để hiển thị tức thì và kéo thả mượt mà */
+const ghostThumbMemoryCache = new Map<string, string>()
+
+function getTemplateThumbCacheKey(t: LoopAnimationTemplate): string {
+  return `${t.id}|${t.imageUrl}|${t.updatedAt ?? 0}|${t.chromaKey.enabled ? 1 : 0}|${t.chromaKey.keyColor}|${t.chromaKey.similarity}`
+}
+
 function nextCursor(
   mode: LoopAnimationTemplate['loopMode'],
   cursor: number,
@@ -53,15 +60,24 @@ export const LoopCardPreviewCanvas = React.memo(function LoopCardPreviewCanvas({
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const sheetRef = useRef<Sheet>(null)
   const [sheetVersion, setSheetVersion] = useState(0)
-  const [ghostThumbUrl, setGhostThumbUrl] = useState<string | null>(template.thumbUrl || null)
+  const cacheKey = getTemplateThumbCacheKey(template)
+  const [ghostThumbUrl, setGhostThumbUrl] = useState<string | null>(
+    () => ghostThumbMemoryCache.get(cacheKey) || template.renderedFrames?.[0] || template.thumbUrl || null
+  )
 
   useEffect(() => {
     let cancelled = false
+    const cached = ghostThumbMemoryCache.get(cacheKey) || template.renderedFrames?.[0] || template.thumbUrl
+    if (cached) setGhostThumbUrl(cached)
     void getCachedLoopTemplateSheet(template).then((sheet) => {
       if (cancelled) return
       sheetRef.current = sheet
       setSheetVersion((v) => v + 1)
       if (sheet && sheet.frames.length > 0) {
+        if (ghostThumbMemoryCache.has(cacheKey)) {
+          setGhostThumbUrl(ghostThumbMemoryCache.get(cacheKey)!)
+          return
+        }
         try {
           const f0 = sheet.frames[0]
           if (f0) {
@@ -71,7 +87,9 @@ export const LoopCardPreviewCanvas = React.memo(function LoopCardPreviewCanvas({
             const ctx = c.getContext('2d')
             if (ctx) {
               ctx.drawImage(sheet.canvas, f0.x, f0.y, f0.width, f0.height, 0, 0, f0.width, f0.height)
-              setGhostThumbUrl(c.toDataURL('image/png'))
+              const dataUrl = c.toDataURL('image/png')
+              ghostThumbMemoryCache.set(cacheKey, dataUrl)
+              setGhostThumbUrl(dataUrl)
             }
           }
         } catch {
@@ -82,14 +100,7 @@ export const LoopCardPreviewCanvas = React.memo(function LoopCardPreviewCanvas({
     return () => {
       cancelled = true
     }
-  }, [
-    template.id,
-    template.imageUrl,
-    template.updatedAt,
-    template.chromaKey.enabled,
-    template.chromaKey.keyColor,
-    template.chromaKey.similarity
-  ])
+  }, [cacheKey, template])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -164,21 +175,26 @@ export const LoopCardPreviewCanvas = React.memo(function LoopCardPreviewCanvas({
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <canvas ref={canvasRef} width={width} height={height} className={className} />
+      <canvas
+        ref={canvasRef}
+        width={width}
+        height={height}
+        className={className}
+        style={{ visibility: !isPlaying && ghostThumbUrl ? 'hidden' : 'visible' }}
+      />
       {ghostThumbUrl && (
         <img
           src={ghostThumbUrl}
           alt={template.name}
           className="loop-card-ghost-img"
-          draggable={false}
           style={{
             position: 'absolute',
             inset: 0,
             width: '100%',
             height: '100%',
+            padding: '6px',
             objectFit: 'contain',
-            pointerEvents: 'none',
-            display: isPlaying ? 'none' : 'block'
+            opacity: isPlaying ? 0.001 : 1
           }}
         />
       )}

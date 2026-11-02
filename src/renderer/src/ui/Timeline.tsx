@@ -237,6 +237,7 @@ export function Timeline() {
       for (let i = 0; i < anims.length; i++) {
         const kfs = anims[i].keyframes
         for (let j = 0; j < kfs.length; j++) {
+          if (kfs[j].id.includes('-rig-') && j > 0 && j < kfs.length - 1) continue
           timeSet.add(Math.round(kfs[j].t * 100) / 100)
         }
       }

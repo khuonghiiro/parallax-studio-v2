@@ -83,7 +83,7 @@ export function buildPlaneNode(layer: Layer, scene: THREE.Scene): LayerNode {
     id: layer.id,
     type: layer.type,
     object: mesh,
-    builtFrom: meshDef ? JSON.stringify(meshDef) : null,
+    builtFrom: null,
     planeW: 1,
     planeH: 1,
     resident: false,

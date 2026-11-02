@@ -4,6 +4,7 @@ import type { Vec3 } from '@shared/types'
 import { evaluate, setValueAt } from '../../animation/keyframes'
 import { layerPivot, localPlaneHit, projectPoint, resizedScale, rotationAngle, rotationBasis, type Point } from '../../engine/layerGizmo'
 import type { EvaluatedLayer } from '../../engine/evaluateScene'
+import { preserveWorkflowV2CacheForLiveDrag } from '../../project/workflowV2Engine'
 import { frameTolerance, useEditor } from '../../store/editor'
 import type { GizmoFrame } from './LayerGizmo'
 
@@ -73,6 +74,8 @@ export function startGizmoDrag(
   let initialLayers: Array<{
     id: string
     startPos: Vec3
+    startPosValue: Vec3
+    startPosKeyframes: Vec3[]
     startRot: Vec3
     startScale: Vec3
     globalScale: number
@@ -98,6 +101,8 @@ export function startGizmoDrag(
       return {
         id: l.id,
         startPos: [...evaluate(l.transform.position, time)] as Vec3,
+        startPosValue: [...l.transform.position.value] as Vec3,
+        startPosKeyframes: l.transform.position.keyframes.map((k) => [...k.value] as Vec3),
         startRot: [...evaluate(l.transform.rotation, time)] as Vec3,
         startScale: [...evaluate(l.transform.scale, time)] as Vec3,
         globalScale: l.model3d?.globalScale ?? (evaluate(l.transform.scale, time)[0] || 1.0),
@@ -150,8 +155,24 @@ export function startGizmoDrag(
         for (const init of initialLayers) {
           const l = draft.layers.find((x) => x.id === init.id)
           if (!l || l.locked) continue
-          const nextPos: Vec3 = [init.startPos[0] + deltaVec[0], init.startPos[1] + deltaVec[1], init.startPos[2] + deltaVec[2]]
-          setValueAt(l.transform.position, time, nextPos, frameTolerance(draft))
+          if (init.startPosKeyframes.length > 1 && l.transform.position.keyframes.length === init.startPosKeyframes.length) {
+            l.transform.position.value = [
+              init.startPosValue[0] + deltaVec[0],
+              init.startPosValue[1] + deltaVec[1],
+              init.startPosValue[2] + deltaVec[2]
+            ]
+            for (let i = 0; i < l.transform.position.keyframes.length; i++) {
+              const kv = init.startPosKeyframes[i]
+              l.transform.position.keyframes[i].value = [
+                kv[0] + deltaVec[0],
+                kv[1] + deltaVec[1],
+                kv[2] + deltaVec[2]
+              ]
+            }
+          } else {
+            const nextPos: Vec3 = [init.startPos[0] + deltaVec[0], init.startPos[1] + deltaVec[1], init.startPos[2] + deltaVec[2]]
+            setValueAt(l.transform.position, time, nextPos, frameTolerance(draft))
+          }
           if (l.model3d) {
             l.model3d.centerPosition = [init.centerPosition[0] + deltaVec[0], init.centerPosition[1] + deltaVec[1], init.centerPosition[2] + deltaVec[2]]
           }
@@ -239,6 +260,7 @@ export function startGizmoDrag(
     if (Math.hypot(ev.clientX - e.clientX, ev.clientY - e.clientY) < 2 && !changed) return
     const curPt = point(ev)
     if (changed) useEditor.setState({ lastMerge: { key, at: performance.now() } })
+    const prevProject = st.project
     if (isGroup) {
       moveModel(curPt, ev.shiftKey)
     } else {
@@ -250,6 +272,7 @@ export function startGizmoDrag(
       }, key)
     }
     lastProject = useEditor.getState().project
+    preserveWorkflowV2CacheForLiveDrag(prevProject, lastProject)
     changed = lastProject !== initial.project
   }
 

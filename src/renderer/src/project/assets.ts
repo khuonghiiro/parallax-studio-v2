@@ -30,6 +30,8 @@ export interface RuntimeAsset {
   alpha?: { w: number; h: number; data: Uint8ClampedArray }
   /** Decoded frames if this asset is an animated GIF or animated WebP; null if probed and static */
   gif?: AnimatedGifData | null
+  /** Pre-decoded WebGL-ready bitmap (flipped Y, straight alpha) for instant 0ms first-frame display */
+  initialBitmap?: ImageBitmap
 }
 
 type Listener = () => void
@@ -78,6 +80,13 @@ class AssetStore {
     if (a) {
       URL.revokeObjectURL(a.url)
       if (a.thumbUrl) URL.revokeObjectURL(a.thumbUrl)
+      if (a.initialBitmap) {
+        try {
+          a.initialBitmap.close()
+        } catch {
+          /* ignore */
+        }
+      }
       if (a.gif) {
         a.gif.frames.forEach((f) => {
           try {
@@ -96,6 +105,13 @@ class AssetStore {
     this.assets.forEach((a) => {
       URL.revokeObjectURL(a.url)
       if (a.thumbUrl) URL.revokeObjectURL(a.thumbUrl)
+      if (a.initialBitmap) {
+        try {
+          a.initialBitmap.close()
+        } catch {
+          /* ignore */
+        }
+      }
       if (a.gif) {
         a.gif.frames.forEach((f) => {
           try {
@@ -204,16 +220,20 @@ class AssetStore {
     const asset: RuntimeAsset = { meta, blob, url }
 
     if (kind === 'image') {
+      let decodedBmp: ImageBitmap | null = null
       if (!meta.width || !meta.height) {
         const head = new Uint8Array(await blob.slice(0, 256 * 1024).arrayBuffer())
         const size = isSvg ? probeSvgSize(head) : probeImageSize(head)
         if (size) [meta.width, meta.height] = size
         else if (!isSvg && typeof createImageBitmap !== 'undefined') {
           try {
-            const bmp = await createImageBitmap(blob)
-            meta.width = bmp.width
-            meta.height = bmp.height
-            bmp.close()
+            decodedBmp = await createImageBitmap(blob, {
+              imageOrientation: 'flipY',
+              premultiplyAlpha: 'none',
+              colorSpaceConversion: 'none'
+            })
+            meta.width = decodedBmp.width
+            meta.height = decodedBmp.height
           } catch {
             meta.width = 1920
             meta.height = 1080
@@ -221,6 +241,17 @@ class AssetStore {
         } else {
           meta.width = 1920
           meta.height = 1080
+        }
+      }
+      if (!isSvg && !decodedBmp && typeof createImageBitmap !== 'undefined' && (meta.width ?? 0) <= 2048 && (meta.height ?? 0) <= 2048) {
+        try {
+          decodedBmp = await createImageBitmap(blob, {
+            imageOrientation: 'flipY',
+            premultiplyAlpha: 'none',
+            colorSpaceConversion: 'none'
+          })
+        } catch {
+          decodedBmp = null
         }
       }
       if (typeof document !== 'undefined') {
@@ -235,6 +266,12 @@ class AssetStore {
           if (isSvg) {
             const img = await loadHtmlImage(url, tw, th)
             if (img) ctx.drawImage(img, 0, 0, tw, th)
+          } else if (decodedBmp) {
+            ctx.save()
+            ctx.translate(0, th)
+            ctx.scale(1, -1)
+            ctx.drawImage(decodedBmp, 0, 0, tw, th)
+            ctx.restore()
           } else if (typeof createImageBitmap !== 'undefined') {
             const small = await createImageBitmap(blob, { resizeWidth: tw, resizeHeight: th, resizeQuality: 'medium' })
             ctx.drawImage(small, 0, 0)
@@ -244,9 +281,16 @@ class AssetStore {
           const data = new Uint8ClampedArray(tw * th)
           for (let i = 0; i < tw * th; i++) data[i] = src[i * 4 + 3]
           asset.alpha = { w: tw, h: th, data }
-          asset.thumbUrl = isSvg ? url : c.toDataURL('image/webp', 0.82)
+          asset.thumbUrl = isSvg || blob.size <= 512 * 1024 ? url : c.toDataURL('image/webp', 0.82)
         } catch {
           asset.thumbUrl = url
+        }
+      }
+      if (decodedBmp) {
+        if (decodedBmp.width <= 2048 && decodedBmp.height <= 2048) {
+          asset.initialBitmap = decodedBmp
+        } else {
+          decodedBmp.close()
         }
       }
       this.assets.set(meta.id, asset)

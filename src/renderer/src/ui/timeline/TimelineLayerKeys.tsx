@@ -116,7 +116,13 @@ export function TimelineLayerKeys(props: Props) {
 function summaryGroups(layer: Layer, x: (time: number) => number) {
   const groups = new Map<number, NonNullable<Layer['appliedEffects']>>()
   for (const { prop } of LAYER_PROPS) {
-    for (const key of layer.transform[prop]!.keyframes) {
+    const kfs = layer.transform[prop]!.keyframes
+    const len = kfs.length
+    for (let idx = 0; idx < len; idx++) {
+      const key = kfs[idx]
+      // Đối với chuỗi keyframe nướng từ xương rig (-rig-), chỉ lấy mốc đầu và mốc cuối để hiển thị thanh dải mượt mà,
+      // tránh tạo hàng nghìn node DOM .tl-key làm đơ giao diện khi kéo thả nhân vật 2.5D
+      if (key.id.includes('-rig-') && idx > 0 && idx < len - 1) continue
       const time = Math.round(key.t * 1000) / 1000
       const list = groups.get(time) ?? []
       for (const fx of layer.appliedEffects ?? []) {
@@ -135,7 +141,20 @@ function summaryGroups(layer: Layer, x: (time: number) => number) {
 }
 
 export function TimelineLayerSummary({ layer, x }: { layer: Layer; x: (time: number) => number }) {
-  const entries = useMemo(() => summaryGroups(layer, x), [layer, x])
+  const entries = useMemo(
+    () => summaryGroups(layer, x),
+    [
+      layer.id,
+      layer.name,
+      layer.transform.position.keyframes.length,
+      layer.transform.position.keyframes[0]?.t,
+      layer.transform.rotation.keyframes.length,
+      layer.transform.scale.keyframes.length,
+      layer.transform.opacity.keyframes.length,
+      layer.appliedEffects,
+      x
+    ]
+  )
   const setTime = useEditor(s => s.setTime)
   return <>
     {entries.map(([time, effects], index) => {
