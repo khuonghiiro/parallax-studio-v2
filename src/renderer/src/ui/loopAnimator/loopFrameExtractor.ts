@@ -267,8 +267,112 @@ export function detectContourFrames(
     }
   }
 
-  // Filter by minimum area and add a small 2px safety margin
-  const valid = boxes.filter((b) => (b.maxX - b.minX) * (b.maxY - b.minY) >= minArea)
+  // Pass 2: Merge subordinate fragments (floating embers, sparks, particles, limbs)
+  // into adjacent major parent sprites if they are spatially aligned and nearby.
+  if (boxes.length > 1) {
+    const sortedAreas = boxes
+      .map((b) => (b.maxX - b.minX) * (b.maxY - b.minY))
+      .sort((a, b) => b - a)
+    // Reference area based on top quartile of detected boxes
+    const medianMajorArea = sortedAreas[Math.floor(sortedAreas.length * 0.25)] || sortedAreas[0] || 1000
+
+    let fragMerged = true
+    while (fragMerged) {
+      fragMerged = false
+      for (let i = 0; i < boxes.length; i++) {
+        const b = boxes[i]
+        const areaB = (b.maxX - b.minX) * (b.maxY - b.minY)
+        // Only treat as subordinate fragment if area is less than 15% of dominant sprites
+        if (areaB >= medianMajorArea * 0.15) continue
+
+        let bestMajor = -1
+        let minDist = Infinity
+        for (let j = 0; j < boxes.length; j++) {
+          if (i === j) continue
+          const a = boxes[j]
+          const areaA = (a.maxX - a.minX) * (a.maxY - a.minY)
+          if (areaA < medianMajorArea * 0.3) continue // Target must be a major sprite
+
+          const hOverlap = Math.min(a.maxX, b.maxX) - Math.max(a.minX, b.minX)
+          const vOverlap = Math.min(a.maxY, b.maxY) - Math.max(a.minY, b.minY)
+          const vDist = Math.max(0, Math.max(a.minY - b.maxY, b.minY - a.maxY))
+          const hDist = Math.max(0, Math.max(a.minX - b.maxX, b.minX - a.maxX))
+
+          // Reach threshold: up to 48px or 25% of major box dimension
+          const maxReach = Math.min(48, Math.max(a.maxX - a.minX, a.maxY - a.minY) * 0.25)
+
+          // Subordinate fragment belongs to this sprite if column-aligned or row-aligned within reach
+          if (
+            (hOverlap > 0 && vDist <= maxReach) ||
+            (vOverlap > 0 && hDist <= maxReach) ||
+            (hDist <= maxReach && vDist <= maxReach)
+          ) {
+            const totalDist = vDist + hDist
+            if (totalDist < minDist) {
+              minDist = totalDist
+              bestMajor = j
+            }
+          }
+        }
+
+        if (bestMajor !== -1) {
+          const target = boxes[bestMajor]
+          target.minX = Math.min(target.minX, b.minX)
+          target.minY = Math.min(target.minY, b.minY)
+          target.maxX = Math.max(target.maxX, b.maxX)
+          target.maxY = Math.max(target.maxY, b.maxY)
+          boxes.splice(i, 1)
+          fragMerged = true
+          break
+        }
+      }
+    }
+  }
+
+  // Pass 3: Post-merge dedup — eliminate boxes that significantly overlap with others.
+  // Chroma key artifacts can split a single sprite into fragments that are
+  // separated beyond mergeGap but still spatially overlapping with adjacent cells.
+  let overlapMerged = true
+  while (overlapMerged) {
+    overlapMerged = false
+    for (let i = 0; i < boxes.length; i++) {
+      for (let j = i + 1; j < boxes.length; j++) {
+        const a = boxes[i]
+        const b = boxes[j]
+        const interX = Math.max(0, Math.min(a.maxX, b.maxX) - Math.max(a.minX, b.minX))
+        const interY = Math.max(0, Math.min(a.maxY, b.maxY) - Math.max(a.minY, b.minY))
+        const interArea = interX * interY
+        const areaA = (a.maxX - a.minX) * (a.maxY - a.minY)
+        const areaB = (b.maxX - b.minX) * (b.maxY - b.minY)
+        const smallerArea = Math.min(areaA, areaB)
+        // If overlap covers >30% of the smaller box, merge them
+        if (smallerArea > 0 && interArea / smallerArea > 0.3) {
+          a.minX = Math.min(a.minX, b.minX)
+          a.minY = Math.min(a.minY, b.minY)
+          a.maxX = Math.max(a.maxX, b.maxX)
+          a.maxY = Math.max(a.maxY, b.maxY)
+          boxes.splice(j, 1)
+          overlapMerged = true
+          break
+        }
+      }
+      if (overlapMerged) break
+    }
+  }
+
+  // Filter by minimum area and discard orphan noise fragments (< 10% of major sprites)
+  const valid = boxes.filter((b) => {
+    const area = (b.maxX - b.minX) * (b.maxY - b.minY)
+    if (area < minArea) return false
+    if (boxes.length > 2) {
+      const sortedAreas = boxes
+        .map((bx) => (bx.maxX - bx.minX) * (bx.maxY - bx.minY))
+        .sort((a, b) => b - a)
+      const majorArea = sortedAreas[Math.floor(sortedAreas.length * 0.25)] || sortedAreas[0] || 1000
+      if (area < majorArea * 0.1) return false
+    }
+    return true
+  })
   if (valid.length === 0) return []
 
   // Deterministic 2-pass row & column clustering to eliminate intransitive sort anomalies

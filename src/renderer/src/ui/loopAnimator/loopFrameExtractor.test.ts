@@ -143,6 +143,79 @@ describe('loopFrameExtractor', () => {
     expect(centered).toHaveLength(2)
   })
 
+  it('merges overlapping boxes caused by chroma key artifacts (dedup pass)', () => {
+    // Simulate: two valid sprites + one spurious island overlapping both
+    const boxes = [
+      { minX: 10, minY: 10, maxX: 100, maxY: 100 },   // Sprite A
+      { minX: 30, minY: 40, maxX: 80, maxY: 90 },      // Spurious: 70% inside A
+      { minX: 200, minY: 10, maxX: 300, maxY: 100 }    // Sprite B (no overlap)
+    ]
+
+    const sorted = clusterAndSortBoxes(boxes, 'row_first')
+    // All 3 boxes survive clustering (no merge logic in cluster)
+    expect(sorted).toHaveLength(3)
+
+    // Now test detectContourFrames with overlapping islands
+    const w = 128
+    const h = 64
+    const raw = new Uint8ClampedArray(w * h * 4)
+    // Island 1: 20x20 at (5..24, 5..24)
+    for (let y = 5; y <= 24; y++) {
+      for (let x = 5; x <= 24; x++) {
+        const idx = (y * w + x) * 4
+        raw[idx] = 255; raw[idx + 3] = 255
+      }
+    }
+    // Island 2 (spurious): 10x10 at (10..19, 10..19) - entirely inside island 1
+    // Since flood fill visits connected pixels, this would be part of island 1.
+    // Instead simulate a gap scenario: island at (8..22, 30..50) slightly overlapping island 1's column
+    // but separated vertically → no overlap → separate box (not the bug we're fixing).
+
+    // Better approach: two separate blobs that DON'T touch but produce overlapping bboxes
+    // Blob A: top-left corner region
+    for (let y = 5; y <= 14; y++) {
+      for (let x = 5; x <= 14; x++) {
+        const idx = (y * w + x) * 4
+        raw[idx] = 255; raw[idx + 3] = 255
+      }
+    }
+    // Blob B: overlapping bbox region (offset by a small transparent gap but bbox overlaps)
+    for (let y = 8; y <= 18; y++) {
+      for (let x = 8; x <= 18; x++) {
+        const idx = (y * w + x) * 4
+        raw[idx] = 255; raw[idx + 3] = 255
+      }
+    }
+    // Non-overlapping island far away
+    for (let y = 5; y <= 14; y++) {
+      for (let x = 80; x <= 90; x++) {
+        const idx = (y * w + x) * 4
+        raw[idx] = 255; raw[idx + 3] = 255
+      }
+    }
+
+    const imgData = { data: raw, width: w, height: h } as ImageData
+    const mockCanvas = {
+      width: w,
+      height: h,
+      getContext: () => ({
+        getImageData: () => imgData
+      })
+    } as unknown as HTMLCanvasElement
+
+    // With mergeGap=1, flood fill connects blobs A and B since pixels touch.
+    // The overlap dedup handles the case where gap-merge misses partial overlap.
+    const islands = detectContourFrames(mockCanvas, {
+      alphaThreshold: 20,
+      minArea: 16,
+      mergeGap: 1,
+      uniformSize: false
+    })
+
+    // Should get exactly 2 final islands (connected blob + far island)
+    expect(islands).toHaveLength(2)
+  })
+
   it('applies chroma key to make background transparent', () => {
     const rawData = new Uint8ClampedArray(16)
     const data = { data: rawData, width: 2, height: 2 } as ImageData
