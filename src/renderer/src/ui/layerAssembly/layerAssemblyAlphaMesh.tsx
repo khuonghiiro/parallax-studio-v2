@@ -14,7 +14,7 @@ const canvasObjectIds = new WeakMap<object, string>()
 let nextCanvasObjSeq = 1
 
 function makeFastImageCacheKey(url: string, cols: number, rows: number): string {
-  if (url.length <= 240) return `${url}_${cols}x${rows}`
+  if (url.length <= 240) return `v3_${url}_${cols}x${rows}`
   let hash = 2166136261
   const samples = 64
   const step = Math.max(1, Math.floor(url.length / samples))
@@ -24,7 +24,7 @@ function makeFastImageCacheKey(url: string, cols: number, rows: number): string 
   }
   hash ^= url.charCodeAt(url.length - 1)
   hash = Math.imul(hash, 16777619)
-  return `${url.slice(0, 64)}#${url.length}#${(hash >>> 0).toString(36)}_${cols}x${rows}`
+  return `v3_${url.slice(0, 64)}#${url.length}#${(hash >>> 0).toString(36)}_${cols}x${rows}`
 }
 
 function storeCellsCache(cacheKey: string, cells: ContourCell[]): void {
@@ -141,7 +141,7 @@ export function getLayerContourCells(
   img.crossOrigin = 'anonymous'
   img.onload = () => {
     try {
-      const sil = getImageSilhouette(img, false)
+      const sil = getImageSilhouette(img, true)
       const cells = sil ? computeContourCells(cols, rows, sil, 0, true) : []
       storeCellsCache(cacheKey, cells)
       const callbacks = pendingLoads.get(cacheKey)
@@ -224,7 +224,7 @@ export function createLayerAlphaTrimmedGeometry(
     if (!cells) {
       const silhouette = Array.isArray(image)
         ? silhouetteFromBoolGrid(image, image[0]?.length ?? 1, image.length)
-        : getImageSilhouette(image, false)
+        : getImageSilhouette(image, true)
       cells = silhouette ? computeContourCells(effectiveCols, effectiveRows, silhouette, 0, true) : []
       if (cacheKey) {
         storeCellsCache(cacheKey, cells)

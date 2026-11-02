@@ -791,6 +791,7 @@ export function WorkshopBoneOverlay({
       {/* Moho Pro Bone Influence Capsules (Vùng ảnh hưởng uốn Mesh) */}
       {editing && (rigTool.showInfluence || isStrengthTool) && rig.bones.length > 0 && (
         <WorkshopBoneCapsuleSvg
+          composite={composite}
           bones={rig.bones}
           transforms={transforms}
           selectedBoneId={boneId}

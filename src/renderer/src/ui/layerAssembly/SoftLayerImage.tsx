@@ -9,6 +9,8 @@ import type { BufferGeometry } from 'three'
 interface Props { url: string; layer: AssembledLayerItem; time: number; showMesh: boolean; filter?: string }
 interface ImageMesh { image: HTMLImageElement; geometry: BufferGeometry; width: number; height: number }
 
+const MESH_BUILD_REV = 4
+
 function expandPoint(p: [number, number], cx: number, cy: number, eps = 0.65): [number, number] {
   const dx = p[0] - cx, dy = p[1] - cy
   const dist = Math.hypot(dx, dy)
@@ -130,7 +132,7 @@ export function SoftLayerImage({ url, layer, time, showMesh, filter }: Props) {
         setLoadFailed(true)
       })
     return () => { active = false; geometry?.dispose() }
-  }, [url])
+  }, [url, MESH_BUILD_REV])
 
   useEffect(() => {
     const canvas = ref.current, ctx = canvas?.getContext('2d')

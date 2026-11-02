@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { deformSkin, skinBones, skinWeights } from './layerSkinning'
+import { computeDominantBonePerTriangle } from './meshGeodesicSkinning'
 import { evaluateRig, transformRigLayer } from './layerRig'
 import { createHumanoidBones, createSimpleChainBones, generateSway, generateWalkCycle } from '../ui/layerAssembly/workshopRigPresets'
 import type { LayerRig } from '@shared/layerRig'
@@ -355,6 +356,86 @@ describe('2D mesh skinning', () => {
 
     // 2. Chân phải và đế giày phải (đỉnh 8, 9, 10, 11, 12, 13) ĐỨNG YÊN HOÀN TOÀN (không bị ghim dẹt hay kéo dính)
     for (const v of [8, 9, 10, 11, 12, 13]) {
+      expect(out[v * 3]).toBeCloseTo(pos[v * 3], 4)
+      expect(out[v * 3 + 1]).toBeCloseTo(pos[v * 3 + 1], 4)
+    }
+  })
+
+  it('partitions mesh triangles per bone along trouser folds and shoe tips when meshEnvelope is enabled', () => {
+    // Nhân vật mặc quần dài có các nếp gấp rộng hai bên và mũi giày vượt ra ngoài đầu mút xương bàn chân
+    const pos = new Float32Array([
+      // 0..3: Thân áo (y_mesh = 100..200, x = -14..14)
+      -14, 200, 0, 14, 200, 0, -14, 100, 0, 14, 100, 0,
+      // 4..7: Ống quần trái (x = -46..-26, y_mesh = 50..15)
+      -46, 50, 0, -26, 50, 0, -48, 15, 0, -30, 15, 0,
+      // 8..9: Mũi giày trái nhô xa khỏi mút xương (x = -88..-35, y_mesh = 0)
+      -88, 0, 0, -35, 0, 0,
+      // 10..13: Ống quần phải (x = 26..46, y_mesh = 50..15)
+      26, 50, 0, 46, 50, 0, 30, 15, 0, 48, 15, 0,
+      // 14..15: Mũi giày phải nhô xa khỏi mút xương (x = 35..88, y_mesh = 0)
+      35, 0, 0, 88, 0, 0,
+      // 16: Nếp gấp quần rộng nhô ra bên ngoài đùi/bắp chân trái (x = -68, y_mesh = 35)
+      -68, 35, 0
+    ])
+    const indices = [
+      // Thân (0, 1)
+      0, 1, 2, 1, 3, 2,
+      // Ống quần trái + giày trái (2..7)
+      2, 3, 4, 3, 5, 4,
+      4, 5, 6, 5, 7, 6,
+      6, 7, 8, 7, 9, 8,
+      // Ống quần phải + giày phải (8..13)
+      2, 3, 10, 3, 11, 10,
+      10, 11, 12, 11, 13, 12,
+      12, 13, 14, 13, 15, 14,
+      // Tam giác nếp gấp quần trái (14)
+      4, 6, 16
+    ]
+    const trouserRig: LayerRig = {
+      duration: 1,
+      loop: false,
+      bones: [
+        { id: 'b-torso', name: 'Thân', x: 0, y: -195, length: 90, angle: 90, meshEnvelope: true },
+        { id: 'b-thigh-l', name: 'Đùi Trái', parentId: 'b-torso', x: -34, y: -95, length: 45, angle: 95, meshEnvelope: true },
+        { id: 'b-calf-l', name: 'Bắp Chân Trái', parentId: 'b-thigh-l', x: -38, y: -50, length: 35, angle: 93, meshEnvelope: true },
+        { id: 'b-foot-l', name: 'Bàn Chân Trái', parentId: 'b-calf-l', x: -40, y: -15, length: 32, angle: 162, meshEnvelope: true },
+        { id: 'b-thigh-r', name: 'Đùi Phải', parentId: 'b-torso', x: 34, y: -95, length: 45, angle: 85, meshEnvelope: true },
+        { id: 'b-calf-r', name: 'Bắp Chân Phải', parentId: 'b-thigh-r', x: 38, y: -50, length: 35, angle: 87, meshEnvelope: true },
+        { id: 'b-foot-r', name: 'Bàn Chân Phải', parentId: 'b-calf-r', x: 40, y: -15, length: 32, angle: 18, meshEnvelope: true }
+      ],
+      tracks: {
+        'b-thigh-l': [{ time: 0.5, x: 0, y: 0, rotation: 25, easing: 'linear' }],
+        'b-calf-l': [{ time: 0.5, x: 0, y: 0, rotation: 15, easing: 'linear' }]
+      }
+    }
+
+    const world2d = new Float32Array((pos.length / 3) * 2)
+    for (let i = 0; i < pos.length / 3; i++) {
+      world2d[i * 2] = pos[i * 3]
+      world2d[i * 2 + 1] = -pos[i * 3 + 1]
+    }
+    const domTris = computeDominantBonePerTriangle(world2d, trouserRig.bones, indices)
+    // Tam giác thân thuộc về b-torso
+    expect(domTris[0]).toBe('b-torso')
+    expect(domTris[1]).toBe('b-torso')
+    // Tam giác mũi giày trái (7) thuộc về b-foot-l, mũi giày phải (13) thuộc về b-foot-r
+    expect(domTris[7]).toBe('b-foot-l')
+    expect(domTris[13]).toBe('b-foot-r')
+    // Tam giác nếp gấp quần rộng bên trái (14) thuộc về ống quần trái
+    expect(['b-thigh-l', 'b-calf-l']).toContain(domTris[14])
+
+    const out = deformSkin(
+      pos,
+      { boneId: 'b-torso', x: 0, y: 0, rotation: 0, scale: 1 },
+      trouserRig,
+      0.5,
+      indices
+    )
+    // Cả nếp gấp quần rộng bên trái (đỉnh 16: -68, 35) và mũi giày trái (đỉnh 8: -88, 0) đều di chuyển theo chân trái
+    expect(Math.hypot(out[16 * 3] - pos[16 * 3], out[16 * 3 + 1] - pos[16 * 3 + 1])).toBeGreaterThan(10)
+    expect(Math.hypot(out[8 * 3] - pos[8 * 3], out[8 * 3 + 1] - pos[8 * 3 + 1])).toBeGreaterThan(15)
+    // Ống quần phải và mũi giày phải (10..15) giữ nguyên vị trí
+    for (const v of [10, 11, 12, 13, 14, 15]) {
       expect(out[v * 3]).toBeCloseTo(pos[v * 3], 4)
       expect(out[v * 3 + 1]).toBeCloseTo(pos[v * 3 + 1], 4)
     }

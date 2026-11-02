@@ -711,6 +711,91 @@
   fill: rgba(6, 182, 212, 0.22);
 }
 
+/* Vùng uốn Bám sát Mesh thực tế (hiển thị đúng lưới tam giác & viền nếp gấp bộ phận thay vì viên nang hình học) */
+.lw-bone-mesh-envelope-tris {
+  fill: rgba(59, 130, 246, 0.11);
+  stroke: rgba(96, 165, 250, 0.22);
+  stroke-width: 0.65px;
+  vector-effect: non-scaling-stroke;
+  transition: fill 0.14s ease, stroke 0.14s ease;
+}
+
+.lw-bone-mesh-envelope-boundary {
+  fill: none;
+  stroke: rgba(96, 165, 250, 0.78);
+  stroke-width: 1.55px;
+  stroke-dasharray: 5 2.5;
+  vector-effect: non-scaling-stroke;
+  transition: stroke 0.14s ease, stroke-width 0.14s ease;
+}
+
+.lw-bone-capsule.side-left .lw-bone-mesh-envelope-tris {
+  fill: rgba(6, 182, 212, 0.12);
+  stroke: rgba(34, 211, 238, 0.26);
+}
+
+.lw-bone-capsule.side-left .lw-bone-mesh-envelope-boundary {
+  stroke: rgba(34, 211, 238, 0.85);
+}
+
+.lw-bone-capsule.side-right .lw-bone-mesh-envelope-tris {
+  fill: rgba(249, 115, 22, 0.12);
+  stroke: rgba(251, 146, 60, 0.26);
+}
+
+.lw-bone-capsule.side-right .lw-bone-mesh-envelope-boundary {
+  stroke: rgba(251, 146, 60, 0.85);
+}
+
+.lw-bone-capsule.selected .lw-bone-mesh-envelope-tris {
+  fill: rgba(245, 158, 11, 0.22);
+  stroke: rgba(251, 191, 36, 0.45);
+}
+
+.lw-bone-capsule.selected .lw-bone-mesh-envelope-boundary {
+  stroke: var(--key);
+  stroke-width: 2.3px;
+  stroke-dasharray: none;
+}
+
+[data-theme='light'] .lw-bone-mesh-envelope-tris {
+  fill: rgba(37, 99, 235, 0.11);
+  stroke: rgba(37, 99, 235, 0.28);
+}
+
+[data-theme='light'] .lw-bone-mesh-envelope-boundary {
+  stroke: rgba(37, 99, 235, 0.85);
+}
+
+[data-theme='light'] .lw-bone-capsule.side-left .lw-bone-mesh-envelope-tris {
+  fill: rgba(8, 145, 178, 0.12);
+  stroke: rgba(8, 145, 178, 0.32);
+}
+
+[data-theme='light'] .lw-bone-capsule.side-left .lw-bone-mesh-envelope-boundary {
+  stroke: #0891b2;
+}
+
+[data-theme='light'] .lw-bone-capsule.side-right .lw-bone-mesh-envelope-tris {
+  fill: rgba(234, 88, 12, 0.12);
+  stroke: rgba(234, 88, 12, 0.32);
+}
+
+[data-theme='light'] .lw-bone-capsule.side-right .lw-bone-mesh-envelope-boundary {
+  stroke: #ea580c;
+}
+
+[data-theme='light'] .lw-bone-capsule.selected .lw-bone-mesh-envelope-tris {
+  fill: rgba(245, 158, 11, 0.22);
+  stroke: rgba(217, 119, 6, 0.48);
+}
+
+[data-theme='light'] .lw-bone-capsule.selected .lw-bone-mesh-envelope-boundary {
+  stroke: #d97706;
+  stroke-width: 2.4px;
+  stroke-dasharray: none;
+}
+
 [data-theme='light'] .lw-bone-capsule rect {
   fill: rgba(37, 99, 235, 0.08);
   stroke: rgba(37, 99, 235, 0.62);

@@ -229,7 +229,7 @@ export function silhouetteFromMask(mask: BinaryMask, detailed = false): Silhouet
   const padded = new Uint8Array(pw * (h + 2))
   for (let y = 0; y < h; y++) padded.set(mask.data.subarray(y * w, (y + 1) * w), (y + 1) * pw + 1)
   const raw = traceMaskLoops(dilateMask({ w: pw, h: h + 2, data: padded }, detailed ? 0 : 1))
-    .map((l) => simplifyClosed(l, detailed ? 0 : SIMPLIFY_PX))
+    .map((l) => simplifyClosed(l, detailed ? 0.55 : SIMPLIFY_PX))
     .filter((l) => l.length >= 3 && Math.abs(signedArea(l)) >= (detailed ? 0.1 : MIN_LOOP_AREA_PX))
   if (raw.length === 0) return { loops: [] }
   // The biggest loop is always an outer outline → its orientation defines "outer".

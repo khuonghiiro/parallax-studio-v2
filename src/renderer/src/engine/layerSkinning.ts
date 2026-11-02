@@ -1,6 +1,7 @@
 import type { LayerRig } from '@shared/layerRig'
 import { evaluateRig, rotatePoint } from './layerRig'
 import { computeMeshCorridor } from './meshCorridor'
+import { buildGeodesicSkinWeights } from './meshGeodesicSkinning'
 
 export interface SkinBinding {
   boneId?: string
@@ -20,10 +21,10 @@ const sharedTopologyWeightCache = new Map<string, SkinInfluence[][]>()
 const MAX_SHARED_TOPOLOGY_CACHE = 96
 
 function buildBonesSignature(bones: LayerRig['bones']): string {
-  let sig = ''
+  let sig = 'v4;'
   for (let i = 0; i < bones.length; i++) {
     const b = bones[i]
-    sig += `${b.id}|${b.parentId ?? ''}|${b.x.toFixed(2)},${b.y.toFixed(2)},${b.length.toFixed(2)},${b.angle.toFixed(2)},${(b.strength ?? 1).toFixed(2)},${b.pin ? 1 : 0};`
+    sig += `${b.id}|${b.parentId ?? ''}|${b.x.toFixed(2)},${b.y.toFixed(2)},${b.length.toFixed(2)},${b.angle.toFixed(2)},${(b.strength ?? 1).toFixed(2)},${(b.influenceReach ?? 1).toFixed(2)},${b.meshEnvelope ? 1 : 0},${b.pin ? 1 : 0};`
   }
   return sig
 }
@@ -223,7 +224,11 @@ function cachedWeights(
 
   let weights: SkinInfluence[][] | null = null
   if (useCorridor) {
-    weights = buildCorridorWeights(world, bones, indices!)
+    if (bones.length >= 2 || bones.some((b) => Boolean(b.meshEnvelope))) {
+      weights = buildGeodesicSkinWeights(world, bones, indices!)
+    } else {
+      weights = buildCorridorWeights(world, bones, indices!)
+    }
   }
   if (!weights) {
     weights = []
