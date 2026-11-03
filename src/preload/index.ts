@@ -55,6 +55,8 @@ const api: ParallaxApi = {
     return () => ipcRenderer.removeListener('builtinAssets:updated', h)
   },
   importBuiltInAssetFile: (opts) => ipcRenderer.invoke('builtinAssets:importAssetFile', opts),
+  saveLoopAnimationPackage: (opts) => ipcRenderer.invoke('builtinAssets:saveLoopAnimationPackage', opts),
+  loadLoopAnimationPackage: (relPath) => ipcRenderer.invoke('builtinAssets:loadLoopAnimationPackage', relPath),
   asset3ds: {
     getCatalog: () => ipcRenderer.invoke('asset3ds:getCatalog'),
     list: () => ipcRenderer.invoke('asset3ds:list'),

@@ -62,6 +62,89 @@ export type LoopRhythmMode = 'none' | 'flicker_opacity' | 'pulse_scale' | 'sync_
 /** Hành vi khi Loop kết thúc (hết số lần chạy của chế độ `once` hoặc hết thời gian Node): giữ khung cuối, ẩn ngay, hoặc mờ dần rồi ẩn */
 export type LoopEndAction = 'hold' | 'hide' | 'fade_out'
 
+export interface LoopColorConfig {
+  /** Màu phủ sắc tố (hex e.g. '#ff6600', null = màu gốc) */
+  tintColor?: string | null
+  /** Cường độ phủ màu (0..1, mặc định 0) */
+  tintIntensity?: number
+  /** Độ sáng (0..2, mặc định 1.0) */
+  brightness?: number
+  /** Độ tương phản (0..2, mặc định 1.0) */
+  contrast?: number
+  /** Độ bão hoà màu (0..2, mặc định 1.0) */
+  saturation?: number
+  /** Xoay vòng màu (độ, -180..180, mặc định 0) */
+  hueRotate?: number
+  /** Chế độ hoà trộn màu: 'normal' | 'screen' | 'additive' | 'multiply' */
+  blendMode?: string
+  /** Độ trong suốt tổng thể (0..1, mặc định 1.0) */
+  opacity?: number
+}
+
+export interface LoopFrameMeta {
+  index: number
+  file: string
+  durationRatio?: number
+  offsetX?: number
+  offsetY?: number
+  tintColor?: string | null
+  brightness?: number
+  contrast?: number
+  saturation?: number
+  hueRotate?: number
+  opacity?: number
+}
+
+export interface LoopAnimationPackageJson {
+  version: '1.0'
+  id: string
+  name: string
+  slug: string
+  category: string
+  fps: number
+  speed: number
+  loopMode: LoopAnimationMode
+  frameCount: number
+  width: number
+  height: number
+  baseMeshWidth?: number
+  baseMeshHeight?: number
+  duration: number
+  thumbnail?: string
+  colorConfig?: LoopColorConfig
+  rhythm?: {
+    rhythmMode: LoopRhythmMode
+    rhythmRateHz: number
+    rhythmIntensity: number
+    minOpacity: number
+    scaleBeatPct: number
+  }
+  frames: LoopFrameMeta[]
+  sourceConfig?: {
+    slicerMode?: string
+    gridConfig?: Record<string, unknown>
+    chromaKey?: Record<string, unknown>
+    contourConfig?: Record<string, unknown>
+  }
+  createdAt?: number
+  updatedAt?: number
+}
+
+export interface LoopAnimationConfigOverrides {
+  speed?: number
+  fps?: number
+  loopMode?: LoopAnimationMode
+  color?: LoopColorConfig
+  rhythm?: Partial<{
+    rhythmMode: LoopRhythmMode
+    rhythmRateHz: number
+    rhythmIntensity: number
+    minOpacity: number
+    scaleBeatPct: number
+  }>
+  timeOffset?: number
+}
+
 export interface ImageProps {
   assetId: string
   width: number
@@ -99,6 +182,12 @@ export interface ImageProps {
   loopFadeInSec?: number
   /** Thời lượng mờ dần trước khi ẩn khi `loopEndAction = 'fade_out'` (giây, mặc định 0.5). */
   loopFadeOutSec?: number
+  /** Đường dẫn tương đối tới file cấu hình animation.json (ví dụ 'loop_animations/anh_lua_chay/animation.json') */
+  loopJsonPath?: string
+  /** Thuộc tính tuỳ biến của layer kế thừa và ghi đè lên animation.json mà không sửa đổi file gốc */
+  loopOverrides?: LoopAnimationConfigOverrides
+  /** Shorthand cấu hình màu sắc ghi đè (tiện dụng) */
+  loopColor?: LoopColorConfig
 }
 
 export interface TextProps {

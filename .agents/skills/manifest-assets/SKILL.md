@@ -17,7 +17,7 @@ Instead of a single monolithic file, `assets/manifest.json` acts as the **centra
 | :--- | :--- | :--- | :--- |
 | `builtin` | `./assets/manifests/builtin.json` | `characters/`, `animals/`, `nature/`, `plants/`, `architecture/`, `interiors/`, `props/`, `weather/`, `effects/` | Public 2D Asset Library (`AssetPanel`, `BuiltInAssetBar`) |
 | `layer_25d` | `./assets/manifests/layer-25d.json` | `layer-assemblies/<category>/` | 2.5D Layer Assembly Workshop (`LayerAssemblyCategoryBar`, `LayerAssemblySidebar`, `CreateLayerAssemblyModal`) |
-| `loop_animator` | `./assets/manifests/loop-animator.json` | `loop-animations/<category>/` | Loop Sprite Animator Workshop (`LoopAnimatorDialog`, `LoopAnimationList`, `WorkshopLoopAssetTab`) |
+| `loop_animator` | `./assets/manifests/loop-animator.json` | `loop_animations/<slug>/`, `demo_transparent/` | Loop Sprite Animator Workshop (`LoopAnimatorDialog`, `LoopAnimationList`, `WorkshopLoopAssetTab`) |
 | `model_3d` | `./assets/manifests/model-3d.json` | `models-3d/<category>/` | 3D Model Workshop (`Model3DCategoryBar`, `Model3DList`, `AssemblyAssetSidebar`) |
 | `audio` | `./assets/manifests/audio.json` | `audio/<category>/` | Audio Studio & Music Library (`MusicCategoryBar`) |
 
@@ -73,6 +73,16 @@ Each category entry in `./assets/manifests/*.json` supports:
 3. **Permanent Delete & Batch Prune (`./assets/prune-manifest.bat` or `prune_assets_manifest`):**
    - If you delete physical files directly in Explorer or permanently delete an item, run `./assets/prune-manifest.bat` (or `pnpm assets:prune`, or MCP tool `prune_assets_manifest`).
    - `./scripts/prune-assets-manifest.mjs` scans both `./assets/` and `./assets/_temp_deleted/` and synchronizes `./assets/manifest.json` and `./assets/manifests/*.json`.
+
+---
+
+## 3b. Gói Hoạt Ảnh Loop Đã Tách Frame (`assets/loop_animations/<slug>/`)
+
+Khi tách và lưu hoạt ảnh trong **Xưởng Tách Hoạt Ảnh Loop** (`LoopAnimatorDialog`):
+1. **Thư mục không dấu tự động:** Hệ thống tự chuyển đổi tên tiếng Việt thành slug không dấu (ví dụ: `Ánh Lửa Cháy` ➔ `assets/loop_animations/anh_lua_chay/`).
+2. **Lưu frame tách nền thành từng file ảnh PNG riêng biệt:** Mỗi frame đã xử lý Chroma Key / Mask được xuất thành file PNG trong suốt: `frame_000.png`, `frame_001.png`,... kèm `thumbnail.png`. Điều này loại bỏ hoàn toàn việc phải tách nền và cắt frame lại mỗi khi chạy, tiết kiệm tối đa CPU/RAM và GPU.
+3. **Tập tin cấu hình `animation.json`:** Chứa thông số phát và bộ lọc màu mặc định (`fps`, `loopMode`, `colorConfig` với `tintColor`, `tintIntensity`, `brightness`, `hueRotate`, metadata `frames`). Sửa trực tiếp file JSON này nếu muốn cập nhật thông số gốc của gói hoạt ảnh.
+4. **Nguyên tắc kế thừa không ghi đè (Zero-Mutation Inheritance):** Khi đưa vào Cảnh hoặc gán cho Layer 2.5D, Layer chỉ lưu đường dẫn `props.loopJsonPath` và các giá trị tinh chỉnh riêng (`props.loopOverrides` / `props.loopColor`). Tinh chỉnh màu (Cam, Lam, Tím, Lục, Vàng, Gốc), tốc độ hay độ sáng trên Layer sẽ kế thừa cấu hình từ file JSON gốc mà **hoàn toàn không làm biến đổi file `animation.json` mặc định** trên đĩa.
 
 ---
 

@@ -249,6 +249,12 @@ export interface WorkflowNodeParams {
   loopFadeOutSec?: number
   /** [Workflow V2 · Loop] Mã hiệu ứng Keyframe / Neon FX kết hợp chạy song song với Loop (tối đa 1 hiệu ứng cho mỗi nhóm: độ mờ, scale, vị trí, viền neon) */
   loopComboFx?: string[]
+  /** [Workflow V2 · Loop] Màu phủ sắc tố ghi đè kế thừa từ animation.json (ví dụ '#ff5500') */
+  loopTintColor?: string | null
+  /** [Workflow V2 · Loop] Độ sáng ghi đè kế thừa từ animation.json (0.2 .. 2.0) */
+  loopBrightness?: number
+  /** [Workflow V2 · Loop] Xoay vòng màu ghi đè kế thừa từ animation.json (-180 .. 180 độ) */
+  loopHueRotate?: number
   /** [Workflow V2] Chế độ chính của Node Motion ('bbox' = Đặt BBox đích #1->#2 thu phóng & chiều sâu, 'path' = Vẽ quỹ đạo di chuyển A->B, 'cycle' = Dao động chu kỳ tại chỗ) */
   motionMode?: 'bbox' | 'path' | 'cycle'
   /** [Workflow V2] Dạng đường đi giữa BBox #1 và BBox #2 ('shortest' = Tự động tìm khoảng cách ngắn nhất, 'custom_curve' = Đặt vị trí đích #2 rồi vẽ đường đi) */

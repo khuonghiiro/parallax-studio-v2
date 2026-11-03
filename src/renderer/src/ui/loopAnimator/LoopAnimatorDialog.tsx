@@ -23,6 +23,7 @@ import {
   applyLoopAnimationToProject,
   syncSceneAndCompositesWithLoopTemplate
 } from './loopAnimationExporter'
+import { saveLoopAnimationAsPackage } from './loopPackageSaver'
 import {
   LOOP_IMAGE_ACCEPT,
   loadLoopImageFile,
@@ -77,6 +78,12 @@ export function LoopAnimatorDialog({ isOpen = true, onClose, initialImageUrl }: 
   const setLayerName = useLoopAnimator((s) => s.setLayerName)
   const setCategory = useLoopAnimator((s) => s.setCategory)
   const saveCurrentToLibrary = useLoopAnimator((s) => s.saveCurrentToLibrary)
+  const slicerMode = useLoopAnimator((s) => s.slicerMode)
+  const gridConfig = useLoopAnimator((s) => s.gridConfig)
+  const chromaKey = useLoopAnimator((s) => s.chromaKey)
+  const contourConfig = useLoopAnimator((s) => s.contourConfig)
+  const baseMeshWidth = useLoopAnimator((s) => s.baseMeshWidth)
+  const baseMeshHeight = useLoopAnimator((s) => s.baseMeshHeight)
 
   const manifestModules = useAssetManifestStore((s) => s.modules)
   const manifestRevision = useAssetManifestStore((s) => s.revision)
@@ -126,7 +133,34 @@ export function LoopAnimatorDialog({ isOpen = true, onClose, initialImageUrl }: 
     if (!sourceCanvasRef.current || isExporting) return
     setIsExporting(true)
     try {
-      const saved = saveCurrentToLibrary(sourceCanvasRef.current)
+      let saved = saveCurrentToLibrary(sourceCanvasRef.current)
+      let pkgRelPath: string | undefined
+      try {
+        const pkgRes = await saveLoopAnimationAsPackage({
+          name: layerName,
+          sourceCanvas: sourceCanvasRef.current,
+          frames,
+          fps: playback.fps,
+          speed: playback.speed,
+          loopMode: playback.loopMode,
+          category,
+          rhythm: playback.rhythm,
+          baseMeshWidth,
+          baseMeshHeight,
+          sourceConfig: {
+            slicerMode,
+            gridConfig,
+            chromaKey,
+            contourConfig
+          }
+        })
+        if (pkgRes.ok) {
+          pkgRelPath = pkgRes.jsonRelPath
+          saved = pkgRes.template
+        }
+      } catch (pkgErr) {
+        console.warn('[LoopAnimator] Package save warning:', pkgErr)
+      }
       if (saved) void syncSceneAndCompositesWithLoopTemplate(saved)
       const res = await applyLoopAnimationToProject({
         layerName,
@@ -136,6 +170,7 @@ export function LoopAnimatorDialog({ isOpen = true, onClose, initialImageUrl }: 
         speed: playback.speed,
         loopMode: playback.loopMode,
         templateId: saved?.id ?? activePresetId ?? undefined,
+        loopJsonPath: pkgRelPath,
         rhythm: playback.rhythm,
         baseMeshWidth: saved?.baseMeshWidth,
         baseMeshHeight: saved?.baseMeshHeight
@@ -149,16 +184,39 @@ export function LoopAnimatorDialog({ isOpen = true, onClose, initialImageUrl }: 
     }
   }
 
-  function handleSaveToLibrary(): void {
-    const saved = saveCurrentToLibrary(sourceCanvasRef.current)
-    if (saved) {
-      void syncSceneAndCompositesWithLoopTemplate(saved).then((syncedCount) => {
-        if (syncedCount > 0) {
-          toast(`💾 Đã lưu "${saved.name}" và đồng bộ ${syncedCount} layer trên cảnh theo tỉ lệ Mesh`)
-        } else {
-          toast(`💾 Đã lưu "${saved.name}" (${saved.frameCount} frame) vào kho Loop Animate`)
+  async function handleSaveToLibrary(): Promise<void> {
+    if (!sourceCanvasRef.current) return
+    try {
+      const pkgRes = await saveLoopAnimationAsPackage({
+        name: layerName,
+        sourceCanvas: sourceCanvasRef.current,
+        frames,
+        fps: playback.fps,
+        speed: playback.speed,
+        loopMode: playback.loopMode,
+        category,
+        rhythm: playback.rhythm,
+        baseMeshWidth,
+        baseMeshHeight,
+        sourceConfig: {
+          slicerMode,
+          gridConfig,
+          chromaKey,
+          contourConfig
         }
       })
+      const saved = pkgRes.template || saveCurrentToLibrary(sourceCanvasRef.current)
+      if (saved) {
+        void syncSceneAndCompositesWithLoopTemplate(saved).then((syncedCount) => {
+          if (syncedCount > 0) {
+            toast(`💾 Đã lưu "${saved.name}" vào thư mục loop_animations/${pkgRes.slug}/ và đồng bộ ${syncedCount} layer`)
+          } else {
+            toast(`💾 Đã lưu "${saved.name}" (${pkgRes.packageJson.frameCount} frame) vào thư mục loop_animations/${pkgRes.slug}/`)
+          }
+        })
+      }
+    } catch (err) {
+      toast(`Lỗi lưu gói hoạt ảnh: ${err instanceof Error ? err.message : String(err)}`)
     }
   }
 

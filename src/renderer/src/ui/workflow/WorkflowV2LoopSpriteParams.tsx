@@ -47,6 +47,17 @@ export const WorkflowV2LoopSpriteParams: React.FC<DualProps> = (rawProps) => {
   const timeOffset = p.loopTimeOffset ?? (layer?.type === 'image' ? layer.props.timeOffset : undefined) ?? 0
   const autoPlayPaused =
     p.loopAutoPlayPaused ?? (layer?.type === 'image' ? layer.props.autoPlayPaused : undefined) ?? true
+  const tintColor =
+    p.loopTintColor !== undefined
+      ? p.loopTintColor
+      : (layer?.type === 'image' ? (layer.props.loopColor?.tintColor ?? layer.props.loopOverrides?.color?.tintColor) : undefined) ?? null
+  const brightness =
+    p.loopBrightness ??
+    (layer?.type === 'image' ? (layer.props.loopColor?.brightness ?? layer.props.loopOverrides?.color?.brightness) : undefined) ?? 1.0
+  const hueRotate =
+    p.loopHueRotate ??
+    (layer?.type === 'image' ? (layer.props.loopColor?.hueRotate ?? layer.props.loopOverrides?.color?.hueRotate) : undefined) ?? 0
+  const loopJsonPath = layer?.type === 'image' ? layer.props.loopJsonPath : undefined
 
   const handleOpenLoopStudio = (): void => {
     const templateId = layer?.type === 'image' ? layer.props.loopTemplateId : undefined
@@ -156,6 +167,81 @@ export const WorkflowV2LoopSpriteParams: React.FC<DualProps> = (rawProps) => {
           value={autoPlayPaused ? 'on' : 'off'}
           onPick={(id) => onUpdate({ animMode: 'loop_sprite', loopAutoPlayPaused: id === 'on' })}
         />
+
+        {/* Màu sắc & Bộ lọc Kế thừa (Override từ animation.json) */}
+        <div className="vl-row-header" style={{ marginTop: 10 }}>
+          <span className="vl-subtitle">🎨 Màu phủ kế thừa (Override)</span>
+          {Boolean(tintColor || brightness !== 1 || hueRotate !== 0) && (
+            <button
+              type="button"
+              className="btn xs ghost"
+              style={{ fontSize: 10, padding: '2px 6px' }}
+              onClick={() => onUpdate({ loopTintColor: null, loopBrightness: 1.0, loopHueRotate: 0 }, 'Loop: Đặt lại màu gốc')}
+              title="Khôi phục màu mặc định từ file animation.json"
+            >
+              ↺ Đặt lại
+            </button>
+          )}
+        </div>
+
+        {/* Bảng chọn màu nhanh 1-click */}
+        <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 4, marginBottom: 6 }}>
+          {[
+            { id: 'original', color: null, label: 'Gốc' },
+            { id: 'fire', color: '#f97316', label: '🔥 Cam' },
+            { id: 'ice', color: '#38bdf8', label: '❄ Lam' },
+            { id: 'magic', color: '#a855f7', label: '✨ Tím' },
+            { id: 'poison', color: '#22c55e', label: '🌿 Lục' },
+            { id: 'gold', color: '#eab308', label: '⚡ Vàng' }
+          ].map((chip) => {
+            const isSel = chip.color === null ? !tintColor : tintColor === chip.color
+            return (
+              <button
+                key={chip.id}
+                type="button"
+                className={`btn xs ${isSel ? 'primary' : 'ghost'}`}
+                style={{
+                  fontSize: 10,
+                  padding: '2px 8px',
+                  borderRadius: 4,
+                  borderColor: isSel ? 'var(--accent)' : 'var(--line-soft)',
+                  background: chip.color
+                    ? `color-mix(in srgb, ${chip.color} 25%, var(--bg-2))`
+                    : 'var(--bg-2)'
+                }}
+                onClick={() => onUpdate({ loopTintColor: chip.color }, `Loop: Đổi màu ${chip.label}`)}
+              >
+                {chip.label}
+              </button>
+            )
+          })}
+        </div>
+
+        <ParamSlider
+          label="Độ sáng (Brightness)"
+          min={0.3}
+          max={2.0}
+          step={0.05}
+          value={brightness}
+          format={(v) => `${Math.round(v * 100)}%`}
+          onChange={(v) => onUpdate({ loopBrightness: v })}
+        />
+
+        <ParamSlider
+          label="Xoay vòng màu (Hue Rotate)"
+          min={-180}
+          max={180}
+          step={5}
+          value={hueRotate}
+          format={(v) => `${v > 0 ? '+' : ''}${Math.round(v)}°`}
+          onChange={(v) => onUpdate({ loopHueRotate: Math.round(v) })}
+        />
+
+        {loopJsonPath && (
+          <div style={{ marginTop: 6, fontSize: 10, color: 'var(--text-faint)', wordBreak: 'break-all' }}>
+            📁 Kế thừa từ: <code>{loopJsonPath}</code>
+          </div>
+        )}
 
         <div style={{ display: 'flex', gap: 5, marginTop: 4 }}>
           <button

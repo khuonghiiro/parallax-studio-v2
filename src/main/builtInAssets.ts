@@ -1,3 +1,9 @@
+import {
+  saveLoopAnimationPackageToDisk,
+  loadLoopAnimationPackageFromDisk,
+  type SaveLoopPackagePayload,
+  type SaveLoopPackageResult
+} from './loopAnimationPackages'
 import { app, BrowserWindow, ipcMain, shell } from 'electron'
 import { existsSync } from 'fs'
 import { mkdir, readdir, readFile, stat, writeFile } from 'fs/promises'
@@ -277,6 +283,8 @@ function broadcastCatalogUpdated(catalog: BuiltInCatalogResult): void {
 function isPrivateOrSystemRelPath(rel: string): boolean {
   return (
     rel.startsWith('_temp_deleted/') ||
+    rel.startsWith('loop_animations/') ||
+    rel.startsWith('loop-animations/') ||
     rel.startsWith('manifests/') ||
     rel.startsWith('icons/') ||
     rel.startsWith('assembly_3d/') ||
@@ -640,6 +648,26 @@ export async function importBuiltInAssetFile(opts: {
   }
 }
 
+
+export async function saveLoopAnimationPackage(
+  payload: SaveLoopPackagePayload
+): Promise<SaveLoopPackageResult & { catalog?: BuiltInCatalogResult }> {
+  const root = getAssetsRoot()
+  const res = await saveLoopAnimationPackageToDisk(root, payload)
+  if (res.ok) {
+    const catalog = await scanBuiltInCatalog(true)
+    broadcastCatalogUpdated(catalog)
+    return { ...res, catalog }
+  }
+  return res
+}
+
+export async function loadLoopAnimationPackage(
+  relPathOrJson: string
+): Promise<{ ok: boolean; data?: any; error?: string }> {
+  const root = getAssetsRoot()
+  return loadLoopAnimationPackageFromDisk(root, relPathOrJson)
+}
 export function registerBuiltInAssetsIpc(): void {
   ipcMain.handle('builtinAssets:getCatalog', async (_e, forceRefresh?: boolean) =>
     scanBuiltInCatalog(Boolean(forceRefresh))
@@ -675,7 +703,17 @@ export function registerBuiltInAssetsIpc(): void {
     ) => importBuiltInAssetFile(opts)
   )
 
-  ipcMain.handle('builtinAssets:openFolder', async (_e, subFolder?: string) => {
+  
+  ipcMain.handle(
+    'builtinAssets:saveLoopAnimationPackage',
+    async (_e, payload: SaveLoopPackagePayload) => saveLoopAnimationPackage(payload)
+  )
+
+  ipcMain.handle(
+    'builtinAssets:loadLoopAnimationPackage',
+    async (_e, relPath: string) => loadLoopAnimationPackage(relPath)
+  )
+ipcMain.handle('builtinAssets:openFolder', async (_e, subFolder?: string) => {
     const root = getAssetsRoot()
     const target = subFolder ? join(root, subFolder) : root
     if (existsSync(target)) {

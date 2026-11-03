@@ -147,6 +147,18 @@ export function syncPureLoopAnimNodeToLayers(
     if (typeof params.timeEnd === 'number' && Number.isFinite(params.timeEnd)) {
       l.props.loopEndTime = Math.max(0, params.timeEnd)
     }
+    if (params.loopTintColor !== undefined || params.loopBrightness !== undefined || params.loopHueRotate !== undefined) {
+      l.props.loopColor = {
+        ...l.props.loopColor,
+        ...(params.loopTintColor !== undefined ? { tintColor: params.loopTintColor, tintIntensity: params.loopTintColor ? 0.75 : 0 } : {}),
+        ...(params.loopBrightness !== undefined ? { brightness: params.loopBrightness } : {}),
+        ...(params.loopHueRotate !== undefined ? { hueRotate: params.loopHueRotate } : {})
+      }
+      l.props.loopOverrides = {
+        ...l.props.loopOverrides,
+        color: l.props.loopColor
+      }
+    }
   }
 }
 

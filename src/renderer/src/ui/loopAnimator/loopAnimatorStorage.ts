@@ -98,8 +98,37 @@ export function getAllLoopTemplates(): LoopAnimationTemplate[] {
   const mergedBuiltins = builtins.map((b) =>
     storedMap.has(b.id) ? { ...b, ...storedMap.get(b.id)!, isBuiltin: true } : b
   )
+  // 3. Khám phá các gói hoạt ảnh lặp từ manifest loop_animator
+  const loopModule = useAssetManifestStore.getState().modules?.loop_animator
+  const manifestAssets = loopModule?.assets || {}
+  const fromManifest: LoopAnimationTemplate[] = []
+  for (const [key, meta] of Object.entries(manifestAssets)) {
+    if (key.startsWith('loop_animations/') && meta && typeof meta === 'object') {
+      const slug = key.split('/')[1]
+      const m = meta as Record<string, any>
+      if (slug && !storedMap.has(slug)) {
+        fromManifest.push({
+          id: slug,
+          name: typeof m.name === 'string' ? m.name : slug,
+          category: (m.category as any) || 'custom',
+          badge: `🎞 ${typeof m.frameCount === 'number' ? m.frameCount : '?'}F`,
+          description: `Gói hoạt ảnh lặp ${slug}`,
+          imageUrl: `assets/${key.replace('animation.json', 'thumbnail.png')}`,
+          slicerMode: 'grid',
+          gridConfig: { cols: 4, rows: 4, marginX: 0, marginY: 0, paddingX: 0, paddingY: 0 },
+          chromaKey: { enabled: false, keyColor: '#000000', similarity: 0.28, smoothness: 0.1, spill: 0.35 },
+          fps: typeof m.fps === 'number' ? m.fps : 14,
+          speed: 1,
+          loopMode: (m.loopMode as any) || 'loop',
+          frameCount: typeof m.frameCount === 'number' ? m.frameCount : 16,
+          isBuiltin: false
+        })
+      }
+    }
+  }
+
   const customOnly = stored.filter((s) => !isBuiltinLoopTemplateId(s.id))
-  return [...customOnly, ...mergedBuiltins]
+  return [...customOnly, ...fromManifest, ...mergedBuiltins]
 }
 
 export function saveLoopTemplate(template: LoopAnimationTemplate): LoopAnimationTemplate {

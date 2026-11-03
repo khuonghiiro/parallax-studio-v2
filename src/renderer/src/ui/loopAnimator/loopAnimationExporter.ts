@@ -27,6 +27,8 @@ export interface LoopExportOptions {
   speed?: number
   loopMode: LoopAnimationMode
   templateId?: string
+  loopJsonPath?: string
+  loopOverrides?: import('@shared/types').LoopAnimationConfigOverrides
   rhythm?: LoopRhythmConfig
   shotId?: string | null
   initialPosition?: [number, number, number]
@@ -134,6 +136,12 @@ export async function applyLoopAnimationToProject(
   layer.props.autoPlayPaused = true
   if (templateId) {
     layer.props.loopTemplateId = templateId
+  }
+  if (options.loopJsonPath) {
+    layer.props.loopJsonPath = options.loopJsonPath
+  }
+  if (options.loopOverrides) {
+    layer.props.loopOverrides = options.loopOverrides
   }
   if (rhythm && rhythm.rhythmMode !== 'none') {
     layer.props.loopRhythmMode = rhythm.rhythmMode

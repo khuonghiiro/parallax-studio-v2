@@ -1,3 +1,4 @@
+import type { LoopAnimationPackageJson } from './types'
 /** Contract between preload (window.api) and the renderer. */
 
 export interface PickedFile {
@@ -214,6 +215,24 @@ export interface ParallaxApi {
     folder?: string
     title?: string
   }): Promise<{ ok: boolean; relPath?: string; fullPath?: string; item?: BuiltInAssetItem; error?: string }>
+  saveLoopAnimationPackage?(opts: {
+    folderName: string
+    name: string
+    category?: string
+    jsonContent: string
+    frames: Array<{ fileName: string; data: Uint8Array | string }>
+    thumbnail?: { fileName: string; data: Uint8Array | string }
+  }): Promise<{
+    ok: boolean
+    folderPath?: string
+    relPath?: string
+    jsonRelPath?: string
+    error?: string
+    catalog?: BuiltInCatalogResult
+  }>
+  loadLoopAnimationPackage?(
+    relPathOrJson: string
+  ): Promise<{ ok: boolean; data?: LoopAnimationPackageJson; error?: string }>
   asset3ds?: {
     getCatalog(): Promise<Asset3DsCatalogResult>
     list(): Promise<any[]>
