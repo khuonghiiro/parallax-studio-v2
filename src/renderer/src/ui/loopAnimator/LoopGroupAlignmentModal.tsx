@@ -9,11 +9,12 @@ import {
   ensureGroupProcessedCanvas
 } from './LoopAnimatorPlayer'
 import { appendLoopImageFilesAsGroups, LOOP_IMAGE_ACCEPT } from './loopAnimatorLauncher'
-import type { LoopSequenceGroup, LoopTriggerMode } from './types'
+import { LoopGroupColumnCard } from './LoopGroupColumnCard'
+import type { LoopSequenceGroup } from './types'
 import { IconPause, IconPlay, IconX } from '../icons'
 
-const MASTER_STAGE = 300
-const COL_STAGE = 220
+const MASTER_STAGE = 600
+const COL_STAGE = 260
 
 const BG_OPTIONS = [
   { id: 'checker', label: 'Trong suốt (caro)' },
@@ -21,20 +22,6 @@ const BG_OPTIONS = [
   { id: 'light', label: 'Trắng' },
   { id: 'green', label: 'Xanh lá' }
 ] as const
-
-const TRIGGER_OPTIONS: Array<{ id: LoopTriggerMode; label: string; hint: string }> = [
-  { id: 'sequential', label: '⏭ Nối tiếp', hint: 'Chạy sau khi nhóm trước kết thúc (+ thời gian chờ)' },
-  { id: 'on_frame', label: '⚡ Tại Frame #', hint: 'Bắt đầu ngay tại frame chỉ định của nhóm trước (VD: sét chạm đất → nổ)' },
-  { id: 'parallel', label: '⇉ Song song', hint: 'Chạy cùng thời điểm với nhóm trước (+ độ trễ nếu có)' }
-]
-
-const HOLD_PRESETS = [
-  { label: '1 vòng', value: 0 },
-  { label: '1.5s', value: 1.5 },
-  { label: '3s', value: 3 },
-  { label: '5s', value: 5 },
-  { label: '8s', value: 8 }
-]
 
 export function LoopGroupAlignmentModal(): React.ReactElement | null {
   const alignModalOpen = useLoopAnimator((s) => s.alignModalOpen)
@@ -51,11 +38,23 @@ export function LoopGroupAlignmentModal(): React.ReactElement | null {
   const [masterPlaying, setMasterPlaying] = useState(true)
   const [scrubTime, setScrubTime] = useState(0)
   const [showRefOnion, setShowRefOnion] = useState(true)
+  const [masterZoom, setMasterZoom] = useState(1.0)
+  const [masterPan, setMasterPan] = useState({ x: 0, y: 0 })
+  const [layoutMode, setLayoutMode] = useState<'balanced' | 'focus_master'>('balanced')
   const [canvasMap, setCanvasMap] = useState<Record<string, HTMLCanvasElement>>({})
   const [colFrameIdxMap, setColFrameIdxMap] = useState<Record<string, number>>({})
 
   const masterCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const colCanvasRefs = useRef<Record<string, HTMLCanvasElement | null>>({})
+  const masterDragRef = useRef<{
+    startX: number
+    startY: number
+    origOffsetX: number
+    origOffsetY: number
+    origPanX: number
+    origPanY: number
+    isPan: boolean
+  } | null>(null)
   const dragStateRef = useRef<{
     groupIdx: number
     startX: number
@@ -92,7 +91,7 @@ export function LoopGroupAlignmentModal(): React.ReactElement | null {
   }, [alignModalOpen, groups])
 
   const getCommonScale = useCallback(
-    (stageSize: number): number => {
+    (stageSize: number, zoom = 1.0): number => {
       let maxW = 1
       let maxH = 1
       for (const g of groups) {
@@ -101,7 +100,7 @@ export function LoopGroupAlignmentModal(): React.ReactElement | null {
           if (f.height > maxH) maxH = f.height
         }
       }
-      return Math.min((stageSize - 32) / maxW, (stageSize - 32) / maxH)
+      return Math.min((stageSize - 40) / maxW, (stageSize - 40) / maxH) * zoom
     },
     [groups]
   )
@@ -115,22 +114,54 @@ export function LoopGroupAlignmentModal(): React.ReactElement | null {
       if (!ctx) return
       ctx.clearRect(0, 0, MASTER_STAGE, MASTER_STAGE)
 
-      const scale = getCommonScale(MASTER_STAGE)
+      const scale = getCommonScale(MASTER_STAGE, masterZoom)
       const anchor = playback.anchor ?? 'bottom'
+      const baseLineY = anchor === 'center' ? MASTER_STAGE / 2 : MASTER_STAGE - 24
 
-      // Vẽ đường tâm toạ độ mảnh để đối chiếu vị trí
       ctx.save()
-      ctx.strokeStyle = 'rgba(148, 163, 184, 0.22)'
+      ctx.translate(masterPan.x, masterPan.y)
+
+      // 1. Đường tâm toạ độ và lưới đối chiếu vị trí (Crosshair + Grid ticks)
+      ctx.strokeStyle = 'rgba(148, 163, 184, 0.28)'
+      ctx.lineWidth = 1
       ctx.setLineDash([4, 4])
       ctx.beginPath()
       ctx.moveTo(MASTER_STAGE / 2, 0)
       ctx.lineTo(MASTER_STAGE / 2, MASTER_STAGE)
-      const baseLineY = anchor === 'center' ? MASTER_STAGE / 2 : MASTER_STAGE - 18
       ctx.moveTo(0, baseLineY)
       ctx.lineTo(MASTER_STAGE, baseLineY)
       ctx.stroke()
-      ctx.restore()
 
+      // Thước pixel mờ mờ (+60, +120, +180...)
+      ctx.strokeStyle = 'rgba(148, 163, 184, 0.12)'
+      ctx.setLineDash([2, 4])
+      for (let offset = 60; offset <= 240; offset += 60) {
+        const step = offset * scale
+        ctx.beginPath()
+        ctx.moveTo(MASTER_STAGE / 2 + step, 0)
+        ctx.lineTo(MASTER_STAGE / 2 + step, MASTER_STAGE)
+        ctx.moveTo(MASTER_STAGE / 2 - step, 0)
+        ctx.lineTo(MASTER_STAGE / 2 - step, MASTER_STAGE)
+        ctx.stroke()
+      }
+      ctx.setLineDash([])
+
+      // 2. Bóng điểm chạm tham chiếu của Nhóm trước nếu có
+      if (showRefOnion && activeGroupIndex > 0 && groups[activeGroupIndex - 1]) {
+        const prevG = groups[activeGroupIndex - 1]
+        const prevCenterX = MASTER_STAGE / 2 + (prevG.offsetX || 0) * scale
+        const prevCenterY = baseLineY + (prevG.offsetY || 0) * scale
+        ctx.save()
+        ctx.strokeStyle = 'rgba(245, 158, 11, 0.9)'
+        ctx.lineWidth = 1.5
+        ctx.setLineDash([3, 3])
+        ctx.beginPath()
+        ctx.arc(prevCenterX, prevCenterY, 8, 0, Math.PI * 2)
+        ctx.stroke()
+        ctx.restore()
+      }
+
+      // 3. Vẽ các frame tại thời điểm tSec
       for (const item of schedule.items) {
         if (tSec < item.startTime || tSec > item.endTime + 1e-3) continue
         const localTime = Math.max(0, tSec - item.startTime)
@@ -151,9 +182,40 @@ export function LoopGroupAlignmentModal(): React.ReactElement | null {
           MASTER_STAGE
         )
         ctx.restore()
+
+        // Khung viền nhận diện nhóm đang chọn (activeGroupIndex)
+        if (item.groupIndex === activeGroupIndex) {
+          const effScale = scale * Math.max(0.1, item.group.scale || 1)
+          const w = Math.round(frame.width * effScale)
+          const h = Math.round(frame.height * effScale)
+          const fx = Math.round((MASTER_STAGE - w) * 0.5 + (frame.offsetX + item.group.offsetX) * scale)
+          const fy =
+            anchor === 'bottom'
+              ? Math.round(MASTER_STAGE - 24 - h + (frame.offsetY + item.group.offsetY) * scale)
+              : Math.round((MASTER_STAGE - h) * 0.5 + (frame.offsetY + item.group.offsetY) * scale)
+
+          ctx.save()
+          ctx.strokeStyle = 'rgba(56, 189, 248, 0.75)'
+          ctx.lineWidth = 1.5
+          ctx.setLineDash([3, 3])
+          ctx.strokeRect(fx - 2, fy - 2, w + 4, h + 4)
+
+          // Dấu tâm của nhóm đang chọn
+          const cx = MASTER_STAGE / 2 + (item.group.offsetX || 0) * scale
+          const cy = baseLineY + (item.group.offsetY || 0) * scale
+          ctx.strokeStyle = '#38bdf8'
+          ctx.lineWidth = 1.5
+          ctx.setLineDash([])
+          ctx.beginPath()
+          ctx.arc(cx, cy, 5, 0, Math.PI * 2)
+          ctx.stroke()
+          ctx.restore()
+        }
       }
+
+      ctx.restore()
     },
-    [schedule, canvasMap, getCommonScale, playback.anchor]
+    [schedule, canvasMap, getCommonScale, playback.anchor, masterZoom, masterPan, activeGroupIndex, showRefOnion, groups]
   )
 
   // Vẽ từng cột căn chỉnh nhóm
@@ -168,7 +230,7 @@ export function LoopGroupAlignmentModal(): React.ReactElement | null {
 
       const scale = getCommonScale(COL_STAGE)
       const anchor = playback.anchor ?? 'bottom'
-      const baseLineY = anchor === 'center' ? COL_STAGE / 2 : COL_STAGE - 18
+      const baseLineY = anchor === 'center' ? COL_STAGE / 2 : COL_STAGE - 24
 
       // Lưới tâm chuẩn
       ctx.save()
@@ -327,6 +389,23 @@ export function LoopGroupAlignmentModal(): React.ReactElement | null {
               </button>
             </div>
 
+            <div className="la-seg" title="Bố cục màn hình: Cân đối 2 bên hoặc Phóng to cột Preview Gốc để soi chi tiết">
+              <button
+                type="button"
+                className={`la-seg-btn${layoutMode === 'balanced' ? ' active' : ''}`}
+                onClick={() => setLayoutMode('balanced')}
+              >
+                ⚖ Cân đối
+              </button>
+              <button
+                type="button"
+                className={`la-seg-btn${layoutMode === 'focus_master' ? ' active' : ''}`}
+                onClick={() => setLayoutMode('focus_master')}
+              >
+                🔍 Soi lớn
+              </button>
+            </div>
+
             <div className="loop-bg-pills">
               {BG_OPTIONS.map((bg) => (
                 <button
@@ -372,19 +451,162 @@ export function LoopGroupAlignmentModal(): React.ReactElement | null {
           </div>
         </header>
 
-        <div className="loop-align-studio-body">
+        <div className={`loop-align-studio-body mode-${layoutMode}`}>
           {/* CỘT 1: PREVIEW GỐC (TỔ HỢP CHẠY THỰC TẾ) */}
           <aside className="loop-align-master-col">
             <div className="loop-align-col-head master">
-              <span className="loop-align-col-tag">🎬 CỘT PREVIEW GỐC</span>
-              <span className="loop-align-col-sub">Tổng {totalDuration.toFixed(2)}s · {groups.length} nhóm</span>
+              <div className="loop-align-col-head-left">
+                <span className="loop-align-col-tag">🎬 CỘT PREVIEW GỐC</span>
+                <span className="loop-align-col-sub">Tổng {totalDuration.toFixed(2)}s · {groups.length} nhóm</span>
+              </div>
+              <div className="loop-align-master-head-actions">
+                <button
+                  type="button"
+                  className={`la-btn la-btn--xs${layoutMode === 'focus_master' ? ' la-btn--primary' : ' la-btn--outline'}`}
+                  onClick={() => setLayoutMode((m) => (m === 'focus_master' ? 'balanced' : 'focus_master'))}
+                  title={layoutMode === 'focus_master' ? 'Thu gọn về chế độ cân đối' : 'Phóng to cột Preview Gốc cực đại để soi chi tiết'}
+                >
+                  {layoutMode === 'focus_master' ? '⚖ Cân đối' : '⛶ Mở rộng Preview'}
+                </button>
+              </div>
             </div>
 
-            <div className={`loop-align-master-stage bg-${playback.previewBg}`}>
+            {/* Thanh công cụ Thu phóng Preview */}
+            <div className="loop-align-master-zoom-bar">
+              <div className="la-seg la-seg--xs" role="group" aria-label="Thu phóng Preview">
+                <button
+                  type="button"
+                  className="la-seg-btn"
+                  onClick={() => setMasterZoom((z) => Math.max(0.5, Number((z - 0.25).toFixed(2))))}
+                  title="Thu nhỏ (-25%)"
+                >
+                  -
+                </button>
+                <span className="la-seg-label">{Math.round(masterZoom * 100)}%</span>
+                <button
+                  type="button"
+                  className="la-seg-btn"
+                  onClick={() => setMasterZoom((z) => Math.min(3.0, Number((z + 0.25).toFixed(2))))}
+                  title="Phóng to (+25%)"
+                >
+                  +
+                </button>
+              </div>
+              <div className="la-seg la-seg--xs" role="group">
+                <button
+                  type="button"
+                  className={`la-seg-btn${masterZoom === 1 ? ' active' : ''}`}
+                  onClick={() => {
+                    setMasterZoom(1)
+                    setMasterPan({ x: 0, y: 0 })
+                  }}
+                  title="Khung nhìn gốc 100%"
+                >
+                  100%
+                </button>
+                <button
+                  type="button"
+                  className={`la-seg-btn${masterZoom === 1.5 ? ' active' : ''}`}
+                  onClick={() => setMasterZoom(1.5)}
+                  title="Phóng to 150%"
+                >
+                  150%
+                </button>
+                <button
+                  type="button"
+                  className={`la-seg-btn${masterZoom === 2.0 ? ' active' : ''}`}
+                  onClick={() => setMasterZoom(2.0)}
+                  title="Phóng to 200%"
+                >
+                  200%
+                </button>
+              </div>
+              {(masterZoom !== 1 || masterPan.x !== 0 || masterPan.y !== 0) && (
+                <button
+                  type="button"
+                  className="la-btn la-btn--xs la-btn--outline"
+                  onClick={() => {
+                    setMasterZoom(1)
+                    setMasterPan({ x: 0, y: 0 })
+                  }}
+                  title="Đặt lại toạ độ xem và thu phóng về ban đầu"
+                >
+                  ⟲ Đặt lại view
+                </button>
+              )}
+            </div>
+
+            <div
+              className={`loop-align-master-stage bg-${playback.previewBg}`}
+              onMouseDown={(e) => {
+                const isPan = e.button === 1 || e.shiftKey || e.altKey
+                const curGroup = groups[activeGroupIndex] ?? groups[0]
+                masterDragRef.current = {
+                  startX: e.clientX,
+                  startY: e.clientY,
+                  origOffsetX: curGroup?.offsetX || 0,
+                  origOffsetY: curGroup?.offsetY || 0,
+                  origPanX: masterPan.x,
+                  origPanY: masterPan.y,
+                  isPan
+                }
+              }}
+              onMouseMove={(e) => {
+                const d = masterDragRef.current
+                if (!d) return
+                if (d.isPan) {
+                  setMasterPan({
+                    x: Math.round(d.origPanX + (e.clientX - d.startX)),
+                    y: Math.round(d.origPanY + (e.clientY - d.startY))
+                  })
+                } else {
+                  const curGroup = groups[activeGroupIndex]
+                  if (!curGroup) return
+                  const rect = e.currentTarget.getBoundingClientRect()
+                  const cssScale = rect.width > 0 ? MASTER_STAGE / rect.width : 1
+                  const scale = getCommonScale(MASTER_STAGE, masterZoom) / cssScale
+                  const dx = Math.round((e.clientX - d.startX) / Math.max(0.1, scale))
+                  const dy = Math.round((e.clientY - d.startY) / Math.max(0.1, scale))
+                  updateGroupByIndex(activeGroupIndex, {
+                    offsetX: d.origOffsetX + dx,
+                    offsetY: d.origOffsetY + dy
+                  })
+                }
+              }}
+              onMouseUp={() => {
+                masterDragRef.current = null
+              }}
+              onMouseLeave={() => {
+                masterDragRef.current = null
+              }}
+              onWheel={(e) => {
+                e.preventDefault()
+                const delta = e.deltaY < 0 ? 0.15 : -0.15
+                setMasterZoom((cur) => Math.max(0.5, Math.min(3.0, Number((cur + delta).toFixed(2)))))
+              }}
+              title="Kéo chuột trực tiếp để căn chỉnh toạ độ X/Y của nhóm đang chọn · Lăn chuột để phóng to/thu nhỏ · Giữ Shift hoặc Alt để lia khung"
+            >
               <canvas ref={masterCanvasRef} className="loop-align-master-canvas" />
-              <span className="loop-player-hud-badge">
-                ⏱ {scrubTime.toFixed(2)}s / {totalDuration.toFixed(2)}s
-              </span>
+
+              {/* HUD Badge góc trên: Nhóm đang chọn */}
+              <div className="loop-align-master-hud-top">
+                <span className="loop-align-master-active-pill">
+                  🎯 Nhóm #{activeGroupIndex + 1}: {groups[activeGroupIndex]?.name?.replace(/^Nhóm \d+:\s*/i, '')}
+                </span>
+                <span className="loop-align-master-offset-pill">
+                  X:{(groups[activeGroupIndex]?.offsetX || 0) >= 0 ? '+' : ''}{groups[activeGroupIndex]?.offsetX || 0} · Y:{(groups[activeGroupIndex]?.offsetY || 0) >= 0 ? '+' : ''}{groups[activeGroupIndex]?.offsetY || 0} · {Math.round((groups[activeGroupIndex]?.scale || 1) * 100)}%
+                </span>
+              </div>
+
+              {/* HUD Badge góc dưới: Thời gian & Gợi ý */}
+              <div className="loop-align-master-hud-bottom">
+                <span className="loop-player-hud-badge">
+                  ⏱ {scrubTime.toFixed(2)}s / {totalDuration.toFixed(2)}s
+                </span>
+                <span className="loop-align-master-hint-pill">
+                  🖱 Kéo trực tiếp để căn X/Y · Lăn chuột phóng to
+                </span>
+              </div>
             </div>
 
             <div className="loop-align-master-transport">
@@ -395,6 +617,32 @@ export function LoopGroupAlignmentModal(): React.ReactElement | null {
               >
                 {masterPlaying ? <IconPause width={12} height={12} /> : <IconPlay width={12} height={12} />}
                 <span>{masterPlaying ? 'Tạm dừng' : 'Phát tổ hợp'}</span>
+              </button>
+              <button
+                type="button"
+                className="la-btn la-btn--xs la-btn--outline"
+                onClick={() => {
+                  setMasterPlaying(false)
+                  const nextT = Math.max(0, Number((scrubTime - 0.05).toFixed(2)))
+                  setScrubTime(nextT)
+                  drawMasterAtTime(nextT)
+                }}
+                title="Lùi 1 frame (0.05s)"
+              >
+                ⏮
+              </button>
+              <button
+                type="button"
+                className="la-btn la-btn--xs la-btn--outline"
+                onClick={() => {
+                  setMasterPlaying(false)
+                  const nextT = Math.min(totalDuration, Number((scrubTime + 0.05).toFixed(2)))
+                  setScrubTime(nextT)
+                  drawMasterAtTime(nextT)
+                }}
+                title="Tiến 1 frame (0.05s)"
+              >
+                ⏭
               </button>
               <input
                 type="range"
@@ -420,20 +668,21 @@ export function LoopGroupAlignmentModal(): React.ReactElement | null {
                 const leftPct = Math.min(100, (item.startTime / totalDuration) * 100)
                 const widthPct = Math.max(6, Math.min(100 - leftPct, (item.activeDuration / totalDuration) * 100))
                 const isActiveAtScrub = scrubTime >= item.startTime && scrubTime <= item.endTime
+                const isSelected = item.groupIndex === activeGroupIndex
                 return (
                   <div
                     key={item.group.id}
-                    className={`loop-align-lane-row${isActiveAtScrub ? ' is-running' : ''}`}
+                    className={`loop-align-lane-row${isActiveAtScrub ? ' is-running' : ''}${isSelected ? ' is-selected' : ''}`}
                     onClick={() => {
                       selectGroup(item.groupIndex)
                       setMasterPlaying(false)
                       setScrubTime(item.startTime)
                       drawMasterAtTime(item.startTime)
                     }}
-                    title="Bấm để nhảy con trỏ thời gian tới thời điểm nhóm này bắt đầu"
+                    title="Bấm để chọn nhóm này và nhảy con trỏ thời gian tới thời điểm bắt đầu"
                   >
                     <span className="loop-align-lane-name">
-                      #{item.groupIndex + 1} {item.group.name}
+                      #{item.groupIndex + 1} {item.group.name?.replace(/^Nhóm \d+:\s*/i, '')}
                     </span>
                     <div className="loop-align-lane-track">
                       <div
@@ -442,7 +691,7 @@ export function LoopGroupAlignmentModal(): React.ReactElement | null {
                       />
                     </div>
                     <span className="loop-align-lane-time">
-                      {item.startTime.toFixed(1)}s→{item.endTime.toFixed(1)}s
+                      {item.startTime.toFixed(2)}s→{item.endTime.toFixed(2)}s
                     </span>
                   </div>
                 )
@@ -455,290 +704,55 @@ export function LoopGroupAlignmentModal(): React.ReactElement | null {
             {groups.map((g, idx) => {
               const isSelected = idx === activeGroupIndex
               const prevGroup = idx > 0 ? groups[idx - 1] : null
-              const prevEnabledCount = prevGroup ? prevGroup.frames.filter((f) => f.enabled).length : 0
               const enabledFrames = g.frames.filter((f) => f.enabled)
               const curLocalFrame = Math.max(0, Math.min(enabledFrames.length - 1, colFrameIdxMap[g.id] ?? 0))
               const schedItem = schedule.items[idx]
 
               return (
-                <div
+                <LoopGroupColumnCard
                   key={g.id}
-                  className={`loop-align-col-card${isSelected ? ' active' : ''}`}
-                  onClick={() => selectGroup(idx)}
-                >
-                  <div className="loop-align-col-head">
-                    <div className="loop-align-col-head-left">
-                      <span className="loop-align-col-num">Nhóm #{idx + 1}</span>
-                      <input
-                        type="text"
-                        className="la-input loop-align-name-input"
-                        value={g.name}
-                        onChange={(e) => updateGroupByIndex(idx, { name: e.target.value })}
-                        title="Tên nhóm hiệu ứng"
-                      />
-                    </div>
-                    <label
-                      className="loop-align-sync-chk"
-                      onClick={(e) => e.stopPropagation()}
-                      title="Tích để nhóm này ăn theo thông số Tách nền chung"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={g.syncChromaKey !== false}
-                        onChange={() => toggleGroupSyncChroma(idx)}
-                      />
-                      <span>Đồng bộ nền</span>
-                    </label>
-                  </div>
-
-                  {/* Sân khấu kéo thả căn chỉnh vị trí trực tiếp của cột #idx */}
-                  <div
-                    className={`loop-align-col-stage bg-${playback.previewBg}`}
-                    title="Kéo chuột trực tiếp trên khung này để căn vị trí (X, Y) của nhóm khớp với điểm chạm"
-                    onMouseDown={(e) => {
-                      const rect = e.currentTarget.getBoundingClientRect()
-                      const cssScale = rect.width > 0 ? COL_STAGE / rect.width : 1
-                      dragStateRef.current = {
-                        groupIdx: idx,
-                        startX: e.clientX,
-                        startY: e.clientY,
-                        origX: g.offsetX || 0,
-                        origY: g.offsetY || 0,
-                        scale: Math.max(0.05, getCommonScale(COL_STAGE) / cssScale)
-                      }
-                    }}
-                    onMouseMove={(e) => {
-                      const d = dragStateRef.current
-                      if (!d || d.groupIdx !== idx) return
-                      const dx = Math.round((e.clientX - d.startX) / d.scale)
-                      const dy = Math.round((e.clientY - d.startY) / d.scale)
-                      updateGroupByIndex(idx, {
-                        offsetX: d.origX + dx,
-                        offsetY: d.origY + dy
-                      })
-                    }}
-                    onMouseUp={() => {
-                      dragStateRef.current = null
-                    }}
-                    onMouseLeave={() => {
-                      dragStateRef.current = null
-                    }}
-                  >
-                    <canvas
-                      ref={(el) => {
-                        colCanvasRefs.current[g.id] = el
-                      }}
-                      className="loop-align-col-canvas"
-                    />
-                    <span className="loop-player-hud-badge">
-                      Frame #{curLocalFrame + 1}/{Math.max(1, enabledFrames.length)}
-                    </span>
-                    <span className="loop-player-hud-pos-badge">
-                      X:{g.offsetX >= 0 ? `+${g.offsetX}` : g.offsetX} · Y:{g.offsetY >= 0 ? `+${g.offsetY}` : g.offsetY} · {Math.round((g.scale || 1) * 100)}%
-                    </span>
-                  </div>
-
-                  {/* Thanh chọn Frame để soi & nút căn tâm nhanh */}
-                  <div className="loop-align-col-stage-bar">
-                    <div className="loop-align-frame-stepper">
-                      <button
-                        type="button"
-                        className="la-btn la-btn--xs"
-                        onClick={() =>
-                          setColFrameIdxMap((m) => ({
-                            ...m,
-                            [g.id]: (curLocalFrame - 1 + Math.max(1, enabledFrames.length)) % Math.max(1, enabledFrames.length)
-                          }))
-                        }
-                        title="Xem frame trước của nhóm này"
-                      >
-                        ◀
-                      </button>
-                      <span>Soi F#{curLocalFrame + 1}</span>
-                      <button
-                        type="button"
-                        className="la-btn la-btn--xs"
-                        onClick={() =>
-                          setColFrameIdxMap((m) => ({
-                            ...m,
-                            [g.id]: (curLocalFrame + 1) % Math.max(1, enabledFrames.length)
-                          }))
-                        }
-                        title="Xem frame tiếp theo của nhóm này"
-                      >
-                        ▶
-                      </button>
-                    </div>
-
-                    <div className="loop-align-quick-pos">
-                      <button
-                        type="button"
-                        className="la-btn la-btn--xs"
-                        onClick={() => updateGroupByIndex(idx, { offsetX: 0, offsetY: 0, scale: 1 })}
-                        title="Đưa nhóm về tâm gốc (0, 0)"
-                      >
-                        🎯 Tâm 0,0
-                      </button>
-                      {prevGroup && (
-                        <button
-                          type="button"
-                          className="la-btn la-btn--xs"
-                          onClick={() =>
-                            updateGroupByIndex(idx, {
-                              offsetX: prevGroup.offsetX || 0,
-                              offsetY: prevGroup.offsetY || 0
-                            })
-                          }
-                          title={`Khớp toạ độ X, Y bằng với Nhóm #${idx}`}
-                        >
-                          ⊕ Khớp N#{idx}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Toạ độ X / Y / Tỉ lệ */}
-                  <div className="loop-align-coords-grid">
-                    <label className="loop-align-num-field">
-                      <span>Vị trí X (px)</span>
-                      <input
-                        type="number"
-                        className="la-input la-input--xs"
-                        step={2}
-                        value={Math.round(g.offsetX || 0)}
-                        onChange={(e) => updateGroupByIndex(idx, { offsetX: Number(e.target.value) || 0 })}
-                      />
-                    </label>
-                    <label className="loop-align-num-field">
-                      <span>Vị trí Y (px)</span>
-                      <input
-                        type="number"
-                        className="la-input la-input--xs"
-                        step={2}
-                        value={Math.round(g.offsetY || 0)}
-                        onChange={(e) => updateGroupByIndex(idx, { offsetY: Number(e.target.value) || 0 })}
-                      />
-                    </label>
-                    <label className="loop-align-num-field">
-                      <span>Tỉ lệ (%)</span>
-                      <input
-                        type="number"
-                        className="la-input la-input--xs"
-                        min={10}
-                        max={400}
-                        step={5}
-                        value={Math.round((g.scale || 1) * 100)}
-                        onChange={(e) =>
-                          updateGroupByIndex(idx, {
-                            scale: Math.max(0.1, Math.min(4, (Number(e.target.value) || 100) / 100))
-                          })
-                        }
-                      />
-                    </label>
-                  </div>
-
-                  {/* Logic Kích Hoạt & Thời Lượng */}
-                  <div className="loop-align-logic-box">
-                    {idx === 0 ? (
-                      <div className="loop-align-first-badge">
-                        🎬 Nhóm mở đầu chuỗi (Bắt đầu tại 0.00s · tự nhiên {schedItem?.cycleDuration.toFixed(2)}s)
-                      </div>
-                    ) : (
-                      <>
-                        <div className="loop-align-logic-label">
-                          Khi nào Nhóm #{idx + 1} bắt đầu chạy (so với Nhóm #{idx})?
-                        </div>
-                        <div className="la-seg loop-align-trigger-seg">
-                          {TRIGGER_OPTIONS.map((opt) => (
-                            <button
-                              key={opt.id}
-                              type="button"
-                              className={`la-seg-btn${g.triggerMode === opt.id ? ' active' : ''}`}
-                              onClick={() => updateGroupByIndex(idx, { triggerMode: opt.id })}
-                              title={opt.hint}
-                            >
-                              {opt.label}
-                            </button>
-                          ))}
-                        </div>
-
-                        {g.triggerMode === 'on_frame' && prevEnabledCount > 0 && (
-                          <div className="loop-align-frame-picker">
-                            <span className="loop-align-picker-lbl">
-                              Chọn Frame của Nhóm #{idx} kích hoạt Nhóm #{idx + 1}:
-                            </span>
-                            <div className="loop-align-frame-pills">
-                              {Array.from({ length: Math.min(24, prevEnabledCount) }, (_, fIdx) => {
-                                const fNum = fIdx + 1
-                                const isTrig = (g.triggerFrameIndex || 1) === fNum
-                                return (
-                                  <button
-                                    key={fNum}
-                                    type="button"
-                                    className={`loop-align-f-pill${isTrig ? ' active' : ''}`}
-                                    onClick={() => updateGroupByIndex(idx, { triggerFrameIndex: fNum })}
-                                  >
-                                    #{fNum}
-                                  </button>
-                                )
-                              })}
-                            </div>
-                          </div>
-                        )}
-                      </>
-                    )}
-
-                    <div className="loop-align-timing-row">
-                      {idx > 0 && (
-                        <label className="loop-align-num-field">
-                          <span>Chờ thêm (s)</span>
-                          <input
-                            type="number"
-                            className="la-input la-input--xs"
-                            min={0}
-                            max={60}
-                            step={0.1}
-                            value={g.delaySec}
-                            onChange={(e) =>
-                              updateGroupByIndex(idx, {
-                                delaySec: Math.max(0, Number(e.target.value) || 0)
-                              })
-                            }
-                          />
-                        </label>
-                      )}
-                      <label className="loop-align-num-field">
-                        <span>Giữ chạy (s)</span>
-                        <input
-                          type="number"
-                          className="la-input la-input--xs"
-                          min={0}
-                          max={300}
-                          step={0.2}
-                          value={g.holdDurationSec}
-                          onChange={(e) =>
-                            updateGroupByIndex(idx, {
-                              holdDurationSec: Math.max(0, Number(e.target.value) || 0)
-                            })
-                          }
-                          title="0 = chạy đúng 1 vòng tự nhiên; >0 = giữ lặp lại trong số giây chỉ định"
-                        />
-                      </label>
-                      <div className="loop-align-hold-pills">
-                        {HOLD_PRESETS.map((p) => (
-                          <button
-                            key={p.label}
-                            type="button"
-                            className={`loop-align-f-pill${Math.abs((g.holdDurationSec || 0) - p.value) < 0.05 ? ' active' : ''}`}
-                            onClick={() => updateGroupByIndex(idx, { holdDurationSec: p.value })}
-                          >
-                            {p.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                  group={g}
+                  index={idx}
+                  isSelected={isSelected}
+                  prevGroup={prevGroup}
+                  curLocalFrame={curLocalFrame}
+                  cycleDuration={schedItem?.cycleDuration ?? 1.0}
+                  previewBg={playback.previewBg}
+                  colStageDim={COL_STAGE}
+                  commonScale={getCommonScale(COL_STAGE)}
+                  onSelect={() => selectGroup(idx)}
+                  onUpdate={(patch) => updateGroupByIndex(idx, patch)}
+                  onToggleSyncChroma={() => toggleGroupSyncChroma(idx)}
+                  onSetFrameIndex={(fIdx) => setColFrameIdxMap((m) => ({ ...m, [g.id]: fIdx }))}
+                  onRegisterCanvas={(el) => {
+                    colCanvasRefs.current[g.id] = el
+                  }}
+                  onDragStartStage={(e) => {
+                    const rect = e.currentTarget.getBoundingClientRect()
+                    const cssScale = rect.width > 0 ? COL_STAGE / rect.width : 1
+                    dragStateRef.current = {
+                      groupIdx: idx,
+                      startX: e.clientX,
+                      startY: e.clientY,
+                      origX: g.offsetX || 0,
+                      origY: g.offsetY || 0,
+                      scale: Math.max(0.05, getCommonScale(COL_STAGE) / cssScale)
+                    }
+                  }}
+                  onDragMoveStage={(e) => {
+                    const d = dragStateRef.current
+                    if (!d || d.groupIdx !== idx) return
+                    const dx = Math.round((e.clientX - d.startX) / d.scale)
+                    const dy = Math.round((e.clientY - d.startY) / d.scale)
+                    updateGroupByIndex(idx, {
+                      offsetX: d.origX + dx,
+                      offsetY: d.origY + dy
+                    })
+                  }}
+                  onDragEndStage={() => {
+                    dragStateRef.current = null
+                  }}
+                />
               )
             })}
           </section>

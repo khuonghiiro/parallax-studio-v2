@@ -103,8 +103,17 @@
   flex: 1 1 0;
   min-height: 0;
   display: grid;
-  grid-template-columns: 350px minmax(0, 1fr);
+  grid-template-columns: var(--master-col-w, clamp(500px, 35vw, 560px)) minmax(0, 1fr);
   overflow: hidden;
+  transition: grid-template-columns 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.loop-align-studio-body.mode-balanced {
+  grid-template-columns: clamp(520px, 38vw, 600px) minmax(0, 1fr);
+}
+
+.loop-align-studio-body.mode-focus_master {
+  grid-template-columns: clamp(740px, 56vw, 920px) minmax(0, 1fr);
 }
 
 /* ---------------------------------------------------------------- Left Master Column */
@@ -112,7 +121,7 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 12px;
+  padding: 12px 14px;
   border-right: 1px solid var(--line);
   background: var(--bg-2);
   overflow-y: auto;
@@ -123,6 +132,13 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+}
+
+.loop-align-col-head-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
 }
 
 .loop-align-col-head.master {
@@ -143,22 +159,122 @@
   font-variant-numeric: tabular-nums;
 }
 
+.loop-align-master-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Thanh công cụ thu phóng preview */
+.loop-align-master-zoom-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line-soft);
+  background: var(--bg-1);
+}
+
+.loop-align-master-zoom-bar .la-seg-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text);
+  padding: 0 4px;
+  font-variant-numeric: tabular-nums;
+}
+
 .loop-align-master-stage {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 290px;
+  height: clamp(380px, 48vh, 520px);
   border-radius: var(--radius-md);
   border: 1px solid var(--line);
   overflow: hidden;
   flex-shrink: 0;
+  background: var(--bg-0);
+  cursor: grab;
+  user-select: none;
+}
+
+.loop-align-master-stage:active {
+  cursor: grabbing;
+}
+
+.loop-align-master-stage.is-panning {
+  cursor: move;
 }
 
 .loop-align-master-canvas {
-  width: min(100%, 280px);
-  height: min(100%, 280px);
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
   object-fit: contain;
+}
+
+.loop-align-master-hud-top {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.loop-align-master-active-pill {
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(56, 189, 248, 0.6);
+  color: #38bdf8;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.loop-align-master-offset-pill {
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(4px);
+  border: 1px solid var(--line);
+  color: var(--text-dim);
+  font-size: 10.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.loop-align-master-hud-bottom {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.loop-align-master-hint-pill {
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(4px);
+  border: 1px solid var(--line-soft);
+  color: var(--text-faint);
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .loop-align-master-transport {
@@ -212,6 +328,11 @@
 .loop-align-lane-row.is-running {
   border-color: var(--accent);
   background: color-mix(in srgb, var(--accent) 12%, var(--bg-2));
+}
+
+.loop-align-lane-row.is-selected {
+  border-color: #38bdf8;
+  background: color-mix(in srgb, #38bdf8 15%, var(--bg-2));
 }
 
 .loop-align-lane-name {
@@ -320,11 +441,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 210px;
+  height: 235px;
   border-radius: var(--radius);
   border: 1px solid var(--line);
   overflow: hidden;
   cursor: grab;
+  user-select: none;
 }
 
 .loop-align-col-stage:active {
@@ -332,8 +454,8 @@
 }
 
 .loop-align-col-canvas {
-  width: min(100%, 204px);
-  height: min(100%, 204px);
+  width: min(100%, 230px);
+  height: min(100%, 230px);
   object-fit: contain;
 }
 
