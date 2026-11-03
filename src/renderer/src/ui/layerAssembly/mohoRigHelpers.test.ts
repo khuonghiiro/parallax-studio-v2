@@ -11,14 +11,22 @@ import {
   computeStrengthFromPointerDistance,
   computeTweenSpans,
   createBoneFromCanvasDrag,
+  findBoneCapsuleHit,
   findClosestBoneJoint,
   findPrimaryConnectedChild,
   isBoneTailCoincidentWithChild,
   mirrorAngleAcrossYAxis,
   mirrorBoneId,
   mirrorBoneName,
+  resolveClosestBoneJointForPoint,
   weldConnectedLimbBones
 } from './mohoRigHelpers'
+import {
+  cancelActiveBoneOverlayOrLink,
+  getRigToolState,
+  registerBoneOverlayCancelHandler,
+  setRigToolState
+} from './rigToolStore'
 import { applyRigAction } from './workshopRig'
 import {
   createFullHumanoidBones,
@@ -179,7 +187,6 @@ describe('mohoRigHelpers — Moho Pro Rigging & Adobe Animate Dope Sheet', () =>
   })
 
   it('tích hợp hệ số Moho Bone Strength vào trọng số uốn mềm Flexi-Bind Mesh (layerSkinning)', () => {
-
     const defaultBones: LayerBone[] = [
       { id: 'left', name: 'Trái', x: -50, y: 0, length: 40, angle: 0 },
       { id: 'right', name: 'Phải', x: 10, y: 0, length: 40, angle: 0 }
@@ -190,7 +197,6 @@ describe('mohoRigHelpers — Moho Pro Rigging & Adobe Animate Dope Sheet', () =>
     const wUnit = skinWeights(0, 25, explicitUnitBones)
     expect(wDefault).toEqual(wUnit)
 
-    // Tăng strength xương phải lên 2.6x làm điểm ở giữa (x=0, y=25) nghiêng mạnh hơn về xương phải
     const boostedRightBones: LayerBone[] = [
       { ...defaultBones[0], strength: 0.5 },
       { ...defaultBones[1], strength: 2.6 }
@@ -221,7 +227,6 @@ describe('mohoRigHelpers — Moho Pro Rigging & Adobe Animate Dope Sheet', () =>
       }
     }
 
-    // Kiểm tra hàn khớp tự động (snap-joints) khi xương bị lệch 18px như ảnh chụp người dùng
     const misaligned: LayerBone[] = [
       { id: 'arm_r', name: 'Bắp tay phải', x: 72, y: -110, length: 111, angle: 77 },
       { id: 'forearm_r', name: 'Cẳng tay phải', parentId: 'arm_r', x: 115, y: -2, length: 82, angle: 87 }
@@ -273,30 +278,25 @@ describe('mohoRigHelpers — Moho Pro Rigging & Adobe Animate Dope Sheet', () =>
       }
     }
 
-    // Đổi FPS và co giãn thời lượng gấp đôi (2s -> 4s) kèm scaleKeys
     comp = applyRigAction(comp, { action: 'settings', fps: 24, duration: 4.0, scaleKeys: true })
     expect(comp.rig?.fps).toBe(24)
     expect(comp.rig?.duration).toBe(4.0)
     expect(comp.rig?.tracks.arm[1].time).toBeCloseTo(2.0, 3)
     expect(comp.rig?.tracks.arm[2].time).toBeCloseTo(4.0, 3)
 
-    // Rút ngắn thời lượng không bật scaleKeys vẫn an toàn không văng lỗi validateRig
     comp = applyRigAction(comp, { action: 'settings', duration: 2.5, scaleKeys: false })
     expect(comp.rig?.duration).toBe(2.5)
     expect(comp.rig?.tracks.arm.every((k) => k.time <= 2.5)).toBe(true)
 
-    // Chèn giữ khung F5 (+0.5s tại t = 1.0) đẩy các keyframe phía sau lùi lại 0.5s
     comp = applyRigAction(comp, { action: 'hold-frames', time: 1.0, holdSeconds: 0.5 })
     expect(comp.rig?.duration).toBeCloseTo(3.0, 3)
     expect(comp.rig?.tracks.arm.some((k) => Math.abs(k.time - 2.5) < 0.01 && k.rotation === 40)).toBe(true)
   })
 
   it('bắt dính khớp gần nhất (findClosestBoneJoint) phân biệt rõ Trục Gốc (Head) và Trục Ngọn (Tail)', () => {
-    // Xương thân cây thẳng đứng: Head ở (0, 0), dài 100px, góc -90° (hướng lên trên) -> Tail ở (0, -100)
     const treeTrunk: LayerBone = { id: 'trunk', name: 'Thân cây', x: 0, y: 0, length: 100, angle: -90 }
     const transforms = new Map([['trunk', { x: 0, y: 0, rotation: 0 }]])
 
-    // 1. Rê chuột gần ngọn cây (0, -96) -> bắt dính Trục Ngọn (tail)
     const hitNearTail = findClosestBoneJoint([treeTrunk], transforms, { x: 2, y: -96 }, 24)
     expect(hitNearTail).not.toBeNull()
     expect(hitNearTail?.bone.id).toBe('trunk')
@@ -304,7 +304,6 @@ describe('mohoRigHelpers — Moho Pro Rigging & Adobe Animate Dope Sheet', () =>
     expect(hitNearTail?.point.x).toBeCloseTo(0, 1)
     expect(hitNearTail?.point.y).toBeCloseTo(-100, 1)
 
-    // 2. Rê chuột gần gốc cây (0, 4) -> bắt dính Trục Gốc (head)
     const hitNearHead = findClosestBoneJoint([treeTrunk], transforms, { x: 4, y: 6 }, 24)
     expect(hitNearHead).not.toBeNull()
     expect(hitNearHead?.bone.id).toBe('trunk')
@@ -312,7 +311,6 @@ describe('mohoRigHelpers — Moho Pro Rigging & Adobe Animate Dope Sheet', () =>
     expect(hitNearHead?.point.x).toBe(0)
     expect(hitNearHead?.point.y).toBe(0)
 
-    // 3. Chuột nằm ngoài bán kính cho phép (> 24px) -> không bắt dính (null)
     const hitFar = findClosestBoneJoint([treeTrunk], transforms, { x: 60, y: -50 }, 24)
     expect(hitFar).toBeNull()
   })
@@ -320,7 +318,6 @@ describe('mohoRigHelpers — Moho Pro Rigging & Adobe Animate Dope Sheet', () =>
   it('tạo xương mới (createBoneFromCanvasDrag) gắn đúng parentJoint: head hoặc tail theo vị trí hoặc chỉ định', () => {
     const treeTrunk: LayerBone = { id: 'trunk', name: 'Thân cây', x: 0, y: 0, length: 100, angle: -90 }
 
-    // 1. Vẽ cành từ ngọn (Tail: 0, -100) toả ra (50, -140) với parentJoint='tail'
     const branch = createBoneFromCanvasDrag(
       { x: 0, y: -100 },
       { x: 50, y: -140 },
@@ -334,7 +331,6 @@ describe('mohoRigHelpers — Moho Pro Rigging & Adobe Animate Dope Sheet', () =>
     expect(branch.x).toBe(0)
     expect(branch.y).toBe(-100)
 
-    // 2. Vẽ rễ từ gốc (Head: 0, 0) toả xuống (-40, 60) với parentJoint='head'
     const rootBone = createBoneFromCanvasDrag(
       { x: 0, y: 0 },
       { x: -40, y: 60 },
@@ -348,7 +344,6 @@ describe('mohoRigHelpers — Moho Pro Rigging & Adobe Animate Dope Sheet', () =>
     expect(rootBone.x).toBe(0)
     expect(rootBone.y).toBe(0)
 
-    // 3. Tự động suy ra: nếu không truyền parentJoint nhưng vị trí bắt đầu gần gốc (0, 5) -> auto 'head'
     const autoRoot = createBoneFromCanvasDrag(
       { x: 2, y: 4 },
       { x: 30, y: 50 },
@@ -358,7 +353,6 @@ describe('mohoRigHelpers — Moho Pro Rigging & Adobe Animate Dope Sheet', () =>
     )
     expect(autoRoot.parentJoint).toBe('head')
 
-    // 4. Tự động suy ra: nếu không truyền parentJoint nhưng vị trí bắt đầu gần ngọn (0, -95) -> auto 'tail'
     const autoBranch = createBoneFromCanvasDrag(
       { x: 0, y: -95 },
       { x: -40, y: -130 },
@@ -367,5 +361,60 @@ describe('mohoRigHelpers — Moho Pro Rigging & Adobe Animate Dope Sheet', () =>
       'auto-branch'
     )
     expect(autoBranch.parentJoint).toBe('tail')
+  })
+
+  it('nhận diện vùng Vỏ uốn (findBoneCapsuleHit), tìm tâm điểm gần nhất (resolveClosestBoneJointForPoint) và ưu tiên huỷ Esc (cancelActiveBoneOverlayOrLink)', () => {
+    const spine: LayerBone = { id: 'spine', name: 'Thân rồng', x: 0, y: 0, length: 120, angle: -90, strength: 1 }
+    const transforms = new Map([['spine', { x: 0, y: 0, rotation: 0 }]])
+
+    // 1. Điểm nằm trong vỏ uốn (x=15, y=-60) nhưng ngoài bán kính 24px của 2 tâm điểm (0,0) và (0,-120)
+    const jointHitAtMiddle = findClosestBoneJoint([spine], transforms, { x: 15, y: -60 }, 24)
+    expect(jointHitAtMiddle).toBeNull()
+
+    const capsuleHit = findBoneCapsuleHit([spine], transforms, { x: 15, y: -70 }, 'spine')
+    expect(capsuleHit).not.toBeNull()
+    expect(capsuleHit?.bone.id).toBe('spine')
+    expect(capsuleHit?.nearestJoint).toBe('tail')
+
+    // 2. Điểm nằm hẳn bên ngoài vỏ uốn (x=90, y=-110) -> findBoneCapsuleHit trả về null, resolveClosestBoneJointForPoint chọn 'tail'
+    expect(findBoneCapsuleHit([spine], transforms, { x: 90, y: -110 }, 'spine')).toBeNull()
+    const nearestOutside = resolveClosestBoneJointForPoint(spine, { x: 0, y: 0, rotation: 0 }, { x: 90, y: -110 })
+    expect(nearestOutside.joint).toBe('tail')
+    expect(nearestOutside.point.x).toBeCloseTo(0, 5)
+    expect(nearestOutside.point.y).toBeCloseTo(-120, 5)
+
+    const nearestHeadOutside = resolveClosestBoneJointForPoint(spine, { x: 0, y: 0, rotation: 0 }, { x: -80, y: 20 })
+    expect(nearestHeadOutside.joint).toBe('head')
+    expect(nearestHeadOutside.point).toEqual({ x: 0, y: 0 })
+
+    // 3. Thứ tự ưu tiên phím Esc: (a) Huỷ nét đang kéo -> (b) Huỷ Nét 1 (pendingDashedLink) -> (c) Trả về false để bỏ focus xương
+    let overlayCancelled = false
+    const unregister = registerBoneOverlayCancelHandler(() => {
+      if (!overlayCancelled) {
+        overlayCancelled = true
+        return true
+      }
+      return false
+    })
+    setRigToolState({
+      pendingDashedLink: {
+        parentBoneId: 'spine',
+        parentBoneName: 'Thân rồng',
+        parentJoint: 'tail',
+        anchorPoint: { x: 75, y: -95 }
+      }
+    })
+
+    // Esc lần 1: huỷ nét đang kéo trên overlay trước
+    expect(cancelActiveBoneOverlayOrLink()).toBe(true)
+    expect(getRigToolState().pendingDashedLink).not.toBeNull()
+
+    // Esc lần 2: huỷ Nét 1 (pendingDashedLink)
+    expect(cancelActiveBoneOverlayOrLink()).toBe(true)
+    expect(getRigToolState().pendingDashedLink).toBeNull()
+
+    // Esc lần 3: không còn nét vẽ/pendingDashedLink -> trả về false để shortcut huỷ focus xương
+    expect(cancelActiveBoneOverlayOrLink()).toBe(false)
+    unregister()
   })
 })

@@ -252,6 +252,7 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   layer_assembly_bone_inspector: region('layer_assembly_bone_inspector', '.lw-bone-insp-card'),
   layer_assembly_parallax_25d: region('layer_assembly_parallax_25d', '.lw-parallax-25d-card'),
   layer_assembly_motion_harmony: region('layer_assembly_motion_harmony', '.lw-motion-harmony-card'),
+  layer_assembly_stage_guide: region('layer_assembly_stage_guide', '.lw-stage-guide-card'),
 
   // 3. Audio Studio (Phòng thu Âm thanh)
   audio_studio: ['.audio-studio-modal', '.audio-studio-dialog'],

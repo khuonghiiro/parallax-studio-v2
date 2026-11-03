@@ -10,11 +10,13 @@ import {
   IconFitCharacter,
   IconBone,
   IconMeshWireframe,
-  IconSun
+  IconSun,
+  IconStageGuide
 } from '../icons'
 import type { Assembly2DTool, BrushSettings } from './useLayerBrushEraser'
 import { LightingControlPopover } from './LightingControlPopover'
 import type { AssemblyLighting } from '../assets/models3d/types'
+import { useRigToolStore } from './rigToolStore'
 
 export interface LayerAssembly2DToolbarProps {
   activeTool: Assembly2DTool
@@ -43,6 +45,8 @@ export interface LayerAssembly2DToolbarProps {
   onChangeLighting?: (lighting: AssemblyLighting) => void
   atmosphereLabel?: string
   atmosphereIcon?: string
+  tab?: string
+  selectedBoneName?: string | null
 }
 
 interface TooltipInfo {
@@ -57,11 +61,6 @@ interface TooltipInfo {
 export function LayerAssembly2DToolbar({
   activeTool,
   onChangeTool,
-  brushSettings,
-  onChangeBrushSettings,
-  onResetLayerImage,
-  hasSelectedLayer,
-  hasModifiedImage,
   zoom,
   onResetZoom,
   onFitView,
@@ -80,15 +79,18 @@ export function LayerAssembly2DToolbar({
   lighting,
   onChangeLighting,
   atmosphereLabel = 'Ban ngày',
-  atmosphereIcon = '☀️'
+  tab = 'layers',
+  selectedBoneName = null
 }: LayerAssembly2DToolbarProps) {
   const [isLightingOpen, setIsLightingOpen] = useState(false)
+  const [isGuidePinned, setIsGuidePinned] = useState(true)
+  const [isGuideHovered, setIsGuideHovered] = useState(false)
   const [tooltip, setTooltip] = useState<TooltipInfo | null>(null)
+  const rigTool = useRigToolStore()
 
   const lightingBtnRef = useRef<HTMLButtonElement | null>(null)
   const dockRef = useRef<HTMLDivElement | null>(null)
 
-  // Đóng popover an toàn khi click ra ngoài hoặc bấm phím Escape
   useEffect(() => {
     if (!isLightingOpen) return
 
@@ -187,6 +189,12 @@ export function LayerAssembly2DToolbar({
         sub: 'Ánh sáng & Đổ bóng',
         desc: 'Tùy chỉnh góc nắng mặt trời, tông màu ngày đêm và bóng đổ râm dịu trên các layer.',
         tip: '☀️ Bấm để mở bảng điều khiển ánh sáng'
+      },
+      guide: {
+        title: 'Thông tin thao tác Vẽ & Focus Xương',
+        sub: 'Hàn khớp · Nét đứt 2 bước · Xương tách rời (Esc)',
+        desc: 'Hiển thị trạng thái focus xương hiện tại và quy tắc vẽ xương từ 2 tâm điểm, từ vỏ uốn (2 nét) hoặc ngoài vỏ uốn (1 nét).',
+        tip: '💡 Bấm để ghim / thu gọn bảng chỉ dẫn thao tác'
       }
     }
 
@@ -201,6 +209,17 @@ export function LayerAssembly2DToolbar({
   }
 
   const hideTooltip = () => setTooltip(null)
+
+  const pendingLink = rigTool.pendingDashedLink
+  const showGuideCard = isGuideHovered || (isGuidePinned && (tab === 'bones' || Boolean(pendingLink)))
+
+  const statusBadgeText = pendingLink
+    ? `🔗 Đã chốt Nét 1 (${pendingLink.parentBoneName}) → Kéo Nét 2 tạo xương`
+    : selectedBoneName
+      ? `🎯 Đang focus: "${selectedBoneName}" (Nhấn Esc bỏ focus)`
+      : '✨ Chưa focus xương (Vẽ tạo xương gốc tách rời)'
+
+  const statusTone = pendingLink ? 'pending' : selectedBoneName ? 'focused' : 'detached'
 
   return (
     <>
@@ -270,15 +289,15 @@ export function LayerAssembly2DToolbar({
         {/* 4b. Căn kích thước vừa nhân vật */}
         {onFitCharacter && (
           <button
-            type='button'
-            className='layer-3d-dock-btn'
+            type="button"
+            className="layer-3d-dock-btn"
             onClick={(e) => {
               onFitCharacter(e.altKey ? 'frame' : 'scale')
               hideTooltip()
             }}
             onMouseEnter={(e) => showTooltip(e, 'fitCharacter')}
             onMouseLeave={hideTooltip}
-            aria-label='Căn vừa vặn nhân vật'
+            aria-label="Căn vừa vặn nhân vật"
           >
             <IconFitCharacter width={15} height={15} />
           </button>
@@ -399,9 +418,64 @@ export function LayerAssembly2DToolbar({
             </button>
           </>
         )}
+
+        {/* 11. Nút Chỉ dẫn thao tác Vẽ & Focus Xương (vị trí khoanh đỏ cuối thanh dock) */}
+        <div className="dock-divider" />
+        <button
+          type="button"
+          className={`layer-3d-dock-btn lw-dock-guide-btn${showGuideCard ? ' active' : ''}`}
+          onClick={(e) => {
+            e.stopPropagation()
+            setIsGuidePinned((v) => !v)
+            hideTooltip()
+          }}
+          onMouseEnter={(e) => {
+            setIsGuideHovered(true)
+            showTooltip(e, 'guide')
+          }}
+          onMouseLeave={() => {
+            setIsGuideHovered(false)
+            hideTooltip()
+          }}
+          aria-label="Thông tin hướng dẫn thao tác vẽ xương"
+        >
+          <IconStageGuide width={15} height={15} />
+        </button>
       </div>
 
-
+      {/* Bảng hiển thị thông tin thao tác tại vùng khoanh đỏ phía dưới thanh dock */}
+      <div
+        className={`lw-stage-guide-card tone-${statusTone}${showGuideCard ? ' is-expanded' : ' is-compact'}`}
+        data-mcp-region="layer_assembly_stage_guide"
+      >
+        <div className="lw-stage-guide-status" onClick={() => setIsGuidePinned((v) => !v)}>
+          <span className={`lw-stage-guide-dot tone-${statusTone}`} />
+          <span className="lw-stage-guide-status-text">{statusBadgeText}</span>
+        </div>
+        {showGuideCard && (
+          <div className="lw-stage-guide-body">
+            {rigTool.statusHint && <div className="lw-stage-guide-live-hint">{rigTool.statusHint}</div>}
+            <div className="lw-stage-guide-rules">
+              <div className="lw-stage-guide-rule">
+                <span className="lw-stage-guide-tag weld">Hàn khớp</span>
+                <span>Rê gần bán kính 2 điểm gốc/ngọn (≤24px) rồi kéo → Hàn khớp (1 nét).</span>
+              </div>
+              <div className="lw-stage-guide-rule">
+                <span className="lw-stage-guide-tag capsule">Vỏ uốn (2 nét)</span>
+                <span>Kéo từ vỏ uốn → Nét 1 tạo nét đứt · Kéo Nét 2 tạo xương (Esc huỷ Nét 1).</span>
+              </div>
+              <div className="lw-stage-guide-rule">
+                <span className="lw-stage-guide-tag outside">Ngoài vỏ (1 nét)</span>
+                <span>Kéo ngoài vỏ khi đang focus → Tự bắt tâm gần nhất làm nét đứt & tạo xương luôn.</span>
+              </div>
+              <div className="lw-stage-guide-rule">
+                <span className="lw-stage-guide-tag detach">Chọn / Esc</span>
+                <span>Click vỏ/xương để focus · Nhấn Esc huỷ vẽ hoặc bỏ focus để tạo xương rời (cánh rồng).</span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Popover Chiếu sáng & Đổ bóng */}
       {isLightingOpen &&

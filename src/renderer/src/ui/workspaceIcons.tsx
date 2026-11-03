@@ -272,3 +272,13 @@ export const IconFitCanvas = (p: P) => (
     <rect x="7" y="7" width="10" height="10" rx="1.5" />
   </svg>
 )
+
+/** Bảng thông tin hướng dẫn thao tác trên thanh dock Sân khấu 2D (Stage Operation Info Guide) */
+export const IconStageGuide = (p: P) => (
+  <svg {...base(p)}>
+    <circle cx="12" cy="12" r="9.2" />
+    <circle cx="12" cy="8" r="1.1" fill="currentColor" stroke="none" />
+    <path d="M12 11.5v5" />
+    <path d="M10.2 16.5h3.6" />
+  </svg>
+)

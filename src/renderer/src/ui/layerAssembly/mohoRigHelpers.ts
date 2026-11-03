@@ -148,8 +148,44 @@ export interface BoneJointHit {
   dist: number
 }
 
+export interface BoneCapsuleHit {
+  bone: LayerBone
+  /** Khớp gần nhất của xương này ('head' | 'tail') để nối nét đứt */
+  nearestJoint: 'head' | 'tail'
+  /** Tọa độ thực tế của khớp gần nhất */
+  jointPoint: { x: number; y: number }
+  /** Khoảng cách từ điểm thử đến trục xương */
+  axisDist: number
+  /** Bán kính vỏ uốn của xương */
+  capsuleRadius: number
+}
+
 /**
- * Tìm khớp (Trục ngọn hoặc Trục gốc) của xương gần con trỏ nhất để bắt dính (snap)
+ * Xác định điểm khớp ('head' hoặc 'tail') của một xương gần với điểm `targetPoint` nhất
+ * để tạo đường nét đứt kết nối chính xác.
+ */
+export function resolveClosestBoneJointForPoint(
+  bone: LayerBone,
+  tf: { x: number; y: number; rotation: number } | undefined,
+  targetPoint: { x: number; y: number }
+): { joint: 'head' | 'tail'; point: { x: number; y: number } } {
+  const hx = tf?.x ?? bone.x
+  const hy = tf?.y ?? bone.y
+  if (bone.pin) {
+    return { joint: 'head', point: { x: hx, y: hy } }
+  }
+  const rad = ((bone.angle + (tf?.rotation ?? 0)) * Math.PI) / 180
+  const tx = hx + Math.cos(rad) * bone.length
+  const ty = hy + Math.sin(rad) * bone.length
+  const dHead = Math.hypot(targetPoint.x - hx, targetPoint.y - hy)
+  const dTail = Math.hypot(targetPoint.x - tx, targetPoint.y - ty)
+  return dTail <= dHead
+    ? { joint: 'tail', point: { x: tx, y: ty } }
+    : { joint: 'head', point: { x: hx, y: hy } }
+}
+
+/**
+ * Tìm khớp (Trục ngọn hoặc Trục gốc) của xương gần con trỏ nhất để bắt dính (snap / hàn khớp)
  * khi dùng công cụ Vẽ xương (Add Bone `A`).
  */
 export function findClosestBoneJoint(
@@ -163,11 +199,14 @@ export function findClosestBoneJoint(
   for (const bone of bones) {
     const tf = transforms.get(bone.id)
     if (!tf) continue
+    const effectiveRadius = bone.pin
+      ? Math.min(maxRadius, 18)
+      : Math.min(maxRadius, Math.max(12, bone.length * 0.34))
     // 1. Trục gốc (Head - vòng tròn to)
     const hx = tf.x
     const hy = tf.y
     const dh = Math.hypot(p.x - hx, p.y - hy)
-    if (dh < bestDist) {
+    if (dh < Math.min(bestDist, effectiveRadius)) {
       bestDist = dh
       best = { bone, joint: 'head', point: { x: hx, y: hy }, dist: dh }
     }
@@ -177,9 +216,57 @@ export function findClosestBoneJoint(
       const tx = hx + Math.cos(rad) * bone.length
       const ty = hy + Math.sin(rad) * bone.length
       const dt = Math.hypot(p.x - tx, p.y - ty)
-      if (dt < bestDist) {
+      if (dt < Math.min(bestDist, effectiveRadius)) {
         bestDist = dt
         best = { bone, joint: 'tail', point: { x: tx, y: ty }, dist: dt }
+      }
+    }
+  }
+  return best
+}
+
+/**
+ * Kiểm tra xem điểm `p` có nằm trong vùng Vỏ uốn (Bone Strength Capsule) hoặc thân xương nào không
+ * (ngoài bán kính bắt dính trực tiếp của 2 đầu khớp).
+ */
+export function findBoneCapsuleHit(
+  bones: LayerBone[],
+  transforms: Map<string, { x: number; y: number; rotation: number }>,
+  p: { x: number; y: number },
+  preferredBoneId?: string | null
+): BoneCapsuleHit | null {
+  let best: BoneCapsuleHit | null = null
+  let bestScore = Infinity
+
+  for (const bone of bones) {
+    const tf = transforms.get(bone.id) ?? { x: bone.x, y: bone.y, rotation: 0 }
+    const angle = bone.angle + tf.rotation
+    const rad = (angle * Math.PI) / 180
+    const ux = Math.cos(rad)
+    const uy = Math.sin(rad)
+    const dx = p.x - tf.x
+    const dy = p.y - tf.y
+    const localX = dx * ux + dy * uy
+    const localY = -dx * uy + dy * ux
+
+    const reach = Math.max(0.5, Math.min(3.0, bone.influenceReach ?? 1.0))
+    const segLen = bone.pin ? 0 : Math.max(bone.length, bone.length * reach)
+    const clampedX = Math.max(0, Math.min(segLen, localX))
+    const axisDist = Math.hypot(localX - clampedX, localY)
+    const capsuleRadius = computeBoneInfluenceRadius(bone)
+
+    if (axisDist <= capsuleRadius) {
+      const score = axisDist / Math.max(1, capsuleRadius) - (bone.id === preferredBoneId ? 0.12 : 0)
+      if (score < bestScore) {
+        bestScore = score
+        const nearest = resolveClosestBoneJointForPoint(bone, tf, p)
+        best = {
+          bone,
+          nearestJoint: nearest.joint,
+          jointPoint: nearest.point,
+          axisDist,
+          capsuleRadius
+        }
       }
     }
   }

@@ -42,7 +42,7 @@ export type RigSubTab = 'hierarchy' | 'build' | 'binding' | 'autorig'
 
 const MOHO_RIG_TOOLS: Array<{ id: MohoRigTool; label: string; hotkey: string; title: string; Icon: typeof IconBoneSelect }> = [
   { id: 'select', label: 'Chọn', hotkey: 'S', title: 'Chọn xương (Phím S): Kéo khớp gốc để dời vị trí, kéo ngọn để chỉnh độ dài & góc xương', Icon: IconBoneSelect },
-  { id: 'add', label: 'Vẽ xương', hotkey: 'A', title: 'Vẽ thêm xương trên khung 2D (Phím A): Bấm-kéo để tạo chuỗi xương con, click nhẹ để đặt Chốt Pin Bone, giữ Alt để tạo xương gốc mới', Icon: IconBoneAdd },
+  { id: 'add', label: 'Vẽ xương', hotkey: 'A', title: 'Vẽ xương (Phím A): Kéo tại 2 đầu khớp = Hàn khớp · Kéo trong Vỏ uốn = Nét 1 tạo nét đứt, Nét 2 tạo xương · Kéo ngoài Vỏ uốn = Nối nét đứt điểm gần nhất & tạo xương luôn · Click = Chọn xương · Esc = Huỷ vẽ / Bỏ chọn xương để vẽ xương rời', Icon: IconBoneAdd },
   { id: 'strength', label: 'Vùng uốn', hotkey: 'T', title: 'Vùng ảnh hưởng xương (Phím T): Kéo viền viên nang xung quanh xương để chỉnh bán kính uốn Flexi-Bind Mesh', Icon: IconBoneStrength },
   { id: 'manipulate', label: 'Thử khớp', hotkey: 'Z', title: 'Thử bẻ khớp trực tiếp (Phím Z): Kéo bẻ xương IK/FK ngay tại Frame 0 (tôn trọng giới hạn góc khớp) mà không tạo keyframe', Icon: IconBoneManipulate }
 ]
@@ -258,7 +258,7 @@ export function WorkshopRigPanel({ composite, boneId, selectBone, selectedIds, s
   const bone = bones.find((b) => b.id === boneId)
   const selected = composite.layers.filter((l) => selectedIds.includes(l.id))
   const [localLayerId, setLocalLayerId] = useState<string>('')
-  const [subTab, setSubTab] = useState<RigSubTab>(() => (bones.length > 0 ? 'hierarchy' : 'autorig'))
+  const [subTab, setSubTab] = useState<RigSubTab>('hierarchy')
   const rigTool = useRigToolStore()
   const mirrorTwin = useMemo(() => {
     const id = bone ? findMirrorBoneId(bone.id, bones) : null
@@ -314,6 +314,9 @@ export function WorkshopRigPanel({ composite, boneId, selectBone, selectedIds, s
   const handleDeleteBone = (id: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation()
     run({ action: 'delete-bone', boneId: id })
+    if (rigTool.pendingDashedLink?.parentBoneId === id) {
+      setRigToolState({ pendingDashedLink: null })
+    }
     if (boneId === id) selectBone(null)
   }
 

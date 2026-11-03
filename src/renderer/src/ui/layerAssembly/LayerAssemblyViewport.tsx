@@ -873,6 +873,8 @@ export function LayerAssemblyViewport({
           onChangeLighting={onChangeComposite ? handleUpdateLighting : undefined}
           atmosphereLabel={atmosphere.label}
           atmosphereIcon={atmosphere.icon}
+          tab={tab}
+          selectedBoneName={composite.rig?.bones?.find((b) => b.id === boneOverlay?.boneId)?.name ?? null}
         />
 
         {/* Thanh công cụ hoạt họa nổi: Xác nhận vị trí (Enter), Bút vẽ động tác, IK, Onion skin, Quỹ đạo */}
@@ -917,7 +919,7 @@ export function LayerAssemblyViewport({
             {tab === 'animation'
               ? '🎭 Hoạt ảnh: Chuột trái chỉnh xương → nhấn Enter ⏎ xác nhận vị trí · Giữ Shift + Chuột trái: ghi động tác Realtime · D: bút vẽ · Space: phát thử'
               : tab === 'bones'
-                ? '🦴 Khung xương: Kéo khớp đầu/đuôi để chỉnh độ dài & góc · Kéo thân để dời vị trí · Delete: xóa xương'
+                ? '🦴 Khung xương: Click xương/vỏ để focus · Kéo ở 2 tâm điểm = hàn khớp · Kéo trong vỏ uốn = Nét 1 nét đứt + Nét 2 xương · Kéo ngoài vỏ = 1 nét · Esc: huỷ vẽ / bỏ focus tạo xương rời'
                 : tab === 'plant'
                   ? '🌿 Motion: Kéo từ GỐC lên NGỌN để vẽ xương · Nắm vòng tròn ở ngọn kéo theo nhịp để GHI chuyển động · R: vẽ quỹ đạo ngọn · Kéo chấm để sửa dáng'
                   : 'Kéo layer / Mũi tên: dời 2D · +/-: độ sâu Z · Alt / chuột giữa: dời khung · Cuộn: zoom'}

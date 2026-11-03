@@ -7,6 +7,7 @@ import {
   BONE_Z_ORDER_STEP,
   applyBoneZOrderStep
 } from './workshopBoneDepthOrder'
+import { cancelActiveBoneOverlayOrLink, setRigToolState } from './rigToolStore'
 
 export interface WorkshopBoneContext {
   primaryMode?: 'assembly' | 'cutter'
@@ -52,6 +53,7 @@ export function handleWorkshopKeydown(
       const targetBoneId = ctx.boneId
       state.setComposite((c) => applyRigAction(c, { action: 'delete-bone', boneId: targetBoneId }))
       ctx.selectBone?.(null)
+      setRigToolState({ pendingDashedLink: null })
     } else if (state.selection.length && ctx?.tab !== 'animation' && ctx?.tab !== 'plant') {
       state.run('delete')
     }
@@ -61,8 +63,15 @@ export function handleWorkshopKeydown(
     }
     togglePlay()
   } else if (e.key === 'Escape') {
-    if (ctx?.boneId) ctx.selectBone?.(null)
-    else if (state.selection.length) state.select(null)
+    if (cancelActiveBoneOverlayOrLink()) {
+      // Đã huỷ thao tác kéo vẽ xương hoặc huỷ nét đứt Nét 1 đang chờ Nét 2
+    } else if (ctx?.boneId) {
+      ctx.selectBone?.(null)
+      setRigToolState({
+        pendingDashedLink: null,
+        statusHint: 'Đã bỏ focus xương (Esc) — Kéo vẽ ngoài vỏ uốn lúc này sẽ tạo xương gốc mới tách rời.'
+      })
+    } else if (state.selection.length) state.select(null)
     else close()
   } else if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(key) && state.selection.length) {
     if (!state.history.gestureActive) state.history.begin()

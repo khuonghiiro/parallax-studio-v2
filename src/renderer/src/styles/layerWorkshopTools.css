@@ -88,3 +88,119 @@
   from { opacity: 0; transform: scale(0.97); }
   to { opacity: 1; transform: scale(1); }
 }
+
+/* Bảng thông tin thao tác Vẽ & Focus Xương tại góc dưới thanh dock 2D */
+.lw-stage-guide-card {
+  position: absolute;
+  left: 12px;
+  bottom: 36px;
+  z-index: 35;
+  max-width: min(345px, calc(100% - 28px));
+  background: color-mix(in srgb, var(--bg-1) 92%, transparent);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md, 6px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
+  pointer-events: none;
+  user-select: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.lw-stage-guide-card.tone-pending {
+  border-color: var(--key);
+}
+.lw-stage-guide-card.tone-focused {
+  border-color: var(--accent-cyan);
+}
+.lw-stage-guide-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 9px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text);
+  pointer-events: auto;
+  cursor: pointer;
+}
+.lw-stage-guide-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--text-dim);
+}
+.lw-stage-guide-dot.tone-pending {
+  background: var(--key);
+  box-shadow: 0 0 6px var(--key);
+}
+.lw-stage-guide-dot.tone-focused {
+  background: var(--accent-cyan);
+  box-shadow: 0 0 6px var(--accent-cyan);
+}
+.lw-stage-guide-dot.tone-detached {
+  background: var(--accent);
+}
+.lw-stage-guide-status-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lw-stage-guide-body {
+  padding: 6px 9px 8px;
+  border-top: 1px solid var(--line-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.lw-stage-guide-live-hint {
+  font-size: 10px;
+  line-height: 1.35;
+  color: var(--accent-cyan);
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-2));
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm, 4px);
+  padding: 4px 6px;
+}
+.lw-stage-guide-rules {
+  display: flex;
+  flex-direction: column;
+  gap: 3.5px;
+}
+.lw-stage-guide-rule {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  font-size: 9.8px;
+  line-height: 1.35;
+  color: var(--text-dim);
+}
+.lw-stage-guide-tag {
+  flex-shrink: 0;
+  padding: 1px 5px;
+  border-radius: var(--radius-sm, 4px);
+  font-size: 9px;
+  font-weight: 700;
+  border: 1px solid var(--line-soft);
+  background: var(--bg-2);
+  color: var(--text);
+}
+.lw-stage-guide-tag.weld {
+  color: var(--key);
+  border-color: color-mix(in srgb, var(--key) 40%, var(--line-soft));
+  background: color-mix(in srgb, var(--key) 12%, var(--bg-2));
+}
+.lw-stage-guide-tag.capsule {
+  color: var(--accent-cyan);
+  border-color: color-mix(in srgb, var(--accent-cyan) 40%, var(--line-soft));
+  background: color-mix(in srgb, var(--accent-cyan) 12%, var(--bg-2));
+}
+.lw-stage-guide-tag.outside {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--line-soft));
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg-2));
+}
+.lw-stage-guide-tag.detach {
+  color: var(--text);
+  border-color: var(--line);
+  background: var(--bg-3);
+}
