@@ -8,6 +8,8 @@ import {
   IconLayerAssembly,
   IconLipSync,
   IconLock,
+  IconLoopAnimate,
+  IconTrash,
   IconVoiceDialogue
 } from '../icons'
 import type { TimelineClusterGroup } from './timelineClusters'
@@ -41,8 +43,15 @@ function TimelineClusterRowComponent({
   summaryKeys
 }: TimelineClusterRowProps) {
   const isComposite = cluster.clusterType === 'composite'
-  const accentColor = isComposite ? 'var(--accent, #6366f1)' : 'var(--accent-cyan, #06b6d4)'
-  const badgeLabel = isComposite ? 'Nhân vật' : 'Mô hình 3D'
+  const isLoopCombo =
+    isComposite &&
+    cluster.layers.some((l) => l.type === 'image' && Boolean(l.props.loopOverrides?.comboLinkId))
+  const accentColor = isLoopCombo
+    ? 'var(--key, #f59e0b)'
+    : isComposite
+      ? 'var(--accent, #6366f1)'
+      : 'var(--accent-cyan, #06b6d4)'
+  const badgeLabel = isLoopCombo ? 'Tổ hợp Loop' : isComposite ? 'Nhân vật' : 'Mô hình 3D'
 
   // Thu thập tất cả keyframe của các layer con trong cụm (được memoize để không tính lại mỗi frame)
   const allAnims = useMemo(() => {
@@ -91,6 +100,17 @@ function TimelineClusterRowComponent({
     }, `${next ? 'Khóa' : 'Mở khóa'} cụm: ${cluster.name}`)
   }
 
+  const deleteAllCluster = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    useEditor.getState().update((d) => {
+      d.layers = d.layers.filter((l) => {
+        const inst = l.composite?.instanceId || l.model3d?.instanceId
+        return inst !== cluster.instanceId
+      })
+    }, `Xoá cụm: ${cluster.name}`)
+    useEditor.getState().selectLayer(null)
+  }
+
   const left = x(cluster.inPoint)
   const width = Math.max(4, x(cluster.outPoint) - left)
 
@@ -123,12 +143,22 @@ function TimelineClusterRowComponent({
           <span
             className="ico"
             style={{
-              background: isComposite ? 'rgba(99, 102, 241, 0.2)' : 'rgba(6, 182, 212, 0.2)',
+              background: isLoopCombo
+                ? 'rgba(245, 158, 11, 0.2)'
+                : isComposite
+                  ? 'rgba(99, 102, 241, 0.2)'
+                  : 'rgba(6, 182, 212, 0.2)',
               color: accentColor,
               border: `1px solid ${accentColor}`
             }}
           >
-            {isComposite ? <IconLayerAssembly width={11} height={11} /> : <IconCube width={11} height={11} />}
+            {isLoopCombo ? (
+              <IconLoopAnimate width={11} height={11} />
+            ) : isComposite ? (
+              <IconLayerAssembly width={11} height={11} />
+            ) : (
+              <IconCube width={11} height={11} />
+            )}
           </span>
 
           <span
@@ -239,6 +269,15 @@ function TimelineClusterRowComponent({
             onClick={toggleAllLocked}
           >
             <IconLock />
+          </button>
+          <button
+            type="button"
+            className="mini"
+            title="Xoá toàn bộ cụm"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={deleteAllCluster}
+          >
+            <IconTrash width={11} height={11} />
           </button>
         </div>
       }

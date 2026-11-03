@@ -1,9 +1,6 @@
 /* ============================================================================
  * XƯỞNG TÁCH HOẠT ẢNH LOOP — KHUNG DIALOG (Dark & Light, Responsive 4 breakpoints)
  * ============================================================================ */
-@import './loopControls.css';
-@import './loopAnimatorPanes.css';
-@import './loopAnimatorStrip.css';
 
 .loop-animator-backdrop {
   position: fixed;
@@ -34,9 +31,9 @@
 .loop-animator-header {
   display: flex;
   align-items: center;
-  gap: 16px;
-  min-height: 56px;
-  padding: 10px 16px;
+  gap: 14px;
+  min-height: 46px;
+  padding: 7px 14px;
   border-bottom: 1px solid var(--line);
   background: var(--bg-2);
   flex-shrink: 0;
@@ -45,7 +42,7 @@
 .loop-brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 9px;
   min-width: 0;
   flex-shrink: 0;
 }
@@ -54,8 +51,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  width: 30px;
+  height: 30px;
   border-radius: var(--radius-md);
   border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--line));
   background: color-mix(in srgb, var(--accent) 16%, var(--bg-3));
@@ -64,7 +61,7 @@
 
 .loop-brand-text h2 {
   margin: 0;
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 700;
   letter-spacing: -0.01em;
   color: var(--text);
@@ -72,8 +69,8 @@
 }
 
 .loop-brand-text p {
-  margin: 2px 0 0;
-  font-size: 11px;
+  margin: 1px 0 0;
+  font-size: 10.5px;
   color: var(--text-dim);
   white-space: nowrap;
 }
@@ -84,32 +81,33 @@
   gap: 8px;
   flex: 1 1 auto;
   min-width: 0;
-  max-width: 460px;
+  max-width: 440px;
   margin-left: auto;
 }
 
 .loop-header-name .la-input {
   flex: 1 1 auto;
   width: 100%;
+  height: 28px;
 }
 
 .loop-header-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   flex-shrink: 0;
 }
 
 .loop-menu-btn {
-  height: 30px;
-  padding: 0 10px;
+  height: 28px;
+  padding: 0 9px;
   border-color: var(--line);
-  gap: 6px;
+  gap: 5px;
 }
 
 .loop-close-btn {
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
 }
 
 .loop-close-btn:hover {
@@ -122,8 +120,8 @@
 .loop-group-slider-bar {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 6px 14px;
+  gap: 4px;
+  padding: 5px 12px;
   border-bottom: 1px solid var(--line);
   background: color-mix(in srgb, var(--bg-2) 85%, var(--bg-1));
   flex-shrink: 0;
@@ -132,25 +130,25 @@
 .loop-group-slider-row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   min-width: 0;
 }
 
 .loop-group-slider-head {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   flex-shrink: 0;
 }
 
 .loop-group-slider-track {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   flex: 1 1 auto;
   min-width: 0;
   overflow-x: auto;
-  padding: 2px 2px;
+  padding: 1px 2px;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -167,6 +165,12 @@
   font-weight: 700;
   white-space: nowrap;
   flex-shrink: 0;
+  cursor: pointer;
+}
+
+.loop-group-connector:hover {
+  border-color: var(--accent);
+  color: var(--text);
 }
 
 .loop-group-connector.mode-on_frame {
@@ -178,14 +182,14 @@
 .loop-group-chip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  height: 28px;
-  padding: 0 9px;
+  gap: 5px;
+  height: 26px;
+  padding: 0 7px;
   border-radius: var(--radius);
   border: 1px solid var(--line);
   background: var(--bg-1);
   color: var(--text);
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 600;
   cursor: pointer;
   flex-shrink: 0;
@@ -209,37 +213,61 @@
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--key) 45%, transparent);
 }
 
+.loop-group-sync-chk {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.loop-group-sync-chk input {
+  width: 12px;
+  height: 12px;
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
 .loop-group-step {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 20px;
-  height: 18px;
+  min-width: 19px;
+  height: 17px;
   padding: 0 4px;
   border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--accent) 78%, #0f172a);
   color: #ffffff;
-  font-size: 10px;
+  font-size: 9.5px;
   font-weight: 700;
 }
 
 .loop-group-name {
-  max-width: 140px;
+  max-width: 125px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .loop-group-meta {
-  font-size: 10px;
+  font-size: 9.5px;
   color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.loop-group-pos-badge {
+  padding: 1px 4px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--accent-cyan) 14%, var(--bg-2));
+  color: var(--accent-cyan);
+  font-size: 9.5px;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
 .loop-group-chip-actions {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
+  gap: 2px;
   margin-left: 2px;
 }
 
@@ -247,14 +275,14 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   padding: 0;
   border-radius: var(--radius-sm);
   border: 1px solid var(--line-soft);
   background: var(--bg-2);
   color: var(--text);
-  font-size: 9px;
+  font-size: 8.5px;
   cursor: pointer;
 }
 
@@ -272,60 +300,31 @@
 .loop-group-slider-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   flex-shrink: 0;
   margin-left: auto;
 }
 
-.loop-group-config-row {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  min-width: 0;
+.la-btn--align-open {
+  padding: 0 7px;
+  font-size: 10.5px;
+  border-color: color-mix(in srgb, var(--accent-cyan) 50%, var(--line));
+  background: color-mix(in srgb, var(--accent-cyan) 14%, var(--bg-2));
+  color: var(--text);
+  font-weight: 700;
 }
 
-.loop-group-name-field {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-}
-
-.loop-group-name-input {
-  width: 145px;
-  height: 28px;
-  font-size: 11.5px;
-}
-
-.loop-group-trigger-field {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-}
-
-.loop-group-pos-cluster {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-left: auto;
-  flex-shrink: 0;
-}
-
-.loop-group-config-row .la-num {
-  height: 28px;
-}
-
-.loop-group-config-row .la-num input {
-  width: 48px;
+.la-btn--align-open:hover {
+  border-color: var(--accent-cyan);
+  background: color-mix(in srgb, var(--accent-cyan) 78%, #0f172a);
+  color: #ffffff;
 }
 
 .loop-player-hud-pos-badge {
   position: absolute;
-  right: 10px;
-  bottom: 10px;
-  padding: 3px 8px;
+  right: 8px;
+  bottom: 8px;
+  padding: 2px 7px;
   border-radius: var(--radius-sm);
   border: 1px solid rgba(255, 255, 255, 0.14);
   background: rgba(15, 23, 42, 0.85);
@@ -353,7 +352,7 @@
   flex: 1 1 auto;
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 400px;
+  grid-template-columns: minmax(0, 1fr) 390px;
   overflow: hidden;
   border-bottom: 1px solid var(--line);
 }
@@ -387,8 +386,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 10px 16px;
+  gap: 14px;
+  padding: 7px 14px;
   background: var(--bg-2);
   flex-shrink: 0;
 }
@@ -396,7 +395,7 @@
 .loop-footer-meta {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
   flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
@@ -405,7 +404,7 @@
 .loop-footer-field {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   flex-shrink: 0;
 }
 

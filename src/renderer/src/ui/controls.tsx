@@ -233,11 +233,41 @@ export function AnimRow({
   const refKey = propRefKey(refp)
 
   const write = (v: AnimValue, mergeKey: string): void => {
+    const prevVec = Array.isArray(val) ? ([...(val as Vec3)] as Vec3) : null
     update((d) => {
       const da = getDraftAnimatable(d, refp)
       if (da) {
         if (timelineEditing) setTimelineValueAt(da, time, v, tol)
         else setValueAt(da, time, v as never, tol)
+      }
+      if (refp.kind === 'layer' && refp.prop === 'position' && prevVec && Array.isArray(v)) {
+        const scope = useEditor.getState().layerSelectionScope
+        const targetLayer = d.layers.find((l) => l.id === refp.layerId)
+        const compId =
+          scope !== 'layer' && targetLayer?.composite && targetLayer.composite.lockedGroup !== false
+            ? targetLayer.composite.instanceId
+            : undefined
+        const modelId =
+          scope !== 'layer' && targetLayer?.model3d && targetLayer.model3d.lockedGroup !== false
+            ? targetLayer.model3d.instanceId
+            : undefined
+        if (compId || modelId) {
+          const delta: Vec3 = [
+            (v as Vec3)[0] - prevVec[0],
+            (v as Vec3)[1] - prevVec[1],
+            (v as Vec3)[2] - prevVec[2]
+          ]
+          for (const sib of d.layers) {
+            if (sib.id === refp.layerId || sib.locked) continue
+            const matchComp = compId && sib.composite?.instanceId === compId
+            const matchModel = modelId && sib.model3d?.instanceId === modelId
+            if (!matchComp && !matchModel) continue
+            const curSib = evaluate(sib.transform.position, time) as Vec3
+            const nextSib: Vec3 = [curSib[0] + delta[0], curSib[1] + delta[1], curSib[2] + delta[2]]
+            if (timelineEditing) setTimelineValueAt(sib.transform.position, time, nextSib, tol)
+            else setValueAt(sib.transform.position, time, nextSib as never, tol)
+          }
+        }
       }
     }, `${refKey}-${mergeKey}`)
   }

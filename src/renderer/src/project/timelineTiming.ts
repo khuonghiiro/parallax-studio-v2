@@ -35,10 +35,32 @@ export function moveTimelineLayers(
   opts: MoveTimelineOptions = {}
 ): void {
   if (!Number.isFinite(seconds)) throw new Error('Mốc thời gian không hợp lệ.')
+  const detach = Boolean(opts.detachLinked)
   const selected = new Set(ids)
+  if (!detach && mode === 'shift') {
+    const lockedClusterIds = new Set<string>()
+    for (const l of project.layers) {
+      if (!selected.has(l.id)) continue
+      if (l.composite && l.composite.lockedGroup !== false && l.composite.instanceId) {
+        lockedClusterIds.add(`c:${l.composite.instanceId}`)
+      }
+      if (l.model3d && l.model3d.lockedGroup !== false && l.model3d.instanceId) {
+        lockedClusterIds.add(`m:${l.model3d.instanceId}`)
+      }
+    }
+    if (lockedClusterIds.size > 0) {
+      for (const l of project.layers) {
+        if (l.composite?.instanceId && lockedClusterIds.has(`c:${l.composite.instanceId}`)) {
+          selected.add(l.id)
+        }
+        if (l.model3d?.instanceId && lockedClusterIds.has(`m:${l.model3d.instanceId}`)) {
+          selected.add(l.id)
+        }
+      }
+    }
+  }
   const layers = project.layers.filter(l => selected.has(l.id) && !l.locked)
   if (!layers.length) return
-  const detach = Boolean(opts.detachLinked)
   const { groups, free } = partitionByTimeGroup(project, layers.map(l => l.id), detach)
   const freeLayers = layers.filter(l => free.includes(l.id))
   const ranges = [

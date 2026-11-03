@@ -219,4 +219,6 @@ export interface LoopSequenceGroup {
   offsetY: number
   /** Tỉ lệ kích thước của nhóm trên sân khấu (1 = 100%) */
   scale: number
+  /** Tích chọn đồng bộ cấu hình Tách nền (Chroma Key) cùng các nhóm khác (mặc định true; bỏ tích nếu ảnh có nền khác biệt) */
+  syncChromaKey?: boolean
 }

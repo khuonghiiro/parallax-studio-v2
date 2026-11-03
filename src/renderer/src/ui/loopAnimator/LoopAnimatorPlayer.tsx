@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { evaluateLoopLayerRhythm } from '../../project/gifHelper'
-import { IconFilm, IconPause, IconPlay, IconStepBack, IconStepFwd } from '../icons'
+import { IconFilm, IconGrid, IconPause, IconPlay, IconStepBack, IconStepFwd } from '../icons'
 import { LoopPlayerSettings } from './LoopPlayerSettings'
 import {
   applyChromaKeyToImageData,
@@ -32,7 +32,7 @@ const BG_OPTIONS: { id: LoopPlaybackConfig['previewBg']; label: string }[] = [
   { id: 'green', label: 'Nền xanh lá' }
 ]
 
-function drawFrame(
+export function drawFrameOnStage(
   ctx: CanvasRenderingContext2D,
   src: HTMLCanvasElement,
   f: LoopFrameBox,
@@ -40,17 +40,18 @@ function drawFrame(
   anchor: 'bottom' | 'center',
   groupOffsetX = 0,
   groupOffsetY = 0,
-  groupScale = 1
+  groupScale = 1,
+  stageDim = STAGE
 ): void {
   const { sx, sy } = getLoopSourceLogicalSize(src)
   const effScale = scale * Math.max(0.1, groupScale || 1)
   const w = Math.round(f.width * effScale)
   const h = Math.round(f.height * effScale)
-  const x = Math.round((STAGE - w) * 0.5 + (f.offsetX + groupOffsetX) * scale)
+  const x = Math.round((stageDim - w) * 0.5 + (f.offsetX + groupOffsetX) * scale)
   const y =
     anchor === 'bottom'
-      ? Math.round(STAGE - 24 - h + (f.offsetY + groupOffsetY) * scale)
-      : Math.round((STAGE - h) * 0.5 + (f.offsetY + groupOffsetY) * scale)
+      ? Math.round(stageDim - 24 - h + (f.offsetY + groupOffsetY) * scale)
+      : Math.round((stageDim - h) * 0.5 + (f.offsetY + groupOffsetY) * scale)
   ctx.drawImage(
     src,
     f.x * sx,
@@ -62,6 +63,19 @@ function drawFrame(
     w,
     h
   )
+}
+
+function drawFrame(
+  ctx: CanvasRenderingContext2D,
+  src: HTMLCanvasElement,
+  f: LoopFrameBox,
+  scale: number,
+  anchor: 'bottom' | 'center',
+  groupOffsetX = 0,
+  groupOffsetY = 0,
+  groupScale = 1
+): void {
+  drawFrameOnStage(ctx, src, f, scale, anchor, groupOffsetX, groupOffsetY, groupScale, STAGE)
 }
 
 function prevEnabledIndex(frames: LoopFrameBox[], from: number): number {
@@ -107,7 +121,7 @@ function getGroupCacheKey(g: LoopSequenceGroup): string {
   return `${g.id}:${g.sourceImageUrl.slice(0, 80)}:${pad}:${c.enabled}:${c.keyColor}:${c.similarity}:${c.smoothness}:${c.spill}:${c.isolationMode ?? 'all'}`
 }
 
-async function ensureGroupProcessedCanvas(g: LoopSequenceGroup): Promise<HTMLCanvasElement | null> {
+export async function ensureGroupProcessedCanvas(g: LoopSequenceGroup): Promise<HTMLCanvasElement | null> {
   const key = getGroupCacheKey(g)
   const cached = _groupCanvasCache.get(key)
   if (cached) return cached
@@ -175,6 +189,7 @@ export function LoopAnimatorPlayer({ sourceCanvasRef }: Props): React.ReactEleme
   const togglePlaying = useLoopAnimator((s) => s.togglePlaying)
   const updateActiveGroupMeta = useLoopAnimator((s) => s.updateActiveGroupMeta)
   const setComboPreviewMode = useLoopAnimator((s) => s.setComboPreviewMode)
+  const setAlignModalOpen = useLoopAnimator((s) => s.setAlignModalOpen)
 
   const previewCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const pingPongDirRef = useRef<1 | -1>(1)
@@ -445,6 +460,16 @@ export function LoopAnimatorPlayer({ sourceCanvasRef }: Props): React.ReactEleme
             Tâm
           </button>
         </div>
+        {hasFrames && (
+          <button
+            type="button"
+            className="la-btn la-btn--xs la-btn--align-open"
+            onClick={() => setAlignModalOpen(true)}
+            title="Mở Khung So Sánh Đa Cột & Căn Chỉnh Vị Trí Chạy chuyên sâu"
+          >
+            📐 So sánh
+          </button>
+        )}
         <div className="loop-bg-pills" role="radiogroup" aria-label="Nền sân khấu">
           {BG_OPTIONS.map((bg) => (
             <button

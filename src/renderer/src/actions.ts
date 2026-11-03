@@ -731,11 +731,27 @@ export function nudgeLayerPosition(id: string, dx: number, dy: number, dz: numbe
   const st = editor()
   const layer = st.project.layers.find((l) => l.id === id)
   if (!layer || layer.locked) return
-  const cur = evaluate(layer.transform.position, st.time) as Vec3
-  const next: Vec3 = [Math.round(cur[0] + dx), Math.round(cur[1] + dy), Math.round(cur[2] + dz)]
+  const isClusterScope = st.layerSelectionScope !== 'layer'
+  const compId =
+    isClusterScope && layer.composite && layer.composite.lockedGroup !== false
+      ? layer.composite.instanceId
+      : undefined
+  const modelId =
+    isClusterScope && layer.model3d && layer.model3d.lockedGroup !== false
+      ? layer.model3d.instanceId
+      : undefined
   st.update((d) => {
-    const l = d.layers.find((x) => x.id === id)
-    if (l) setValueAt(l.transform.position, st.time, next, frameTolerance(st.project))
+    for (const l of d.layers) {
+      if (l.locked) continue
+      const match =
+        l.id === id ||
+        (compId && l.composite?.instanceId === compId) ||
+        (modelId && l.model3d?.instanceId === modelId)
+      if (!match) continue
+      const cur = evaluate(l.transform.position, st.time) as Vec3
+      const next: Vec3 = [Math.round(cur[0] + dx), Math.round(cur[1] + dy), Math.round(cur[2] + dz)]
+      setValueAt(l.transform.position, st.time, next, frameTolerance(st.project))
+    }
   })
 }
 

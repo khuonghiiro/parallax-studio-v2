@@ -1,46 +1,42 @@
 import React, { useRef, useState } from 'react'
 import { toast } from '../../actions'
-import { IconFilm, IconPlus, IconReplace, IconTrash, IconUpload } from '../icons'
 import {
-  LOOP_IMAGE_ACCEPT,
-  appendLoopImageFilesAsGroups,
+  IconFilm,
+  IconGrid,
+  IconPlus,
+  IconReplace,
+  IconTrash,
+  IconUpload
+} from '../icons'
+import {
   loadLoopImageFiles,
+  LOOP_IMAGE_ACCEPT,
   replaceActiveGroupImageFile
 } from './loopAnimatorLauncher'
 import { useLoopAnimator } from './loopAnimatorState'
-import type { LoopTriggerMode } from './types'
 
 interface Props {
   onRequestAppendUpload: () => void
 }
 
-const TRIGGER_MODE_OPTIONS: { id: LoopTriggerMode; label: string; hint: string }[] = [
-  {
-    id: 'sequential',
-    label: '⏭ Nối tiếp',
-    hint: 'Chạy sau khi nhóm liền trước kết thúc (cộng thêm thời gian chờ nếu có)'
-  },
-  {
-    id: 'on_frame',
-    label: '⚡ Tại Frame #',
-    hint: 'Kết hợp chạy ngay tại thời điểm nhóm trước chạm Frame chỉ định (VD: frame sét chạm đất -> nổ)'
-  },
-  {
-    id: 'parallel',
-    label: '⇉ Song song',
-    hint: 'Chạy đồng thời cùng lúc với nhóm liền trước'
-  }
-]
-
+/**
+ * Thanh trượt ngang Chuỗi Nhóm Hiệu Ứng (1 dòng gọn gàng):
+ * - Chọn nhóm để chỉnh cấu hình riêng (Lưới cắt, Tách nền, FPS, Nhịp...).
+ * - Tích chọn `☑` ngay trên từng thẻ nhóm để nhận đồng bộ Tách nền (bỏ tích nếu có 1 ảnh nền khác biệt).
+ * - Đổi thứ tự chạy bằng kéo thả (drag-and-drop) hoặc nút ◀ ▶.
+ * - Nút mở "📐 So sánh & Căn vị trí" (khung đa cột chuyên sâu khi cần soi & căn điểm chạm).
+ */
 export function LoopGroupSliderBar({ onRequestAppendUpload }: Props): React.ReactElement | null {
   const groups = useLoopAnimator((s) => s.groups)
   const activeGroupIndex = useLoopAnimator((s) => s.activeGroupIndex)
   const comboPreviewMode = useLoopAnimator((s) => s.comboPreviewMode)
+  const syncChromaAll = useLoopAnimator((s) => s.syncChromaAll)
   const selectGroup = useLoopAnimator((s) => s.selectGroup)
   const reorderGroup = useLoopAnimator((s) => s.reorderGroup)
   const deleteGroup = useLoopAnimator((s) => s.deleteGroup)
-  const updateActiveGroupMeta = useLoopAnimator((s) => s.updateActiveGroupMeta)
+  const toggleGroupSyncChroma = useLoopAnimator((s) => s.toggleGroupSyncChroma)
   const setComboPreviewMode = useLoopAnimator((s) => s.setComboPreviewMode)
+  const setAlignModalOpen = useLoopAnimator((s) => s.setAlignModalOpen)
 
   const replaceInputRef = useRef<HTMLInputElement | null>(null)
   const stitchFramesInputRef = useRef<HTMLInputElement | null>(null)
@@ -50,8 +46,6 @@ export function LoopGroupSliderBar({ onRequestAppendUpload }: Props): React.Reac
   if (groups.length === 0) return null
 
   const activeGroup = groups[activeGroupIndex] ?? groups[0]
-  const prevGroup = activeGroupIndex > 0 ? groups[activeGroupIndex - 1] : null
-  const prevEnabledCount = prevGroup ? Math.max(1, prevGroup.frames.filter((f) => f.enabled).length) : 1
 
   return (
     <div className="loop-group-slider-bar" data-mcp-region="loop_animator_groups">
@@ -84,25 +78,24 @@ export function LoopGroupSliderBar({ onRequestAppendUpload }: Props): React.Reac
             const ok = await loadLoopImageFiles(files)
             if (ok) toast(`🎞 Đã ghép ${files.length} ảnh lẻ vào "${activeGroup.name}"`)
           } else if (files.length === 1) {
-            await appendLoopImageFilesAsGroups(files)
+            replaceActiveGroupImageFile(files[0])
           }
           e.target.value = ''
         }}
       />
 
-      {/* Dòng 1: Thanh trượt các Nhóm hiệu ứng (Slider đổi thứ tự chạy + Thêm ảnh nối tiếp) */}
       <div className="loop-group-slider-row">
         <div className="loop-group-slider-head">
-          <span className="la-label">Chuỗi nhóm ({groups.length})</span>
+          <span className="la-label">Chuỗi ({groups.length})</span>
           {groups.length > 1 && (
-            <div className="la-seg" title="Chế độ xem trên sân khấu Preview">
+            <div className="la-seg" role="group" aria-label="Chế độ xem sân khấu">
               <button
                 type="button"
                 className={`la-seg-btn${comboPreviewMode ? ' active' : ''}`}
                 onClick={() => setComboPreviewMode(true)}
-                title="Xem toàn bộ chuỗi hiệu ứng kết hợp theo thời gian & vị trí"
+                title="Xem trước toàn bộ chuỗi hiệu ứng kết hợp theo thứ tự"
               >
-                🔗 Tổ hợp ({groups.length})
+                🔗 Tổ hợp
               </button>
               <button
                 type="button"
@@ -116,52 +109,55 @@ export function LoopGroupSliderBar({ onRequestAppendUpload }: Props): React.Reac
           )}
         </div>
 
-        <div className="loop-group-slider-track" role="tablist" aria-label="Danh sách nhóm hiệu ứng nối tiếp">
+        <div className="loop-group-slider-track" role="tablist" aria-label="Danh sách nhóm hiệu ứng">
           {groups.map((g, idx) => {
-            const isSel = idx === activeGroupIndex
-            const enabledCount = g.frames.filter((f) => f.enabled).length
-            const connectorBadge =
+            const isActive = idx === activeGroupIndex
+            const enabledFrames = g.frames.filter((f) => f.enabled).length
+            const isDragOver = dragOverIdx === idx && dragIdx !== null && dragIdx !== idx
+            const isSynced = g.syncChromaKey !== false
+            const connectorLabel =
               idx === 0
                 ? null
                 : g.triggerMode === 'on_frame'
-                  ? `⚡F#${g.triggerFrameIndex}${g.delaySec > 0 ? `+${g.delaySec}s` : ''}`
+                  ? `⚡F#${g.triggerFrameIndex}`
                   : g.triggerMode === 'parallel'
-                    ? `⇉${g.delaySec > 0 ? `+${g.delaySec}s` : ''}`
-                    : `→${g.delaySec > 0 ? `+${g.delaySec}s` : ''}`
-
+                    ? '⇉'
+                    : g.delaySec > 0
+                      ? `+${g.delaySec}s`
+                      : '→'
             return (
               <React.Fragment key={g.id}>
-                {connectorBadge && (
-                  <span
+                {connectorLabel && (
+                  <button
+                    type="button"
                     className={`loop-group-connector mode-${g.triggerMode}`}
+                    onClick={() => setAlignModalOpen(true)}
                     title={
                       g.triggerMode === 'on_frame'
-                        ? `Nhóm ${idx + 1} kích hoạt ngay khi Nhóm ${idx} chạy tới Frame #${g.triggerFrameIndex}`
+                        ? `Nhóm ${idx + 1} kích hoạt tại Frame #${g.triggerFrameIndex} của Nhóm ${idx} (Bấm để mở khung căn chỉnh & đổi logic)`
                         : g.triggerMode === 'parallel'
-                          ? `Nhóm ${idx + 1} chạy song song với Nhóm ${idx}`
-                          : `Nhóm ${idx + 1} chạy nối tiếp sau Nhóm ${idx}`
+                          ? `Nhóm ${idx + 1} chạy song song với Nhóm ${idx} (Bấm để mở khung căn chỉnh)`
+                          : `Nhóm ${idx + 1} chạy nối tiếp sau Nhóm ${idx} (Chờ ${g.delaySec}s · Bấm để mở khung căn chỉnh)`
                     }
                   >
-                    {connectorBadge}
-                  </span>
+                    {connectorLabel}
+                  </button>
                 )}
                 <div
                   role="tab"
-                  aria-selected={isSel}
-                  draggable={groups.length > 1}
+                  aria-selected={isActive}
+                  draggable
                   onDragStart={() => setDragIdx(idx)}
                   onDragOver={(e) => {
                     e.preventDefault()
-                    if (dragOverIdx !== idx) setDragOverIdx(idx)
+                    setDragOverIdx(idx)
                   }}
-                  onDragLeave={() => {
-                    if (dragOverIdx === idx) setDragOverIdx(null)
-                  }}
+                  onDragLeave={() => setDragOverIdx((cur) => (cur === idx ? null : cur))}
                   onDrop={(e) => {
                     e.preventDefault()
                     if (dragIdx !== null && dragIdx !== idx) {
                       reorderGroup(dragIdx, idx)
-                      toast(`🔀 Đã đổi thứ tự chạy: Nhóm #${dragIdx + 1} → vị trí #${idx + 1}`)
+                      toast(`🔀 Đã đổi thứ tự Nhóm #${dragIdx + 1} sang vị trí #${idx + 1}`)
                     }
                     setDragIdx(null)
                     setDragOverIdx(null)
@@ -170,16 +166,41 @@ export function LoopGroupSliderBar({ onRequestAppendUpload }: Props): React.Reac
                     setDragIdx(null)
                     setDragOverIdx(null)
                   }}
-                  className={`loop-group-chip${isSel ? ' active' : ''}${dragOverIdx === idx ? ' drag-over' : ''}`}
+                  className={`loop-group-chip${isActive ? ' active' : ''}${isDragOver ? ' drag-over' : ''}`}
                   onClick={() => selectGroup(idx)}
-                  title={`Nhóm #${idx + 1}: ${g.name} (${enabledCount} frame • ${g.fps} FPS). Kéo thả hoặc bấm ◀ ▶ để đổi thứ tự chạy.`}
+                  title={`${g.name} (${enabledFrames}F · ${g.fps} FPS) — Bấm để chỉnh sửa, kéo thả để đổi thứ tự chạy`}
                 >
+                  {groups.length > 1 && syncChromaAll && (
+                    <input
+                      type="checkbox"
+                      className="loop-group-sync-check"
+                      checked={isSynced}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={(e) => {
+                        e.stopPropagation()
+                        toggleGroupSyncChroma(idx, e.target.checked)
+                        toast(
+                          e.target.checked
+                            ? `🔗 Đã bật đồng bộ Tách nền cho "${g.name}"`
+                            : `🔓 Đã tách riêng cấu hình nền của "${g.name}" (không ăn theo nhóm khác)`
+                        )
+                      }}
+                      title={
+                        isSynced
+                          ? 'Đang tích chọn đồng bộ Tách nền cùng các nhóm khác (Bỏ tích nếu ảnh này có nền khác biệt)'
+                          : 'Ảnh này đang chỉnh nền độc lập (Tích chọn để ăn theo cấu hình Tách nền chung)'
+                      }
+                    />
+                  )}
                   <span className="loop-group-step">#{idx + 1}</span>
-                  <span className="loop-group-name">{g.name}</span>
-                  <span className="loop-group-meta">
-                    {enabledCount}F · {g.fps}fps
-                  </span>
-                  {isSel && groups.length > 1 && (
+                  <span className="loop-group-name">{g.name.replace(/^Nhóm \d+:\s*/i, '')}</span>
+                  <span className="loop-group-meta">{enabledFrames}F</span>
+                  {(g.offsetX !== 0 || g.offsetY !== 0) && (
+                    <span className="loop-group-offset-tag" title={`Vị trí lệch: X=${g.offsetX}px, Y=${g.offsetY}px`}>
+                      {g.offsetX >= 0 ? `+${g.offsetX}` : g.offsetX},{g.offsetY >= 0 ? `+${g.offsetY}` : g.offsetY}
+                    </span>
+                  )}
+                  {groups.length > 1 && isActive && (
                     <span className="loop-group-chip-actions" onClick={(e) => e.stopPropagation()}>
                       <button
                         type="button"
@@ -221,6 +242,15 @@ export function LoopGroupSliderBar({ onRequestAppendUpload }: Props): React.Reac
         <div className="loop-group-slider-actions">
           <button
             type="button"
+            className="la-btn la-btn--primary la-btn--sm loop-open-align-btn"
+            onClick={() => setAlignModalOpen(true)}
+            title="Mở khung rộng So sánh các cột & Căn chỉnh vị trí chạy, chọn Frame kích hoạt, thời gian chờ/giữ giữa các nhóm"
+          >
+            <IconGrid width={12} height={12} />
+            <span>So sánh & Căn vị trí ({groups.length} cột)</span>
+          </button>
+          <button
+            type="button"
             className="la-btn la-btn--danger la-btn--sm"
             onClick={onRequestAppendUpload}
             title="Thêm 1 hoặc nhiều ảnh làm nhóm hiệu ứng nối tiếp (không ghi đè nhóm hiện có)"
@@ -236,7 +266,7 @@ export function LoopGroupSliderBar({ onRequestAppendUpload }: Props): React.Reac
             title="Thay ảnh nguồn của riêng nhóm đang chọn"
           >
             <IconReplace width={12} height={12} />
-            <span>Thay ảnh nhóm</span>
+            <span>Thay ảnh</span>
           </button>
           <button
             type="button"
@@ -245,156 +275,8 @@ export function LoopGroupSliderBar({ onRequestAppendUpload }: Props): React.Reac
             title="Chọn nhiều ảnh frame lẻ (1.png, 2.png...) để ghép thành lưới cho nhóm hiện tại"
           >
             <IconFilm width={12} height={12} />
-            <span>Ghép frame lẻ</span>
+            <span>Ghép lẻ</span>
           </button>
-        </div>
-      </div>
-
-      {/* Dòng 2: Cấu hình riêng của Nhóm đang chọn (Thứ tự/Trigger frame, Chờ giây, Giữ giây, Căn vị trí X/Y/Tỉ lệ) */}
-      <div className="loop-group-config-row">
-        <label className="loop-group-name-field" title="Tên định danh của nhóm hiệu ứng này (sẽ lưu vào animation.json và Node Animation Loop)">
-          <span className="la-label">Nhóm #{activeGroupIndex + 1}</span>
-          <input
-            type="text"
-            className="la-input loop-group-name-input"
-            value={activeGroup.name}
-            onChange={(e) => updateActiveGroupMeta({ name: e.target.value })}
-            placeholder={`Tên nhóm #${activeGroupIndex + 1}…`}
-          />
-        </label>
-
-        {activeGroupIndex > 0 && (
-          <div className="loop-group-trigger-field">
-            <span className="la-label">Khởi chạy</span>
-            <div className="la-seg" role="radiogroup" aria-label="Chế độ kích hoạt nhóm">
-              {TRIGGER_MODE_OPTIONS.map((opt) => (
-                <button
-                  key={opt.id}
-                  type="button"
-                  role="radio"
-                  aria-checked={activeGroup.triggerMode === opt.id}
-                  className={`la-seg-btn${activeGroup.triggerMode === opt.id ? ' active' : ''}`}
-                  onClick={() => updateActiveGroupMeta({ triggerMode: opt.id })}
-                  title={opt.hint}
-                >
-                  <span>{opt.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {activeGroupIndex > 0 && activeGroup.triggerMode === 'on_frame' && (
-          <label
-            className="la-num"
-            title={`Chọn Frame của Nhóm #${activeGroupIndex} (${prevGroup?.name || ''}, gồm ${prevEnabledCount} frame) để kích hoạt Nhóm #${activeGroupIndex + 1} chạy cùng thời điểm (VD: frame sét đánh chạm đất)`}
-          >
-            <span className="la-num-label">Tại Frame N.{activeGroupIndex}</span>
-            <input
-              type="number"
-              min={1}
-              max={prevEnabledCount}
-              step={1}
-              value={Math.min(prevEnabledCount, Math.max(1, activeGroup.triggerFrameIndex || 1))}
-              onChange={(e) =>
-                updateActiveGroupMeta({
-                  triggerFrameIndex: Math.max(1, Math.min(prevEnabledCount, Number(e.target.value) || 1))
-                })
-              }
-            />
-            <span className="la-num-unit">/{prevEnabledCount}</span>
-          </label>
-        )}
-
-        <label
-          className="la-num"
-          title={
-            activeGroupIndex === 0
-              ? 'Thời gian trễ (giây) trước khi Nhóm #1 bắt đầu chạy'
-              : activeGroup.triggerMode === 'on_frame'
-                ? 'Thời gian chờ thêm (giây) sau khi chạm Frame kích hoạt của nhóm trước'
-                : 'Thời gian chờ (giây) sau khi nhóm trước chạy xong rồi mới bắt đầu nhóm này'
-          }
-        >
-          <span className="la-num-label">Chờ</span>
-          <input
-            type="number"
-            min={0}
-            max={30}
-            step={0.1}
-            value={activeGroup.delaySec}
-            onChange={(e) => updateActiveGroupMeta({ delaySec: Math.max(0, Number(e.target.value) || 0) })}
-          />
-          <span className="la-num-unit">s</span>
-        </label>
-
-        <label
-          className="la-num"
-          title="Thời lượng duy trì chạy/hiển thị của nhóm này trong cảnh (0 = tự động theo 1 chu kỳ của nhóm)"
-        >
-          <span className="la-num-label">Giữ</span>
-          <input
-            type="number"
-            min={0}
-            max={120}
-            step={0.2}
-            value={activeGroup.holdDurationSec}
-            onChange={(e) => updateActiveGroupMeta({ holdDurationSec: Math.max(0, Number(e.target.value) || 0) })}
-          />
-          <span className="la-num-unit">s</span>
-        </label>
-
-        <div className="loop-group-pos-cluster" title="Điều chỉnh vị trí chạy của nhóm này (hoặc kéo trực tiếp trên sân khấu Xem trước) để căn khớp hướng/điểm chạm giữa các hiệu ứng (VD: điểm sét đánh & tâm vụ nổ)">
-          <label className="la-num">
-            <span className="la-num-label">Vị trí X</span>
-            <input
-              type="number"
-              min={-1000}
-              max={1000}
-              step={2}
-              value={activeGroup.offsetX}
-              onChange={(e) => updateActiveGroupMeta({ offsetX: Math.round(Number(e.target.value) || 0) })}
-            />
-            <span className="la-num-unit">px</span>
-          </label>
-          <label className="la-num">
-            <span className="la-num-label">Y</span>
-            <input
-              type="number"
-              min={-1000}
-              max={1000}
-              step={2}
-              value={activeGroup.offsetY}
-              onChange={(e) => updateActiveGroupMeta({ offsetY: Math.round(Number(e.target.value) || 0) })}
-            />
-            <span className="la-num-unit">px</span>
-          </label>
-          <label className="la-num">
-            <span className="la-num-label">Tỉ lệ</span>
-            <input
-              type="number"
-              min={10}
-              max={400}
-              step={5}
-              value={Math.round((activeGroup.scale || 1) * 100)}
-              onChange={(e) =>
-                updateActiveGroupMeta({
-                  scale: Math.max(0.1, Math.min(4, (Number(e.target.value) || 100) / 100))
-                })
-              }
-            />
-            <span className="la-num-unit">%</span>
-          </label>
-          {(activeGroup.offsetX !== 0 || activeGroup.offsetY !== 0 || Math.abs((activeGroup.scale || 1) - 1) > 0.01) && (
-            <button
-              type="button"
-              className="la-btn la-btn--ghost la-btn--sm"
-              onClick={() => updateActiveGroupMeta({ offsetX: 0, offsetY: 0, scale: 1 })}
-              title="Đặt lại vị trí (X=0, Y=0) và tỉ lệ (100%) của nhóm này"
-            >
-              ↺ Tâm
-            </button>
-          )}
         </div>
       </div>
     </div>

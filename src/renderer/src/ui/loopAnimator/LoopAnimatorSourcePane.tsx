@@ -238,6 +238,7 @@ export function LoopAnimatorSourcePane({ sourceCanvasRef, onRequestUpload, templ
 
     const applyLoadedSource = (src: HTMLImageElement | HTMLCanvasElement): void => {
       rawImageRef.current = src
+      setZoom(1)
       const { w, h } = getSourceNaturalSize(src)
       setSourceDimensions(w, h)
       const st = useLoopAnimator.getState()
@@ -408,7 +409,15 @@ export function LoopAnimatorSourcePane({ sourceCanvasRef, onRequestUpload, templ
           <button type="button" className="la-icon-btn" disabled={!hasSource} onClick={() => setZoom((z) => Math.max(0.5, +(z - 0.25).toFixed(2)))} title="Thu nhỏ" aria-label="Thu nhỏ">
             −
           </button>
-          <span className="loop-zoom-val">{Math.round(zoom * 100)}%</span>
+          <button
+            type="button"
+            className="loop-zoom-val loop-zoom-reset-btn"
+            disabled={!hasSource}
+            onClick={() => setZoom(1)}
+            title="Bấm để vừa khít khung nhìn (100%)"
+          >
+            {Math.round(zoom * 100)}%
+          </button>
           <button type="button" className="la-icon-btn" disabled={!hasSource} onClick={() => setZoom((z) => Math.min(2.5, +(z + 0.25).toFixed(2)))} title="Phóng to" aria-label="Phóng to">
             +
           </button>
@@ -423,7 +432,7 @@ export function LoopAnimatorSourcePane({ sourceCanvasRef, onRequestUpload, templ
       )}
 
       <div
-        className="loop-source-canvas-scroll"
+        className={`loop-source-canvas-scroll${zoom <= 1 ? ' is-fit' : ''}`}
         ref={scrollRef}
         onDragOver={(e) => hasSource && e.preventDefault()}
         onDrop={(e) => {
@@ -441,10 +450,13 @@ export function LoopAnimatorSourcePane({ sourceCanvasRef, onRequestUpload, templ
           className={`loop-source-canvas-stage${eyedropperActive ? ' eyedropper-cursor' : ''}`}
           hidden={!hasSource}
           style={{
-            transform: `scale(${zoom})`,
-            transformOrigin: 'top center',
             aspectRatio: `${Math.max(1, sourceWidth)} / ${Math.max(1, sourceHeight)}`,
-            ...(fit.width > 0 ? { width: fit.width, height: fit.height } : {})
+            ...(fit.width > 0
+              ? {
+                  width: Math.max(1, Math.round(fit.width * zoom)),
+                  height: Math.max(1, Math.round(fit.height * zoom))
+                }
+              : {})
           }}
         >
           <canvas ref={sourceCanvasRef} className="loop-source-canvas" />

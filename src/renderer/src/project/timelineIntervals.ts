@@ -96,19 +96,31 @@ export function retimeTimelineIntervals(project: Project, items: TimelineInterva
   }
 }
 
-/** Bổ sung mọi Layer cùng nhóm Time chung với các đoạn đã chọn (xem trước kéo nhóm như clip liên kết) */
+/** Bổ sung mọi Layer cùng nhóm Time chung hoặc cùng cụm khoá (composite/model3d) với các đoạn đã chọn */
 export function expandIntervalsWithTimeGroups(project: Project, items: TimelineInterval[]): TimelineInterval[] {
   const out = new Map(items.map(item => [intervalId(item), item]))
   const groups = new Set<string>()
+  const lockedClusters = new Set<string>()
   for (const item of items) {
     if (item.kind !== 'layer') continue
     const group = timeGroupOfLayer(project, item.layerId)
     if (group) groups.add(group.id)
+    const layer = project.layers.find(l => l.id === item.layerId)
+    if (layer?.composite && layer.composite.lockedGroup !== false && layer.composite.instanceId) {
+      lockedClusters.add(`c:${layer.composite.instanceId}`)
+    }
+    if (layer?.model3d && layer.model3d.lockedGroup !== false && layer.model3d.instanceId) {
+      lockedClusters.add(`m:${layer.model3d.instanceId}`)
+    }
   }
-  if (!groups.size) return items
+  if (!groups.size && !lockedClusters.size) return items
   for (const layer of project.layers) {
+    if (layer.locked) continue
     const group = timeGroupOfLayer(project, layer.id)
-    if (!group || !groups.has(group.id) || layer.locked) continue
+    const inGroup = Boolean(group && groups.has(group.id))
+    const inComp = Boolean(layer.composite?.instanceId && lockedClusters.has(`c:${layer.composite.instanceId}`))
+    const inModel = Boolean(layer.model3d?.instanceId && lockedClusters.has(`m:${layer.model3d.instanceId}`))
+    if (!inGroup && !inComp && !inModel) continue
     const extra: TimelineInterval = { kind: 'layer', layerId: layer.id }
     out.set(intervalId(extra), extra)
   }

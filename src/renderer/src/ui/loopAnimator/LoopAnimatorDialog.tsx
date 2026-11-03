@@ -1,5 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from '../../actions'
+import '../../styles/loopControls.css'
+import '../../styles/loopAnimatorPanes.css'
+import '../../styles/loopAnimatorStrip.css'
+import '../../styles/loopAlignStudio.css'
 import '../../styles/loopAnimator.css'
 import { getActiveCategoriesForModule, useAssetManifestStore } from '../../store/assetManifest'
 import { renderCategoryIcon } from '../assets/categoryIcons'
@@ -19,6 +23,7 @@ import {
 import { LoopAnimatorFrameStrip } from './LoopAnimatorFrameStrip'
 import { LoopAnimatorPlayer } from './LoopAnimatorPlayer'
 import { LoopAnimatorSourcePane } from './LoopAnimatorSourcePane'
+import { LoopGroupAlignmentModal } from './LoopGroupAlignmentModal'
 import { LoopGroupSliderBar } from './LoopGroupSliderBar'
 import {
   applyLoopAnimationToProject,
@@ -537,6 +542,7 @@ export function LoopAnimatorDialog({ isOpen = true, onClose, initialImageUrl }: 
             </button>
           </div>
         </footer>
+        <LoopGroupAlignmentModal />
       </div>
     </div>
   )

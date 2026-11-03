@@ -11,6 +11,8 @@ import { getBuiltinLoopTemplates } from './loopAnimatorStorage'
 import { useLoopAnimator } from './loopAnimatorState'
 import { findClusterRootLayer, isLayerClusterLocked, useEditor } from '../../store/editor'
 import { createImageLayer } from '../../project/factory'
+import { expandIntervalsWithTimeGroups } from '../../project/timelineIntervals'
+import { moveTimelineLayers } from '../../project/timelineTiming'
 
 describe('Loop Animator & Loop Rhythm Logic', () => {
   it('builds uniform grid frames accurately', () => {
@@ -254,5 +256,86 @@ describe('Loop Animator & Loop Rhythm Logic', () => {
     // 6. Đổi thứ tự nhóm (reorderGroup) trên slider
     useLoopAnimator.getState().reorderGroup(1, 0)
     expect(useLoopAnimator.getState().groups[0].name).toBe('Nhóm 2: Vụ nổ & Xoáy')
+  })
+
+  it('synchronizes chroma key across checked groups, skips unchecked groups, and locks multi-group loop layers in scene', () => {
+    const store = useLoopAnimator.getState()
+    store.startBlank()
+    store.appendImageAsGroup('data:image/png;base64,G1', 'g1.png')
+    store.appendImageAsGroup('data:image/png;base64,G2', 'g2.png')
+    store.appendImageAsGroup('data:image/png;base64,G3', 'g3.png')
+
+    expect(useLoopAnimator.getState().groups).toHaveLength(3)
+    // Mặc định cả 3 nhóm đều được tích chọn đồng bộ nền (syncChromaKey !== false)
+    expect(useLoopAnimator.getState().groups.every((g) => g.syncChromaKey !== false)).toBe(true)
+
+    // Bỏ tích chọn Nhóm #2 (index 1) vì có nền khác biệt
+    useLoopAnimator.getState().toggleGroupSyncChroma(1)
+    expect(useLoopAnimator.getState().groups[1].syncChromaKey).toBe(false)
+
+    // Đứng ở Nhóm #1 (index 0), chỉnh thông số Tách nền -> Nhóm #1 và Nhóm #3 ăn theo, Nhóm #2 giữ nguyên độc lập
+    useLoopAnimator.getState().selectGroup(0)
+    useLoopAnimator.getState().setChromaKey({
+      enabled: true,
+      keyColor: '#000000',
+      similarity: 0.44,
+      shadowMode: 'include'
+    })
+
+    const syncedGroups = useLoopAnimator.getState().getSyncedGroups()
+    expect(syncedGroups[0].chromaKey.similarity).toBeCloseTo(0.44, 2)
+    expect(syncedGroups[0].chromaKey.shadowMode).toBe('include')
+    expect(syncedGroups[2].chromaKey.similarity).toBeCloseTo(0.44, 2)
+    expect(syncedGroups[2].chromaKey.shadowMode).toBe('include')
+    expect(syncedGroups[1].chromaKey.similarity).not.toBeCloseTo(0.44, 2)
+
+    // Cập nhật vị trí chạy của Nhóm #2 trực tiếp từ cột so sánh (updateGroupByIndex)
+    useLoopAnimator.getState().updateGroupByIndex(1, {
+      offsetX: -36,
+      offsetY: 64,
+      triggerMode: 'on_frame',
+      triggerFrameIndex: 4
+    })
+    expect(useLoopAnimator.getState().groups[1].offsetX).toBe(-36)
+    expect(useLoopAnimator.getState().groups[1].offsetY).toBe(64)
+    expect(useLoopAnimator.getState().groups[1].triggerMode).toBe('on_frame')
+    expect(useLoopAnimator.getState().groups[1].triggerFrameIndex).toBe(4)
+
+    // Kiểm tra khoá cụm tổ hợp Loop trên cảnh & Timeline: di chuyển 1 layer trong cụm khoá sẽ dịch chuyển đồng bộ cả cụm
+    const p = structuredClone(useEditor.getState().project)
+    const comboId = 'loop_combo_test_lock'
+    const l1 = createImageLayer({ id: 'a1', name: 'G1', kind: 'image', mime: 'image/png', width: 256, height: 256 }, p.comp, 0)
+    const l2 = createImageLayer({ id: 'a2', name: 'G2', kind: 'image', mime: 'image/png', width: 256, height: 256 }, p.comp, 1)
+    l1.inPoint = 0
+    l1.outPoint = 1.2
+    l2.inPoint = 0.5
+    l2.outPoint = 2.5
+    l1.composite = {
+      instanceId: comboId,
+      compositeId: comboId,
+      compositeName: 'Sét & Nổ',
+      isRoot: true,
+      lockedGroup: true
+    }
+    l2.composite = {
+      instanceId: comboId,
+      compositeId: comboId,
+      compositeName: 'Sét & Nổ',
+      isRoot: false,
+      lockedGroup: true
+    }
+    p.layers.push(l1, l2)
+
+    expect(isLayerClusterLocked(l2)).toBe(true)
+    expect(findClusterRootLayer(p, l2)?.id).toBe(l1.id)
+
+    const expanded = expandIntervalsWithTimeGroups(p, [{ kind: 'layer', layerId: l1.id }])
+    expect(expanded.map((x) => x.layerId)).toEqual(expect.arrayContaining([l1.id, l2.id]))
+
+    moveTimelineLayers(p, [l1.id], 1.0, 'shift')
+    expect(l1.inPoint).toBeCloseTo(1.0, 2)
+    expect(l1.outPoint).toBeCloseTo(2.2, 2)
+    expect(l2.inPoint).toBeCloseTo(1.5, 2)
+    expect(l2.outPoint).toBeCloseTo(3.5, 2)
   })
 })

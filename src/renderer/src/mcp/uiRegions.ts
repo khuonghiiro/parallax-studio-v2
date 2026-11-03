@@ -314,6 +314,7 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   loop_animator: region('loop_animator', '.loop-animator-modal', '.loop-animator-dialog'),
   loop_animator_header: region('loop_animator_header', '.loop-animator-header'),
   loop_animator_groups: region('loop_animator_groups', '.loop-group-slider-bar'),
+  loop_animator_align_studio: region('loop_animator_align_studio', '.loop-align-studio-modal'),
   loop_animator_presets: region('loop_animator_presets', '.loop-header-actions'),
   loop_animator_empty: region('loop_animator_empty', '.loop-empty-state'),
   loop_animator_settings: region('loop_animator_settings', '.loop-player-settings'),

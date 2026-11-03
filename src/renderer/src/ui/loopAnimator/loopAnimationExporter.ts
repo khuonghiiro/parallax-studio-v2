@@ -316,6 +316,17 @@ async function applyMultiGroupLoopToProject(
     const layer = createImageLayer(meta, editor.project.comp, k)
     layer.name = `${baseName} · ${g.name}`
     layer.shotId = targetShotId
+    // Khoá cụm tổ hợp Loop giống cụm Lắp ráp 2.5D: xoá hoặc di chuyển đều đồng bộ cả cụm
+    layer.composite = {
+      instanceId: comboLinkId,
+      compositeId: templateId || comboLinkId,
+      compositeName: baseName,
+      isRoot: k === 0,
+      lockedGroup: true,
+      centerPosition: [baseX, baseY, baseZ],
+      rootOffset: [Math.round(g.offsetX || 0), Math.round(-(g.offsetY || 0)), 0],
+      sourceLayerId: g.id
+    }
     if (g.baseMeshWidth > 0 && g.baseMeshHeight > 0) {
       layer.props.width = g.baseMeshWidth
       layer.props.height = g.baseMeshHeight

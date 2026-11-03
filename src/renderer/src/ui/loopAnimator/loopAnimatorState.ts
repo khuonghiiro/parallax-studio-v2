@@ -24,6 +24,8 @@ import {
   buildGroupFromSavedTemplate,
   computeEqualizedFrames,
   computeSourceDimensionsUpdate,
+  computeSyncedChromaGroups,
+  computeToggleGroupSyncChroma,
   DEFAULT_PRESET,
   DEFAULT_RHYTHM,
   INITIAL_FRAMES,
@@ -78,6 +80,10 @@ export interface LoopAnimatorStore {
   activeGroupIndex: number
   /** Bật chế độ xem trước tổ hợp toàn bộ các nhóm hiệu ứng trên sân khấu Preview */
   comboPreviewMode: boolean
+  /** Đồng bộ cấu hình Tách nền (Chroma Key) cho tất cả các nhóm được tích chọn */
+  syncChromaAll: boolean
+  /** Mở khung Căn chỉnh vị trí & So sánh đa cột */
+  alignModalOpen: boolean
 
   open: (presetId?: string) => void
   /** Bắt đầu phiên tách mới hoàn toàn trống (chưa có ảnh, chưa có frame) */
@@ -118,6 +124,27 @@ export interface LoopAnimatorStore {
     >
   ) => void
   setComboPreviewMode: (enabled: boolean) => void
+  setSyncChromaAll: (enabled: boolean) => void
+  toggleGroupSyncChroma: (groupIndex: number, enabled?: boolean) => void
+  applyActiveChromaToSyncedGroups: () => number
+  updateGroupByIndex: (
+    groupIndex: number,
+    patch: Partial<
+      Pick<
+        LoopSequenceGroup,
+        | 'name'
+        | 'triggerMode'
+        | 'triggerFrameIndex'
+        | 'delaySec'
+        | 'holdDurationSec'
+        | 'offsetX'
+        | 'offsetY'
+        | 'scale'
+        | 'syncChromaKey'
+      >
+    >
+  ) => void
+  setAlignModalOpen: (open: boolean) => void
   /** Trả về danh sách các nhóm đã đồng bộ mới nhất với trạng thái đang sửa */
   getSyncedGroups: () => LoopSequenceGroup[]
 
@@ -236,6 +263,8 @@ export const useLoopAnimator = create<LoopAnimatorStore>((rawSet, get) => {
     groups: [INITIAL_GROUP],
     activeGroupIndex: 0,
     comboPreviewMode: false,
+    syncChromaAll: true,
+    alignModalOpen: false,
 
     open: (presetId) => {
       if (presetId) get().loadPreset(presetId)
@@ -443,6 +472,7 @@ export const useLoopAnimator = create<LoopAnimatorStore>((rawSet, get) => {
       const newIndex = synced.length
       const prevGroup = synced[newIndex - 1]
       const prevEnabledCount = prevGroup ? prevGroup.frames.filter((f) => f.enabled).length : 4
+      const inheritChroma = s.syncChromaAll && (prevGroup?.syncChromaKey ?? true)
       const newGroup = createLoopSequenceGroup({
         id: createGroupId(newIndex),
         name: cleanName ? `Nhóm ${newIndex + 1}: ${cleanName}` : `Nhóm ${newIndex + 1}`,
@@ -452,8 +482,10 @@ export const useLoopAnimator = create<LoopAnimatorStore>((rawSet, get) => {
         baseMeshWidth: 0,
         baseMeshHeight: 0,
         slicerMode: 'grid',
-        gridConfig: { ...BLANK_GRID },
-        chromaKey: { ...BLANK_CHROMA },
+        gridConfig: inheritChroma
+          ? { ...BLANK_GRID, borderPadding: s.gridConfig.borderPadding ?? 0 }
+          : { ...BLANK_GRID },
+        chromaKey: inheritChroma ? { ...s.chromaKey } : { ...BLANK_CHROMA },
         fps: s.playback.fps || 12,
         speed: 1,
         loopMode: 'once',
@@ -464,7 +496,8 @@ export const useLoopAnimator = create<LoopAnimatorStore>((rawSet, get) => {
         holdDurationSec: 0,
         offsetX: 0,
         offsetY: 0,
-        scale: 1
+        scale: 1,
+        syncChromaKey: true
       })
       const nextGroups = [...synced, newGroup]
       const nextLayerName =
@@ -565,6 +598,78 @@ export const useLoopAnimator = create<LoopAnimatorStore>((rawSet, get) => {
     },
 
     setComboPreviewMode: (enabled) => rawSet({ comboPreviewMode: enabled }),
+
+    setSyncChromaAll: (enabled) => {
+      const s = get()
+      const synced = syncActiveGroupToGroups(s)
+      if (!enabled || synced.length <= 1) {
+        rawSet({ syncChromaAll: enabled, groups: synced })
+        return
+      }
+      const activeIdx = Math.max(0, Math.min(synced.length - 1, s.activeGroupIndex))
+      const activeChroma = { ...s.chromaKey }
+      const nextGroups = synced.map((g, i) =>
+        i !== activeIdx && g.syncChromaKey !== false
+          ? { ...g, chromaKey: { ...activeChroma } }
+          : g
+      )
+      rawSet({
+        syncChromaAll: true,
+        groups: nextGroups,
+        sourceVersion: s.sourceVersion + 1
+      })
+    },
+
+    toggleGroupSyncChroma: (groupIndex, enabled) => {
+      const res = computeToggleGroupSyncChroma(get(), groupIndex, enabled)
+      if (!res) return
+      const s = get()
+      rawSet({
+        groups: res.nextGroups,
+        ...(res.adoptActive && groupIndex === s.activeGroupIndex
+          ? { chromaKey: { ...res.nextGroups[groupIndex].chromaKey } }
+          : {}),
+        sourceVersion: s.sourceVersion + 1
+      })
+    },
+
+    applyActiveChromaToSyncedGroups: () => {
+      const s = get()
+      const synced = syncActiveGroupToGroups(s)
+      if (synced.length <= 1) return 0
+      const activeChroma = { ...s.chromaKey }
+      const activePad = s.gridConfig.borderPadding ?? 0
+      let count = 0
+      const nextGroups = synced.map((g) => {
+        if (g.syncChromaKey === false) return g
+        count++
+        return {
+          ...g,
+          chromaKey: { ...activeChroma },
+          gridConfig: { ...g.gridConfig, borderPadding: activePad }
+        }
+      })
+      rawSet({
+        groups: nextGroups,
+        sourceVersion: s.sourceVersion + 1
+      })
+      return count
+    },
+
+    updateGroupByIndex: (groupIndex, patch) => {
+      const s = get()
+      const synced = syncActiveGroupToGroups(s)
+      if (groupIndex < 0 || groupIndex >= synced.length) return
+      const next = [...synced]
+      next[groupIndex] = applyUpdatedGroupMeta(synced[groupIndex], patch)
+      rawSet({
+        groups: next,
+        ...(groupIndex === s.activeGroupIndex && patch.name ? { layerName: s.layerName } : {}),
+        sourceVersion: s.sourceVersion + 1
+      })
+    },
+
+    setAlignModalOpen: (open) => rawSet({ alignModalOpen: open }),
 
     getSyncedGroups: () => syncActiveGroupToGroups(get()),
 
@@ -718,10 +823,15 @@ export const useLoopAnimator = create<LoopAnimatorStore>((rawSet, get) => {
 
     equalizeFrameSizes: () => set((s) => ({ frames: computeEqualizedFrames(s) })),
 
-    setChromaKey: (patch) =>
-      set((s) => ({
-        chromaKey: { ...s.chromaKey, ...patch }
-      })),
+    setChromaKey: (patch) => {
+      const s = get()
+      const { nextChroma, nextGroups } = computeSyncedChromaGroups(s, patch)
+      rawSet({
+        chromaKey: nextChroma,
+        groups: nextGroups,
+        sourceVersion: s.sourceVersion + 1
+      })
+    },
 
     selectFrame: (index) =>
       set((s) => {

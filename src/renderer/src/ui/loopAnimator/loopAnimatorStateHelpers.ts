@@ -181,8 +181,52 @@ export function applyUpdatedGroupMeta(
     scale:
       patch.scale !== undefined
         ? Math.max(0.1, Math.min(5, Number(patch.scale.toFixed(2))))
-        : cur.scale
+        : cur.scale,
+    syncChromaKey:
+      patch.syncChromaKey !== undefined ? Boolean(patch.syncChromaKey) : cur.syncChromaKey ?? true
   }
+}
+
+export function computeSyncedChromaGroups(
+  s: LoopAnimatorStore,
+  patch: Partial<ChromaKeyConfig>
+): { nextChroma: ChromaKeyConfig; nextGroups: LoopSequenceGroup[] } {
+  const nextChroma = { ...s.chromaKey, ...patch }
+  const synced = syncActiveGroupToGroups({ ...s, chromaKey: nextChroma })
+  const activeIdx = Math.max(0, Math.min(Math.max(0, synced.length - 1), s.activeGroupIndex))
+  const activeIsSynced = synced[activeIdx]?.syncChromaKey !== false
+  const nextGroups =
+    s.syncChromaAll && activeIsSynced
+      ? synced.map((g, idx) =>
+          idx === activeIdx || g.syncChromaKey === false
+            ? g
+            : { ...g, chromaKey: { ...g.chromaKey, ...patch } }
+        )
+      : synced
+  return { nextChroma, nextGroups }
+}
+
+export function computeToggleGroupSyncChroma(
+  s: LoopAnimatorStore,
+  groupIndex: number,
+  enabled?: boolean
+): { nextGroups: LoopSequenceGroup[]; adoptActive: boolean } | null {
+  const synced = syncActiveGroupToGroups(s)
+  if (groupIndex < 0 || groupIndex >= synced.length) return null
+  const cur = synced[groupIndex]
+  const nextSync = enabled !== undefined ? enabled : !(cur.syncChromaKey !== false)
+  const activeIdx = Math.max(0, Math.min(synced.length - 1, s.activeGroupIndex))
+  const activeGroup = synced[activeIdx]
+  const adoptActive =
+    nextSync && s.syncChromaAll && groupIndex !== activeIdx && activeGroup?.syncChromaKey !== false
+  const updated: LoopSequenceGroup = {
+    ...cur,
+    syncChromaKey: nextSync,
+    ...(adoptActive ? { chromaKey: { ...s.chromaKey } } : {})
+  }
+  const nextGroups = [...synced]
+  nextGroups[groupIndex] = updated
+  return { nextGroups, adoptActive }
 }
 
 export function computeSourceDimensionsUpdate(

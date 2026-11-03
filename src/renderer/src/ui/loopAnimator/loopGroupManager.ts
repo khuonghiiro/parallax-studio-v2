@@ -68,6 +68,7 @@ export function createLoopSequenceGroup(params: {
   offsetX?: number
   offsetY?: number
   scale?: number
+  syncChromaKey?: boolean
 }): LoopSequenceGroup {
   const w = params.sourceWidth || 1024
   const h = params.sourceHeight || 1024
@@ -139,7 +140,8 @@ export function createLoopSequenceGroup(params: {
     holdDurationSec: Math.max(0, Number((params.holdDurationSec ?? 0).toFixed(2))),
     offsetX: Math.round(params.offsetX ?? 0),
     offsetY: Math.round(params.offsetY ?? 0),
-    scale: Math.max(0.1, Math.min(5, Number((params.scale ?? 1).toFixed(2))))
+    scale: Math.max(0.1, Math.min(5, Number((params.scale ?? 1).toFixed(2)))),
+    syncChromaKey: params.syncChromaKey ?? true
   }
 }
 
@@ -188,7 +190,8 @@ export function syncActiveGroupToGroups(state: LoopAnimatorStore): LoopSequenceG
     holdDurationSec: existing?.holdDurationSec ?? 0,
     offsetX: existing?.offsetX ?? 0,
     offsetY: existing?.offsetY ?? 0,
-    scale: existing?.scale ?? 1
+    scale: existing?.scale ?? 1,
+    syncChromaKey: existing?.syncChromaKey ?? true
   }
 
   if (state.groups.length === 0) {
