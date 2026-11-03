@@ -19,6 +19,7 @@ import type { McpStatus } from '@shared/ipc'
 import { useEditor } from '../store/editor'
 import { useView } from '../store/view'
 import {
+  IconAssetManifest,
   IconExport,
   IconFile,
   IconFolder,
@@ -361,6 +362,17 @@ export function Toolbar({ onExport }: { onExport: () => void }) {
             title={theme === 'dark' ? 'Chuyển sang giao diện Sáng (Light Mode)' : 'Chuyển sang giao diện Tối (Dark Mode)'}
           >
             {theme === 'dark' ? <IconSun width={14} height={14} /> : <IconMoon width={14} height={14} />}
+          </button>
+          <button
+            id="manifest-assets-btn"
+            type="button"
+            className="tb-btn-icon"
+            data-mcp-region="manifest_chip"
+            aria-label="Quản lý Manifest Tài nguyên & Chủ đề JSON"
+            onClick={() => useView.getState().openDialog('manifest')}
+            title="Quản lý động Manifest Tài nguyên (assets/manifest.json), Chủ đề các Xưởng & Khôi phục file xoá tạm (_temp_deleted)"
+          >
+            <IconAssetManifest width={14} height={14} />
           </button>
           <button
             id="perf-settings-btn"

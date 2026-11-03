@@ -3,6 +3,7 @@ import type { BuiltInAssetCategory, BuiltInAssetItem, BuiltInCatalogResult } fro
 import { importAudio, importBuiltInAsset, importImages } from '../../actions'
 import { useEditor } from '../../store/editor'
 import { useView, type AssetSubTab } from '../../store/view'
+import { initAssetManifestLiveSync, useAssetManifestStore } from '../../store/assetManifest'
 import {
   IconBriefcase,
   IconGrid,
@@ -24,8 +25,7 @@ import { openLoopAnimatorBlank } from '../loopAnimator/loopAnimatorLauncher'
 import { MusicPanel } from './MusicPanel'
 import { getStoredComposites } from '../layerAssembly/layerAssemblyStorage'
 import { getStoredModels3D, fetchAsset3DsCatalog } from './models3d/models3dStorage'
-import { getStoredLoopTemplates } from '../loopAnimator/loopAnimatorStorage'
-import { BUILTIN_LOOP_PRESETS } from '../loopAnimator/sampleLoops'
+import { getAllLoopTemplates } from '../loopAnimator/loopAnimatorStorage'
 import { sortAssetCategories } from './types'
 import { getVisiblePublicAssets, addCustomPublicAsset, isPrivateModularAsset } from './publicAssetStorage'
 import { getAudioCount } from './music/builtinAudios'
@@ -34,14 +34,26 @@ export function AssetPanel() {
   const projectAssets = useEditor((s) => s.project.assets)
   const subTab = useView((s) => s.assetSubTab)
   const setSubTab = useView((s) => s.setAssetSubTab)
-  const [catalog, setCatalog] = useState<BuiltInCatalogResult | null>(null)
+  const storeCatalog = useAssetManifestStore((s) => s.catalog)
+  const storeRevision = useAssetManifestStore((s) => s.revision)
+  const [catalog, setCatalog] = useState<BuiltInCatalogResult | null>(storeCatalog)
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [loading, setLoading] = useState(false)
   const [isJsonModalOpen, setIsJsonModalOpen] = useState(false)
   const [assemblyCount, setAssemblyCount] = useState<number>(() => getStoredComposites().length)
   const [model3DCount, setModel3DCount] = useState<number>(() => getStoredModels3D().length)
-  const [loopCount, setLoopCount] = useState<number>(() => BUILTIN_LOOP_PRESETS.length + getStoredLoopTemplates().length)
+  const [loopCount, setLoopCount] = useState<number>(() => getAllLoopTemplates().length)
   const [publicVersion, setPublicVersion] = useState(0)
+
+  useEffect(() => {
+    initAssetManifestLiveSync()
+  }, [])
+
+  useEffect(() => {
+    if (storeCatalog) {
+      setCatalog(storeCatalog)
+    }
+  }, [storeCatalog, storeRevision])
 
   useEffect(() => {
     fetchAsset3DsCatalog().then(({ models }) => {
@@ -65,23 +77,33 @@ export function AssetPanel() {
   }, [])
 
   useEffect(() => {
-    const handleLoopChange = () =>
-      setLoopCount(BUILTIN_LOOP_PRESETS.length + getStoredLoopTemplates().length)
+    const handleLoopChange = () => setLoopCount(getAllLoopTemplates().length)
     window.addEventListener('loopAnimations:changed', handleLoopChange)
-    return () => window.removeEventListener('loopAnimations:changed', handleLoopChange)
+    window.addEventListener('parallax:loop-animations-updated', handleLoopChange)
+    window.addEventListener('parallax:manifest-updated', handleLoopChange)
+    return () => {
+      window.removeEventListener('loopAnimations:changed', handleLoopChange)
+      window.removeEventListener('parallax:loop-animations-updated', handleLoopChange)
+      window.removeEventListener('parallax:manifest-updated', handleLoopChange)
+    }
   }, [])
 
   useEffect(() => {
     const handlePubChange = () => setPublicVersion((v) => v + 1)
     window.addEventListener('publicAssets:changed', handlePubChange)
-    return () => window.removeEventListener('publicAssets:changed', handlePubChange)
+    window.addEventListener('parallax:manifest-updated', handlePubChange)
+    return () => {
+      window.removeEventListener('publicAssets:changed', handlePubChange)
+      window.removeEventListener('parallax:manifest-updated', handlePubChange)
+    }
   }, [])
 
   const loadCatalog = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await window.api.getBuiltInCatalog()
+      const res = await window.api.getBuiltInCatalog(true)
       setCatalog(res)
+      useAssetManifestStore.getState().applyCatalog(res)
     } catch (err) {
       console.error('[AssetPanel] Error loading built-in catalog:', err)
     } finally {
@@ -120,7 +142,6 @@ export function AssetPanel() {
     return getAudioCount(projectAssets, visiblePublicItems)
   }, [projectAssets, visiblePublicItems])
 
-  // Count items per category
   const itemCounts = useMemo(() => {
     const counts: Record<string, number> = { all: visiblePublicItems.length }
     categories.forEach((cat) => {
@@ -195,6 +216,7 @@ export function AssetPanel() {
       const res = await window.api.saveBuiltInManifest(jsonContent)
       if (res.ok && res.catalog) {
         setCatalog(res.catalog)
+        useAssetManifestStore.getState().applyCatalog(res.catalog)
         return true
       }
       if (res.error) {
@@ -247,7 +269,6 @@ export function AssetPanel() {
 
   return (
     <div className="asset-panel-wrapper" data-mcp-region="assets">
-      {/* Subtabs: Adaptive 5-category Segmented Switcher (Icons always visible, labels auto-adapt to width) */}
       <SegmentedTabs<AssetSubTab>
         items={subTabItems}
         value={subTab}
@@ -259,7 +280,6 @@ export function AssetPanel() {
         mcpRegion="asset_subtabs"
       />
 
-      {/* Contextual Header with import actions */}
       <div className="asset-top-header">
         <span className="asset-top-header-label">
           {subTab === 'builtin' && <IconGrid width={14} height={14} />}

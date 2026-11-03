@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   IconActionFx,
   IconAudioLibrary,
@@ -9,14 +9,18 @@ import {
   IconVoiceDialogue,
   IconWindAmbience
 } from '../../icons'
+import { getActiveCategoriesForModule, useAssetManifestStore } from '../../../store/assetManifest'
+import { renderCategoryIcon } from '../categoryIcons'
 
-export type AudioCategoryType = 'all' | 'music' | 'ambient' | 'sfx' | 'voice' | 'cinematic'
+export type AudioCategoryType = 'all' | 'music' | 'ambient' | 'sfx' | 'voice' | 'cinematic' | (string & {})
 
 export interface AudioCategoryItem {
   id: AudioCategoryType
   title: string
   subtitle: string
   icon: string
+  iconUrl?: string
+  iconText?: string
   color: string
 }
 
@@ -81,7 +85,7 @@ interface ActionTooltipInfo {
 interface MusicCategoryBarProps {
   selectedCategory: AudioCategoryType
   onSelectCategory: (cat: AudioCategoryType) => void
-  categoryCounts: Record<AudioCategoryType, number>
+  categoryCounts: Record<string, number>
   onImportClick: () => void
   onOpenFolder?: () => void
 }
@@ -95,6 +99,24 @@ export function MusicCategoryBar({
 }: MusicCategoryBarProps) {
   const [tooltip, setTooltip] = useState<TooltipInfo | null>(null)
   const [actionTooltip, setActionTooltip] = useState<ActionTooltipInfo | null>(null)
+  const manifestModules = useAssetManifestStore((s) => s.modules)
+
+  const dynamicAudioCategories = useMemo<AudioCategoryItem[]>(() => {
+    const cats = getActiveCategoriesForModule(manifestModules, 'audio')
+    if (!cats || cats.length === 0) return AUDIO_CATEGORIES
+    return cats.map((c) => {
+      const def = AUDIO_CATEGORIES.find((d) => d.id === c.id)
+      return {
+        id: c.id,
+        title: c.title || def?.title || c.id,
+        subtitle: c.description || def?.subtitle || '',
+        icon: c.icon || def?.icon || 'music',
+        iconUrl: c.iconUrl,
+        iconText: c.iconText,
+        color: c.accent || def?.color || 'var(--accent)'
+      }
+    })
+  }, [manifestModules])
 
   const showTooltip = (e: React.MouseEvent<HTMLElement>, cat: AudioCategoryItem) => {
     const rect = e.currentTarget.getBoundingClientRect()
@@ -120,8 +142,14 @@ export function MusicCategoryBar({
     setActionTooltip(null)
   }
 
-  const renderIcon = (id: AudioCategoryType) => {
-    switch (id) {
+  const renderIcon = (cat: AudioCategoryItem) => {
+    if (cat.iconUrl || (cat.icon === 'text' && cat.iconText)) {
+      return renderCategoryIcon(cat.icon, 16, 16, cat.id, {
+        iconUrl: cat.iconUrl,
+        iconText: cat.iconText
+      })
+    }
+    switch (cat.id) {
       case 'all':
         return <IconAudioLibrary width={16} height={16} />
       case 'music':
@@ -135,14 +163,17 @@ export function MusicCategoryBar({
       case 'cinematic':
         return <IconCinematicClapper width={16} height={16} />
       default:
-        return <IconMusic width={16} height={16} />
+        return renderCategoryIcon(cat.icon || cat.id, 16, 16, cat.id, {
+          iconUrl: cat.iconUrl,
+          iconText: cat.iconText
+        })
     }
   }
 
   return (
     <aside className="asset-vertical-strip music-vertical-strip" aria-label="Thể loại âm thanh">
       <div className="asset-strip-scroll" onScroll={hideAllTooltips}>
-        {AUDIO_CATEGORIES.map((cat) => {
+        {dynamicAudioCategories.map((cat) => {
           const isActive = selectedCategory === cat.id
           const count = categoryCounts[cat.id] || 0
 
@@ -163,10 +194,8 @@ export function MusicCategoryBar({
                   ['--cat-accent' as string]: cat.color
                 }}
               >
-                {renderIcon(cat.id)}
-                {count > 0 && !isActive && (
-                  <span className="music-cat-dot-badge" />
-                )}
+                {renderIcon(cat)}
+                {count > 0 && !isActive && <span className="music-cat-dot-badge" />}
               </button>
             </div>
           )
@@ -211,7 +240,6 @@ export function MusicCategoryBar({
         )}
       </div>
 
-      {/* Tooltip nổi giải thích thể loại */}
       {tooltip && (
         <div
           className="category-tooltip music-category-tooltip"
@@ -228,7 +256,6 @@ export function MusicCategoryBar({
         </div>
       )}
 
-      {/* Tooltip cho action nút phụ */}
       {actionTooltip && (
         <div
           className="category-tooltip music-category-tooltip"

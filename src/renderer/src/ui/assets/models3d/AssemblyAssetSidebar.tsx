@@ -6,6 +6,7 @@ import { IconPlus, IconCheck, IconCube, IconReplace, IconSearch, IconX } from '.
 import { AssemblyModelLibraryTab } from './AssemblyModelLibraryTab'
 import { setAssemblyDraggedAsset } from './assemblyDragState'
 import { isPublicAssetHidden } from '../publicAssetStorage'
+import { getActiveCategoriesForModule, useAssetManifestStore } from '../../../store/assetManifest'
 
 interface AssemblyAssetSidebarProps {
   model?: Model3D
@@ -20,6 +21,8 @@ interface MiniCategory {
   id: string
   title: string
   icon: string
+  iconUrl?: string
+  iconText?: string
 }
 
 export interface OrientationDef {
@@ -29,7 +32,7 @@ export interface OrientationDef {
   color: string
 }
 
-const SIDEBAR_CATEGORIES: MiniCategory[] = [
+const DEFAULT_SIDEBAR_CATEGORIES: MiniCategory[] = [
   { id: 'all', title: 'Tất cả tài nguyên', icon: 'all' },
   { id: 'architecture', title: 'Kiến trúc & Nhà cửa', icon: 'home' },
   { id: 'props', title: 'Đạo cụ & Khối hộp', icon: 'cube' },
@@ -75,7 +78,7 @@ export function getAssetOrientation(item: BuiltInAssetItem, modelFaces: Face3D[]
     textToScan.includes('facade') ||
     textToScan.includes('gable')
   ) {
-    return ORIENTATIONS[1] // Trước
+    return ORIENTATIONS[1]
   }
   if (
     textToScan.includes('back') ||
@@ -83,13 +86,13 @@ export function getAssetOrientation(item: BuiltInAssetItem, modelFaces: Face3D[]
     textToScan.includes('lưng') ||
     textToScan.includes('rear')
   ) {
-    return ORIENTATIONS[2] // Sau
+    return ORIENTATIONS[2]
   }
   if (textToScan.includes('left') || textToScan.includes('trái') || textToScan.includes('hông t')) {
-    return ORIENTATIONS[3] // Trái
+    return ORIENTATIONS[3]
   }
   if (textToScan.includes('right') || textToScan.includes('phải') || textToScan.includes('hông p')) {
-    return ORIENTATIONS[4] // Phải
+    return ORIENTATIONS[4]
   }
   if (
     textToScan.includes('roof') ||
@@ -98,7 +101,7 @@ export function getAssetOrientation(item: BuiltInAssetItem, modelFaces: Face3D[]
     textToScan.includes('top') ||
     textToScan.includes('trên')
   ) {
-    return ORIENTATIONS[5] // Trên
+    return ORIENTATIONS[5]
   }
   if (
     textToScan.includes('bottom') ||
@@ -108,10 +111,10 @@ export function getAssetOrientation(item: BuiltInAssetItem, modelFaces: Face3D[]
     textToScan.includes('ground') ||
     textToScan.includes('dưới')
   ) {
-    return ORIENTATIONS[6] // Dưới
+    return ORIENTATIONS[6]
   }
 
-  return ORIENTATIONS[7] // Khác (ống khói, chi tiết trang trí, v.v.)
+  return ORIENTATIONS[7]
 }
 
 export function AssemblyAssetSidebar({
@@ -122,6 +125,19 @@ export function AssemblyAssetSidebar({
   onSelectFace,
   onApplyFaces
 }: AssemblyAssetSidebarProps) {
+  const manifestModules = useAssetManifestStore((s) => s.modules)
+  const sidebarCategories = useMemo<MiniCategory[]>(() => {
+    const modCats = getActiveCategoriesForModule(manifestModules, 'model_3d')
+    if (!modCats || modCats.length === 0) return DEFAULT_SIDEBAR_CATEGORIES
+    return modCats.map((c) => ({
+      id: c.id,
+      title: c.title,
+      icon: c.icon || c.id,
+      iconUrl: c.iconUrl,
+      iconText: c.iconText
+    }))
+  }, [manifestModules])
+
   const [sidebarTab, setSidebarTab] = useState<'2d' | '3d'>('2d')
   const [assets, setAssets] = useState<BuiltInAssetItem[]>([])
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
@@ -140,7 +156,11 @@ export function AssemblyAssetSidebar({
   useEffect(() => {
     const handlePubChange = () => setPublicVersion((v) => v + 1)
     window.addEventListener('publicAssets:changed', handlePubChange)
-    return () => window.removeEventListener('publicAssets:changed', handlePubChange)
+    window.addEventListener('parallax:manifest-updated', handlePubChange)
+    return () => {
+      window.removeEventListener('publicAssets:changed', handlePubChange)
+      window.removeEventListener('parallax:manifest-updated', handlePubChange)
+    }
   }, [])
 
   const showCatTooltip = (e: React.MouseEvent<HTMLElement>, cat: MiniCategory) => {
@@ -155,7 +175,6 @@ export function AssemblyAssetSidebar({
 
   const hideCatTooltip = () => setCatTooltip(null)
 
-  // Load assembly assets from backend
   useEffect(() => {
     setLoading(true)
     if (window.api?.getAssemblyAssets) {
@@ -173,7 +192,6 @@ export function AssemblyAssetSidebar({
     }
   }, [])
 
-  // Combine built-in assembly assets with custom user picked files, filtering out review/raw junk and hidden assets
   const cleanAllItems = useMemo(() => {
     return [...customAssets, ...assets].filter((item) => {
       const n = (item.fileName || item.name || '').toLowerCase()
@@ -184,30 +202,33 @@ export function AssemblyAssetSidebar({
     })
   }, [customAssets, assets, publicVersion])
 
-  // Count items per category
   const itemCounts = useMemo(() => {
     const counts: Record<string, number> = { all: cleanAllItems.length }
-    SIDEBAR_CATEGORIES.forEach((cat) => {
+    sidebarCategories.forEach((cat) => {
       if (cat.id !== 'all') {
         counts[cat.id] = cleanAllItems.filter(
-          (it) => it.folder === cat.id || (cat.id === 'architecture' && it.relativePath.includes('house'))
+          (it) =>
+            it.folder === cat.id ||
+            (cat.id === 'architecture' && it.relativePath.includes('house')) ||
+            (cat.id === 'prop' && it.folder === 'props') ||
+            (cat.id === 'interior' && it.folder === 'room')
         ).length
       }
     })
     return counts
-  }, [cleanAllItems])
+  }, [cleanAllItems, sidebarCategories])
 
-  // Items filtered by category only (for orientation counters)
   const categoryItems = useMemo(() => {
     if (selectedCategory === 'all') return cleanAllItems
     return cleanAllItems.filter(
       (it) =>
         it.folder === selectedCategory ||
-        (selectedCategory === 'architecture' && it.relativePath.includes('house'))
+        (selectedCategory === 'architecture' && it.relativePath.includes('house')) ||
+        (selectedCategory === 'prop' && it.folder === 'props') ||
+        (selectedCategory === 'interior' && it.folder === 'room')
     )
   }, [cleanAllItems, selectedCategory])
 
-  // Filter by category, orientation & search
   const filtered = useMemo(() => {
     let list = categoryItems
     if (selectedOrientation !== 'all') {
@@ -222,7 +243,6 @@ export function AssemblyAssetSidebar({
     return list
   }, [categoryItems, selectedOrientation, searchTerm, modelFaces])
 
-  // Group items by orientation when in "Tất cả" view (without search) for crystal clear browsing
   const orientationGroups = useMemo(() => {
     if (selectedOrientation !== 'all' || searchTerm.trim()) {
       return null
@@ -240,7 +260,6 @@ export function AssemblyAssetSidebar({
     return groups
   }, [selectedOrientation, searchTerm, categoryItems, modelFaces])
 
-  // Handle importing additional image textures from disk
   const handlePickLocalImage = async () => {
     try {
       const files: PickedFile[] = await window.api.openFiles('image')
@@ -270,7 +289,6 @@ export function AssemblyAssetSidebar({
     }
   }
 
-  // Replace texture for currently selected face from local file
   const handleReplaceLocalForSelectedFace = async () => {
     if (!selectedFace) return
     try {
@@ -301,7 +319,6 @@ export function AssemblyAssetSidebar({
     }
   }
 
-  // Find which face is currently using an asset
   const getUsedByFaces = (assetPath: string) => {
     return modelFaces.filter(
       (f) =>
@@ -313,9 +330,8 @@ export function AssemblyAssetSidebar({
   }
 
   const activeCategoryTitle =
-    SIDEBAR_CATEGORIES.find((c) => c.id === selectedCategory)?.title || 'Tất cả tài nguyên'
+    sidebarCategories.find((c) => c.id === selectedCategory)?.title || 'Tất cả tài nguyên'
 
-  // Render a clean visual card with unobscured image and solid info footer
   const renderAssetCard = (item: BuiltInAssetItem) => {
     const orient = getAssetOrientation(item, modelFaces)
     const usedFaces = getUsedByFaces(item.relativePath)
@@ -357,7 +373,6 @@ export function AssemblyAssetSidebar({
             : `Ảnh: ${item.name} (${item.fileName})\nGiữ Ctrl + Click để gán vào TẤT CẢ các mặt · Kéo thả vào không gian 3D để tạo mặt mới`
         }
       >
-        {/* 1. Image Thumbnail Stage: Pure view of the texture */}
         <div className="card-thumb-stage">
           {item.previewUrl ? (
             <img src={item.previewUrl} alt={item.name} className="card-thumb-img" loading="lazy" />
@@ -368,13 +383,11 @@ export function AssemblyAssetSidebar({
             </div>
           )}
 
-          {/* Micro badge in top-left: sleek, minimal */}
           <div className="card-micro-badge">
             <span className="micro-badge-dot" style={{ backgroundColor: orient.color }} />
             <span className="micro-badge-text">{orient.shortLabel}</span>
           </div>
 
-          {/* Top-Right: Active Checkmark or Quick Swap */}
           <div className="card-top-actions">
             {isCurrentFaceUsing && (
               <span className="card-using-pill" title="Đang được gán cho mặt này">
@@ -396,7 +409,6 @@ export function AssemblyAssetSidebar({
           </div>
         </div>
 
-        {/* 2. Metadata Bar BELOW image: Solid background, never obscures the picture */}
         <div className="card-meta-bar">
           <div className="card-meta-title" title={item.name}>
             {item.name}
@@ -425,10 +437,9 @@ export function AssemblyAssetSidebar({
 
   return (
     <aside className="assembly-asset-sidebar" aria-label="Tài nguyên lắp ráp 3D">
-      {/* 1. Left Vertical Mini-Category Strip (giống tab Thư viện) */}
       <div className="sidebar-category-strip" onScroll={hideCatTooltip}>
         <div className="sidebar-strip-icons">
-          {SIDEBAR_CATEGORIES.map((cat) => {
+          {sidebarCategories.map((cat) => {
             const isActive = selectedCategory === cat.id
             return (
               <button
@@ -443,7 +454,10 @@ export function AssemblyAssetSidebar({
                 onMouseLeave={hideCatTooltip}
                 aria-label={cat.title}
               >
-                {renderCategoryIcon(cat.icon, 16, 16, cat.id)}
+                {renderCategoryIcon(cat.icon, 16, 16, cat.id, {
+                  iconUrl: cat.iconUrl,
+                  iconText: cat.iconText
+                })}
               </button>
             )
           })}
@@ -477,9 +491,7 @@ export function AssemblyAssetSidebar({
         )}
       </div>
 
-      {/* 2. Main Content: Header & Catalog */}
       <div className="sidebar-catalog-main">
-        {/* Segmented Switch: 2D Texture vs 3D Model */}
         <div className="sidebar-tab-switch">
           <button
             type="button"
@@ -506,7 +518,6 @@ export function AssemblyAssetSidebar({
           />
         ) : (
           <>
-            {/* Top Header */}
             <div className="sidebar-catalog-header">
               <div className="header-title-row">
                 <div className="header-title-left">
@@ -514,143 +525,138 @@ export function AssemblyAssetSidebar({
                   <span className="cat-count-badge">{filtered.length}</span>
                 </div>
 
-            {/* Header Right Action Buttons */}
-            <div className="header-actions-right">
-              <button
-                type="button"
-                className="btn xs secondary action-btn-compact"
-                onClick={handlePickLocalImage}
-                title="Thêm ảnh texture mới từ máy tính vào danh sách"
-              >
-                <IconPlus width={12} height={12} />
-                <span>Thêm ảnh</span>
-              </button>
-              {selectedFace && (
-                <button
-                  type="button"
-                  className="btn xs secondary action-btn-compact replace-active"
-                  onClick={handleReplaceLocalForSelectedFace}
-                  title={`Chọn file ảnh từ máy để thay thế trực tiếp vào mặt "${selectedFace.name}"`}
-                >
-                  <IconReplace width={12} height={12} />
-                  <span>Đổi ảnh</span>
-                </button>
+                <div className="header-actions-right">
+                  <button
+                    type="button"
+                    className="btn xs secondary action-btn-compact"
+                    onClick={handlePickLocalImage}
+                    title="Thêm ảnh texture mới từ máy tính vào danh sách"
+                  >
+                    <IconPlus width={12} height={12} />
+                    <span>Thêm ảnh</span>
+                  </button>
+                  {selectedFace && (
+                    <button
+                      type="button"
+                      className="btn xs secondary action-btn-compact replace-active"
+                      onClick={handleReplaceLocalForSelectedFace}
+                      title={`Chọn file ảnh từ máy để thay thế trực tiếp vào mặt "${selectedFace.name}"`}
+                    >
+                      <IconReplace width={12} height={12} />
+                      <span>Đổi ảnh</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="sidebar-search-box">
+                <IconSearch width={13} height={13} className="search-icon" />
+                <input
+                  type="text"
+                  className="search-input"
+                  placeholder="Tìm kiếm texture..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+                {searchTerm && (
+                  <button
+                    type="button"
+                    className="search-clear-btn"
+                    onClick={() => setSearchTerm('')}
+                    title="Xóa tìm kiếm"
+                  >
+                    <IconX width={12} height={12} />
+                  </button>
+                )}
+              </div>
+
+              <div className="selected-face-bar">
+                {selectedFace ? (
+                  <div className="face-bar-active">
+                    <span className="face-bar-label">Mặt đang chọn:</span>
+                    <span className="face-bar-name" title={selectedFace.name}>
+                      {selectedFace.name}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="face-bar-empty">
+                    <span>💡 Click chọn 1 mặt phẳng 3D trong khung nhìn để gán ảnh</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="sidebar-orientation-tabs">
+              <div className="orient-tabs-wrap">
+                {ORIENTATIONS.map((ori) => {
+                  const isActive = selectedOrientation === ori.id
+                  const count =
+                    ori.id === 'all'
+                      ? categoryItems.length
+                      : categoryItems.filter((it) => getAssetOrientation(it, modelFaces).id === ori.id).length
+                  return (
+                    <button
+                      key={ori.id}
+                      type="button"
+                      className={`orient-pill${isActive ? ' active' : ''}${count === 0 && !isActive ? ' dimmed' : ''}`}
+                      onClick={() => setSelectedOrientation(ori.id)}
+                      title={`${ori.label} (${count} ảnh)`}
+                    >
+                      <span className="orient-pill-dot" style={{ backgroundColor: ori.color }} />
+                      <span className="orient-pill-text">{ori.shortLabel}</span>
+                      <span className="orient-pill-badge">{count}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="sidebar-catalog-content">
+              {orientationGroups && orientationGroups.length > 0 ? (
+                <div className="catalog-orientation-sections">
+                  {orientationGroups.map((group) => (
+                    <div key={group.orient.id} className="orient-section-block">
+                      <div className="orient-section-header">
+                        <span className="orient-section-dot" style={{ backgroundColor: group.orient.color }} />
+                        <span className="orient-section-title">{group.orient.label}</span>
+                        <span className="orient-section-count">{group.items.length} ảnh</span>
+                      </div>
+                      <div className="orient-section-grid">
+                        {group.items.map(renderAssetCard)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="sidebar-catalog-grid">
+                  {filtered.map(renderAssetCard)}
+                </div>
+              )}
+
+              {filtered.length === 0 && !loading && (
+                <div className="empty-catalog-box">
+                  <IconSearch width={24} height={24} />
+                  <p>Không có ảnh phù hợp ở hướng này</p>
+                  <button
+                    type="button"
+                    className="btn xs secondary"
+                    onClick={handlePickLocalImage}
+                    style={{ marginTop: 8 }}
+                  >
+                    <IconPlus width={12} height={12} /> Thêm ảnh từ máy
+                  </button>
+                </div>
+              )}
+
+              {loading && (
+                <div className="empty-catalog-box">
+                  <p>Đang tải tài nguyên...</p>
+                </div>
               )}
             </div>
-          </div>
-
-          {/* Search bar with clear button */}
-          <div className="sidebar-search-box">
-            <IconSearch width={13} height={13} className="search-icon" />
-            <input
-              type="text"
-              className="search-input"
-              placeholder="Tìm kiếm texture..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            {searchTerm && (
-              <button
-                type="button"
-                className="search-clear-btn"
-                onClick={() => setSearchTerm('')}
-                title="Xóa tìm kiếm"
-              >
-                <IconX width={12} height={12} />
-              </button>
-            )}
-          </div>
-
-          {/* Selected Face Hint Bar */}
-          <div className="selected-face-bar">
-            {selectedFace ? (
-              <div className="face-bar-active">
-                <span className="face-bar-label">Mặt đang chọn:</span>
-                <span className="face-bar-name" title={selectedFace.name}>
-                  {selectedFace.name}
-                </span>
-              </div>
-            ) : (
-              <div className="face-bar-empty">
-                <span>💡 Click chọn 1 mặt phẳng 3D trong khung nhìn để gán ảnh</span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* 3. Horizontal Orientation Tab Strip (Gọn gàng 2 hàng, không bị UI che lấp) */}
-        <div className="sidebar-orientation-tabs">
-          <div className="orient-tabs-wrap">
-            {ORIENTATIONS.map((ori) => {
-              const isActive = selectedOrientation === ori.id
-              const count =
-                ori.id === 'all'
-                  ? categoryItems.length
-                  : categoryItems.filter((it) => getAssetOrientation(it, modelFaces).id === ori.id).length
-              return (
-                <button
-                  key={ori.id}
-                  type="button"
-                  className={`orient-pill${isActive ? ' active' : ''}${count === 0 && !isActive ? ' dimmed' : ''}`}
-                  onClick={() => setSelectedOrientation(ori.id)}
-                  title={`${ori.label} (${count} ảnh)`}
-                >
-                  <span className="orient-pill-dot" style={{ backgroundColor: ori.color }} />
-                  <span className="orient-pill-text">{ori.shortLabel}</span>
-                  <span className="orient-pill-badge">{count}</span>
-                </button>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* 4. Visual Catalog Content: Grouped by orientation in "Tất cả" OR Flat Grid in Sub-Tabs */}
-        <div className="sidebar-catalog-content">
-          {orientationGroups && orientationGroups.length > 0 ? (
-            <div className="catalog-orientation-sections">
-              {orientationGroups.map((group) => (
-                <div key={group.orient.id} className="orient-section-block">
-                  <div className="orient-section-header">
-                    <span className="orient-section-dot" style={{ backgroundColor: group.orient.color }} />
-                    <span className="orient-section-title">{group.orient.label}</span>
-                    <span className="orient-section-count">{group.items.length} ảnh</span>
-                  </div>
-                  <div className="orient-section-grid">
-                    {group.items.map(renderAssetCard)}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="sidebar-catalog-grid">
-              {filtered.map(renderAssetCard)}
-            </div>
-          )}
-
-          {filtered.length === 0 && !loading && (
-            <div className="empty-catalog-box">
-              <IconSearch width={24} height={24} />
-              <p>Không có ảnh phù hợp ở hướng này</p>
-              <button
-                type="button"
-                className="btn xs secondary"
-                onClick={handlePickLocalImage}
-                style={{ marginTop: 8 }}
-              >
-                <IconPlus width={12} height={12} /> Thêm ảnh từ máy
-              </button>
-            </div>
-          )}
-
-          {loading && (
-            <div className="empty-catalog-box">
-              <p>Đang tải tài nguyên...</p>
-            </div>
-          )}
-        </div>
-      </>
-    )}
-  </div>
-</aside>
+          </>
+        )}
+      </div>
+    </aside>
   )
 }

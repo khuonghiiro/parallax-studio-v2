@@ -23,6 +23,7 @@ export const DIALOG_SELECTORS = [
   '.audio-studio-dialog',
   '.export-modal',
   '.perf-modal',
+  '.manifest-modal',
   '.mcp-modal',
   '.remote-modal',
   '.camera-path-modal',
@@ -68,6 +69,7 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
     '.lw-template-grid'
   ],
   asset_bar: ['.asset-vertical-strip', '.builtin-asset-bar', '.music-category-bar', '.model3d-category-bar', '.lw-category-bar'],
+  asset_delete_confirm: region('asset_delete_confirm', '.loop-del-dialog'),
   music: ['.music-panel-layout', '.music-panel-container', '.music-panel-main'],
   shots: ['.shots', '.shots-panel', 'aside.left .panel-body'],
   topview: ['.topview', '.topview-canvas-wrap', '.top-view', '#viewport-topview', '.topview-toolbar'],
@@ -178,6 +180,7 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   studio_menu: ['#menu-studio', '.toolbar'],
   mcp_chip: ['#mcp-chip', '.mcp-chip'],
   remote_chip: region('remote_chip', '#remote-qr-btn', '.remote-qr-chip'),
+  manifest_chip: region('manifest_chip', '#manifest-assets-btn'),
   responsive_dock: ['#responsive-dock', '.responsive-dock'],
 
   // Floating Modals & Workshops — `dialog` cũng tự chọn dialog trên cùng giống `active`
@@ -268,6 +271,14 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   perf_hardware: ['.hw-grid'],
   perf_meter: ['.perf-meter'],
   perf_settings: ['.perf-auto-box', '.perf-preset-grid'],
+
+  // 4b. Hộp thoại Quản lý Manifest Tài nguyên & Khôi phục File Tạm (Asset Manifest Dialog)
+  manifest_dialog: region('manifest_dialog', '.manifest-modal'),
+  manifest_sidebar: region('manifest_sidebar', '.manifest-sidebar'),
+  manifest_categories: region('manifest_categories'),
+  manifest_assets: region('manifest_assets'),
+  manifest_trash: region('manifest_trash'),
+  manifest_json_editor: region('manifest_json_editor', '.manifest-json-wrap'),
 
   // 5. Hộp thoại Xuất video (Export Dialog)
   export: ['.export-modal', '.modal:has(#export-start)', '.modal[aria-labelledby="export-title"]'],
@@ -390,6 +401,7 @@ export const REGION_ALIASES: Record<string, string> = {
   swap: 'layer_assembly_swap',
   remote: 'remote_dialog',
   qr: 'remote_qr_card',
+  manifest: 'manifest_dialog',
   dopesheet: 'layer_assembly_dopesheet',
   rig_tools: 'layer_assembly_rig_tools'
 }

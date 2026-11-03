@@ -1,21 +1,18 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from '../../actions'
 import '../../styles/loopAnimator.css'
+import { getActiveCategoriesForModule, useAssetManifestStore } from '../../store/assetManifest'
+import { renderCategoryIcon } from '../assets/categoryIcons'
 import { Menu } from '../controls/Menu'
 import {
   IconFilm,
-  IconFlame,
-  IconFolder,
   IconFolderOpen,
   IconGrid,
-  IconLightning,
   IconLoopAnimate,
   IconPlay,
   IconPlus,
   IconReplace,
   IconSave,
-  IconSparkles,
-  IconTree,
   IconUpload,
   IconX
 } from '../icons'
@@ -30,7 +27,6 @@ import {
   LOOP_IMAGE_ACCEPT,
   loadLoopImageFile,
   loadLoopImageFiles,
-  upgradeLoopImageFileKeepMesh,
   upgradeLoopImageFilesKeepMesh
 } from './loopAnimatorLauncher'
 import { LOOP_STORAGE_UPDATED_EVENT, getAllLoopTemplates } from './loopAnimatorStorage'
@@ -45,14 +41,6 @@ interface Props {
 
 type MobileTab = 'source' | 'player' | 'frames'
 
-const CATEGORIES: { id: LoopAnimationTemplate['category']; label: string; icon: React.ReactElement }[] = [
-  { id: 'fire', label: 'Lửa', icon: <IconFlame width={12} height={12} /> },
-  { id: 'magic', label: 'Phép', icon: <IconSparkles width={12} height={12} /> },
-  { id: 'nature', label: 'Tự nhiên', icon: <IconTree width={12} height={12} /> },
-  { id: 'electric', label: 'Điện', icon: <IconLightning width={12} height={12} /> },
-  { id: 'custom', label: 'Khác', icon: <IconFolder width={12} height={12} /> }
-]
-
 const LOOP_MODE_LABEL: Record<string, string> = {
   loop: 'Lặp vòng',
   'ping-pong': 'Đảo chiều',
@@ -60,15 +48,19 @@ const LOOP_MODE_LABEL: Record<string, string> = {
   random: 'Ngẫu nhiên'
 }
 
-function useLoopTemplates(isOpen: boolean): LoopAnimationTemplate[] {
+function useLoopTemplates(isOpen: boolean, manifestRevision: number): LoopAnimationTemplate[] {
   const [templates, setTemplates] = useState<LoopAnimationTemplate[]>(() => getAllLoopTemplates())
   useEffect(() => {
     if (!isOpen) return
     const refresh = (): void => setTemplates(getAllLoopTemplates())
     refresh()
     window.addEventListener(LOOP_STORAGE_UPDATED_EVENT, refresh)
-    return () => window.removeEventListener(LOOP_STORAGE_UPDATED_EVENT, refresh)
-  }, [isOpen])
+    window.addEventListener('parallax:manifest-updated', refresh)
+    return () => {
+      window.removeEventListener(LOOP_STORAGE_UPDATED_EVENT, refresh)
+      window.removeEventListener('parallax:manifest-updated', refresh)
+    }
+  }, [isOpen, manifestRevision])
   return templates
 }
 
@@ -86,12 +78,28 @@ export function LoopAnimatorDialog({ isOpen = true, onClose, initialImageUrl }: 
   const setCategory = useLoopAnimator((s) => s.setCategory)
   const saveCurrentToLibrary = useLoopAnimator((s) => s.saveCurrentToLibrary)
 
+  const manifestModules = useAssetManifestStore((s) => s.modules)
+  const manifestRevision = useAssetManifestStore((s) => s.revision)
+
+  const dynamicCategories = useMemo(() => {
+    const cats = getActiveCategoriesForModule(manifestModules, 'loop_animator').filter((c) => c.id !== 'all')
+    return cats.map((c) => ({
+      id: c.id,
+      label: c.shortTitle || c.title,
+      fullTitle: c.title,
+      icon: renderCategoryIcon(c.icon || c.id, 12, 12, c.id, {
+        iconUrl: c.iconUrl,
+        iconText: c.iconText
+      })
+    }))
+  }, [manifestModules])
+
   const sourceCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const upgradeFileInputRef = useRef<HTMLInputElement | null>(null)
   const [isExporting, setIsExporting] = useState(false)
   const [mobileTab, setMobileTab] = useState<MobileTab>('source')
-  const templates = useLoopTemplates(isOpen)
+  const templates = useLoopTemplates(isOpen, manifestRevision)
 
   useEffect(() => {
     if (isOpen && initialImageUrl) loadCustomImage(initialImageUrl)
@@ -100,7 +108,6 @@ export function LoopAnimatorDialog({ isOpen = true, onClose, initialImageUrl }: 
   useEffect(() => {
     if (!isOpen) return
     const handleKeyDown = (e: KeyboardEvent): void => {
-      // Esc đóng menu/picker đang mở trước, chỉ đóng xưởng khi không còn popup nào
       if (e.key !== 'Escape' || document.querySelector('.menu[role="menu"], .loop-del-dialog')) return
       onClose()
     }
@@ -293,8 +300,16 @@ export function LoopAnimatorDialog({ isOpen = true, onClose, initialImageUrl }: 
             <div className="loop-footer-field">
               <span className="la-label">Nhóm</span>
               <div className="la-seg" role="radiogroup" aria-label="Nhóm hoạt ảnh">
-                {CATEGORIES.map((c) => (
-                  <button key={c.id} type="button" role="radio" aria-checked={category === c.id} className={`la-seg-btn${category === c.id ? ' active' : ''}`} onClick={() => setCategory(c.id)} title={c.label}>
+                {dynamicCategories.map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={category === c.id}
+                    className={`la-seg-btn${category === c.id ? ' active' : ''}`}
+                    onClick={() => setCategory(c.id)}
+                    title={c.fullTitle}
+                  >
                     {c.icon}
                     <span className="loop-cat-text">{c.label}</span>
                   </button>

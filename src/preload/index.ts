@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer, webFrame } from 'electron'
 import type {
+  BuiltInCatalogResult,
   McpCommand,
   McpStatus,
   ParallaxApi,
@@ -38,12 +39,21 @@ const api: ParallaxApi = {
   setTitle: (title) => ipcRenderer.send('window:title', title),
   resetZoom: () => enforceZoom100(),
   getSystemInfo: () => ipcRenderer.invoke('system:getInfo'),
-  getBuiltInCatalog: () => ipcRenderer.invoke('builtinAssets:getCatalog'),
+  getBuiltInCatalog: (forceRefresh) => ipcRenderer.invoke('builtinAssets:getCatalog', forceRefresh),
   getAssemblyAssets: () => ipcRenderer.invoke('builtinAssets:getAssemblyAssets'),
   saveBuiltInManifest: (jsonContent) => ipcRenderer.invoke('builtinAssets:saveManifest', jsonContent),
+  saveModuleManifest: (moduleId, jsonContent) =>
+    ipcRenderer.invoke('builtinAssets:saveModuleManifest', moduleId, jsonContent),
   loadBuiltInAssetBytes: (relPath) => ipcRenderer.invoke('builtinAssets:loadAssetBytes', relPath),
   openBuiltInFolder: (subFolder) => ipcRenderer.invoke('builtinAssets:openFolder', subFolder),
-  deleteBuiltInAsset: (relPath) => ipcRenderer.invoke('builtinAssets:deleteAsset', relPath),
+  deleteBuiltInAsset: (relPath, opts) => ipcRenderer.invoke('builtinAssets:deleteAsset', relPath, opts),
+  restoreBuiltInAsset: (relPath) => ipcRenderer.invoke('builtinAssets:restoreAsset', relPath),
+  pruneBuiltInManifest: (opts) => ipcRenderer.invoke('builtinAssets:pruneManifest', opts),
+  onBuiltInCatalogUpdated: (cb) => {
+    const h = (_e: Electron.IpcRendererEvent, catalog: BuiltInCatalogResult): void => cb(catalog)
+    ipcRenderer.on('builtinAssets:updated', h)
+    return () => ipcRenderer.removeListener('builtinAssets:updated', h)
+  },
   importBuiltInAssetFile: (opts) => ipcRenderer.invoke('builtinAssets:importAssetFile', opts),
   asset3ds: {
     getCatalog: () => ipcRenderer.invoke('asset3ds:getCatalog'),

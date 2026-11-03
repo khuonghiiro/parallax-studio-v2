@@ -421,3 +421,39 @@ Flags (PowerShell/CMD):
 ```text
 pnpm pxs call set_part_cue --node_id part-child-id --mode part_variant --variant_id variant-layer-id --start 3 --end 4
 ```
+
+
+---
+
+### 2.6. Hệ Thống Điều Phối Manifest Tài Nguyên Động & Kho Tạm Khôi Phục (`manifest-assets` - BẮT BUỘC)
+- **Kiến trúc Điều phối Modular (`./assets/manifest.json` + `./assets/manifests/*.json`):**
+  - `./assets/manifest.json` là tệp điều phối trung tâm (`version: "2.0"`), kết nối 5 tệp JSON phân hệ nhỏ tại `./assets/manifests/` (`builtin.json`, `layer-25d.json`, `loop-animator.json`, `model-3d.json`, `audio.json`).
+  - Toàn bộ danh sách nhóm/chủ đề ở Kho Công Cộng, Xưởng Tách Hoạt Ảnh Loop, Xưởng Lắp Ráp Layer 2.5D, Xưởng Mô Hình 3D và Kho Âm Thanh đều đọc động từ phân hệ tương ứng. Khi thêm/sửa/ẩn chủ đề hoặc đổi `title`, `folder`, `icon`, `iconUrl`, `iconText` trong JSON (hoặc qua hộp thoại `#manifest-assets-btn` cạnh `#perf-settings-btn`), ứng dụng tự động đồng bộ tức thì (`fs.watch` + `builtinAssets:updated`).
+- **Fallback Icon Chủ đề (`iconUrl` → `icon` → `iconText` → `IconBrokenIconFallback`):**
+  - Mỗi chủ đề hỗ trợ `iconUrl` (link ảnh/SVG trong `./assets/icons/`), `icon` (mã SVG có sẵn) hoặc `iconText` (chữ viết tắt 1–3 ký tự dạng icon). Nếu người dùng vô tình xoá mất thư mục `./assets/icons/` hoặc file `iconUrl`, `renderCategoryIcon` tự động hiển thị icon cảnh báo `IconBrokenIconFallback` (`data-icon-fallback="broken"`) để báo cho người dùng biết.
+- **Xoá tạm vào `./assets/_temp_deleted/` & Làm sạch Vĩnh viễn (`./assets/prune-manifest.bat`):**
+  - Xoá tạm tài nguyên sẽ di chuyển file vật lý vào `./assets/_temp_deleted/<relativePath>` và đổi trạng thái `"status": "deleted"` trong JSON để khôi phục lại bất cứ lúc nào.
+  - Xoá vĩnh viễn hoặc xoá file trực tiếp trong thư mục rồi chạy `./assets/prune-manifest.bat` (`pnpm assets:prune` hoặc MCP `prune_assets_manifest`) sẽ tự động dò và làm sạch toàn bộ `./assets/manifest.json` và `./assets/manifests/*.json`.
+- **MCP Tools & UI Regions (`./.agents/skills/manifest-assets/SKILL.md`):**
+  - Tools: `get_assets_manifest`, `update_assets_manifest`, `restore_deleted_asset`, `prune_assets_manifest`.
+  - Regions: `manifest_chip`, `manifest_dialog`, `manifest_sidebar`, `manifest_categories`, `manifest_assets`, `manifest_trash`, `manifest_json_editor`, `asset_delete_confirm`.
+
+PowerShell:
+```powershell
+pnpm pxs call get_assets_manifest '{"module_id":"loop_animator"}'
+pnpm pxs call update_assets_manifest '{"module_id":"layer_25d","action":"upsert_category","category_id":"water_fx","title":"Sóng nước & Thác","folder":"layer-assemblies/water","icon":"sparkles","icon_text":"WT"}'
+pnpm pxs call restore_deleted_asset '{"relative_path":"characters/chibi_boy_jump.png","action":"restore"}'
+pnpm pxs call prune_assets_manifest '{}'
+```
+CMD:
+```cmd
+pnpm pxs call get_assets_manifest "{\"module_id\":\"loop_animator\"}"
+pnpm pxs call update_assets_manifest "{\"module_id\":\"layer_25d\",\"action\":\"upsert_category\",\"category_id\":\"water_fx\",\"title\":\"Sóng nước & Thác\",\"folder\":\"layer-assemblies/water\",\"icon\":\"sparkles\",\"icon_text\":\"WT\"}"
+pnpm pxs call restore_deleted_asset "{\"relative_path\":\"characters/chibi_boy_jump.png\",\"action\":\"restore\"}"
+pnpm pxs call prune_assets_manifest "{}"
+```
+Flags (PowerShell/CMD):
+```text
+pnpm pxs call get_assets_manifest --module_id loop_animator
+pnpm pxs call restore_deleted_asset --relative_path characters/chibi_boy_jump.png --action restore
+```

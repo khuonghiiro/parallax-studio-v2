@@ -3,20 +3,15 @@ import { toast } from '../../actions'
 import '../../styles/model3dLibrary.css'
 import '../../styles/loopAnimator.css'
 import '../../styles/loopLibrary.css'
+import { getActiveCategoriesForModule, useAssetManifestStore } from '../../store/assetManifest'
 import {
-  IconFilm,
-  IconFlame,
-  IconFolder,
-  IconGrid,
   IconLoopAnimate,
   IconPause,
   IconPen,
   IconPlay,
   IconPlus,
   IconSearch,
-  IconSparkles,
-  IconTrash,
-  IconTree
+  IconTrash
 } from '../icons'
 import { LoopCardPreviewCanvas } from '../loopAnimator/LoopCardPreviewCanvas'
 import { LoopTemplateDeleteDialog } from '../loopAnimator/LoopTemplateDeleteDialog'
@@ -25,35 +20,7 @@ import { openLoopAnimatorBlank, openLoopAnimatorTemplate } from '../loopAnimator
 import { LOOP_STORAGE_UPDATED_EVENT, getAllLoopTemplates } from '../loopAnimator/loopAnimatorStorage'
 import type { LoopAnimationTemplate } from '../loopAnimator/types'
 import { setCleanDragGhost } from '../utils/dragPreviewHelper'
-
-const LOOP_CATEGORIES = [
-  { id: 'all', title: 'Tất cả hoạt ảnh lặp' },
-  { id: 'fire', title: 'Lửa & Nhiệt' },
-  { id: 'magic', title: 'Phép thuật & Năng lượng' },
-  { id: 'nature', title: 'Tự nhiên & Sinh vật' },
-  { id: 'electric', title: 'Tia điện & Sét' },
-  { id: 'custom', title: 'Đã lưu trong kho' }
-] as const
-
-type LoopCategoryId = (typeof LOOP_CATEGORIES)[number]['id']
-
-function CategoryIcon({ id }: { id: LoopCategoryId }): React.ReactElement {
-  const p = { width: 16, height: 16 }
-  switch (id) {
-    case 'fire':
-      return <IconFlame {...p} />
-    case 'magic':
-      return <IconSparkles {...p} />
-    case 'nature':
-      return <IconTree {...p} />
-    case 'electric':
-      return <IconFilm {...p} />
-    case 'custom':
-      return <IconFolder {...p} />
-    default:
-      return <IconGrid {...p} />
-  }
-}
+import { renderCategoryIcon } from './categoryIcons'
 
 const LOOP_MODE_LABEL: Record<LoopAnimationTemplate['loopMode'], string> = {
   loop: 'Lặp vòng',
@@ -62,7 +29,7 @@ const LOOP_MODE_LABEL: Record<LoopAnimationTemplate['loopMode'], string> = {
   random: 'Ngẫu nhiên'
 }
 
-function matchCategory(t: LoopAnimationTemplate, cat: LoopCategoryId): boolean {
+function matchCategory(t: LoopAnimationTemplate, cat: string): boolean {
   if (cat === 'all') return true
   if (cat === 'custom') return !t.isBuiltin || t.category === 'custom'
   return t.category === cat
@@ -76,6 +43,14 @@ interface CardProps {
   onInsert: () => void
   onEdit: () => void
   onDelete: () => void
+  categoryMeta?: {
+    title: string
+    shortTitle?: string
+    accent?: string
+    icon: string
+    iconUrl?: string
+    iconText?: string
+  }
 }
 
 export const LOOP_CATEGORY_THEMES: Record<
@@ -125,14 +100,27 @@ export const LOOP_CATEGORY_THEMES: Record<
   }
 }
 
-function LoopTemplateCard({ template, isPlaying, busy, onTogglePlay, onInsert, onEdit, onDelete }: CardProps): React.ReactElement {
+function LoopTemplateCard({
+  template,
+  isPlaying,
+  busy,
+  onTogglePlay,
+  onInsert,
+  onEdit,
+  onDelete,
+  categoryMeta
+}: CardProps): React.ReactElement {
   const hasRhythm = Boolean(template.rhythm && template.rhythm.rhythmMode !== 'none')
-  const theme = LOOP_CATEGORY_THEMES[template.category] ?? LOOP_CATEGORY_THEMES.custom
+  const fallbackTheme = LOOP_CATEGORY_THEMES[template.category] ?? LOOP_CATEGORY_THEMES.custom
+  const accent = categoryMeta?.accent || fallbackTheme.accent
+  const badgeBg = `color-mix(in srgb, ${accent} 78%, #0f172a)`
+  const label = categoryMeta?.shortTitle || categoryMeta?.title || fallbackTheme.label
+
   return (
     <article
       className={`loop-lib-card${isPlaying ? ' is-playing' : ''}`}
       title={`${template.name} — Nhấn giữ kéo thả vào cảnh hoặc bấm + Chèn`}
-      style={{ ['--item-accent' as string]: theme.accent, cursor: 'grab' }}
+      style={{ ['--item-accent' as string]: accent, cursor: 'grab' }}
       draggable
       onDragStart={(e) => {
         e.dataTransfer.setData('application/x-pxs-loop-template', template.id)
@@ -155,20 +143,26 @@ function LoopTemplateCard({ template, isPlaying, busy, onTogglePlay, onInsert, o
           <LoopCardPreviewCanvas template={template} isPlaying={isPlaying} width={200} height={140} />
         </div>
         <span className="loop-lib-chip loop-lib-chip--frames">{template.frameCount}F</span>
-        {/* Badge danh mục thể hiện màu sắc đúng logic phân loại (magic: tím, fire: cam, nature: xanh, electric: cyan) */}
         <span
           className="loop-lib-chip loop-lib-chip--category"
           style={{
             top: 6,
             left: 6,
-            backgroundColor: theme.badgeBg,
-            color: theme.badgeColor,
-            boxShadow: `0 2px 6px rgba(0, 0, 0, 0.45), 0 0 0 1px color-mix(in srgb, ${theme.accent} 40%, transparent)`
+            backgroundColor: badgeBg,
+            color: '#ffffff',
+            boxShadow: `0 2px 6px rgba(0, 0, 0, 0.45), 0 0 0 1px color-mix(in srgb, ${accent} 40%, transparent)`
           }}
-          title={`Chủ đề: ${theme.label}`}
+          title={`Chủ đề: ${label}`}
         >
-          <span style={{ fontSize: '10px' }}>{theme.icon}</span>
-          <span style={{ marginLeft: 3 }}>{theme.label}</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+            {categoryMeta
+              ? renderCategoryIcon(categoryMeta.icon, 10, 10, template.category, {
+                  iconUrl: categoryMeta.iconUrl,
+                  iconText: categoryMeta.iconText
+                })
+              : fallbackTheme.icon}
+          </span>
+          <span style={{ marginLeft: 3 }}>{label}</span>
         </span>
         {hasRhythm && (
           <span
@@ -178,7 +172,7 @@ function LoopTemplateCard({ template, isPlaying, busy, onTogglePlay, onInsert, o
               left: 6,
               background: 'color-mix(in srgb, var(--bg-1) 85%, #0f172a)',
               color: 'var(--text)',
-              border: `1px solid color-mix(in srgb, ${theme.accent} 60%, transparent)`
+              border: `1px solid color-mix(in srgb, ${accent} 60%, transparent)`
             }}
             title="Có hiệu ứng nhịp điệu (pulse / beat)"
           >
@@ -225,8 +219,19 @@ function LoopTemplateCard({ template, isPlaying, busy, onTogglePlay, onInsert, o
 }
 
 export function LoopAnimationList(): React.ReactElement {
+  const manifestModules = useAssetManifestStore((s) => s.modules)
+  const manifestRevision = useAssetManifestStore((s) => s.revision)
+  const loopCategories = useMemo(
+    () => getActiveCategoriesForModule(manifestModules, 'loop_animator'),
+    [manifestModules]
+  )
+  const categoryMap = useMemo(
+    () => new Map(loopCategories.map((c) => [c.id, c])),
+    [loopCategories]
+  )
+
   const [templates, setTemplates] = useState<LoopAnimationTemplate[]>(() => getAllLoopTemplates())
-  const [activeCategory, setActiveCategory] = useState<LoopCategoryId>('all')
+  const [activeCategory, setActiveCategory] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [playingIds, setPlayingIds] = useState<Set<string>>(() => new Set())
   const [playAll, setPlayAll] = useState(false)
@@ -237,14 +242,18 @@ export function LoopAnimationList(): React.ReactElement {
     const refresh = (): void => setTemplates(getAllLoopTemplates())
     refresh()
     window.addEventListener(LOOP_STORAGE_UPDATED_EVENT, refresh)
-    return () => window.removeEventListener(LOOP_STORAGE_UPDATED_EVENT, refresh)
-  }, [])
+    window.addEventListener('parallax:manifest-updated', refresh)
+    return () => {
+      window.removeEventListener(LOOP_STORAGE_UPDATED_EVENT, refresh)
+      window.removeEventListener('parallax:manifest-updated', refresh)
+    }
+  }, [manifestRevision])
 
   const categoryCounts = useMemo(() => {
-    const counts = {} as Record<LoopCategoryId, number>
-    for (const c of LOOP_CATEGORIES) counts[c.id] = templates.filter((t) => matchCategory(t, c.id)).length
+    const counts: Record<string, number> = {}
+    for (const c of loopCategories) counts[c.id] = templates.filter((t) => matchCategory(t, c.id)).length
     return counts
-  }, [templates])
+  }, [templates, loopCategories])
 
   const filtered = useMemo(() => {
     const q = searchQuery.trim().toLowerCase()
@@ -291,16 +300,19 @@ export function LoopAnimationList(): React.ReactElement {
     <div className="model-3d-layout loop-assets-layout" data-mcp-region="assets_loop">
       <aside className="asset-vertical-strip" aria-label="Danh mục hoạt ảnh lặp">
         <div className="asset-strip-scroll">
-          {LOOP_CATEGORIES.map((cat) => (
+          {loopCategories.map((cat) => (
             <div key={cat.id} className="vertical-tab-wrap">
               <button
                 type="button"
                 className={`vertical-tab-btn${activeCategory === cat.id ? ' active' : ''}`}
                 onClick={() => setActiveCategory(cat.id)}
-                title={`${cat.title} (${categoryCounts[cat.id]})`}
-                aria-label={`${cat.title} (${categoryCounts[cat.id]})`}
+                title={`${cat.title} (${categoryCounts[cat.id] ?? 0})`}
+                aria-label={`${cat.title} (${categoryCounts[cat.id] ?? 0})`}
               >
-                <CategoryIcon id={cat.id} />
+                {renderCategoryIcon(cat.icon || cat.id, 16, 16, cat.id, {
+                  iconUrl: cat.iconUrl,
+                  iconText: cat.iconText
+                })}
               </button>
             </div>
           ))}
@@ -345,7 +357,7 @@ export function LoopAnimationList(): React.ReactElement {
         </div>
 
         <div className="loop-lib-section-head">
-          <span>{LOOP_CATEGORIES.find((c) => c.id === activeCategory)?.title}</span>
+          <span>{loopCategories.find((c) => c.id === activeCategory)?.title}</span>
           <span className="loop-lib-count">{filtered.length}</span>
         </div>
 
@@ -361,6 +373,7 @@ export function LoopAnimationList(): React.ReactElement {
                 onInsert={() => void handleInsert(t)}
                 onEdit={() => openLoopAnimatorTemplate(t.id)}
                 onDelete={() => setDeleteTarget(t)}
+                categoryMeta={categoryMap.get(t.category)}
               />
             ))}
           </div>

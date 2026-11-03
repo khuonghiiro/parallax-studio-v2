@@ -1,0 +1,123 @@
+{
+  "module": "audio",
+  "title": "Studio Âm Thanh & Nhạc Nền",
+  "description": "Chủ đề phân loại âm thanh (Nhạc nền, Âm đệm môi trường, Hiệu ứng SFX, Lời thoại, Kịch tính) và danh sách tệp audio.",
+  "folders": ["audio"],
+  "categories": [
+    {
+      "id": "all",
+      "folder": "audio",
+      "title": "Tất cả âm thanh",
+      "shortTitle": "Tất cả",
+      "icon": "all",
+      "iconUrl": "",
+      "iconText": "ALL",
+      "accent": "#3b82f6",
+      "description": "Toàn bộ nhạc nền, âm đệm và hiệu ứng âm thanh",
+      "order": 0,
+      "status": "active"
+    },
+    {
+      "id": "music",
+      "folder": "audio",
+      "title": "Nhạc nền & Giai điệu",
+      "shortTitle": "Nhạc nền",
+      "icon": "music",
+      "iconUrl": "",
+      "iconText": "🎵",
+      "accent": "#38bdf8",
+      "description": "Ca khúc, BGM, giai điệu piano, hợp âm cảm xúc",
+      "order": 1,
+      "status": "active"
+    },
+    {
+      "id": "ambient",
+      "folder": "audio",
+      "title": "Âm đệm & Môi trường",
+      "shortTitle": "Âm đệm",
+      "icon": "ambient",
+      "iconUrl": "",
+      "iconText": "🍃",
+      "accent": "#34d399",
+      "description": "Chuông gió, tiếng gió mưa, sóng biển, đêm tĩnh",
+      "order": 2,
+      "status": "active"
+    },
+    {
+      "id": "sfx",
+      "folder": "audio",
+      "title": "Hiệu ứng & Tiếng động",
+      "shortTitle": "SFX",
+      "icon": "sfx",
+      "iconUrl": "",
+      "iconText": "💥",
+      "accent": "#f59e0b",
+      "description": "Súng bắn, cành gãy, bước chân, va chạm, tác động",
+      "order": 3,
+      "status": "active"
+    },
+    {
+      "id": "voice",
+      "folder": "audio",
+      "title": "Lời thoại & Lồng tiếng",
+      "shortTitle": "Lời thoại",
+      "icon": "voice",
+      "iconUrl": "",
+      "iconText": "🎙️",
+      "accent": "#ec4899",
+      "description": "Giọng đọc, hội thoại nhân vật, podcast, cảm xúc",
+      "order": 4,
+      "status": "active"
+    },
+    {
+      "id": "cinematic",
+      "folder": "audio",
+      "title": "Kịch tính & Chuyển cảnh",
+      "shortTitle": "Kịch tính",
+      "icon": "cinematic",
+      "iconUrl": "",
+      "iconText": "🎬",
+      "accent": "#a855f7",
+      "description": "Whoosh lướt camera, risers, booms, điểm nhấn phân cảnh",
+      "order": 5,
+      "status": "active"
+    }
+  ],
+  "assets": {
+    "audio/ambient_chime.wav": {
+      "name": "Chuông gió ngân vang (Ambient Chime)",
+      "category": "ambient",
+      "status": "active"
+    },
+    "audio/ambient_night_wind.wav": {
+      "name": "Gió đêm huyền ảo (Night Wind)",
+      "category": "ambient",
+      "status": "active"
+    },
+    "audio/music_chill_melody.wav": {
+      "name": "Giai điệu thư giãn (Chill Melody)",
+      "category": "music",
+      "status": "active"
+    },
+    "audio/sfx_gunshot.wav": {
+      "name": "Phát súng không gian (Laser Shot)",
+      "category": "sfx",
+      "status": "active"
+    },
+    "audio/sfx_branch_snap.wav": {
+      "name": "Cành cây gãy giòn (Branch Snap)",
+      "category": "sfx",
+      "status": "active"
+    },
+    "audio/cinematic_whoosh.wav": {
+      "name": "Chuyển cảnh vút gió (Camera Whoosh)",
+      "category": "cinematic",
+      "status": "active"
+    },
+    "audio/voice_radio_intro.wav": {
+      "name": "Tín hiệu lời thoại vô tuyến (Radio Voice)",
+      "category": "voice",
+      "status": "active"
+    }
+  }
+}

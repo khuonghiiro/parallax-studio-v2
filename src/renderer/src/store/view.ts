@@ -11,7 +11,17 @@ export type AssetSubTab = 'builtin' | 'project' | '3d' | 'assembly' | 'loop' | '
 export type TimelineMainTab = 'timeline' | 'workflow'
 export type MobileWorkspaceTab = 'timeline' | 'left' | 'right'
 export type TabletSideTab = 'left' | 'right'
-export type DialogKind = 'path' | 'sketch' | 'performance' | 'mcp' | 'remote' | 'audio' | 'export' | 'loop_animator' | null
+export type DialogKind =
+  | 'path'
+  | 'sketch'
+  | 'performance'
+  | 'manifest'
+  | 'mcp'
+  | 'remote'
+  | 'audio'
+  | 'export'
+  | 'loop_animator'
+  | null
 
 interface ViewPrefs {
   activeViews?: PrimaryView[]

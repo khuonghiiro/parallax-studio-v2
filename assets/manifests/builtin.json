@@ -1,0 +1,190 @@
+{
+  "module": "builtin",
+  "title": "Kho Mẫu Công Khai & Cảnh 2.5D",
+  "description": "Danh mục và tài nguyên công khai hiển thị tại tab Kho mẫu và cột tài nguyên chung.",
+  "folders": [
+    "demo_transparent",
+    "scenes-v2",
+    "audio",
+    "uploads"
+  ],
+  "categories": [
+    {
+      "id": "all",
+      "folder": "",
+      "title": "Tất cả tài nguyên",
+      "shortTitle": "Tất cả",
+      "icon": "all",
+      "iconUrl": "",
+      "iconText": "ALL",
+      "accent": "#3b82f6",
+      "description": "Toàn bộ tài nguyên công khai có sẵn trong thư mục assets",
+      "order": 0,
+      "status": "active"
+    },
+    {
+      "id": "demo_transparent",
+      "folder": "demo_transparent",
+      "title": "Cảnh mẫu trong suốt (2.5D)",
+      "shortTitle": "Cảnh 2.5D",
+      "icon": "layers",
+      "iconUrl": "",
+      "iconText": "2.5D",
+      "accent": "#06b6d4",
+      "description": "Bộ ảnh phân tầng nền trong suốt chuẩn Studio Ghibli kiểm thử Parallax 2.5D",
+      "order": 1,
+      "status": "active"
+    },
+    {
+      "id": "scenes_v2",
+      "folder": "scenes-v2",
+      "title": "Cảnh mẫu Vector & Đạo cụ (V2)",
+      "shortTitle": "Vector V2",
+      "icon": "sparkles",
+      "iconUrl": "",
+      "iconText": "V2",
+      "accent": "#a855f7",
+      "description": "Bộ mảnh ghép SVG phân cảnh đồng quê, phòng trà và phố đêm",
+      "order": 2,
+      "status": "active"
+    },
+    {
+      "id": "audio",
+      "folder": "audio",
+      "title": "Âm Thanh & Nhạc Nền",
+      "shortTitle": "Âm thanh",
+      "icon": "music",
+      "iconUrl": "",
+      "iconText": "♪",
+      "accent": "#10b981",
+      "description": "Nhạc nền, tiếng chuông ambient và hiệu ứng âm thanh cho phân cảnh",
+      "order": 3,
+      "status": "active"
+    },
+    {
+      "id": "uploads",
+      "folder": "uploads",
+      "title": "Tài nguyên tải lên",
+      "shortTitle": "Tải lên",
+      "icon": "image",
+      "iconUrl": "",
+      "iconText": "UP",
+      "accent": "#f59e0b",
+      "description": "Tài nguyên ảnh và vật liệu người dùng thêm vào kho",
+      "order": 10,
+      "status": "active"
+    }
+  ],
+  "assets": {
+    "demo_transparent/layer1_sky.png": {
+      "name": "Bầu trời hoàng hôn",
+      "category": "demo_transparent",
+      "status": "active"
+    },
+    "demo_transparent/layer2_distant_mountains.png": {
+      "name": "Dãy núi sương mù xa xăm (Viễn cảnh)",
+      "category": "demo_transparent",
+      "status": "active"
+    },
+    "demo_transparent/layer3_floating_island.png": {
+      "name": "Đảo đá bay tinh thể cổ đại (Trung cảnh)",
+      "category": "demo_transparent",
+      "status": "active"
+    },
+    "demo_transparent/layer4_ancient_ruins.png": {
+      "name": "Cổng vòm tàn tích rêu phong (Cận cảnh)",
+      "category": "demo_transparent",
+      "status": "active"
+    },
+    "demo_transparent/layer5_foreground_vines.png": {
+      "name": "Vòm dây leo & đom đóm (Tiền cảnh)",
+      "category": "demo_transparent",
+      "status": "active"
+    },
+    "demo_transparent/campfire_loop_transparent.png": {
+      "name": "Lửa trại lặp 4x4 (Trong suốt)",
+      "category": "demo_transparent",
+      "status": "active"
+    },
+    "demo_transparent/campfire_loop_chroma.jpg": {
+      "name": "Lửa trại lặp 4x4 (Nền hồng Magenta)",
+      "category": "demo_transparent",
+      "status": "active"
+    },
+    "audio/ambient_chime.wav": {
+      "name": "Chuông gió ngân vang (Ambient Chime)",
+      "category": "audio",
+      "status": "active"
+    },
+    "audio/ambient_night_wind.wav": {
+      "name": "Gió đêm huyền ảo (Night Wind)",
+      "category": "audio",
+      "status": "active"
+    },
+    "audio/music_chill_melody.wav": {
+      "name": "Giai điệu thư giãn (Chill Melody)",
+      "category": "audio",
+      "status": "active"
+    },
+    "audio/sfx_gunshot.wav": {
+      "name": "Phát súng không gian (Laser Shot)",
+      "category": "audio",
+      "status": "active"
+    },
+    "audio/sfx_branch_snap.wav": {
+      "name": "Cành cây gãy giòn (Branch Snap)",
+      "category": "audio",
+      "status": "active"
+    },
+    "audio/cinematic_whoosh.wav": {
+      "name": "Chuyển cảnh vút gió (Camera Whoosh)",
+      "category": "audio",
+      "status": "active"
+    },
+    "audio/voice_radio_intro.wav": {
+      "name": "Tín hiệu lời thoại vô tuyến (Radio Voice)",
+      "category": "audio",
+      "status": "active"
+    },
+    "uploads/682c2977-e0a7-4e15-81d0-bb0418b6bb7d.jpg": {
+      "name": "682c2977 e0a7 4e15 81d0 bb0418b6bb7d",
+      "category": "uploads",
+      "status": "active"
+    },
+    "uploads/tree_trunk_branches.png": {
+      "name": "tree trunk branches",
+      "category": "uploads",
+      "status": "active"
+    },
+    "uploads/tree_trunk_branches_1.png": {
+      "name": "tree trunk branches",
+      "category": "uploads",
+      "status": "active"
+    },
+    "uploads/tree_trunk_branches_2.png": {
+      "name": "tree trunk branches",
+      "category": "uploads",
+      "status": "active"
+    },
+    "uploads/tree_trunk_branches_3.png": {
+      "name": "tree trunk branches",
+      "category": "uploads",
+      "status": "active"
+    },
+    "uploads/9a7eea63e3a2dcf86b45cfce575be91a.jpg": {
+      "name": "9a7eea63e3a2dcf86b45cfce575be91a",
+      "category": "uploads",
+      "status": "active"
+    },
+    "uploads/Cô gái chibi tiên hoa tím lam.png": {
+      "name": "Cô gái chibi tiên hoa tím lam",
+      "category": "uploads",
+      "status": "active"
+    },
+    "uploads/Chibi Hoàng Tử Vest Đen Bạc.png": {
+      "name": "Chibi Hoàng Tử Vest Đen Bạc",
+      "category": "uploads",
+      "status": "active"
+    }
+  }
+}

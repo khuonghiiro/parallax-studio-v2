@@ -305,3 +305,10 @@ Flags (PowerShell/CMD):
 ```text
 pnpm pxs call set_part_cue --node_id part-child-id --mode part_variant --variant_id variant-layer-id --start 3 --end 4
 ```
+
+
+### Điều Phối Manifest Tài Nguyên Động & Kho Tạm Khôi Phục (`manifest-assets`)
+- `./assets/manifest.json` đóng vai trò điều phối trung tâm v2.0 cho 5 phân hệ nhỏ trong `./assets/manifests/` (`builtin.json`, `layer-25d.json`, `loop-animator.json`, `model-3d.json`, `audio.json`).
+- Toàn bộ chủ đề/nhóm của các xưởng được lấy động từ JSON, hỗ trợ `iconUrl` (tự động fallback về icon cảnh báo nếu mất thư mục `./assets/icons/`), `icon` SVG hoặc `iconText` chữ viết tắt.
+- Nút `#manifest-assets-btn` (cạnh nút cấu hình hiệu năng trên thanh công cụ) mở hộp thoại quản lý trực quan chủ đề, tài nguyên, kho tạm `./assets/_temp_deleted/` và JSON trực tiếp; hoặc chạy `./assets/prune-manifest.bat` (`pnpm assets:prune`) để tự động dò và làm sạch JSON.
+- MCP tools: `get_assets_manifest`, `update_assets_manifest`, `restore_deleted_asset`, `prune_assets_manifest`.

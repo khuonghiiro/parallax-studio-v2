@@ -1,0 +1,259 @@
+{
+  "module": "layer_25d",
+  "title": "Xưởng Lắp Ráp Layer & Rigging 2.5D",
+  "description": "Chủ đề phân loại cụm layer 2.5D (Nhân vật, Cây cối, Động vật, Đạo cụ, Kiến trúc) và danh mục mảnh bộ phận trong Xưởng Lắp Ráp Layer.",
+  "folders": [
+    "character_cutout_demo",
+    "character_human_quarter",
+    "nature_modular",
+    "demo_transparent",
+    "scenes-v2",
+    "uploads"
+  ],
+  "categories": [
+    {
+      "id": "all",
+      "folder": "",
+      "title": "Tất cả chi tiết",
+      "shortTitle": "Tất cả",
+      "icon": "layers",
+      "iconUrl": "",
+      "iconText": "ALL",
+      "accent": "#3b82f6",
+      "description": "Toàn bộ các mẫu chi tiết layer xếp chồng và gắn xương trong thư viện",
+      "order": 0,
+      "status": "active"
+    },
+    {
+      "id": "scene",
+      "folder": "demo_transparent",
+      "title": "Cảnh lắp sẵn 2.5D",
+      "shortTitle": "Cảnh 2.5D",
+      "icon": "grid-3d",
+      "iconUrl": "",
+      "iconText": "2.5D",
+      "accent": "#06b6d4",
+      "description": "Bối cảnh hoàn chỉnh phân tầng chiều sâu Z sẵn sàng đưa vào phân cảnh",
+      "order": 1,
+      "status": "active"
+    },
+    {
+      "id": "character",
+      "folder": "character_cutout_demo",
+      "title": "Nhân vật & Sinh vật",
+      "shortTitle": "Nhân vật",
+      "icon": "user-male",
+      "iconUrl": "",
+      "iconText": "NV",
+      "accent": "#ec4899",
+      "description": "Nhân vật anime 2.5D, cử chỉ tay chân, biểu cảm khuôn mặt và khung xương IK",
+      "order": 2,
+      "status": "active"
+    },
+    {
+      "id": "nature",
+      "folder": "nature_modular",
+      "title": "Cây cối & Thiên nhiên",
+      "shortTitle": "Cây cối",
+      "icon": "tree",
+      "iconUrl": "",
+      "iconText": "🌿",
+      "accent": "#10b981",
+      "description": "Các mẫu cây cối, hoa lá, cỏ và cành nhánh thiên nhiên có gắn xương uốn mềm",
+      "order": 3,
+      "status": "active"
+    },
+    {
+      "id": "animal",
+      "folder": "animal_modular",
+      "title": "Động vật & Thú cưng",
+      "shortTitle": "Động vật",
+      "icon": "paw",
+      "iconUrl": "",
+      "iconText": "🐾",
+      "accent": "#f59e0b",
+      "description": "Thú 4 chân, chim bay, cá bơi và sinh vật chuyển động tự nhiên",
+      "order": 4,
+      "status": "active"
+    },
+    {
+      "id": "prop",
+      "folder": "scenes-v2",
+      "title": "Đạo cụ & Trang trí",
+      "shortTitle": "Đạo cụ",
+      "icon": "prop",
+      "iconUrl": "",
+      "iconText": "🏮",
+      "accent": "#a855f7",
+      "description": "Đồ vật, nội thất, lồng đèn, đạo cụ và chi tiết trang trí cảnh",
+      "order": 5,
+      "status": "active"
+    },
+    {
+      "id": "architecture",
+      "folder": "assembly_3d/modular",
+      "title": "Kiến trúc & Cửa nẻo",
+      "shortTitle": "Kiến trúc",
+      "icon": "home",
+      "iconUrl": "",
+      "iconText": "🏠",
+      "accent": "#6366f1",
+      "description": "Cửa sổ, ban công, mái ngói, cột trụ và chi tiết công trình",
+      "order": 6,
+      "status": "active"
+    },
+    {
+      "id": "custom",
+      "folder": "uploads",
+      "title": "Tự tạo & Đã lưu",
+      "shortTitle": "Tự tạo",
+      "icon": "folder",
+      "iconUrl": "",
+      "iconText": "📦",
+      "accent": "#64748b",
+      "description": "Các chi tiết layer do bạn tự tạo và lưu lại trong dự án",
+      "order": 7,
+      "status": "active"
+    }
+  ],
+  "templateCategories": [
+    {
+      "id": "all",
+      "title": "Tất cả mẫu",
+      "icon": "layers",
+      "order": 0,
+      "status": "active"
+    },
+    {
+      "id": "character",
+      "title": "Nhân vật & Động vật 2.5D",
+      "icon": "user-male",
+      "order": 1,
+      "status": "active"
+    },
+    {
+      "id": "nature",
+      "title": "Cây cối & Đá bóc tách",
+      "icon": "tree",
+      "order": 2,
+      "status": "active"
+    }
+  ],
+  "assets": {
+    "character_cutout_demo/head.png": {
+      "name": "Đầu nhân vật chính diện",
+      "category": "character",
+      "status": "active"
+    },
+    "character_cutout_demo/torso.png": {
+      "name": "Thân áo nhân vật chính diện",
+      "category": "character",
+      "status": "active"
+    },
+    "character_cutout_demo/arm-left.png": {
+      "name": "Bắp tay trái (Chính diện)",
+      "category": "character",
+      "status": "active"
+    },
+    "character_cutout_demo/arm-right.png": {
+      "name": "Bắp tay phải (Chính diện)",
+      "category": "character",
+      "status": "active"
+    },
+    "character_cutout_demo/forearm-left.png": {
+      "name": "Cẳng tay trái (Chính diện)",
+      "category": "character",
+      "status": "active"
+    },
+    "character_cutout_demo/forearm-right.png": {
+      "name": "Cẳng tay phải (Chính diện)",
+      "category": "character",
+      "status": "active"
+    },
+    "character_cutout_demo/thigh-left.png": {
+      "name": "Đùi trái (Chính diện)",
+      "category": "character",
+      "status": "active"
+    },
+    "character_cutout_demo/thigh-right.png": {
+      "name": "Đùi phải (Chính diện)",
+      "category": "character",
+      "status": "active"
+    },
+    "character_cutout_demo/shin-left.png": {
+      "name": "Cẳng chân trái (Chính diện)",
+      "category": "character",
+      "status": "active"
+    },
+    "character_cutout_demo/shin-right.png": {
+      "name": "Cẳng chân phải (Chính diện)",
+      "category": "character",
+      "status": "active"
+    },
+    "character_cutout_demo/face-normal.png": {
+      "name": "Khuôn mặt bình thường",
+      "category": "character",
+      "status": "active"
+    },
+    "character_cutout_demo/face-happy.png": {
+      "name": "Khuôn mặt mỉm cười",
+      "category": "character",
+      "status": "active"
+    },
+    "character_cutout_demo/glasses.png": {
+      "name": "Kính mắt phụ kiện",
+      "category": "character",
+      "status": "active"
+    },
+    "character_human_quarter/head.png": {
+      "name": "Đầu nhân vật góc nghiêng 3/4",
+      "category": "character",
+      "status": "active"
+    },
+    "character_human_quarter/torso.png": {
+      "name": "Thân áo góc nghiêng 3/4",
+      "category": "character",
+      "status": "active"
+    },
+    "nature_modular/tree_trunk_branches.png": {
+      "name": "Thân cây cổ thụ & cành chính",
+      "category": "nature",
+      "status": "active"
+    },
+    "nature_modular/tree_roots_moss.png": {
+      "name": "Bộ rễ cây phủ rêu",
+      "category": "nature",
+      "status": "active"
+    },
+    "nature_modular/tree_foliage_back_green.png": {
+      "name": "Tán lá xanh lớp sau",
+      "category": "nature",
+      "status": "active"
+    },
+    "nature_modular/tree_foliage_mid_green.png": {
+      "name": "Tán lá xanh lớp giữa",
+      "category": "nature",
+      "status": "active"
+    },
+    "nature_modular/tree_foliage_front_green.png": {
+      "name": "Tán lá xanh lớp trước",
+      "category": "nature",
+      "status": "active"
+    },
+    "nature_modular/tree_foliage_mid_sakura.png": {
+      "name": "Tán hoa anh đào Sakura",
+      "category": "nature",
+      "status": "active"
+    },
+    "nature_modular/rock_boulder_main.png": {
+      "name": "Tảng đá cổ đại chính",
+      "category": "nature",
+      "status": "active"
+    },
+    "nature_modular/rock_crystal_glow.png": {
+      "name": "Tinh thể phát sáng trên đá",
+      "category": "nature",
+      "status": "active"
+    }
+  }
+}

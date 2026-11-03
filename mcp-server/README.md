@@ -663,3 +663,26 @@ pnpm pxs call get_loop_template_usages "{\"template_id\":\"loop_preset_campfire\
 pnpm pxs call delete_loop_template "{\"template_id\":\"loop_custom_x1\",\"force\":true}"
 pnpm pxs call configure_loop_chroma "{\"enabled\":true,\"isolation_mode\":\"outer_only\",\"shadow_mode\":\"include\"}"
 ```
+
+
+### Điều Phối Manifest Tài Nguyên Động & Kho Tạm Khôi Phục (`assets/manifest.json` + `assets/manifests/*.json`)
+- **Kiến trúc Modular v2.0:** `./assets/manifest.json` điều phối 5 phân hệ JSON độc lập tại `./assets/manifests/`: `builtin.json` (Kho công cộng 2D), `layer-25d.json` (Xưởng Layer 2.5D), `loop-animator.json` (Xưởng Tách Hoạt Ảnh Loop), `model-3d.json` (Xưởng Mô Hình 3D), `audio.json` (Kho Âm Thanh).
+- **Chủ đề & Fallback Icon động:** Mỗi chủ đề trong JSON hỗ trợ `title`, `shortTitle`, `folder`, `icon` (SVG dựng sẵn), `iconUrl` (ảnh/SVG trong `./assets/icons/` — tự động hiển thị icon cảnh báo `IconBrokenIconFallback` nếu người dùng xoá nhầm thư mục icon), hoặc `iconText` (chữ viết tắt dạng icon). Sửa JSON hoặc qua hộp thoại `#manifest-assets-btn` (cạnh nút cấu hình hiệu năng `#perf-settings-btn`) sẽ cập nhật giao diện tức thì.
+- **Xoá tạm (`./assets/_temp_deleted/`) & Dọn sạch (`./assets/prune-manifest.bat`):** Xoá tạm di chuyển file vào `./assets/_temp_deleted/<relativePath>` và đánh dấu `"status": "deleted"` để khôi phục bất kỳ lúc nào; xoá vĩnh viễn hoặc chạy `./assets/prune-manifest.bat` (`prune_assets_manifest`) tự động dò và làm sạch JSON.
+- **MCP Tools & Regions:** `get_assets_manifest`, `update_assets_manifest`, `restore_deleted_asset`, `prune_assets_manifest`. Vùng chụp: `manifest_chip`, `manifest_dialog`, `manifest_sidebar`, `manifest_categories`, `manifest_assets`, `manifest_trash`, `manifest_json_editor`, `asset_delete_confirm`.
+
+```powershell
+# PowerShell
+pnpm pxs call get_assets_manifest '{"module_id":"loop_animator"}'
+pnpm pxs call update_assets_manifest '{"module_id":"loop_animator","action":"upsert_category","category_id":"water_fx","title":"Sóng nước & Thác","folder":"loop-animations/water","icon":"sparkles","icon_text":"WT"}'
+pnpm pxs call restore_deleted_asset '{"relative_path":"characters/chibi_boy_jump.png","action":"restore"}'
+pnpm pxs call prune_assets_manifest '{}'
+```
+
+```bat
+:: CMD
+pnpm pxs call get_assets_manifest "{\"module_id\":\"loop_animator\"}"
+pnpm pxs call update_assets_manifest "{\"module_id\":\"loop_animator\",\"action\":\"upsert_category\",\"category_id\":\"water_fx\",\"title\":\"Sóng nước & Thác\",\"folder\":\"loop-animations/water\",\"icon\":\"sparkles\",\"icon_text\":\"WT\"}"
+pnpm pxs call restore_deleted_asset "{\"relative_path\":\"characters/chibi_boy_jump.png\",\"action\":\"restore\"}"
+pnpm pxs call prune_assets_manifest "{}"
+```

@@ -3,12 +3,14 @@ import { importDroppedFiles, loadDemo, addLayerFromAsset, useToast } from './act
 import { usePlayback } from './hooks/usePlayback'
 import { useShortcuts } from './hooks/useShortcuts'
 import { initMcp } from './mcp/commands'
+import { initAssetManifestLiveSync } from './store/assetManifest'
 import { useEditor } from './store/editor'
 import { applyTheme, useView } from './store/view'
 import { CameraPathDialog } from './ui/CameraPathDialog'
 import { CameraSketchDialog } from './ui/CameraSketchDialog'
 import { ExportDialog } from './ui/ExportDialog'
 import { PerformanceDialog } from './ui/PerformanceDialog'
+import { AssetManifestDialog } from './ui/manifest/AssetManifestDialog'
 import { McpDialog } from './ui/McpDialog'
 import { MobileRemoteDialog } from './ui/MobileRemoteDialog'
 import { AudioStudioDialog } from './ui/AudioStudioDialog'
@@ -108,9 +110,10 @@ export default function App() {
     }
   }, [])
 
-  // Accept AI commands over MCP (re-subscribes cleanly on HMR).
+  // Accept AI commands over MCP and subscribe to live manifest.json updates.
   useEffect(() => {
     initMcp()
+    initAssetManifestLiveSync()
   }, [])
 
   // Window title reflects document state.
@@ -241,6 +244,7 @@ export default function App() {
       {dialog === 'path' && <CameraPathDialog />}
       {dialog === 'sketch' && <CameraSketchDialog />}
       {dialog === 'performance' && <PerformanceDialog />}
+      {dialog === 'manifest' && <AssetManifestDialog onClose={() => useView.getState().openDialog(null)} />}
       {dialog === 'mcp' && <McpDialog />}
       {dialog === 'remote' && <MobileRemoteDialog />}
       {dialog === 'audio' && <AudioStudioDialog />}

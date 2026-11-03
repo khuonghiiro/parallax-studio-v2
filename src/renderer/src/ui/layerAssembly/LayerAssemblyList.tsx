@@ -2,12 +2,10 @@ import { useState, useMemo, useEffect, useCallback } from 'react'
 import type { LayerComposite } from './types'
 import {
   getStoredComposites,
-  saveComposite,
   deleteComposite,
   duplicateComposite,
   updateCompositeThumbnail,
-  restoreDefaultComposites,
-  COMPOSITE_CATEGORIES
+  restoreDefaultComposites
 } from './layerAssemblyStorage'
 import { captureCompositeThumbnail } from './layerAssemblyThumbnail'
 import { insertLayerCompositeToScene } from './insertLayerComposite'
@@ -15,10 +13,24 @@ import { setCleanDragGhost } from '../utils/dragPreviewHelper'
 import { LayerAssemblyCategoryBar } from './LayerAssemblyCategoryBar'
 import { IconPlus, IconPen, IconTrash, IconCopy, IconLayers } from '../icons'
 import { requestOpenLayerAssembly } from './layerAssemblyBridge'
+import { getActiveCategoriesForModule, useAssetManifestStore } from '../../store/assetManifest'
 import '../../styles/model3dLibrary.css'
 import '../../styles/layerAssembly.css'
 
 export function LayerAssemblyList() {
+  const manifestModules = useAssetManifestStore((s) => s.modules)
+  const dynamicCategories = useMemo(
+    () => getActiveCategoriesForModule(manifestModules, 'layer_25d'),
+    [manifestModules]
+  )
+  const categoryLabels = useMemo(() => {
+    const map: Record<string, string> = {}
+    for (const c of dynamicCategories) {
+      map[c.id] = c.shortTitle || c.title
+    }
+    return map
+  }, [dynamicCategories])
+
   const [composites, setComposites] = useState<LayerComposite[]>(() => getStoredComposites())
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [searchTerm, setSearchTerm] = useState('')
@@ -31,22 +43,24 @@ export function LayerAssemblyList() {
   useEffect(() => {
     const handleUpdate = () => reload()
     window.addEventListener('layerComposites:changed', handleUpdate)
+    window.addEventListener('parallax:manifest-updated', handleUpdate)
     window.addEventListener('storage', handleUpdate)
     return () => {
       window.removeEventListener('layerComposites:changed', handleUpdate)
+      window.removeEventListener('parallax:manifest-updated', handleUpdate)
       window.removeEventListener('storage', handleUpdate)
     }
   }, [reload])
 
   const itemCounts = useMemo(() => {
     const counts: Record<string, number> = { all: composites.length }
-    COMPOSITE_CATEGORIES.forEach((cat) => {
+    dynamicCategories.forEach((cat) => {
       if (cat.id !== 'all') {
         counts[cat.id] = composites.filter((c) => c.category === cat.id).length
       }
     })
     return counts
-  }, [composites])
+  }, [composites, dynamicCategories])
 
   const filtered = useMemo(() => {
     let list = composites
@@ -106,7 +120,7 @@ export function LayerAssemblyList() {
     <div className="model-3d-layout">
       {/* 1. Left Vertical Category Strip */}
       <LayerAssemblyCategoryBar
-        categories={COMPOSITE_CATEGORIES}
+        categories={dynamicCategories}
         selectedCategory={selectedCategory}
         onSelectCategory={setSelectedCategory}
         itemCounts={itemCounts}
@@ -134,6 +148,7 @@ export function LayerAssemblyList() {
             <LayerCardItem
               key={item.id}
               item={item}
+              categoryLabel={categoryLabels[item.category]}
               isInserting={insertingId === item.id}
               onInsert={() => handleInsert(item)}
               onEdit={() => handleEdit(item)}
@@ -168,6 +183,7 @@ export function LayerAssemblyList() {
 
 interface LayerCardItemProps {
   item: LayerComposite
+  categoryLabel?: string
   isInserting: boolean
   onInsert: () => void
   onEdit: () => void
@@ -177,6 +193,7 @@ interface LayerCardItemProps {
 
 function LayerCardItem({
   item,
+  categoryLabel,
   isInserting,
   onInsert,
   onEdit,
@@ -207,7 +224,6 @@ function LayerCardItem({
     }
   }, [item])
 
-  // Tính tổng số chuyển động của chi tiết: ưu tiên số clips gắn xương, hoặc số layer có chuyển động
   const motionCount = (() => {
     if (item.rig?.clips && item.rig.clips.length > 0) {
       return item.rig.clips.length
@@ -226,11 +242,13 @@ function LayerCardItem({
         ? `${motionCount} chuyển động hoạt ảnh`
         : 'Chi tiết tĩnh (0 chuyển động)'
 
-  const categoryLabels: Record<string, string> = {
+  const fallbackCategoryLabels: Record<string, string> = {
     nature: 'Cây cối',
+    animal: 'Động vật',
     prop: 'Đạo cụ',
     character: 'Nhân vật',
     architecture: 'Kiến trúc',
+    scene: 'Bối cảnh',
     custom: 'Tự tạo'
   }
 
@@ -324,7 +342,7 @@ function LayerCardItem({
           className="model-3d-card-cat"
           style={{ fontSize: '9.5px', color: 'var(--text-dim)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
         >
-          {categoryLabels[item.category] || 'Chi tiết'} • {item.width}×{item.height}
+          {categoryLabel || fallbackCategoryLabels[item.category] || 'Chi tiết'} • {item.width}×{item.height}
         </div>
       </div>
 

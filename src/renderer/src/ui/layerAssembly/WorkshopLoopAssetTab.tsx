@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import '../../styles/loopWorkshop.css'
+import { getActiveCategoriesForModule, useAssetManifestStore } from '../../store/assetManifest'
+import { renderCategoryIcon } from '../assets/categoryIcons'
 import { IconLink, IconLoopAnimate, IconPen, IconPlay, IconPause, IconPlus } from '../icons'
 import { LoopCardPreviewCanvas } from '../loopAnimator/LoopCardPreviewCanvas'
 import { openLoopAnimatorInPlace } from '../loopAnimator/loopAnimatorLauncher'
@@ -16,21 +18,33 @@ interface Props {
 }
 
 export function useLoopTemplateList(): LoopAnimationTemplate[] {
+  const manifestRevision = useAssetManifestStore((s) => s.revision)
   const [templates, setTemplates] = useState<LoopAnimationTemplate[]>(() => getAllLoopTemplates())
   useEffect(() => {
     const refresh = (): void => setTemplates(getAllLoopTemplates())
+    refresh()
     window.addEventListener(LOOP_STORAGE_UPDATED_EVENT, refresh)
-    return () => window.removeEventListener(LOOP_STORAGE_UPDATED_EVENT, refresh)
-  }, [])
+    window.addEventListener('parallax:manifest-updated', refresh)
+    return () => {
+      window.removeEventListener(LOOP_STORAGE_UPDATED_EVENT, refresh)
+      window.removeEventListener('parallax:manifest-updated', refresh)
+    }
+  }, [manifestRevision])
   return templates
 }
 
 /**
  * Tab tài nguyên "Loop" trong sidebar Xưởng Layer 2.5D: liệt kê mẫu hoạt ảnh lặp của kho
- * để thêm thành mảnh mới hoặc gán vào mảnh đang chọn; cấu hình chi tiết ở tab Loop bên phải.
+ * theo các nhóm chủ đề động từ `manifests/loop-animator.json`.
  */
 export function WorkshopLoopAssetTab({ searchTerm, layers, selectedLayer, onAddLoopTemplate, onBindLoopTemplate }: Props): React.ReactElement {
   const templates = useLoopTemplateList()
+  const manifestModules = useAssetManifestStore((s) => s.modules)
+  const loopCategories = useMemo(
+    () => getActiveCategoriesForModule(manifestModules, 'loop_animator'),
+    [manifestModules]
+  )
+  const [selectedTopic, setSelectedTopic] = useState<string>('all')
   const [playingId, setPlayingId] = useState<string | null>(null)
 
   const usedCount = useMemo(() => {
@@ -44,8 +58,17 @@ export function WorkshopLoopAssetTab({ searchTerm, layers, selectedLayer, onAddL
 
   const filtered = useMemo(() => {
     const q = searchTerm.trim().toLowerCase()
-    return q ? templates.filter((t) => t.name.toLowerCase().includes(q)) : templates
-  }, [templates, searchTerm])
+    return templates.filter((t) => {
+      if (selectedTopic !== 'all') {
+        if (selectedTopic === 'custom') {
+          if (t.isBuiltin && t.category !== 'custom') return false
+        } else if (t.category !== selectedTopic) {
+          return false
+        }
+      }
+      return !q || t.name.toLowerCase().includes(q)
+    })
+  }, [templates, searchTerm, selectedTopic])
 
   return (
     <div className="lw-loop-assets" data-mcp-region="layer_assembly_loop_assets">
@@ -63,6 +86,43 @@ export function WorkshopLoopAssetTab({ searchTerm, layers, selectedLayer, onAddL
           <IconPlus width={12} height={12} />
           <span>Tạo mới</span>
         </button>
+      </div>
+
+      {/* Dải chủ đề động từ manifests/loop-animator.json */}
+      <div
+        style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '4px',
+          marginBottom: '6px'
+        }}
+      >
+        {loopCategories.map((cat) => {
+          const active = selectedTopic === cat.id
+          return (
+            <button
+              key={cat.id}
+              type="button"
+              className={`btn xs${active ? ' primary' : ' ghost'}`}
+              onClick={() => setSelectedTopic(cat.id)}
+              title={cat.title}
+              style={{
+                padding: '2px 6px',
+                fontSize: '10px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '3px',
+                borderRadius: 'var(--radius-sm)'
+              }}
+            >
+              {renderCategoryIcon(cat.icon || cat.id, 11, 11, cat.id, {
+                iconUrl: cat.iconUrl,
+                iconText: cat.iconText
+              })}
+              <span>{cat.shortTitle || cat.title}</span>
+            </button>
+          )
+        })}
       </div>
 
       {filtered.length === 0 ? (

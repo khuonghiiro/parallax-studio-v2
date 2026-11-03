@@ -6,8 +6,7 @@ import {
   BUILTIN_COMPOSITES
 } from './layerAssemblyStorage'
 import type { AssembledLayerItem, LayerComposite } from './types'
-import { IconGlobe, IconImage, IconInfo, IconLayers, IconLock, IconLoopAnimate, IconPlus, IconTrash, IconX } from '../icons'
-import { useLayerAssetImage } from './useLayerAssetImage'
+import { IconGlobe, IconImage, IconLayers, IconLoopAnimate, IconPlus } from '../icons'
 import { CompositeCard } from './CompositeCard'
 import { LayerItemCard, AssetCard } from './LayerWorkshopCards'
 import { AssetDetailModal } from '../assets/AssetDetailModal'
@@ -17,6 +16,12 @@ import {
   addCustomPublicAsset,
   hideOrDeletePublicAsset
 } from '../assets/publicAssetStorage'
+import { renderCategoryIcon } from '../assets/categoryIcons'
+import {
+  FALLBACK_LAYER25D_SIDEBAR_TOPICS,
+  getActiveCategoriesForModule,
+  useAssetManifestStore
+} from '../../store/assetManifest'
 import { clearLayerTextureCache } from './layerAssembly3DMesh'
 import { SegmentedTabs } from '../primitives'
 import type { LoopAnimationTemplate } from '../loopAnimator/types'
@@ -32,9 +37,7 @@ export interface LayerAssemblySidebarProps {
   onDeleteLayer?: (layerId: string) => void
   onDuplicateLayer?: (layerId: string) => void
   onLoadComposite?: (composite: LayerComposite) => void
-  /** Thêm mẫu hoạt ảnh Loop thành mảnh mới */
   onAddLoopTemplate?: (tpl: LoopAnimationTemplate) => void
-  /** Gán mẫu hoạt ảnh Loop vào mảnh đang chọn */
   onBindLoopTemplate?: (tpl: LoopAnimationTemplate) => void
   width?: number
 }
@@ -44,12 +47,12 @@ type SidebarTab = 'builtin' | 'presets' | 'project' | 'loop'
 interface CustomAssetItem {
   id: string
   path: string
+  folder?: string
   name: string
   previewUrl?: string
   isCustom: boolean
 }
 
-// Danh sách tài nguyên công khai mặc định khi chạy môi trường test không có IPC
 const BUILTIN_NATURE_ASSETS = [
   { path: 'demo_transparent/layer1_sky.png', name: 'Bầu trời hoàng hôn' },
   { path: 'demo_transparent/layer2_distant_mountains.png', name: 'Dãy núi sương mù xa xăm' },
@@ -74,6 +77,8 @@ export function LayerAssemblySidebar({
   const [activeTab, setActiveTab] = useState<SidebarTab>('project')
   const loopTemplates = useLoopTemplateList()
   const [searchTerm, setSearchTerm] = useState('')
+  const [selectedAssetTopic, setSelectedAssetTopic] = useState<string>('all')
+  const [selectedPresetTopic, setSelectedPresetTopic] = useState<string>('all')
   const [storedComposites, setStoredComposites] = useState<LayerComposite[]>(getStoredComposites)
   const [detailTarget, setDetailTarget] = useState<CustomAssetItem | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<CustomAssetItem | null>(null)
@@ -82,17 +87,34 @@ export function LayerAssemblySidebar({
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const projectFileInputRef = useRef<HTMLInputElement | null>(null)
 
-  // Lắng nghe thay đổi kho tài nguyên công khai
+  const manifestModules = useAssetManifestStore((s) => s.modules)
+  const manifestRevision = useAssetManifestStore((s) => s.revision)
+
+  const sidebarAssetTopics = useMemo(() => {
+    const raw = manifestModules.layer_25d?.sidebarAssetTopics?.length
+      ? manifestModules.layer_25d.sidebarAssetTopics
+      : FALLBACK_LAYER25D_SIDEBAR_TOPICS
+    return raw.filter((t) => t.status !== 'deleted' && t.status !== 'hidden')
+  }, [manifestModules])
+
+  const compositeCategories = useMemo(
+    () => getActiveCategoriesForModule(manifestModules, 'layer_25d'),
+    [manifestModules]
+  )
+
   useEffect(() => {
     const handlePublicChanged = () => {
       clearLayerTextureCache()
       setPublicVersion((v) => v + 1)
     }
     window.addEventListener('publicAssets:changed', handlePublicChanged)
-    return () => window.removeEventListener('publicAssets:changed', handlePublicChanged)
+    window.addEventListener('parallax:manifest-updated', handlePublicChanged)
+    return () => {
+      window.removeEventListener('publicAssets:changed', handlePublicChanged)
+      window.removeEventListener('parallax:manifest-updated', handlePublicChanged)
+    }
   }, [])
 
-  // Nạp toàn bộ kho tài nguyên có sẵn của hệ thống
   useEffect(() => {
     let active = true
     if (typeof window !== 'undefined' && window.api?.getBuiltInCatalog) {
@@ -103,14 +125,13 @@ export function LayerAssemblySidebar({
             setCatalogItems(res.items.filter((it) => it.kind === 'image'))
           }
         })
-        .catch(() => { })
+        .catch(() => {})
     }
     return () => {
       active = false
     }
-  }, [publicVersion])
+  }, [publicVersion, manifestRevision])
 
-  // Xử lý nạp ảnh riêng cho layer trong mẫu hiện tại (Private - lưu vào assets/uploads để không mất ảnh)
   const handleImportProjectLayerFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files || files.length === 0) return
@@ -130,7 +151,6 @@ export function LayerAssemblySidebar({
             continue
           }
         }
-        // Fallback đọc dataUrl nếu không có IPC
         const reader = new FileReader()
         reader.onload = () => {
           const dataUrl = reader.result as string
@@ -144,35 +164,34 @@ export function LayerAssemblySidebar({
     e.target.value = ''
   }
 
-  // Lắng nghe thay đổi kho mẫu composite (khi bấm "Lưu mẫu" ở Header)
   useEffect(() => {
     const handleChanged = () => setStoredComposites(getStoredComposites())
     window.addEventListener('layerComposites:changed', handleChanged)
     return () => window.removeEventListener('layerComposites:changed', handleChanged)
   }, [])
 
-  // 1. Tab Có sẵn: Toàn bộ kho tài nguyên công khai (Built-in + Ảnh người dùng thêm công khai)
   const allAvailableAssets = useMemo(() => {
     const baseList: BuiltInAssetItem[] =
       catalogItems.length > 0
         ? catalogItems
         : BUILTIN_NATURE_ASSETS.map((b) => ({
-          id: b.path,
-          name: b.name,
-          fileName: b.name,
-          relativePath: b.path,
-          path: b.path,
-          folder: 'modular',
-          ext: 'png',
-          mime: 'image/png',
-          kind: 'image' as const,
-          size: 0
-        }))
+            id: b.path,
+            name: b.name,
+            fileName: b.name,
+            relativePath: b.path,
+            path: b.path,
+            folder: 'demo_transparent',
+            ext: 'png',
+            mime: 'image/png',
+            kind: 'image' as const,
+            size: 0
+          }))
 
     const visiblePublic = getVisiblePublicAssets(baseList)
     return visiblePublic.map((it) => ({
       id: it.id,
       path: it.relativePath || it.path || '',
+      folder: it.folder || '',
       name: it.name,
       previewUrl: it.previewUrl,
       isCustom: Boolean(it.id?.startsWith('custom-public-'))
@@ -180,19 +199,26 @@ export function LayerAssemblySidebar({
   }, [catalogItems, publicVersion])
 
   const filteredAssets = useMemo(() => {
-    if (!searchTerm.trim()) return allAvailableAssets
-    const q = searchTerm.toLowerCase()
-    return allAvailableAssets.filter((a) => a.name.toLowerCase().includes(q))
-  }, [allAvailableAssets, searchTerm])
+    const activeTopic = sidebarAssetTopics.find((t) => t.id === selectedAssetTopic)
+    const folderFilter = activeTopic?.folderFilter?.toLowerCase().trim() || ''
+    const q = searchTerm.trim().toLowerCase()
+    return allAvailableAssets.filter((a) => {
+      if (selectedAssetTopic !== 'all' && folderFilter) {
+        const hay = `${a.folder || ''} ${a.path} ${a.name}`.toLowerCase()
+        if (!hay.includes(folderFilter)) return false
+      }
+      return !q || a.name.toLowerCase().includes(q)
+    })
+  }, [allAvailableAssets, searchTerm, selectedAssetTopic, sidebarAssetTopics])
 
-  // 2. Tab Mẫu layer: Các asset layer xếp chồng tạo sẵn & mẫu người dùng tự tạo đã lưu
   const filteredComposites = useMemo(() => {
-    if (!searchTerm.trim()) return storedComposites
-    const q = searchTerm.toLowerCase()
-    return storedComposites.filter((c) => c.name.toLowerCase().includes(q))
-  }, [storedComposites, searchTerm])
+    const q = searchTerm.trim().toLowerCase()
+    return storedComposites.filter((c) => {
+      if (selectedPresetTopic !== 'all' && c.category !== selectedPresetTopic) return false
+      return !q || c.name.toLowerCase().includes(q)
+    })
+  }, [storedComposites, searchTerm, selectedPresetTopic])
 
-  // 3. Tab Dự án: Chỉ các tài nguyên layer đang được tạo trong mẫu đó
   const currentLayers = composite.layers
   const filteredLayers = useMemo(() => {
     if (!searchTerm.trim()) return currentLayers
@@ -200,7 +226,6 @@ export function LayerAssemblySidebar({
     return currentLayers.filter((l) => l.name.toLowerCase().includes(q))
   }, [currentLayers, searchTerm])
 
-  // Xử lý nạp ảnh từ máy tính vào tab Có sẵn (Kho công khai - copy vào assets/uploads)
   const handleImportFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files || files.length === 0) return
@@ -228,7 +253,7 @@ export function LayerAssemblySidebar({
     }
     e.target.value = ''
     try {
-      const cat = await window.api.getBuiltInCatalog()
+      const cat = await window.api.getBuiltInCatalog(true)
       setCatalogItems(cat.items || [])
     } catch {
       /* ignore */
@@ -236,7 +261,6 @@ export function LayerAssemblySidebar({
     setPublicVersion((v) => v + 1)
   }
 
-  // Xóa mẫu layer tự tạo
   const handleDeleteComposite = (id: string, e: React.MouseEvent) => {
     e.stopPropagation()
     deleteComposite(id)
@@ -247,7 +271,8 @@ export function LayerAssemblySidebar({
 
   return (
     <div
-      className="layer-workshop-sidebar lw-sidebar" data-mcp-region="layer_assembly_sidebar"
+      className="layer-workshop-sidebar lw-sidebar"
+      data-mcp-region="layer_assembly_sidebar"
       style={{
         ...(width !== undefined ? { width: `${width}px`, minWidth: '190px' } : {}),
         boxSizing: 'border-box',
@@ -260,7 +285,6 @@ export function LayerAssemblySidebar({
         flexShrink: 0
       }}
     >
-      {/* 1. Tabs Switcher: 1. Có sẵn -> 2. Mẫu layer -> 3. Dự án */}
       <SegmentedTabs<SidebarTab>
         variant="segmented"
         size="sm"
@@ -300,7 +324,7 @@ export function LayerAssemblySidebar({
         ]}
       />
 
-      {/* 2. Search & Action Header */}
+      {/* 2. Search, Dynamic Topic Chips & Action Header */}
       <div
         style={{
           padding: '8px 10px',
@@ -328,11 +352,74 @@ export function LayerAssemblySidebar({
           style={{ width: '100%', fontSize: '11px' }}
         />
 
-        {/* Nút Thêm ảnh từ máy khi ở tab Có sẵn (Kho công khai) */}
+        {/* Dải chủ đề động khi ở tab Tất cả (builtin) */}
+        {activeTab === 'builtin' && sidebarAssetTopics.length > 1 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+            {sidebarAssetTopics.map((topic) => {
+              const active = selectedAssetTopic === topic.id
+              return (
+                <button
+                  key={topic.id}
+                  type="button"
+                  className={`btn xs${active ? ' primary' : ' ghost'}`}
+                  onClick={() => setSelectedAssetTopic(topic.id)}
+                  title={topic.title}
+                  style={{
+                    padding: '2px 6px',
+                    fontSize: '10px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '3px',
+                    borderRadius: 'var(--radius-sm)'
+                  }}
+                >
+                  {renderCategoryIcon(topic.icon || topic.id, 11, 11, topic.id, {
+                    iconUrl: topic.iconUrl,
+                    iconText: topic.iconText
+                  })}
+                  <span>{topic.shortTitle || topic.title}</span>
+                </button>
+              )
+            })}
+          </div>
+        )}
+
+        {/* Dải chủ đề động khi ở tab Mẫu sẵn (presets) */}
+        {activeTab === 'presets' && compositeCategories.length > 1 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+            {compositeCategories.map((cat) => {
+              const active = selectedPresetTopic === cat.id
+              return (
+                <button
+                  key={cat.id}
+                  type="button"
+                  className={`btn xs${active ? ' primary' : ' ghost'}`}
+                  onClick={() => setSelectedPresetTopic(cat.id)}
+                  title={cat.title}
+                  style={{
+                    padding: '2px 6px',
+                    fontSize: '10px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '3px',
+                    borderRadius: 'var(--radius-sm)'
+                  }}
+                >
+                  {renderCategoryIcon(cat.icon || cat.id, 11, 11, cat.id, {
+                    iconUrl: cat.iconUrl,
+                    iconText: cat.iconText
+                  })}
+                  <span>{cat.shortTitle || cat.title}</span>
+                </button>
+              )
+            })}
+          </div>
+        )}
+
         {activeTab === 'builtin' && (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span style={{ fontSize: '10px', color: 'var(--text-faint)' }}>
-              {allAvailableAssets.filter((a) => a.isCustom).length} ảnh tự thêm
+              {filteredAssets.length}/{allAvailableAssets.length} tài nguyên
             </span>
             <label
               className="btn xs primary"
@@ -360,7 +447,6 @@ export function LayerAssemblySidebar({
           </div>
         )}
 
-        {/* Nút Thêm ảnh từ máy khi ở tab Dự án (Tài nguyên Private riêng cho mẫu này) */}
         {activeTab === 'project' && (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span style={{ fontSize: '10px', color: 'var(--text-faint)' }}>
@@ -397,7 +483,6 @@ export function LayerAssemblySidebar({
 
       {/* 3. Main Content List */}
       <div style={{ flex: '1 1 0%', overflowY: 'auto', overflowX: 'hidden', padding: '8px', minHeight: 0 }}>
-        {/* TAB 1: CÓ SẴN - Ảnh & Đạo cụ có sẵn + Ảnh người dùng thêm vào */}
         {activeTab === 'builtin' && (
           filteredAssets.length > 0 ? (
             <div className="lw-sidebar-asset-grid">
@@ -419,12 +504,11 @@ export function LayerAssemblySidebar({
             </div>
           ) : (
             <div style={{ padding: '24px 12px', textAlign: 'center', color: 'var(--text-dim)', fontSize: '11px' }}>
-              Không tìm thấy tài nguyên nào.
+              Không tìm thấy tài nguyên nào trong chủ đề này.
             </div>
           )
         )}
 
-        {/* TAB 2: MẪU LAYER - Các asset layer xếp chồng đã lưu & tạo sẵn kèm ảnh xem trước */}
         {activeTab === 'presets' && (
           filteredComposites.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', boxSizing: 'border-box' }}>
@@ -441,12 +525,11 @@ export function LayerAssemblySidebar({
             </div>
           ) : (
             <div style={{ padding: '24px 12px', textAlign: 'center', color: 'var(--text-dim)', fontSize: '11px' }}>
-              Không có mẫu layer nào. Bạn có thể nhấn &quot;Lưu mẫu&quot; ở thanh tiêu đề để lưu mẫu mới vào đây!
+              Không có mẫu layer nào trong chủ đề này.
             </div>
           )
         )}
 
-        {/* TAB 4: LOOP - Kho hoạt ảnh lặp dùng trực tiếp trong xưởng */}
         {activeTab === 'loop' && onAddLoopTemplate && onBindLoopTemplate && (
           <WorkshopLoopAssetTab
             searchTerm={searchTerm}
@@ -457,7 +540,6 @@ export function LayerAssemblySidebar({
           />
         )}
 
-        {/* TAB 3: DỰ ÁN - Các layer đang tạo trong mẫu hiện tại */}
         {activeTab === 'project' && (
           filteredLayers.length > 0 ? (
             <div className="lw-sidebar-asset-grid">
@@ -499,7 +581,7 @@ export function LayerAssemblySidebar({
                   Chưa có layer nào trong mẫu này.
                   <br />
                   <span style={{ fontSize: '10px', color: 'var(--text-faint)' }}>
-                    Hãy chọn ảnh từ tab <strong>Có sẵn</strong> để bắt đầu xếp lớp!
+                    Hãy chọn ảnh từ tab <strong>Tất cả</strong> để bắt đầu xếp lớp!
                   </span>
                 </>
               ) : (

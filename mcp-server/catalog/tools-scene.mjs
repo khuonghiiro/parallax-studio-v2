@@ -71,12 +71,12 @@ export const SCENE_TOOLS = [
     shape: (d) => ({
       region: z.enum(['viewer_route', 'viewer_depth_tools', 'timeline_properties', 'timeline_key_menu', 'timeline_motion_popup', 'timeline_key_controls', 'viewer_stage2d_tools', 'viewer_depth', 'viewer_stage2d', 'timeline_logic', 'timeline_logic_picker',
         'active',
-        'left_panel', 'left_tabs', 'assets', 'asset_subtabs', 'asset_grid', 'asset_bar', 'music', 'shots', 'topview',
+        'left_panel', 'left_tabs', 'assets', 'asset_subtabs', 'asset_grid', 'asset_bar', 'asset_delete_confirm', 'music', 'shots', 'topview',
         'viewer', 'viewer_canvas', 'viewport', 'camera_frame', 'viewer_hud', 'viewer_tools', 'viewer_3d_presets', 'viewer_touch_nav', 'animate_camera_stage', 'animate_camera_toolbar', 'animate_camera_route', 'animate_camera_inspector',
         'inspector', 'inspector_tabs', 'inspector_bottom_tabs', 'inspector_body', 'inspector_composite', 'inspector_physics', 'inspector_virtual_light', 'virtual_light_pad', 'composite_swap', 'effect_stack', 'effect_editor', 'timeline_effects', 'fx_presets', 'motion', 'motion_preview', 'motion_parameters', 'motion_timing',
         'timeline', 'mobile_timeline', 'mobile_transport', 'mobile_action_strip', 'mobile_quick_sheet', 'timeline_toolbar', 'timeline_batch_timing', 'timeline_tabs', 'timeline_ruler', 'timeline_tracks',
         'timeline_workflow', 'workflow_toolbar', 'workflow_palette', 'workflow_canvas', 'workflow_mobile_cards', 'workflow_canvas_hud', 'workflow_quick_connect', 'workflow_inspector', 'workflow_ruler', 'workflow_time_lanes', 'workflow_selection_bar', 'workflow_time_group', 'workflow_spawn_menu', 'workflow_legend', 'workflow_target_binder', 'workflow_action_builder', 'workflow_preview', 'workflow_part_preview', 'workflow_part_stage', 'workflow_part_cues', 'workflow_part_hub', 'workflow_part_editor', 'workflow_part_trigger_picker', 'workflow_part_asset_grid', 'workflow_shot_spatial_pad', 'workflow_cam_bbox_guard', 'workflow_light_behavior', 'workflow_light_rays', 'viewer_camera_status', 'workflow_motion_panel', 'workflow_motion_ghost', 'workflow_motion_entity_tags', 'workflow_motion_path', 'workflow_motion_target', 'workflow_motion_timing', 'workflow_motion_depth', 'workflow_motion_tools', 'workflow_motion_draw', 'workflow_collision_preview', 'workflow_bbox_steps', 'workflow_json_panel', 'workflow_node_config', 'workflow_node_input', 'workflow_node_output', 'workflow_node_connections', 'workflow_node_operation', 'workflow_node_scope_picker', 'workflow_node_edit_context', 'workflow_node_advanced', 'workflow_node_preview_controls', 'workflow_node_preset_picker', 'workflow_node_rule_picker', 'workflow_node_camera_preview', 'workflow_node_settings',
-        'toolbar', 'toolbar_left', 'toolbar_doc', 'toolbar_actions', 'studio_menu', 'mcp_chip', 'remote_chip', 'responsive_dock',
+        'toolbar', 'toolbar_left', 'toolbar_doc', 'toolbar_actions', 'studio_menu', 'mcp_chip', 'remote_chip', 'manifest_chip', 'responsive_dock',
         'dialog',
         'assembly_3d', 'assembly_sidebar', 'assembly_viewport', 'assembly_inspector', 'assembly_header', 'assembly_footer', 'assembly_hud', 'assembly_responsive_tabs',
         'layer_assembly', 'layer_assembly_sidebar', 'layer_assembly_workspace', 'layer_assembly_inspector', 'layer_assembly_tools', 'layer_assembly_header', 'layer_assembly_responsive_tabs',
@@ -90,6 +90,7 @@ export const SCENE_TOOLS = [
         'layer_assembly_plant_motion', 'layer_assembly_plant_chips', 'layer_assembly_plant_panel', 'layer_assembly_pose_tools', 'layer_assembly_plant_graph', 'layer_assembly_smart_rig_25d', 'layer_assembly_creature_rig', 'layer_assembly_bone_builder', 'layer_assembly_bone_constraints', 'layer_assembly_bone_tree', 'layer_assembly_bone_inspector', 'layer_assembly_parallax_25d', 'layer_assembly_motion_harmony', 'layer_assembly_stage_guide',
         'audio_studio', 'audio_studio_sidebar', 'audio_studio_editor', 'audio_studio_waveform', 'audio_studio_tone', 'audio_studio_mixer', 'audio_studio_console',
         'perf_dialog', 'perf_hardware', 'perf_meter', 'perf_settings',
+        'manifest_dialog', 'manifest_sidebar', 'manifest_categories', 'manifest_assets', 'manifest_trash', 'manifest_json_editor',
         'export', 'export_dialog', 'export_preview',
         'camera_sketch', 'camera_sketch_canvas', 'camera_sketch_sidebar', 'camera_sketch_waypoints',
         'camera_path', 'camera_path_presets', 'camera_path_steps',
@@ -118,12 +119,12 @@ export const SCENE_TOOLS = [
   {
     name: 'set_ui_dialog', cat: 'inspect',
     doc: L(
-      'Open, switch, or close any UI dialog/workshop (Camera Path, Camera Sketch, Audio Studio, Performance, Export, MCP, Mobile QR Remote, 3D Assembly, 2.5D Layer Assembly), switch sidebar/inspector/timeline tabs, or toggle dark/light theme.',
-      'Mở, chuyển đổi hoặc đóng bất kỳ hộp thoại/xưởng UI nào (Lộ trình Camera, Vẽ đường bay, Phòng thu Âm thanh, Hiệu năng, Xuất MP4, MCP, Điều khiển QR Điện thoại, Xưởng 3D, Xưởng 2.5D), chuyển tab trái/phải/timeline-workflow hoặc đổi giao diện Tối/Sáng.'
+      'Open, switch, or close any UI dialog/workshop (Camera Path, Camera Sketch, Audio Studio, Performance, Asset Manifest Manager, Export, MCP, Mobile QR Remote, 3D Assembly, 2.5D Layer Assembly), switch sidebar/inspector/timeline tabs, or toggle dark/light theme.',
+      'Mở, chuyển đổi hoặc đóng bất kỳ hộp thoại/xưởng UI nào (Lộ trình Camera, Vẽ đường bay, Phòng thu Âm thanh, Hiệu năng, Quản lý Manifest Tài nguyên, Xuất MP4, MCP, Điều khiển QR Điện thoại, Xưởng 3D, Xưởng 2.5D), chuyển tab trái/phải/timeline-workflow hoặc đổi giao diện Tối/Sáng.'
     ),
     shape: (d) => ({
       dialog: z.enum([
-        'none', 'path', 'sketch', 'performance', 'mcp', 'remote', 'audio', 'export', 'assembly_3d', 'layer_assembly', 'layer_assembly_create', 'loop_animator'
+        'none', 'path', 'sketch', 'performance', 'manifest', 'mcp', 'remote', 'audio', 'export', 'assembly_3d', 'layer_assembly', 'layer_assembly_create', 'loop_animator'
       ]).optional().describe(d('Dialog or workshop to open, or "none" to close all modals.', 'Hộp thoại hoặc xưởng cần mở, hoặc "none" để đóng tất cả hộp thoại.')),
       audio_mode: z.enum(['waveform', 'levels', 'mixer']).optional().describe(d('Audio Studio tab mode when opening or switching Audio Studio.', 'Chế độ tab Phòng thu âm thanh khi mở hoặc chuyển tab (waveform, levels, mixer).')),
       track_id: z.string().optional().describe(d('Audio track ID to select in Audio Studio.', 'ID track âm thanh cần chọn trong Phòng thu.')),
@@ -140,7 +141,66 @@ export const SCENE_TOOLS = [
       inspector_expanded: z.boolean().optional().describe(d('Expand or collapse Right Inspector content pane.', 'Mở rộng hoặc thu gọn nội dung Thanh thuộc tính phải.')),
       theme: z.enum(['dark', 'light']).optional().describe(d('Switch UI theme ("dark" or "light").', 'Đổi giao diện Sáng ("light") hoặc Tối ("dark").'))
     }),
-    example: '{"dialog":"remote"}'
+    example: '{"dialog":"manifest"}'
+  },
+  {
+    name: 'get_assets_manifest', cat: 'project',
+    doc: L(
+      'Read the modular asset coordinator (assets/manifest.json) and workshop sub-manifests (assets/manifests/*.json), including dynamic categories/topics, custom icon links, active assets, and soft-deleted items in assets/_temp_deleted.',
+      'Đọc tệp điều phối tài nguyên trung tâm (assets/manifest.json) và các phân hệ con (assets/manifests/*.json), gồm danh sách chủ đề động, link icon tuỳ chỉnh, tài nguyên đang hoạt động và các tệp xoá tạm trong assets/_temp_deleted.'
+    ),
+    shape: (d) => ({
+      module_id: z.enum(['builtin', 'layer_25d', 'loop_animator', 'model_3d', 'audio']).optional().describe(d('Optional module ID to inspect a single sub-manifest.', 'Mã phân hệ cần tra cứu riêng (nếu bỏ trống sẽ trả về toàn bộ).')),
+      include_items: z.boolean().optional().describe(d('Include full active asset items list (default true).', 'Bao gồm danh sách chi tiết các tài nguyên đang hoạt động (mặc định true).'))
+    }),
+    example: '{"module_id":"loop_animator"}'
+  },
+  {
+    name: 'update_assets_manifest', cat: 'project',
+    doc: L(
+      'Dynamically add, edit, hide, or delete categories/topics (title, folder, icon, icon_url, icon_text, accent, status) or asset metadata in any workshop manifest module (assets/manifests/*.json) with instant UI live-reload.',
+      'Thêm, sửa, ẩn hoặc xoá động các chủ đề/nhóm (title, folder, icon, icon_url, icon_text, accent, status) hoặc thông tin tài nguyên trong bất kỳ phân hệ manifest nào (assets/manifests/*.json) và cập nhật giao diện tức thì.'
+    ),
+    shape: (d) => ({
+      module_id: z.enum(['builtin', 'layer_25d', 'loop_animator', 'model_3d', 'audio']).optional().describe(d('Target manifest module (default: "builtin").', 'Phân hệ manifest mục tiêu (mặc định: "builtin").')),
+      action: z.enum(['upsert_category', 'delete_category', 'upsert_asset', 'save_module']).optional().describe(d('Operation type (default: "upsert_category").', 'Loại thao tác (mặc định: "upsert_category").')),
+      category_id: z.string().optional().describe(d('Category ID to create, update, or delete.', 'Mã chủ đề (id) cần tạo, cập nhật hoặc xoá.')),
+      title: z.string().optional().describe(d('Display title of the category.', 'Tiêu đề hiển thị của chủ đề.')),
+      short_title: z.string().optional().describe(d('Compact badge title.', 'Nhãn rút gọn trên thanh công cụ.')),
+      folder: z.string().optional().describe(d('Physical folder path inside assets/ mapped to this category.', 'Đường dẫn thư mục vật lý trong assets/ gắn với chủ đề này.')),
+      icon: z.string().optional().describe(d('Built-in SVG icon key (e.g. "sparkles", "flame", "paw-animal").', 'Mã icon SVG dựng sẵn (vd: "sparkles", "flame", "paw-animal").')),
+      icon_url: z.string().optional().describe(d('Custom icon link in assets/icons/ (falls back to broken-icon warning badge if file is missing).', 'Đường dẫn icon tuỳ chỉnh trong assets/icons/ (tự chuyển sang icon cảnh báo nếu mất file).')),
+      icon_text: z.string().optional().describe(d('Short text fallback icon (e.g. "FX", "NV") when no SVG icon is used.', 'Chữ viết tắt dạng icon (vd: "FX", "NV") khi không dùng ảnh/SVG.')),
+      accent: z.string().optional().describe(d('Accent hex color (e.g. "#38bdf8").', 'Mã màu nhấn (vd: "#38bdf8").')),
+      order: z.number().int().optional().describe(d('Display sort order.', 'Thứ tự sắp xếp hiển thị.')),
+      status: z.enum(['active', 'deleted', 'hidden']).optional().describe(d('Item status ("active", "deleted", or "hidden").', 'Trạng thái hiển thị ("active", "deleted" hoặc "hidden").')),
+      relative_path: z.string().optional().describe(d('Asset relative path inside assets/ when action is "upsert_asset".', 'Đường dẫn tương đối của tài nguyên trong assets/ khi action là "upsert_asset".')),
+      name: z.string().optional().describe(d('Vietnamese display name of the asset.', 'Tên hiển thị tiếng Việt của tài nguyên.')),
+      category: z.string().optional().describe(d('Category ID assigned to the asset.', 'Mã chủ đề gán cho tài nguyên.')),
+      module_data: z.record(z.string(), z.any()).optional().describe(d('Full module JSON object when action is "save_module".', 'Đối tượng JSON đầy đủ của phân hệ khi action là "save_module".'))
+    }),
+    example: '{"module_id":"loop_animator","action":"upsert_category","category_id":"water_fx","title":"Sóng nước & Thác","folder":"loop-animations/water","icon":"sparkles","icon_text":"WT"}'
+  },
+  {
+    name: 'restore_deleted_asset', cat: 'project',
+    doc: L(
+      'Soft-delete an asset into assets/_temp_deleted/ (status="deleted"), restore a soft-deleted asset back to its original folder (status="active"), or permanently delete it from disk and manifest.json.',
+      'Xoá tạm một tài nguyên vào thư mục assets/_temp_deleted/ (status="deleted"), khôi phục tài nguyên đã xoá tạm về đúng thư mục gốc (status="active"), hoặc xoá vĩnh viễn khỏi ổ đĩa và manifest.json.'
+    ),
+    shape: (d) => ({
+      relative_path: z.string().describe(d('Relative path of the asset (e.g. "characters/chibi_boy_jump.png").', 'Đường dẫn tương đối của tài nguyên (vd: "characters/chibi_boy_jump.png").')),
+      action: z.enum(['restore', 'soft_delete', 'permanent_delete']).optional().describe(d('Action to perform: "restore" (default), "soft_delete" (move to _temp_deleted), or "permanent_delete".', 'Thao tác: "restore" (khôi phục - mặc định), "soft_delete" (chuyển vào _temp_deleted), hoặc "permanent_delete" (xoá hẳn).'))
+    }),
+    example: '{"relative_path":"characters/chibi_boy_jump.png","action":"restore"}'
+  },
+  {
+    name: 'prune_assets_manifest', cat: 'project',
+    doc: L(
+      'Scan assets/ and assets/_temp_deleted/ on disk and automatically synchronize/prune assets/manifest.json and assets/manifests/*.json (equivalent to running assets/prune-manifest.bat).',
+      'Quét toàn bộ thư mục assets/ và assets/_temp_deleted/ trên ổ đĩa để tự động đồng bộ và dọn sạch các mục mồ côi trong assets/manifest.json và assets/manifests/*.json (tương đương chạy assets/prune-manifest.bat).'
+    ),
+    shape: () => ({}),
+    example: '{}'
   },
   {
     name: 'get_remote_state', cat: 'inspect',

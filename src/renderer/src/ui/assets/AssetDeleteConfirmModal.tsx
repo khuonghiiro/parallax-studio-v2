@@ -153,14 +153,15 @@ export function AssetDeleteConfirmModal({
               </div>
 
               <div style={{ fontSize: '11px', color: 'var(--text-faint)' }}>
-                Bạn có chắc chắn muốn tiếp tục xóa không? Hành động này có thể làm trống bộ phận nhân vật hoặc cảnh.
+                Khi xóa, tệp vẫn được lưu tạm tại <code>assets/_temp_deleted/</code> để khôi phục nếu cần.
               </div>
             </>
           ) : (
             <div style={{ fontSize: '12px', color: 'var(--text)', lineHeight: 1.5 }}>
               Bạn có chắc chắn muốn xóa tài nguyên <b>&ldquo;{name}&rdquo;</b> không?
               <div style={{ marginTop: '8px', fontSize: '11px', color: 'var(--text-dim)' }}>
-                ✨ Tài nguyên này chưa được sử dụng ở cảnh hay mẫu nào, có thể xóa an toàn.
+                ✨ Tài nguyên này chưa được sử dụng ở cảnh hay mẫu nào. Tệp sẽ được chuyển vào kho tạm{' '}
+                <code>assets/_temp_deleted/</code> (trạng thái <code>deleted</code>) để bạn có thể khôi phục lại bất cứ lúc nào trong hộp thoại Cấu hình Manifest.
               </div>
             </div>
           )}
@@ -192,7 +193,7 @@ export function AssetDeleteConfirmModal({
             }}
           >
             <IconTrash width={11} height={11} />
-            <span>{hasUsage ? 'Vẫn xóa tài nguyên' : 'Xóa tài nguyên'}</span>
+            <span>{hasUsage ? 'Vẫn xóa tạm' : 'Xóa tài nguyên'}</span>
           </button>
         </div>
       </div>

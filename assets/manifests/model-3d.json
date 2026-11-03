@@ -1,0 +1,149 @@
+{
+  "module": "model_3d",
+  "title": "Xưởng Lắp Ráp Mô Hình 3D (Mesh & Box)",
+  "description": "Chủ đề phân loại mô hình 3D (Kiến trúc, Đạo cụ, Đường phố, Nội thất, Trang trí, Thiên nhiên) và vật liệu diện phẳng 3D.",
+  "folders": ["assembly_3d/modular", "assembly_3d/templates", "asset-3ds"],
+  "categories": [
+    {
+      "id": "all",
+      "folder": "",
+      "title": "Tất cả mô hình",
+      "shortTitle": "Tất cả",
+      "icon": "grid-3d",
+      "iconUrl": "",
+      "iconText": "3D",
+      "accent": "#3b82f6",
+      "description": "Toàn bộ mô hình 3D và vật liệu lắp ráp trong thư mục asset-3ds",
+      "order": 0,
+      "status": "active"
+    },
+    {
+      "id": "architecture",
+      "folder": "architecture",
+      "title": "Kiến trúc & Nhà cửa",
+      "shortTitle": "Kiến trúc",
+      "icon": "home",
+      "iconUrl": "",
+      "iconText": "🏛️",
+      "accent": "#06b6d4",
+      "description": "Nhà gỗ châu Âu cổ điển, biệt thự, công trình kiến trúc",
+      "order": 1,
+      "status": "active"
+    },
+    {
+      "id": "props",
+      "folder": "props",
+      "title": "Đạo cụ & Khối hộp",
+      "shortTitle": "Đạo cụ",
+      "icon": "cube",
+      "iconUrl": "",
+      "iconText": "🧊",
+      "accent": "#8b5cf6",
+      "description": "Khối hộp chữ nhật, thùng hàng, bục trưng bày sản phẩm 3D",
+      "order": 2,
+      "status": "active"
+    },
+    {
+      "id": "street",
+      "folder": "street",
+      "title": "Đường phố & Góc cảnh",
+      "shortTitle": "Đường phố",
+      "icon": "city",
+      "iconUrl": "",
+      "iconText": "🏙️",
+      "accent": "#f59e0b",
+      "description": "Góc nhà phố 90°, vỉa hè, biển hiệu đô thị",
+      "order": 3,
+      "status": "active"
+    },
+    {
+      "id": "room",
+      "folder": "room",
+      "title": "Nội thất & Căn phòng",
+      "shortTitle": "Nội thất",
+      "icon": "room",
+      "iconUrl": "",
+      "iconText": "🛋️",
+      "accent": "#ec4899",
+      "description": "Không gian phòng studio, căn phòng 3 vách có sàn",
+      "order": 4,
+      "status": "active"
+    },
+    {
+      "id": "decor",
+      "folder": "decor",
+      "title": "Bộ phận trang trí",
+      "shortTitle": "Trang trí",
+      "icon": "decor",
+      "iconUrl": "",
+      "iconText": "🪟",
+      "accent": "#14b8a6",
+      "description": "Cửa sổ, cửa ra vào, ống khói, cột, ban công, chậu cây… tạo riêng rồi ghép vào khung nhà",
+      "order": 5,
+      "status": "active"
+    },
+    {
+      "id": "nature",
+      "folder": "nature",
+      "title": "Thiên nhiên & Cây cỏ",
+      "shortTitle": "Cây cỏ",
+      "icon": "tree",
+      "iconUrl": "",
+      "iconText": "🌲",
+      "accent": "#10b981",
+      "description": "Cây cối thể tích, bụi hoa, thảm cỏ sân vườn tạo cảnh quan",
+      "order": 6,
+      "status": "active"
+    },
+    {
+      "id": "custom",
+      "folder": "custom",
+      "title": "Tùy biến & Tự tạo",
+      "shortTitle": "Tự tạo",
+      "icon": "sparkles",
+      "iconUrl": "",
+      "iconText": "✨",
+      "accent": "#6366f1",
+      "description": "Các mô hình 3D và texture tự thiết kế, tải thêm từ máy",
+      "order": 7,
+      "status": "active"
+    }
+  ],
+  "assets": {
+    "assembly_3d/modular/wall_front_tudor.png": {
+      "name": "Tường đầu hồi Tudor (Mặt trước)",
+      "category": "architecture",
+      "status": "active"
+    },
+    "assembly_3d/modular/wall_side_tudor.png": {
+      "name": "Vách tường hông Tudor",
+      "category": "architecture",
+      "status": "active"
+    },
+    "assembly_3d/modular/roof_terracotta.png": {
+      "name": "Mái ngói đất nung",
+      "category": "architecture",
+      "status": "active"
+    },
+    "assembly_3d/modular/decor_window.png": {
+      "name": "Khung cửa sổ gỗ cổ điển",
+      "category": "decor",
+      "status": "active"
+    },
+    "assembly_3d/modular/decor_door.png": {
+      "name": "Cửa vòm gỗ sồi",
+      "category": "decor",
+      "status": "active"
+    },
+    "assembly_3d/modular/decor_chimney.png": {
+      "name": "Ống khói gạch đỏ",
+      "category": "decor",
+      "status": "active"
+    },
+    "assembly_3d/modular/bonsai_trunk.png": {
+      "name": "Thân cây Bonsai uốn thế",
+      "category": "nature",
+      "status": "active"
+    }
+  }
+}

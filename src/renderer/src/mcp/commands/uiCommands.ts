@@ -181,6 +181,7 @@ export const UI_TEXT_SYNONYMS: Record<string, string[]> = {
   'kho mẫu': ['mẫu có sẵn', 'builtin', 'kho tài nguyên'],
   'sơ đồ 3d': ['topview', 'mặt bằng xz', 'mặt cắt zy'],
   'lắp ráp 2.5d': ['2.5d', 'xưởng 2.5d', 'layer assembly'],
+  'manifest': ['quản lý manifest', 'manifest.json', 'chủ đề json', 'kho tạm đã xoá'],
   'qr': ['quét mã qr', 'remote', 'điều khiển điện thoại', 'mobile remote'],
   'remote': ['quét mã qr', 'qr', 'điều khiển điện thoại', 'mobile remote']
 }
@@ -303,7 +304,7 @@ async function cropImageBase64(
   })
 }
 
-const VALID_ASSET_SUBTABS = new Set<AssetSubTab>(['builtin', '3d', 'assembly', 'music', 'project'])
+const VALID_ASSET_SUBTABS = new Set<AssetSubTab>(['builtin', '3d', 'assembly', 'loop', 'music', 'project'])
 
 function applyPanelAndTabSwitches(p: Params): void {
   const v = useView.getState()
@@ -395,6 +396,7 @@ function applyDialogSwitch(p: Params): void {
       dialog === 'path' ||
       dialog === 'sketch' ||
       dialog === 'performance' ||
+      dialog === 'manifest' ||
       dialog === 'mcp' ||
       dialog === 'remote' ||
       dialog === 'export' ||
@@ -405,7 +407,7 @@ function applyDialogSwitch(p: Params): void {
       requestOpenLayerAssembly(str(p, 'composite_id') ?? undefined)
     } else {
       throw new ParamError(
-        `Invalid dialog "${dialog}". Expected none, path, sketch, performance, mcp, remote, audio, export, loop_animator, layer_assembly, or layer_assembly_create.`
+        `Invalid dialog "${dialog}". Expected none, path, sketch, performance, manifest, mcp, remote, audio, export, loop_animator, layer_assembly, or layer_assembly_create.`
       )
     }
   } else if (audioMode === 'levels' || audioMode === 'mixer' || audioMode === 'waveform') {
@@ -581,6 +583,7 @@ export const uiCommands: Record<string, Handler> = {
     return {
       theme: v.theme,
       dialog: v.dialog,
+      manifest_dialog_open: v.dialog === 'manifest',
       audio_dialog_mode: v.audioDialogMode,
       left_tab: v.leftTab,
       asset_subtab: v.assetSubTab,
@@ -619,6 +622,7 @@ export const uiCommands: Record<string, Handler> = {
       ok: true,
       theme: s.theme,
       dialog: s.dialog,
+      manifest_dialog_open: s.dialog === 'manifest',
       audio_dialog_mode: s.audioDialogMode,
       left_tab: s.leftTab,
       asset_subtab: s.assetSubTab,

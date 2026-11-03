@@ -19,6 +19,7 @@ import { workflowCommands } from './commands/workflowCommands'
 import { timeGroupCommands } from './commands/timeGroupCommands'
 import { remoteCommands } from './commands/remoteCommands'
 import { loopAnimatorCommands } from './commands/loopAnimatorCommands'
+import { manifestCommands } from './commands/manifestCommands'
 
 /**
  * Commands an external AI can run through the MCP bridge.
@@ -46,37 +47,43 @@ const commands: Record<string, Handler> = {
   ...systemCommands,
   ...uiCommands,
   ...remoteCommands,
-  ...loopAnimatorCommands
+  ...loopAnimatorCommands,
+  ...manifestCommands
 }
 
 function getHandler(canonical: string): Handler | undefined {
   if (canonical === 'list_commands') {
-    return () => Array.from(new Set([
-      ...Object.keys(commands),
-      ...Object.keys(uiCommands),
-      ...Object.keys(remoteCommands),
-      ...Object.keys(loopAnimatorCommands),
-      ...Object.keys(workflowCommands),
-      ...Object.keys(timeGroupCommands),
-      ...Object.keys(workflowPartCommands),
-      ...Object.keys(layerAssemblyCommands),
-      ...Object.keys(layerAssemblyTemplateCommands),
-      ...Object.keys(assemblyCommands),
-      ...Object.keys(audioCommands),
-      ...Object.keys(cameraCommands),
-      ...Object.keys(layerCommands),
-      ...Object.keys(shotCommands),
-      ...Object.keys(projectCommands),
-      ...Object.keys(motionCommands),
-      ...Object.keys(proceduralMotionCommands),
-      ...Object.keys(effectStackCommands),
-      ...Object.keys(systemCommands)
-    ])).sort()
+    return () =>
+      Array.from(
+        new Set([
+          ...Object.keys(commands),
+          ...Object.keys(uiCommands),
+          ...Object.keys(remoteCommands),
+          ...Object.keys(loopAnimatorCommands),
+          ...Object.keys(manifestCommands),
+          ...Object.keys(workflowCommands),
+          ...Object.keys(timeGroupCommands),
+          ...Object.keys(workflowPartCommands),
+          ...Object.keys(layerAssemblyCommands),
+          ...Object.keys(layerAssemblyTemplateCommands),
+          ...Object.keys(assemblyCommands),
+          ...Object.keys(audioCommands),
+          ...Object.keys(cameraCommands),
+          ...Object.keys(layerCommands),
+          ...Object.keys(shotCommands),
+          ...Object.keys(projectCommands),
+          ...Object.keys(motionCommands),
+          ...Object.keys(proceduralMotionCommands),
+          ...Object.keys(effectStackCommands),
+          ...Object.keys(systemCommands)
+        ])
+      ).sort()
   }
   return (
     uiCommands[canonical] ??
     remoteCommands[canonical] ??
     loopAnimatorCommands[canonical] ??
+    manifestCommands[canonical] ??
     workflowCommands[canonical] ??
     timeGroupCommands[canonical] ??
     workflowPartCommands[canonical] ??
@@ -151,6 +158,7 @@ const SILENT_MCP_COMMANDS = new Set([
   'get_audio_info',
   'get_assembly_state',
   'get_layer_assembly_state',
+  'get_assets_manifest',
   'list_commands',
   'list_models3d',
   'get_model3d',

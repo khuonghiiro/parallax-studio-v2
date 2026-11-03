@@ -32,13 +32,21 @@ export interface SystemHardwareInfo {
   platform: string
 }
 
+export type ManifestModuleId = 'builtin' | 'layer_25d' | 'loop_animator' | 'model_3d' | 'audio'
+export type ManifestItemStatus = 'active' | 'deleted' | 'hidden'
+
 export interface BuiltInAssetCategory {
   id: string
   folder: string
   title: string
+  shortTitle?: string
   icon: string
+  iconUrl?: string
+  iconText?: string
+  accent?: string
   description?: string
   order?: number
+  status?: ManifestItemStatus
 }
 
 export interface BuiltInAssetItem {
@@ -47,6 +55,7 @@ export interface BuiltInAssetItem {
   fileName: string
   relativePath: string
   folder: string
+  category?: string
   ext: string
   mime: string
   kind: 'image' | 'audio'
@@ -54,13 +63,89 @@ export interface BuiltInAssetItem {
   path: string
   isAnimated?: boolean
   previewUrl?: string
+  status?: ManifestItemStatus
+  tempPath?: string
+  deletedAt?: string
+}
+
+export interface ManifestAssetMeta {
+  name: string
+  category?: string
+  status?: ManifestItemStatus
+  description?: string
+  cols?: number
+  rows?: number
+  fps?: number
+  chroma?: string | null
+  tolerance?: number
+  duration?: number
+  tempPath?: string
+  deletedAt?: string
+  [key: string]: unknown
+}
+
+export interface ManifestSidebarTopic {
+  id: string
+  title: string
+  shortTitle?: string
+  icon: string
+  iconUrl?: string
+  iconText?: string
+  accent?: string
+  sourceModule?: string
+  folderFilter?: string
+  order?: number
+  status?: ManifestItemStatus
+}
+
+export interface ManifestModuleDescriptor {
+  id: ManifestModuleId
+  title: string
+  file: string
+  rootFolder: string
+  tempFolder: string
+  description?: string
+}
+
+export interface ManifestModuleData {
+  moduleId: ManifestModuleId
+  title: string
+  description?: string
+  file: string
+  manifestPath: string
+  rawJson: string
+  categories: BuiltInAssetCategory[]
+  templateCategories?: BuiltInAssetCategory[]
+  sidebarAssetTopics?: ManifestSidebarTopic[]
+  assets: Record<string, ManifestAssetMeta>
+}
+
+export interface ManifestPruneReport {
+  removedAssets: string[]
+  removedItems: string[]
+  removedCategories: string[]
+  softDeletedAssets: string[]
+  restoredAssets: string[]
+  unlisted: string[]
+  added: string[]
 }
 
 export interface BuiltInCatalogResult {
   categories: BuiltInAssetCategory[]
   items: BuiltInAssetItem[]
+  deletedItems?: BuiltInAssetItem[]
   manifestPath: string
   rawJson: string
+  tempTrashFolder?: string
+  iconsFolder?: string
+  iconUrls?: Record<string, string>
+  coordinator?: {
+    version: string
+    tempTrashFolder: string
+    iconsFolder: string
+    modules: Record<ManifestModuleId, ManifestModuleDescriptor>
+  }
+  modules?: Record<ManifestModuleId, ManifestModuleData>
 }
 
 export interface BuiltInSaveManifestResult {
@@ -72,9 +157,14 @@ export interface BuiltInSaveManifestResult {
 export interface Asset3DsCategory {
   id: string
   title: string
+  shortTitle?: string
   icon: string
+  iconUrl?: string
+  iconText?: string
+  accent?: string
   description?: string
   order?: number
+  status?: ManifestItemStatus
 }
 
 export interface Asset3DsCatalogResult {
@@ -97,12 +187,27 @@ export interface ParallaxApi {
   setTitle(title: string): void
   resetZoom?(): void
   getSystemInfo(): Promise<SystemHardwareInfo>
-  getBuiltInCatalog(): Promise<BuiltInCatalogResult>
+  getBuiltInCatalog(forceRefresh?: boolean): Promise<BuiltInCatalogResult>
   getAssemblyAssets(): Promise<BuiltInAssetItem[]>
   saveBuiltInManifest(jsonContent: string): Promise<BuiltInSaveManifestResult>
+  saveModuleManifest?(
+    moduleId: ManifestModuleId | 'coordinator',
+    jsonContent: string
+  ): Promise<BuiltInSaveManifestResult>
   loadBuiltInAssetBytes(relativePath: string): Promise<{ name: string; mime: string; data: Uint8Array } | null>
   openBuiltInFolder(subFolder?: string): Promise<void>
-  deleteBuiltInAsset(relativePath: string): Promise<{ ok: boolean; error?: string }>
+  deleteBuiltInAsset(
+    relativePath: string,
+    opts?: { permanent?: boolean }
+  ): Promise<{ ok: boolean; status?: ManifestItemStatus; tempPath?: string; error?: string; catalog?: BuiltInCatalogResult }>
+  restoreBuiltInAsset?(
+    relativePath: string
+  ): Promise<{ ok: boolean; relPath?: string; error?: string; catalog?: BuiltInCatalogResult }>
+  pruneBuiltInManifest?(opts?: {
+    keepEmpty?: boolean
+    addNew?: boolean
+  }): Promise<{ ok: boolean; report?: ManifestPruneReport; error?: string; catalog?: BuiltInCatalogResult }>
+  onBuiltInCatalogUpdated?(cb: (catalog: BuiltInCatalogResult) => void): () => void
   importBuiltInAssetFile(opts: {
     name: string
     buffer: Uint8Array
@@ -135,6 +240,7 @@ export interface McpCommand {
 
 export interface McpResponse {
   reqId: string
+  req?: string
   ok: boolean
   result?: unknown
   error?: string

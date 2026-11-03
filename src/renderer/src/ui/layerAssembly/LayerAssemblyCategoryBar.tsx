@@ -18,12 +18,15 @@ interface TooltipInfo {
   right: number
 }
 
-function getCategoryDescription(catId: string, title: string): string {
-  switch (catId) {
+function getCategoryDescription(cat: LayerCompositeCategory): string {
+  if (cat.description?.trim()) return cat.description
+  switch (cat.id) {
     case 'all':
       return 'Toàn bộ các mẫu chi tiết layer xếp chồng và gắn xương trong thư viện'
     case 'nature':
       return 'Các mẫu cây cối, hoa lá, cỏ và cành nhánh thiên nhiên có gắn xương uốn mềm'
+    case 'animal':
+      return 'Các mẫu thú 4 chân, chim bay, cá bơi và sinh vật gắn khung xương chuyển động'
     case 'prop':
       return 'Đồ vật, nội thất, lồng đèn, đạo cụ và chi tiết trang trí cảnh'
     case 'character':
@@ -33,7 +36,7 @@ function getCategoryDescription(catId: string, title: string): string {
     case 'custom':
       return 'Các chi tiết layer do bạn tự tạo và lưu lại trong dự án'
     default:
-      return `Bộ sưu tập chi tiết danh mục ${title}`
+      return `Bộ sưu tập chi tiết danh mục ${cat.title}`
   }
 }
 
@@ -88,7 +91,10 @@ export function LayerAssemblyCategoryBar({
                 onClick={() => onSelectCategory(cat.id)}
                 aria-label={`${cat.title} (${count})`}
               >
-                {renderCategoryIcon(cat.icon || cat.id, 16, 16, cat.id)}
+                {renderCategoryIcon(cat.icon || cat.id, 16, 16, cat.id, {
+                  iconUrl: cat.iconUrl,
+                  iconText: cat.iconText
+                })}
               </button>
             </div>
           )
@@ -136,7 +142,7 @@ export function LayerAssemblyCategoryBar({
                 )}
               </div>
               <div className="tooltip-desc">
-                {getCategoryDescription(tooltip.cat.id, tooltip.cat.title)}
+                {getCategoryDescription(tooltip.cat)}
               </div>
               <div className="tooltip-count">
                 <span>🧩 {itemCounts[tooltip.cat.id] ?? 0} chi tiết lắp ráp</span>

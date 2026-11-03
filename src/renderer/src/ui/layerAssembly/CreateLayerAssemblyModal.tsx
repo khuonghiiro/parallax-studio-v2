@@ -3,12 +3,13 @@ import type { LayerComposite } from './types'
 import {
   ALL_LAYER_TEMPLATES,
   LAYER_TEMPLATE_CATEGORY_TABS,
-  type LayerAssemblyTemplate,
-  type LayerTemplateCategory
+  type LayerAssemblyTemplate
 } from './templates'
 import { renderTemplateThumbnail } from './templates/templateIcons'
 import { TemplatePromptModal } from './templates/TemplatePromptModal'
+import { renderCategoryIcon } from '../assets/categoryIcons'
 import { IconLayers, IconPlus, IconX, IconSparkles } from '../icons'
+import { useAssetManifestStore } from '../../store/assetManifest'
 import '../../styles/layerAssemblyTemplates.css'
 
 interface CreateLayerAssemblyModalProps {
@@ -18,7 +19,7 @@ interface CreateLayerAssemblyModalProps {
   onSelectBlank: () => void
 }
 
-function matchesFilter(tmpl: LayerAssemblyTemplate, cat: LayerTemplateCategory, q: string): boolean {
+function matchesFilter(tmpl: LayerAssemblyTemplate, cat: string, q: string): boolean {
   if (cat !== 'all' && tmpl.category !== cat) return false
   if (!q) return true
   const query = q.toLowerCase()
@@ -85,9 +86,32 @@ export function CreateLayerAssemblyModal({
   onSelectTemplate,
   onSelectBlank
 }: CreateLayerAssemblyModalProps) {
-  const [category, setCategory] = useState<LayerTemplateCategory>('all')
+  const [category, setCategory] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [promptTemplate, setPromptTemplate] = useState<LayerAssemblyTemplate | null>(null)
+  const layer25dModule = useAssetManifestStore((s) => s.modules.layer_25d)
+
+  const dynamicTabs = useMemo(() => {
+    const manifestCats = layer25dModule?.templateCategories?.filter(
+      (c) => c.status !== 'deleted' && c.status !== 'hidden'
+    )
+    if (manifestCats && manifestCats.length > 0) {
+      return manifestCats.map((c) => ({
+        id: c.id,
+        label: c.shortTitle || c.title,
+        icon: c.icon,
+        iconUrl: c.iconUrl,
+        iconText: c.iconText
+      }))
+    }
+    return LAYER_TEMPLATE_CATEGORY_TABS.map((t) => ({
+      id: t.id,
+      label: t.label,
+      icon: t.id,
+      iconUrl: undefined,
+      iconText: undefined
+    }))
+  }, [layer25dModule])
 
   useEffect(() => {
     if (!isOpen) return
@@ -109,13 +133,13 @@ export function CreateLayerAssemblyModal({
 
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = { all: ALL_LAYER_TEMPLATES.length }
-    for (const tab of LAYER_TEMPLATE_CATEGORY_TABS) {
+    for (const tab of dynamicTabs) {
       if (tab.id !== 'all') {
         counts[tab.id] = ALL_LAYER_TEMPLATES.filter((t) => t.category === tab.id).length
       }
     }
     return counts
-  }, [])
+  }, [dynamicTabs])
 
   if (!isOpen) return null
 
@@ -169,7 +193,7 @@ export function CreateLayerAssemblyModal({
         {/* Toolbar: Category Tabs & Search */}
         <div className="lat-toolbar">
           <div className="lat-tabs" role="tablist">
-            {LAYER_TEMPLATE_CATEGORY_TABS.map((tab) => (
+            {dynamicTabs.map((tab) => (
               <button
                 key={tab.id}
                 type="button"
@@ -178,6 +202,10 @@ export function CreateLayerAssemblyModal({
                 className={`lat-tab${category === tab.id ? ' active' : ''}`}
                 onClick={() => setCategory(tab.id)}
               >
+                {renderCategoryIcon(tab.icon, 13, 13, tab.id, {
+                  iconUrl: tab.iconUrl,
+                  iconText: tab.iconText
+                })}
                 <span>{tab.label}</span>
                 <span className="lat-tab-count">{categoryCounts[tab.id] ?? 0}</span>
               </button>

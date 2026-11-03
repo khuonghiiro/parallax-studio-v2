@@ -101,7 +101,6 @@ export interface AssembledLayerItem {
   /** Nhãn chất liệu vật lý, mặt đất đỡ, vùng Sub-Mesh UV & cổng chiều sâu hang động gắn sẵn tại Xưởng */
   physics?: import('@shared/types').LayerPhysicsConfig
   /** Nguồn sáng ảo 2.5D (Ánh nến phản ứng gió, Đèn pin, Tinh thể hang động...) gắn sẵn tại Xưởng */
-  /** Nguồn sáng ảo 2.5D (Ánh nến phản ứng gió, Đèn pin, Tinh thể hang động...) gắn sẵn tại Xưởng */
   virtualLight?: import('@shared/types').LayerVirtualLight
   /** Cấu hình Hoạt ảnh Lặp (Loop Animate Sprite & Logic Nhịp Nháy) gắn trực tiếp cho mảnh trong Xưởng 2.5D */
   loopConfig?: LoopWorkshopLayerConfig
@@ -128,7 +127,7 @@ export interface LayerComposite {
   plantSpines?: import('@shared/plantSpine').PlantSpine[]
   id: string
   name: string
-  category: 'nature' | 'prop' | 'character' | 'architecture' | 'scene' | 'custom'
+  category: 'nature' | 'prop' | 'character' | 'animal' | 'architecture' | 'scene' | 'custom' | (string & {})
   description?: string
   thumbnail?: string
   width: number
@@ -147,7 +146,14 @@ export interface LayerComposite {
 
 export interface LayerCompositeCategory {
   id: string
+  folder?: string
   title: string
+  shortTitle?: string
   icon: string
-  order: number
+  iconUrl?: string
+  iconText?: string
+  accent?: string
+  description?: string
+  order?: number
+  status?: 'active' | 'deleted' | 'hidden'
 }

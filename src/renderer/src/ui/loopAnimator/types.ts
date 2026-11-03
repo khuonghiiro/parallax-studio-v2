@@ -3,6 +3,8 @@ import type { LoopAnimationMode, LoopRhythmMode } from '@shared/types'
 export type SlicerMode = 'grid' | 'contour' | 'manual'
 export type { LoopAnimationMode, LoopRhythmMode }
 
+export type LoopCategorySlug = 'fire' | 'magic' | 'nature' | 'electric' | 'custom' | (string & {})
+
 export interface LoopFrameBox {
   id: string
   index: number
@@ -107,7 +109,7 @@ export interface LoopPlaybackConfig {
 export interface SampleLoopPreset {
   id: string
   name: string
-  category: 'fire' | 'magic' | 'nature' | 'electric' | 'custom'
+  category: LoopCategorySlug
   badge: string
   description: string
   imageUrl: string
@@ -122,7 +124,7 @@ export interface SampleLoopPreset {
 export interface LoopAnimationTemplate {
   id: string
   name: string
-  category: 'fire' | 'magic' | 'nature' | 'electric' | 'custom'
+  category: LoopCategorySlug
   badge: string
   description: string
   /** Source sprite sheet url or data URL */

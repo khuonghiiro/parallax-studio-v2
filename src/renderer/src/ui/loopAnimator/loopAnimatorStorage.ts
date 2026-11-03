@@ -1,3 +1,4 @@
+import { useAssetManifestStore } from '../../store/assetManifest'
 import { SAMPLE_LOOP_PRESETS } from './sampleLoops'
 import type { LoopAnimationTemplate } from './types'
 
@@ -35,29 +36,45 @@ function saveHiddenBuiltinLoopIds(ids: Set<string>): void {
 }
 
 export function getBuiltinLoopTemplates(): LoopAnimationTemplate[] {
-  return SAMPLE_LOOP_PRESETS.map((p) => ({
-    id: p.id,
-    name: p.name,
-    category: p.category,
-    badge: p.badge,
-    description: p.description,
-    imageUrl: p.imageUrl,
-    slicerMode: 'grid',
-    gridConfig: { ...p.defaultGrid },
-    chromaKey: { ...p.defaultChroma },
-    fps: p.defaultFps,
-    speed: p.defaultSpeed ?? 1,
-    loopMode: p.defaultLoopMode ?? 'loop',
-    rhythm: {
-      rhythmMode: p.defaultRhythm?.rhythmMode ?? 'none',
-      rhythmRateHz: p.defaultRhythm?.rhythmRateHz ?? 2.2,
-      rhythmIntensity: p.defaultRhythm?.rhythmIntensity ?? 0.35,
-      minOpacity: p.defaultRhythm?.minOpacity ?? 0.5,
-      scaleBeatPct: p.defaultRhythm?.scaleBeatPct ?? 12
-    },
-    frameCount: p.defaultGrid.cols * p.defaultGrid.rows,
-    isBuiltin: true
-  }))
+  const loopModule = useAssetManifestStore.getState().modules?.loop_animator
+  const manifestAssets = loopModule?.assets || {}
+
+  return SAMPLE_LOOP_PRESETS.flatMap((p) => {
+    const relKey = p.imageUrl.replace(/^assets\//, '')
+    const meta = manifestAssets[p.id] || manifestAssets[relKey] || manifestAssets[p.imageUrl]
+    if (meta && (meta.status === 'deleted' || meta.status === 'hidden')) {
+      return []
+    }
+    const cols = typeof meta?.cols === 'number' && meta.cols > 0 ? meta.cols : p.defaultGrid.cols
+    const rows = typeof meta?.rows === 'number' && meta.rows > 0 ? meta.rows : p.defaultGrid.rows
+    const fps = typeof meta?.fps === 'number' && meta.fps > 0 ? meta.fps : p.defaultFps
+
+    return [
+      {
+        id: p.id,
+        name: meta?.name?.trim() || p.name,
+        category: meta?.category?.trim() || p.category,
+        badge: p.badge,
+        description: meta?.description?.trim() || p.description,
+        imageUrl: p.imageUrl,
+        slicerMode: 'grid' as const,
+        gridConfig: { ...p.defaultGrid, cols, rows },
+        chromaKey: { ...p.defaultChroma },
+        fps,
+        speed: p.defaultSpeed ?? 1,
+        loopMode: p.defaultLoopMode ?? 'loop',
+        rhythm: {
+          rhythmMode: p.defaultRhythm?.rhythmMode ?? 'none',
+          rhythmRateHz: p.defaultRhythm?.rhythmRateHz ?? 2.2,
+          rhythmIntensity: p.defaultRhythm?.rhythmIntensity ?? 0.35,
+          minOpacity: p.defaultRhythm?.minOpacity ?? 0.5,
+          scaleBeatPct: p.defaultRhythm?.scaleBeatPct ?? 12
+        },
+        frameCount: cols * rows,
+        isBuiltin: true
+      }
+    ]
+  })
 }
 
 export function getStoredLoopTemplates(): LoopAnimationTemplate[] {
@@ -72,7 +89,7 @@ export function getStoredLoopTemplates(): LoopAnimationTemplate[] {
   }
 }
 
-/** Toàn bộ mẫu hiển thị trong kho: mẫu tự lưu + mẫu tích hợp sẵn (trừ mẫu đã bị ẩn) */
+/** Toàn bộ mẫu hiển thị trong kho: mẫu tự lưu + mẫu tích hợp sẵn (trừ mẫu đã bị ẩn hoặc xoá tạm trong manifest) */
 export function getAllLoopTemplates(): LoopAnimationTemplate[] {
   const hidden = getHiddenBuiltinLoopIds()
   const builtins = getBuiltinLoopTemplates().filter((b) => !hidden.has(b.id))
@@ -105,7 +122,6 @@ export function saveLoopTemplate(template: LoopAnimationTemplate): LoopAnimation
     console.error('[loopAnimatorStorage] Failed to save loop template:', err)
   }
   if (isBuiltinLoopTemplateId(nextItem.id)) {
-    // Lưu đè lên mẫu có sẵn đã bị ẩn trước đó → hiện lại trong kho
     const hidden = getHiddenBuiltinLoopIds()
     if (hidden.delete(nextItem.id)) saveHiddenBuiltinLoopIds(hidden)
   }
@@ -115,7 +131,7 @@ export function saveLoopTemplate(template: LoopAnimationTemplate): LoopAnimation
 
 /**
  * Xoá mẫu hoạt ảnh lặp khỏi kho. Mẫu tự lưu bị xoá hẳn; mẫu tích hợp sẵn
- * được đưa vào danh sách ẩn (đồng thời xoá bản ghi đè cấu hình nếu có).
+ * được đưa vào danh sách ẩn (đồng thời đánh dấu deleted trong manifest nếu có).
  */
 export function deleteLoopTemplate(id: string): boolean {
   const stored = getStoredLoopTemplates()
@@ -132,6 +148,11 @@ export function deleteLoopTemplate(id: string): boolean {
     const hidden = getHiddenBuiltinLoopIds()
     hidden.add(id)
     saveHiddenBuiltinLoopIds(hidden)
+    const preset = SAMPLE_LOOP_PRESETS.find((p) => p.id === id)
+    if (preset && preset.imageUrl.startsWith('assets/')) {
+      const rel = preset.imageUrl.replace(/^assets\//, '')
+      void useAssetManifestStore.getState().softDeleteAsset(rel, false)
+    }
   }
   notifyUpdated()
   return true

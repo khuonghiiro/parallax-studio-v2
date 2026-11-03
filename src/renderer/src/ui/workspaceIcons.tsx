@@ -282,3 +282,57 @@ export const IconStageGuide = (p: P) => (
     <path d="M10.2 16.5h3.6" />
   </svg>
 )
+
+/** Cấu hình Manifest Tài Nguyên Động (Coordinator JSON + Phân nhóm chủ đề + Kho tạm khôi phục) */
+export const IconAssetManifest = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M3.5 6.5A2 2 0 0 1 5.5 4.5h4.2l1.8 2h7A2 2 0 0 1 20.5 8.5v9A2 2 0 0 1 18.5 19.5h-13A2 2 0 0 1 3.5 17.5Z" />
+    <path d="M9.2 10.2H8a1.2 1.2 0 0 0-1.2 1.2v.6a1.2 1.2 0 0 1-1.1 1.2 1.2 1.2 0 0 1 1.1 1.2v.6A1.2 1.2 0 0 0 8 16.2h1.2" />
+    <path d="M14.8 10.2H16a1.2 1.2 0 0 1 1.2 1.2v.6a1.2 1.2 0 0 0 1.1 1.2 1.2 1.2 0 0 0-1.1 1.2v.6a1.2 1.2 0 0 1-1.2 1.2h-1.2" />
+    <circle cx="12" cy="13.2" r="1.2" fill="currentColor" stroke="none" />
+  </svg>
+)
+
+/** Ngọn lửa & Nhiệt (Chủ đề Fire trong Xưởng Tách Hoạt Ảnh Loop) */
+export const IconFlame = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M12 2.5c1.5 3.2 4.5 5.2 5.5 8.5a6 6 0 1 1-11.2 2c.3-2.2 1.8-3.8 2.7-4.8.4 1.6 1.6 2.3 2.3 2.5-.5-2.6.2-5.5.7-8.2Z" />
+  </svg>
+)
+
+/** Tia sét & Điện Plasma (Chủ đề Electric trong Xưởng Tách Hoạt Ảnh Loop) */
+export const IconLightning = (p: P) => (
+  <svg {...base(p)}>
+    <polygon points="13 2 4 14 11 14 10 22 20 10 13 10 13 2" />
+  </svg>
+)
+
+/** Phương tiện & Xe cộ 3D (Chủ đề Vehicle trong Xưởng 3D) */
+export const IconCarVehicle = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M5 11 6.8 6.5A2 2 0 0 1 8.6 5.2h6.8a2 2 0 0 1 1.8 1.3L19 11" />
+    <rect x="3" y="11" width="18" height="6" rx="2" />
+    <circle cx="7" cy="17.5" r="1.8" />
+    <circle cx="17" cy="17.5" r="1.8" />
+  </svg>
+)
+
+/** Micro Lời thoại (Chủ đề Voice trong Kho Âm Thanh) */
+export const IconVoiceMic = (p: P) => (
+  <svg {...base(p)}>
+    <rect x="9" y="2.5" width="6" height="11" rx="3" />
+    <path d="M5 10.5a7 7 0 0 0 14 0" />
+    <line x1="12" y1="17.5" x2="12" y2="21.5" />
+    <line x1="8.5" y1="21.5" x2="15.5" y2="21.5" />
+  </svg>
+)
+
+/** Icon mặc định cảnh báo khi đường dẫn iconUrl của chủ đề bị xoá/lỗi */
+export const IconBrokenIconFallback = (p: P) => (
+  <svg {...base(p)}>
+    <rect x="3" y="3" width="18" height="18" rx="3" strokeDasharray="3 2" />
+    <path d="M12 8v4.5" />
+    <circle cx="12" cy="16" r="1.1" fill="currentColor" stroke="none" />
+  </svg>
+)
+

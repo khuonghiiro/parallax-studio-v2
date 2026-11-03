@@ -5,16 +5,26 @@ import {
   scanBuiltInCatalog,
   sortCategories,
   importBuiltInAssetFile,
-  deleteBuiltInAsset
+  deleteBuiltInAsset,
+  restoreBuiltInAsset
 } from './builtInAssets'
 import type { BuiltInAssetCategory } from '@shared/ipc'
 
 describe('Built-in Assets Catalog & Manifest Management', () => {
-  it('scans built-in catalog and finds categories and media assets', async () => {
+  it('scans built-in catalog and finds categories, modular manifests, and media assets', async () => {
     const catalog = await scanBuiltInCatalog()
     expect(catalog).toBeDefined()
     expect(Array.isArray(catalog.categories)).toBe(true)
     expect(catalog.categories.length).toBeGreaterThanOrEqual(3)
+
+    // Check modular coordinator & sub-manifests
+    expect(catalog.coordinator?.version).toBe('2.0')
+    expect(catalog.coordinator?.tempTrashFolder).toBe('_temp_deleted')
+    expect(catalog.modules?.builtin).toBeDefined()
+    expect(catalog.modules?.layer_25d?.categories.length).toBeGreaterThanOrEqual(6)
+    expect(catalog.modules?.loop_animator?.categories.length).toBeGreaterThanOrEqual(4)
+    expect(catalog.modules?.model_3d?.categories.length).toBeGreaterThanOrEqual(5)
+    expect(catalog.modules?.audio?.categories.length).toBeGreaterThanOrEqual(4)
 
     // Check default categories
     const allCat = catalog.categories.find((c) => c.id === 'all')
@@ -36,6 +46,8 @@ describe('Built-in Assets Catalog & Manifest Management', () => {
     // Layer Assembly and 3D assembly textures are excluded from the regular 2D library
     expect(catalog.items.some((it) => it.folder === 'character_cutout_demo')).toBe(false)
     expect(catalog.items.some((it) => it.relativePath.startsWith('assembly_3d/'))).toBe(false)
+    expect(catalog.items.some((it) => it.relativePath.startsWith('_temp_deleted/'))).toBe(false)
+    expect(catalog.items.some((it) => it.relativePath.startsWith('manifests/'))).toBe(false)
   })
 
   it('loads binary bytes and mime type for an existing asset', async () => {
@@ -95,7 +107,7 @@ describe('Built-in Assets Catalog & Manifest Management', () => {
     ])
   })
 
-  it('imports an asset file buffer into assets/uploads and cleans it up with deleteBuiltInAsset', async () => {
+  it('imports, soft-deletes to _temp_deleted, restores, and permanently deletes an asset file', async () => {
     // 1x1 transparent PNG buffer
     const pngBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='
     const buffer = Buffer.from(pngBase64, 'base64')
@@ -115,10 +127,23 @@ describe('Built-in Assets Catalog & Manifest Management', () => {
       expect(importRes.relPath).toMatch(/^uploads\/test_unit_upload_photo(_\d+)?\.png$/)
       expect(importRes.item).toBeDefined()
       expect(importRes.item?.name).toBe('Ảnh test đơn vị')
+
+      // 1. Soft-delete moves file to assets/_temp_deleted/ and marks status: 'deleted'
+      const softDeleteRes = await deleteBuiltInAsset(relPathToClean!)
+      expect(softDeleteRes.ok).toBe(true)
+      expect(softDeleteRes.status).toBe('deleted')
+      expect(softDeleteRes.tempPath).toBe(`_temp_deleted/${relPathToClean}`)
+      expect(softDeleteRes.catalog?.items.some((it) => it.relativePath === relPathToClean)).toBe(false)
+      expect(softDeleteRes.catalog?.deletedItems?.some((it) => it.relativePath === relPathToClean)).toBe(true)
+
+      // 2. Restore moves file back from _temp_deleted/ to active folder
+      const restoreRes = await restoreBuiltInAsset(relPathToClean!)
+      expect(restoreRes.ok).toBe(true)
+      expect(restoreRes.catalog?.items.some((it) => it.relativePath === relPathToClean)).toBe(true)
     } finally {
       if (relPathToClean) {
-        const deleteRes = await deleteBuiltInAsset(relPathToClean)
-        expect(deleteRes.ok).toBe(true)
+        const permDeleteRes = await deleteBuiltInAsset(relPathToClean, { permanent: true })
+        expect(permDeleteRes.ok).toBe(true)
       }
     }
   })

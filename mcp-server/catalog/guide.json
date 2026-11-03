@@ -1,6 +1,6 @@
 {
   "$comment": "Single source for the AI guide (MCP server instructions, get_ai_guide, CLI help, McpDialog prompt). Every section MUST keep the same number of lines in en and vi - catalog.test.mjs enforces it.",
-  "toolCount": 160,
+  "toolCount": 164,
   "sections": [
     {
       "id": "overview",
@@ -236,6 +236,29 @@
           "open_loop_animator {\"blank\":true} mở phiên trống y hệt nút \"Tạo Loop Animate\" trên giao diện.",
           "Trước khi xoá mẫu hãy gọi get_loop_template_usages; detach_loop_template_usage gỡ liên kết (hoặc xoá) từng ràng buộc, delete_loop_template force=true tự gỡ phần còn lại.",
           "Xưởng Layer 2.5D có tab tài nguyên Loop (layer_assembly_loop_assets) để thêm hoặc gán mẫu, cấu hình ở tab Loop bên phải."
+        ]
+      }
+    },
+    {
+      "id": "manifest_assets",
+      "title": {
+        "en": "Dynamic Asset Manifest & Trash Recovery",
+        "vi": "Điều phối Manifest Tài nguyên & Kho tạm Khôi phục"
+      },
+      "lines": {
+        "en": [
+          "assets/manifest.json is the central v2.0 coordinator routing 5 modular sub-manifests in assets/manifests/*.json: builtin.json, layer-25d.json, loop-animator.json, model-3d.json, and audio.json.",
+          "Every workshop (Loop Animator, Layer 2.5D, 3D Assembly, Public Library, Audio) reads its categories/topics dynamically from its module JSON. Editing categories in JSON or via update_assets_manifest live-reloads the app immediately.",
+          "Category icons support iconUrl (custom SVG/PNG in assets/icons/), icon (built-in SVG key), or iconText (short text badge); if iconUrl is missing/deleted, UI falls back to IconBrokenIconFallback warning badge.",
+          "Soft-deleting an asset moves the physical file to assets/_temp_deleted/<relPath> and marks status=\"deleted\" in JSON so it can be restored anytime via restore_deleted_asset or the Manifest Dialog (manifest_dialog).",
+          "Permanently deleting files from disk and running prune_assets_manifest (or assets/prune-manifest.bat) cleans up orphaned JSON entries across all manifest modules."
+        ],
+        "vi": [
+          "assets/manifest.json là tệp điều phối trung tâm v2.0 kết nối 5 phân hệ JSON nhỏ tại assets/manifests/*.json: builtin.json, layer-25d.json, loop-animator.json, model-3d.json và audio.json.",
+          "Mọi xưởng (Tách Hoạt Ảnh Loop, Lắp Ráp Layer 2.5D, Mô Hình 3D, Kho Công Cộng, Âm Thanh) đều lấy danh sách chủ đề động từ file JSON phân hệ. Sửa JSON hoặc gọi update_assets_manifest sẽ cập nhật giao diện tức thì.",
+          "Icon chủ đề hỗ trợ iconUrl (ảnh/SVG trong assets/icons/), icon (mã SVG có sẵn) hoặc iconText (chữ viết tắt dạng icon); nếu xoá nhầm thư mục chứa iconUrl, UI tự hiển thị icon cảnh báo IconBrokenIconFallback.",
+          "Xoá tạm tài nguyên sẽ chuyển file vật lý vào assets/_temp_deleted/<relPath> và đánh dấu status=\"deleted\" trong JSON để khôi phục bất kỳ lúc nào qua restore_deleted_asset hoặc hộp thoại Manifest (manifest_dialog).",
+          "Khi xoá hẳn file trong thư mục rồi gọi prune_assets_manifest (hoặc chạy assets/prune-manifest.bat), hệ thống tự động dò và làm sạch các mục mồ côi trong toàn bộ hệ thống JSON."
         ]
       }
     }

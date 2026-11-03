@@ -76,7 +76,16 @@ export function Model3DCategoryBar({
                 onClick={() => onSelectCategory(cat.id)}
                 aria-label={cat.title}
               >
-                {renderCategoryIcon(cat.id === 'all' ? 'grid-3d' : cat.icon || cat.id, 16, 16, cat.id)}
+                {renderCategoryIcon(
+                  cat.id === 'all' && (!cat.icon || cat.icon === 'all') ? 'grid-3d' : cat.icon || cat.id,
+                  16,
+                  16,
+                  cat.id,
+                  {
+                    iconUrl: cat.iconUrl,
+                    iconText: cat.iconText
+                  }
+                )}
               </button>
             </div>
           )
@@ -167,7 +176,7 @@ export function Model3DCategoryBar({
                 <span>Cấu hình manifest.json</span>
                 <span className="tooltip-tag-system tag-cyan">Chủ đề 3D</span>
               </div>
-              <div className="tooltip-desc">Chỉnh sửa danh sách chủ đề, icon và mô tả trong asset-3ds/manifest.json</div>
+              <div className="tooltip-desc">Chỉnh sửa danh sách chủ đề, icon và mô tả trong manifests/model-3d.json</div>
             </>
           )}
         </div>

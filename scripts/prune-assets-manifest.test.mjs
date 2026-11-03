@@ -52,4 +52,34 @@ describe('prune-assets-manifest', () => {
     expect(serializeLike('{\r\n}\r\n', { a: 1 })).toBe('{\r\n  "a": 1\r\n}\r\n')
     expect(serializeLike('{\n}', { a: 1 })).toBe('{\n  "a": 1\n}')
   })
+
+  it('marks files in _temp_deleted as status deleted and restores files moved back to active', () => {
+    const m = {
+      categories: [
+        { id: 'all', folder: '' },
+        { id: 'city', folder: 'city' }
+      ],
+      assets: {
+        'city/a.jpg': { name: 'A', status: 'active' },
+        'city/restored.jpg': { name: 'Restored', status: 'deleted', tempPath: '_temp_deleted/city/restored.jpg' },
+        'city/gone_forever.jpg': { name: 'Gone', status: 'deleted' }
+      }
+    }
+    const { manifest, report } = pruneManifest(m, ['city/restored.jpg'], {
+      tempFiles: ['city/a.jpg']
+    })
+    expect(manifest.assets['city/a.jpg']).toEqual({
+      name: 'A',
+      status: 'deleted',
+      tempPath: '_temp_deleted/city/a.jpg'
+    })
+    expect(manifest.assets['city/restored.jpg']).toEqual({
+      name: 'Restored',
+      status: 'active'
+    })
+    expect(manifest.assets['city/gone_forever.jpg']).toBeUndefined()
+    expect(report.softDeletedAssets).toEqual(['city/a.jpg'])
+    expect(report.restoredAssets).toEqual(['city/restored.jpg'])
+    expect(report.removedAssets).toEqual(['city/gone_forever.jpg'])
+  })
 })

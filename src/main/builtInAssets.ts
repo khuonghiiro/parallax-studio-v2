@@ -1,13 +1,25 @@
-import { app, ipcMain, shell } from 'electron'
+import { app, BrowserWindow, ipcMain, shell } from 'electron'
 import { existsSync } from 'fs'
-import { mkdir, readdir, readFile, stat, unlink, writeFile } from 'fs/promises'
+import { mkdir, readdir, readFile, stat, writeFile } from 'fs/promises'
 import { basename, extname, join, relative } from 'path'
 import type {
   BuiltInAssetCategory,
   BuiltInAssetItem,
   BuiltInCatalogResult,
-  BuiltInSaveManifestResult
+  BuiltInSaveManifestResult,
+  ManifestAssetMeta,
+  ManifestItemStatus,
+  ManifestModuleId,
+  ManifestPruneReport
 } from '@shared/ipc'
+import {
+  pruneAllManifestsOnDisk,
+  readAllManifestModules,
+  restoreDeletedBuiltInAsset,
+  saveModuleManifestFile,
+  softDeleteOrRemoveBuiltInAsset,
+  startManifestDirectoryWatcher
+} from './manifestCoordinator'
 
 const IMAGE_EXTS = new Set(['png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp'])
 const AUDIO_EXTS = new Set(['mp3', 'wav', 'ogg', 'm4a', 'aac', 'flac'])
@@ -26,6 +38,8 @@ const MIME_MAP: Record<string, string> = {
   aac: 'audio/aac',
   flac: 'audio/flac'
 }
+
+const previewDataUrlCache = new Map<string, { mtimeMs: number; size: number; previewUrl: string }>()
 
 export function sortCategories(categories: BuiltInAssetCategory[]): BuiltInAssetCategory[] {
   return [...categories].sort((a, b) => {
@@ -66,18 +80,25 @@ const DEFAULT_CATEGORIES: BuiltInAssetCategory[] = [
 export function getAssetsRoot(): string {
   const devPath = join(process.cwd(), 'assets')
   if (existsSync(devPath)) return devPath
-  const appPath = join(app.getAppPath(), 'assets')
-  if (existsSync(appPath)) return appPath
-  const resPath = join(process.resourcesPath, 'assets')
-  if (existsSync(resPath)) return resPath
+  try {
+    const appPath = join(app.getAppPath(), 'assets')
+    if (existsSync(appPath)) return appPath
+  } catch {
+    /* app not ready in unit test */
+  }
+  if (process.resourcesPath) {
+    const resPath = join(process.resourcesPath, 'assets')
+    if (existsSync(resPath)) return resPath
+  }
   return devPath
 }
 
 interface ManifestConfig {
   categories: BuiltInAssetCategory[]
-  assetsConfig: Record<string, string | { name?: string; description?: string }>
+  assetsConfig: Record<string, string | ManifestAssetMeta>
   rawJson: string
   manifestPath: string
+  parsedRoot: any
 }
 
 async function readManifestJson(root: string): Promise<ManifestConfig> {
@@ -89,7 +110,7 @@ async function readManifestJson(root: string): Promise<ManifestConfig> {
     } catch {
       /* ignore write failure */
     }
-    return { categories: DEFAULT_CATEGORIES, assetsConfig: {}, rawJson: raw, manifestPath }
+    return { categories: DEFAULT_CATEGORIES, assetsConfig: {}, rawJson: raw, manifestPath, parsedRoot: {} }
   }
 
   try {
@@ -98,16 +119,20 @@ async function readManifestJson(root: string): Promise<ManifestConfig> {
     const list: BuiltInAssetCategory[] = Array.isArray(parsed?.categories) ? parsed.categories : []
     const normalizedList = list.map((c) => ({
       ...c,
-      order: typeof c.order === 'number' ? c.order : typeof (c as { index?: number }).index === 'number' ? (c as { index?: number }).index : undefined
+      status: c.status || 'active',
+      order:
+        typeof c.order === 'number'
+          ? c.order
+          : typeof (c as { index?: number }).index === 'number'
+            ? (c as { index?: number }).index
+            : undefined
     }))
     const categories = sortCategories(normalizedList.length > 0 ? normalizedList : DEFAULT_CATEGORIES)
-    const assetsConfig: Record<string, string | { name?: string; description?: string }> = {}
+    const assetsConfig: Record<string, string | ManifestAssetMeta> = {}
 
-    // Support "assets": { "rel/path.png": "Tên" } or { "rel/path.png": { "name": "Tên" } }
     if (parsed?.assets && typeof parsed.assets === 'object' && !Array.isArray(parsed.assets)) {
       Object.assign(assetsConfig, parsed.assets)
     }
-    // Also support "items": [ { "path": "...", "name": "..." } ]
     if (Array.isArray(parsed?.items)) {
       for (const it of parsed.items) {
         if (it && typeof it === 'object') {
@@ -121,7 +146,8 @@ async function readManifestJson(root: string): Promise<ManifestConfig> {
       categories,
       assetsConfig,
       rawJson,
-      manifestPath
+      manifestPath,
+      parsedRoot: parsed
     }
   } catch (err) {
     console.warn('[BuiltInAssets] Failed to parse manifest.json, using fallback:', err)
@@ -129,7 +155,8 @@ async function readManifestJson(root: string): Promise<ManifestConfig> {
       categories: DEFAULT_CATEGORIES,
       assetsConfig: {},
       rawJson: JSON.stringify({ categories: DEFAULT_CATEGORIES }, null, 2),
-      manifestPath
+      manifestPath,
+      parsedRoot: {}
     }
   }
 }
@@ -154,7 +181,8 @@ async function collectFilesRecursively(dir: string, baseDir: string): Promise<st
 async function buildAssetItem(
   fullPath: string,
   rootDir: string,
-  assetsConfig: Record<string, string | { name?: string; description?: string }> = {}
+  assetsConfig: Record<string, string | ManifestAssetMeta> = {},
+  isDeletedItem = false
 ): Promise<BuiltInAssetItem | null> {
   const ext = extname(fullPath).slice(1).toLowerCase()
   const isImage = IMAGE_EXTS.has(ext)
@@ -168,24 +196,47 @@ async function buildAssetItem(
   const fileName = basename(fullPath)
   const cleanName = fileName.replace(/\.[^.]+$/, '').replace(/[_-]/g, ' ')
 
-  // Kiểm tra tên tùy chỉnh trong manifest.json (hỗ trợ relative path, filename hoặc assets/path)
   const cfg = assetsConfig[rel] ?? assetsConfig[fileName] ?? assetsConfig[`assets/${rel}`]
   let customName: string | undefined
+  let customCategory: string | undefined
+  let customStatus: ManifestItemStatus | undefined
+  let tempPath: string | undefined
+  let deletedAt: string | undefined
+
   if (typeof cfg === 'string' && cfg.trim()) {
     customName = cfg.trim()
-  } else if (cfg && typeof cfg === 'object' && typeof cfg.name === 'string' && cfg.name.trim()) {
-    customName = cfg.name.trim()
+  } else if (cfg && typeof cfg === 'object') {
+    if (typeof cfg.name === 'string' && cfg.name.trim()) customName = cfg.name.trim()
+    if (typeof cfg.category === 'string' && cfg.category.trim()) customCategory = cfg.category.trim()
+    if (cfg.status) customStatus = cfg.status
+    if (typeof cfg.tempPath === 'string') tempPath = cfg.tempPath
+    if (typeof cfg.deletedAt === 'string') deletedAt = cfg.deletedAt
+  }
+
+  // Nếu mục trong manifest được đánh dấu status === 'deleted' hoặc 'hidden', bỏ qua khỏi danh sách active
+  if (!isDeletedItem && (customStatus === 'deleted' || customStatus === 'hidden')) {
+    return null
   }
 
   const displayName = customName || cleanName
 
   let previewUrl: string | undefined
   if (isImage && fileStat.size <= 4 * 1024 * 1024) {
-    try {
-      const buf = await readFile(fullPath)
-      previewUrl = `data:${mime};base64,${buf.toString('base64')}`
-    } catch {
-      /* ignore preview generation */
+    const cached = previewDataUrlCache.get(fullPath)
+    if (cached && cached.mtimeMs === fileStat.mtimeMs && cached.size === fileStat.size) {
+      previewUrl = cached.previewUrl
+    } else {
+      try {
+        const buf = await readFile(fullPath)
+        previewUrl = `data:${mime};base64,${buf.toString('base64')}`
+        previewDataUrlCache.set(fullPath, {
+          mtimeMs: fileStat.mtimeMs,
+          size: fileStat.size,
+          previewUrl
+        })
+      } catch {
+        /* ignore preview generation */
+      }
     }
   }
 
@@ -195,17 +246,47 @@ async function buildAssetItem(
     fileName,
     relativePath: rel,
     folder,
+    category: customCategory || folder,
     ext,
     mime,
     kind: isImage ? 'image' : 'audio',
     size: fileStat.size,
     path: fullPath,
     isAnimated: ext === 'gif',
-    previewUrl
+    previewUrl,
+    status: isDeletedItem ? 'deleted' : customStatus || 'active',
+    tempPath: isDeletedItem ? tempPath || `_temp_deleted/${rel}` : tempPath,
+    deletedAt
   }
 }
 
 let cachedCatalog: BuiltInCatalogResult | null = null
+
+function broadcastCatalogUpdated(catalog: BuiltInCatalogResult): void {
+  try {
+    for (const win of BrowserWindow.getAllWindows()) {
+      if (!win.isDestroyed()) {
+        win.webContents.send('builtinAssets:updated', catalog)
+      }
+    }
+  } catch {
+    /* ignore outside Electron runtime */
+  }
+}
+
+function isPrivateOrSystemRelPath(rel: string): boolean {
+  return (
+    rel.startsWith('_temp_deleted/') ||
+    rel.startsWith('manifests/') ||
+    rel.startsWith('icons/') ||
+    rel.startsWith('assembly_3d/') ||
+    rel.startsWith('house/') ||
+    rel.startsWith('character_cutout_demo/') ||
+    rel.startsWith('character_human_') ||
+    rel.startsWith('animal_modular/') ||
+    rel.startsWith('nature_modular/')
+  )
+}
 
 export async function scanBuiltInCatalog(forceRefresh = false): Promise<BuiltInCatalogResult> {
   if (cachedCatalog && !forceRefresh) {
@@ -213,31 +294,71 @@ export async function scanBuiltInCatalog(forceRefresh = false): Promise<BuiltInC
   }
 
   const root = getAssetsRoot()
-  const { categories, assetsConfig, rawJson, manifestPath } = await readManifestJson(root)
-  const allFiles = await collectFilesRecursively(root, root)
+  const { categories, assetsConfig, rawJson, manifestPath, parsedRoot } = await readManifestJson(root)
+  const { coordinator, modules, iconUrls, mergedAssetsConfig } = await readAllManifestModules(
+    root,
+    sortCategories,
+    parsedRoot
+  )
 
+  const combinedAssetsConfig: Record<string, string | ManifestAssetMeta> = {
+    ...mergedAssetsConfig,
+    ...assetsConfig
+  }
+
+  const allFiles = await collectFilesRecursively(root, root)
   const eligibleFiles = allFiles.filter((filePath) => {
     const name = basename(filePath).toLowerCase()
-    if (name === 'manifest.json' || name === 'readme.md') return false
+    if (name === 'manifest.json' || name === 'readme.md' || name === '.gitkeep') return false
     const rel = relative(root, filePath).replace(/\\/g, '/')
-    // Các bộ phận lắp ráp (Layer Assembly & 3D Assembly) thuộc riêng từng mẫu dự án (private), không public ra thư viện chung
-    if (
-      rel.startsWith('assembly_3d/') ||
-      rel.startsWith('house/') ||
-      rel.startsWith('character_cutout_demo/') ||
-      rel.startsWith('character_human_') ||
-      rel.startsWith('animal_modular/') ||
-      rel.startsWith('nature_modular/')
-    ) {
-      return false
-    }
+    if (isPrivateOrSystemRelPath(rel)) return false
     return true
   })
 
-  const itemResults = await Promise.all(eligibleFiles.map((filePath) => buildAssetItem(filePath, root, assetsConfig)))
-  const items: BuiltInAssetItem[] = itemResults.filter((it): it is BuiltInAssetItem => it !== null)
+  const tempRoot = join(root, coordinator.tempTrashFolder || '_temp_deleted')
+  const tempAllFiles = existsSync(tempRoot) ? await collectFilesRecursively(tempRoot, tempRoot) : []
+  const eligibleTempFiles = tempAllFiles.filter((filePath) => {
+    const name = basename(filePath).toLowerCase()
+    return name !== 'manifest.json' && name !== 'readme.md' && name !== '.gitkeep'
+  })
 
-  cachedCatalog = { categories, items, manifestPath, rawJson }
+  const [itemResults, deletedResults] = await Promise.all([
+    Promise.all(eligibleFiles.map((filePath) => buildAssetItem(filePath, root, combinedAssetsConfig, false))),
+    Promise.all(eligibleTempFiles.map((filePath) => buildAssetItem(filePath, tempRoot, combinedAssetsConfig, true)))
+  ])
+
+  const items: BuiltInAssetItem[] = itemResults.filter((it): it is BuiltInAssetItem => it !== null)
+  const deletedItems: BuiltInAssetItem[] = deletedResults.filter((it): it is BuiltInAssetItem => it !== null)
+
+  // Cũng bao gồm các mục được đánh dấu status === 'deleted' trực tiếp trong manifest dù chưa chuyển file vật lý
+  const existingDeletedRel = new Set(deletedItems.map((d) => d.relativePath))
+  for (const [k, v] of Object.entries(combinedAssetsConfig)) {
+    if (v && typeof v === 'object' && v.status === 'deleted' && !existingDeletedRel.has(k)) {
+      const full = join(root, k)
+      if (existsSync(full)) {
+        const softItem = await buildAssetItem(full, root, combinedAssetsConfig, true)
+        if (softItem) {
+          deletedItems.push(softItem)
+          existingDeletedRel.add(k)
+        }
+      }
+    }
+  }
+
+  const activeCategories = categories.filter((c) => c.status !== 'deleted' && c.status !== 'hidden')
+
+  cachedCatalog = {
+    categories: activeCategories,
+    items,
+    deletedItems,
+    manifestPath,
+    rawJson,
+    tempTrashFolder: coordinator.tempTrashFolder,
+    iconsFolder: coordinator.iconsFolder,
+    iconUrls,
+    coordinator,
+    modules
+  }
   return cachedCatalog
 }
 
@@ -267,7 +388,6 @@ export async function scanAssembly3DAssets(): Promise<BuiltInAssetItem[]> {
     if (it) itemsMap.set(it.fileName, it)
   }
 
-  // Also collect textures from asset-3ds categorized folders
   try {
     const asset3dsRoot = join(process.cwd(), 'asset-3ds')
     if (existsSync(asset3dsRoot)) {
@@ -287,7 +407,6 @@ export async function scanAssembly3DAssets(): Promise<BuiltInAssetItem[]> {
       await Promise.all(
         textureFiles.map(async (filePath) => {
           const fileName = basename(filePath)
-          // If already mapped from assembly_3d with clean title, keep it, else add
           if (itemsMap.has(fileName)) return
 
           const rel = relative(asset3dsRoot, filePath).replace(/\\/g, '/')
@@ -298,8 +417,18 @@ export async function scanAssembly3DAssets(): Promise<BuiltInAssetItem[]> {
           const mime = MIME_MAP[ext] || 'image/png'
           let previewUrl: string | undefined
           if (statData.size <= 4 * 1024 * 1024) {
-            const buf = await readFile(filePath)
-            previewUrl = `data:${mime};base64,${buf.toString('base64')}`
+            const cached = previewDataUrlCache.get(filePath)
+            if (cached && cached.mtimeMs === statData.mtimeMs && cached.size === statData.size) {
+              previewUrl = cached.previewUrl
+            } else {
+              const buf = await readFile(filePath)
+              previewUrl = `data:${mime};base64,${buf.toString('base64')}`
+              previewDataUrlCache.set(filePath, {
+                mtimeMs: statData.mtimeMs,
+                size: statData.size,
+                previewUrl
+              })
+            }
           }
           itemsMap.set(fileName, {
             id: `asset3ds:${rel}`,
@@ -325,20 +454,19 @@ export async function scanAssembly3DAssets(): Promise<BuiltInAssetItem[]> {
 }
 
 export async function saveManifestJson(rawJson: string): Promise<BuiltInSaveManifestResult> {
-  try {
-    const parsed = JSON.parse(rawJson)
-    if (!parsed || !Array.isArray(parsed.categories)) {
-      return { ok: false, error: 'JSON phải chứa thuộc tính "categories" là một danh sách mảng []' }
-    }
-    const root = getAssetsRoot()
-    const manifestPath = join(root, 'manifest.json')
-    const formatted = JSON.stringify(parsed, null, 2)
-    await writeFile(manifestPath, formatted, 'utf-8')
-    const catalog = await scanBuiltInCatalog(true)
-    return { ok: true, catalog }
-  } catch (err) {
-    return { ok: false, error: `Lỗi cú pháp JSON: ${String(err)}` }
-  }
+  return saveModuleManifest('coordinator', rawJson)
+}
+
+export async function saveModuleManifest(
+  moduleId: ManifestModuleId | 'coordinator',
+  rawJson: string
+): Promise<BuiltInSaveManifestResult> {
+  const root = getAssetsRoot()
+  const res = await saveModuleManifestFile(root, moduleId, rawJson)
+  if (!res.ok) return { ok: false, error: res.error }
+  const catalog = await scanBuiltInCatalog(true)
+  broadcastCatalogUpdated(catalog)
+  return { ok: true, catalog }
 }
 
 export async function loadAssetBytes(relPath: string): Promise<{ name: string; mime: string; data: Uint8Array } | null> {
@@ -351,7 +479,10 @@ export async function loadAssetBytes(relPath: string): Promise<{ name: string; m
     .trim()
   let fullPath = join(root, cleanTarget)
   if (!existsSync(fullPath)) {
-    if (existsSync(relPath)) {
+    const tempPath = join(root, '_temp_deleted', cleanTarget)
+    if (existsSync(tempPath)) {
+      fullPath = tempPath
+    } else if (existsSync(relPath)) {
       fullPath = relPath
     } else {
       return null
@@ -369,69 +500,44 @@ export async function loadAssetBytes(relPath: string): Promise<{ name: string; m
 }
 
 export async function deleteBuiltInAsset(
-  relPath: string
-): Promise<{ ok: boolean; error?: string }> {
+  relPath: string,
+  opts?: { permanent?: boolean }
+): Promise<{ ok: boolean; status?: ManifestItemStatus; tempPath?: string; error?: string; catalog?: BuiltInCatalogResult }> {
   if (!relPath) return { ok: false, error: 'Thiếu đường dẫn tệp' }
   const root = getAssetsRoot()
-  const cleanTarget = relPath
-    .replace(/\\/g, '/')
-    .replace(/^builtin:/, '')
-    .replace(/^assets\//, '')
-    .trim()
-  const fullPath = join(root, cleanTarget)
+  const res = await softDeleteOrRemoveBuiltInAsset(root, relPath, opts)
+  if (!res.ok) return res
+  const catalog = await scanBuiltInCatalog(true)
+  broadcastCatalogUpdated(catalog)
+  return { ...res, catalog }
+}
 
+export async function restoreBuiltInAsset(
+  relPath: string
+): Promise<{ ok: boolean; relPath?: string; error?: string; catalog?: BuiltInCatalogResult }> {
+  if (!relPath) return { ok: false, error: 'Thiếu đường dẫn tệp cần khôi phục' }
+  const root = getAssetsRoot()
+  const res = await restoreDeletedBuiltInAsset(root, relPath)
+  if (!res.ok) return res
+  const catalog = await scanBuiltInCatalog(true)
+  broadcastCatalogUpdated(catalog)
+  return { ...res, catalog }
+}
+
+export async function pruneBuiltInManifest(opts?: {
+  keepEmpty?: boolean
+  addNew?: boolean
+}): Promise<{ ok: boolean; report?: ManifestPruneReport; error?: string; catalog?: BuiltInCatalogResult }> {
   try {
-    if (existsSync(fullPath)) {
-      await unlink(fullPath)
-    }
-
-    // Cập nhật manifest.json nếu có
-    const manifestPath = join(root, 'manifest.json')
-    if (existsSync(manifestPath)) {
-      try {
-        const rawJson = await readFile(manifestPath, 'utf-8')
-        const parsed = JSON.parse(rawJson)
-        let changed = false
-
-        if (parsed.assets && typeof parsed.assets === 'object') {
-          for (const key of Object.keys(parsed.assets)) {
-            const normKey = key
-              .replace(/\\/g, '/')
-              .replace(/^builtin:/, '')
-              .replace(/^assets\//, '')
-            if (
-              normKey === cleanTarget ||
-              normKey.endsWith(`/${cleanTarget}`) ||
-              cleanTarget.endsWith(`/${normKey}`)
-            ) {
-              delete parsed.assets[key]
-              changed = true
-            }
-          }
-        }
-
-        if (Array.isArray(parsed.items)) {
-          const initialLen = parsed.items.length
-          parsed.items = parsed.items.filter((it: any) => {
-            const k = (it?.path || it?.relativePath || it?.fileName || '').replace(/\\/g, '/')
-            return k !== cleanTarget && !k.endsWith(`/${cleanTarget}`) && !cleanTarget.endsWith(`/${k}`)
-          })
-          if (parsed.items.length !== initialLen) changed = true
-        }
-
-        if (changed) {
-          await writeFile(manifestPath, JSON.stringify(parsed, null, 2), 'utf-8')
-        }
-      } catch (manifestErr) {
-        console.warn('[BuiltInAssets] Error updating manifest after deleting asset:', manifestErr)
-      }
-    }
-
-    // Invalidate catalog cache
-    await scanBuiltInCatalog(true)
-    return { ok: true }
+    const root = getAssetsRoot()
+    const current = await scanBuiltInCatalog(true)
+    const activeRelFiles = current.items.map((it) => it.relativePath)
+    const tempRelFiles = (current.deletedItems || []).map((it) => it.relativePath)
+    const report = await pruneAllManifestsOnDisk(root, activeRelFiles, tempRelFiles, opts)
+    const catalog = await scanBuiltInCatalog(true)
+    broadcastCatalogUpdated(catalog)
+    return { ok: true, report, catalog }
   } catch (err) {
-    console.error('[BuiltInAssets] Error deleting asset:', fullPath, err)
     return { ok: false, error: String(err) }
   }
 }
@@ -442,7 +548,7 @@ export async function importBuiltInAssetFile(opts: {
   folder?: string
   title?: string
 }): Promise<{ ok: boolean; relPath?: string; fullPath?: string; item?: BuiltInAssetItem; error?: string }> {
-  if (!opts.name || !opts.buffer || opts.buffer.length === 0) {
+  if (!opts.name || !opts.buffer || !opts.buffer.length) {
     return { ok: false, error: 'Thiếu tên tệp hoặc dữ liệu tệp rỗng' }
   }
 
@@ -455,7 +561,6 @@ export async function importBuiltInAssetFile(opts: {
     return { ok: false, error: `Định dạng tệp .${ext} không được hỗ trợ` }
   }
 
-  // Chọn folder đích: Nếu có folder chỉ định thì dùng, nếu là audio thì 'audio', mặc định 'uploads'
   const targetFolder = (opts.folder && opts.folder !== 'all' ? opts.folder : isAudio ? 'audio' : 'uploads')
     .replace(/\\/g, '/')
     .replace(/^\/+|\/+$/g, '')
@@ -466,8 +571,10 @@ export async function importBuiltInAssetFile(opts: {
       await mkdir(folderDir, { recursive: true })
     }
 
-    // Làm sạch tên file và tránh ghi đè
-    const baseName = basename(opts.name, `.${ext}`).replace(/[^a-zA-Z0-9_\-\.\s\u00C0-\u024F\u1EA0-\u1EF9]/g, '_').trim() || 'asset'
+    const baseName =
+      basename(opts.name, `.${ext}`)
+        .replace(/[^a-zA-Z0-9_\-\.\s\u00C0-\u024F\u1EA0-\u1EF9]/g, '_')
+        .trim() || 'asset'
     let finalFileName = `${baseName}.${ext}`
     let destinationPath = join(folderDir, finalFileName)
     let counter = 1
@@ -483,51 +590,42 @@ export async function importBuiltInAssetFile(opts: {
     const relPath = `${targetFolder}/${finalFileName}`.replace(/\\/g, '/')
     const cleanTitle = opts.title?.trim() || baseName.replace(/[_-]/g, ' ')
 
-    // Cập nhật manifest.json
-    const manifestPath = join(root, 'manifest.json')
-    let manifestData: any = { categories: DEFAULT_CATEGORIES, assets: {} }
-    if (existsSync(manifestPath)) {
+    // Cập nhật cả manifest.json và manifests/builtin.json
+    for (const fileRel of ['manifest.json', 'manifests/builtin.json']) {
+      const mPath = join(root, fileRel)
+      if (!existsSync(mPath) && fileRel !== 'manifest.json') continue
       try {
-        const rawJson = await readFile(manifestPath, 'utf-8')
-        manifestData = JSON.parse(rawJson)
-      } catch {
-        /* ignore fallback */
+        const raw = existsSync(mPath) ? await readFile(mPath, 'utf-8') : '{}'
+        const data = JSON.parse(raw)
+        if (!Array.isArray(data.categories)) data.categories = [...DEFAULT_CATEGORIES]
+        const existingCat = data.categories.find((c: any) => c.folder === targetFolder || c.id === targetFolder)
+        if (!existingCat && targetFolder === 'uploads') {
+          data.categories.push({
+            id: 'uploads',
+            folder: 'uploads',
+            title: 'Tài nguyên tải lên',
+            shortTitle: 'Tải lên',
+            icon: 'image',
+            iconText: 'UP',
+            description: 'Tài nguyên ảnh và vật liệu người dùng thêm vào kho',
+            order: 10,
+            status: 'active'
+          })
+        }
+        if (!data.assets || typeof data.assets !== 'object') data.assets = {}
+        data.assets[relPath] = {
+          name: cleanTitle,
+          category: targetFolder,
+          status: 'active'
+        }
+        await writeFile(mPath, JSON.stringify(data, null, 2), 'utf-8')
+      } catch (manifestErr) {
+        console.warn(`[BuiltInAssets] Failed to update ${fileRel} on import:`, manifestErr)
       }
     }
 
-    if (!Array.isArray(manifestData.categories)) {
-      manifestData.categories = [...DEFAULT_CATEGORIES]
-    }
-
-    // Đảm bảo category của folder này tồn tại trong categories
-    const existingCat = manifestData.categories.find((c: any) => c.folder === targetFolder || c.id === targetFolder)
-    if (!existingCat && targetFolder === 'uploads') {
-      manifestData.categories.push({
-        id: 'uploads',
-        folder: 'uploads',
-        title: 'Tài nguyên tải lên',
-        icon: 'image',
-        description: 'Tài nguyên ảnh và vật liệu người dùng thêm vào kho',
-        order: 10
-      })
-    }
-
-    if (!manifestData.assets || typeof manifestData.assets !== 'object') {
-      manifestData.assets = {}
-    }
-
-    manifestData.assets[relPath] = {
-      name: cleanTitle
-    }
-
-    try {
-      await writeFile(manifestPath, JSON.stringify(manifestData, null, 2), 'utf-8')
-    } catch (manifestErr) {
-      console.warn('[BuiltInAssets] Failed to update manifest on import:', manifestErr)
-    }
-
-    // Làm mới catalog
     const refreshed = await scanBuiltInCatalog(true)
+    broadcastCatalogUpdated(refreshed)
     const item = refreshed.items.find((it) => it.relativePath === relPath) || null
 
     return {
@@ -543,14 +641,26 @@ export async function importBuiltInAssetFile(opts: {
 }
 
 export function registerBuiltInAssetsIpc(): void {
-  ipcMain.handle('builtinAssets:getCatalog', async () => scanBuiltInCatalog())
+  ipcMain.handle('builtinAssets:getCatalog', async (_e, forceRefresh?: boolean) =>
+    scanBuiltInCatalog(Boolean(forceRefresh))
+  )
   ipcMain.handle('builtinAssets:getAssemblyAssets', async () => scanAssembly3DAssets())
-
   ipcMain.handle('builtinAssets:saveManifest', async (_e, rawJson: string) => saveManifestJson(rawJson))
-
+  ipcMain.handle(
+    'builtinAssets:saveModuleManifest',
+    async (_e, moduleId: ManifestModuleId | 'coordinator', rawJson: string) =>
+      saveModuleManifest(moduleId, rawJson)
+  )
   ipcMain.handle('builtinAssets:loadAssetBytes', async (_e, relPath: string) => loadAssetBytes(relPath))
-
-  ipcMain.handle('builtinAssets:deleteAsset', async (_e, relPath: string) => deleteBuiltInAsset(relPath))
+  ipcMain.handle(
+    'builtinAssets:deleteAsset',
+    async (_e, relPath: string, opts?: { permanent?: boolean }) => deleteBuiltInAsset(relPath, opts)
+  )
+  ipcMain.handle('builtinAssets:restoreAsset', async (_e, relPath: string) => restoreBuiltInAsset(relPath))
+  ipcMain.handle(
+    'builtinAssets:pruneManifest',
+    async (_e, opts?: { keepEmpty?: boolean; addNew?: boolean }) => pruneBuiltInManifest(opts)
+  )
 
   ipcMain.handle(
     'builtinAssets:importAssetFile',
@@ -575,9 +685,16 @@ export function registerBuiltInAssetsIpc(): void {
     }
   })
 
+  // Theo dõi thay đổi file JSON hoặc icon trực tiếp trên đĩa để tự động cập nhật realtime
+  const root = getAssetsRoot()
+  startManifestDirectoryWatcher(root, () => {
+    scanBuiltInCatalog(true)
+      .then((catalog) => broadcastCatalogUpdated(catalog))
+      .catch(() => {})
+  })
+
   // Pre-warm catalog cache immediately in the background upon registration
   scanBuiltInCatalog(false).catch((err) => {
     console.warn('[BuiltInAssets] Background catalog prewarm error:', err)
   })
 }
-

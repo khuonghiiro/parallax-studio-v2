@@ -1,0 +1,118 @@
+{
+  "module": "loop_animator",
+  "title": "Xưởng Tách Hoạt Ảnh Loop (Sprite Sheet)",
+  "description": "Chủ đề nhóm hoạt ảnh lặp (Lửa, Phép thuật, Tự nhiên, Tia điện, Khác) và cấu hình mẫu Sprite Sheet Loop.",
+  "folders": ["demo_transparent", "uploads"],
+  "categories": [
+    {
+      "id": "all",
+      "folder": "",
+      "title": "Tất cả hoạt ảnh lặp",
+      "shortTitle": "Tất cả",
+      "icon": "grid",
+      "iconUrl": "",
+      "iconText": "ALL",
+      "accent": "#3b82f6",
+      "description": "Toàn bộ hoạt ảnh lặp Sprite Sheet có sẵn và tự lưu",
+      "order": 0,
+      "status": "active"
+    },
+    {
+      "id": "fire",
+      "folder": "demo_transparent",
+      "title": "Lửa & Nhiệt",
+      "shortTitle": "Lửa",
+      "icon": "flame",
+      "iconUrl": "",
+      "iconText": "🔥",
+      "accent": "#f97316",
+      "description": "Ngọn lửa trại, đuốc cháy, tia lửa và vụ nổ nhiệt",
+      "order": 1,
+      "status": "active"
+    },
+    {
+      "id": "magic",
+      "folder": "demo_transparent",
+      "title": "Phép thuật & Năng lượng",
+      "shortTitle": "Phép",
+      "icon": "sparkles",
+      "iconUrl": "",
+      "iconText": "✨",
+      "accent": "#a855f7",
+      "description": "Quả cầu ma thuật, vòng hào quang và cổng dịch chuyển",
+      "order": 2,
+      "status": "active"
+    },
+    {
+      "id": "nature",
+      "folder": "demo_transparent",
+      "title": "Tự nhiên & Sinh vật",
+      "shortTitle": "Tự nhiên",
+      "icon": "tree",
+      "iconUrl": "",
+      "iconText": "🌿",
+      "accent": "#10b981",
+      "description": "Bướm vỗ cánh, đom đóm, lá rơi, sóng nước tự nhiên",
+      "order": 3,
+      "status": "active"
+    },
+    {
+      "id": "electric",
+      "folder": "demo_transparent",
+      "title": "Tia điện & Sét",
+      "shortTitle": "Điện",
+      "icon": "lightning",
+      "iconUrl": "",
+      "iconText": "⚡",
+      "accent": "#06b6d4",
+      "description": "Hồ quang điện, vòng sét, tia năng lượng chiến đấu",
+      "order": 4,
+      "status": "active"
+    },
+    {
+      "id": "custom",
+      "folder": "uploads",
+      "title": "Đã lưu trong kho",
+      "shortTitle": "Khác",
+      "icon": "folder",
+      "iconUrl": "",
+      "iconText": "📦",
+      "accent": "#6366f1",
+      "description": "Hoạt ảnh lặp do người dùng tự cắt khung và lưu trữ",
+      "order": 5,
+      "status": "active"
+    }
+  ],
+  "assets": {
+    "demo_transparent/campfire_loop_transparent.png": {
+      "name": "Lửa Trại Bập Bùng (Đã Tách Nền)",
+      "category": "fire",
+      "presetId": "loop_preset_campfire",
+      "status": "active"
+    },
+    "demo_transparent/campfire_loop_chroma.jpg": {
+      "name": "Lửa Trại 16F (Nền Hồng Chroma)",
+      "category": "fire",
+      "presetId": "campfire_chroma",
+      "status": "active"
+    },
+    "procedural-loop:magic_orb": {
+      "name": "Cầu Năng Lượng Ma Thuật (16F)",
+      "category": "magic",
+      "presetId": "loop_preset_magic_orb",
+      "status": "active"
+    },
+    "procedural-loop:butterfly": {
+      "name": "Bướm Xanh Vỗ Cánh (16F)",
+      "category": "nature",
+      "presetId": "loop_preset_butterfly",
+      "status": "active"
+    },
+    "procedural-loop:lightning": {
+      "name": "Vòng Sét Điện Từ (16F)",
+      "category": "electric",
+      "presetId": "loop_preset_lightning",
+      "status": "active"
+    }
+  }
+}
