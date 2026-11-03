@@ -2,7 +2,10 @@
   "module": "loop_animator",
   "title": "Xưởng Tách Hoạt Ảnh Loop (Sprite Sheet)",
   "description": "Chủ đề nhóm hoạt ảnh lặp (Lửa, Phép thuật, Tự nhiên, Tia điện, Khác) và cấu hình mẫu Sprite Sheet Loop.",
-  "folders": ["demo_transparent", "uploads"],
+  "folders": [
+    "demo_transparent",
+    "uploads"
+  ],
   "categories": [
     {
       "id": "all",
@@ -112,6 +115,26 @@
       "name": "Vòng Sét Điện Từ (16F)",
       "category": "electric",
       "presetId": "loop_preset_lightning",
+      "status": "active"
+    },
+    "loop_animations/lua_trai_bap_bung_da_tach_nen/animation.json": {
+      "name": "Lửa Trại Bập Bùng (Đã Tách Nền)",
+      "category": "fire",
+      "folder": "loop_animations/lua_trai_bap_bung_da_tach_nen",
+      "frameCount": 16,
+      "fps": 14,
+      "loopMode": "loop",
+      "thumbnail": "loop_animations/lua_trai_bap_bung_da_tach_nen/thumbnail.png",
+      "status": "active"
+    },
+    "loop_animations/anh_lua_chay/animation.json": {
+      "name": "Ánh lửa cháy",
+      "category": "fire",
+      "folder": "loop_animations/anh_lua_chay",
+      "frameCount": 16,
+      "fps": 14,
+      "loopMode": "loop",
+      "thumbnail": "loop_animations/anh_lua_chay/thumbnail.png",
       "status": "active"
     }
   }

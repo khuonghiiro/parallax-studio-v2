@@ -199,7 +199,13 @@ export interface ParallaxApi {
   openBuiltInFolder(subFolder?: string): Promise<void>
   deleteBuiltInAsset(
     relativePath: string,
-    opts?: { permanent?: boolean }
+    opts?: {
+      permanent?: boolean
+      snapshotJson?: string
+      snapshotName?: string
+      snapshotCategory?: string
+      snapshotPreviewDataUrl?: string
+    }
   ): Promise<{ ok: boolean; status?: ManifestItemStatus; tempPath?: string; error?: string; catalog?: BuiltInCatalogResult }>
   restoreBuiltInAsset?(
     relativePath: string

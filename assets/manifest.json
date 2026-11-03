@@ -205,6 +205,33 @@
       "name": "Chibi Hoàng Tử Vest Đen Bạc",
       "category": "uploads",
       "status": "active"
+    },
+    "loop_animations/lua_trai_bap_bung_da_tach_nen/animation.json": {
+      "name": "Lửa Trại Bập Bùng (Đã Tách Nền)",
+      "category": "fire",
+      "folder": "loop_animations/lua_trai_bap_bung_da_tach_nen",
+      "frameCount": 16,
+      "fps": 14,
+      "loopMode": "loop",
+      "thumbnail": "loop_animations/lua_trai_bap_bung_da_tach_nen/thumbnail.png",
+      "status": "active"
+    },
+    "loop_animations/anh_lua_chay/animation.json": {
+      "name": "Ánh lửa cháy",
+      "category": "fire",
+      "folder": "loop_animations/anh_lua_chay",
+      "frameCount": 16,
+      "fps": 14,
+      "loopMode": "loop",
+      "thumbnail": "loop_animations/anh_lua_chay/thumbnail.png",
+      "status": "active"
+    },
+    "loop_animations/lua_trai_bap_bung_da_tach_nen": {
+      "name": "lua trai bap bung da tach nen",
+      "category": "loop_animations",
+      "status": "deleted",
+      "tempPath": "_temp_deleted/loop_animations/lua_trai_bap_bung_da_tach_nen",
+      "deletedAt": "2026-11-03T09:59:16.793Z"
     }
   }
 }

@@ -4,7 +4,8 @@ import type {
   LoopAnimationPackageJson,
   LoopColorConfig
 } from '../../../../shared/types'
-import { extractFrameCanvas } from './loopFrameExtractor'
+import { extractFrameCanvas, primeCachedLoopTemplateSheet } from './loopFrameExtractor'
+import { invalidateLoopPackageCache } from './loopPackageLoader'
 import { saveLoopTemplate } from './loopAnimatorStorage'
 import type {
   ContourSlicerConfig,
@@ -16,6 +17,13 @@ import type {
   LoopRhythmConfig,
   SlicerMode
 } from './types'
+
+export interface SaveLoopProgressInfo {
+  current: number
+  total: number
+  phase: 'extract' | 'write' | 'sync'
+  message: string
+}
 
 export interface SaveLoopPackageOptions {
   name: string
@@ -35,6 +43,7 @@ export interface SaveLoopPackageOptions {
     chromaKey?: ChromaKeyConfig
     contourConfig?: ContourSlicerConfig
   }
+  onProgress?: (info: SaveLoopProgressInfo) => void
 }
 
 export interface SaveLoopPackageOutput {
@@ -45,6 +54,8 @@ export interface SaveLoopPackageOutput {
   thumbnailRelPath: string
   packageJson: LoopAnimationPackageJson
   template: LoopAnimationTemplate
+  frameCanvases: HTMLCanvasElement[]
+  stripCanvas: HTMLCanvasElement
   error?: string
 }
 
@@ -90,7 +101,8 @@ export async function saveLoopAnimationAsPackage(
     colorConfig,
     baseMeshWidth,
     baseMeshHeight,
-    sourceConfig
+    sourceConfig,
+    onProgress
   } = options
 
   const enabledFrames = frames.filter((f) => f.enabled)
@@ -103,29 +115,79 @@ export async function saveLoopAnimationAsPackage(
   const maxW = Math.max(1, ...enabledFrames.map((f) => f.width))
   const maxH = Math.max(1, ...enabledFrames.map((f) => f.height))
   const baseFrameDuration = 1 / Math.max(1, Math.min(60, fps))
+  const totalFrames = enabledFrames.length
 
-  // 1. Trích xuất canvas và chuyển thành PNG bytes cho từng frame
-  const frameCanvases = enabledFrames.map((f) => extractFrameCanvas(sourceCanvas, f, maxW, maxH))
+  // 1. Trích xuất canvas và chuyển thành PNG bytes cho từng frame kèm báo cáo tiến trình
+  const frameCanvases: HTMLCanvasElement[] = []
   const framePayloads: Array<{ fileName: string; data: Uint8Array }> = []
-  const frameDataUrls: string[] = []
+
+  const stripCanvas = document.createElement('canvas')
+  stripCanvas.width = maxW * totalFrames
+  stripCanvas.height = maxH
+  const stripCtx = stripCanvas.getContext('2d')
+  const stripFrames: LoopFrameBox[] = []
 
   let totalDuration = 0
-  for (let i = 0; i < frameCanvases.length; i++) {
-    const fc = frameCanvases[i]
+  for (let i = 0; i < totalFrames; i++) {
+    const fMeta = enabledFrames[i]
     const fileName = `frame_${String(i).padStart(3, '0')}.png`
+    onProgress?.({
+      current: i + 1,
+      total: totalFrames,
+      phase: 'extract',
+      message: `Đang xử lý & đóng gói ${i + 1}/${totalFrames} frame (${fileName})…`
+    })
+    if (i % 2 === 1) {
+      await new Promise((r) => setTimeout(r, 0))
+    }
+
+    const fc = extractFrameCanvas(sourceCanvas, fMeta, maxW, maxH)
+    frameCanvases.push(fc)
+
+    if (stripCtx) {
+      stripCtx.drawImage(fc, i * maxW, 0)
+    }
+    stripFrames.push({
+      id: `frame_${i}`,
+      index: i,
+      x: i * maxW,
+      y: 0,
+      width: maxW,
+      height: maxH,
+      offsetX: 0,
+      offsetY: 0,
+      enabled: true,
+      durationRatio: fMeta?.durationRatio ?? 1
+    })
+
     const pngBytes = await canvasToPngBytes(fc)
     framePayloads.push({ fileName, data: pngBytes })
-    frameDataUrls.push(fc.toDataURL('image/png'))
-    const fMeta = enabledFrames[i]
     totalDuration += Math.max(0.016, baseFrameDuration * (fMeta?.durationRatio || 1))
   }
 
-  // 2. Thumbnail từ Frame #0
-  const thumbCanvas = frameCanvases[0]
+  // 2. Thumbnail gọn nhẹ từ Frame #0 (giới hạn 256px để nhẹ RAM/localStorage)
+  const firstCanvas = frameCanvases[0]
+  const thumbScale = Math.min(1, 256 / Math.max(1, firstCanvas.width, firstCanvas.height))
+  let thumbCanvas = firstCanvas
+  if (thumbScale < 0.99) {
+    thumbCanvas = document.createElement('canvas')
+    thumbCanvas.width = Math.max(1, Math.round(firstCanvas.width * thumbScale))
+    thumbCanvas.height = Math.max(1, Math.round(firstCanvas.height * thumbScale))
+    const tctx = thumbCanvas.getContext('2d')
+    if (tctx) tctx.drawImage(firstCanvas, 0, 0, thumbCanvas.width, thumbCanvas.height)
+  }
   const thumbBytes = await canvasToPngBytes(thumbCanvas)
   const thumbDataUrl = thumbCanvas.toDataURL('image/png')
 
   // 3. Xây dựng cấu trúc animation.json
+  onProgress?.({
+    current: totalFrames,
+    total: totalFrames,
+    phase: 'write',
+    message: `Đang lưu cấu hình animation.json vào loop_animations/${slug}/…`
+  })
+  await new Promise((r) => setTimeout(r, 0))
+
   const packageJson: LoopAnimationPackageJson = {
     version: '1.0',
     id: slug,
@@ -135,7 +197,7 @@ export async function saveLoopAnimationAsPackage(
     fps,
     speed,
     loopMode,
-    frameCount: enabledFrames.length,
+    frameCount: totalFrames,
     width: maxW,
     height: maxH,
     baseMeshWidth: baseMeshWidth && baseMeshWidth > 0 ? baseMeshWidth : maxW,
@@ -165,8 +227,8 @@ export async function saveLoopAnimationAsPackage(
       index: idx,
       file: `frame_${String(idx).padStart(3, '0')}.png`,
       durationRatio: f.durationRatio ?? 1,
-      offsetX: f.offsetX ?? 0,
-      offsetY: f.offsetY ?? 0
+      offsetX: 0,
+      offsetY: 0
     })),
     sourceConfig: sourceConfig
       ? {
@@ -186,7 +248,6 @@ export async function saveLoopAnimationAsPackage(
   const thumbnailRelPath = `${relPath}/thumbnail.png`
 
   // 4. Ghi lên đĩa qua IPC
-  let diskSuccess = false
   let folderPath: string | undefined
   if (typeof window !== 'undefined' && window.api?.saveLoopAnimationPackage) {
     try {
@@ -199,7 +260,6 @@ export async function saveLoopAnimationAsPackage(
         thumbnail: { fileName: 'thumbnail.png', data: thumbBytes }
       })
       if (res.ok) {
-        diskSuccess = true
         folderPath = res.folderPath
       }
     } catch (e) {
@@ -207,29 +267,60 @@ export async function saveLoopAnimationAsPackage(
     }
   }
 
-  // 5. Đồng bộ cấu trúc LoopAnimationTemplate vào kho lưu trữ nội bộ
+  // 5. Ghi sẵn dải frame ngang đã tách nền vào RAM cache để hiển thị 0ms không cần cắt lại
+  invalidateLoopPackageCache(jsonRelPath)
+  primeCachedLoopTemplateSheet(slug, {
+    canvas: stripCanvas,
+    frames: stripFrames,
+    frameW: maxW,
+    frameH: maxH,
+    packageJson
+  })
+
+  // 6. Đồng bộ cấu trúc LoopAnimationTemplate gọn nhẹ vào kho lưu trữ (không lưu base64 16 frame vào localStorage)
   const template: LoopAnimationTemplate = {
     id: slug,
     name: rawName,
     category,
-    badge: `🎞 ${enabledFrames.length}F`,
-    description: `Hoạt ảnh lặp ${enabledFrames.length} frame (${fps} FPS • ${loopMode})`,
-    imageUrl: thumbnailRelPath,
+    badge: `🎞 ${totalFrames}F`,
+    description: `Hoạt ảnh lặp ${totalFrames} frame (${fps} FPS • ${loopMode})`,
+    imageUrl: `assets/${thumbnailRelPath}`,
     thumbUrl: thumbDataUrl,
-    renderedFrames: frameDataUrls,
-    transparentSheetUrl: thumbDataUrl,
-    slicerMode: sourceConfig?.slicerMode || 'grid',
-    gridConfig: sourceConfig?.gridConfig || { cols: 4, rows: 4, marginX: 0, marginY: 0, paddingX: 0, paddingY: 0 },
+    loopJsonPath: jsonRelPath,
+    packageFolder: relPath,
+    framePaths: enabledFrames.map((_, idx) => `${relPath}/frame_${String(idx).padStart(3, '0')}.png`),
+    colorConfig: packageJson.colorConfig,
+    slicerMode: 'grid',
+    gridConfig: {
+      cols: totalFrames,
+      rows: 1,
+      marginX: 0,
+      marginY: 0,
+      paddingX: 0,
+      paddingY: 0,
+      borderPadding: 0
+    },
     contourConfig: sourceConfig?.contourConfig,
-    chromaKey: sourceConfig?.chromaKey || { enabled: false, keyColor: '#00ff00', similarity: 0.28, smoothness: 0.1, spill: 0.35 },
+    chromaKey: {
+      ...(sourceConfig?.chromaKey || {
+        enabled: false,
+        keyColor: '#00ff00',
+        similarity: 0.28,
+        smoothness: 0.1,
+        spill: 0.35
+      }),
+      enabled: false
+    },
     fps,
     speed,
     loopMode,
     rhythm,
-    frameCount: enabledFrames.length,
+    frameCount: totalFrames,
+    sourceWidth: maxW * totalFrames,
+    sourceHeight: maxH,
     baseMeshWidth: packageJson.baseMeshWidth,
     baseMeshHeight: packageJson.baseMeshHeight,
-    frames: enabledFrames.map((f) => ({ ...f }))
+    frames: stripFrames
   }
 
   saveLoopTemplate(template)
@@ -241,6 +332,8 @@ export async function saveLoopAnimationAsPackage(
     jsonRelPath,
     thumbnailRelPath,
     packageJson,
-    template
+    template,
+    frameCanvases,
+    stripCanvas
   }
 }

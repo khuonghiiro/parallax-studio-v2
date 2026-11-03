@@ -4,7 +4,9 @@ import {
   detectCornerKeyColor,
   parseHexRgb
 } from './loopChromaProcessor'
+import { applyLoopColorFilterToSource } from '../../project/gifHelper'
 import { resolveLoopAssetUrl } from './sampleLoops'
+import type { LoopAnimationPackageJson, LoopColorConfig } from '@shared/types'
 import type {
   ChromaKeyConfig,
   ContourSlicerConfig,
@@ -664,9 +666,114 @@ export interface CachedLoopSpriteSheet {
   frames: LoopFrameBox[]
   frameW: number
   frameH: number
+  packageJson?: LoopAnimationPackageJson
 }
 
 const _spriteSheetCache = new Map<string, Promise<CachedLoopSpriteSheet | null>>()
+const _primedPackageSheets = new Map<string, CachedLoopSpriteSheet>()
+
+/** Ghi sẵn dải frame ngang đã tách nền vào bộ nhớ đệm RAM để hiển thị tức thì 0ms */
+export function primeCachedLoopTemplateSheet(templateId: string, sheet: CachedLoopSpriteSheet): void {
+  _primedPackageSheets.set(templateId, sheet)
+}
+
+/** Xoá cache sprite sheet của mẫu hoạt ảnh khi cập nhật tệp animation.json hoặc lưu đè */
+export function invalidateCachedLoopTemplateSheet(templateId?: string): void {
+  if (!templateId) {
+    _primedPackageSheets.clear()
+    _spriteSheetCache.clear()
+    return
+  }
+  _primedPackageSheets.delete(templateId)
+  for (const k of [..._spriteSheetCache.keys()]) {
+    if (k.startsWith(`${templateId}:`) || k.startsWith(`pkg:${templateId}:`)) {
+      _spriteSheetCache.delete(k)
+    }
+  }
+}
+
+async function loadPackageHorizontalSheet(slug: string): Promise<CachedLoopSpriteSheet | null> {
+  if (typeof window === 'undefined' || !window.api?.loadBuiltInAssetBytes) return null
+  const jsonRel = `loop_animations/${slug}/animation.json`
+  const rawJson = await window.api.loadBuiltInAssetBytes(jsonRel)
+  if (!rawJson || !rawJson.data) return null
+
+  let pkg: LoopAnimationPackageJson
+  try {
+    pkg = JSON.parse(new TextDecoder('utf-8').decode(rawJson.data)) as LoopAnimationPackageJson
+  } catch {
+    return null
+  }
+  const frameDefs = pkg.frames || []
+  if (frameDefs.length === 0) return null
+
+  const baseColor: LoopColorConfig = pkg.colorConfig || {}
+  const decoded = await Promise.all(
+    frameDefs.map(async (f) => {
+      const fRel = `loop_animations/${slug}/${f.file}`
+      const raw = await window.api.loadBuiltInAssetBytes(fRel)
+      if (!raw || !raw.data) return null
+      const blob = new Blob([raw.data as unknown as BlobPart], { type: raw.mime || 'image/png' })
+      const bmp = await createImageBitmap(blob)
+      const fc = document.createElement('canvas')
+      fc.width = bmp.width
+      fc.height = bmp.height
+      const fctx = fc.getContext('2d')
+      if (fctx) fctx.drawImage(bmp, 0, 0)
+      bmp.close()
+
+      const frameColor: LoopColorConfig = {
+        ...baseColor,
+        tintColor: f.tintColor !== undefined ? f.tintColor : baseColor.tintColor,
+        brightness: f.brightness !== undefined ? f.brightness : baseColor.brightness,
+        contrast: f.contrast !== undefined ? f.contrast : baseColor.contrast,
+        saturation: f.saturation !== undefined ? f.saturation : baseColor.saturation,
+        hueRotate: f.hueRotate !== undefined ? f.hueRotate : baseColor.hueRotate,
+        opacity: f.opacity !== undefined ? f.opacity : baseColor.opacity
+      }
+      const filtered = applyLoopColorFilterToSource(fc, fc.width, fc.height, frameColor)
+      return { canvas: filtered || fc, meta: f }
+    })
+  )
+
+  const valid = decoded.filter((d): d is NonNullable<typeof d> => Boolean(d))
+  if (valid.length === 0) return null
+
+  const frameW = Math.max(1, pkg.width || 0, ...valid.map((v) => v.canvas.width))
+  const frameH = Math.max(1, pkg.height || 0, ...valid.map((v) => v.canvas.height))
+  const stripCanvas = document.createElement('canvas')
+  stripCanvas.width = frameW * valid.length
+  stripCanvas.height = frameH
+  const sctx = stripCanvas.getContext('2d')
+  if (!sctx) return null
+
+  const stripFrames: LoopFrameBox[] = valid.map((v, idx) => {
+    const x = idx * frameW
+    const drawX = x + Math.round((frameW - v.canvas.width) * 0.5)
+    const drawY = Math.round(frameH - v.canvas.height)
+    sctx.drawImage(v.canvas, drawX, drawY)
+    return {
+      id: `frame_${idx}`,
+      index: idx,
+      x,
+      y: 0,
+      width: frameW,
+      height: frameH,
+      offsetX: 0,
+      offsetY: 0,
+      enabled: true,
+      durationRatio: v.meta.durationRatio ?? 1
+    }
+  })
+
+  return {
+    canvas: stripCanvas,
+    frames: stripFrames,
+    frameW,
+    frameH,
+    packageJson: pkg
+  }
+}
 
 /**
  * Loads and caches a processed (Chroma-Key removed) sprite sheet canvas + frame list for a LoopAnimationTemplate,
@@ -675,9 +782,32 @@ const _spriteSheetCache = new Map<string, Promise<CachedLoopSpriteSheet | null>>
 export function getCachedLoopTemplateSheet(
   template: Pick<
     LoopAnimationTemplate,
-    'id' | 'imageUrl' | 'gridConfig' | 'chromaKey' | 'frames' | 'updatedAt'
+    'id' | 'imageUrl' | 'gridConfig' | 'chromaKey' | 'frames' | 'updatedAt' | 'loopJsonPath' | 'packageFolder'
   >
 ): Promise<CachedLoopSpriteSheet | null> {
+  const primed = _primedPackageSheets.get(template.id)
+  if (primed) return Promise.resolve(primed)
+
+  const pkgSource = (template.loopJsonPath || template.packageFolder || template.imageUrl || '').replace(/\\/g, '/')
+  const pkgMatch = pkgSource.match(/loop_animations\/([^/]+)/)
+  if (pkgMatch && pkgMatch[1]) {
+    const slug = pkgMatch[1]
+    const pkgCacheKey = `pkg:${slug}:${template.updatedAt ?? 0}`
+    const existingPkg = _spriteSheetCache.get(pkgCacheKey)
+    if (existingPkg) return existingPkg
+    const pkgPromise = loadPackageHorizontalSheet(slug).then((res) => {
+      if (res) {
+        _primedPackageSheets.set(template.id, res)
+        _primedPackageSheets.set(slug, res)
+      } else {
+        _spriteSheetCache.delete(pkgCacheKey)
+      }
+      return res
+    })
+    _spriteSheetCache.set(pkgCacheKey, pkgPromise)
+    return pkgPromise
+  }
+
   const pad = template.gridConfig?.borderPadding ?? 0
   const shMode = template.chromaKey?.shadowMode ?? 'off'
   const shType = template.chromaKey?.shadowType ?? 'auto'

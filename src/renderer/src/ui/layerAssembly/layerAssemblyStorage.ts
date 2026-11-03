@@ -1,9 +1,31 @@
 import type { LayerComposite, LayerCompositeCategory, AssetTable } from './types'
+import { useAssetManifestStore } from '../../store/assetManifest'
 import { BUILTIN_COMPOSITES } from './layerAssemblyDefaultComposites'
 import { BUILTIN_NATURE_SPINE_KEYS, natureSpines } from './templates/natureDefaultSpines'
 import { weldConnectedLimbBones } from './mohoRigHelpers'
 
 export { BUILTIN_COMPOSITES }
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('parallax:asset-restored', ((e: Event) => {
+    const detail = (e as CustomEvent<{ relPath?: string }>).detail
+    const rel = detail?.relPath || ''
+    if (!rel) return
+    const deleted = getDeletedCompositeIds()
+    if (deleted.size === 0) return
+    let changed = false
+    for (const id of [...deleted]) {
+      if (rel.includes(id)) {
+        deleted.delete(id)
+        changed = true
+      }
+    }
+    if (changed) {
+      saveDeletedCompositeIds(deleted)
+      window.dispatchEvent(new CustomEvent('layerComposites:changed'))
+    }
+  }) as EventListener)
+}
 
 export const COMPOSITE_CATEGORIES: LayerCompositeCategory[] = [
   { id: 'all', title: 'Tất cả chi tiết', icon: 'layers', order: 0 },
@@ -238,14 +260,24 @@ export function updateCompositeThumbnail(id: string, thumbnail: string): void {
 }
 
 export function deleteComposite(id: string): void {
-  // Ghi nhớ vĩnh viễn ID đã bị người dùng xóa vào danh sách tombstones
+  const list = getStoredComposites()
+  const found = list.find((c) => c.id === id)
+  // Ghi nhớ ID đã bị người dùng xóa vào danh sách tombstones
   const deleted = getDeletedCompositeIds()
   deleted.add(id)
   saveDeletedCompositeIds(deleted)
 
-  const list = getStoredComposites()
   const nextList = list.filter((c) => c.id !== id)
   localStorage.setItem(STORAGE_KEY, JSON.stringify(nextList))
+
+  void useAssetManifestStore.getState().softDeleteAsset(`uploads/${id}.png`, false, {
+    name: found?.name || id,
+    category: found?.category || 'character',
+    folder: 'uploads',
+    previewDataUrl: found?.thumbnail,
+    fileName: `${id}.png`
+  })
+
   if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
     window.dispatchEvent(new CustomEvent('layerComposites:changed'))
   }

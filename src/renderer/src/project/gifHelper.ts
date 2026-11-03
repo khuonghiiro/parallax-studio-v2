@@ -1,10 +1,60 @@
-import type { ImageProps, LoopRhythmMode } from '@shared/types'
+import type { ImageProps, LoopColorConfig, LoopRhythmMode } from '@shared/types'
 import type { AnimatedGifData } from './assets'
 import { resolveLoopPlayCount } from './loopLifecycle'
 
 export interface LoopRhythmEvaluation {
   opacityMultiplier: number
   scaleMultiplier: number
+}
+
+/** Tạo chữ ký màu sắc ngắn gọn cho bộ nhớ đệm TexturePool (trả về 'default' nếu không có bộ lọc màu) */
+export function getLoopColorSignature(cfg?: LoopColorConfig | null): string {
+  if (!cfg) return 'default'
+  const b = cfg.brightness !== undefined && Math.abs(cfg.brightness - 1) > 0.005 ? cfg.brightness.toFixed(2) : ''
+  const c = cfg.contrast !== undefined && Math.abs(cfg.contrast - 1) > 0.005 ? cfg.contrast.toFixed(2) : ''
+  const s = cfg.saturation !== undefined && Math.abs(cfg.saturation - 1) > 0.005 ? cfg.saturation.toFixed(2) : ''
+  const h = cfg.hueRotate !== undefined && Math.abs(cfg.hueRotate) > 0.5 ? Math.round(cfg.hueRotate).toString() : ''
+  const t =
+    cfg.tintColor && (cfg.tintIntensity ?? 0.65) > 0.005
+      ? `${cfg.tintColor}:${(cfg.tintIntensity ?? 0.65).toFixed(2)}:${cfg.blendMode ?? 'source-atop'}`
+      : ''
+  if (!b && !c && !s && !h && !t) return 'default'
+  return `b${b}|c${c}|s${s}|h${h}|t${t}`
+}
+
+/** Áp dụng bộ lọc màu sắc (tint, độ sáng, tương phản, bão hoà, xoay sắc độ) lên nguồn ảnh mà không sửa dữ liệu gốc */
+export function applyLoopColorFilterToSource(
+  source: CanvasImageSource,
+  width: number,
+  height: number,
+  cfg?: LoopColorConfig | null
+): HTMLCanvasElement | null {
+  if (!cfg || typeof document === 'undefined' || getLoopColorSignature(cfg) === 'default') return null
+  const out = document.createElement('canvas')
+  out.width = Math.max(1, width)
+  out.height = Math.max(1, height)
+  const ctx = out.getContext('2d')
+  if (!ctx) return null
+
+  const filters: string[] = []
+  if (cfg.brightness !== undefined && Math.abs(cfg.brightness - 1) > 0.005) filters.push(`brightness(${cfg.brightness})`)
+  if (cfg.contrast !== undefined && Math.abs(cfg.contrast - 1) > 0.005) filters.push(`contrast(${cfg.contrast})`)
+  if (cfg.saturation !== undefined && Math.abs(cfg.saturation - 1) > 0.005) filters.push(`saturate(${cfg.saturation})`)
+  if (cfg.hueRotate !== undefined && Math.abs(cfg.hueRotate) > 0.5) filters.push(`hue-rotate(${cfg.hueRotate}deg)`)
+  if (filters.length > 0) ctx.filter = filters.join(' ')
+
+  ctx.drawImage(source, 0, 0, out.width, out.height)
+  ctx.filter = 'none'
+
+  if (cfg.tintColor && (cfg.tintIntensity ?? 0.65) > 0.005) {
+    ctx.save()
+    ctx.globalCompositeOperation = (cfg.blendMode as GlobalCompositeOperation) || 'source-atop'
+    ctx.globalAlpha = Math.max(0, Math.min(1, cfg.tintIntensity ?? 0.65))
+    ctx.fillStyle = cfg.tintColor
+    ctx.fillRect(0, 0, out.width, out.height)
+    ctx.restore()
+  }
+  return out
 }
 
 /**

@@ -19,12 +19,14 @@ import type {
   ManifestPruneReport
 } from '@shared/ipc'
 import {
+  markInternalManifestWrite,
   pruneAllManifestsOnDisk,
   readAllManifestModules,
   restoreDeletedBuiltInAsset,
   saveModuleManifestFile,
   softDeleteOrRemoveBuiltInAsset,
-  startManifestDirectoryWatcher
+  startManifestDirectoryWatcher,
+  type SoftDeleteAssetOptions
 } from './manifestCoordinator'
 
 const IMAGE_EXTS = new Set(['png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp'])
@@ -327,7 +329,14 @@ export async function scanBuiltInCatalog(forceRefresh = false): Promise<BuiltInC
   const tempAllFiles = existsSync(tempRoot) ? await collectFilesRecursively(tempRoot, tempRoot) : []
   const eligibleTempFiles = tempAllFiles.filter((filePath) => {
     const name = basename(filePath).toLowerCase()
-    return name !== 'manifest.json' && name !== 'readme.md' && name !== '.gitkeep'
+    if (name === 'manifest.json' || name === 'readme.md' || name === '.gitkeep') return false
+    const rel = relative(tempRoot, filePath).replace(/\\/g, '/')
+    // Trong gói hoạt ảnh lặp loop_animations/<slug>/, chỉ hiển thị đại diện thumbnail.png để tránh lặp 16 frame
+    if (/^loop_animations\/[^/]+\/frame_\d+\.png$/i.test(rel)) {
+      const thumbSibling = join(filePath, '..', 'thumbnail.png')
+      if (existsSync(thumbSibling) || name !== 'frame_000.png') return false
+    }
+    return true
   })
 
   const [itemResults, deletedResults] = await Promise.all([
@@ -509,7 +518,7 @@ export async function loadAssetBytes(relPath: string): Promise<{ name: string; m
 
 export async function deleteBuiltInAsset(
   relPath: string,
-  opts?: { permanent?: boolean }
+  opts?: SoftDeleteAssetOptions
 ): Promise<{ ok: boolean; status?: ManifestItemStatus; tempPath?: string; error?: string; catalog?: BuiltInCatalogResult }> {
   if (!relPath) return { ok: false, error: 'Thiếu đường dẫn tệp' }
   const root = getAssetsRoot()
@@ -653,6 +662,7 @@ export async function saveLoopAnimationPackage(
   payload: SaveLoopPackagePayload
 ): Promise<SaveLoopPackageResult & { catalog?: BuiltInCatalogResult }> {
   const root = getAssetsRoot()
+  markInternalManifestWrite()
   const res = await saveLoopAnimationPackageToDisk(root, payload)
   if (res.ok) {
     const catalog = await scanBuiltInCatalog(true)
@@ -682,7 +692,7 @@ export function registerBuiltInAssetsIpc(): void {
   ipcMain.handle('builtinAssets:loadAssetBytes', async (_e, relPath: string) => loadAssetBytes(relPath))
   ipcMain.handle(
     'builtinAssets:deleteAsset',
-    async (_e, relPath: string, opts?: { permanent?: boolean }) => deleteBuiltInAsset(relPath, opts)
+    async (_e, relPath: string, opts?: SoftDeleteAssetOptions) => deleteBuiltInAsset(relPath, opts)
   )
   ipcMain.handle('builtinAssets:restoreAsset', async (_e, relPath: string) => restoreBuiltInAsset(relPath))
   ipcMain.handle(

@@ -35,6 +35,8 @@ export interface LoopExportOptions {
   /** Kích thước mặt phẳng Mesh chuẩn trong không gian 3D (độc lập với độ phân giải texture 2K/4K) */
   baseMeshWidth?: number
   baseMeshHeight?: number
+  /** Danh sách canvas của từng frame đã tách sẵn (tránh phải cắt lại lần 2 khi vừa đóng gói) */
+  preExtractedCanvases?: HTMLCanvasElement[]
 }
 
 /**
@@ -55,7 +57,8 @@ export async function applyLoopAnimationToProject(
     templateId,
     rhythm,
     shotId,
-    initialPosition
+    initialPosition,
+    preExtractedCanvases
   } = options
   const enabledFrames = frames.filter((f) => f.enabled)
   if (enabledFrames.length === 0) {
@@ -70,7 +73,10 @@ export async function applyLoopAnimationToProject(
   let currentTime = 0
   let firstFrameCanvas: HTMLCanvasElement | null = null
 
-  const frameCanvases = enabledFrames.map((f) => extractFrameCanvas(sourceCanvas, f, maxW, maxH))
+  const frameCanvases =
+    preExtractedCanvases && preExtractedCanvases.length === enabledFrames.length
+      ? preExtractedCanvases
+      : enabledFrames.map((f) => extractFrameCanvas(sourceCanvas, f, maxW, maxH))
   firstFrameCanvas = frameCanvases[0] ?? null
 
   const bitmaps = await Promise.all(frameCanvases.map((fc) => createLoopFrameBitmap(fc)))
@@ -266,6 +272,63 @@ export async function buildLoopAnimatedAsset(options: {
 
     return { assetMeta: meta, gifData, width: effectiveMeshW, height: effectiveMeshH }
   }
+
+  // 1b. Nếu spriteSheetUrl trỏ tới gói hoạt ảnh đã tách frame (loop_animations/<slug>), nạp trực tiếp dải frame ngang đã tách nền
+  const pkgMatch = (options.spriteSheetUrl || '').replace(/\\/g, '/').match(/loop_animations\/([^/]+)/)
+  if (pkgMatch && pkgMatch[1]) {
+    const slug = pkgMatch[1]
+    const pkgSheet = await getCachedLoopTemplateSheet({
+      id: slug,
+      imageUrl: options.spriteSheetUrl,
+      loopJsonPath: `loop_animations/${slug}/animation.json`,
+      packageFolder: `loop_animations/${slug}`,
+      gridConfig: options.gridConfig ?? { cols: 4, rows: 1, marginX: 0, marginY: 0, paddingX: 0, paddingY: 0 },
+      chromaKey: { enabled: false, keyColor: '#000000', similarity: 0.28, smoothness: 0.1, spill: 0.35 }
+    })
+    if (pkgSheet && pkgSheet.frames.length > 0) {
+      const maxW = pkgSheet.frameW
+      const maxH = pkgSheet.frameH
+      const effFps = pkgSheet.packageJson?.fps || options.fps || 12
+      const baseFrameDuration = 1 / Math.max(1, Math.min(60, effFps))
+      const frameCanvases = pkgSheet.frames.map((f) => extractFrameCanvas(pkgSheet.canvas, f, maxW, maxH))
+      const bitmaps = await Promise.all(frameCanvases.map((fc) => createLoopFrameBitmap(fc)))
+      const gifFrames: GifFrame[] = []
+      let currentTime = 0
+      for (let i = 0; i < pkgSheet.frames.length; i++) {
+        const f = pkgSheet.frames[i]
+        const duration = Math.max(0.016, baseFrameDuration * (f.durationRatio || 1))
+        gifFrames.push({
+          index: i,
+          bitmap: bitmaps[i],
+          duration,
+          startTime: currentTime
+        })
+        currentTime += duration
+      }
+      const thumbCanvas = frameCanvases[0]
+      const runtimeAsset = await assetStore.addCanvas(
+        `${slug}_${Date.now().toString(36)}.png`,
+        thumbCanvas
+      )
+      const meta = runtimeAsset.meta
+      const effectiveMeshW = options.meshWidth && options.meshWidth > 1 ? options.meshWidth : (pkgSheet.packageJson?.baseMeshWidth || maxW)
+      const effectiveMeshH = options.meshHeight && options.meshHeight > 1 ? options.meshHeight : (pkgSheet.packageJson?.baseMeshHeight || maxH)
+      meta.width = effectiveMeshW
+      meta.height = effectiveMeshH
+      meta.isAnimated = true
+      meta.frameCount = gifFrames.length
+      meta.duration = Math.max(0.05, currentTime)
+      const gifData: AnimatedGifData = {
+        frames: gifFrames,
+        totalDuration: Math.max(0.05, currentTime),
+        width: maxW,
+        height: maxH
+      }
+      runtimeAsset.gif = gifData
+      return { assetMeta: meta, gifData, width: effectiveMeshW, height: effectiveMeshH }
+    }
+  }
+
   const resolvedUrl = await resolveLoopAssetUrl(options.spriteSheetUrl)
   const img = await new Promise<HTMLImageElement>((resolve, reject) => {
     const el = new Image()
@@ -474,6 +537,10 @@ export async function exportLoopPresetDirectly(
     speed: overrides?.speed ?? template.speed ?? 1,
     loopMode: overrides?.loopMode ?? template.loopMode ?? 'loop',
     templateId: template.id,
+    loopJsonPath:
+      template.loopJsonPath ||
+      (template.packageFolder ? `${template.packageFolder}/animation.json` : undefined),
+    rhythm: template.rhythm,
     shotId: overrides?.shotId,
     initialPosition: overrides?.initialPosition,
     baseMeshWidth: template.baseMeshWidth,
@@ -497,15 +564,22 @@ export async function syncSceneAndCompositesWithLoopTemplate(
   let updatedCount = 0
 
   if (matchingLayers.length > 0) {
+    const cachedSheet = await getCachedLoopTemplateSheet(template)
     const built = await buildLoopAnimatedAsset({
       name: template.name,
-      spriteSheetUrl: template.transparentSheetUrl || template.imageUrl,
-      frames: template.frames,
+      spriteSheetUrl:
+        cachedSheet?.canvas
+          ? cachedSheet.canvas.toDataURL('image/png')
+          : template.transparentSheetUrl || template.imageUrl,
+      frames: cachedSheet?.frames || template.frames,
       renderedFrames: template.renderedFrames,
-      gridConfig: template.gridConfig,
-      chromaKey: template.transparentSheetUrl
-        ? { ...template.chromaKey, enabled: false }
-        : template.chromaKey,
+      gridConfig: cachedSheet
+        ? { cols: cachedSheet.frames.length, rows: 1, marginX: 0, marginY: 0, paddingX: 0, paddingY: 0 }
+        : template.gridConfig,
+      chromaKey:
+        cachedSheet || template.transparentSheetUrl
+          ? { ...template.chromaKey, enabled: false }
+          : template.chromaKey,
       fps: template.fps
     })
 
@@ -519,6 +593,9 @@ export async function syncSceneAndCompositesWithLoopTemplate(
           l.props.assetId = built.assetMeta.id
           l.props.loopMode = template.loopMode
           l.props.speed = template.speed ?? l.props.speed ?? 1
+          if (template.loopJsonPath) {
+            l.props.loopJsonPath = template.loopJsonPath
+          }
           if (template.rhythm) {
             l.props.loopRhythmMode = template.rhythm.rhythmMode
             l.props.loopRhythmRateHz = template.rhythm.rhythmRateHz

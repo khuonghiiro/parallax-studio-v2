@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
   resolveEffectiveLoopConfig,
-  applyLoopColorFilterToCanvas
+  applyLoopColorFilterToCanvas,
+  getLoopColorSignature
 } from './loopPackageLoader'
 
 describe('loopPackageLoader', () => {
@@ -68,5 +69,20 @@ describe('loopPackageLoader', () => {
       brightness: 1.2
     })
     expect(out).toBe(fakeCanvas)
+  })
+
+  it('computes compact color signatures for TexturePool caching', () => {
+    expect(getLoopColorSignature(null)).toBe('default')
+    expect(getLoopColorSignature({ brightness: 1.0, contrast: 1.0, hueRotate: 0 })).toBe('default')
+    const sig = getLoopColorSignature({
+      tintColor: '#00e5ff',
+      tintIntensity: 0.65,
+      brightness: 1.25,
+      hueRotate: 45
+    })
+    expect(sig).not.toBe('default')
+    expect(sig).toContain('#00e5ff')
+    expect(sig).toContain('1.25')
+    expect(sig).toContain('45')
   })
 })

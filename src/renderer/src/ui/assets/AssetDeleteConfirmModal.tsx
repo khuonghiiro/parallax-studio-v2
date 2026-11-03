@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import type { AssetUsageTarget } from './assetUsage'
 import { findAssetUsages } from './assetUsage'
 import { IconFilm, IconLayers, IconTrash, IconX } from '../icons'
@@ -16,6 +16,8 @@ export function AssetDeleteConfirmModal({
   target,
   onConfirmDelete
 }: AssetDeleteConfirmModalProps) {
+  const [isDeleting, setIsDeleting] = useState(false)
+  const deleteLockRef = useRef(false)
   const report = useMemo(() => {
     if (!target) return null
     return findAssetUsages(target)
@@ -25,6 +27,17 @@ export function AssetDeleteConfirmModal({
 
   const hasUsage = report.totalUsages > 0
   const name = target.name || target.fileName || 'Tài nguyên'
+
+  const handleConfirm = (): void => {
+    if (deleteLockRef.current || isDeleting) return
+    deleteLockRef.current = true
+    setIsDeleting(true)
+    try {
+      onConfirmDelete(target)
+    } finally {
+      onClose()
+    }
+  }
 
   return (
     <div
@@ -178,22 +191,17 @@ export function AssetDeleteConfirmModal({
             background: 'var(--bg-2)'
           }}
         >
-          <button type="button" className={`btn sm ${hasUsage ? 'primary' : ''}`} onClick={onClose}>
+          <button type="button" className={`btn sm ${hasUsage ? 'primary' : ''}`} disabled={isDeleting} onClick={onClose}>
             {hasUsage ? 'Hủy bỏ (Giữ lại)' : 'Hủy'}
           </button>
           <button
             type="button"
             className="btn sm danger"
-            onClick={() => {
-              try {
-                onConfirmDelete(target)
-              } finally {
-                onClose()
-              }
-            }}
+            disabled={isDeleting}
+            onClick={handleConfirm}
           >
             <IconTrash width={11} height={11} />
-            <span>{hasUsage ? 'Vẫn xóa tạm' : 'Xóa tài nguyên'}</span>
+            <span>{isDeleting ? 'Đang chuyển vào Xoá tạm…' : hasUsage ? 'Vẫn xóa tạm' : 'Xóa tài nguyên'}</span>
           </button>
         </div>
       </div>

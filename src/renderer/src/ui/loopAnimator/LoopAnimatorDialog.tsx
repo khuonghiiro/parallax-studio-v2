@@ -104,7 +104,10 @@ export function LoopAnimatorDialog({ isOpen = true, onClose, initialImageUrl }: 
   const sourceCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const upgradeFileInputRef = useRef<HTMLInputElement | null>(null)
+  const actionLockRef = useRef(false)
   const [isExporting, setIsExporting] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [saveProgressText, setSaveProgressText] = useState<string | null>(null)
   const [mobileTab, setMobileTab] = useState<MobileTab>('source')
   const templates = useLoopTemplates(isOpen, manifestRevision)
 
@@ -126,15 +129,19 @@ export function LoopAnimatorDialog({ isOpen = true, onClose, initialImageUrl }: 
 
   const enabledCount = frames.filter((f) => f.enabled).length
   const canExport = hasSource && enabledCount > 0
+  const isBusy = isSaving || isExporting
   const requestUpload = (): void => fileInputRef.current?.click()
   const requestUpgradeMesh = (): void => upgradeFileInputRef.current?.click()
 
   async function handleApplyToScene(): Promise<void> {
-    if (!sourceCanvasRef.current || isExporting) return
+    if (!sourceCanvasRef.current || actionLockRef.current || isSaving || isExporting) return
+    actionLockRef.current = true
     setIsExporting(true)
+    setSaveProgressText(`Đang chuẩn bị tách 1/${enabledCount} frame…`)
     try {
-      let saved = saveCurrentToLibrary(sourceCanvasRef.current)
+      let saved: LoopAnimationTemplate | null = null
       let pkgRelPath: string | undefined
+      let preExtractedCanvases: HTMLCanvasElement[] | undefined
       try {
         const pkgRes = await saveLoopAnimationAsPackage({
           name: layerName,
@@ -152,16 +159,23 @@ export function LoopAnimatorDialog({ isOpen = true, onClose, initialImageUrl }: 
             gridConfig,
             chromaKey,
             contourConfig
-          }
+          },
+          onProgress: (info) => setSaveProgressText(info.message)
         })
         if (pkgRes.ok) {
           pkgRelPath = pkgRes.jsonRelPath
           saved = pkgRes.template
+          preExtractedCanvases = pkgRes.frameCanvases
+          useLoopAnimator.setState({ activePresetId: pkgRes.slug })
         }
       } catch (pkgErr) {
         console.warn('[LoopAnimator] Package save warning:', pkgErr)
       }
+      if (!saved) {
+        saved = saveCurrentToLibrary(sourceCanvasRef.current)
+      }
       if (saved) void syncSceneAndCompositesWithLoopTemplate(saved)
+      setSaveProgressText('Đang chèn hoạt ảnh vào cảnh…')
       const res = await applyLoopAnimationToProject({
         layerName,
         sourceCanvas: sourceCanvasRef.current,
@@ -173,19 +187,25 @@ export function LoopAnimatorDialog({ isOpen = true, onClose, initialImageUrl }: 
         loopJsonPath: pkgRelPath,
         rhythm: playback.rhythm,
         baseMeshWidth: saved?.baseMeshWidth,
-        baseMeshHeight: saved?.baseMeshHeight
+        baseMeshHeight: saved?.baseMeshHeight,
+        preExtractedCanvases
       })
       toast(`✨ Đã tạo layer hoạt ảnh lặp "${layerName}" (${res.frameCount} frames @ ${playback.fps} FPS)`)
       onClose()
     } catch (err) {
       toast(`Lỗi xuất hoạt ảnh lặp: ${err instanceof Error ? err.message : String(err)}`)
     } finally {
+      actionLockRef.current = false
       setIsExporting(false)
+      setSaveProgressText(null)
     }
   }
 
   async function handleSaveToLibrary(): Promise<void> {
-    if (!sourceCanvasRef.current) return
+    if (!sourceCanvasRef.current || actionLockRef.current || isSaving || isExporting) return
+    actionLockRef.current = true
+    setIsSaving(true)
+    setSaveProgressText(`Đang chuẩn bị lưu 1/${enabledCount} frame…`)
     try {
       const pkgRes = await saveLoopAnimationAsPackage({
         name: layerName,
@@ -203,20 +223,26 @@ export function LoopAnimatorDialog({ isOpen = true, onClose, initialImageUrl }: 
           gridConfig,
           chromaKey,
           contourConfig
-        }
+        },
+        onProgress: (info) => setSaveProgressText(info.message)
       })
       const saved = pkgRes.template || saveCurrentToLibrary(sourceCanvasRef.current)
       if (saved) {
-        void syncSceneAndCompositesWithLoopTemplate(saved).then((syncedCount) => {
-          if (syncedCount > 0) {
-            toast(`💾 Đã lưu "${saved.name}" vào thư mục loop_animations/${pkgRes.slug}/ và đồng bộ ${syncedCount} layer`)
-          } else {
-            toast(`💾 Đã lưu "${saved.name}" (${pkgRes.packageJson.frameCount} frame) vào thư mục loop_animations/${pkgRes.slug}/`)
-          }
-        })
+        useLoopAnimator.setState({ activePresetId: saved.id })
+        setSaveProgressText('Đang đồng bộ kho tài nguyên…')
+        const syncedCount = await syncSceneAndCompositesWithLoopTemplate(saved)
+        if (syncedCount > 0) {
+          toast(`💾 Đã lưu "${saved.name}" (${pkgRes.packageJson.frameCount} frame + animation.json) vào loop_animations/${pkgRes.slug}/ và đồng bộ ${syncedCount} layer`)
+        } else {
+          toast(`💾 Đã lưu "${saved.name}" (${pkgRes.packageJson.frameCount} frame + animation.json) vào thư mục loop_animations/${pkgRes.slug}/`)
+        }
       }
     } catch (err) {
       toast(`Lỗi lưu gói hoạt ảnh: ${err instanceof Error ? err.message : String(err)}`)
+    } finally {
+      actionLockRef.current = false
+      setIsSaving(false)
+      setSaveProgressText(null)
     }
   }
 
@@ -378,20 +404,37 @@ export function LoopAnimatorDialog({ isOpen = true, onClose, initialImageUrl }: 
               <span className="la-stat"><b>{enabledCount}</b>/{frames.length} frame</span>
               <span className="la-stat"><b>{playback.fps}</b> FPS × {playback.speed}</span>
               <span className="la-stat">{LOOP_MODE_LABEL[playback.loopMode] ?? playback.loopMode}</span>
+              {saveProgressText && (
+                <span className="la-stat" style={{ color: 'var(--accent-cyan)', fontWeight: 600 }}>
+                  ⏳ {saveProgressText}
+                </span>
+              )}
             </div>
           </div>
 
           <div className="loop-footer-actions">
-            <button type="button" className="la-btn la-btn--ghost la-btn--lg" onClick={onClose}>
+            <button type="button" className="la-btn la-btn--ghost la-btn--lg" disabled={isBusy} onClick={onClose}>
               Đóng
             </button>
-            <button type="button" className="la-btn la-btn--success la-btn--lg" disabled={!canExport} onClick={handleSaveToLibrary} title="Lưu vào kho Loop Animate (dùng lại ở màn hình chính và Xưởng Layer 2.5D)">
+            <button
+              type="button"
+              className="la-btn la-btn--success la-btn--lg"
+              disabled={!canExport || isBusy}
+              onClick={() => void handleSaveToLibrary()}
+              title="Lưu thành gói thư mục gồm các frame ảnh đã tách nền + animation.json (nhấn 1 lần)"
+            >
               <IconSave width={14} height={14} />
-              <span>Lưu vào kho</span>
+              <span>{isSaving ? (saveProgressText || 'Đang lưu gói…') : 'Lưu vào kho'}</span>
             </button>
-            <button type="button" className="la-btn la-btn--primary la-btn--lg" disabled={!canExport || isExporting} onClick={() => void handleApplyToScene()} title="Lưu vào kho và tạo layer hoạt ảnh lặp trong cảnh hiện tại">
+            <button
+              type="button"
+              className="la-btn la-btn--primary la-btn--lg"
+              disabled={!canExport || isBusy}
+              onClick={() => void handleApplyToScene()}
+              title="Lưu vào kho và tạo layer hoạt ảnh lặp trong cảnh hiện tại (nhấn 1 lần)"
+            >
               <IconFilm width={14} height={14} />
-              <span>{isExporting ? 'Đang đóng gói…' : 'Đưa vào cảnh'}</span>
+              <span>{isExporting ? (saveProgressText || 'Đang đóng gói…') : 'Đưa vào cảnh'}</span>
             </button>
           </div>
         </footer>

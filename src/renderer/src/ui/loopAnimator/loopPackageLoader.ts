@@ -7,7 +7,14 @@ import type {
 import type { LoopRhythmConfig } from './types'
 import { loadAssetBytesFromDiskOrBuiltIn } from '../../project/json/assetLoader'
 import { type AnimatedGifData, type GifFrame } from '../../project/assets'
-import { createLoopFrameBitmap } from './loopAnimationExporter'
+
+async function createFlippedFrameBitmap(source: HTMLCanvasElement): Promise<ImageBitmap> {
+  return createImageBitmap(source, {
+    imageOrientation: 'flipY',
+    premultiplyAlpha: 'none',
+    colorSpaceConversion: 'none'
+  })
+}
 
 export interface EffectiveLoopConfig {
   fps: number
@@ -112,7 +119,45 @@ export function applyLoopColorFilterToCanvas(
   return out
 }
 
+/** Tạo chữ ký màu sắc ngắn gọn để làm khoá cache trong TexturePool (trả về 'default' nếu không đổi màu) */
+export function getLoopColorSignature(cfg?: LoopColorConfig | null): string {
+  if (!cfg) return 'default'
+  const b = cfg.brightness !== undefined && Math.abs(cfg.brightness - 1) > 0.005 ? cfg.brightness.toFixed(2) : ''
+  const c = cfg.contrast !== undefined && Math.abs(cfg.contrast - 1) > 0.005 ? cfg.contrast.toFixed(2) : ''
+  const s = cfg.saturation !== undefined && Math.abs(cfg.saturation - 1) > 0.005 ? cfg.saturation.toFixed(2) : ''
+  const h = cfg.hueRotate !== undefined && Math.abs(cfg.hueRotate) > 0.5 ? Math.round(cfg.hueRotate).toString() : ''
+  const t = cfg.tintColor && (cfg.tintIntensity ?? 0) > 0.005 ? `${cfg.tintColor}:${(cfg.tintIntensity ?? 0.6).toFixed(2)}:${cfg.blendMode ?? 'source-atop'}` : ''
+  if (!b && !c && !s && !h && !t) return 'default'
+  return `b${b}|c${c}|s${s}|h${h}|t${t}`
+}
+
+/** Áp dụng bộ lọc màu sắc lên bất kỳ nguồn ảnh (ImageBitmap / HTMLCanvasElement) mà không làm biến đổi nguồn gốc */
+export function applyLoopColorFilterToSource(
+  source: CanvasImageSource,
+  width: number,
+  height: number,
+  cfg?: LoopColorConfig | null
+): HTMLCanvasElement | null {
+  if (!cfg || typeof document === 'undefined' || getLoopColorSignature(cfg) === 'default') return null
+  const base = document.createElement('canvas')
+  base.width = Math.max(1, width)
+  base.height = Math.max(1, height)
+  const bctx = base.getContext('2d')
+  if (!bctx) return null
+  bctx.drawImage(source, 0, 0, base.width, base.height)
+  return applyLoopColorFilterToCanvas(base, cfg)
+}
+
 const _packageJsonCache = new Map<string, LoopAnimationPackageJson>()
+
+export function invalidateLoopPackageCache(jsonRelPath?: string): void {
+  if (!jsonRelPath) {
+    _packageJsonCache.clear()
+    return
+  }
+  const clean = jsonRelPath.replace(/\\/g, '/').replace(/^builtin:/, '').replace(/^assets\//, '').trim()
+  _packageJsonCache.delete(clean)
+}
 
 /**
  * Nạp tệp cấu hình animation.json và giải mã các frame ảnh kèm kế thừa tham số ghi đè
@@ -159,53 +204,53 @@ export async function loadLoopPackageData(
   const frames = packageJson.frames || []
   if (frames.length === 0) return null
 
-  // 2. Tải từng frame ảnh PNG
-  const frameBitmaps: ImageBitmap[] = []
-  const frameCanvases: HTMLCanvasElement[] = []
+  // 2. Tải song song từng frame ảnh PNG đã tách nền sẵn
   const baseFrameDuration = 1 / Math.max(1, Math.min(60, effectiveConfig.fps))
+  const loadedFrames = await Promise.all(
+    frames.map(async (f) => {
+      const frameRel = `${baseFolder}/${f.file}`
+      const file = await loadAssetBytesFromDiskOrBuiltIn(frameRel)
+      if (!file || !file.data) return null
 
-  for (const f of frames) {
-    const frameRel = `${baseFolder}/${f.file}`
-    const file = await loadAssetBytesFromDiskOrBuiltIn(frameRel)
-    if (!file || !file.data) continue
+      const blob = new Blob([file.data as unknown as BlobPart], { type: file.mime || 'image/png' })
+      const imgBitmap = await createImageBitmap(blob)
 
-    const blob = new Blob([file.data as unknown as BlobPart], { type: file.mime || 'image/png' })
-    const imgBitmap = await createImageBitmap(blob)
+      const c = document.createElement('canvas')
+      c.width = imgBitmap.width
+      c.height = imgBitmap.height
+      const ctx = c.getContext('2d')
+      if (ctx) {
+        ctx.drawImage(imgBitmap, 0, 0)
+      }
+      imgBitmap.close()
 
-    // Tạo canvas để áp dụng bộ lọc màu nếu có
-    const c = document.createElement('canvas')
-    c.width = imgBitmap.width
-    c.height = imgBitmap.height
-    const ctx = c.getContext('2d')
-    if (ctx) {
-      ctx.drawImage(imgBitmap, 0, 0)
-    }
-    imgBitmap.close()
+      const effectiveFrameColor: LoopColorConfig = {
+        ...effectiveConfig.color,
+        tintColor: f.tintColor !== undefined ? f.tintColor : effectiveConfig.color.tintColor,
+        brightness: f.brightness !== undefined ? f.brightness : effectiveConfig.color.brightness,
+        contrast: f.contrast !== undefined ? f.contrast : effectiveConfig.color.contrast,
+        saturation: f.saturation !== undefined ? f.saturation : effectiveConfig.color.saturation,
+        hueRotate: f.hueRotate !== undefined ? f.hueRotate : effectiveConfig.color.hueRotate,
+        opacity: f.opacity !== undefined ? f.opacity : effectiveConfig.color.opacity
+      }
 
-    // Hợp nhất màu riêng của từng frame với màu tổng thể
-    const effectiveFrameColor: LoopColorConfig = {
-      ...effectiveConfig.color,
-      tintColor: f.tintColor !== undefined ? f.tintColor : effectiveConfig.color.tintColor,
-      brightness: f.brightness !== undefined ? f.brightness : effectiveConfig.color.brightness,
-      contrast: f.contrast !== undefined ? f.contrast : effectiveConfig.color.contrast,
-      saturation: f.saturation !== undefined ? f.saturation : effectiveConfig.color.saturation,
-      hueRotate: f.hueRotate !== undefined ? f.hueRotate : effectiveConfig.color.hueRotate,
-      opacity: f.opacity !== undefined ? f.opacity : effectiveConfig.color.opacity
-    }
+      const filtered = applyLoopColorFilterToCanvas(c, effectiveFrameColor)
+      const bmp = await createFlippedFrameBitmap(filtered)
+      return { filtered, bmp, meta: f }
+    })
+  )
 
-    const filtered = applyLoopColorFilterToCanvas(c, effectiveFrameColor)
-    frameCanvases.push(filtered)
-    const bmp = await createLoopFrameBitmap(filtered)
-    frameBitmaps.push(bmp)
-  }
+  const validFrames = loadedFrames.filter((item): item is NonNullable<typeof item> => Boolean(item))
+  if (validFrames.length === 0) return null
 
-  if (frameBitmaps.length === 0) return null
+  const frameCanvases = validFrames.map((v) => v.filtered)
+  const frameBitmaps = validFrames.map((v) => v.bmp)
 
   // 3. Xây dựng AnimatedGifData
   const gifFrames: GifFrame[] = []
   let currentTime = 0
-  for (let i = 0; i < frameBitmaps.length; i++) {
-    const fMeta = frames[i]
+  for (let i = 0; i < validFrames.length; i++) {
+    const fMeta = validFrames[i].meta
     const dur = Math.max(0.016, baseFrameDuration * (fMeta?.durationRatio || 1))
     gifFrames.push({
       index: i,

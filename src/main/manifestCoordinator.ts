@@ -1,6 +1,6 @@
 import { existsSync, watch, type FSWatcher } from 'fs'
-import { copyFile, mkdir, readdir, readFile, rename, stat, unlink, writeFile } from 'fs/promises'
-import { basename, dirname, extname, join, relative } from 'path'
+import { copyFile, cp, mkdir, readdir, readFile, rename, rm, stat, unlink, writeFile } from 'fs/promises'
+import { basename, dirname, extname, join } from 'path'
 import type {
   BuiltInAssetCategory,
   ManifestAssetMeta,
@@ -238,6 +238,7 @@ export async function saveModuleManifestFile(
   rawJson: string
 ): Promise<{ ok: boolean; error?: string }> {
   try {
+    markInternalManifestWrite()
     const parsed = JSON.parse(rawJson)
     if (!parsed || typeof parsed !== 'object') {
       return { ok: false, error: 'Nội dung JSON không hợp lệ' }
@@ -325,7 +326,27 @@ export async function saveModuleManifestFile(
   }
 }
 
-async function moveFileSafe(src: string, dest: string): Promise<void> {
+let lastInternalWriteMs = 0
+
+export function markInternalManifestWrite(): void {
+  lastInternalWriteMs = Date.now()
+}
+
+async function movePathSafe(src: string, dest: string): Promise<void> {
+  const st = await stat(src)
+  if (st.isDirectory()) {
+    await mkdir(dirname(dest), { recursive: true })
+    if (existsSync(dest)) {
+      await rm(dest, { recursive: true, force: true })
+    }
+    try {
+      await rename(src, dest)
+    } catch {
+      await cp(src, dest, { recursive: true, force: true })
+      await rm(src, { recursive: true, force: true })
+    }
+    return
+  }
   await mkdir(dirname(dest), { recursive: true })
   try {
     await rename(src, dest)
@@ -335,18 +356,36 @@ async function moveFileSafe(src: string, dest: string): Promise<void> {
   }
 }
 
+function decodeDataUrlBuffer(dataUrl?: string): Buffer | null {
+  if (!dataUrl || !dataUrl.startsWith('data:')) return null
+  const commaIdx = dataUrl.indexOf(',')
+  if (commaIdx < 0) return null
+  try {
+    return Buffer.from(dataUrl.slice(commaIdx + 1), 'base64')
+  } catch {
+    return null
+  }
+}
+
 async function updateAssetEntryAcrossManifests(
   root: string,
   cleanTarget: string,
   updater: (existing: any) => any | undefined
 ): Promise<void> {
+  markInternalManifestWrite()
   const filesToUpdate = [
     join(root, 'manifest.json'),
     join(root, 'manifests', 'builtin.json'),
     join(root, 'manifests', 'audio.json'),
     join(root, 'manifests', 'loop-animator.json'),
-    join(root, 'manifests', 'layer-25d.json')
+    join(root, 'manifests', 'layer-25d.json'),
+    join(root, 'manifests', 'model-3d.json')
   ]
+
+  const isLoopTarget = cleanTarget.startsWith('loop_animations/') || cleanTarget.startsWith('demo_transparent/campfire_loop')
+  const isAudioTarget = cleanTarget.startsWith('audio/')
+  const isLayer25dTarget = cleanTarget.startsWith('layer_assemblies/')
+  const isModel3dTarget = cleanTarget.startsWith('asset-3ds/')
 
   await Promise.all(
     filesToUpdate.map(async (filePath) => {
@@ -356,31 +395,42 @@ async function updateAssetEntryAcrossManifests(
         const parsed = JSON.parse(raw)
         let changed = false
 
-        if (parsed.assets && typeof parsed.assets === 'object') {
-          let matchedKey: string | null = null
-          for (const key of Object.keys(parsed.assets)) {
-            const normKey = normalizeAssetKey(key)
-            if (
-              normKey === cleanTarget ||
-              normKey.endsWith(`/${cleanTarget}`) ||
-              cleanTarget.endsWith(`/${normKey}`)
-            ) {
-              matchedKey = key
-              break
-            }
+        if (!parsed.assets || typeof parsed.assets !== 'object') {
+          parsed.assets = {}
+        }
+
+        let matchedKey: string | null = null
+        for (const key of Object.keys(parsed.assets)) {
+          const normKey = normalizeAssetKey(key)
+          if (
+            normKey === cleanTarget ||
+            normKey.endsWith(`/${cleanTarget}`) ||
+            cleanTarget.endsWith(`/${normKey}`)
+          ) {
+            matchedKey = key
+            break
           }
-          const targetKey = matchedKey || (filePath.endsWith('manifest.json') || filePath.endsWith('builtin.json') ? cleanTarget : null)
-          if (targetKey) {
-            const nextVal = updater(parsed.assets[targetKey])
-            if (nextVal === undefined) {
-              if (targetKey in parsed.assets) {
-                delete parsed.assets[targetKey]
-                changed = true
-              }
-            } else {
-              parsed.assets[targetKey] = nextVal
+        }
+
+        const shouldInsertInThisFile =
+          filePath.endsWith('manifest.json') ||
+          (filePath.endsWith('loop-animator.json') && isLoopTarget) ||
+          (filePath.endsWith('audio.json') && isAudioTarget) ||
+          (filePath.endsWith('layer-25d.json') && isLayer25dTarget) ||
+          (filePath.endsWith('model-3d.json') && isModel3dTarget) ||
+          (filePath.endsWith('builtin.json') && !isLoopTarget && !isLayer25dTarget && !isModel3dTarget)
+
+        const targetKey = matchedKey || (shouldInsertInThisFile ? cleanTarget : null)
+        if (targetKey) {
+          const nextVal = updater(parsed.assets[targetKey])
+          if (nextVal === undefined) {
+            if (targetKey in parsed.assets) {
+              delete parsed.assets[targetKey]
               changed = true
             }
+          } else {
+            parsed.assets[targetKey] = nextVal
+            changed = true
           }
         }
 
@@ -406,35 +456,75 @@ async function updateAssetEntryAcrossManifests(
   )
 }
 
+export interface SoftDeleteAssetOptions {
+  permanent?: boolean
+  snapshotJson?: string
+  snapshotName?: string
+  snapshotCategory?: string
+  snapshotPreviewDataUrl?: string
+}
+
 export async function softDeleteOrRemoveBuiltInAsset(
   root: string,
   relPath: string,
-  opts?: { permanent?: boolean }
+  opts?: SoftDeleteAssetOptions
 ): Promise<{ ok: boolean; status?: ManifestItemStatus; tempPath?: string; error?: string }> {
-  const cleanTarget = normalizeAssetKey(relPath).replace(/^_temp_deleted\//, '')
-  if (!cleanTarget) return { ok: false, error: 'Thiếu đường dẫn tệp' }
+  const rawClean = normalizeAssetKey(relPath).replace(/^_temp_deleted\//, '')
+  if (!rawClean) return { ok: false, error: 'Thiếu đường dẫn tệp' }
 
   const tempTrashFolder = '_temp_deleted'
-  const fullPath = join(root, cleanTarget)
-  const tempFullPath = join(root, tempTrashFolder, cleanTarget)
   const permanent = Boolean(opts?.permanent)
 
+  // Nhận diện gói hoạt ảnh lặp loop_animations/<slug> để di chuyển nguyên cả thư mục gói
+  const loopPkgMatch = rawClean.match(/^(loop_animations\/[^/]+)(?:\/.*)?$/)
+  const pkgDirRel = loopPkgMatch ? loopPkgMatch[1] : null
+  const cleanTarget = pkgDirRel ? `${pkgDirRel}/animation.json` : rawClean
+
+  const fullPath = join(root, pkgDirRel || cleanTarget)
+  const tempFullPath = join(root, tempTrashFolder, pkgDirRel || cleanTarget)
+
   try {
+    markInternalManifestWrite()
     if (permanent) {
-      if (existsSync(fullPath)) await unlink(fullPath)
-      if (existsSync(tempFullPath)) await unlink(tempFullPath)
+      if (existsSync(fullPath)) await rm(fullPath, { recursive: true, force: true })
+      if (existsSync(tempFullPath)) await rm(tempFullPath, { recursive: true, force: true })
       await updateAssetEntryAcrossManifests(root, cleanTarget, () => undefined)
       return { ok: true, status: 'deleted' }
     }
 
-    // Soft-delete: di chuyển file vào assets/_temp_deleted/<cleanTarget>
+    // Soft-delete: di chuyển tệp hoặc cả thư mục gói vào assets/_temp_deleted/
     if (existsSync(fullPath)) {
-      await moveFileSafe(fullPath, tempFullPath)
+      await movePathSafe(fullPath, tempFullPath)
+    } else if (opts?.snapshotJson || opts?.snapshotPreviewDataUrl) {
+      // Tài nguyên procedural / localStorage chưa có file trên đĩa -> ghi bản sao vào _temp_deleted để bảo toàn khôi phục
+      if (pkgDirRel) {
+        await mkdir(tempFullPath, { recursive: true })
+        if (opts.snapshotJson) {
+          await writeFile(join(tempFullPath, 'animation.json'), opts.snapshotJson, 'utf-8')
+        }
+        const imgBuf = decodeDataUrlBuffer(opts.snapshotPreviewDataUrl)
+        if (imgBuf) {
+          await writeFile(join(tempFullPath, 'thumbnail.png'), imgBuf)
+          if (!existsSync(join(tempFullPath, 'frame_000.png'))) {
+            await writeFile(join(tempFullPath, 'frame_000.png'), imgBuf)
+          }
+        }
+      } else {
+        await mkdir(dirname(tempFullPath), { recursive: true })
+        const imgBuf = decodeDataUrlBuffer(opts.snapshotPreviewDataUrl)
+        if (imgBuf) {
+          await writeFile(tempFullPath, imgBuf)
+        } else if (opts.snapshotJson) {
+          await writeFile(tempFullPath, opts.snapshotJson, 'utf-8')
+        }
+      }
     }
 
     const tempRelPath = `${tempTrashFolder}/${cleanTarget}`
     const deletedAt = new Date().toISOString()
-    const fallbackName = basename(cleanTarget, extname(cleanTarget)).replace(/[_-]/g, ' ')
+    const fallbackName =
+      opts?.snapshotName?.trim() ||
+      (pkgDirRel ? pkgDirRel.split('/')[1].replace(/[_-]/g, ' ') : basename(cleanTarget, extname(cleanTarget)).replace(/[_-]/g, ' '))
     const folder = cleanTarget.includes('/') ? cleanTarget.split('/')[0] : ''
 
     await updateAssetEntryAcrossManifests(root, cleanTarget, (existing) => {
@@ -443,10 +533,11 @@ export async function softDeleteOrRemoveBuiltInAsset(
           ? { name: existing }
           : existing && typeof existing === 'object'
             ? { ...existing }
-            : { name: fallbackName, category: folder || 'uploads' }
+            : { name: fallbackName, category: opts?.snapshotCategory || folder || 'uploads' }
       return {
         ...baseObj,
         name: baseObj.name || fallbackName,
+        ...(pkgDirRel ? { folder: pkgDirRel, thumbnail: `${pkgDirRel}/thumbnail.png` } : {}),
         status: 'deleted',
         tempPath: tempRelPath,
         deletedAt
@@ -463,23 +554,30 @@ export async function restoreDeletedBuiltInAsset(
   root: string,
   relPath: string
 ): Promise<{ ok: boolean; relPath?: string; error?: string }> {
-  const cleanTarget = normalizeAssetKey(relPath).replace(/^_temp_deleted\//, '')
-  if (!cleanTarget) return { ok: false, error: 'Thiếu đường dẫn tệp cần khôi phục' }
+  const rawClean = normalizeAssetKey(relPath).replace(/^_temp_deleted\//, '')
+  if (!rawClean) return { ok: false, error: 'Thiếu đường dẫn tệp cần khôi phục' }
 
   const tempTrashFolder = '_temp_deleted'
-  const tempFullPath = join(root, tempTrashFolder, cleanTarget)
-  const activeFullPath = join(root, cleanTarget)
+  const loopPkgMatch = rawClean.match(/^(loop_animations\/[^/]+)(?:\/.*)?$/)
+  const pkgDirRel = loopPkgMatch ? loopPkgMatch[1] : null
+  const cleanTarget = pkgDirRel ? `${pkgDirRel}/animation.json` : rawClean
+
+  const tempFullPath = join(root, tempTrashFolder, pkgDirRel || cleanTarget)
+  const activeFullPath = join(root, pkgDirRel || cleanTarget)
 
   try {
+    markInternalManifestWrite()
     if (!existsSync(tempFullPath) && !existsSync(activeFullPath)) {
-      return { ok: false, error: `Không tìm thấy tệp trong kho tạm (${tempTrashFolder}/${cleanTarget})` }
+      return { ok: false, error: `Không tìm thấy tệp trong kho tạm (${tempTrashFolder}/${pkgDirRel || cleanTarget})` }
     }
 
     if (existsSync(tempFullPath)) {
-      await moveFileSafe(tempFullPath, activeFullPath)
+      await movePathSafe(tempFullPath, activeFullPath)
     }
 
-    const fallbackName = basename(cleanTarget, extname(cleanTarget)).replace(/[_-]/g, ' ')
+    const fallbackName = pkgDirRel
+      ? pkgDirRel.split('/')[1].replace(/[_-]/g, ' ')
+      : basename(cleanTarget, extname(cleanTarget)).replace(/[_-]/g, ' ')
     await updateAssetEntryAcrossManifests(root, cleanTarget, (existing) => {
       if (!existing) return { name: fallbackName, status: 'active' }
       const baseObj = typeof existing === 'string' ? { name: existing } : { ...existing }
@@ -503,6 +601,7 @@ export async function pruneAllManifestsOnDisk(
   tempRelFiles: string[],
   opts?: { keepEmpty?: boolean; addNew?: boolean }
 ): Promise<ManifestPruneReport> {
+  markInternalManifestWrite()
   const activeSet = new Set(activeRelFiles)
   const tempSet = new Set(tempRelFiles)
   const report: ManifestPruneReport = {
@@ -609,9 +708,11 @@ export function startManifestDirectoryWatcher(root: string, onChanged: () => voi
   activeWatchers = []
 
   const trigger = (): void => {
+    if (Date.now() - lastInternalWriteMs < 800) return
     if (watchDebounceTimer) clearTimeout(watchDebounceTimer)
     watchDebounceTimer = setTimeout(() => {
       watchDebounceTimer = null
+      if (Date.now() - lastInternalWriteMs < 800) return
       onChanged()
     }, 120)
   }

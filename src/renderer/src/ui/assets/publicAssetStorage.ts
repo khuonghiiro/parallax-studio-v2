@@ -1,7 +1,17 @@
 import type { BuiltInAssetItem } from '@shared/ipc'
+import { useAssetManifestStore } from '../../store/assetManifest'
 
 export const CUSTOM_PUBLIC_ASSETS_KEY = 'pxs.customPublicAssets'
 export const HIDDEN_PUBLIC_ASSETS_KEY = 'pxs.hiddenPublicAssets'
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('parallax:asset-restored', ((e: Event) => {
+    const detail = (e as CustomEvent<{ relPath?: string }>).detail
+    if (detail?.relPath) {
+      unhidePublicAsset(detail.relPath)
+    }
+  }) as EventListener)
+}
 
 export function loadCustomPublicAssets(): BuiltInAssetItem[] {
   try {
@@ -127,7 +137,7 @@ export type DeletableAssetTarget =
       assetPath?: string
     })
 
-/** Ẩn hoặc xoá tài nguyên khỏi kho công khai */
+/** Ẩn hoặc xoá tài nguyên khỏi kho công khai (chuyển vào assets/_temp_deleted/ để khôi phục khi cần) */
 export function hideOrDeletePublicAsset(item: DeletableAssetTarget): void {
   if (!item) return
 
@@ -136,15 +146,21 @@ export function hideOrDeletePublicAsset(item: DeletableAssetTarget): void {
     const trimmed = item.trim()
     if (trimmed.startsWith('custom-public-')) {
       const list = loadCustomPublicAssets()
+      const found = list.find((a) => a.id === trimmed)
       const next = list.filter((a) => a.id !== trimmed)
       saveCustomPublicAssets(next)
+      if (found) {
+        const rel = found.relativePath || `uploads/${found.fileName || `${found.id}.png`}`
+        void useAssetManifestStore.getState().softDeleteAsset(rel, false, {
+          name: found.name,
+          folder: found.folder || 'uploads',
+          previewDataUrl: found.previewUrl,
+          fileName: found.fileName || `${found.id}.png`
+        })
+      }
       return
     }
-    if (typeof window !== 'undefined' && window.api?.deleteBuiltInAsset) {
-      window.api.deleteBuiltInAsset(trimmed, { permanent: false }).catch((err) => {
-        console.warn('[publicAssetStorage] Error deleting built-in asset string from disk:', err)
-      })
-    }
+    void useAssetManifestStore.getState().softDeleteAsset(trimmed, false)
     const hidden = loadHiddenPublicAssets()
     const variants = expandKeyVariants(trimmed)
     const next = Array.from(new Set([...hidden, ...variants]))
@@ -154,26 +170,42 @@ export function hideOrDeletePublicAsset(item: DeletableAssetTarget): void {
 
   const obj = item as {
     id?: string
+    name?: string
     relativePath?: string
     assetPath?: string
     path?: string
     fileName?: string
+    folder?: string
+    previewUrl?: string
     isCustom?: boolean
   }
 
   // 2. Nếu là Custom asset người dùng tự thêm
   if (obj.isCustom || obj.id?.startsWith('custom-public-')) {
     const list = loadCustomPublicAssets()
+    const found = list.find((a) => a.id === obj.id)
     const next = list.filter((a) => a.id !== obj.id)
     saveCustomPublicAssets(next)
+    const itemRef = found || obj
+    const fName = itemRef.fileName || `${itemRef.id || Date.now()}.png`
+    const rel = itemRef.relativePath || `uploads/${fName}`
+    void useAssetManifestStore.getState().softDeleteAsset(rel, false, {
+      name: itemRef.name || fName,
+      folder: itemRef.folder || 'uploads',
+      previewDataUrl: itemRef.previewUrl,
+      fileName: fName
+    })
     return
   }
 
   // 3. Nếu là Built-in asset có sẵn của hệ thống
   const targetRelPath = obj.relativePath || obj.assetPath || obj.path || obj.id || ''
-  if (targetRelPath && typeof window !== 'undefined' && window.api?.deleteBuiltInAsset) {
-    window.api.deleteBuiltInAsset(targetRelPath, { permanent: false }).catch((err) => {
-      console.warn('[publicAssetStorage] Error deleting built-in asset from disk:', err)
+  if (targetRelPath) {
+    void useAssetManifestStore.getState().softDeleteAsset(targetRelPath, false, {
+      name: obj.name || obj.fileName || targetRelPath,
+      folder: obj.folder || 'uploads',
+      previewDataUrl: obj.previewUrl,
+      fileName: obj.fileName
     })
   }
 

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { AssetMeta } from '@shared/types'
 import { addAudioTrackFromAsset, addLayerFromAsset, removeAsset } from '../../actions'
 import { assetStore } from '../../project/assets'
+import { useAssetManifestStore } from '../../store/assetManifest'
 import { useEditor } from '../../store/editor'
 import { IconGlobe, IconInfo, IconLock, IconMusic, IconPause, IconPlay, IconPlus, IconTrash } from '../icons'
 import { setCleanDragGhost } from '../utils/dragPreviewHelper'
@@ -193,8 +194,34 @@ export function ProjectAssetList() {
           onConfirmDelete={(target) => {
             const itemToDelete = deleteTarget || target
             if (itemToDelete) {
-              const id = 'id' in itemToDelete ? (itemToDelete as AssetMeta).id : (itemToDelete as { assetId?: string }).assetId
+              const metaItem = 'id' in itemToDelete ? (itemToDelete as AssetMeta) : null
+              const id = metaItem ? metaItem.id : (itemToDelete as { assetId?: string }).assetId
               if (id) {
+                const rt = assetStore.get(id)
+                const relCandidate = metaItem?.assetPath || metaItem?.path || (itemToDelete as { assetPath?: string }).assetPath
+                const safeFileName = (metaItem?.name || (itemToDelete as { name?: string }).name || `${id}.png`).replace(/[\\/:*?"<>|]/g, '_')
+                const targetRel =
+                  relCandidate && !relCandidate.startsWith('blob:') && !relCandidate.startsWith('data:')
+                    ? relCandidate.replace(/^builtin:/, '').replace(/^assets\//, '')
+                    : `uploads/${safeFileName.includes('.') ? safeFileName : `${safeFileName}.png`}`
+                const previewUrl = rt?.thumbUrl || metaItem?.dataUrl || (itemToDelete as { previewUrl?: string }).previewUrl
+                if (rt?.blob) {
+                  void rt.blob.arrayBuffer().then((buf) => {
+                    void useAssetManifestStore.getState().softDeleteAsset(targetRel, false, {
+                      name: metaItem?.name || safeFileName,
+                      folder: metaItem?.kind === 'audio' ? 'music' : 'uploads',
+                      binaryBuffer: new Uint8Array(buf),
+                      fileName: targetRel.split('/').pop() || safeFileName
+                    })
+                  })
+                } else {
+                  void useAssetManifestStore.getState().softDeleteAsset(targetRel, false, {
+                    name: metaItem?.name || safeFileName,
+                    folder: metaItem?.kind === 'audio' ? 'music' : 'uploads',
+                    previewDataUrl: previewUrl,
+                    fileName: targetRel.split('/').pop() || safeFileName
+                  })
+                }
                 removeAsset(id)
                 assetStore.remove?.(id)
               }

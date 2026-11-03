@@ -146,23 +146,35 @@ export function Assembly3DDialog({ isOpen, initialModel, model: modelProp, onClo
   const captureFnRef = useRef<((opts?: AssemblyCaptureOptions) => string | null) | null>(null)
   const setCameraFnRef = useRef<((params: SetAssemblyCameraParams) => AssemblyCameraState) | null>(null)
   const getCameraFnRef = useRef<(() => AssemblyCameraState) | null>(null)
+  const [saving, setSaving] = useState(false)
+  const saveLockRef = useRef(false)
 
   const handleSave = useCallback(async () => {
-    let toSave = modelRef.current
+    if (saveLockRef.current || saving || inserting) return
+    saveLockRef.current = true
+    setSaving(true)
     try {
-      const thumb = captureFnRef.current ? captureFnRef.current({ autoFit: true, transparent: true }) : null
-      if (thumb) {
-        toSave = { ...toSave, thumbnailDataUrl: thumb }
+      let toSave = modelRef.current
+      try {
+        const thumb = captureFnRef.current ? captureFnRef.current({ autoFit: true, transparent: true }) : null
+        if (thumb) {
+          toSave = { ...toSave, thumbnailDataUrl: thumb }
+        }
+      } catch (e) {
+        console.warn('[Assembly3DDialog] Failed to capture clean thumbnail on save:', e)
       }
-    } catch (e) {
-      console.warn('[Assembly3DDialog] Failed to capture clean thumbnail on save:', e)
+      await saveModel3D(toSave)
+      onSaved?.(toSave)
+      handleClose()
+    } finally {
+      saveLockRef.current = false
+      setSaving(false)
     }
-    await saveModel3D(toSave)
-    onSaved?.(toSave)
-    handleClose()
-  }, [handleClose, onSaved])
+  }, [handleClose, inserting, onSaved, saving])
 
   const handleInsert = useCallback(async (): Promise<string[]> => {
+    if (saveLockRef.current || saving || inserting) return []
+    saveLockRef.current = true
     setInserting(true)
     try {
       let toSave = modelRef.current
@@ -182,9 +194,10 @@ export function Assembly3DDialog({ isOpen, initialModel, model: modelProp, onClo
       console.error('[Assembly3DDialog] Error inserting model to scene:', err)
       return []
     } finally {
+      saveLockRef.current = false
       setInserting(false)
     }
-  }, [handleClose, onSaved])
+  }, [handleClose, inserting, onSaved, saving])
 
   useEffect(() => {
     if (!isOpen) return
@@ -462,13 +475,13 @@ export function Assembly3DDialog({ isOpen, initialModel, model: modelProp, onClo
             <strong>{(model.scale * 100).toFixed(0)}%</strong>
           </span>
           <div className="footer-actions">
-            <button type="button" className="btn secondary" onClick={handleClose}>
+            <button type="button" className="btn secondary" disabled={saving || inserting} onClick={handleClose}>
               Hủy
             </button>
-            <button type="button" className="btn secondary" onClick={handleSave}>
-              Lưu mô hình
+            <button type="button" className="btn secondary" disabled={saving || inserting} onClick={() => void handleSave()}>
+              {saving ? 'Đang lưu mô hình…' : 'Lưu mô hình'}
             </button>
-            <button type="button" className="btn primary" onClick={handleInsert} disabled={inserting}>
+            <button type="button" className="btn primary" onClick={() => void handleInsert()} disabled={saving || inserting}>
               {inserting ? 'Đang thêm…' : '+ Thêm vào cảnh hiện tại'}
             </button>
           </div>

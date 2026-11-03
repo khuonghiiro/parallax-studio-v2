@@ -1,6 +1,6 @@
 import { app, ipcMain, shell } from 'electron'
 import { existsSync } from 'fs'
-import { readdir, readFile, stat, writeFile, mkdir, rm } from 'fs/promises'
+import { readdir, readFile, stat, writeFile, mkdir, rm, rename, cp } from 'fs/promises'
 import { basename, extname, join, relative, dirname } from 'path'
 
 const MIME_MAP: Record<string, string> = {
@@ -247,7 +247,19 @@ export function registerAsset3DsIpc(): void {
       if (target?._filePath) {
         const folder = dirname(target._filePath)
         if (existsSync(folder)) {
-          await rm(folder, { recursive: true, force: true })
+          const root = getAsset3DsRoot()
+          const relFolder = relative(root, folder).replace(/\\/g, '/')
+          const tempDest = join(process.cwd(), 'assets', '_temp_deleted', 'asset-3ds', relFolder)
+          await mkdir(dirname(tempDest), { recursive: true })
+          if (existsSync(tempDest)) {
+            await rm(tempDest, { recursive: true, force: true })
+          }
+          try {
+            await rename(folder, tempDest)
+          } catch {
+            await cp(folder, tempDest, { recursive: true, force: true })
+            await rm(folder, { recursive: true, force: true })
+          }
         }
       }
       return { ok: true }

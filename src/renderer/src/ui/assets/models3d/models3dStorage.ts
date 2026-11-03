@@ -1,7 +1,23 @@
 import type { Model3D, Face3D, PresetType, AssetTable } from './types'
 import type { Asset3DsCategory } from '@shared/ipc'
+import { useAssetManifestStore } from '../../../store/assetManifest'
 
 const STORAGE_KEY = 'parallax_models_3d_v2'
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('parallax:asset-restored', ((e: Event) => {
+    const detail = (e as CustomEvent<{ relPath?: string }>).detail
+    const rel = detail?.relPath || ''
+    if (!rel) return
+    const hidden = getHiddenModel3DIds()
+    if (hidden.length === 0) return
+    const next = hidden.filter((id) => !rel.includes(id) && !rel.includes(id.replace(/^model-/, '')))
+    if (next.length !== hidden.length) {
+      saveHiddenModel3DIds(next)
+      notifyModelsChanged()
+    }
+  }) as EventListener)
+}
 
 export function generatePresetFaces(type: PresetType, baseSize: { w: number; h: number; d: number } = { w: 600, h: 400, d: 600 }): Face3D[] {
   const { w, h, d } = baseSize
@@ -468,6 +484,7 @@ export async function saveModel3D(model: Model3D): Promise<void> {
 }
 
 export async function deleteModel3D(id: string): Promise<void> {
+  const existing = getStoredModels3D().find((m) => m.id === id)
   hideOrDeleteModel3D(id)
   const list = getStoredModels3D().filter(m => m.id !== id)
   try {
@@ -482,6 +499,13 @@ export async function deleteModel3D(id: string): Promise<void> {
       console.warn('[models3dStorage] Error deleting from asset-3ds:', err)
     }
   }
+  void useAssetManifestStore.getState().softDeleteAsset(`assembly_3d/${id}.png`, false, {
+    name: existing?.name || id,
+    category: existing?.category || 'architecture',
+    folder: 'assembly_3d',
+    previewDataUrl: existing?.thumbnailDataUrl,
+    fileName: `${id}.png`
+  })
   notifyModelsChanged()
 }
 

@@ -1,5 +1,4 @@
 import { create } from 'zustand'
-import { unhidePublicAsset } from '../ui/assets/publicAssetStorage'
 import type {
   BuiltInAssetCategory,
   BuiltInAssetItem,
@@ -150,6 +149,31 @@ function buildDefaultModules(): Record<ManifestModuleId, ManifestModuleData> {
   return out
 }
 
+export interface SoftDeleteSnapshotOpts {
+  name?: string
+  category?: string
+  folder?: string
+  previewDataUrl?: string
+  jsonContent?: string
+  binaryBuffer?: Uint8Array
+  fileName?: string
+}
+
+function dataUrlToUint8Array(dataUrl?: string): Uint8Array | null {
+  if (!dataUrl || !dataUrl.startsWith('data:')) return null
+  const commaIdx = dataUrl.indexOf(',')
+  if (commaIdx < 0) return null
+  try {
+    const b64 = dataUrl.slice(commaIdx + 1)
+    const bin = atob(b64)
+    const out = new Uint8Array(bin.length)
+    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i)
+    return out
+  } catch {
+    return null
+  }
+}
+
 export interface AssetManifestState {
   loaded: boolean
   loading: boolean
@@ -182,7 +206,8 @@ export interface AssetManifestState {
   ) => Promise<{ ok: boolean; error?: string }>
   softDeleteAsset: (
     relPath: string,
-    permanent?: boolean
+    permanent?: boolean,
+    snapshotOpts?: SoftDeleteSnapshotOpts
   ) => Promise<{ ok: boolean; status?: ManifestItemStatus; tempPath?: string; error?: string }>
   restoreAsset: (relPath: string) => Promise<{ ok: boolean; error?: string }>
   pruneManifests: (opts?: {
@@ -345,11 +370,57 @@ export const useAssetManifestStore = create<AssetManifestState>((set, get) => ({
     return get().saveModuleJson(moduleId, JSON.stringify(parsed, null, 2))
   },
 
-  softDeleteAsset: async (relPath, permanent = false) => {
+  softDeleteAsset: async (relPath, permanent = false, snapshotOpts) => {
     if (typeof window === 'undefined' || !window.api?.deleteBuiltInAsset) {
       return { ok: false, error: 'Không tìm thấy IPC deleteBuiltInAsset' }
     }
-    const res = await window.api.deleteBuiltInAsset(relPath, { permanent })
+    let targetRel = relPath.replace(/\\/g, '/').replace(/^builtin:/, '').replace(/^assets\//, '').trim()
+
+    // Đảm bảo luôn có tệp vật lý trong assets/_temp_deleted/ kể cả với tài nguyên procedural / localStorage / in-memory
+    if (!permanent && (snapshotOpts?.previewDataUrl || snapshotOpts?.binaryBuffer) && window.api?.importBuiltInAssetFile) {
+      const probePath = targetRel.match(/^loop_animations\/[^/]+$/)
+        ? `${targetRel}/thumbnail.png`
+        : targetRel
+      let existsOnDisk = false
+      if (window.api.loadBuiltInAssetBytes) {
+        try {
+          const check = await window.api.loadBuiltInAssetBytes(probePath)
+          existsOnDisk = Boolean(check && check.data && check.data.length > 0)
+        } catch {
+          existsOnDisk = false
+        }
+      }
+      if (!existsOnDisk) {
+        const buf = snapshotOpts.binaryBuffer || dataUrlToUint8Array(snapshotOpts.previewDataUrl)
+        if (buf && buf.length > 0) {
+          const parts = targetRel.split('/').filter(Boolean)
+          const defaultFolder = parts.length > 1 ? parts[0] : 'uploads'
+          const rawFile = snapshotOpts.fileName || parts[parts.length - 1] || 'deleted_item.png'
+          const safeFile = /\.[a-z0-9]+$/i.test(rawFile) ? rawFile : `${rawFile}.png`
+          try {
+            const imported = await window.api.importBuiltInAssetFile({
+              name: safeFile,
+              buffer: buf,
+              folder: snapshotOpts.folder || defaultFolder,
+              title: snapshotOpts.name
+            })
+            if (imported?.ok && imported.relPath) {
+              targetRel = imported.relPath
+            }
+          } catch {
+            /* ignore fallback import error */
+          }
+        }
+      }
+    }
+
+    const res = await window.api.deleteBuiltInAsset(targetRel, {
+      permanent,
+      snapshotJson: snapshotOpts?.jsonContent,
+      snapshotName: snapshotOpts?.name,
+      snapshotCategory: snapshotOpts?.category,
+      snapshotPreviewDataUrl: snapshotOpts?.previewDataUrl
+    })
     if (res.ok) {
       if (res.catalog) get().applyCatalog(res.catalog)
       else await get().refreshCatalog(true)
@@ -363,7 +434,9 @@ export const useAssetManifestStore = create<AssetManifestState>((set, get) => ({
     }
     const res = await window.api.restoreBuiltInAsset(relPath)
     if (res.ok) {
-      unhidePublicAsset(relPath)
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('parallax:asset-restored', { detail: { relPath: res.relPath || relPath } }))
+      }
       if (res.catalog) get().applyCatalog(res.catalog)
       else await get().refreshCatalog(true)
     }

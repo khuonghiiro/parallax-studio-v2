@@ -121,6 +121,8 @@ function deriveLoopAnim(layer: Layer, project: Project, compDur: number, current
       : current?.params?.loopEndAction === 'hide'
         ? 'hide'
         : 'hold'
+  const effColor =
+    layer.type === 'image' ? (layer.props.loopOverrides?.color ?? layer.props.loopColor) : undefined
   const modeLabel =
     loopMode === 'ping-pong'
       ? 'Đảo chiều'
@@ -140,6 +142,9 @@ function deriveLoopAnim(layer: Layer, project: Project, compDur: number, current
       loopEndAction: endAction,
       loopTimeOffset: layer.type === 'image' ? (layer.props.timeOffset ?? current?.params?.loopTimeOffset ?? 0) : 0,
       loopAutoPlayPaused: layer.type === 'image' ? (layer.props.autoPlayPaused ?? current?.params?.loopAutoPlayPaused ?? true) : true,
+      ...(effColor?.tintColor !== undefined ? { loopTintColor: effColor.tintColor ?? '' } : {}),
+      ...(effColor?.brightness !== undefined ? { loopBrightness: effColor.brightness } : {}),
+      ...(effColor?.hueRotate !== undefined ? { loopHueRotate: effColor.hueRotate } : {}),
       timeStart: r2(current?.params?.timeStart ?? (layer.type === 'image' ? layer.props.loopStartTime : undefined) ?? range.start),
       timeEnd: r2(current?.params?.timeEnd ?? (layer.type === 'image' ? layer.props.loopEndTime : undefined) ?? range.end)
     },

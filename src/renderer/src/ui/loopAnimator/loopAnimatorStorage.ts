@@ -1,4 +1,5 @@
 import { useAssetManifestStore } from '../../store/assetManifest'
+import { invalidateCachedLoopTemplateSheet } from './loopFrameExtractor'
 import { SAMPLE_LOOP_PRESETS } from './sampleLoops'
 import type { LoopAnimationTemplate } from './types'
 
@@ -11,6 +12,24 @@ function notifyUpdated(): void {
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent(LOOP_STORAGE_UPDATED_EVENT))
   }
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('parallax:asset-restored', ((e: Event) => {
+    const detail = (e as CustomEvent<{ relPath?: string }>).detail
+    const rel = detail?.relPath || ''
+    if (!rel) return
+    const hidden = getHiddenBuiltinLoopIds()
+    let changed = false
+    for (const p of SAMPLE_LOOP_PRESETS) {
+      const pRel = p.imageUrl.replace(/^assets\//, '')
+      if (rel === pRel || rel.endsWith(`/${p.id}.png`) || rel === `loop_animations/${p.id}`) {
+        if (hidden.delete(p.id)) changed = true
+      }
+    }
+    if (changed) saveHiddenBuiltinLoopIds(hidden)
+    notifyUpdated()
+  }) as EventListener)
 }
 
 export function isBuiltinLoopTemplateId(id: string): boolean {
@@ -101,33 +120,55 @@ export function getAllLoopTemplates(): LoopAnimationTemplate[] {
   // 3. Khám phá các gói hoạt ảnh lặp từ manifest loop_animator
   const loopModule = useAssetManifestStore.getState().modules?.loop_animator
   const manifestAssets = loopModule?.assets || {}
+  const deletedSlugs = new Set<string>()
   const fromManifest: LoopAnimationTemplate[] = []
   for (const [key, meta] of Object.entries(manifestAssets)) {
     if (key.startsWith('loop_animations/') && meta && typeof meta === 'object') {
       const slug = key.split('/')[1]
       const m = meta as Record<string, any>
+      if (m.status === 'deleted' || m.status === 'hidden') {
+        if (slug) deletedSlugs.add(slug)
+        continue
+      }
       if (slug && !storedMap.has(slug)) {
+        const fCount = typeof m.frameCount === 'number' && m.frameCount > 0 ? m.frameCount : 16
         fromManifest.push({
           id: slug,
           name: typeof m.name === 'string' ? m.name : slug,
           category: (m.category as any) || 'custom',
-          badge: `🎞 ${typeof m.frameCount === 'number' ? m.frameCount : '?'}F`,
-          description: `Gói hoạt ảnh lặp ${slug}`,
+          badge: `🎞 ${fCount}F`,
+          description: typeof m.description === 'string' && m.description ? m.description : `Gói hoạt ảnh lặp ${slug}`,
           imageUrl: `assets/${key.replace('animation.json', 'thumbnail.png')}`,
+          loopJsonPath: key.endsWith('.json') ? key : `loop_animations/${slug}/animation.json`,
+          packageFolder: `loop_animations/${slug}`,
           slicerMode: 'grid',
-          gridConfig: { cols: 4, rows: 4, marginX: 0, marginY: 0, paddingX: 0, paddingY: 0 },
+          gridConfig: { cols: fCount, rows: 1, marginX: 0, marginY: 0, paddingX: 0, paddingY: 0, borderPadding: 0 },
           chromaKey: { enabled: false, keyColor: '#000000', similarity: 0.28, smoothness: 0.1, spill: 0.35 },
           fps: typeof m.fps === 'number' ? m.fps : 14,
           speed: 1,
           loopMode: (m.loopMode as any) || 'loop',
-          frameCount: typeof m.frameCount === 'number' ? m.frameCount : 16,
+          frameCount: fCount,
           isBuiltin: false
         })
       }
     }
   }
 
-  const customOnly = stored.filter((s) => !isBuiltinLoopTemplateId(s.id))
+  const customOnly = stored
+    .filter((s) => !isBuiltinLoopTemplateId(s.id) && !deletedSlugs.has(s.id))
+    .map((s) => {
+      const pkgMatch = (s.loopJsonPath || s.packageFolder || s.imageUrl || '').replace(/\\/g, '/').match(/loop_animations\/([^/]+)/)
+      if (pkgMatch && pkgMatch[1]) {
+        const slug = pkgMatch[1]
+        return {
+          ...s,
+          loopJsonPath: s.loopJsonPath || `loop_animations/${slug}/animation.json`,
+          packageFolder: s.packageFolder || `loop_animations/${slug}`,
+          chromaKey: { ...s.chromaKey, enabled: false }
+        }
+      }
+      return s
+    })
   return [...customOnly, ...fromManifest, ...mergedBuiltins]
 }
 
@@ -159,30 +200,71 @@ export function saveLoopTemplate(template: LoopAnimationTemplate): LoopAnimation
 }
 
 /**
- * Xoá mẫu hoạt ảnh lặp khỏi kho. Mẫu tự lưu bị xoá hẳn; mẫu tích hợp sẵn
- * được đưa vào danh sách ẩn (đồng thời đánh dấu deleted trong manifest nếu có).
+ * Xoá mẫu hoạt ảnh lặp khỏi kho. Mọi mẫu bị xoá đều được chuyển vào thư mục Xoá tạm (`assets/_temp_deleted/`)
+ * và đánh dấu `status: "deleted"` trong manifest để có thể khôi phục lại bất kỳ lúc nào.
  */
 export function deleteLoopTemplate(id: string): boolean {
+  const all = getAllLoopTemplates()
+  const targetTpl = all.find((t) => t.id === id)
   const stored = getStoredLoopTemplates()
   const next = stored.filter((item) => item.id !== id)
   const removedStored = next.length !== stored.length
   const isBuiltin = isBuiltinLoopTemplateId(id)
-  if (!removedStored && !isBuiltin) return false
+  if (!removedStored && !isBuiltin && !targetTpl) return false
+
   try {
     if (removedStored) localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
   } catch (err) {
     console.error('[loopAnimatorStorage] Failed to delete loop template:', err)
   }
-  if (isBuiltin) {
+
+  invalidateCachedLoopTemplateSheet(id)
+
+  const pkgSource = (targetTpl?.loopJsonPath || targetTpl?.packageFolder || targetTpl?.imageUrl || '').replace(/\\/g, '/')
+  const pkgMatch = pkgSource.match(/loop_animations\/([^/]+)/)
+
+  if (pkgMatch && pkgMatch[1]) {
+    const slug = pkgMatch[1]
+    void useAssetManifestStore.getState().softDeleteAsset(`loop_animations/${slug}`, false, {
+      name: targetTpl?.name || slug,
+      category: targetTpl?.category || 'custom',
+      folder: 'loop_animations',
+      previewDataUrl: targetTpl?.thumbUrl
+    })
+  } else if (isBuiltin) {
     const hidden = getHiddenBuiltinLoopIds()
     hidden.add(id)
     saveHiddenBuiltinLoopIds(hidden)
     const preset = SAMPLE_LOOP_PRESETS.find((p) => p.id === id)
     if (preset && preset.imageUrl.startsWith('assets/')) {
       const rel = preset.imageUrl.replace(/^assets\//, '')
-      void useAssetManifestStore.getState().softDeleteAsset(rel, false)
+      void useAssetManifestStore.getState().softDeleteAsset(rel, false, {
+        name: preset.name,
+        category: preset.category,
+        folder: 'demo_transparent'
+      })
+    } else if (preset) {
+      // Mẫu procedural (data:image/...) → ghi ảnh đại diện vào _temp_deleted để khôi phục được
+      const previewUrl = targetTpl?.thumbUrl || (preset.imageUrl.startsWith('data:image/') ? preset.imageUrl : undefined)
+      void useAssetManifestStore.getState().softDeleteAsset(`loop_animations/${id}.png`, false, {
+        name: preset.name,
+        category: preset.category,
+        folder: 'loop_animations',
+        previewDataUrl: previewUrl,
+        fileName: `${id}.png`
+      })
     }
+  } else if (targetTpl) {
+    const previewUrl = targetTpl.thumbUrl || (targetTpl.imageUrl.startsWith('data:image/') ? targetTpl.imageUrl : undefined)
+    void useAssetManifestStore.getState().softDeleteAsset(`loop_animations/${id}.png`, false, {
+      name: targetTpl.name,
+      category: targetTpl.category,
+      folder: 'loop_animations',
+      previewDataUrl: previewUrl,
+      fileName: `${id}.png`
+    })
   }
+
   notifyUpdated()
   return true
 }

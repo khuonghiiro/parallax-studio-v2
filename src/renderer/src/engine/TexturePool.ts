@@ -1,7 +1,11 @@
 import * as THREE from 'three'
 import type { Layer } from '@shared/types'
 import { assetStore } from '../project/assets'
-import { getAnimatedGifFrameIndex } from '../project/gifHelper'
+import {
+  applyLoopColorFilterToSource,
+  getAnimatedGifFrameIndex,
+  getLoopColorSignature
+} from '../project/gifHelper'
 import { resolveLoopClockAnchor } from '../project/loopLifecycle'
 import type { EvaluatedLayer } from './evaluateScene'
 import { renderSolidCanvas, renderTextCanvas } from './layerCanvases'
@@ -190,12 +194,22 @@ export class TexturePool {
         const animT = isLivePaused ? liveT : t
         // Chế độ `once` luôn theo timeline; đồng hồ Loop neo tại mốc bắt đầu của Layer / Node Loop
         const frameIdx = getAnimatedGifFrameIndex(asset.gif, animT, layer.props, isLivePaused ? 0 : resolveLoopClockAnchor(layer.props, layer.inPoint))
-        const frameKey = `gif:${layer.props.assetId}:f${frameIdx}`
+        const effColor = layer.props.loopOverrides?.color ?? layer.props.loopColor
+        const colorSig = getLoopColorSignature(effColor)
+        const frameKey =
+          colorSig === 'default'
+            ? `gif:${layer.props.assetId}:f${frameIdx}`
+            : `gif:${layer.props.assetId}:${colorSig}:f${frameIdx}`
         let ge = this.pool.get(frameKey)
         if (!ge) {
           const frame = asset.gif.frames[frameIdx]
           if (frame?.bitmap) {
-            const tex = this.configureTexture(new THREE.Texture(frame.bitmap as unknown as HTMLImageElement))
+            const filteredCanvas =
+              colorSig !== 'default'
+                ? applyLoopColorFilterToSource(frame.bitmap, frame.bitmap.width, frame.bitmap.height, effColor)
+                : null
+            const texSource = (filteredCanvas || frame.bitmap) as unknown as HTMLImageElement
+            const tex = this.configureTexture(new THREE.Texture(texSource))
             tex.flipY = false
             tex.needsUpdate = true
             ge = {

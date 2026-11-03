@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { toast } from '../../actions'
 import { IconFilm, IconLayers, IconTrash, IconUnlink, IconX } from '../icons'
@@ -61,6 +61,8 @@ function UsageRow({
  */
 export function LoopTemplateDeleteDialog({ template, onClose, onDeleted }: Props): React.ReactElement {
   const [version, setVersion] = useState(0)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const deleteLockRef = useRef(false)
   const usages = useMemo(() => findLoopTemplateUsages(template.id), [template.id, version])
   const sceneUsages = usages.filter((u) => u.kind === 'scene')
   const compositeUsages = usages.filter((u) => u.kind === 'composite')
@@ -90,12 +92,15 @@ export function LoopTemplateDeleteDialog({ template, onClose, onDeleted }: Props
   }
 
   const handleDelete = (): void => {
+    if (deleteLockRef.current || isDeleting) return
+    deleteLockRef.current = true
+    setIsDeleting(true)
     const res = deleteLoopTemplateSafely(template.id)
     if (res.deleted) {
       toast(
         res.detached > 0
-          ? `🗑 Đã xoá "${template.name}" và tự gỡ ${res.detached} liên kết còn lại`
-          : `🗑 Đã xoá "${template.name}" khỏi kho Loop Animate`
+          ? `🗑 Đã chuyển "${template.name}" vào thư mục Xoá tạm (_temp_deleted) và tự gỡ ${res.detached} liên kết`
+          : `🗑 Đã chuyển "${template.name}" vào thư mục Xoá tạm (_temp_deleted)`
       )
       onDeleted?.(template.id)
     }
@@ -166,12 +171,18 @@ export function LoopTemplateDeleteDialog({ template, onClose, onDeleted }: Props
         </div>
 
         <footer className="loop-del-footer">
-          <button type="button" className="la-btn la-btn--ghost" onClick={onClose}>
+          <button type="button" className="la-btn la-btn--ghost" disabled={isDeleting} onClick={onClose}>
             Huỷ
           </button>
-          <button type="button" className="la-btn la-btn--danger" onClick={handleDelete} autoFocus={!hasUsage}>
+          <button
+            type="button"
+            className="la-btn la-btn--danger"
+            disabled={isDeleting}
+            onClick={handleDelete}
+            autoFocus={!hasUsage}
+          >
             <IconTrash width={13} height={13} />
-            <span>{hasUsage ? 'Gỡ tất cả & xoá' : 'Xoá mẫu'}</span>
+            <span>{isDeleting ? 'Đang chuyển vào Xoá tạm…' : hasUsage ? 'Gỡ tất cả & xoá' : 'Xoá mẫu'}</span>
           </button>
         </footer>
       </div>

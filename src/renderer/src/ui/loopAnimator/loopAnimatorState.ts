@@ -8,7 +8,7 @@ import {
   buildGridFrames,
   detectContourFrames,
   extractFirstFramePreviewUrl,
-  extractAllFramesAsDataUrls
+  getCachedLoopTemplateSheet
 } from './loopFrameExtractor'
 import { getAllLoopTemplates, saveLoopTemplate } from './loopAnimatorStorage'
 import { SAMPLE_LOOP_PRESETS } from './sampleLoops'
@@ -222,6 +222,11 @@ export const useLoopAnimator = create<LoopAnimatorStore>((set, get) => ({
       const s = get()
       const w = saved.sourceWidth || s.sourceWidth || 1024
       const h = saved.sourceHeight || s.sourceHeight || 1024
+      const isPkg = Boolean(
+        saved.loopJsonPath ||
+          saved.packageFolder ||
+          /loop_animations\/[^/]+/.test(saved.imageUrl || '')
+      )
       const nextFrames =
         saved.frames && saved.frames.length > 0
           ? saved.frames.map((f, idx) => ({ ...f, index: idx }))
@@ -238,12 +243,12 @@ export const useLoopAnimator = create<LoopAnimatorStore>((set, get) => ({
         baseMeshWidth: saved.baseMeshWidth || fW,
         baseMeshHeight: saved.baseMeshHeight || fH,
         pendingMeshUpgrade: false,
-        slicerMode: saved.slicerMode || 'grid',
+        slicerMode: isPkg ? 'grid' : saved.slicerMode || 'grid',
         gridConfig: { ...saved.gridConfig },
         contourConfig: saved.contourConfig
           ? { ...saved.contourConfig }
           : { alphaThreshold: 24, minArea: 180, mergeGap: 8 },
-        chromaKey: { ...saved.chromaKey },
+        chromaKey: isPkg ? { ...saved.chromaKey, enabled: false } : { ...saved.chromaKey },
         frames: nextFrames,
         selectedFrameIndex: 0,
         playingFrameIndex: 0,
@@ -264,6 +269,50 @@ export const useLoopAnimator = create<LoopAnimatorStore>((set, get) => ({
               }
         }
       })
+
+      if (isPkg) {
+        void getCachedLoopTemplateSheet(saved).then((sheet) => {
+          if (!sheet || get().activePresetId !== saved.id) return
+          const stripUrl = sheet.canvas.toDataURL('image/png')
+          const pkg = sheet.packageJson
+          set((cur) => ({
+            layerName: pkg?.name || cur.layerName,
+            category: (pkg?.category as any) || cur.category,
+            sourceImageUrl: stripUrl,
+            sourceWidth: sheet.canvas.width,
+            sourceHeight: sheet.canvas.height,
+            baseMeshWidth: pkg?.baseMeshWidth || cur.baseMeshWidth || sheet.frameW,
+            baseMeshHeight: pkg?.baseMeshHeight || cur.baseMeshHeight || sheet.frameH,
+            slicerMode: 'grid',
+            gridConfig: {
+              cols: sheet.frames.length,
+              rows: 1,
+              marginX: 0,
+              marginY: 0,
+              paddingX: 0,
+              paddingY: 0,
+              borderPadding: 0
+            },
+            chromaKey: { ...cur.chromaKey, enabled: false },
+            frames: sheet.frames.map((f, idx) => ({ ...f, index: idx })),
+            playback: {
+              ...cur.playback,
+              fps: pkg?.fps ?? cur.playback.fps,
+              speed: pkg?.speed ?? cur.playback.speed,
+              loopMode: pkg?.loopMode ?? cur.playback.loopMode,
+              rhythm: pkg?.rhythm
+                ? {
+                    rhythmMode: pkg.rhythm.rhythmMode ?? 'none',
+                    rhythmRateHz: pkg.rhythm.rhythmRateHz ?? 2.2,
+                    rhythmIntensity: pkg.rhythm.rhythmIntensity ?? 0.35,
+                    minOpacity: pkg.rhythm.minOpacity ?? 0.5,
+                    scaleBeatPct: pkg.rhythm.scaleBeatPct ?? 12
+                  }
+                : cur.playback.rhythm
+            }
+          }))
+        })
+      }
       return
     }
 
@@ -690,12 +739,6 @@ export const useLoopAnimator = create<LoopAnimatorStore>((set, get) => ({
     const thumbUrl = sourceCanvas
       ? extractFirstFramePreviewUrl(sourceCanvas, s.frames, 256)
       : undefined
-    const renderedFrames = sourceCanvas
-      ? extractAllFramesAsDataUrls(sourceCanvas, s.frames)
-      : undefined
-    const transparentSheetUrl = sourceCanvas
-      ? sourceCanvas.toDataURL('image/png')
-      : undefined
 
     const enabledFrames = s.frames.filter((f) => f.enabled)
     const refFrames = enabledFrames.length > 0 ? enabledFrames : s.frames
@@ -710,8 +753,6 @@ export const useLoopAnimator = create<LoopAnimatorStore>((set, get) => ({
       description: `Hoạt ảnh lặp ${enabledCount} frame (${s.playback.fps} FPS • ${s.playback.loopMode})`,
       imageUrl: s.sourceImageUrl,
       thumbUrl,
-      renderedFrames,
-      transparentSheetUrl,
       slicerMode: s.slicerMode,
       gridConfig: { ...s.gridConfig },
       contourConfig: { ...s.contourConfig },

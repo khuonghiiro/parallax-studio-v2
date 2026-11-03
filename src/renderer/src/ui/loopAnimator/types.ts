@@ -135,6 +135,14 @@ export interface LoopAnimationTemplate {
   renderedFrames?: string[]
   /** Toàn bộ sprite sheet đã khử nền trong suốt hoàn toàn (PNG Data URL) */
   transparentSheetUrl?: string
+  /** Đường dẫn tương đối tới tệp cấu hình animation.json (ví dụ: loop_animations/<slug>/animation.json) */
+  loopJsonPath?: string
+  /** Thư mục gói hoạt ảnh đã tách frame (ví dụ: loop_animations/<slug>) */
+  packageFolder?: string
+  /** Danh sách đường dẫn tương đối tới từng frame ảnh PNG đã tách nền (ví dụ: loop_animations/<slug>/frame_000.png) */
+  framePaths?: string[]
+  /** Cấu hình màu sắc mặc định của gói hoạt ảnh */
+  colorConfig?: import('@shared/types').LoopColorConfig
   slicerMode: SlicerMode
   gridConfig: GridSlicerConfig
   contourConfig?: ContourSlicerConfig
