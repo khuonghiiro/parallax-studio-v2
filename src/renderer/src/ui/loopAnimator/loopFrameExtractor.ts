@@ -678,7 +678,7 @@ export function getCachedLoopTemplateSheet(
   const shMode = template.chromaKey?.shadowMode ?? 'off'
   const shType = template.chromaKey?.shadowType ?? 'auto'
   const shRet = template.chromaKey?.shadowRetention ?? 68
-  const cacheKey = `${template.id}:${template.updatedAt ?? 0}:${template.imageUrl.slice(0, 64)}:${pad}:${template.chromaKey.enabled}:${template.chromaKey.keyColor}:${template.chromaKey.similarity}:${shMode}:${shType}:${shRet}`
+  const cacheKey = `${template.id}:${template.updatedAt ?? 0}:${template.imageUrl.slice(0, 64)}:${pad}:${template.chromaKey.enabled}:${template.chromaKey.keyColor}:${template.chromaKey.similarity}:${shMode}:${shType}:${shRet}:${template.chromaKey.isolationMode ?? 'all'}`
   const existing = _spriteSheetCache.get(cacheKey)
   if (existing) return existing
 

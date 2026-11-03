@@ -41,6 +41,8 @@ export interface ChromaKeySettings {
   keyColor?: string
   keyColorType?: ChromaKeyColorType
   isolationMode?: ChromaIsolationMode
+  /** `outer_only` thuần: chỉ loang nền từ biên ảnh / vùng đã trong suốt, không gieo hạt ô nền kín bên trong (giữ ruột vòng tròn). Mặc định false. */
+  strictOuterIsolation?: boolean
   tolerance: number // 0 to 100
   smoothness: number // Feather: 0 to 30
   despill: boolean

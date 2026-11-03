@@ -43,8 +43,8 @@ export const LOOP_ANIMATOR_TOOLS = [
     name: 'configure_loop_chroma',
     cat: 'loop',
     doc: L(
-      'Configure background chroma key removal and semi-transparent shadow/glow extraction for the Loop Animator: toggle enabled, key color, tolerance, smoothness, despill, and shadow mode (off, include, only).',
-      'Cấu hình khử màu nền Chroma Key và tách bóng mờ / hào quang bán trong suốt trong Xưởng Hoạt Ảnh Lặp: bật/tắt, màu nền, độ lệch, độ mịn biên, khử ám màu và chế độ bóng mờ (off, include, only).'
+      'Configure background chroma key removal and semi-transparent shadow/glow extraction for the Loop Animator: toggle enabled, key color, tolerance, smoothness, despill, removal scope (isolation_mode: all / outer_only) and shadow mode (off, include, only — same shadow pipeline as the 2.5D Layer Assembly cutter).',
+      'Cấu hình khử màu nền Chroma Key và tách bóng mờ / hào quang bán trong suốt trong Xưởng Hoạt Ảnh Lặp: bật/tắt, màu nền, độ lệch, độ mịn biên, khử ám màu, phạm vi tách nền (isolation_mode: all = Tách toàn bộ / outer_only = Chỉ nền ngoài) và chế độ bóng mờ (off, include, only — cùng pipeline tách bóng của Xưởng lắp ráp 2.5D).'
     ),
     shape: (d) => ({
       enabled: z.boolean().optional().describe(d('Enable or disable chroma keying.', 'Bật hoặc tắt tách nền chroma key.')),
@@ -53,13 +53,15 @@ export const LOOP_ANIMATOR_TOOLS = [
       tolerance: z.number().int().min(1).max(100).optional().describe(d('Color distance tolerance 1-100 (default 36).', 'Độ lệch màu 1-100 (mặc định 36).')),
       smoothness: z.number().int().min(0).max(50).optional().describe(d('Edge softness 0-50 (default 12).', 'Độ mịn biên 0-50 (mặc định 12).')),
       despill: z.number().int().min(0).max(100).optional().describe(d('Color despill suppression 0-100 (default 25).', 'Khử ám màu viền 0-100 (mặc định 25).')),
+      isolation_mode: z.enum(['all', 'outer_only']).optional().describe(d('Background removal scope: "all" (remove key color everywhere, including background enclosed inside a closed outline — a ring keeps only its stroke) or "outer_only" (remove only background connected to the image edge, keeping the enclosed inside).', 'Phạm vi tách nền: "all" (Tách toàn bộ — xoá cả nền nằm kín bên trong viền, vòng tròn chỉ còn lại viền) hoặc "outer_only" (Chỉ tách nền ngoài — chỉ xoá nền liên thông với mép ảnh, giữ nguyên ruột bên trong).')),
+      remove_all: z.boolean().optional().describe(d('Toggle alias of isolation_mode: true = "all", false = "outer_only".', 'Bí danh dạng toggle của isolation_mode: true = "all" (Tách toàn bộ), false = "outer_only" (Chỉ nền ngoài).')),
       shadow_mode: z.enum(['off', 'include', 'only']).optional().describe(d('Semi-transparent shadow/glow extraction mode: "off", "include" (keep body + shadow/glow), or "only" (shadow/glow only).', 'Chế độ tách bóng mờ / hào quang bán trong suốt: "off" (Xoá bóng), "include" (Lấy cả bóng) hoặc "only" (Chỉ lấy bóng).')),
       shadow_type: z.enum(['auto', 'light', 'dark']).optional().describe(d('Shadow/glow polarity: "auto" (both), "light" (glow/mist), or "dark" (drop shadow).', 'Loại bóng cần giữ: "auto" (Tự động), "light" (Mây/Sáng) hoặc "dark" (Bóng tối).')),
       shadow_retention: z.number().int().min(5).max(100).optional().describe(d('Shadow/glow opacity retention 5-100% (default 68).', 'Độ đậm giữ bóng / quầng sáng 5-100% (mặc định 68).')),
       shadow_solid_threshold: z.number().int().min(30).max(90).optional().describe(d('Solid core cutoff threshold 30-90% (default 62).', 'Ngưỡng độ đặc tách phần thân đặc khỏi bóng mờ 30-90% (mặc định 62).')),
       shadow_unmix_color: z.boolean().optional().describe(d('Enable color unmixing to remove green/magenta/blue background tint from semi-transparent glow/shadow.', 'Bật giải pha màu (Color Unmixing) để khử sạch ám màu nền trên bóng mờ và hào quang.'))
     }),
-    example: '{"enabled":true,"key_color_type":"chroma_green","tolerance":36,"shadow_mode":"include"}'
+    example: '{"enabled":true,"key_color_type":"chroma_green","tolerance":36,"isolation_mode":"outer_only","shadow_mode":"include"}'
   },
   {
     name: 'split_loop_frames',

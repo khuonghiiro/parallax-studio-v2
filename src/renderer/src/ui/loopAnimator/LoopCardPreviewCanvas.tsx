@@ -17,7 +17,7 @@ type Sheet = Awaited<ReturnType<typeof getCachedLoopTemplateSheet>>
 const ghostThumbMemoryCache = new Map<string, string>()
 
 function getTemplateThumbCacheKey(t: LoopAnimationTemplate): string {
-  return `${t.id}|${t.imageUrl}|${t.updatedAt ?? 0}|${t.chromaKey.enabled ? 1 : 0}|${t.chromaKey.keyColor}|${t.chromaKey.similarity}`
+  return `${t.id}|${t.imageUrl}|${t.updatedAt ?? 0}|${t.chromaKey.enabled ? 1 : 0}|${t.chromaKey.keyColor}|${t.chromaKey.similarity}|${t.chromaKey.isolationMode ?? 'all'}|${t.chromaKey.shadowMode ?? 'off'}`
 }
 
 function nextCursor(

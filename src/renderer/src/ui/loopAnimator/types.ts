@@ -26,6 +26,8 @@ export interface LoopFrameBox {
 
 export type LoopShadowMode = 'off' | 'include' | 'only'
 export type LoopShadowType = 'auto' | 'light' | 'dark'
+/** Phạm vi tách nền: 'all' (Tách toàn bộ — cả trong lẫn ngoài viền kín) | 'outer_only' (Chỉ tách nền ngoài) */
+export type LoopIsolationMode = 'all' | 'outer_only'
 
 export interface ChromaKeyConfig {
   enabled: boolean
@@ -37,6 +39,12 @@ export interface ChromaKeyConfig {
   smoothness: number
   /** Green/color spill suppression on semi-transparent edges (0..1, default 0.35) */
   spill: number
+  /**
+   * Phạm vi tách nền (mặc định 'all' để tương thích mẫu cũ):
+   * - 'all': xoá mọi pixel trùng màu nền, kể cả nền nằm kín bên trong viền (vòng tròn chỉ còn viền).
+   * - 'outer_only': chỉ xoá nền liên thông với mép ảnh, giữ nguyên phần nền bên trong viền kín.
+   */
+  isolationMode?: LoopIsolationMode
   /** Chế độ giữ bóng mờ / quầng sáng bán trong suốt: 'off' | 'include' (Lấy cả bóng) | 'only' (Chỉ lấy bóng) */
   shadowMode?: LoopShadowMode
   /** Phân loại bóng cần giữ: 'auto' | 'light' (Mây/Sáng) | 'dark' (Bóng tối) */

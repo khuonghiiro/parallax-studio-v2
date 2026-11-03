@@ -106,6 +106,7 @@ const BLANK_CHROMA: ChromaKeyConfig = {
   similarity: 0.28,
   smoothness: 0.1,
   spill: 0.35,
+  isolationMode: 'all',
   shadowMode: 'off',
   shadowType: 'auto',
   shadowRetention: 68,

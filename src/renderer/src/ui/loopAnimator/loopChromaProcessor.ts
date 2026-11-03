@@ -1,6 +1,7 @@
 import { processAdvancedChromaPixelData } from '../layerAssembly/cutter/chromaAdvancedProcessor'
+import { floodFromBorder, growMaskWithin, transparentSeed } from '../layerAssembly/cutter/chromaOuterIsolation'
 import type { ChromaKeySettings } from '../layerAssembly/cutter/types'
-import type { ChromaKeyConfig, GridSlicerConfig } from './types'
+import type { ChromaKeyConfig, GridSlicerConfig, LoopIsolationMode } from './types'
 
 /**
  * Parse a hex color string (#rrggbb) into [r, g, b] in 0..255.
@@ -144,15 +145,66 @@ function buildAdvancedCutterSettings(chroma: ChromaKeyConfig): ChromaKeySettings
     edgeSmooth: 1,
     strokeWidth: 0,
     strokeColorHex: '#ffffff',
-    isolationMode: 'all',
+    // Cùng pipeline tách bóng của Xưởng lắp ráp 2.5D; "Chỉ tách nền ngoài" dùng loang thuần từ mép ảnh
+    // để giữ nguyên phần nền nằm kín bên trong viền (ruột vòng tròn)
+    isolationMode: resolveLoopIsolationMode(chroma),
+    strictOuterIsolation: true,
     cleanupMode: 'all',
     previewMode: 'transparent'
   }
 }
 
+/** Phạm vi tách nền hiệu lực; mẫu cũ không có trường này giữ hành vi "Tách toàn bộ" */
+export function resolveLoopIsolationMode(chroma: Pick<ChromaKeyConfig, 'isolationMode'>): LoopIsolationMode {
+  return chroma.isolationMode === 'outer_only' ? 'outer_only' : 'all'
+}
+
+interface SimpleKeyParams {
+  kr: number
+  kg: number
+  kb: number
+  lowThresh: number
+  highThresh: number
+}
+
+function keyDistance(data: Uint8ClampedArray, i: number, k: SimpleKeyParams): number {
+  const dr = data[i] - k.kr
+  const dg = data[i + 1] - k.kg
+  const db = data[i + 2] - k.kb
+  return Math.sqrt(dr * dr + dg * dg + db * db)
+}
+
+/**
+ * Mặt nạ "nền ngoài" cho chế độ Chỉ tách nền ngoài: loang từ mép ảnh qua các pixel có độ phủ nền
+ * >= 50% (tường chắn là viền vật thể), rồi nới thêm 2px vào dải mềm biên để viền ngoài vẫn mịn.
+ */
+function buildOuterKeyRegion(data: Uint8ClampedArray, w: number, h: number, k: SimpleKeyParams): Uint8Array {
+  const total = w * h
+  const midThresh = (k.lowThresh + k.highThresh) * 0.5
+  const passable = new Uint8Array(total)
+  const soft = new Uint8Array(total)
+  for (let p = 0; p < total; p++) {
+    const i = p * 4
+    if (data[i + 3] < 15) {
+      passable[p] = 1
+      soft[p] = 1
+      continue
+    }
+    const dist = keyDistance(data, i, k)
+    if (dist < k.highThresh) {
+      soft[p] = 1
+      if (dist < midThresh) passable[p] = 1
+    }
+  }
+  const region = floodFromBorder(passable, w, h, transparentSeed(data))
+  growMaskWithin(region, soft, w, h, 2)
+  return region
+}
+
 /**
  * Apply Chroma Key background removal, optional semi-transparent shadow/glow extraction,
  * and spill suppression in-place on ImageData.
+ * `isolationMode = 'outer_only'` chỉ xoá nền liên thông với mép ảnh (giữ nền bên trong viền kín).
  */
 export function applyChromaKeyToImageData(imageData: ImageData, chroma: ChromaKeyConfig): void {
   if (!chroma.enabled) return
@@ -171,9 +223,12 @@ export function applyChromaKeyToImageData(imageData: ImageData, chroma: ChromaKe
   const spill = Math.max(0, Math.min(1, chroma.spill))
 
   const maxDist = 441.67295593
-  const lowThresh = sim * maxDist
-  const highThresh = (sim + smooth) * maxDist
-  const range = Math.max(1, highThresh - lowThresh)
+  const k: SimpleKeyParams = { kr, kg, kb, lowThresh: sim * maxDist, highThresh: (sim + smooth) * maxDist }
+  const range = Math.max(1, k.highThresh - k.lowThresh)
+  const region =
+    resolveLoopIsolationMode(chroma) === 'outer_only'
+      ? buildOuterKeyRegion(data, imageData.width, imageData.height, k)
+      : null
 
   const isGreenDominant = kg > kr + 20 && kg > kb + 20
   const isBlueDominant = kb > kr + 20 && kb > kg + 20
@@ -182,25 +237,22 @@ export function applyChromaKeyToImageData(imageData: ImageData, chroma: ChromaKe
   for (let i = 0; i < data.length; i += 4) {
     const a = data[i + 3]
     if (a === 0) continue
+    if (region && !region[i >> 2]) continue
 
     const r = data[i]
     const g = data[i + 1]
     const b = data[i + 2]
+    const dist = keyDistance(data, i, k)
 
-    const dr = r - kr
-    const dg = g - kg
-    const db = b - kb
-    const dist = Math.sqrt(dr * dr + dg * dg + db * db)
-
-    if (dist <= lowThresh) {
+    if (dist <= k.lowThresh) {
       data[i + 3] = 0
-    } else if (dist < highThresh) {
-      const factor = (dist - lowThresh) / range
+    } else if (dist < k.highThresh) {
+      const factor = (dist - k.lowThresh) / range
       data[i + 3] = Math.round(a * factor)
       if (spill > 0) {
         suppressColorSpill(data, i, r, g, b, spill, isGreenDominant, isBlueDominant, isMagentaDominant)
       }
-    } else if (spill > 0 && dist < highThresh * 1.35) {
+    } else if (spill > 0 && dist < k.highThresh * 1.35) {
       suppressColorSpill(data, i, r, g, b, spill * 0.5, isGreenDominant, isBlueDominant, isMagentaDominant)
     }
   }

@@ -2,6 +2,7 @@ import React from 'react'
 import { ColorInput } from '../controls/ColorPicker'
 import { IconEyedropper, IconWand } from '../icons'
 import { useLoopAnimator } from './loopAnimatorState'
+import { resolveLoopIsolationMode } from './loopChromaProcessor'
 import type { LoopShadowMode, LoopShadowType } from './types'
 
 interface Props {
@@ -62,6 +63,7 @@ export function LoopChromaControls({ eyedropperActive, onToggleEyedropper, onAut
   const shadowRetention = chromaKey.shadowRetention ?? 68
   const shadowSolidThreshold = chromaKey.shadowSolidThreshold ?? 62
   const shadowUnmixColor = chromaKey.shadowUnmixColor !== false
+  const fullKey = resolveLoopIsolationMode(chromaKey) === 'all'
 
   return (
     <div className={`loop-chroma-bar${chromaKey.enabled ? ' is-on' : ''}`} data-mcp-region="loop_animator_chroma">
@@ -73,6 +75,22 @@ export function LoopChromaControls({ eyedropperActive, onToggleEyedropper, onAut
         </label>
         {chromaKey.enabled && (
           <>
+            <label
+              className="la-switch loop-isolation-switch"
+              title={
+                fullKey
+                  ? 'Đang TÁCH TOÀN BỘ: xoá cả nền bên trong lẫn bên ngoài viền kín (vòng tròn chỉ còn lại viền). Tắt để chỉ tách nền ngoài.'
+                  : 'Đang CHỈ TÁCH NỀN NGOÀI: giữ nguyên phần nền nằm kín bên trong viền (ruột vòng tròn). Bật để tách toàn bộ.'
+              }
+            >
+              <input
+                type="checkbox"
+                checked={fullKey}
+                onChange={(e) => setChromaKey({ isolationMode: e.target.checked ? 'all' : 'outer_only' })}
+              />
+              <span className="la-switch-track" aria-hidden />
+              <span className="la-switch-text">{fullKey ? 'Tách toàn bộ' : 'Chỉ nền ngoài'}</span>
+            </label>
             <ColorInput value={chromaKey.keyColor} onChange={(v) => setChromaKey({ keyColor: v })} compact showText={false} title="Màu nền cần xoá" />
             <div className="loop-swatches" role="group" aria-label="Màu nền nhanh">
               {KEY_SWATCHES.map((c) => (

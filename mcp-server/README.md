@@ -645,6 +645,7 @@ pnpm pxs call layer_assembly_rig --action subdivide-bone --bone_id bone-fish-spi
 - **Tích hợp Cảnh, Timeline & Workflow V2:** Node Animation (`anim_fx`) chế độ `🔁 Loop & Nhịp` (`animMode: "loop_sprite"`, mẫu `v2:anim_fx:loop_rhythm`, `v2:anim_fx:loop_flicker`) điều khiển tốc độ chạy, kiểu lặp, lệch pha, tần số nhịp (Hz), độ mờ đáy và biên độ nhịp co giãn.
 - **Tích hợp Xưởng Lắp Ráp 2.5D:** Tab tài nguyên **Loop** ở cột trái (`layer_assembly_loop_assets`) để `+ Thêm` mẫu thành mảnh mới hoặc `Gán` vào mảnh đang chọn; tab `Loop` bên phải (`layer_assembly_loop_logic`, `tab: "loop"`) cấu hình mẫu đang gắn (Đổi mẫu / Sửa mẫu, FPS, kiểu lặp, tốc độ, lệch pha, Nhịp & Nháy, Nguồn sáng ảo nháy theo Loop).
 - **Quản lý kho qua MCP:** `open_loop_animator {"blank":true}` (phiên trống), `list_loop_templates`, `get_loop_template_usages`, `detach_loop_template_usage` (`remove_layer` để xoá layer trong cảnh), `delete_loop_template` (`force` để tự gỡ liên kết còn lại).
+- **Phạm vi tách nền & tách bóng (`configure_loop_chroma`):** Toggle `Tách toàn bộ` ↔ `Chỉ nền ngoài` (`isolation_mode: "all" | "outer_only"`, bí danh `remove_all: true | false`). `all` xoá cả nền nằm kín bên trong viền (vòng tròn chỉ còn viền, nền trong suốt); `outer_only` chỉ xoá nền liên thông với mép ảnh, giữ nguyên ruột bên trong. Bóng mờ (`shadow_mode: include | only`) dùng chung pipeline tách bóng / Color Unmixing của Xưởng lắp ráp 2.5D và tôn trọng phạm vi đã chọn.
 - Vùng chụp UI: `assets_loop`, `loop_animator`, `loop_animator_header`, `loop_animator_presets`, `loop_animator_empty`, `loop_animator_source`, `loop_animator_player`, `loop_animator_stage`, `loop_animator_settings`, `loop_animator_toolbar`, `loop_animator_chroma`, `loop_animator_frames`, `loop_animator_footer`, `loop_delete_confirm`, `inspector_loop_logic`, `workflow_loop_params`, `layer_assembly_loop_logic`, `layer_assembly_loop_assets`.
 
 ```powershell
@@ -652,6 +653,7 @@ pnpm pxs call layer_assembly_rig --action subdivide-bone --bone_id bone-fish-spi
 pnpm pxs call open_loop_animator '{"blank":true}'
 pnpm pxs call get_loop_template_usages '{"template_id":"loop_preset_campfire"}'
 pnpm pxs call delete_loop_template '{"template_id":"loop_custom_x1","force":true}'
+pnpm pxs call configure_loop_chroma '{"enabled":true,"isolation_mode":"outer_only","shadow_mode":"include"}'
 ```
 
 ```bat
@@ -659,4 +661,5 @@ pnpm pxs call delete_loop_template '{"template_id":"loop_custom_x1","force":true
 pnpm pxs call open_loop_animator "{\"blank\":true}"
 pnpm pxs call get_loop_template_usages "{\"template_id\":\"loop_preset_campfire\"}"
 pnpm pxs call delete_loop_template "{\"template_id\":\"loop_custom_x1\",\"force\":true}"
+pnpm pxs call configure_loop_chroma "{\"enabled\":true,\"isolation_mode\":\"outer_only\",\"shadow_mode\":\"include\"}"
 ```

@@ -53,6 +53,16 @@ describe('loopAnimatorCommands', () => {
     expect(res.chroma_config.similarity).toBe(0.45)
   })
 
+  it('toggles chroma isolation scope (all / outer_only / remove_all alias)', async () => {
+    await runCmd('open_loop_animator', { preset_id: 'campfire_transparent' })
+    const outer = await runCmd('configure_loop_chroma', { enabled: true, isolation_mode: 'outer_only' })
+    expect(outer.chroma_config.isolationMode).toBe('outer_only')
+    const all = await runCmd('configure_loop_chroma', { remove_all: true })
+    expect(all.chroma_config.isolationMode).toBe('all')
+    const back = await runCmd('configure_loop_chroma', { remove_all: false })
+    expect(back.chroma_config.isolationMode).toBe('outer_only')
+  })
+
   it('splits frames and updates playback', async () => {
     await runCmd('open_loop_animator')
     const splitRes = await runCmd('split_loop_frames', {

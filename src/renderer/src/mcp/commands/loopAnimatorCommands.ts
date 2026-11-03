@@ -7,6 +7,20 @@ import { bool, num, str } from '../params'
 import type { Handler, Params } from '../types'
 import { loopLibraryCommands } from './loopLibraryCommands'
 
+/** Quy đổi tên màu nền preset (chroma_green, chroma_magenta, white...) sang mã hex; mã hex giữ nguyên */
+const KEY_PRESET_HEX: Record<string, string> = {
+  chroma_magenta: '#ff00ff',
+  chroma_green: '#00ff00',
+  chroma_blue: '#0000ff',
+  white: '#ffffff',
+  black: '#000000'
+}
+
+function resolveLoopKeyHex(value: string | undefined): string | undefined {
+  if (!value) return undefined
+  return KEY_PRESET_HEX[value] ?? (value === 'custom' ? undefined : value)
+}
+
 export const loopAnimatorCommands: Record<string, Handler> = {
   ...loopLibraryCommands,
 
@@ -17,7 +31,7 @@ export const loopAnimatorCommands: Record<string, Handler> = {
     const rows = num(p, 'rows')
     const cols = num(p, 'cols')
     const chroma = bool(p, 'chroma')
-    const keyColor = str(p, 'key_color')
+    const keyColor = resolveLoopKeyHex(str(p, 'key_color'))
 
     const animator = useLoopAnimator.getState()
 
@@ -105,19 +119,8 @@ export const loopAnimatorCommands: Record<string, Handler> = {
   configure_loop_chroma: async (p: Params) => {
     const enabled = bool(p, 'enabled')
     const keyColorType = str(p, 'key_color_type')
-    const presetHex =
-      keyColorType === 'chroma_magenta'
-        ? '#ff00ff'
-        : keyColorType === 'chroma_green'
-          ? '#00ff00'
-          : keyColorType === 'chroma_blue'
-            ? '#0000ff'
-            : keyColorType === 'white'
-              ? '#ffffff'
-              : keyColorType === 'black'
-                ? '#000000'
-                : undefined
-    const keyColor = str(p, 'key_color') ?? str(p, 'custom_hex') ?? presetHex
+    const presetHex = keyColorType ? KEY_PRESET_HEX[keyColorType] : undefined
+    const keyColor = resolveLoopKeyHex(str(p, 'key_color')) ?? str(p, 'custom_hex') ?? presetHex
     const rawSim = num(p, 'similarity') ?? num(p, 'tolerance')
     const similarity = rawSim !== undefined ? (rawSim > 1 ? rawSim / 100 : rawSim) : undefined
     const rawSmooth = num(p, 'smoothness')
@@ -130,6 +133,16 @@ export const loopAnimatorCommands: Record<string, Handler> = {
     const shadowRetention = num(p, 'shadow_retention')
     const shadowSolidThreshold = num(p, 'shadow_solid_threshold')
     const shadowUnmixColor = bool(p, 'shadow_unmix_color')
+    const rawIsolation = str(p, 'isolation_mode')
+    const removeAll = bool(p, 'remove_all')
+    const isolationMode: 'all' | 'outer_only' | undefined =
+      rawIsolation === 'all' || rawIsolation === 'outer_only'
+        ? rawIsolation
+        : removeAll !== undefined
+          ? removeAll
+            ? 'all'
+            : 'outer_only'
+          : undefined
 
     const animator = useLoopAnimator.getState()
     animator.setChromaKey({
@@ -138,6 +151,7 @@ export const loopAnimatorCommands: Record<string, Handler> = {
       ...(similarity !== undefined ? { similarity } : {}),
       ...(smoothness !== undefined ? { smoothness } : {}),
       ...(spill !== undefined ? { spill } : {}),
+      ...(isolationMode ? { isolationMode } : {}),
       ...(shadowMode ? { shadowMode } : {}),
       ...(shadowType ? { shadowType } : {}),
       ...(shadowRetention !== undefined ? { shadowRetention } : {}),

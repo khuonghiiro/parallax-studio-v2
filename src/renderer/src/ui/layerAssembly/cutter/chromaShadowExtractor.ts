@@ -1,4 +1,5 @@
 import type { ChromaKeySettings, ChromaShadowMode } from './types'
+import { floodFromBorder, transparentSeed } from './chromaOuterIsolation'
 
 /**
  * Lấy mẫu tự động màu nền thực tế quanh viền ảnh để tinh chỉnh chính xác màu khóa (Key Color).
@@ -210,62 +211,35 @@ function measureBorderNoiseFloor(
  */
 function computeOuterHaloZone(
   rawAlphaArr: Float32Array,
+  data: Uint8ClampedArray,
   w: number,
   h: number,
-  isolationMode: string | undefined,
+  settings: ChromaKeySettings,
   isChromaScreen: boolean,
   noiseFloor: number
 ): Uint8Array {
   const total = w * h
-  const zone = new Uint8Array(total)
-  if (isolationMode !== 'outer_only') {
+  if (settings.isolationMode !== 'outer_only') {
+    const zone = new Uint8Array(total)
     zone.fill(1)
     return zone
   }
 
   const solidBarrier = 0.94
-  const queue = new Int32Array(total)
-  let head = 0
-  let tail = 0
-
-  const seed = (p: number): void => {
-    if (!zone[p] && rawAlphaArr[p] < solidBarrier) {
-      zone[p] = 1
-      queue[tail++] = p
-    }
+  const passable = new Uint8Array(total)
+  for (let p = 0; p < total; p++) {
+    if (rawAlphaArr[p] < solidBarrier) passable[p] = 1
   }
 
-  for (let x = 0; x < w; x++) {
-    seed(x)
-    seed((h - 1) * w + x)
+  // Tách nền ngoài thuần: chỉ loang từ biên ảnh và vùng đã trong suốt (giữ trọn ruột vòng tròn)
+  if (settings.strictOuterIsolation) {
+    return floodFromBorder(passable, w, h, transparentSeed(data))
   }
-  for (let y = 1; y < h - 1; y++) {
-    seed(y * w)
-    seed(y * w + (w - 1))
-  }
+  if (!isChromaScreen) return floodFromBorder(passable, w, h)
 
   // Trên phông xanh lá / xanh dương / hồng magenta, các ô nền thuần khiết nằm giữa các tia sáng cũng là hạt giống nền
-  if (isChromaScreen) {
-    const chromaSeedCeil = Math.max(0.08, noiseFloor * 1.4)
-    for (let p = 0; p < total; p++) {
-      if (!zone[p] && rawAlphaArr[p] <= chromaSeedCeil) {
-        zone[p] = 1
-        queue[tail++] = p
-      }
-    }
-  }
-
-  while (head < tail) {
-    const curr = queue[head++]
-    const cx = curr % w
-    const cy = (curr - cx) / w
-    if (cx > 0) seed(curr - 1)
-    if (cx < w - 1) seed(curr + 1)
-    if (cy > 0) seed(curr - w)
-    if (cy < h - 1) seed(curr + w)
-  }
-
-  return zone
+  const chromaSeedCeil = Math.max(0.08, noiseFloor * 1.4)
+  return floodFromBorder(passable, w, h, (p) => rawAlphaArr[p] <= chromaSeedCeil)
 }
 
 /**
@@ -388,9 +362,10 @@ export function applyShadowAndMistExtraction(
   const noiseFloor = Math.max(measuredNoise + 0.01, Math.max(0.025, 0.13 - strength * 0.085))
   const outerZone = computeOuterHaloZone(
     rawAlphaArr,
+    data,
     w,
     h,
-    settings.isolationMode,
+    settings,
     isGreenKey || isBlueKey || isMagentaKey,
     noiseFloor
   )

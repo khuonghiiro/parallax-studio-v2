@@ -5,6 +5,7 @@ import { useEditor } from '../../store/editor'
 import {
   applyChromaKeyToImageData,
   buildGridFrames,
+  clearGridBorderPadding,
   extractFrameCanvas,
   getCachedLoopTemplateSheet
 } from './loopFrameExtractor'
@@ -445,6 +446,8 @@ export async function exportLoopPresetDirectly(
     ctx.drawImage(img, 0, 0, w, h)
     if (template.chromaKey.enabled) {
       const imgData = ctx.getImageData(0, 0, w, h)
+      // Xoá vạch lưới trước khi khử nền (khớp với xem trước) để "Chỉ tách nền ngoài" loang được vào từng ô
+      if ((template.gridConfig?.borderPadding ?? 0) > 0) clearGridBorderPadding(imgData, template.gridConfig)
       applyChromaKeyToImageData(imgData, template.chromaKey)
       ctx.putImageData(imgData, 0, 0)
     }

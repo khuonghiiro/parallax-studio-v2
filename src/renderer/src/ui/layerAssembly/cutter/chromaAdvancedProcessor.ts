@@ -3,6 +3,7 @@ import {
   applyShadowAndMistExtraction,
   resolveImageEffectiveKeyRgb
 } from './chromaShadowExtractor'
+import { isolateOuterConnectedBg } from './chromaOuterIsolation'
 
 export function parseHexRgb(hex: string): { r: number; g: number; b: number } {
   const clean = (hex || '#ffffff').replace('#', '').trim()
@@ -140,98 +141,6 @@ function classifyBackgroundPixels(
   }
 
   return { isBg, shadowAlpha }
-}
-
-function isolateOuterConnectedBg(
-  isBg: Uint8Array,
-  w: number,
-  h: number,
-  data?: Uint8ClampedArray,
-  keyColorType?: string
-): Uint8Array {
-  const totalPixels = w * h
-  const activeBg = new Uint8Array(totalPixels)
-  const queue = new Int32Array(totalPixels)
-  let head = 0
-  let tail = 0
-
-  for (let x = 0; x < w; x++) {
-    const top = x
-    const bot = (h - 1) * w + x
-    if (isBg[top] && !activeBg[top]) {
-      activeBg[top] = 1
-      queue[tail++] = top
-    }
-    if (isBg[bot] && !activeBg[bot]) {
-      activeBg[bot] = 1
-      queue[tail++] = bot
-    }
-  }
-  for (let y = 1; y < h - 1; y++) {
-    const left = y * w
-    const right = y * w + (w - 1)
-    if (isBg[left] && !activeBg[left]) {
-      activeBg[left] = 1
-      queue[tail++] = left
-    }
-    if (isBg[right] && !activeBg[right]) {
-      activeBg[right] = 1
-      queue[tail++] = right
-    }
-  }
-
-  // Trên phông xanh lá / xanh dương chuyên dụng, các khe hở kín giữa sợi tóc hoặc lông mày
-  // có sắc độ xanh/lam thuần khiết (dominance >= 50) cũng là phông nền cần thông suốt
-  if (data && (keyColorType === 'chroma_green' || keyColorType === 'chroma_blue')) {
-    const isGreen = keyColorType === 'chroma_green'
-    for (let p = 0; p < totalPixels; p++) {
-      if (!isBg[p] || activeBg[p]) continue
-      const idx = p * 4
-      const r = data[idx]
-      const g = data[idx + 1]
-      const b = data[idx + 2]
-      const dom = isGreen ? g - (r > b ? r : b) : b - (r > g ? r : g)
-      if (dom >= 50) {
-        activeBg[p] = 1
-        queue[tail++] = p
-      }
-    }
-  }
-
-  while (head < tail) {
-    const curr = queue[head++]
-    const cx = curr % w
-    const cy = (curr - cx) / w
-    if (cx > 0) {
-      const n = curr - 1
-      if (isBg[n] && !activeBg[n]) {
-        activeBg[n] = 1
-        queue[tail++] = n
-      }
-    }
-    if (cx < w - 1) {
-      const n = curr + 1
-      if (isBg[n] && !activeBg[n]) {
-        activeBg[n] = 1
-        queue[tail++] = n
-      }
-    }
-    if (cy > 0) {
-      const n = curr - w
-      if (isBg[n] && !activeBg[n]) {
-        activeBg[n] = 1
-        queue[tail++] = n
-      }
-    }
-    if (cy < h - 1) {
-      const n = curr + w
-      if (isBg[n] && !activeBg[n]) {
-        activeBg[n] = 1
-        queue[tail++] = n
-      }
-    }
-  }
-  return activeBg
 }
 
 /**
@@ -692,7 +601,7 @@ export function processAdvancedChromaPixelData(
   const isolationMode = settings.isolationMode || 'all'
   const activeBg =
     isolationMode === 'outer_only'
-      ? isolateOuterConnectedBg(isBg, w, h, data, settings.keyColorType)
+      ? isolateOuterConnectedBg(isBg, w, h, data, settings.keyColorType, settings.strictOuterIsolation === true)
       : isBg
 
   const isShadowPixel = applyShadowAndMistExtraction(
