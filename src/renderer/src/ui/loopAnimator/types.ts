@@ -1,7 +1,12 @@
-import type { LoopAnimationMode, LoopRhythmMode } from '@shared/types'
+import type {
+  LoopAnimationMode,
+  LoopPackageGroupDef,
+  LoopRhythmMode,
+  LoopTriggerMode
+} from '@shared/types'
 
 export type SlicerMode = 'grid' | 'contour' | 'manual'
-export type { LoopAnimationMode, LoopRhythmMode }
+export type { LoopAnimationMode, LoopPackageGroupDef, LoopRhythmMode, LoopTriggerMode }
 
 export type LoopCategorySlug = 'fire' | 'magic' | 'nature' | 'electric' | 'custom' | (string & {})
 
@@ -24,6 +29,11 @@ export interface LoopFrameBox {
   enabled: boolean
   /** Frame duration multiplier (1.0 = standard 1/fps) */
   durationRatio: number
+  /** Nhóm hiệu ứng chứa frame này (phục vụ lưu animation.json & điều phối Node Animation Loop) */
+  groupId?: string
+  groupIndex?: number
+  groupName?: string
+  localFrameIndex?: number
 }
 
 export type LoopShadowMode = 'off' | 'include' | 'only'
@@ -162,7 +172,51 @@ export interface LoopAnimationTemplate {
   baseMeshHeight?: number
   /** Optional custom frame boxes if edited manually or via contour */
   frames?: LoopFrameBox[]
+  /** Danh sách định nghĩa các nhóm hiệu ứng nối tiếp / kết hợp frame trong gói hoạt ảnh */
+  groups?: LoopPackageGroupDef[]
+  /** Dữ liệu các nhóm hiệu ứng trong phiên xưởng để mở lại chỉnh sửa từng nhóm */
+  sequenceGroups?: LoopSequenceGroup[]
   isBuiltin?: boolean
   createdAt?: number
   updatedAt?: number
+}
+
+/**
+ * Cấu hình độc lập của mỗi nhóm hiệu ứng (ảnh 1 -> ảnh 2 -> ảnh 3...) trong Xưởng Tách Hoạt Ảnh Loop.
+ * Cho phép mỗi ảnh có cấu hình cắt khung, tách nền, FPS/tốc độ, vị trí chạy lệch (offsetX, offsetY, scale),
+ * thời gian chờ (delaySec), thời lượng giữ (holdDurationSec) và kích hoạt theo frame (triggerMode: 'on_frame').
+ */
+export interface LoopSequenceGroup {
+  id: string
+  name: string
+  sourceImageUrl: string
+  sourceWidth: number
+  sourceHeight: number
+  baseMeshWidth: number
+  baseMeshHeight: number
+  slicerMode: SlicerMode
+  gridConfig: GridSlicerConfig
+  contourConfig: ContourSlicerConfig
+  chromaKey: ChromaKeyConfig
+  frames: LoopFrameBox[]
+  selectedFrameIndex: number
+  focusedFrameIndex: number | null
+  fps: number
+  speed: number
+  loopMode: LoopAnimationMode
+  rhythm: LoopRhythmConfig
+  /** Chế độ kích hoạt so với nhóm trước: 'sequential' (Nối tiếp), 'on_frame' (Kết hợp tại Frame #), 'parallel' (Song song) */
+  triggerMode: LoopTriggerMode
+  /** Chỉ số frame (1-based) của nhóm trước kích hoạt nhóm này chạy cùng thời điểm (khi triggerMode = 'on_frame') */
+  triggerFrameIndex: number
+  /** Thời gian chờ (giây) trước khi nhóm này bắt đầu chạy */
+  delaySec: number
+  /** Thời lượng duy trì chạy/hiển thị của nhóm này (giây, 0 = tự động hết chu kỳ) */
+  holdDurationSec: number
+  /** Độ dịch chuyển vị trí X (px) trên sân khấu để căn khớp điểm chạm (VD: sét đánh -> tâm vụ nổ) */
+  offsetX: number
+  /** Độ dịch chuyển vị trí Y (px) trên sân khấu */
+  offsetY: number
+  /** Tỉ lệ kích thước của nhóm trên sân khấu (1 = 100%) */
+  scale: number
 }

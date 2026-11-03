@@ -1,10 +1,24 @@
-import React, { useCallback, useEffect, useRef } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { evaluateLoopLayerRhythm } from '../../project/gifHelper'
 import { IconFilm, IconPause, IconPlay, IconStepBack, IconStepFwd } from '../icons'
 import { LoopPlayerSettings } from './LoopPlayerSettings'
+import {
+  applyChromaKeyToImageData,
+  clearGridBorderPadding
+} from './loopFrameExtractor'
+import {
+  computeLoopGroupsSchedule,
+  resolveGroupFrameAtLocalTime
+} from './loopGroupManager'
 import { useLoopAnimator } from './loopAnimatorState'
-import { getLoopSourceLogicalSize } from './loopSourceProxy'
-import type { LoopFrameBox, LoopPlaybackConfig } from './types'
+import {
+  getLoopSourceLogicalSize,
+  getRegisteredMemoryCanvas,
+  scaleGridConfigForWorkCanvas,
+  setLoopSourceCanvasMeta
+} from './loopSourceProxy'
+import { resolveLoopAssetUrl } from './sampleLoops'
+import type { LoopFrameBox, LoopPlaybackConfig, LoopSequenceGroup } from './types'
 
 interface Props {
   sourceCanvasRef: React.RefObject<HTMLCanvasElement | null>
@@ -23,13 +37,20 @@ function drawFrame(
   src: HTMLCanvasElement,
   f: LoopFrameBox,
   scale: number,
-  anchor: 'bottom' | 'center'
+  anchor: 'bottom' | 'center',
+  groupOffsetX = 0,
+  groupOffsetY = 0,
+  groupScale = 1
 ): void {
   const { sx, sy } = getLoopSourceLogicalSize(src)
-  const w = Math.round(f.width * scale)
-  const h = Math.round(f.height * scale)
-  const x = Math.round((STAGE - w) * 0.5 + f.offsetX * scale)
-  const y = anchor === 'bottom' ? Math.round(STAGE - 24 - h + f.offsetY * scale) : Math.round((STAGE - h) * 0.5 + f.offsetY * scale)
+  const effScale = scale * Math.max(0.1, groupScale || 1)
+  const w = Math.round(f.width * effScale)
+  const h = Math.round(f.height * effScale)
+  const x = Math.round((STAGE - w) * 0.5 + (f.offsetX + groupOffsetX) * scale)
+  const y =
+    anchor === 'bottom'
+      ? Math.round(STAGE - 24 - h + (f.offsetY + groupOffsetY) * scale)
+      : Math.round((STAGE - h) * 0.5 + (f.offsetY + groupOffsetY) * scale)
   ctx.drawImage(
     src,
     f.x * sx,
@@ -52,7 +73,12 @@ function prevEnabledIndex(frames: LoopFrameBox[], from: number): number {
 }
 
 /** Vị trí kế tiếp trong danh sách frame đang bật theo kiểu lặp; -1 = dừng (chế độ 1 lần) */
-function advanceCursor(mode: LoopPlaybackConfig['loopMode'], pos: number, total: number, dir: React.MutableRefObject<1 | -1>): number {
+function advanceCursor(
+  mode: LoopPlaybackConfig['loopMode'],
+  pos: number,
+  total: number,
+  dir: React.MutableRefObject<1 | -1>
+): number {
   if (mode === 'random') {
     let c = Math.floor(Math.random() * total)
     if (c === pos && total > 1) c = (c + 1) % total
@@ -73,25 +99,133 @@ function advanceCursor(mode: LoopPlaybackConfig['loopMode'], pos: number, total:
   return (pos + 1) % total
 }
 
+const _groupCanvasCache = new Map<string, HTMLCanvasElement>()
+
+function getGroupCacheKey(g: LoopSequenceGroup): string {
+  const c = g.chromaKey
+  const pad = g.gridConfig.borderPadding ?? 0
+  return `${g.id}:${g.sourceImageUrl.slice(0, 80)}:${pad}:${c.enabled}:${c.keyColor}:${c.similarity}:${c.smoothness}:${c.spill}:${c.isolationMode ?? 'all'}`
+}
+
+async function ensureGroupProcessedCanvas(g: LoopSequenceGroup): Promise<HTMLCanvasElement | null> {
+  const key = getGroupCacheKey(g)
+  const cached = _groupCanvasCache.get(key)
+  if (cached) return cached
+
+  const mem = getRegisteredMemoryCanvas(g.sourceImageUrl)
+  const resolvedUrl = mem ? null : (await resolveLoopAssetUrl(g.sourceImageUrl)) || g.sourceImageUrl
+  const srcEl: HTMLImageElement | HTMLCanvasElement | null = mem
+    ? mem
+    : await new Promise((resolve) => {
+        const img = new Image()
+        img.crossOrigin = 'anonymous'
+        img.onload = () => resolve(img)
+        img.onerror = () => resolve(null)
+        img.src = resolvedUrl || g.sourceImageUrl
+      })
+  if (!srcEl) return null
+
+  const logicalW = 'naturalWidth' in srcEl ? srcEl.naturalWidth || srcEl.width || 1024 : srcEl.width || 1024
+  const logicalH = 'naturalHeight' in srcEl ? srcEl.naturalHeight || srcEl.height || 1024 : srcEl.height || 1024
+  const workScale = Math.min(1, 768 / Math.max(1, logicalW, logicalH))
+  const workW = Math.max(1, Math.round(logicalW * workScale))
+  const workH = Math.max(1, Math.round(logicalH * workScale))
+  const canvas = document.createElement('canvas')
+  canvas.width = workW
+  canvas.height = workH
+  setLoopSourceCanvasMeta(canvas, {
+    logicalWidth: logicalW,
+    logicalHeight: logicalH,
+    workScaleX: workW / Math.max(1, logicalW),
+    workScaleY: workH / Math.max(1, logicalH),
+    rawImage: srcEl,
+    chromaKey: g.chromaKey,
+    gridConfig: g.gridConfig
+  })
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return null
+  ctx.drawImage(srcEl, 0, 0, workW, workH)
+  const pad = g.gridConfig.borderPadding ?? 0
+  if (pad > 0 || g.chromaKey.enabled) {
+    const imgData = ctx.getImageData(0, 0, workW, workH)
+    if (pad > 0) {
+      clearGridBorderPadding(imgData, scaleGridConfigForWorkCanvas(g.gridConfig, workScale, workScale))
+    }
+    if (g.chromaKey.enabled) {
+      applyChromaKeyToImageData(imgData, g.chromaKey)
+    }
+    ctx.putImageData(imgData, 0, 0)
+  }
+  _groupCanvasCache.set(key, canvas)
+  return canvas
+}
+
 export function LoopAnimatorPlayer({ sourceCanvasRef }: Props): React.ReactElement {
   const frames = useLoopAnimator((s) => s.frames)
   const selectedFrameIndex = useLoopAnimator((s) => s.selectedFrameIndex)
   const playingFrameIndex = useLoopAnimator((s) => s.playingFrameIndex)
   const sourceVersion = useLoopAnimator((s) => s.sourceVersion)
   const playback = useLoopAnimator((s) => s.playback)
+  const groups = useLoopAnimator((s) => s.groups)
+  const activeGroupIndex = useLoopAnimator((s) => s.activeGroupIndex)
+  const comboPreviewMode = useLoopAnimator((s) => s.comboPreviewMode)
   const selectFrame = useLoopAnimator((s) => s.selectFrame)
   const setPlayingFrame = useLoopAnimator((s) => s.setPlayingFrame)
   const setPlayback = useLoopAnimator((s) => s.setPlayback)
   const togglePlaying = useLoopAnimator((s) => s.togglePlaying)
+  const updateActiveGroupMeta = useLoopAnimator((s) => s.updateActiveGroupMeta)
+  const setComboPreviewMode = useLoopAnimator((s) => s.setComboPreviewMode)
 
   const previewCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const pingPongDirRef = useRef<1 | -1>(1)
   const cursorRef = useRef(0)
+  const stageDragRef = useRef<{
+    startX: number
+    startY: number
+    origOffsetX: number
+    origOffsetY: number
+    scale: number
+  } | null>(null)
+  const [groupCanvasReadyRev, setGroupCanvasReadyRev] = useState(0)
+
+  const activeGroup = groups[activeGroupIndex] ?? groups[0]
   const activeFrameIndex = playback.isPlaying ? playingFrameIndex : selectedFrameIndex
   const hasFrames = frames.length > 0
   const showPause = playback.isPlaying && hasFrames
+  const isComboActive = groups.length > 1 && comboPreviewMode
 
-  const drawPreviewFrame = useCallback(
+  // Giải mã trước Canvas proxy cho các nhóm phụ trong chuỗi tổ hợp
+  useEffect(() => {
+    if (groups.length <= 1) return
+    let cancelled = false
+    void Promise.all(
+      groups.map((g, idx) => (idx === activeGroupIndex ? Promise.resolve(null) : ensureGroupProcessedCanvas(g)))
+    ).then(() => {
+      if (!cancelled) setGroupCanvasReadyRev((v) => v + 1)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [groups, activeGroupIndex])
+
+  const getCommonStageScale = useCallback((): number => {
+    if (groups.length > 1) {
+      let maxW = 1
+      let maxH = 1
+      for (const g of groups) {
+        for (const f of g.frames) {
+          if (f.width > maxW) maxW = f.width
+          if (f.height > maxH) maxH = f.height
+        }
+      }
+      return Math.min((STAGE - 36) / maxW, (STAGE - 36) / maxH)
+    }
+    const maxW = Math.max(1, ...frames.map((f) => f.width))
+    const maxH = Math.max(1, ...frames.map((f) => f.height))
+    return Math.min((STAGE - 36) / maxW, (STAGE - 36) / maxH)
+  }, [groups, frames])
+
+  const drawSingleOrAlignedPreview = useCallback(
     (frameIndex: number, nowSec = 0) => {
       const canvas = previewCanvasRef.current
       const src = sourceCanvasRef.current
@@ -103,17 +237,35 @@ export function LoopAnimatorPlayer({ sourceCanvasRef }: Props): React.ReactEleme
       const current = frames[frameIndex] ?? frames[0]
       if (!src || src.width === 0 || !current) return
 
-      // Tỉ lệ chung cho mọi frame để hoạt ảnh không bị co giãn nhịp
-      const maxW = Math.max(1, ...frames.map((f) => f.width))
-      const maxH = Math.max(1, ...frames.map((f) => f.height))
-      const scale = Math.min((STAGE - 36) / maxW, (STAGE - 36) / maxH)
+      const scale = getCommonStageScale()
       const anchor = playback.anchor ?? 'bottom'
+      const gOffX = activeGroup?.offsetX ?? 0
+      const gOffY = activeGroup?.offsetY ?? 0
+      const gScale = activeGroup?.scale ?? 1
+
+      // Khi đang căn chỉnh vị trí của Nhóm #k (k >= 2), vẽ bóng mờ của Nhóm #(k-1) tại đúng frame chạm (VD: sét chạm đất) để căn vị trí vụ nổ chính xác!
+      if (activeGroupIndex > 0 && groups[activeGroupIndex - 1]) {
+        const prevG = groups[activeGroupIndex - 1]
+        const prevCanvas = _groupCanvasCache.get(getGroupCacheKey(prevG))
+        const prevEnabled = prevG.frames.filter((f) => f.enabled)
+        if (prevCanvas && prevEnabled.length > 0) {
+          const refIdx =
+            activeGroup?.triggerMode === 'on_frame'
+              ? Math.max(0, Math.min(prevEnabled.length - 1, (activeGroup.triggerFrameIndex || 1) - 1))
+              : prevEnabled.length - 1
+          const refFrame = prevEnabled[refIdx] ?? prevEnabled[0]
+          ctx.save()
+          ctx.globalAlpha = 0.42
+          drawFrame(ctx, prevCanvas, refFrame, scale, anchor, prevG.offsetX, prevG.offsetY, prevG.scale)
+          ctx.restore()
+        }
+      }
 
       const prevIdx = playback.onionSkin ? prevEnabledIndex(frames, frameIndex) : -1
       if (prevIdx >= 0 && prevIdx !== frameIndex) {
         ctx.save()
         ctx.globalAlpha = playback.onionSkinOpacity
-        drawFrame(ctx, src, frames[prevIdx], scale, anchor)
+        drawFrame(ctx, src, frames[prevIdx], scale, anchor, gOffX, gOffY, gScale)
         ctx.restore()
       }
 
@@ -135,19 +287,90 @@ export function LoopAnimatorPlayer({ sourceCanvasRef }: Props): React.ReactEleme
           : { opacityMultiplier: 1, scaleMultiplier: 1 }
       ctx.save()
       ctx.globalAlpha = fx.opacityMultiplier
-      drawFrame(ctx, src, current, scale * fx.scaleMultiplier, anchor)
+      drawFrame(ctx, src, current, scale * fx.scaleMultiplier, anchor, gOffX, gOffY, gScale)
       ctx.restore()
     },
-    [frames, playback.onionSkin, playback.onionSkinOpacity, playback.isPlaying, playback.rhythm, playback.speed, playback.anchor, sourceCanvasRef]
+    [
+      frames,
+      activeGroup,
+      activeGroupIndex,
+      groups,
+      getCommonStageScale,
+      playback.onionSkin,
+      playback.onionSkinOpacity,
+      playback.isPlaying,
+      playback.rhythm,
+      playback.speed,
+      playback.anchor,
+      sourceCanvasRef,
+      groupCanvasReadyRev
+    ]
+  )
+
+  const drawComboPreviewAtTime = useCallback(
+    (comboTimeSec: number) => {
+      const canvas = previewCanvasRef.current
+      if (!canvas) return
+      if (canvas.width !== STAGE) canvas.width = canvas.height = STAGE
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return
+      ctx.clearRect(0, 0, STAGE, STAGE)
+
+      const schedule = computeLoopGroupsSchedule(groups)
+      const scale = getCommonStageScale()
+      const anchor = playback.anchor ?? 'bottom'
+
+      for (const item of schedule.items) {
+        if (comboTimeSec < item.startTime || comboTimeSec > item.endTime + 1e-3) continue
+        const localTime = Math.max(0, comboTimeSec - item.startTime)
+        const frame = resolveGroupFrameAtLocalTime(item, localTime)
+        if (!frame) continue
+        const gCanvas =
+          item.groupIndex === activeGroupIndex && sourceCanvasRef.current
+            ? sourceCanvasRef.current
+            : _groupCanvasCache.get(getGroupCacheKey(item.group))
+        if (!gCanvas || gCanvas.width === 0) continue
+
+        ctx.save()
+        drawFrame(
+          ctx,
+          gCanvas,
+          frame,
+          scale,
+          anchor,
+          item.group.offsetX,
+          item.group.offsetY,
+          item.group.scale
+        )
+        ctx.restore()
+      }
+    },
+    [groups, activeGroupIndex, getCommonStageScale, playback.anchor, sourceCanvasRef, groupCanvasReadyRev]
   )
 
   useEffect(() => {
-    drawPreviewFrame(activeFrameIndex, performance.now() / 1000)
-  }, [activeFrameIndex, sourceVersion, drawPreviewFrame])
+    if (!playback.isPlaying || !isComboActive) {
+      drawSingleOrAlignedPreview(activeFrameIndex, performance.now() / 1000)
+    }
+  }, [activeFrameIndex, sourceVersion, playback.isPlaying, isComboActive, drawSingleOrAlignedPreview])
 
-  // Vòng RAF mượt 60fps, chỉ đổi frame khi đủ thời lượng (FPS × tốc độ × hệ số giữ frame)
+  // Vòng RAF mượt 60fps: hỗ trợ cả phát đơn nhóm lẫn phát Tổ hợp đa nhóm (Combo Timeline)
   useEffect(() => {
     if (!playback.isPlaying) return
+    if (isComboActive) {
+      const schedule = computeLoopGroupsSchedule(groups)
+      const totalDur = Math.max(0.1, schedule.totalDuration)
+      let rafId = 0
+      const startPerf = performance.now()
+      const tickCombo = (now: number): void => {
+        const elapsed = ((now - startPerf) / 1000) % totalDur
+        drawComboPreviewAtTime(elapsed)
+        rafId = requestAnimationFrame(tickCombo)
+      }
+      rafId = requestAnimationFrame(tickCombo)
+      return () => cancelAnimationFrame(rafId)
+    }
+
     const enabled = frames.map((f, i) => (f.enabled ? i : -1)).filter((i) => i >= 0)
     if (enabled.length <= 1) return
     let rafId = 0
@@ -156,7 +379,8 @@ export function LoopAnimatorPlayer({ sourceCanvasRef }: Props): React.ReactEleme
 
     const tick = (now: number): void => {
       const idx = enabled[cursorRef.current] ?? enabled[0]
-      const interval = (1000 / Math.max(1, playback.fps * (playback.speed || 1))) * (frames[idx]?.durationRatio ?? 1)
+      const interval =
+        (1000 / Math.max(1, playback.fps * (playback.speed || 1))) * (frames[idx]?.durationRatio ?? 1)
       if (now - last >= interval) {
         last = now
         const next = advanceCursor(playback.loopMode, cursorRef.current, enabled.length, pingPongDirRef)
@@ -166,19 +390,33 @@ export function LoopAnimatorPlayer({ sourceCanvasRef }: Props): React.ReactEleme
         }
         cursorRef.current = next
         setPlayingFrame(enabled[next] ?? 0)
-        drawPreviewFrame(enabled[next] ?? 0, now / 1000)
+        drawSingleOrAlignedPreview(enabled[next] ?? 0, now / 1000)
       } else if (playback.rhythm.rhythmMode !== 'none') {
-        drawPreviewFrame(idx, now / 1000)
+        drawSingleOrAlignedPreview(idx, now / 1000)
       }
       rafId = requestAnimationFrame(tick)
     }
     rafId = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(rafId)
-  }, [playback.isPlaying, playback.fps, playback.speed, playback.loopMode, playback.rhythm.rhythmMode, frames, setPlayingFrame, setPlayback, drawPreviewFrame])
+  }, [
+    playback.isPlaying,
+    playback.fps,
+    playback.speed,
+    playback.loopMode,
+    playback.rhythm.rhythmMode,
+    isComboActive,
+    groups,
+    frames,
+    setPlayingFrame,
+    setPlayback,
+    drawSingleOrAlignedPreview,
+    drawComboPreviewAtTime
+  ])
 
   const stepFrame = (delta: -1 | 1): void => {
     if (!hasFrames) return
     setPlayback({ isPlaying: false })
+    if (isComboActive) setComboPreviewMode(false)
     selectFrame((selectedFrameIndex + delta + frames.length) % frames.length)
   }
 
@@ -190,26 +428,91 @@ export function LoopAnimatorPlayer({ sourceCanvasRef }: Props): React.ReactEleme
           <span>Xem trước</span>
         </div>
         <div className="la-seg" title="Điểm neo khi phát">
-          <button type="button" className={`la-seg-btn${playback.anchor !== 'center' ? ' active' : ''}`} onClick={() => setPlayback({ anchor: 'bottom' })} title="Giữ đáy frame cố định trên mặt sàn">
+          <button
+            type="button"
+            className={`la-seg-btn${playback.anchor !== 'center' ? ' active' : ''}`}
+            onClick={() => setPlayback({ anchor: 'bottom' })}
+            title="Giữ đáy frame cố định trên mặt sàn"
+          >
             Chân
           </button>
-          <button type="button" className={`la-seg-btn${playback.anchor === 'center' ? ' active' : ''}`} onClick={() => setPlayback({ anchor: 'center' })} title="Căn giữa sân khấu">
+          <button
+            type="button"
+            className={`la-seg-btn${playback.anchor === 'center' ? ' active' : ''}`}
+            onClick={() => setPlayback({ anchor: 'center' })}
+            title="Căn giữa sân khấu"
+          >
             Tâm
           </button>
         </div>
         <div className="loop-bg-pills" role="radiogroup" aria-label="Nền sân khấu">
           {BG_OPTIONS.map((bg) => (
-            <button key={bg.id} type="button" role="radio" aria-checked={playback.previewBg === bg.id} className={`loop-bg-pill bg-${bg.id}${playback.previewBg === bg.id ? ' active' : ''}`} onClick={() => setPlayback({ previewBg: bg.id })} title={bg.label} aria-label={bg.label} />
+            <button
+              key={bg.id}
+              type="button"
+              role="radio"
+              aria-checked={playback.previewBg === bg.id}
+              className={`loop-bg-pill bg-${bg.id}${playback.previewBg === bg.id ? ' active' : ''}`}
+              onClick={() => setPlayback({ previewBg: bg.id })}
+              title={bg.label}
+              aria-label={bg.label}
+            />
           ))}
         </div>
       </div>
 
-      <div className={`loop-player-stage bg-${playback.previewBg}`} data-mcp-region="loop_animator_stage">
+      <div
+        className={`loop-player-stage bg-${playback.previewBg}`}
+        data-mcp-region="loop_animator_stage"
+        title="Kéo chuột trực tiếp trên sân khấu để dịch chuyển vị trí chạy (X, Y) của nhóm đang chọn"
+        onMouseDown={(e) => {
+          if (!hasFrames || !activeGroup) return
+          const rect = e.currentTarget.getBoundingClientRect()
+          const cssScale = rect.width > 0 ? STAGE / rect.width : 1
+          stageDragRef.current = {
+            startX: e.clientX,
+            startY: e.clientY,
+            origOffsetX: activeGroup.offsetX || 0,
+            origOffsetY: activeGroup.offsetY || 0,
+            scale: Math.max(0.05, getCommonStageScale() / cssScale)
+          }
+        }}
+        onMouseMove={(e) => {
+          const drag = stageDragRef.current
+          if (!drag) return
+          const dx = Math.round((e.clientX - drag.startX) / drag.scale)
+          const dy = Math.round((e.clientY - drag.startY) / drag.scale)
+          updateActiveGroupMeta({
+            offsetX: drag.origOffsetX + dx,
+            offsetY: drag.origOffsetY + dy
+          })
+        }}
+        onMouseUp={() => {
+          stageDragRef.current = null
+        }}
+        onMouseLeave={() => {
+          stageDragRef.current = null
+        }}
+        style={{ cursor: hasFrames ? 'grab' : 'default' }}
+      >
         <canvas ref={previewCanvasRef} className="loop-player-canvas" />
         {hasFrames ? (
-          <span className="loop-player-hud-badge">
-            #{activeFrameIndex + 1} / {frames.length}
-          </span>
+          <>
+            <span className="loop-player-hud-badge">
+              {isComboActive
+                ? `🔗 Tổ hợp ${groups.length} nhóm`
+                : `#${activeFrameIndex + 1} / ${frames.length}`}
+            </span>
+            {activeGroup && (activeGroup.offsetX !== 0 || activeGroup.offsetY !== 0 || groups.length > 1) && (
+              <span
+                className="loop-player-hud-pos-badge"
+                title="Toạ độ lệch của nhóm đang chọn (kéo trên sân khấu để căn vị trí chạm)"
+              >
+                N#{activeGroupIndex + 1}: X{activeGroup.offsetX >= 0 ? `+${activeGroup.offsetX}` : activeGroup.offsetX} · Y
+                {activeGroup.offsetY >= 0 ? `+${activeGroup.offsetY}` : activeGroup.offsetY}
+              </span>
+            )}
+          </>
         ) : (
           <div className="loop-player-empty">
             <IconFilm width={22} height={22} />
@@ -219,14 +522,33 @@ export function LoopAnimatorPlayer({ sourceCanvasRef }: Props): React.ReactEleme
       </div>
 
       <div className="loop-transport-bar">
-        <button type="button" className="la-icon-btn la-icon-btn--bordered" disabled={!hasFrames} onClick={() => stepFrame(-1)} title="Lùi 1 frame" aria-label="Lùi 1 frame">
+        <button
+          type="button"
+          className="la-icon-btn la-icon-btn--bordered"
+          disabled={!hasFrames}
+          onClick={() => stepFrame(-1)}
+          title="Lùi 1 frame"
+          aria-label="Lùi 1 frame"
+        >
           <IconStepBack width={14} height={14} />
         </button>
-        <button type="button" className={`la-btn ${showPause ? 'la-btn--outline' : 'la-btn--primary'} loop-play-btn`} disabled={!hasFrames} onClick={togglePlaying}>
+        <button
+          type="button"
+          className={`la-btn ${showPause ? 'la-btn--danger' : 'la-btn--primary'} loop-play-btn`}
+          disabled={!hasFrames}
+          onClick={togglePlaying}
+        >
           {showPause ? <IconPause width={13} height={13} /> : <IconPlay width={13} height={13} />}
           <span>{showPause ? 'Tạm dừng' : 'Phát loop'}</span>
         </button>
-        <button type="button" className="la-icon-btn la-icon-btn--bordered" disabled={!hasFrames} onClick={() => stepFrame(1)} title="Tiến 1 frame" aria-label="Tiến 1 frame">
+        <button
+          type="button"
+          className="la-icon-btn la-icon-btn--bordered"
+          disabled={!hasFrames}
+          onClick={() => stepFrame(1)}
+          title="Tiến 1 frame"
+          aria-label="Tiến 1 frame"
+        >
           <IconStepFwd width={14} height={14} />
         </button>
         <span className="loop-transport-info">

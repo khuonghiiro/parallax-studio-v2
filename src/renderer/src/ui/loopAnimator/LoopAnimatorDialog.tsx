@@ -19,6 +19,7 @@ import {
 import { LoopAnimatorFrameStrip } from './LoopAnimatorFrameStrip'
 import { LoopAnimatorPlayer } from './LoopAnimatorPlayer'
 import { LoopAnimatorSourcePane } from './LoopAnimatorSourcePane'
+import { LoopGroupSliderBar } from './LoopGroupSliderBar'
 import {
   applyLoopAnimationToProject,
   syncSceneAndCompositesWithLoopTemplate
@@ -26,8 +27,7 @@ import {
 import { saveLoopAnimationAsPackage } from './loopPackageSaver'
 import {
   LOOP_IMAGE_ACCEPT,
-  loadLoopImageFile,
-  loadLoopImageFiles,
+  appendLoopImageFilesAsGroups,
   upgradeLoopImageFilesKeepMesh
 } from './loopAnimatorLauncher'
 import { LOOP_STORAGE_UPDATED_EVENT, getAllLoopTemplates } from './loopAnimatorStorage'
@@ -70,9 +70,12 @@ export function LoopAnimatorDialog({ isOpen = true, onClose, initialImageUrl }: 
   const layerName = useLoopAnimator((s) => s.layerName)
   const category = useLoopAnimator((s) => s.category)
   const frames = useLoopAnimator((s) => s.frames)
+  const groups = useLoopAnimator((s) => s.groups)
+  const activeGroupIndex = useLoopAnimator((s) => s.activeGroupIndex)
   const playback = useLoopAnimator((s) => s.playback)
   const hasSource = useLoopAnimator((s) => Boolean(s.sourceImageUrl))
   const loadPreset = useLoopAnimator((s) => s.loadPreset)
+  const appendPresetAsGroup = useLoopAnimator((s) => s.appendPresetAsGroup)
   const loadCustomImage = useLoopAnimator((s) => s.loadCustomImage)
   const startBlank = useLoopAnimator((s) => s.startBlank)
   const setLayerName = useLoopAnimator((s) => s.setLayerName)
@@ -128,7 +131,11 @@ export function LoopAnimatorDialog({ isOpen = true, onClose, initialImageUrl }: 
   if (!isOpen) return null
 
   const enabledCount = frames.filter((f) => f.enabled).length
-  const canExport = hasSource && enabledCount > 0
+  const totalGroupsEnabledCount =
+    groups.length > 1
+      ? groups.reduce((acc, g, idx) => acc + (idx === activeGroupIndex ? enabledCount : g.frames.filter((f) => f.enabled).length), 0)
+      : enabledCount
+  const canExport = hasSource && totalGroupsEnabledCount > 0
   const isBusy = isSaving || isExporting
   const requestUpload = (): void => fileInputRef.current?.click()
   const requestUpgradeMesh = (): void => upgradeFileInputRef.current?.click()
@@ -137,11 +144,14 @@ export function LoopAnimatorDialog({ isOpen = true, onClose, initialImageUrl }: 
     if (!sourceCanvasRef.current || actionLockRef.current || isSaving || isExporting) return
     actionLockRef.current = true
     setIsExporting(true)
-    setSaveProgressText(`Đang chuẩn bị tách 1/${enabledCount} frame…`)
+    const syncedGroups = useLoopAnimator.getState().getSyncedGroups()
+    const curActiveIdx = useLoopAnimator.getState().activeGroupIndex
+    setSaveProgressText(`Đang chuẩn bị tách 1/${totalGroupsEnabledCount} frame…`)
     try {
       let saved: LoopAnimationTemplate | null = null
       let pkgRelPath: string | undefined
       let preExtractedCanvases: HTMLCanvasElement[] | undefined
+      let groupFrameCanvases: HTMLCanvasElement[][] | undefined
       try {
         const pkgRes = await saveLoopAnimationAsPackage({
           name: layerName,
@@ -161,12 +171,15 @@ export function LoopAnimatorDialog({ isOpen = true, onClose, initialImageUrl }: 
             chromaKey,
             contourConfig
           },
+          sequenceGroups: syncedGroups,
+          activeGroupIndex: curActiveIdx,
           onProgress: (info) => setSaveProgressText(info.message)
         })
         if (pkgRes.ok) {
           pkgRelPath = pkgRes.jsonRelPath
           saved = pkgRes.template
           preExtractedCanvases = pkgRes.frameCanvases
+          groupFrameCanvases = pkgRes.groupFrameCanvases
           useLoopAnimator.setState({ activePresetId: pkgRes.slug })
         }
       } catch (pkgErr) {
@@ -189,9 +202,17 @@ export function LoopAnimatorDialog({ isOpen = true, onClose, initialImageUrl }: 
         rhythm: playback.rhythm,
         baseMeshWidth: saved?.baseMeshWidth,
         baseMeshHeight: saved?.baseMeshHeight,
-        preExtractedCanvases
+        preExtractedCanvases,
+        sequenceGroups: syncedGroups,
+        groupFrameCanvases
       })
-      toast(`✨ Đã tạo layer hoạt ảnh lặp "${layerName}" (${res.frameCount} frames @ ${playback.fps} FPS)`)
+      if (syncedGroups.length > 1) {
+        toast(
+          `✨ Đã tạo tổ hợp "${layerName}" (${syncedGroups.length} nhóm hiệu ứng · ${res.frameCount} frames + ${syncedGroups.length} Node Animation Loop)`
+        )
+      } else {
+        toast(`✨ Đã tạo layer hoạt ảnh lặp "${layerName}" (${res.frameCount} frames @ ${playback.fps} FPS)`)
+      }
       onClose()
     } catch (err) {
       toast(`Lỗi xuất hoạt ảnh lặp: ${err instanceof Error ? err.message : String(err)}`)
@@ -206,7 +227,9 @@ export function LoopAnimatorDialog({ isOpen = true, onClose, initialImageUrl }: 
     if (!sourceCanvasRef.current || actionLockRef.current || isSaving || isExporting) return
     actionLockRef.current = true
     setIsSaving(true)
-    setSaveProgressText(`Đang chuẩn bị lưu 1/${enabledCount} frame…`)
+    const syncedGroups = useLoopAnimator.getState().getSyncedGroups()
+    const curActiveIdx = useLoopAnimator.getState().activeGroupIndex
+    setSaveProgressText(`Đang chuẩn bị lưu 1/${totalGroupsEnabledCount} frame…`)
     try {
       const pkgRes = await saveLoopAnimationAsPackage({
         name: layerName,
@@ -226,6 +249,8 @@ export function LoopAnimatorDialog({ isOpen = true, onClose, initialImageUrl }: 
           chromaKey,
           contourConfig
         },
+        sequenceGroups: syncedGroups,
+        activeGroupIndex: curActiveIdx,
         onProgress: (info) => setSaveProgressText(info.message)
       })
       const saved = pkgRes.template || saveCurrentToLibrary(sourceCanvasRef.current)
@@ -233,10 +258,15 @@ export function LoopAnimatorDialog({ isOpen = true, onClose, initialImageUrl }: 
         useLoopAnimator.setState({ activePresetId: saved.id })
         setSaveProgressText('Đang đồng bộ kho tài nguyên…')
         const syncedCount = await syncSceneAndCompositesWithLoopTemplate(saved)
+        const groupInfo = syncedGroups.length > 1 ? ` · ${syncedGroups.length} nhóm` : ''
         if (syncedCount > 0) {
-          toast(`💾 Đã lưu "${saved.name}" (${pkgRes.packageJson.frameCount} frame + animation.json) vào loop_animations/${pkgRes.slug}/ và đồng bộ ${syncedCount} layer`)
+          toast(
+            `💾 Đã lưu "${saved.name}" (${pkgRes.packageJson.frameCount} frame${groupInfo} + animation.json) vào loop_animations/${pkgRes.slug}/ và đồng bộ ${syncedCount} layer`
+          )
         } else {
-          toast(`💾 Đã lưu "${saved.name}" (${pkgRes.packageJson.frameCount} frame + animation.json) vào thư mục loop_animations/${pkgRes.slug}/`)
+          toast(
+            `💾 Đã lưu "${saved.name}" (${pkgRes.packageJson.frameCount} frame${groupInfo} + animation.json) vào thư mục loop_animations/${pkgRes.slug}/`
+          )
         }
       }
     } catch (err) {
@@ -259,14 +289,19 @@ export function LoopAnimatorDialog({ isOpen = true, onClose, initialImageUrl }: 
           hidden
           onChange={async (e) => {
             const files = Array.from(e.target.files ?? [])
-            if (files.length === 1) {
-              if (!loadLoopImageFile(files[0])) toast('⚠ Tệp không phải ảnh hợp lệ')
-            } else if (files.length > 1) {
-              const ok = await loadLoopImageFiles(files)
-              if (ok) {
-                toast(`✨ Đã nạp ${files.length} frame theo thứ tự hoạt ảnh`)
+            if (files.length > 0) {
+              const added = await appendLoopImageFilesAsGroups(files)
+              if (added > 1) {
+                toast(`✨ Đã thêm nối tiếp ${added} nhóm ảnh hiệu ứng vào thanh trượt`)
+              } else if (added === 1) {
+                const totalGroups = useLoopAnimator.getState().groups.length
+                toast(
+                  totalGroups > 1
+                    ? `✨ Đã thêm nối tiếp Nhóm #${totalGroups} (không ghi đè nhóm trước)`
+                    : '✨ Đã nạp ảnh hoạt ảnh vào Nhóm #1'
+                )
               } else {
-                toast('⚠ Không thể đọc ảnh hợp lệ')
+                toast('⚠ Tệp không phải ảnh hợp lệ')
               }
             }
             e.target.value = ''
@@ -303,7 +338,7 @@ export function LoopAnimatorDialog({ isOpen = true, onClose, initialImageUrl }: 
             </span>
             <div className="loop-brand-text">
               <h2>Xưởng Tách Hoạt Ảnh Loop</h2>
-              <p>Cắt khung · Tách nền · Ghép nhịp phát lặp</p>
+              <p>Cắt khung · Tách nền · Chuỗi hiệu ứng nối tiếp & kết hợp frame</p>
             </div>
           </div>
 
@@ -319,20 +354,56 @@ export function LoopAnimatorDialog({ isOpen = true, onClose, initialImageUrl }: 
           </label>
 
           <div className="loop-header-actions" data-mcp-region="loop_animator_presets">
-            <Menu portal align="right" label="Mẫu" icon={<IconFolderOpen width={13} height={13} />} btnClassName="loop-menu-btn" title="Bắt đầu phiên trống hoặc mở mẫu trong kho">
+            <Menu
+              portal
+              align="right"
+              label="Mẫu"
+              icon={<IconFolderOpen width={13} height={13} />}
+              btnClassName="loop-menu-btn"
+              title="Bắt đầu phiên trống hoặc mở mẫu trong kho"
+            >
               <div className="menu-label">Bắt đầu</div>
               <button type="button" className="menu-item" onClick={startBlank}>
                 <IconPlus width={12} height={12} /> Phiên trống mới
               </button>
               <div className="menu-label">Mở mẫu trong kho ({templates.length})</div>
               {templates.map((t) => (
-                <button key={t.id} type="button" className={`menu-item${activePresetId === t.id ? ' active' : ''}`} onClick={() => loadPreset(t.id)}>
+                <button
+                  key={t.id}
+                  type="button"
+                  className={`menu-item${activePresetId === t.id ? ' active' : ''}`}
+                  onClick={() => loadPreset(t.id)}
+                >
                   <IconLoopAnimate width={12} height={12} /> {t.name}
                   <span className="hint">{t.frameCount}F</span>
                 </button>
               ))}
+              {hasSource && (
+                <>
+                  <div className="menu-label">➕ Ghép nối tiếp mẫu vào chuỗi</div>
+                  {templates.map((t) => (
+                    <button
+                      key={`append_${t.id}`}
+                      type="button"
+                      className="menu-item"
+                      onClick={() => {
+                        appendPresetAsGroup(t.id)
+                        toast(`✨ Đã ghép nối tiếp "${t.name}" vào chuỗi nhóm`)
+                      }}
+                    >
+                      <IconPlus width={12} height={12} /> {t.name}
+                      <span className="hint">{t.frameCount}F</span>
+                    </button>
+                  ))}
+                </>
+              )}
             </Menu>
-            <button type="button" className="la-btn la-btn--outline" onClick={requestUpload} title="Tải ảnh sprite sheet mới từ máy tính">
+            <button
+              type="button"
+              className="la-btn la-btn--danger loop-upload-red-btn"
+              onClick={requestUpload}
+              title="Tải 1 hoặc nhiều ảnh từ máy tính (Không ghi đè: tự động thêm thành nhóm hiệu ứng nối tiếp)"
+            >
               <IconUpload width={13} height={13} />
               <span>Tải ảnh</span>
             </button>
@@ -347,11 +418,19 @@ export function LoopAnimatorDialog({ isOpen = true, onClose, initialImageUrl }: 
                 <span>Đổi 2K/4K (Giữ Mesh)</span>
               </button>
             )}
-            <button type="button" className="la-icon-btn la-icon-btn--bordered loop-close-btn" onClick={onClose} title="Đóng xưởng (Esc)" aria-label="Đóng xưởng">
+            <button
+              type="button"
+              className="la-icon-btn la-icon-btn--bordered loop-close-btn"
+              onClick={onClose}
+              title="Đóng xưởng (Esc)"
+              aria-label="Đóng xưởng"
+            >
               <IconX width={14} height={14} />
             </button>
           </div>
         </header>
+
+        {hasSource && <LoopGroupSliderBar onRequestAppendUpload={requestUpload} />}
 
         <nav className="loop-mobile-view-tabs la-seg" aria-label="Chuyển khu vực làm việc">
           {(
@@ -361,7 +440,12 @@ export function LoopAnimatorDialog({ isOpen = true, onClose, initialImageUrl }: 
               { id: 'frames', label: `Dải frame (${enabledCount})`, icon: <IconFilm width={13} height={13} /> }
             ] as const
           ).map((t) => (
-            <button key={t.id} type="button" className={`la-seg-btn${mobileTab === t.id ? ' active' : ''}`} onClick={() => setMobileTab(t.id)}>
+            <button
+              key={t.id}
+              type="button"
+              className={`la-seg-btn${mobileTab === t.id ? ' active' : ''}`}
+              onClick={() => setMobileTab(t.id)}
+            >
               {t.icon}
               <span>{t.label}</span>
             </button>
@@ -370,7 +454,11 @@ export function LoopAnimatorDialog({ isOpen = true, onClose, initialImageUrl }: 
 
         <div className={`loop-animator-body loop-view-${mobileTab}`}>
           <div className="loop-source-column">
-            <LoopAnimatorSourcePane sourceCanvasRef={sourceCanvasRef} onRequestUpload={requestUpload} templates={templates} />
+            <LoopAnimatorSourcePane
+              sourceCanvasRef={sourceCanvasRef}
+              onRequestUpload={requestUpload}
+              templates={templates}
+            />
           </div>
           <div className="loop-player-column">
             <LoopAnimatorPlayer sourceCanvasRef={sourceCanvasRef} />
@@ -403,8 +491,17 @@ export function LoopAnimatorDialog({ isOpen = true, onClose, initialImageUrl }: 
               </div>
             </div>
             <div className="loop-footer-stats" aria-live="polite">
-              <span className="la-stat"><b>{enabledCount}</b>/{frames.length} frame</span>
-              <span className="la-stat"><b>{playback.fps}</b> FPS × {playback.speed}</span>
+              {groups.length > 1 && (
+                <span className="la-stat">
+                  <b>{groups.length}</b> nhóm
+                </span>
+              )}
+              <span className="la-stat">
+                <b>{totalGroupsEnabledCount}</b> frame
+              </span>
+              <span className="la-stat">
+                <b>{playback.fps}</b> FPS × {playback.speed}
+              </span>
               <span className="la-stat">{LOOP_MODE_LABEL[playback.loopMode] ?? playback.loopMode}</span>
               {saveProgressText && (
                 <span className="la-stat" style={{ color: 'var(--accent-cyan)', fontWeight: 600 }}>
@@ -423,20 +520,20 @@ export function LoopAnimatorDialog({ isOpen = true, onClose, initialImageUrl }: 
               className="la-btn la-btn--success la-btn--lg"
               disabled={!canExport || isBusy}
               onClick={() => void handleSaveToLibrary()}
-              title="Lưu thành gói thư mục gồm các frame ảnh đã tách nền + animation.json (nhấn 1 lần)"
+              title="Lưu thành gói thư mục gồm các frame ảnh đã tách nền + animation.json xác nhận nhóm của từng frame"
             >
               <IconSave width={14} height={14} />
-              <span>{isSaving ? (saveProgressText || 'Đang lưu gói…') : 'Lưu vào kho'}</span>
+              <span>{isSaving ? saveProgressText || 'Đang lưu gói…' : 'Lưu vào kho'}</span>
             </button>
             <button
               type="button"
               className="la-btn la-btn--primary la-btn--lg"
               disabled={!canExport || isBusy}
               onClick={() => void handleApplyToScene()}
-              title="Lưu vào kho và tạo layer hoạt ảnh lặp trong cảnh hiện tại (nhấn 1 lần)"
+              title="Lưu vào kho và tạo chuỗi Layer + Node Animation Loop trong cảnh hiện tại"
             >
               <IconFilm width={14} height={14} />
-              <span>{isExporting ? (saveProgressText || 'Đang đóng gói…') : 'Đưa vào cảnh'}</span>
+              <span>{isExporting ? saveProgressText || 'Đang đóng gói…' : 'Đưa vào cảnh'}</span>
             </button>
           </div>
         </footer>

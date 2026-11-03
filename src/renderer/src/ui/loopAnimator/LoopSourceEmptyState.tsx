@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { toast } from '../../actions'
 import { IconImage, IconLoopAnimate, IconUpload } from '../icons'
 import { LoopCardPreviewCanvas } from './LoopCardPreviewCanvas'
-import { loadLoopImageFile, loadLoopImageFiles } from './loopAnimatorLauncher'
+import { appendLoopImageFilesAsGroups } from './loopAnimatorLauncher'
 import { useLoopAnimator } from './loopAnimatorState'
 import type { LoopAnimationTemplate } from './types'
 
@@ -34,12 +34,11 @@ export function LoopSourceEmptyState({ onRequestUpload, templates }: Props): Rea
         const files = Array.from(e.dataTransfer.files ?? []).filter(
           (f) => f.type.startsWith('image/') || /\.(png|jpe?g|webp|gif|bmp)$/i.test(f.name)
         )
-        if (files.length === 1) {
-          if (!loadLoopImageFile(files[0])) toast('⚠ Hãy thả tệp ảnh PNG / JPG / WebP / GIF')
-        } else if (files.length > 1) {
-          void loadLoopImageFiles(files).then((ok) => {
-            if (ok) toast(`✨ Đã nạp ${files.length} frame theo thứ tự hoạt ảnh`)
-            else toast('⚠ Không thể đọc ảnh hợp lệ')
+        if (files.length > 0) {
+          void appendLoopImageFilesAsGroups(files).then((added) => {
+            if (added > 1) toast(`✨ Đã thêm ${added} nhóm hiệu ứng nối tiếp`)
+            else if (added === 1) toast('✨ Đã nạp ảnh hoạt ảnh mới')
+            else toast('⚠ Hãy thả tệp ảnh PNG / JPG / WebP / GIF')
           })
         }
       }}
@@ -49,10 +48,10 @@ export function LoopSourceEmptyState({ onRequestUpload, templates }: Props): Rea
           <IconImage width={26} height={26} />
         </span>
         <h3>Bắt đầu hoạt ảnh Loop mới</h3>
-        <p>Kéo thả ảnh sprite sheet hoặc nhiều frame ảnh vào đây — tự động nhận diện và ghép thứ tự frame. Hỗ trợ ảnh đã tách nền hoặc nền màu.</p>
-        <button type="button" className="la-btn la-btn--primary la-btn--lg" onClick={onRequestUpload}>
+        <p>Kéo thả 1 hoặc nhiều ảnh sprite sheet vào đây — mỗi ảnh tạo thành 1 nhóm hiệu ứng nối tiếp có thể sắp xếp thứ tự, chỉnh thời gian chờ và kết hợp frame.</p>
+        <button type="button" className="la-btn la-btn--danger la-btn--lg" onClick={onRequestUpload}>
           <IconUpload width={14} height={14} />
-          <span>Chọn ảnh từ máy</span>
+          <span>Tải ảnh từ máy</span>
         </button>
         <small>PNG · JPG · WebP · GIF</small>
       </div>

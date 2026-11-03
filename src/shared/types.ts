@@ -81,6 +81,50 @@ export interface LoopColorConfig {
   opacity?: number
 }
 
+export type LoopTriggerMode = 'sequential' | 'on_frame' | 'parallel'
+
+export interface LoopPackageGroupDef {
+  id: string
+  name: string
+  index: number
+  /** Số lượng frame thuộc nhóm hiệu ứng này */
+  frameCount: number
+  /** Chỉ số bắt đầu (0-based) trong mảng frames[] của gói hoạt ảnh */
+  startFrameIndex: number
+  /** Danh sách chỉ số frame (0-based) thuộc nhóm này trong mảng frames[] */
+  frameIndices: number[]
+  fps: number
+  speed: number
+  loopMode: LoopAnimationMode
+  rhythm?: {
+    rhythmMode: LoopRhythmMode
+    rhythmRateHz: number
+    rhythmIntensity: number
+    minOpacity: number
+    scaleBeatPct: number
+  }
+  /** Chế độ kích hoạt so với nhóm trước: 'sequential' (chạy nối tiếp sau khi nhóm trước xong), 'on_frame' (chạy cùng thời điểm tại frame chỉ định của nhóm trước), 'parallel' (chạy song song từ đầu) */
+  triggerMode: LoopTriggerMode
+  /** Chỉ số frame (1-based, 1..N) của nhóm trước để kích hoạt nhóm này khi triggerMode === 'on_frame' */
+  triggerFrameIndex: number
+  /** Thời gian chờ (giây) trước khi nhóm này bắt đầu chạy */
+  delaySec: number
+  /** Thời lượng duy trì chạy/hiển thị của nhóm này trong cảnh (giây, 0 = tự động theo chu kỳ/cảnh) */
+  holdDurationSec: number
+  /** Độ dịch chuyển vị trí X (px / world units) để căn khớp hướng/điểm chạm giữa các nhóm (VD: sét đánh -> vụ nổ) */
+  offsetX: number
+  /** Độ dịch chuyển vị trí Y (px / world units) */
+  offsetY: number
+  /** Tỉ lệ thu phóng của nhóm (1.0 = 100%) */
+  scale: number
+  sourceConfig?: {
+    slicerMode?: string
+    gridConfig?: Record<string, unknown>
+    chromaKey?: Record<string, unknown>
+    contourConfig?: Record<string, unknown>
+  }
+}
+
 export interface LoopFrameMeta {
   index: number
   file: string
@@ -93,6 +137,11 @@ export interface LoopFrameMeta {
   saturation?: number
   hueRotate?: number
   opacity?: number
+  /** Xác nhận nhóm hiệu ứng mà frame này thuộc về */
+  groupId?: string
+  groupIndex?: number
+  groupName?: string
+  localFrameIndex?: number
 }
 
 export interface LoopAnimationPackageJson {
@@ -121,6 +170,8 @@ export interface LoopAnimationPackageJson {
     scaleBeatPct: number
   }
   frames: LoopFrameMeta[]
+  /** Danh sách các nhóm hiệu ứng nối tiếp / kết hợp frame trong gói hoạt ảnh */
+  groups?: LoopPackageGroupDef[]
   sourceConfig?: {
     slicerMode?: string
     gridConfig?: Record<string, unknown>
@@ -144,6 +195,19 @@ export interface LoopAnimationConfigOverrides {
     scaleBeatPct: number
   }>
   timeOffset?: number
+  /** Thông tin nhóm hiệu ứng khi tách từ gói hoạt ảnh đa nhóm */
+  groupId?: string
+  groupIndex?: number
+  groupName?: string
+  totalGroups?: number
+  comboLinkId?: string
+  triggerMode?: LoopTriggerMode
+  triggerFrameIndex?: number
+  delaySec?: number
+  holdDurationSec?: number
+  offsetX?: number
+  offsetY?: number
+  scale?: number
 }
 
 export interface ImageProps {

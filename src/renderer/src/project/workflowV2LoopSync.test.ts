@@ -130,4 +130,74 @@ describe('Workflow V2 · Node Loop (vòng đời + kết hợp FX)', () => {
     expect(layer.props.loopRhythmMode).toBe('pulse_scale')
     expect(layer.props.loopScaleBeatPct).toBe(18)
   })
+
+  it('syncs multi-group Loop timing, frame trigger, hold duration, and spatial offset via Node Animation Loop (loop_anim)', () => {
+    const { project, layer: layer1 } = setup()
+    const asset2 = { id: 'a2', name: 'vortex.png', kind: 'image', width: 64, height: 64, isAnimated: true, frameCount: 8, duration: 0.5 } as unknown as AssetMeta
+    project.assets.push(asset2)
+    const layer2 = createImageLayer(asset2, project.comp, 1)
+    layer2.shotId = layer1.shotId
+    project.layers.push(layer2)
+
+    const comboLinkId = 'combo_lightning_vortex'
+    layer1.inPoint = 0
+    layer1.outPoint = 0.5
+    layer1.props.loopTemplateId = 'tpl-lightning-vortex'
+    layer1.props.loopOverrides = {
+      groupId: 'grp_1',
+      groupIndex: 0,
+      groupName: 'Nhóm 1: Sét đánh',
+      totalGroups: 2,
+      comboLinkId,
+      triggerMode: 'sequential',
+      delaySec: 0,
+      holdDurationSec: 0.5
+    }
+
+    layer2.inPoint = 0.5
+    layer2.outPoint = 1.5
+    layer2.props.loopTemplateId = 'tpl-lightning-vortex'
+    layer2.props.loopOverrides = {
+      groupId: 'grp_2',
+      groupIndex: 1,
+      groupName: 'Nhóm 2: Vòng xoáy',
+      totalGroups: 2,
+      comboLinkId,
+      triggerMode: 'sequential',
+      triggerFrameIndex: 4,
+      delaySec: 0.2,
+      holdDurationSec: 1.0,
+      offsetX: 0,
+      offsetY: 0,
+      scale: 1
+    }
+
+    const wf = syncWorkflowV2Graph(project, project.workflow)
+    const loopNode2 = wf.nodes.find((n) => n.id === `v2-loop_anim-${layer2.id}`)
+    expect(loopNode2).toBeDefined()
+    expect(loopNode2?.params?.loopGroupName).toBe('Nhóm 2: Vòng xoáy')
+    expect(loopNode2?.params?.loopGroupIndex).toBe(1)
+    expect(loopNode2?.params?.loopTotalGroups).toBe(2)
+
+    // Chỉnh Node Animation Loop của Nhóm 2 (Vòng xoáy): chờ 0.3s sau khi sét đánh xong và giữ thời gian lâu 6.0s + căn vị trí lệch X+35 Y+60
+    syncPureLoopAnimNodeToLayers(project, loopNode2!, {
+      ...loopNode2!.params,
+      loopTriggerMode: 'sequential',
+      loopDelaySec: 0.3,
+      loopHoldDurationSec: 6.0,
+      loopGroupOffsetX: 35,
+      loopGroupOffsetY: 60,
+      loopGroupScale: 1.4
+    })
+
+    // Nhóm 1 kết thúc tại 0.5s + chờ 0.3s -> Nhóm 2 bắt đầu tại 0.8s và giữ 6.0s -> kết thúc tại 6.8s
+    expect(layer2.inPoint).toBeCloseTo(0.8, 2)
+    expect(layer2.outPoint).toBeCloseTo(6.8, 2)
+    expect(layer2.props.loopOverrides?.holdDurationSec).toBe(6.0)
+    expect(layer2.props.loopOverrides?.offsetX).toBe(35)
+    expect(layer2.props.loopOverrides?.offsetY).toBe(60)
+    expect(layer2.transform.position.value[0]).toBe(35)
+    expect(layer2.transform.position.value[1]).toBe(-60)
+    expect(layer2.transform.scale.value[0]).toBeCloseTo(1.4, 2)
+  })
 })

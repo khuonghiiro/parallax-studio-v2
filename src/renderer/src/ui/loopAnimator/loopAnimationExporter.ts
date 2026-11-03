@@ -1,4 +1,4 @@
-import type { AssetMeta } from '@shared/types'
+import type { AssetMeta, ImageLayer } from '@shared/types'
 import { assetStore, type AnimatedGifData, type GifFrame } from '../../project/assets'
 import { createImageLayer } from '../../project/factory'
 import { computeShotRoute } from '../../project/workflowV2Engine'
@@ -11,6 +11,10 @@ import {
   extractFrameCanvas,
   getCachedLoopTemplateSheet
 } from './loopFrameExtractor'
+import {
+  computeLoopGroupsSchedule,
+  reconstructSequenceGroupsFromPackage
+} from './loopGroupManager'
 import { getAllLoopTemplates } from './loopAnimatorStorage'
 import { SAMPLE_LOOP_PRESETS, resolveLoopAssetUrl } from './sampleLoops'
 import type {
@@ -18,7 +22,8 @@ import type {
   LoopAnimationMode,
   LoopAnimationTemplate,
   LoopFrameBox,
-  LoopRhythmConfig
+  LoopRhythmConfig,
+  LoopSequenceGroup
 } from './types'
 
 export interface LoopExportOptions {
@@ -39,16 +44,20 @@ export interface LoopExportOptions {
   baseMeshHeight?: number
   /** Danh sách canvas của từng frame đã tách sẵn (tránh phải cắt lại lần 2 khi vừa đóng gói) */
   preExtractedCanvases?: HTMLCanvasElement[]
+  /** Danh sách nhóm hiệu ứng nối tiếp / kết hợp frame */
+  sequenceGroups?: LoopSequenceGroup[]
+  /** Các canvas đã tách sẵn theo từng nhóm hiệu ứng */
+  groupFrameCanvases?: HTMLCanvasElement[][]
 }
 
 /**
  * Extracts enabled frames from the processed source canvas, builds an in-memory AnimatedGifData
  * with ImageBitmaps, registers the asset (using Frame #1 as the static PNG thumbnail), and adds
- * a new animated ImageLayer to the active shot.
+ * a new animated ImageLayer (or a linked multi-group sequence of ImageLayers + Node Animation Loops) to the active shot.
  */
 export async function applyLoopAnimationToProject(
   options: LoopExportOptions
-): Promise<{ layerId: string; assetId: string; frameCount: number }> {
+): Promise<{ layerId: string; layerIds?: string[]; assetId: string; frameCount: number; groupCount?: number }> {
   const {
     layerName,
     sourceCanvas,
@@ -60,8 +69,15 @@ export async function applyLoopAnimationToProject(
     rhythm,
     shotId,
     initialPosition,
-    preExtractedCanvases
+    preExtractedCanvases,
+    sequenceGroups,
+    groupFrameCanvases
   } = options
+
+  // Nếu có từ 2 nhóm hiệu ứng trở lên -> Tạo chuỗi Layer tương ứng với số nhóm hiệu ứng gộp + Node Animation Loop riêng cho từng nhóm!
+  if (sequenceGroups && sequenceGroups.length > 1) {
+    return applyMultiGroupLoopToProject(options, sequenceGroups, groupFrameCanvases)
+  }
   const enabledFrames = frames.filter((f) => f.enabled)
   if (enabledFrames.length === 0) {
     throw new Error('Cần bật ít nhất 1 khung hình (frame) để tạo hoạt ảnh lặp.')
@@ -183,8 +199,204 @@ export async function applyLoopAnimationToProject(
 
   return {
     layerId: layer.id,
+    layerIds: [layer.id],
     assetId: meta.id,
-    frameCount: gifFrames.length
+    frameCount: gifFrames.length,
+    groupCount: 1
+  }
+}
+
+/**
+ * Tạo một nhóm các Layer hoạt ảnh Loop tương ứng với số nhóm hiệu ứng gộp (Nhóm 1 -> Nhóm 2 -> Nhóm 3...).
+ * Mỗi nhóm hiệu ứng được gán một Layer riêng kèm `Node Animation Loop` (`loop_anim`) tương ứng trong Workflow V2,
+ * tự động áp dụng thời điểm bắt đầu (theo `sequential` + `delaySec`, hoặc `on_frame` tại `triggerFrameIndex` của nhóm trước),
+ * thời lượng giữ (`holdDurationSec`), và vị trí chạy lệch (`offsetX`, `offsetY`, `scale`) để khớp hướng/điểm chạm.
+ */
+async function applyMultiGroupLoopToProject(
+  options: LoopExportOptions,
+  sequenceGroups: LoopSequenceGroup[],
+  groupFrameCanvases?: HTMLCanvasElement[][]
+): Promise<{ layerId: string; layerIds: string[]; assetId: string; frameCount: number; groupCount: number }> {
+  const {
+    layerName,
+    sourceCanvas,
+    templateId,
+    shotId,
+    initialPosition
+  } = options
+
+  const schedule = computeLoopGroupsSchedule(sequenceGroups)
+  const editor = useEditor.getState()
+  const route = computeShotRoute(editor.project)
+  const resolveDefaultShotId = (): string | null => {
+    const sel = editor.selectedShotId
+    const t = editor.time
+    if (sel && editor.project.shots.some((s) => s.id === sel)) {
+      const selRange = route.ranges.get(sel)
+      if (!selRange || (t >= selRange.start - 1e-3 && t <= selRange.end + 1e-3)) {
+        return sel
+      }
+    }
+    for (const s of route.order) {
+      const r = route.ranges.get(s.id)
+      if (r && t >= r.start - 1e-3 && t <= r.end + 1e-3) return s.id
+    }
+    return sel ?? editor.project.shots[0]?.id ?? null
+  }
+  const targetShotId = shotId !== undefined ? shotId : resolveDefaultShotId()
+  const shotRange = targetShotId ? route.ranges.get(targetShotId) : undefined
+  const shotStart = shotRange ? shotRange.start : 0
+  const shotEnd = shotRange ? shotRange.end : editor.project.comp.duration
+
+  const baseName = layerName.trim() || 'Tổ hợp Loop'
+  const comboLinkId = `loop_combo_${Date.now().toString(36)}`
+  const baseX = initialPosition?.[0] ?? 0
+  const baseY = initialPosition?.[1] ?? 0
+  const baseZ = initialPosition?.[2] ?? 0
+
+  const createdAssets: AssetMeta[] = []
+  const createdLayers: ImageLayer[] = []
+  let totalFramesExported = 0
+
+  for (let k = 0; k < schedule.items.length; k++) {
+    const item = schedule.items[k]
+    const g = item.group
+    const enabled = item.enabledFrames
+    if (enabled.length === 0) continue
+
+    const maxW = Math.max(1, ...enabled.map((f) => f.width))
+    const maxH = Math.max(1, ...enabled.map((f) => f.height))
+    const preCanvases = groupFrameCanvases?.[k]
+    const fCanvases =
+      preCanvases && preCanvases.length === enabled.length
+        ? preCanvases
+        : enabled.map((f) => extractFrameCanvas(sourceCanvas, f, maxW, maxH))
+
+    const bitmaps = await Promise.all(fCanvases.map((fc) => createLoopFrameBitmap(fc)))
+    const gifFrames: GifFrame[] = []
+    let curT = 0
+    const baseFrameDur = 1 / Math.max(1, Math.min(60, g.fps || 12))
+    for (let i = 0; i < enabled.length; i++) {
+      const dur = Math.max(0.016, baseFrameDur * (enabled[i].durationRatio || 1))
+      gifFrames.push({
+        index: i,
+        bitmap: bitmaps[i],
+        duration: dur,
+        startTime: curT
+      })
+      curT += dur
+    }
+    totalFramesExported += gifFrames.length
+
+    const thumbCanvas = fCanvases[0]
+    const safeSlug =
+      `${baseName}_${g.name}`
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/^_|_$/g, '') || `loop_group_${k + 1}`
+
+    const runtimeAsset = await assetStore.addCanvas(
+      `${safeSlug}_${Date.now().toString(36)}_${k}.png`,
+      thumbCanvas
+    )
+    const meta = runtimeAsset.meta
+    meta.width = g.baseMeshWidth > 0 ? g.baseMeshWidth : maxW
+    meta.height = g.baseMeshHeight > 0 ? g.baseMeshHeight : maxH
+    meta.isAnimated = true
+    meta.frameCount = gifFrames.length
+    meta.duration = Math.max(0.05, curT)
+    runtimeAsset.gif = {
+      frames: gifFrames,
+      totalDuration: Math.max(0.05, curT),
+      width: maxW,
+      height: maxH
+    }
+
+    const layer = createImageLayer(meta, editor.project.comp, k)
+    layer.name = `${baseName} · ${g.name}`
+    layer.shotId = targetShotId
+    if (g.baseMeshWidth > 0 && g.baseMeshHeight > 0) {
+      layer.props.width = g.baseMeshWidth
+      layer.props.height = g.baseMeshHeight
+    }
+    // Áp dụng vị trí chạy lệch (offsetX, offsetY) và tỉ lệ (scale) của nhóm để khớp hướng/điểm chạm
+    layer.transform.position.value = [
+      baseX + (g.offsetX || 0),
+      baseY - (g.offsetY || 0),
+      baseZ
+    ]
+    if (g.scale && Math.abs(g.scale - 1) > 0.01) {
+      layer.transform.scale.value = [g.scale, g.scale, 1]
+    }
+
+    const layerIn = Number((shotStart + item.startTime).toFixed(2))
+    const hasExplicitHold = g.holdDurationSec > 0 || g.loopMode === 'once'
+    const layerOut = hasExplicitHold
+      ? Number(Math.min(shotEnd, shotStart + item.endTime).toFixed(2))
+      : shotEnd
+
+    layer.inPoint = layerIn
+    layer.outPoint = Math.max(layerIn + 0.1, layerOut)
+    layer.props.loopMode = g.loopMode
+    layer.props.speed = g.speed || 1
+    layer.props.autoPlayPaused = true
+    layer.props.loopStartTime = layer.inPoint
+    layer.props.loopEndTime = layer.outPoint
+    layer.props.loopEndAction =
+      g.loopMode === 'once' && (!g.holdDurationSec || g.holdDurationSec <= 0) ? 'hide' : 'hold'
+
+    if (templateId) layer.props.loopTemplateId = templateId
+    if (options.loopJsonPath) layer.props.loopJsonPath = options.loopJsonPath
+    layer.props.loopOverrides = {
+      ...options.loopOverrides,
+      fps: g.fps,
+      speed: g.speed,
+      loopMode: g.loopMode,
+      groupId: g.id,
+      groupIndex: k,
+      groupName: g.name,
+      totalGroups: sequenceGroups.length,
+      comboLinkId,
+      triggerMode: g.triggerMode,
+      triggerFrameIndex: g.triggerFrameIndex,
+      delaySec: g.delaySec,
+      holdDurationSec: g.holdDurationSec,
+      offsetX: g.offsetX,
+      offsetY: g.offsetY,
+      scale: g.scale
+    }
+    if (g.rhythm && g.rhythm.rhythmMode !== 'none') {
+      layer.props.loopRhythmMode = g.rhythm.rhythmMode
+      layer.props.loopRhythmRateHz = g.rhythm.rhythmRateHz
+      layer.props.loopRhythmIntensity = g.rhythm.rhythmIntensity
+      layer.props.loopMinOpacity = g.rhythm.minOpacity
+      layer.props.loopScaleBeatPct = g.rhythm.scaleBeatPct
+    }
+
+    createdAssets.push(meta)
+    createdLayers.push(layer)
+  }
+
+  if (createdLayers.length === 0) {
+    throw new Error('Không có nhóm hiệu ứng hợp lệ để chèn vào cảnh.')
+  }
+
+  editor.update((p) => {
+    p.assets.push(...createdAssets)
+    const firstShotIdx = p.layers.findIndex((l) => l.shotId === targetShotId)
+    if (firstShotIdx < 0) p.layers.unshift(...createdLayers)
+    else p.layers.splice(firstShotIdx, 0, ...createdLayers)
+  }, `Chèn tổ hợp Loop "${baseName}" (${createdLayers.length} nhóm)`)
+
+  editor.selectLayer(createdLayers[0].id)
+
+  return {
+    layerId: createdLayers[0].id,
+    layerIds: createdLayers.map((l) => l.id),
+    assetId: createdAssets[0].id,
+    frameCount: totalFramesExported,
+    groupCount: createdLayers.length
   }
 }
 
@@ -547,6 +759,21 @@ export async function exportLoopPresetDirectly(
         : buildGridFrames(w, h, template.gridConfig)
   }
 
+  let sequenceGroups: LoopSequenceGroup[] | undefined
+  if (cached?.packageJson?.groups && cached.packageJson.groups.length > 1) {
+    sequenceGroups = reconstructSequenceGroupsFromPackage(
+      template.imageUrl,
+      canvas.width,
+      canvas.height,
+      cached.frameW,
+      cached.frameH,
+      frames,
+      cached.packageJson
+    )
+  } else if (template.sequenceGroups && template.sequenceGroups.length > 1) {
+    sequenceGroups = template.sequenceGroups
+  }
+
   return applyLoopAnimationToProject({
     layerName: overrides?.layerName ?? template.name,
     sourceCanvas: canvas,
@@ -562,7 +789,8 @@ export async function exportLoopPresetDirectly(
     shotId: overrides?.shotId,
     initialPosition: overrides?.initialPosition,
     baseMeshWidth: template.baseMeshWidth,
-    baseMeshHeight: template.baseMeshHeight
+    baseMeshHeight: template.baseMeshHeight,
+    sequenceGroups
   })
 }
 

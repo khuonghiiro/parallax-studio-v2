@@ -116,8 +116,9 @@ export function clearLoopComboFx(l: Layer, nodeId: string): void {
 
 /**
  * Đồng bộ thuần tuý Node Animation Loop (`logicCategory: 'loop_anim'`) xuống Layer ảnh Loop / GIF:
- * Chỉ điều khiển chu kỳ phát frame lặp (kiểu lặp, tốc độ, số lần lặp, giữ cuối / ẩn ngay, lệch pha).
- * Không gộp chung hiệu ứng mờ dần hay nhịp đập (do Node Hiệu ứng đảm nhiệm).
+ * Điều khiển chu kỳ phát frame lặp (kiểu lặp, tốc độ, số lần lặp, giữ cuối / ẩn ngay, lệch pha)
+ * và cấu hình chuỗi Nhóm hiệu ứng (thời gian chờ `loopDelaySec`, kích hoạt tại frame `loopTriggerFrameIndex`,
+ * thời lượng giữ `loopHoldDurationSec`, vị trí lệch `loopGroupOffsetX` / `loopGroupOffsetY` / `loopGroupScale`).
  */
 export function syncPureLoopAnimNodeToLayers(
   project: Project,
@@ -157,6 +158,118 @@ export function syncPureLoopAnimNodeToLayers(
       l.props.loopOverrides = {
         ...l.props.loopOverrides,
         color: l.props.loopColor
+      }
+    }
+
+    // Đồng bộ cấu hình Nhóm hiệu ứng (Group Sequence Timing, Frame Trigger, Hold Duration & Spatial Offset)
+    const hasGroupTimingOrOffset =
+      params.loopGroupId !== undefined ||
+      params.loopGroupIndex !== undefined ||
+      params.loopGroupName !== undefined ||
+      params.loopTotalGroups !== undefined ||
+      params.loopTriggerMode !== undefined ||
+      params.loopTriggerFrameIndex !== undefined ||
+      params.loopDelaySec !== undefined ||
+      params.loopHoldDurationSec !== undefined ||
+      params.loopGroupOffsetX !== undefined ||
+      params.loopGroupOffsetY !== undefined ||
+      params.loopGroupScale !== undefined
+
+    if (hasGroupTimingOrOffset) {
+      const prevOvr = l.props.loopOverrides || {}
+      const prevOffX = prevOvr.offsetX ?? 0
+      const prevOffY = prevOvr.offsetY ?? 0
+      const nextOffX = params.loopGroupOffsetX ?? prevOffX
+      const nextOffY = params.loopGroupOffsetY ?? prevOffY
+      const dx = nextOffX - prevOffX
+      const dy = nextOffY - prevOffY
+      if (dx !== 0 || dy !== 0) {
+        const curPos = l.transform.position.value
+        l.transform.position.value = [curPos[0] + dx, curPos[1] - dy, curPos[2]]
+      }
+      if (
+        params.loopGroupScale !== undefined &&
+        Math.abs(params.loopGroupScale - (prevOvr.scale ?? 1)) > 0.005
+      ) {
+        const s = Math.max(0.1, Math.min(5, params.loopGroupScale))
+        l.transform.scale.value = [s, s, 1]
+      }
+
+      l.props.loopOverrides = {
+        ...prevOvr,
+        ...(params.loopGroupId !== undefined ? { groupId: params.loopGroupId } : {}),
+        ...(params.loopGroupIndex !== undefined ? { groupIndex: params.loopGroupIndex } : {}),
+        ...(params.loopGroupName !== undefined ? { groupName: params.loopGroupName } : {}),
+        ...(params.loopTotalGroups !== undefined ? { totalGroups: params.loopTotalGroups } : {}),
+        ...(params.loopTriggerMode !== undefined ? { triggerMode: params.loopTriggerMode } : {}),
+        ...(params.loopTriggerFrameIndex !== undefined
+          ? { triggerFrameIndex: Math.max(1, Math.round(params.loopTriggerFrameIndex)) }
+          : {}),
+        ...(params.loopDelaySec !== undefined ? { delaySec: Math.max(0, params.loopDelaySec) } : {}),
+        ...(params.loopHoldDurationSec !== undefined
+          ? { holdDurationSec: Math.max(0, params.loopHoldDurationSec) }
+          : {}),
+        offsetX: nextOffX,
+        offsetY: nextOffY,
+        ...(params.loopGroupScale !== undefined ? { scale: params.loopGroupScale } : {})
+      }
+
+      const ovr = l.props.loopOverrides
+      const timingTouched =
+        params.loopTriggerMode !== undefined ||
+        params.loopTriggerFrameIndex !== undefined ||
+        params.loopDelaySec !== undefined ||
+        params.loopHoldDurationSec !== undefined
+
+      if (timingTouched) {
+        const gIdx = ovr.groupIndex ?? 0
+        const prevLayer =
+          ovr.comboLinkId && gIdx > 0
+            ? project.layers.find(
+                (other) =>
+                  other.type === 'image' &&
+                  other.props.loopOverrides?.comboLinkId === ovr.comboLinkId &&
+                  other.props.loopOverrides?.groupIndex === gIdx - 1
+              )
+            : undefined
+
+        const delay = Math.max(0, ovr.delaySec ?? 0)
+        let nextIn = l.inPoint ?? 0
+        if (prevLayer) {
+          if (ovr.triggerMode === 'parallel') {
+            nextIn = (prevLayer.inPoint ?? 0) + delay
+          } else if (ovr.triggerMode === 'on_frame') {
+            const prevAsset =
+              prevLayer.type === 'image'
+                ? project.assets.find((a) => a.id === prevLayer.props.assetId)
+                : undefined
+            const prevFrameCount = Math.max(1, prevAsset?.frameCount ?? 8)
+            const prevSpeed = prevLayer.type === 'image' ? Math.max(0.1, prevLayer.props.speed || 1) : 1
+            const prevCycleDur = Math.max(
+              0.1,
+              (prevAsset?.duration ?? Math.max(0.2, (prevLayer.outPoint ?? 1) - (prevLayer.inPoint ?? 0))) /
+                prevSpeed
+            )
+            const frameDur = prevCycleDur / prevFrameCount
+            const fIdx = Math.max(0, Math.min(prevFrameCount - 1, (ovr.triggerFrameIndex ?? 1) - 1))
+            nextIn = (prevLayer.inPoint ?? 0) + fIdx * frameDur + delay
+          } else {
+            nextIn = (prevLayer.outPoint ?? 0.5) + delay
+          }
+        } else if (params.loopDelaySec !== undefined) {
+          nextIn = delay
+        }
+
+        const prevDur = Math.max(0.2, (l.outPoint ?? project.comp.duration) - (l.inPoint ?? 0))
+        const hold = ovr.holdDurationSec ?? 0
+        const nextOut = hold > 0 ? nextIn + hold : nextIn + prevDur
+
+        l.inPoint = Number(nextIn.toFixed(2))
+        l.outPoint = Number(Math.max(l.inPoint + 0.1, nextOut).toFixed(2))
+        l.props.loopStartTime = l.inPoint
+        l.props.loopEndTime = l.outPoint
+        params.timeStart = l.inPoint
+        params.timeEnd = l.outPoint
       }
     }
   }

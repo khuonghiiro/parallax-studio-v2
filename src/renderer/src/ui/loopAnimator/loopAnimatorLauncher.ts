@@ -3,6 +3,7 @@ import { useLoopAnimator } from './loopAnimatorState'
 import {
   extractFrameNumberFromTitle,
   loadLoopImageFiles,
+  readFileAsDataUrl,
   sortAndAssignFrameFiles,
   upgradeLoopImageFilesKeepMesh
 } from './loopMultiFrameImporter'
@@ -20,16 +21,47 @@ export {
   upgradeLoopImageFilesKeepMesh
 }
 
-/** Đọc ảnh sprite sheet từ máy (input file hoặc kéo thả) và nạp vào xưởng */
+/**
+ * Đọc ảnh sprite sheet từ máy và nạp vào xưởng theo cơ chế KHÔNG GHI ĐÈ:
+ * - Nếu phiên đang trống: nạp làm Nhóm 1.
+ * - Nếu đã có ảnh trong phiên: thêm nối tiếp thành Nhóm N+1 để chạy chuỗi hiệu ứng.
+ */
 export function loadLoopImageFile(file: File): boolean {
   if (!file.type.startsWith('image/') && !/\.(png|jpe?g|webp|gif|bmp)$/i.test(file.name)) return false
-  const reader = new FileReader()
-  reader.onload = () => {
-    if (typeof reader.result === 'string') {
-      useLoopAnimator.getState().loadCustomImage(reader.result, file.name)
+  void readFileAsDataUrl(file).then((dataUrl) => {
+    useLoopAnimator.getState().appendImageAsGroup(dataUrl, file.name)
+  })
+  return true
+}
+
+/**
+ * Nạp 1 hoặc nhiều ảnh từ nút "Tải ảnh" thành các nhóm hiệu ứng nối tiếp (Nhóm 1 -> Nhóm 2 -> Nhóm 3...)
+ * mà không ghi đè các nhóm đã có trong phiên.
+ */
+export async function appendLoopImageFilesAsGroups(files: File[]): Promise<number> {
+  const validFiles = files.filter(
+    (f) => f.type.startsWith('image/') || /\.(png|jpe?g|webp|gif|bmp)$/i.test(f.name)
+  )
+  if (validFiles.length === 0) return 0
+  let added = 0
+  for (const file of validFiles) {
+    try {
+      const dataUrl = await readFileAsDataUrl(file)
+      useLoopAnimator.getState().appendImageAsGroup(dataUrl, file.name)
+      added++
+    } catch {
+      // Bỏ qua tệp lỗi
     }
   }
-  reader.readAsDataURL(file)
+  return added
+}
+
+/** Thay thế ảnh nguồn của riêng nhóm đang chọn (không thêm nhóm mới) */
+export function replaceActiveGroupImageFile(file: File): boolean {
+  if (!file.type.startsWith('image/') && !/\.(png|jpe?g|webp|gif|bmp)$/i.test(file.name)) return false
+  void readFileAsDataUrl(file).then((dataUrl) => {
+    useLoopAnimator.getState().replaceActiveGroupImage(dataUrl, file.name)
+  })
   return true
 }
 
@@ -39,13 +71,9 @@ export function loadLoopImageFile(file: File): boolean {
  */
 export function upgradeLoopImageFileKeepMesh(file: File): boolean {
   if (!file.type.startsWith('image/') && !/\.(png|jpe?g|webp|gif|bmp)$/i.test(file.name)) return false
-  const reader = new FileReader()
-  reader.onload = () => {
-    if (typeof reader.result === 'string') {
-      useLoopAnimator.getState().upgradeSourceImageKeepMesh(reader.result, file.name)
-    }
-  }
-  reader.readAsDataURL(file)
+  void readFileAsDataUrl(file).then((dataUrl) => {
+    useLoopAnimator.getState().upgradeSourceImageKeepMesh(dataUrl, file.name)
+  })
   return true
 }
 

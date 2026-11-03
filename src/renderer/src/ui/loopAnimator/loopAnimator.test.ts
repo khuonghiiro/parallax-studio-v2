@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { evaluateLoopLayerRhythm, getAnimatedGifFrameIndex } from '../../project/gifHelper'
 import { applyChromaKeyToImageData, buildGridFrames, computeLoopSheetGrid, parseHexRgb } from './loopFrameExtractor'
+import {
+  buildPackageGroupsMetadata,
+  computeLoopGroupsSchedule
+} from './loopGroupManager'
 import { SAMPLE_LOOP_PRESETS } from './sampleLoops'
 import { buildWorkshopLoopConfigFromTemplate } from '../layerAssembly/WorkshopLoopLogicPanel'
 import { getBuiltinLoopTemplates } from './loopAnimatorStorage'
@@ -171,5 +175,84 @@ describe('Loop Animator & Loop Rhythm Logic', () => {
 
     useEditor.getState().selectLayer(childLayer.id, 'layer')
     expect(useEditor.getState().layerSelectionScope).toBe('layer')
+  })
+
+  it('supports non-overwriting multi-group upload, reordering, per-group config, frame-triggered combo schedule, and animation.json group tagging', () => {
+    const store = useLoopAnimator.getState()
+    store.startBlank()
+    expect(useLoopAnimator.getState().groups).toHaveLength(0)
+
+    // 1. Tải ảnh thứ nhất -> Nhóm 1 (Sét đánh, 4 frame @ 10 FPS = 0.4s)
+    useLoopAnimator.getState().appendImageAsGroup('data:image/png;base64,LIGHTNING_1', 'set_danh.png')
+    useLoopAnimator.getState().setGridConfig({ cols: 2, rows: 2 })
+    useLoopAnimator.getState().setChromaKey({ enabled: true, keyColor: '#00ff00', similarity: 0.35 })
+    useLoopAnimator.getState().setFps(10)
+    useLoopAnimator.getState().setLoopMode('once')
+
+    expect(useLoopAnimator.getState().groups).toHaveLength(1)
+    expect(useLoopAnimator.getState().activeGroupIndex).toBe(0)
+
+    // 2. Tải ảnh thứ hai -> KHÔNG GHI ĐÈ Nhóm 1, tự động thêm nối tiếp thành Nhóm 2 (Vụ nổ / Vòng xoáy)
+    useLoopAnimator.getState().appendImageAsGroup('data:image/png;base64,EXPLOSION_2', 'vu_no.png')
+    expect(useLoopAnimator.getState().groups).toHaveLength(2)
+    expect(useLoopAnimator.getState().activeGroupIndex).toBe(1)
+    expect(useLoopAnimator.getState().comboPreviewMode).toBe(true)
+
+    // Cấu hình riêng cho Nhóm 2: lưới 3x1 (3 frame), FPS 15, kích hoạt tại Frame #3 của Nhóm 1 (khi sét chạm đất), chờ 0.1s, giữ 3.5s, lệch vị trí X+40 Y+80
+    useLoopAnimator.getState().setGridConfig({ cols: 3, rows: 1 })
+    useLoopAnimator.getState().setFps(15)
+    useLoopAnimator.getState().setLoopMode('loop')
+    useLoopAnimator.getState().updateActiveGroupMeta({
+      name: 'Nhóm 2: Vụ nổ & Xoáy',
+      triggerMode: 'on_frame',
+      triggerFrameIndex: 3,
+      delaySec: 0.1,
+      holdDurationSec: 3.5,
+      offsetX: 40,
+      offsetY: 80,
+      scale: 1.25
+    })
+
+    // 3. Chuyển về Nhóm 1 kiểm tra cấu hình độc lập của Nhóm 1 vẫn còn nguyên vẹn
+    useLoopAnimator.getState().selectGroup(0)
+    expect(useLoopAnimator.getState().sourceImageUrl).toBe('data:image/png;base64,LIGHTNING_1')
+    expect(useLoopAnimator.getState().gridConfig.cols).toBe(2)
+    expect(useLoopAnimator.getState().gridConfig.rows).toBe(2)
+    expect(useLoopAnimator.getState().chromaKey.enabled).toBe(true)
+    expect(useLoopAnimator.getState().playback.fps).toBe(10)
+
+    // 4. Kiểm tra lịch trình chạy kết hợp frame (computeLoopGroupsSchedule)
+    const synced = useLoopAnimator.getState().getSyncedGroups()
+    expect(synced).toHaveLength(2)
+    const schedule = computeLoopGroupsSchedule(synced)
+    expect(schedule.items).toHaveLength(2)
+    // Nhóm 1: 4 frame @ 10 FPS -> mỗi frame 0.1s -> Frame #3 (index 2) bắt đầu tại 0.2s
+    expect(schedule.items[0].startTime).toBe(0)
+    expect(schedule.items[0].cycleDuration).toBeCloseTo(0.4, 2)
+    // Nhóm 2: triggerMode = 'on_frame' tại Frame #3 (0.2s) + delaySec (0.1s) = bắt đầu tại 0.3s, giữ 3.5s -> kết thúc tại 3.8s
+    expect(schedule.items[1].startTime).toBeCloseTo(0.3, 2)
+    expect(schedule.items[1].activeDuration).toBeCloseTo(3.5, 2)
+    expect(schedule.items[1].endTime).toBeCloseTo(3.8, 2)
+
+    // 5. Kiểm tra metadata đóng gói animation.json xác nhận từng frame thuộc nhóm nào
+    const { packageGroups, flatFramesWithGroupMeta } = buildPackageGroupsMetadata(synced)
+    expect(packageGroups).toHaveLength(2)
+    expect(packageGroups[0].frameIndices).toEqual([0, 1, 2, 3])
+    expect(packageGroups[1].frameIndices).toEqual([4, 5, 6])
+    expect(packageGroups[1].triggerMode).toBe('on_frame')
+    expect(packageGroups[1].triggerFrameIndex).toBe(3)
+    expect(packageGroups[1].delaySec).toBe(0.1)
+    expect(packageGroups[1].holdDurationSec).toBe(3.5)
+    expect(packageGroups[1].offsetX).toBe(40)
+    expect(packageGroups[1].offsetY).toBe(80)
+    expect(flatFramesWithGroupMeta).toHaveLength(7)
+    expect(flatFramesWithGroupMeta[0].groupIndex).toBe(0)
+    expect(flatFramesWithGroupMeta[4].groupIndex).toBe(1)
+    expect(flatFramesWithGroupMeta[4].localFrameIndex).toBe(0)
+    expect(flatFramesWithGroupMeta[4].group.name).toBe('Nhóm 2: Vụ nổ & Xoáy')
+
+    // 6. Đổi thứ tự nhóm (reorderGroup) trên slider
+    useLoopAnimator.getState().reorderGroup(1, 0)
+    expect(useLoopAnimator.getState().groups[0].name).toBe('Nhóm 2: Vụ nổ & Xoáy')
   })
 })

@@ -255,6 +255,28 @@ export interface WorkflowNodeParams {
   loopBrightness?: number
   /** [Workflow V2 · Loop] Xoay vòng màu ghi đè kế thừa từ animation.json (-180 .. 180 độ) */
   loopHueRotate?: number
+  /** [Workflow V2 · Loop Group] Mã nhóm hiệu ứng mà Node Animation Loop này đang điều khiển */
+  loopGroupId?: string
+  /** [Workflow V2 · Loop Group] Thứ tự nhóm hiệu ứng (0-based) trong chuỗi tổ hợp */
+  loopGroupIndex?: number
+  /** [Workflow V2 · Loop Group] Tên nhóm hiệu ứng (VD: 'Nhóm 1: Sét đánh', 'Nhóm 2: Vụ nổ') */
+  loopGroupName?: string
+  /** [Workflow V2 · Loop Group] Tổng số nhóm trong tổ hợp hoạt ảnh Loop */
+  loopTotalGroups?: number
+  /** [Workflow V2 · Loop Group] Chế độ kích hoạt nhóm: 'sequential' (Nối tiếp), 'on_frame' (Tại Frame), 'parallel' (Song song) */
+  loopTriggerMode?: 'sequential' | 'on_frame' | 'parallel'
+  /** [Workflow V2 · Loop Group] Chỉ số frame (1-based) của nhóm trước kích hoạt nhóm này khi loopTriggerMode === 'on_frame' */
+  loopTriggerFrameIndex?: number
+  /** [Workflow V2 · Loop Group] Thời gian chờ (giây) trước khi chạy nhóm hiệu ứng này */
+  loopDelaySec?: number
+  /** [Workflow V2 · Loop Group] Thời lượng duy trì chạy/hiển thị của nhóm hiệu ứng này (giây, 0 = tự động) */
+  loopHoldDurationSec?: number
+  /** [Workflow V2 · Loop Group] Độ dịch chuyển vị trí X của nhóm hiệu ứng */
+  loopGroupOffsetX?: number
+  /** [Workflow V2 · Loop Group] Độ dịch chuyển vị trí Y của nhóm hiệu ứng */
+  loopGroupOffsetY?: number
+  /** [Workflow V2 · Loop Group] Tỉ lệ kích thước của nhóm hiệu ứng (1 = 100%) */
+  loopGroupScale?: number
   /** [Workflow V2] Chế độ chính của Node Motion ('bbox' = Đặt BBox đích #1->#2 thu phóng & chiều sâu, 'path' = Vẽ quỹ đạo di chuyển A->B, 'cycle' = Dao động chu kỳ tại chỗ) */
   motionMode?: 'bbox' | 'path' | 'cycle'
   /** [Workflow V2] Dạng đường đi giữa BBox #1 và BBox #2 ('shortest' = Tự động tìm khoảng cách ngắn nhất, 'custom_curve' = Đặt vị trí đích #2 rồi vẽ đường đi) */
