@@ -53,8 +53,28 @@ export interface LoopAnimatorStore {
   close: () => void
   loadPreset: (presetId: string) => void
   loadCustomImage: (dataUrl: string, name?: string) => void
+  /** Nạp nhiều frame ảnh mới theo thứ tự frame đã sắp xếp */
+  loadCustomMultiFrames: (payload: {
+    dataUrl: string
+    frames: LoopFrameBox[]
+    sourceWidth: number
+    sourceHeight: number
+    layerName?: string
+    gridConfig?: GridSlicerConfig
+  }) => void
   /** Nâng cấp ảnh Sprite Sheet lên 2K/4K giữ nguyên tỉ lệ Mesh, cấu hình cắt và khớp khung hình */
   upgradeSourceImageKeepMesh: (dataUrl: string, name?: string) => void
+  /** Nâng cấp nhiều frame ảnh lên 2K/4K giữ nguyên tỉ lệ Mesh */
+  upgradeMultipleFramesKeepMesh: (payload: {
+    dataUrl: string
+    frames: LoopFrameBox[]
+    sourceWidth: number
+    sourceHeight: number
+    baseMeshWidth: number
+    baseMeshHeight: number
+    layerName?: string
+    gridConfig?: GridSlicerConfig
+  }) => void
   /** Tinh chỉnh offsetX/offsetY theo vùng Alpha Mesh sau khi ảnh nâng cấp 2K/4K đã tách nền xong */
   alignUpgradedFramesByMesh: (sourceCanvas: HTMLCanvasElement | null) => void
   setSourceDimensions: (width: number, height: number) => void
@@ -302,6 +322,27 @@ export const useLoopAnimator = create<LoopAnimatorStore>((set, get) => ({
     })
   },
 
+  loadCustomMultiFrames: (payload) => {
+    const s = get()
+    const cleanName = payload.layerName ? payload.layerName.replace(/\.[^.]+$/, '') : 'Hoạt ảnh Loop mới'
+    set({
+      activePresetId: `loop_custom_${Date.now().toString(36)}`,
+      layerName: cleanName,
+      category: 'custom',
+      sourceImageUrl: payload.dataUrl,
+      sourceWidth: payload.sourceWidth,
+      sourceHeight: payload.sourceHeight,
+      baseMeshWidth: 0,
+      baseMeshHeight: 0,
+      pendingMeshUpgrade: false,
+      slicerMode: 'manual',
+      gridConfig: payload.gridConfig || s.gridConfig,
+      selectedFrameIndex: 0,
+      playingFrameIndex: 0,
+      frames: payload.frames
+    })
+  },
+
   upgradeSourceImageKeepMesh: (dataUrl, name) => {
     const s = get()
     const enabled = s.frames.filter((f) => f.enabled)
@@ -320,6 +361,31 @@ export const useLoopAnimator = create<LoopAnimatorStore>((set, get) => ({
       sourceImageUrl: dataUrl,
       baseMeshWidth: s.baseMeshWidth > 0 ? s.baseMeshWidth : maxW,
       baseMeshHeight: s.baseMeshHeight > 0 ? s.baseMeshHeight : maxH,
+      pendingMeshUpgrade: true
+    })
+  },
+
+  upgradeMultipleFramesKeepMesh: (payload) => {
+    const s = get()
+    const cleanName =
+      s.layerName && s.layerName !== BLANK_LOOP_NAME
+        ? s.layerName
+        : payload.layerName
+          ? payload.layerName.replace(/\.[^.]+$/, '')
+          : 'Hoạt ảnh Loop 2K/4K'
+    set({
+      activePresetId: s.activePresetId || `loop_custom_${Date.now().toString(36)}`,
+      layerName: cleanName,
+      sourceImageUrl: payload.dataUrl,
+      sourceWidth: payload.sourceWidth,
+      sourceHeight: payload.sourceHeight,
+      baseMeshWidth: payload.baseMeshWidth,
+      baseMeshHeight: payload.baseMeshHeight,
+      frames: payload.frames,
+      slicerMode: 'manual',
+      gridConfig: payload.gridConfig || s.gridConfig,
+      selectedFrameIndex: 0,
+      playingFrameIndex: 0,
       pendingMeshUpgrade: true
     })
   },

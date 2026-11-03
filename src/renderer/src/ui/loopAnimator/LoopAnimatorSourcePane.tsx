@@ -9,7 +9,7 @@ import {
   clearGridBorderPadding,
   detectCornerKeyColor
 } from './loopFrameExtractor'
-import { loadLoopImageFile } from './loopAnimatorLauncher'
+import { loadLoopImageFile, loadLoopImageFiles } from './loopAnimatorLauncher'
 import { useLoopAnimator } from './loopAnimatorState'
 import { resolveLoopAssetUrl } from './sampleLoops'
 import { useContainFitSize } from './useContainFit'
@@ -325,8 +325,11 @@ export function LoopAnimatorSourcePane({ sourceCanvasRef, onRequestUpload, templ
         onDrop={(e) => {
           if (!hasSource) return
           e.preventDefault()
-          const file = e.dataTransfer.files?.[0]
-          if (file) loadLoopImageFile(file)
+          const files = Array.from(e.dataTransfer.files ?? []).filter(
+            (f) => f.type.startsWith('image/') || /\.(png|jpe?g|webp|gif|bmp)$/i.test(f.name)
+          )
+          if (files.length === 1) loadLoopImageFile(files[0])
+          else if (files.length > 1) void loadLoopImageFiles(files)
         }}
       >
         {!hasSource && <LoopSourceEmptyState onRequestUpload={onRequestUpload} templates={templates} />}

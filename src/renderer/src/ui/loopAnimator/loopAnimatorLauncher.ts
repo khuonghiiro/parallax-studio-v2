@@ -1,12 +1,28 @@
 import { useView } from '../../store/view'
 import { useLoopAnimator } from './loopAnimatorState'
+import {
+  extractFrameNumberFromTitle,
+  loadLoopImageFiles,
+  sortAndAssignFrameFiles,
+  upgradeLoopImageFilesKeepMesh
+} from './loopMultiFrameImporter'
 
-/** Định dạng ảnh sprite sheet được chấp nhận khi tải lên / kéo thả */
-export const LOOP_IMAGE_ACCEPT = 'image/png,image/jpeg,image/webp,image/gif'
+/**
+ * Định dạng ảnh chấp nhận khi chọn tệp (dùng phần mở rộng tệp thay vì MIME type
+ * để tránh Windows Chromium quét toàn bộ Registry và Windows Shell gây đơ 2-10s)
+ */
+export const LOOP_IMAGE_ACCEPT = '.png,.jpg,.jpeg,.webp,.gif,.bmp'
+
+export {
+  extractFrameNumberFromTitle,
+  loadLoopImageFiles,
+  sortAndAssignFrameFiles,
+  upgradeLoopImageFilesKeepMesh
+}
 
 /** Đọc ảnh sprite sheet từ máy (input file hoặc kéo thả) và nạp vào xưởng */
 export function loadLoopImageFile(file: File): boolean {
-  if (!file.type.startsWith('image/')) return false
+  if (!file.type.startsWith('image/') && !/\.(png|jpe?g|webp|gif|bmp)$/i.test(file.name)) return false
   const reader = new FileReader()
   reader.onload = () => {
     if (typeof reader.result === 'string') {
@@ -22,7 +38,7 @@ export function loadLoopImageFile(file: File): boolean {
  * tỉ lệ Mesh, cấu hình cắt khung, nhịp phát và tự động căn lại tâm Alpha Mesh.
  */
 export function upgradeLoopImageFileKeepMesh(file: File): boolean {
-  if (!file.type.startsWith('image/')) return false
+  if (!file.type.startsWith('image/') && !/\.(png|jpe?g|webp|gif|bmp)$/i.test(file.name)) return false
   const reader = new FileReader()
   reader.onload = () => {
     if (typeof reader.result === 'string') {

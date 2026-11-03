@@ -29,7 +29,9 @@ import {
 import {
   LOOP_IMAGE_ACCEPT,
   loadLoopImageFile,
-  upgradeLoopImageFileKeepMesh
+  loadLoopImageFiles,
+  upgradeLoopImageFileKeepMesh,
+  upgradeLoopImageFilesKeepMesh
 } from './loopAnimatorLauncher'
 import { LOOP_STORAGE_UPDATED_EVENT, getAllLoopTemplates } from './loopAnimatorStorage'
 import { useLoopAnimator } from './loopAnimatorState'
@@ -160,10 +162,20 @@ export function LoopAnimatorDialog({ isOpen = true, onClose, initialImageUrl }: 
           ref={fileInputRef}
           type="file"
           accept={LOOP_IMAGE_ACCEPT}
+          multiple
           hidden
-          onChange={(e) => {
-            const file = e.target.files?.[0]
-            if (file && !loadLoopImageFile(file)) toast('⚠ Tệp không phải ảnh hợp lệ')
+          onChange={async (e) => {
+            const files = Array.from(e.target.files ?? [])
+            if (files.length === 1) {
+              if (!loadLoopImageFile(files[0])) toast('⚠ Tệp không phải ảnh hợp lệ')
+            } else if (files.length > 1) {
+              const ok = await loadLoopImageFiles(files)
+              if (ok) {
+                toast(`✨ Đã nạp ${files.length} frame theo thứ tự hoạt ảnh`)
+              } else {
+                toast('⚠ Không thể đọc ảnh hợp lệ')
+              }
+            }
             e.target.value = ''
           }}
         />
@@ -171,12 +183,18 @@ export function LoopAnimatorDialog({ isOpen = true, onClose, initialImageUrl }: 
           ref={upgradeFileInputRef}
           type="file"
           accept={LOOP_IMAGE_ACCEPT}
+          multiple
           hidden
-          onChange={(e) => {
-            const file = e.target.files?.[0]
-            if (file) {
-              if (upgradeLoopImageFileKeepMesh(file)) {
-                toast('✨ Đã nâng cấp ảnh 2K/4K và đồng bộ khung cắt theo tỉ lệ Mesh')
+          onChange={async (e) => {
+            const files = Array.from(e.target.files ?? [])
+            if (files.length > 0) {
+              const ok = await upgradeLoopImageFilesKeepMesh(files, sourceCanvasRef.current)
+              if (ok) {
+                toast(
+                  files.length > 1
+                    ? `✨ Đã nâng cấp ảnh 2K/4K (${files.length} frame) và đồng bộ khung cắt theo tỉ lệ Mesh`
+                    : '✨ Đã nâng cấp ảnh 2K/4K và đồng bộ khung cắt theo tỉ lệ Mesh'
+                )
               } else {
                 toast('⚠ Tệp không phải ảnh hợp lệ')
               }

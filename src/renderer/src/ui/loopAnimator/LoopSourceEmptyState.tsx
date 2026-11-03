@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { toast } from '../../actions'
 import { IconImage, IconLoopAnimate, IconUpload } from '../icons'
 import { LoopCardPreviewCanvas } from './LoopCardPreviewCanvas'
-import { loadLoopImageFile } from './loopAnimatorLauncher'
+import { loadLoopImageFile, loadLoopImageFiles } from './loopAnimatorLauncher'
 import { useLoopAnimator } from './loopAnimatorState'
 import type { LoopAnimationTemplate } from './types'
 
@@ -31,8 +31,17 @@ export function LoopSourceEmptyState({ onRequestUpload, templates }: Props): Rea
       onDrop={(e) => {
         e.preventDefault()
         setDragOver(false)
-        const file = e.dataTransfer.files?.[0]
-        if (!file || !loadLoopImageFile(file)) toast('⚠ Hãy thả 1 tệp ảnh PNG / JPG / WebP / GIF')
+        const files = Array.from(e.dataTransfer.files ?? []).filter(
+          (f) => f.type.startsWith('image/') || /\.(png|jpe?g|webp|gif|bmp)$/i.test(f.name)
+        )
+        if (files.length === 1) {
+          if (!loadLoopImageFile(files[0])) toast('⚠ Hãy thả tệp ảnh PNG / JPG / WebP / GIF')
+        } else if (files.length > 1) {
+          void loadLoopImageFiles(files).then((ok) => {
+            if (ok) toast(`✨ Đã nạp ${files.length} frame theo thứ tự hoạt ảnh`)
+            else toast('⚠ Không thể đọc ảnh hợp lệ')
+          })
+        }
       }}
     >
       <div className="loop-dropzone">
@@ -40,7 +49,7 @@ export function LoopSourceEmptyState({ onRequestUpload, templates }: Props): Rea
           <IconImage width={26} height={26} />
         </span>
         <h3>Bắt đầu hoạt ảnh Loop mới</h3>
-        <p>Kéo thả ảnh sprite sheet vào đây — frame xếp từ trái qua phải, từ trên xuống dưới. Hỗ trợ ảnh đã tách nền hoặc nền màu (xanh lá, hồng…).</p>
+        <p>Kéo thả ảnh sprite sheet hoặc nhiều frame ảnh vào đây — tự động nhận diện và ghép thứ tự frame. Hỗ trợ ảnh đã tách nền hoặc nền màu.</p>
         <button type="button" className="la-btn la-btn--primary la-btn--lg" onClick={onRequestUpload}>
           <IconUpload width={14} height={14} />
           <span>Chọn ảnh từ máy</span>
