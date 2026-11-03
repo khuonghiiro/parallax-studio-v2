@@ -45,6 +45,7 @@ const isLogic = (n: WorkflowNode): boolean => !isRoot(n) && !isCamera(n) && !isG
 
 /** Thứ tự ưu tiên sắp xếp các nhóm logic từ trên xuống dưới trong cùng Layer */
 const LOGIC_CATEGORY_PRIORITY: Record<string, number> = {
+  loop_anim: 0,
   action: 1,
   anim_fx: 2,
   cluster_lock: 3,

@@ -7,6 +7,7 @@ import type { Layer, LayerMotionType, VirtualLightKind } from '@shared/types'
 export type WorkflowV2LogicCategory =
   | 'action'
   | 'anim_fx'
+  | 'loop_anim'
   | 'material'
   | 'collision'
   | 'light'
@@ -26,7 +27,6 @@ export interface WorkflowV2AnimFxOption {
     | 'breathe'
     | 'neonBreathe'
     | 'neonBlink'
-    | 'neonFlicker'
     | 'neonFlicker'
     | 'neonSolid'
     | 'loop_rhythm'
@@ -112,7 +112,6 @@ export interface WorkflowV2FxOption {
 }
 
 export const WORKFLOW_V2_FX_OPTIONS: WorkflowV2FxOption[] = [
-  { id: 'wind_physics', label: 'Vật lý Đàn hồi Mesh', defaultIntensity: 1.0 },
   { id: 'bloom', label: 'Phát sáng (Bloom)', defaultIntensity: 0.85 },
   { id: 'blur', label: 'Làm mờ chiều sâu', defaultIntensity: 0.6 },
   { id: 'chromatic', label: 'Tán sắc (RGB)', defaultIntensity: 0.5 },

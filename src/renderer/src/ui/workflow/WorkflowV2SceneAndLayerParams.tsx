@@ -418,34 +418,6 @@ export function WorkflowV2LayerParams({ node, project, onUpdate, onScrubTime }: 
               })
             }
           />
-          <ParamSlider
-            label="Mờ vào"
-            min={0}
-            max={3}
-            step={0.1}
-            value={layer.fadeIn ?? 0}
-            format={(v) => `${v.toFixed(1)}s`}
-            onChange={(v) =>
-              editorUpdate((d) => {
-                const l = findLayer(d, layer.id)
-                if (l) l.fadeIn = v
-              })
-            }
-          />
-          <ParamSlider
-            label="Mờ ra"
-            min={0}
-            max={3}
-            step={0.1}
-            value={layer.fadeOut ?? 0}
-            format={(v) => `${v.toFixed(1)}s`}
-            onChange={(v) =>
-              editorUpdate((d) => {
-                const l = findLayer(d, layer.id)
-                if (l) l.fadeOut = v
-              })
-            }
-          />
         </>
       )}
 

@@ -208,14 +208,15 @@ function buildCompactAssetAliases(project: Project): { aliases: Record<string, s
 function inferPresetId(node: WorkflowNode, cat: WorkflowV2SpawnCategory): string | undefined {
   const p = node.params ?? {}
   const opt =
-    cat === 'action' ? p.actionPreset
-    : cat === 'anim_fx' ? p.animFxPreset
+    cat === 'loop_anim' ? (p.loopMode ?? 'loop')
+    : cat === 'action' ? p.actionPreset
+    : cat === 'anim_fx' ? (p.animMode === 'rig_clip' ? `rig_${p.rigActionPreset ?? 'idle'}` : p.animFxPreset)
     : cat === 'part_swap' ? (p.swapMode === 'expression' && p.swapVariant === 'face-happy' ? 'expr_happy' : p.swapMode === 'expression' ? 'expr_normal' : p.swapMode === 'accessory' ? 'toggle_glasses' : p.swapMode === 'replace_composite' ? 'replace_composite' : 'replace_layer')
     : cat === 'material' ? p.materialTag
     : cat === 'collision' ? p.collisionMode
     : cat === 'light' ? p.lightMode
     : cat === 'cave' ? p.caveArchShape
-    : cat === 'fx' ? p.fxKind
+    : cat === 'fx' ? (p.animFxPreset ?? p.fxKind)
     : 'voice'
   const candidate = opt ? `v2:${cat}:${opt}` : undefined
   return candidate && WORKFLOW_V2_LOGIC_PRESETS.some((pr) => pr.id === candidate) ? candidate : undefined
@@ -223,6 +224,16 @@ function inferPresetId(node: WorkflowNode, cat: WorkflowV2SpawnCategory): string
 
 function extractCleanLogicParams(node: WorkflowNode, cat: WorkflowV2SpawnCategory): Record<string, unknown> {
   const p = node.params ?? {}
+  if (cat === 'loop_anim') {
+    return {
+      loopMode: p.loopMode ?? 'loop',
+      loopSpeed: p.loopSpeed ?? 1,
+      ...(p.loopPlayCount !== undefined ? { loopPlayCount: p.loopPlayCount } : {}),
+      ...(p.loopEndAction ? { loopEndAction: p.loopEndAction } : {}),
+      ...(p.loopTimeOffset !== undefined ? { loopTimeOffset: p.loopTimeOffset } : {}),
+      ...(p.loopAutoPlayPaused !== undefined ? { loopAutoPlayPaused: p.loopAutoPlayPaused } : {})
+    }
+  }
   if (cat === 'action') return { actionPreset: p.actionPreset ?? 'sway', intensity: p.intensity ?? 0.6, ...(p.rigActionPreset ? { rigActionPreset: p.rigActionPreset } : {}), ...(p.staggerPhase ? { staggerPhase: p.staggerPhase } : {}) }
   if (cat === 'part_swap') {
     return {

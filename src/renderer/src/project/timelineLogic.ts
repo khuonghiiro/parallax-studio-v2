@@ -309,7 +309,7 @@ function inferNodeCategory(
 ): WorkflowLogicNodeCategory {
   if (catalogItem) return catalogItem.category
   const v2Cat = node.params?.logicCategory
-  if (v2Cat === 'action' || v2Cat === 'anim_fx') return 'motion'
+  if (v2Cat === 'action' || v2Cat === 'anim_fx' || v2Cat === 'loop_anim') return 'motion'
   if (v2Cat === 'material' || v2Cat === 'collision') return 'physics'
   if (v2Cat === 'light' || v2Cat === 'fx') return 'light_fx'
   if (v2Cat === 'cave') return 'scene'
@@ -420,10 +420,17 @@ function getV2LogicDisplayMeta(node: WorkflowNode): { icon: string; shortTitle: 
       accent: '#10b981'
     }
   }
+  if (v2Cat === 'loop_anim') {
+    return {
+      icon: '🔁',
+      shortTitle: node.title.replace(/^(Animation Loop|Loop|Hoạt ảnh):\s*/i, '').trim(),
+      accent: '#d946ef'
+    }
+  }
   if (v2Cat === 'anim_fx') {
     return {
       icon: '🎞️',
-      shortTitle: node.title.replace(/^(Hoạt ảnh FX|Hoạt ảnh Xương|Hoạt ảnh):\s*/i, '').trim(),
+      shortTitle: node.title.replace(/^(Hành động Nhân vật|Hoạt ảnh FX|Hoạt ảnh Xương|Hoạt ảnh):\s*/i, '').trim(),
       accent: '#f59e0b'
     }
   }
@@ -613,6 +620,7 @@ export function getLayerTimelineLogicBadges(
     )
       continue
     if (plugin.id === 'cap-procedural-motion' && coveredV2Categories.has('action')) continue
+    if (plugin.id === 'cap-loop-animate' && coveredV2Categories.has('loop_anim')) continue
     if (
       (plugin.id === 'cap-glow' || plugin.id === 'cap-particles') &&
       coveredV2Categories.has('fx')

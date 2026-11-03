@@ -7,7 +7,12 @@ import type { GlowSide, Layer, LayerGlow, LayerMotionType, Project, WorkflowEdge
 import { getProjectAudioTracks } from './audioTracks'
 import { applyAnimFxPresetToLayer } from './workflowV2AnimFxApply'
 import { clearLoopLifecycle, isLoopComboFxId } from './workflowV2LoopCombo'
-import { clearLoopComboFx, syncLoopSpriteNodeToLayers } from './workflowV2LoopSync'
+import {
+  clearLoopComboFx,
+  syncFxAppearAndRhythmToLayers,
+  syncLoopSpriteNodeToLayers,
+  syncPureLoopAnimNodeToLayers
+} from './workflowV2LoopSync'
 import { deleteLayerEffect, toggleLayerEffect } from '../ui/timeline/timelineEffects'
 import {
   applyTimeRangeToCameraWaypoint,
@@ -54,6 +59,7 @@ import {
 } from './workflowV2LogicPresets'
 
 const NODE_TYPE: Record<WorkflowV2SpawnCategory, WorkflowNode['type']> = {
+  loop_anim: 'motion_choreography',
   action: 'motion_choreography',
   anim_fx: 'motion_choreography',
   rig_bone: 'layer_transform',
@@ -67,6 +73,7 @@ const NODE_TYPE: Record<WorkflowV2SpawnCategory, WorkflowNode['type']> = {
 }
 
 const AGENT: Record<WorkflowV2SpawnCategory, WorkflowNode['aiAgentRole']> = {
+  loop_anim: 'MotionChoreographyAgent',
   action: 'MotionChoreographyAgent',
   anim_fx: 'MotionChoreographyAgent',
   rig_bone: 'LayerTransformAgent',
@@ -568,7 +575,13 @@ function syncSingleWorkflowV2NodeToProject(
     return
   }
 
-  // 3b. Node Animation (`anim_fx`) — hỗ trợ cả Động tác Tên Động Cụm 2.5D, Clip Animation Rig 2.5D và Keyframe / Neon FX
+  // 3a. Node Animation Loop (`loop_anim`) — chỉ điều khiển chu kỳ phát lặp của tài nguyên Animate Loop / GIF
+  if (params.logicCategory === 'loop_anim') {
+    syncPureLoopAnimNodeToLayers(project, node, params)
+    return
+  }
+
+  // 3b. Node Hành động Nhân vật (`anim_fx`) — điều khiển Động tác Tên Động Cụm 2.5D và Clip Animation Rig 2.5D
   if (params.logicCategory === 'anim_fx') {
     const firstTargetLayer = project.layers.find((l) => targetIds.has(l.id))
     const effInstId = params.instanceId ?? firstTargetLayer?.composite?.instanceId
@@ -829,29 +842,41 @@ function syncSingleWorkflowV2NodeToProject(
     return
   }
 
-  // 7. Node Hiệu ứng & Vật lý (FX)
+  // 7. Node Hiệu ứng (`fx`) — Hiện/Ẩn mờ dần (Fade In/Out), Nhịp đập (Pulse/Rhythm Beat), Biến đổi Keyframe & Phát sáng Quang học
   if (params.logicCategory === 'fx') {
-    const fxKind = params.fxKind || 'wind_physics'
-    const intensity = params.intensity ?? 1.0
-    for (const l of project.layers) {
-      if (!targetIds.has(l.id)) continue
-      if (fxKind === 'wind_physics') {
-        l.physics = {
-          ...(l.physics ?? { material: 'foliage_bush' }),
-          enabled: node.enabled,
-          material: l.physics?.material ?? 'foliage_bush',
-          stiffness: 0.8 * intensity,
-          damping: 0.35,
-          bounciness: 0.9 * intensity
-        }
-      } else {
+    syncFxAppearAndRhythmToLayers(project, node, params, patch)
+    const fxPreset = params.animFxPreset
+    const shouldSyncKeyframeFx =
+      Boolean(fxPreset && fxPreset !== 'loop_rhythm' && fxPreset !== 'loop_flicker') &&
+      (!patch ||
+        'animFxPreset' in patch ||
+        'animFxCount' in patch ||
+        'intensity' in patch ||
+        'animFxColor' in patch ||
+        'animFxThickness' in patch ||
+        'animFxSide' in patch ||
+        'animFxSpeed' in patch ||
+        'animFxMinIntensity' in patch ||
+        'timeStart' in patch ||
+        'timeEnd' in patch ||
+        'enabled' in patch)
+    if (shouldSyncKeyframeFx) {
+      syncAnimFxNodeToProject(project, node, params, patch)
+      return
+    }
+    const fxKind = params.fxKind
+    if (fxKind && fxKind !== 'wind_physics') {
+      const intensity = params.intensity ?? 1.0
+      for (const l of project.layers) {
+        if (!targetIds.has(l.id)) continue
         const startSec = tStart ?? l.inPoint ?? 0
         const endSec = tEnd ?? l.outPoint ?? project.comp.duration
         l.glow = {
           enabled: node.enabled,
-          color: fxKind === 'chromatic' ? '#a855f7' : '#38bdf8',
+          color: params.animFxColor ?? (fxKind === 'chromatic' ? '#a855f7' : '#38bdf8'),
           intensity: Math.min(3, intensity * 1.4),
-          thickness: 10,
+          thickness: params.animFxThickness ?? 10,
+          side: params.animFxSide ?? 'outer',
           startTime: startSec,
           duration: Math.max(0.1, Number((endSec - startSec).toFixed(2)))
         }

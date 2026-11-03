@@ -5,9 +5,12 @@ import {
   deriveLoopLifecycleParams,
   normalizeLoopComboFx,
   readLoopComboFx,
+  syncFxAppearAndRhythmToLayers,
   syncLoopSpriteNodeToLayers,
+  syncPureLoopAnimNodeToLayers,
   toggleLoopComboFx
 } from './workflowV2LoopSync'
+import { syncWorkflowV2Graph } from './workflowV2Sync'
 
 function setup() {
   const project = createProject({ duration: 8 })
@@ -73,5 +76,58 @@ describe('Workflow V2 · Node Loop (vòng đời + kết hợp FX)', () => {
     expect(layer.props.loopRhythmMode).toBe('none')
     expect(layer.props.loopEndAction).toBeUndefined()
     expect(readLoopComboFx(layer)).toEqual([])
+  })
+
+  it('auto-connects a dedicated pure Node Animation Loop (loop_anim) when an Animate Loop layer is added', () => {
+    const { project, layer } = setup()
+    layer.props.loopTemplateId = 'tpl-sparkle-1'
+    layer.props.speed = 1.5
+    layer.props.loopMode = 'ping-pong'
+
+    const wf = syncWorkflowV2Graph(project, project.workflow)
+    const loopNode = wf.nodes.find((n) => n.params?.logicCategory === 'loop_anim')
+    expect(loopNode).toBeDefined()
+    expect(loopNode?.id).toBe(`v2-loop_anim-${layer.id}`)
+    expect(loopNode?.params?.loopSpeed).toBe(1.5)
+    expect(loopNode?.params?.loopMode).toBe('ping-pong')
+    expect(wf.edges.some((e) => e.fromNode === `v2-layer-${layer.id}` && e.toNode === loopNode?.id)).toBe(true)
+
+    // Pure loop node only mutates loop playback properties
+    syncPureLoopAnimNodeToLayers(project, loopNode!, {
+      ...loopNode!.params,
+      loopMode: 'once',
+      loopPlayCount: 3,
+      loopEndAction: 'hide',
+      loopSpeed: 2.0
+    })
+    expect(layer.props.loopMode).toBe('once')
+    expect(layer.props.loopPlayCount).toBe(3)
+    expect(layer.props.loopEndAction).toBe('hide')
+    expect(layer.props.speed).toBe(2.0)
+
+    // Node Hiệu ứng (fx) separately controls Fade In/Out and Rhythm Beat
+    const fxNode = {
+      id: `v2-fx-${layer.id}`,
+      type: 'physics_fx',
+      title: 'Hiệu ứng',
+      enabled: true,
+      position: { x: 0, y: 0 },
+      params: {
+        logicCategory: 'fx',
+        targetLayerIds: [layer.id],
+        loopFadeInSec: 0.4,
+        loopFadeOutSec: 0.6,
+        loopEndAction: 'fade_out',
+        loopRhythmMode: 'pulse_scale',
+        loopScaleBeatPct: 18
+      }
+    } as unknown as WorkflowNode
+    syncFxAppearAndRhythmToLayers(project, fxNode, fxNode.params!)
+    expect(layer.fadeIn).toBe(0.4)
+    expect(layer.fadeOut).toBe(0.6)
+    expect(layer.props.loopFadeInSec).toBe(0.4)
+    expect(layer.props.loopFadeOutSec).toBe(0.6)
+    expect(layer.props.loopRhythmMode).toBe('pulse_scale')
+    expect(layer.props.loopScaleBeatPct).toBe(18)
   })
 })

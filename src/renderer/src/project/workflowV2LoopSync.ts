@@ -114,6 +114,113 @@ export function clearLoopComboFx(l: Layer, nodeId: string): void {
   }
 }
 
+/**
+ * Đồng bộ thuần tuý Node Animation Loop (`logicCategory: 'loop_anim'`) xuống Layer ảnh Loop / GIF:
+ * Chỉ điều khiển chu kỳ phát frame lặp (kiểu lặp, tốc độ, số lần lặp, giữ cuối / ẩn ngay, lệch pha).
+ * Không gộp chung hiệu ứng mờ dần hay nhịp đập (do Node Hiệu ứng đảm nhiệm).
+ */
+export function syncPureLoopAnimNodeToLayers(
+  project: Project,
+  node: WorkflowNode,
+  params: WorkflowNodeParams
+): void {
+  const targetIds = new Set(params.targetLayerIds ?? [])
+  for (const l of project.layers) {
+    if (!targetIds.has(l.id) || l.type !== 'image') continue
+    if (!node.enabled) {
+      l.props.speed = 0
+      continue
+    }
+    if (params.loopSpeed !== undefined) l.props.speed = Math.max(0.05, params.loopSpeed)
+    else if (l.props.speed === 0) l.props.speed = 1
+    if (params.loopMode !== undefined) l.props.loopMode = params.loopMode
+    if (params.loopTimeOffset !== undefined) l.props.timeOffset = params.loopTimeOffset
+    if (params.loopAutoPlayPaused !== undefined) l.props.autoPlayPaused = params.loopAutoPlayPaused
+    const playCount = clampNum(params.loopPlayCount, 1, LOOP_MAX_PLAY_COUNT)
+    if (playCount !== undefined) l.props.loopPlayCount = Math.round(playCount)
+    if (params.loopEndAction === 'hold' || params.loopEndAction === 'hide') {
+      l.props.loopEndAction = params.loopEndAction
+    }
+    if (typeof params.timeStart === 'number' && Number.isFinite(params.timeStart)) {
+      l.props.loopStartTime = Math.max(0, params.timeStart)
+    }
+    if (typeof params.timeEnd === 'number' && Number.isFinite(params.timeEnd)) {
+      l.props.loopEndTime = Math.max(0, params.timeEnd)
+    }
+  }
+}
+
+/**
+ * Đồng bộ phần Hiện/Ẩn mờ dần (Fade In / Fade Out / Ẩn khi hết giờ) và Nhịp đập liên tục (Rhythm Beat)
+ * của Node Hiệu ứng (`logicCategory: 'fx'`) xuống các Layer đích.
+ */
+export function syncFxAppearAndRhythmToLayers(
+  project: Project,
+  node: WorkflowNode,
+  params: WorkflowNodeParams,
+  patch?: Partial<WorkflowNodeParams>
+): void {
+  const targetIds = new Set(params.targetLayerIds ?? [])
+  const fadeTouched =
+    !patch ||
+    'loopFadeInSec' in patch ||
+    'loopFadeOutSec' in patch ||
+    'loopEndAction' in patch ||
+    'timeStart' in patch ||
+    'timeEnd' in patch ||
+    'enabled' in patch
+  const rhythmTouched =
+    !patch ||
+    'loopRhythmMode' in patch ||
+    'loopRhythmRateHz' in patch ||
+    'loopRhythmIntensity' in patch ||
+    'loopMinOpacity' in patch ||
+    'loopScaleBeatPct' in patch ||
+    'enabled' in patch
+
+  for (const l of project.layers) {
+    if (!targetIds.has(l.id)) continue
+    if (!node.enabled) {
+      l.fadeIn = 0
+      l.fadeOut = 0
+      if (l.type === 'image') {
+        l.props.loopFadeInSec = 0
+        l.props.loopFadeOutSec = 0
+        l.props.loopRhythmMode = 'none'
+      }
+      continue
+    }
+    if (fadeTouched) {
+      const fadeIn = clampNum(params.loopFadeInSec, 0, 10)
+      const fadeOut = clampNum(params.loopFadeOutSec, 0, 10)
+      if (fadeIn !== undefined) {
+        l.fadeIn = fadeIn
+        if (l.type === 'image') l.props.loopFadeInSec = fadeIn
+      }
+      if (fadeOut !== undefined) {
+        l.fadeOut = fadeOut
+        if (l.type === 'image') l.props.loopFadeOutSec = fadeOut
+      }
+      if (l.type === 'image') {
+        if (params.loopEndAction) l.props.loopEndAction = params.loopEndAction
+        if (typeof params.timeStart === 'number' && Number.isFinite(params.timeStart)) {
+          l.props.loopStartTime = Math.max(0, params.timeStart)
+        }
+        if (typeof params.timeEnd === 'number' && Number.isFinite(params.timeEnd)) {
+          l.props.loopEndTime = Math.max(0, params.timeEnd)
+        }
+      }
+    }
+    if (rhythmTouched && l.type === 'image') {
+      if (params.loopRhythmMode !== undefined) l.props.loopRhythmMode = params.loopRhythmMode
+      if (params.loopRhythmRateHz !== undefined) l.props.loopRhythmRateHz = params.loopRhythmRateHz
+      if (params.loopRhythmIntensity !== undefined) l.props.loopRhythmIntensity = params.loopRhythmIntensity
+      if (params.loopMinOpacity !== undefined) l.props.loopMinOpacity = params.loopMinOpacity
+      if (params.loopScaleBeatPct !== undefined) l.props.loopScaleBeatPct = params.loopScaleBeatPct
+    }
+  }
+}
+
 export {
   clearLoopLifecycle,
   deriveLoopLifecycleParams,

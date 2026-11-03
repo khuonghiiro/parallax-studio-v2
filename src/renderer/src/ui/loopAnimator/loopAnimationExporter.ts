@@ -466,7 +466,6 @@ export async function exportLoopPresetDirectly(
     speed: overrides?.speed ?? template.speed ?? 1,
     loopMode: overrides?.loopMode ?? template.loopMode ?? 'loop',
     templateId: template.id,
-    rhythm: template.rhythm,
     shotId: overrides?.shotId,
     initialPosition: overrides?.initialPosition,
     baseMeshWidth: template.baseMeshWidth,

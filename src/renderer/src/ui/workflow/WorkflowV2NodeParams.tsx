@@ -10,6 +10,7 @@ import {
   WorkflowV2AnimFxParams,
   WorkflowV2FxParams
 } from './WorkflowV2AnimAndFxParams'
+import { WorkflowV2LoopSpriteParams } from './WorkflowV2LoopSpriteParams'
 import { WorkflowV2CameraParams } from './WorkflowV2CameraParams'
 import {
   WorkflowV2ClusterLockParams,
@@ -305,6 +306,7 @@ function CollisionParams({ node, project, workflow, onUpdate, onScrubTime, onCon
 
 const LOGIC_EDITORS: Record<string, React.FC<WorkflowV2NodeParamsProps>> = {
   cluster_lock: WorkflowV2ClusterLockParams,
+  loop_anim: WorkflowV2LoopSpriteParams,
   part_swap: WorkflowV2PartSwapParams,
   rig_bone: WorkflowV2RigBoneParams,
   material: WorkflowV2MaterialParams,

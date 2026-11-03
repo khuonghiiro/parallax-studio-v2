@@ -94,12 +94,36 @@ export function detachWorkflowV2NodeFromProject(project: Project, node: Workflow
     for (const instId of compInstIds) clearClusterRigKeysFromScene(getClusterMemberLayers(project, instId), node.id)
     return
   }
+  if (cat === 'loop_anim') {
+    for (const l of layers) {
+      if (l.type !== 'image') continue
+      l.props.speed = 1
+      l.props.loopMode = 'loop'
+      delete l.props.loopPlayCount
+      delete l.props.loopStartTime
+      delete l.props.loopEndTime
+      if (l.props.loopEndAction === 'hide') l.props.loopEndAction = 'hold'
+    }
+    return
+  }
   if (cat === 'anim_fx') {
     const compInstIds = Array.from(new Set(layers.map((l) => l.composite?.instanceId).filter((v): v is string => Boolean(v))))
     for (const instId of compInstIds) clearClusterRigKeysFromScene(getClusterMemberLayers(project, instId), node.id)
+    return
+  }
+  if (cat === 'fx') {
     for (const l of layers) {
       const fxIds = (l.appliedEffects ?? []).filter((f) => f.category !== 'motion').map((f) => f.id)
       for (const fxId of fxIds) deleteLayerEffect(l, fxId)
+      l.fadeIn = 0
+      l.fadeOut = 0
+      if (l.type === 'image') {
+        l.props.loopFadeInSec = 0
+        l.props.loopFadeOutSec = 0
+        l.props.loopRhythmMode = 'none'
+        if (l.props.loopEndAction === 'fade_out') l.props.loopEndAction = 'hold'
+      }
+      if (!l.virtualLight?.enabled) delete l.glow
     }
     return
   }

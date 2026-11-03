@@ -197,7 +197,7 @@ export interface WorkflowNodeParams {
   logicCategory?:
     | 'time'
     | 'action'
-    | 'anim_fx'
+    | 'anim_fx' | 'loop_anim'
     | 'material'
     | 'collision'
     | 'light'
@@ -436,6 +436,7 @@ export interface WorkflowNodeParams {
   caveMinScale?: number
   /** [Workflow V2] Loại hiệu ứng của Node Hiệu ứng */
   fxKind?: 'wind_physics' | 'bloom' | 'blur' | 'chromatic' | 'vignette' | 'particles'
+  fxSubTab?: 'opacity' | 'pulse' | 'glow'
   /** [Workflow V2] Node đã được người dùng kéo đặt tay — giữ nguyên vị trí khi tự xếp lại cây (nút "Sắp xếp" sẽ bỏ ghim) */
   pinned?: boolean
   /** [Workflow V2] Đánh dấu Node con lộ trình quay / cảnh con thuộc Node Camera của một Cảnh */

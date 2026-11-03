@@ -7,22 +7,24 @@ import {
   WORKFLOW_V2_ACTION_OPTIONS,
   WORKFLOW_V2_ANIM_FX_OPTIONS,
   WORKFLOW_V2_CAVE_OPTIONS,
+  WORKFLOW_V2_FX_OPTIONS,
   WORKFLOW_V2_LIGHT_OPTIONS
 } from './workflowV2Options'
+import { isAnimatedLoopLayer } from './workflowV2LogicPresets'
 import { WF_V2_COL_X } from './workflowV2Layout'
 import { resolveLayerNodeTimeRange } from './workflowV2Scope'
-import { deriveLoopLifecycleParams, isLoopComboFxId } from './workflowV2LoopCombo'
+import { isLoopComboFxId } from './workflowV2LoopCombo'
 
 /**
  * MỘT LOGIC CHUNG cho Timeline và Workflow:
- * dữ liệu thật trên Layer (chuyển động, hoạt ảnh FX, ánh sáng, hang động, âm thanh gắn layer) là nguồn sự thật;
- * mỗi hiệu ứng đang có trên Layer luôn được thể hiện bằng đúng 1 Node Logic trong cây và ngược lại.
+ * dữ liệu thật trên Layer (hoạt ảnh Loop, chuyển động, hành động nhân vật, hiệu ứng, ánh sáng, hang động, âm thanh gắn layer) là nguồn sự thật;
+ * mỗi hiệu ứng đang có trên Layer luôn được thể hiện bằng đúng 1 Node Logic đơn trách nhiệm trong cây và ngược lại.
+ * - Tài nguyên có logic riêng (ví dụ Animate Loop / GIF) khi thêm vào cảnh tự động có Node Animation Loop kết nối sẵn.
  * - Hiệu ứng có trên Layer mà chưa có Node → tự tạo Node (thêm từ Inspector / Timeline / MCP đều hiện ra Workflow).
  * - Node có mà hiệu ứng không còn trên Layer → Node chuyển sang trạng thái tắt (không mất cấu hình).
  * - Thông số đổi ở Inspector / Timeline → cập nhật ngược vào Node.
- * Vật liệu / Va chạm / Hiệu ứng / Camera là logic do Node sở hữu (chỉ tạo qua Node) nên không suy diễn ngược.
  */
-export type DerivedCategory = 'action' | 'anim_fx' | 'light' | 'cave' | 'audio'
+export type DerivedCategory = 'loop_anim' | 'action' | 'anim_fx' | 'fx' | 'light' | 'cave' | 'audio'
 
 interface Derived {
   present: boolean
@@ -107,94 +109,149 @@ function deriveAction(layer: Layer, compDur: number, current?: WorkflowNode): De
   }
 }
 
-function deriveAnimFx(layer: Layer, compDur: number, current?: WorkflowNode): Derived {
-  const hasLoopRhythm =
-    layer.type === 'image' &&
-    Boolean(layer.props.loopRhythmMode && layer.props.loopRhythmMode !== 'none')
-  const isCurrentLoopSprite =
-    current &&
-    (current.params?.animMode === 'loop_sprite' ||
-      current.params?.animFxPreset === 'loop_rhythm' ||
-      current.params?.animFxPreset === 'loop_flicker')
+function deriveLoopAnim(layer: Layer, project: Project, compDur: number, current?: WorkflowNode): Derived {
+  const isLoop = isAnimatedLoopLayer(layer, project)
+  const range = resolveLayerNodeTimeRange(layer, compDur)
+  const speed = layer.type === 'image' ? (layer.props.speed ?? current?.params?.loopSpeed ?? 1) : 1
+  const loopMode = layer.type === 'image' ? (layer.props.loopMode ?? current?.params?.loopMode ?? 'loop') : 'loop'
+  const playCount = layer.type === 'image' ? (layer.props.loopPlayCount ?? current?.params?.loopPlayCount ?? 1) : 1
+  const endAction =
+    layer.type === 'image' && layer.props.loopEndAction === 'hide'
+      ? 'hide'
+      : current?.params?.loopEndAction === 'hide'
+        ? 'hide'
+        : 'hold'
+  const modeLabel =
+    loopMode === 'ping-pong'
+      ? 'Đảo chiều'
+      : loopMode === 'once'
+        ? `Chạy ${playCount} lần`
+        : loopMode === 'random'
+          ? 'Ngẫu nhiên'
+          : 'Lặp vô tận'
+  return {
+    present: isLoop,
+    enabled: isLoop && speed > 0 && (current ? current.enabled : true),
+    params: {
+      animMode: 'loop_sprite',
+      loopSpeed: speed > 0 ? speed : (current?.params?.loopSpeed ?? 1),
+      loopMode,
+      loopPlayCount: playCount,
+      loopEndAction: endAction,
+      loopTimeOffset: layer.type === 'image' ? (layer.props.timeOffset ?? current?.params?.loopTimeOffset ?? 0) : 0,
+      loopAutoPlayPaused: layer.type === 'image' ? (layer.props.autoPlayPaused ?? current?.params?.loopAutoPlayPaused ?? true) : true,
+      timeStart: r2(current?.params?.timeStart ?? (layer.type === 'image' ? layer.props.loopStartTime : undefined) ?? range.start),
+      timeEnd: r2(current?.params?.timeEnd ?? (layer.type === 'image' ? layer.props.loopEndTime : undefined) ?? range.end)
+    },
+    title: `Animation Loop: ${(speed > 0 ? speed : 1).toFixed(1)}x · ${modeLabel}`
+  }
+}
 
-  if (layer.type === 'image' && (hasLoopRhythm || isCurrentLoopSprite)) {
-    const range = resolveLayerNodeTimeRange(layer, compDur)
-    const rhythmMode =
-      layer.props.loopRhythmMode && layer.props.loopRhythmMode !== 'none'
-        ? layer.props.loopRhythmMode
-        : (current?.params?.loopRhythmMode ?? 'sync_both')
-    const speed = layer.props.speed ?? current?.params?.loopSpeed ?? 1
-    const loopMode = layer.props.loopMode ?? current?.params?.loopMode ?? 'loop'
-    return {
-      present: hasLoopRhythm || Boolean(layer.props.loopTemplateId) || Boolean(isCurrentLoopSprite),
-      enabled: hasLoopRhythm ? true : Boolean(current?.enabled),
-      params: {
-        animMode: 'loop_sprite',
-        animFxPreset: rhythmMode === 'flicker_opacity' ? 'loop_flicker' : 'loop_rhythm',
-        loopSpeed: speed,
-        loopMode,
-        loopRhythmMode: rhythmMode,
-        loopRhythmRateHz: layer.props.loopRhythmRateHz ?? current?.params?.loopRhythmRateHz ?? 2.5,
-        loopRhythmIntensity: layer.props.loopRhythmIntensity ?? current?.params?.loopRhythmIntensity ?? 0.45,
-        loopMinOpacity: layer.props.loopMinOpacity ?? current?.params?.loopMinOpacity ?? 0.55,
-        loopScaleBeatPct: layer.props.loopScaleBeatPct ?? current?.params?.loopScaleBeatPct ?? 12,
-        loopTimeOffset: layer.props.timeOffset ?? current?.params?.loopTimeOffset ?? 0,
-        loopAutoPlayPaused: layer.props.autoPlayPaused ?? current?.params?.loopAutoPlayPaused ?? true,
-        intensity: layer.props.loopRhythmIntensity ?? current?.params?.intensity ?? 0.45,
-        ...deriveLoopLifecycleParams(layer, current),
-        timeStart: r2(current?.params?.timeStart ?? layer.props.loopStartTime ?? range.start),
-        timeEnd: r2(current?.params?.timeEnd ?? layer.props.loopEndTime ?? range.end)
-      },
-      title: `Animation Loop: ${speed.toFixed(1)}x · ${rhythmMode === 'flicker_opacity' ? 'Nháy mờ' : rhythmMode === 'pulse_scale' ? 'Nhịp Scale' : 'Nhịp & Nháy'}`
-    }
+function deriveAnimFx(layer: Layer, compDur: number, current?: WorkflowNode): Derived {
+  const range = resolveLayerNodeTimeRange(layer, compDur)
+  const hasRigClip =
+    Boolean(current) &&
+    (current?.params?.animMode === 'rig_clip' ||
+      Boolean(current?.params?.customActionId) ||
+      (Boolean(current?.params?.rigActionPreset) && current?.params?.rigActionPreset !== 'none'))
+  const rigOpt = WORKFLOW_V2_RIG_PRESET_OPTIONS.find((r) => r.id === (current?.params?.rigActionPreset ?? 'idle'))
+  const cleanRigName = rigOpt ? rigOpt.shortLabel.replace(/^[^\wÀ-ỹ]+\s*/, '') : 'Cử động Xương'
+  return {
+    present: hasRigClip,
+    enabled: hasRigClip ? Boolean(current?.enabled) : false,
+    params: {
+      animMode: 'rig_clip',
+      rigActionPreset: current?.params?.rigActionPreset ?? 'idle',
+      ...(current?.params?.customActionId ? { customActionId: current.params.customActionId } : {}),
+      ...(current?.params?.customActionSpeedHz !== undefined ? { customActionSpeedHz: current.params.customActionSpeedHz } : {}),
+      intensity: current?.params?.intensity ?? 1,
+      staggerPhase: current?.params?.staggerPhase,
+      timeStart: r2(current?.params?.timeStart ?? range.start),
+      timeEnd: r2(current?.params?.timeEnd ?? range.end)
+    },
+    title: `Hành động Nhân vật: ${cleanRigName}`
   }
-  if (
-    current &&
-    (current.params?.animMode === 'rig_clip' ||
-      (current.params?.rigActionPreset && current.params.rigActionPreset !== 'none'))
-  ) {
-    const range = resolveLayerNodeTimeRange(layer, compDur)
-    const rigOpt = WORKFLOW_V2_RIG_PRESET_OPTIONS.find((r) => r.id === current.params?.rigActionPreset)
-    const cleanRigName = rigOpt ? rigOpt.shortLabel.replace(/^[^\wÀ-ỹ]+\s*/, '') : 'Cử động Xương'
-    return {
-      present: true,
-      enabled: current.enabled,
-      params: {
-        animMode: 'rig_clip',
-        rigActionPreset: current.params?.rigActionPreset ?? 'idle',
-        intensity: current.params?.intensity ?? 1,
-        staggerPhase: current.params?.staggerPhase,
-        timeStart: r2(current.params?.timeStart ?? range.start),
-        timeEnd: r2(current.params?.timeEnd ?? range.end)
-      },
-      title: `Hoạt ảnh Xương: ${cleanRigName}`
-    }
-  }
+}
+
+function deriveFx(layer: Layer, compDur: number, current?: WorkflowNode): Derived {
+  const range = resolveLayerNodeTimeRange(layer, compDur)
   const fxList = (layer.appliedEffects ?? []).filter((f) => f.category !== 'motion' && !isLoopComboFxId(f.id))
   const primary = fxList[fxList.length - 1]
-  const present = Boolean(primary)
-  const opt = WORKFLOW_V2_ANIM_FX_OPTIONS.find((o) => o.id === primary?.presetId) ?? WORKFLOW_V2_ANIM_FX_OPTIONS[0]
-  const range = resolveLayerNodeTimeRange(layer, compDur)
-  const start = typeof primary?.startTime === 'number' ? primary.startTime : range.start
-  const end = primary?.duration && primary.duration > 0 ? start + primary.duration : range.end
+  const fadeInSec = Math.max(layer.fadeIn ?? 0, layer.type === 'image' ? (layer.props.loopFadeInSec ?? 0) : 0)
+  const fadeOutSec = Math.max(layer.fadeOut ?? 0, layer.type === 'image' ? (layer.props.loopFadeOutSec ?? 0) : 0)
+  const endAction =
+    layer.type === 'image' && layer.props.loopEndAction === 'fade_out'
+      ? 'fade_out'
+      : (current?.params?.loopEndAction ?? (fadeOutSec > 0 ? 'fade_out' : 'hold'))
+  const hasAppearFade = fadeInSec > 0.01 || fadeOutSec > 0.01 || (layer.type === 'image' && layer.props.loopEndAction === 'fade_out')
+  const rhythmMode =
+    layer.type === 'image' && layer.props.loopRhythmMode && layer.props.loopRhythmMode !== 'none'
+      ? layer.props.loopRhythmMode
+      : (current?.params?.loopRhythmMode ?? 'none')
+  const hasRhythm = layer.type === 'image' && Boolean(layer.props.loopRhythmMode && layer.props.loopRhythmMode !== 'none')
+  const hasOpticalFx = Boolean(current?.params?.fxKind && current.params.fxKind !== 'wind_physics' && layer.glow?.enabled)
+  const present = Boolean(primary) || hasAppearFade || hasRhythm || hasOpticalFx
+
+  const opt =
+    WORKFLOW_V2_ANIM_FX_OPTIONS.find((o) => o.id === (primary?.presetId ?? current?.params?.animFxPreset)) ??
+    WORKFLOW_V2_ANIM_FX_OPTIONS[0]
+  const start =
+    typeof primary?.startTime === 'number'
+      ? primary.startTime
+      : (current?.params?.timeStart ?? (layer.type === 'image' ? layer.props.loopStartTime : undefined) ?? range.start)
+  const end =
+    primary?.duration && primary.duration > 0
+      ? start + primary.duration
+      : (current?.params?.timeEnd ?? (layer.type === 'image' ? layer.props.loopEndTime : undefined) ?? range.end)
   const extraCount = fxList.length > 1 ? ` (+${fxList.length - 1})` : ''
+
+  let title = `Hiệu ứng: ${opt.label}${extraCount}`
+  if (!primary && hasAppearFade && hasRhythm) {
+    title = `Hiệu ứng: Mờ dần & Nhịp Beat`
+  } else if (!primary && hasAppearFade) {
+    title = `Hiệu ứng: Hiện ${fadeInSec.toFixed(1)}s · Ẩn mờ ${fadeOutSec.toFixed(1)}s`
+  } else if (!primary && hasRhythm) {
+    title = `Hiệu ứng: Nhịp Beat (${rhythmMode === 'flicker_opacity' ? 'Nháy mờ' : rhythmMode === 'pulse_scale' ? 'Nhịp Scale' : 'Nhịp & Nháy'})`
+  } else if (!primary && hasOpticalFx) {
+    const fxOpt = WORKFLOW_V2_FX_OPTIONS.find((o) => o.id === current?.params?.fxKind)
+    title = `Hiệu ứng: ${fxOpt?.label ?? 'Quang học'}`
+  }
+
   return {
     present,
-    enabled: present && fxList.some((f) => f.enabled !== false),
+    enabled:
+      present &&
+      (primary
+        ? fxList.some((f) => f.enabled !== false)
+        : current
+          ? current.enabled
+          : true),
     params: {
       animMode: 'keyframe_fx',
-      animFxPreset: opt.id,
-      animFxCount: primary?.count ?? opt.defaultCount,
-      intensity: primary?.intensity ?? opt.defaultIntensity,
-      animFxColor: primary?.glow?.color ?? opt.defaultColor,
-      animFxThickness: primary?.glow?.thickness,
-      animFxSide: primary?.glow?.side,
-      animFxSpeed: primary?.glow?.speed,
-      animFxMinIntensity: primary?.glow?.minIntensity,
+      fxSubTab:
+        current?.params?.fxSubTab ??
+        (hasAppearFade && !primary ? 'opacity' : hasRhythm && !primary ? 'pulse' : opt.fxCategory === 'glow' || hasOpticalFx ? 'glow' : 'opacity'),
+      animFxPreset: primary?.presetId ?? current?.params?.animFxPreset ?? opt.id,
+      animFxCount: primary?.count ?? current?.params?.animFxCount ?? opt.defaultCount,
+      intensity: primary?.intensity ?? current?.params?.intensity ?? opt.defaultIntensity,
+      animFxColor: primary?.glow?.color ?? current?.params?.animFxColor ?? opt.defaultColor,
+      animFxThickness: primary?.glow?.thickness ?? current?.params?.animFxThickness,
+      animFxSide: primary?.glow?.side ?? current?.params?.animFxSide,
+      animFxSpeed: primary?.glow?.speed ?? current?.params?.animFxSpeed,
+      animFxMinIntensity: primary?.glow?.minIntensity ?? current?.params?.animFxMinIntensity,
+      loopFadeInSec: fadeInSec > 0 ? r2(fadeInSec) : (current?.params?.loopFadeInSec ?? 0),
+      loopFadeOutSec: fadeOutSec > 0 ? r2(fadeOutSec) : (current?.params?.loopFadeOutSec ?? 0),
+      loopEndAction: endAction,
+      loopRhythmMode: rhythmMode,
+      loopRhythmRateHz: layer.type === 'image' ? (layer.props.loopRhythmRateHz ?? current?.params?.loopRhythmRateHz ?? 2.5) : 2.5,
+      loopRhythmIntensity: layer.type === 'image' ? (layer.props.loopRhythmIntensity ?? current?.params?.loopRhythmIntensity ?? 0.45) : 0.45,
+      loopMinOpacity: layer.type === 'image' ? (layer.props.loopMinOpacity ?? current?.params?.loopMinOpacity ?? 0.55) : 0.55,
+      loopScaleBeatPct: layer.type === 'image' ? (layer.props.loopScaleBeatPct ?? current?.params?.loopScaleBeatPct ?? 12) : 12,
+      ...(current?.params?.fxKind ? { fxKind: current.params.fxKind } : {}),
       timeStart: r2(start),
       timeEnd: r2(end)
     },
-    title: `Hoạt ảnh FX: ${opt.label}${extraCount}`
+    title
   }
 }
 
@@ -283,8 +340,10 @@ function mergeDerivedParams(current: WorkflowNodeParams, derived: Partial<Workfl
 }
 
 const NODE_META: Record<DerivedCategory, Pick<WorkflowNode, 'type' | 'preset' | 'aiAgentRole'>> = {
+  loop_anim: { type: 'motion_choreography', preset: 'organic_wind_breathe', aiAgentRole: 'MotionChoreographyAgent' },
   action: { type: 'motion_choreography', preset: 'organic_wind_breathe', aiAgentRole: 'MotionChoreographyAgent' },
   anim_fx: { type: 'motion_choreography', preset: 'organic_wind_breathe', aiAgentRole: 'MotionChoreographyAgent' },
+  fx: { type: 'physics_fx', preset: 'rim_glow_particles', aiAgentRole: 'PhysicsLightFxAgent' },
   light: { type: 'physics_fx', preset: 'rim_glow_particles', aiAgentRole: 'PhysicsLightFxAgent' },
   cave: { type: 'physics_fx', preset: 'rim_glow_particles', aiAgentRole: 'PhysicsLightFxAgent' },
   audio: { type: 'audio_lipsync', preset: 'auto_dialogue_lipsync', aiAgentRole: 'AudioLipSyncAgent' }
@@ -358,11 +417,12 @@ export function deriveLogicFromLayers(
       attachedToCluster.some((n) => n.params?.logicCategory === 'fx' && n.params?.fxKind !== 'wind_physics' && n.enabled) ||
       memberLayers.some((l) => (l.appliedEffects ?? []).some((f) => f.category === 'glow' && f.enabled !== false))
 
-    for (const cat of ['action', 'anim_fx', 'light', 'cave', 'audio'] as DerivedCategory[]) {
+    for (const cat of ['action', 'anim_fx', 'fx', 'light', 'cave', 'audio'] as DerivedCategory[]) {
       const current = attachedToCluster.find((n) => n.params?.logicCategory === cat)
       const presentMembers = memberLayers.filter((ml) => {
         if (cat === 'action') return deriveAction(ml, compDur).present
-        if (cat === 'anim_fx') return deriveAnimFx(ml, compDur).present
+        if (cat === 'anim_fx') return deriveAnimFx(ml, compDur, current).present
+        if (cat === 'fx') return deriveFx(ml, compDur, current).present
         if (cat === 'light') return deriveLight(ml, compDur, fxGlowCluster, current).present
         if (cat === 'cave') return deriveCave(ml, compDur).present
         return false
@@ -381,11 +441,13 @@ export function deriveLogicFromLayers(
           ? deriveAction(refLayer, compDur, current)
           : cat === 'anim_fx'
             ? deriveAnimFx(refLayer, compDur, current)
-            : cat === 'light'
-              ? deriveLight(refLayer, compDur, fxGlowCluster, current)
-              : cat === 'cave'
-                ? deriveCave(refLayer, compDur)
-                : deriveAudio(clusterAudioTrack ?? findLayerAudioTrack(project, rootLayer, memberIds, true), rootLayer, compDur)
+            : cat === 'fx'
+              ? deriveFx(refLayer, compDur, current)
+              : cat === 'light'
+                ? deriveLight(refLayer, compDur, fxGlowCluster, current)
+                : cat === 'cave'
+                  ? deriveCave(refLayer, compDur)
+                  : deriveAudio(clusterAudioTrack ?? findLayerAudioTrack(project, rootLayer, memberIds, true), rootLayer, compDur)
 
       clusterOwnedCats.add(`${instId}:${cat}`)
       if (!current) {
@@ -418,15 +480,17 @@ export function deriveLogicFromLayers(
     const fxGlow =
       attached.some((n) => n.params?.logicCategory === 'fx' && n.params?.fxKind !== 'wind_physics' && n.enabled) ||
       (layer.appliedEffects ?? []).some((f) => f.category === 'glow' && f.enabled !== false)
-    for (const cat of ['action', 'anim_fx', 'light', 'cave', 'audio'] as DerivedCategory[]) {
+    for (const cat of ['loop_anim', 'action', 'anim_fx', 'fx', 'light', 'cave', 'audio'] as DerivedCategory[]) {
       const current = attached.find((n) => n.params?.logicCategory === cat)
       if (!current && instId && clusterOwnedCats.has(`${instId}:${cat}`)) continue
       const d =
-        cat === 'action' ? deriveAction(layer, compDur, current)
-          : cat === 'anim_fx' ? deriveAnimFx(layer, compDur, current)
-            : cat === 'light' ? deriveLight(layer, compDur, fxGlow, current)
-              : cat === 'cave' ? deriveCave(layer, compDur)
-                : deriveAudio(findLayerAudioTrack(project, layer, memberIds, !instId), layer, compDur)
+        cat === 'loop_anim' ? deriveLoopAnim(layer, project, compDur, current)
+          : cat === 'action' ? deriveAction(layer, compDur, current)
+            : cat === 'anim_fx' ? deriveAnimFx(layer, compDur, current)
+              : cat === 'fx' ? deriveFx(layer, compDur, current)
+                : cat === 'light' ? deriveLight(layer, compDur, fxGlow, current)
+                  : cat === 'cave' ? deriveCave(layer, compDur)
+                    : deriveAudio(findLayerAudioTrack(project, layer, memberIds, !instId), layer, compDur)
       if (!current) {
         if (!d.present) continue
         let id = `v2-${cat}-${layer.id}`

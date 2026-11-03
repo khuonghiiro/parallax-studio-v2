@@ -173,10 +173,11 @@ export const WORKFLOW_V2_COLLISION_OPTIONS: WorkflowV2CollisionOption[] = [
 
 export const LOGIC_CATEGORY_LABELS: Record<string, string> = {
   cluster_lock: '🔒 Khoá Cụm',
+  loop_anim: '🔁 Animation Loop',
   part_swap: '🧩 Bộ phận',
   rig_bone: '🦴 Gắn xương',
   action: '🏃 Motion',
-  anim_fx: '🎞️ Animation',
+  anim_fx: '🎞️ Hành động Nhân vật',
   material: '🏷️ Vật liệu',
   collision: '💥 Va chạm Vật lý',
   light: '💡 Ánh sáng',
