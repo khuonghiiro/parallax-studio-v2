@@ -41,3 +41,9 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.wf-loop-lifecycle .wf-v2-opt-pill,
+.wf-loop-combo .wf-v2-opt-pill {
+  padding: 4px 4px;
+  font-size: 10.5px;
+}

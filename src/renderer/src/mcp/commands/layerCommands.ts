@@ -227,7 +227,24 @@ export const layerCommands: Record<string, Handler> = {
       if (has(p, 'out_point')) l.outPoint = num(p, 'out_point')!
       const blend = blendOf(p)
       if (blend) l.blendMode = blend
-      const map = l.type === 'text' ? TEXT_MAP : l.type === 'solid' ? SOLID_MAP : l.type === 'particles' ? PARTICLE_MAP : {}
+      const IMAGE_MAP = {
+        speed: 'speed',
+        loop_mode: 'loopMode',
+        time_offset: 'timeOffset',
+        auto_play_paused: 'autoPlayPaused',
+        loop_rhythm_mode: 'loopRhythmMode',
+        loop_rhythm_rate_hz: 'loopRhythmRateHz',
+        loop_rhythm_intensity: 'loopRhythmIntensity',
+        loop_min_opacity: 'loopMinOpacity',
+        loop_scale_beat_pct: 'loopScaleBeatPct',
+        loop_play_count: 'loopPlayCount',
+        loop_start_time: 'loopStartTime',
+        loop_end_time: 'loopEndTime',
+        loop_end_action: 'loopEndAction',
+        loop_fade_in_sec: 'loopFadeInSec',
+        loop_fade_out_sec: 'loopFadeOutSec'
+      }
+      const map = l.type === 'image' ? IMAGE_MAP : l.type === 'text' ? TEXT_MAP : l.type === 'solid' ? SOLID_MAP : l.type === 'particles' ? PARTICLE_MAP : {}
       mergeProps(l as Layer, p, map)
       if (Array.isArray(p.repeat) && p.repeat.length === 2 && l.type === 'image') {
         l.props.repeat = [Number(p.repeat[0]) || 1, Number(p.repeat[1]) || 1]

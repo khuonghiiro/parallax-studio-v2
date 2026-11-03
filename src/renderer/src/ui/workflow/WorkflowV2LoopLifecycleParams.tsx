@@ -11,9 +11,9 @@ import '../../styles/workflowLoopLifecycle.css'
 type UpdateFn = (patch: Partial<WorkflowNodeParams>, directiveLabel?: string) => void
 
 const END_ACTIONS: { id: 'hold' | 'hide' | 'fade_out'; label: string }[] = [
-  { id: 'hold', label: '⏸ Giữ khung cuối' },
+  { id: 'hold', label: '⏸ Giữ cuối' },
   { id: 'hide', label: '🙈 Ẩn ngay' },
-  { id: 'fade_out', label: '🌫 Mờ dần rồi ẩn' }
+  { id: 'fade_out', label: '🌫 Mờ rồi ẩn' }
 ]
 
 /** Vòng đời Loop: số lần chạy, hiện dần lúc xuất hiện, hành vi khi kết thúc (giữ / ẩn / mờ dần) */

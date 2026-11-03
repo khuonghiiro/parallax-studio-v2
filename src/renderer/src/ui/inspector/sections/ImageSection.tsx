@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import type { Layer, LoopAnimationMode, LoopRhythmMode, Vec3 } from '@shared/types'
+import type { Layer, LoopAnimationMode, LoopEndAction, LoopRhythmMode, Vec3 } from '@shared/types'
 import { toast } from '../../../actions'
 import { setValueAt } from '../../../animation/keyframes'
 import { referenceDistance } from '../../../animation/math'
@@ -183,6 +183,72 @@ export function ImageSection({ layer, set }: { layer: Layer & { type: 'image' };
               }
             />
           </Row>
+          {(layer.props.loopMode ?? 'loop') === 'once' && (
+            <Row label="Số vòng lặp" title="Số chu kỳ lặp trước khi kết thúc (chế độ Chạy 1 lần)">
+              <Slider
+                value={layer.props.loopPlayCount ?? 1}
+                min={1}
+                max={20}
+                step={1}
+                format={(v) => `${Math.round(v)} lần`}
+                onChange={(v) =>
+                  set((l) => {
+                    if (l.type === 'image') l.props.loopPlayCount = Math.max(1, Math.round(v))
+                  })
+                }
+              />
+            </Row>
+          )}
+          <Row label="Hiện mờ → nét" title="Thời gian hiện dần từ trong suốt đến rõ nét lúc bắt đầu">
+            <Slider
+              value={layer.props.loopFadeInSec ?? 0}
+              min={0}
+              max={3}
+              step={0.05}
+              format={(v) => (v <= 0.001 ? 'Tắt' : `${v.toFixed(2)}s`)}
+              onChange={(v) =>
+                set((l) => {
+                  if (l.type === 'image') l.props.loopFadeInSec = Math.max(0, v)
+                })
+              }
+            />
+          </Row>
+          <Row label="Khi hết lặp" title="Hành vi sau khi chạy hết số vòng (Chạy 1 lần) hoặc hết thời lượng Node">
+            <Select
+              value={layer.props.loopEndAction ?? 'hold'}
+              options={[
+                { value: 'hold', label: '⏸ Giữ frame cuối (Hold)' },
+                { value: 'hide', label: '🚫 Ẩn ngay (Hide)' },
+                { value: 'fade_out', label: '🌫 Mờ dần rồi ẩn (Fade Out)' }
+              ]}
+              onChange={(val) =>
+                set((l) => {
+                  if (l.type === 'image') {
+                    l.props.loopEndAction = val as LoopEndAction
+                    if (val === 'fade_out' && (!l.props.loopFadeOutSec || l.props.loopFadeOutSec <= 0)) {
+                      l.props.loopFadeOutSec = 0.35
+                    }
+                  }
+                })
+              }
+            />
+          </Row>
+          {(layer.props.loopEndAction ?? 'hold') === 'fade_out' && (
+            <Row label="Ẩn mờ dần" title="Thời gian mờ dần trước khi ẩn hoàn toàn">
+              <Slider
+                value={layer.props.loopFadeOutSec ?? 0.35}
+                min={0.05}
+                max={3}
+                step={0.05}
+                format={(v) => `${v.toFixed(2)}s`}
+                onChange={(v) =>
+                  set((l) => {
+                    if (l.type === 'image') l.props.loopFadeOutSec = Math.max(0.05, v)
+                  })
+                }
+              />
+            </Row>
+          )}
           <Row label="Lệch pha">
             <Slider
               value={layer.props.timeOffset ?? 0}
