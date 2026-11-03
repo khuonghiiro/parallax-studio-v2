@@ -178,7 +178,7 @@ function TimelineLayerRowComponent({
                   : undefined
             }}
           >
-            <button className="mini" aria-expanded={isOpen} title="Thu gọn / mở thuộc tính layer" data-expand-layer={layer.id} onClick={(e) => (e.stopPropagation(), onToggleOpen())}>
+            <button className="mini" aria-expanded={isOpen} title="Thu gọn / mở thuộc tính layer" data-expand-layer={layer.id} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => (e.stopPropagation(), onToggleOpen())}>
               <IconCaret className={`caret${isOpen ? ' open' : ''}`} />
             </button>
             {layerIndex !== undefined && (

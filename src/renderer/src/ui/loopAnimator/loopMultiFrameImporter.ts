@@ -134,27 +134,26 @@ export function sortAndAssignFrameFiles<T extends { name: string }>(
 }
 
 /**
- * Tính số hàng và cột tối ưu khi ghép nhiều frame thành Sprite Sheet
+ * Tính số hàng và cột tối ưu khi ghép nhiều frame thành Sprite Sheet:
+ * Khi có từ 3 frame trở lên, chia làm 3 hàng với bấy nhiêu cột (chạy từ trái sang phải, từ trên xuống dưới).
  */
 export function calculateMultiFrameGrid(
   count: number,
-  maxW: number,
-  _maxH: number,
+  maxW?: number,
+  _maxH?: number,
   maxTextureDimension = 8192
 ): { cols: number; rows: number } {
   if (count <= 1) return { cols: 1, rows: 1 }
+  if (count < 3) return { cols: count, rows: 1 }
 
-  // Ưu tiên trải 1 hàng ngang nếu không vượt ngưỡng texture để dải frame trực quan
-  if (count * maxW <= maxTextureDimension) {
-    return { cols: count, rows: 1 }
+  const targetRows = 3
+  let cols = Math.ceil(count / targetRows)
+  if (maxW && maxW > 0) {
+    while (cols > 1 && cols * maxW > maxTextureDimension) {
+      cols--
+    }
   }
-
-  // Chia lưới cân bằng
-  let cols = Math.min(count, Math.max(2, Math.ceil(Math.sqrt(count))))
-  while (cols > 1 && cols * maxW > maxTextureDimension) {
-    cols--
-  }
-  const rows = Math.ceil(count / cols)
+  const rows = Math.max(targetRows, Math.ceil(count / cols))
   return { cols, rows }
 }
 

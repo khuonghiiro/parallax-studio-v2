@@ -129,8 +129,10 @@ export interface LoopAnimationTemplate {
   description: string
   /** Source sprite sheet url or data URL */
   imageUrl: string
-  /** Cropped Frame #1 preview PNG data URL (with Chroma Key removed) */
+  /** Cropped preview PNG data URL (with Chroma Key removed) */
   thumbUrl?: string
+  /** Chỉ số khung hình (0-based) được chọn làm ảnh đại diện thumbnail (mặc định 0 = Frame #1) */
+  thumbnailFrameIndex?: number
   /** Các frame ảnh PNG trong suốt đã tách nền sẵn (Data URLs) để tái sử dụng ngay lập tức mà không phải khử nền hay cắt lại */
   renderedFrames?: string[]
   /** Toàn bộ sprite sheet đã khử nền trong suốt hoàn toàn (PNG Data URL) */

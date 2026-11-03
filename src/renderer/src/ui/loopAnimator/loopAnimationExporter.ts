@@ -1,11 +1,13 @@
 import type { AssetMeta } from '@shared/types'
 import { assetStore, type AnimatedGifData, type GifFrame } from '../../project/assets'
 import { createImageLayer } from '../../project/factory'
+import { computeShotRoute } from '../../project/workflowV2Engine'
 import { useEditor } from '../../store/editor'
 import {
   applyChromaKeyToImageData,
   buildGridFrames,
   clearGridBorderPadding,
+  computeLoopSheetGrid,
   extractFrameCanvas,
   getCachedLoopTemplateSheet
 } from './loopFrameExtractor'
@@ -122,8 +124,23 @@ export async function applyLoopAnimationToProject(
   runtimeAsset.gif = gifData
 
   const editor = useEditor.getState()
-  const targetShotId =
-    shotId !== undefined ? shotId : editor.selectedShotId ?? editor.project.shots[0]?.id ?? null
+  const route = computeShotRoute(editor.project)
+  const resolveDefaultShotId = (): string | null => {
+    const sel = editor.selectedShotId
+    const t = editor.time
+    if (sel && editor.project.shots.some((s) => s.id === sel)) {
+      const selRange = route.ranges.get(sel)
+      if (!selRange || (t >= selRange.start - 1e-3 && t <= selRange.end + 1e-3)) {
+        return sel
+      }
+    }
+    for (const s of route.order) {
+      const r = route.ranges.get(s.id)
+      if (r && t >= r.start - 1e-3 && t <= r.end + 1e-3) return s.id
+    }
+    return sel ?? editor.project.shots[0]?.id ?? null
+  }
+  const targetShotId = shotId !== undefined ? shotId : resolveDefaultShotId()
   const layer = createImageLayer(meta, editor.project.comp, 0)
   layer.name = layerName.trim() || 'Hoạt ảnh Loop'
   layer.shotId = targetShotId
@@ -156,10 +173,11 @@ export async function applyLoopAnimationToProject(
     layer.props.loopMinOpacity = rhythm.minOpacity
     layer.props.loopScaleBeatPct = rhythm.scaleBeatPct
   }
-
   editor.update((p) => {
     p.assets.push(meta)
-    p.layers.unshift(layer)
+    const firstShotIdx = p.layers.findIndex((l) => l.shotId === targetShotId)
+    if (firstShotIdx < 0) p.layers.unshift(layer)
+    else p.layers.splice(firstShotIdx, 0, layer)
   })
   editor.selectLayer(layer.id)
 
@@ -574,7 +592,7 @@ export async function syncSceneAndCompositesWithLoopTemplate(
       frames: cachedSheet?.frames || template.frames,
       renderedFrames: template.renderedFrames,
       gridConfig: cachedSheet
-        ? { cols: cachedSheet.frames.length, rows: 1, marginX: 0, marginY: 0, paddingX: 0, paddingY: 0 }
+        ? { ...computeLoopSheetGrid(cachedSheet.frames.length), marginX: 0, marginY: 0, paddingX: 0, paddingY: 0 }
         : template.gridConfig,
       chromaKey:
         cachedSheet || template.transparentSheetUrl

@@ -154,6 +154,7 @@ export function LoopAnimatorDialog({ isOpen = true, onClose, initialImageUrl }: 
           rhythm: playback.rhythm,
           baseMeshWidth,
           baseMeshHeight,
+          thumbnailFrameIndex: useLoopAnimator.getState().focusedFrameIndex ?? 0,
           sourceConfig: {
             slicerMode,
             gridConfig,
@@ -218,6 +219,7 @@ export function LoopAnimatorDialog({ isOpen = true, onClose, initialImageUrl }: 
         rhythm: playback.rhythm,
         baseMeshWidth,
         baseMeshHeight,
+        thumbnailFrameIndex: useLoopAnimator.getState().focusedFrameIndex ?? 0,
         sourceConfig: {
           slicerMode,
           gridConfig,

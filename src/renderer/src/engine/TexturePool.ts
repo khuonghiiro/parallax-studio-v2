@@ -66,7 +66,14 @@ export class TexturePool {
   }
 
   has(key: string): boolean {
-    return this.pool.has(key)
+    if (this.pool.has(key)) return true
+    if (key.startsWith('img:')) {
+      const assetId = key.slice(4)
+      if (this.pool.has(`gif:${assetId}:f0`)) return true
+      const asset = assetStore.get(assetId)
+      if (asset?.gif && asset.gif.frames.length > 0) return true
+    }
+    return false
   }
 
   get(key: string): TexEntry | undefined {

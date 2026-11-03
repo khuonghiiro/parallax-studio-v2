@@ -67,7 +67,13 @@ export function startGizmoDrag(
   const point = (ev: { clientX: number; clientY: number }): Point => [ev.clientX - bounds.left, ev.clientY - bounds.top]
   const startPt = point(e)
 
-  const isGroup = (!!el.layer.model3d || !!(el.layer.composite?.lockedGroup)) && !!modelLayers && modelLayers.length > 0
+  const isClusterScope = initial.layerSelectionScope !== 'layer'
+  const isGroup =
+    ((!!el.layer.model3d && el.layer.model3d.lockedGroup !== false) ||
+      !!(el.layer.composite && el.layer.composite.lockedGroup !== false)) &&
+    isClusterScope &&
+    !!modelLayers &&
+    modelLayers.length > 0
   let modelPivot = new THREE.Vector3()
   let modelCenter: Point = [0, 0]
   let startDist = 1

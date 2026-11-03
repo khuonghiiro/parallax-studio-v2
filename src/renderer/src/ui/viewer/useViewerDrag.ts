@@ -83,8 +83,10 @@ export function useViewerDrag({
     const el = ev.layers.find((l) => l.layer.id === id)
     if (!el || el.layer.locked) return
     const compRef = el.layer.composite
-    const isCompLocked = !!compRef?.lockedGroup
-    const modelInstanceId = el.layer.model3d?.instanceId
+    const isClusterScope = s.layerSelectionScope !== 'layer'
+    const isCompLocked = !!compRef && compRef.lockedGroup !== false && isClusterScope
+    const isModelLocked = !!el.layer.model3d && el.layer.model3d.lockedGroup !== false && isClusterScope
+    const modelInstanceId = isModelLocked ? el.layer.model3d?.instanceId : undefined
     const compInstanceId = isCompLocked ? compRef?.instanceId : undefined
 
     const related = modelInstanceId

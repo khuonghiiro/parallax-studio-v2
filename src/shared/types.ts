@@ -111,6 +111,7 @@ export interface LoopAnimationPackageJson {
   baseMeshHeight?: number
   duration: number
   thumbnail?: string
+  thumbnailFrameIndex?: number
   colorConfig?: LoopColorConfig
   rhythm?: {
     rhythmMode: LoopRhythmMode
@@ -316,6 +317,7 @@ export interface LayerModel3DRef {
   modelId: string // e.g. 'model-tudor-cottage'
   modelName: string // e.g. 'Ngôi Nhà Tudor 3D'
   faceId: string // e.g. 'face-front'
+  isRoot?: boolean
   initialScale: number // base scale of the model (e.g. 0.6)
   globalScale: number // current overall scale factor
   basePosition: Vec3 // unscaled face offset from model origin [x, y, z]

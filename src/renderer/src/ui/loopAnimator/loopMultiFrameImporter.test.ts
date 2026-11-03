@@ -159,9 +159,12 @@ describe('loopMultiFrameImporter', () => {
       expect(calculateMultiFrameGrid(1, 1024, 1024)).toEqual({ cols: 1, rows: 1 })
     })
 
-    it('trả về 1 hàng ngang nếu không vượt quá giới hạn texture', () => {
-      expect(calculateMultiFrameGrid(4, 512, 512)).toEqual({ cols: 4, rows: 1 })
-      expect(calculateMultiFrameGrid(4, 2048, 2048)).toEqual({ cols: 4, rows: 1 })
+    it('chia thành 3 hàng với số cột tương ứng (trái sang phải, trên xuống dưới) khi từ 3 frame trở lên', () => {
+      expect(calculateMultiFrameGrid(2, 512, 512)).toEqual({ cols: 2, rows: 1 })
+      expect(calculateMultiFrameGrid(3, 512, 512)).toEqual({ cols: 1, rows: 3 })
+      expect(calculateMultiFrameGrid(4, 512, 512)).toEqual({ cols: 2, rows: 3 })
+      expect(calculateMultiFrameGrid(12, 512, 512)).toEqual({ cols: 4, rows: 3 })
+      expect(calculateMultiFrameGrid(16, 1024, 1024)).toEqual({ cols: 6, rows: 3 })
     })
 
     it('chia lưới hàng x cột cân bằng khi tổng chiều ngang vượt quá ngưỡng texture', () => {

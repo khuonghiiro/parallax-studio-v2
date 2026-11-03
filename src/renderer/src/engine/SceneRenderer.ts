@@ -1,6 +1,6 @@
 import { updatePhysicsPlaneGeometry, updateSkinGeometry } from './imageMesh/updateSkinGeometry'
 import * as THREE from 'three'
-import type { LookSettings, Project } from '@shared/types'
+import type { Layer, LookSettings, Project } from '@shared/types'
 import { assetStore } from '../project/assets'
 import { evaluateScene, type EvaluatedScene } from './evaluateScene'
 import { EditorHelpers, type HelperLayerInfo, type ScreenLabel } from './editorHelpers'
@@ -703,24 +703,42 @@ export class SceneRenderer {
    * Returns the top-most opaque layer under normalized device coords of `cam`'s viewport.
    * In the camera view only drawn layers are pickable; in the 3D view any active layer is.
    */
-  pick(ndcX: number, ndcY: number, project: Project, cam: THREE.Camera = this.camera, onlyVisible = true): string | null {
+  pick(
+    ndcX: number,
+    ndcY: number,
+    project: Project,
+    cam: THREE.Camera = this.camera,
+    onlyVisible = true,
+    preferredLayerId?: string | null
+  ): string | null {
     this.raycaster.setFromCamera(new THREE.Vector2(ndcX, ndcY), cam)
     const ev = this.lastScene
     const active = new Set(ev?.layers.filter((l) => l.active).map((l) => l.layer.id))
     const candidates: THREE.Object3D[] = []
     const byObj = new Map<THREE.Object3D, LayerNode>()
+    const layerById = new Map<string, Layer>()
     for (const layer of project.layers) {
       const node = this.nodes.get(layer.id)
       if (!node || layer.locked || node.type === 'particles') continue
       if (onlyVisible ? !node.object.visible : !active.has(layer.id)) continue
       candidates.push(node.object)
       byObj.set(node.object, node)
+      layerById.set(layer.id, layer)
     }
     const hits = this.raycaster.intersectObjects(candidates, false)
     if (onlyVisible) hits.sort((a, b) => b.object.renderOrder - a.object.renderOrder)
     for (const hit of hits) {
       const node = byObj.get(hit.object)!
-      if (!node.alpha || !hit.uv || !node.resident) return node.id
+      if (preferredLayerId && node.id === preferredLayerId) return node.id
+      const layer = layerById.get(node.id)
+      const isAnimatedLoop =
+        layer?.type === 'image' &&
+        Boolean(
+          layer.props.loopTemplateId ||
+            layer.props.loopJsonPath ||
+            (layer.props.assetId && assetStore.get(layer.props.assetId)?.gif)
+        )
+      if (isAnimatedLoop || !node.alpha || !hit.uv || !node.resident) return node.id
       const { w, h, data } = node.alpha
       const x = Math.min(w - 1, Math.max(0, Math.floor(hit.uv.x * w)))
       const y = Math.min(h - 1, Math.max(0, Math.floor((1 - hit.uv.y) * h)))

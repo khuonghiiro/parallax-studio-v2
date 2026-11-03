@@ -640,14 +640,34 @@ export function extractAllFramesAsDataUrls(
   })
 }
 
+/**
+ * Tính số cột × hàng chuẩn (3 hàng × N cột từ trái sang phải, từ trên xuống dưới khi >= 3 frame)
+ * để hiển thị gọn gàng trong Xưởng Tách Hoạt Ảnh thay vì trải dài 1 hàng ngang.
+ */
+export function computeLoopSheetGrid(frameCount: number): { cols: number; rows: number } {
+  if (frameCount <= 1) return { cols: 1, rows: 1 }
+  if (frameCount < 3) return { cols: frameCount, rows: 1 }
+  const rows = 3
+  const cols = Math.ceil(frameCount / rows)
+  return { cols, rows }
+}
+
 export function extractFirstFramePreviewUrl(
   sourceCanvas: HTMLCanvasElement,
   frames: LoopFrameBox[],
-  maxSize = 256
+  maxSize = 256,
+  preferredFrameIndex?: number
 ): string {
-  const firstFrame = frames.find((f) => f.enabled) ?? frames[0]
-  if (!firstFrame) return sourceCanvas.toDataURL('image/png')
-  const rawCanvas = extractFrameCanvas(sourceCanvas, firstFrame, firstFrame.width, firstFrame.height)
+  const preferred =
+    typeof preferredFrameIndex === 'number' &&
+    preferredFrameIndex >= 0 &&
+    preferredFrameIndex < frames.length &&
+    frames[preferredFrameIndex]?.enabled
+      ? frames[preferredFrameIndex]
+      : undefined
+  const targetFrame = preferred ?? frames.find((f) => f.enabled) ?? frames[0]
+  if (!targetFrame) return sourceCanvas.toDataURL('image/png')
+  const rawCanvas = extractFrameCanvas(sourceCanvas, targetFrame, targetFrame.width, targetFrame.height)
   const scale = Math.min(1, maxSize / Math.max(1, rawCanvas.width, rawCanvas.height))
   if (scale >= 0.99) return rawCanvas.toDataURL('image/png')
 
@@ -741,22 +761,25 @@ async function loadPackageHorizontalSheet(slug: string): Promise<CachedLoopSprit
 
   const frameW = Math.max(1, pkg.width || 0, ...valid.map((v) => v.canvas.width))
   const frameH = Math.max(1, pkg.height || 0, ...valid.map((v) => v.canvas.height))
+  const grid = computeLoopSheetGrid(valid.length)
   const stripCanvas = document.createElement('canvas')
-  stripCanvas.width = frameW * valid.length
-  stripCanvas.height = frameH
+  stripCanvas.width = frameW * grid.cols
+  stripCanvas.height = frameH * grid.rows
   const sctx = stripCanvas.getContext('2d')
   if (!sctx) return null
-
   const stripFrames: LoopFrameBox[] = valid.map((v, idx) => {
-    const x = idx * frameW
+    const col = idx % grid.cols
+    const row = Math.floor(idx / grid.cols)
+    const x = col * frameW
+    const y = row * frameH
     const drawX = x + Math.round((frameW - v.canvas.width) * 0.5)
-    const drawY = Math.round(frameH - v.canvas.height)
+    const drawY = y + Math.round(frameH - v.canvas.height)
     sctx.drawImage(v.canvas, drawX, drawY)
     return {
       id: `frame_${idx}`,
       index: idx,
       x,
-      y: 0,
+      y,
       width: frameW,
       height: frameH,
       offsetX: 0,

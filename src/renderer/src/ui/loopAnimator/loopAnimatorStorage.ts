@@ -132,6 +132,8 @@ export function getAllLoopTemplates(): LoopAnimationTemplate[] {
       }
       if (slug && !storedMap.has(slug)) {
         const fCount = typeof m.frameCount === 'number' && m.frameCount > 0 ? m.frameCount : 16
+        const gridRows = fCount >= 3 ? 3 : 1
+        const gridCols = fCount >= 3 ? Math.ceil(fCount / 3) : Math.max(1, fCount)
         fromManifest.push({
           id: slug,
           name: typeof m.name === 'string' ? m.name : slug,
@@ -142,7 +144,7 @@ export function getAllLoopTemplates(): LoopAnimationTemplate[] {
           loopJsonPath: key.endsWith('.json') ? key : `loop_animations/${slug}/animation.json`,
           packageFolder: `loop_animations/${slug}`,
           slicerMode: 'grid',
-          gridConfig: { cols: fCount, rows: 1, marginX: 0, marginY: 0, paddingX: 0, paddingY: 0, borderPadding: 0 },
+          gridConfig: { cols: gridCols, rows: gridRows, marginX: 0, marginY: 0, paddingX: 0, paddingY: 0, borderPadding: 0 },
           chromaKey: { enabled: false, keyColor: '#000000', similarity: 0.28, smoothness: 0.1, spill: 0.35 },
           fps: typeof m.fps === 'number' ? m.fps : 14,
           speed: 1,

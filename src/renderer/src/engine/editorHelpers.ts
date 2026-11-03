@@ -227,8 +227,14 @@ export class EditorHelpers {
     const lp: number[] = []
     const lc: number[] = []
     const selLayer = opts.selectedId ? ev.layers.find((l) => l.layer.id === opts.selectedId) : undefined
-    const selModelInstanceId = selLayer?.layer.model3d?.instanceId
-    const selCompInstanceId = selLayer?.layer.composite?.lockedGroup ? selLayer?.layer.composite?.instanceId : undefined
+    const selModelInstanceId =
+      selLayer?.layer.model3d && selLayer.layer.model3d.lockedGroup !== false
+        ? selLayer.layer.model3d.instanceId
+        : undefined
+    const selCompInstanceId =
+      selLayer?.layer.composite && selLayer.layer.composite.lockedGroup !== false
+        ? selLayer.layer.composite.instanceId
+        : undefined
 
     for (const el of ev.layers) {
       const info = layers.get(el.layer.id)

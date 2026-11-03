@@ -17,7 +17,7 @@ type Sheet = Awaited<ReturnType<typeof getCachedLoopTemplateSheet>>
 const ghostThumbMemoryCache = new Map<string, string>()
 
 function getTemplateThumbCacheKey(t: LoopAnimationTemplate): string {
-  return `${t.id}|${t.imageUrl}|${t.updatedAt ?? 0}|${t.chromaKey.enabled ? 1 : 0}|${t.chromaKey.keyColor}|${t.chromaKey.similarity}|${t.chromaKey.isolationMode ?? 'all'}|${t.chromaKey.shadowMode ?? 'off'}`
+  return `${t.id}|${t.imageUrl}|${t.updatedAt ?? 0}|${t.thumbnailFrameIndex ?? 0}|${t.chromaKey.enabled ? 1 : 0}|${t.chromaKey.keyColor}|${t.chromaKey.similarity}|${t.chromaKey.isolationMode ?? 'all'}|${t.chromaKey.shadowMode ?? 'off'}`
 }
 
 function nextCursor(
@@ -79,7 +79,9 @@ export const LoopCardPreviewCanvas = React.memo(function LoopCardPreviewCanvas({
           return
         }
         try {
-          const f0 = sheet.frames[0]
+          const rawThumbIdx = sheet.packageJson?.thumbnailFrameIndex ?? template.thumbnailFrameIndex ?? 0
+          const thumbIdx = Math.max(0, Math.min(sheet.frames.length - 1, rawThumbIdx))
+          const f0 = sheet.frames[thumbIdx] ?? sheet.frames[0]
           if (f0) {
             const c = document.createElement('canvas')
             c.width = f0.width
@@ -145,8 +147,10 @@ export const LoopCardPreviewCanvas = React.memo(function LoopCardPreviewCanvas({
       ctx.restore()
     }
 
+    const rawThumbIdx = sheet.packageJson?.thumbnailFrameIndex ?? template.thumbnailFrameIndex ?? 0
+    const thumbIdx = Math.max(0, Math.min(sheet.frames.length - 1, rawThumbIdx))
     if (!isPlaying || sheet.frames.length <= 1) {
-      drawFrameAt(0, 0)
+      drawFrameAt(thumbIdx, 0)
       return
     }
 

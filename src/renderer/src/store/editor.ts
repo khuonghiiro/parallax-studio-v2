@@ -38,6 +38,34 @@ export function propRefKey(ref: PropRef): string {
   return `${ref.layerId}-${ref.prop}`
 }
 
+export function isLayerClusterLocked(layer: Layer | undefined | null): boolean {
+  if (!layer) return false
+  if (layer.composite) return layer.composite.lockedGroup !== false
+  if (layer.model3d) return layer.model3d.lockedGroup !== false
+  return false
+}
+
+export function findClusterRootLayer(project: Project, layer: Layer | undefined | null): Layer | undefined {
+  if (!layer) return undefined
+  if (layer.composite) {
+    const instId = layer.composite.instanceId
+    return (
+      project.layers.find((l) => l.composite?.instanceId === instId && l.composite?.isRoot) ??
+      project.layers.find((l) => l.composite?.instanceId === instId) ??
+      layer
+    )
+  }
+  if (layer.model3d) {
+    const instId = layer.model3d.instanceId
+    return (
+      project.layers.find((l) => l.model3d?.instanceId === instId && l.model3d?.isRoot) ??
+      project.layers.find((l) => l.model3d?.instanceId === instId) ??
+      layer
+    )
+  }
+  return layer
+}
+
 const HISTORY_LIMIT = 200
 const MERGE_WINDOW_MS = 800
 
@@ -56,6 +84,7 @@ interface EditorState {
   isolateShotPlayback: boolean
   customPlaybackRange: CustomPlaybackRange | null
   selectedLayerId: string | null
+  layerSelectionScope: 'cluster' | 'layer'
   selectedShotId: string | null
   selectedAudioTrackId: string | null
   selectedKey: KeySelection | null
@@ -82,7 +111,7 @@ interface EditorState {
   setLoop(l: boolean): void
   setIsolateShotPlayback(enabled: boolean): void
   setCustomPlaybackRange(range: CustomPlaybackRange | null): void
-  selectLayer(id: string | null): void
+  selectLayer(id: string | null, scope?: 'cluster' | 'layer'): void
   selectShot(id: string | null): void
   selectAudioTrack(id: string | null): void
   selectKey(k: KeySelection | null): void
@@ -103,6 +132,7 @@ export const useEditor = create<EditorState>((set, get) => ({
   isolateShotPlayback: false,
   customPlaybackRange: null,
   selectedLayerId: null,
+  layerSelectionScope: 'layer',
   selectedShotId: null,
   selectedAudioTrackId: null,
   selectedKey: null,
@@ -170,12 +200,15 @@ export const useEditor = create<EditorState>((set, get) => ({
   setCustomPlaybackRange(range) {
     set({ customPlaybackRange: range })
   },
-  selectLayer(id) {
+  selectLayer(id, scope) {
     set((s) => {
       const layer = id ? s.project.layers.find((l) => l.id === id) : undefined
       const keepNodeOrJson = s.inspectorTab === 'node' || s.inspectorTab === 'json'
+      const resolvedScope: 'cluster' | 'layer' =
+        scope ?? (layer && isLayerClusterLocked(layer) ? 'cluster' : 'layer')
       return {
         selectedLayerId: id,
+        layerSelectionScope: resolvedScope,
         selectedAudioTrackId: null,
         // Selecting a layer makes its shot the active shot (new layers go there).
         selectedShotId: layer ? layer.shotId : s.selectedShotId,

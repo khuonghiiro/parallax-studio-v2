@@ -49,6 +49,7 @@ export function Timeline() {
   const playing = useEditor((s) => s.playing)
   const loop = useEditor((s) => s.loop)
   const selectedLayerId = useEditor((s) => s.selectedLayerId)
+  const layerSelectionScope = useEditor((s) => s.layerSelectionScope)
   const selectedShotId = useEditor((s) => s.selectedShotId)
   const timelineTab = useView((s) => s.timelineTab)
   const { isPhone } = useResponsiveViewport()
@@ -165,14 +166,28 @@ export function Timeline() {
     selectLayer
   })
 
+  const collapsedClustersRef = useRef(collapsedClusters)
+  collapsedClustersRef.current = collapsedClusters
+
   const scrollToLayer = useCallback(
-    (layerId: string) => {
+    (layerId: string, scopeOverride?: 'cluster' | 'layer') => {
       if (!layerId) return
-      ensureLayerVisible(layerId)
+      const st = useEditor.getState()
+      const targetLayer = st.project.layers.find((l) => l.id === layerId)
+      const clusterId = targetLayer?.composite?.instanceId || targetLayer?.model3d?.instanceId
+      const effectiveScope = scopeOverride ?? st.layerSelectionScope
+      const focusClusterRow =
+        !!clusterId &&
+        (effectiveScope === 'cluster' ||
+          (collapsedClustersRef.current.has(clusterId) && scopeOverride !== 'layer'))
+
+      ensureLayerVisible(targetLayer ?? layerId, !focusClusterRow)
       window.requestAnimationFrame(() => {
         const container = rowsScrollRef.current
         if (!container) return
-        const rowEl = container.querySelector(`[data-layer-id="${layerId}"]`) as HTMLElement | null
+        const rowEl = focusClusterRow
+          ? (container.querySelector(`#tl-cluster-${clusterId}`)?.closest('.tl-cluster-row') as HTMLElement | null)
+          : (container.querySelector(`[data-layer-id="${layerId}"]`) as HTMLElement | null)
         if (!rowEl) return
 
         // 1. Cuộn dọc đưa dòng mốc layer vào tầm nhìn
@@ -185,7 +200,6 @@ export function Timeline() {
         }
 
         // 2. Cuộn ngang đưa thanh mốc thời gian vào tầm nhìn (khi timeline đang zoom)
-        const targetLayer = project.layers.find((l) => l.id === layerId)
         if (targetLayer) {
           const barLeft = x(targetLayer.inPoint)
           const curScroll = container.scrollLeft
@@ -197,26 +211,41 @@ export function Timeline() {
           }
         }
 
-        // 3. Hiệu ứng chớp sáng Neon (pulse) để người dùng nhận ra ngay dòng mốc vừa chọn
+        // 3. Hiệu ứng chớp sáng ngắn gọn (2 nhịp) để người dùng nhận ra dòng mốc vừa chọn
         rowEl.classList.remove('tl-focus-pulse')
         void rowEl.offsetWidth
         rowEl.classList.add('tl-focus-pulse')
-        window.setTimeout(() => rowEl.classList.remove('tl-focus-pulse'), 1400)
+        window.setTimeout(() => rowEl.classList.remove('tl-focus-pulse'), 650)
       })
     },
-    [ensureLayerVisible, project.layers, x, trackW]
+    [ensureLayerVisible, x, trackW]
   )
 
+  const prevFocusRef = useRef<{ id: string | null; scope: 'cluster' | 'layer' }>({
+    id: null,
+    scope: 'layer'
+  })
+
   useEffect(() => {
-    if (!selectedLayerId) return
-    scrollToLayer(selectedLayerId)
-  }, [selectedLayerId, scrollToLayer])
+    if (!selectedLayerId) {
+      prevFocusRef.current = { id: null, scope: layerSelectionScope }
+      return
+    }
+    if (
+      prevFocusRef.current.id === selectedLayerId &&
+      prevFocusRef.current.scope === layerSelectionScope
+    ) {
+      return
+    }
+    prevFocusRef.current = { id: selectedLayerId, scope: layerSelectionScope }
+    scrollToLayer(selectedLayerId, layerSelectionScope)
+  }, [selectedLayerId, layerSelectionScope, scrollToLayer])
 
   useEffect(() => {
     const onFocusTarget = (e: Event) => {
-      const detail = (e as CustomEvent<{ layerId?: string }>).detail
+      const detail = (e as CustomEvent<{ layerId?: string; scope?: 'cluster' | 'layer' }>).detail
       if (detail?.layerId) {
-        scrollToLayer(detail.layerId)
+        scrollToLayer(detail.layerId, detail.scope)
       }
     }
     window.addEventListener('pxs:focus-layer-target', onFocusTarget)
@@ -749,13 +778,16 @@ export function Timeline() {
                             <TimelineClusterRow
                               cluster={item}
                               isCollapsed={isClusterCollapsed}
-                              isSelected={item.layers.some((l) => l.id === selectedLayerId)}
+                              isSelected={
+                                item.layers.some((l) => l.id === selectedLayerId) &&
+                                (layerSelectionScope === 'cluster' || isClusterCollapsed)
+                              }
                               trackWidth={contentW}
                               x={x}
                               onToggleCollapse={() => toggleCluster(item.instanceId)}
                               onSelect={() => {
-                                if (item.rootLayerId) selectLayer(item.rootLayerId)
-                                else if (item.layers[0]) selectLayer(item.layers[0].id)
+                                if (item.rootLayerId) selectLayer(item.rootLayerId, 'cluster')
+                                else if (item.layers[0]) selectLayer(item.layers[0].id, 'cluster')
                               }}
                               onManageAudio={(tr) => setModalTrack(tr)}
                               onOpenAttachAudio={() => handleOpenAttachAudioForCluster(item)}
@@ -784,14 +816,14 @@ export function Timeline() {
                                     clusterType={item.clusterType}
                                     clusterName={item.name}
                                     isOpen={expanded.has(layer.id)}
-                                    isSelected={layer.id === selectedLayerId}
+                                    isSelected={layer.id === selectedLayerId && layerSelectionScope === 'layer'}
                                     isRenaming={renaming === layer.id}
                                     x={x}
                                     trackWidth={contentW}
                                     onTrackPointerDown={handleTrackPointerDown}
                                     onBarContextMenu={handleLayerContextMenu}
                                     onToggleOpen={() => toggle(layer.id)}
-                                    onSelect={() => selectLayer(layer.id)}
+                                    onSelect={() => selectLayer(layer.id, 'layer')}
                                     setRenaming={setRenaming}
                                     startBarDrag={startBarDrag}
                                     startKeyDrag={startKeyDrag}

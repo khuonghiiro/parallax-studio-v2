@@ -92,8 +92,9 @@ export function useWorkflowV2Controller() {
       }
 
       if ((level === 'layer' || (level === 'logic' && node.type !== 'camera_director')) && repLayerId) {
-        if (st.selectedLayerId !== repLayerId) {
-          st.selectLayer(repLayerId)
+        const targetScope: 'cluster' | 'layer' = level === 'layer' ? 'layer' : instId ? 'cluster' : 'layer'
+        if (st.selectedLayerId !== repLayerId || st.layerSelectionScope !== targetScope) {
+          st.selectLayer(repLayerId, targetScope)
         }
         const shotRange = shotId ? route.ranges.get(shotId) : undefined
         const tStart = node.params?.timeStart ?? shotRange?.start ?? 0
@@ -203,19 +204,21 @@ export function useWorkflowV2SelectionSync(ctrl: ReturnType<typeof useWorkflowV2
       const selLayer = st.project.layers.find((l) => l.id === layerId)
       const selInstId = selLayer?.composite?.instanceId ?? selLayer?.model3d?.instanceId
 
+      const preferCluster = st.layerSelectionScope === 'cluster' && !!selInstId
+      const clusterNode = selInstId
+        ? workflow.nodes.find(
+            (n) =>
+              n.params?.instanceId === selInstId ||
+              (resolveV2NodeLevel(n) === 'layer' && n.params?.rootLayerId === layerId)
+          )
+        : undefined
+      const layerNode = workflow.nodes.find(
+        (n) =>
+          resolveV2NodeLevel(n) === 'layer' &&
+          (n.id === `v2-layer-${layerId}` || n.params?.targetLayerIds?.includes(layerId))
+      )
       const node =
-        workflow.nodes.find(
-          (n) =>
-            resolveV2NodeLevel(n) === 'layer' &&
-            (n.id === `v2-layer-${layerId}` || n.params?.targetLayerIds?.includes(layerId))
-        ) ??
-        (selInstId
-          ? workflow.nodes.find(
-              (n) =>
-                n.params?.instanceId === selInstId ||
-                (resolveV2NodeLevel(n) === 'layer' && n.params?.rootLayerId === layerId)
-            )
-          : undefined) ??
+        (preferCluster ? clusterNode ?? layerNode : layerNode ?? clusterNode) ??
         workflow.nodes.find((n) => n.params?.targetLayerIds?.includes(layerId))
 
       if (node) {

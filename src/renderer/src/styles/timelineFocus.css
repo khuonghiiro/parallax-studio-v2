@@ -3,12 +3,14 @@
   width: 100%;
 }
 
-.tl-layer-row-wrap.tl-focus-pulse .tl-row {
-  animation: tlRowFocusPulse 1.2s ease-out;
+.tl-layer-row-wrap.tl-focus-pulse .tl-row,
+.tl-cluster-row.tl-focus-pulse {
+  animation: tlRowFocusPulse 0.28s ease-in-out 2;
 }
 
-.tl-layer-row-wrap.tl-focus-pulse .tl-bar {
-  animation: tlBarFocusPulse 1.2s ease-out;
+.tl-layer-row-wrap.tl-focus-pulse .tl-bar,
+.tl-cluster-row.tl-focus-pulse .tl-bar {
+  animation: tlBarFocusPulse 0.28s ease-in-out 2;
 }
 
 @keyframes tlRowFocusPulse {

@@ -18,6 +18,7 @@ export function LayerGizmo({ controller }: { controller: React.RefObject<GizmoCo
   const project = useEditor((s) => s.project)
   const time = useEditor((s) => s.time)
   const selected = useEditor((s) => s.selectedLayerId)
+  const layerSelectionScope = useEditor((s) => s.layerSelectionScope)
   const playing = useEditor((s) => s.playing)
   const showBbox = useView((s) => s.showBbox ?? true)
   const showTranslate = useView((s) => s.showTranslate ?? true)
@@ -54,10 +55,11 @@ export function LayerGizmo({ controller }: { controller: React.RefObject<GizmoCo
   if (!el || !el.active || el.layer.locked || playing) return null
   if (!showBbox && !showTranslate && !showRotate && !showReadout) return null
   const parent = parentMatrix(el, scene)
-  const isModel3D = !!el.layer.model3d
+  const isClusterScope = layerSelectionScope !== 'layer'
+  const isModel3D = !!el.layer.model3d && el.layer.model3d.lockedGroup !== false && isClusterScope
   const compRef = el.layer.composite
-  const isCompLocked = !!compRef?.lockedGroup
-  const modelInstanceId = el.layer.model3d?.instanceId
+  const isCompLocked = !!compRef && compRef.lockedGroup !== false && isClusterScope
+  const modelInstanceId = isModel3D ? el.layer.model3d?.instanceId : undefined
   const compInstanceId = isCompLocked ? compRef?.instanceId : undefined
 
   const groupLayers = modelInstanceId
@@ -119,9 +121,9 @@ function GizmoPane({
   showReadout: boolean
 }) {
   const { camera, rect } = frame
-  const isModel3D = !!el.layer.model3d
+  const isModel3D = !!el.layer.model3d && el.layer.model3d.lockedGroup !== false && groupLayers.length > 1
   const compRef = el.layer.composite
-  const isCompLocked = !!compRef?.lockedGroup
+  const isCompLocked = !!compRef && compRef.lockedGroup !== false && groupLayers.length > 1
   const isGroup = isModel3D || isCompLocked
 
   let pivot: THREE.Vector3
@@ -201,14 +203,7 @@ function GizmoPane({
         <polygon
           className="gizmo-box"
           points={boxPoints}
-          style={{ pointerEvents: 'stroke', cursor: 'pointer' }}
-          onPointerDown={(e) => {
-            if (e.button === 0 && el) {
-              e.preventDefault()
-              e.stopPropagation()
-              window.dispatchEvent(new CustomEvent('pxs:focus-layer-target', { detail: { layerId: el.layer.id } }))
-            }
-          }}
+          style={{ pointerEvents: 'none' }}
         />
       )}
       {showBbox && handles.map(([x, y], i) => (

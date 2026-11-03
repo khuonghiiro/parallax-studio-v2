@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { evaluateLoopLayerRhythm, getAnimatedGifFrameIndex } from '../../project/gifHelper'
-import { applyChromaKeyToImageData, buildGridFrames, parseHexRgb } from './loopFrameExtractor'
+import { applyChromaKeyToImageData, buildGridFrames, computeLoopSheetGrid, parseHexRgb } from './loopFrameExtractor'
 import { SAMPLE_LOOP_PRESETS } from './sampleLoops'
 import { buildWorkshopLoopConfigFromTemplate } from '../layerAssembly/WorkshopLoopLogicPanel'
 import { getBuiltinLoopTemplates } from './loopAnimatorStorage'
+import { useLoopAnimator } from './loopAnimatorState'
+import { findClusterRootLayer, isLayerClusterLocked, useEditor } from '../../store/editor'
+import { createImageLayer } from '../../project/factory'
 
 describe('Loop Animator & Loop Rhythm Logic', () => {
   it('builds uniform grid frames accurately', () => {
@@ -111,5 +114,62 @@ describe('Loop Animator & Loop Rhythm Logic', () => {
     expect(cfg.frames?.length).toBe(builtins[0].frameCount)
     expect(cfg.fps).toBe(builtins[0].fps)
     expect(cfg.rhythmMode).toBeDefined()
+  })
+
+  it('computes 3-row grid layout and tracks focused frame for thumbnail on save', () => {
+    expect(computeLoopSheetGrid(16)).toEqual({ cols: 6, rows: 3 })
+    expect(computeLoopSheetGrid(12)).toEqual({ cols: 4, rows: 3 })
+    expect(computeLoopSheetGrid(2)).toEqual({ cols: 2, rows: 1 })
+
+    const st = useLoopAnimator.getState()
+    st.clearFocusedFrame()
+    expect(useLoopAnimator.getState().focusedFrameIndex).toBeNull()
+    st.selectFrame(4)
+    expect(useLoopAnimator.getState().selectedFrameIndex).toBe(4)
+    expect(useLoopAnimator.getState().focusedFrameIndex).toBe(4)
+    st.clearFocusedFrame()
+    expect(useLoopAnimator.getState().focusedFrameIndex).toBeNull()
+  })
+
+  it('distinguishes cluster vs child layer selection scope for locked clusters', () => {
+    const editor = useEditor.getState()
+    const comp = editor.project.comp
+    const shotId = editor.project.shots[0]?.id ?? null
+    const rootLayer = createImageLayer(
+      { id: 'asset-root', name: '1. Nền đất', kind: 'image', mime: 'image/png', width: 512, height: 512 },
+      comp
+    )
+    rootLayer.shotId = shotId
+    rootLayer.composite = {
+      instanceId: 'comp-tree-1',
+      compositeId: 'tpl-tree',
+      compositeName: 'Cây Đại Thụ',
+      isRoot: true,
+      lockedGroup: true
+    }
+    const childLayer = createImageLayer(
+      { id: 'asset-leaf', name: '2. Tán lá', kind: 'image', mime: 'image/png', width: 512, height: 512 },
+      comp
+    )
+    childLayer.shotId = shotId
+    childLayer.composite = {
+      instanceId: 'comp-tree-1',
+      compositeId: 'tpl-tree',
+      compositeName: 'Cây Đại Thụ',
+      isRoot: false,
+      lockedGroup: true
+    }
+    editor.update((d) => {
+      d.layers.unshift(rootLayer, childLayer)
+    })
+
+    expect(isLayerClusterLocked(rootLayer)).toBe(true)
+    expect(findClusterRootLayer(useEditor.getState().project, childLayer)?.id).toBe(rootLayer.id)
+
+    useEditor.getState().selectLayer(rootLayer.id)
+    expect(useEditor.getState().layerSelectionScope).toBe('cluster')
+
+    useEditor.getState().selectLayer(childLayer.id, 'layer')
+    expect(useEditor.getState().layerSelectionScope).toBe('layer')
   })
 })

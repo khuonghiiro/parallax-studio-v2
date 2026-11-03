@@ -139,6 +139,8 @@ export async function insertModel3DToScene({
           modelId: model.id,
           modelName: model.name,
           faceId: face.id,
+          isRoot: createdLayerIds.length === 0,
+          lockedGroup: true,
           initialScale: model.scale,
           globalScale: combinedScale,
           basePosition: face.position,
@@ -172,6 +174,8 @@ export async function insertModel3DToScene({
         modelId: model.id,
         modelName: model.name,
         faceId: face.id,
+        isRoot: createdLayerIds.length === 0,
+        lockedGroup: true,
         initialScale: model.scale,
         globalScale: combinedScale,
         basePosition: face.position,
@@ -187,12 +191,17 @@ export async function insertModel3DToScene({
 
   if (layersToAdd.length > 0) {
     useEditor.getState().update((p) => {
-      p.layers.unshift(...layersToAdd)
+      const firstShotIdx = p.layers.findIndex((l) => l.shotId === shotId)
+      if (firstShotIdx < 0) {
+        p.layers.unshift(...layersToAdd)
+      } else {
+        p.layers.splice(firstShotIdx, 0, ...layersToAdd)
+      }
     })
   }
 
   if (createdLayerIds.length > 0) {
-    useEditor.getState().selectLayer(createdLayerIds[0])
+    useEditor.getState().selectLayer(createdLayerIds[0], 'cluster')
   }
 
   return createdLayerIds

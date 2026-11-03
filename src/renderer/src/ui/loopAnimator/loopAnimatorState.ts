@@ -6,6 +6,7 @@ import {
 import {
   autoCenterLoopFrames,
   buildGridFrames,
+  computeLoopSheetGrid,
   detectContourFrames,
   extractFirstFramePreviewUrl,
   getCachedLoopTemplateSheet
@@ -44,6 +45,8 @@ export interface LoopAnimatorStore {
   chromaKey: ChromaKeyConfig
   frames: LoopFrameBox[]
   selectedFrameIndex: number
+  /** Chỉ số khung hình đang được người dùng focus trong BBox để dùng làm thumbnail khi lưu (null = mặc định Frame #1) */
+  focusedFrameIndex: number | null
   playingFrameIndex: number
   playback: LoopPlaybackConfig
 
@@ -89,6 +92,7 @@ export interface LoopAnimatorStore {
   equalizeFrameSizes: () => void
   setChromaKey: (patch: Partial<ChromaKeyConfig>) => void
   selectFrame: (index: number) => void
+  clearFocusedFrame: () => void
   setPlayingFrame: (index: number) => void
   updateFrame: (index: number, patch: Partial<LoopFrameBox>) => void
   toggleFrameEnabled: (index: number) => void
@@ -142,6 +146,64 @@ const DEFAULT_RHYTHM: LoopRhythmConfig = {
   scaleBeatPct: DEFAULT_PRESET.defaultRhythm?.scaleBeatPct ?? 8
 }
 
+async function repackSingleRowSheetToThreeRows(
+  imageUrl: string,
+  frames: LoopFrameBox[]
+): Promise<{
+  dataUrl: string
+  width: number
+  height: number
+  cols: number
+  rows: number
+  frames: LoopFrameBox[]
+} | null> {
+  if (typeof document === 'undefined' || frames.length < 3) return null
+  return new Promise((resolve) => {
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    img.onload = () => {
+      const frameW = Math.max(1, ...frames.map((f) => f.width))
+      const frameH = Math.max(1, ...frames.map((f) => f.height))
+      const grid = computeLoopSheetGrid(frames.length)
+      const canvas = document.createElement('canvas')
+      canvas.width = frameW * grid.cols
+      canvas.height = frameH * grid.rows
+      const ctx = canvas.getContext('2d')
+      if (!ctx) {
+        resolve(null)
+        return
+      }
+      const nextFrames: LoopFrameBox[] = frames.map((f, idx) => {
+        const col = idx % grid.cols
+        const row = Math.floor(idx / grid.cols)
+        const x = col * frameW
+        const y = row * frameH
+        const drawX = x + Math.round((frameW - f.width) * 0.5)
+        const drawY = y + Math.round((frameH - f.height) * 0.5)
+        ctx.drawImage(img, f.x, f.y, f.width, f.height, drawX, drawY, f.width, f.height)
+        return {
+          ...f,
+          index: idx,
+          x,
+          y,
+          width: frameW,
+          height: frameH
+        }
+      })
+      resolve({
+        dataUrl: canvas.toDataURL('image/png'),
+        width: canvas.width,
+        height: canvas.height,
+        cols: grid.cols,
+        rows: grid.rows,
+        frames: nextFrames
+      })
+    }
+    img.onerror = () => resolve(null)
+    img.src = imageUrl
+  })
+}
+
 export const useLoopAnimator = create<LoopAnimatorStore>((set, get) => ({
   isOpen: false,
   activePresetId: DEFAULT_PRESET.id,
@@ -167,6 +229,7 @@ export const useLoopAnimator = create<LoopAnimatorStore>((set, get) => ({
   chromaKey: { ...DEFAULT_PRESET.defaultChroma },
   frames: buildGridFrames(1024, 1024, DEFAULT_PRESET.defaultGrid),
   selectedFrameIndex: 0,
+  focusedFrameIndex: null,
   playingFrameIndex: 0,
   playback: {
     fps: DEFAULT_PRESET.defaultFps,
@@ -201,6 +264,7 @@ export const useLoopAnimator = create<LoopAnimatorStore>((set, get) => ({
       chromaKey: { ...BLANK_CHROMA },
       frames: [],
       selectedFrameIndex: 0,
+      focusedFrameIndex: null,
       playingFrameIndex: 0,
       playback: {
         ...s.playback,
@@ -250,7 +314,8 @@ export const useLoopAnimator = create<LoopAnimatorStore>((set, get) => ({
           : { alphaThreshold: 24, minArea: 180, mergeGap: 8 },
         chromaKey: isPkg ? { ...saved.chromaKey, enabled: false } : { ...saved.chromaKey },
         frames: nextFrames,
-        selectedFrameIndex: 0,
+        selectedFrameIndex: saved.thumbnailFrameIndex ?? 0,
+        focusedFrameIndex: saved.thumbnailFrameIndex ?? null,
         playingFrameIndex: 0,
         playback: {
           ...s.playback,
@@ -275,6 +340,8 @@ export const useLoopAnimator = create<LoopAnimatorStore>((set, get) => ({
           if (!sheet || get().activePresetId !== saved.id) return
           const stripUrl = sheet.canvas.toDataURL('image/png')
           const pkg = sheet.packageJson
+          const grid = computeLoopSheetGrid(sheet.frames.length)
+          const thumbIdx = pkg?.thumbnailFrameIndex ?? saved.thumbnailFrameIndex
           set((cur) => ({
             layerName: pkg?.name || cur.layerName,
             category: (pkg?.category as any) || cur.category,
@@ -285,8 +352,8 @@ export const useLoopAnimator = create<LoopAnimatorStore>((set, get) => ({
             baseMeshHeight: pkg?.baseMeshHeight || cur.baseMeshHeight || sheet.frameH,
             slicerMode: 'grid',
             gridConfig: {
-              cols: sheet.frames.length,
-              rows: 1,
+              cols: grid.cols,
+              rows: grid.rows,
               marginX: 0,
               marginY: 0,
               paddingX: 0,
@@ -295,6 +362,8 @@ export const useLoopAnimator = create<LoopAnimatorStore>((set, get) => ({
             },
             chromaKey: { ...cur.chromaKey, enabled: false },
             frames: sheet.frames.map((f, idx) => ({ ...f, index: idx })),
+            selectedFrameIndex: thumbIdx ?? 0,
+            focusedFrameIndex: thumbIdx ?? null,
             playback: {
               ...cur.playback,
               fps: pkg?.fps ?? cur.playback.fps,
@@ -310,6 +379,30 @@ export const useLoopAnimator = create<LoopAnimatorStore>((set, get) => ({
                   }
                 : cur.playback.rhythm
             }
+          }))
+        })
+      } else if (
+        nextFrames.length >= 3 &&
+        saved.imageUrl &&
+        (saved.gridConfig.rows === 1 || nextFrames.every((f) => Math.abs(f.y - nextFrames[0].y) < 2))
+      ) {
+        void repackSingleRowSheetToThreeRows(saved.imageUrl, nextFrames).then((repacked) => {
+          if (!repacked || get().activePresetId !== saved.id) return
+          set((cur) => ({
+            sourceImageUrl: repacked.dataUrl,
+            sourceWidth: repacked.width,
+            sourceHeight: repacked.height,
+            slicerMode: 'grid',
+            gridConfig: {
+              ...cur.gridConfig,
+              cols: repacked.cols,
+              rows: repacked.rows,
+              marginX: 0,
+              marginY: 0,
+              paddingX: 0,
+              paddingY: 0
+            },
+            frames: repacked.frames
           }))
         })
       }
@@ -469,12 +562,14 @@ export const useLoopAnimator = create<LoopAnimatorStore>((set, get) => ({
       : s.gridConfig
 
     let nextFrames: LoopFrameBox[]
-    if (s.slicerMode === 'grid') {
+    if (!changed && s.frames.length > 0) {
+      nextFrames = s.frames
+    } else if (s.slicerMode === 'grid') {
       const freshGridFrames = buildGridFrames(width, height, nextGrid)
-      if (s.frames.length === freshGridFrames.length && changed) {
+      if (s.frames.length > 0 && s.frames.length <= freshGridFrames.length && changed) {
         const sx = width / oldW
         const sy = height / oldH
-        nextFrames = freshGridFrames.map((gf, idx) => {
+        nextFrames = freshGridFrames.slice(0, s.frames.length).map((gf, idx) => {
           const prev = s.frames[idx]
           return prev
             ? {
@@ -603,10 +698,16 @@ export const useLoopAnimator = create<LoopAnimatorStore>((set, get) => ({
     })),
 
   selectFrame: (index) =>
-    set((s) => ({
-      selectedFrameIndex: Math.max(0, Math.min(Math.max(0, s.frames.length - 1), index)),
-      playingFrameIndex: Math.max(0, Math.min(Math.max(0, s.frames.length - 1), index))
-    })),
+    set((s) => {
+      const clamped = Math.max(0, Math.min(Math.max(0, s.frames.length - 1), index))
+      return {
+        selectedFrameIndex: clamped,
+        focusedFrameIndex: clamped,
+        playingFrameIndex: clamped
+      }
+    }),
+
+  clearFocusedFrame: () => set({ focusedFrameIndex: null }),
 
   setPlayingFrame: (index) =>
     set((s) => {
@@ -736,15 +837,14 @@ export const useLoopAnimator = create<LoopAnimatorStore>((set, get) => ({
       electric: `⚡ Điện ${enabledCount}F`,
       custom: `🎞 Loop ${enabledCount}F`
     }
+    const thumbIdx = s.focusedFrameIndex ?? 0
     const thumbUrl = sourceCanvas
-      ? extractFirstFramePreviewUrl(sourceCanvas, s.frames, 256)
+      ? extractFirstFramePreviewUrl(sourceCanvas, s.frames, 256, thumbIdx)
       : undefined
-
     const enabledFrames = s.frames.filter((f) => f.enabled)
     const refFrames = enabledFrames.length > 0 ? enabledFrames : s.frames
     const maxFrameW = refFrames.length > 0 ? Math.max(1, ...refFrames.map((f) => f.width)) : 256
     const maxFrameH = refFrames.length > 0 ? Math.max(1, ...refFrames.map((f) => f.height)) : 256
-
     const template: LoopAnimationTemplate = {
       id,
       name: s.layerName.trim() || 'Hoạt ảnh Loop',
@@ -753,6 +853,7 @@ export const useLoopAnimator = create<LoopAnimatorStore>((set, get) => ({
       description: `Hoạt ảnh lặp ${enabledCount} frame (${s.playback.fps} FPS • ${s.playback.loopMode})`,
       imageUrl: s.sourceImageUrl,
       thumbUrl,
+      thumbnailFrameIndex: thumbIdx,
       slicerMode: s.slicerMode,
       gridConfig: { ...s.gridConfig },
       contourConfig: { ...s.contourConfig },

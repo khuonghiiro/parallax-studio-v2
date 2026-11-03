@@ -59,7 +59,9 @@ function TimelineClusterRowComponent({
   }, [cluster.layers])
 
   const allVisible = cluster.layers.every((l) => l.visible)
-  const allLocked = cluster.layers.every((l) => l.locked)
+  const allLocked = cluster.layers.some((l) =>
+    l.composite ? l.composite.lockedGroup !== false : l.model3d ? l.model3d.lockedGroup !== false : l.locked
+  )
 
   const toggleAllVisible = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -81,7 +83,9 @@ function TimelineClusterRowComponent({
       for (const l of d.layers) {
         const inst = l.composite?.instanceId || l.model3d?.instanceId
         if (inst === cluster.instanceId) {
-          l.locked = next
+          if (l.composite) l.composite.lockedGroup = next
+          if (l.model3d) l.model3d.lockedGroup = next
+          l.locked = false
         }
       }
     }, `${next ? 'Khóa' : 'Mở khóa'} cụm: ${cluster.name}`)
@@ -107,6 +111,7 @@ function TimelineClusterRowComponent({
             type="button"
             className="mini"
             title={isCollapsed ? 'Mở rộng cụm layer' : 'Thu gọn cụm layer'}
+            onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => {
               e.stopPropagation()
               onToggleCollapse()
@@ -209,6 +214,7 @@ function TimelineClusterRowComponent({
             className="mini"
             title="Gắn âm thanh thoại / hiệu ứng cho nhân vật này"
             style={{ color: cluster.audioTracks?.length ? '#a855f7' : undefined }}
+            onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => {
               e.stopPropagation()
               onOpenAttachAudio?.()
@@ -220,6 +226,7 @@ function TimelineClusterRowComponent({
             type="button"
             className={`mini${allVisible ? '' : ' off'}`}
             title={allVisible ? 'Ẩn toàn bộ cụm' : 'Hiện toàn bộ cụm'}
+            onPointerDown={(e) => e.stopPropagation()}
             onClick={toggleAllVisible}
           >
             <IconEye />
@@ -228,6 +235,7 @@ function TimelineClusterRowComponent({
             type="button"
             className={`mini${allLocked ? '' : ' off'}`}
             title={allLocked ? 'Mở khóa toàn bộ cụm' : 'Khóa toàn bộ cụm'}
+            onPointerDown={(e) => e.stopPropagation()}
             onClick={toggleAllLocked}
           >
             <IconLock />
@@ -342,6 +350,8 @@ function areTimelineClusterRowPropsEqual(
       la.id !== lb.id ||
       la.visible !== lb.visible ||
       la.locked !== lb.locked ||
+      la.composite?.lockedGroup !== lb.composite?.lockedGroup ||
+      la.model3d?.lockedGroup !== lb.model3d?.lockedGroup ||
       la.transform.position.keyframes.length !== lb.transform.position.keyframes.length ||
       la.transform.rotation.keyframes.length !== lb.transform.rotation.keyframes.length
     ) {

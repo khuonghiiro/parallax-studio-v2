@@ -96,6 +96,7 @@ export function LoopAnimatorSourcePane({ sourceCanvasRef, onRequestUpload, templ
   const chromaKey = useLoopAnimator((s) => s.chromaKey)
   const frames = useLoopAnimator((s) => s.frames)
   const selectedFrameIndex = useLoopAnimator((s) => s.selectedFrameIndex)
+  const focusedFrameIndex = useLoopAnimator((s) => s.focusedFrameIndex)
   const playingFrameIndex = useLoopAnimator((s) => s.playingFrameIndex)
   const isPlaying = useLoopAnimator((s) => s.playback.isPlaying)
   const setSourceDimensions = useLoopAnimator((s) => s.setSourceDimensions)
@@ -104,6 +105,7 @@ export function LoopAnimatorSourcePane({ sourceCanvasRef, onRequestUpload, templ
   const runContourSlicer = useLoopAnimator((s) => s.runContourSlicer)
   const setChromaKey = useLoopAnimator((s) => s.setChromaKey)
   const selectFrame = useLoopAnimator((s) => s.selectFrame)
+  const clearFocusedFrame = useLoopAnimator((s) => s.clearFocusedFrame)
   const updateFrame = useLoopAnimator((s) => s.updateFrame)
 
   const overlayCanvasRef = useRef<HTMLCanvasElement | null>(null)
@@ -129,7 +131,7 @@ export function LoopAnimatorSourcePane({ sourceCanvasRef, onRequestUpload, templ
     drawFrameOverlay(
       ctx,
       frames,
-      selectedFrameIndex,
+      focusedFrameIndex ?? -1,
       playingFrameIndex,
       isPlaying,
       slicerMode,
@@ -212,7 +214,7 @@ export function LoopAnimatorSourcePane({ sourceCanvasRef, onRequestUpload, templ
 
   useEffect(() => {
     drawOverlay()
-  }, [frames, selectedFrameIndex, playingFrameIndex, isPlaying, slicerMode, gridConfig.borderPadding])
+  }, [frames, selectedFrameIndex, focusedFrameIndex, playingFrameIndex, isPlaying, slicerMode, gridConfig.borderPadding])
 
   function canvasCoords(e: React.MouseEvent<HTMLCanvasElement>): { px: number; py: number } | null {
     const ov = overlayCanvasRef.current
@@ -234,7 +236,10 @@ export function LoopAnimatorSourcePane({ sourceCanvasRef, onRequestUpload, templ
       return
     }
     const hit = frames.findIndex((f) => c.px >= f.x && c.px <= f.x + f.width && c.py >= f.y && c.py <= f.y + f.height)
-    if (hit < 0) return
+    if (hit < 0) {
+      clearFocusedFrame()
+      return
+    }
     selectFrame(hit)
     if (slicerMode !== 'grid') {
       dragBoxRef.current = { frameIdx: hit, startX: c.px, startY: c.py, origX: frames[hit].x, origY: frames[hit].y }

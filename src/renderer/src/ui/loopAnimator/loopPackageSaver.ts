@@ -4,7 +4,7 @@ import type {
   LoopAnimationPackageJson,
   LoopColorConfig
 } from '../../../../shared/types'
-import { extractFrameCanvas, primeCachedLoopTemplateSheet } from './loopFrameExtractor'
+import { computeLoopSheetGrid, extractFrameCanvas, primeCachedLoopTemplateSheet } from './loopFrameExtractor'
 import { invalidateLoopPackageCache } from './loopPackageLoader'
 import { saveLoopTemplate } from './loopAnimatorStorage'
 import type {
@@ -37,6 +37,8 @@ export interface SaveLoopPackageOptions {
   colorConfig?: LoopColorConfig
   baseMeshWidth?: number
   baseMeshHeight?: number
+  /** Chỉ số khung hình (0-based) đang focus trong BBox để dùng làm thumbnail (mặc định 0 = Frame #1) */
+  thumbnailFrameIndex?: number
   sourceConfig?: {
     slicerMode?: SlicerMode
     gridConfig?: GridSlicerConfig
@@ -101,6 +103,7 @@ export async function saveLoopAnimationAsPackage(
     colorConfig,
     baseMeshWidth,
     baseMeshHeight,
+    thumbnailFrameIndex,
     sourceConfig,
     onProgress
   } = options
@@ -121,9 +124,10 @@ export async function saveLoopAnimationAsPackage(
   const frameCanvases: HTMLCanvasElement[] = []
   const framePayloads: Array<{ fileName: string; data: Uint8Array }> = []
 
+  const grid = computeLoopSheetGrid(totalFrames)
   const stripCanvas = document.createElement('canvas')
-  stripCanvas.width = maxW * totalFrames
-  stripCanvas.height = maxH
+  stripCanvas.width = maxW * grid.cols
+  stripCanvas.height = maxH * grid.rows
   const stripCtx = stripCanvas.getContext('2d')
   const stripFrames: LoopFrameBox[] = []
 
@@ -144,14 +148,18 @@ export async function saveLoopAnimationAsPackage(
     const fc = extractFrameCanvas(sourceCanvas, fMeta, maxW, maxH)
     frameCanvases.push(fc)
 
+    const col = i % grid.cols
+    const row = Math.floor(i / grid.cols)
+    const cellX = col * maxW
+    const cellY = row * maxH
     if (stripCtx) {
-      stripCtx.drawImage(fc, i * maxW, 0)
+      stripCtx.drawImage(fc, cellX, cellY)
     }
     stripFrames.push({
       id: `frame_${i}`,
       index: i,
-      x: i * maxW,
-      y: 0,
+      x: cellX,
+      y: cellY,
       width: maxW,
       height: maxH,
       offsetX: 0,
@@ -165,8 +173,21 @@ export async function saveLoopAnimationAsPackage(
     totalDuration += Math.max(0.016, baseFrameDuration * (fMeta?.durationRatio || 1))
   }
 
-  // 2. Thumbnail gọn nhẹ từ Frame #0 (giới hạn 256px để nhẹ RAM/localStorage)
-  const firstCanvas = frameCanvases[0]
+  // 2. Thumbnail gọn nhẹ từ frame đang được focus trong BBox (hoặc mặc định Frame #1 = index 0)
+  const rawThumbFrame =
+    typeof thumbnailFrameIndex === 'number' &&
+    thumbnailFrameIndex >= 0 &&
+    thumbnailFrameIndex < frames.length
+      ? frames[thumbnailFrameIndex]
+      : undefined
+  const resolvedThumbIdx = rawThumbFrame
+    ? Math.max(0, enabledFrames.indexOf(rawThumbFrame))
+    : typeof thumbnailFrameIndex === 'number' &&
+        thumbnailFrameIndex >= 0 &&
+        thumbnailFrameIndex < frameCanvases.length
+      ? thumbnailFrameIndex
+      : 0
+  const firstCanvas = frameCanvases[resolvedThumbIdx] || frameCanvases[0]
   const thumbScale = Math.min(1, 256 / Math.max(1, firstCanvas.width, firstCanvas.height))
   let thumbCanvas = firstCanvas
   if (thumbScale < 0.99) {
@@ -204,6 +225,7 @@ export async function saveLoopAnimationAsPackage(
     baseMeshHeight: baseMeshHeight && baseMeshHeight > 0 ? baseMeshHeight : maxH,
     duration: Math.max(0.05, totalDuration),
     thumbnail: 'thumbnail.png',
+    thumbnailFrameIndex: resolvedThumbIdx,
     colorConfig: colorConfig || {
       tintColor: null,
       tintIntensity: 0,
@@ -286,14 +308,15 @@ export async function saveLoopAnimationAsPackage(
     description: `Hoạt ảnh lặp ${totalFrames} frame (${fps} FPS • ${loopMode})`,
     imageUrl: `assets/${thumbnailRelPath}`,
     thumbUrl: thumbDataUrl,
+    thumbnailFrameIndex: resolvedThumbIdx,
     loopJsonPath: jsonRelPath,
     packageFolder: relPath,
     framePaths: enabledFrames.map((_, idx) => `${relPath}/frame_${String(idx).padStart(3, '0')}.png`),
     colorConfig: packageJson.colorConfig,
     slicerMode: 'grid',
     gridConfig: {
-      cols: totalFrames,
-      rows: 1,
+      cols: grid.cols,
+      rows: grid.rows,
       marginX: 0,
       marginY: 0,
       paddingX: 0,
@@ -316,8 +339,8 @@ export async function saveLoopAnimationAsPackage(
     loopMode,
     rhythm,
     frameCount: totalFrames,
-    sourceWidth: maxW * totalFrames,
-    sourceHeight: maxH,
+    sourceWidth: maxW * grid.cols,
+    sourceHeight: maxH * grid.rows,
     baseMeshWidth: packageJson.baseMeshWidth,
     baseMeshHeight: packageJson.baseMeshHeight,
     frames: stripFrames

@@ -4,7 +4,7 @@ import { useResponsiveViewport } from './primitives'
 import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { flyToShot, addLayerFromAsset, importBuiltInAsset, importDroppedFiles, toast } from '../actions'
-import { screenToScenePoint } from './viewer/viewerDropCoords'
+import { resolveDropTargetShotId, screenToScenePoint } from './viewer/viewerDropCoords'
 import { exportLoopPresetDirectly } from './loopAnimator/loopAnimationExporter'
 import { insertLayerCompositeToScene } from './layerAssembly/insertLayerComposite'
 import { insertModel3DToScene } from './assets/models3d/insertModel3D'
@@ -14,7 +14,7 @@ import { SceneRenderer, type ResidencyStats } from '../engine/SceneRenderer'
 import { LAYER_COMPOSE_FRAG } from '../engine/renderTypes'
 import { setLiveRenderer } from '../engine/liveRenderer'
 import { assetStore } from '../project/assets'
-import { useEditor } from '../store/editor'
+import { findClusterRootLayer, isLayerClusterLocked, useEditor } from '../store/editor'
 import { useView } from '../store/view'
 import { usePerformance } from '../store/performance'
 import {
@@ -81,7 +81,20 @@ export function Viewer() {
     if (!canvasEl || !r) return
 
     const st = useEditor.getState()
-    const targetShotId = st.selectedShotId ?? st.project.shots[0]?.id ?? null
+    const targetShotId = resolveDropTargetShotId({
+      clientX: e.clientX,
+      clientY: e.clientY,
+      canvasEl,
+      layout: layoutRef.current,
+      renderer: r,
+      edCam,
+      project: st.project,
+      time: st.time,
+      targetShotId: st.selectedShotId
+    })
+    if (targetShotId && st.selectedShotId !== targetShotId) {
+      st.selectShot(targetShotId)
+    }
 
     const dropPos = screenToScenePoint({
       clientX: e.clientX,
@@ -612,12 +625,23 @@ export function Viewer() {
       if (st.playing) st.setPlaying(false)
       const [nx, ny] = ndcIn(L.cam, x, y)
       r.layoutForPick(st.project, st.time, toDevice(L.cam, L.dpr).h)
-      const id = r.pick(nx, ny, st.project)
-
-      st.selectLayer(id)
+      const id = r.pick(nx, ny, st.project, r.camera, true, st.selectedLayerId)
       if (id) {
-        window.dispatchEvent(new CustomEvent('pxs:focus-layer-target', { detail: { layerId: id } }))
-        startLayerDrag(e, id, r.camera, L.cam, 'depth')
+        const picked = st.project.layers.find((l) => l.id === id)
+        if (isLayerClusterLocked(picked)) {
+          const root = findClusterRootLayer(st.project, picked) ?? picked!
+          st.selectLayer(root.id, 'cluster')
+          window.dispatchEvent(
+            new CustomEvent('pxs:focus-layer-target', { detail: { layerId: root.id, scope: 'cluster' } })
+          )
+          startLayerDrag(e, root.id, r.camera, L.cam, 'depth')
+        } else {
+          st.selectLayer(id, 'layer')
+          window.dispatchEvent(new CustomEvent('pxs:focus-layer-target', { detail: { layerId: id, scope: 'layer' } }))
+          startLayerDrag(e, id, r.camera, L.cam, 'depth')
+        }
+      } else {
+        st.selectLayer(null)
       }
       return
     }
@@ -659,13 +683,22 @@ export function Viewer() {
 
       const [nx, ny] = ndcIn(ed, x, y)
       r.layoutForPick(st.project, st.time, toDevice(ed, L.dpr).h, cam)
-      const id = r.pick(nx, ny, st.project, cam, false)
+      const id = r.pick(nx, ny, st.project, cam, false, st.selectedLayerId)
       if (id) {
         if (st.playing) st.setPlaying(false)
-
-        st.selectLayer(id)
-        window.dispatchEvent(new CustomEvent('pxs:focus-layer-target', { detail: { layerId: id } }))
-        startLayerDrag(e, id, cam, ed, 'facing')
+        const picked = st.project.layers.find((l) => l.id === id)
+        if (isLayerClusterLocked(picked)) {
+          const root = findClusterRootLayer(st.project, picked) ?? picked!
+          st.selectLayer(root.id, 'cluster')
+          window.dispatchEvent(
+            new CustomEvent('pxs:focus-layer-target', { detail: { layerId: root.id, scope: 'cluster' } })
+          )
+          startLayerDrag(e, root.id, cam, ed, 'facing')
+        } else {
+          st.selectLayer(id, 'layer')
+          window.dispatchEvent(new CustomEvent('pxs:focus-layer-target', { detail: { layerId: id, scope: 'layer' } }))
+          startLayerDrag(e, id, cam, ed, 'facing')
+        }
         return
       }
     }
