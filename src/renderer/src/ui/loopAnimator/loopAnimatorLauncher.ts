@@ -17,25 +17,25 @@ export const LOOP_IMAGE_ACCEPT = '.png,.jpg,.jpeg,.webp,.gif,.bmp'
 export {
   extractFrameNumberFromTitle,
   loadLoopImageFiles,
+  readFileAsDataUrl,
   sortAndAssignFrameFiles,
   upgradeLoopImageFilesKeepMesh
 }
 
 /**
- * Đọc ảnh sprite sheet từ máy và nạp vào xưởng theo cơ chế KHÔNG GHI ĐÈ:
- * - Nếu phiên đang trống: nạp làm Nhóm 1.
- * - Nếu đã có ảnh trong phiên: thêm nối tiếp thành Nhóm N+1 để chạy chuỗi hiệu ứng.
+ * Đọc ảnh sprite sheet từ máy và nạp vào xưởng theo cơ chế GHI ĐÈ:
+ * - Xoá hết các ảnh cũ hoặc nhóm cũ trong phiên, chỉ để lại 1 nhóm duy nhất với ảnh mới.
  */
 export function loadLoopImageFile(file: File): boolean {
   if (!file.type.startsWith('image/') && !/\.(png|jpe?g|webp|gif|bmp)$/i.test(file.name)) return false
   void readFileAsDataUrl(file).then((dataUrl) => {
-    useLoopAnimator.getState().appendImageAsGroup(dataUrl, file.name)
+    useLoopAnimator.getState().loadCustomImage(dataUrl, file.name)
   })
   return true
 }
 
 /**
- * Nạp 1 hoặc nhiều ảnh từ nút "Tải ảnh" thành các nhóm hiệu ứng nối tiếp (Nhóm 1 -> Nhóm 2 -> Nhóm 3...)
+ * Nạp 1 hoặc nhiều ảnh từ nút "Ảnh nối tiếp" thành các nhóm hiệu ứng nối tiếp (Nhóm 1 -> Nhóm 2 -> Nhóm 3...)
  * mà không ghi đè các nhóm đã có trong phiên.
  */
 export async function appendLoopImageFilesAsGroups(files: File[]): Promise<number> {

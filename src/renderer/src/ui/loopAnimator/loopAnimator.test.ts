@@ -338,4 +338,83 @@ describe('Loop Animator & Loop Rhythm Logic', () => {
     expect(l2.inPoint).toBeCloseTo(1.5, 2)
     expect(l2.outPoint).toBeCloseTo(3.5, 2)
   })
+
+  it('strictly isolates overwrite actions (Tải ảnh) from sequential append actions (Ảnh nối tiếp), while keeping Thay ảnh and Ghép lẻ scoped to active group', () => {
+    const store = useLoopAnimator.getState()
+    store.startBlank()
+
+    // 1. Nạp ảnh đầu tiên bằng Tải ảnh (loadCustomImage) -> tạo 1 nhóm
+    store.loadCustomImage('data:image/png;base64,IMG_INITIAL', 'Init.png')
+    expect(useLoopAnimator.getState().groups).toHaveLength(1)
+    expect(useLoopAnimator.getState().groups[0].name).toContain('Init')
+
+    // 2. Nhấn "Ảnh nối tiếp" (appendImageAsGroup) -> tăng số nhóm lên 2 rồi 3
+    store.appendImageAsGroup('data:image/png;base64,IMG_SEQ_2', 'Seq2.png')
+    store.appendImageAsGroup('data:image/png;base64,IMG_SEQ_3', 'Seq3.png')
+    expect(useLoopAnimator.getState().groups).toHaveLength(3)
+    expect(useLoopAnimator.getState().groups[1].name).toContain('Seq2')
+    expect(useLoopAnimator.getState().groups[2].name).toContain('Seq3')
+
+    // 3. Đang ở Nhóm #2 (index 1), dùng "Thay ảnh" (replaceActiveGroupImage)
+    // -> chỉ thay đổi ảnh nguồn của Nhóm #2, Nhóm #1 và Nhóm #3 vẫn giữ nguyên
+    store.selectGroup(1)
+    store.replaceActiveGroupImage('data:image/png;base64,IMG_REPLACED_2', 'Replaced2.png')
+    const groupsAfterReplace = useLoopAnimator.getState().getSyncedGroups()
+    expect(groupsAfterReplace).toHaveLength(3)
+    expect(groupsAfterReplace[0].sourceImageUrl).toBe('data:image/png;base64,IMG_INITIAL')
+    expect(groupsAfterReplace[1].sourceImageUrl).toBe('data:image/png;base64,IMG_REPLACED_2')
+    expect(groupsAfterReplace[1].name).toContain('Replaced2')
+    expect(groupsAfterReplace[2].sourceImageUrl).toBe('data:image/png;base64,IMG_SEQ_3')
+
+    // 4. Dùng "Ghép lẻ" (loadCustomMultiFrames với resetGroups = false)
+    // -> chỉ cập nhật frame cho Nhóm #2, toàn bộ 3 nhóm vẫn được bảo toàn
+    store.loadCustomMultiFrames({
+      dataUrl: 'data:image/png;base64,IMG_STITCHED_2',
+      frames: [
+        { id: 'f1', index: 0, x: 0, y: 0, width: 64, height: 64, offsetX: 0, offsetY: 0, enabled: true, durationRatio: 1 },
+        { id: 'f2', index: 1, x: 64, y: 0, width: 64, height: 64, offsetX: 0, offsetY: 0, enabled: true, durationRatio: 1 }
+      ],
+      sourceWidth: 128,
+      sourceHeight: 64,
+      layerName: 'StitchedFrames',
+      resetGroups: false
+    })
+    const groupsAfterStitch = useLoopAnimator.getState().getSyncedGroups()
+    expect(groupsAfterStitch).toHaveLength(3)
+    expect(groupsAfterStitch[1].sourceImageUrl).toBe('data:image/png;base64,IMG_STITCHED_2')
+    expect(groupsAfterStitch[1].frames).toHaveLength(2)
+    expect(groupsAfterStitch[0].sourceImageUrl).toBe('data:image/png;base64,IMG_INITIAL')
+    expect(groupsAfterStitch[2].sourceImageUrl).toBe('data:image/png;base64,IMG_SEQ_3')
+
+    // 5. Bấm nút "Tải ảnh" (loadCustomImage) -> GHI ĐÈ: xoá sạch chuỗi 3 nhóm cũ, chỉ còn 1 nhóm duy nhất với ảnh mới
+    store.loadCustomImage('data:image/png;base64,IMG_OVERWRITE', 'NewSolo.png')
+    const groupsAfterOverwrite = useLoopAnimator.getState().getSyncedGroups()
+    expect(groupsAfterOverwrite).toHaveLength(1)
+    expect(groupsAfterOverwrite[0].sourceImageUrl).toBe('data:image/png;base64,IMG_OVERWRITE')
+    expect(groupsAfterOverwrite[0].name).toContain('NewSolo')
+    expect(useLoopAnimator.getState().comboPreviewMode).toBe(false)
+    expect(useLoopAnimator.getState().activeGroupIndex).toBe(0)
+
+    // 6. Tải nhiều ảnh bằng nút "Tải ảnh" (loadCustomMultiFrames với resetGroups = true) -> GHI ĐÈ toàn bộ nhóm cũ
+    // Trước hết thêm 1 nhóm nối tiếp để có 2 nhóm
+    store.appendImageAsGroup('data:image/png;base64,IMG_EXTRA', 'Extra.png')
+    expect(useLoopAnimator.getState().groups).toHaveLength(2)
+
+    // Ghi đè bằng loadCustomMultiFrames (resetGroups = true)
+    store.loadCustomMultiFrames({
+      dataUrl: 'data:image/png;base64,IMG_MULTI_OVERWRITE',
+      frames: [
+        { id: 'm1', index: 0, x: 0, y: 0, width: 100, height: 100, offsetX: 0, offsetY: 0, enabled: true, durationRatio: 1 }
+      ],
+      sourceWidth: 100,
+      sourceHeight: 100,
+      layerName: 'MultiOverwriteSolo',
+      resetGroups: true
+    })
+    const groupsAfterMultiOverwrite = useLoopAnimator.getState().getSyncedGroups()
+    expect(groupsAfterMultiOverwrite).toHaveLength(1)
+    expect(groupsAfterMultiOverwrite[0].sourceImageUrl).toBe('data:image/png;base64,IMG_MULTI_OVERWRITE')
+    expect(groupsAfterMultiOverwrite[0].name).toContain('MultiOverwriteSolo')
+    expect(useLoopAnimator.getState().activeGroupIndex).toBe(0)
+  })
 })

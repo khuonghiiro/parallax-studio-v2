@@ -8,7 +8,7 @@ import {
   drawFrameOnStage,
   ensureGroupProcessedCanvas
 } from './LoopAnimatorPlayer'
-import { appendLoopImageFilesAsGroups } from './loopAnimatorLauncher'
+import { appendLoopImageFilesAsGroups, LOOP_IMAGE_ACCEPT } from './loopAnimatorLauncher'
 import type { LoopSequenceGroup, LoopTriggerMode } from './types'
 import { IconPause, IconPlay, IconX } from '../icons'
 
@@ -342,10 +342,10 @@ export function LoopGroupAlignmentModal(): React.ReactElement | null {
             <input
               ref={appendInputRef}
               type="file"
-              accept="image/png,image/jpeg,image/webp,image/gif"
+              accept={LOOP_IMAGE_ACCEPT}
               multiple
               style={{ display: 'none' }}
-              onChange={(e) => {
+              onChange={async (e) => {
                 const list = e.target.files ? Array.from(e.target.files) : []
                 if (list.length > 0) void appendLoopImageFilesAsGroups(list)
                 e.target.value = ''

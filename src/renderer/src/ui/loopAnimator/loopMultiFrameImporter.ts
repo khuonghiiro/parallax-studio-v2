@@ -427,7 +427,7 @@ export async function upgradeLoopImageFilesKeepMesh(
  * - Ưu tiên sắp xếp theo số title frame (1.png -> frame 1, 5.png -> frame 5).
  * - Nếu không có số, nạp theo thứ tự chọn tệp.
  */
-export async function loadLoopImageFiles(files: File[]): Promise<boolean> {
+export async function loadLoopImageFiles(files: File[], overwriteGroups = false): Promise<boolean> {
   const imageFiles = files.filter(
     (f) => f.type.startsWith('image/') || /\.(png|jpe?g|webp|gif|bmp)$/i.test(f.name)
   )
@@ -435,7 +435,11 @@ export async function loadLoopImageFiles(files: File[]): Promise<boolean> {
 
   if (imageFiles.length === 1) {
     const dataUrl = await readFileAsDataUrl(imageFiles[0])
-    useLoopAnimator.getState().loadCustomImage(dataUrl, imageFiles[0].name)
+    if (overwriteGroups) {
+      useLoopAnimator.getState().loadCustomImage(dataUrl, imageFiles[0].name)
+    } else {
+      useLoopAnimator.getState().replaceActiveGroupImage(dataUrl, imageFiles[0].name)
+    }
     return true
   }
 
@@ -497,7 +501,8 @@ export async function loadLoopImageFiles(files: File[]): Promise<boolean> {
       paddingX: 0,
       paddingY: 0,
       borderPadding: 0
-    }
+    },
+    resetGroups: overwriteGroups
   })
 
   return true

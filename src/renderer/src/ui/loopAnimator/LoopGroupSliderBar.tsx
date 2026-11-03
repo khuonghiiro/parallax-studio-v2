@@ -9,6 +9,7 @@ import {
   IconUpload
 } from '../icons'
 import {
+  appendLoopImageFilesAsGroups,
   loadLoopImageFiles,
   LOOP_IMAGE_ACCEPT,
   replaceActiveGroupImageFile
@@ -16,7 +17,7 @@ import {
 import { useLoopAnimator } from './loopAnimatorState'
 
 interface Props {
-  onRequestAppendUpload: () => void
+  onRequestAppendUpload?: () => void
 }
 
 /**
@@ -26,7 +27,7 @@ interface Props {
  * - Đổi thứ tự chạy bằng kéo thả (drag-and-drop) hoặc nút ◀ ▶.
  * - Nút mở "📐 So sánh & Căn vị trí" (khung đa cột chuyên sâu khi cần soi & căn điểm chạm).
  */
-export function LoopGroupSliderBar({ onRequestAppendUpload }: Props): React.ReactElement | null {
+export function LoopGroupSliderBar({ onRequestAppendUpload }: Props = {}): React.ReactElement | null {
   const groups = useLoopAnimator((s) => s.groups)
   const activeGroupIndex = useLoopAnimator((s) => s.activeGroupIndex)
   const comboPreviewMode = useLoopAnimator((s) => s.comboPreviewMode)
@@ -38,6 +39,7 @@ export function LoopGroupSliderBar({ onRequestAppendUpload }: Props): React.Reac
   const setComboPreviewMode = useLoopAnimator((s) => s.setComboPreviewMode)
   const setAlignModalOpen = useLoopAnimator((s) => s.setAlignModalOpen)
 
+  const appendInputRef = useRef<HTMLInputElement | null>(null)
   const replaceInputRef = useRef<HTMLInputElement | null>(null)
   const stitchFramesInputRef = useRef<HTMLInputElement | null>(null)
   const [dragIdx, setDragIdx] = useState<number | null>(null)
@@ -49,6 +51,32 @@ export function LoopGroupSliderBar({ onRequestAppendUpload }: Props): React.Reac
 
   return (
     <div className="loop-group-slider-bar" data-mcp-region="loop_animator_groups">
+      <input
+        ref={appendInputRef}
+        type="file"
+        accept={LOOP_IMAGE_ACCEPT}
+        multiple
+        hidden
+        onChange={async (e) => {
+          const files = Array.from(e.target.files ?? [])
+          if (files.length > 0) {
+            const added = await appendLoopImageFilesAsGroups(files)
+            if (added > 1) {
+              toast(`✨ Đã thêm nối tiếp ${added} nhóm ảnh hiệu ứng vào thanh trượt`)
+            } else if (added === 1) {
+              const totalGroups = useLoopAnimator.getState().groups.length
+              toast(
+                totalGroups > 1
+                  ? `✨ Đã thêm nối tiếp Nhóm #${totalGroups} (không ghi đè nhóm trước)`
+                  : '✨ Đã nạp ảnh hoạt ảnh vào Nhóm #1'
+              )
+            } else {
+              toast('⚠ Tệp không phải ảnh hợp lệ')
+            }
+          }
+          e.target.value = ''
+        }}
+      />
       <input
         ref={replaceInputRef}
         type="file"
@@ -252,7 +280,10 @@ export function LoopGroupSliderBar({ onRequestAppendUpload }: Props): React.Reac
           <button
             type="button"
             className="la-btn la-btn--danger la-btn--sm"
-            onClick={onRequestAppendUpload}
+            onClick={() => {
+              if (onRequestAppendUpload) onRequestAppendUpload()
+              else appendInputRef.current?.click()
+            }}
             title="Thêm 1 hoặc nhiều ảnh làm nhóm hiệu ứng nối tiếp (không ghi đè nhóm hiện có)"
           >
             <IconPlus width={12} height={12} />

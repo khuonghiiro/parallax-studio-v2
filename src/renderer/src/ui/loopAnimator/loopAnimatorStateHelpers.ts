@@ -8,6 +8,7 @@ import {
 } from './loopFrameExtractor'
 import {
   buildPackageGroupsMetadata,
+  buildStoreSliceForGroup,
   createGroupId,
   createLoopSequenceGroup,
   syncActiveGroupToGroups
@@ -373,3 +374,78 @@ export function buildAndSaveTemplateFromStore(
   const saved = saveLoopTemplate(template)
   return { saved, syncedGroups }
 }
+
+export function computeCustomMultiFramesState(
+  s: LoopAnimatorStore,
+  payload: {
+    dataUrl: string
+    frames: LoopFrameBox[]
+    sourceWidth: number
+    sourceHeight: number
+    layerName?: string
+    gridConfig?: GridSlicerConfig
+    resetGroups?: boolean
+  }
+): Partial<LoopAnimatorStore> {
+  const cleanName = payload.layerName ? payload.layerName.replace(/\.[^.]+$/, '') : 'Hoạt ảnh Loop mới'
+  if (payload.resetGroups) {
+    const g0 = createLoopSequenceGroup({
+      id: createGroupId(0),
+      name: `Nhóm 1: ${cleanName}`,
+      sourceImageUrl: payload.dataUrl,
+      sourceWidth: payload.sourceWidth,
+      sourceHeight: payload.sourceHeight,
+      baseMeshWidth: 0,
+      baseMeshHeight: 0,
+      slicerMode: 'manual',
+      gridConfig: payload.gridConfig || s.gridConfig,
+      chromaKey: { ...s.chromaKey },
+      frames: payload.frames,
+      fps: s.playback.fps,
+      speed: s.playback.speed,
+      loopMode: s.playback.loopMode,
+      rhythm: { ...s.playback.rhythm }
+    })
+    return {
+      activePresetId: `loop_custom_${Date.now().toString(36)}`,
+      layerName: cleanName,
+      category: 'custom',
+      comboPreviewMode: false,
+      ...buildStoreSliceForGroup(g0, 0, [g0], s.playback, s.sourceVersion)
+    }
+  }
+
+  const synced = syncActiveGroupToGroups(s)
+  const idx = Math.max(0, Math.min(synced.length - 1, s.activeGroupIndex))
+  if (synced[idx]) {
+    synced[idx] = {
+      ...synced[idx],
+      sourceImageUrl: payload.dataUrl,
+      sourceWidth: payload.sourceWidth,
+      sourceHeight: payload.sourceHeight,
+      slicerMode: 'manual',
+      gridConfig: payload.gridConfig || s.gridConfig,
+      frames: payload.frames,
+      baseMeshWidth: 0,
+      baseMeshHeight: 0
+    }
+  }
+  return {
+    activePresetId: s.activePresetId || `loop_custom_${Date.now().toString(36)}`,
+    layerName: s.groups.length > 1 ? s.layerName : cleanName,
+    category: 'custom',
+    groups: synced,
+    sourceImageUrl: payload.dataUrl,
+    sourceWidth: payload.sourceWidth,
+    sourceHeight: payload.sourceHeight,
+    baseMeshWidth: 0,
+    baseMeshHeight: 0,
+    pendingMeshUpgrade: false,
+    slicerMode: 'manual',
+    gridConfig: payload.gridConfig || s.gridConfig,
+    selectedFrameIndex: 0,
+    playingFrameIndex: 0,
+    frames: payload.frames
+  }
+}
+

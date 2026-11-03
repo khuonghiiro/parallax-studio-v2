@@ -32,7 +32,8 @@ import {
 import { saveLoopAnimationAsPackage } from './loopPackageSaver'
 import {
   LOOP_IMAGE_ACCEPT,
-  appendLoopImageFilesAsGroups,
+  loadLoopImageFiles,
+  readFileAsDataUrl,
   upgradeLoopImageFilesKeepMesh
 } from './loopAnimatorLauncher'
 import { LOOP_STORAGE_UPDATED_EVENT, getAllLoopTemplates } from './loopAnimatorStorage'
@@ -294,19 +295,20 @@ export function LoopAnimatorDialog({ isOpen = true, onClose, initialImageUrl }: 
           hidden
           onChange={async (e) => {
             const files = Array.from(e.target.files ?? [])
-            if (files.length > 0) {
-              const added = await appendLoopImageFilesAsGroups(files)
-              if (added > 1) {
-                toast(`✨ Đã thêm nối tiếp ${added} nhóm ảnh hiệu ứng vào thanh trượt`)
-              } else if (added === 1) {
-                const totalGroups = useLoopAnimator.getState().groups.length
-                toast(
-                  totalGroups > 1
-                    ? `✨ Đã thêm nối tiếp Nhóm #${totalGroups} (không ghi đè nhóm trước)`
-                    : '✨ Đã nạp ảnh hoạt ảnh vào Nhóm #1'
-                )
-              } else {
+            if (files.length === 1) {
+              try {
+                const dataUrl = await readFileAsDataUrl(files[0])
+                loadCustomImage(dataUrl, files[0].name)
+                toast('✨ Đã nạp ảnh mới (ghi đè nhóm cũ)')
+              } catch {
                 toast('⚠ Tệp không phải ảnh hợp lệ')
+              }
+            } else if (files.length > 1) {
+              const ok = await loadLoopImageFiles(files, true)
+              if (ok) {
+                toast(`✨ Đã ghép ${files.length} frame thành hoạt ảnh mới (ghi đè nhóm cũ)`)
+              } else {
+                toast('⚠ Không thể nạp các tệp ảnh')
               }
             }
             e.target.value = ''
@@ -407,7 +409,7 @@ export function LoopAnimatorDialog({ isOpen = true, onClose, initialImageUrl }: 
               type="button"
               className="la-btn la-btn--danger loop-upload-red-btn"
               onClick={requestUpload}
-              title="Tải 1 hoặc nhiều ảnh từ máy tính (Không ghi đè: tự động thêm thành nhóm hiệu ứng nối tiếp)"
+              title="Tải ảnh mới từ máy tính (Ghi đè: xoá chuỗi nhóm cũ và nạp ảnh mới)"
             >
               <IconUpload width={13} height={13} />
               <span>Tải ảnh</span>
@@ -435,7 +437,7 @@ export function LoopAnimatorDialog({ isOpen = true, onClose, initialImageUrl }: 
           </div>
         </header>
 
-        {hasSource && <LoopGroupSliderBar onRequestAppendUpload={requestUpload} />}
+        {hasSource && <LoopGroupSliderBar />}
 
         <nav className="loop-mobile-view-tabs la-seg" aria-label="Chuyển khu vực làm việc">
           {(

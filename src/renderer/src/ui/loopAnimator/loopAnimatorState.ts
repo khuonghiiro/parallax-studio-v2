@@ -26,6 +26,7 @@ import {
   computeSourceDimensionsUpdate,
   computeSyncedChromaGroups,
   computeToggleGroupSyncChroma,
+  computeCustomMultiFramesState,
   DEFAULT_PRESET,
   DEFAULT_RHYTHM,
   INITIAL_FRAMES,
@@ -156,6 +157,7 @@ export interface LoopAnimatorStore {
     sourceHeight: number
     layerName?: string
     gridConfig?: GridSlicerConfig
+    resetGroups?: boolean
   }) => void
   /** Nâng cấp ảnh Sprite Sheet lên 2K/4K giữ nguyên tỉ lệ Mesh, cấu hình cắt và khớp khung hình */
   upgradeSourceImageKeepMesh: (dataUrl: string, name?: string) => void
@@ -674,24 +676,7 @@ export const useLoopAnimator = create<LoopAnimatorStore>((rawSet, get) => {
     getSyncedGroups: () => syncActiveGroupToGroups(get()),
 
     loadCustomMultiFrames: (payload) => {
-      const s = get()
-      const cleanName = payload.layerName ? payload.layerName.replace(/\.[^.]+$/, '') : 'Hoạt ảnh Loop mới'
-      set({
-        activePresetId: s.activePresetId || `loop_custom_${Date.now().toString(36)}`,
-        layerName: s.groups.length > 1 ? s.layerName : cleanName,
-        category: 'custom',
-        sourceImageUrl: payload.dataUrl,
-        sourceWidth: payload.sourceWidth,
-        sourceHeight: payload.sourceHeight,
-        baseMeshWidth: 0,
-        baseMeshHeight: 0,
-        pendingMeshUpgrade: false,
-        slicerMode: 'manual',
-        gridConfig: payload.gridConfig || s.gridConfig,
-        selectedFrameIndex: 0,
-        playingFrameIndex: 0,
-        frames: payload.frames
-      })
+      rawSet(computeCustomMultiFramesState(get(), payload) as any)
     },
 
     upgradeSourceImageKeepMesh: (dataUrl, name) => {
