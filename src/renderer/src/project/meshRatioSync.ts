@@ -478,15 +478,51 @@ export function rescaleLoopFramesByMeshRatio(
 
   if (!newSourceCanvas) return scaled
 
-  const ctx = newSourceCanvas.getContext('2d', { willReadFrequently: true })
-  if (!ctx || newSourceCanvas.width !== newW || newSourceCanvas.height !== newH) {
+  if (!newSourceCanvas || newSourceCanvas.width <= 0 || newSourceCanvas.height <= 0) {
     return scaled
   }
 
-  const sheetData = ctx.getImageData(0, 0, newW, newH)
+  let scanCanvas = newSourceCanvas
+  const maxScanDim = 1024
+  if (
+    typeof document !== 'undefined' &&
+    (newSourceCanvas.width > maxScanDim || newSourceCanvas.height > maxScanDim)
+  ) {
+    const downScale = maxScanDim / Math.max(newSourceCanvas.width, newSourceCanvas.height)
+    const sw = Math.max(1, Math.round(newSourceCanvas.width * downScale))
+    const sh = Math.max(1, Math.round(newSourceCanvas.height * downScale))
+    const proxy = document.createElement('canvas')
+    proxy.width = sw
+    proxy.height = sh
+    const pctx = proxy.getContext('2d', { willReadFrequently: true })
+    if (pctx) {
+      pctx.drawImage(newSourceCanvas, 0, 0, sw, sh)
+      scanCanvas = proxy
+    }
+  }
+
+  const ctx = scanCanvas.getContext('2d', { willReadFrequently: true })
+  if (!ctx) {
+    return scaled
+  }
+
+  const scanW = scanCanvas.width
+  const scanH = scanCanvas.height
+  const scanSX = scanW / Math.max(1, newW)
+  const scanSY = scanH / Math.max(1, newH)
+  const sheetData = ctx.getImageData(0, 0, scanW, scanH)
   const measured = scaled.map((f) => ({
     frame: f,
-    bounds: computeAlphaMeshBoundsFromImageData(sheetData, f, alphaThreshold)
+    bounds: computeAlphaMeshBoundsFromImageData(
+      sheetData,
+      {
+        x: Math.round(f.x * scanSX),
+        y: Math.round(f.y * scanSY),
+        width: Math.max(1, Math.round(f.width * scanSX)),
+        height: Math.max(1, Math.round(f.height * scanSY))
+      },
+      alphaThreshold
+    )
   }))
 
   // Nếu các frame chưa có offset thủ công, tự động đồng bộ tâm ngang và chân đế Alpha Mesh giữa các frame 2K/4K

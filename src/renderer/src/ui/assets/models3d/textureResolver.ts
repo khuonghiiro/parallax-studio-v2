@@ -12,57 +12,117 @@ export interface ResolvedTexture {
 const textureCache = new Map<string, Promise<ResolvedTexture | null>>()
 const createdBlobUrls = new Set<string>()
 
-/** Largest image (in pixels) that gets edge bleeding; bigger ones are uploaded as-is. */
-const BLEED_MAX_PIXELS = 2048 * 2048
+/** Largest image (in pixels) that gets edge bleeding; bigger ones are uploaded directly without CPU readback stall. */
+const BLEED_MAX_PIXELS = 1024 * 1024
 const BLEED_PASSES = 3
 
 /**
  * "Alpha bleeding": copies the colour of opaque edge pixels into neighbouring fully
  * transparent pixels (alpha stays 0). Without it, texture filtering at the alpha-cutout
  * edge mixes in the (usually black or white) RGB of transparent pixels → ugly fringes.
+ * Uses flat typed arrays instead of Set/Array allocations to avoid GC stalls on large textures.
  */
 export function bleedTransparentEdges(data: Uint8ClampedArray, w: number, h: number, passes = BLEED_PASSES): void {
-  const filled = new Uint8Array(w * h)
-  for (let i = 0; i < w * h; i++) filled[i] = data[i * 4 + 3] > 0 ? 1 : 0
-  const neighbours = (i: number, visit: (j: number) => void): void => {
-    const x = i % w
-    const y = (i - x) / w
-    for (let dy = -1; dy <= 1; dy++) {
-      const yy = y + dy
-      if (yy < 0 || yy >= h) continue
-      for (let dx = -1; dx <= 1; dx++) {
-        const xx = x + dx
-        if (xx < 0 || xx >= w || (dx === 0 && dy === 0)) continue
-        visit(yy * w + xx)
+  const total = w * h
+  if (total <= 0) return
+  const filled = new Uint8Array(total)
+  const queued = new Uint8Array(total)
+  for (let i = 0; i < total; i++) filled[i] = data[i * 4 + 3] > 0 ? 1 : 0
+
+  let frontier = new Int32Array(total)
+  let nextFrontier = new Int32Array(total)
+  let done = new Int32Array(total)
+  let frontierLen = 0
+
+  // Initial frontier: transparent pixels touching an opaque one.
+  for (let y = 0; y < h; y++) {
+    const rowOff = y * w
+    for (let x = 0; x < w; x++) {
+      const i = rowOff + x
+      if (filled[i]) continue
+      let touches = false
+      const y0 = y > 0 ? y - 1 : 0
+      const y1 = y + 1 < h ? y + 1 : h - 1
+      const x0 = x > 0 ? x - 1 : 0
+      const x1 = x + 1 < w ? x + 1 : w - 1
+      for (let yy = y0; yy <= y1 && !touches; yy++) {
+        const rOff = yy * w
+        for (let xx = x0; xx <= x1; xx++) {
+          if (filled[rOff + xx]) {
+            touches = true
+            break
+          }
+        }
+      }
+      if (touches) {
+        frontier[frontierLen++] = i
+        queued[i] = 1
       }
     }
   }
-  // Initial frontier: transparent pixels touching an opaque one.
-  let frontier: number[] = []
-  for (let i = 0; i < w * h; i++) {
-    if (filled[i]) continue
-    let touches = false
-    neighbours(i, (j) => { if (filled[j]) touches = true })
-    if (touches) frontier.push(i)
-  }
-  for (let pass = 0; pass < passes && frontier.length > 0; pass++) {
-    const done: number[] = []
-    for (const i of frontier) {
+
+  for (let pass = 0; pass < passes && frontierLen > 0; pass++) {
+    let doneLen = 0
+    for (let f = 0; f < frontierLen; f++) {
+      const i = frontier[f]
+      const x = i % w
+      const y = (i - x) / w
       let r = 0, g = 0, b = 0, n = 0
-      neighbours(i, (j) => {
-        if (!filled[j]) return
-        r += data[j * 4]; g += data[j * 4 + 1]; b += data[j * 4 + 2]; n++
-      })
+      const y0 = y > 0 ? y - 1 : 0
+      const y1 = y + 1 < h ? y + 1 : h - 1
+      const x0 = x > 0 ? x - 1 : 0
+      const x1 = x + 1 < w ? x + 1 : w - 1
+      for (let yy = y0; yy <= y1; yy++) {
+        const rOff = yy * w
+        for (let xx = x0; xx <= x1; xx++) {
+          const j = rOff + xx
+          if (!filled[j]) continue
+          const pOff = j * 4
+          r += data[pOff]
+          g += data[pOff + 1]
+          b += data[pOff + 2]
+          n++
+        }
+      }
       if (n === 0) continue
-      data[i * 4] = r / n
-      data[i * 4 + 1] = g / n
-      data[i * 4 + 2] = b / n
-      done.push(i)
+      const iOff = i * 4
+      data[iOff] = r / n
+      data[iOff + 1] = g / n
+      data[iOff + 2] = b / n
+      done[doneLen++] = i
     }
-    const nextSet = new Set<number>()
-    for (const i of done) filled[i] = 1
-    for (const i of done) neighbours(i, (j) => { if (!filled[j]) nextSet.add(j) })
-    frontier = Array.from(nextSet)
+
+    for (let d = 0; d < doneLen; d++) {
+      filled[done[d]] = 1
+    }
+
+    let nextLen = 0
+    if (pass + 1 < passes) {
+      for (let d = 0; d < doneLen; d++) {
+        const i = done[d]
+        const x = i % w
+        const y = (i - x) / w
+        const y0 = y > 0 ? y - 1 : 0
+        const y1 = y + 1 < h ? y + 1 : h - 1
+        const x0 = x > 0 ? x - 1 : 0
+        const x1 = x + 1 < w ? x + 1 : w - 1
+        for (let yy = y0; yy <= y1; yy++) {
+          const rOff = yy * w
+          for (let xx = x0; xx <= x1; xx++) {
+            const j = rOff + xx
+            if (!filled[j] && !queued[j]) {
+              queued[j] = 1
+              nextFrontier[nextLen++] = j
+            }
+          }
+        }
+      }
+    }
+
+    const tmp = frontier
+    frontier = nextFrontier
+    nextFrontier = tmp
+    frontierLen = nextLen
   }
 }
 
@@ -260,5 +320,3 @@ if (import.meta.hot) {
     clearTextureCache()
   })
 }
-
-

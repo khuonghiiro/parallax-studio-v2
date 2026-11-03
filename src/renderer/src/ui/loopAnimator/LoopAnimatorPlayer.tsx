@@ -3,6 +3,7 @@ import { evaluateLoopLayerRhythm } from '../../project/gifHelper'
 import { IconFilm, IconPause, IconPlay, IconStepBack, IconStepFwd } from '../icons'
 import { LoopPlayerSettings } from './LoopPlayerSettings'
 import { useLoopAnimator } from './loopAnimatorState'
+import { getLoopSourceLogicalSize } from './loopSourceProxy'
 import type { LoopFrameBox, LoopPlaybackConfig } from './types'
 
 interface Props {
@@ -24,11 +25,22 @@ function drawFrame(
   scale: number,
   anchor: 'bottom' | 'center'
 ): void {
+  const { sx, sy } = getLoopSourceLogicalSize(src)
   const w = Math.round(f.width * scale)
   const h = Math.round(f.height * scale)
   const x = Math.round((STAGE - w) * 0.5 + f.offsetX * scale)
   const y = anchor === 'bottom' ? Math.round(STAGE - 24 - h + f.offsetY * scale) : Math.round((STAGE - h) * 0.5 + f.offsetY * scale)
-  ctx.drawImage(src, f.x, f.y, f.width, f.height, x, y, w, h)
+  ctx.drawImage(
+    src,
+    f.x * sx,
+    f.y * sy,
+    Math.max(1, f.width * sx),
+    Math.max(1, f.height * sy),
+    x,
+    y,
+    w,
+    h
+  )
 }
 
 function prevEnabledIndex(frames: LoopFrameBox[], from: number): number {

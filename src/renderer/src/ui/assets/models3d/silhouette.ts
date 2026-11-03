@@ -301,7 +301,7 @@ export function getImageSilhouette(image: HTMLImageElement | HTMLCanvasElement, 
   const nw = 'naturalWidth' in image ? image.naturalWidth : image.width
   const nh = 'naturalHeight' in image ? image.naturalHeight : image.height
   if (!nw || !nh) return null
-  const s = Math.min(1, (detailed ? 2048 : MAX_MASK_SIZE) / Math.max(nw, nh))
+  const s = Math.min(1, (detailed ? 768 : MAX_MASK_SIZE) / Math.max(nw, nh))
   const w = Math.max(1, Math.round(nw * s))
   const h = Math.max(1, Math.round(nh * s))
   try {

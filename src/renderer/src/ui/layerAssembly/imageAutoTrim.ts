@@ -116,30 +116,40 @@ export async function trimImageTransparency(
     return { trimmed: false, width: origW, height: origH, offsetX: 0, offsetY: 0, originalWidth: origW, originalHeight: origH }
   }
 
-  // Vẽ ảnh lên canvas để đọc pixel
+  // Quét tìm vùng đục (Bounding Box) trên bộ đệm thu nhỏ <= 512px để không đọc 67MB RGBA trên ảnh 4K
+  const maxScanDim = 512
+  const scanScale = Math.min(1, maxScanDim / Math.max(origW, origH))
+  const scanW = Math.max(1, Math.round(origW * scanScale))
+  const scanH = Math.max(1, Math.round(origH * scanScale))
+
   const canvas = document.createElement('canvas')
-  canvas.width = origW
-  canvas.height = origH
+  canvas.width = scanW
+  canvas.height = scanH
   const ctx = canvas.getContext('2d', { willReadFrequently: true })
   if (!ctx) {
     return { trimmed: false, width: origW, height: origH, offsetX: 0, offsetY: 0, originalWidth: origW, originalHeight: origH }
   }
 
-  ctx.drawImage(img, 0, 0)
+  ctx.drawImage(img, 0, 0, scanW, scanH)
   let imgData: ImageData
   try {
-    imgData = ctx.getImageData(0, 0, origW, origH)
+    imgData = ctx.getImageData(0, 0, scanW, scanH)
   } catch (err) {
     console.warn('[imageAutoTrim] Canvas bị bảo mật (tainted), không đọc được pixel:', err)
     return { trimmed: false, width: origW, height: origH, offsetX: 0, offsetY: 0, originalWidth: origW, originalHeight: origH }
   }
 
-  const bbox = findOpaqueBoundingBox(imgData.data, origW, origH, alphaThreshold)
-  if (!bbox.found) {
+  const rawBbox = findOpaqueBoundingBox(imgData.data, scanW, scanH, alphaThreshold)
+  if (!rawBbox.found) {
     return { trimmed: false, width: origW, height: origH, offsetX: 0, offsetY: 0, originalWidth: origW, originalHeight: origH }
   }
 
-  const { minX, minY, maxX, maxY } = bbox
+  const invScale = scanScale < 1 ? 1 / scanScale : 1
+  const scaleMargin = scanScale < 1 ? Math.ceil(invScale) : 0
+  const minX = Math.max(0, Math.floor(rawBbox.minX * invScale) - scaleMargin)
+  const minY = Math.max(0, Math.floor(rawBbox.minY * invScale) - scaleMargin)
+  const maxX = Math.min(origW - 1, Math.ceil((rawBbox.maxX + 1) * invScale - 1) + scaleMargin)
+  const maxY = Math.min(origH - 1, Math.ceil((rawBbox.maxY + 1) * invScale - 1) + scaleMargin)
   const topTrim = minY
   const bottomTrim = origH - 1 - maxY
   const leftTrim = minX
@@ -158,7 +168,7 @@ export async function trimImageTransparency(
   const cropW = Math.min(origW - cropX, maxX - minX + 1 + padding * 2)
   const cropH = Math.min(origH - cropY, maxY - minY + 1 + padding * 2)
 
-  // Canvas cắt
+  // Canvas cắt trực tiếp từ ảnh gốc `img`
   const cropCanvas = document.createElement('canvas')
   cropCanvas.width = cropW
   cropCanvas.height = cropH
@@ -167,7 +177,7 @@ export async function trimImageTransparency(
     return { trimmed: false, width: origW, height: origH, offsetX: 0, offsetY: 0, originalWidth: origW, originalHeight: origH }
   }
 
-  cropCtx.drawImage(canvas, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH)
+  cropCtx.drawImage(img, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH)
   const trimmedUrl = cropCanvas.toDataURL('image/png')
 
   // Độ lệch tâm giữa ảnh gốc và ảnh đã cắt (để layer không bị giật vị trí trực quan)

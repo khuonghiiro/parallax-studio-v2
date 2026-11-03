@@ -4,6 +4,13 @@ import {
   detectCornerKeyColor,
   parseHexRgb
 } from './loopChromaProcessor'
+import {
+  extractHighResFrameFromProxy,
+  getLoopSourceCanvasMeta,
+  getLoopSourceLogicalSize,
+  prepareDownsampledScanContext,
+  scaleGridConfigForWorkCanvas
+} from './loopSourceProxy'
 import { applyLoopColorFilterToSource } from '../../project/gifHelper'
 import { resolveLoopAssetUrl } from './sampleLoops'
 import type { LoopAnimationPackageJson, LoopColorConfig } from '@shared/types'
@@ -76,16 +83,16 @@ export function detectContourFrames(
   sourceCanvas: HTMLCanvasElement,
   config: ContourSlicerConfig
 ): LoopFrameBox[] {
-  const w = sourceCanvas.width
-  const h = sourceCanvas.height
-  if (w <= 0 || h <= 0) return []
-  const ctx = sourceCanvas.getContext('2d')
-  if (!ctx) return []
+  const scan = prepareDownsampledScanContext(sourceCanvas, 1024)
+  if (!scan) return []
+  const { ctx, scanW: w, scanH: h, logicalW, logicalH, sx, sy } = scan
+  const sUniform = (sx + sy) * 0.5
+  const sArea = sx * sy
 
   const imgData = ctx.getImageData(0, 0, w, h).data
   const alphaThresh = Math.max(1, Math.min(254, config.alphaThreshold || 24))
-  const minArea = Math.max(16, config.minArea || 180)
-  const mergeGap = Math.max(0, config.mergeGap ?? 8)
+  const minArea = Math.max(8, Math.round((config.minArea || 180) * sArea))
+  const mergeGap = Math.max(0, Math.round((config.mergeGap ?? 8) * sUniform))
 
   // Downsample by step=2 for fast connected-components flood fill (< 5ms on 1024x1024)
   const step = w > 512 || h > 512 ? 2 : 1
@@ -392,13 +399,21 @@ export function detectContourFrames(
       height = Math.max(1, Math.min(h - y, b.maxY - b.minY + pad * 2))
     }
 
+    const invX = sx > 0 ? 1 / sx : 1
+    const invY = sy > 0 ? 1 / sy : 1
+    const needsScale = Math.abs(invX - 1) > 1e-4 || Math.abs(invY - 1) > 1e-4
+    const finalX = needsScale ? Math.max(0, Math.min(logicalW - 1, Math.round(x * invX))) : x
+    const finalY = needsScale ? Math.max(0, Math.min(logicalH - 1, Math.round(y * invY))) : y
+    const finalW = needsScale ? Math.max(1, Math.min(logicalW - finalX, Math.round(width * invX))) : width
+    const finalH = needsScale ? Math.max(1, Math.min(logicalH - finalY, Math.round(height * invY))) : height
+
     return {
       id: `frame_${index}`,
       index,
-      x,
-      y,
-      width,
-      height,
+      x: finalX,
+      y: finalY,
+      width: finalW,
+      height: finalH,
       offsetX: 0,
       offsetY: 0,
       enabled: true,
@@ -527,24 +542,31 @@ export function autoCenterLoopFrames(
   alphaThreshold = 24,
   anchor: 'bottom' | 'center' = 'bottom'
 ): LoopFrameBox[] {
-  const ctx = sourceCanvas.getContext('2d')
-  if (!ctx || frames.length === 0) return frames
-  const w = sourceCanvas.width
-  const h = sourceCanvas.height
+  if (frames.length === 0) return frames
+  const scan = prepareDownsampledScanContext(sourceCanvas, 1024)
+  if (!scan) return frames
+  const { ctx, scanW: w, scanH: h, sx, sy } = scan
   const data = ctx.getImageData(0, 0, w, h).data
+  const invX = sx > 0 ? 1 / sx : 1
+  const invY = sy > 0 ? 1 / sy : 1
 
   return frames.map((frame) => {
-    let minX = frame.width
-    let minY = frame.height
+    const sfX = Math.round(frame.x * sx)
+    const sfY = Math.round(frame.y * sy)
+    const sfW = Math.max(1, Math.round(frame.width * sx))
+    const sfH = Math.max(1, Math.round(frame.height * sy))
+
+    let minX = sfW
+    let minY = sfH
     let maxX = 0
     let maxY = 0
     let found = false
 
-    for (let fy = 0; fy < frame.height; fy++) {
-      const py = frame.y + fy
+    for (let fy = 0; fy < sfH; fy++) {
+      const py = sfY + fy
       if (py < 0 || py >= h) continue
-      for (let fx = 0; fx < frame.width; fx++) {
-        const px = frame.x + fx
+      for (let fx = 0; fx < sfW; fx++) {
+        const px = sfX + fx
         if (px < 0 || px >= w) continue
         const a = data[(py * w + px) * 4 + 3]
         if (a >= alphaThreshold) {
@@ -558,16 +580,16 @@ export function autoCenterLoopFrames(
     }
 
     if (!found) return { ...frame, offsetX: 0, offsetY: 0 }
-    const contentCenterX = (minX + maxX) * 0.5
+    const contentCenterX = (minX + maxX) * 0.5 * invX
     const boxCenterX = frame.width * 0.5
     const offsetX = Math.round(boxCenterX - contentCenterX)
 
     let offsetY: number
     if (anchor === 'bottom') {
       const targetBaseY = frame.height - 2
-      offsetY = Math.round(targetBaseY - maxY)
+      offsetY = Math.round(targetBaseY - maxY * invY)
     } else {
-      const contentCenterY = (minY + maxY) * 0.5
+      const contentCenterY = (minY + maxY) * 0.5 * invY
       const boxCenterY = frame.height * 0.5
       offsetY = Math.round(boxCenterY - contentCenterY)
     }
@@ -590,14 +612,27 @@ export function extractFrameCanvas(
   targetHeight?: number,
   anchor: 'bottom' | 'center' = 'bottom'
 ): HTMLCanvasElement {
-  const outW = targetWidth ?? frame.width
-  const outH = targetHeight ?? frame.height
+  const outW = Math.max(1, Math.round(targetWidth ?? frame.width))
+  const outH = Math.max(1, Math.round(targetHeight ?? frame.height))
+
+  const meta = getLoopSourceCanvasMeta(sourceCanvas)
+  if (
+    meta &&
+    meta.rawImage &&
+    (meta.workScaleX < 0.999 || meta.workScaleY < 0.999) &&
+    (outW > frame.width * meta.workScaleX + 4 || outH > frame.height * meta.workScaleY + 4)
+  ) {
+    const highRes = extractHighResFrameFromProxy(meta, frame, outW, outH, anchor)
+    if (highRes) return highRes
+  }
+
   const canvas = document.createElement('canvas')
-  canvas.width = Math.max(1, Math.round(outW))
-  canvas.height = Math.max(1, Math.round(outH))
+  canvas.width = outW
+  canvas.height = outH
   const ctx = canvas.getContext('2d')
   if (!ctx) return canvas
 
+  const { sx, sy } = getLoopSourceLogicalSize(sourceCanvas)
   ctx.clearRect(0, 0, canvas.width, canvas.height)
   const drawX = Math.round((canvas.width - frame.width) * 0.5 + frame.offsetX)
   let drawY: number
@@ -609,10 +644,10 @@ export function extractFrameCanvas(
 
   ctx.drawImage(
     sourceCanvas,
-    frame.x,
-    frame.y,
-    frame.width,
-    frame.height,
+    frame.x * sx,
+    frame.y * sy,
+    Math.max(1, frame.width * sx),
+    Math.max(1, frame.height * sy),
     drawX,
     drawY,
     frame.width,
@@ -712,6 +747,10 @@ export function invalidateCachedLoopTemplateSheet(templateId?: string): void {
   }
 }
 
+/** Giới hạn kích thước tối đa của dải Sprite Sheet lưu cache trong RAM (chống tràn 75MB–600MB khi nạp gói 16 frame 4K) */
+const MAX_CACHED_STRIP_DIM = 3072
+const MAX_CACHED_SHEET_DIM = 2048
+
 async function loadPackageHorizontalSheet(slug: string): Promise<CachedLoopSpriteSheet | null> {
   if (typeof window === 'undefined' || !window.api?.loadBuiltInAssetBytes) return null
   const jsonRel = `loop_animations/${slug}/animation.json`
@@ -735,12 +774,6 @@ async function loadPackageHorizontalSheet(slug: string): Promise<CachedLoopSprit
       if (!raw || !raw.data) return null
       const blob = new Blob([raw.data as unknown as BlobPart], { type: raw.mime || 'image/png' })
       const bmp = await createImageBitmap(blob)
-      const fc = document.createElement('canvas')
-      fc.width = bmp.width
-      fc.height = bmp.height
-      const fctx = fc.getContext('2d')
-      if (fctx) fctx.drawImage(bmp, 0, 0)
-      bmp.close()
 
       const frameColor: LoopColorConfig = {
         ...baseColor,
@@ -751,30 +784,48 @@ async function loadPackageHorizontalSheet(slug: string): Promise<CachedLoopSprit
         hueRotate: f.hueRotate !== undefined ? f.hueRotate : baseColor.hueRotate,
         opacity: f.opacity !== undefined ? f.opacity : baseColor.opacity
       }
-      const filtered = applyLoopColorFilterToSource(fc, fc.width, fc.height, frameColor)
-      return { canvas: filtered || fc, meta: f }
+      const filtered = applyLoopColorFilterToSource(bmp, bmp.width, bmp.height, frameColor)
+      if (filtered) {
+        bmp.close()
+        return { source: filtered as CanvasImageSource, width: filtered.width, height: filtered.height, bmpToClose: null, meta: f }
+      }
+      return { source: bmp as CanvasImageSource, width: bmp.width, height: bmp.height, bmpToClose: bmp, meta: f }
     })
   )
 
   const valid = decoded.filter((d): d is NonNullable<typeof d> => Boolean(d))
   if (valid.length === 0) return null
 
-  const frameW = Math.max(1, pkg.width || 0, ...valid.map((v) => v.canvas.width))
-  const frameH = Math.max(1, pkg.height || 0, ...valid.map((v) => v.canvas.height))
+  const rawFrameW = Math.max(1, pkg.width || 0, ...valid.map((v) => v.width))
+  const rawFrameH = Math.max(1, pkg.height || 0, ...valid.map((v) => v.height))
   const grid = computeLoopSheetGrid(valid.length)
+  const cellScale = Math.min(
+    1,
+    MAX_CACHED_STRIP_DIM / Math.max(1, rawFrameW * grid.cols),
+    MAX_CACHED_STRIP_DIM / Math.max(1, rawFrameH * grid.rows)
+  )
+  const frameW = Math.max(1, Math.round(rawFrameW * cellScale))
+  const frameH = Math.max(1, Math.round(rawFrameH * cellScale))
+
   const stripCanvas = document.createElement('canvas')
   stripCanvas.width = frameW * grid.cols
   stripCanvas.height = frameH * grid.rows
   const sctx = stripCanvas.getContext('2d')
-  if (!sctx) return null
+  if (!sctx) {
+    valid.forEach((v) => v.bmpToClose?.close())
+    return null
+  }
   const stripFrames: LoopFrameBox[] = valid.map((v, idx) => {
     const col = idx % grid.cols
     const row = Math.floor(idx / grid.cols)
     const x = col * frameW
     const y = row * frameH
-    const drawX = x + Math.round((frameW - v.canvas.width) * 0.5)
-    const drawY = y + Math.round(frameH - v.canvas.height)
-    sctx.drawImage(v.canvas, drawX, drawY)
+    const dw = Math.max(1, Math.round(v.width * cellScale))
+    const dh = Math.max(1, Math.round(v.height * cellScale))
+    const drawX = x + Math.round((frameW - dw) * 0.5)
+    const drawY = y + Math.round(frameH - dh)
+    sctx.drawImage(v.source, drawX, drawY, dw, dh)
+    v.bmpToClose?.close()
     return {
       id: `frame_${idx}`,
       index: idx,
@@ -843,8 +894,11 @@ export function getCachedLoopTemplateSheet(
     const img = new Image()
     img.crossOrigin = 'anonymous'
     img.onload = () => {
-      const w = img.naturalWidth || img.width || 512
-      const h = img.naturalHeight || img.height || 512
+      const rawW = img.naturalWidth || img.width || 512
+      const rawH = img.naturalHeight || img.height || 512
+      const sheetScale = Math.min(1, MAX_CACHED_SHEET_DIM / Math.max(1, rawW, rawH))
+      const w = Math.max(1, Math.round(rawW * sheetScale))
+      const h = Math.max(1, Math.round(rawH * sheetScale))
       const canvas = document.createElement('canvas')
       canvas.width = w
       canvas.height = h
@@ -853,11 +907,11 @@ export function getCachedLoopTemplateSheet(
         resolve(null)
         return
       }
-      ctx.drawImage(img, 0, 0)
+      ctx.drawImage(img, 0, 0, w, h)
       if (pad > 0 || template.chromaKey?.enabled) {
         const imgData = ctx.getImageData(0, 0, w, h)
         if (pad > 0 && template.gridConfig) {
-          clearGridBorderPadding(imgData, template.gridConfig)
+          clearGridBorderPadding(imgData, scaleGridConfigForWorkCanvas(template.gridConfig, sheetScale, sheetScale))
         }
         if (template.chromaKey?.enabled) {
           applyChromaKeyToImageData(imgData, template.chromaKey)
@@ -866,8 +920,20 @@ export function getCachedLoopTemplateSheet(
       }
       const allFrames =
         template.frames && template.frames.length > 0
-          ? template.frames
-          : buildGridFrames(w, h, template.gridConfig)
+          ? template.frames.map((f) =>
+              sheetScale < 0.999
+                ? {
+                    ...f,
+                    x: Math.round(f.x * sheetScale),
+                    y: Math.round(f.y * sheetScale),
+                    width: Math.max(1, Math.round(f.width * sheetScale)),
+                    height: Math.max(1, Math.round(f.height * sheetScale)),
+                    offsetX: Math.round((f.offsetX || 0) * sheetScale),
+                    offsetY: Math.round((f.offsetY || 0) * sheetScale)
+                  }
+                : f
+            )
+          : buildGridFrames(w, h, scaleGridConfigForWorkCanvas(template.gridConfig, sheetScale, sheetScale))
       const enabledFrames = allFrames.filter((f) => f.enabled)
       const activeFrames = enabledFrames.length > 0 ? enabledFrames : allFrames
       const frameW = Math.max(1, ...activeFrames.map((f) => f.width))

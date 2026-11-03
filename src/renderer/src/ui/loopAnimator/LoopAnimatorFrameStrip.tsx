@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { IconAim, IconCheck, IconCopy, IconFilm, IconPlus, IconRefresh, IconTrash } from '../icons'
 import { LoopNumField } from './LoopSlicerControls'
 import { useLoopAnimator } from './loopAnimatorState'
+import { getLoopSourceLogicalSize } from './loopSourceProxy'
 import type { LoopFrameBox } from './types'
 
 interface Props {
@@ -25,12 +26,23 @@ const FrameThumbCanvas = React.memo(function FrameThumbCanvas({
     if (!canvas || !ctx) return
     ctx.clearRect(0, 0, canvas.width, canvas.height)
     if (!src || src.width <= 0 || frame.width <= 0 || frame.height <= 0) return
+    const { sx, sy } = getLoopSourceLogicalSize(src)
     const scale = Math.min((canvas.width - 6) / frame.width, (canvas.height - 6) / frame.height)
     const dw = Math.max(1, Math.round(frame.width * scale))
     const dh = Math.max(1, Math.round(frame.height * scale))
     const dx = Math.round((canvas.width - dw) * 0.5 + frame.offsetX * scale)
     const dy = Math.round((canvas.height - dh) * 0.5 + frame.offsetY * scale)
-    ctx.drawImage(src, frame.x, frame.y, frame.width, frame.height, dx, dy, dw, dh)
+    ctx.drawImage(
+      src,
+      frame.x * sx,
+      frame.y * sy,
+      Math.max(1, frame.width * sx),
+      Math.max(1, frame.height * sy),
+      dx,
+      dy,
+      dw,
+      dh
+    )
   }, [sourceCanvasRef, sourceVersion, frame.x, frame.y, frame.width, frame.height, frame.offsetX, frame.offsetY])
   return <canvas ref={canvasRef} width={80} height={68} className="loop-frame-thumb-canvas" />
 })

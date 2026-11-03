@@ -11,6 +11,7 @@ import {
   extractFirstFramePreviewUrl,
   getCachedLoopTemplateSheet
 } from './loopFrameExtractor'
+import { canvasToBlobUrl } from './loopSourceProxy'
 import { getAllLoopTemplates, saveLoopTemplate } from './loopAnimatorStorage'
 import { SAMPLE_LOOP_PRESETS } from './sampleLoops'
 import type {
@@ -190,13 +191,15 @@ async function repackSingleRowSheetToThreeRows(
           height: frameH
         }
       })
-      resolve({
-        dataUrl: canvas.toDataURL('image/png'),
-        width: canvas.width,
-        height: canvas.height,
-        cols: grid.cols,
-        rows: grid.rows,
-        frames: nextFrames
+      void canvasToBlobUrl(canvas).then((dataUrl) => {
+        resolve({
+          dataUrl,
+          width: canvas.width,
+          height: canvas.height,
+          cols: grid.cols,
+          rows: grid.rows,
+          frames: nextFrames
+        })
       })
     }
     img.onerror = () => resolve(null)
@@ -336,9 +339,10 @@ export const useLoopAnimator = create<LoopAnimatorStore>((set, get) => ({
       })
 
       if (isPkg) {
-        void getCachedLoopTemplateSheet(saved).then((sheet) => {
+        void getCachedLoopTemplateSheet(saved).then(async (sheet) => {
           if (!sheet || get().activePresetId !== saved.id) return
-          const stripUrl = sheet.canvas.toDataURL('image/png')
+          const stripUrl = await canvasToBlobUrl(sheet.canvas)
+          if (get().activePresetId !== saved.id) return
           const pkg = sheet.packageJson
           const grid = computeLoopSheetGrid(sheet.frames.length)
           const thumbIdx = pkg?.thumbnailFrameIndex ?? saved.thumbnailFrameIndex
@@ -539,12 +543,14 @@ export const useLoopAnimator = create<LoopAnimatorStore>((set, get) => ({
       set({ pendingMeshUpgrade: false })
       return
     }
+    const logicalW = s.sourceWidth || sourceCanvas.width
+    const logicalH = s.sourceHeight || sourceCanvas.height
     const aligned = rescaleLoopFramesByMeshRatio(
       s.frames,
-      sourceCanvas.width,
-      sourceCanvas.height,
-      sourceCanvas.width,
-      sourceCanvas.height,
+      logicalW,
+      logicalH,
+      logicalW,
+      logicalH,
       sourceCanvas,
       s.contourConfig.alignAnchor ?? 'bottom',
       s.contourConfig.alphaThreshold || 16

@@ -207,22 +207,12 @@ export async function loadLoopPackageData(
   // 2. Tải song song từng frame ảnh PNG đã tách nền sẵn
   const baseFrameDuration = 1 / Math.max(1, Math.min(60, effectiveConfig.fps))
   const loadedFrames = await Promise.all(
-    frames.map(async (f) => {
+    frames.map(async (f, idx) => {
       const frameRel = `${baseFolder}/${f.file}`
       const file = await loadAssetBytesFromDiskOrBuiltIn(frameRel)
       if (!file || !file.data) return null
 
       const blob = new Blob([file.data as unknown as BlobPart], { type: file.mime || 'image/png' })
-      const imgBitmap = await createImageBitmap(blob)
-
-      const c = document.createElement('canvas')
-      c.width = imgBitmap.width
-      c.height = imgBitmap.height
-      const ctx = c.getContext('2d')
-      if (ctx) {
-        ctx.drawImage(imgBitmap, 0, 0)
-      }
-      imgBitmap.close()
 
       const effectiveFrameColor: LoopColorConfig = {
         ...effectiveConfig.color,
@@ -233,6 +223,37 @@ export async function loadLoopPackageData(
         hueRotate: f.hueRotate !== undefined ? f.hueRotate : effectiveConfig.color.hueRotate,
         opacity: f.opacity !== undefined ? f.opacity : effectiveConfig.color.opacity
       }
+
+      const needsColorFilter = getLoopColorSignature(effectiveFrameColor) !== 'default'
+      if (!needsColorFilter) {
+        // Giải mã thẳng thành ImageBitmap đã lật dọc (1 bước, không tạo 16 Canvas 4K trung gian)
+        const bmp = await createImageBitmap(blob, {
+          imageOrientation: 'flipY',
+          premultiplyAlpha: 'none',
+          colorSpaceConversion: 'none'
+        })
+        let thumbFrameCanvas: HTMLCanvasElement | null = null
+        if (idx === 0 && typeof document !== 'undefined') {
+          const rawBmp = await createImageBitmap(blob)
+          thumbFrameCanvas = document.createElement('canvas')
+          thumbFrameCanvas.width = rawBmp.width
+          thumbFrameCanvas.height = rawBmp.height
+          thumbFrameCanvas.getContext('2d')?.drawImage(rawBmp, 0, 0)
+          rawBmp.close()
+        }
+        return { filtered: thumbFrameCanvas, bmp, meta: f }
+      }
+
+      const imgBitmap = await createImageBitmap(blob)
+
+      const c = document.createElement('canvas')
+      c.width = imgBitmap.width
+      c.height = imgBitmap.height
+      const ctx = c.getContext('2d')
+      if (ctx) {
+        ctx.drawImage(imgBitmap, 0, 0)
+      }
+      imgBitmap.close()
 
       const filtered = applyLoopColorFilterToCanvas(c, effectiveFrameColor)
       const bmp = await createFlippedFrameBitmap(filtered)

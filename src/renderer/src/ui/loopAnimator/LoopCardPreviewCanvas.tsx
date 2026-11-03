@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { evaluateLoopLayerRhythm } from '../../project/gifHelper'
 import { getCachedLoopTemplateSheet } from './loopFrameExtractor'
+import { resolveLoopAssetUrl } from './sampleLoops'
 import type { LoopAnimationTemplate } from './types'
 
 interface Props {
@@ -68,7 +69,27 @@ export const LoopCardPreviewCanvas = React.memo(function LoopCardPreviewCanvas({
   useEffect(() => {
     let cancelled = false
     const cached = ghostThumbMemoryCache.get(cacheKey) || template.renderedFrames?.[0] || template.thumbUrl
-    if (cached) setGhostThumbUrl(cached)
+    const isPkgThumbUrl = Boolean(template.imageUrl && /thumbnail\.(png|webp|jpe?g)$/i.test(template.imageUrl))
+
+    if (cached) {
+      setGhostThumbUrl(cached)
+    } else if (isPkgThumbUrl && template.imageUrl) {
+      void resolveLoopAssetUrl(template.imageUrl).then((resolved) => {
+        if (cancelled) return
+        const url = resolved || template.imageUrl
+        ghostThumbMemoryCache.set(cacheKey, url)
+        setGhostThumbUrl(url)
+      })
+    }
+
+    // Nếu thẻ đang ở trạng thái tĩnh (!isPlaying) và đã có ảnh thu nhỏ (thumbnail.png hoặc thumbUrl),
+    // KHÔNG giải mã toàn bộ 16 frame 4K ngay lúc mount danh sách để chống đơ UI.
+    if (!isPlaying && (cached || isPkgThumbUrl) && !sheetRef.current) {
+      return () => {
+        cancelled = true
+      }
+    }
+
     void getCachedLoopTemplateSheet(template).then((sheet) => {
       if (cancelled) return
       sheetRef.current = sheet
@@ -83,12 +104,15 @@ export const LoopCardPreviewCanvas = React.memo(function LoopCardPreviewCanvas({
           const thumbIdx = Math.max(0, Math.min(sheet.frames.length - 1, rawThumbIdx))
           const f0 = sheet.frames[thumbIdx] ?? sheet.frames[0]
           if (f0) {
+            const thumbScale = Math.min(1, 256 / Math.max(1, f0.width, f0.height))
+            const tw = Math.max(1, Math.round(f0.width * thumbScale))
+            const th = Math.max(1, Math.round(f0.height * thumbScale))
             const c = document.createElement('canvas')
-            c.width = f0.width
-            c.height = f0.height
+            c.width = tw
+            c.height = th
             const ctx = c.getContext('2d')
             if (ctx) {
-              ctx.drawImage(sheet.canvas, f0.x, f0.y, f0.width, f0.height, 0, 0, f0.width, f0.height)
+              ctx.drawImage(sheet.canvas, f0.x, f0.y, f0.width, f0.height, 0, 0, tw, th)
               const dataUrl = c.toDataURL('image/png')
               ghostThumbMemoryCache.set(cacheKey, dataUrl)
               setGhostThumbUrl(dataUrl)
@@ -102,7 +126,7 @@ export const LoopCardPreviewCanvas = React.memo(function LoopCardPreviewCanvas({
     return () => {
       cancelled = true
     }
-  }, [cacheKey, template])
+  }, [cacheKey, template, isPlaying])
 
   useEffect(() => {
     const canvas = canvasRef.current

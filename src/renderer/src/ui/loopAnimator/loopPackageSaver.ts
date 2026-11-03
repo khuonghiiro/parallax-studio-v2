@@ -125,9 +125,16 @@ export async function saveLoopAnimationAsPackage(
   const framePayloads: Array<{ fileName: string; data: Uint8Array }> = []
 
   const grid = computeLoopSheetGrid(totalFrames)
+  const stripScale = Math.min(
+    1,
+    3072 / Math.max(1, maxW * grid.cols),
+    3072 / Math.max(1, maxH * grid.rows)
+  )
+  const stripCellW = Math.max(1, Math.round(maxW * stripScale))
+  const stripCellH = Math.max(1, Math.round(maxH * stripScale))
   const stripCanvas = document.createElement('canvas')
-  stripCanvas.width = maxW * grid.cols
-  stripCanvas.height = maxH * grid.rows
+  stripCanvas.width = stripCellW * grid.cols
+  stripCanvas.height = stripCellH * grid.rows
   const stripCtx = stripCanvas.getContext('2d')
   const stripFrames: LoopFrameBox[] = []
 
@@ -150,18 +157,18 @@ export async function saveLoopAnimationAsPackage(
 
     const col = i % grid.cols
     const row = Math.floor(i / grid.cols)
-    const cellX = col * maxW
-    const cellY = row * maxH
+    const cellX = col * stripCellW
+    const cellY = row * stripCellH
     if (stripCtx) {
-      stripCtx.drawImage(fc, cellX, cellY)
+      stripCtx.drawImage(fc, 0, 0, fc.width, fc.height, cellX, cellY, stripCellW, stripCellH)
     }
     stripFrames.push({
       id: `frame_${i}`,
       index: i,
       x: cellX,
       y: cellY,
-      width: maxW,
-      height: maxH,
+      width: stripCellW,
+      height: stripCellH,
       offsetX: 0,
       offsetY: 0,
       enabled: true,

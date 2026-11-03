@@ -218,6 +218,12 @@ export class TexturePool {
             const texSource = (filteredCanvas || frame.bitmap) as unknown as HTMLImageElement
             const tex = this.configureTexture(new THREE.Texture(texSource))
             tex.flipY = false
+            // Với frame hoạt ảnh độ phân giải lớn (> 512px, như gói Loop 2K/4K), tắt tạo mipmap đồng bộ
+            // trên từng frame để tránh khựng GPU ở vòng phát đầu tiên
+            if (frame.bitmap.width > 512 || frame.bitmap.height > 512) {
+              tex.generateMipmaps = false
+              tex.minFilter = THREE.LinearFilter
+            }
             tex.needsUpdate = true
             ge = {
               key: frameKey,

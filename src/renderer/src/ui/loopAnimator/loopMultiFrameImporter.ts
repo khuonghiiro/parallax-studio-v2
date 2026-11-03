@@ -1,5 +1,6 @@
 import { BLANK_LOOP_NAME, useLoopAnimator } from './loopAnimatorState'
 import { extractFrameCanvas } from './loopFrameExtractor'
+import { canvasToBlobUrl, registerMemoryCanvasUrl } from './loopSourceProxy'
 import type { GridSlicerConfig, LoopFrameBox } from './types'
 
 /**
@@ -179,6 +180,9 @@ export interface StitchedSpriteSheetResult {
   cellHeight: number
 }
 
+/** Giới hạn kích thước tối đa của Sprite Sheet ghép từ nhiều tệp 4K để không vượt ngưỡng GPU/RAM */
+const MAX_STITCHED_SHEET_DIM = 4096
+
 /**
  * Ghép danh sách các ảnh frame thành 1 Sprite Sheet duy nhất trên Canvas
  */
@@ -189,10 +193,17 @@ export function stitchFrameImagesToSpriteSheet(
   if (typeof document === 'undefined' || framesData.length === 0) return null
 
   const count = framesData.length
-  const maxW = Math.max(1, ...framesData.map((f) => f.width))
-  const maxH = Math.max(1, ...framesData.map((f) => f.height))
+  const rawMaxW = Math.max(1, ...framesData.map((f) => f.width))
+  const rawMaxH = Math.max(1, ...framesData.map((f) => f.height))
 
-  const { cols, rows } = calculateMultiFrameGrid(count, maxW, maxH)
+  const { cols, rows } = calculateMultiFrameGrid(count, rawMaxW, rawMaxH)
+  const cellScale = Math.min(
+    1,
+    MAX_STITCHED_SHEET_DIM / Math.max(1, cols * rawMaxW),
+    MAX_STITCHED_SHEET_DIM / Math.max(1, rows * rawMaxH)
+  )
+  const maxW = Math.max(1, Math.round(rawMaxW * cellScale))
+  const maxH = Math.max(1, Math.round(rawMaxH * cellScale))
   const canvasW = cols * maxW
   const canvasH = rows * maxH
 
@@ -213,16 +224,18 @@ export function stitchFrameImagesToSpriteSheet(
     const cellX = col * maxW
     const cellY = row * maxH
 
-    const drawX = cellX + Math.round((maxW - f.width) * 0.5)
+    const fw = Math.max(1, Math.round(f.width * cellScale))
+    const fh = Math.max(1, Math.round(f.height * cellScale))
+    const drawX = cellX + Math.round((maxW - fw) * 0.5)
     let drawY: number
     if (anchor === 'bottom') {
-      drawY = cellY + (maxH - f.height)
+      drawY = cellY + (maxH - fh)
     } else {
-      drawY = cellY + Math.round((maxH - f.height) * 0.5)
+      drawY = cellY + Math.round((maxH - fh) * 0.5)
     }
 
     try {
-      ctx.drawImage(f.source, drawX, drawY, f.width, f.height)
+      ctx.drawImage(f.source, drawX, drawY, fw, fh)
     } catch {
       // Bỏ qua lỗi vẽ nếu ảnh không hợp lệ
     }
@@ -234,14 +247,19 @@ export function stitchFrameImagesToSpriteSheet(
       y: cellY,
       width: maxW,
       height: maxH,
-      offsetX: f.offsetX ?? 0,
-      offsetY: f.offsetY ?? 0,
+      offsetX: Math.round((f.offsetX ?? 0) * cellScale),
+      offsetY: Math.round((f.offsetY ?? 0) * cellScale),
       enabled: f.enabled !== false,
       durationRatio: f.durationRatio ?? 1
     })
   }
 
-  const dataUrl = canvas.toDataURL('image/png')
+  // Với sheet lớn (> 1MP), ưu tiên ghi thẳng vào memoryCanvasCache để tránh nghẽn đồng bộ toDataURL('image/png')
+  const isLargeSheet = canvasW * canvasH > 1024 * 1024
+  const dataUrl = isLargeSheet
+    ? `blob:loop-stitched-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
+    : canvas.toDataURL('image/png')
+  registerMemoryCanvasUrl(dataUrl, canvas)
 
   return {
     canvas,
@@ -257,6 +275,9 @@ export function stitchFrameImagesToSpriteSheet(
 }
 
 export function readFileAsDataUrl(file: File): Promise<string> {
+  if (typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function' && file.size > 512 * 1024) {
+    return Promise.resolve(URL.createObjectURL(file))
+  }
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onload = () => {
@@ -363,6 +384,7 @@ export async function upgradeLoopImageFilesKeepMesh(
 
   const stitched = stitchFrameImagesToSpriteSheet(framesData)
   if (!stitched) return false
+  const stitchedUrl = await canvasToBlobUrl(stitched.canvas)
 
   const prevMeshW =
     state.baseMeshWidth > 0
@@ -379,7 +401,7 @@ export async function upgradeLoopImageFilesKeepMesh(
       : imageFiles[0].name.replace(/\.[^.]+$/, '')
 
   state.upgradeMultipleFramesKeepMesh({
-    dataUrl: stitched.dataUrl,
+    dataUrl: stitchedUrl,
     frames: stitched.frames,
     sourceWidth: stitched.width,
     sourceHeight: stitched.height,
@@ -458,10 +480,11 @@ export async function loadLoopImageFiles(files: File[]): Promise<boolean> {
 
   const stitched = stitchFrameImagesToSpriteSheet(framesData)
   if (!stitched) return false
+  const stitchedUrl = await canvasToBlobUrl(stitched.canvas)
 
   const primaryName = imageFiles[0].name.replace(/\.[^.]+$/, '')
   useLoopAnimator.getState().loadCustomMultiFrames({
-    dataUrl: stitched.dataUrl,
+    dataUrl: stitchedUrl,
     frames: stitched.frames,
     sourceWidth: stitched.width,
     sourceHeight: stitched.height,

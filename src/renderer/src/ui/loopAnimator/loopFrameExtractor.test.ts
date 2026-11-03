@@ -7,6 +7,11 @@ import {
   detectContourFrames,
   parseHexRgb
 } from './loopFrameExtractor'
+import {
+  getLoopSourceLogicalSize,
+  scaleGridConfigForWorkCanvas,
+  setLoopSourceCanvasMeta
+} from './loopSourceProxy'
 import type { ChromaKeyConfig, GridSlicerConfig } from './types'
 
 describe('loopFrameExtractor', () => {
@@ -245,5 +250,65 @@ describe('loopFrameExtractor', () => {
     expect(data.data[3]).toBe(0)
     // Pixel 1 is kept
     expect(data.data[7]).toBe(255)
+  })
+
+  it('scales contour detection and auto-centering from proxy canvas back to 4K logical coordinates', () => {
+    // Proxy canvas 64x32 representing a 4K logical source of 256x128 (4x scale)
+    const w = 64
+    const h = 32
+    const logicalW = 256
+    const logicalH = 128
+    const raw = new Uint8ClampedArray(w * h * 4)
+    for (let y = 4; y <= 11; y++) {
+      for (let x = 8; x <= 15; x++) {
+        const idx = (y * w + x) * 4
+        raw[idx] = 255
+        raw[idx + 3] = 255
+      }
+    }
+    const imgData = { data: raw, width: w, height: h } as ImageData
+    const proxyCanvas = {
+      width: w,
+      height: h,
+      getContext: () => ({
+        getImageData: () => imgData
+      })
+    } as unknown as HTMLCanvasElement
+
+    setLoopSourceCanvasMeta(proxyCanvas, {
+      logicalWidth: logicalW,
+      logicalHeight: logicalH,
+      workScaleX: w / logicalW,
+      workScaleY: h / logicalH,
+      rawImage: null,
+      chromaKey: { enabled: false, keyColor: '#00ff00', similarity: 0.25, smoothness: 0.1, spill: 0.2 },
+      gridConfig: { cols: 4, rows: 4, marginX: 16, marginY: 16, paddingX: 8, paddingY: 8, borderPadding: 4 }
+    })
+
+    const sizeInfo = getLoopSourceLogicalSize(proxyCanvas)
+    expect(sizeInfo).toEqual({ logicalW: 256, logicalH: 128, sx: 0.25, sy: 0.25 })
+
+    const scaledGrid = scaleGridConfigForWorkCanvas(
+      { cols: 4, rows: 4, marginX: 16, marginY: 16, paddingX: 8, paddingY: 8, borderPadding: 4 },
+      0.25,
+      0.25
+    )
+    expect(scaledGrid.marginX).toBe(4)
+    expect(scaledGrid.paddingX).toBe(2)
+    expect(scaledGrid.borderPadding).toBe(1)
+
+    const frames = detectContourFrames(proxyCanvas, {
+      alphaThreshold: 20,
+      minArea: 64,
+      mergeGap: 4,
+      uniformSize: false
+    })
+    expect(frames).toHaveLength(1)
+    // Coordinates must be mapped back to 256x128 logical space (~4x the 8..15 proxy island)
+    expect(frames[0].x).toBeGreaterThanOrEqual(20)
+    expect(frames[0].width).toBeGreaterThanOrEqual(32)
+
+    const centered = autoCenterLoopFrames(proxyCanvas, frames, 20, 'center')
+    expect(centered).toHaveLength(1)
   })
 })

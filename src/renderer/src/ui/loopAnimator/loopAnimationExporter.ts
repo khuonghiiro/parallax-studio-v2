@@ -586,9 +586,9 @@ export async function syncSceneAndCompositesWithLoopTemplate(
     const built = await buildLoopAnimatedAsset({
       name: template.name,
       spriteSheetUrl:
-        cachedSheet?.canvas
-          ? cachedSheet.canvas.toDataURL('image/png')
-          : template.transparentSheetUrl || template.imageUrl,
+        template.loopJsonPath ||
+        template.transparentSheetUrl ||
+        template.imageUrl,
       frames: cachedSheet?.frames || template.frames,
       renderedFrames: template.renderedFrames,
       gridConfig: cachedSheet

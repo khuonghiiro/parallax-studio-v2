@@ -31,18 +31,33 @@ export function useLayerBrushEraser({ selectedLayer, onUpdateLayer, onPreview }:
   const stroke = useRef<Stroke | null>(null)
   const frame = useRef<number | null>(null)
   const lastPreview = useRef(0)
+  const previewBlobUrlRef = useRef<string | null>(null)
+  const encodingPreviewRef = useRef(false)
   const callbacks = useRef({ onUpdateLayer, onPreview })
   callbacks.current = { onUpdateLayer, onPreview }
+
+  const revokePreviewBlobUrl = useCallback(() => {
+    if (previewBlobUrlRef.current && typeof URL !== 'undefined' && URL.revokeObjectURL) {
+      try {
+        URL.revokeObjectURL(previewBlobUrlRef.current)
+      } catch {
+        /* ignore */
+      }
+      previewBlobUrlRef.current = null
+    }
+  }, [])
 
   const cancel = useCallback(() => {
     const current = stroke.current
     stroke.current = null
+    encodingPreviewRef.current = false
     if (frame.current !== null) cancelAnimationFrame(frame.current)
     frame.current = null
     if (current?.captureTarget.hasPointerCapture(current.pointerId)) current.captureTarget.releasePointerCapture(current.pointerId)
     callbacks.current.onPreview(null)
+    revokePreviewBlobUrl()
     setIsErasing(false)
-  }, [])
+  }, [revokePreviewBlobUrl])
 
   useEffect(() => {
     let alive = true
@@ -67,8 +82,9 @@ export function useLayerBrushEraser({ selectedLayer, onUpdateLayer, onPreview }:
       window.removeEventListener('blur', cancel)
       if (frame.current !== null) cancelAnimationFrame(frame.current)
       callbacks.current.onPreview(null)
+      revokePreviewBlobUrl()
     }
-  }, [cancel])
+  }, [cancel, revokePreviewBlobUrl])
 
   const pointIsolated = (
     clientX: number,
@@ -87,10 +103,27 @@ export function useLayerBrushEraser({ selectedLayer, onUpdateLayer, onPreview }:
     const tick = (now: number) => {
       const current = stroke.current
       if (!current) { frame.current = null; return }
-      if (now - lastPreview.current < 60) { frame.current = requestAnimationFrame(tick); return }
-      frame.current = null; lastPreview.current = now
+      if (now - lastPreview.current < 60 || encodingPreviewRef.current) {
+        frame.current = requestAnimationFrame(tick)
+        return
+      }
+      frame.current = null
+      lastPreview.current = now
       current.canvas.getContext('2d')!.putImageData(current.pixels, 0, 0)
-      callbacks.current.onPreview({ id: current.id, imageUrl: current.canvas.toDataURL('image/png') })
+      if (typeof current.canvas.toBlob === 'function' && typeof URL !== 'undefined' && URL.createObjectURL) {
+        encodingPreviewRef.current = true
+        const strokeId = current.id
+        current.canvas.toBlob((blob) => {
+          encodingPreviewRef.current = false
+          if (!blob || !stroke.current || stroke.current.id !== strokeId) return
+          const nextUrl = URL.createObjectURL(blob)
+          revokePreviewBlobUrl()
+          previewBlobUrlRef.current = nextUrl
+          callbacks.current.onPreview({ id: strokeId, imageUrl: nextUrl })
+        }, 'image/png')
+      } else {
+        callbacks.current.onPreview({ id: current.id, imageUrl: current.canvas.toDataURL('image/png') })
+      }
     }
     frame.current = requestAnimationFrame(tick)
   }

@@ -9,6 +9,14 @@ import {
   clearGridBorderPadding,
   detectCornerKeyColor
 } from './loopFrameExtractor'
+import {
+  clearLoopSourceCanvasMeta,
+  getLoopSourceLogicalSize,
+  getRegisteredMemoryCanvas,
+  MAX_LOOP_SOURCE_WORK_DIM,
+  scaleGridConfigForWorkCanvas,
+  setLoopSourceCanvasMeta
+} from './loopSourceProxy'
 import { loadLoopImageFile, loadLoopImageFiles } from './loopAnimatorLauncher'
 import { useLoopAnimator } from './loopAnimatorState'
 import { resolveLoopAssetUrl } from './sampleLoops'
@@ -40,10 +48,17 @@ function drawFrameOverlay(
   playing: number,
   isPlaying: boolean,
   slicerMode: SlicerMode,
-  borderPadding: number
+  borderPadding: number,
+  sx = 1,
+  sy = 1
 ): void {
-  const pad = slicerMode === 'grid' ? Math.max(0, Math.round(borderPadding)) : 0
+  const sUniform = (sx + sy) * 0.5
+  const pad = slicerMode === 'grid' ? Math.max(0, Math.round(borderPadding * sUniform)) : 0
   frames.forEach((f, idx) => {
+    const fx = Math.round(f.x * sx)
+    const fy = Math.round(f.y * sy)
+    const fw = Math.max(1, Math.round(f.width * sx))
+    const fh = Math.max(1, Math.round(f.height * sy))
     const isSelected = idx === selected
     const isCursor = isPlaying && idx === playing
     ctx.save()
@@ -54,37 +69,35 @@ function drawFrameOverlay(
         : 'rgba(56, 189, 248, 0.28)'
       ctx.lineWidth = pad
       ctx.strokeRect(
-        f.x - pad * 0.5,
-        f.y - pad * 0.5,
-        f.width + pad,
-        f.height + pad
+        fx - pad * 0.5,
+        fy - pad * 0.5,
+        fw + pad,
+        fh + pad
       )
     }
     if (!f.enabled) {
       ctx.fillStyle = 'rgba(15, 23, 42, 0.65)'
-      ctx.fillRect(f.x, f.y, f.width, f.height)
+      ctx.fillRect(fx, fy, fw, fh)
       ctx.setLineDash([6, 6])
     }
     const color = isSelected ? '#f59e0b' : isCursor ? '#22c55e' : f.enabled ? 'rgba(56, 189, 248, 0.85)' : 'rgba(148, 163, 184, 0.4)'
     ctx.strokeStyle = color
-    ctx.lineWidth = isSelected || isCursor ? 4 : 2
-    ctx.strokeRect(f.x + 1, f.y + 1, Math.max(1, f.width - 2), Math.max(1, f.height - 2))
+    ctx.lineWidth = isSelected || isCursor ? 3 : 2
+    ctx.strokeRect(fx + 1, fy + 1, Math.max(1, fw - 2), Math.max(1, fh - 2))
     ctx.fillStyle = isSelected || isCursor ? color : f.enabled ? 'rgba(15, 23, 42, 0.85)' : 'rgba(51, 65, 85, 0.7)'
-    ctx.fillRect(f.x + 2, f.y + 2, 34, 22)
+    ctx.fillRect(fx + 2, fy + 2, 34, 22)
     ctx.fillStyle = isSelected || isCursor ? '#0f172a' : '#f8fafc'
     ctx.font = 'bold 13px Inter, system-ui, sans-serif'
-    ctx.fillText(`#${idx + 1}`, f.x + 6, f.y + 17)
+    ctx.fillText(`#${idx + 1}`, fx + 6, fy + 17)
     ctx.restore()
   })
 }
 
-function readRawImage(img: HTMLImageElement): CanvasRenderingContext2D | null {
-  const temp = document.createElement('canvas')
-  temp.width = img.naturalWidth || 1024
-  temp.height = img.naturalHeight || 1024
-  const ctx = temp.getContext('2d', { willReadFrequently: true })
-  ctx?.drawImage(img, 0, 0)
-  return ctx
+function getSourceNaturalSize(src: HTMLImageElement | HTMLCanvasElement): { w: number; h: number } {
+  if ('naturalWidth' in src) {
+    return { w: src.naturalWidth || src.width || 1024, h: src.naturalHeight || src.height || 1024 }
+  }
+  return { w: src.width || 1024, h: src.height || 1024 }
 }
 
 export function LoopAnimatorSourcePane({ sourceCanvasRef, onRequestUpload, templates }: Props): React.ReactElement {
@@ -112,7 +125,9 @@ export function LoopAnimatorSourcePane({ sourceCanvasRef, onRequestUpload, templ
   const scrollRef = useRef<HTMLDivElement | null>(null)
   // Hiển thị đúng tỉ lệ ảnh gốc (contain-fit), không bóp méo để xem trước khớp với lúc tách
   const fit = useContainFitSize(scrollRef, sourceWidth, sourceHeight)
-  const rawImageRef = useRef<HTMLImageElement | null>(null)
+  const rawImageRef = useRef<HTMLImageElement | HTMLCanvasElement | null>(null)
+  /** Bộ đệm ImageData gốc đã thu nhỏ xuống kích thước proxy (<= 1280px) để kéo thanh trượt Chroma Key tức thì không phải đọc lại GPU 4K */
+  const baseWorkDataRef = useRef<ImageData | null>(null)
   const [eyedropperActive, setEyedropperActive] = useState(false)
   const [zoom, setZoom] = useState(1)
   const dragBoxRef = useRef<{ frameIdx: number; startX: number; startY: number; origX: number; origY: number } | null>(null)
@@ -128,6 +143,7 @@ export function LoopAnimatorSourcePane({ sourceCanvasRef, onRequestUpload, templ
     const ctx = ov.getContext('2d')
     if (!ctx) return
     ctx.clearRect(0, 0, ov.width, ov.height)
+    const { sx, sy } = getLoopSourceLogicalSize(src)
     drawFrameOverlay(
       ctx,
       frames,
@@ -135,37 +151,71 @@ export function LoopAnimatorSourcePane({ sourceCanvasRef, onRequestUpload, templ
       playingFrameIndex,
       isPlaying,
       slicerMode,
-      gridConfig.borderPadding ?? 0
+      gridConfig.borderPadding ?? 0,
+      sx,
+      sy
     )
   }
 
   function renderProcessedSource(
-    img: HTMLImageElement,
+    img: HTMLImageElement | HTMLCanvasElement,
     chroma: ChromaKeyConfig,
-    grid: GridSlicerConfig
+    grid: GridSlicerConfig,
+    rebuildBaseWork = false
   ): void {
     const canvas = sourceCanvasRef.current
     if (!canvas) return
-    const w = img.naturalWidth || 1024
-    const h = img.naturalHeight || 1024
-    if (canvas.width !== w || canvas.height !== h) {
-      canvas.width = w
-      canvas.height = h
+    const { w: logicalW, h: logicalH } = getSourceNaturalSize(img)
+    const workScale = Math.min(1, MAX_LOOP_SOURCE_WORK_DIM / Math.max(1, logicalW, logicalH))
+    const workW = Math.max(1, Math.round(logicalW * workScale))
+    const workH = Math.max(1, Math.round(logicalH * workScale))
+    const sx = workW / Math.max(1, logicalW)
+    const sy = workH / Math.max(1, logicalH)
+
+    if (canvas.width !== workW || canvas.height !== workH) {
+      canvas.width = workW
+      canvas.height = workH
+      rebuildBaseWork = true
     }
+
+    setLoopSourceCanvasMeta(canvas, {
+      logicalWidth: logicalW,
+      logicalHeight: logicalH,
+      workScaleX: sx,
+      workScaleY: sy,
+      rawImage: img,
+      chromaKey: chroma,
+      gridConfig: grid
+    })
+
     const ctx = canvas.getContext('2d', { willReadFrequently: true })
     if (!ctx) return
-    ctx.clearRect(0, 0, w, h)
-    ctx.drawImage(img, 0, 0, w, h)
+
+    if (rebuildBaseWork || !baseWorkDataRef.current || baseWorkDataRef.current.width !== workW || baseWorkDataRef.current.height !== workH) {
+      ctx.clearRect(0, 0, workW, workH)
+      ctx.drawImage(img, 0, 0, workW, workH)
+      try {
+        baseWorkDataRef.current = ctx.getImageData(0, 0, workW, workH)
+      } catch {
+        baseWorkDataRef.current = null
+      }
+    }
+
     const hasBorderPad = (grid.borderPadding ?? 0) > 0
     if (hasBorderPad || chroma.enabled) {
-      const data = ctx.getImageData(0, 0, w, h)
+      const base = baseWorkDataRef.current
+      const data = base
+        ? new ImageData(new Uint8ClampedArray(base.data), workW, workH)
+        : ctx.getImageData(0, 0, workW, workH)
       if (hasBorderPad) {
-        clearGridBorderPadding(data, grid)
+        clearGridBorderPadding(data, scaleGridConfigForWorkCanvas(grid, sx, sy))
       }
       if (chroma.enabled) {
         applyChromaKeyToImageData(data, chroma)
       }
       ctx.putImageData(data, 0, 0)
+    } else if (baseWorkDataRef.current) {
+      ctx.putImageData(baseWorkDataRef.current, 0, 0)
     }
     drawOverlay()
   }
@@ -174,6 +224,8 @@ export function LoopAnimatorSourcePane({ sourceCanvasRef, onRequestUpload, templ
   useEffect(() => {
     if (!sourceImageUrl) {
       rawImageRef.current = null
+      baseWorkDataRef.current = null
+      clearLoopSourceCanvasMeta(sourceCanvasRef.current)
       for (const c of [sourceCanvasRef.current, overlayCanvasRef.current]) {
         if (c) {
           c.width = 0
@@ -183,23 +235,42 @@ export function LoopAnimatorSourcePane({ sourceCanvasRef, onRequestUpload, templ
       bumpSourceVersion()
       return
     }
-    let cancelled = false
-    const img = new Image()
-    img.crossOrigin = 'anonymous'
-    img.onload = () => {
-      if (cancelled) return
-      rawImageRef.current = img
-      setSourceDimensions(img.naturalWidth || 1024, img.naturalHeight || 1024)
+
+    const applyLoadedSource = (src: HTMLImageElement | HTMLCanvasElement): void => {
+      rawImageRef.current = src
+      const { w, h } = getSourceNaturalSize(src)
+      setSourceDimensions(w, h)
       const st = useLoopAnimator.getState()
-      renderProcessedSource(img, st.chromaKey, st.gridConfig)
+      renderProcessedSource(src, st.chromaKey, st.gridConfig, true)
       if (st.pendingMeshUpgrade) {
         st.alignUpgradedFramesByMesh(sourceCanvasRef.current)
       }
       bumpSourceVersion()
     }
+
+    // Ưu tiên lấy trực tiếp từ bộ nhớ đệm Canvas RAM (khi vừa mở gói 4K hoặc ghép nhiều frame) -> 0ms
+    const memCanvas = getRegisteredMemoryCanvas(sourceImageUrl)
+    if (memCanvas && memCanvas.width > 0 && memCanvas.height > 0) {
+      applyLoadedSource(memCanvas)
+      return
+    }
+
+    let cancelled = false
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    img.onload = () => {
+      if (cancelled) return
+      applyLoadedSource(img)
+    }
     img.onerror = () => !cancelled && toast('⚠ Không đọc được ảnh nguồn')
     void resolveLoopAssetUrl(sourceImageUrl).then((resolved) => {
-      if (!cancelled) img.src = resolved || sourceImageUrl
+      if (cancelled) return
+      const resolvedMem = getRegisteredMemoryCanvas(resolved || sourceImageUrl)
+      if (resolvedMem && resolvedMem.width > 0 && resolvedMem.height > 0) {
+        applyLoadedSource(resolvedMem)
+        return
+      }
+      img.src = resolved || sourceImageUrl
     })
     return () => {
       cancelled = true
@@ -208,8 +279,15 @@ export function LoopAnimatorSourcePane({ sourceCanvasRef, onRequestUpload, templ
 
   useEffect(() => {
     if (!rawImageRef.current) return
-    renderProcessedSource(rawImageRef.current, chromaKey, gridConfig)
-    bumpSourceVersion()
+    let rafId = requestAnimationFrame(() => {
+      rafId = 0
+      if (!rawImageRef.current) return
+      renderProcessedSource(rawImageRef.current, chromaKey, gridConfig, false)
+      bumpSourceVersion()
+    })
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId)
+    }
   }, [chromaKey, gridConfig.borderPadding, gridConfig.cols, gridConfig.rows, gridConfig.marginX, gridConfig.marginY, gridConfig.paddingX, gridConfig.paddingY])
 
   useEffect(() => {
@@ -218,11 +296,13 @@ export function LoopAnimatorSourcePane({ sourceCanvasRef, onRequestUpload, templ
 
   function canvasCoords(e: React.MouseEvent<HTMLCanvasElement>): { px: number; py: number } | null {
     const ov = overlayCanvasRef.current
+    const src = sourceCanvasRef.current
     if (!ov) return null
     const rect = ov.getBoundingClientRect()
+    const { logicalW, logicalH } = src ? getLoopSourceLogicalSize(src) : { logicalW: ov.width, logicalH: ov.height }
     return {
-      px: Math.floor(((e.clientX - rect.left) * ov.width) / Math.max(1, rect.width)),
-      py: Math.floor(((e.clientY - rect.top) * ov.height) / Math.max(1, rect.height))
+      px: Math.floor(((e.clientX - rect.left) * Math.max(1, logicalW)) / Math.max(1, rect.width)),
+      py: Math.floor(((e.clientY - rect.top) * Math.max(1, logicalH)) / Math.max(1, rect.height))
     }
   }
 
@@ -230,8 +310,18 @@ export function LoopAnimatorSourcePane({ sourceCanvasRef, onRequestUpload, templ
     const c = canvasCoords(e)
     if (!c) return
     if (eyedropperActive && rawImageRef.current) {
-      const d = readRawImage(rawImageRef.current)?.getImageData(c.px, c.py, 1, 1).data
-      if (d) setChromaKey({ enabled: true, keyColor: `#${[d[0], d[1], d[2]].map((v) => v.toString(16).padStart(2, '0')).join('')}` })
+      const base = baseWorkDataRef.current
+      const src = sourceCanvasRef.current
+      if (base && src) {
+        const { sx, sy } = getLoopSourceLogicalSize(src)
+        const wx = Math.max(0, Math.min(base.width - 1, Math.floor(c.px * sx)))
+        const wy = Math.max(0, Math.min(base.height - 1, Math.floor(c.py * sy)))
+        const off = (wy * base.width + wx) * 4
+        const r = base.data[off]
+        const g = base.data[off + 1]
+        const b = base.data[off + 2]
+        setChromaKey({ enabled: true, keyColor: `#${[r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('')}` })
+      }
       setEyedropperActive(false)
       return
     }
@@ -258,15 +348,24 @@ export function LoopAnimatorSourcePane({ sourceCanvasRef, onRequestUpload, templ
 
   function handleAutoDetect(): void {
     const img = rawImageRef.current
-    const ctx = img ? readRawImage(img) : null
-    if (!img || !ctx) return
+    if (!img) return
+    const { w: rawW, h: rawH } = getSourceNaturalSize(img)
+    const sampleScale = Math.min(1, 512 / Math.max(1, rawW, rawH))
+    const sw = Math.max(1, Math.round(rawW * sampleScale))
+    const sh = Math.max(1, Math.round(rawH * sampleScale))
+    const temp = document.createElement('canvas')
+    temp.width = sw
+    temp.height = sh
+    const ctx = temp.getContext('2d', { willReadFrequently: true })
+    if (!ctx) return
+    ctx.drawImage(img, 0, 0, sw, sh)
     setChromaKey({
       enabled: true,
       keyColor: detectCornerKeyColor(
         ctx,
-        img.naturalWidth || 1024,
-        img.naturalHeight || 1024,
-        gridConfig.borderPadding ?? 0
+        sw,
+        sh,
+        Math.round((gridConfig.borderPadding ?? 0) * sampleScale)
       )
     })
   }
