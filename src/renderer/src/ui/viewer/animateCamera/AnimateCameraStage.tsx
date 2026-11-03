@@ -234,6 +234,7 @@ export function AnimateCameraStage({ splitLeftWidth = 0 }: AnimateCameraStagePro
       if (!canEditViewportTarget(st.project, st.selectedWorkflowNodeId, { layerId: projLayer.id }, e.shiftKey)) return
       setPlaying(false)
       selectLayer(projLayer.id)
+      window.dispatchEvent(new CustomEvent('pxs:focus-layer-target', { detail: { layerId: projLayer.id } }))
       const layerObj = useEditor.getState().project.layers.find((l) => l.id === projLayer.id)
       if (!layerObj) return
       const startX = e.clientX

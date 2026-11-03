@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import type { Project, WorkflowGraph, WorkflowNode, WorkflowNodeParams } from '@shared/types'
 import { computeV2Clusters, v2RootId } from '../../project/workflowV2Engine'
 import { effectiveTimeParams, timeSource } from '../../project/workflowTiming'
@@ -64,6 +64,19 @@ export const WorkflowMobileCardsView: React.FC<WorkflowMobileCardsViewProps> = (
   } = props
 
   const [spawnTarget, setSpawnTarget] = useState<{ layerNodeId: string; x: number; y: number } | null>(null)
+  const listRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!selectedNodeId) return
+    window.requestAnimationFrame(() => {
+      const el = listRef.current?.querySelector(
+        '.wf-mcard-card.selected, .wf-mcard-sub-item.selected, .wf-mcard-cluster-head.selected'
+      ) as HTMLElement | null
+      if (el) {
+        el.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+      }
+    })
+  }, [selectedNodeId])
   const maxDuration = Math.max(1, project.comp.duration || 5)
 
   const nodeMap = useMemo(() => new Map(workflow.nodes.map((n) => [n.id, n])), [workflow.nodes])
@@ -169,7 +182,7 @@ export const WorkflowMobileCardsView: React.FC<WorkflowMobileCardsViewProps> = (
   )
 
   return (
-    <div className="wf-mobile-cards-view" data-mcp-region="workflow_mobile_cards">
+    <div className="wf-mobile-cards-view" ref={listRef} data-mcp-region="workflow_mobile_cards">
       <WorkflowTimeRulerV2
         currentTime={currentTime}
         duration={maxDuration}

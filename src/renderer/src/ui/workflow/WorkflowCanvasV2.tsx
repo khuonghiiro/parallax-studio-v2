@@ -482,8 +482,10 @@ function useCanvasEvents(vp: WorkflowV2Viewport, workflowId: string, visibleCoun
   useEffect(() => {
     const onFit = (e: Event): void => fitToView(Boolean((e as CustomEvent<{ all?: boolean }>).detail?.all))
     const onFocus = (e: Event): void => {
-      const id = (e as CustomEvent<{ nodeId?: string }>).detail?.nodeId
-      if (id) window.setTimeout(() => focusNode(id), 30)
+      const detail = (e as CustomEvent<{ nodeId?: string; force?: boolean }>).detail
+      const id = detail?.nodeId
+      const force = detail?.force ?? false
+      if (id) window.setTimeout(() => focusNode(id, force), 30)
     }
     const onCluster = (e: Event): void => {
       const id = (e as CustomEvent<{ rootId?: string }>).detail?.rootId

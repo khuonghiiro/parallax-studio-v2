@@ -107,6 +107,10 @@ export function detachWorkflowV2NodeFromProject(project: Project, node: Workflow
     return
   }
   if (cat === 'anim_fx') {
+    for (const l of layers) {
+      const fxIds = (l.appliedEffects ?? []).filter((f) => f.category !== 'motion').map((f) => f.id)
+      for (const fxId of fxIds) deleteLayerEffect(l, fxId)
+    }
     const compInstIds = Array.from(new Set(layers.map((l) => l.composite?.instanceId).filter((v): v is string => Boolean(v))))
     for (const instId of compInstIds) clearClusterRigKeysFromScene(getClusterMemberLayers(project, instId), node.id)
     return

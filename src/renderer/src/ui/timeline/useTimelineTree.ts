@@ -32,6 +32,27 @@ export function useTimelineTree(project: Project) {
     expanded, collapsed, collapsedClusters, expandAll, collapseAll,
     toggle: (id: string) => setExpanded((state) => toggleId(state, id)),
     toggleGroup: (id: string) => setCollapsed((state) => toggleId(state, id)),
-    toggleCluster: (id: string) => setCollapsedClusters((state) => toggleId(state, id))
+    toggleCluster: (id: string) => setCollapsedClusters((state) => toggleId(state, id)),
+    ensureLayerVisible: (layerId: string) => {
+      const layer = project.layers.find((l) => l.id === layerId)
+      if (!layer) return
+      if (layer.shotId) {
+        setCollapsed((prev) => {
+          if (!prev.has(layer.shotId!)) return prev
+          const next = new Set(prev)
+          next.delete(layer.shotId!)
+          return next
+        })
+      }
+      const clusterId = layer.composite?.instanceId || layer.model3d?.instanceId
+      if (clusterId) {
+        setCollapsedClusters((prev) => {
+          if (!prev.has(clusterId)) return prev
+          const next = new Set(prev)
+          next.delete(clusterId)
+          return next
+        })
+      }
+    }
   }
 }

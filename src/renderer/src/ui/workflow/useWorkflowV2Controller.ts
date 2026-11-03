@@ -196,26 +196,60 @@ export function useWorkflowV2SelectionSync(ctrl: ReturnType<typeof useWorkflowV2
   const lastSyncedLayerIdRef = useRef<string | null>(selectedLayerId)
   const lastSyncedShotIdRef = useRef<string | null>(selectedShotId)
 
-  // Chọn Layer ở Timeline / Viewport → chọn Node Layer tương ứng (trừ khi Node hiện tại đã gắn với Layer/Cụm đó)
+  const focusLayerInWorkflow = useCallback(
+    (layerId: string) => {
+      if (!layerId) return
+      const st = useEditor.getState()
+      const selLayer = st.project.layers.find((l) => l.id === layerId)
+      const selInstId = selLayer?.composite?.instanceId ?? selLayer?.model3d?.instanceId
+
+      const node =
+        workflow.nodes.find(
+          (n) =>
+            resolveV2NodeLevel(n) === 'layer' &&
+            (n.id === `v2-layer-${layerId}` || n.params?.targetLayerIds?.includes(layerId))
+        ) ??
+        (selInstId
+          ? workflow.nodes.find(
+              (n) =>
+                n.params?.instanceId === selInstId ||
+                (resolveV2NodeLevel(n) === 'layer' && n.params?.rootLayerId === layerId)
+            )
+          : undefined) ??
+        workflow.nodes.find((n) => n.params?.targetLayerIds?.includes(layerId))
+
+      if (node) {
+        setSelectedNodeId(node.id)
+        if (node.params?.shotId) setFocusedShotId(node.params.shotId)
+        window.dispatchEvent(
+          new CustomEvent('pxs:wf-focus-node', {
+            detail: { nodeId: node.id, force: true }
+          })
+        )
+      }
+    },
+    [workflow.nodes, setSelectedNodeId, setFocusedShotId]
+  )
+
+  // Chọn Layer ở Timeline / Viewport → chọn Node Layer tương ứng và trượt khung nhìn tới Node
   useEffect(() => {
     if (selectedLayerId === lastSyncedLayerIdRef.current) return
     lastSyncedLayerIdRef.current = selectedLayerId
     if (!selectedLayerId) return
-    const st = useEditor.getState()
-    const curNodeId = st.selectedWorkflowNodeId
-    const prevNode = curNodeId ? workflow.nodes.find((n) => n.id === curNodeId) : undefined
-    if (prevNode) {
-      if (prevNode.params?.targetLayerIds?.includes(selectedLayerId)) return
-      if (prevNode.params?.rootLayerId === selectedLayerId) return
-      const selLayer = st.project.layers.find((l) => l.id === selectedLayerId)
-      const selInstId = selLayer?.composite?.instanceId ?? selLayer?.model3d?.instanceId
-      if (selInstId && prevNode.params?.instanceId === selInstId) return
+    focusLayerInWorkflow(selectedLayerId)
+  }, [selectedLayerId, focusLayerInWorkflow])
+
+  // Lắng nghe sự kiện click trực tiếp từ BBox / Viewport Camera ngay cả khi layer đã đang chọn
+  useEffect(() => {
+    const onFocusTarget = (e: Event) => {
+      const detail = (e as CustomEvent<{ layerId?: string }>).detail
+      if (detail?.layerId) {
+        focusLayerInWorkflow(detail.layerId)
+      }
     }
-    const node = workflow.nodes.find(
-      (n) => resolveV2NodeLevel(n) === 'layer' && n.params?.targetLayerIds?.includes(selectedLayerId)
-    )
-    if (node) setSelectedNodeId(node.id)
-  }, [selectedLayerId, workflow.nodes, setSelectedNodeId])
+    window.addEventListener('pxs:focus-layer-target', onFocusTarget)
+    return () => window.removeEventListener('pxs:focus-layer-target', onFocusTarget)
+  }, [focusLayerInWorkflow])
 
   // Chọn Cảnh ở Timeline / Shots panel → chỉ di chuyển khung nhìn khi đổi sang Cảnh khác và chưa focus Node con trong Cảnh đó
   useEffect(() => {

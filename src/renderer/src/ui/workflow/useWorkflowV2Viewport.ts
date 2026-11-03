@@ -22,7 +22,7 @@ export interface WorkflowV2Viewport {
   setPan: (p: { x: number; y: number }) => void
   zoomBy: (factor: number, anchor?: { x: number; y: number }) => void
   fitToView: (all?: boolean) => void
-  focusNode: (nodeId: string) => void
+  focusNode: (nodeId: string, force?: boolean) => void
   focusBounds: (b: { x: number; y: number; w: number; h: number }) => void
   clientToWorld: (clientX: number, clientY: number) => { x: number; y: number }
 }
@@ -55,6 +55,13 @@ export function useWorkflowV2Viewport(visibleNodes: WorkflowNode[]): WorkflowV2V
   const panRef = useRef(pan)
   const nodesRef = useRef(visibleNodes)
   nodesRef.current = visibleNodes
+  const animRafRef = useRef(0)
+
+  useEffect(() => {
+    return () => {
+      if (animRafRef.current) cancelAnimationFrame(animRafRef.current)
+    }
+  }, [])
 
   const apply = useCallback((z: number, p: { x: number; y: number }) => {
     zoomRef.current = z
@@ -63,7 +70,16 @@ export function useWorkflowV2Viewport(visibleNodes: WorkflowNode[]): WorkflowV2V
     setPanState(p)
   }, [])
 
-  const setPan = useCallback((p: { x: number; y: number }) => apply(zoomRef.current, p), [apply])
+  const setPan = useCallback(
+    (p: { x: number; y: number }) => {
+      if (animRafRef.current) {
+        cancelAnimationFrame(animRafRef.current)
+        animRafRef.current = 0
+      }
+      apply(zoomRef.current, p)
+    },
+    [apply]
+  )
 
   const zoomBy = useCallback(
     (factor: number, anchor?: { x: number; y: number }) => {
@@ -103,19 +119,49 @@ export function useWorkflowV2Viewport(visibleNodes: WorkflowNode[]): WorkflowV2V
   }, [apply])
 
   const focusNode = useCallback(
-    (nodeId: string) => {
+    (nodeId: string, force = false) => {
       const el = viewportRef.current
       const node = nodesRef.current.find((n) => n.id === nodeId)
       if (!el || !node) return
       const z = zoomRef.current
       const sx = node.position.x * z + panRef.current.x
       const sy = node.position.y * z + panRef.current.y
-      const inside = sx >= 0 && sy >= 0 && sx + WF_V2_NODE_W * z <= el.clientWidth && sy + WF_V2_NODE_H * z <= el.clientHeight
-      if (inside) return
-      apply(z, {
-        x: Math.round(el.clientWidth / 2 - (node.position.x + WF_V2_NODE_W / 2) * z),
-        y: Math.round(el.clientHeight / 2 - (node.position.y + WF_V2_NODE_H / 2) * z)
-      })
+      const pad = 40
+      const inside =
+        sx >= pad &&
+        sy >= pad &&
+        sx + WF_V2_NODE_W * z <= el.clientWidth - pad &&
+        sy + WF_V2_NODE_H * z <= el.clientHeight - pad
+      if (inside && !force) return
+
+      const targetX = Math.round(el.clientWidth / 2 - (node.position.x + WF_V2_NODE_W / 2) * z)
+      const targetY = Math.round(el.clientHeight / 2 - (node.position.y + WF_V2_NODE_H / 2) * z)
+
+      const startX = panRef.current.x
+      const startY = panRef.current.y
+      const diffX = targetX - startX
+      const diffY = targetY - startY
+      if (Math.hypot(diffX, diffY) < 6) {
+        apply(z, { x: targetX, y: targetY })
+        return
+      }
+
+      if (animRafRef.current) cancelAnimationFrame(animRafRef.current)
+      const startTime = performance.now()
+      const duration = 240
+      const step = (now: number) => {
+        const progress = Math.min(1, (now - startTime) / duration)
+        const ease = 1 - Math.pow(1 - progress, 3)
+        const curX = Math.round(startX + diffX * ease)
+        const curY = Math.round(startY + diffY * ease)
+        apply(z, { x: curX, y: curY })
+        if (progress < 1) {
+          animRafRef.current = requestAnimationFrame(step)
+        } else {
+          animRafRef.current = 0
+        }
+      }
+      animRafRef.current = requestAnimationFrame(step)
     },
     [apply]
   )

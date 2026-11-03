@@ -24,6 +24,7 @@ import { useTimelineTree } from './timeline/useTimelineTree'
 import { useResponsiveViewport } from './primitives'
 import { MobileCapCutTimeline } from './mobile/MobileCapCutTimeline'
 import '../styles/projectTrees.css'
+import '../styles/timelineFocus.css'
 
 const TimelineRulerPlayhead = memo(function TimelineRulerPlayhead({
   x
@@ -70,7 +71,7 @@ export function Timeline() {
     return () => window.clearTimeout(timer)
   }, [project])
 
-  const { expanded, collapsed, collapsedClusters, toggle, toggleGroup, toggleCluster, expandAll, collapseAll } = useTimelineTree(project)
+  const { expanded, collapsed, collapsedClusters, toggle, toggleGroup, toggleCluster, expandAll, collapseAll, ensureLayerVisible } = useTimelineTree(project)
   const [renaming, setRenaming] = useState<string | null>(null)
   const [zoom, setZoom] = useState<number>(1)
   const [modalTrack, setModalTrack] = useState<AudioTrackItem | null>(null)
@@ -163,6 +164,64 @@ export function Timeline() {
     setPlaying,
     selectLayer
   })
+
+  const scrollToLayer = useCallback(
+    (layerId: string) => {
+      if (!layerId) return
+      ensureLayerVisible(layerId)
+      window.requestAnimationFrame(() => {
+        const container = rowsScrollRef.current
+        if (!container) return
+        const rowEl = container.querySelector(`[data-layer-id="${layerId}"]`) as HTMLElement | null
+        if (!rowEl) return
+
+        // 1. Cuộn dọc đưa dòng mốc layer vào tầm nhìn
+        const cRect = container.getBoundingClientRect()
+        const rRect = rowEl.getBoundingClientRect()
+        const isAbove = rRect.top < cRect.top + 32
+        const isBelow = rRect.bottom > cRect.bottom - 32
+        if (isAbove || isBelow) {
+          rowEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+        }
+
+        // 2. Cuộn ngang đưa thanh mốc thời gian vào tầm nhìn (khi timeline đang zoom)
+        const targetLayer = project.layers.find((l) => l.id === layerId)
+        if (targetLayer) {
+          const barLeft = x(targetLayer.inPoint)
+          const curScroll = container.scrollLeft
+          const isOffLeft = barLeft < curScroll
+          const isOffRight = barLeft > curScroll + trackW - 60
+          if (isOffLeft || isOffRight) {
+            const targetLeft = Math.max(0, Math.round(barLeft - trackW / 3))
+            container.scrollTo({ left: targetLeft, behavior: 'smooth' })
+          }
+        }
+
+        // 3. Hiệu ứng chớp sáng Neon (pulse) để người dùng nhận ra ngay dòng mốc vừa chọn
+        rowEl.classList.remove('tl-focus-pulse')
+        void rowEl.offsetWidth
+        rowEl.classList.add('tl-focus-pulse')
+        window.setTimeout(() => rowEl.classList.remove('tl-focus-pulse'), 1400)
+      })
+    },
+    [ensureLayerVisible, project.layers, x, trackW]
+  )
+
+  useEffect(() => {
+    if (!selectedLayerId) return
+    scrollToLayer(selectedLayerId)
+  }, [selectedLayerId, scrollToLayer])
+
+  useEffect(() => {
+    const onFocusTarget = (e: Event) => {
+      const detail = (e as CustomEvent<{ layerId?: string }>).detail
+      if (detail?.layerId) {
+        scrollToLayer(detail.layerId)
+      }
+    }
+    window.addEventListener('pxs:focus-layer-target', onFocusTarget)
+    return () => window.removeEventListener('pxs:focus-layer-target', onFocusTarget)
+  }, [scrollToLayer])
 
   // Time Ruler Ticks (Major seconds + Minor frame subdivisions)
   const ticks = useMemo(() => {

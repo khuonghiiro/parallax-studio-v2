@@ -158,7 +158,7 @@ function TimelineLayerRowComponent({
   }, [isDragOver])
 
   return (
-    <div>
+    <div className="tl-layer-row-wrap" data-layer-id={layer.id}>
       <TimelineRow
         selected={isSelected || multiSelected}
         onClick={onSelect}
@@ -337,7 +337,7 @@ function TimelineLayerRowComponent({
         track={
           <>
             <div
-              className={`tl-bar${multiSelected ? ' interval-selected' : ''}${isDragOver ? ' drag-over-replace' : ''}${timeGroup ? ' time-linked' : ''}`}
+              className={`tl-bar${isSelected ? ' is-selected' : ''}${multiSelected ? ' interval-selected' : ''}${isDragOver ? ' drag-over-replace' : ''}${timeGroup ? ' time-linked' : ''}`}
               data-timeline-interval={JSON.stringify({ kind: 'layer', layerId: layer.id })}
               role="button" aria-pressed={multiSelected}
               onClick={e => { if (e.detail === 0 && !layer.locked) { useTimelineSelection.getState().pick({ kind: 'layer', layerId: layer.id }, e.ctrlKey || e.metaKey); onSelect() } }}

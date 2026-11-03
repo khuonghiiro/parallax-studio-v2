@@ -615,7 +615,10 @@ export function Viewer() {
       const id = r.pick(nx, ny, st.project)
 
       st.selectLayer(id)
-      if (id) startLayerDrag(e, id, r.camera, L.cam, 'depth')
+      if (id) {
+        window.dispatchEvent(new CustomEvent('pxs:focus-layer-target', { detail: { layerId: id } }))
+        startLayerDrag(e, id, r.camera, L.cam, 'depth')
+      }
       return
     }
 
@@ -661,6 +664,7 @@ export function Viewer() {
         if (st.playing) st.setPlaying(false)
 
         st.selectLayer(id)
+        window.dispatchEvent(new CustomEvent('pxs:focus-layer-target', { detail: { layerId: id } }))
         startLayerDrag(e, id, cam, ed, 'facing')
         return
       }
