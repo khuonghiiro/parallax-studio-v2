@@ -107,6 +107,19 @@ function expandKeyVariants(raw: string): string[] {
 }
 
 /** Ẩn hoặc xoá tài nguyên khỏi kho công khai */
+/** Khôi phục một tài nguyên khỏi danh sách ẩn (unhide) */
+export function unhidePublicAsset(rawKey: string): void {
+  if (!rawKey) return
+  const hidden = loadHiddenPublicAssets()
+  if (hidden.length === 0) return
+  const variants = new Set(expandKeyVariants(rawKey))
+  variants.add(rawKey)
+  const next = hidden.filter((k) => !variants.has(k))
+  if (next.length !== hidden.length) {
+    saveHiddenPublicAssets(next)
+  }
+}
+
 export type DeletableAssetTarget =
   | string
   | (Partial<BuiltInAssetItem> & {
@@ -128,7 +141,7 @@ export function hideOrDeletePublicAsset(item: DeletableAssetTarget): void {
       return
     }
     if (typeof window !== 'undefined' && window.api?.deleteBuiltInAsset) {
-      window.api.deleteBuiltInAsset(trimmed).catch((err) => {
+      window.api.deleteBuiltInAsset(trimmed, { permanent: false }).catch((err) => {
         console.warn('[publicAssetStorage] Error deleting built-in asset string from disk:', err)
       })
     }
@@ -159,7 +172,7 @@ export function hideOrDeletePublicAsset(item: DeletableAssetTarget): void {
   // 3. Nếu là Built-in asset có sẵn của hệ thống
   const targetRelPath = obj.relativePath || obj.assetPath || obj.path || obj.id || ''
   if (targetRelPath && typeof window !== 'undefined' && window.api?.deleteBuiltInAsset) {
-    window.api.deleteBuiltInAsset(targetRelPath).catch((err) => {
+    window.api.deleteBuiltInAsset(targetRelPath, { permanent: false }).catch((err) => {
       console.warn('[publicAssetStorage] Error deleting built-in asset from disk:', err)
     })
   }

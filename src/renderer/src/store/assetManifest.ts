@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { unhidePublicAsset } from '../ui/assets/publicAssetStorage'
 import type {
   BuiltInAssetCategory,
   BuiltInAssetItem,
@@ -362,6 +363,7 @@ export const useAssetManifestStore = create<AssetManifestState>((set, get) => ({
     }
     const res = await window.api.restoreBuiltInAsset(relPath)
     if (res.ok) {
+      unhidePublicAsset(relPath)
       if (res.catalog) get().applyCatalog(res.catalog)
       else await get().refreshCatalog(true)
     }

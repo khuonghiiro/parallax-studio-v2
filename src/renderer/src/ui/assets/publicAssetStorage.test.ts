@@ -3,6 +3,7 @@ import {
   loadCustomPublicAssets,
   addCustomPublicAsset,
   hideOrDeletePublicAsset,
+  unhidePublicAsset,
   getVisiblePublicAssets
 } from './publicAssetStorage'
 import type { BuiltInAssetItem } from '@shared/ipc'
@@ -61,5 +62,17 @@ describe('publicAssetStorage', () => {
 
     hideOrDeletePublicAsset({ id: added.id, isCustom: true })
     expect(loadCustomPublicAssets()).toHaveLength(0)
+  })
+
+  it('unhides an asset when restored', () => {
+    const builtinItems: BuiltInAssetItem[] = [
+      { id: 'b1', name: 'Item 1', fileName: 'item1.png', relativePath: 'demo/item1.png', folder: 'demo', ext: 'png', mime: 'image/png', kind: 'image', size: 100, path: 'demo/item1.png' }
+    ]
+
+    hideOrDeletePublicAsset({ relativePath: 'demo/item1.png', isCustom: false })
+    expect(getVisiblePublicAssets(builtinItems)).toHaveLength(0)
+
+    unhidePublicAsset('demo/item1.png')
+    expect(getVisiblePublicAssets(builtinItems)).toHaveLength(1)
   })
 })
