@@ -1,0 +1,184 @@
+{
+  "version": "1.0",
+  "id": "lap_lanh_4k",
+  "name": "lấp lánh - 4k",
+  "slug": "lap_lanh_4k",
+  "category": "custom",
+  "fps": 12,
+  "speed": 1,
+  "loopMode": "loop",
+  "frameCount": 16,
+  "width": 1024,
+  "height": 1024,
+  "baseMeshWidth": 1024,
+  "baseMeshHeight": 1024,
+  "duration": 1.333333333333333,
+  "thumbnail": "thumbnail.png",
+  "thumbnailFrameIndex": 7,
+  "colorConfig": {
+    "tintColor": null,
+    "tintIntensity": 0,
+    "brightness": 1,
+    "contrast": 1,
+    "saturation": 1,
+    "hueRotate": 0,
+    "blendMode": "normal",
+    "opacity": 1
+  },
+  "rhythm": {
+    "rhythmMode": "none",
+    "rhythmRateHz": 3.2,
+    "rhythmIntensity": 0.25,
+    "minOpacity": 0.72,
+    "scaleBeatPct": 8
+  },
+  "frames": [
+    {
+      "index": 0,
+      "file": "frame_000.png",
+      "durationRatio": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    {
+      "index": 1,
+      "file": "frame_001.png",
+      "durationRatio": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    {
+      "index": 2,
+      "file": "frame_002.png",
+      "durationRatio": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    {
+      "index": 3,
+      "file": "frame_003.png",
+      "durationRatio": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    {
+      "index": 4,
+      "file": "frame_004.png",
+      "durationRatio": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    {
+      "index": 5,
+      "file": "frame_005.png",
+      "durationRatio": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    {
+      "index": 6,
+      "file": "frame_006.png",
+      "durationRatio": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    {
+      "index": 7,
+      "file": "frame_007.png",
+      "durationRatio": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    {
+      "index": 8,
+      "file": "frame_008.png",
+      "durationRatio": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    {
+      "index": 9,
+      "file": "frame_009.png",
+      "durationRatio": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    {
+      "index": 10,
+      "file": "frame_010.png",
+      "durationRatio": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    {
+      "index": 11,
+      "file": "frame_011.png",
+      "durationRatio": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    {
+      "index": 12,
+      "file": "frame_012.png",
+      "durationRatio": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    {
+      "index": 13,
+      "file": "frame_013.png",
+      "durationRatio": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    {
+      "index": 14,
+      "file": "frame_014.png",
+      "durationRatio": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    {
+      "index": 15,
+      "file": "frame_015.png",
+      "durationRatio": 1,
+      "offsetX": 0,
+      "offsetY": 0
+    }
+  ],
+  "sourceConfig": {
+    "slicerMode": "grid",
+    "gridConfig": {
+      "cols": 6,
+      "rows": 3,
+      "marginX": 0,
+      "marginY": 0,
+      "paddingX": 0,
+      "paddingY": 0,
+      "borderPadding": 0
+    },
+    "chromaKey": {
+      "enabled": false,
+      "keyColor": "#f00af3",
+      "similarity": 0.28,
+      "smoothness": 0.1,
+      "spill": 0.35,
+      "isolationMode": "all",
+      "shadowMode": "include",
+      "shadowType": "auto",
+      "shadowRetention": 68,
+      "shadowSolidThreshold": 62,
+      "shadowUnmixColor": true
+    },
+    "contourConfig": {
+      "alphaThreshold": 24,
+      "minArea": 180,
+      "mergeGap": 8,
+      "uniformSize": true,
+      "alignAnchor": "bottom",
+      "readingOrder": "row_first"
+    }
+  },
+  "createdAt": 1793706761610,
+  "updatedAt": 1793706761637
+}

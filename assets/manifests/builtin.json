@@ -15,9 +15,8 @@
       "title": "Tất cả tài nguyên",
       "shortTitle": "Tất cả",
       "icon": "all",
-      "iconUrl": "",
       "iconText": "ALL",
-      "accent": "#3b82f6",
+      "accent": "#38bdf8",
       "description": "Toàn bộ tài nguyên công khai có sẵn trong thư mục assets",
       "order": 0,
       "status": "active"
@@ -28,24 +27,10 @@
       "title": "Cảnh mẫu trong suốt (2.5D)",
       "shortTitle": "Cảnh 2.5D",
       "icon": "layers",
-      "iconUrl": "",
       "iconText": "2.5D",
-      "accent": "#06b6d4",
+      "accent": "#22c55e",
       "description": "Bộ ảnh phân tầng nền trong suốt chuẩn Studio Ghibli kiểm thử Parallax 2.5D",
       "order": 1,
-      "status": "active"
-    },
-    {
-      "id": "scenes_v2",
-      "folder": "scenes-v2",
-      "title": "Cảnh mẫu Vector & Đạo cụ (V2)",
-      "shortTitle": "Vector V2",
-      "icon": "sparkles",
-      "iconUrl": "",
-      "iconText": "V2",
-      "accent": "#a855f7",
-      "description": "Bộ mảnh ghép SVG phân cảnh đồng quê, phòng trà và phố đêm",
-      "order": 2,
       "status": "active"
     },
     {
@@ -54,11 +39,10 @@
       "title": "Âm Thanh & Nhạc Nền",
       "shortTitle": "Âm thanh",
       "icon": "music",
-      "iconUrl": "",
-      "iconText": "♪",
-      "accent": "#10b981",
+      "iconText": "SFX",
+      "accent": "#a78bfa",
       "description": "Nhạc nền, tiếng chuông ambient và hiệu ứng âm thanh cho phân cảnh",
-      "order": 3,
+      "order": 2,
       "status": "active"
     },
     {
@@ -67,7 +51,6 @@
       "title": "Tài nguyên tải lên",
       "shortTitle": "Tải lên",
       "icon": "image",
-      "iconUrl": "",
       "iconText": "UP",
       "accent": "#f59e0b",
       "description": "Tài nguyên ảnh và vật liệu người dùng thêm vào kho",
@@ -98,16 +81,6 @@
     },
     "demo_transparent/layer5_foreground_vines.png": {
       "name": "Vòm dây leo & đom đóm (Tiền cảnh)",
-      "category": "demo_transparent",
-      "status": "active"
-    },
-    "demo_transparent/campfire_loop_transparent.png": {
-      "name": "Lửa trại lặp 4x4 (Trong suốt)",
-      "category": "demo_transparent",
-      "status": "active"
-    },
-    "demo_transparent/campfire_loop_chroma.jpg": {
-      "name": "Lửa trại lặp 4x4 (Nền hồng Magenta)",
       "category": "demo_transparent",
       "status": "active"
     },
@@ -150,48 +123,6 @@
       "name": "682c2977 e0a7 4e15 81d0 bb0418b6bb7d",
       "category": "uploads",
       "status": "active"
-    },
-    "uploads/tree_trunk_branches.png": {
-      "name": "tree trunk branches",
-      "category": "uploads",
-      "status": "active"
-    },
-    "uploads/tree_trunk_branches_1.png": {
-      "name": "tree trunk branches",
-      "category": "uploads",
-      "status": "active"
-    },
-    "uploads/tree_trunk_branches_2.png": {
-      "name": "tree trunk branches",
-      "category": "uploads",
-      "status": "active"
-    },
-    "uploads/tree_trunk_branches_3.png": {
-      "name": "tree trunk branches",
-      "category": "uploads",
-      "status": "active"
-    },
-    "uploads/9a7eea63e3a2dcf86b45cfce575be91a.jpg": {
-      "name": "9a7eea63e3a2dcf86b45cfce575be91a",
-      "category": "uploads",
-      "status": "active"
-    },
-    "uploads/Cô gái chibi tiên hoa tím lam.png": {
-      "name": "Cô gái chibi tiên hoa tím lam",
-      "category": "uploads",
-      "status": "active"
-    },
-    "uploads/Chibi Hoàng Tử Vest Đen Bạc.png": {
-      "name": "Chibi Hoàng Tử Vest Đen Bạc",
-      "category": "uploads",
-      "status": "active"
-    },
-    "loop_animations/lua_trai_bap_bung_da_tach_nen": {
-      "name": "lua trai bap bung da tach nen",
-      "category": "loop_animations",
-      "status": "deleted",
-      "tempPath": "_temp_deleted/loop_animations/lua_trai_bap_bung_da_tach_nen",
-      "deletedAt": "2026-11-03T09:59:16.793Z"
     }
   }
 }

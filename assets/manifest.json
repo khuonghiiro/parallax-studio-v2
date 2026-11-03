@@ -121,16 +121,6 @@
       "category": "demo_transparent",
       "status": "active"
     },
-    "demo_transparent/campfire_loop_transparent.png": {
-      "name": "Lửa trại lặp 4x4 (Trong suốt)",
-      "category": "demo_transparent",
-      "status": "active"
-    },
-    "demo_transparent/campfire_loop_chroma.jpg": {
-      "name": "Lửa trại lặp 4x4 (Nền hồng Magenta)",
-      "category": "demo_transparent",
-      "status": "active"
-    },
     "audio/ambient_chime.wav": {
       "name": "Chuông gió ngân vang (Ambient Chime)",
       "category": "audio",
@@ -170,68 +160,6 @@
       "name": "682c2977 e0a7 4e15 81d0 bb0418b6bb7d",
       "category": "uploads",
       "status": "active"
-    },
-    "uploads/tree_trunk_branches.png": {
-      "name": "tree trunk branches",
-      "category": "uploads",
-      "status": "active"
-    },
-    "uploads/tree_trunk_branches_1.png": {
-      "name": "tree trunk branches",
-      "category": "uploads",
-      "status": "active"
-    },
-    "uploads/tree_trunk_branches_2.png": {
-      "name": "tree trunk branches",
-      "category": "uploads",
-      "status": "active"
-    },
-    "uploads/tree_trunk_branches_3.png": {
-      "name": "tree trunk branches",
-      "category": "uploads",
-      "status": "active"
-    },
-    "uploads/9a7eea63e3a2dcf86b45cfce575be91a.jpg": {
-      "name": "9a7eea63e3a2dcf86b45cfce575be91a",
-      "category": "uploads",
-      "status": "active"
-    },
-    "uploads/Cô gái chibi tiên hoa tím lam.png": {
-      "name": "Cô gái chibi tiên hoa tím lam",
-      "category": "uploads",
-      "status": "active"
-    },
-    "uploads/Chibi Hoàng Tử Vest Đen Bạc.png": {
-      "name": "Chibi Hoàng Tử Vest Đen Bạc",
-      "category": "uploads",
-      "status": "active"
-    },
-    "loop_animations/lua_trai_bap_bung_da_tach_nen/animation.json": {
-      "name": "Lửa Trại Bập Bùng (Đã Tách Nền)",
-      "category": "fire",
-      "folder": "loop_animations/lua_trai_bap_bung_da_tach_nen",
-      "frameCount": 16,
-      "fps": 14,
-      "loopMode": "loop",
-      "thumbnail": "loop_animations/lua_trai_bap_bung_da_tach_nen/thumbnail.png",
-      "status": "active"
-    },
-    "loop_animations/anh_lua_chay/animation.json": {
-      "name": "Ánh lửa cháy",
-      "category": "fire",
-      "folder": "loop_animations/anh_lua_chay",
-      "frameCount": 16,
-      "fps": 14,
-      "loopMode": "loop",
-      "thumbnail": "loop_animations/anh_lua_chay/thumbnail.png",
-      "status": "active"
-    },
-    "loop_animations/lua_trai_bap_bung_da_tach_nen": {
-      "name": "lua trai bap bung da tach nen",
-      "category": "loop_animations",
-      "status": "deleted",
-      "tempPath": "_temp_deleted/loop_animations/lua_trai_bap_bung_da_tach_nen",
-      "deletedAt": "2026-11-03T09:59:16.793Z"
     }
   }
 }

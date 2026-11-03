@@ -86,56 +86,5 @@
       "status": "active"
     }
   ],
-  "assets": {
-    "demo_transparent/campfire_loop_transparent.png": {
-      "name": "Lửa Trại Bập Bùng (Đã Tách Nền)",
-      "category": "fire",
-      "presetId": "loop_preset_campfire",
-      "status": "active"
-    },
-    "demo_transparent/campfire_loop_chroma.jpg": {
-      "name": "Lửa Trại 16F (Nền Hồng Chroma)",
-      "category": "fire",
-      "presetId": "campfire_chroma",
-      "status": "active"
-    },
-    "procedural-loop:magic_orb": {
-      "name": "Cầu Năng Lượng Ma Thuật (16F)",
-      "category": "magic",
-      "presetId": "loop_preset_magic_orb",
-      "status": "active"
-    },
-    "procedural-loop:butterfly": {
-      "name": "Bướm Xanh Vỗ Cánh (16F)",
-      "category": "nature",
-      "presetId": "loop_preset_butterfly",
-      "status": "active"
-    },
-    "procedural-loop:lightning": {
-      "name": "Vòng Sét Điện Từ (16F)",
-      "category": "electric",
-      "presetId": "loop_preset_lightning",
-      "status": "active"
-    },
-    "loop_animations/lua_trai_bap_bung_da_tach_nen/animation.json": {
-      "name": "Lửa Trại Bập Bùng (Đã Tách Nền)",
-      "category": "fire",
-      "folder": "loop_animations/lua_trai_bap_bung_da_tach_nen",
-      "frameCount": 16,
-      "fps": 14,
-      "loopMode": "loop",
-      "thumbnail": "loop_animations/lua_trai_bap_bung_da_tach_nen/thumbnail.png",
-      "status": "active"
-    },
-    "loop_animations/anh_lua_chay/animation.json": {
-      "name": "Ánh lửa cháy",
-      "category": "fire",
-      "folder": "loop_animations/anh_lua_chay",
-      "frameCount": 16,
-      "fps": 14,
-      "loopMode": "loop",
-      "thumbnail": "loop_animations/anh_lua_chay/thumbnail.png",
-      "status": "active"
-    }
-  }
+  "assets": {}
 }
