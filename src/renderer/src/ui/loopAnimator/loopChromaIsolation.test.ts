@@ -72,4 +72,27 @@ describe('Loop chroma isolation scope (Tách toàn bộ / Chỉ nền ngoài)', 
     expect(alphaAt(img, CENTER, CENTER)).toBe(0)
     expect(alphaAt(img, CENTER + 11, CENTER)).toBeGreaterThan(200)
   })
+
+  it('Xoá bóng: outer_only keeps a soft halo disc untouched, all removes the halo cleanly', () => {
+    const makeHalo = (): ImageData => {
+      const data = new Uint8ClampedArray(SIZE * SIZE * 4)
+      for (let p = 0; p < SIZE * SIZE; p++) {
+        const d = Math.hypot((p % SIZE) - CENTER, Math.floor(p / SIZE) - CENTER)
+        const rgb = d <= 3 ? [255, 255, 255] : d <= 10 ? [100, 255, 100] : [0, 255, 0]
+        data.set([rgb[0], rgb[1], rgb[2], 255], p * 4)
+      }
+      return { data, width: SIZE, height: SIZE } as unknown as ImageData
+    }
+    const outer = makeHalo()
+    applyChromaKeyToImageData(outer, { ...baseChroma, isolationMode: 'outer_only' })
+    const hi = (CENTER * SIZE + CENTER + 6) * 4
+    expect(alphaAt(outer, 0, 0)).toBe(0)
+    expect(alphaAt(outer, CENTER + 6, CENTER)).toBe(255) // quầng bên trong viền giữ nguyên
+    expect([outer.data[hi], outer.data[hi + 1], outer.data[hi + 2]]).toEqual([100, 255, 100])
+
+    const all = makeHalo()
+    applyChromaKeyToImageData(all, { ...baseChroma, isolationMode: 'all' })
+    expect(alphaAt(all, CENTER + 6, CENTER)).toBe(0) // quầng mờ bị xoá, không còn mảng xanh đục
+    expect(alphaAt(all, CENTER, CENTER)).toBe(255) // lõi sáng đặc giữ lại
+  })
 })

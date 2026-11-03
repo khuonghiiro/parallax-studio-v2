@@ -255,6 +255,9 @@ export function detectContourFrames(
     // Also cluster nearby small particle fragments (e.g. fading sparks or star dust in a cell)
     const maxCellSpan = Math.max(64, Math.min(w, h) * 0.23)
     const particleGap = Math.max(mergeGap, 28)
+    // Chỉ gom hạt bụi / tia lửa nhỏ: 2 sprite đủ lớn đứng gần nhau (ô lưới sát nhau) không bao giờ bị gộp làm 1
+    const particleArea = Math.max(minArea, medianMajorArea * 0.15)
+    const isParticle = (bx: RawBox): boolean => (bx.maxX - bx.minX) * (bx.maxY - bx.minY) < particleArea
     let sparkMerged = true
     while (sparkMerged) {
       sparkMerged = false
@@ -265,6 +268,7 @@ export function detectContourFrames(
           const hDist = Math.max(0, Math.max(a.minX - b.maxX, b.minX - a.maxX))
           const vDist = Math.max(0, Math.max(a.minY - b.maxY, b.minY - a.maxY))
           if (hDist > particleGap || vDist > particleGap) continue
+          if (!isParticle(a) && !isParticle(b)) continue
           const combW = Math.max(a.maxX, b.maxX) - Math.min(a.minX, b.minX)
           const combH = Math.max(a.maxY, b.maxY) - Math.min(a.minY, b.minY)
           if (combW <= maxCellSpan && combH <= maxCellSpan) {

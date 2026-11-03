@@ -11,6 +11,7 @@ import {
 } from './workflowV2Options'
 import { WF_V2_COL_X } from './workflowV2Layout'
 import { resolveLayerNodeTimeRange } from './workflowV2Scope'
+import { deriveLoopLifecycleParams, isLoopComboFxId } from './workflowV2LoopCombo'
 
 /**
  * MỘT LOGIC CHUNG cho Timeline và Workflow:
@@ -140,8 +141,9 @@ function deriveAnimFx(layer: Layer, compDur: number, current?: WorkflowNode): De
         loopTimeOffset: layer.props.timeOffset ?? current?.params?.loopTimeOffset ?? 0,
         loopAutoPlayPaused: layer.props.autoPlayPaused ?? current?.params?.loopAutoPlayPaused ?? true,
         intensity: layer.props.loopRhythmIntensity ?? current?.params?.intensity ?? 0.45,
-        timeStart: r2(current?.params?.timeStart ?? range.start),
-        timeEnd: r2(current?.params?.timeEnd ?? range.end)
+        ...deriveLoopLifecycleParams(layer, current),
+        timeStart: r2(current?.params?.timeStart ?? layer.props.loopStartTime ?? range.start),
+        timeEnd: r2(current?.params?.timeEnd ?? layer.props.loopEndTime ?? range.end)
       },
       title: `Animation Loop: ${speed.toFixed(1)}x · ${rhythmMode === 'flicker_opacity' ? 'Nháy mờ' : rhythmMode === 'pulse_scale' ? 'Nhịp Scale' : 'Nhịp & Nháy'}`
     }
@@ -168,7 +170,7 @@ function deriveAnimFx(layer: Layer, compDur: number, current?: WorkflowNode): De
       title: `Hoạt ảnh Xương: ${cleanRigName}`
     }
   }
-  const fxList = (layer.appliedEffects ?? []).filter((f) => f.category !== 'motion')
+  const fxList = (layer.appliedEffects ?? []).filter((f) => f.category !== 'motion' && !isLoopComboFxId(f.id))
   const primary = fxList[fxList.length - 1]
   const present = Boolean(primary)
   const opt = WORKFLOW_V2_ANIM_FX_OPTIONS.find((o) => o.id === primary?.presetId) ?? WORKFLOW_V2_ANIM_FX_OPTIONS[0]

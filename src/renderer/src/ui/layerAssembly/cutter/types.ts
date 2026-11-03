@@ -41,8 +41,10 @@ export interface ChromaKeySettings {
   keyColor?: string
   keyColorType?: ChromaKeyColorType
   isolationMode?: ChromaIsolationMode
-  /** `outer_only` thuần: chỉ loang nền từ biên ảnh / vùng đã trong suốt, không gieo hạt ô nền kín bên trong (giữ ruột vòng tròn). Mặc định false. */
+  /** `outer_only` thuần (mặc định): chỉ loang nền từ biên ảnh / vùng đã trong suốt, giữ nguyên ruột bên trong. Đặt `false` để bật lại kiểu cũ tự gieo hạt ở khe phông xanh thuần khiết (kẽ tóc). */
   strictOuterIsolation?: boolean
+  /** "Xoá bóng" sạch cho hiệu ứng ánh sáng (Xưởng Loop): loại quầng / bóng bán trong suốt dưới ngưỡng Độ nhạy và khử ám màu mép còn lại */
+  removeSoftHalo?: boolean
   tolerance: number // 0 to 100
   smoothness: number // Feather: 0 to 30
   despill: boolean

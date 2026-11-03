@@ -1,5 +1,4 @@
 import { processAdvancedChromaPixelData } from '../layerAssembly/cutter/chromaAdvancedProcessor'
-import { floodFromBorder, growMaskWithin, transparentSeed } from '../layerAssembly/cutter/chromaOuterIsolation'
 import type { ChromaKeySettings } from '../layerAssembly/cutter/types'
 import type { ChromaKeyConfig, GridSlicerConfig, LoopIsolationMode } from './types'
 
@@ -145,10 +144,12 @@ function buildAdvancedCutterSettings(chroma: ChromaKeyConfig): ChromaKeySettings
     edgeSmooth: 1,
     strokeWidth: 0,
     strokeColorHex: '#ffffff',
-    // Cùng pipeline tách bóng của Xưởng lắp ráp 2.5D; "Chỉ tách nền ngoài" dùng loang thuần từ mép ảnh
-    // để giữ nguyên phần nền nằm kín bên trong viền (ruột vòng tròn)
+    // Cùng pipeline với Xưởng lắp ráp 2.5D; "Chỉ nền ngoài" chỉ loang từ mép ảnh nên giữ nguyên phần ruột
+    // (ví dụ ruột vòng tròn / quầng sáng bên trong đường viền)
     isolationMode: resolveLoopIsolationMode(chroma),
     strictOuterIsolation: true,
+    // "Xoá bóng" cho hiệu ứng ánh sáng: bỏ hẳn quầng mờ thay vì để lại mảng xanh đục
+    removeSoftHalo: (chroma.shadowMode ?? 'off') === 'off',
     cleanupMode: 'all',
     previewMode: 'transparent'
   }
@@ -159,124 +160,17 @@ export function resolveLoopIsolationMode(chroma: Pick<ChromaKeyConfig, 'isolatio
   return chroma.isolationMode === 'outer_only' ? 'outer_only' : 'all'
 }
 
-interface SimpleKeyParams {
-  kr: number
-  kg: number
-  kb: number
-  lowThresh: number
-  highThresh: number
-}
-
-function keyDistance(data: Uint8ClampedArray, i: number, k: SimpleKeyParams): number {
-  const dr = data[i] - k.kr
-  const dg = data[i + 1] - k.kg
-  const db = data[i + 2] - k.kb
-  return Math.sqrt(dr * dr + dg * dg + db * db)
-}
-
-/**
- * Mặt nạ "nền ngoài" cho chế độ Chỉ tách nền ngoài: loang từ mép ảnh qua các pixel có độ phủ nền
- * >= 50% (tường chắn là viền vật thể), rồi nới thêm 2px vào dải mềm biên để viền ngoài vẫn mịn.
- */
-function buildOuterKeyRegion(data: Uint8ClampedArray, w: number, h: number, k: SimpleKeyParams): Uint8Array {
-  const total = w * h
-  const midThresh = (k.lowThresh + k.highThresh) * 0.5
-  const passable = new Uint8Array(total)
-  const soft = new Uint8Array(total)
-  for (let p = 0; p < total; p++) {
-    const i = p * 4
-    if (data[i + 3] < 15) {
-      passable[p] = 1
-      soft[p] = 1
-      continue
-    }
-    const dist = keyDistance(data, i, k)
-    if (dist < k.highThresh) {
-      soft[p] = 1
-      if (dist < midThresh) passable[p] = 1
-    }
-  }
-  const region = floodFromBorder(passable, w, h, transparentSeed(data))
-  growMaskWithin(region, soft, w, h, 2)
-  return region
-}
-
 /**
  * Apply Chroma Key background removal, optional semi-transparent shadow/glow extraction,
  * and spill suppression in-place on ImageData.
- * `isolationMode = 'outer_only'` chỉ xoá nền liên thông với mép ảnh (giữ nền bên trong viền kín).
+ * Mọi chế độ dùng chung pipeline giải pha màu của Xưởng lắp ráp 2.5D:
+ * - `isolationMode = 'outer_only'` (Chỉ nền ngoài): chỉ tách nền liên thông với mép ảnh, giữ nguyên phần ruột.
+ * - `isolationMode = 'all'` (Tách toàn bộ): tách cả nền trong lẫn ngoài đường viền.
+ * - "Xoá bóng" loại sạch quầng / bóng bán trong suốt (không để lại mảng xanh đục), "Lấy cả bóng" / "Chỉ lấy bóng"
+ *   giải pha màu để bóng mờ / hào quang trong suốt đúng độ đậm và hết ám màu nền.
  */
 export function applyChromaKeyToImageData(imageData: ImageData, chroma: ChromaKeyConfig): void {
   if (!chroma.enabled) return
-
-  const shadowMode = chroma.shadowMode ?? 'off'
-  if (shadowMode === 'include' || shadowMode === 'only') {
-    const settings = buildAdvancedCutterSettings(chroma)
-    processAdvancedChromaPixelData(imageData.data, imageData.width, imageData.height, settings)
-    return
-  }
-
-  const data = imageData.data
-  const [kr, kg, kb] = parseHexRgb(chroma.keyColor)
-  const sim = Math.max(0.01, chroma.similarity)
-  const smooth = Math.max(0.001, chroma.smoothness)
-  const spill = Math.max(0, Math.min(1, chroma.spill))
-
-  const maxDist = 441.67295593
-  const k: SimpleKeyParams = { kr, kg, kb, lowThresh: sim * maxDist, highThresh: (sim + smooth) * maxDist }
-  const range = Math.max(1, k.highThresh - k.lowThresh)
-  const region =
-    resolveLoopIsolationMode(chroma) === 'outer_only'
-      ? buildOuterKeyRegion(data, imageData.width, imageData.height, k)
-      : null
-
-  const isGreenDominant = kg > kr + 20 && kg > kb + 20
-  const isBlueDominant = kb > kr + 20 && kb > kg + 20
-  const isMagentaDominant = kr > kg + 35 && kb > kg + 35
-
-  for (let i = 0; i < data.length; i += 4) {
-    const a = data[i + 3]
-    if (a === 0) continue
-    if (region && !region[i >> 2]) continue
-
-    const r = data[i]
-    const g = data[i + 1]
-    const b = data[i + 2]
-    const dist = keyDistance(data, i, k)
-
-    if (dist <= k.lowThresh) {
-      data[i + 3] = 0
-    } else if (dist < k.highThresh) {
-      const factor = (dist - k.lowThresh) / range
-      data[i + 3] = Math.round(a * factor)
-      if (spill > 0) {
-        suppressColorSpill(data, i, r, g, b, spill, isGreenDominant, isBlueDominant, isMagentaDominant)
-      }
-    } else if (spill > 0 && dist < k.highThresh * 1.35) {
-      suppressColorSpill(data, i, r, g, b, spill * 0.5, isGreenDominant, isBlueDominant, isMagentaDominant)
-    }
-  }
-}
-
-function suppressColorSpill(
-  data: Uint8ClampedArray,
-  i: number,
-  r: number,
-  g: number,
-  b: number,
-  amount: number,
-  isGreen: boolean,
-  isBlue: boolean,
-  isMagenta: boolean
-): void {
-  if (isGreen) {
-    const avgRB = (r + b) * 0.5
-    if (g > avgRB) data[i + 1] = Math.round(g - (g - avgRB) * amount)
-  } else if (isBlue) {
-    const avgRG = (r + g) * 0.5
-    if (b > avgRG) data[i + 2] = Math.round(b - (b - avgRG) * amount)
-  } else if (isMagenta) {
-    if (r > g) data[i] = Math.round(r - (r - g) * amount * 0.75)
-    if (b > g) data[i + 2] = Math.round(b - (b - g) * amount * 0.75)
-  }
+  const settings = buildAdvancedCutterSettings(chroma)
+  processAdvancedChromaPixelData(imageData.data, imageData.width, imageData.height, settings)
 }

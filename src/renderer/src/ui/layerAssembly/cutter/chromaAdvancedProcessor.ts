@@ -1,9 +1,11 @@
 import type { ChromaKeySettings, DetectedIsland, GridSlicerSettings } from './types'
 import {
+  analyzeChromaAlpha,
   applyShadowAndMistExtraction,
+  removeSoftHaloPixels,
   resolveImageEffectiveKeyRgb
 } from './chromaShadowExtractor'
-import { isolateOuterConnectedBg } from './chromaOuterIsolation'
+import { computeChromaZone } from './chromaOuterIsolation'
 
 export function parseHexRgb(hex: string): { r: number; g: number; b: number } {
   const clean = (hex || '#ffffff').replace('#', '').trim()
@@ -591,18 +593,20 @@ export function processAdvancedChromaPixelData(
   const baseKeyRgb = resolveEffectiveKeyRgb(settings)
   const effectiveKeyRgb = resolveImageEffectiveKeyRgb(data, w, h, settings, baseKeyRgb)
 
-  const { isBg, shadowAlpha } = classifyBackgroundPixels(
+  // Giải pha màu một lần cho cả ảnh: dùng chung cho phân vùng nền ngoài / trong, tách bóng và xoá quầng
+  const analysis = analyzeChromaAlpha(data, w, h, settings, effectiveKeyRgb)
+  const zone = computeChromaZone(analysis, data, w, h, settings)
+
+  const { isBg: activeBg, shadowAlpha } = classifyBackgroundPixels(
     data,
     totalPixels,
     settings,
     effectiveKeyRgb
   )
-
-  const isolationMode = settings.isolationMode || 'all'
-  const activeBg =
-    isolationMode === 'outer_only'
-      ? isolateOuterConnectedBg(isBg, w, h, data, settings.keyColorType, settings.strictOuterIsolation === true)
-      : isBg
+  // "Chỉ nền ngoài": chỉ khoá màu trong vùng nền liên thông với mép ảnh, phần ruột giữ nguyên
+  for (let p = 0; p < totalPixels; p++) {
+    if (!zone[p]) activeBg[p] = 0
+  }
 
   const isShadowPixel = applyShadowAndMistExtraction(
     data,
@@ -611,7 +615,9 @@ export function processAdvancedChromaPixelData(
     settings,
     effectiveKeyRgb,
     activeBg,
-    shadowAlpha
+    shadowAlpha,
+    analysis,
+    zone
   )
 
   if (!isShadowPixel) {
@@ -619,6 +625,9 @@ export function processAdvancedChromaPixelData(
       if (activeBg[p]) {
         data[p * 4 + 3] = shadowAlpha[p]
       }
+    }
+    if (settings.removeSoftHalo) {
+      removeSoftHaloPixels(data, w, h, settings, effectiveKeyRgb, analysis, zone)
     }
   }
 

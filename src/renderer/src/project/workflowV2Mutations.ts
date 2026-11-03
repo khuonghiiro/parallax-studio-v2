@@ -5,14 +5,9 @@ import { syncTimeGroupConsumers } from './workflowTimeGroupSync'
 import { createDefaultVirtualLight, WIND_STRENGTH_VALUES } from '../engine/virtualLight'
 import type { GlowSide, Layer, LayerGlow, LayerMotionType, Project, WorkflowEdge, WorkflowGraph, WorkflowNode, WorkflowNodeParams } from '@shared/types'
 import { getProjectAudioTracks } from './audioTracks'
-import {
-  generateBlinkKeys,
-  generateBreatheKeys,
-  generateFadeKeys,
-  generatePopInKeys,
-  generatePulseKeys,
-  generateShakeKeys
-} from '../ui/timeline/fxKeyGenerators'
+import { applyAnimFxPresetToLayer } from './workflowV2AnimFxApply'
+import { clearLoopLifecycle, isLoopComboFxId } from './workflowV2LoopCombo'
+import { clearLoopComboFx, syncLoopSpriteNodeToLayers } from './workflowV2LoopSync'
 import { deleteLayerEffect, toggleLayerEffect } from '../ui/timeline/timelineEffects'
 import {
   applyTimeRangeToCameraWaypoint,
@@ -403,7 +398,12 @@ function syncAnimFxNodeToProject(
 
   for (const l of project.layers) {
     if (!targetIds.has(l.id)) continue
-    const nonMotionList = (l.appliedEffects ?? []).filter((f) => f.category !== 'motion')
+    // Chuyển Node từ chế độ Loop sang Keyframe FX: gỡ hiệu ứng kết hợp & vòng đời Loop do Node này tạo
+    if (patch && 'animMode' in patch) {
+      clearLoopComboFx(l, node.id)
+      if (l.type === 'image') clearLoopLifecycle(l.props)
+    }
+    const nonMotionList = (l.appliedEffects ?? []).filter((f) => f.category !== 'motion' && !isLoopComboFxId(f.id))
     if (!node.enabled) {
       for (const fx of nonMotionList) {
         if (fx.enabled) toggleLayerEffect(l, fx.id, false)

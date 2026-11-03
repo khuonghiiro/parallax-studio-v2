@@ -124,7 +124,7 @@ export function WorkflowV2AnimFxParams(props: WorkflowV2NodeParamsProps): React.
       </div>
 
       {activeTab === 'loop_sprite' ? (
-        <WorkflowV2LoopSpriteParams p={p} layer={layer} onUpdate={onUpdate} />
+        <WorkflowV2LoopSpriteParams p={p} layer={layer} onUpdate={onUpdate} nodeProps={props} />
       ) : activeTab === 'rig_clip' ? (
         <>
           {dynamicActions.length > 0 && (

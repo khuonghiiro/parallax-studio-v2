@@ -197,6 +197,7 @@
 .loop-source-canvas-stage {
   position: relative;
   width: min(100%, 600px);
+  flex: 0 0 auto; /* Kích thước thật do JS tính contain-fit (useContainFitSize) để không bóp méo tỉ lệ */
   max-height: 100%;
   border-radius: var(--radius-sm);
   border: 1px solid var(--line);

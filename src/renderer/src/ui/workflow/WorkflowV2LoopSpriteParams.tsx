@@ -1,15 +1,22 @@
 import React from 'react'
 import type { Layer, WorkflowNodeParams } from '@shared/types'
 import { openLoopAnimatorInPlace } from '../loopAnimator/loopAnimatorLauncher'
-import { OptionPills, ParamSlider } from './WorkflowV2NodeParams'
+import { OptionPills, ParamSlider, type WorkflowV2NodeParamsProps } from './WorkflowV2NodeParams'
+import {
+  WorkflowV2LoopComboFxSection,
+  WorkflowV2LoopLifecycleSection,
+  WorkflowV2LoopLinksSection
+} from './WorkflowV2LoopLifecycleParams'
 
 interface Props {
   p: WorkflowNodeParams
   layer?: Layer
   onUpdate: (patch: Partial<WorkflowNodeParams>, directiveLabel?: string) => void
+  /** Toàn bộ props của Node (project, workflow, onAttachLogic) để kết hợp với Node Time / Motion */
+  nodeProps?: WorkflowV2NodeParamsProps
 }
 
-export function WorkflowV2LoopSpriteParams({ p, layer, onUpdate }: Props): React.ReactElement {
+export function WorkflowV2LoopSpriteParams({ p, layer, onUpdate, nodeProps }: Props): React.ReactElement {
   const handleOpenLoopStudio = (): void => {
     const templateId = layer?.type === 'image' ? layer.props.loopTemplateId : undefined
     openLoopAnimatorInPlace(templateId)
@@ -48,6 +55,7 @@ export function WorkflowV2LoopSpriteParams({ p, layer, onUpdate }: Props): React
         format={(v) => `${v.toFixed(2)}×`}
         onChange={(v) => onUpdate({ animMode: 'loop_sprite', loopSpeed: v })}
       />
+      <WorkflowV2LoopLifecycleSection p={p} onUpdate={onUpdate} />
       <div className="vl-row-header" style={{ marginTop: 6 }}>
         <span className="vl-title">⚡ Kết hợp Nhịp đập &amp; Độ mờ nháy</span>
         <span className="vl-value-badge">{p.loopRhythmMode ?? 'sync_both'}</span>
@@ -113,6 +121,8 @@ export function WorkflowV2LoopSpriteParams({ p, layer, onUpdate }: Props): React
           />
         </>
       )}
+      <WorkflowV2LoopComboFxSection p={p} onUpdate={onUpdate} />
+      {nodeProps && <WorkflowV2LoopLinksSection props={nodeProps} layer={layer} />}
       <div style={{ display: 'flex', gap: 5, marginTop: 4 }}>
         <button
           type="button"

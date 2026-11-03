@@ -12,6 +12,7 @@ import {
 import { loadLoopImageFile } from './loopAnimatorLauncher'
 import { useLoopAnimator } from './loopAnimatorState'
 import { resolveLoopAssetUrl } from './sampleLoops'
+import { useContainFitSize } from './useContainFit'
 import type {
   ChromaKeyConfig,
   GridSlicerConfig,
@@ -106,6 +107,9 @@ export function LoopAnimatorSourcePane({ sourceCanvasRef, onRequestUpload, templ
   const updateFrame = useLoopAnimator((s) => s.updateFrame)
 
   const overlayCanvasRef = useRef<HTMLCanvasElement | null>(null)
+  const scrollRef = useRef<HTMLDivElement | null>(null)
+  // Hiển thị đúng tỉ lệ ảnh gốc (contain-fit), không bóp méo để xem trước khớp với lúc tách
+  const fit = useContainFitSize(scrollRef, sourceWidth, sourceHeight)
   const rawImageRef = useRef<HTMLImageElement | null>(null)
   const [eyedropperActive, setEyedropperActive] = useState(false)
   const [zoom, setZoom] = useState(1)
@@ -316,6 +320,7 @@ export function LoopAnimatorSourcePane({ sourceCanvasRef, onRequestUpload, templ
 
       <div
         className="loop-source-canvas-scroll"
+        ref={scrollRef}
         onDragOver={(e) => hasSource && e.preventDefault()}
         onDrop={(e) => {
           if (!hasSource) return
@@ -331,7 +336,8 @@ export function LoopAnimatorSourcePane({ sourceCanvasRef, onRequestUpload, templ
           style={{
             transform: `scale(${zoom})`,
             transformOrigin: 'top center',
-            aspectRatio: `${Math.max(1, sourceWidth)} / ${Math.max(1, sourceHeight)}`
+            aspectRatio: `${Math.max(1, sourceWidth)} / ${Math.max(1, sourceHeight)}`,
+            ...(fit.width > 0 ? { width: fit.width, height: fit.height } : {})
           }}
         >
           <canvas ref={sourceCanvasRef} className="loop-source-canvas" />

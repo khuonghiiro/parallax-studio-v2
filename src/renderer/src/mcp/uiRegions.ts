@@ -315,6 +315,9 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   assets_loop: region('assets_loop', '.loop-assets-layout', '.loop-assets-container'),
   inspector_loop_logic: region('inspector_loop_logic'),
   workflow_loop_params: region('workflow_loop_params'),
+  workflow_loop_lifecycle: region('workflow_loop_lifecycle'),
+  workflow_loop_combo_fx: region('workflow_loop_combo_fx'),
+  workflow_loop_links: region('workflow_loop_links'),
   layer_assembly_loop_logic: region('layer_assembly_loop_logic', '.lw-loop-panel'),
   layer_assembly_loop_assets: region('layer_assembly_loop_assets', '.lw-loop-assets'),
 

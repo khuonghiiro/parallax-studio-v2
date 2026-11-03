@@ -1,5 +1,5 @@
 import type { ChromaKeySettings, ChromaShadowMode } from './types'
-import { floodFromBorder, transparentSeed } from './chromaOuterIsolation'
+import { resolveOuterWallAlpha } from './chromaOuterIsolation'
 
 /**
  * Lấy mẫu tự động màu nền thực tế quanh viền ảnh để tinh chỉnh chính xác màu khóa (Key Color).
@@ -205,47 +205,88 @@ function measureBorderNoiseFloor(
   return Math.max(0, Math.min(0.11, p98))
 }
 
-/**
- * Xác định vùng nền và quầng bán trong suốt liên thông với bên ngoài (dùng cho chế độ Giữ ruột BFS).
- * Chỉ những vùng nằm hoàn toàn bên trong đường viền đặc kín (rawAlpha >= 0.94) mới được khoá bảo vệ.
- */
-function computeOuterHaloZone(
-  rawAlphaArr: Float32Array,
+/** Kết quả giải pha màu (Color Unmixing) từng pixel so với màu nền: độ phủ thật của vật thể / bóng */
+export interface ChromaAlphaAnalysis {
+  /** Độ phủ tổng (0 = đúng màu nền, 1 = vật thể đặc) */
+  rawAlpha: Float32Array
+  /** Độ phủ theo loại bóng đã chọn (sáng / tối / tự động) */
+  dirAlpha: Float32Array
+  /** 1 nếu pixel sáng hơn nền (hào quang / mây), 0 nếu tối hơn (bóng đổ) */
+  isLight: Uint8Array
+  /** Nhiễu nền đo được quanh mép ảnh (JPEG) */
+  measuredNoise: number
+  isGreenKey: boolean
+  isBlueKey: boolean
+  isMagentaKey: boolean
+}
+
+/** Phân tích độ phủ thật của mọi pixel — dùng chung cho tách bóng, xoá quầng và phân vùng nền ngoài / trong */
+export function analyzeChromaAlpha(
   data: Uint8ClampedArray,
   w: number,
   h: number,
   settings: ChromaKeySettings,
-  isChromaScreen: boolean,
-  noiseFloor: number
-): Uint8Array {
-  const total = w * h
-  if (settings.isolationMode !== 'outer_only') {
-    const zone = new Uint8Array(total)
-    zone.fill(1)
-    return zone
+  keyRgb: { r: number; g: number; b: number }
+): ChromaAlphaAnalysis {
+  const totalPixels = w * h
+  const shadowType = settings.shadowType || 'auto'
+  const invPosR = keyRgb.r < 235 ? 1 / Math.max(64, 255 - keyRgb.r) : 1 / 255
+  const invPosG = keyRgb.g < 235 ? 1 / Math.max(64, 255 - keyRgb.g) : 1 / 255
+  const invPosB = keyRgb.b < 235 ? 1 / Math.max(64, 255 - keyRgb.b) : 1 / 255
+  const invNegR = keyRgb.r > 20 ? 1 / Math.max(64, keyRgb.r) : 1 / 255
+  const invNegG = keyRgb.g > 20 ? 1 / Math.max(64, keyRgb.g) : 1 / 255
+  const invNegB = keyRgb.b > 20 ? 1 / Math.max(64, keyRgb.b) : 1 / 255
+
+  const dirAlpha = new Float32Array(totalPixels)
+  const rawAlpha = new Float32Array(totalPixels)
+  const isLight = new Uint8Array(totalPixels)
+
+  for (let p = 0; p < totalPixels; p++) {
+    const idx = p * 4
+    if (data[idx + 3] < 15) continue
+    const r = data[idx]
+    const g = data[idx + 1]
+    const b = data[idx + 2]
+    const alphaLight = Math.max(
+      Math.max(0, r - keyRgb.r) * invPosR,
+      Math.max(0, g - keyRgb.g) * invPosG,
+      Math.max(0, b - keyRgb.b) * invPosB
+    )
+    const alphaDark = Math.max(
+      Math.max(0, keyRgb.r - r) * invNegR,
+      Math.max(0, keyRgb.g - g) * invNegG,
+      Math.max(0, keyRgb.b - b) * invNegB
+    )
+    const maxAD = Math.max(alphaLight, alphaDark)
+    const minAD = Math.min(alphaLight, alphaDark)
+    const alphaAll = Math.min(1, maxAD + minAD * 0.5)
+    rawAlpha[p] = alphaAll
+    isLight[p] = alphaLight >= alphaDark ? 1 : 0
+    dirAlpha[p] =
+      shadowType === 'light'
+        ? alphaLight >= alphaDark * 0.5 ? alphaLight : 0
+        : shadowType === 'dark'
+          ? alphaDark > alphaLight ? alphaDark : 0
+          : alphaAll
   }
 
-  const solidBarrier = 0.94
-  const passable = new Uint8Array(total)
-  for (let p = 0; p < total; p++) {
-    if (rawAlphaArr[p] < solidBarrier) passable[p] = 1
+  return {
+    rawAlpha,
+    dirAlpha,
+    isLight,
+    measuredNoise: measureBorderNoiseFloor(rawAlpha, data, w, h),
+    isGreenKey:
+      settings.keyColorType === 'chroma_green' || (keyRgb.g > keyRgb.r + 25 && keyRgb.g > keyRgb.b + 15),
+    isBlueKey:
+      settings.keyColorType === 'chroma_blue' || (keyRgb.b > keyRgb.r + 25 && keyRgb.b > keyRgb.g + 15),
+    isMagentaKey: keyRgb.r > keyRgb.g + 35 && keyRgb.b > keyRgb.g + 35
   }
-
-  // Tách nền ngoài thuần: chỉ loang từ biên ảnh và vùng đã trong suốt (giữ trọn ruột vòng tròn)
-  if (settings.strictOuterIsolation) {
-    return floodFromBorder(passable, w, h, transparentSeed(data))
-  }
-  if (!isChromaScreen) return floodFromBorder(passable, w, h)
-
-  // Trên phông xanh lá / xanh dương / hồng magenta, các ô nền thuần khiết nằm giữa các tia sáng cũng là hạt giống nền
-  const chromaSeedCeil = Math.max(0.08, noiseFloor * 1.4)
-  return floodFromBorder(passable, w, h, (p) => rawAlphaArr[p] <= chromaSeedCeil)
 }
 
 /**
  * Khử màu nền pha trộn (Color Unmixing) cho một pixel bán trong suốt hoặc viền chuyển tiếp.
  */
-function unmixPixelRgb(
+export function unmixPixelRgb(
   data: Uint8ClampedArray,
   idx: number,
   keyRgb: { r: number; g: number; b: number },
@@ -285,8 +326,15 @@ function unmixPixelRgb(
   data[idx + 2] = Math.round(bf)
 }
 
+/** Ngưỡng độ phủ phân tách vật thể đặc khỏi bóng mờ / quầng sáng (30..92%, mặc định 62%) */
+export function resolveSolidCutoff(settings: ChromaKeySettings): number {
+  return Math.max(0.3, Math.min(0.92, (settings.shadowSolidThreshold ?? 62) / 100))
+}
+
 /**
  * Tách và khử ám màu nền cho Bóng mờ / Mây khói / Hào quang bán trong suốt (Color Unmixing & Alpha Matting).
+ * Chỉ xử lý trong `zone` (vùng nền cần tách); pixel ngoài vùng — phần ruột bên trong đường viền khi chọn
+ * "Chỉ nền ngoài" — được giữ nguyên. Chế độ "Chỉ lấy bóng" thì phần ruột cũng bị loại như vật thể đặc.
  */
 export function applyShadowAndMistExtraction(
   data: Uint8ClampedArray,
@@ -295,7 +343,9 @@ export function applyShadowAndMistExtraction(
   settings: ChromaKeySettings,
   keyRgb: { r: number; g: number; b: number },
   activeBg: Uint8Array,
-  shadowAlpha: Uint8Array
+  shadowAlpha: Uint8Array,
+  analysis: ChromaAlphaAnalysis,
+  zone: Uint8Array
 ): Uint8Array | null {
   const mode = resolveEffectiveShadowMode(settings)
   if (mode === 'off') return null
@@ -303,77 +353,15 @@ export function applyShadowAndMistExtraction(
   const totalPixels = w * h
   const rawRetention = settings.shadowRetention ?? 0
   const strength = Math.max(5, Math.min(100, rawRetention > 0 ? rawRetention : 68)) / 100
-  const shadowType = settings.shadowType || 'auto'
-  const solidCutoff = Math.max(0.3, Math.min(0.92, (settings.shadowSolidThreshold ?? 62) / 100))
+  const solidCutoff = resolveSolidCutoff(settings)
   const unmixColor = settings.shadowUnmixColor !== false
-
-  const isGreenKey =
-    settings.keyColorType === 'chroma_green' ||
-    (keyRgb.g > keyRgb.r + 25 && keyRgb.g > keyRgb.b + 15)
-  const isBlueKey =
-    settings.keyColorType === 'chroma_blue' ||
-    (keyRgb.b > keyRgb.r + 25 && keyRgb.b > keyRgb.g + 15)
-  const isMagentaKey = keyRgb.r > keyRgb.g + 35 && keyRgb.b > keyRgb.g + 35
-
-  const invPosR = keyRgb.r < 235 ? 1 / Math.max(64, 255 - keyRgb.r) : 1 / 255
-  const invPosG = keyRgb.g < 235 ? 1 / Math.max(64, 255 - keyRgb.g) : 1 / 255
-  const invPosB = keyRgb.b < 235 ? 1 / Math.max(64, 255 - keyRgb.b) : 1 / 255
-  const invNegR = keyRgb.r > 20 ? 1 / Math.max(64, keyRgb.r) : 1 / 255
-  const invNegG = keyRgb.g > 20 ? 1 / Math.max(64, keyRgb.g) : 1 / 255
-  const invNegB = keyRgb.b > 20 ? 1 / Math.max(64, keyRgb.b) : 1 / 255
-
-  const dirAlphaArr = new Float32Array(totalPixels)
-  const rawAlphaArr = new Float32Array(totalPixels)
-  const isLightArr = new Uint8Array(totalPixels)
-
-  for (let p = 0; p < totalPixels; p++) {
-    const idx = p * 4
-    if (data[idx + 3] < 15) continue
-    const r = data[idx]
-    const g = data[idx + 1]
-    const b = data[idx + 2]
-
-    const alphaLight = Math.max(
-      Math.max(0, r - keyRgb.r) * invPosR,
-      Math.max(0, g - keyRgb.g) * invPosG,
-      Math.max(0, b - keyRgb.b) * invPosB
-    )
-    const alphaDark = Math.max(
-      Math.max(0, keyRgb.r - r) * invNegR,
-      Math.max(0, keyRgb.g - g) * invNegG,
-      Math.max(0, keyRgb.b - b) * invNegB
-    )
-    const maxAD = Math.max(alphaLight, alphaDark)
-    const minAD = Math.min(alphaLight, alphaDark)
-    const alphaAll = Math.min(1, maxAD + minAD * 0.5)
-    rawAlphaArr[p] = alphaAll
-    isLightArr[p] = alphaLight >= alphaDark ? 1 : 0
-
-    let alphaDir = alphaAll
-    if (shadowType === 'light') {
-      alphaDir = alphaLight >= alphaDark * 0.5 ? alphaLight : 0
-    } else if (shadowType === 'dark') {
-      alphaDir = alphaDark > alphaLight ? alphaDark : 0
-    }
-    dirAlphaArr[p] = alphaDir
-  }
-
-  const measuredNoise = measureBorderNoiseFloor(rawAlphaArr, data, w, h)
-  const noiseFloor = Math.max(measuredNoise + 0.01, Math.max(0.025, 0.13 - strength * 0.085))
-  const outerZone = computeOuterHaloZone(
-    rawAlphaArr,
-    data,
-    w,
-    h,
-    settings,
-    isGreenKey || isBlueKey || isMagentaKey,
-    noiseFloor
-  )
+  const { rawAlpha, dirAlpha, isLight, isGreenKey, isBlueKey, isMagentaKey } = analysis
+  const noiseFloor = Math.max(analysis.measuredNoise + 0.01, Math.max(0.025, 0.13 - strength * 0.085))
 
   const solidMask = new Uint8Array(totalPixels)
   if (mode === 'only') {
     for (let p = 0; p < totalPixels; p++) {
-      if (!outerZone[p] || rawAlphaArr[p] >= solidCutoff) solidMask[p] = 1
+      if (!zone[p] || rawAlpha[p] >= solidCutoff) solidMask[p] = 1
     }
   }
   const nearSolid = mode === 'only' ? dilateMaskBox(solidMask, w, h, 2) : solidMask
@@ -392,45 +380,36 @@ export function applyShadowAndMistExtraction(
     }
 
     if (mode === 'only') {
-      if (nearSolid[p] || dirAlphaArr[p] <= noiseFloor) {
+      if (nearSolid[p] || dirAlpha[p] <= noiseFloor) {
         data[idx + 3] = 0
         activeBg[p] = 1
         shadowAlpha[p] = 0
         continue
       }
-    } else if (!outerZone[p]) {
+    } else if (!zone[p]) {
       activeBg[p] = 0
       shadowAlpha[p] = origA
       continue
-    } else if (rawAlphaArr[p] < solidCutoff && dirAlphaArr[p] <= noiseFloor) {
+    } else if (rawAlpha[p] < solidCutoff && dirAlpha[p] <= noiseFloor) {
       data[idx + 3] = 0
       activeBg[p] = 1
       shadowAlpha[p] = 0
       continue
     }
 
-    const aAll = rawAlphaArr[p]
+    const aAll = rawAlpha[p]
     let finalA: number
     if (mode === 'include' && aAll >= solidCutoff) {
       finalA = origA
       activeBg[p] = 0
     } else {
-      const aNorm = Math.max(0, Math.min(1, (dirAlphaArr[p] - noiseFloor) / span))
+      const aNorm = Math.max(0, Math.min(1, (dirAlpha[p] - noiseFloor) / span))
       const curved = Math.pow(aNorm, gamma) * maxShadowScale
       finalA = Math.max(0, Math.min(255, Math.round(origA * Math.min(1, curved))))
     }
 
     if (unmixColor && finalA > 0 && aAll < 0.98) {
-      unmixPixelRgb(
-        data,
-        idx,
-        keyRgb,
-        aAll,
-        isLightArr[p] === 1,
-        isGreenKey,
-        isBlueKey,
-        isMagentaKey
-      )
+      unmixPixelRgb(data, idx, keyRgb, aAll, isLight[p] === 1, isGreenKey, isBlueKey, isMagentaKey)
     }
 
     data[idx + 3] = finalA
@@ -441,4 +420,46 @@ export function applyShadowAndMistExtraction(
   }
 
   return isShadowPixel
+}
+
+/**
+ * "Xoá bóng" sạch cho hiệu ứng ánh sáng (Loop Animate): trong vùng tách, loại bỏ quầng sáng / bóng mờ
+ * bán trong suốt có độ phủ dưới ngưỡng (Độ nhạy) và khử ám màu nền trên mép vật thể còn lại,
+ * thay vì để quầng sáng biến thành mảng xanh đục.
+ */
+export function removeSoftHaloPixels(
+  data: Uint8ClampedArray,
+  w: number,
+  h: number,
+  settings: ChromaKeySettings,
+  keyRgb: { r: number; g: number; b: number },
+  analysis: ChromaAlphaAnalysis,
+  zone: Uint8Array
+): void {
+  const { rawAlpha, isLight, isGreenKey, isBlueKey, isMagentaKey } = analysis
+  const solid = resolveSolidCutoff(settings)
+  const outerOnly = settings.isolationMode === 'outer_only'
+  const tol = Math.max(0, Math.min(100, settings.tolerance)) / 100
+  // "Chỉ nền ngoài": mép đường viền chuyển mềm từ nửa ngưỡng viền → ngưỡng viền và giữ nguyên màu phần bên trong;
+  // "Tách toàn bộ": loại quầng dưới ngưỡng Độ nhạy
+  const wall = outerOnly ? resolveOuterWallAlpha(settings, analysis) : 0
+  const cut = outerOnly ? wall * 0.5 : Math.max(0.3, Math.min(0.85, 0.25 + tol * 0.9))
+  const feather = outerOnly ? wall * 0.5 : 0.06 + (Math.max(0, Math.min(30, settings.smoothness ?? 0)) / 30) * 0.2
+  for (let p = 0; p < w * h; p++) {
+    if (!zone[p]) continue
+    const idx = p * 4
+    const a = data[idx + 3]
+    if (a === 0) continue
+    const ra = rawAlpha[p]
+    if (ra < cut) {
+      data[idx + 3] = 0
+      continue
+    }
+    if (ra < cut + feather) {
+      const t = (ra - cut) / feather
+      data[idx + 3] = Math.round(a * t * t * (3 - 2 * t))
+    }
+    const keepInnerColor = outerOnly && ra < solid
+    if (ra < 0.98 && !keepInnerColor) unmixPixelRgb(data, idx, keyRgb, ra, isLight[p] === 1, isGreenKey, isBlueKey, isMagentaKey)
+  }
 }

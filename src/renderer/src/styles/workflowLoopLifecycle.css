@@ -1,0 +1,43 @@
+/* Node Animation · Loop: vòng đời xuất hiện/kết thúc, kết hợp FX và liên kết Node Time / Motion */
+.wf-loop-lifecycle,
+.wf-loop-combo,
+.wf-loop-links {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.wf-loop-hint {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.wf-loop-link-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.wf-loop-link-row .wf-v2-mini-btn {
+  height: 28px;
+  padding: 0 10px;
+}
+
+.wf-loop-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  max-width: 100%;
+  padding: 2px 8px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  background: var(--bg-2);
+  color: var(--text);
+  font-size: 10px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
