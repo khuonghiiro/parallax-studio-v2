@@ -239,6 +239,16 @@ export interface WorkflowNodeParams {
   loopScaleBeatPct?: number
   loopTimeOffset?: number
   loopAutoPlayPaused?: boolean
+  /** [Workflow V2 · Loop] Số lần chạy khi `loopMode = 'once'` (1..20) */
+  loopPlayCount?: number
+  /** [Workflow V2 · Loop] Hành vi khi Loop kết thúc / hết thời gian Node: 'hold' | 'hide' | 'fade_out' */
+  loopEndAction?: 'hold' | 'hide' | 'fade_out'
+  /** [Workflow V2 · Loop] Hiện dần từ mờ đến nét lúc bắt đầu (giây, 0 = tắt) */
+  loopFadeInSec?: number
+  /** [Workflow V2 · Loop] Mờ dần trước khi ẩn (giây) khi `loopEndAction = 'fade_out'` */
+  loopFadeOutSec?: number
+  /** [Workflow V2 · Loop] Mã hiệu ứng Keyframe / Neon FX kết hợp chạy song song với Loop (tối đa 1 hiệu ứng cho mỗi nhóm: độ mờ, scale, vị trí, viền neon) */
+  loopComboFx?: string[]
   /** [Workflow V2] Chế độ chính của Node Motion ('bbox' = Đặt BBox đích #1->#2 thu phóng & chiều sâu, 'path' = Vẽ quỹ đạo di chuyển A->B, 'cycle' = Dao động chu kỳ tại chỗ) */
   motionMode?: 'bbox' | 'path' | 'cycle'
   /** [Workflow V2] Dạng đường đi giữa BBox #1 và BBox #2 ('shortest' = Tự động tìm khoảng cách ngắn nhất, 'custom_curve' = Đặt vị trí đích #2 rồi vẽ đường đi) */

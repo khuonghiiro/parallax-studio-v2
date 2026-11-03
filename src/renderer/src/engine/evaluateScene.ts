@@ -7,6 +7,8 @@ import { autoScaleFactor, referenceDistance, smoothNoise } from '../animation/ma
 import { composeDepthMatrix, depthToThree, layerNominalSize, threeToDepth, transformedBox } from './spatial'
 import { evaluateCharacterLipSync } from '../project/lipSync'
 import { evaluateLoopLayerRhythm } from '../project/gifHelper'
+import { evaluateLoopLifecycle, hasLoopLifecycle } from '../project/loopLifecycle'
+import { assetStore } from '../project/assets'
 import { evaluateLayerPhysicsTransform } from './layerPhysics'
 import { evaluateVirtualLightAtTime } from './virtualLight'
 
@@ -315,6 +317,10 @@ export function evaluateScene(project: Project, rawT: number): EvaluatedScene {
     let opacity = Math.max(0, Math.min(1, evaluate(tr.opacity, t)))
     if (loopRhythm) {
       opacity *= loopRhythm.opacityMultiplier
+    }
+    if (layer.type === 'image' && hasLoopLifecycle(layer.props)) {
+      // Vòng đời Loop: hiện dần lúc bắt đầu, ẩn / mờ dần khi chạy hết số lần hoặc hết thời gian Node
+      opacity *= evaluateLoopLifecycle(layer.props, t, layer.inPoint, assetStore.get(layer.props.assetId)?.gif?.totalDuration)
     }
     if (layer.fadeIn && layer.fadeIn > 0 && t >= layer.inPoint && t < layer.inPoint + layer.fadeIn) {
       opacity *= (t - layer.inPoint) / layer.fadeIn

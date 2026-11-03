@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import type { Layer } from '@shared/types'
 import { assetStore } from '../project/assets'
 import { getAnimatedGifFrameIndex } from '../project/gifHelper'
+import { resolveLoopClockAnchor } from '../project/loopLifecycle'
 import type { EvaluatedLayer } from './evaluateScene'
 import { renderSolidCanvas, renderTextCanvas } from './layerCanvases'
 import { DEG } from './spatial'
@@ -184,10 +185,11 @@ export class TexturePool {
       const asset = assetStore.get(layer.props.assetId)
       if (asset?.gif && asset.gif.frames.length > 1) {
         // When in live viewport and paused, use continuous real-world time so the GIF animates smoothly
-        const isLivePaused = !isExport && !isPlaying && (layer.props.autoPlayPaused !== false)
+        const isLivePaused = !isExport && !isPlaying && (layer.props.autoPlayPaused !== false) && layer.props.loopMode !== 'once'
         const liveT = typeof performance !== 'undefined' ? performance.now() / 1000 : 0
         const animT = isLivePaused ? liveT : t
-        const frameIdx = getAnimatedGifFrameIndex(asset.gif, animT, layer.props)
+        // Chế độ `once` luôn theo timeline; đồng hồ Loop neo tại mốc bắt đầu của Layer / Node Loop
+        const frameIdx = getAnimatedGifFrameIndex(asset.gif, animT, layer.props, isLivePaused ? 0 : resolveLoopClockAnchor(layer.props, layer.inPoint))
         const frameKey = `gif:${layer.props.assetId}:f${frameIdx}`
         let ge = this.pool.get(frameKey)
         if (!ge) {

@@ -59,6 +59,8 @@ export interface Transform {
 
 export type LoopAnimationMode = 'loop' | 'ping-pong' | 'once' | 'random'
 export type LoopRhythmMode = 'none' | 'flicker_opacity' | 'pulse_scale' | 'sync_both' | 'strobe_beat'
+/** Hành vi khi Loop kết thúc (hết số lần chạy của chế độ `once` hoặc hết thời gian Node): giữ khung cuối, ẩn ngay, hoặc mờ dần rồi ẩn */
+export type LoopEndAction = 'hold' | 'hide' | 'fade_out'
 
 export interface ImageProps {
   assetId: string
@@ -85,6 +87,18 @@ export interface ImageProps {
   loopMinOpacity?: number
   /** Scale pulse amplitude in percentage (0..50%, default 12). */
   loopScaleBeatPct?: number
+  /** Số lần chạy hết chu kỳ khi `loopMode = 'once'` (1..20, mặc định 1). */
+  loopPlayCount?: number
+  /** Mốc giây (timeline) bắt đầu đồng hồ Loop & vòng đời xuất hiện (mặc định = inPoint của layer). */
+  loopStartTime?: number
+  /** Mốc giây (timeline) kết thúc Loop dùng cho chế độ lặp vô tận khi chọn ẩn / mờ dần lúc hết thời gian. */
+  loopEndTime?: number
+  /** Hành vi khi Loop kết thúc: 'hold' (giữ khung cuối), 'hide' (ẩn ngay), 'fade_out' (mờ dần rồi ẩn). */
+  loopEndAction?: LoopEndAction
+  /** Thời lượng hiện dần từ trong suốt đến rõ nét khi Loop bắt đầu (giây, 0 = tắt). */
+  loopFadeInSec?: number
+  /** Thời lượng mờ dần trước khi ẩn khi `loopEndAction = 'fade_out'` (giây, mặc định 0.5). */
+  loopFadeOutSec?: number
 }
 
 export interface TextProps {

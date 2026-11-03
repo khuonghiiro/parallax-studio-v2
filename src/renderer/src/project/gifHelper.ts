@@ -1,5 +1,6 @@
 import type { ImageProps, LoopRhythmMode } from '@shared/types'
 import type { AnimatedGifData } from './assets'
+import { resolveLoopPlayCount } from './loopLifecycle'
 
 export interface LoopRhythmEvaluation {
   opacityMultiplier: number
@@ -9,11 +10,14 @@ export interface LoopRhythmEvaluation {
 /**
  * Computes the active frame index of an animated GIF/WebP/Loop Sprite at a given timeline time `t`.
  * Supports playback speed, loop modes ('loop', 'ping-pong', 'once', 'random'), and time offset.
+ * `anchorTime` là mốc gốc của đồng hồ Loop (xem `resolveLoopClockAnchor`); chế độ `once` chạy
+ * `loopPlayCount` vòng rồi giữ khung cuối.
  */
 export function getAnimatedGifFrameIndex(
   gif: AnimatedGifData,
   t: number,
-  props: Partial<ImageProps> = {}
+  props: Partial<ImageProps> = {},
+  anchorTime = 0
 ): number {
   const frames = gif?.frames
   if (!frames || frames.length <= 1) return 0
@@ -23,8 +27,9 @@ export function getAnimatedGifFrameIndex(
   const loopMode = props.loopMode ?? 'loop'
   const offset = typeof props.timeOffset === 'number' && !isNaN(props.timeOffset) ? props.timeOffset : 0
   const duration = gif.totalDuration && !isNaN(gif.totalDuration) && gif.totalDuration > 0 ? gif.totalDuration : 1
+  const anchor = typeof anchorTime === 'number' && !isNaN(anchorTime) ? anchorTime : 0
 
-  let localT = (t + offset) * speed
+  let localT = (t - anchor + offset) * speed
   if (isNaN(localT) || localT < 0) localT = 0
 
   if (loopMode === 'random') {
@@ -36,7 +41,8 @@ export function getAnimatedGifFrameIndex(
 
   let frameT: number
   if (loopMode === 'once') {
-    frameT = Math.min(localT, Math.max(0, duration - 1e-4))
+    const total = duration * resolveLoopPlayCount(props)
+    frameT = localT >= total ? Math.max(0, duration - 1e-4) : localT % duration
   } else if (loopMode === 'ping-pong') {
     const cycle = duration * 2
     const rem = localT % cycle

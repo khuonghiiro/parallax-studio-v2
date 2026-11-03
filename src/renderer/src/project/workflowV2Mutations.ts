@@ -396,30 +396,8 @@ function syncAnimFxNodeToProject(
   const presetId = params.animFxPreset ?? 'popIn'
   const opt = WORKFLOW_V2_ANIM_FX_OPTIONS.find((o) => o.id === presetId) ?? WORKFLOW_V2_ANIM_FX_OPTIONS[0]
   const tol = 1 / Math.max(1, (project.comp.fps || 30) * 2)
-  const isLoopSpriteMode =
-    params.animMode === 'loop_sprite' ||
-    presetId === 'loop_rhythm' ||
-    presetId === 'loop_flicker'
-
-  if (isLoopSpriteMode) {
-    for (const l of project.layers) {
-      if (!targetIds.has(l.id) || l.type !== 'image') continue
-      if (!node.enabled) {
-        l.props.loopRhythmMode = 'none'
-        continue
-      }
-      if (params.loopSpeed !== undefined) l.props.speed = params.loopSpeed
-      if (params.loopMode !== undefined) l.props.loopMode = params.loopMode
-      if (params.loopTimeOffset !== undefined) l.props.timeOffset = params.loopTimeOffset
-      if (params.loopAutoPlayPaused !== undefined) l.props.autoPlayPaused = params.loopAutoPlayPaused
-      l.props.loopRhythmMode =
-        params.loopRhythmMode ??
-        (presetId === 'loop_flicker' ? 'flicker_opacity' : 'sync_both')
-      l.props.loopRhythmRateHz = params.loopRhythmRateHz ?? params.animFxSpeed ?? 2.5
-      l.props.loopRhythmIntensity = params.loopRhythmIntensity ?? params.intensity ?? 0.45
-      l.props.loopMinOpacity = params.loopMinOpacity ?? params.animFxMinIntensity ?? 0.55
-      l.props.loopScaleBeatPct = params.loopScaleBeatPct ?? 12
-    }
+  if (params.animMode === 'loop_sprite' || presetId === 'loop_rhythm' || presetId === 'loop_flicker') {
+    syncLoopSpriteNodeToLayers(project, node, params, patch)
     return
   }
 
@@ -454,68 +432,9 @@ function syncAnimFxNodeToProject(
     const speed = params.animFxSpeed ?? existingFx?.glow?.speed ?? (duration > 0 ? Math.max(0.5, count / duration) : 1.5)
     const minIntensity = params.animFxMinIntensity ?? existingFx?.glow?.minIntensity ?? 0.15
 
-    let createdKeyIds: string[] = []
-    let targetProp: 'opacity' | 'position' | 'scale' | undefined
-
-    if (presetId === 'blink') {
-      targetProp = 'opacity'
-      createdKeyIds = generateBlinkKeys(l.transform.opacity, start, duration, count, 0.05, tol).map((k) => k.id)
-    } else if (presetId === 'fadeOut') {
-      targetProp = 'opacity'
-      createdKeyIds = generateFadeKeys(l.transform.opacity, start, duration, 'out', tol).map((k) => k.id)
-    } else if (presetId === 'fadeIn') {
-      targetProp = 'opacity'
-      createdKeyIds = generateFadeKeys(l.transform.opacity, start, duration, 'in', tol).map((k) => k.id)
-    } else if (presetId === 'breathe') {
-      targetProp = 'opacity'
-      createdKeyIds = generateBreatheKeys(l.transform.opacity, start, duration, 0.2, tol).map((k) => k.id)
-    } else if (presetId === 'shake') {
-      targetProp = 'position'
-      createdKeyIds = generateShakeKeys(l.transform.position, start, duration, intensity, count, tol).map((k) => k.id)
-    } else if (presetId === 'popIn') {
-      targetProp = 'scale'
-      createdKeyIds = generatePopInKeys(l.transform.scale, start, duration, count, intensity, tol).map((k) => k.id)
-    } else if (presetId === 'pulse') {
-      targetProp = 'scale'
-      createdKeyIds = generatePulseKeys(l.transform.scale, start, duration, count, intensity, tol).map((k) => k.id)
-    } else {
-      const animated: LayerGlow['animated'] =
-        presetId === 'neonBreathe'
-          ? 'breathe'
-          : presetId === 'neonBlink'
-            ? 'blink'
-            : presetId === 'neonFlicker'
-              ? 'flicker'
-              : 'none'
-      l.glow = {
-        enabled: true,
-        startTime: start,
-        duration,
-        side,
-        color,
-        thickness,
-        intensity,
-        animated,
-        speed,
-        minIntensity
-      }
-    }
-
-    if (!l.appliedEffects) l.appliedEffects = []
-    l.appliedEffects.push({
-      id: existingFx?.id ?? `fx-wf-${node.id}`,
-      presetId,
-      name: opt.label.replace(/^[^\w\p{L}]+\s*/u, ''),
-      badge: opt.badge,
-      category: opt.fxCategory,
-      startTime: start,
-      duration,
-      enabled: true,
-      targetProp,
-      keyframeIds: createdKeyIds,
-      glow: opt.fxCategory === 'glow' && l.glow ? { ...l.glow } : undefined,
-      count: opt.defaultCount !== undefined ? count : undefined,
-      intensity: opt.defaultIntensity !== undefined ? intensity : undefined
+    applyAnimFxPresetToLayer(l, opt, {
+      fxId: existingFx?.id ?? `fx-wf-${node.id}`,
+      start, duration, count, intensity, color, side, thickness, speed, minIntensity, tol
     })
   }
 }
