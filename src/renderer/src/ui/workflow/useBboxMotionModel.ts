@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import type { Layer, Vec3, WorkflowNodeParams } from '@shared/types'
 import { bboxStartPosition } from '../../project/workflowMotionStart'
-import { getClusterMemberLayers, getClusterRootLayer, syncWorkflowV2NodeToProject } from '../../project/workflowV2Engine'
+import { getClusterDisplayName, getClusterMemberLayers, getClusterRootLayer, syncWorkflowV2NodeToProject } from '../../project/workflowV2Engine'
 import { useEditor } from '../../store/editor'
 import { resolveActionTargetLayerIds } from './WorkflowV2MotionAndRigEditors'
 import type { WorkflowV2NodeParamsProps } from './WorkflowV2NodeParams'
@@ -39,7 +39,7 @@ export function useBboxMotionModel(props: WorkflowV2NodeParamsProps) {
             rootLayer: rootL,
             isCluster: true,
             instanceId: inst,
-            name: rootL.name.replace(/\s*\(.*?\)\s*/g, '') || 'Cụm 2.5D'
+            name: getClusterDisplayName(rootL)
           })
         }
       } else {

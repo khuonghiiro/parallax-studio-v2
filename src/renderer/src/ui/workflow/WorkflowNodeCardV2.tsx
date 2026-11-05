@@ -1,5 +1,6 @@
+import { assetStore } from '../../project/assets'
 import { effectiveTimeParams, isTimeNode, timeGroupColor, timeGroupConnection, timeGroupLabel, timeSource } from '../../project/workflowTiming'
-import React, { memo } from 'react'
+import React, { memo, useSyncExternalStore } from 'react'
 import type { ImageProps, Project, WorkflowNode, WorkflowNodeParams, WorkflowPortKind } from '@shared/types'
 import {
   WORKFLOW_V2_COLLISION_OPTIONS,
@@ -157,7 +158,8 @@ function resolveThumb(node: WorkflowNode, project: Project): string | undefined 
   const layer = project.layers.find((l) => l.id === targetId) ?? project.layers.find((l) => node.params?.targetLayerIds?.includes(l.id))
   if (!layer || layer.type !== 'image') return undefined
   const asset = project.assets.find((a) => a.id === (layer.props as ImageProps).assetId)
-  return asset?.dataUrl || asset?.path
+  const runtime = asset ? assetStore.get(asset.id) : undefined
+  return runtime?.thumbUrl || runtime?.url || asset?.dataUrl
 }
 
 /**
@@ -201,6 +203,7 @@ export const WorkflowNodeCardV2 = memo(function WorkflowNodeCardV2({
   const cat = resolveV2LogicCategory(node)
   const collapsed = Boolean(node.params?.collapsedGroup)
   const collapsedSubs = Boolean(node.params?.collapsedSubLayers)
+  useSyncExternalStore(cb => assetStore.subscribe(cb), () => assetStore.version)
   const thumb = resolveThumb(node, project)
   const hasOutput = isTimeNode(node) || level !== 'logic' || cat === 'action' || cat === 'collision' || cat === 'material' || cat === 'cluster_lock' || Boolean(node.params?.isPartHub)
 
@@ -223,6 +226,7 @@ export const WorkflowNodeCardV2 = memo(function WorkflowNodeCardV2({
 
   return (
     <div
+      data-mcp-region="workflow_node_card"
       className={[
         'wf-v2-card',
         theme.levelClass,

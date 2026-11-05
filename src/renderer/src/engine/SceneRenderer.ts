@@ -542,7 +542,7 @@ export class SceneRenderer {
 
     applyEvaluatedCamera(this.camera, ev.camera, comp.width / comp.height)
     this.layoutLayers(project, ev, look, this.camera, vp.h, { editor: false })
-    this.updateOutline(opts.selectedId)
+    this.updateOutline(opts.selectedId, opts.selectionScope)
 
     const r = this.renderer
     this.ensureTarget(this.rt, vp.w, vp.h)
@@ -577,7 +577,7 @@ export class SceneRenderer {
     this.lastScene = ev
     applyEvaluatedCamera(this.camera, ev.camera, project.comp.width / project.comp.height)
     this.layoutLayers(project, ev, project.look, cam, vp.h, { editor: true, cullCam: opts.cameraOnly ? this.camera : undefined })
-    this.updateOutline(opts.selectedId)
+    this.updateOutline(opts.selectedId, opts.selectionScope)
 
     this.helpers ??= new EditorHelpers()
     const infos = new Map<string, HelperLayerInfo>()
@@ -611,7 +611,13 @@ export class SceneRenderer {
     return this.helpers.labels(ev, cam, this.camera, vp.w, vp.h)
   }
 
-  private updateOutline(selectedId?: string | null): void {
+  private updateOutline(selectedId?: string | null, scope?: 'cluster' | 'layer'): void {
+    const layer = this.lastScene?.layers.find(l => l.layer.id === selectedId)?.layer
+    const cluster = layer?.composite ?? layer?.model3d
+    if (scope !== 'layer' && cluster && cluster.lockedGroup !== false) {
+      this.outline.visible = false
+      return
+    }
     const sel = selectedId ? this.nodes.get(selectedId) : undefined
     if (sel && sel.object.visible && sel.type !== 'particles') {
       this.outline.visible = true

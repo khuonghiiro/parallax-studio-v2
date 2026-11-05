@@ -208,8 +208,7 @@ export function useWorkflowV2SelectionSync(ctrl: ReturnType<typeof useWorkflowV2
       const clusterNode = selInstId
         ? workflow.nodes.find(
             (n) =>
-              n.params?.instanceId === selInstId ||
-              (resolveV2NodeLevel(n) === 'layer' && n.params?.rootLayerId === layerId)
+              n.params?.instanceId === selInstId && n.params?.logicCategory === 'cluster_lock' 
           )
         : undefined
       const layerNode = workflow.nodes.find(

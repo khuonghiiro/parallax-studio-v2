@@ -1,3 +1,4 @@
+import { scaleClusterFromSnapshot } from '../../project/clusterTransform'
 import * as THREE from 'three'
 import { nanoid } from 'nanoid'
 import type { Vec3 } from '@shared/types'
@@ -232,6 +233,15 @@ export function startGizmoDrag(
       const rawRatio = dot < 0 ? 0.05 : curDist / Math.max(1, startDist)
       const scaleMultiplier = Math.max(0.05, shift ? Math.round(rawRatio * 20) / 20 : rawRatio)
       st.update((draft) => {
+        if (el.layer.composite) {
+          const ids = new Set(initialLayers.map(l => l.id))
+          const localPivot = modelPivot.clone().applyMatrix4(parent.clone().invert())
+          scaleClusterFromSnapshot(
+            draft.layers.filter(l => ids.has(l.id)), initial.project.layers,
+            [localPivot.x, localPivot.y, -localPivot.z], scaleMultiplier
+          )
+          return
+        }
         for (const init of initialLayers) {
           const l = draft.layers.find((x) => x.id === init.id)
           if (!l || l.locked) continue

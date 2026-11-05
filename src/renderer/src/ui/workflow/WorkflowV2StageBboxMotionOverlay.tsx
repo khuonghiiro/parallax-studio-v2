@@ -1,3 +1,5 @@
+import { resolveMotionEntities } from './workflowMotionEntities'
+import { WorkflowClusterGhost } from './WorkflowClusterGhost'
 import { WorkflowMotionStageTools } from './WorkflowMotionStageTools'
 import { WorkflowMotionIcon } from './WorkflowMotionIcons'
 import { WorkflowV2BboxGimbal } from './WorkflowV2BboxGimbal'
@@ -14,8 +16,6 @@ import {
 } from '../../project/workflowV2BboxMotionAndCollision'
 import {
   attachLogicNodeToLayerV2,
-  getClusterMemberLayers,
-  getClusterRootLayer,
   syncWorkflowV2NodeToProject
 } from '../../project/workflowV2Engine'
 import { useEditor } from '../../store/editor'
@@ -172,122 +172,9 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
       : defaultStartZ
 
   // Tìm tất cả các Layer / Cụm kết nối vào Node Motion này
-  const connectedEntities = useMemo(() => {
-    const ids = new Set<string>()
-    if (mp?.targetLayerIds?.length) {
-      for (const id of mp.targetLayerIds) ids.add(id)
-    }
-    if (mp?.sharedLayerNodeIds?.length) {
-      for (const nid of mp.sharedLayerNodeIds) {
-        if (nid.startsWith('v2-layer-')) ids.add(nid.slice('v2-layer-'.length))
-        const nObj = workflow.nodes.find((n) => n.id === nid)
-        const nodeLayerId = nObj?.params?.rootLayerId ?? (nObj?.params as Record<string, any> | undefined)?.layerId
-        if (nodeLayerId) ids.add(nodeLayerId)
-        if (nObj?.params?.instanceId) {
-          const members = getClusterMemberLayers(project, nObj.params.instanceId)
-          for (const m of members) ids.add(m.id)
-        }
-      }
-    }
-    if (motionNode) {
-      const inEdges = workflow.edges.filter((e) => e.toNode === motionNode.id && !e.disabled)
-      for (const e of inEdges) {
-        const srcNode = workflow.nodes.find((n) => n.id === e.fromNode)
-        if (srcNode?.params?.targetLayerIds?.length) {
-          for (const id of srcNode.params.targetLayerIds) ids.add(id)
-        }
-        const srcLayerId = srcNode?.params?.rootLayerId ?? (srcNode?.params as Record<string, any> | undefined)?.layerId
-        if (srcLayerId) {
-          ids.add(srcLayerId)
-        } else if (srcNode?.id?.startsWith('v2-layer-')) {
-          ids.add(srcNode.id.slice('v2-layer-'.length))
-        }
-        if (srcNode?.params?.instanceId) {
-          const members = getClusterMemberLayers(project, srcNode.params.instanceId)
-          for (const m of members) ids.add(m.id)
-        }
-      }
-    }
-    if (coordRefLayer && !ids.has(coordRefLayer.id)) {
-      ids.add(coordRefLayer.id)
-    }
-
-    const entityMap = new Map<
-      string,
-      {
-        id: string
-        rootLayer: Layer
-        isCluster: boolean
-        name: string
-        projLayer?: ProjectedLayer2D
-      }
-    >()
-
-    for (const lid of Array.from(ids)) {
-      const l = project.layers.find((ly) => ly.id === lid)
-      if (!l) continue
-      const inst = l.composite?.instanceId ?? l.model3d?.instanceId
-      if (inst) {
-        if (!entityMap.has(inst)) {
-          const members = getClusterMemberLayers(project, inst)
-          const rootL = getClusterRootLayer(members) ?? members[0] ?? l
-          const memberIds = new Set(members.map((m) => m.id))
-          const memberProjs = layers2D?.filter((lp) => memberIds.has(lp.id)) ?? []
-          let proj: ProjectedLayer2D | undefined
-          if (memberProjs.length > 0) {
-            let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity
-            for (const p of memberProjs) {
-              minX = Math.min(minX, p.offsetX - p.width / 2)
-              maxX = Math.max(maxX, p.offsetX + p.width / 2)
-              minY = Math.min(minY, p.offsetY - p.height / 2)
-              maxY = Math.max(maxY, p.offsetY + p.height / 2)
-            }
-            const baseP = memberProjs.find((p) => p.id === rootL.id) ?? memberProjs[0]
-            proj = {
-              ...baseP,
-              name: rootL.name.replace(/\s*\(.*?\)\s*/g, '') || 'Cụm 2.5D',
-              offsetX: (minX + maxX) / 2,
-              offsetY: (minY + maxY) / 2,
-              width: Math.max(24, maxX - minX),
-              height: Math.max(24, maxY - minY)
-            }
-          }
-          entityMap.set(inst, {
-            id: inst,
-            rootLayer: rootL,
-            isCluster: true,
-            name: rootL.name.replace(/\s*\(.*?\)\s*/g, '') || 'Cụm 2.5D',
-            projLayer: proj ?? (rootL.id === coordRefLayer?.id ? selectedProjLayer : undefined)
-          })
-        }
-      } else {
-        if (!entityMap.has(l.id)) {
-          const proj =
-            layers2D?.find((p) => p.id === l.id) ??
-            (l.id === coordRefLayer?.id ? selectedProjLayer : undefined)
-          entityMap.set(l.id, {
-            id: l.id,
-            rootLayer: l,
-            isCluster: false,
-            name: l.name,
-            projLayer: proj
-          })
-        }
-      }
-    }
-
-    if (entityMap.size === 0 && coordRefLayer) {
-      entityMap.set(coordRefLayer.id, {
-        id: coordRefLayer.id,
-        rootLayer: coordRefLayer,
-        isCluster: false,
-        name: coordRefLayer.name,
-        projLayer: selectedProjLayer
-      })
-    }
-
-    return Array.from(entityMap.values())
-  }, [mp?.targetLayerIds, motionNode, workflow, project, coordRefLayer, layers2D, selectedProjLayer])
+  const connectedEntities = useMemo(() => resolveMotionEntities({
+    project, workflow, motionNode, coordRefLayer, layers2D, selectedProjLayer
+  }), [project, workflow, motionNode, coordRefLayer, layers2D, selectedProjLayer])
 
   const primaryEntity =
     connectedEntities.find((e) => coordRefLayer && e.rootLayer.id === coordRefLayer.id) ?? connectedEntities[0]
@@ -331,8 +218,12 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
       const entRotX = customTarget?.targetRotX ?? (isPrimary ? (mp?.bboxTargetRotX ?? 0) : 0)
 
       const pEnd = refD / Math.max(80, refD + entTargetZ)
-      const startOffX = entStartPos[0] * pStart
-      const startOffY = -entStartPos[1] * pStart
+      const currentPos = evaluate(ent.rootLayer.transform.position, sampleTime)
+      const currentPerspective = refD / Math.max(80, refD + currentPos[2])
+      const centerDx = ent.isCluster && ent.projLayer ? (ent.projLayer.offsetX - currentPos[0] * currentPerspective) * ratioX : 0
+      const centerDy = ent.isCluster && ent.projLayer ? (ent.projLayer.offsetY + currentPos[1] * currentPerspective) * ratioY : 0
+      const startOffX = entStartPos[0] * pStart + centerDx
+      const startOffY = -entStartPos[1] * pStart + centerDy
       const entProjW = ent.projLayer?.width ?? (ent.rootLayer.props as ImageProps)?.width ?? 400
       const entProjH = ent.projLayer?.height ?? (ent.rootLayer.props as ImageProps)?.height ?? 300
       const baseStageW = Math.max(16, entProjW * ratioX)
@@ -342,10 +233,10 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
 
       const box1Cx = shotLeft + shotScreenW / 2 + startOffX * zoom
       const box1Cy = shotTop + shotScreenH / 2 + startOffY * zoom
-      const targetOffX = entTargetX * pEnd
-      const targetOffY = -entTargetY * pEnd
-      const box2W = Math.max(20, baseW * entScaleRatio)
-      const box2H = Math.max(20, baseH * entScaleRatio)
+      const targetOffX = entTargetX * pEnd + centerDx * entScaleRatio * pEnd / pStart
+      const targetOffY = -entTargetY * pEnd + centerDy * entScaleRatio * pEnd / pStart
+      const box2W = Math.max(20, baseW * entScaleRatio * pEnd / pStart)
+      const box2H = Math.max(20, baseH * entScaleRatio * pEnd / pStart)
       const box2Cx = shotLeft + shotScreenW / 2 + targetOffX * zoom
       const box2Cy = shotTop + shotScreenH / 2 + targetOffY * zoom
       const box2Left = box2Cx - box2W / 2
@@ -883,7 +774,9 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
                 }
               }}
             >
-              {item.ghostImg && (
+              {item.ent.isCluster && item.ent.projLayer && item.ent.parts ? (
+                <WorkflowClusterGhost parts={item.ent.parts} bounds={item.ent.projLayer} project={project} opacity={isFocused ? 0.52 : 0.28} />
+              ) : item.ghostImg && (
                 <img
                   src={item.ghostImg}
                   alt={`Ghost Target ${item.ent.name}`}

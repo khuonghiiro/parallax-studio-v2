@@ -72,7 +72,7 @@ export function LayerGizmo({ controller }: { controller: React.RefObject<GizmoCo
     if (e.button !== 0 || !el) return
     e.preventDefault()
     e.stopPropagation()
-    window.dispatchEvent(new CustomEvent('pxs:focus-layer-target', { detail: { layerId: el.layer.id } }))
+    window.dispatchEvent(new CustomEvent('pxs:focus-layer-target', { detail: { layerId: el.layer.id, scope: layerSelectionScope } }))
     cleanup.current?.()
     cleanup.current = startGizmoDrag(e, frame, el, parent, handle, groupLayers)
   }
@@ -198,7 +198,7 @@ function GizmoPane({
   const rotation = evaluate(el.layer.transform.rotation, time)
   const position = isGroup ? [pivot.x, pivot.y, -pivot.z] as Vec3 : evaluate(el.layer.transform.position, time)
   return (
-    <svg className="layer-gizmo" aria-label="Layer transform controls" style={{ left: rect.x, top: rect.y, width: rect.w, height: rect.h }}>
+    <svg data-mcp-region="viewer_layer_gizmo" className="layer-gizmo" aria-label="Layer transform controls" style={{ left: rect.x, top: rect.y, width: rect.w, height: rect.h }}>
       {showBbox && (
         <polygon
           className="gizmo-box"

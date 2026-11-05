@@ -1,3 +1,4 @@
+import { scaleClusterFromSnapshot } from './clusterTransform'
 import type { Layer, Project, Vec3 } from '@shared/types'
 import type { LayerBone, LayerRig } from '@shared/layerRig'
 import { evaluateRig, transformRigLayer } from '../engine/layerRig'
@@ -473,42 +474,16 @@ export function scaleClusterAroundRoot(members: Layer[], nextScalePct: number): 
   const ratio = nextScale / curScale
   if (Math.abs(ratio - 1) < 0.002) return
 
-  const rootPos: Vec3 = [...root.transform.position.value] as Vec3
-  for (const l of members) {
-    const s = l.transform.scale.value
-    const signX = s[0] < 0 ? -1 : 1
-    const signY = s[1] < 0 ? -1 : 1
-    l.transform.scale.value = [
-      Number((Math.abs(s[0] || curScale) * ratio * signX).toFixed(3)),
-      Number((Math.abs(s[1] || curScale) * ratio * signY).toFixed(3)),
-      s[2] ?? 1
-    ]
-    for (const kf of l.transform.scale.keyframes) {
-      kf.value = [
-        Number((kf.value[0] * ratio).toFixed(3)),
-        Number((kf.value[1] * ratio).toFixed(3)),
-        kf.value[2]
-      ]
-    }
-    if (l.id !== root.id) {
-      const p = l.transform.position.value
-      const relX = (p[0] - rootPos[0]) * ratio
-      const relY = (p[1] - rootPos[1]) * ratio
-      const relZ = (p[2] - rootPos[2]) * ratio
-      l.transform.position.value = [
-        Math.round((rootPos[0] + relX) * 100) / 100,
-        Math.round((rootPos[1] + relY) * 100) / 100,
-        Math.round((rootPos[2] + relZ) * 100) / 100
-      ]
-      if (l.composite?.rootOffset) {
-        l.composite.rootOffset = [
-          Math.round(l.composite.rootOffset[0] * ratio * 100) / 100,
-          Math.round(l.composite.rootOffset[1] * ratio * 100) / 100,
-          Math.round(l.composite.rootOffset[2] * ratio * 100) / 100
-        ]
-      }
-    }
-  }
+  const sources = members.map(l => ({
+    ...l, transform: {
+      ...l.transform,
+      position: { ...l.transform.position, keyframes: [...l.transform.position.keyframes] },
+      scale: { ...l.transform.scale, keyframes: [...l.transform.scale.keyframes] }
+    },
+    composite: l.composite ? { ...l.composite } : undefined,
+    model3d: l.model3d ? { ...l.model3d } : undefined
+  }))
+  scaleClusterFromSnapshot(members, sources, [...root.transform.position.value], ratio)
 }
 
 export {

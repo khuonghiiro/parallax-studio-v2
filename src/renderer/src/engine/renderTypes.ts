@@ -37,6 +37,7 @@ export interface TexEntry {
 export interface RenderOptions {
   /** Layer to outline (preview only). */
   selectedId?: string | null
+  selectionScope?: 'cluster' | 'layer'
   /** Frame index — seeds film grain deterministically. */
   frame?: number
   /** Draw into this part of the canvas (split views). Omit = whole canvas, new frame. */
@@ -50,6 +51,7 @@ export interface RenderOptions {
 export interface EditorRenderOptions {
   viewport: Rect
   selectedId?: string | null
+  selectionScope?: 'cluster' | 'layer'
   selectedShotId?: string | null
   showPath?: boolean
   /** Only show content the active camera would load (residency preview); others are outlines. */

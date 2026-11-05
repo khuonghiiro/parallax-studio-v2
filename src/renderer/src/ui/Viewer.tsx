@@ -298,6 +298,7 @@ export function Viewer() {
     if (L.cam) {
       r.render(s.project, s.time, {
         selectedId: s.playing ? null : s.selectedLayerId,
+        selectionScope: s.layerSelectionScope,
         viewport: toDevice(L.cam, L.dpr),
         prefetch: s.playing,
         playing: s.playing
@@ -338,6 +339,7 @@ export function Viewer() {
       const labels = r.renderEditor(s.project, s.time, edCam.get(aspect), {
         viewport: toDevice(L.ed, L.dpr),
         selectedId: s.playing ? null : s.selectedLayerId,
+        selectionScope: s.layerSelectionScope,
         selectedShotId: s.selectedShotId,
         showPath: v.showPath,
         cameraOnly: v.cameraOnly,
@@ -686,19 +688,9 @@ export function Viewer() {
       const id = r.pick(nx, ny, st.project, cam, false, st.selectedLayerId)
       if (id) {
         if (st.playing) st.setPlaying(false)
-        const picked = st.project.layers.find((l) => l.id === id)
-        if (isLayerClusterLocked(picked)) {
-          const root = findClusterRootLayer(st.project, picked) ?? picked!
-          st.selectLayer(root.id, 'cluster')
-          window.dispatchEvent(
-            new CustomEvent('pxs:focus-layer-target', { detail: { layerId: root.id, scope: 'cluster' } })
-          )
-          startLayerDrag(e, root.id, cam, ed, 'facing')
-        } else {
-          st.selectLayer(id, 'layer')
-          window.dispatchEvent(new CustomEvent('pxs:focus-layer-target', { detail: { layerId: id, scope: 'layer' } }))
-          startLayerDrag(e, id, cam, ed, 'facing')
-        }
+        st.selectLayer(id, 'layer')
+        window.dispatchEvent(new CustomEvent('pxs:focus-layer-target', { detail: { layerId: id, scope: 'layer' } }))
+        startLayerDrag(e, id, cam, ed, 'facing')
         return
       }
     }
