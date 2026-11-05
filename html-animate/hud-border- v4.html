@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>HUD Border</title>
+<style>
+:root{--c:#2ef2ff;--bg1:#2b3d33;--bg2:#0d1511;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
+body{margin:0;height:100%;background:radial-gradient(ellipse at 50% 30%,var(--bg1),var(--bg2));color:var(--c);font-family:system-ui,"Segoe UI",sans-serif;display:grid;place-items:center;overflow:hidden}
+.stage{position:relative;width:min(96vw,1000px);aspect-ratio:16/10;font-size:min(1.4vw,13px)}
+.hud{position:absolute}
+.hud>svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+.hud>.in{position:absolute;inset:0}
+.run{stroke-dasharray:10 90;animation:run 4s linear infinite}
+@keyframes run{to{stroke-dashoffset:-100}}
+.glow{animation:pulse 2.4s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.55}}
+
+/* ===== KHUNG CHAT ===== */
+.chatwrap{display:flex;flex-direction:column;gap:.5em;padding:2.8em 2.4em 1.5em 2.8em}
+.scroll{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;
+  display:flex;flex-direction:column;gap:1.3em;padding:1em .9em 1em .4em;
+  scrollbar-width:thin;scrollbar-color:#2ef2ff88 transparent;
+  -webkit-mask-image:linear-gradient(transparent,#000 14px,#000 calc(100% - 14px),transparent);
+  mask-image:linear-gradient(transparent,#000 14px,#000 calc(100% - 14px),transparent)}
+.scroll::-webkit-scrollbar{width:5px}
+.scroll::-webkit-scrollbar-thumb{background:#2ef2ff99;border-radius:9px;box-shadow:0 0 6px var(--c)}
+.scroll::-webkit-scrollbar-track{background:#2ef2ff14;border-radius:9px}
+
+.bub{position:relative;flex:none;width:66%;animation:pop .35s ease-out}
+@keyframes pop{from{opacity:0;transform:translateY(10px)}}
+.bub>.in{position:relative;inset:auto}
+.bub.L{align-self:flex-start}.bub.R{align-self:flex-end}
+.msg{display:flex;align-items:center;gap:1.1em;padding:1em 1.6em}
+.R .msg{flex-direction:row-reverse}
+.msg p{flex:1;min-width:0;margin:0;line-height:1.55;font-size:1.15em;color:#bff9ff;text-shadow:0 0 6px #2ef2ff88;
+  text-align:justify;text-align-last:left;text-wrap:pretty;overflow-wrap:anywhere;hyphens:auto}
+.R .msg p{text-align-last:right}
+.bub .av{width:3em;height:3em}
+
+/* người đang nhập */
+.typing{flex:none;height:2.6em;display:flex;align-items:center;gap:.8em;padding-left:.6em;
+  font-size:1em;color:#9ff;text-shadow:0 0 6px var(--c);opacity:0;transform:translateY(4px);transition:.25s}
+.typing.on{opacity:1;transform:none}
+.typing .av{width:2.1em;height:2.1em;font-size:.9em}
+.typing .dots{display:inline-flex;gap:.3em;margin-left:.2em}
+.typing .dots i{width:.5em;height:.5em;border-radius:50%;background:var(--c);box-shadow:0 0 6px var(--c);animation:bl 1.2s infinite ease-in-out}
+.typing .dots i:nth-child(2){animation-delay:.2s}.typing .dots i:nth-child(3){animation-delay:.4s}
+@keyframes bl{0%,80%,100%{opacity:.25;transform:scale(.7)}40%{opacity:1;transform:scale(1)}}
+
+.av{flex:none;width:3.6em;height:3.6em;border-radius:50%;border:2px solid var(--c);box-shadow:0 0 10px var(--c),inset 0 0 8px #2ef2ff66;display:grid;place-items:center;background:#0c2a2e;color:#e8ffff}
+.av.p{border-color:#b77cff;box-shadow:0 0 10px #b77cff,inset 0 0 8px #b77cff66}
+
+/* ===== THANH DƯỚI ===== */
+.bar{display:flex;height:100%;align-items:center;justify-content:center;gap:1.6em;padding:0 1.5em}
+.grp{flex:none;display:flex;align-items:center;gap:.8em}
+.grp.big{gap:1.1em}
+.sm{display:flex;flex-direction:column;align-items:center;gap:.3em}
+.sm .av{width:3.1em;height:3.1em}
+.sm span{font-size:1em;color:#9ff;text-shadow:0 0 6px var(--c)}
+.cnt{flex:none;width:3.4em;height:3.4em;border-radius:50%;border:2px solid #ff4a5e;box-shadow:0 0 10px #ff4a5e,inset 0 0 8px #ff4a5e66;display:grid;place-items:center;font-size:1.3em;color:#ff8f9b}
+.sep{flex:none;width:2px;height:60%;background:linear-gradient(transparent,var(--c),transparent);opacity:.6}
+
+/* ===== THÔNG TIN + AVATAR ===== */
+.info{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.7em;height:100%;padding:0 1.2em;text-align:center}
+.info em{font-style:normal;font-size:.75em;letter-spacing:.25em;color:#7fe9f2;opacity:.85}
+.info b{font-size:1.45em;font-weight:600;line-height:1.3;letter-spacing:.04em;text-wrap:balance;color:#e8ffff;text-shadow:0 0 8px var(--c)}
+.info i{position:relative;display:block;width:70%;height:1px;background:linear-gradient(90deg,transparent,var(--c),transparent)}
+.info i::after{content:"";position:absolute;left:50%;top:50%;width:.6em;height:.6em;background:var(--c);transform:translate(-50%,-50%) rotate(45deg);box-shadow:0 0 8px var(--c)}
+.info span{padding:.3em 1.1em;border:1px solid var(--c);border-radius:99px;font-size:1.1em;color:#bff9ff;box-shadow:0 0 8px #2ef2ff55}
+
+.pic{position:absolute;inset:1.7em;border-radius:.6em;overflow:hidden;
+  background:radial-gradient(ellipse at 50% 35%,#16474d,#071a1d);box-shadow:inset 0 0 18px #2ef2ff44}
+.pic::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(0deg,#2ef2ff10 0 1px,transparent 1px 4px)}
+.pic svg,.pic img{width:100%;height:100%;object-fit:cover;display:block}
+.pic .tag{position:absolute;left:0;right:0;bottom:0;z-index:1;padding:.5em;text-align:center;font-size:.85em;letter-spacing:.25em;
+  color:#bff9ff;background:linear-gradient(transparent,#000a);text-shadow:0 0 6px var(--c)}
+.pic .tag::before{content:"";display:inline-block;width:.6em;height:.6em;margin-right:.6em;border-radius:50%;background:#3dff9a;box-shadow:0 0 8px #3dff9a}
+</style></head><body>
+<svg width="0" height="0" style="position:absolute"><defs>
+<filter id="g" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs></svg>
+
+<div class="stage">
+  <!-- Khung chat chính (to hơn, cuộn được) -->
+  <div class="hud" data-cut="34" style="left:2%;top:3%;width:69%;height:77%">
+    <div class="in chatwrap">
+      <div class="scroll" id="scroll"></div>
+      <div class="typing" id="typing"><div class="av" id="tav">A</div><span id="tname">A đang nhập</span><span class="dots"><i></i><i></i><i></i></span></div>
+    </div>
+  </div>
+
+  <!-- Thông tin nhân vật -->
+  <div class="hud" data-cut="24" style="left:74.7%;top:3%;width:23.3%;height:28%">
+    <div class="in info"><em>NHÂN VẬT</em><b>Phạm Văn Khương</b><i></i><span>29 tuổi</span></div>
+  </div>
+
+  <!-- Avatar nhân vật (thay minimap) -->
+  <div class="hud" data-cut="24" style="left:74.7%;top:34%;width:23.3%;height:63%">
+    <div class="in">
+      <div class="pic" id="pic">
+        <svg viewBox="0 0 200 260" preserveAspectRatio="xMidYMid slice" id="sil">
+          <defs><linearGradient id="sg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5ff6ff"/><stop offset="1" stop-color="#0f6a73"/></linearGradient></defs>
+          <circle cx="100" cy="98" r="42" fill="url(#sg)" stroke="#bff9ff" stroke-width="2"/>
+          <path d="M18 262C18 196 58 162 100 162S182 196 182 262Z" fill="url(#sg)" stroke="#bff9ff" stroke-width="2"/>
+        </svg>
+        <div class="tag">TRỰC TUYẾN</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Thanh dưới -->
+  <div class="hud" data-cut="14" style="left:2%;top:83%;width:69%;height:14%">
+    <div class="in bar">
+      <div class="grp" id="small"></div>
+      <div class="sep"></div>
+      <div class="grp big"><div class="cnt">06</div><div class="cnt">04</div><div class="cnt">02</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ====== CẤU HÌNH ====== */
+const AVATAR_SRC = "";   // dán link ảnh avatar nhân vật vào đây (để trống = hình bóng mặc định)
+const CHARS = {          // A,B bên trái · C bên phải · p = viền tím
+  A:{name:"A",side:"L",p:true},
+  B:{name:"B",side:"L",p:false},
+  C:{name:"C",side:"R",p:true}
+};
+
+/* ====== AVATAR ====== */
+if(AVATAR_SRC){
+  const pic=document.getElementById("pic");
+  pic.querySelector("svg").remove();
+  const im=new Image();im.src=AVATAR_SRC;im.alt="Avatar";pic.prepend(im);
+}
+
+/* ====== THANH DƯỚI ====== */
+const sm=document.getElementById("small");
+for(let i=1;i<=6;i++){
+  const d=document.createElement("div");d.className="sm";
+  d.innerHTML=`<div class="av ${i%3==0?"p":""}">${i}</div><span>${10+Math.floor(Math.random()*90)}</span>`;
+  sm.appendChild(d);
+}
+
+/* ====== VẼ KHUNG ====== */
+const NS="http://www.w3.org/2000/svg";
+function poly(w,h,c,i){
+  const a=[[i+c,i],[w-i-c,i],[w-i,i+c],[w-i,h-i-c],[w-i-c,h-i],[i+c,h-i],[i,h-i-c],[i,i+c]];
+  return "M"+a.map(p=>p.join(",")).join("L")+"Z";
+}
+function draw(el){
+  const w=el.clientWidth,h=el.clientHeight,c=+el.dataset.cut,big=c>20;
+  if(!w||!h)return;
+  let s=el.querySelector(":scope>svg");
+  if(!s){s=document.createElementNS(NS,"svg");el.prepend(s)}
+  s.setAttribute("viewBox",`0 0 ${w} ${h}`);
+  if(el.dataset.lite){            // khung tin nhắn: nhẹ, không hiệu ứng chạy
+    s.innerHTML=`<path d="${poly(w,h,c,1)}" fill="#2ef2ff12" stroke="#2ef2ff" stroke-width="1.3" opacity=".85"/>`;
+    return;
+  }
+  const g=big?9:5;
+  let t=`<g fill="none" stroke="#2ef2ff" filter="url(#g)">
+    <path class="glow" d="${poly(w,h,c,1)}" stroke-width="1.5" opacity=".9"/>
+    <path d="${poly(w,h,c*.75,g)}" stroke-width="${big?3:1.5}" opacity="${big?1:.55}"/>
+    <path class="run" pathLength="100" d="${poly(w,h,c,1)}" stroke="#fff" stroke-width="2.5"/></g>`;
+  if(big)t+=`<g stroke="#2ef2ff" stroke-width="3" fill="none" filter="url(#g)">
+    <path d="M${c+30},-4H${c+90}"/><path d="M${w-c-90},${h+4}H${w-c-30}"/>
+    <path d="M-4,${c+30}V${c+90}"/><path d="M${w+4},${h-c-90}V${h-c-30}"/></g>
+    <g fill="#2ef2ff" filter="url(#g)"><circle cx="${c+8}" cy="1" r="4"/><circle cx="1" cy="${c+8}" r="4"/>
+    <circle cx="${w-c-8}" cy="${h-1}" r="4"/><circle cx="${w-1}" cy="${h-c-8}" r="4"/></g>`;
+  s.innerHTML=t;
+}
+const ro=new ResizeObserver(es=>es.forEach(e=>draw(e.target)));
+document.querySelectorAll(".hud").forEach(e=>ro.observe(e));
+
+/* ====== CHAT ====== */
+const scroll=document.getElementById("scroll");
+const typing=document.getElementById("typing");
+const tav=document.getElementById("tav"), tname=document.getElementById("tname");
+
+function addMsg(who,text){
+  const ch=CHARS[who]||{name:who,side:"L",p:false};
+  const near=scroll.scrollHeight-scroll.scrollTop-scroll.clientHeight<90;
+  const el=document.createElement("div");
+  el.className="hud bub "+ch.side;el.dataset.cut=12;el.dataset.lite=1;
+  el.innerHTML=`<div class="in"><div class="msg"><div class="av ${ch.p?"p":""}"></div><p></p></div></div>`;
+  el.querySelector(".av").textContent=ch.name.charAt(0);
+  el.querySelector("p").textContent=text;
+  scroll.appendChild(el);
+  ro.observe(el);
+  if(near)requestAnimationFrame(()=>scroll.scrollTo({top:scroll.scrollHeight,behavior:"smooth"}));
+}
+function setTyping(who){
+  if(!who){typing.classList.remove("on");return}
+  const ch=CHARS[who]||{name:who,p:false};
+  tav.textContent=ch.name.charAt(0);
+  tav.className="av"+(ch.p?" p":"");
+  tname.textContent=ch.name+" đang nhập";
+  typing.classList.add("on");
+}
+window.addMsg=addMsg;window.setTyping=setTyping;   // dùng được từ code bên ngoài
+
+/* tin có sẵn */
+[
+ ["A","Các ngươi đúng là một đám người thú vị."],
+ ["B","Ngươi có tư cách nói chuyện này sao?"],
+ ["C","Đừng lo, ta sẽ lo liệu mọi chuyện."],
+ ["A","Ồ? Vậy để ta xem ngươi định lo liệu bằng cách nào. Chớ để đến lúc lại phải chạy đến cầu cứu người khác."],
+ ["B","Chuyện này không đơn giản như ngươi nghĩ. Phía sau còn nhiều thứ chưa ai nói ra."],
+ ["C","Ta biết rõ hơn các ngươi. Cứ tin ta, mọi thứ sẽ ổn thỏa trước khi trời sáng."]
+].forEach(m=>addMsg(...m));
+requestAnimationFrame(()=>scroll.scrollTop=scroll.scrollHeight);
+
+/* demo: người đang nhập -> tin mới hiện ra */
+const demo=[
+ ["B","Hy vọng là vậy. Nếu có gì sai sót, ngươi tự chịu trách nhiệm."],
+ ["C","Được thôi. Ta chưa bao giờ nuốt lời."],
+ ["A","Vậy thì bắt đầu đi. Thời gian không chờ ai cả."],
+ ["B","Đi thôi."]
+];
+let k=0;
+(function next(){
+  if(k>=demo.length){setTyping(null);return}
+  const [w,t]=demo[k++];
+  setTimeout(()=>{
+    setTyping(w);
+    setTimeout(()=>{setTyping(null);addMsg(w,t);next()},1600);
+  },1400);
+})();
+</script>
+</body></html>

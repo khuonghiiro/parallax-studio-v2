@@ -1,0 +1,559 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>HUD Panels</title>
+<style>
+:root{--c:#2ef2ff;--bg1:#2b3d33;--bg2:#0d1511;color-scheme:dark}
+*{box-sizing:border-box}
+html{height:100%}
+body{margin:0;height:100vh;height:100dvh;background:radial-gradient(ellipse at 50% 30%,var(--bg1),var(--bg2));color:var(--c);font-family:system-ui,"Segoe UI",sans-serif;display:flex;flex-direction:column;overflow:hidden;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+
+/* ===== TAB CHUYỂN KHUNG ===== */
+.tabs{flex:none;display:flex;gap:.5rem;padding:.6rem .8rem;overflow-x:auto;justify-content:safe center;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{flex:none;font:inherit;font-size:.85rem;color:#bff9ff;background:#2ef2ff10;border:1px solid #2ef2ff66;border-radius:99px;padding:.4rem 1rem;cursor:pointer;white-space:nowrap}
+.tabs button.on{background:#2ef2ff33;color:#fff;border-color:#2ef2ff;box-shadow:0 0 12px #2ef2ff}
+.wrap{flex:1;min-height:0;display:grid;place-items:center}
+.stage{position:relative;width:min(96vw,1000px,calc((100dvh - 70px)*1.6));aspect-ratio:16/10;font-size:13px}
+.scene{position:absolute;inset:0;display:none;color:var(--c)}
+.scene.on{display:block}
+.t-red{--c:#ff4a5e}.t-gold{--c:#ffc94a}.t-green{--c:#3dff9a}.t-purple{--c:#b77cff}
+
+/* ===== KHUNG HUD ===== */
+.hud{position:absolute;--cl:color-mix(in srgb,var(--c) 30%,#fff)}
+.hud>svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+.hud>.in{position:absolute;inset:0;color:inherit}
+.run{stroke-dasharray:10 90;animation:run 4s linear infinite}
+@keyframes run{to{stroke-dashoffset:-100}}
+.glow{animation:pulse 2.4s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.55}}
+@keyframes float{50%{transform:translateY(-.5em)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ===== THÀNH PHẦN CHUNG ===== */
+.pad{padding:2.2em 2.4em;display:flex;flex-direction:column;gap:1em;overflow-y:auto;min-height:0;scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--c) 55%,transparent) transparent}
+.t{margin:0;font-size:1.55em;font-weight:600;letter-spacing:.05em;color:#fff;text-shadow:0 0 8px var(--c);line-height:1.25}
+.cap{font-size:.78em;letter-spacing:.25em;color:var(--cl);opacity:.8;text-transform:uppercase}
+.sec{margin:0 0 .5em;font-size:.78em;letter-spacing:.25em;color:var(--cl);opacity:.8;text-transform:uppercase}
+.line{flex:none;position:relative;height:1px;background:linear-gradient(90deg,transparent,var(--c),transparent)}
+.line::after{content:"";position:absolute;left:50%;top:50%;width:.6em;height:.6em;background:var(--c);transform:translate(-50%,-50%) rotate(45deg);box-shadow:0 0 8px var(--c)}
+.txt{margin:0;color:var(--cl);line-height:1.6;font-size:1.05em;text-align:justify;text-wrap:pretty;text-shadow:0 0 5px color-mix(in srgb,var(--c) 45%,transparent)}
+.txt.i{font-style:italic;opacity:.85}
+.chips{display:flex;flex-wrap:wrap;gap:.5em}
+.chip{padding:.2em .85em;border:1px solid var(--c);border-radius:99px;font-size:.95em;color:var(--cl);box-shadow:0 0 8px color-mix(in srgb,var(--c) 35%,transparent);white-space:nowrap}
+.chip.ok{color:#3dff9a;border-color:#3dff9a;box-shadow:0 0 8px #3dff9a66}
+.chip.dim{opacity:.65;border-style:dashed;box-shadow:none}
+.chip.red{color:#ff8f9b;border-color:#ff4a5e;box-shadow:0 0 8px #ff4a5e66}
+.btn{font:inherit;font-size:1.05em;letter-spacing:.08em;color:#e8ffff;background:color-mix(in srgb,var(--c) 14%,transparent);border:1px solid var(--c);border-radius:.45em;padding:.55em 1.4em;cursor:pointer;box-shadow:0 0 10px color-mix(in srgb,var(--c) 30%,transparent);transition:.15s}
+.btn:hover{background:color-mix(in srgb,var(--c) 32%,transparent)}
+.btn:disabled{opacity:.35;cursor:not-allowed;box-shadow:none}
+.btn.red{--c:#ff4a5e}
+.btns{display:flex;gap:.8em;flex-wrap:wrap}
+.sp{flex:1}
+.av{flex:none;width:3.6em;height:3.6em;border-radius:50%;border:2px solid var(--c);box-shadow:0 0 10px var(--c),inset 0 0 8px color-mix(in srgb,var(--c) 40%,transparent);display:grid;place-items:center;background:#0c2a2e;color:#e8ffff}
+.av.p{border-color:#b77cff;box-shadow:0 0 10px #b77cff,inset 0 0 8px #b77cff66}
+.head{flex:none;display:flex;align-items:center;gap:1em;padding-bottom:.8em;border-bottom:1px solid color-mix(in srgb,var(--c) 40%,transparent)}
+.head b{display:block;font-size:1.3em;color:#fff;font-weight:600}
+.head small{color:var(--cl);opacity:.85}
+.head .av{width:3.2em;height:3.2em;font-size:1.1em}
+.row{display:flex;justify-content:space-between;align-items:center;gap:1em;padding:.45em .9em;border:1px solid color-mix(in srgb,var(--c) 40%,transparent);border-radius:.4em;background:#0004;color:var(--cl)}
+.row b{color:#fff;font-weight:600}
+.attr{display:flex;justify-content:space-between;gap:1em;color:var(--cl);line-height:1.8}
+.attr b{color:#fff;font-weight:600}
+.attr.g b{color:#3dff9a}.attr.g{color:#9dffc8}
+.attr.r b{color:#ff8f9b}
+.col{display:flex;flex-direction:column;gap:.35em}
+
+/* thanh chỉ số */
+.bar2{display:grid;grid-template-columns:3.2em 1fr 5.2em;align-items:center;gap:.7em}
+.bar2 b{font-weight:500;color:var(--cl);font-size:.95em}
+.bar2 .tr{height:.7em;border-radius:9px;background:#0008;border:1px solid color-mix(in srgb,var(--bc,var(--c)) 50%,transparent);overflow:hidden}
+.bar2 .tr i{display:block;height:100%;width:var(--v);background:linear-gradient(90deg,color-mix(in srgb,var(--bc,var(--c)) 40%,#000),var(--bc,var(--c)));box-shadow:0 0 8px var(--bc,var(--c))}
+.bar2 span{text-align:right;color:#fff;font-size:.95em}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:.6em}
+.stat{border:1px solid color-mix(in srgb,var(--c) 45%,transparent);border-radius:.4em;padding:.45em .3em;text-align:center;background:#0005}
+.stat b{display:block;font-size:1.35em;color:#fff;font-weight:600}
+.stat small{font-size:.75em;letter-spacing:.2em;color:var(--cl)}
+
+/* ô vật phẩm */
+.slot{position:relative;width:100%;aspect-ratio:1;border:1px solid color-mix(in srgb,var(--rc,var(--c)) 75%,transparent);border-radius:.4em;background:radial-gradient(circle,color-mix(in srgb,var(--rc,var(--c)) 24%,#000),#0009);display:grid;place-items:center;font-size:2.3em;line-height:1;box-shadow:inset 0 0 10px color-mix(in srgb,var(--rc,var(--c)) 30%,transparent)}
+.slot small{position:absolute;right:.2em;bottom:.1em;font-size:.38em;color:#fff;text-shadow:0 0 4px #000}
+.slot.empty{opacity:.3;border-style:dashed;box-shadow:none;background:#0004}
+.r1{--rc:#9fb8b0}.r2{--rc:#3dff9a}.r3{--rc:#4aa8ff}.r4{--rc:#b77cff}.r5{--rc:#ffc94a}
+.grid5{display:grid;grid-template-columns:repeat(5,1fr);gap:.6em}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:.6em}
+.sk{display:flex;gap:.8em;align-items:center}
+.sk .slot{width:2.5em;flex:none;font-size:1.4em}
+.sk b{display:block;color:#fff;font-weight:500}
+.sk small{color:var(--cl);opacity:.85;line-height:1.3;display:block}
+
+/* ảnh chân dung / minh hoạ */
+.pic{position:absolute;inset:1.7em;border-radius:.6em;overflow:hidden;background:radial-gradient(ellipse at 50% 35%,color-mix(in srgb,var(--c) 30%,#031),#050c0c);box-shadow:inset 0 0 18px color-mix(in srgb,var(--c) 30%,transparent)}
+.pic::after{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,color-mix(in srgb,var(--c) 7%,transparent) 0 1px,transparent 1px 4px)}
+.pic svg{width:100%;height:100%;display:block}
+.pic .tag{position:absolute;left:0;right:0;bottom:0;z-index:1;padding:.9em .5em .7em;text-align:center;font-size:1em;letter-spacing:.2em;color:#fff;background:linear-gradient(transparent,#000c);text-shadow:0 0 6px var(--c)}
+.pic .lv{position:absolute;top:.8em;left:.8em;z-index:1;padding:.2em .8em;border:1px solid var(--c);border-radius:99px;font-size:.95em;color:#fff;background:#0008;letter-spacing:.1em}
+.float{animation:float 4s ease-in-out infinite;transform-origin:50% 50%}
+.eye{animation:pulse 1.8s ease-in-out infinite}
+.orb{position:absolute;inset:1.7em;display:grid;place-items:center;border-radius:.6em;overflow:hidden;background:radial-gradient(circle at 50% 45%,color-mix(in srgb,var(--c) 28%,#000),#050a08 72%);box-shadow:inset 0 0 25px color-mix(in srgb,var(--c) 35%,transparent)}
+.orb span{position:relative;font-size:9em;line-height:1;filter:drop-shadow(0 0 18px var(--c));animation:float 4s ease-in-out infinite}
+.orb .ring{position:absolute;width:70%;aspect-ratio:1;border-radius:50%;border:2px dashed color-mix(in srgb,var(--c) 60%,transparent);animation:spin 24s linear infinite}
+.orb .ring.b{width:52%;animation-duration:16s;animation-direction:reverse;border-style:dotted}
+
+/* ===== CHAT ===== */
+.chatwrap{display:flex;flex-direction:column;gap:.6em;padding:2.6em 2.4em 1.6em 2.8em}
+.scroll{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;display:flex;flex-direction:column;gap:1.2em;padding:1em .9em 1em .4em;scrollbar-width:thin;scrollbar-color:#2ef2ff88 transparent;-webkit-mask-image:linear-gradient(transparent,#000 14px,#000 calc(100% - 14px),transparent);mask-image:linear-gradient(transparent,#000 14px,#000 calc(100% - 14px),transparent)}
+.scroll::-webkit-scrollbar{width:5px}
+.scroll::-webkit-scrollbar-thumb{background:#2ef2ff99;border-radius:9px}
+.scroll::-webkit-scrollbar-track{background:#2ef2ff14;border-radius:9px}
+.bub{position:relative;flex:none;width:68%;animation:pop .35s ease-out}
+@keyframes pop{from{opacity:0;transform:translateY(10px)}}
+.bub>.in{position:relative;inset:auto}
+.bub.L{align-self:flex-start}.bub.R{align-self:flex-end}
+.msg{display:flex;align-items:center;gap:1.1em;padding:1em 1.6em}
+.R .msg{flex-direction:row-reverse}
+.bub .av{width:3em;height:3em}
+.mb{flex:1;min-width:0}
+.mb p{margin:0;line-height:1.55;font-size:1.12em;color:#bff9ff;text-shadow:0 0 6px #2ef2ff88;text-align:justify;text-align-last:left;text-wrap:pretty;overflow-wrap:anywhere;hyphens:auto}
+.R .mb p{text-align-last:right}
+.mb time{display:block;font-size:.75em;opacity:.55;margin-top:.3em;text-align:right;color:#bff9ff}
+.nm{font-size:.85em;font-weight:600;margin-bottom:.25em}
+.R .nm{text-align:right}
+.typing{flex:none;height:2.6em;display:flex;align-items:center;gap:.8em;padding-left:.6em;color:#9ff;text-shadow:0 0 6px var(--c);opacity:0;transform:translateY(4px);transition:.25s}
+.typing.on{opacity:1;transform:none}
+.typing .av{width:2.1em;height:2.1em;font-size:.9em}
+.dots{display:inline-flex;gap:.3em}
+.dots i{width:.5em;height:.5em;border-radius:50%;background:var(--c);box-shadow:0 0 6px var(--c);animation:bl 1.2s infinite ease-in-out}
+.dots i:nth-child(2){animation-delay:.2s}.dots i:nth-child(3){animation-delay:.4s}
+@keyframes bl{0%,80%,100%{opacity:.25;transform:scale(.7)}40%{opacity:1;transform:scale(1)}}
+.inp{flex:none;display:flex;gap:.8em;align-items:center}
+.inp input{flex:1;min-width:0;font:inherit;font-size:1.05em;color:#e8ffff;background:#0007;border:1px solid var(--c);border-radius:99px;padding:.6em 1.3em;outline:none;box-shadow:inset 0 0 10px color-mix(in srgb,var(--c) 25%,transparent)}
+.inp input::placeholder{color:color-mix(in srgb,var(--c) 55%,transparent)}
+.inp input:focus{box-shadow:0 0 12px var(--c),inset 0 0 10px color-mix(in srgb,var(--c) 25%,transparent)}
+.chtabs{flex:none;display:flex;gap:.6em;flex-wrap:wrap}
+.chtabs .chip{cursor:pointer;background:transparent;font:inherit;font-size:.95em;color:var(--cl)}
+.chtabs .chip.on{background:color-mix(in srgb,var(--c) 28%,transparent);color:#fff}
+.mem{display:flex;align-items:center;gap:.7em;padding:.5em .6em;border-radius:.5em}
+.mem:hover{background:#2ef2ff14}
+.mem .av{width:2.7em;height:2.7em;font-size:.9em}
+.mem b{display:block;color:#e8ffff;font-weight:500}
+.mem small{color:var(--cl);opacity:.8}
+.dot{width:.7em;height:.7em;margin-left:auto;border-radius:50%;background:#3dff9a;box-shadow:0 0 6px #3dff9a;flex:none}
+.dot.away{background:#ffc94a;box-shadow:0 0 6px #ffc94a}
+.dot.off{background:#667;box-shadow:none}
+.prof{align-items:center;text-align:center}
+.prof .av{width:6em;height:6em;font-size:1.3em}
+.prof .col{width:100%;text-align:left}
+
+/* giao dịch */
+.tbar{display:flex;height:100%;align-items:center;gap:1em;padding:0 2em}
+.tmsg{color:var(--cl);font-size:1.1em;text-shadow:0 0 6px var(--c)}
+
+/* nhiệm vụ */
+.qi{padding:.7em .9em;border:1px solid color-mix(in srgb,var(--c) 30%,transparent);border-left:3px solid color-mix(in srgb,var(--c) 40%,transparent);border-radius:.4em;cursor:pointer;background:#0003;transition:.15s}
+.qi:hover{background:#3dff9a14}
+.qi.on{border-color:var(--c);background:color-mix(in srgb,var(--c) 18%,transparent);box-shadow:0 0 10px color-mix(in srgb,var(--c) 35%,transparent)}
+.qi b{display:block;color:#fff;font-weight:500;margin-bottom:.3em}
+.qi small{color:var(--cl);opacity:.85}
+.obj{display:grid;grid-template-columns:1.4em 1fr 4em;gap:.3em .6em;align-items:center;color:var(--cl)}
+.obj .tr{grid-column:2/4;height:.45em;border-radius:9px;background:#0008;border:1px solid color-mix(in srgb,var(--c) 40%,transparent);overflow:hidden}
+.obj .tr i{display:block;height:100%;background:var(--c);box-shadow:0 0 8px var(--c)}
+.obj em{font-style:normal;text-align:right;color:#fff}
+.obj.done{opacity:.6}
+</style></head><body>
+<svg width="0" height="0" style="position:absolute"><defs>
+<filter id="g" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs></svg>
+
+<nav class="tabs" id="tabs"></nav>
+<div class="wrap"><div class="stage" id="stage">
+
+<!-- 1. CHAT ĐƠN -->
+<section class="scene on" id="s-chat1">
+  <div class="hud" data-cut="34" style="left:2%;top:4%;width:70%;height:92%">
+    <div class="in chatwrap">
+      <div class="head"><div class="av p" id="c1av"></div><div><b id="c1n"></b><small>● Trực tuyến · Cấp 42</small></div><div class="sp"></div><span class="chip">CHAT RIÊNG</span></div>
+      <div class="scroll" id="sc1"></div>
+      <div class="typing" id="ty1"><div class="av"></div><span class="tn"></span><span class="dots"><i></i><i></i><i></i></span></div>
+      <div class="inp"><input id="in1" placeholder="Nhập tin nhắn rồi nhấn Enter…" autocomplete="off"><button class="btn" id="b1">GỬI</button></div>
+    </div>
+  </div>
+  <div class="hud" data-cut="24" style="left:75%;top:4%;width:23%;height:92%">
+    <div class="in pad prof">
+      <div class="av p" id="c1av2"></div>
+      <h3 class="t" style="font-size:1.3em">Lý Thanh Vân</h3>
+      <span class="chip">Y sư · Cấp 42</span>
+      <div class="line" style="width:80%"></div>
+      <div class="col">
+        <div class="attr"><span>Bang hội</span><b>Thiên Long Các</b></div>
+        <div class="attr"><span>Quan hệ</span><b>Bạn thân</b></div>
+        <div class="attr"><span>Vị trí</span><b>Thành Cổ Lạc</b></div>
+        <div class="attr"><span>Thân mật</span><b>1,280</b></div>
+      </div>
+      <div class="sp"></div>
+      <div class="btns" style="justify-content:center;width:100%"><button class="btn">GIAO DỊCH</button><button class="btn">MỜI NHÓM</button><button class="btn red">CHẶN</button></div>
+    </div>
+  </div>
+</section>
+
+<!-- 2. CHAT NHÓM -->
+<section class="scene" id="s-chat2">
+  <div class="hud" data-cut="24" style="left:2%;top:4%;width:21%;height:92%">
+    <div class="in pad" id="members"></div>
+  </div>
+  <div class="hud" data-cut="34" style="left:25%;top:4%;width:73%;height:92%">
+    <div class="in chatwrap">
+      <div class="chtabs" id="chtabs"></div>
+      <div class="scroll" id="sc2"></div>
+      <div class="typing" id="ty2"><div class="av"></div><span class="tn"></span><span class="dots"><i></i><i></i><i></i></span></div>
+      <div class="inp"><input id="in2" placeholder="Nhắn vào kênh…" autocomplete="off"><button class="btn" id="b2">GỬI</button></div>
+    </div>
+  </div>
+</section>
+
+<!-- 3. TRAO ĐỔI VẬT TƯ -->
+<section class="scene" id="s-trade">
+  <div class="hud" data-cut="34" style="left:2%;top:4%;width:47%;height:76%">
+    <div class="in pad">
+      <div class="head"><div class="av p" id="tavMe"></div><div><b>Bạn · Khương</b><small>Cấp 38</small></div><div class="sp"></div><span class="chip" id="stMe">ĐANG CHỌN</span></div>
+      <div class="grid5" id="gridMe"></div>
+      <div class="col" id="curMe"></div>
+    </div>
+  </div>
+  <div class="hud" data-cut="34" style="left:51%;top:4%;width:47%;height:76%">
+    <div class="in pad">
+      <div class="head"><div class="av" id="tavOp"></div><div><b>Hàn Phong</b><small>Cấp 41</small></div><div class="sp"></div><span class="chip" id="stOp">ĐANG CHỌN</span></div>
+      <div class="grid5" id="gridOp"></div>
+      <div class="col" id="curOp"></div>
+    </div>
+  </div>
+  <div class="hud" data-cut="14" style="left:2%;top:83%;width:96%;height:14%">
+    <div class="in tbar"><div class="tmsg" id="tmsg"></div><div class="sp"></div>
+      <button class="btn red" id="tCancel">HỦY</button><button class="btn" id="tLock">KHÓA</button><button class="btn" id="tOk" disabled>XÁC NHẬN</button></div>
+  </div>
+</section>
+
+<!-- 4. GIỚI THIỆU NHÂN VẬT -->
+<section class="scene" id="s-char">
+  <div class="hud" data-cut="34" style="left:2%;top:4%;width:30%;height:92%">
+    <div class="in"><div class="pic"><div class="lv">LV 38</div><div id="charSil"></div><div class="tag">PHẠM VĂN KHƯƠNG</div></div></div>
+  </div>
+  <div class="hud" data-cut="24" style="left:34%;top:4%;width:38%;height:56%">
+    <div class="in pad" style="padding:1.8em 2.2em;gap:.8em">
+      <div class="cap">Nhân vật chính</div>
+      <h2 class="t">Phạm Văn Khương</h2>
+      <div class="chips"><span class="chip">Kiếm khách</span><span class="chip">29 tuổi</span><span class="chip">Thanh Phong Thôn</span></div>
+      <div class="line"></div>
+      <div id="charBars" class="col" style="gap:.5em"></div>
+      <div class="stats"><div class="stat"><b>87</b><small>LỰC</small></div><div class="stat"><b>64</b><small>NHANH</small></div><div class="stat"><b>42</b><small>TRÍ</small></div><div class="stat"><b>75</b><small>THỂ</small></div></div>
+    </div>
+  </div>
+  <div class="hud" data-cut="24" style="left:34%;top:63%;width:38%;height:33%">
+    <div class="in pad" style="padding:1.6em 2.2em;gap:.5em"><div class="sec">Tiểu sử</div>
+      <p class="txt">Con trai của một thợ rèn nghèo, Khương lớn lên giữa tiếng búa và lửa lò. Sau khi ngôi làng bị tập kích, anh cầm thanh kiếm cha để lại và bước vào hành trình truy tìm kẻ đứng sau.</p></div>
+  </div>
+  <div class="hud" data-cut="24" style="left:74%;top:4%;width:24%;height:92%">
+    <div class="in pad" style="gap:.8em">
+      <div class="sec">Kỹ năng</div>
+      <div class="col" id="charSkills" style="gap:.8em"></div>
+      <div class="line"></div>
+      <div class="sec">Trang bị</div>
+      <div class="grid3" id="charEq"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 5. GIỚI THIỆU QUÁI -->
+<section class="scene t-red" id="s-mon">
+  <div class="hud" data-cut="34" style="left:2%;top:4%;width:40%;height:92%">
+    <div class="in"><div class="pic"><div class="lv">LV 45 · BOSS</div>
+      <svg viewBox="0 0 300 330" preserveAspectRatio="xMidYMid meet"><g class="float">
+        <g style="fill:color-mix(in srgb,var(--c) 22%,#140306);stroke:var(--cl);stroke-width:2.5;stroke-linejoin:round">
+          <path d="M72 125 L38 28 L112 88Z"/><path d="M228 125 L262 28 L188 88Z"/>
+          <path d="M40 195 L4 262 L52 244Z"/><path d="M260 195 L296 262 L248 244Z"/>
+          <path d="M150 70 C230 70 272 132 264 202 C256 272 206 308 150 308 C94 308 44 272 36 202 C28 132 70 70 150 70Z"/>
+        </g>
+        <g style="fill:none;stroke:var(--c);stroke-width:2;opacity:.55"><path d="M120 85 L132 118"/><path d="M180 85 L168 118"/><path d="M75 205 L110 215"/><path d="M225 205 L190 215"/></g>
+        <g class="eye" style="fill:var(--cl)"><ellipse cx="108" cy="158" rx="24" ry="14" transform="rotate(-20 108 158)"/><ellipse cx="192" cy="158" rx="24" ry="14" transform="rotate(20 192 158)"/></g>
+        <g style="fill:#000"><ellipse cx="112" cy="158" rx="6" ry="11"/><ellipse cx="188" cy="158" rx="6" ry="11"/></g>
+        <path d="M82 226 L104 248 L126 226 L150 252 L174 226 L196 248 L218 226 Q218 292 150 292 Q82 292 82 226Z" style="fill:#050102;stroke:var(--cl);stroke-width:2.5;stroke-linejoin:round"/>
+      </g></svg>
+      <div class="tag">QUỶ SỪNG HẮC DIỆM</div></div></div>
+  </div>
+  <div class="hud" data-cut="24" style="left:44%;top:4%;width:54%;height:42%">
+    <div class="in pad" style="padding:1.8em 2.2em;gap:.7em">
+      <div class="cap">Giới thiệu quái</div>
+      <div style="display:flex;align-items:center;gap:1em"><h2 class="t">Quỷ Sừng Hắc Diệm</h2><div class="sp"></div><span class="chip red" title="Độ nguy hiểm">☠ ☠ ☠ ☠ <span style="opacity:.35">☠</span></span></div>
+      <div class="chips"><span class="chip">Ma thú</span><span class="chip">Cấp 45</span><span class="chip">Hang Hắc Ám</span></div>
+      <div class="line"></div>
+      <div class="col" style="gap:.45em" id="monBars"></div>
+      <p class="txt i">Sinh vật cổ xưa ngủ say dưới lòng hang, chỉ thức giấc mỗi khi trăng máu xuất hiện. Một cú vồ đủ xé nát giáp thép.</p>
+    </div>
+  </div>
+  <div class="hud" data-cut="24" style="left:44%;top:49%;width:54%;height:21%">
+    <div class="in pad" style="padding:1.3em 2.2em;gap:.5em">
+      <div class="sec">Điểm yếu · Kháng tính</div>
+      <div class="chips"><span class="chip ok">❄ Băng +50%</span><span class="chip ok">✨ Thánh +30%</span><span class="chip red">🔥 Hỏa −80%</span><span class="chip dim">☠ Miễn độc</span><span class="chip dim">⚡ Lôi −20%</span></div>
+    </div>
+  </div>
+  <div class="hud" data-cut="24" style="left:44%;top:73%;width:54%;height:23%">
+    <div class="in pad" style="padding:1.2em 2.2em;gap:.5em">
+      <div class="sec">Vật phẩm rơi</div>
+      <div class="grid5" id="monDrops" style="font-size:.78em"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 6. GIỚI THIỆU ĐỒ VẬT -->
+<section class="scene t-gold" id="s-item">
+  <div class="hud" data-cut="34" style="left:2%;top:4%;width:34%;height:66%">
+    <div class="in"><div class="orb"><div class="ring"></div><div class="ring b"></div><span>🗡️</span></div></div>
+  </div>
+  <div class="hud" data-cut="24" style="left:2%;top:73%;width:34%;height:23%">
+    <div class="in pad" style="padding:1.3em 2em;gap:.3em;justify-content:center">
+      <div class="attr"><span>Giá bán</span><b>12,500 🪙</b></div>
+      <div class="attr"><span>Trọng lượng</span><b>3.2 kg</b></div>
+      <div class="attr"><span>Giao dịch</span><b style="color:#ff8f9b">Khóa khi nhặt</b></div>
+    </div>
+  </div>
+  <div class="hud" data-cut="34" style="left:38%;top:4%;width:60%;height:92%">
+    <div class="in pad" style="padding:2.4em 2.8em;gap:.9em">
+      <div class="cap">Giới thiệu đồ vật · Vũ khí</div>
+      <h2 class="t" style="font-size:1.9em">Huyết Nguyệt Đao</h2>
+      <div class="chips"><span class="chip r5" style="color:#ffc94a;border-color:#ffc94a">HUYỀN THOẠI</span><span class="chip">Đao · Một tay</span><span class="chip">+9</span></div>
+      <div class="line"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.2em 2.4em">
+        <div><div class="sec">Thuộc tính chính</div>
+          <div class="attr"><span>Công vật lý</span><b>482 – 540</b></div>
+          <div class="attr"><span>Tốc đánh</span><b>+12%</b></div>
+          <div class="attr"><span>Bạo kích</span><b>+18%</b></div>
+          <div class="sec" style="margin-top:.9em">Thuộc tính phụ</div>
+          <div class="attr g"><span>Hút máu</span><b>+6%</b></div>
+          <div class="attr g"><span>Xuyên giáp</span><b>+15%</b></div></div>
+        <div><div class="sec">Bộ Huyết Nguyệt (2/4)</div>
+          <div class="attr g"><span>☑ Đao · Giáp</span><b>2 món</b></div>
+          <div class="attr" style="opacity:.55"><span>☐ Hộ thủ</span><b>—</b></div>
+          <div class="attr" style="opacity:.55"><span>☐ Ngọc bội</span><b>—</b></div>
+          <div class="sec" style="margin-top:.9em">Yêu cầu</div>
+          <div class="attr"><span>Cấp độ</span><b>40</b></div>
+          <div class="attr"><span>Lực</span><b>80</b></div>
+          <div class="bar2" style="grid-template-columns:3.6em 1fr 4.5em;margin-top:.3em;--v:90%"><b>Độ bền</b><div class="tr"><i></i></div><span>180/200</span></div></div>
+      </div>
+      <p class="txt i">“Lưỡi đao được tôi trong máu của trăng đỏ. Kẻ nắm nó sẽ nghe tiếng thì thầm của những linh hồn đã khuất.”</p>
+      <div class="sp"></div>
+      <div class="btns"><button class="btn">TRANG BỊ</button><button class="btn">SO SÁNH</button><button class="btn red">BÁN</button></div>
+    </div>
+  </div>
+</section>
+
+<!-- 7. NHIỆM VỤ -->
+<section class="scene t-green" id="s-quest">
+  <div class="hud" data-cut="24" style="left:2%;top:4%;width:30%;height:92%">
+    <div class="in pad" style="gap:.7em"><div class="sec">Nhật ký nhiệm vụ</div><div class="col" id="qlist" style="gap:.6em"></div></div>
+  </div>
+  <div class="hud" data-cut="34" style="left:34%;top:4%;width:64%;height:92%">
+    <div class="in pad" id="qdetail" style="padding:2.4em 2.8em;gap:.9em"></div>
+  </div>
+</section>
+
+</div></div>
+
+<script>
+const $=id=>document.getElementById(id);
+const NS="http://www.w3.org/2000/svg";
+
+/* ====== VẼ KHUNG HUD ====== */
+function poly(w,h,c,i){
+  const a=[[i+c,i],[w-i-c,i],[w-i,i+c],[w-i,h-i-c],[w-i-c,h-i],[i+c,h-i],[i,h-i-c],[i,i+c]];
+  return "M"+a.map(p=>p.join(",")).join("L")+"Z";
+}
+function draw(el){
+  const w=el.clientWidth,h=el.clientHeight;
+  if(!w||!h)return;
+  const c=+el.dataset.cut,big=c>20,g=big?9:5;
+  const col=getComputedStyle(el).getPropertyValue("--c").trim()||"#2ef2ff";
+  let s=el.querySelector(":scope>svg");
+  if(!s){s=document.createElementNS(NS,"svg");el.prepend(s)}
+  s.setAttribute("viewBox",`0 0 ${w} ${h}`);
+  if(el.dataset.lite){
+    s.innerHTML=`<path d="${poly(w,h,c,1)}" fill="${col}" fill-opacity=".08" stroke="${col}" stroke-width="1.3" opacity=".85"/>`;
+    return;
+  }
+  let t=`<g fill="none" stroke="${col}" filter="url(#g)">
+    <path class="glow" d="${poly(w,h,c,1)}" stroke-width="1.5" opacity=".9"/>
+    <path d="${poly(w,h,c*.75,g)}" stroke-width="${big?3:1.5}" opacity="${big?1:.55}"/>
+    <path class="run" pathLength="100" d="${poly(w,h,c,1)}" stroke="#fff" stroke-width="2.5"/></g>`;
+  if(big)t+=`<g stroke="${col}" stroke-width="3" fill="none" filter="url(#g)">
+    <path d="M${c+30},-4H${c+90}"/><path d="M${w-c-90},${h+4}H${w-c-30}"/>
+    <path d="M-4,${c+30}V${c+90}"/><path d="M${w+4},${h-c-90}V${h-c-30}"/></g>
+    <g fill="${col}" filter="url(#g)"><circle cx="${c+8}" cy="1" r="4"/><circle cx="1" cy="${c+8}" r="4"/>
+    <circle cx="${w-c-8}" cy="${h-1}" r="4"/><circle cx="${w-1}" cy="${h-c-8}" r="4"/></g>`;
+  s.innerHTML=t;
+}
+const ro=new ResizeObserver(es=>es.forEach(e=>draw(e.target)));
+
+/* ====== TỈ LỆ CHỮ THEO KHUNG ====== */
+const stage=$("stage");
+const fit=()=>{stage.style.fontSize=(stage.clientWidth/77)+"px"};
+new ResizeObserver(fit).observe(stage);fit();
+
+/* ====== HELPERS ====== */
+const ini=n=>[...n.trim().split(" ").pop()][0].toUpperCase();
+const bar=(l,p,v,c)=>`<div class="bar2" style="--v:${p}%;${c?`--bc:${c}`:""}"><b>${l}</b><div class="tr"><i></i></div><span>${v}</span></div>`;
+const slot=(ic,r,q)=>ic?`<div class="slot r${r}">${ic}${q?`<small>${q}</small>`:""}</div>`:`<div class="slot empty"></div>`;
+const sil=()=>`<svg viewBox="0 0 200 260" preserveAspectRatio="xMidYMid slice"><g style="fill:color-mix(in srgb,var(--c) 35%,#021);stroke:var(--cl);stroke-width:2">
+<circle cx="100" cy="98" r="42"/><path d="M18 262C18 196 58 162 100 162S182 196 182 262Z"/></g></svg>`;
+
+/* ====== DỮ LIỆU NHÂN VẬT CHAT ====== */
+const P={
+  van:{n:"Lý Thanh Vân",side:"L",p:1,col:"#d8b4ff"},
+  me:{n:"Khương",side:"R",p:0,col:"#7ff"},
+  phong:{n:"Hàn Phong",side:"L",p:0,col:"#ffd27a"},
+  mai:{n:"Tiểu Mai",side:"L",p:1,col:"#ff9fd0"},
+  ngu:{n:"Lão Ngũ",side:"L",p:0,col:"#9dffb0"},
+  bach:{n:"Bạch Y",side:"L",p:1,col:"#a9c8ff"}
+};
+const now=()=>new Date().toTimeString().slice(0,5);
+
+function setTy(el,list){
+  if(!list||!list.length){el.classList.remove("on");return}
+  const a=el.querySelector(".av");
+  a.textContent=ini(list[0].n);a.className="av"+(list[0].p?" p":"");
+  el.querySelector(".tn").textContent=list.map(x=>x.n).join(", ")+" đang nhập";
+  el.classList.add("on");
+}
+function mkChat(o){
+  const sc=$(o.scroll),ty=$(o.typing),inp=$(o.input);
+  const end=()=>requestAnimationFrame(()=>sc.scrollTo({top:sc.scrollHeight,behavior:"smooth"}));
+  function add(p,text,tm,force){
+    const near=sc.scrollHeight-sc.scrollTop-sc.clientHeight<90;
+    const el=document.createElement("div");
+    el.className="hud bub "+p.side;el.dataset.cut=12;el.dataset.lite=1;
+    el.innerHTML=`<div class="in"><div class="msg"><div class="av ${p.p?"p":""}"></div><div class="mb">${o.names?'<div class="nm"></div>':""}<p></p><time></time></div></div></div>`;
+    el.querySelector(".av").textContent=ini(p.n);
+    if(o.names){const nm=el.querySelector(".nm");nm.textContent=p.n;nm.style.color=p.col}
+    el.querySelector("p").textContent=text;
+    el.querySelector("time").textContent=tm||now();
+    sc.appendChild(el);ro.observe(el);
+    if(near||force)end();
+  }
+  const clear=()=>sc.querySelectorAll(".bub").forEach(b=>{ro.unobserve(b);b.remove()});
+  function send(){
+    const v=inp.value.trim();if(!v)return;
+    add(P.me,v,null,true);inp.value="";
+    const r=o.others[Math.floor(Math.random()*o.others.length)];
+    setTimeout(()=>setTy(ty,[r]),500);
+    setTimeout(()=>{setTy(ty,null);add(r,o.replies[Math.floor(Math.random()*o.replies.length)])},2100);
+  }
+  $(o.btn).onclick=send;
+  inp.addEventListener("keydown",e=>{if(e.key==="Enter")send()});
+  return {add,clear,ty:l=>setTy(ty,l)};
+}
+
+/* ====== 1. CHAT ĐƠN ====== */
+$("c1av").textContent=ini(P.van.n);$("c1av2").textContent=ini(P.van.n);$("c1n").textContent=P.van.n;
+const c1=mkChat({scroll:"sc1",typing:"ty1",input:"in1",btn:"b1",others:[P.van],names:false,
+  replies:["Được, ta đợi ngươi ở cổng thành.","Nhớ cẩn thận, đừng đi một mình.","Ta sẽ gửi thêm thuốc hồi phục qua cho ngươi.","Ngươi nói rất có lý."]});
+[[P.van,"Khương huynh, tối nay có rảnh không? Bên Thành Cổ có chuyện cần bàn.","22:31"],
+ [P.me,"Có. Chuyện gì mà ngươi gấp vậy?","22:32"],
+ [P.van,"Có người thấy thủ lĩnh Sói Xám xuất hiện ở hang phía bắc. Nếu để lâu, dân làng sẽ gặp nạn.","22:33"],
+ [P.me,"Ta hiểu rồi. Ta sẽ chuẩn bị rồi hội ngộ ở cổng thành sau một canh giờ.","22:35"],
+ [P.van,"Tốt. Nhớ mang theo thuốc hồi phục, hang đó rất sâu.","22:36"]
+].forEach(m=>c1.add(...m));
+setTimeout(()=>c1.ty([P.van]),1500);
+setTimeout(()=>{c1.ty(null);c1.add(P.van,"Ta đã chuẩn bị xong, chỉ chờ ngươi thôi.")},3600);
+
+/* ====== 2. CHAT NHÓM ====== */
+const CH={
+ "Thế giới":[["phong","Ai có Huyết Linh Thảo bán không? Ta thu giá cao.","22:41"],["mai","Có 20 cây đây, đổi lấy Nanh Sói được không?","22:42"],["ngu","Bang Thiên Long đang tuyển người, ai muốn vào ghé hỏi ta nhé.","22:44"]],
+ "Nhóm":[["phong","Chuẩn bị xong chưa? 5 phút nữa vào hang.","22:50"],["me","Xong rồi. Bạch Y giữ vị trí tiền tuyến, Tiểu Mai theo sau hồi máu.","22:51"],["mai","Rõ! Ta mang đủ thuốc cho cả đội.","22:52"],["bach","Để ta dẫn đường. Mọi người giữ khoảng cách, đừng kéo quái thêm.","22:53"],["ngu","Ta đứng cuối cảnh giới. Có gì báo ngay.","22:54"]],
+ "Bang":[["ngu","Tối nay 21 giờ bang chiến, mọi người nhớ online.","21:10"],["phong","Đã rõ, ta sẽ dẫn đội tiên phong.","21:12"]],
+ "Thì thầm":[["mai","Khương, lát nữa chia lại chiến lợi phẩm nhé?","22:30"]]
+};
+$("chtabs").innerHTML=Object.keys(CH).map(k=>`<button class="chip" data-k="${k}">${k}</button>`).join("");
+const c2=mkChat({scroll:"sc2",typing:"ty2",input:"in2",btn:"b2",others:[P.phong,P.mai,P.ngu,P.bach],names:true,
+  replies:["Đã rõ!","Chờ ta một chút.","Ta sẵn sàng rồi.","Đừng lo, có ta ở đây.","Ai cần hồi máu báo ta."]});
+function loadCh(k){
+  document.querySelectorAll("#chtabs .chip").forEach(b=>b.classList.toggle("on",b.dataset.k===k));
+  c2.clear();c2.ty(null);
+  CH[k].forEach(m=>c2.add(P[m[0]],m[1],m[2],true));
+}
+$("chtabs").onclick=e=>{const b=e.target.closest(".chip");if(b)loadCh(b.dataset.k)};
+loadCh("Nhóm");
+$("members").innerHTML=`<div class="sec">Thành viên · 5/6</div>`+[
+ ["👑 ",P.me,"Cấp 38","on"],["",P.phong,"Cấp 41","on"],["",P.mai,"Cấp 36","on"],["",P.bach,"Cấp 40","on"],["",P.ngu,"Cấp 39","away"],["",{n:"Nguyệt Nhi",p:0},"Cấp 35","off"]
+].map(([cr,p,lv,st])=>`<div class="mem"><div class="av ${p.p?"p":""}">${ini(p.n)}</div><div><b>${cr}${p.n}</b><small>${lv}</small></div><span class="dot ${st==="on"?"":st}"></span></div>`).join("");
+setTimeout(()=>c2.ty([P.phong,P.mai]),1800);
+setTimeout(()=>{c2.ty(null);c2.add(P.phong,"Ta với Tiểu Mai vào trước dò đường nhé.")},4200);
+
+/* ====== 3. TRAO ĐỔI ====== */
+$("tavMe").textContent=ini(P.me.n);$("tavOp").textContent=ini(P.phong.n);
+const fillGrid=(id,arr)=>{$(id).innerHTML=Array.from({length:15},(_,i)=>arr[i]?slot(...arr[i]):slot()).join("")};
+fillGrid("gridMe",[["🧪",1,"x5"],["🪵",1,"x24"],["🪨",2,"x12"],["💎",4,"x1"],["📜",3,"x2"]]);
+fillGrid("gridOp",[["🗡️",5],["🛡️",4],["🍖",1,"x8"],["🧪",2,"x3"]]);
+$("curMe").innerHTML=`<div class="row"><span>🪙 Vàng</span><b>12,500</b></div><div class="row"><span>💠 Kim cương</span><b>30</b></div>`;
+$("curOp").innerHTML=`<div class="row"><span>🪙 Vàng</span><b>0</b></div><div class="row"><span>💠 Kim cương</span><b>0</b></div>`;
+let tMe=false,tOp=false,tDone=false,tTimer;
+function tUpd(){
+  $("stMe").textContent=tMe?"ĐÃ KHÓA":"ĐANG CHỌN";$("stMe").classList.toggle("ok",tMe);
+  $("stOp").textContent=tOp?"ĐÃ KHÓA":"ĐANG CHỌN";$("stOp").classList.toggle("ok",tOp);
+  $("tOk").disabled=!(tMe&&tOp)||tDone;
+  $("tLock").disabled=tDone;
+  $("tLock").textContent=tMe?"MỞ KHÓA":"KHÓA";
+  $("tmsg").textContent=tDone?"✔ Giao dịch thành công.":tMe&&tOp?"Cả hai đã khóa — bấm XÁC NHẬN để hoàn tất.":tMe?"Đang chờ đối phương khóa…":"Chọn vật phẩm rồi bấm KHÓA.";
+}
+$("tLock").onclick=()=>{clearTimeout(tTimer);tMe=!tMe;tOp=false;if(tMe)tTimer=setTimeout(()=>{tOp=true;tUpd()},1800);tUpd()};
+$("tOk").onclick=()=>{tDone=true;tUpd()};
+$("tCancel").onclick=()=>{clearTimeout(tTimer);tMe=tOp=tDone=false;tUpd()};
+tUpd();
+
+/* ====== 4. NHÂN VẬT ====== */
+$("charSil").style.cssText="position:absolute;inset:0";$("charSil").innerHTML=sil();
+$("charBars").innerHTML=bar("HP",82,"1,640/2,000","#ff4a5e")+bar("MP",55,"330/600","#4aa8ff")+bar("EXP",34,"34%","#ffc94a");
+$("charSkills").innerHTML=[["⚔️",3,"Trảm Phong","Chém xé gió, sát thương lan"],["🛡️",2,"Thiết Bích","Giảm 40% sát thương 5s"],["🔥",4,"Liệt Hỏa Kiếm","Tăng công, đốt cháy"],["💨",1,"Bộ Pháp","Lướt nhanh, tránh đòn"]]
+ .map(([i,r,n,d])=>`<div class="sk">${slot(i,r)}<div><b>${n}</b><small>${d}</small></div></div>`).join("");
+$("charEq").innerHTML=[["🗡️",5],["🛡️",4],["👢",2],["💍",3],["🧣",2],["🎒",1]].map(a=>slot(...a)).join("");
+
+/* ====== 5. QUÁI ====== */
+$("monBars").innerHTML=bar("HP",100,"125,000","#ff4a5e")+bar("CÔNG",78,"3,420","#ff9a4a")+bar("THỦ",64,"2,150","#4aa8ff");
+$("monDrops").innerHTML=[["💎",4,"8%"],["🗡️",5,"1.5%"],["📜",3,"5%"],["🪙",1,"100%"],["🧪",2,"35%"]].map(a=>slot(...a)).join("");
+
+/* ====== 7. NHIỆM VỤ ====== */
+const Q=[
+ {t:"Dọn dẹp hang Sói Xám",k:"CHÍNH TUYẾN",lv:12,z:"Làng Thanh Phong",d:"Bầy sói từ hang phía bắc đã tràn xuống làm hại gia súc. Trưởng làng nhờ bạn dẹp bầy sói và mang về chứng cứ thủ lĩnh đã bị hạ.",o:[["Hạ gục Sói Xám",7,10],["Tìm Nanh Sói Đầu Đàn",0,1],["Báo cáo Trưởng làng",0,1]],r:[["✨",3,"1200"],["🪙",5,"350"],["🗡️",3,"1"],["🧪",1,"x3"]]},
+ {t:"Thảo dược cho lão y sư",k:"NHÁNH",lv:10,z:"Rừng Linh Thảo",d:"Lão y sư cần Huyết Linh Thảo để bào chế thuốc giải độc cho dân làng.",o:[["Hái Huyết Linh Thảo",5,5],["Giao cho Lão Y Sư",1,1]],r:[["✨",2,"600"],["🧪",2,"x5"]]},
+ {t:"Bóng đêm trên tường thành",k:"SỰ KIỆN",lv:15,z:"Thành Cổ Lạc",d:"Mỗi đêm trăng máu, những bóng đen leo lên tường thành. Hãy canh giữ cho đến khi trời sáng.",o:[["Tiêu diệt Bóng Đen",12,30],["Bảo vệ Cổng Đông",0,1]],r:[["✨",4,"2400"],["💎",4,"x1"]]},
+ {t:"Lời thề của Khương",k:"CHÍNH TUYẾN",lv:20,z:"Thanh Phong Thôn",d:"Trở về ngôi làng cũ, tìm manh mối về kẻ đã tập kích năm xưa.",o:[["Khám phá di tích",0,3],["Gặp người sống sót",0,1]],r:[["✨",4,"3000"],["📜",3,"x1"]]}
+];
+let qi=0,qtrack={};
+function renderQ(){
+  $("qlist").innerHTML=Q.map((q,i)=>`<div class="qi ${i===qi?"on":""}" data-i="${i}"><b>${q.t}</b><small>${q.k} · Cấp ${q.lv}</small></div>`).join("");
+  const q=Q[qi],done=q.o.every(x=>x[1]>=x[2]);
+  $("qdetail").innerHTML=`
+   <div class="cap">${q.k}</div><h2 class="t" style="font-size:1.8em">${q.t}</h2>
+   <div class="chips"><span class="chip">Cấp ${q.lv}</span><span class="chip">${q.z}</span>${done?'<span class="chip ok">HOÀN THÀNH</span>':'<span class="chip dim">ĐANG LÀM</span>'}</div>
+   <div class="line"></div>
+   <p class="txt">${q.d}</p>
+   <div><div class="sec">Mục tiêu</div><div class="col" style="gap:.7em">${q.o.map(([n,a,b])=>`<div class="obj ${a>=b?"done":""}"><span>${a>=b?"◼":"◻"}</span><span>${n}</span><em>${a}/${b}</em><div class="tr"><i style="width:${Math.min(100,a/b*100)}%"></i></div></div>`).join("")}</div></div>
+   <div><div class="sec">Phần thưởng</div><div class="grid5" style="font-size:.8em;max-width:30em">${q.r.map(a=>slot(...a)).join("")}</div></div>
+   <div class="sp"></div>
+   <div class="btns"><button class="btn" id="qTrack">${qtrack[qi]?"ĐANG THEO DÕI":"THEO DÕI"}</button><button class="btn" ${done?"":"disabled"}>NHẬN THƯỞNG</button></div>`;
+  $("qTrack").onclick=()=>{qtrack[qi]=!qtrack[qi];renderQ()};
+}
+$("qlist").onclick=e=>{const b=e.target.closest(".qi");if(b){qi=+b.dataset.i;renderQ()}};
+renderQ();
+
+/* ====== TAB ====== */
+const TABS=[["chat1","Chat đơn"],["chat2","Chat nhóm"],["trade","Trao đổi vật tư"],["char","Giới thiệu nhân vật"],["mon","Giới thiệu quái"],["item","Giới thiệu đồ vật"],["quest","Nhiệm vụ"]];
+$("tabs").innerHTML=TABS.map(([id,l])=>`<button data-id="${id}">${l}</button>`).join("");
+function show(id){
+  document.querySelectorAll(".scene").forEach(s=>s.classList.toggle("on",s.id==="s-"+id));
+  document.querySelectorAll("#tabs button").forEach(b=>b.classList.toggle("on",b.dataset.id===id));
+  requestAnimationFrame(()=>document.querySelectorAll("#s-"+id+" .scroll").forEach(s=>s.scrollTop=s.scrollHeight));
+  try{history.replaceState(null,"","#"+id)}catch(e){}
+}
+$("tabs").onclick=e=>{const b=e.target.closest("button");if(b)show(b.dataset.id)};
+
+document.querySelectorAll(".hud").forEach(e=>ro.observe(e));
+show(TABS.some(t=>"#"+t[0]===location.hash)?location.hash.slice(1):"chat1");
+</script>
+</body></html>

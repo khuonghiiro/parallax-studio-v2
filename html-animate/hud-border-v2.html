@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>HUD Border</title>
+<style>
+:root{--c:#2ef2ff;--bg1:#2b3d33;--bg2:#0d1511;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
+body{margin:0;height:100%;background:radial-gradient(ellipse at 50% 30%,var(--bg1),var(--bg2));display:grid;place-items:center;overflow:hidden}
+.stage{width:min(96vw,calc(92vh*1.779),1300px);aspect-ratio:1672/940}
+svg{width:100%;height:100%;display:block;overflow:visible}
+text{font-family:system-ui,"Segoe UI",Roboto,sans-serif}
+.run{stroke-dasharray:6 94;animation:run 5s linear infinite}
+@keyframes run{to{stroke-dashoffset:-100}}
+.glow{animation:pulse 2.6s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.55}}
+@media (prefers-reduced-motion:reduce){.run,.glow{animation:none}}
+</style></head><body>
+<div class="stage"><svg id="hud" viewBox="0 0 1672 940" xmlns="http://www.w3.org/2000/svg">
+<defs><filter id="g" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+</svg></div>
+<script>
+const C="#2ef2ff",P="#b77cff",R="#ff4a5e";
+const oct=(x,y,w,h,c)=>`M${x+c},${y}H${x+w-c}L${x+w},${y+c}V${y+h-c}L${x+w-c},${y+h}H${x+c}L${x},${y+h-c}V${y+c}Z`;
+const node=(x,y,r=11)=>`<circle cx="${x}" cy="${y}" r="${r}" fill="#0a1c1f" stroke="${C}" stroke-width="4"/>`;
+const sq=(x,y)=>`<rect x="${x}" y="${y}" width="16" height="16" fill="#e8ffff" stroke="${C}" stroke-width="2"/>`;
+let s="";
+
+/* ===== KHUNG CHÍNH ===== */
+s+=`<g fill="none" stroke="${C}" stroke-linecap="round" stroke-linejoin="round" filter="url(#g)">
+<rect class="glow" x="95" y="88" width="1195" height="540" stroke-width="5"/>
+<rect x="108" y="101" width="1169" height="514" stroke-width="2" opacity=".75"/>
+<rect class="run" pathLength="100" x="95" y="88" width="1195" height="540" stroke="#fff" stroke-width="4"/>
+<g stroke-width="3">
+<path d="M165,58H688L708,75H1205"/><path d="M165,58L70,165M1217,58L1310,165M70,555L165,657M1310,550L1217,657"/>
+<path d="M70,165V555M1310,165V550"/>
+<path d="M165,657H655M500,637H705L725,655H1217"/>
+<path d="M75,60V108M1307,60V108M75,657V605M1305,657V605"/></g></g>
+<g>${[[165,58],[70,165],[1217,58],[1310,165],[70,555],[165,657],[1310,550],[1217,657],[75,60],[1307,60],[75,657],[1305,657]].map(p=>node(...p)).join("")}</g>`;
+
+/* ===== BONG BÓNG THOẠI ===== */
+function bub(x,y,w,h,lines,letter,col,right){
+  const cy=y+h/2, ax=right?x+w-70:x+70, tx=right?x+w-130:x+130, an=right?"end":"start";
+  let o=`<g fill="none" stroke="${C}" stroke-linejoin="round" filter="url(#g)">
+  <path d="${oct(x,y,w,h,26)}" fill="rgba(4,32,38,.6)" stroke-width="5"/>
+  <path d="${oct(x+10,y+10,w-20,h-20,18)}" stroke-width="2.5" opacity=".8"/>
+  <path class="run" pathLength="100" d="${oct(x,y,w,h,26)}" stroke="#fff" stroke-width="4"/>
+  <path d="M${x+260},${y}H${x+400}M${x+280},${y+h}H${x+400}" stroke-dasharray="2 7" stroke-width="3"/>
+  <path d="M${x+190},${y+h}H${x+270}" stroke="#fff" stroke-width="4"/>
+  <circle cx="${ax}" cy="${cy}" r="40" fill="#0c2a2e" stroke="${col}" stroke-width="4"/>
+  <circle cx="${ax}" cy="${cy}" r="33" stroke="${col}" stroke-width="1.5" opacity=".7"/></g>
+  <text x="${ax}" y="${cy+9}" text-anchor="middle" font-size="26" fill="#e8ffff">${letter}</text>`;
+  const ys=lines.length==1?[cy+9]:[cy-8,cy+26];
+  lines.forEach((t,i)=>o+=`<text x="${tx}" y="${ys[i]}" text-anchor="${an}" font-size="27" fill="#d8fcff">${t}</text>`);
+  return o;
+}
+s+=bub(135,155,500,117,["Các ngươi đúng là một đám","người thú vị."],"A",P,false);
+s+=bub(135,312,500,123,["Ngươi có tư cách nói","chuyện này sao?"],"B",C,false);
+s+=bub(755,473,500,120,["Đừng lo, ta sẽ lo liệu","mọi chuyện."],"C",P,true);
+
+/* ===== THANH DƯỚI ===== */
+s+=`<g fill="none" stroke="${C}" filter="url(#g)">
+<rect x="68" y="694" width="1235" height="172" stroke-width="4" fill="rgba(0,25,30,.4)"/>
+<rect x="80" y="706" width="1211" height="148" stroke-width="2" opacity=".7"/>
+<rect class="run" pathLength="100" x="68" y="694" width="1235" height="172" stroke="#fff" stroke-width="3"/>
+<path d="M530,697H615M620,862H745" stroke="#fff" stroke-width="4"/>
+<path d="M66,726V758M74,726V758M1297,726V758M1305,726V758" stroke-width="2.5"/></g>
+${[[62,698],[1289,698],[62,852],[1289,852],[62,776],[62,804],[62,828],[1289,776],[1289,804],[1289,828],[154,858],[1199,858]].map(p=>sq(...p)).join("")}`;
+const small=[153,285,418,548,680,813], red=[950,1085,1218], cy=770;
+function ring(x,col){return `<g fill="none" stroke="${col}" filter="url(#g)"><circle cx="${x}" cy="${cy}" r="52" fill="rgba(12,42,46,.55)" stroke-width="5"/><circle cx="${x}" cy="${cy}" r="44" stroke-width="2" opacity=".8"/></g>`}
+small.forEach((x,i)=>{
+  s+=ring(x,i==0?P:C);
+  s+=`<text x="${x}" y="${cy+11}" text-anchor="middle" font-size="30" fill="#e8ffff">${i+1}</text>`;
+  s+=`<text x="${x}" y="842" text-anchor="middle" font-size="22" fill="#9ff">${10+Math.floor(Math.random()*90)}</text>`;
+});
+["06","04","02"].forEach((n,i)=>{
+  s+=ring(red[i],R);
+  s+=`<text x="${red[i]}" y="${cy+12}" text-anchor="middle" font-size="34" fill="#ff8f9b">${n}</text>`;
+});
+
+/* ===== KHỐI TÊN (phải trên) ===== */
+s+=`<g fill="none" stroke="${C}" stroke-linecap="round" filter="url(#g)">
+<path d="M1375,105H1568" stroke-width="7"/><path d="M1392,120H1552" stroke-width="2" opacity=".6"/>
+<path d="M1378,366V380H1568V366" stroke-width="5"/><path d="M1430,392H1516" stroke-width="3" opacity=".6"/></g>
+<g font-weight="700" font-size="40" text-anchor="middle" fill="#bff9ff" style="filter:drop-shadow(0 0 8px #2ef2ff)">
+<text x="1472" y="180">PHẠM</text><text x="1472" y="255">VĂN</text><text x="1472" y="330">KHƯƠNG</text></g>`;
+
+/* ===== KHUNG CHÂN DUNG (phải dưới) ===== */
+s+=`<g fill="none" stroke="${C}" stroke-linejoin="round" filter="url(#g)">
+<path d="${oct(1375,512,225,270,22)}" stroke-width="4"/>
+<path d="${oct(1397,533,175,212,26)}" stroke-width="6" fill="rgba(46,242,255,.05)"/>
+<path class="run" pathLength="100" d="${oct(1375,512,225,270,22)}" stroke="#fff" stroke-width="3"/>
+<path d="${oct(1337,560,58,140,10)}" stroke-width="3"/><path d="${oct(1590,548,50,164,10)}" stroke-width="3"/>
+<path d="M1352,590H1380M1352,670H1380M1598,578H1626M1598,684H1626" stroke-width="2" opacity=".7"/>
+<path d="${oct(1420,462,130,50,10)}" stroke-width="3" fill="rgba(4,32,38,.7)"/>
+<path d="${oct(1420,762,130,46,10)}" stroke-width="3" fill="rgba(4,32,38,.7)"/></g>
+${[[1365,511],[1598,511],[1365,768],[1600,768],[1405,806],[1558,806],[1408,466],[1552,466]].map(p=>node(p[0],p[1],8)).join("")}
+<g text-anchor="middle" fill="#e8ffff" style="filter:drop-shadow(0 0 6px #2ef2ff)">
+<text x="1485" y="498" font-size="36" font-weight="700">29</text>
+<text x="1485" y="796" font-size="26" font-weight="700" letter-spacing="3">TUỔI</text></g>`;
+
+document.getElementById("hud").insertAdjacentHTML("beforeend",s);
+</script>
+</body></html>

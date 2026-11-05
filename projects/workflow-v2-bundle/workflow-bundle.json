@@ -582,8 +582,8 @@
         {
           "id": "v2-anim_fx-cluster-boy-s1",
           "category": "anim_fx",
-          "presetId": "v2:anim_fx:pulse",
-          "title": "Hoạt ảnh Xương: Bước đi",
+          "presetId": "v2:anim_fx:rig_walk",
+          "title": "Hành động Nhân vật: Bước đi",
           "enabled": true,
           "timeStart": 0.2,
           "timeEnd": 4.6,
@@ -1377,7 +1377,7 @@
           {
             "id": "v2-anim_fx-cluster-boy-s1",
             "type": "motion_choreography",
-            "title": "Hoạt ảnh Xương: Bước đi",
+            "title": "Hành động Nhân vật: Bước đi",
             "enabled": true,
             "position": {
               "x": 1712,
@@ -1405,14 +1405,14 @@
               "timeEnd": 4.6,
               "hierarchyParentNodeId": "v2-cluster-cluster-boy-s1",
               "instanceId": "cluster-boy-s1",
+              "animMode": "rig_clip",
               "rigActionPreset": "walk",
-              "animFxPreset": "pulse",
               "intensity": 1,
               "customActionId": "act-boy-happy-walk",
               "customActionName": "Bước Đi Hào Hứng Trên Đồng",
+              "animFxPreset": "pulse",
               "animFxSpeed": 1.3,
-              "customActionSpeedHz": 1.4,
-              "animMode": "rig_clip"
+              "customActionSpeedHz": 1.4
             }
           },
           {
@@ -4319,8 +4319,8 @@
         {
           "id": "v2-anim_fx-cluster-boy-s1",
           "category": "anim_fx",
-          "presetId": "v2:anim_fx:pulse",
-          "title": "Hoạt ảnh Xương: Bước đi",
+          "presetId": "v2:anim_fx:rig_walk",
+          "title": "Hành động Nhân vật: Bước đi",
           "enabled": true,
           "timeStart": 0.2,
           "timeEnd": 4.6,
@@ -5114,7 +5114,7 @@
           {
             "id": "v2-anim_fx-cluster-boy-s1",
             "type": "motion_choreography",
-            "title": "Hoạt ảnh Xương: Bước đi",
+            "title": "Hành động Nhân vật: Bước đi",
             "enabled": true,
             "position": {
               "x": 1712,
@@ -5142,14 +5142,14 @@
               "timeEnd": 4.6,
               "hierarchyParentNodeId": "v2-cluster-cluster-boy-s1",
               "instanceId": "cluster-boy-s1",
+              "animMode": "rig_clip",
               "rigActionPreset": "walk",
-              "animFxPreset": "pulse",
               "intensity": 1,
               "customActionId": "act-boy-happy-walk",
               "customActionName": "Bước Đi Hào Hứng Trên Đồng",
+              "animFxPreset": "pulse",
               "animFxSpeed": 1.3,
-              "customActionSpeedHz": 1.4,
-              "animMode": "rig_clip"
+              "customActionSpeedHz": 1.4
             }
           },
           {

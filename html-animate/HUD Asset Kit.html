@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>HUD Asset Kit</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎯</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Orbitron:wght@600;800&display=swap" rel="stylesheet">
+<style>
+:root{--c:#2ef2ff;--bg:#05090d;--cl:color-mix(in srgb,var(--c) 35%,#fff);color-scheme:dark}
+@property --a{syntax:"<angle>";inherits:false;initial-value:0deg}
+@property --p{syntax:"<angle>";inherits:false;initial-value:0deg}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%;background:var(--bg);color:#d6fbff;font:600 clamp(12px,1.1vmin + .55vw,18px)/1.4 Rajdhani,system-ui,sans-serif;overflow:hidden}
+body:before{content:"";position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,#12303a,transparent 70%),repeating-linear-gradient(0deg,#2ef2ff08 0 1px,transparent 1px 40px),repeating-linear-gradient(90deg,#2ef2ff08 0 1px,transparent 1px 40px)}
+.r{--c:#ff4a5e}.g{--c:#ffc94a}.v{--c:#b77cff}.o{--c:#3dff9a}
+h1,h2,.ti{font-family:Orbitron,Rajdhani,sans-serif;letter-spacing:.12em;color:#fff;text-shadow:0 0 10px var(--c)}
+#tg{position:fixed;z-index:30;top:calc(env(safe-area-inset-top,0px) + 14px);left:14px;width:34px;height:34px;border-radius:50%;border:1px solid var(--c);background:#041014cc;color:var(--c);cursor:pointer;font-size:16px}
+#nav{position:fixed;z-index:20;top:calc(env(safe-area-inset-top,0px) + 14px);left:58px;right:14px;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:2px 0}
+#nav::-webkit-scrollbar{display:none}
+#nav.h,#sub.h,#rp.h{display:none}
+.pl{flex:none;font:inherit;color:#bff9ff;background:#041014cc;border:1px solid #2ef2ff66;border-radius:99px;padding:.25em .9em;cursor:pointer;white-space:nowrap}
+.pl.on{background:#2ef2ff33;color:#fff;border-color:#2ef2ff;box-shadow:0 0 12px #2ef2ff88}
+#sub{position:fixed;z-index:20;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);left:14px;right:90px;display:flex;gap:6px;justify-content:safe center;overflow-x:auto;scrollbar-width:none}
+#rp{position:fixed;z-index:20;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);right:14px}
+#st{position:fixed;inset:0}
+.sc{position:absolute;inset:0;display:grid;place-items:center;padding:70px 14px 64px}
+.fx{position:fixed;inset:0;pointer-events:none}
+.pn{--n:16px;background:linear-gradient(135deg,var(--c),color-mix(in srgb,var(--c) 25%,transparent));clip-path:polygon(var(--n) 0,100% 0,100% calc(100% - var(--n)),calc(100% - var(--n)) 100%,0 100%,0 var(--n));padding:1.5px}
+.pn>.i{height:100%;padding:1.2em 1.4em;background:linear-gradient(160deg,#0b2833f2,#050d12f2);clip-path:polygon(var(--n) 0,100% 0,100% calc(100% - var(--n)),calc(100% - var(--n)) 100%,0 100%,0 var(--n))}
+.gw{filter:drop-shadow(0 0 8px color-mix(in srgb,var(--c) 55%,transparent))}
+.cap{font-size:.8em;letter-spacing:.25em;color:var(--cl);opacity:.8;text-transform:uppercase}
+.bar{display:grid;grid-template-columns:2.6em 1fr 3.4em;gap:.6em;align-items:center;margin:.35em 0}
+.bar b{color:var(--cl);font-weight:600}.bar em{font-style:normal;text-align:right;color:#fff}
+.bar i{height:.7em;background:#0008;border:1px solid color-mix(in srgb,var(--b,var(--c)) 55%,transparent);position:relative;overflow:hidden;transform:skewX(-20deg)}
+.bar i:after{content:"";position:absolute;inset:0;width:var(--v);background:linear-gradient(90deg,color-mix(in srgb,var(--b,var(--c)) 35%,#000),var(--b,var(--c)));box-shadow:0 0 10px var(--b,var(--c));animation:gr 1.2s ease-out}
+@keyframes gr{from{width:0}}
+@keyframes pu{50%{opacity:.45}}
+@keyframes sp{to{transform:rotate(360deg)}}
+@keyframes sw{to{--a:360deg}}
+@keyframes fl{50%{transform:translateY(-.5em)}}
+@keyframes in{from{opacity:0;transform:translateY(20px)}}
+.btn{font:inherit;color:#e8ffff;background:color-mix(in srgb,var(--c) 15%,transparent);border:1px solid var(--c);padding:.4em 1.2em;cursor:pointer;clip-path:polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%)}
+.btn:hover{background:color-mix(in srgb,var(--c) 35%,transparent)}
+.chip{display:inline-block;padding:.05em .8em;border:1px solid var(--c);border-radius:99px;font-size:.9em;color:var(--cl);margin:.15em .2em .15em 0}
+/* border */
+.fb{position:fixed;inset:0;pointer-events:none}
+.sw{background:conic-gradient(from var(--a),transparent 0 65%,var(--c) 95%,#fff 100%),linear-gradient(color-mix(in srgb,var(--c) 40%,transparent),color-mix(in srgb,var(--c) 40%,transparent));animation:sw 5s linear infinite}
+.br{position:fixed;width:min(9vmin,70px);height:min(9vmin,70px);border:0 solid var(--c);filter:drop-shadow(0 0 5px var(--c));pointer-events:none}
+.br.a{top:10px;left:10px;border-width:3px 0 0 3px}.br.b{top:10px;right:10px;border-width:3px 3px 0 0}.br.c{bottom:10px;left:10px;border-width:0 0 3px 3px}.br.d{bottom:10px;right:10px;border-width:0 3px 3px 0}
+.tx{position:fixed;font-family:Orbitron;font-size:.8em;letter-spacing:.15em;color:var(--cl);text-shadow:0 0 6px var(--c)}
+.tk{position:fixed;background:repeating-linear-gradient(90deg,var(--c) 0 1px,transparent 1px 12px);opacity:.8}
+.tk.v2{background:repeating-linear-gradient(0deg,var(--c) 0 1px,transparent 1px 12px)}
+/* film grain */
+.gn{position:fixed;inset:-50%;opacity:.14;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");animation:gn .5s steps(4) infinite;pointer-events:none}
+@keyframes gn{25%{transform:translate(-5%,3%)}50%{transform:translate(4%,-6%)}75%{transform:translate(-3%,5%)}}
+/* ring, radar */
+.rg{border-radius:50%;border:2px dashed var(--c);position:absolute;inset:0}
+.rd{border-radius:50%;background:conic-gradient(from var(--a),transparent 70%,color-mix(in srgb,var(--c) 70%,transparent)),repeating-radial-gradient(circle,transparent 0 17%,#2ef2ff44 17% 18%);border:1px solid var(--c);animation:sw 3s linear infinite;aspect-ratio:1}
+.tr{width:100%;height:1.1em;border:1px solid var(--c);padding:2px}.tr i{display:block;height:100%;background:var(--c);box-shadow:0 0 10px var(--c)}
+.slot{width:4.2em;aspect-ratio:1;display:grid;place-items:center;font-size:2em;border:1px solid var(--c);background:radial-gradient(circle,color-mix(in srgb,var(--c) 28%,#000),#000a);position:relative;overflow:hidden}
+.cd{position:absolute;inset:0;background:conic-gradient(#000b var(--p),transparent 0)}
+@media (max-width:700px){.hide-m{display:none!important}}
+</style></head><body>
+<button id="tg" title="Ẩn / hiện menu">☰</button><div id="nav"></div><div id="st"></div><div id="sub"></div><button class="pl" id="rp">↻ Phát lại</button>
+<script>
+const $=s=>document.querySelector(s);
+let T=[],cur=0,vi=0;
+const tm=(f,ms)=>T.push(setTimeout(f,ms)),iv=(f,ms)=>T.push(setInterval(f,ms));
+const bar=(l,v,c)=>`<div class="bar" style="--v:${v}%;--b:${c||'var(--c)'}"><b>${l}</b><i></i><em>${v}%</em></div>`;
+const pn=(h,s='',c='')=>`<div class="gw ${c}"><div class="pn" style="${s}"><div class="i">${h}</div></div></div>`;
+/* polygon viền khuyết góc: i=cách mép, t=độ dày, n=độ vát */
+const P=(i,n)=>`${i+n}px ${i}px,calc(100% - ${i+n}px) ${i}px,calc(100% - ${i}px) ${i+n}px,calc(100% - ${i}px) calc(100% - ${i+n}px),calc(100% - ${i+n}px) calc(100% - ${i}px),${i+n}px calc(100% - ${i}px),${i}px calc(100% - ${i+n}px),${i}px ${i+n}px`;
+const fr=(i,t,n)=>{const o=P(i,n),k=P(i+t,Math.max(0,n-.59*t));return`polygon(evenodd,${o},${o.split(',')[0]},${k},${k.split(',')[0]},${o.split(',')[0]})`};
+
+const A=[
+/* 1 */["Electronic Border","Viền điện tử",["REC quay phim","Khung công nghệ","Máy quét","Hologram","Cảnh báo","Drone"],v=>[
+`<div class="br a"></div><div class="br b"></div><div class="br c"></div><div class="br d"></div>
+<div class="tx r" style="top:24px;left:calc(min(9vmin,70px) + 22px);display:flex;gap:.6em;align-items:center;color:#fff"><i style="width:.9em;height:.9em;border-radius:50%;background:#ff3b4e;box-shadow:0 0 10px #f34;animation:pu 1s infinite"></i>REC <span id="tc">00:00:00</span></div>
+<div class="tx" style="top:24px;right:calc(min(9vmin,70px) + 22px)">4K · 60FPS · 🔋 87%</div>
+<div class="tx" style="bottom:24px;left:calc(min(9vmin,70px) + 22px)">ISO 800 · F2.8 · 1/120</div>
+<div class="tx" style="bottom:24px;right:calc(min(9vmin,70px) + 22px)">AF-C · WB AUTO</div>
+<div style="position:fixed;left:50%;top:50%;width:min(14vmin,110px);aspect-ratio:1;transform:translate(-50%,-50%);opacity:.6;background:linear-gradient(var(--c),var(--c)) 50% 0/1px 30% no-repeat,linear-gradient(var(--c),var(--c)) 50% 100%/1px 30% no-repeat,linear-gradient(var(--c),var(--c)) 0 50%/30% 1px no-repeat,linear-gradient(var(--c),var(--c)) 100% 50%/30% 1px no-repeat"></div>`,
+`<div class="fb sw" style="clip-path:${fr(4,3,28)}"></div><div class="fb" style="background:#2ef2ff55;clip-path:${fr(12,1,18)}"></div>
+<div class="tx" style="top:6px;left:50%;transform:translateX(-50%);padding:0 1.2em;background:#05090d;font-size:.75em">SYSTEM ONLINE</div>
+<div class="tx" style="bottom:6px;left:50%;transform:translateX(-50%);padding:0 1.2em;background:#05090d;font-size:.75em">LINK STABLE · 12ms</div>`,
+`<div class="fb" style="border:1px solid var(--c);inset:6px"></div>
+<div class="tk" style="top:6px;left:6px;right:6px;height:9px"></div><div class="tk" style="bottom:6px;left:6px;right:6px;height:9px"></div>
+<div class="tk v2" style="left:6px;top:6px;bottom:6px;width:9px"></div><div class="tk v2" style="right:6px;top:6px;bottom:6px;width:9px"></div>
+<div class="fb" style="inset:6px;overflow:hidden"><i style="position:absolute;left:0;right:0;height:3px;background:linear-gradient(transparent,var(--c),transparent);box-shadow:0 0 18px var(--c);animation:sc 3.5s linear infinite"></i></div>
+<style>@keyframes sc{from{top:-3%}to{top:100%}}</style><div class="tx" style="top:24px;left:26px">SCAN 0x4F2A</div>`,
+`<div class="fb" style="box-shadow:inset 0 0 8vmin -1vmin var(--c),inset 0 0 0 2px var(--c);animation:pu 3s infinite"></div>
+<div class="fb" style="background:linear-gradient(var(--c),transparent 4%,transparent 96%,var(--c));opacity:.12"></div>
+<div class="br a" style="border-width:0;background:var(--c);clip-path:polygon(0 0,100% 0,0 100%)"></div><div class="br b" style="border-width:0;background:var(--c);clip-path:polygon(0 0,100% 0,100% 100%)"></div><div class="br c" style="border-width:0;background:var(--c);clip-path:polygon(0 0,0 100%,100% 100%)"></div><div class="br d" style="border-width:0;background:var(--c);clip-path:polygon(100% 0,0 100%,100% 100%)"></div>`,
+`<div class="r"><div class="fb" style="background:repeating-linear-gradient(45deg,#ff4a5e 0 12px,#190508 12px 24px);background-size:34px 34px;animation:hz 1s linear infinite;clip-path:${fr(0,10,0)}"></div>
+<div class="fb" style="box-shadow:inset 0 0 6vmin #ff4a5e88;animation:pu 1s infinite"></div>
+<div class="tx" style="top:22px;left:50%;transform:translateX(-50%);color:#fff;font-size:1em;animation:pu 1s infinite">⚠ CẢNH BÁO · PHÁT HIỆN XÂM NHẬP ⚠</div></div><style>@keyframes hz{to{background-position:34px 0}}</style>`,
+`<div class="fb" style="border:1px solid #2ef2ff88;inset:6px"></div><div class="br a"></div><div class="br b"></div><div class="br c"></div><div class="br d"></div>
+<div class="fb" style="background:linear-gradient(var(--c),var(--c)) 50% 50%/70% 1px no-repeat;opacity:.5;transform:rotate(-3deg)"></div>
+<div style="position:fixed;left:50%;top:50%;width:min(22vmin,180px);aspect-ratio:1;border:1px solid var(--c);border-radius:50%;transform:translate(-50%,-50%);opacity:.7"></div>
+<div class="tk v2" style="left:5%;top:30%;height:40%;width:14px"></div><div class="tk v2" style="right:5%;top:30%;height:40%;width:14px"></div>
+<div class="tx" style="left:calc(5% + 24px);top:48%">ALT 124M</div><div class="tx" style="right:calc(5% + 24px);top:48%">SPD 36KM/H</div><div class="tx" style="top:24px;left:50%;transform:translateX(-50%)">N 042° · GPS 12 SAT</div>`
+][v],true],
+/* 2 */["Futuristic HUD","Giao diện công nghệ",0,()=>`<div style="width:min(1100px,100%);display:grid;grid-template-columns:1fr minmax(0,1.2fr) 1fr;gap:1.2em;align-items:center">
+${pn(`<div class="cap">Hệ thống</div>${bar('CPU',68)}${bar('RAM',82,'#ffc94a')}${bar('NET',45,'#3dff9a')}${bar('PWR',91,'#b77cff')}<div class="rd" style="width:62%;margin:1em auto 0"></div>`)}
+<div style="position:relative;aspect-ratio:1;max-height:62vh;margin:auto;width:100%;max-width:62vh"><div class="rg" style="animation:sp 24s linear infinite"></div><div class="rg" style="inset:9%;border-style:solid;border-width:3px;border-color:var(--c) transparent;animation:sp 9s linear infinite reverse"></div><div class="rg" style="inset:18%;border-style:dotted;animation:sp 16s linear infinite"></div><div class="rg" style="inset:27%;border:1px solid #2ef2ff55;display:grid;place-items:center;text-align:center"><div><h1 style="font-size:2.4em">98%</h1><div class="cap">Lõi ổn định</div></div></div></div>
+${pn(`<div class="cap">Nhật ký</div><p style="line-height:1.8;color:var(--cl)">▸ Kết nối vệ tinh OK<br>▸ Quét môi trường: 3 mục tiêu<br>▸ Lá chắn năng lượng: 100%<br>▸ Vũ khí: sẵn sàng<br><span style="color:#3dff9a">▸ Toàn bộ hệ thống hoạt động</span></p>`)}</div>`],
+/* 3 */["Cinematic Border","Khung phim",["Letterbox 2.39:1","Phim 35mm","Bo góc + vignette"],v=>[
+`<div class="fb" style="background:#000;top:0;bottom:auto;height:max(7vh,calc((100vh - 100vw/2.39)/2));animation:bt .9s ease-out"></div><div class="fb" style="background:#000;bottom:0;top:auto;height:max(7vh,calc((100vh - 100vw/2.39)/2));animation:bt .9s ease-out"></div><style>@keyframes bt{from{height:0}}</style>
+<div class="tx" style="bottom:max(2vh,calc((max(7vh,(100vh - 100vw/2.39)/2) - 1.2em)/2));left:50%;transform:translateX(-50%);color:#fff;font-size:1em;animation:in 1.5s .6s backwards">CHƯƠNG MỘT · KẺ LỮ HÀNH</div>`,
+`<div class="fb" style="left:0;right:auto;width:max(34px,4vw);background:#000;border-right:1px solid #fff3"></div><div class="fb" style="right:0;left:auto;width:max(34px,4vw);background:#000;border-left:1px solid #fff3"></div>
+<div class="fb" style="left:0;right:auto;width:max(34px,4vw);background:repeating-linear-gradient(#d8d2c0 0 18px,transparent 18px 44px) 50% 14px/14px 100% no-repeat;animation:fs 1.2s linear infinite;-webkit-mask:linear-gradient(#000,#000)"></div><div class="fb" style="right:0;left:auto;width:max(34px,4vw);background:repeating-linear-gradient(#d8d2c0 0 18px,transparent 18px 44px) 50% 14px/14px 100% no-repeat;animation:fs 1.2s linear infinite"></div><style>@keyframes fs{to{background-position:50% 58px}}</style>
+<div class="tx" style="top:16px;left:calc(max(34px,4vw) + 18px);color:#d8d2c0">KODAK 5219 · 35MM</div>`,
+`<div class="fb" style="box-shadow:0 0 0 100vmax #000;border-radius:3vmin;inset:5vmin;outline:1px solid #fff3"></div><div class="fb" style="background:radial-gradient(ellipse,transparent 45%,#000d)"></div>`
+][v]+`<div class="gn"></div><div class="fx" style="background:linear-gradient(90deg,#ff3b4e10,transparent 20%,transparent 80%,#2ef2ff10)"></div>`,true],
+/* 4 */["Memory Frame","Khung hồi tưởng",0,()=>`<svg width="0" height="0"><filter id="w"><feTurbulence baseFrequency=".015" numOctaves="2" seed="3"><animate attributeName="seed" values="1;6;1" dur="12s" repeatCount="indefinite"/></feTurbulence><feDisplacementMap in="SourceGraphic" scale="26"/></filter></svg>
+<div style="position:relative;width:min(1000px,100%);aspect-ratio:16/9;max-height:100%">
+<div style="position:absolute;inset:0;filter:url(#w) blur(3px);background:radial-gradient(circle at 50% 40%,#f1d9a6,#8a6a3c 60%,#2a1c0e);border:14px solid #fff6dcdd;border-radius:6%;box-shadow:0 0 60px #ffe8b088 inset"></div>
+<svg viewBox="0 0 160 90" style="position:absolute;inset:6%;width:88%;height:88%;filter:sepia(.6) blur(.6px)"><circle cx="80" cy="38" r="14" fill="#fff4cf" opacity=".85"/><path d="M0 70Q40 50 80 66T160 58V90H0Z" fill="#3a2713"/><path d="M60 68q4-14 8-2 4 12 8 0M96 66q4-16 8-2 3 10 7-1" stroke="#1a0f06" stroke-width="3" fill="none" stroke-linecap="round"/></svg>
+<div style="position:absolute;inset:0;border-radius:6%;background:radial-gradient(ellipse,transparent 45%,#1a0f06cc);pointer-events:none"></div>
+${[...Array(16)].map((_,i)=>`<i style="position:absolute;left:${i*6.4}%;top:-4%;width:3px;height:3px;border-radius:50%;background:#fff8;animation:dr ${5+i%5}s ${i*.4}s linear infinite"></i>`).join('')}<style>@keyframes dr{to{transform:translate(40px,115vh)}}</style>
+<div class="ti" style="position:absolute;top:8%;left:9%;font-size:.9em;color:#fff3d0;text-shadow:0 0 12px #c80;animation:pu 4s infinite">HỒI TƯỞNG · MƯỜI NĂM TRƯỚC</div>
+<div style="position:absolute;bottom:9%;left:0;right:0;text-align:center;color:#fff3d0;font-style:italic;font-size:1.2em;text-shadow:0 0 8px #000">“Hôm đó, ta đã hứa sẽ quay về…”</div></div>`],
+/* 5 */["Character Frame","Khung giới thiệu nhân vật",0,()=>`<div style="width:min(900px,100%);display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:1.2em">
+${pn(`<div style="aspect-ratio:3/4;max-height:56vh;margin:auto;background:radial-gradient(ellipse at 50% 35%,#2ef2ff44,#04161c);position:relative;overflow:hidden;display:grid;place-items:end center"><svg viewBox="0 0 100 130" style="width:80%;animation:fl 4s infinite"><circle cx="50" cy="34" r="17" fill="#0b3a44" stroke="#2ef2ff"/><path d="M14 130q4-50 36-50t36 50z" fill="#0b3a44" stroke="#2ef2ff"/><circle cx="44" cy="33" r="2" fill="#2ef2ff" style="animation:pu 2s infinite"/><circle cx="56" cy="33" r="2" fill="#2ef2ff" style="animation:pu 2s infinite"/></svg><i style="position:absolute;left:0;right:0;height:2px;background:var(--c);box-shadow:0 0 14px var(--c);animation:sc 4s linear infinite"></i></div>`,'--n:22px')}
+${pn(`<div class="cap">Kiếm sĩ · Cấp 38</div><h2 style="font-size:2em;margin:.2em 0">KHƯƠNG VÔ KỴ</h2><span class="chip">Kiếm</span><span class="chip">Phong</span><span class="chip">Tiền tuyến</span>
+<p style="color:var(--cl);margin:.8em 0;line-height:1.6">Kiếm sĩ lang thang mang lời thề với ngôi làng đã mất, đi tìm kẻ đã tập kích năm xưa.</p>${bar('HP',82,'#ff4a5e')}${bar('MP',55,'#4aa8ff')}${bar('EXP',34,'#ffc94a')}${bar('CÔNG',76,'#ff9a4a')}`,'--n:22px')}</div><style>@keyframes sc{from{top:-3%}to{top:100%}}</style>`],
+/* 6 */["Item Frame","Khung giới thiệu vật phẩm",0,()=>`<div style="width:min(420px,100%)" class="v">${pn(`<div style="display:flex;gap:1em;align-items:center"><div class="slot" style="width:5em">🗡️<i style="position:absolute;inset:0;background:linear-gradient(110deg,transparent 40%,#fff6 50%,transparent 60%);animation:sh 2.6s infinite"></i></div><div><div class="cap">Vũ khí · Sử thi</div><h2 style="font-size:1.4em">Kiếm Nguyệt Ảnh</h2></div></div><style>@keyframes sh{from{transform:translateX(-100%)}to{transform:translateX(100%)}}</style>
+<div style="height:1px;background:linear-gradient(90deg,transparent,var(--c),transparent);margin:1em 0"></div>
+<div style="display:flex;justify-content:space-between"><span>Công vật lý</span><b style="color:#fff">+420</b></div><div style="display:flex;justify-content:space-between"><span>Tốc đánh</span><b style="color:#3dff9a">+12%</b></div><div style="display:flex;justify-content:space-between"><span>Yêu cầu cấp</span><b style="color:#ff8f9b">35</b></div>
+<p style="color:var(--cl);font-style:italic;margin:.8em 0">Lưỡi kiếm hấp thụ ánh trăng, để lại vệt sáng khi vung.</p><button class="btn" style="width:100%">TRANG BỊ</button>`)}</div>`],
+/* 7 */["Legendary Frame","Khung vật phẩm huyền thoại",0,()=>`<div class="g" style="position:relative;width:min(440px,100%)">
+<div style="position:absolute;inset:-12%;background:conic-gradient(from var(--a),#ffc94a00,#ffc94a66,#ffc94a00 30%,#ffc94a66 55%,#ffc94a00 80%);filter:blur(24px);animation:sw 8s linear infinite;border-radius:50%"></div>
+<div style="position:relative;padding:3px;background:conic-gradient(from var(--a),#ffc94a,#fff7c8,#ffc94a 30%,#8a5b00 50%,#ffc94a 70%,#fff7c8,#ffc94a);animation:sw 4s linear infinite;clip-path:polygon(22px 0,calc(100% - 22px) 0,100% 22px,100% calc(100% - 22px),calc(100% - 22px) 100%,22px 100%,0 calc(100% - 22px),0 22px)"><div style="padding:1.6em;text-align:center;background:radial-gradient(circle at 50% 28%,#4a3300,#0e0a02 70%);clip-path:inherit">
+<div class="cap" style="color:#ffe08a;letter-spacing:.4em">✦ Huyền thoại ✦</div><div style="font-size:5em;animation:fl 3s infinite;filter:drop-shadow(0 0 18px #ffc94a)">👑</div><h2 style="font-size:1.6em;color:#ffe9a8">Vương Miện Hoàng Kim</h2>
+<p style="color:#e8cf8a;margin:.6em 0">+25% mọi chỉ số · Miễn nhiễm choáng<br><i>“Kẻ đội nó sẽ được vạn người quỳ lạy.”</i></p><button class="btn">SỞ HỮU</button></div></div>
+${[...Array(14)].map((_,i)=>`<i style="position:absolute;left:${(i*37)%100}%;bottom:0;width:4px;height:4px;background:#ffd86a;border-radius:50%;box-shadow:0 0 8px #ffc94a;animation:up ${3+i%4}s ${i*.3}s linear infinite"></i>`).join('')}</div><style>@keyframes up{to{transform:translateY(-60vh);opacity:0}}</style>`],
+/* 8 */["Dialogue Frame","Khung hội thoại",0,()=>`<div style="align-self:end;width:min(1000px,100%)">${pn(`<div style="display:flex;gap:1.2em"><div style="flex:none;width:5.5em;height:5.5em;border:2px solid var(--c);border-radius:50%;display:grid;place-items:center;font-size:2.4em;background:#0a3038;box-shadow:0 0 14px var(--c)">🧙</div><div style="flex:1"><div class="ti" style="font-size:1em;color:var(--c)">LÃO Y SƯ</div><p id="dt" style="font-size:1.25em;min-height:3.2em;margin-top:.3em;color:#e8ffff"></p><div id="dc" style="display:flex;gap:.6em;flex-wrap:wrap;opacity:0;transition:.4s"><button class="btn">Nhận nhiệm vụ</button><button class="btn r">Từ chối</button><button class="btn" style="--c:#ffc94a">Hỏi thêm</button></div></div><i style="align-self:end;color:var(--c);animation:pu 1s infinite">▼</i></div>`)}</div>`],
+/* 9 */["Subtitle Frame","Khung phụ đề",["Điện ảnh","Hộp mờ","Neon"],v=>`<div style="align-self:end;text-align:center;width:min(900px,100%);margin-bottom:6vh"><div id="sb" style="display:inline-block;max-width:100%;font-size:1.6em;color:#fff;transition:.4s;${['text-shadow:0 2px 6px #000,0 0 2px #000;','background:#000b;padding:.2em 1em;border-radius:.3em;border-bottom:2px solid var(--c);','text-shadow:0 0 8px var(--c),0 0 20px var(--c);padding:.2em 1em;border:1px solid var(--c);clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 100%,0 100%);background:#0a2a3299;'][v]}"></div></div>`],
+/* 10 */["Quest Notification","Thông báo nhiệm vụ",0,()=>`<div style="align-self:start;justify-self:end;width:min(380px,100%);animation:sl .7s cubic-bezier(.2,1.2,.4,1)">${pn(`<div style="display:flex;gap:1em;align-items:center"><div style="font-size:2.4em;animation:pu 1.4s infinite">❗</div><div style="flex:1"><div class="cap">Nhiệm vụ mới · Chính tuyến</div><h2 style="font-size:1.2em">Dọn dẹp hang Sói Xám</h2></div></div>${bar('Mục',30)}<div style="color:var(--cl)">◻ Hạ gục Sói Xám · 3/10</div>`,'--n:12px')}</div><style>@keyframes sl{from{transform:translateX(120%);opacity:0}}</style>`],
+/* 11 */["Level Up","Tăng cấp",0,()=>`<div class="g" style="position:relative;display:grid;place-items:center;text-align:center">
+<div style="position:absolute;width:140vmin;height:140vmin;background:repeating-conic-gradient(#ffc94a33 0 5deg,transparent 5deg 15deg);-webkit-mask:radial-gradient(circle,#000,transparent 65%);mask:radial-gradient(circle,#000,transparent 65%);animation:sp 20s linear infinite"></div>
+<div style="position:absolute;width:48vmin;height:48vmin;border:3px solid #ffc94a;border-radius:50%;animation:rp 1.6s ease-out infinite"></div>
+<div style="position:relative;animation:in 1s"><div class="ti" style="font-size:min(10vw,7em);font-weight:800;color:#fff3c2;text-shadow:0 0 20px #ffc94a,0 0 60px #ffc94a;animation:zm .8s cubic-bezier(.2,1.5,.4,1)">LEVEL UP</div>
+<div class="ti" style="font-size:3em;color:#ffc94a">38 ▸ 39</div><div style="display:flex;gap:1em;justify-content:center;margin-top:1em;flex-wrap:wrap"><span class="chip">HP +120</span><span class="chip">CÔNG +18</span><span class="chip">+3 điểm kỹ năng</span></div></div></div><style>@keyframes rp{from{transform:scale(.2);opacity:1}to{transform:scale(1.6);opacity:0}}@keyframes zm{from{transform:scale(3);opacity:0}}</style>`],
+/* 12 */["Achievement","Thành tựu",0,()=>`<div class="g" style="align-self:end;justify-self:start;width:min(400px,100%);animation:in .8s">${pn(`<div style="display:flex;gap:1em;align-items:center"><div style="position:relative;overflow:hidden;font-size:2.4em;width:1.8em;height:1.8em;display:grid;place-items:center;border:2px solid var(--c);border-radius:50%;box-shadow:0 0 14px var(--c);background:#2a1c00">🏆<i style="position:absolute;inset:0;background:linear-gradient(110deg,transparent 40%,#fff8 50%,transparent 60%);animation:sh2 2.4s infinite"></i></div><div><div class="cap">Thành tựu đã mở khóa</div><h2 style="font-size:1.25em">Thợ săn sói</h2><div style="color:var(--cl)">Hạ gục 100 con Sói Xám · +50 điểm</div></div></div>`,'--n:12px')}</div><style>@keyframes sh2{from{transform:translateX(-100%)}to{transform:translateX(100%)}}</style>`],
+/* 13 */["Health Bar","Thanh máu",0,()=>`<div style="width:min(720px,100%)">${pn(`<div style="display:flex;justify-content:space-between"><b class="ti" style="font-size:1em">KHƯƠNG VÔ KỴ · Lv38</b><span id="hv">1,640 / 2,000</span></div>
+<div style="position:relative;height:1.8em;margin:.6em 0;background:#000a;border:1px solid #ff4a5e;transform:skewX(-20deg);overflow:hidden;--c:#ff4a5e"><i id="hl" style="position:absolute;inset:0;width:82%;background:#fff;opacity:.85;transition:width 1s .4s"></i><i id="hb" style="position:absolute;inset:0;width:82%;background:linear-gradient(90deg,#7a1020,#ff4a5e);box-shadow:0 0 14px #ff4a5e;transition:width .3s"></i><i style="position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 9.5%,#000a 9.5% 10%)"></i></div>
+<div class="btns" style="display:flex;gap:.8em;margin-top:1em"><button class="btn r" onclick="hp(-18)">⚔ Nhận sát thương</button><button class="btn o" onclick="hp(20)">✚ Hồi máu</button></div>`)}
+<div style="margin-top:1.4em;display:grid;grid-template-columns:1fr 1fr;gap:1em">${pn(`<div class="cap">Quái</div>${bar('HP',100,'#ff4a5e')}`)}${pn(`<div class="cap">Đồng đội</div>${bar('HP',46,'#ffc94a')}`)}</div></div>`],
+/* 14 */["Energy Bar","Thanh năng lượng",0,()=>`<div style="width:min(720px,100%)">${pn(`<div style="display:flex;justify-content:space-between"><b class="ti" style="font-size:1em">NĂNG LƯỢNG</b><span id="ev">8 / 10</span></div>
+<div id="ec" style="display:grid;grid-template-columns:repeat(10,1fr);gap:.35em;margin:.8em 0"></div>
+<div style="height:.9em;transform:skewX(-20deg);border:1px solid #4aa8ff;background:#000a;overflow:hidden"><i id="mp" style="display:block;height:100%;width:60%;background:linear-gradient(90deg,#1a4a8a,#4aa8ff,#bfe3ff);box-shadow:0 0 12px #4aa8ff;transition:width .5s;background-size:200%;animation:fw 1.5s linear infinite"></i></div>
+<div style="margin-top:1em;display:flex;gap:.8em"><button class="btn" onclick="en(-3)">⚡ Dùng kỹ năng</button><button class="btn o" onclick="en(10)">🔋 Nạp đầy</button></div>`,'','')}</div><style>@keyframes fw{to{background-position:200%}}</style>`],
+/* 15 */["Skill Icon Animation","Hiệu ứng kỹ năng",0,()=>`<div style="display:flex;gap:1.4em;flex-wrap:wrap;justify-content:center">${[['⚔️','Trảm Phong',3,''],['🛡️','Thiết Bích',6,'o'],['🔥','Liệt Hỏa',5,'r'],['💨','Bộ Pháp',2,'v']].map(([i,n,s,c],k)=>`<div class="${c}" style="text-align:center"><div class="slot sk" data-s="${s}" style="width:6.5em;font-size:3em;cursor:pointer;clip-path:polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px);border-width:2px" onclick="cast(this)">${i}<div class="cd" style="--p:0deg"></div><b class="tm" style="position:absolute;font:700 .45em Orbitron;color:#fff"></b></div><div style="margin-top:.5em">${n} <span class="cap">[${k+1}]</span></div></div>`).join('')}</div><p class="cap" style="position:fixed;bottom:70px;width:100%;text-align:center">Bấm vào biểu tượng để tung chiêu</p>`],
+/* 16 */["Target Lock","Khóa mục tiêu",0,()=>`<div class="r" style="position:relative;width:100%;height:100%;max-width:1000px;max-height:640px"><div id="tg2" style="position:absolute;left:50%;top:50%;width:min(24vmin,190px);aspect-ratio:1;transform:translate(-50%,-50%);transition:left 2.4s ease-in-out,top 2.4s ease-in-out">
+<div class="rg" style="border-style:dashed;inset:-14%;animation:sp 6s linear infinite"></div><div style="position:absolute;inset:0;animation:ls 1.2s ease-out;--c:#ff4a5e"><div class="br a" style="position:absolute;inset:0 auto auto 0"></div><div class="br b" style="position:absolute;inset:0 0 auto auto;top:0;right:0"></div><div class="br c" style="position:absolute;left:0;bottom:0;top:auto"></div><div class="br d" style="position:absolute;right:0;bottom:0;top:auto"></div></div>
+<div style="position:absolute;inset:0;display:grid;place-items:center;font-size:3.2em;animation:fl 3s infinite">👾</div>
+<div class="tx" style="position:absolute;left:105%;top:0;white-space:nowrap;line-height:1.5"><span style="color:#fff">GOLEM ĐÁ · Lv45</span><br><span id="ds">KHOẢNG CÁCH 42M</span><br><span style="color:#ff4a5e;animation:pu .8s infinite">● ĐÃ KHÓA MỤC TIÊU</span></div></div></div><style>@keyframes ls{from{transform:scale(2.6);opacity:0}}</style>`],
+/* 17 */["Scan Line","Quét dữ liệu",0,()=>`<div style="width:min(900px,100%);display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:1.2em">${pn(`<div class="cap" style="margin-bottom:.4em">Đang quét vùng dữ liệu</div><div id="mx" style="position:relative;height:min(46vh,380px);overflow:hidden;font:600 .85em/1.3 monospace;color:#2ef2ffaa;word-break:break-all;opacity:.85"></div><i style="position:absolute;left:0;right:0;height:3px;top:0;background:var(--c);box-shadow:0 0 22px 4px var(--c);animation:sc2 3s ease-in-out infinite alternate"></i>`,'position:relative')}
+${pn(`<div class="cap">Kết quả</div><h2 id="sp" style="font-size:2.4em">0%</h2><div class="tr"><i id="sf" style="width:0"></i></div><p style="color:var(--cl);line-height:1.9;margin-top:1em">▸ Tệp quét: <b style="color:#fff" id="sn">0</b>/4,096<br>▸ Mối đe dọa: <b style="color:#3dff9a">0</b><br>▸ Cấu trúc: hợp lệ<br>▸ Mã hóa: AES-256</p>`)}</div><style>@keyframes sc2{to{top:calc(100% - 3px)}}.pn{position:relative}</style>`],
+/* 18 */["Loading Animation","Hiệu ứng tải",["Vòng tròn","Thanh tiến trình","Lục giác","Điểm sáng"],v=>`<div style="text-align:center;width:min(520px,100%)">${[
+`<div style="position:relative;width:11em;height:11em;margin:auto"><div class="rg" style="border:3px solid #2ef2ff22;border-top-color:var(--c);animation:sp 1s linear infinite;filter:drop-shadow(0 0 8px var(--c))"></div><div class="rg" style="inset:12%;border:3px solid #2ef2ff22;border-bottom-color:var(--c);animation:sp 1.6s linear infinite reverse"></div><div class="rg" style="inset:24%;border:2px dashed #2ef2ff88;animation:sp 6s linear infinite"></div><h2 id="lp" style="position:absolute;inset:0;display:grid;place-items:center;font-size:1.6em">0%</h2></div>`,
+`<h2 id="lp" style="font-size:2.6em;margin-bottom:.4em">0%</h2><div class="tr" style="height:1.6em;clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 100%,0 100%)"><i id="lf" style="width:0;background:repeating-linear-gradient(110deg,var(--c) 0 10px,#7ff8ff 10px 20px)"></i></div>`,
+`<div style="display:flex;justify-content:center;gap:.5em">${[0,1,2,3,4].map(i=>`<i style="width:2.2em;height:2.5em;background:var(--c);clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);animation:pu 1.2s ${i*.15}s infinite;filter:drop-shadow(0 0 8px var(--c))"></i>`).join('')}</div><h2 id="lp" style="margin-top:1em">0%</h2>`,
+`<div style="display:flex;justify-content:center;gap:.8em;font-size:1.6em">${[0,1,2,3,4].map(i=>`<i style="width:.9em;height:.9em;border-radius:50%;background:var(--c);box-shadow:0 0 14px var(--c);animation:bn 1s ${i*.12}s infinite alternate"></i>`).join('')}</div><h2 id="lp" style="margin-top:1.2em">0%</h2><style>@keyframes bn{to{transform:translateY(-1.2em);opacity:.3}}</style>`][v]}
+<div class="cap" style="margin-top:1.2em" id="lt">Đang tải tài nguyên…</div></div>`]
+];
+
+/* ===== khởi tạo từng asset ===== */
+const I={
+0:()=>{let s=0;iv(()=>{s++;const e=$("#tc");if(e)e.textContent=[s/3600|0,s/60%60|0,s%60].map(n=>String(n).padStart(2,0)).join(":")},1000)},
+7:()=>{const L=["Ngươi đã đến rồi… ta chờ ngươi từ sáng.","Dân làng trúng độc, chỉ có Huyết Linh Thảo mới cứu được.","Ngươi có chịu giúp lão già này một tay không?"];let k=0,i=0;const t=$("#dt"),c=$("#dc");const go=()=>{t.textContent="";c.style.opacity=0;i=0;const id=setInterval(()=>{t.textContent=L[k].slice(0,++i);if(i>=L[k].length){clearInterval(id);if(k<L.length-1){k++;tm(go,1800)}else c.style.opacity=1}},38);T.push(id)};go()},
+8:()=>{const L=["Ngươi đã nghe tin về hang Sói Xám chưa?","Chúng đã tràn xuống làng suốt ba đêm.","Hãy bảo vệ họ… trước khi trời sáng."];let k=0;const f=()=>{const e=$("#sb");if(!e)return;e.style.opacity=0;tm(()=>{e.textContent=L[k++%3];e.style.opacity=1},400)};f();iv(f,2800)},
+12:()=>{window.hv=82;window.hp=d=>{hv=Math.max(0,Math.min(100,hv+d));$("#hb").style.width=hv+"%";$("#hl").style.width=(d<0?$("#hl").style.width:hv+"%");if(d<0)$("#hl").style.width=hv+"%";$("#hv").textContent=Math.round(hv*20).toLocaleString()+" / 2,000"}},
+13:()=>{window.ev=8;const d=()=>{$("#ec").innerHTML=[...Array(10)].map((_,i)=>`<i style="height:1.8em;transform:skewX(-20deg);border:1px solid #ffc94a;background:${i<ev?'linear-gradient(#ffe08a,#ffc94a)':'#0008'};box-shadow:${i<ev?'0 0 10px #ffc94a':'none'};transition:.3s"></i>`).join('');$("#ev").textContent=ev+" / 10";$("#mp").style.width=ev*10+"%"};window.en=n=>{ev=Math.max(0,Math.min(10,ev+n));d()};d();iv(()=>{if(ev<10)en(1)},2500)},
+14:()=>{window.cast=el=>{if(el.dataset.b)return;el.dataset.b=1;const s=+el.dataset.s,cd=el.querySelector(".cd"),tx=el.querySelector(".tm"),t0=performance.now();el.animate([{transform:"scale(1.25)",boxShadow:"0 0 50px var(--c)"},{transform:"scale(1)"}],300);const id=setInterval(()=>{const r=1-(performance.now()-t0)/(s*1000);if(r<=0){clearInterval(id);cd.style.setProperty("--p","0deg");tx.textContent="";delete el.dataset.b;el.animate([{boxShadow:"0 0 40px #fff"},{boxShadow:"none"}],500);return}cd.style.setProperty("--p",r*360+"deg");tx.textContent=(r*s).toFixed(1)},50);T.push(id)}},
+15:()=>{const p=[[50,50],[22,30],[72,24],[30,70],[76,66],[48,22]];let k=0;const mv=()=>{const e=$("#tg2");if(!e)return;k=(k+1)%p.length;e.style.left=p[k][0]+"%";e.style.top=p[k][1]+"%";const c=e.firstElementChild.nextElementSibling;c.style.animation="none";void c.offsetWidth;c.style.animation="ls 1s ease-out";$("#ds").textContent="KHOẢNG CÁCH "+(20+Math.random()*60|0)+"M"};iv(mv,3200)},
+16:()=>{const m=$("#mx"),ch="01アイウエオカキクケコ0123456789ABCDEF";m.textContent=[...Array(900)].map(()=>ch[Math.random()*ch.length|0]).join("");let n=0;iv(()=>{n=Math.min(100,n+1);if(n>=100)n=0;$("#sp").textContent=n+"%";$("#sf").style.width=n+"%";$("#sn").textContent=(n*40.96|0).toLocaleString();if(n%3==0)m.textContent=[...Array(900)].map(()=>ch[Math.random()*ch.length|0]).join("")},90)},
+17:()=>{let n=0;iv(()=>{n=n>=100?0:n+1;const p=$("#lp"),f=$("#lf");if(p)p.textContent=n+"%";if(f)f.style.width=n+"%";const t=$("#lt");if(t)t.textContent=["Đang tải tài nguyên…","Giải nén bản đồ…","Khởi tạo nhân vật…","Kết nối máy chủ…"][n/25|0]},70)}
+};
+
+let render;
+render=function(){
+  T.forEach(t=>{clearTimeout(t);clearInterval(t)});T=[];
+  const a=A[cur],h=typeof a[3]==="function"?a[3](vi):a[3];
+  $("#st").innerHTML=a[4]?h:`<div class="sc">${h}</div>`;
+  $("#sub").innerHTML=a[2]?a[2].map((l,i)=>`<button class="pl ${i===vi?"on":""}" data-v="${i}">${l}</button>`).join(""):"";
+  document.querySelectorAll("#nav .pl").forEach((b,i)=>b.classList.toggle("on",i===cur));
+  const m={0:0,7:7,8:8,12:12,13:13,14:14,15:15,16:16,17:17};
+  /* chỉ số: 0 border,7 dialogue... init khóa theo tên asset */
+  const key={"Electronic Border":0,"Dialogue Frame":7,"Subtitle Frame":8,"Health Bar":12,"Energy Bar":13,"Skill Icon Animation":14,"Target Lock":15,"Scan Line":16,"Loading Animation":17}[a[0]];
+  if(key!==undefined&&I[key])I[key]();
+  try{history.replaceState(null,"","#"+cur)}catch(e){}
+};
+$("#nav").innerHTML=A.map((a,i)=>`<button class="pl" data-i="${i}" title="${a[1]}">${a[0]}</button>`).join("");
+$("#nav").onclick=e=>{const b=e.target.closest(".pl");if(b){cur=+b.dataset.i;vi=0;render()}};
+$("#sub").onclick=e=>{const b=e.target.closest(".pl");if(b){vi=+b.dataset.v;render()}};
+$("#rp").onclick=render;
+$("#tg").onclick=()=>["#nav","#sub","#rp"].forEach(s=>$(s).classList.toggle("h"));
+addEventListener("keydown",e=>{if(e.key==="h")$("#tg").click();if(e.key==="ArrowRight"){cur=(cur+1)%A.length;vi=0;render()}if(e.key==="ArrowLeft"){cur=(cur+A.length-1)%A.length;vi=0;render()}});
+const h0=+location.hash.slice(1);if(h0>=0&&h0<A.length)cur=h0;
+render();
+</script></body></html>

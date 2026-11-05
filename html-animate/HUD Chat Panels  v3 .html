@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>HUD Chat Panels</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif:wght@700&display=swap" rel="stylesheet">
+<style>
+:root{--c:#19e8f0;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html,body{height:100%;margin:0}
+body{background:#050a08;display:grid;place-items:center;overflow:hidden}
+.stage{width:min(100vw,calc(100vh*16/9));aspect-ratio:16/9}
+svg{width:100%;height:100%;display:block}
+text{font-family:system-ui,"Segoe UI",Roboto,sans-serif}
+.cn{font-family:"Ma Shan Zheng",KaiTi,STKaiti,serif}
+.vn{font-family:"Noto Serif",Georgia,serif;font-weight:700}
+.run{stroke-dasharray:7 93;animation:run 6s linear infinite}
+.run2{stroke-dasharray:3 97;animation:run 3.4s linear infinite reverse}
+@keyframes run{to{stroke-dashoffset:-100}}
+.glow{animation:pulse 3.2s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.5}}
+.msg{opacity:0;animation:in .7s ease-out forwards}
+@keyframes in{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.nd{animation:nd 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes nd{50%{transform:scale(1.4)}}
+.sw{transform-origin:1355px 705px;animation:spin 4s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.ping{animation:pulse 2s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}.msg{opacity:1}}
+</style></head><body>
+<div class="stage"><svg id="hud" viewBox="0 0 1600 900" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<filter id="g" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="3.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+<radialGradient id="bg" cx=".45" cy=".3" r=".9"><stop offset="0" stop-color="#2e3d35"/><stop offset="1" stop-color="#0c1511"/></radialGradient>
+</defs>
+<rect width="1600" height="900" fill="url(#bg)"/>
+</svg></div>
+<script>
+const C="#19e8f0",P="#b77cff",R="#ff5468";
+const oct=(x,y,w,h,c)=>`M${x+c},${y}H${x+w-c}L${x+w},${y+c}V${y+h-c}L${x+w-c},${y+h}H${x+c}L${x},${y+h-c}V${y+c}Z`;
+const node=(x,y,r=6)=>`<circle class="nd" cx="${x}" cy="${y}" r="${r}" fill="#19e8f0" filter="url(#g)"/>`;
+let s="";
+
+/* khung lớn: viền dày + viền mảnh lệch + thanh nhấn + nút */
+function panel(x,y,w,h,c){
+  const ox=x-12,oy=y-12,ow=w+24,oh=h+24,oc=c+10;
+  return `<g fill="none" stroke="${C}" stroke-linejoin="round" stroke-linecap="round" filter="url(#g)">
+  <path d="${oct(ox,oy,ow,oh,oc)}" stroke-width="1.8" opacity=".55"/>
+  <path class="glow" d="${oct(x,y,w,h,c)}" stroke-width="5" fill="rgba(3,26,30,.42)"/>
+  <path class="run" pathLength="100" d="${oct(x,y,w,h,c)}" stroke="#fff" stroke-width="3"/>
+  <path class="run2" pathLength="100" d="${oct(ox,oy,ow,oh,oc)}" stroke="${P}" stroke-width="2"/>
+  <path d="M${x+60},${oy-9}H${x+150}M${ox-9},${y+70}V${y+150}M${ox+ow+9},${y+h-150}V${y+h-70}M${x+w-150},${oy+oh+9}H${x+w-60}" stroke-width="4"/></g>
+  ${node(ox+oc,oy)}${node(ox,oy+oc)}${node(ox+ow-oc,oy+oh)}${node(ox+ow,oy+oh-oc)}`;
+}
+
+/* ===== KHUNG CHAT ===== */
+s+=panel(115,77,1010,556,40);
+
+function bub(y,lines,letter,col,right,delay){
+  const w=600,h=104,x=right?510:160,cy=y+h/2,ax=right?x+w-56:x+56;
+  const tx=right?x+w-116:x+116,an=right?"end":"start";
+  let o=`<g class="msg" style="animation-delay:${delay}s"><g fill="none" stroke="${C}" stroke-linejoin="round" filter="url(#g)">
+  <path d="${oct(x,y,w,h,18)}" fill="rgba(4,34,40,.55)" stroke-width="2.8"/>
+  <path d="${oct(x+7,y+7,w-14,h-14,12)}" stroke-width="1.5" opacity=".6"/>
+  <path class="run" pathLength="100" d="${oct(x,y,w,h,18)}" stroke="#fff" stroke-width="2.5"/>
+  <path d="M${x+150},${y+h}H${x+260}" stroke="#fff" stroke-width="4"/>
+  <circle cx="${ax}" cy="${cy}" r="36" fill="#0b2428" stroke="${col}" stroke-width="3.5"/>
+  <circle cx="${ax}" cy="${cy}" r="29" stroke="${col}" stroke-width="1.2" opacity=".6"/></g>
+  <text x="${ax}" y="${cy+8}" text-anchor="middle" font-size="22" fill="#e8ffff">${letter}</text>`;
+  const ys=[cy-4,cy+32];
+  lines.forEach((t,i)=>o+=`<text x="${tx}" y="${ys[i]}" text-anchor="${an}" font-size="27" fill="#d8fcff">${t}</text>`);
+  return o+`</g>`;
+}
+s+=bub(170,["Các ngươi đúng là một đám","người thú vị."],"A",P,false,.3);
+s+=bub(312,["Ngươi có tư cách nói","chuyện này sao?"],"B",C,false,1.6);
+s+=bub(454,["Đừng lo, ta sẽ lo liệu","mọi chuyện."],"C",P,true,3);
+
+/* ===== THANH KỸ NĂNG ===== */
+s+=`<g fill="none" stroke="${C}" stroke-linejoin="round" filter="url(#g)">
+<path d="${oct(115,672,1010,183,22)}" stroke-width="3" fill="rgba(3,26,30,.42)"/>
+<path d="${oct(127,684,986,159,16)}" stroke-width="1.5" opacity=".55"/>
+<path class="run" pathLength="100" d="${oct(115,672,1010,183,22)}" stroke="#fff" stroke-width="2.5"/>
+<path d="M410,855H640" stroke="#fff" stroke-width="4"/>
+<path d="M705,705V822" stroke-width="2" opacity=".5"/></g>`;
+const nums=["47","59","48","61","73","19"];
+for(let i=0;i<6;i++){const x=190+i*91,col=(i==2||i==5)?P:C;
+  s+=`<g fill="none" stroke="${col}" filter="url(#g)"><circle cx="${x}" cy="750" r="37" fill="rgba(11,36,40,.65)" stroke-width="3.5"/><circle cx="${x}" cy="750" r="30" stroke-width="1.2" opacity=".6"/></g>
+  <text x="${x}" y="758" text-anchor="middle" font-size="22" fill="#e8ffff">${i+1}</text>
+  <text x="${x}" y="822" text-anchor="middle" font-size="20" fill="#8fe9f2">${nums[i]}</text>`;}
+["06","04","02"].forEach((n,i)=>{const x=790+i*124;
+  s+=`<g fill="none" stroke="${R}" filter="url(#g)"><circle cx="${x}" cy="762" r="53" fill="rgba(60,8,16,.3)" stroke-width="3.5"/><circle cx="${x}" cy="762" r="45" stroke-width="1.2" opacity=".6"/></g>
+  <text x="${x}" y="775" text-anchor="middle" font-size="36" fill="#ff8f9b">${n}</text>`;});
+
+/* ===== THẺ NHÂN VẬT ===== */
+s+=panel(1195,85,325,425,30);
+s+=`<g fill="none" stroke="${C}" filter="url(#g)">
+<circle cx="1357" cy="225" r="66" fill="rgba(11,36,40,.7)" stroke="${P}" stroke-width="3.5"/>
+<circle cx="1357" cy="225" r="77" stroke-width="1.5" stroke-dasharray="4 8" opacity=".6"/>
+<path d="M1250,413H1342M1372,413H1464" stroke-width="1.5" opacity=".7"/>
+<path d="M1357,405l8,8-8,8-8-8z" fill="${C}"/>
+<rect x="1296" y="438" width="122" height="38" rx="19" stroke-width="2"/></g>
+<g><ellipse cx="1357" cy="233" rx="48" ry="50" fill="#e8e8ee"/><circle cx="1357" cy="237" r="33" fill="#f6e8da"/>
+<path d="M1322,230Q1357,170 1392,230Q1357,198 1322,230Z" fill="#e8e8ee"/>
+<path d="M1339,242q7,7 14,0M1362,242q7,7 14,0" fill="none" stroke="#333" stroke-width="2.5" stroke-linecap="round"/></g>
+<g text-anchor="middle" fill="#e8ffff" style="filter:drop-shadow(0 0 8px #19e8f0)">
+<text x="1357" y="140" font-size="14" letter-spacing="6" fill="#7fdfe8" style="filter:none">NHÂN VẬT</text>
+<text class="cn" x="1357" y="345" font-size="58" letter-spacing="10">范文姜</text>
+<text class="vn" x="1357" y="390" font-size="27" fill="#bff9ff">Phạm Văn Khương</text>
+<text x="1357" y="464" font-size="19" font-weight="700" letter-spacing="2">29 TUỔI</text>
+<text transform="translate(1222,300) rotate(-90)" font-size="12" letter-spacing="4" fill="#7fdfe8" style="filter:none">TU TIÊN GIỚI</text>
+<text transform="translate(1492,300) rotate(90)" font-size="12" letter-spacing="4" fill="#7fdfe8" style="filter:none">SINH TỒN · <tspan class="cn" font-size="14">存活</tspan></text></g>`;
+
+/* ===== BẢN ĐỒ (radar) ===== */
+s+=panel(1195,560,325,295,30);
+s+=`<g fill="none" stroke="${C}" filter="url(#g)">
+<circle cx="1355" cy="705" r="100" stroke-width="2.5"/><circle cx="1355" cy="705" r="66" stroke-width="1.5" opacity=".6"/><circle cx="1355" cy="705" r="33" stroke-width="1.5" opacity=".6"/>
+<path d="M1245,705H1465M1355,595V815" stroke-width="1.2" opacity=".5"/></g>
+<g class="sw"><path d="M1355,705L1455,705A100,100 0 0 0 1437,648Z" fill="${C}" opacity=".3"/></g>
+<circle class="ping" cx="1400" cy="660" r="5" fill="#fff"/><circle class="ping" cx="1318" cy="740" r="5" fill="${R}"/><circle class="ping" cx="1385" cy="750" r="4" fill="${P}"/>
+<text x="1357" y="610" text-anchor="middle" font-size="13" letter-spacing="6" fill="#7fdfe8">BẢN ĐỒ</text>
+<text x="1357" y="835" text-anchor="middle" font-size="13" letter-spacing="3" fill="#7fdfe8">X 128 · Y 046</text>`;
+
+document.getElementById("hud").insertAdjacentHTML("beforeend",s);
+</script>
+</body></html>
