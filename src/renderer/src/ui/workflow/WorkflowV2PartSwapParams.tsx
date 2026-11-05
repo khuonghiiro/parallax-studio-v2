@@ -147,6 +147,39 @@ export function WorkflowV2PartSwapParams({
     }
   }
 
+  const isFacePart = activePart?.id === 'face' && expressions.length > 0
+  const selectedSubLayer =
+    partLayers.find((l) => l.id === p.swapTargetLayerId || l.id === p.swapVariant) ?? partLayers[0]
+  const triggerSummary = resolvePartMotionTriggerWindow(project, node, p)
+
+  const variantItems = useMemo(() => {
+    if (isFacePart) {
+      return expressions.map((expr) => {
+        const lyr = members.find((m) => m.id === expr.layerId)
+        const active = p.swapVariant ? p.swapVariant === expr.layerId : expr.visible
+        return {
+          id: expr.layerId,
+          label: expr.label,
+          assetId: getLayerAssetId(lyr),
+          active,
+          badge: active ? 'Đang chọn' : undefined
+        }
+      })
+    }
+    return partLayers.map((pl) => {
+      const shortName = getClusterPartShortName(pl)
+      const active = p.swapVariant ? p.swapVariant === pl.id : pl.visible !== false
+      return {
+        id: pl.id,
+        label: shortName,
+        assetId: getLayerAssetId(pl),
+        active,
+        badge: active ? 'Đang bật' : 'Ẩn'
+      }
+    })
+  }, [isFacePart, expressions, members, partLayers, p.swapVariant])
+
+
   // 1. GIAO DIỆN NODE BỘ PHẬN CHÍNH (HUB QUẢN LÝ CÁC NODE CON BỘ PHẬN)
   if (p.isPartHub || (!p.isPartChild && childPartNodes.length > 0)) {
     const collapsed = Boolean(p.collapsedGroup)
@@ -241,37 +274,6 @@ export function WorkflowV2PartSwapParams({
   }
 
   // 2. GIAO DIỆN NODE CON BỘ PHẬN (THUMBNAIL TRỰC QUAN + BẮT VỊ TRÍ MOTION BBOX + TƯ THẾ)
-  const isFacePart = activePart?.id === 'face' && expressions.length > 0
-  const selectedSubLayer =
-    partLayers.find((l) => l.id === p.swapTargetLayerId || l.id === p.swapVariant) ?? partLayers[0]
-  const triggerSummary = resolvePartMotionTriggerWindow(project, node, p)
-
-  const variantItems = useMemo(() => {
-    if (isFacePart) {
-      return expressions.map((expr) => {
-        const lyr = members.find((m) => m.id === expr.layerId)
-        const active = p.swapVariant ? p.swapVariant === expr.layerId : expr.visible
-        return {
-          id: expr.layerId,
-          label: expr.label,
-          assetId: getLayerAssetId(lyr),
-          active,
-          badge: active ? 'Đang chọn' : undefined
-        }
-      })
-    }
-    return partLayers.map((pl) => {
-      const shortName = getClusterPartShortName(pl)
-      const active = p.swapVariant ? p.swapVariant === pl.id : pl.visible !== false
-      return {
-        id: pl.id,
-        label: shortName,
-        assetId: getLayerAssetId(pl),
-        active,
-        badge: active ? 'Đang bật' : 'Ẩn'
-      }
-    })
-  }, [isFacePart, expressions, members, partLayers, p.swapVariant])
 
   return (
     <div className="wf-v2-part-child-editor" data-mcp-region="workflow_part_editor">

@@ -1,5 +1,6 @@
 import type { Layer, Project, WorkflowGraph, WorkflowNode } from '@shared/types'
-import { getClusterDisplayName, getClusterMemberLayers, getClusterRootLayer } from '../../project/workflowV2ClusterRigAndSwap'
+import { getClusterDisplayName } from '../../project/workflowV2Options'
+import { getClusterMemberLayers, getClusterRootLayer } from '../../project/workflowV2ClusterRigAndSwap'
 import type { ProjectedLayer2D } from '../viewer/animateCamera/animateCameraMath'
 
 interface MotionEntityInput {
