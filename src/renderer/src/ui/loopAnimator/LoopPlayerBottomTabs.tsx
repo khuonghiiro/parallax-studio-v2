@@ -84,10 +84,11 @@ export function LoopPlayerBottomTabs(): React.ReactElement {
           onClick={() => setActiveTab('speed')}
           role="tab"
           aria-selected={activeTab === 'speed'}
+          title="Tốc độ phát (FPS & Tốc độ nhân)"
         >
-          <IconSpeedClock width={13} height={13} />
-          <span>Tốc độ</span>
-          <span className="la-bottom-tab-badge">{playback.fps}fps</span>
+          <IconSpeedClock width={12} height={12} />
+          <span className="la-bottom-tab-label">Tốc độ</span>
+          <span className="la-bottom-tab-badge">{playback.fps}</span>
         </button>
 
         <button
@@ -96,9 +97,10 @@ export function LoopPlayerBottomTabs(): React.ReactElement {
           onClick={() => setActiveTab('loop')}
           role="tab"
           aria-selected={activeTab === 'loop'}
+          title="Kiểu lặp khung hình (Vòng lặp, Lắc lư, 1 lần, Ngẫu nhiên)"
         >
-          <IconLoopAnimate width={13} height={13} />
-          <span>Kiểu lặp</span>
+          <IconLoopAnimate width={12} height={12} />
+          <span className="la-bottom-tab-label">Lặp</span>
           <span className="la-bottom-tab-badge">
             {playback.loopMode === 'loop'
               ? 'Vòng'
@@ -116,9 +118,10 @@ export function LoopPlayerBottomTabs(): React.ReactElement {
           onClick={() => setActiveTab('rhythm')}
           role="tab"
           aria-selected={activeTab === 'rhythm'}
+          title="Nhịp điệu & Hiệu ứng chớp giật theo nhịp"
         >
-          <IconLightning width={13} height={13} />
-          <span>Nhịp điệu</span>
+          <IconLightning width={12} height={12} />
+          <span className="la-bottom-tab-label">Nhịp</span>
           <span className={`la-bottom-tab-badge ${r.rhythmMode !== 'none' ? 'highlight' : ''}`}>
             {r.rhythmMode !== 'none' ? 'Bật' : 'Tắt'}
           </span>
@@ -130,9 +133,10 @@ export function LoopPlayerBottomTabs(): React.ReactElement {
           onClick={() => setActiveTab('anchor')}
           role="tab"
           aria-selected={activeTab === 'anchor'}
+          title="Điểm neo căn chỉnh (Chân sàn, Tâm, Đỉnh, Trái, Phải)"
         >
-          <IconAnchor width={13} height={13} />
-          <span>Điểm neo</span>
+          <IconAnchor width={12} height={12} />
+          <span className="la-bottom-tab-label">Neo</span>
           <span className="la-bottom-tab-badge">
             {currentAnchor === 'center'
               ? 'Tâm'
@@ -152,9 +156,10 @@ export function LoopPlayerBottomTabs(): React.ReactElement {
           onClick={() => setActiveTab('bg')}
           role="tab"
           aria-selected={activeTab === 'bg'}
+          title="Màu nền sân khấu xem trước (Caro, Tối, Sáng, Xanh phông)"
         >
-          <IconGrid width={13} height={13} />
-          <span>Màu nền</span>
+          <IconGrid width={12} height={12} />
+          <span className="la-bottom-tab-label">Nền</span>
         </button>
       </div>
 

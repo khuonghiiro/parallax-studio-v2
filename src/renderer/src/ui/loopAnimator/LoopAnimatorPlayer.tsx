@@ -25,7 +25,7 @@ interface Props {
   sourceCanvasRef: React.RefObject<HTMLCanvasElement | null>
 }
 
-const STAGE = 360
+const STAGE = 440
 const BG_OPTIONS: { id: LoopPlaybackConfig['previewBg']; label: string }[] = [
   { id: 'checker', label: 'Ô caro trong suốt' },
   { id: 'dark', label: 'Nền tối' },
@@ -232,7 +232,7 @@ export function LoopAnimatorPlayer({ sourceCanvasRef }: Props): React.ReactEleme
   }, [groups, activeGroupIndex])
 
   const getCommonStageScale = useCallback((): number => {
-    if (groups.length > 1) {
+    if (isComboActive && groups.length > 1) {
       let maxW = 1
       let maxH = 1
       for (const g of groups) {
@@ -241,12 +241,13 @@ export function LoopAnimatorPlayer({ sourceCanvasRef }: Props): React.ReactEleme
           if (f.height > maxH) maxH = f.height
         }
       }
-      return Math.min((STAGE - 36) / maxW, (STAGE - 36) / maxH)
+      return Math.min((STAGE - 16) / maxW, (STAGE - 16) / maxH)
     }
-    const maxW = Math.max(1, ...frames.map((f) => f.width))
-    const maxH = Math.max(1, ...frames.map((f) => f.height))
-    return Math.min((STAGE - 36) / maxW, (STAGE - 36) / maxH)
-  }, [groups, frames])
+    const targetFrames = activeGroup?.frames?.length ? activeGroup.frames : frames
+    const maxW = Math.max(1, ...targetFrames.map((f) => f.width))
+    const maxH = Math.max(1, ...targetFrames.map((f) => f.height))
+    return Math.min((STAGE - 16) / maxW, (STAGE - 16) / maxH)
+  }, [isComboActive, groups, activeGroup, frames])
 
   const drawSingleOrAlignedPreview = useCallback(
     (frameIndex: number, nowSec = 0) => {

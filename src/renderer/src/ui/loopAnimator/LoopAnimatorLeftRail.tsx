@@ -458,6 +458,60 @@ export function LoopAnimatorLeftRail({
                   </div>
                 </div>
 
+                {shadowMode !== 'off' && (
+                  <div style={{ marginTop: 6, padding: '6px 8px', background: 'var(--bg-2)', borderRadius: 'var(--radius-sm)' }}>
+                    <div className="la-field-row">
+                      <span className="la-field-label" style={{ fontSize: 10.5 }}>Loại bóng:</span>
+                      <div className="la-seg">
+                        {SHADOW_TYPES.map((t) => (
+                          <button
+                            key={t.id}
+                            type="button"
+                            className={`la-seg-btn${(chromaKey.shadowType ?? 'auto') === t.id ? ' active' : ''}`}
+                            onClick={() => setChromaKey({ shadowType: t.id })}
+                            title={t.title}
+                            style={{ padding: '2px 6px', fontSize: 10 }}
+                          >
+                            {t.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div style={{ marginTop: 4 }}>
+                      <LoopRangeField
+                        label="Độ đậm"
+                        value={chromaKey.shadowRetention ?? 68}
+                        display={`${Math.round(chromaKey.shadowRetention ?? 68)}%`}
+                        min={5}
+                        max={100}
+                        step={1}
+                        onChange={(v) => setChromaKey({ shadowRetention: v })}
+                      />
+                      <LoopRangeField
+                        label="Độ đặc"
+                        value={chromaKey.shadowSolidThreshold ?? 30}
+                        display={`${Math.round(chromaKey.shadowSolidThreshold ?? 30)}%`}
+                        min={0}
+                        max={90}
+                        step={1}
+                        onChange={(v) => setChromaKey({ shadowSolidThreshold: v })}
+                      />
+                    </div>
+
+                    <div className="la-field-row" style={{ marginTop: 4 }}>
+                      <label style={{ fontSize: 10.5, display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={chromaKey.shadowUnmixColor !== false}
+                          onChange={(e) => setChromaKey({ shadowUnmixColor: e.target.checked })}
+                        />
+                        <span>Khử ám màu nền</span>
+                      </label>
+                    </div>
+                  </div>
+                )}
+
                 {/* Đồng bộ nhóm */}
                 {groups.length > 1 && (
                   <div style={{ marginTop: 6, padding: '6px 8px', background: 'var(--bg-2)', borderRadius: 'var(--radius-sm)' }}>

@@ -376,8 +376,8 @@
   display: flex;
   flex-direction: column;
   flex: 0 0 380px;
-  min-width: 320px;
-  max-width: 440px;
+  min-width: 340px;
+  max-width: 480px;
   height: 100%;
   overflow: hidden;
   position: relative;
@@ -386,16 +386,19 @@
 }
 
 .loop-player-stage {
-  flex: 1 1 200px !important;
+  flex: 1 1 260px !important;
   height: auto !important;
-  min-height: 160px !important;
-  max-height: 280px !important;
+  min-height: 220px !important;
+  max-height: 420px !important;
   border-bottom: none !important;
 }
 
 .loop-player-canvas {
-  width: min(84%, 260px) !important;
-  height: min(84%, 260px) !important;
+  width: calc(100% - 16px) !important;
+  height: calc(100% - 16px) !important;
+  max-width: 380px !important;
+  max-height: 380px !important;
+  object-fit: contain !important;
 }
 
 .loop-transport-bar {
@@ -455,24 +458,23 @@
 .la-bottom-tabs-bar {
   display: flex;
   align-items: center;
-  gap: 3px;
-  padding: 4px 8px;
+  gap: 2px;
+  padding: 4px;
   background: var(--bg-3);
   border-bottom: 1px solid var(--line-soft);
-  overflow-x: auto;
   flex-shrink: 0;
-  white-space: nowrap;
-}
-
-.la-bottom-tabs-bar::-webkit-scrollbar {
-  height: 2px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .la-bottom-tab-btn {
+  flex: 1 1 0;
+  min-width: 0;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 4px 8px;
+  justify-content: center;
+  gap: 3px;
+  padding: 5px 2px;
   font-size: 11px;
   font-weight: 500;
   border-radius: var(--radius-sm);
@@ -482,7 +484,12 @@
   cursor: pointer;
   transition: all 0.12s ease;
   white-space: nowrap;
-  flex-shrink: 0;
+}
+
+.la-bottom-tab-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .la-bottom-tab-btn:hover {

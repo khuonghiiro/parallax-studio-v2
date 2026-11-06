@@ -141,15 +141,16 @@ function buildAdvancedCutterSettings(chroma: ChromaKeyConfig): ChromaKeySettings
     despeckleSize: 0,
     keepLargestIslandOnly: false,
     edgeChoke: 0,
-    edgeSmooth: 1,
+    edgeSmooth: 0,
     strokeWidth: 0,
     strokeColorHex: '#ffffff',
     // Cùng pipeline với Xưởng lắp ráp 2.5D; "Chỉ nền ngoài" chỉ loang từ mép ảnh nên giữ nguyên phần ruột
     // (ví dụ ruột vòng tròn / quầng sáng bên trong đường viền)
     isolationMode: resolveLoopIsolationMode(chroma),
     strictOuterIsolation: true,
-    // "Xoá bóng" cho hiệu ứng ánh sáng: bỏ hẳn quầng mờ thay vì để lại mảng xanh đục
-    removeSoftHalo: (chroma.shadowMode ?? 'off') === 'off',
+    // Chỉ loại bỏ mảng màu xanh/lam/hồng đục khi xoá bóng trên phông màu;
+    // tuyệt đối không xoá quầng sáng/hào quang trên phông đen/tối
+    removeSoftHalo: (chroma.shadowMode ?? 'off') === 'off' && (kr > 30 || kg > 30 || kb > 30),
     cleanupMode: 'all',
     previewMode: 'transparent'
   }

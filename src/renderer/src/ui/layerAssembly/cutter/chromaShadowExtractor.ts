@@ -324,6 +324,13 @@ export function unmixPixelRgb(
   const r = data[idx]
   const g = data[idx + 1]
   const b = data[idx + 2]
+  // Đối với phông nền đen/tối hoặc tia sáng/hào quang sáng trên nền tối (Additive Light),
+  // màu sắc gốc chính là màu tự thân của ánh sáng. Nhân nghịch đảo 1/aUnmix sẽ làm cháy rực màu (R, G cực đại) tạo viền răng cưa vàng/cam!
+  const isDarkKey = keyRgb.r < 30 && keyRgb.g < 30 && keyRgb.b < 30
+  if (isDarkKey || (isLightGlow && keyRgb.r < 80 && keyRgb.g < 80 && keyRgb.b < 80)) {
+    return
+  }
+
   const aUnmix = Math.max(0.07, Math.min(1, aAll))
   const invA = 1 / aUnmix
 
@@ -360,7 +367,8 @@ export function unmixPixelRgb(
 
 /** Ngưỡng độ phủ phân tách vật thể đặc khỏi bóng mờ / quầng sáng (30..92%, mặc định 62%) */
 export function resolveSolidCutoff(settings: ChromaKeySettings): number {
-  return Math.max(0.3, Math.min(0.92, (settings.shadowSolidThreshold ?? 62) / 100))
+  const threshold = settings.shadowSolidThreshold !== undefined ? settings.shadowSolidThreshold : 62
+  return Math.max(0.0, Math.min(0.95, threshold / 100))
 }
 
 /**
@@ -437,13 +445,20 @@ export function applyShadowAndMistExtraction(
     const aAll = rawAlpha[p]
     let finalA: number
     const isSolidForeground = mode === 'include' && aAll >= solidCutoff
-    if (isSolidForeground) {
+    if (mode === 'only') {
+      const aNorm = Math.max(0, Math.min(1, (dirAlpha[p] - noiseFloor) / span))
+      const curved = Math.pow(aNorm, gamma) * maxShadowScale
+      finalA = Math.max(0, Math.min(255, Math.round(origA * Math.min(1, curved))))
+    } else if (isSolidForeground) {
       finalA = origA
       activeBg[p] = 0
     } else {
       const aNorm = Math.max(0, Math.min(1, (dirAlpha[p] - noiseFloor) / span))
-      const curved = Math.pow(aNorm, gamma) * maxShadowScale
-      finalA = Math.max(0, Math.min(255, Math.round(origA * Math.min(1, curved))))
+      const shadowCurved = Math.pow(aNorm, gamma)
+      // Nối trơn tru tiệm cận origA (255) khi tiếp giáp solidCutoff, triệt tiêu hoàn toàn bước nhảy bậc thang alpha
+      const blend = aNorm * aNorm * (3 - 2 * aNorm)
+      const effScale = maxShadowScale * (1 - blend) + 1.0 * blend
+      finalA = Math.max(0, Math.min(255, Math.round(origA * Math.min(1, shadowCurved * effScale))))
     }
 
     // Chỉ unmix các pixel bán trong suốt (bóng/mây/quầng) hoặc pixel nằm sát biên 3px với nền;
