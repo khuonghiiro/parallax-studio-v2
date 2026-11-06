@@ -180,6 +180,19 @@
   background: var(--bg-2);
 }
 
+.la-icon-btn--edit {
+  color: #10b981;
+  border-color: rgba(16, 185, 129, 0.45);
+  background: color-mix(in srgb, #10b981 12%, var(--bg-2));
+}
+
+.la-icon-btn--edit:hover {
+  background: #10b981;
+  border-color: #10b981;
+  color: #ffffff;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+}
+
 .la-icon-btn--primary {
   background: var(--accent);
   border-color: var(--accent);
@@ -193,10 +206,17 @@
   box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 45%, transparent);
 }
 
+.la-icon-btn--danger {
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.45);
+  background: color-mix(in srgb, #ef4444 12%, var(--bg-2));
+}
+
 .la-icon-btn--danger:hover {
-  background: color-mix(in srgb, var(--danger) 14%, var(--bg-2));
-  border-color: var(--danger);
-  color: var(--danger);
+  background: #ef4444;
+  border-color: #ef4444;
+  color: #ffffff;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
 }
 
 /* ---------------------------------------------------------------- Text input */

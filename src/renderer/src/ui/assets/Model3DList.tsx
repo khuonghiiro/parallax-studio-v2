@@ -225,31 +225,12 @@ export function Model3DList() {
                 <div className="model-3d-card-actions">
                   <button
                     type="button"
-                    className="la-icon-btn la-icon-btn--primary"
-                    onClick={() => handleInsert(m)}
-                    disabled={insertingId === m.id}
-                    title="Chèn mô hình 3D này vào cảnh hiện tại"
-                    aria-label="Chèn mô hình 3D"
-                  >
-                    <IconPlus width={13} height={13} />
-                  </button>
-                  <button
-                    type="button"
-                    className="la-icon-btn la-icon-btn--bordered"
+                    className="la-icon-btn la-icon-btn--bordered la-icon-btn--edit"
                     onClick={() => setActiveEditingModel(m)}
                     title="Chỉnh sửa mô hình 3D trong Xưởng Lắp Ráp"
                     aria-label="Chỉnh sửa"
                   >
                     <IconPen width={12} height={12} />
-                  </button>
-                  <button
-                    type="button"
-                    className="la-icon-btn la-icon-btn--bordered"
-                    onClick={() => handleDuplicate(m.id)}
-                    title="Nhân bản (tạo bản sao) mô hình này"
-                    aria-label="Nhân bản"
-                  >
-                    <IconCopy width={12} height={12} />
                   </button>
                   <button
                     type="button"
