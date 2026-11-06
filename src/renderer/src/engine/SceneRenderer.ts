@@ -6,6 +6,7 @@ import { evaluateScene, type EvaluatedScene } from './evaluateScene'
 import { EditorHelpers, type HelperLayerInfo, type ScreenLabel } from './editorHelpers'
 import { COPY_FRAG, POST_FRAG, POST_VERT } from './shaders'
 import { DEG } from './spatial'
+import { computeClusterOutlineMatrix } from './clusterOutline'
 import {
   applyBlend,
   applyEvaluatedCamera,
@@ -612,13 +613,29 @@ export class SceneRenderer {
   }
 
   private updateOutline(selectedId?: string | null, scope?: 'cluster' | 'layer'): void {
-    const layer = this.lastScene?.layers.find(l => l.layer.id === selectedId)?.layer
-    const cluster = layer?.composite ?? layer?.model3d
-    if (scope !== 'layer' && cluster && cluster.lockedGroup !== false) {
+    if (!selectedId) {
       this.outline.visible = false
       return
     }
-    const sel = selectedId ? this.nodes.get(selectedId) : undefined
+
+    const clusterMatrix = computeClusterOutlineMatrix(
+      selectedId,
+      scope,
+      this.lastScene,
+      (id) => {
+        const n = this.nodes.get(id)
+        return n && n.type !== 'particles' ? n.object.matrixWorld : null
+      }
+    )
+
+    if (clusterMatrix) {
+      this.outline.visible = true
+      this.outline.matrix.copy(clusterMatrix)
+      this.outline.matrixWorldNeedsUpdate = true
+      return
+    }
+
+    const sel = this.nodes.get(selectedId)
     if (sel && sel.object.visible && sel.type !== 'particles') {
       this.outline.visible = true
       this.outline.matrix.copy(sel.object.matrixWorld)
