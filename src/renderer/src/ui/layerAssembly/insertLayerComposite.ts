@@ -50,6 +50,12 @@ function isSwappableHiddenVariant(item: AssembledLayerItem): boolean {
   )
 }
 
+// Hệ số nén trục Z phối cảnh cho các layer cụm lắp ráp 2.5D:
+// Trong xưởng 2D, item.z (tầm -100 đến +100px) dùng để phân tầng Z-Index 2D.
+// Khi đưa vào Scene 3D với PerspectiveCamera, áp dụng tỷ lệ 0.02 (1 đơn vị 2D = 0.02 đơn vị Three.js)
+// để bảo toàn 100% thứ tự trước sau mà không làm biến dạng phối cảnh (độ lệch vị trí < 0.08px).
+export const COMPOSITE_Z_FACTOR = 0.02
+
 /** Tạo ImageLayer của cảnh từ 1 layer trong mẫu (vị trí, tỉ lệ, góc, liên kết cụm & thông tin bộ phận). */
 function buildSceneLayer({
   item,
@@ -65,7 +71,7 @@ function buildSceneLayer({
   const pos: [number, number, number] = [
     item.x * globalScale + positionOffset[0],
     -item.y * globalScale + positionOffset[1],
-    item.z * globalScale + positionOffset[2]
+    item.z * COMPOSITE_Z_FACTOR * globalScale + positionOffset[2]
   ]
   const layer = createImageLayer(asset, comp, pos[2])
   layer.id = 'layer-' + nanoid(8)
@@ -110,7 +116,7 @@ function buildSceneLayer({
     isRoot,
     lockedGroup: true,
     centerPosition: [...positionOffset],
-    rootOffset: [item.x * globalScale, -item.y * globalScale, item.z * globalScale],
+    rootOffset: [item.x * globalScale, -item.y * globalScale, item.z * COMPOSITE_Z_FACTOR * globalScale],
     sourceLayerId: item.id,
     ...(item.slot ? { slot: item.slot, variant: item.variant } : {}),
     ...(item.partGroupId ? { partGroupId: item.partGroupId } : {}),

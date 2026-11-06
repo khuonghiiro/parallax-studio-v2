@@ -199,34 +199,12 @@ export function WorkshopCutoutPartRigOverlay({
   // Tạo xương tự động cho bộ phận đang focus
   const handleAutoCreateBone = () => {
     if (!activePart) return
-    const updated = createBoneForSingleLayer(
-      activePart.layer.id,
-      composite,
-      undefined,
-      activePart.suggestedBindingMode
-    )
-    run({ action: 'apply-template', template: 'humanoid' }) // trigger sync or direct commit
-    // Gọi action update bone hoặc import
-    composite.layers.forEach((l) => {
-      const match = updated.layers.find((ul) => ul.id === l.id)
-      if (match && match.boneId !== l.boneId) {
-        run({
-          action: 'bind',
-          boneId: match.boneId!,
-          layerIds: [l.id],
-          mode: match.bindingMode || 'rigid'
-        })
-      }
+    run({
+      action: 'create-bone-for-layer',
+      layerId: activePart.layer.id,
+      parentId: undefined,
+      mode: activePart.suggestedBindingMode
     })
-    if (updated.rig) {
-      const newBone = updated.rig.bones.find((b) => b.id === updated.layers.find((l) => l.id === activePart.layer.id)?.boneId)
-      if (newBone && !bones.some((b) => b.id === newBone.id)) {
-        run({
-          action: 'add-bone',
-          bone: newBone
-        })
-      }
-    }
     setRigToolState({
       statusHint: `✓ Đã tạo xương và gắn khớp cho "${activePart.layer.name}".`
     })

@@ -660,23 +660,49 @@ export function WorkshopBoneOverlay({
         const created = createBoneFromCanvasDrag(d.start, d.current, d.parentBone, rig.bones.length, undefined, d.parentJoint)
         const targetLayerId = rigTool.targetBindingLayerId
         const targetMode = rigTool.targetBindingMode ?? 'rigid'
+        let boundLayerName: string | null = null
         setComposite((c) => {
           let next = applyRigAction(c, { action: 'add-bone', bone: created })
           if (rigTool.mirrorDraw && Math.abs(created.x) > 10) {
             next = applyRigAction(next, { action: 'mirror-bone', boneId: created.id })
           }
-          if (targetLayerId) {
-            next = applyRigAction(next, { action: 'bind', boneId: created.id, layerIds: [targetLayerId], mode: targetMode })
+          // Tìm layer đích: hoặc từ targetBindingLayerId, hoặc layer đang gắn vào d.parentBone
+          const parentBone = d.parentBone
+          const effectiveTargetLayer = targetLayerId
+            ? next.layers.find((l) => l.id === targetLayerId)
+            : parentBone
+              ? next.layers.find((l) => l.boneId === parentBone.id)
+              : null
+
+          if (effectiveTargetLayer) {
+            boundLayerName = effectiveTargetLayer.name
+            const hasExistingBone = Boolean(effectiveTargetLayer.boneId && effectiveTargetLayer.boneId !== created.id)
+            if (hasExistingBone) {
+              // Layer đã có xương cha (ví dụ đã có xương Đùi, giờ vẽ thêm xương Cẳng chân):
+              // Tự động chuyển layer sang soft mesh uốn cong và bổ sung xương con mới vào extraBoneIds
+              const extra = Array.isArray(effectiveTargetLayer.extraBoneIds) ? [...effectiveTargetLayer.extraBoneIds] : []
+              if (!extra.includes(created.id)) extra.push(created.id)
+              next = {
+                ...next,
+                layers: next.layers.map((l) =>
+                  l.id === effectiveTargetLayer.id
+                    ? { ...l, bindingMode: 'soft' as const, extraBoneIds: extra }
+                    : l
+                )
+              }
+            } else {
+              next = applyRigAction(next, { action: 'bind', boneId: created.id, layerIds: [effectiveTargetLayer.id], mode: targetMode })
+            }
           }
           return next
         })
         selectBone(created.id)
-        const boundLayer = targetLayerId ? composite.layers.find((l) => l.id === targetLayerId) : null
+        const isCutoutActive = Boolean(rigTool.cutoutStageMode && rigTool.focusedCutoutLayerId)
         setRigToolState({
           pendingDashedLink: null,
-          targetBindingLayerId: null,
-          statusHint: boundLayer
-            ? `✓ Đã tạo "${created.name}" và gắn thẳng vào bộ phận "${boundLayer.name}".`
+          targetBindingLayerId: isCutoutActive ? rigTool.focusedCutoutLayerId : null,
+          statusHint: boundLayerName
+            ? `✓ Đã tạo "${created.name}" và gắn khớp uốn cho "${boundLayerName}".`
             : d.parentBone
               ? d.snapped
                 ? `Đã hàn khớp xương "${created.name}" vào "${d.parentBone.name}".`

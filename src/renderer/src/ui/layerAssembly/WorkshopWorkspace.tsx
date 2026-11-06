@@ -222,12 +222,14 @@ export function WorkshopWorkspace({
         const bindPose = { x: l.x, y: l.y, rotation: l.rotation }
         const isSingleLayerChar = state.composite.layers.length === 1 && Boolean(effectiveRig?.bones.length)
         const implicitSingleSoft = !l.boneId && isSingleLayerChar
-        const effectiveSoft = l.bindingMode === 'soft' || isSingleLayerChar
         const effectiveBoneId = l.boneId ?? (isSingleLayerChar ? effectiveRig!.bones[0]?.id : undefined)
-        const extraBoneIds =
-          effectiveSoft && effectiveRig
+        const candidateExtraBones =
+          effectiveRig && effectiveBoneId
             ? (l.extraBoneIds?.length ? l.extraBoneIds : extraSoftBoneIdsForLayer(state.composite.layers, effectiveRig, l.id, effectiveBoneId))
             : undefined
+        const hasMultiLimbBones = Boolean(candidateExtraBones && candidateExtraBones.length > 0)
+        const effectiveSoft = l.bindingMode === 'soft' || isSingleLayerChar || hasMultiLimbBones
+        const extraBoneIds = effectiveSoft ? candidateExtraBones : undefined
         const boneTf = transforms && effectiveBoneId ? transforms.get(effectiveBoneId) : undefined
         const transformed =
           transforms && !effectiveSoft
