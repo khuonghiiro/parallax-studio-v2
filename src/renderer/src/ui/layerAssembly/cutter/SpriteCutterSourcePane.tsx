@@ -27,8 +27,10 @@ import {
   readCutterSessionCache,
   writeCutterSessionCache
 } from './cutterHelpers'
-import { CutterBrushSubBar } from './CutterBrushSubBar'
-import { CutterGridSubBar, CutterQuickPartsStrip } from './CutterSlicesBar'
+import { SpriteCutterLeftRail } from './SpriteCutterLeftRail'
+import { SpriteCutterRightRail } from './SpriteCutterRightRail'
+import '../../../styles/spriteCutterRails.css'
+import { CutterQuickPartsStrip } from './CutterSlicesBar'
 import { PhotoshopEyedropperOverlay } from './PhotoshopEyedropperOverlay'
 import {
   SpriteCutterSourceToolbar,
@@ -810,60 +812,49 @@ export function SpriteCutterSourcePane({
         }}
       />
 
-      {/* Thanh công cụ + Bảng Studio Tách nền & Khử viền chuyên sâu */}
-      <SpriteCutterSourceToolbar
-        tool={tool}
-        islandsCount={islands.length}
-        gridSettings={gridSettings}
-        tagDisplayMode={tagDisplayMode}
-        canvasBg={canvasBg}
-        chroma={chroma}
-        showChromaStudio={showChromaStudio}
-        eyedropperTarget={eyedropperTarget}
-        eyedropperSample={eyedropperSample}
-        onChangeTool={handleSelectTool}
-        onChangeTagDisplayMode={setTagDisplayMode}
-        onChangeCanvasBg={setCanvasBg}
-        onChangeChroma={handleUpdateChroma}
-        onToggleChromaStudio={() => setShowChromaStudio((v) => !v)}
-        onToggleEyedropper={handleToggleEyedropper}
-        onResetChroma={handleResetAllChroma}
-      />
-
-      {/* Thanh cấu hình Cắt Lưới Ma Trận khi ở chế độ Grid */}
-      {tool === 'grid' && (
-        <CutterGridSubBar
-          grid={gridSettings}
-          totalCells={activeIslands.length}
-          onChangeGrid={(patch) => setGridSettings((prev) => ({ ...prev, ...patch }))}
-          onSendAllToBoard={handleSendAllToBoard}
-        />
-      )}
-
-      {/* Thanh cấu hình Đũa Thần / Cọ Tẩy / Khôi Phục */}
-      {(tool === 'wand' || tool === 'eraser' || tool === 'restore') && (
-        <CutterBrushSubBar
+      {/* Vùng hiển thị Canvas Ảnh Nguồn + Kính lúp Hút màu Photoshop */}
+      <div
+        ref={viewportWrapRef}
+        className={`layer-cutter-canvas-wrap ${bgCssClass} ${spacePanClassName}`}
+      >
+        {/* Left Rail: Công cụ cắt, đũa thần, cọ vẽ & hút màu kiểu Photoshop */}
+        <SpriteCutterLeftRail
           tool={tool}
+          islandsCount={activeIslands.length}
+          gridSettings={gridSettings}
           brushRadius={brushRadius}
           brushHardness={brushHardness}
           brushOpacity={brushOpacity}
           wandTolerance={wandTolerance}
           canUndo={canUndo}
           canRedo={canRedo}
+          eyedropperActive={eyedropperTarget === 'key'}
+          onChangeTool={handleSelectTool}
+          onChangeGrid={(patch) => setGridSettings((prev) => ({ ...prev, ...patch }))}
           onChangeRadius={setBrushRadius}
           onChangeHardness={setBrushHardness}
           onChangeOpacity={setBrushOpacity}
           onChangeWandTolerance={setWandTolerance}
           onUndo={handleUndo}
           onRedo={handleRedo}
+          onToggleEyedropper={() => handleToggleEyedropper('key')}
+          onSendAllToBoard={handleSendAllToBoard}
         />
-      )}
 
-      {/* Vùng hiển thị Canvas Ảnh Nguồn + Kính lúp Hút màu Photoshop */}
-      <div
-        ref={viewportWrapRef}
-        className={`layer-cutter-canvas-wrap ${bgCssClass} ${spacePanClassName}`}
-      >
+        {/* Right Rail: Tách nền Chroma, viền nét, bóng mờ, nền canvas, thu phóng & nhãn */}
+        <SpriteCutterRightRail
+          chroma={chroma}
+          canvasBg={canvasBg}
+          tagDisplayMode={tagDisplayMode}
+          zoomMode={zoomMode}
+          effectiveScale={effectiveScale}
+          onChangeChroma={handleUpdateChroma}
+          onChangeCanvasBg={setCanvasBg}
+          onChangeTagDisplayMode={setTagDisplayMode}
+          onStepZoom={stepZoom}
+          onSetZoomMode={handleSetZoomMode}
+          onResetChroma={handleResetAllChroma}
+        />
         {isSpacePressed && (
           <div className="cutter-space-pan-hud">
             <span>
