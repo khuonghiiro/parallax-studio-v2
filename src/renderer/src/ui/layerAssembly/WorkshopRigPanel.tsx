@@ -11,7 +11,7 @@ import { WorkshopCutoutRigSection } from './WorkshopCutoutRigSection'
 import { WorkshopCreatureRigCard } from './WorkshopCreatureRigCard'
 import { WorkshopBoneBuilderCard } from './WorkshopBoneBuilderCard'
 import { BoneInspectorCard, BoneTreeCard, type BoneEnvelopeDeltaPatch } from './WorkshopBoneInspector'
-import { resetTestPoses, setRigToolState, useRigToolStore, type MohoRigTool } from './rigToolStore'
+import { resetTestPoses, setRigToolState, useRigToolStore, openCutoutPartRig, closeCutoutPartRig, type MohoRigTool } from './rigToolStore'
 import { summarizeWeldableJoints, withSymmetricBoneAction } from './mohoRigHelpers'
 import {
   IconAutoRigSpark,
@@ -97,6 +97,22 @@ function RigToolbelt({ bones, bone, run, onAdd, switchTool }: { bones: LayerBone
             <kbd>{hotkey}</kbd>
           </button>
         ))}
+        <button
+          type="button"
+          className={`lw-moho-tool-btn lw-btn-cutout-part-stage${rigTool.cutoutStageMode ? ' active' : ''}`}
+          onClick={() => {
+            if (rigTool.cutoutStageMode) {
+              closeCutoutPartRig()
+            } else {
+              openCutoutPartRig()
+            }
+          }}
+          title="Vẽ xương theo từng bộ phận layer (2D): hiện ô preview 2 bên & mũi tên nét đứt trỏ vào nhân vật"
+        >
+          <IconFlexiMeshBind width={14} height={14} />
+          <span className="lw-moho-tool-label">Theo layer</span>
+          <kbd>2D</kbd>
+        </button>
       </div>
       <div className="lw-rig-toolbelt-row">
         <button type="button" aria-pressed={rigTool.showInfluence} className={`lw-moho-opt-pill${rigTool.showInfluence ? ' active' : ''}`} onClick={toggleInfluence} title="Hiện/ẩn lớp vỏ viên nang Vùng ảnh hưởng xương (Moho Bone Strength Envelope)">

@@ -28,6 +28,7 @@ import { WorkshopRightPanel, type WorkshopTab } from './WorkshopRightPanel'
 import { useWorkshopLoopActions } from './useWorkshopLoopActions'
 import { ensureRigClips } from './workshopRig'
 import { CreateLayerAssemblyModal } from './CreateLayerAssemblyModal'
+import { useRigToolStore, setRigToolState } from './rigToolStore'
 import {
   clearActiveWorkshopSession,
   updateActiveWorkshopDraft
@@ -117,6 +118,14 @@ export function LayerAssemblyDialog({
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(true)
   const [rightPanelOpen, setRightPanelOpen] = useState(true)
   const [mobilePane, setMobilePane] = useState<LayerWorkshopResponsivePane>('stage')
+  const rigTool = useRigToolStore()
+
+  useEffect(() => {
+    if (rigTool.requestedView) {
+      handleSetView(rigTool.requestedView)
+      setRigToolState({ requestedView: null })
+    }
+  }, [rigTool.requestedView])
 
   const updateColPrefs = (patch: Partial<LayerWorkshopColumnPrefs>) => {
     setColPrefs((prev) => {

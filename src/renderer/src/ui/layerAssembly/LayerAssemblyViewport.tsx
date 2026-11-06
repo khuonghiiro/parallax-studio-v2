@@ -16,19 +16,20 @@ import {
   loadLayerWorkshopViewPrefs,
   saveLayerWorkshopViewPrefs
 } from './layerAssemblyViewPrefs'
-import {
-  type Bbox2DHandle,
-  calculateAnchorPinnedResize
-} from './layerAssembly2DBbox'
+import type { Bbox2DHandle } from './layerAssembly2DBbox'
+import { useLayerAssemblySplitters } from './useLayerAssemblySplitters'
+import { useLayerAssembly2DDrag } from './useLayerAssembly2DDrag'
 import { AssembledLayerItemView } from './AssembledLayerItemView'
 import { LayerAssembly2DToolbar } from './LayerAssembly2DToolbar'
 import { fitCharacterToCanvas, fitCanvasToCharacter } from './layerAssemblyFit'
 import { useLayerBrushEraser, type BrushPreview, type Assembly2DTool } from './useLayerBrushEraser'
 import { EraserIsolatedCanvas } from './LayerAssemblyEraser'
 import { LayerAssemblyCalloutOverlay } from './LayerAssemblyCalloutOverlay'
+import { WorkshopCutoutPartRigOverlay } from './WorkshopCutoutPartRigOverlay'
+import { applyRigAction } from './workshopRig'
+import { useRigToolStore, setRigToolState, closeCutoutPartRig } from './rigToolStore'
 import type { WorkshopTab } from './WorkshopRightPanel'
 import type { AssemblyWorkspaceView } from './LayerAssemblyDialog'
-import { expandLinkedSelection, getBonesForLayers } from './workshopParts'
 import { usePinchPanGesture } from '../../hooks/usePinchPanGesture'
 
 export interface LayerAssemblyViewportProps {
@@ -93,11 +94,9 @@ export function LayerAssemblyViewport({
   const [zoom, setZoom] = useState(1.0)
   const [pan, setPan] = useState({ x: 0, y: 0 })
   const [isPanning, setIsPanning] = useState(false)
-  const [isDraggingLayer, setIsDraggingLayer] = useState(false)
   const [show3DPerspective, setShow3DPerspective] = useState(() => loadLayerWorkshopViewPrefs().show3DPerspective2D)
   const [clipToCamera, setClipToCamera] = useState(() => loadLayerWorkshopViewPrefs().clipToCamera2D)
   const [showBbox, setShowBbox] = useState(() => loadLayerWorkshopViewPrefs().showBbox2D)
-  const [isDraggingHandle, setIsDraggingHandle] = useState(false)
   const theme = useView((s) => s.theme)
   const isLight = theme === 'light'
   usePinchPanGesture(containerRef, ({ scaleFactor, dx, dy }) => {
@@ -106,6 +105,10 @@ export function LayerAssemblyViewport({
   })
 
   const isBonesVisible = showBones
+  const rigTool = useRigToolStore()
+  const isCutoutRigActive = Boolean(rigTool.cutoutStageMode)
+  const activeCutoutLayerId = rigTool.focusedCutoutLayerId || selectedLayerId
+  const shouldDimOthers = isCutoutRigActive && (rigTool.dimOtherLayers ?? true) && Boolean(activeCutoutLayerId)
 
   const selectedLayer = useMemo(() => {
     return composite.layers.find((l) => l.id === selectedLayerId) || null
@@ -186,17 +189,29 @@ export function LayerAssemblyViewport({
     return () => onBrushModeChange?.(false)
   }, [brush.activeTool, tab, isPlaying, onBrushModeChange])
 
-  const handleDragRef = useRef<{
-    handle: Bbox2DHandle
-    layerId: string
-    startX: number
-    startY: number
-    startScale: number
-    startMouseX: number
-    startMouseY: number
-    baseWidth: number
-    baseHeight: number
-  } | null>(null)
+  const {
+    isDraggingLayer,
+    isDraggingHandle,
+    handleStartDragHandle,
+    handleStartDragLayer,
+    handleDragPointerMove,
+    handleDragPointerUp
+  } = useLayerAssembly2DDrag({
+    zoom,
+    pan,
+    setPan,
+    isPanning,
+    setIsPanning,
+    composite,
+    selectedIds,
+    selectedLayerId,
+    onSelectLayer,
+    onUpdateLayer,
+    onChangeComposite,
+    brushActiveTool: brush.activeTool
+  })
+
+  const panStartRef = useRef({ mouseX: 0, mouseY: 0, initPanX: 0, initPanY: 0 })
 
   const maxZ = useMemo(() => {
     if (composite.layers.length === 0) return 0
@@ -218,47 +233,6 @@ export function LayerAssemblyViewport({
     },
     [onChangeComposite]
   )
-
-  const dragStartRef = useRef<{
-    mouseX: number
-    mouseY: number
-    initPositions: Map<string, { x: number; y: number }>
-    initBonePositions: Map<string, { x: number; y: number }>
-    initPanX: number
-    initPanY: number
-  }>({ mouseX: 0, mouseY: 0, initPositions: new Map(), initBonePositions: new Map(), initPanX: 0, initPanY: 0 })
-
-  useEffect(() => {
-    const cancel = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape' || (!isDraggingLayer && !isPanning && !isDraggingHandle)) return
-      if (handleDragRef.current) {
-        const d = handleDragRef.current
-        onUpdateLayer(d.layerId, { x: d.startX, y: d.startY, scale: d.startScale })
-        handleDragRef.current = null
-        setIsDraggingHandle(false)
-      }
-      if (isDraggingLayer) {
-        dragStartRef.current.initPositions.forEach((position, id) => onUpdateLayer(id, position))
-        if (dragStartRef.current.initBonePositions.size > 0 && onChangeComposite) {
-          const initBones = dragStartRef.current.initBonePositions
-          onChangeComposite((prev) => {
-            if (!prev.rig) return prev
-            const nextBones = prev.rig.bones.map((b) => {
-              const init = initBones.get(b.id)
-              if (!init) return b
-              return { ...b, x: init.x, y: init.y }
-            })
-            return { ...prev, rig: { ...prev.rig, bones: nextBones } }
-          })
-        }
-      }
-      if (isPanning) setPan({ x: dragStartRef.current.initPanX, y: dragStartRef.current.initPanY })
-      setIsDraggingLayer(false); setIsPanning(false)
-      e.preventDefault(); e.stopImmediatePropagation()
-    }
-    window.addEventListener('keydown', cancel)
-    return () => window.removeEventListener('keydown', cancel)
-  }, [isDraggingLayer, isPanning, isDraggingHandle, onUpdateLayer])
 
   // Tự động căn giữa và co dãn vừa vặn (Fit to screen) khung vẽ 2D kèm hành lang hai bên cho bóng chọn layer ngoài khung caro
   const handleFitView = useCallback((sync3D = false) => {
@@ -328,11 +302,15 @@ export function LayerAssemblyViewport({
     // Nếu bấm chuột giữa hoặc giữ phím Alt (khi không ở tab animation) -> Bắt đầu Pan
     if (e.button === 1 || (e.altKey && tab !== 'animation')) {
       setIsPanning(true)
-      dragStartRef.current.mouseX = e.clientX
-      dragStartRef.current.mouseY = e.clientY
-      dragStartRef.current.initPanX = pan.x
-      dragStartRef.current.initPanY = pan.y
-        ; (e.target as HTMLElement).setPointerCapture(e.pointerId)
+      panStartRef.current = {
+        mouseX: e.clientX,
+        mouseY: e.clientY,
+        initPanX: pan.x,
+        initPanY: pan.y
+      }
+      try {
+        ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
+      } catch {}
       return
     }
 
@@ -345,228 +323,31 @@ export function LayerAssemblyViewport({
     if (brush.isErasing) return
 
     if (isPanning) {
-      const dx = e.clientX - dragStartRef.current.mouseX
-      const dy = e.clientY - dragStartRef.current.mouseY
+      const dx = e.clientX - panStartRef.current.mouseX
+      const dy = e.clientY - panStartRef.current.mouseY
       setPan({
-        x: Math.round(dragStartRef.current.initPanX + dx),
-        y: Math.round(dragStartRef.current.initPanY + dy)
+        x: panStartRef.current.initPanX + dx,
+        y: panStartRef.current.initPanY + dy
       })
       return
     }
 
-    if (handleDragRef.current) {
-      const d = handleDragRef.current
-      const dx = (e.clientX - d.startMouseX) / zoom
-      const dy = (e.clientY - d.startMouseY) / zoom
-      const res = calculateAnchorPinnedResize({
-        handle: d.handle,
-        dx,
-        dy,
-        startX: d.startX,
-        startY: d.startY,
-        startScale: d.startScale,
-        baseWidth: d.baseWidth,
-        baseHeight: d.baseHeight
-      })
-      onUpdateLayer(d.layerId, {
-        x: res.x,
-        y: res.y,
-        scale: res.scale
-      })
-      return
-    }
-
-    if (!isDraggingLayer) return
-    const dx = (e.clientX - dragStartRef.current.mouseX) / zoom
-    const dy = (e.clientY - dragStartRef.current.mouseY) / zoom
-    const roundDx = Math.round(dx)
-    const roundDy = Math.round(dy)
-    dragStartRef.current.initPositions.forEach((pos, id) => {
-      onUpdateLayer(id, {
-        x: pos.x + roundDx,
-        y: pos.y + roundDy
-      })
-    })
-    if (dragStartRef.current.initBonePositions.size > 0 && onChangeComposite) {
-      const initBones = dragStartRef.current.initBonePositions
-      onChangeComposite((prev) => {
-        if (!prev.rig || !prev.rig.bones) return prev
-        const nextBones = prev.rig.bones.map((b) => {
-          const init = initBones.get(b.id)
-          if (!init) return b
-          return { ...b, x: init.x + roundDx, y: init.y + roundDy }
-        })
-        return { ...prev, rig: { ...prev.rig, bones: nextBones } }
-      })
-    }
+    if (handleDragPointerMove(e)) return
   }
 
   const handlePointerUp = (e: React.PointerEvent) => {
     brush.handleEraserPointerUp(e)
-
-    if (isPanning) {
-      setIsPanning(false)
-      try {
-        ; (e.target as HTMLElement).releasePointerCapture(e.pointerId)
-      } catch { }
-    }
-    if (handleDragRef.current) {
-      handleDragRef.current = null
-      setIsDraggingHandle(false)
-      try {
-        ; (e.target as HTMLElement).releasePointerCapture(e.pointerId)
-      } catch { }
-    }
-    if (isDraggingLayer) {
-      setIsDraggingLayer(false)
-      try {
-        ; (e.target as HTMLElement).releasePointerCapture(e.pointerId)
-      } catch { }
-    }
-  }
-
-  const handleStartDragHandle = (
-    e: React.PointerEvent,
-    handle: Bbox2DHandle,
-    layer: AssembledLayerItem,
-    baseW: number,
-    baseH: number
-  ) => {
-    e.stopPropagation()
-    if (layer.locked) return
-    setIsDraggingHandle(true)
-    handleDragRef.current = {
-      handle,
-      layerId: layer.id,
-      startX: layer.x,
-      startY: layer.y,
-      startScale: layer.scale,
-      startMouseX: e.clientX,
-      startMouseY: e.clientY,
-      baseWidth: baseW,
-      baseHeight: baseH
-    }
-      ; (e.target as HTMLElement).setPointerCapture(e.pointerId)
-  }
-
-  const handleStartDragLayer = (e: React.PointerEvent, layer: AssembledLayerItem) => {
-    e.stopPropagation()
-
-    // Nếu đang ở công cụ Cọ Tẩy (Eraser):
-    if (brush.activeTool === 'eraser') {
-      if (layer.id !== selectedLayerId) {
-        // Chuyển chọn layer sang layer mới an toàn để nạp ảnh mới vào canvas
-        onSelectLayer(layer.id, false)
-        return
-      }
-      return
-    }
-
-    const isAdditive = e.ctrlKey || e.metaKey || e.shiftKey
-    if (isAdditive) {
-      onSelectLayer(layer.id, true)
-      return
-    } else if (!selectedIds?.includes(layer.id)) {
-      onSelectLayer(layer.id, false)
-    }
-    if (layer.locked) return
-
-    setIsDraggingLayer(true)
-    const activeSelection = expandLinkedSelection(composite, selectedIds && selectedIds.includes(layer.id) ? selectedIds : [layer.id])
-    const initPositions = new Map<string, { x: number; y: number }>()
-    composite.layers.forEach((l) => {
-      if (activeSelection.includes(l.id) && !l.locked) {
-        initPositions.set(l.id, { x: l.x, y: l.y })
-      }
-    })
-    const initBonePositions = new Map<string, { x: number; y: number }>()
-    if (composite.rig && composite.rig.bones.length > 0) {
-      const isAllSelected = activeSelection.length === composite.layers.length || composite.layers.length === 1
-      const bonesToMove = isAllSelected
-        ? composite.rig.bones.map((b) => b.id)
-        : getBonesForLayers(composite, activeSelection)
-
-      if (bonesToMove.length > 0) {
-        composite.rig.bones.forEach((b) => {
-          if (bonesToMove.includes(b.id)) {
-            initBonePositions.set(b.id, { x: b.x, y: b.y })
-          }
-        })
-      }
-    }
-    dragStartRef.current = {
-      mouseX: e.clientX,
-      mouseY: e.clientY,
-      initPositions,
-      initBonePositions,
-      initPanX: pan.x,
-      initPanY: pan.y
-    }
-      ; (e.target as HTMLElement).setPointerCapture(e.pointerId)
+    handleDragPointerUp(e)
   }
 
   const is2DOnly = view === '2d'
   const isEraserActive = brush.activeTool === 'eraser' && (!tab || tab === 'layers') && !isPlaying
-  const [eraserHeight, setEraserHeight] = useState(250)
-  const [eraserColWidth, setEraserColWidth] = useState(380)
-
-  const handleRowSplitterPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    e.preventDefault()
-    const startY = e.clientY
-    const startHeight = eraserHeight
-    const target = e.currentTarget
-    try {
-      target.setPointerCapture(e.pointerId)
-    } catch { }
-
-    const onPointerMove = (moveEvent: PointerEvent) => {
-      const deltaY = startY - moveEvent.clientY
-      const newHeight = Math.max(160, Math.min(480, startHeight + deltaY))
-      setEraserHeight(newHeight)
-    }
-
-    const onPointerUp = (upEvent: PointerEvent) => {
-      try {
-        if (target.hasPointerCapture(upEvent.pointerId)) {
-          target.releasePointerCapture(upEvent.pointerId)
-        }
-      } catch { }
-      window.removeEventListener('pointermove', onPointerMove)
-      window.removeEventListener('pointerup', onPointerUp)
-    }
-
-    window.addEventListener('pointermove', onPointerMove)
-    window.addEventListener('pointerup', onPointerUp)
-  }, [eraserHeight])
-
-  const handleColSplitterPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    e.preventDefault()
-    const startX = e.clientX
-    const startWidth = eraserColWidth
-    const target = e.currentTarget
-    try {
-      target.setPointerCapture(e.pointerId)
-    } catch { }
-
-    const onPointerMove = (moveEvent: PointerEvent) => {
-      const deltaX = moveEvent.clientX - startX
-      const newWidth = Math.max(280, Math.min(580, startWidth + deltaX))
-      setEraserColWidth(newWidth)
-    }
-
-    const onPointerUp = (upEvent: PointerEvent) => {
-      try {
-        if (target.hasPointerCapture(upEvent.pointerId)) {
-          target.releasePointerCapture(upEvent.pointerId)
-        }
-      } catch { }
-      window.removeEventListener('pointermove', onPointerMove)
-      window.removeEventListener('pointerup', onPointerUp)
-    }
-
-    window.addEventListener('pointermove', onPointerMove)
-    window.addEventListener('pointerup', onPointerUp)
-  }, [eraserColWidth])
+  const {
+    eraserHeight,
+    eraserColWidth,
+    handleRowSplitterPointerDown,
+    handleColSplitterPointerDown
+  } = useLayerAssemblySplitters()
 
   return (
     <div
@@ -745,12 +526,16 @@ export function LayerAssemblyViewport({
           {sortedLayers.map((layer) => {
             if (layer.hidden) return null
             const isSelected = selectedIds ? selectedIds.includes(layer.id) : layer.id === selectedLayerId
+            const isCutoutFocus = isCutoutRigActive && layer.id === activeCutoutLayerId
+            const isCutoutDimmed = shouldDimOthers && layer.id !== activeCutoutLayerId
 
             return (
               <AssembledLayerItemView
                 key={layer.id}
                 layer={layer}
                 isSelected={isSelected}
+                isDimmed={isCutoutDimmed}
+                isFocused={isCutoutFocus}
                 showBbox={showBbox}
                 zoom={zoom}
                 time={time}
@@ -817,6 +602,32 @@ export function LayerAssemblyViewport({
             safeRight={14}
             safeTop={42}
             safeBottom={54}
+          />
+        )}
+
+        {/* Chế độ vẽ xương theo bộ phận (Cutout Part Rig Stage) 2D */}
+        {isCutoutRigActive && (
+          <WorkshopCutoutPartRigOverlay
+            composite={composite}
+            canvasWidth={composite.width || 600}
+            canvasHeight={composite.height || 600}
+            zoom={zoom}
+            panX={pan.x}
+            panY={pan.y}
+            containerRef={containerRef}
+            selectedLayerId={activeCutoutLayerId}
+            onSelectLayer={(id) => {
+              if (id) {
+                onSelectLayer(id)
+                setRigToolState({ focusedCutoutLayerId: id, targetBindingLayerId: id })
+              }
+            }}
+            run={(action) => {
+              if (onChangeComposite) {
+                onChangeComposite((prev) => applyRigAction(prev, action))
+              }
+            }}
+            onClose={() => closeCutoutPartRig()}
           />
         )}
 

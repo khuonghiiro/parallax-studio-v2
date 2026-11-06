@@ -83,7 +83,22 @@ export function LayerAssembly2DToolbar({
   selectedBoneName = null
 }: LayerAssembly2DToolbarProps) {
   const [isLightingOpen, setIsLightingOpen] = useState(false)
-  const [isGuidePinned, setIsGuidePinned] = useState(true)
+  const [isGuidePinned, setIsGuidePinned] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('pxs:stage-guide-pinned') === 'true'
+    } catch {
+      return false
+    }
+  })
+  const toggleGuidePinned = () => {
+    setIsGuidePinned((prev) => {
+      const next = !prev
+      try {
+        localStorage.setItem('pxs:stage-guide-pinned', String(next))
+      } catch {}
+      return next
+    })
+  }
   const [isGuideHovered, setIsGuideHovered] = useState(false)
   const [tooltip, setTooltip] = useState<TooltipInfo | null>(null)
   const rigTool = useRigToolStore()
@@ -444,15 +459,38 @@ export function LayerAssembly2DToolbar({
       </div>
 
       {/* Bảng hiển thị thông tin thao tác tại vùng khoanh đỏ phía dưới thanh dock */}
-      <div
-        className={`lw-stage-guide-card tone-${statusTone}${showGuideCard ? ' is-expanded' : ' is-compact'}`}
-        data-mcp-region="layer_assembly_stage_guide"
-      >
-        <div className="lw-stage-guide-status" onClick={() => setIsGuidePinned((v) => !v)}>
-          <span className={`lw-stage-guide-dot tone-${statusTone}`} />
-          <span className="lw-stage-guide-status-text">{statusBadgeText}</span>
-        </div>
-        {showGuideCard && (
+      {showGuideCard && (
+        <div
+          className={`lw-stage-guide-card tone-${statusTone} is-expanded`}
+          data-mcp-region="layer_assembly_stage_guide"
+        >
+          <div className="lw-stage-guide-status" onClick={toggleGuidePinned}>
+            <span className={`lw-stage-guide-dot tone-${statusTone}`} />
+            <span className="lw-stage-guide-status-text">{statusBadgeText}</span>
+            <button
+              type="button"
+              className="lw-stage-guide-close-btn"
+              onClick={(e) => {
+                e.stopPropagation()
+                setIsGuidePinned(false)
+                try {
+                  localStorage.setItem('pxs:stage-guide-pinned', 'false')
+                } catch {}
+              }}
+              style={{
+                marginLeft: 'auto',
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--text-dim)',
+                cursor: 'pointer',
+                padding: '2px 6px',
+                fontSize: '12px'
+              }}
+              title="Đóng bảng hướng dẫn"
+            >
+              ✕
+            </button>
+          </div>
           <div className="lw-stage-guide-body">
             {rigTool.statusHint && <div className="lw-stage-guide-live-hint">{rigTool.statusHint}</div>}
             <div className="lw-stage-guide-rules">
@@ -474,8 +512,8 @@ export function LayerAssembly2DToolbar({
               </div>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Popover Chiếu sáng & Đổ bóng */}
       {isLightingOpen &&

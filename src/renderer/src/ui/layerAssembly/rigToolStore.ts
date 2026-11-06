@@ -35,6 +35,14 @@ export interface RigToolState {
   /** Layer đang được chỉ định gắn xương khi vẽ xương bằng chuột trên Canvas. */
   targetBindingLayerId?: string | null
   targetBindingMode?: 'rigid' | 'soft'
+  /** Chế độ vẽ xương theo bộ phận (Cutout Part Rig Stage) trên sân khấu 2D */
+  cutoutStageMode?: boolean
+  /** ID layer bộ phận đang được focus để vẽ xương */
+  focusedCutoutLayerId?: string | null
+  /** Làm mờ các layer khác khi đang focus 1 bộ phận (mặc định true) */
+  dimOtherLayers?: boolean
+  /** Yêu cầu chuyển chế độ xem (2d / split / 3d) từ bất kỳ đâu */
+  requestedView?: '2d' | '3d' | 'split' | null
 }
 
 const INITIAL_STATE: RigToolState = {
@@ -46,7 +54,11 @@ const INITIAL_STATE: RigToolState = {
   testPoses: {},
   pendingDashedLink: null,
   targetBindingLayerId: null,
-  targetBindingMode: 'rigid'
+  targetBindingMode: 'rigid',
+  cutoutStageMode: false,
+  focusedCutoutLayerId: null,
+  dimOtherLayers: true,
+  requestedView: null
 }
 
 let state: RigToolState = { ...INITIAL_STATE }
@@ -124,4 +136,25 @@ function subscribe(listener: () => void): () => void {
 
 export function useRigToolStore(): RigToolState {
   return useSyncExternalStore(subscribe, getRigToolState, getRigToolState)
+}
+
+
+export function openCutoutPartRig(targetLayerId?: string | null) {
+  setRigToolState({
+    cutoutStageMode: true,
+    focusedCutoutLayerId: targetLayerId || null,
+    targetBindingLayerId: targetLayerId || null,
+    dimOtherLayers: true,
+    requestedView: '2d',
+    tool: 'add',
+    statusHint: '🎨 Chế độ vẽ xương theo bộ phận: Chọn ô vuông preview để focus và vẽ xương cho từng mảnh.'
+  })
+}
+
+export function closeCutoutPartRig() {
+  setRigToolState({
+    cutoutStageMode: false,
+    focusedCutoutLayerId: null,
+    targetBindingLayerId: null
+  })
 }
