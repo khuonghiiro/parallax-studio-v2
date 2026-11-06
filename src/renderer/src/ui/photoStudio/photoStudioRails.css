@@ -1,0 +1,433 @@
+/* ==========================================================================
+   Photo Studio Rails & Flyouts CSS (Photoshop Tools & Control Rails)
+   Modular CSS for Left Tool Rail, Right Control Rail & Popover Flyouts
+   ========================================================================== */
+
+/* ──────────────────────────────────────────────────────────────────────────
+   1. Left Vertical Tool Rail (Photoshop Tools Palette)
+   ────────────────────────────────────────────────────────────────────────── */
+.ps-left-rail {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px;
+  background: color-mix(in srgb, var(--bg-1) 88%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  overflow: visible;
+}
+
+.ps-rail-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.ps-rail-btn {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  background: transparent;
+  color: var(--text-dim);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.12s ease;
+  position: relative;
+  padding: 0;
+}
+
+.ps-rail-btn:hover {
+  background: var(--bg-3);
+  color: var(--text);
+  border-color: var(--line-soft);
+}
+
+.ps-rail-btn.active {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
+}
+
+.ps-rail-btn.modified {
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+}
+
+.ps-rail-btn.reset-btn {
+  color: var(--text-faint);
+  height: 32px;
+}
+
+.ps-rail-btn.reset-btn:hover {
+  color: var(--accent-cyan);
+  background: var(--bg-3);
+}
+
+.ps-rail-label {
+  font-size: 8.5px;
+  line-height: 1;
+  opacity: 0.8;
+  white-space: nowrap;
+}
+
+.ps-rail-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  background: var(--accent-cyan);
+  color: #0f172a;
+  font-size: 8px;
+  font-weight: 700;
+  font-family: var(--font-mono, monospace);
+  padding: 1px 3px;
+  border-radius: 3px;
+  line-height: 1;
+  pointer-events: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.ps-rail-btn.active .ps-rail-badge {
+  background: #ffffff;
+  color: #0f172a;
+}
+
+.ps-rail-color-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1.5px solid #ffffff;
+  box-shadow: 0 0 3px rgba(0, 0, 0, 0.6);
+  flex-shrink: 0;
+}
+
+.ps-rail-divider {
+  width: 100%;
+  height: 1px;
+  background: var(--line-soft);
+  margin: 4px 0;
+}
+
+.ps-rail-group-label {
+  font-size: 7.5px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--text-faint);
+  text-align: center;
+  padding: 2px 0;
+  pointer-events: none;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   2. Right Vertical Control Rail (Photoshop Fine-Tuning & Grading)
+   ────────────────────────────────────────────────────────────────────────── */
+.ps-right-rail {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+  background: color-mix(in srgb, var(--bg-1) 88%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  overflow: visible;
+}
+
+.ps-right-rail::-webkit-scrollbar {
+  width: 3px;
+}
+
+.ps-right-rail::-webkit-scrollbar-thumb {
+  background: var(--line-soft);
+  border-radius: 2px;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   3. Popover Flyout (Appears next to the tool icon, arrow pointing to button)
+   ────────────────────────────────────────────────────────────────────────── */
+.ps-flyout {
+  position: absolute;
+  z-index: 60;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.45);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  animation: psFlyoutIn 0.12s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes psFlyoutIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.ps-flyout-right {
+  left: calc(100% + 8px);
+}
+
+.ps-flyout-left {
+  right: calc(100% + 8px);
+}
+
+.ps-flyout-top {
+  top: 0;
+  bottom: auto;
+}
+
+.ps-flyout-bottom {
+  bottom: 0;
+  top: auto;
+}
+
+.ps-flyout-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--line-soft);
+  padding-bottom: 6px;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.ps-flyout-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.ps-flyout-icon {
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+}
+
+.ps-flyout-badge {
+  font-size: 9.5px;
+  font-family: var(--font-mono, monospace);
+  padding: 1px 5px;
+  background: var(--bg-3);
+  color: var(--accent-cyan);
+  border-radius: var(--radius-sm);
+}
+
+.ps-flyout-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.ps-flyout-btn-reset {
+  background: transparent;
+  border: none;
+  font-size: 10px;
+  color: var(--accent-cyan);
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 2px;
+  white-space: nowrap;
+}
+
+.ps-flyout-btn-reset:hover {
+  background: var(--bg-3);
+}
+
+.ps-flyout-btn-close {
+  background: transparent;
+  border: none;
+  color: var(--text-faint);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 1px 4px;
+  border-radius: 2px;
+}
+
+.ps-flyout-btn-close:hover {
+  color: var(--text);
+  background: var(--bg-3);
+}
+
+.ps-flyout-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ps-flyout-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ps-flyout-label {
+  font-size: 11px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.ps-flyout-slider-row input[type='range'] {
+  flex: 1 1 auto;
+  accent-color: var(--accent);
+  cursor: pointer;
+  height: 4px;
+}
+
+.ps-flyout-val {
+  font-size: 10.5px;
+  font-family: var(--font-mono, monospace);
+  color: var(--accent-cyan);
+  width: 44px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.ps-flyout-presets {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.ps-chip-btn {
+  padding: 2px 6px;
+  font-size: 10px;
+  font-family: var(--font-mono, monospace);
+  background: var(--bg-3);
+  color: var(--text-dim);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.ps-chip-btn:hover {
+  background: var(--bg-4);
+  color: var(--text);
+}
+
+.ps-chip-btn.active {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
+}
+
+.ps-flyout-presets-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+
+.ps-flyout-presets-grid.cols-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.ps-color-chip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
+  font-size: 10.5px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-3);
+  color: var(--text-dim);
+  border: 1px solid var(--line-soft);
+  cursor: pointer;
+}
+
+.ps-color-chip.active {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
+}
+
+.ps-color-chip .chip-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.ps-filter-btn {
+  padding: 6px 8px;
+  font-size: 10.5px;
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  background: var(--bg-3);
+  color: var(--text);
+  border: 1px solid var(--line-soft);
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.12s ease;
+}
+
+.ps-filter-btn:hover {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
+}
+
+.ps-flyout-divider {
+  width: 100%;
+  height: 1px;
+  background: var(--line-soft);
+  margin: 2px 0;
+}
+
+.ps-flyout-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ps-flyout-row-title {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.ps-flyout-row-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.ps-checkbox-label.sm {
+  font-size: 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-dim);
+  cursor: pointer;
+}

@@ -344,8 +344,10 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   photo_editor: region('photo_editor', '.ps-modal-container', '.ps-backdrop'),
   photo_editor_toolbar: region('photo_editor_toolbar', '.ps-toolbar'),
   photo_editor_canvas: region('photo_editor_canvas', '.ps-viewport-wrap'),
-  photo_editor_chroma: region('photo_editor_chroma', '.ps-chroma-strip'),
-  photo_editor_adjustments: region('photo_editor_adjustments', '.ps-adjustments-strip'),
+  photo_editor_left_rail: region('photo_editor_left_rail', '.ps-left-rail'),
+  photo_editor_right_rail: region('photo_editor_right_rail', '.ps-right-rail'),
+  photo_editor_chroma: region('photo_editor_chroma', '.ps-right-rail', '.ps-flyout'),
+  photo_editor_adjustments: region('photo_editor_adjustments', '.ps-right-rail', '.ps-flyout'),
   photo_editor_save_modal: region('photo_editor_save_modal', '.ps-save-modal'),
   create_3d: region('create_3d', '.c3d-modal'),
 
@@ -421,6 +423,8 @@ export const REGION_ALIASES: Record<string, string> = {
   dopesheet: 'layer_assembly_dopesheet',
   rig_tools: 'layer_assembly_rig_tools',
   photo_studio: 'photo_editor',
+  photo_left_rail: 'photo_editor_left_rail',
+  photo_right_rail: 'photo_editor_right_rail',
   photo_canvas: 'photo_editor_canvas'
 }
 

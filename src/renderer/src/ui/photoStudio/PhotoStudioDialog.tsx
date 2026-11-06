@@ -19,11 +19,12 @@ import type { PhotoStudioTool, PhotoCanvasBgMode, PhotoAdjustments } from './typ
 import { DEFAULT_PHOTO_ADJUSTMENTS } from './types'
 import { applyColorAdjustments, isDefaultAdjustments } from './photoAdjustments'
 import { PhotoStudioToolbar } from './PhotoStudioToolbar'
-import { PhotoStudioChromaBar } from './PhotoStudioChromaBar'
-import { PhotoStudioAdjustmentsBar } from './PhotoStudioAdjustmentsBar'
+import { PhotoStudioLeftRail } from './PhotoStudioLeftRail'
+import { PhotoStudioRightRail } from './PhotoStudioRightRail'
 import { PhotoStudioSaveModal } from './PhotoStudioSaveModal'
 import { importBuiltInAsset, toast } from '../../actions'
 import './photoStudio.css'
+import './photoStudioRails.css'
 
 const MAX_WORK_DIM = 2048
 
@@ -48,9 +49,15 @@ export function PhotoStudioDialog({
   })
 
   const [tool, setTool] = useState<PhotoStudioTool>('wand')
-  const [canvasBg, setCanvasBg] = useState<PhotoCanvasBgMode>('checker-dark')
+  const [isChecker, setIsChecker] = useState<boolean>(true)
+  const [tone, setTone] = useState<'dark' | 'light'>('dark')
   const [chroma, setChroma] = useState<ChromaKeySettings>(DEFAULT_CHROMA_SETTINGS)
   const [adjustments, setAdjustments] = useState<PhotoAdjustments>(DEFAULT_PHOTO_ADJUSTMENTS)
+
+  const canvasBgClass = useMemo(() => {
+    if (isChecker) return tone === 'dark' ? 'checker-dark' : 'checker-light'
+    return tone === 'dark' ? 'dark' : 'light'
+  }, [isChecker, tone])
 
   const [brushRadius, setBrushRadius] = useState<number>(18)
   const [wandTolerance, setWandTolerance] = useState<number>(36)
@@ -613,10 +620,14 @@ export function PhotoStudioDialog({
 
         {/* 1. Header Toolbar */}
         <PhotoStudioToolbar
-          tool={tool}
-          onChangeTool={setTool}
-          canvasBg={canvasBg}
-          onChangeCanvasBg={setCanvasBg}
+          chromaEnabled={chroma.enabled}
+          onChangeChromaEnabled={(enabled) => setChroma((c) => ({ ...c, enabled }))}
+          previewMode={chroma.previewMode || 'transparent'}
+          onChangePreviewMode={(previewMode) => setChroma((c) => ({ ...c, previewMode }))}
+          isChecker={isChecker}
+          onChangeIsChecker={setIsChecker}
+          tone={tone}
+          onChangeTone={setTone}
           zoomScale={scale}
           onStepZoom={(d) => setScale((s) => Math.max(0.1, Math.min(3.5, Number((s + d).toFixed(2)))))}
           onFitZoom={() => {
@@ -636,10 +647,6 @@ export function PhotoStudioDialog({
           canRedo={redoStack.length > 0}
           onUndo={handleUndo}
           onRedo={handleRedo}
-          brushRadius={brushRadius}
-          onChangeBrushRadius={setBrushRadius}
-          wandTolerance={wandTolerance}
-          onChangeWandTolerance={setWandTolerance}
           imageSize={imgNaturalSize}
           fileName={fileName}
           onUploadImage={handleUploadImage}
@@ -651,95 +658,104 @@ export function PhotoStudioDialog({
           onClose={onClose}
         />
 
-        {/* 2. Control Bars (Chroma Strip + Adjustments Strip) */}
-        <div className="ps-controls-dock">
-          <PhotoStudioChromaBar
+        {/* 2. Main Studio Workspace (Left Tool Rail + Viewport Canvas + Right Control Rail) */}
+        <div className="ps-workspace-layout">
+          {/* Left Vertical Tool Rail */}
+          <PhotoStudioLeftRail
+            tool={tool}
+            onChangeTool={setTool}
+            brushRadius={brushRadius}
+            onChangeBrushRadius={setBrushRadius}
+            wandTolerance={wandTolerance}
+            onChangeWandTolerance={setWandTolerance}
+          />
+
+          {/* Central Canvas Viewport */}
+          <div
+            ref={viewportRef}
+            className={`ps-viewport-wrap ${canvasBgClass}`}
+            onWheel={handleWheel}
+            data-mcp-region="photo_editor_canvas"
+          >
+            {isSpacePressed && (
+              <div className="ps-pan-hint">
+                <span>✋ {isSpacePanning ? 'Đang kéo di chuyển…' : 'Giữ chuột trái + kéo để dịch chuyển ảnh'}</span>
+              </div>
+            )}
+
+            <div
+              className="ps-canvas-box"
+              style={{
+                transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${scale})`,
+                transformOrigin: 'center center'
+              }}
+            >
+              <canvas
+                ref={procCanvasRef}
+                className="ps-main-canvas"
+                style={{
+                  cursor: isSpacePanning
+                    ? 'grabbing'
+                    : isSpacePressed || tool === 'pan'
+                      ? 'grab'
+                      : tool === 'eyedropper'
+                        ? 'crosshair'
+                        : tool === 'eraser' || tool === 'restore'
+                          ? 'crosshair'
+                          : tool === 'wand' || tool === 'box' || tool === 'lasso'
+                            ? 'crosshair'
+                            : 'default'
+                }}
+                onPointerDown={handlePointerDown}
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerUp}
+                onPointerCancel={handlePointerUp}
+              />
+
+              {/* Marquee Rect Overlay */}
+              {marquee && (
+                <div
+                  className="ps-marquee-box"
+                  style={{
+                    left: `${Math.min(marquee.startX, marquee.currX)}px`,
+                    top: `${Math.min(marquee.startY, marquee.currY)}px`,
+                    width: `${Math.abs(marquee.currX - marquee.startX)}px`,
+                    height: `${Math.abs(marquee.currY - marquee.startY)}px`
+                  }}
+                />
+              )}
+
+              {/* Lasso Polygon Overlay */}
+              {lassoPoints.length > 1 && (
+                <svg className="ps-lasso-svg">
+                  <polyline
+                    points={lassoPoints.map((p) => `${p.x},${p.y}`).join(' ')}
+                    className="ps-lasso-line"
+                  />
+                </svg>
+              )}
+            </div>
+
+            {/* Eyedropper Magnifier Overlay */}
+            <PhotoshopEyedropperOverlay
+              target={tool === 'eyedropper' ? 'key' : null}
+              currentHex={chroma.keyColorHex || '#00DB4E'}
+              sample={eyedropperSample}
+              onCancel={() => {
+                setTool('wand')
+                setEyedropperSample(null)
+              }}
+            />
+          </div>
+
+          {/* Right Vertical Control Rail */}
+          <PhotoStudioRightRail
             chroma={chroma}
             onChangeChroma={(patch) => setChroma((c) => ({ ...c, ...patch }))}
             onPickEyedropper={() => setTool('eyedropper')}
-          />
-          <PhotoStudioAdjustmentsBar
             adjustments={adjustments}
             onChangeAdjustments={(patch) => setAdjustments((a) => ({ ...a, ...patch }))}
             onResetAdjustments={() => setAdjustments(DEFAULT_PHOTO_ADJUSTMENTS)}
-          />
-        </div>
-
-        {/* 3. Central Canvas Viewport */}
-        <div
-          ref={viewportRef}
-          className={`ps-viewport-wrap ${canvasBg}`}
-          onWheel={handleWheel}
-          data-mcp-region="photo_editor_canvas"
-        >
-          {isSpacePressed && (
-            <div className="ps-pan-hint">
-              <span>✋ {isSpacePanning ? 'Đang kéo di chuyển…' : 'Giữ chuột trái + kéo để dịch chuyển ảnh'}</span>
-            </div>
-          )}
-
-          <div
-            className="ps-canvas-box"
-            style={{
-              transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${scale})`,
-              transformOrigin: 'center center'
-            }}
-          >
-            <canvas
-              ref={procCanvasRef}
-              className="ps-main-canvas"
-              style={{
-                cursor: isSpacePanning
-                  ? 'grabbing'
-                  : isSpacePressed || tool === 'pan'
-                    ? 'grab'
-                    : tool === 'eyedropper'
-                      ? 'crosshair'
-                      : tool === 'eraser' || tool === 'restore'
-                        ? 'crosshair'
-                        : tool === 'wand' || tool === 'box' || tool === 'lasso'
-                          ? 'crosshair'
-                          : 'default'
-              }}
-              onPointerDown={handlePointerDown}
-              onPointerMove={handlePointerMove}
-              onPointerUp={handlePointerUp}
-              onPointerCancel={handlePointerUp}
-            />
-
-            {/* Marquee Rect Overlay */}
-            {marquee && (
-              <div
-                className="ps-marquee-box"
-                style={{
-                  left: `${Math.min(marquee.startX, marquee.currX)}px`,
-                  top: `${Math.min(marquee.startY, marquee.currY)}px`,
-                  width: `${Math.abs(marquee.currX - marquee.startX)}px`,
-                  height: `${Math.abs(marquee.currY - marquee.startY)}px`
-                }}
-              />
-            )}
-
-            {/* Lasso Polygon Overlay */}
-            {lassoPoints.length > 1 && (
-              <svg className="ps-lasso-svg">
-                <polyline
-                  points={lassoPoints.map((p) => `${p.x},${p.y}`).join(' ')}
-                  className="ps-lasso-line"
-                />
-              </svg>
-            )}
-          </div>
-
-          {/* Eyedropper Magnifier Overlay */}
-          <PhotoshopEyedropperOverlay
-            target={tool === 'eyedropper' ? 'key' : null}
-            currentHex={chroma.keyColorHex || '#00DB4E'}
-            sample={eyedropperSample}
-            onCancel={() => {
-              setTool('wand')
-              setEyedropperSample(null)
-            }}
           />
         </div>
 

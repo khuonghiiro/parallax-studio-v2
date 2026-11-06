@@ -1,35 +1,42 @@
 import React from 'react'
-import type { PhotoStudioTool, PhotoCanvasBgMode } from './types'
 import {
-  IconEraser,
-  IconBrush,
-  IconWand,
-  IconEyedropper,
   IconUndo,
   IconRedo,
   IconUpload,
   IconImage,
   IconSave,
-  IconX
+  IconX,
+  IconSun,
+  IconMoon
 } from '../icons'
+import { IconCheckerboard } from './PhotoStudioIcons'
 
 export interface PhotoStudioToolbarProps {
-  tool: PhotoStudioTool
-  onChangeTool: (tool: PhotoStudioTool) => void
-  canvasBg: PhotoCanvasBgMode
-  onChangeCanvasBg: (bg: PhotoCanvasBgMode) => void
+  // Chroma Toggle & Mode
+  chromaEnabled: boolean
+  onChangeChromaEnabled: (enabled: boolean) => void
+  previewMode: 'transparent' | 'original'
+  onChangePreviewMode: (mode: 'transparent' | 'original') => void
+
+  // Canvas BG: Caro (Grid) + Sáng/Tối (Tone)
+  isChecker: boolean
+  onChangeIsChecker: (checker: boolean) => void
+  tone: 'dark' | 'light'
+  onChangeTone: (tone: 'dark' | 'light') => void
+
+  // Zoom
   zoomScale: number
   onStepZoom: (delta: number) => void
   onFitZoom: () => void
   onResetZoom: () => void
+
+  // History
   canUndo: boolean
   canRedo: boolean
   onUndo: () => void
   onRedo: () => void
-  brushRadius: number
-  onChangeBrushRadius: (r: number) => void
-  wandTolerance: number
-  onChangeWandTolerance: (tol: number) => void
+
+  // File & Actions
   imageSize: { w: number; h: number }
   fileName: string
   onUploadImage: () => void
@@ -39,10 +46,14 @@ export interface PhotoStudioToolbarProps {
 }
 
 export function PhotoStudioToolbar({
-  tool,
-  onChangeTool,
-  canvasBg,
-  onChangeCanvasBg,
+  chromaEnabled,
+  onChangeChromaEnabled,
+  previewMode,
+  onChangePreviewMode,
+  isChecker,
+  onChangeIsChecker,
+  tone,
+  onChangeTone,
   zoomScale,
   onStepZoom,
   onFitZoom,
@@ -51,10 +62,6 @@ export function PhotoStudioToolbar({
   canRedo,
   onUndo,
   onRedo,
-  brushRadius,
-  onChangeBrushRadius,
-  wandTolerance,
-  onChangeWandTolerance,
   imageSize,
   fileName,
   onUploadImage,
@@ -64,7 +71,7 @@ export function PhotoStudioToolbar({
 }: PhotoStudioToolbarProps) {
   return (
     <header className="ps-toolbar" data-mcp-region="photo_editor_toolbar">
-      {/* 1. Header Left: Title + Size badge */}
+      {/* 1. Header Left: Title + Size badge + File name */}
       <div className="ps-toolbar-left">
         <div className="ps-title-group">
           <span className="ps-app-icon" aria-hidden="true">
@@ -74,182 +81,154 @@ export function PhotoStudioToolbar({
           <span className="ps-size-badge" title={`Kích thước ảnh gốc: ${imageSize.w}×${imageSize.h}px`}>
             {imageSize.w}×{imageSize.h}
           </span>
-          {fileName && <span className="ps-file-name" title={fileName}>{fileName}</span>}
+          {fileName && (
+            <span className="ps-file-name" title={fileName}>
+              {fileName}
+            </span>
+          )}
         </div>
-
-        {/* 2. Tool Buttons (Photoshop-like) */}
-        <div className="ps-tools-cluster" role="toolbar" aria-label="Công cụ chỉnh sửa">
-          <button
-            type="button"
-            className={`ps-tool-btn ${tool === 'pan' ? 'active' : ''}`}
-            onClick={() => onChangeTool('pan')}
-            title="Di chuyển (Giữ Space + Kéo chuột)"
-          >
-            ✋ Di chuyển
-          </button>
-          <button
-            type="button"
-            className={`ps-tool-btn ${tool === 'wand' ? 'active' : ''}`}
-            onClick={() => onChangeTool('wand')}
-            title="Đũa thần: Bấm vào vùng màu để tách/xóa"
-          >
-            <IconWand width={14} height={14} />
-            <span>Đũa</span>
-          </button>
-          <button
-            type="button"
-            className={`ps-tool-btn ${tool === 'eraser' ? 'active' : ''}`}
-            onClick={() => onChangeTool('eraser')}
-            title="Cọ tẩy: Xóa thủ công từng chi tiết"
-          >
-            <IconEraser width={14} height={14} />
-            <span>Tẩy</span>
-          </button>
-          <button
-            type="button"
-            className={`ps-tool-btn ${tool === 'restore' ? 'active' : ''}`}
-            onClick={() => onChangeTool('restore')}
-            title="Khôi phục: Lấy lại pixel gốc ban đầu"
-          >
-            <IconBrush width={14} height={14} />
-            <span>Khôi phục</span>
-          </button>
-          <button
-            type="button"
-            className={`ps-tool-btn ${tool === 'box' ? 'active' : ''}`}
-            onClick={() => onChangeTool('box')}
-            title="Khung chọn chữ nhật (Kéo chọn vùng để xóa/cắt)"
-          >
-            ⬚ Khung
-          </button>
-          <button
-            type="button"
-            className={`ps-tool-btn ${tool === 'lasso' ? 'active' : ''}`}
-            onClick={() => onChangeTool('lasso')}
-            title="Dây thòng lọng Lasso (Vẽ vùng tự do)"
-          >
-            ☡ Lasso
-          </button>
-          <button
-            type="button"
-            className={`ps-tool-btn ${tool === 'eyedropper' ? 'active' : ''}`}
-            onClick={() => onChangeTool('eyedropper')}
-            title="Hút màu trực tiếp từ ảnh"
-          >
-            <IconEyedropper width={14} height={14} />
-            <span>Hút màu</span>
-          </button>
-        </div>
-
-        {/* Brush radius or wand tolerance slider inline */}
-        {(tool === 'eraser' || tool === 'restore') && (
-          <div className="ps-inline-slider" title="Bán kính nét cọ">
-            <span className="ps-slider-label">Cọ:</span>
-            <input
-              type="range"
-              min={2}
-              max={80}
-              value={brushRadius}
-              onChange={(e) => onChangeBrushRadius(Number(e.target.value))}
-            />
-            <span className="ps-slider-val">{brushRadius}px</span>
-          </div>
-        )}
-
-        {tool === 'wand' && (
-          <div className="ps-inline-slider" title="Dung sai màu đũa thần">
-            <span className="ps-slider-label">Dung sai:</span>
-            <input
-              type="range"
-              min={2}
-              max={90}
-              value={wandTolerance}
-              onChange={(e) => onChangeWandTolerance(Number(e.target.value))}
-            />
-            <span className="ps-slider-val">{wandTolerance}%</span>
-          </div>
-        )}
       </div>
 
-      {/* 3. Header Right: Canvas Bg + Zoom + History + Actions */}
+      {/* 2. Header Center: Chroma Toggle + Preview Mode + Canvas BG (Caro / Tone) */}
+      <div className="ps-toolbar-center">
+        {/* Toggle Tách nền */}
+        <label className="ps-toggle-label" title="Bật/Tắt thuật toán tách phông Chroma">
+          <input
+            type="checkbox"
+            checked={chromaEnabled}
+            onChange={(e) => onChangeChromaEnabled(e.target.checked)}
+          />
+          <span className="ps-toggle-text">Tách nền</span>
+        </label>
+
+        {/* Chế độ xem: Đã tách vs Ảnh gốc */}
+        <div className="ps-segmented-pill" role="radiogroup" aria-label="Chế độ xem trước">
+          <button
+            type="button"
+            className={`ps-seg-item ${previewMode !== 'original' ? 'active' : ''}`}
+            onClick={() => onChangePreviewMode('transparent')}
+            title="Xem kết quả sau khi tách nền & chỉnh màu"
+          >
+            Đã tách
+          </button>
+          <button
+            type="button"
+            className={`ps-seg-item ${previewMode === 'original' ? 'active' : ''}`}
+            onClick={() => onChangePreviewMode('original')}
+            title="Xem ảnh gốc ban đầu"
+          >
+            Ảnh gốc
+          </button>
+        </div>
+
+        <div className="ps-toolbar-separator" />
+
+        {/* Bật/Tắt Ô lưới Caro */}
+        <button
+          type="button"
+          className={`ps-caro-toggle-btn ${isChecker ? 'active' : ''}`}
+          onClick={() => onChangeIsChecker(!isChecker)}
+          title={isChecker ? 'Đang bật ô lưới Caro (Click để tắt về nền đơn sắc)' : 'Đang tắt ô lưới Caro (Click để bật dạng lưới)'}
+        >
+          <IconCheckerboard width={14} height={14} />
+          <span>Caro</span>
+        </button>
+
+        {/* Nền Sáng / Tối */}
+        <div className="ps-segmented-pill" role="radiogroup" aria-label="Nền sáng tối">
+          <button
+            type="button"
+            className={`ps-seg-item ${tone === 'dark' ? 'active' : ''}`}
+            onClick={() => onChangeTone('dark')}
+            title="Nền tối (Ô caro đen hoặc đen tuyền)"
+          >
+            <IconMoon width={12} height={12} style={{ marginRight: 3 }} />
+            <span>Tối</span>
+          </button>
+          <button
+            type="button"
+            className={`ps-seg-item ${tone === 'light' ? 'active' : ''}`}
+            onClick={() => onChangeTone('light')}
+            title="Nền sáng (Ô caro sáng hoặc trắng tuyền)"
+          >
+            <IconSun width={12} height={12} style={{ marginRight: 3 }} />
+            <span>Sáng</span>
+          </button>
+        </div>
+      </div>
+
+      {/* 3. Header Right: Zoom + History + File Actions + Close */}
       <div className="ps-toolbar-right">
-        {/* Undo / Redo */}
-        <div className="ps-btn-group">
-          <button
-            type="button"
-            className="ps-icon-btn"
-            disabled={!canUndo}
-            onClick={onUndo}
-            title="Hoàn tác (Ctrl+Z)"
-          >
-            <IconUndo width={14} height={14} />
-          </button>
-          <button
-            type="button"
-            className="ps-icon-btn"
-            disabled={!canRedo}
-            onClick={onRedo}
-            title="Làm lại (Ctrl+Y)"
-          >
-            <IconRedo width={14} height={14} />
-          </button>
-        </div>
-
-        {/* Canvas BG Selector */}
-        <div className="ps-segmented-pill" role="radiogroup" aria-label="Nền xem thử">
-          <button
-            type="button"
-            className={`ps-seg-item ${canvasBg === 'checker-dark' ? 'active' : ''}`}
-            onClick={() => onChangeCanvasBg('checker-dark')}
-            title="Nền caro tối"
-          >
-            Caro
-          </button>
-          <button
-            type="button"
-            className={`ps-seg-item ${canvasBg === 'dark' ? 'active' : ''}`}
-            onClick={() => onChangeCanvasBg('dark')}
-            title="Nền đen tuyền"
-          >
-            Tối
-          </button>
-          <button
-            type="button"
-            className={`ps-seg-item ${canvasBg === 'light' ? 'active' : ''}`}
-            onClick={() => onChangeCanvasBg('light')}
-            title="Nền sáng"
-          >
-            Sáng
-          </button>
-        </div>
-
-        {/* Zoom Controls */}
-        <div className="ps-zoom-cluster">
-          <button type="button" className="ps-btn ghost sm" onClick={onFitZoom} title="Vừa khung nhìn">
+        {/* Thu phóng (Zoom) */}
+        <div className="ps-zoom-group">
+          <button type="button" className="ps-btn ghost sm" onClick={onFitZoom} title="Thu phóng vừa khung nhìn">
             Vừa ({Math.round(zoomScale * 100)}%)
           </button>
-          <button type="button" className="ps-btn ghost sm" onClick={onResetZoom} title="Chuẩn 100%">
+          <button type="button" className="ps-btn ghost sm" onClick={onResetZoom} title="Kích thước thực 100%">
             100%
           </button>
-          <button type="button" className="ps-icon-btn sm" onClick={() => onStepZoom(-0.15)} title="Thu nhỏ (-)">
+          <button
+            type="button"
+            className="ps-icon-btn sm"
+            onClick={() => onStepZoom(-0.15)}
+            title="Thu nhỏ (-)"
+          >
             -
           </button>
-          <button type="button" className="ps-icon-btn sm" onClick={() => onStepZoom(0.15)} title="Phóng to (+)">
+          <button
+            type="button"
+            className="ps-icon-btn sm"
+            onClick={() => onStepZoom(0.15)}
+            title="Phóng to (+)"
+          >
             +
           </button>
         </div>
 
-        {/* Action Buttons: Upload, Sample, Save, Close */}
-        <button type="button" className="ps-btn primary sm" onClick={onUploadImage} title="Chọn ảnh từ máy tính">
+        {/* Undo / Redo */}
+        <div className="ps-btn-group">
+          <button
+            type="button"
+            className="ps-icon-btn sm"
+            disabled={!canUndo}
+            onClick={onUndo}
+            title="Hoàn tác nét cọ/tẩy (Ctrl+Z)"
+          >
+            <IconUndo width={13} height={13} />
+          </button>
+          <button
+            type="button"
+            className="ps-icon-btn sm"
+            disabled={!canRedo}
+            onClick={onRedo}
+            title="Làm lại nét cọ/tẩy (Ctrl+Y)"
+          >
+            <IconRedo width={13} height={13} />
+          </button>
+        </div>
+
+        {/* Tải ảnh / Mẫu */}
+        <button
+          type="button"
+          className="ps-btn ghost sm"
+          onClick={onUploadImage}
+          title="Chọn ảnh từ máy tính"
+        >
           <IconUpload width={13} height={13} />
           <span className="ps-btn-text">Tải ảnh</span>
         </button>
 
-        <button type="button" className="ps-btn ghost sm" onClick={onLoadSample} title="Nạp ảnh nhân vật mẫu">
+        <button
+          type="button"
+          className="ps-btn ghost sm"
+          onClick={onLoadSample}
+          title="Nạp ảnh nhân vật mẫu"
+        >
           <IconImage width={13} height={13} />
           <span className="ps-btn-text">Mẫu</span>
         </button>
 
+        {/* Lưu ảnh (CTA) */}
         <button
           type="button"
           className="ps-btn success sm"
@@ -260,8 +239,14 @@ export function PhotoStudioToolbar({
           <span>Lưu ảnh…</span>
         </button>
 
-        <button type="button" className="ps-icon-btn close-btn" onClick={onClose} title="Đóng xưởng ảnh">
-          <IconX width={15} height={15} />
+        {/* Đóng */}
+        <button
+          type="button"
+          className="ps-icon-btn close-btn sm"
+          onClick={onClose}
+          title="Đóng xưởng ảnh (Esc)"
+        >
+          <IconX width={14} height={14} />
         </button>
       </div>
     </header>
