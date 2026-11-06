@@ -86,6 +86,12 @@ export function PhotoStudioDialog({
   const procCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const viewportRef = useRef<HTMLDivElement | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const brushCursorRef = useRef<HTMLDivElement | null>(null)
+
+  // 60fps Zero-Allocation Caches cho Pipeline xử lý ảnh mượt mà
+  const cachedChromaDataRef = useRef<Uint8ClampedArray | null>(null)
+  const cachedImageDataRef = useRef<ImageData | null>(null)
+  const rafPendingRef = useRef<boolean>(false)
 
   // Viewport Zoom & Pan
   const [scale, setScale] = useState<number>(0.5)
@@ -143,6 +149,9 @@ export function PhotoStudioDialog({
 
       workRawDataRef.current = rctx.getImageData(0, 0, ww, wh)
       userAlphaOverrideRef.current = new Int16Array(ww * wh).fill(-1)
+      const totalPixels = ww * wh
+      cachedChromaDataRef.current = new Uint8ClampedArray(totalPixels * 4)
+      cachedImageDataRef.current = null
       setUndoStack([])
       setRedoStack([])
 
@@ -179,20 +188,20 @@ export function PhotoStudioDialog({
     }
   }, [imageUrl])
 
-  // 2. Chạy pipeline xử lý render ra display canvas
-  const renderPipeline = useCallback(() => {
+  // 2. Chạy Chroma Pass (chỉ tính toán khi đổi cài đặt ChromaKey, không chạy lại khi quẹt cọ)
+  const runChromaPass = useCallback(() => {
     const rawData = workRawDataRef.current
-    const proc = procCanvasRef.current
-    if (!rawData || !proc) return
-    const pctx = proc.getContext('2d')
-    if (!pctx) return
-
+    if (!rawData) return
     const w = rawData.width
     const h = rawData.height
-    // Tạo bản sao Uint8ClampedArray từ ảnh gốc
-    const outputData = new Uint8ClampedArray(rawData.data)
+    const total = w * h
+    if (!cachedChromaDataRef.current || cachedChromaDataRef.current.length !== total * 4) {
+      cachedChromaDataRef.current = new Uint8ClampedArray(total * 4)
+    }
+    // Sao chép nguyên bản từ workRawData
+    cachedChromaDataRef.current.set(rawData.data)
 
-    // Bước A: Tách nền Chroma
+    // Tách nền Chroma
     if (chroma.enabled && chroma.previewMode !== 'original') {
       const scaledChroma: ChromaKeySettings = {
         ...chroma,
@@ -203,40 +212,82 @@ export function PhotoStudioDialog({
             ? Math.max(1, Math.round((chroma.strokeWidth ?? 0) * workScaleRef.current))
             : 0
       }
-      processAdvancedChromaPixelData(outputData, w, h, scaledChroma)
+      processAdvancedChromaPixelData(cachedChromaDataRef.current, w, h, scaledChroma)
+    }
+  }, [chroma])
+
+  // 3. Composite cực nhanh 60fps/120fps: Ghép chroma cache + mask vẽ tay + màu sắc
+  const fastCompositeAndDraw = useCallback(() => {
+    const rawData = workRawDataRef.current
+    const proc = procCanvasRef.current
+    const chromaData = cachedChromaDataRef.current
+    if (!rawData || !proc || !chromaData) return
+    const pctx = proc.getContext('2d')
+    if (!pctx) return
+
+    const w = rawData.width
+    const h = rawData.height
+    const total = w * h
+
+    if (!cachedImageDataRef.current || cachedImageDataRef.current.width !== w || cachedImageDataRef.current.height !== h) {
+      cachedImageDataRef.current = pctx.createImageData(w, h)
     }
 
-    // Bước B: Ghi đè Manual Mask (Cọ tẩy/Khôi phục)
+    const comp = cachedImageDataRef.current.data
+    // Copy nhanh từ Chroma cache (~0.5ms)
+    comp.set(chromaData)
+
+    // Ghi đè Manual Mask (Cọ tẩy/Khôi phục)
     const override = userAlphaOverrideRef.current
     if (override) {
-      for (let p = 0; p < w * h; p++) {
+      const rawBytes = rawData.data
+      for (let p = 0; p < total; p++) {
         const ov = override[p]
         if (ov >= 0) {
-          const idx = p * 4
-          outputData[idx + 3] = ov
-          // Nếu khôi phục pixel gốc thì lấy lại màu gốc 0ms
-          if (ov > 0 && outputData[idx + 3] > 0) {
-            outputData[idx] = rawData.data[idx]
-            outputData[idx + 1] = rawData.data[idx + 1]
-            outputData[idx + 2] = rawData.data[idx + 2]
+          const idx = p << 2
+          comp[idx + 3] = ov
+          // Nếu khôi phục pixel gốc thì lấy lại màu gốc
+          if (ov > 0) {
+            comp[idx] = rawBytes[idx]
+            comp[idx + 1] = rawBytes[idx + 1]
+            comp[idx + 2] = rawBytes[idx + 2]
           }
         }
       }
     }
 
-    // Bước C: Chỉnh sửa màu sắc & Bộ lọc ảnh
+    // Chỉnh sửa màu sắc & Bộ lọc ảnh
     if (!isDefaultAdjustments(adjustments)) {
-      applyColorAdjustments(outputData, w, h, adjustments)
+      applyColorAdjustments(comp, w, h, adjustments)
     }
 
-    // Ghi vào display canvas
-    const imgData = new ImageData(outputData, w, h)
-    pctx.putImageData(imgData, 0, 0)
-  }, [chroma, adjustments])
+    pctx.putImageData(cachedImageDataRef.current, 0, 0)
+  }, [adjustments])
+
+  // Toàn bộ pipeline (khi nạp ảnh hoặc đổi Chroma settings)
+  const renderPipeline = useCallback(() => {
+    runChromaPass()
+    fastCompositeAndDraw()
+  }, [runChromaPass, fastCompositeAndDraw])
+
+  // Throttle render cọ bằng requestAnimationFrame để triệt tiêu giật lag 100%
+  const requestDraw = useCallback(() => {
+    if (rafPendingRef.current) return
+    rafPendingRef.current = true
+    requestAnimationFrame(() => {
+      rafPendingRef.current = false
+      fastCompositeAndDraw()
+    })
+  }, [fastCompositeAndDraw])
 
   useEffect(() => {
     renderPipeline()
   }, [renderPipeline])
+
+  // Khi chỉ thay đổi màu sắc / bộ lọc ảnh, chỉ cần composite lại 0ms mà không tính lại Chroma
+  useEffect(() => {
+    fastCompositeAndDraw()
+  }, [adjustments, fastCompositeAndDraw])
 
   // Lưu snapshot Undo
   const pushUndo = useCallback(() => {
@@ -253,8 +304,8 @@ export function PhotoStudioDialog({
     setUndoStack((s) => s.slice(0, -1))
     setRedoStack((s) => [...s, current])
     userAlphaOverrideRef.current.set(prev)
-    renderPipeline()
-  }, [undoStack, renderPipeline])
+    fastCompositeAndDraw()
+  }, [undoStack, fastCompositeAndDraw])
 
   const handleRedo = useCallback(() => {
     if (redoStack.length === 0 || !userAlphaOverrideRef.current) return
@@ -263,8 +314,8 @@ export function PhotoStudioDialog({
     setRedoStack((s) => s.slice(0, -1))
     setUndoStack((s) => [...s, current])
     userAlphaOverrideRef.current.set(next)
-    renderPipeline()
-  }, [redoStack, renderPipeline])
+    fastCompositeAndDraw()
+  }, [redoStack, fastCompositeAndDraw])
 
   // Phím tắt bàn phím (Space để pan, Ctrl+Z, Ctrl+Y, Delete)
   useEffect(() => {
@@ -325,7 +376,7 @@ export function PhotoStudioDialog({
             }
           }
           setMarquee(null)
-          renderPipeline()
+          fastCompositeAndDraw()
         }
       }
     }
@@ -341,7 +392,7 @@ export function PhotoStudioDialog({
       window.removeEventListener('keydown', onKeyDown, true)
       window.removeEventListener('keyup', onKeyUp)
     }
-  }, [handleUndo, handleRedo, marquee, pushUndo, renderPipeline, tool, isSaveModalOpen, lassoPoints, onClose])
+  }, [handleUndo, handleRedo, marquee, pushUndo, fastCompositeAndDraw, tool, isSaveModalOpen, lassoPoints, onClose])
 
   // Xử lý vẽ nét cọ (Eraser / Restore)
   const applyBrushAtPoint = useCallback((cx: number, cy: number, isEraser: boolean) => {
@@ -426,7 +477,7 @@ export function PhotoStudioDialog({
           'erase',
           override
         )
-        renderPipeline()
+        fastCompositeAndDraw()
       }
       return
     }
@@ -436,7 +487,7 @@ export function PhotoStudioDialog({
       setIsDrawing(true)
       lastStrokePointRef.current = { x: coords.workX, y: coords.workY }
       applyBrushAtPoint(coords.workX, coords.workY, tool === 'eraser')
-      renderPipeline()
+      fastCompositeAndDraw()
       return
     }
 
@@ -472,6 +523,21 @@ export function PhotoStudioDialog({
     }
 
     const coords = computeCanvasPointerCoords(e, imgNaturalSize.w, imgNaturalSize.h)
+
+    // Cập nhật vị trí con trỏ cọ vẽ Brush Cursor Preview 60fps
+    if ((tool === 'eraser' || tool === 'restore') && !isSpacePressed && !isSpacePanning) {
+      if (brushCursorRef.current) {
+        const r = Math.max(1, Math.round(brushRadius * workScaleRef.current))
+        const d = r * 2
+        brushCursorRef.current.style.display = 'block'
+        brushCursorRef.current.style.width = `${d}px`
+        brushCursorRef.current.style.height = `${d}px`
+        brushCursorRef.current.style.left = `${coords.workX}px`
+        brushCursorRef.current.style.top = `${coords.workY}px`
+      }
+    } else if (brushCursorRef.current) {
+      brushCursorRef.current.style.display = 'none'
+    }
 
     if (tool === 'eyedropper' && eyedropperSample) {
       const proc = procCanvasRef.current
@@ -510,7 +576,7 @@ export function PhotoStudioDialog({
         }
       }
       lastStrokePointRef.current = { x: coords.workX, y: coords.workY }
-      renderPipeline()
+      requestDraw()
       return
     }
 
@@ -530,10 +596,28 @@ export function PhotoStudioDialog({
     lastStrokePointRef.current = null
     setIsDrawing(false)
 
+    if (rafPendingRef.current) {
+      rafPendingRef.current = false
+    }
+    fastCompositeAndDraw()
+
     if (tool === 'eyedropper') {
       setEyedropperSample(null)
     }
   }
+
+  const handlePointerLeave = () => {
+    if (brushCursorRef.current) {
+      brushCursorRef.current.style.display = 'none'
+    }
+  }
+
+  // Ẩn preview cọ khi chuyển sang công cụ khác
+  useEffect(() => {
+    if (brushCursorRef.current && tool !== 'eraser' && tool !== 'restore') {
+      brushCursorRef.current.style.display = 'none'
+    }
+  }, [tool])
 
   // Zoom lăn chuột
   const handleWheel = (e: React.WheelEvent) => {
@@ -734,7 +818,7 @@ export function PhotoStudioDialog({
                       : tool === 'eyedropper'
                         ? 'crosshair'
                         : tool === 'eraser' || tool === 'restore'
-                          ? 'crosshair'
+                          ? 'none'
                           : tool === 'wand' || tool === 'box' || tool === 'lasso'
                             ? 'crosshair'
                             : 'default'
@@ -743,6 +827,14 @@ export function PhotoStudioDialog({
                 onPointerMove={handlePointerMove}
                 onPointerUp={handlePointerUp}
                 onPointerCancel={handlePointerUp}
+                onPointerLeave={handlePointerLeave}
+              />
+
+              {/* Vòng tròn xem trước cọ vẽ Brush Cursor Preview */}
+              <div
+                ref={brushCursorRef}
+                className="ps-brush-cursor"
+                style={{ display: 'none' }}
               />
 
               {/* Marquee Rect Overlay */}
