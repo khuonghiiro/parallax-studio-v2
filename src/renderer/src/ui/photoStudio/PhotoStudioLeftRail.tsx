@@ -2,15 +2,13 @@ import React, { useState } from 'react'
 import type { PhotoStudioTool } from './types'
 import {
   IconToolPan,
+  IconToolWand,
+  IconToolEraser,
+  IconToolRestore,
   IconToolMarquee,
-  IconToolLasso
+  IconToolLasso,
+  IconToolEyedropper
 } from './PhotoStudioIcons'
-import {
-  IconWand,
-  IconEraser,
-  IconBrush,
-  IconEyedropper
-} from '../icons'
 import { PhotoStudioFlyout } from './PhotoStudioFlyout'
 
 export interface PhotoStudioLeftRailProps {
@@ -60,15 +58,15 @@ export function PhotoStudioLeftRail({
         </button>
       </div>
 
-      {/* 2. Đũa thần */}
+      {/* 2. Đũa thần tách nền */}
       <div className="ps-rail-item">
         <button
           type="button"
           className={`ps-rail-btn ${tool === 'wand' ? 'active' : ''}`}
           onClick={() => handleToolClick('wand')}
-          title="Đũa thần: Nhấp vào màu để tách/chọn"
+          title="Đũa thần: Nhấp vào màu nền để tách nhanh"
         >
-          <IconWand width={18} height={18} />
+          <IconToolWand width={18} height={18} />
           <span className="ps-rail-label">Đũa</span>
           <span className="ps-rail-badge">{wandTolerance}%</span>
         </button>
@@ -78,11 +76,11 @@ export function PhotoStudioLeftRail({
           onClose={() => setActiveFlyout(null)}
           side="right"
           title="Dung sai đũa thần"
-          icon={<IconWand width={15} height={15} />}
+          icon={<IconToolWand width={15} height={15} />}
           badge={`${wandTolerance}%`}
           onReset={() => onChangeWandTolerance(36)}
           resetTitle="Đặt lại 36%"
-          width={250}
+          width={280}
         >
           <div className="ps-flyout-slider-row">
             <span className="ps-flyout-label">Dung sai:</span>
@@ -96,29 +94,29 @@ export function PhotoStudioLeftRail({
             <span className="ps-flyout-val">{wandTolerance}%</span>
           </div>
           <div className="ps-flyout-presets">
-            {[15, 25, 36, 50, 70].map((v) => (
+            {[15, 25, 36, 50, 70].map((tol) => (
               <button
-                key={v}
+                key={tol}
                 type="button"
-                className={`ps-chip-btn ${wandTolerance === v ? 'active' : ''}`}
-                onClick={() => onChangeWandTolerance(v)}
+                className={`ps-chip-btn ${wandTolerance === tol ? 'active' : ''}`}
+                onClick={() => onChangeWandTolerance(tol)}
               >
-                {v}%
+                {tol}%
               </button>
             ))}
           </div>
         </PhotoStudioFlyout>
       </div>
 
-      {/* 3. Cọ tẩy điểm ảnh */}
+      {/* 3. Cọ tẩy */}
       <div className="ps-rail-item">
         <button
           type="button"
           className={`ps-rail-btn ${tool === 'eraser' ? 'active' : ''}`}
           onClick={() => handleToolClick('eraser')}
-          title="Cọ tẩy: Xóa thủ công từng chi tiết thừa"
+          title="Cọ tẩy: Quét chuột để xóa chi tiết pixel"
         >
-          <IconEraser width={18} height={18} />
+          <IconToolEraser width={18} height={18} />
           <span className="ps-rail-label">Tẩy</span>
           <span className="ps-rail-badge">{brushRadius}px</span>
         </button>
@@ -127,12 +125,12 @@ export function PhotoStudioLeftRail({
           isOpen={activeFlyout === 'eraser'}
           onClose={() => setActiveFlyout(null)}
           side="right"
-          title="Kích thước cọ tẩy"
-          icon={<IconEraser width={15} height={15} />}
+          title="Bán kính cọ tẩy"
+          icon={<IconToolEraser width={15} height={15} />}
           badge={`${brushRadius}px`}
           onReset={() => onChangeBrushRadius(18)}
           resetTitle="Đặt lại 18px"
-          width={250}
+          width={280}
         >
           <div className="ps-flyout-slider-row">
             <span className="ps-flyout-label">Bán kính:</span>
@@ -168,7 +166,7 @@ export function PhotoStudioLeftRail({
           onClick={() => handleToolClick('restore')}
           title="Khôi phục: Lấy lại các pixel gốc ban đầu"
         >
-          <IconBrush width={18} height={18} />
+          <IconToolRestore width={18} height={18} />
           <span className="ps-rail-label">Khôi phục</span>
           <span className="ps-rail-badge">{brushRadius}px</span>
         </button>
@@ -178,11 +176,11 @@ export function PhotoStudioLeftRail({
           onClose={() => setActiveFlyout(null)}
           side="right"
           title="Cọ khôi phục ảnh gốc"
-          icon={<IconBrush width={15} height={15} />}
+          icon={<IconToolRestore width={15} height={15} />}
           badge={`${brushRadius}px`}
           onReset={() => onChangeBrushRadius(18)}
           resetTitle="Đặt lại 18px"
-          width={250}
+          width={280}
         >
           <div className="ps-flyout-slider-row">
             <span className="ps-flyout-label">Bán kính:</span>
@@ -244,7 +242,7 @@ export function PhotoStudioLeftRail({
           onClick={() => handleToolClick('eyedropper')}
           title="Hút màu nền từ ảnh bằng kính lúp"
         >
-          <IconEyedropper width={18} height={18} />
+          <IconToolEyedropper width={18} height={18} />
           <span className="ps-rail-label">Hút màu</span>
         </button>
       </div>

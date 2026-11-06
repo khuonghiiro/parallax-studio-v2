@@ -192,25 +192,37 @@
 }
 
 /* Checkbox Label */
-.ps-toggle-label {
+/* Nút Tải ảnh nổi bật */
+.ps-btn.ps-btn-upload {
+  background: color-mix(in srgb, var(--accent) 18%, var(--bg-2));
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--line-soft));
+  color: var(--text);
+  font-weight: 500;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
-  color: var(--text);
-  font-weight: 600;
-  cursor: pointer;
+  padding: 0 12px;
+  height: 30px;
+  border-radius: var(--radius-sm, 4px);
+  transition: all 0.15s ease;
 }
 
-.ps-toggle-label input[type='checkbox'] {
-  cursor: pointer;
-  accent-color: var(--accent);
-  width: 14px;
-  height: 14px;
+.ps-btn.ps-btn-upload:hover {
+  background: color-mix(in srgb, var(--accent) 28%, var(--bg-3));
+  border-color: var(--accent);
+  color: var(--on-accent, #ffffff);
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.25);
 }
 
-.ps-toggle-text {
-  color: var(--text);
+[data-theme='light'] .ps-btn.ps-btn-upload {
+  background: color-mix(in srgb, var(--accent) 14%, #ffffff);
+  border-color: color-mix(in srgb, var(--accent) 35%, #cbd5e1);
+  color: var(--accent);
+}
+
+[data-theme='light'] .ps-btn.ps-btn-upload:hover {
+  background: var(--accent);
+  color: var(--on-accent, #ffffff);
 }
 
 /* Zoom group */

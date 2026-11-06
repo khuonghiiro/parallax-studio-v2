@@ -160,16 +160,18 @@ export function ColorInput({
 
     const handleKeyDown = (e: KeyboardEvent): void => {
       if (e.key === 'Escape') {
+        e.preventDefault()
+        e.stopPropagation()
         flushCommit()
         setIsOpen(false)
       }
     }
 
-    window.addEventListener('pointerdown', handlePointerDown)
-    window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('pointerdown', handlePointerDown, true)
+    window.addEventListener('keydown', handleKeyDown, true)
     return () => {
-      window.removeEventListener('pointerdown', handlePointerDown)
-      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('pointerdown', handlePointerDown, true)
+      window.removeEventListener('keydown', handleKeyDown, true)
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
     }
   }, [isOpen])

@@ -2,19 +2,16 @@ import React from 'react'
 import {
   IconUndo,
   IconRedo,
-  IconUpload,
   IconImage,
   IconSave,
   IconX,
   IconSun,
   IconMoon
 } from '../icons'
-import { IconCheckerboard } from './PhotoStudioIcons'
+import { IconCheckerboard, IconImageUpload } from './PhotoStudioIcons'
 
 export interface PhotoStudioToolbarProps {
-  // Chroma Toggle & Mode
-  chromaEnabled: boolean
-  onChangeChromaEnabled: (enabled: boolean) => void
+  // Preview Mode: Đã tách vs Ảnh gốc
   previewMode: 'transparent' | 'original'
   onChangePreviewMode: (mode: 'transparent' | 'original') => void
 
@@ -46,8 +43,6 @@ export interface PhotoStudioToolbarProps {
 }
 
 export function PhotoStudioToolbar({
-  chromaEnabled,
-  onChangeChromaEnabled,
   previewMode,
   onChangePreviewMode,
   isChecker,
@@ -78,7 +73,7 @@ export function PhotoStudioToolbar({
             <IconImage width={16} height={16} />
           </span>
           <span className="ps-app-title">Tách nền & Chỉnh sửa ảnh</span>
-          <span className="ps-size-badge" title={`Kích thước ảnh gốc: ${imageSize.w}×${imageSize.h}px`}>
+          <span className="ps-size-badge" title={`Kích thước ảnh: ${imageSize.w}×${imageSize.h}px`}>
             {imageSize.w}×{imageSize.h}
           </span>
           {fileName && (
@@ -89,18 +84,8 @@ export function PhotoStudioToolbar({
         </div>
       </div>
 
-      {/* 2. Header Center: Chroma Toggle + Preview Mode + Canvas BG (Caro / Tone) */}
+      {/* 2. Header Center: Preview Mode + Canvas BG (Caro / Tone) */}
       <div className="ps-toolbar-center">
-        {/* Toggle Tách nền */}
-        <label className="ps-toggle-label" title="Bật/Tắt thuật toán tách phông Chroma">
-          <input
-            type="checkbox"
-            checked={chromaEnabled}
-            onChange={(e) => onChangeChromaEnabled(e.target.checked)}
-          />
-          <span className="ps-toggle-text">Tách nền</span>
-        </label>
-
         {/* Chế độ xem: Đã tách vs Ảnh gốc */}
         <div className="ps-segmented-pill" role="radiogroup" aria-label="Chế độ xem trước">
           <button
@@ -128,65 +113,78 @@ export function PhotoStudioToolbar({
           type="button"
           className={`ps-caro-toggle-btn ${isChecker ? 'active' : ''}`}
           onClick={() => onChangeIsChecker(!isChecker)}
-          title={isChecker ? 'Đang bật ô lưới Caro (Click để tắt về nền đơn sắc)' : 'Đang tắt ô lưới Caro (Click để bật dạng lưới)'}
+          title={isChecker ? 'Tắt ô lưới caro (chuyển sang nền đơn sắc)' : 'Bật ô lưới caro'}
+          aria-pressed={isChecker}
         >
-          <IconCheckerboard width={14} height={14} />
+          <IconCheckerboard width={13} height={13} />
           <span>Caro</span>
         </button>
 
-        {/* Nền Sáng / Tối */}
-        <div className="ps-segmented-pill" role="radiogroup" aria-label="Nền sáng tối">
+        {/* Nền Tối vs Sáng */}
+        <div className="ps-segmented-pill" role="radiogroup" aria-label="Tông nền canvas">
           <button
             type="button"
             className={`ps-seg-item ${tone === 'dark' ? 'active' : ''}`}
             onClick={() => onChangeTone('dark')}
-            title="Nền tối (Ô caro đen hoặc đen tuyền)"
+            title="Nền tối (dễ phát hiện viền trắng/xanh)"
           >
-            <IconMoon width={12} height={12} style={{ marginRight: 3 }} />
+            <IconMoon width={11} height={11} />
             <span>Tối</span>
           </button>
           <button
             type="button"
             className={`ps-seg-item ${tone === 'light' ? 'active' : ''}`}
             onClick={() => onChangeTone('light')}
-            title="Nền sáng (Ô caro sáng hoặc trắng tuyền)"
+            title="Nền sáng (dễ phát hiện viền đen/xám)"
           >
-            <IconSun width={12} height={12} style={{ marginRight: 3 }} />
+            <IconSun width={11} height={11} />
             <span>Sáng</span>
           </button>
         </div>
       </div>
 
-      {/* 3. Header Right: Zoom + History + File Actions + Close */}
+      {/* 3. Header Right: Zoom + History + Actions */}
       <div className="ps-toolbar-right">
-        {/* Thu phóng (Zoom) */}
+        {/* Zoom */}
         <div className="ps-zoom-group">
-          <button type="button" className="ps-btn ghost sm" onClick={onFitZoom} title="Thu phóng vừa khung nhìn">
+          <button
+            type="button"
+            className="ps-btn ghost xs"
+            onClick={onFitZoom}
+            title="Vừa vặn khung nhìn (Fit to screen)"
+          >
             Vừa ({Math.round(zoomScale * 100)}%)
           </button>
-          <button type="button" className="ps-btn ghost sm" onClick={onResetZoom} title="Kích thước thực 100%">
+          <button
+            type="button"
+            className="ps-btn ghost xs"
+            onClick={onResetZoom}
+            title="Kích thước thực 100%"
+          >
             100%
           </button>
           <button
             type="button"
             className="ps-icon-btn sm"
             onClick={() => onStepZoom(-0.15)}
-            title="Thu nhỏ (-)"
+            title="Thu nhỏ"
           >
-            -
+            −
           </button>
           <button
             type="button"
             className="ps-icon-btn sm"
-            onClick={() => onStepZoom(0.15)}
-            title="Phóng to (+)"
+            onClick={() => onStepZoom(+0.15)}
+            title="Phóng to"
           >
             +
           </button>
         </div>
 
+        <div className="ps-toolbar-separator" />
+
         {/* Undo / Redo */}
-        <div className="ps-btn-group">
+        <div className="ps-history-group">
           <button
             type="button"
             className="ps-icon-btn sm"
@@ -207,14 +205,14 @@ export function PhotoStudioToolbar({
           </button>
         </div>
 
-        {/* Tải ảnh / Mẫu */}
+        {/* Tải ảnh (Nút nổi bật dễ nhận biết) */}
         <button
           type="button"
-          className="ps-btn ghost sm"
+          className="ps-btn ps-btn-upload sm"
           onClick={onUploadImage}
-          title="Chọn ảnh từ máy tính"
+          title="Tải ảnh mới từ máy tính để tách nền / chỉnh sửa"
         >
-          <IconUpload width={13} height={13} />
+          <IconImageUpload width={14} height={14} />
           <span className="ps-btn-text">Tải ảnh</span>
         </button>
 
@@ -228,7 +226,7 @@ export function PhotoStudioToolbar({
           <span className="ps-btn-text">Mẫu</span>
         </button>
 
-        {/* Lưu ảnh (CTA) */}
+        {/* Lưu ảnh (CTA chính) */}
         <button
           type="button"
           className="ps-btn success sm"

@@ -42,6 +42,9 @@ export function useShortcuts(onExport: () => void): void {
       const view = useView.getState()
       // Escape should always close non-export dialogs or blur active inputs
       if (e.key === 'Escape') {
+        if (typeof document !== 'undefined' && document.querySelector('.ps-eyedropper-banner, .ps-flyout, .color-picker-popover, .ps-save-modal-backdrop, .menu[role="menu"]')) {
+          return
+        }
         if (view.dialog && view.dialog !== 'export') {
           view.openDialog(null)
           e.preventDefault()

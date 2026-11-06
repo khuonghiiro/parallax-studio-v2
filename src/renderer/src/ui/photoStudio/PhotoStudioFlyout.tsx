@@ -28,7 +28,7 @@ export function PhotoStudioFlyout({
   badge,
   onReset,
   resetTitle = 'Đặt lại',
-  width = 240,
+  width = 280,
   children
 }: PhotoStudioFlyoutProps) {
   const ref = useRef<HTMLDivElement>(null)
@@ -37,9 +37,15 @@ export function PhotoStudioFlyout({
     if (!isOpen) return
 
     const handlePointerDown = (e: PointerEvent): void => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
+      const target = e.target as Element | null
+      // Nếu click vào popup con chọn màu (portal), không đóng flyout cha
+      if (target?.closest?.('.color-picker-popover, .custom-color-picker')) {
+        return
+      }
+
+      if (ref.current && !ref.current.contains(target as Node)) {
         const parentBtn = ref.current.parentElement
-        if (!parentBtn?.contains(e.target as Node)) {
+        if (!parentBtn?.contains(target as Node)) {
           onClose()
         }
       }
@@ -47,16 +53,21 @@ export function PhotoStudioFlyout({
 
     const handleKeyDown = (e: KeyboardEvent): void => {
       if (e.key === 'Escape') {
+        // Nếu popup con chọn màu đang mở, để popup con đóng trước
+        if (document.querySelector('.color-picker-popover')) {
+          return
+        }
+        e.preventDefault()
         e.stopPropagation()
         onClose()
       }
     }
 
-    window.addEventListener('pointerdown', handlePointerDown)
-    window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('pointerdown', handlePointerDown, true)
+    window.addEventListener('keydown', handleKeyDown, true)
     return () => {
-      window.removeEventListener('pointerdown', handlePointerDown)
-      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('pointerdown', handlePointerDown, true)
+      window.removeEventListener('keydown', handleKeyDown, true)
     }
   }, [isOpen, onClose])
 
@@ -66,10 +77,9 @@ export function PhotoStudioFlyout({
     <div
       ref={ref}
       className={`ps-flyout ps-flyout-${side} ps-flyout-${placement}`}
-      style={{ width }}
+      style={{ width, maxWidth: 'calc(100vw - 120px)' }}
       role="dialog"
       aria-label={title}
-      onPointerDown={(e) => e.stopPropagation()}
     >
       <div className="ps-flyout-header">
         <div className="ps-flyout-title">
@@ -92,7 +102,7 @@ export function PhotoStudioFlyout({
             type="button"
             className="ps-flyout-btn-close"
             onClick={onClose}
-            title="Đóng bảng này"
+            title="Đóng bảng này (Esc)"
           >
             ✕
           </button>

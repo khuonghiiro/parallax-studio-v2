@@ -269,6 +269,35 @@ export function PhotoStudioDialog({
   // Phím tắt bàn phím (Space để pan, Ctrl+Z, Ctrl+Y, Delete)
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (tool === 'eyedropper') {
+          e.preventDefault()
+          e.stopPropagation()
+          setTool('wand')
+          setEyedropperSample(null)
+          return
+        }
+        if (isSaveModalOpen) {
+          e.preventDefault()
+          e.stopPropagation()
+          setIsSaveModalOpen(false)
+          return
+        }
+        if (marquee || lassoPoints.length > 0) {
+          e.preventDefault()
+          e.stopPropagation()
+          setMarquee(null)
+          setLassoPoints([])
+          return
+        }
+        if (typeof document !== 'undefined' && document.querySelector('.ps-flyout, .color-picker-popover')) {
+          return
+        }
+        e.preventDefault()
+        e.stopPropagation()
+        onClose()
+        return
+      }
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
       if (e.code === 'Space' && !e.repeat) {
         e.preventDefault()
@@ -306,13 +335,13 @@ export function PhotoStudioDialog({
         setIsSpacePanning(false)
       }
     }
-    window.addEventListener('keydown', onKeyDown)
+    window.addEventListener('keydown', onKeyDown, true)
     window.addEventListener('keyup', onKeyUp)
     return () => {
-      window.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('keydown', onKeyDown, true)
       window.removeEventListener('keyup', onKeyUp)
     }
-  }, [handleUndo, handleRedo, marquee, pushUndo, renderPipeline])
+  }, [handleUndo, handleRedo, marquee, pushUndo, renderPipeline, tool, isSaveModalOpen, lassoPoints, onClose])
 
   // Xử lý vẽ nét cọ (Eraser / Restore)
   const applyBrushAtPoint = useCallback((cx: number, cy: number, isEraser: boolean) => {
@@ -600,7 +629,14 @@ export function PhotoStudioDialog({
   }
 
   return (
-    <div className="ps-backdrop" onPointerDown={onClose}>
+    <div
+      className="ps-backdrop"
+      onPointerDown={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose()
+        }
+      }}
+    >
       <div
         className="ps-modal-container"
         role="dialog"
@@ -608,7 +644,6 @@ export function PhotoStudioDialog({
         aria-label="Xưởng Tách Nền & Chỉnh Sửa Ảnh"
         data-mcp-region="photo_editor"
         data-mcp-dialog
-        onPointerDown={(e) => e.stopPropagation()}
       >
         <input
           ref={fileInputRef}
@@ -620,8 +655,6 @@ export function PhotoStudioDialog({
 
         {/* 1. Header Toolbar */}
         <PhotoStudioToolbar
-          chromaEnabled={chroma.enabled}
-          onChangeChromaEnabled={(enabled) => setChroma((c) => ({ ...c, enabled }))}
           previewMode={chroma.previewMode || 'transparent'}
           onChangePreviewMode={(previewMode) => setChroma((c) => ({ ...c, previewMode }))}
           isChecker={isChecker}
