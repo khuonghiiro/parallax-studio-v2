@@ -648,8 +648,8 @@ describe('chromaKey algorithms', () => {
         expect([buf[idx], buf[idx + 1], buf[idx + 2]]).toEqual([17, 34, 51])
       }
 
-      // Kiểm tra vùng mép răng cưa cũ (r = radius): đã được phủ mịn bởi màu viền #112233
-      const seamIdx = (cy * w + (cx + radius)) * 4
+      // Kiểm tra vùng nét viền ngay sát rìa (r = radius + 1): phủ đặc bởi màu viền #112233
+      const seamIdx = (cy * w + (cx + radius + 1)) * 4
       expect(buf[seamIdx + 3]).toBe(255)
       expect([buf[seamIdx], buf[seamIdx + 1], buf[seamIdx + 2]]).toEqual([17, 34, 51])
 

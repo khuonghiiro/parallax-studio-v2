@@ -19,10 +19,8 @@ function parseHexRgb(hex: string): { r: number; g: number; b: number } {
 }
 
 /**
- * Xây dựng trường mật độ biên đã làm mịn (Smoothed Contour Field 0..255) bằng 2 lượt
- * bộ lọc Gaussian tách biến 5x5 ([1, 4, 6, 4, 1] / 16) kết hợp bảo vệ chi tiết mảnh (sợi tóc, trâm cài).
- * Nhờ làm mịn trường alpha trước khi trích xuất đường đồng mức 127.5, các bậc thang răng cưa
- * (stair-step aliasing) trên đường tròn hoặc nét cong được chuyển thành đường cong liên tục dưới mức pixel.
+ * Xây dựng trường mật độ biên đã làm mịn (Smoothed Contour Field 0..255) bằng bộ lọc
+ * Gaussian tách biến 5x5 ([1, 4, 6, 4, 1] / 16) kết hợp bảo vệ chi tiết mảnh.
  */
 function buildSmoothedContourField(
   alphaSnap: Uint8Array,
@@ -38,8 +36,7 @@ function buildSmoothedContourField(
   for (let p = 0; p < totalPixels; p++) {
     const a = alphaSnap[p]
     if (excludeShadowMask && excludeShadowMask[p] && a < 165) {
-      // Giảm trọng số bóng mờ bán trong suốt để đường viền bám sát hình khối chính của nhân vật
-      src[p] = a * 0.35
+      src[p] = 0
     } else {
       src[p] = a
     }
@@ -87,22 +84,12 @@ function buildSmoothedContourField(
     }
   }
 
-  // Bảo vệ sợi tóc mảnh / chi tiết 1-2px: nếu pixel gốc đặc (>= 185) nhưng vùng 3x3 xung quanh hẹp
-  // (không phải bậc thang của mảng đặc lớn), giữ mức tối thiểu trên ngưỡng 127.5 để nét mảnh không bị đứt
-  for (let y = 1; y < h - 1; y++) {
-    const row = y * w
-    for (let x = 1; x < w - 1; x++) {
-      const p = row + x
-      const origA = alphaSnap[p]
-      if (origA < 185 || (excludeShadowMask && excludeShadowMask[p])) continue
-      if (curr[p] >= 132) continue
-      const solidNeighbors =
-        (alphaSnap[p - 1] >= 180 ? 1 : 0) +
-        (alphaSnap[p + 1] >= 180 ? 1 : 0) +
-        (alphaSnap[p - w] >= 180 ? 1 : 0) +
-        (alphaSnap[p + w] >= 180 ? 1 : 0)
-      if (solidNeighbors <= 2 && curr[p] >= 52) {
-        curr[p] = Math.max(curr[p], 134)
+  // Bảo vệ sợi tóc mảnh / chi tiết 1-2px
+  for (let p = 0; p < totalPixels; p++) {
+    const origA = alphaSnap[p]
+    if (origA >= 180 && (!excludeShadowMask || !excludeShadowMask[p])) {
+      if (curr[p] < origA * 0.72) {
+        curr[p] = origA * 0.72
       }
     }
   }
@@ -156,7 +143,6 @@ function applyContourEdgeSmooth(
       }
       const targetA = smoothField[p]
 
-      // Chỉ lọc răng cưa trên dải biên nơi có biến thiên alpha xung quanh
       const minN = Math.min(
         alphaSnap[p - 1],
         alphaSnap[p + 1],
@@ -189,12 +175,13 @@ function applyContourEdgeSmooth(
 }
 
 /**
- * Vẽ Viền nét (Smooth Contour Stroke) khử răng cưa chuẩn Sub-Pixel Signed Distance Field:
- * 1. Làm mịn trường biên bằng Gaussian tách biến 5x5 để triệt tiêu răng cưa bậc thang của hình gốc.
- * 2. Nội suy tọa độ đường cong dưới mức pixel (Sub-Pixel Curve Seed cx, cy) từ đạo hàm bậc nhất.
- * 3. Lan truyền khoảng cách Euclid thực (2-Pass 8-Neighbor Danielsson Vector EDT) + làm mượt trường SDF.
- * 4. Phủ nét viền đè nhẹ vào mép trong (~0.8..1.35px) để xóa sạch vết răng cưa giao tiếp và mở rộng
- *    ra ngoài đúng độ dày `strokeWidth` với biên ngoài khử răng cưa smoothstep mượt mà.
+ * Vẽ Viền nét ngoài (Smooth Outer Stroke - chuẩn Photoshop Layer Style Stroke):
+ * 1. Bảo toàn tuyệt đối 100% pixel bên trong nhân vật và nét vẽ gốc (Foreground OVER Stroke),
+ *    không bao giờ lem màu viền vào da hay làm nhòe nét vẽ có sẵn.
+ * 2. Tính khoảng cách Euclid liên tục dưới mức pixel từ biên alpha đã làm mịn:
+ *    D(x, y) = min_{s} ( sqrt((x - xs)^2 + (y - ys)^2) + (1 - a_s / 255) )
+ *    giúp khoảng cách trơn tru tuyệt đối, không dùng chia đạo hàm nên không bao giờ bị gai hay loang mực.
+ * 3. Làm mượt nhẹ trường khoảng cách bằng nhân Gaussian 3x3 và khử răng cưa smoothstep ở mép ngoài.
  */
 function applySmoothContourStroke(
   data: Uint8ClampedArray,
@@ -206,221 +193,159 @@ function applySmoothContourStroke(
   excludeShadowMask?: Uint8Array | null
 ): void {
   const totalPixels = w * h
+  const coreAlpha = new Uint8Array(totalPixels)
   for (let p = 0; p < totalPixels; p++) {
-    alphaSnap[p] = data[p * 4 + 3]
+    const a = data[p * 4 + 3]
+    alphaSnap[p] = a
+    coreAlpha[p] = excludeShadowMask && excludeShadowMask[p] && a < 165 ? 0 : a
   }
 
-  const smoothField = buildSmoothedContourField(alphaSnap, w, h, 2, excludeShadowMask)
-  const isoLevel = 122.0
-  const inf = 1e6
-  const nearestCx = new Float32Array(totalPixels)
-  const nearestCy = new Float32Array(totalPixels)
-  const bestDistSq = new Float32Array(totalPixels)
-  bestDistSq.fill(inf)
+  // Trường alpha làm mịn nhẹ (1 lượt Gaussian 5x5) để khử bậc thang răng cưa trên đường cong/hình tròn
+  const smoothAlpha = buildSmoothedContourField(coreAlpha, w, h, 1, null)
 
-  // Bước 1: Khởi tạo hạt giống tọa độ đường cong dưới mức pixel (Sub-Pixel Contour Seeds)
+  // Bảng tra khoảng cách hình tròn bán kính maxR = ceil(strokeWidth) + 2
+  const maxR = Math.ceil(strokeWidth) + 2
+  const offsetDx: number[] = []
+  const offsetDy: number[] = []
+  const offsetDist: number[] = []
+  for (let dy = -maxR; dy <= maxR; dy++) {
+    for (let dx = -maxR; dx <= maxR; dx++) {
+      const d = Math.hypot(dx, dy)
+      if (d <= maxR + 0.25) {
+        offsetDx.push(dx)
+        offsetDy.push(dy)
+        offsetDist.push(d)
+      }
+    }
+  }
+  const numOffsets = offsetDx.length
+
+  const inf = 1000.0
+  const distMap = new Float32Array(totalPixels)
+  distMap.fill(inf)
+
+  // Bước 1: Thu thập các pixel biên và lan truyền khoảng cách Euclid liên tục dưới mức pixel
   for (let y = 0; y < h; y++) {
     const row = y * w
     const ym1 = (y > 0 ? y - 1 : 0) * w
     const yp1 = (y < h - 1 ? y + 1 : h - 1) * w
     for (let x = 0; x < w; x++) {
       const p = row + x
-      const val = smoothField[p]
+      const ca = coreAlpha[p]
+      const sa = smoothAlpha[p]
+      const effA = ca > sa ? ca * 0.65 + sa * 0.35 : sa * 0.75 + ca * 0.25
+      if (effA < 24) continue
+
       const xm1 = x > 0 ? x - 1 : 0
       const xp1 = x < w - 1 ? x + 1 : w - 1
 
-      const vLeft = smoothField[row + xm1]
-      const vRight = smoothField[row + xp1]
-      const vUp = smoothField[ym1 + x]
-      const vDown = smoothField[yp1 + x]
+      // Kiểm tra pixel nằm trong lõi đặc hoàn toàn (cả 4 hướng đều đặc >= 250)
+      if (
+        ca >= 250 &&
+        coreAlpha[row + xm1] >= 250 &&
+        coreAlpha[row + xp1] >= 250 &&
+        coreAlpha[ym1 + x] >= 250 &&
+        coreAlpha[yp1 + x] >= 250
+      ) {
+        distMap[p] = 0
+        continue
+      }
 
-      const isInside = val >= isoLevel
-      const crossesContour =
-        (val > 14 && val < 242) ||
-        vLeft >= isoLevel !== isInside ||
-        vRight >= isoLevel !== isInside ||
-        vUp >= isoLevel !== isInside ||
-        vDown >= isoLevel !== isInside
+      // Độ dịch chuyển dưới mức pixel (0.0 với pixel đặc 255, tăng tuyến tính tới ~0.9 với pixel biên mờ)
+      const subPixelDelta = Math.max(0, 1.0 - effA / 255.0)
 
-      if (!crossesContour) continue
-
-      const gx = (vRight - vLeft) * 0.5
-      const gy = (vDown - vUp) * 0.5
-      const gradMag = Math.max(24, Math.hypot(gx, gy))
-      // Khoảng cách có dấu từ tâm pixel (x, y) tới đường đồng mức isoLevel
-      const subOffset = Math.max(-1.15, Math.min(1.15, (isoLevel - val) / gradMag))
-      const nx = gx / gradMag
-      const ny = gy / gradMag
-
-      // Tọa độ thực (cx, cy) của điểm nằm trên đường cong biên đã làm mịn
-      nearestCx[p] = x - subOffset * nx
-      nearestCy[p] = y - subOffset * ny
-      bestDistSq[p] = subOffset * subOffset
-    }
-  }
-
-  // Bước 2: Lan truyền khoảng cách Euclid thực 2 lượt (8-Neighbor Danielsson Vector EDT)
-  const tryCandidate = (p: number, x: number, y: number, np: number): void => {
-    if (bestDistSq[np] >= inf) return
-    const cx = nearestCx[np]
-    const cy = nearestCy[np]
-    const dx = x - cx
-    const dy = y - cy
-    const dSq = dx * dx + dy * dy
-    if (dSq < bestDistSq[p]) {
-      bestDistSq[p] = dSq
-      nearestCx[p] = cx
-      nearestCy[p] = cy
-    }
-  }
-
-  // Lượt xuôi: Trái-trên -> Phải-dưới
-  for (let y = 0; y < h; y++) {
-    const row = y * w
-    for (let x = 0; x < w; x++) {
-      const p = row + x
-      if (x > 0) tryCandidate(p, x, y, p - 1)
-      if (y > 0) {
-        const up = p - w
-        tryCandidate(p, x, y, up)
-        if (x > 0) tryCandidate(p, x, y, up - 1)
-        if (x < w - 1) tryCandidate(p, x, y, up + 1)
+      for (let k = 0; k < numOffsets; k++) {
+        const nx = x + offsetDx[k]
+        const ny = y + offsetDy[k]
+        if (nx < 0 || nx >= w || ny < 0 || ny >= h) continue
+        const np = ny * w + nx
+        const d = offsetDist[k] + subPixelDelta
+        if (d < distMap[np]) {
+          distMap[np] = d
+        }
       }
     }
   }
 
-  // Lượt ngược: Phải-dưới -> Trái-trên
-  for (let y = h - 1; y >= 0; y--) {
-    const row = y * w
-    for (let x = w - 1; x >= 0; x--) {
-      const p = row + x
-      if (x < w - 1) tryCandidate(p, x, y, p + 1)
-      if (y < h - 1) {
-        const down = p + w
-        tryCandidate(p, x, y, down)
-        if (x < w - 1) tryCandidate(p, x, y, down + 1)
-        if (x > 0) tryCandidate(p, x, y, down - 1)
-      }
-    }
-  }
-
-  // Bước 3: Tính trường khoảng cách có dấu (Signed Distance Field) trong băng tần viền nét
-  const maxBand = strokeWidth + 3.0
-  const maxBandSq = maxBand * maxBand
-  const signedDist = new Float32Array(totalPixels)
-
-  for (let p = 0; p < totalPixels; p++) {
-    const dSq = bestDistSq[p]
-    const sign = smoothField[p] >= isoLevel ? -1 : 1
-    if (dSq >= maxBandSq) {
-      signedDist[p] = sign * maxBand
-    } else {
-      signedDist[p] = sign * Math.sqrt(dSq)
-    }
-  }
-
-  // Bước 4: Làm mượt nhẹ trường SDF bằng nhân Gaussian 3x3 ([1,2,1; 2,4,2; 1,2,1]/16)
-  // để cả đường tiếp giáp phía trong lẫn đường biên phía ngoài của nét vẽ đạt độ trơn C1 hoàn hảo
+  // Bước 2: Làm mượt trường khoảng cách bằng nhân Gaussian 3x3 ([1,2,1; 2,4,2; 1,2,1]/16)
+  // giúp đường đồng mức ngoài của nét viền tròn trịa, tuyệt đối không có gai hay bậc thang
   const smoothDist = new Float32Array(totalPixels)
-  smoothDist.set(signedDist)
+  smoothDist.set(distMap)
+  const bandLimit = strokeWidth + 1.85
   for (let y = 1; y < h - 1; y++) {
     const row = y * w
     for (let x = 1; x < w - 1; x++) {
       const p = row + x
-      const d0 = signedDist[p]
-      if (d0 < -3.0 || d0 > strokeWidth + 1.8) continue
+      const d0 = distMap[p]
+      if (d0 <= 0 || d0 > bandLimit) continue
       smoothDist[p] =
-        (signedDist[p - w - 1] +
-          signedDist[p - w] * 2 +
-          signedDist[p - w + 1] +
-          signedDist[p - 1] * 2 +
+        (distMap[p - w - 1] +
+          distMap[p - w] * 2 +
+          distMap[p - w + 1] +
+          distMap[p - 1] * 2 +
           d0 * 4 +
-          signedDist[p + 1] * 2 +
-          signedDist[p + w - 1] +
-          signedDist[p + w] * 2 +
-          signedDist[p + w + 1]) *
+          distMap[p + 1] * 2 +
+          distMap[p + w - 1] +
+          distMap[p + w] * 2 +
+          distMap[p + w + 1]) *
         0.0625
     }
   }
 
-  // Bước 5: Tổng hợp màu Viền nét (Inner Seam Anti-Aliasing + Solid Stroke Body + Outer Sub-Pixel AA)
+  // Bước 3: Hòa trộn chuẩn Porter-Duff (Foreground OVER Stroke)
+  // Giữ nguyên 100% màu sắc & đường nét bên trong nhân vật, chỉ vẽ nét viền đệm phía sau mép và mở rộng ra ngoài
   const strokeRgb = parseHexRgb(strokeColorHex || '#ffffff')
-  const innerOverlap = Math.min(1.4, 0.55 + strokeWidth * 0.16)
-  const innerFadeStart = -innerOverlap - 0.85
-  const innerFadeEnd = -innerOverlap + 0.3
-  const innerSpan = Math.max(0.4, innerFadeEnd - innerFadeStart)
-
-  const outerFadeStart = Math.max(-0.1, strokeWidth - 0.55)
-  const outerFadeEnd = strokeWidth + 0.65
-  const outerSpan = Math.max(0.5, outerFadeEnd - outerFadeStart)
+  const outerStart = Math.max(0.15, strokeWidth - 0.35)
+  const outerEnd = strokeWidth + 0.75
+  const outerSpan = Math.max(0.5, outerEnd - outerStart)
 
   for (let p = 0; p < totalPixels; p++) {
     const d = smoothDist[p]
-    if (d >= outerFadeEnd) continue
+    if (d >= outerEnd) continue
+
+    const ca = coreAlpha[p]
+    const sa = smoothAlpha[p]
+    // Pixel đặc bên trong nhân vật: bảo toàn nguyên vẹn 100% màu gốc
+    if (ca >= 250 && sa >= 235) continue
+
+    let strokeCoverage = 1.0
+    if (d > outerStart) {
+      const t = Math.max(0, Math.min(1, (d - outerStart) / outerSpan))
+      strokeCoverage = 1.0 - t * t * (3.0 - 2.0 * t)
+    }
+    if (strokeCoverage <= 0.004) continue
 
     const idx = p * 4
-    const origA = alphaSnap[p]
+    // Tại mép răng cưa ngoài cùng (ca > 0), kết hợp nhẹ với smoothAlpha để làm mịn gai 1px
+    // nhưng không bao giờ ăn sâu vào phần ruột bên trong
+    const fgAlphaVal = ca >= 245 ? Math.min(ca, ca * 0.65 + sa * 0.35) : ca
+    const fgA = fgAlphaVal / 255.0
 
-    // Vùng sâu bên trong nhân vật: giữ nguyên 100% màu gốc và làm đặc hoàn toàn
-    if (d <= innerFadeStart) {
-      if (origA > 140 && origA < 255 && (!excludeShadowMask || !excludeShadowMask[p])) {
-        data[idx + 3] = 255
+    const strokeUnderWeight = strokeCoverage * (1.0 - fgA)
+    const compAlpha = fgA + strokeUnderWeight
+    if (compAlpha <= 0.001) continue
+
+    let outR = (data[idx] * fgA + strokeRgb.r * strokeUnderWeight) / compAlpha
+    let outG = (data[idx + 1] * fgA + strokeRgb.g * strokeUnderWeight) / compAlpha
+    let outB = (data[idx + 2] * fgA + strokeRgb.b * strokeUnderWeight) / compAlpha
+    let outA = compAlpha
+
+    // Nếu bên dưới có lớp bóng mờ bán trong suốt (chế độ Lấy cả bóng), hòa trộn lên trên bóng
+    if (excludeShadowMask && excludeShadowMask[p] && alphaSnap[p] > 0) {
+      const shA = alphaSnap[p] / 255.0
+      const finalA = outA + shA * (1.0 - outA)
+      if (finalA > 0.001) {
+        outR = (outR * outA + data[idx] * shA * (1.0 - outA)) / finalA
+        outG = (outG * outA + data[idx + 1] * shA * (1.0 - outA)) / finalA
+        outB = (outB * outA + data[idx + 2] * shA * (1.0 - outA)) / finalA
+        outA = finalA
       }
-      continue
     }
 
-    // Vùng giao tiếp phía trong (Inner Seam): phủ màu viền đè lên phần mép răng cưa cũ của hình gốc
-    if (d < innerFadeEnd) {
-      const t = Math.max(0, Math.min(1, (d - innerFadeStart) / innerSpan))
-      const smoothT = t * t * (3 - 2 * t)
-      // Nếu pixel mép gốc bị hụt alpha (< 245) do răng cưa, ưu tiên lấp đầy bằng màu viền để không hở lỗ
-      const missingAlphaWeight = origA < 245 ? 1 - origA / 255 : 0
-      const strokeWeight = Math.max(smoothT, missingAlphaWeight)
-
-      data[idx] = Math.round(data[idx] * (1 - strokeWeight) + strokeRgb.r * strokeWeight)
-      data[idx + 1] = Math.round(data[idx + 1] * (1 - strokeWeight) + strokeRgb.g * strokeWeight)
-      data[idx + 2] = Math.round(data[idx + 2] * (1 - strokeWeight) + strokeRgb.b * strokeWeight)
-      data[idx + 3] = 255
-      continue
-    }
-
-    // Thân nét viền đặc (Solid Stroke Body): d từ innerFadeEnd tới outerFadeStart
-    if (d <= outerFadeStart) {
-      data[idx] = strokeRgb.r
-      data[idx + 1] = strokeRgb.g
-      data[idx + 2] = strokeRgb.b
-      data[idx + 3] = 255
-      continue
-    }
-
-    // Biên ngoài của nét viền (Outer Anti-Aliased Edge): d từ outerFadeStart tới outerFadeEnd
-    const tOut = Math.max(0, Math.min(1, (d - outerFadeStart) / outerSpan))
-    const strokeCoverage = 1 - tOut * tOut * (3 - 2 * tOut)
-    const strokeAlpha = Math.round(255 * strokeCoverage)
-    if (strokeAlpha <= 0) continue
-
-    // Nếu bên dưới có bóng mờ bán trong suốt (chế độ Lấy cả bóng), hoà trộn Porter-Duff chuẩn
-    if (origA > 0 && excludeShadowMask && excludeShadowMask[p]) {
-      const bgAlpha = origA / 255
-      const outAlpha = strokeCoverage + bgAlpha * (1 - strokeCoverage)
-      if (outAlpha > 0.001) {
-        data[idx] = Math.round(
-          (strokeRgb.r * strokeCoverage + data[idx] * bgAlpha * (1 - strokeCoverage)) / outAlpha
-        )
-        data[idx + 1] = Math.round(
-          (strokeRgb.g * strokeCoverage + data[idx + 1] * bgAlpha * (1 - strokeCoverage)) / outAlpha
-        )
-        data[idx + 2] = Math.round(
-          (strokeRgb.b * strokeCoverage + data[idx + 2] * bgAlpha * (1 - strokeCoverage)) / outAlpha
-        )
-        data[idx + 3] = Math.min(255, Math.round(outAlpha * 255))
-      }
-    } else {
-      data[idx] = strokeRgb.r
-      data[idx + 1] = strokeRgb.g
-      data[idx + 2] = strokeRgb.b
-      data[idx + 3] = Math.max(origA, strokeAlpha)
-    }
+    data[idx] = Math.round(outR)
+    data[idx + 1] = Math.round(outG)
+    data[idx + 2] = Math.round(outB)
+    data[idx + 3] = Math.min(255, Math.round(outA * 255))
   }
 }
 
