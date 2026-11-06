@@ -587,5 +587,77 @@ describe('chromaKey algorithms', () => {
     expect(aEdge2).toBeLessThanOrEqual(aCenter)
     expect(aCenter).toBe(255)
   })
+
+  it('draws a continuous, smooth anti-aliased stroke around a jagged circle in both off and include shadow modes', async () => {
+    const { processAdvancedChromaPixelData } = await import('./chromaAdvancedProcessor')
+    const w = 64
+    const h = 64
+    const cx = 32
+    const cy = 32
+    const radius = 14
+
+    const buildJaggedCircleOnMagenta = () => {
+      const buf = new Uint8ClampedArray(w * h * 4)
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          const idx = (y * w + x) * 4
+          const dist = Math.hypot(x - cx, y - cy)
+          // Tạo hình tròn có răng cưa bậc thang ở rìa (stair-step jaggedness)
+          const jitter = ((x + y) % 2 === 0 ? 0.45 : -0.45)
+          if (dist <= radius + jitter) {
+            buf[idx] = 90
+            buf[idx + 1] = 72
+            buf[idx + 2] = 64
+            buf[idx + 3] = 255
+          } else {
+            buf[idx] = 252
+            buf[idx + 1] = 2
+            buf[idx + 2] = 250
+            buf[idx + 3] = 255
+          }
+        }
+      }
+      return buf
+    }
+
+    for (const shadowMode of ['off', 'include'] as const) {
+      const buf = buildJaggedCircleOnMagenta()
+      processAdvancedChromaPixelData(buf, w, h, {
+        ...DEFAULT_CHROMA_SETTINGS,
+        enabled: true,
+        keyColorType: 'custom',
+        keyColorHex: '#FC02FA',
+        isolationMode: 'all',
+        tolerance: 45,
+        smoothness: 2,
+        shadowMode,
+        shadowRetention: 68,
+        shadowSolidThreshold: 62,
+        strokeWidth: 4,
+        strokeColorHex: '#112233'
+      })
+
+      // Kiểm tra 16 góc đều quanh hình tròn tại bán kính r = radius + 2 (nằm giữa thân nét viền 4px):
+      // Mọi góc đều phải có nét viền đặc (alpha = 255) và đúng màu #112233 (17, 34, 51), không bị đứt đoạn hay tạo cục u
+      for (let i = 0; i < 16; i++) {
+        const angle = (i * Math.PI * 2) / 16
+        const sx = Math.round(cx + Math.cos(angle) * (radius + 2))
+        const sy = Math.round(cy + Math.sin(angle) * (radius + 2))
+        const idx = (sy * w + sx) * 4
+        expect(buf[idx + 3]).toBe(255)
+        expect([buf[idx], buf[idx + 1], buf[idx + 2]]).toEqual([17, 34, 51])
+      }
+
+      // Kiểm tra vùng mép răng cưa cũ (r = radius): đã được phủ mịn bởi màu viền #112233
+      const seamIdx = (cy * w + (cx + radius)) * 4
+      expect(buf[seamIdx + 3]).toBe(255)
+      expect([buf[seamIdx], buf[seamIdx + 1], buf[seamIdx + 2]]).toEqual([17, 34, 51])
+
+      // Kiểm tra tâm hình tròn: vẫn giữ nguyên 100% màu gốc [90, 72, 64]
+      const centerIdx = (cy * w + cx) * 4
+      expect(buf[centerIdx + 3]).toBe(255)
+      expect([buf[centerIdx], buf[centerIdx + 1], buf[centerIdx + 2]]).toEqual([90, 72, 64])
+    }
+  })
 })
 

@@ -9,6 +9,7 @@ import {
   type ChromaAlphaAnalysis
 } from './chromaShadowExtractor'
 import { computeChromaZone } from './chromaOuterIsolation'
+import { applyEdgeSmoothAndStroke } from './chromaContourStroke'
 
 export function parseHexRgb(hex: string): { r: number; g: number; b: number } {
   const clean = (hex || '#ffffff').replace('#', '').trim()
@@ -198,10 +199,15 @@ function collectBoundaryIndices(
       if (a === 0 || (excludeShadowMask && excludeShadowMask[p])) continue
       if (
         a < 250 ||
-        alphaSnap[p - 1] < 80 ||
-        alphaSnap[p + 1] < 80 ||
-        alphaSnap[p - w] < 80 ||
-        alphaSnap[p + w] < 80
+        alphaSnap[p - 1] < 185 ||
+        alphaSnap[p + 1] < 185 ||
+        alphaSnap[p - w] < 185 ||
+        alphaSnap[p + w] < 185 ||
+        (excludeShadowMask &&
+          (excludeShadowMask[p - 1] ||
+            excludeShadowMask[p + 1] ||
+            excludeShadowMask[p - w] ||
+            excludeShadowMask[p + w]))
       ) {
         if (count >= buf.length) {
           const next = new Int32Array(buf.length * 2)
@@ -513,93 +519,6 @@ function applyDespeckleAndWhiteCrumbs(
       if (!isDarkLine) {
         for (let k = s; k < e; k++) data[queue[k] * 4 + 3] = 0
       }
-    }
-  }
-}
-
-function applyEdgeSmoothAndStroke(
-  data: Uint8ClampedArray,
-  w: number,
-  h: number,
-  settings: ChromaKeySettings,
-  alphaSnap: Uint8Array,
-  excludeShadowMask?: Uint8Array | null
-): void {
-  const edgeSmooth = settings.edgeSmooth ?? 0
-  if (edgeSmooth > 0) {
-    const smoothStrength = Math.min(1, edgeSmooth / 10)
-    const smoothColorType = settings.smoothColorType || 'none'
-    const tintRgb =
-      smoothColorType === 'black'
-        ? { r: 15, g: 15, b: 18 }
-        : smoothColorType === 'white'
-        ? { r: 255, g: 255, b: 255 }
-        : smoothColorType === 'custom'
-        ? parseHexRgb(settings.smoothColorHex || '#000000')
-        : null
-
-    const boundary = collectBoundaryIndices(data, w, h, alphaSnap, excludeShadowMask)
-    for (let i = 0; i < boundary.length; i++) {
-      const p = boundary[i]
-      const a = alphaSnap[p]
-      if (a === 0 || a === 255) continue
-      const avgA =
-        (alphaSnap[p] * 2 +
-          alphaSnap[p - 1] +
-          alphaSnap[p + 1] +
-          alphaSnap[p - w] +
-          alphaSnap[p + w]) /
-        6
-      const idx = p * 4
-      const newA = Math.round(a * (1 - smoothStrength) + avgA * smoothStrength)
-      data[idx + 3] = newA
-      if (tintRgb) {
-        const blend = (1 - newA / 255) * smoothStrength * 0.75
-        data[idx] = Math.round(data[idx] * (1 - blend) + tintRgb.r * blend)
-        data[idx + 1] = Math.round(data[idx + 1] * (1 - blend) + tintRgb.g * blend)
-        data[idx + 2] = Math.round(data[idx + 2] * (1 - blend) + tintRgb.b * blend)
-      }
-    }
-  }
-
-  const strokeWidth = Math.max(0, Math.min(10, Math.round(settings.strokeWidth ?? 0)))
-  if (strokeWidth > 0) {
-    const strokeRgb = parseHexRgb(settings.strokeColorHex || '#ffffff')
-    const boundary = collectBoundaryIndices(data, w, h, alphaSnap, excludeShadowMask)
-    const strokeMask = new Uint8Array(w * h)
-    const rSq = strokeWidth * strokeWidth
-
-    for (let i = 0; i < boundary.length; i++) {
-      const p = boundary[i]
-      if (alphaSnap[p] <= 180) continue
-      const cx = p % w
-      const cy = (p - cx) / w
-      const y0 = Math.max(0, cy - strokeWidth)
-      const y1 = Math.min(h - 1, cy + strokeWidth)
-      const x0 = Math.max(0, cx - strokeWidth)
-      const x1 = Math.min(w - 1, cx + strokeWidth)
-      for (let ny = y0; ny <= y1; ny++) {
-        const dy = ny - cy
-        const row = ny * w
-        for (let nx = x0; nx <= x1; nx++) {
-          const dx = nx - cx
-          if (dx * dx + dy * dy > rSq) continue
-          const np = row + nx
-          if (alphaSnap[np] <= 200) {
-            strokeMask[np] = 1
-          }
-        }
-      }
-    }
-
-    for (let p = 0; p < w * h; p++) {
-      if (!strokeMask[p]) continue
-      const idx = p * 4
-      const oa = alphaSnap[p] / 255
-      data[idx] = Math.round(data[idx] * oa + strokeRgb.r * (1 - oa))
-      data[idx + 1] = Math.round(data[idx + 1] * oa + strokeRgb.g * (1 - oa))
-      data[idx + 2] = Math.round(data[idx + 2] * oa + strokeRgb.b * (1 - oa))
-      data[idx + 3] = 255
     }
   }
 }

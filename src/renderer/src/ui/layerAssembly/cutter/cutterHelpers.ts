@@ -232,3 +232,26 @@ export function computeSpacePanOffset(
   }
 }
 
+export interface CutterSessionCache {
+  imageUrl: string
+  chroma: ChromaKeySettings
+}
+
+/** Đọc lại trạng thái phiên Cắt tách Sprite gần nhất (giữ nguyên ảnh và cấu hình khi chuyển tab hoặc HMR) */
+export function readCutterSessionCache(): CutterSessionCache | null {
+  if (typeof window === 'undefined') return null
+  const cached = (window as unknown as { __parallax_cutter_session?: CutterSessionCache })
+    .__parallax_cutter_session
+  if (cached && typeof cached.imageUrl === 'string' && cached.chroma) {
+    return cached
+  }
+  return null
+}
+
+/** Lưu trạng thái phiên Cắt tách Sprite vào bộ nhớ cửa sổ */
+export function writeCutterSessionCache(cache: CutterSessionCache): void {
+  if (typeof window === 'undefined') return
+  ;(window as unknown as { __parallax_cutter_session?: CutterSessionCache }).__parallax_cutter_session =
+    cache
+}
+

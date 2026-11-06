@@ -459,7 +459,7 @@ export function applyShadowAndMistExtraction(
 
     data[idx + 3] = finalA
     shadowAlpha[p] = finalA
-    if (finalA > 0 && (mode === 'only' || aAll < 0.96)) {
+    if (finalA > 0 && !isSolidForeground) {
       isShadowPixel[p] = 1
     }
   }

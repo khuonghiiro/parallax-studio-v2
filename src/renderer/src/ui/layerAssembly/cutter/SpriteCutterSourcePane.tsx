@@ -23,7 +23,9 @@ import {
 } from './chromaAdvancedProcessor'
 import {
   detectCornerBackground,
-  computeCanvasPointerCoords
+  computeCanvasPointerCoords,
+  readCutterSessionCache,
+  writeCutterSessionCache
 } from './cutterHelpers'
 import { CutterBrushSubBar } from './CutterBrushSubBar'
 import { CutterGridSubBar, CutterQuickPartsStrip } from './CutterSlicesBar'
@@ -59,8 +61,14 @@ export function SpriteCutterSourcePane({
   selectedPiece,
   targetBoardSize
 }: SpriteCutterSourcePaneProps) {
-  const [imageUrl, setImageUrl] = useState<string>(SAMPLE_ANIME_SPRITESHEET_URL)
-  const [chroma, setChroma] = useState<ChromaKeySettings>(DEFAULT_CHROMA_SETTINGS)
+  const cachedSession = useMemo(() => readCutterSessionCache(), [])
+  const [imageUrl, setImageUrl] = useState<string>(
+    () => cachedSession?.imageUrl || SAMPLE_ANIME_SPRITESHEET_URL
+  )
+  const [chroma, setChroma] = useState<ChromaKeySettings>(
+    () => cachedSession?.chroma || DEFAULT_CHROMA_SETTINGS
+  )
+  const lastDetectedUrlRef = useRef<string | null>(cachedSession?.imageUrl || null)
   const [showChromaStudio, setShowChromaStudio] = useState<boolean>(true)
   const [tool, setTool] = useState<CutterToolMode>('auto')
   const [eyedropperTarget, setEyedropperTarget] = useState<EyedropperTarget | null>(null)
@@ -256,7 +264,10 @@ export function SpriteCutterSourcePane({
         proc.height = workH
       }
 
-      detectCornerBgPreset(rctx)
+      if (lastDetectedUrlRef.current !== imageUrl) {
+        lastDetectedUrlRef.current = imageUrl
+        detectCornerBgPreset(rctx)
+      }
       setImageDecodeRev((r) => r + 1)
     }
     img.src = imageUrl
@@ -264,6 +275,10 @@ export function SpriteCutterSourcePane({
       cancelled = true
     }
   }, [imageUrl, detectCornerBgPreset, clearStacks])
+
+  useEffect(() => {
+    writeCutterSessionCache({ imageUrl, chroma })
+  }, [imageUrl, chroma])
 
   // Bước 2: Worker tách nền + quét đảo ngoài main thread; UI chỉ gom cụm kết quả.
   const islands = useMemo(() => {
