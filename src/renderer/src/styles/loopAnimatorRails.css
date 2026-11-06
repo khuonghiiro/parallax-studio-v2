@@ -386,15 +386,16 @@
 }
 
 .loop-player-stage {
-  flex: 1 1 auto !important;
-  height: 100% !important;
-  min-height: 260px !important;
+  flex: 1 1 200px !important;
+  height: auto !important;
+  min-height: 160px !important;
+  max-height: 280px !important;
   border-bottom: none !important;
 }
 
 .loop-player-canvas {
-  width: min(88%, 360px) !important;
-  height: min(88%, 360px) !important;
+  width: min(84%, 260px) !important;
+  height: min(84%, 260px) !important;
 }
 
 .loop-transport-bar {
@@ -436,4 +437,244 @@
     flex: 1 1 auto;
     max-width: 100%;
   }
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   7. Loop Player Bottom Tabs (Thay thế cột mép phải sang Tabs trực tiếp)
+   ────────────────────────────────────────────────────────────────────────── */
+.la-bottom-tabs-shell {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  background: var(--bg-2);
+  border-top: 1px solid var(--line);
+  overflow: hidden;
+  min-height: 170px;
+}
+
+.la-bottom-tabs-bar {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 8px;
+  background: var(--bg-3);
+  border-bottom: 1px solid var(--line-soft);
+  overflow-x: auto;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.la-bottom-tabs-bar::-webkit-scrollbar {
+  height: 2px;
+}
+
+.la-bottom-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-dim);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.la-bottom-tab-btn:hover {
+  background: var(--bg-2);
+  color: var(--text);
+  border-color: var(--line-soft);
+}
+
+.la-bottom-tab-btn.active {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+.la-bottom-tab-badge {
+  font-size: 9px;
+  font-family: var(--font-mono, monospace);
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: var(--bg-1);
+  color: var(--text-dim);
+  line-height: 1;
+}
+
+.la-bottom-tab-btn.active .la-bottom-tab-badge {
+  background: rgba(255, 255, 255, 0.25);
+  color: var(--on-accent);
+}
+
+.la-bottom-tab-badge.highlight {
+  background: var(--accent-cyan);
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.la-bottom-tab-content {
+  padding: 10px 12px;
+  background: var(--bg-1);
+  overflow-y: auto;
+  max-height: 190px;
+  box-sizing: border-box;
+}
+
+.la-bottom-tab-content::-webkit-scrollbar {
+  width: 4px;
+}
+
+.la-bottom-tab-content::-webkit-scrollbar-thumb {
+  background: var(--line-soft);
+  border-radius: 2px;
+}
+
+.la-tab-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.la-tab-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.la-tab-label {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.la-tab-val {
+  font-size: 11.5px;
+  color: var(--text);
+  font-family: var(--font-mono, monospace);
+}
+
+.la-tab-chips-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+  gap: 5px;
+  margin-top: 2px;
+}
+
+.la-chip-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 4px 6px;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  background: var(--bg-2);
+  color: var(--text-dim);
+  border: 1px solid var(--line-soft);
+  cursor: pointer;
+  transition: all 0.12s ease;
+  white-space: nowrap;
+}
+
+.la-chip-btn:hover {
+  background: var(--bg-3);
+  color: var(--text);
+  border-color: var(--line);
+}
+
+.la-chip-btn.active {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+.la-tab-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+
+.la-card-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-2);
+  color: var(--text-dim);
+  border: 1px solid var(--line-soft);
+  cursor: pointer;
+  transition: all 0.12s ease;
+  text-align: left;
+}
+
+.la-card-btn:hover {
+  background: var(--bg-3);
+  color: var(--text);
+  border-color: var(--line);
+}
+
+.la-card-btn.active {
+  background: color-mix(in srgb, var(--accent) 15%, var(--bg-2));
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.la-card-btn.active .la-card-title {
+  color: var(--accent-cyan);
+  font-weight: 600;
+}
+
+.la-card-title {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.la-card-desc {
+  font-size: 9.5px;
+  color: var(--text-faint);
+  line-height: 1.25;
+}
+
+.la-bg-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  flex-shrink: 0;
+}
+
+.la-bg-opt--checker {
+  background-image: linear-gradient(45deg, #1e293b 25%, transparent 25%),
+    linear-gradient(-45deg, #1e293b 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #1e293b 75%),
+    linear-gradient(-45deg, transparent 75%, #1e293b 75%);
+  background-size: 6px 6px;
+  background-position: 0 0, 0 3px, 3px -3px, -3px 0;
+  background-color: #0f172a;
+}
+
+.la-bg-opt--dark {
+  background-color: #0b0f19;
+}
+
+.la-bg-opt--light {
+  background-color: #f8fafc;
+}
+
+.la-bg-opt--green {
+  background-color: #00ff00;
 }

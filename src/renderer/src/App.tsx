@@ -16,6 +16,7 @@ import { MobileRemoteDialog } from './ui/MobileRemoteDialog'
 import { AudioStudioDialog } from './ui/AudioStudioDialog'
 import { LoopAnimatorDialog } from './ui/loopAnimator/LoopAnimatorDialog'
 import { Assembly3DDialog } from './ui/assets/models3d/Assembly3DDialog'
+import { getStoredModels3D, DEFAULT_MODELS_3D } from './ui/assets/models3d/models3dStorage'
 import { Create3DModal } from './ui/assets/models3d/Create3DModal'
 import { PhotoStudioDialog } from './ui/photoStudio/PhotoStudioDialog'
 import { GlobalLayerAssemblyHost } from './ui/layerAssembly/GlobalLayerAssemblyHost'
@@ -263,13 +264,11 @@ export default function App() {
         />
       )}
       {dialog === 'create_3d' && (
-        <Create3DModal
+        <Assembly3DDialog
+          key="direct-create-3d-workshop"
           isOpen={true}
+          initialModel={getStoredModels3D()[0] || DEFAULT_MODELS_3D[0]}
           onClose={() => useView.getState().openDialog(null)}
-          onSelectTemplate={(model) => {
-            useView.getState().openDialog(null)
-            useView.getState().openAssemblyWorkshop(model)
-          }}
         />
       )}
       {assemblyModalModel && (

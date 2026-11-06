@@ -854,6 +854,8 @@ export function SpriteCutterSourcePane({
           onStepZoom={stepZoom}
           onSetZoomMode={handleSetZoomMode}
           onResetChroma={handleResetAllChroma}
+          eyedropperTarget={eyedropperTarget}
+          onToggleEyedropper={handleToggleEyedropper}
         />
         {isSpacePressed && (
           <div className="cutter-space-pan-hud">

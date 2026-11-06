@@ -450,7 +450,7 @@ export function rescaleLoopFramesByMeshRatio(
   newW: number,
   newH: number,
   newSourceCanvas?: HTMLCanvasElement | null,
-  alignAnchor: 'bottom' | 'center' = 'bottom',
+  alignAnchor: 'bottom' | 'center' | 'top' | 'left' | 'right' = 'bottom',
   alphaThreshold = 16
 ): LoopFrameBox[] {
   if (oldFrames.length === 0) return []
@@ -531,14 +531,24 @@ export function rescaleLoopFramesByMeshRatio(
 
   const avgCenterU =
     measured.reduce((acc, m) => acc + m.bounds.centerU, 0) / Math.max(1, measured.length)
+  const avgRefU =
+    alignAnchor === 'left'
+      ? measured.reduce((acc, m) => acc + m.bounds.u0, 0) / Math.max(1, measured.length)
+      : alignAnchor === 'right'
+        ? measured.reduce((acc, m) => acc + m.bounds.u1, 0) / Math.max(1, measured.length)
+        : avgCenterU
+
   const avgRefV =
     alignAnchor === 'bottom'
       ? measured.reduce((acc, m) => acc + m.bounds.bottomV, 0) / Math.max(1, measured.length)
-      : measured.reduce((acc, m) => acc + m.bounds.centerV, 0) / Math.max(1, measured.length)
+      : alignAnchor === 'top'
+        ? measured.reduce((acc, m) => acc + m.bounds.v0, 0) / Math.max(1, measured.length)
+        : measured.reduce((acc, m) => acc + m.bounds.centerV, 0) / Math.max(1, measured.length)
 
   return measured.map(({ frame, bounds }) => {
-    const refV = alignAnchor === 'bottom' ? bounds.bottomV : bounds.centerV
-    const dx = Math.round((avgCenterU - bounds.centerU) * frame.width)
+    const refU = alignAnchor === 'left' ? bounds.u0 : alignAnchor === 'right' ? bounds.u1 : bounds.centerU
+    const refV = alignAnchor === 'bottom' ? bounds.bottomV : alignAnchor === 'top' ? bounds.v0 : bounds.centerV
+    const dx = Math.round((avgRefU - refU) * frame.width)
     const dy = Math.round((avgRefV - refV) * frame.height)
     return {
       ...frame,

@@ -90,7 +90,7 @@ export interface ContourSlicerConfig {
   /** Automatically normalize all detected frames to uniform max width & height to prevent pulsing */
   uniformSize?: boolean
   /** Anchor alignment for uniform sizing: 'bottom' (ground) or 'center' */
-  alignAnchor?: 'bottom' | 'center'
+  alignAnchor?: 'bottom' | 'center' | 'top' | 'left' | 'right'
   /** Reading order: row_first (left to right), col_first, or snake (boustrophedon) */
   readingOrder?: 'row_first' | 'col_first' | 'snake'
 }
@@ -113,7 +113,7 @@ export interface LoopPlaybackConfig {
   previewBg: 'checker' | 'dark' | 'light' | 'green'
   rhythm: LoopRhythmConfig
   /** Stage anchor alignment: 'bottom' aligns sprite base to ground line, 'center' aligns to stage center */
-  anchor?: 'bottom' | 'center'
+  anchor?: 'bottom' | 'center' | 'top' | 'left' | 'right'
 }
 
 export interface SampleLoopPreset {

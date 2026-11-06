@@ -62,11 +62,9 @@ export function GlobalLayerAssemblyHost() {
   )
 
   const openCreateModal = useCallback(() => {
-    dismissOtherModals()
-    setIsCreateModalOpen(true)
-    setIsDialogOpen(false)
-    setEditingComposite(null)
-  }, [dismissOtherModals])
+    // Tạm thời bỏ qua dialog trung gian Tạo lắp ráp mới, vào thẳng xưởng LayerAssemblyDialog
+    openWithComposite(null)
+  }, [openWithComposite])
 
   const closeAll = useCallback(() => {
     clearActiveWorkshopSession()

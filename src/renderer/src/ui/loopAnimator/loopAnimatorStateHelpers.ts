@@ -295,10 +295,20 @@ export function computeEqualizedFrames(s: LoopAnimatorStore): LoopFrameBox[] {
   const h = s.sourceHeight || 1024
 
   return s.frames.map((f) => {
-    const centerX = f.x + f.width * 0.5
-    const newX = Math.max(0, Math.min(w - maxW, Math.round(centerX - maxW * 0.5)))
+    let newX: number
+    if (anchor === 'left') {
+      newX = Math.max(0, Math.min(w - maxW, f.x))
+    } else if (anchor === 'right') {
+      newX = Math.max(0, Math.min(w - maxW, Math.round(f.x + f.width - maxW)))
+    } else {
+      const centerX = f.x + f.width * 0.5
+      newX = Math.max(0, Math.min(w - maxW, Math.round(centerX - maxW * 0.5)))
+    }
+
     let newY: number
-    if (anchor === 'bottom') {
+    if (anchor === 'top') {
+      newY = Math.max(0, Math.min(h - maxH, f.y))
+    } else if (anchor === 'bottom') {
       const bottomY = f.y + f.height
       newY = Math.max(0, Math.min(h - maxH, Math.round(bottomY - maxH)))
     } else {

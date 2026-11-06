@@ -540,7 +540,7 @@ export function autoCenterLoopFrames(
   sourceCanvas: HTMLCanvasElement,
   frames: LoopFrameBox[],
   alphaThreshold = 24,
-  anchor: 'bottom' | 'center' = 'bottom'
+  anchor: 'bottom' | 'center' | 'top' | 'left' | 'right' = 'bottom'
 ): LoopFrameBox[] {
   if (frames.length === 0) return frames
   const scan = prepareDownsampledScanContext(sourceCanvas, 1024)
@@ -580,14 +580,24 @@ export function autoCenterLoopFrames(
     }
 
     if (!found) return { ...frame, offsetX: 0, offsetY: 0 }
-    const contentCenterX = (minX + maxX) * 0.5 * invX
-    const boxCenterX = frame.width * 0.5
-    const offsetX = Math.round(boxCenterX - contentCenterX)
+    let offsetX: number
+    if (anchor === 'left') {
+      offsetX = Math.round(2 - minX * invX)
+    } else if (anchor === 'right') {
+      offsetX = Math.round(frame.width - 2 - maxX * invX)
+    } else {
+      const contentCenterX = (minX + maxX) * 0.5 * invX
+      const boxCenterX = frame.width * 0.5
+      offsetX = Math.round(boxCenterX - contentCenterX)
+    }
 
     let offsetY: number
     if (anchor === 'bottom') {
       const targetBaseY = frame.height - 2
       offsetY = Math.round(targetBaseY - maxY * invY)
+    } else if (anchor === 'top') {
+      const targetTopY = 2
+      offsetY = Math.round(targetTopY - minY * invY)
     } else {
       const contentCenterY = (minY + maxY) * 0.5 * invY
       const boxCenterY = frame.height * 0.5
@@ -610,7 +620,7 @@ export function extractFrameCanvas(
   frame: LoopFrameBox,
   targetWidth?: number,
   targetHeight?: number,
-  anchor: 'bottom' | 'center' = 'bottom'
+  anchor: 'bottom' | 'center' | 'top' | 'left' | 'right' = 'bottom'
 ): HTMLCanvasElement {
   const outW = Math.max(1, Math.round(targetWidth ?? frame.width))
   const outH = Math.max(1, Math.round(targetHeight ?? frame.height))
@@ -634,10 +644,17 @@ export function extractFrameCanvas(
 
   const { sx, sy } = getLoopSourceLogicalSize(sourceCanvas)
   ctx.clearRect(0, 0, canvas.width, canvas.height)
-  const drawX = Math.round((canvas.width - frame.width) * 0.5 + frame.offsetX)
+  const drawX =
+    anchor === 'left'
+      ? Math.round(frame.offsetX)
+      : anchor === 'right'
+        ? Math.round(canvas.width - frame.width + frame.offsetX)
+        : Math.round((canvas.width - frame.width) * 0.5 + frame.offsetX)
   let drawY: number
   if (anchor === 'bottom') {
     drawY = Math.round(canvas.height - frame.height + frame.offsetY)
+  } else if (anchor === 'top') {
+    drawY = Math.round(frame.offsetY)
   } else {
     drawY = Math.round((canvas.height - frame.height) * 0.5 + frame.offsetY)
   }

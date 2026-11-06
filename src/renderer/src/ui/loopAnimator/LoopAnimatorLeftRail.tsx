@@ -175,31 +175,84 @@ export function LoopAnimatorLeftRail({
           side="left"
           title="Cấu hình Tự dò vùng"
           icon={<IconLightning width={14} height={14} />}
-          width={300}
+          width={340}
         >
           <div className="la-field-group">
-            <div className="la-field-row">
-              <LoopNumField label="Alpha" value={contourConfig.alphaThreshold} min={1} max={250} onChange={(v) => setContourConfig({ alphaThreshold: v })} title="Ngưỡng alpha coi là có nội dung" />
-              <LoopNumField label="Gộp" unit="px" value={contourConfig.mergeGap} min={0} max={64} onChange={(v) => setContourConfig({ mergeGap: v })} title="Gộp mảnh gần" />
-              <LoopNumField label="Tối thiểu" unit="px²" value={contourConfig.minArea} min={16} max={5000} step={50} onChange={(v) => setContourConfig({ minArea: v })} title="Diện tích tối thiểu" />
+            <div className="la-field-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+              <LoopNumField
+                label="Alpha"
+                value={contourConfig.alphaThreshold}
+                min={1}
+                max={250}
+                onChange={(v) => setContourConfig({ alphaThreshold: v })}
+                title="Ngưỡng alpha coi là có nội dung (1..250)"
+              />
+              <LoopNumField
+                label="Gộp nét"
+                unit="px"
+                value={contourConfig.mergeGap}
+                min={0}
+                max={64}
+                onChange={(v) => setContourConfig({ mergeGap: v })}
+                title="Khoảng cách gộp các mảnh gần nhau (0..64px)"
+              />
             </div>
 
-            <div className="la-field-row" style={{ marginTop: 4 }}>
-              <span className="la-field-label">Neo:</span>
-              <div className="la-seg">
+            <div className="la-field-row" style={{ marginTop: 6 }}>
+              <LoopNumField
+                label="Diện tích tối thiểu"
+                unit="px²"
+                value={contourConfig.minArea}
+                min={16}
+                max={5000}
+                step={50}
+                onChange={(v) => setContourConfig({ minArea: v })}
+                title="Diện tích vùng nhỏ nhất để nhận diện là frame (16..5000px²)"
+              />
+            </div>
+
+            <div className="la-field-row" style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'stretch' }}>
+              <span className="la-field-label">Vị trí điểm neo (Anchor):</span>
+              <div className="la-seg la-seg--fill" style={{ width: '100%' }}>
                 <button
                   type="button"
-                  className={`la-seg-btn${contourConfig.alignAnchor !== 'center' ? ' active' : ''}`}
+                  className={`la-seg-btn${contourConfig.alignAnchor === 'bottom' || !contourConfig.alignAnchor ? ' active' : ''}`}
                   onClick={() => setContourConfig({ alignAnchor: 'bottom' })}
+                  title="Neo đáy (Ground / Chân)"
                 >
                   Đáy
                 </button>
                 <button
                   type="button"
+                  className={`la-seg-btn${contourConfig.alignAnchor === 'top' ? ' active' : ''}`}
+                  onClick={() => setContourConfig({ alignAnchor: 'top' })}
+                  title="Neo đỉnh (Top)"
+                >
+                  Đỉnh
+                </button>
+                <button
+                  type="button"
                   className={`la-seg-btn${contourConfig.alignAnchor === 'center' ? ' active' : ''}`}
                   onClick={() => setContourConfig({ alignAnchor: 'center' })}
+                  title="Neo tâm (Chính giữa)"
                 >
                   Tâm
+                </button>
+                <button
+                  type="button"
+                  className={`la-seg-btn${contourConfig.alignAnchor === 'left' ? ' active' : ''}`}
+                  onClick={() => setContourConfig({ alignAnchor: 'left' })}
+                  title="Neo trái (Left)"
+                >
+                  Trái
+                </button>
+                <button
+                  type="button"
+                  className={`la-seg-btn${contourConfig.alignAnchor === 'right' ? ' active' : ''}`}
+                  onClick={() => setContourConfig({ alignAnchor: 'right' })}
+                  title="Neo phải (Right)"
+                >
+                  Phải
                 </button>
               </div>
             </div>

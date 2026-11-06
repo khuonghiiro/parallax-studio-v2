@@ -235,23 +235,45 @@ export function computeSpacePanOffset(
 export interface CutterSessionCache {
   imageUrl: string
   chroma: ChromaKeySettings
+  brushRadius?: number
+  brushHardness?: number
+  brushOpacity?: number
+  wandTolerance?: number
+  gridSettings?: { rows: number; cols: number; paddingInset?: number }
+  canvasBg?: string
+  tagDisplayMode?: string
 }
 
-/** Đọc lại trạng thái phiên Cắt tách Sprite gần nhất (giữ nguyên ảnh và cấu hình khi chuyển tab hoặc HMR) */
+const CUTTER_CACHE_KEY = 'pxs:cutter-session-cache-v2'
+
+/** Đọc lại trạng thái phiên Cắt tách Sprite gần nhất (giữ nguyên ảnh và cấu hình khi chuyển tab, reload hoặc khởi động lại app) */
 export function readCutterSessionCache(): CutterSessionCache | null {
   if (typeof window === 'undefined') return null
-  const cached = (window as unknown as { __parallax_cutter_session?: CutterSessionCache })
+  const memCached = (window as unknown as { __parallax_cutter_session?: CutterSessionCache })
     .__parallax_cutter_session
-  if (cached && typeof cached.imageUrl === 'string' && cached.chroma) {
-    return cached
+  if (memCached && typeof memCached.imageUrl === 'string' && memCached.chroma) {
+    return memCached
   }
+  try {
+    const raw = localStorage.getItem(CUTTER_CACHE_KEY)
+    if (raw) {
+      const parsed = JSON.parse(raw) as CutterSessionCache
+      if (parsed && typeof parsed.imageUrl === 'string' && parsed.chroma) {
+        ;(window as unknown as { __parallax_cutter_session?: CutterSessionCache }).__parallax_cutter_session =
+          parsed
+        return parsed
+      }
+    }
+  } catch {}
   return null
 }
 
-/** Lưu trạng thái phiên Cắt tách Sprite vào bộ nhớ cửa sổ */
+/** Lưu trạng thái phiên Cắt tách Sprite vào bộ nhớ cửa sổ và localStorage */
 export function writeCutterSessionCache(cache: CutterSessionCache): void {
   if (typeof window === 'undefined') return
   ;(window as unknown as { __parallax_cutter_session?: CutterSessionCache }).__parallax_cutter_session =
     cache
+  try {
+    localStorage.setItem(CUTTER_CACHE_KEY, JSON.stringify(cache))
+  } catch {}
 }
-

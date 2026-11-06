@@ -2,6 +2,9 @@ import React, { useEffect, useRef, useState } from 'react'
 import { toast } from '../../actions'
 import { IconGrid, IconLightning, IconScissors } from '../icons'
 import { LoopAnimatorLeftRail } from './LoopAnimatorLeftRail'
+import { PhotoshopEyedropperOverlay } from '../layerAssembly/cutter/PhotoshopEyedropperOverlay'
+import { sampleEyedropperAtPoint } from '../layerAssembly/cutter/chromaKey'
+import type { EyedropperSample } from '../layerAssembly/cutter/types'
 import { LoopChromaControls } from './LoopChromaControls'
 import { LoopSlicerControls } from './LoopSlicerControls'
 import { LoopSourceEmptyState } from './LoopSourceEmptyState'
@@ -130,6 +133,7 @@ export function LoopAnimatorSourcePane({ sourceCanvasRef, onRequestUpload, templ
   /** Bộ đệm ImageData gốc đã thu nhỏ xuống kích thước proxy (<= 1280px) để kéo thanh trượt Chroma Key tức thì không phải đọc lại GPU 4K */
   const baseWorkDataRef = useRef<ImageData | null>(null)
   const [eyedropperActive, setEyedropperActive] = useState(false)
+  const [eyedropperSample, setEyedropperSample] = useState<EyedropperSample | null>(null)
   const [zoom, setZoom] = useState(1)
   const dragBoxRef = useRef<{ frameIdx: number; startX: number; startY: number; origX: number; origY: number } | null>(null)
 
@@ -296,6 +300,19 @@ export function LoopAnimatorSourcePane({ sourceCanvasRef, onRequestUpload, templ
     drawOverlay()
   }, [frames, selectedFrameIndex, focusedFrameIndex, playingFrameIndex, isPlaying, slicerMode, gridConfig.borderPadding])
 
+  
+  useEffect(() => {
+    if (!eyedropperActive) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setEyedropperActive(false)
+        setEyedropperSample(null)
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [eyedropperActive])
+
   function canvasCoords(e: React.MouseEvent<HTMLCanvasElement>): { px: number; py: number } | null {
     const ov = overlayCanvasRef.current
     const src = sourceCanvasRef.current
@@ -339,6 +356,34 @@ export function LoopAnimatorSourcePane({ sourceCanvasRef, onRequestUpload, templ
   }
 
   function handleMouseMove(e: React.MouseEvent<HTMLCanvasElement>): void {
+    if (eyedropperActive && rawImageRef.current) {
+      const src = sourceCanvasRef.current
+      if (src) {
+        const ctx = src.getContext('2d', { willReadFrequently: true })
+        const rect = src.getBoundingClientRect()
+        const c = canvasCoords(e)
+        if (ctx && c) {
+          const { sx, sy } = getLoopSourceLogicalSize(src)
+          const wx = Math.max(0, Math.min(src.width - 1, Math.floor(c.px * sx)))
+          const wy = Math.max(0, Math.min(src.height - 1, Math.floor(c.py * sy)))
+          const sample = sampleEyedropperAtPoint(
+            ctx,
+            src.width,
+            src.height,
+            wx,
+            wy,
+            e.clientX,
+            e.clientY,
+            e.clientX - rect.left,
+            e.clientY - rect.top,
+            chromaKey.keyColor || '#000000',
+            4
+          )
+          setEyedropperSample(sample)
+        }
+      }
+      return
+    }
     const drag = dragBoxRef.current
     const c = drag ? canvasCoords(e) : null
     if (!drag || !c) return
@@ -381,6 +426,16 @@ export function LoopAnimatorSourcePane({ sourceCanvasRef, onRequestUpload, templ
 
   return (
     <div className="loop-source-pane" data-mcp-region="loop_animator_source" style={{ position: 'relative' }}>
+      {/* Kính lúp Pixel Photoshop phóng to 9x9 với vòng so sánh màu */}
+      <PhotoshopEyedropperOverlay
+        target={eyedropperActive ? 'key' : null}
+        currentHex={chromaKey.keyColor || '#000000'}
+        sample={eyedropperSample}
+        onCancel={() => {
+          setEyedropperActive(false)
+          setEyedropperSample(null)
+        }}
+      />
       {hasSource && (
         <LoopAnimatorLeftRail
           sourceCanvasRef={sourceCanvasRef}

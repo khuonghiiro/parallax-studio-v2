@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { evaluateLoopLayerRhythm } from '../../project/gifHelper'
 import { IconFilm, IconGrid, IconPause, IconPlay, IconStepBack, IconStepFwd } from '../icons'
-import { LoopAnimatorRightRail } from './LoopAnimatorRightRail'
+import { LoopPlayerBottomTabs } from './LoopPlayerBottomTabs'
 import { LoopPlayerSettings } from './LoopPlayerSettings'
 import {
   applyChromaKeyToImageData,
@@ -38,7 +38,7 @@ export function drawFrameOnStage(
   src: HTMLCanvasElement,
   f: LoopFrameBox,
   scale: number,
-  anchor: 'bottom' | 'center',
+  anchor: 'bottom' | 'center' | 'top' | 'left' | 'right',
   groupOffsetX = 0,
   groupOffsetY = 0,
   groupScale = 1,
@@ -48,11 +48,18 @@ export function drawFrameOnStage(
   const effScale = scale * Math.max(0.1, groupScale || 1)
   const w = Math.round(f.width * effScale)
   const h = Math.round(f.height * effScale)
-  const x = Math.round((stageDim - w) * 0.5 + (f.offsetX + groupOffsetX) * scale)
+  const x =
+    anchor === 'left'
+      ? Math.round(24 + (f.offsetX + groupOffsetX) * scale)
+      : anchor === 'right'
+        ? Math.round(stageDim - 24 - w + (f.offsetX + groupOffsetX) * scale)
+        : Math.round((stageDim - w) * 0.5 + (f.offsetX + groupOffsetX) * scale)
   const y =
     anchor === 'bottom'
       ? Math.round(stageDim - 24 - h + (f.offsetY + groupOffsetY) * scale)
-      : Math.round((stageDim - h) * 0.5 + (f.offsetY + groupOffsetY) * scale)
+      : anchor === 'top'
+        ? Math.round(24 + (f.offsetY + groupOffsetY) * scale)
+        : Math.round((stageDim - h) * 0.5 + (f.offsetY + groupOffsetY) * scale)
   ctx.drawImage(
     src,
     f.x * sx,
@@ -71,7 +78,7 @@ function drawFrame(
   src: HTMLCanvasElement,
   f: LoopFrameBox,
   scale: number,
-  anchor: 'bottom' | 'center',
+  anchor: 'bottom' | 'center' | 'top' | 'left' | 'right',
   groupOffsetX = 0,
   groupOffsetY = 0,
   groupScale = 1
@@ -438,11 +445,6 @@ export function LoopAnimatorPlayer({ sourceCanvasRef }: Props): React.ReactEleme
 
   return (
     <div className="loop-player-pane" data-mcp-region="loop_animator_player" style={{ position: 'relative' }}>
-      <LoopAnimatorRightRail
-        hasFrames={hasFrames}
-        onOpenAlignModal={() => setAlignModalOpen(true)}
-      />
-
       <div
         className={`loop-player-stage bg-${playback.previewBg}`}
         data-mcp-region="loop_animator_stage"
@@ -537,6 +539,9 @@ export function LoopAnimatorPlayer({ sourceCanvasRef }: Props): React.ReactEleme
           {playback.fps} FPS × {playback.speed}
         </span>
       </div>
+
+      {/* Tabs Cấu hình Tốc độ, Kiểu lặp, Nhịp điệu, Điểm neo & Màu nền hiển thị trực tiếp (thay thế cột mép phải) */}
+      <LoopPlayerBottomTabs />
     </div>
   )
 }

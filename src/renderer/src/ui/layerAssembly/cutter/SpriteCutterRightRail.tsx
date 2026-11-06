@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import type { ChromaKeySettings } from './types'
+import type { ChromaKeySettings, EyedropperTarget } from './types'
 import type { CanvasBgMode, TagDisplayMode } from './SpriteCutterSourceToolbar'
 import {
   IconSparkles,
@@ -8,7 +8,8 @@ import {
   IconEye,
   IconSquare,
   IconZoomIn,
-  IconZoomOut
+  IconZoomOut,
+  IconEyedropper
 } from '../../icons'
 import { SpriteCutterFlyout } from './SpriteCutterFlyout'
 
@@ -24,6 +25,8 @@ export interface SpriteCutterRightRailProps {
   onStepZoom: (delta: number) => void
   onSetZoomMode: (mode: 'fit' | number) => void
   onResetChroma: () => void
+  eyedropperTarget?: EyedropperTarget | null
+  onToggleEyedropper?: (target: EyedropperTarget) => void
 }
 
 type RightFlyoutId = 'chroma' | 'stroke' | 'shadow' | 'canvasBg' | 'view' | null
@@ -48,7 +51,9 @@ export function SpriteCutterRightRail({
   onChangeTagDisplayMode,
   onStepZoom,
   onSetZoomMode,
-  onResetChroma
+  onResetChroma,
+  eyedropperTarget,
+  onToggleEyedropper
 }: SpriteCutterRightRailProps) {
   const [activeFlyout, setActiveFlyout] = useState<RightFlyoutId>(null)
 
@@ -164,6 +169,18 @@ export function SpriteCutterRightRail({
                 <span>Đen</span>
               </button>
             </div>
+            {onToggleEyedropper && (
+              <button
+                type="button"
+                className={`sc-flyout-eyedropper-btn ${eyedropperTarget === 'key' ? 'active' : ''}`}
+                onClick={() => onToggleEyedropper('key')}
+                title="Hút màu trực tiếp trên ảnh bằng Kính lúp Pixel Photoshop (Bấm để bật, click trên ảnh để lấy màu)"
+              >
+                <IconEyedropper width={13} height={13} />
+                <span>{eyedropperTarget === 'key' ? 'Đang bật Kính lúp hút màu…' : 'Hút màu trực tiếp từ ảnh'}</span>
+                <span className="sc-swatch-dot" style={{ background: chroma.keyColorHex, marginLeft: 'auto' }} />
+              </button>
+            )}
           </div>
 
           <div className="sc-flyout-field">
@@ -438,14 +455,14 @@ export function SpriteCutterRightRail({
               <div className="sc-flyout-field">
                 <div className="sc-flyout-label-row">
                   <span>Độ đặc khối bóng (Solid Threshold)</span>
-                  <strong>{chroma.shadowSolidThreshold ?? 62}%</strong>
+                  <strong>{chroma.shadowSolidThreshold ?? 30}%</strong>
                 </div>
                 <input
                   type="range"
-                  min={30}
-                  max={90}
+                  min={0}
+                  max={100}
                   step={1}
-                  value={chroma.shadowSolidThreshold ?? 62}
+                  value={chroma.shadowSolidThreshold ?? 30}
                   onChange={(e) => onChangeChroma({ shadowSolidThreshold: Number(e.target.value) })}
                   className="sc-slider"
                 />
