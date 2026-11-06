@@ -127,6 +127,24 @@ describe('get_app_screenshot', () => {
       audio_dialog_mode: 'mixer'
     })
 
+    const photoRes = (await uiCommands.set_ui_dialog(
+      { dialog: 'photo_editor' },
+      { reqId: 't', method: 'set_ui_dialog', params: {} }
+    )) as Record<string, unknown>
+    expect(photoRes).toMatchObject({
+      ok: true,
+      dialog: 'photo_editor'
+    })
+
+    const create3dRes = (await uiCommands.set_ui_dialog(
+      { dialog: 'create_3d' },
+      { reqId: 't', method: 'set_ui_dialog', params: {} }
+    )) as Record<string, unknown>
+    expect(create3dRes).toMatchObject({
+      ok: true,
+      dialog: 'create_3d'
+    })
+
     const closeRes = (await uiCommands.set_ui_dialog(
       { dialog: 'none', theme: 'dark', left_tab: 'shots' },
       { reqId: 't', method: 'set_ui_dialog', params: {} }

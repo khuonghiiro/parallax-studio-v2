@@ -86,5 +86,16 @@
       "status": "active"
     }
   ],
-  "assets": {}
+  "assets": {
+    "loop_animations/vfx_portal_start_1793954315508/animation.json": {
+      "name": "vfx_portal_start_1793954315508",
+      "category": "custom",
+      "folder": "loop_animations/vfx_portal_start_1793954315508",
+      "frameCount": 17,
+      "fps": 12,
+      "loopMode": "once",
+      "thumbnail": "loop_animations/vfx_portal_start_1793954315508/thumbnail.png",
+      "status": "active"
+    }
+  }
 }

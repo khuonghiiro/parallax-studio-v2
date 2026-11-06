@@ -16,6 +16,8 @@ import { MobileRemoteDialog } from './ui/MobileRemoteDialog'
 import { AudioStudioDialog } from './ui/AudioStudioDialog'
 import { LoopAnimatorDialog } from './ui/loopAnimator/LoopAnimatorDialog'
 import { Assembly3DDialog } from './ui/assets/models3d/Assembly3DDialog'
+import { Create3DModal } from './ui/assets/models3d/Create3DModal'
+import { PhotoStudioDialog } from './ui/photoStudio/PhotoStudioDialog'
 import { GlobalLayerAssemblyHost } from './ui/layerAssembly/GlobalLayerAssemblyHost'
 import { AiControlOverlay } from './ui/AiControlOverlay'
 import { RemoteClientHud } from './ui/remote/RemoteClientHud'
@@ -252,6 +254,22 @@ export default function App() {
         <LoopAnimatorDialog
           onClose={() => useView.getState().openDialog(null)}
           initialImageUrl={useView.getState().loopAnimatorInitialImage}
+        />
+      )}
+      {dialog === 'photo_editor' && (
+        <PhotoStudioDialog
+          onClose={() => useView.getState().openDialog(null)}
+          initialImageUrl={useView.getState().photoEditorInitialImage}
+        />
+      )}
+      {dialog === 'create_3d' && (
+        <Create3DModal
+          isOpen={true}
+          onClose={() => useView.getState().openDialog(null)}
+          onSelectTemplate={(model) => {
+            useView.getState().openDialog(null)
+            useView.getState().openAssemblyWorkshop(model)
+          }}
         />
       )}
       {assemblyModalModel && (

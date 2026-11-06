@@ -21,6 +21,8 @@ export type DialogKind =
   | 'audio'
   | 'export'
   | 'loop_animator'
+  | 'photo_editor'
+  | 'create_3d'
   | null
 
 interface ViewPrefs {
@@ -95,6 +97,8 @@ export interface ViewState extends ViewPrefs {
   closeAssemblyWorkshop(): void
   loopAnimatorInitialImage: string | null
   openLoopAnimator(imageUrl?: string): void
+  photoEditorInitialImage: string | null
+  openPhotoEditor(imageUrl?: string): void
   /** Frame something without changing the user-selected visible views. */
   requestFocus(kind: FocusRequest['kind'], id?: string): void
 }
@@ -333,6 +337,12 @@ export const useView = create<ViewState>((set, get) => ({
     useEditor.getState().setPlaying(false)
     closeLayerAssemblyOverlay()
     set({ dialog: 'loop_animator', loopAnimatorInitialImage: imageUrl ?? null, assemblyModalModel: null })
+  },
+  photoEditorInitialImage: null,
+  openPhotoEditor(imageUrl) {
+    useEditor.getState().setPlaying(false)
+    closeLayerAssemblyOverlay()
+    set({ dialog: 'photo_editor', photoEditorInitialImage: imageUrl ?? null, assemblyModalModel: null })
   },
   toggleTheme() {
     const next: Theme = get().theme === 'light' ? 'dark' : 'light'

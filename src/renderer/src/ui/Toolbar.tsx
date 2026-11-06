@@ -25,7 +25,9 @@ import {
   IconFolder,
   IconGround,
   IconImage,
+  IconCube,
   IconLayerAssembly,
+  IconLoopAnimate,
   IconMoon,
   IconMusic,
   IconPlug,
@@ -274,6 +276,24 @@ export function Toolbar({ onExport }: { onExport: () => void }) {
           </button>
           <button id="add-assembly-workshop" className="menu-item" onClick={() => requestOpenLayerAssembly()}>
             <IconLayerAssembly width={15} /> Xưởng Lắp Ráp Layer & Rigging 2.5D…
+          </button>
+        </Menu>
+
+        <Menu id="menu-create" label="Xưởng sáng tạo" icon={<IconSparkles />}>
+          <button id="create-photo-editor" className="menu-item" onClick={() => useView.getState().openPhotoEditor()}>
+            <IconImage width={15} /> Thêm ảnh (Tách nền & Chỉnh sửa)…
+          </button>
+          <button id="create-3d-model" className="menu-item" onClick={() => useView.getState().openDialog('create_3d')}>
+            <IconCube width={15} /> Tạo 3D (Xưởng mô hình 3D)…
+          </button>
+          <button id="create-layer-assembly" className="menu-item" onClick={() => requestOpenLayerAssembly()}>
+            <IconLayerAssembly width={15} /> Tạo lắp ráp (Xưởng Layer & Rigging 2.5D)…
+          </button>
+          <button id="create-loop-animator" className="menu-item" onClick={() => useView.getState().openLoopAnimator()}>
+            <IconLoopAnimate width={15} /> Tạo loop animate (Xưởng hoạt ảnh lặp)…
+          </button>
+          <button id="create-audio-studio" className="menu-item" onClick={() => useView.getState().openAudioDialog('mixer')}>
+            <IconMusic width={15} /> Thêm nhạc (Xưởng âm thanh & Mixer)…
           </button>
         </Menu>
 

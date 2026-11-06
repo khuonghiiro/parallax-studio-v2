@@ -15,6 +15,9 @@ export const ACTIVE_REGION = 'active'
 /** Các selector nhận diện dialog/modal nổi (không bao giờ đưa lớp phủ backdrop toàn màn hình vào đây). */
 export const DIALOG_SELECTORS = [
   '[data-mcp-dialog]',
+  '.ps-modal-container',
+  '.ps-save-modal',
+  '.c3d-modal',
   '.tpm-modal',
   '.layer-workshop-dialog',
   '.lat-dialog',
@@ -337,6 +340,15 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   layer_assembly_loop_logic: region('layer_assembly_loop_logic', '.lw-loop-panel'),
   layer_assembly_loop_assets: region('layer_assembly_loop_assets', '.lw-loop-assets'),
 
+  // 11. Xưởng Tách Nền & Chỉnh Sửa Ảnh (Photo Studio & Background Remover Dialog)
+  photo_editor: region('photo_editor', '.ps-modal-container', '.ps-backdrop'),
+  photo_editor_toolbar: region('photo_editor_toolbar', '.ps-toolbar'),
+  photo_editor_canvas: region('photo_editor_canvas', '.ps-viewport-wrap'),
+  photo_editor_chroma: region('photo_editor_chroma', '.ps-chroma-strip'),
+  photo_editor_adjustments: region('photo_editor_adjustments', '.ps-adjustments-strip'),
+  photo_editor_save_modal: region('photo_editor_save_modal', '.ps-save-modal'),
+  create_3d: region('create_3d', '.c3d-modal'),
+
   // AI Neon HUD
   ai_hud: ['.ai-neon-hud-badge']
 }
@@ -407,7 +419,9 @@ export const REGION_ALIASES: Record<string, string> = {
   qr: 'remote_qr_card',
   manifest: 'manifest_dialog',
   dopesheet: 'layer_assembly_dopesheet',
-  rig_tools: 'layer_assembly_rig_tools'
+  rig_tools: 'layer_assembly_rig_tools',
+  photo_studio: 'photo_editor',
+  photo_canvas: 'photo_editor_canvas'
 }
 
 export function resolveTargetElement(regionName?: string, selector?: string): HTMLElement | null {

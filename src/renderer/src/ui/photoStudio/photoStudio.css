@@ -1,0 +1,875 @@
+/* ==========================================================================
+   Photo Studio Dialog — Xưởng Tách Nền & Chỉnh Sửa Ảnh (Photoshop 2D Style)
+   ========================================================================== */
+
+.ps-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9500;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 8px;
+}
+
+.ps-modal-container {
+  width: 98vw;
+  height: 96vh;
+  max-width: 1720px;
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* 1. Header Toolbar */
+.ps-toolbar {
+  height: 44px;
+  min-height: 44px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  gap: 12px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  flex-shrink: 0;
+}
+
+.ps-toolbar::-webkit-scrollbar {
+  height: 3px;
+}
+
+.ps-toolbar::-webkit-scrollbar-thumb {
+  background: var(--line-soft);
+  border-radius: 2px;
+}
+
+.ps-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ps-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.ps-title-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 6px;
+  flex-shrink: 0;
+}
+
+.ps-app-icon {
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+}
+
+.ps-app-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.ps-size-badge {
+  font-size: 10px;
+  font-family: var(--font-mono, monospace);
+  padding: 1px 6px;
+  background: var(--bg-3);
+  color: var(--accent-cyan);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+
+.ps-file-name {
+  font-size: 11px;
+  color: var(--text-dim);
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Tools Cluster */
+.ps-tools-cluster {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  background: var(--bg-3);
+  padding: 2px 4px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line-soft);
+  flex-shrink: 0;
+}
+
+.ps-tool-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 28px;
+  padding: 0 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--text-dim);
+  font-size: 11.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.ps-tool-btn:hover {
+  background: var(--bg-2);
+  color: var(--text);
+  border-color: var(--line-soft);
+}
+
+.ps-tool-btn.active {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
+}
+
+.ps-inline-slider {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-3);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  padding: 2px 8px;
+  height: 28px;
+  flex-shrink: 0;
+}
+
+.ps-slider-label {
+  font-size: 11px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.ps-inline-slider input[type='range'] {
+  width: 70px;
+  height: 4px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.ps-slider-val {
+  font-size: 11px;
+  font-family: var(--font-mono, monospace);
+  color: var(--accent-cyan);
+  min-width: 32px;
+  text-align: right;
+}
+
+/* Common UI Clusters */
+.ps-btn-group,
+.ps-zoom-cluster,
+.ps-segmented-pill {
+  display: flex;
+  align-items: center;
+  background: var(--bg-3);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+  padding: 2px;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.ps-seg-item {
+  height: 24px;
+  padding: 0 8px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+
+.ps-seg-item:hover {
+  color: var(--text);
+  background: var(--bg-2);
+}
+
+.ps-seg-item.active {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.ps-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 10px;
+  font-size: 11.5px;
+  font-weight: 500;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--bg-3);
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+
+.ps-btn:hover {
+  background: var(--bg-4);
+  border-color: var(--line-focus);
+}
+
+.ps-btn.primary {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
+}
+
+.ps-btn.primary:hover {
+  filter: brightness(1.1);
+}
+
+.ps-btn.success {
+  background: #10b981;
+  color: #ffffff;
+  border-color: #059669;
+}
+
+.ps-btn.success:hover {
+  filter: brightness(1.08);
+}
+
+.ps-btn.ghost {
+  background: transparent;
+  border-color: transparent;
+}
+
+.ps-btn.ghost:hover {
+  background: var(--bg-3);
+}
+
+.ps-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.ps-icon-btn:hover:not(:disabled) {
+  background: var(--bg-4);
+  color: var(--text);
+  border-color: var(--line-soft);
+}
+
+.ps-icon-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.ps-icon-btn.close-btn:hover {
+  background: #ef4444;
+  color: #ffffff;
+  border-color: #ef4444;
+}
+
+/* 2. Controls Dock (Chroma Strip + Adjustments Strip) */
+.ps-controls-dock {
+  background: var(--bg-0);
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+/* Chroma Strip */
+.ps-chroma-strip {
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--line-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ps-chroma-row-1 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ps-toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  padding: 3px 6px;
+  background: var(--bg-2);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+}
+
+.ps-toggle-label input[type='checkbox'] {
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.ps-subtab-group {
+  display: flex;
+  align-items: center;
+  background: var(--bg-2);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+  padding: 2px;
+  gap: 2px;
+}
+
+.ps-subtab-btn {
+  height: 24px;
+  padding: 0 8px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-dim);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.ps-subtab-btn.active {
+  background: var(--bg-4);
+  color: var(--accent-cyan);
+  font-weight: 600;
+}
+
+.ps-color-presets {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.ps-color-chip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 6px;
+  background: var(--bg-2);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  font-size: 10.5px;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.ps-color-chip .chip-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.ps-color-chip.active {
+  border-color: var(--accent-cyan);
+  background: var(--bg-3);
+}
+
+.ps-custom-color-wrap {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--bg-2);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  padding: 1px 6px;
+  height: 24px;
+}
+
+.ps-eyedropper-btn {
+  background: transparent;
+  border: none;
+  font-size: 10.5px;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.ps-eyedropper-btn.active {
+  color: var(--accent-cyan);
+  font-weight: 600;
+}
+
+.ps-hex-text {
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+/* Sliders Grid */
+.ps-chroma-sliders,
+.ps-color-sliders {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-top: 2px;
+}
+
+.ps-slider-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-2);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  padding: 2px 8px;
+  height: 26px;
+}
+
+.ps-slider-cell .cell-label {
+  font-size: 10.5px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.ps-slider-cell input[type='range'] {
+  width: 80px;
+  height: 4px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.ps-slider-cell .cell-val {
+  font-size: 10.5px;
+  font-family: var(--font-mono, monospace);
+  color: var(--accent-cyan);
+  min-width: 32px;
+  text-align: right;
+}
+
+.ps-shadow-modes {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--bg-2);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+  padding: 2px;
+}
+
+.ps-shadow-modes .cell-label {
+  font-size: 10.5px;
+  color: var(--text-dim);
+  margin-right: 4px;
+  padding-left: 4px;
+}
+
+.ps-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--text);
+  cursor: pointer;
+}
+
+/* Adjustments Strip */
+.ps-adjustments-strip {
+  padding: 6px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--bg-1);
+}
+
+.ps-presets-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ps-row-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent-cyan);
+  white-space: nowrap;
+}
+
+.ps-filter-pills {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.ps-filter-pill {
+  height: 24px;
+  padding: 0 8px;
+  background: var(--bg-2);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  color: var(--text-dim);
+  font-size: 10.5px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.ps-filter-pill:hover {
+  background: var(--bg-3);
+  color: var(--text);
+}
+
+.ps-filter-pill.active {
+  background: color-mix(in srgb, var(--accent) 80%, #0f172a);
+  color: #ffffff;
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+.ps-reset-color-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 6px;
+  background: transparent;
+  border: 1px dashed var(--line-soft);
+  border-radius: var(--radius-sm);
+  color: var(--text-faint);
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.ps-reset-color-btn:hover {
+  color: var(--key);
+  border-color: var(--key);
+}
+
+/* 3. Canvas Viewport */
+.ps-viewport-wrap {
+  flex: 1 1 0;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ps-viewport-wrap.checker-dark {
+  background-color: #12151c;
+  background-image:
+    linear-gradient(45deg, #1b202a 25%, transparent 25%),
+    linear-gradient(-45deg, #1b202a 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #1b202a 75%),
+    linear-gradient(-45deg, transparent 75%, #1b202a 75%);
+  background-size: 20px 20px;
+  background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+}
+
+.ps-viewport-wrap.checker-light {
+  background-color: #f1f4f8;
+  background-image:
+    linear-gradient(45deg, #e2e8f0 25%, transparent 25%),
+    linear-gradient(-45deg, #e2e8f0 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #e2e8f0 75%),
+    linear-gradient(-45deg, transparent 75%, #e2e8f0 75%);
+  background-size: 20px 20px;
+  background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+}
+
+.ps-viewport-wrap.dark {
+  background: #08090c;
+}
+
+.ps-viewport-wrap.light {
+  background: #ffffff;
+}
+
+.ps-pan-hint {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(15, 23, 42, 0.85);
+  color: #38bdf8;
+  font-size: 11px;
+  padding: 4px 12px;
+  border-radius: var(--radius);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  pointer-events: none;
+  z-index: 50;
+}
+
+.ps-canvas-box {
+  position: relative;
+  display: inline-block;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+}
+
+.ps-main-canvas {
+  display: block;
+}
+
+.ps-marquee-box {
+  position: absolute;
+  border: 1.5px dashed var(--accent-cyan);
+  background: rgba(56, 189, 248, 0.12);
+  pointer-events: none;
+}
+
+.ps-lasso-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.ps-lasso-line {
+  fill: rgba(56, 189, 248, 0.12);
+  stroke: var(--accent-cyan);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+}
+
+/* 4. Save Modal */
+.ps-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9900;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ps-save-modal {
+  width: 580px;
+  max-width: 95vw;
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.65);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.ps-modal-header {
+  height: 44px;
+  padding: 0 14px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ps-modal-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.ps-modal-body {
+  padding: 14px;
+  display: flex;
+  gap: 16px;
+}
+
+.ps-save-preview-box {
+  width: 160px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.ps-save-preview-checker {
+  width: 160px;
+  height: 160px;
+  background-color: #12151c;
+  background-image:
+    linear-gradient(45deg, #1e2430 25%, transparent 25%),
+    linear-gradient(-45deg, #1e2430 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #1e2430 75%),
+    linear-gradient(-45deg, transparent 75%, #1e2430 75%);
+  background-size: 16px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.ps-save-img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.ps-save-dimensions {
+  font-size: 10px;
+  color: var(--text-dim);
+  text-align: center;
+}
+
+.ps-save-form {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ps-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ps-field-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-dim);
+}
+
+.ps-field-input {
+  height: 30px;
+  padding: 0 10px;
+  background: var(--bg-2);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 12px;
+}
+
+.ps-field-input:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.ps-category-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.ps-category-pill {
+  height: 24px;
+  padding: 0 8px;
+  background: var(--bg-2);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  color: var(--text-dim);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.ps-category-pill.active {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
+  font-weight: 500;
+}
+
+.ps-form-checkboxes {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 4px;
+}
+
+.ps-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.ps-modal-footer {
+  height: 48px;
+  padding: 0 14px;
+  background: var(--bg-2);
+  border-top: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ==========================================================================
+   Responsive Standard (4 Breakpoints)
+   ========================================================================== */
+
+/* Phone <= 768px */
+@media (max-width: 768px) {
+  .ps-modal-container {
+    width: 100vw;
+    height: 100vh;
+    border-radius: 0;
+  }
+  .ps-toolbar {
+    height: 40px;
+    padding: 0 8px;
+  }
+  .ps-btn-text,
+  .ps-file-name {
+    display: none;
+  }
+  .ps-modal-body {
+    flex-direction: column;
+    align-items: center;
+  }
+}
+
+/* Tablet 769px - 1120px */
+@media (min-width: 769px) and (max-width: 1120px) {
+  .ps-chroma-sliders,
+  .ps-color-sliders {
+    gap: 8px;
+  }
+}

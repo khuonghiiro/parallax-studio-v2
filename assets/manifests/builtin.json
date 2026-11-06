@@ -123,6 +123,20 @@
       "name": "682c2977 e0a7 4e15 81d0 bb0418b6bb7d",
       "category": "uploads",
       "status": "active"
+    },
+    "uploads/Chibi Hanfu Character Parts Sheet.png": {
+      "name": "Chibi Hanfu Character Parts Sheet",
+      "category": "uploads",
+      "status": "deleted",
+      "tempPath": "_temp_deleted/uploads/Chibi Hanfu Character Parts Sheet.png",
+      "deletedAt": "2026-11-06T08:52:48.611Z"
+    },
+    "uploads/Remove_the_entire_background_from_this_grass_tuft_-1791467279718.png": {
+      "name": "Remove the entire background from this grass tuft  1791467279718",
+      "category": "uploads",
+      "status": "deleted",
+      "tempPath": "_temp_deleted/uploads/Remove_the_entire_background_from_this_grass_tuft_-1791467279718.png",
+      "deletedAt": "2026-11-06T09:02:58.182Z"
     }
   }
 }

@@ -1,0 +1,455 @@
+{
+  "version": "1.0",
+  "id": "vfx_portal_start_1793954315508",
+  "name": "vfx_portal_start_1793954315508",
+  "slug": "vfx_portal_start_1793954315508",
+  "category": "custom",
+  "fps": 12,
+  "speed": 1,
+  "loopMode": "once",
+  "frameCount": 17,
+  "width": 366,
+  "height": 366,
+  "baseMeshWidth": 256,
+  "baseMeshHeight": 256,
+  "duration": 1.4166666666666663,
+  "thumbnail": "thumbnail.png",
+  "thumbnailFrameIndex": 4,
+  "colorConfig": {
+    "tintColor": null,
+    "tintIntensity": 0,
+    "brightness": 1,
+    "contrast": 1,
+    "saturation": 1,
+    "hueRotate": 0,
+    "blendMode": "normal",
+    "opacity": 1
+  },
+  "rhythm": {
+    "rhythmMode": "none",
+    "rhythmRateHz": 3.2,
+    "rhythmIntensity": 0.25,
+    "minOpacity": 0.72,
+    "scaleBeatPct": 8
+  },
+  "frames": [
+    {
+      "index": 0,
+      "file": "frame_000.png",
+      "durationRatio": 1,
+      "offsetX": 0,
+      "offsetY": 0,
+      "groupId": "grp_2_mw4qeven_830w",
+      "groupIndex": 0,
+      "groupName": "Nhóm 1: vfx_portal_start_1793954315508",
+      "localFrameIndex": 0
+    },
+    {
+      "index": 1,
+      "file": "frame_001.png",
+      "durationRatio": 1,
+      "offsetX": 0,
+      "offsetY": 0,
+      "groupId": "grp_2_mw4qeven_830w",
+      "groupIndex": 0,
+      "groupName": "Nhóm 1: vfx_portal_start_1793954315508",
+      "localFrameIndex": 1
+    },
+    {
+      "index": 2,
+      "file": "frame_002.png",
+      "durationRatio": 1,
+      "offsetX": 0,
+      "offsetY": 0,
+      "groupId": "grp_2_mw4qeven_830w",
+      "groupIndex": 0,
+      "groupName": "Nhóm 1: vfx_portal_start_1793954315508",
+      "localFrameIndex": 2
+    },
+    {
+      "index": 3,
+      "file": "frame_003.png",
+      "durationRatio": 1,
+      "offsetX": 0,
+      "offsetY": 0,
+      "groupId": "grp_2_mw4qeven_830w",
+      "groupIndex": 0,
+      "groupName": "Nhóm 1: vfx_portal_start_1793954315508",
+      "localFrameIndex": 3
+    },
+    {
+      "index": 4,
+      "file": "frame_004.png",
+      "durationRatio": 1,
+      "offsetX": 0,
+      "offsetY": 0,
+      "groupId": "grp_2_mw4qeven_830w",
+      "groupIndex": 0,
+      "groupName": "Nhóm 1: vfx_portal_start_1793954315508",
+      "localFrameIndex": 4
+    },
+    {
+      "index": 5,
+      "file": "frame_005.png",
+      "durationRatio": 1,
+      "offsetX": 0,
+      "offsetY": 0,
+      "groupId": "grp_2_mw4qeven_830w",
+      "groupIndex": 0,
+      "groupName": "Nhóm 1: vfx_portal_start_1793954315508",
+      "localFrameIndex": 5
+    },
+    {
+      "index": 6,
+      "file": "frame_006.png",
+      "durationRatio": 1,
+      "offsetX": 0,
+      "offsetY": 0,
+      "groupId": "grp_3_mw4qfmhb_zu7z",
+      "groupIndex": 1,
+      "groupName": "Nhóm 3: vfx_portal_loop_1793954331721",
+      "localFrameIndex": 0
+    },
+    {
+      "index": 7,
+      "file": "frame_007.png",
+      "durationRatio": 1,
+      "offsetX": 0,
+      "offsetY": 0,
+      "groupId": "grp_3_mw4qfmhb_zu7z",
+      "groupIndex": 1,
+      "groupName": "Nhóm 3: vfx_portal_loop_1793954331721",
+      "localFrameIndex": 1
+    },
+    {
+      "index": 8,
+      "file": "frame_008.png",
+      "durationRatio": 1,
+      "offsetX": 0,
+      "offsetY": 0,
+      "groupId": "grp_3_mw4qfmhb_zu7z",
+      "groupIndex": 1,
+      "groupName": "Nhóm 3: vfx_portal_loop_1793954331721",
+      "localFrameIndex": 2
+    },
+    {
+      "index": 9,
+      "file": "frame_009.png",
+      "durationRatio": 1,
+      "offsetX": 0,
+      "offsetY": 0,
+      "groupId": "grp_3_mw4qfmhb_zu7z",
+      "groupIndex": 1,
+      "groupName": "Nhóm 3: vfx_portal_loop_1793954331721",
+      "localFrameIndex": 3
+    },
+    {
+      "index": 10,
+      "file": "frame_010.png",
+      "durationRatio": 1,
+      "offsetX": 0,
+      "offsetY": 0,
+      "groupId": "grp_3_mw4qfmhb_zu7z",
+      "groupIndex": 1,
+      "groupName": "Nhóm 3: vfx_portal_loop_1793954331721",
+      "localFrameIndex": 4
+    },
+    {
+      "index": 11,
+      "file": "frame_011.png",
+      "durationRatio": 1,
+      "offsetX": 0,
+      "offsetY": 0,
+      "groupId": "grp_3_mw4qfmhb_zu7z",
+      "groupIndex": 1,
+      "groupName": "Nhóm 3: vfx_portal_loop_1793954331721",
+      "localFrameIndex": 5
+    },
+    {
+      "index": 12,
+      "file": "frame_012.png",
+      "durationRatio": 1,
+      "offsetX": 0,
+      "offsetY": 0,
+      "groupId": "grp_2_mw4qfmh4_nn09",
+      "groupIndex": 2,
+      "groupName": "Nhóm 2: vfx_portal_end_1793954350301",
+      "localFrameIndex": 0
+    },
+    {
+      "index": 13,
+      "file": "frame_013.png",
+      "durationRatio": 1,
+      "offsetX": 0,
+      "offsetY": 0,
+      "groupId": "grp_2_mw4qfmh4_nn09",
+      "groupIndex": 2,
+      "groupName": "Nhóm 2: vfx_portal_end_1793954350301",
+      "localFrameIndex": 1
+    },
+    {
+      "index": 14,
+      "file": "frame_014.png",
+      "durationRatio": 1,
+      "offsetX": 0,
+      "offsetY": 0,
+      "groupId": "grp_2_mw4qfmh4_nn09",
+      "groupIndex": 2,
+      "groupName": "Nhóm 2: vfx_portal_end_1793954350301",
+      "localFrameIndex": 2
+    },
+    {
+      "index": 15,
+      "file": "frame_015.png",
+      "durationRatio": 1,
+      "offsetX": 0,
+      "offsetY": 0,
+      "groupId": "grp_2_mw4qfmh4_nn09",
+      "groupIndex": 2,
+      "groupName": "Nhóm 2: vfx_portal_end_1793954350301",
+      "localFrameIndex": 3
+    },
+    {
+      "index": 16,
+      "file": "frame_016.png",
+      "durationRatio": 1,
+      "offsetX": 0,
+      "offsetY": 0,
+      "groupId": "grp_2_mw4qfmh4_nn09",
+      "groupIndex": 2,
+      "groupName": "Nhóm 2: vfx_portal_end_1793954350301",
+      "localFrameIndex": 4
+    }
+  ],
+  "groups": [
+    {
+      "id": "grp_2_mw4qeven_830w",
+      "name": "Nhóm 1: vfx_portal_start_1793954315508",
+      "index": 0,
+      "frameCount": 6,
+      "startFrameIndex": 0,
+      "frameIndices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "fps": 12,
+      "speed": 1,
+      "loopMode": "loop",
+      "rhythm": {
+        "rhythmMode": "none",
+        "rhythmRateHz": 3.2,
+        "rhythmIntensity": 0.25,
+        "minOpacity": 0.72,
+        "scaleBeatPct": 8
+      },
+      "triggerMode": "sequential",
+      "triggerFrameIndex": 2,
+      "delaySec": 0,
+      "holdDurationSec": 0,
+      "offsetX": 0,
+      "offsetY": 0,
+      "scale": 1,
+      "sourceConfig": {
+        "slicerMode": "contour",
+        "gridConfig": {
+          "cols": 3,
+          "rows": 3,
+          "marginX": 0,
+          "marginY": 0,
+          "paddingX": 0,
+          "paddingY": 0,
+          "borderPadding": 0
+        },
+        "chromaKey": {
+          "enabled": true,
+          "keyColor": "#000201",
+          "similarity": 0.05,
+          "smoothness": 0.01,
+          "spill": 0,
+          "isolationMode": "all",
+          "shadowMode": "include",
+          "shadowType": "auto",
+          "shadowRetention": 100,
+          "shadowSolidThreshold": 90,
+          "shadowUnmixColor": true
+        },
+        "contourConfig": {
+          "alphaThreshold": 24,
+          "minArea": 48,
+          "mergeGap": 8,
+          "uniformSize": true,
+          "alignAnchor": "center",
+          "readingOrder": "row_first"
+        }
+      }
+    },
+    {
+      "id": "grp_3_mw4qfmhb_zu7z",
+      "name": "Nhóm 3: vfx_portal_loop_1793954331721",
+      "index": 1,
+      "frameCount": 6,
+      "startFrameIndex": 6,
+      "frameIndices": [
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      "fps": 12,
+      "speed": 1,
+      "loopMode": "once",
+      "rhythm": {
+        "rhythmMode": "none",
+        "rhythmRateHz": 3.2,
+        "rhythmIntensity": 0.25,
+        "minOpacity": 0.72,
+        "scaleBeatPct": 8
+      },
+      "triggerMode": "sequential",
+      "triggerFrameIndex": 8,
+      "delaySec": 0,
+      "holdDurationSec": 0,
+      "offsetX": 0,
+      "offsetY": 0,
+      "scale": 1,
+      "sourceConfig": {
+        "slicerMode": "contour",
+        "gridConfig": {
+          "cols": 3,
+          "rows": 3,
+          "marginX": 0,
+          "marginY": 0,
+          "paddingX": 0,
+          "paddingY": 0,
+          "borderPadding": 0
+        },
+        "chromaKey": {
+          "enabled": true,
+          "keyColor": "#000201",
+          "similarity": 0.05,
+          "smoothness": 0.01,
+          "spill": 0,
+          "isolationMode": "all",
+          "shadowMode": "include",
+          "shadowType": "auto",
+          "shadowRetention": 100,
+          "shadowSolidThreshold": 90,
+          "shadowUnmixColor": true
+        },
+        "contourConfig": {
+          "alphaThreshold": 24,
+          "minArea": 48,
+          "mergeGap": 8,
+          "uniformSize": true,
+          "alignAnchor": "bottom",
+          "readingOrder": "row_first"
+        }
+      }
+    },
+    {
+      "id": "grp_2_mw4qfmh4_nn09",
+      "name": "Nhóm 2: vfx_portal_end_1793954350301",
+      "index": 2,
+      "frameCount": 5,
+      "startFrameIndex": 12,
+      "frameIndices": [
+        12,
+        13,
+        14,
+        15,
+        16
+      ],
+      "fps": 12,
+      "speed": 1,
+      "loopMode": "once",
+      "rhythm": {
+        "rhythmMode": "none",
+        "rhythmRateHz": 3.2,
+        "rhythmIntensity": 0.25,
+        "minOpacity": 0.72,
+        "scaleBeatPct": 8
+      },
+      "triggerMode": "sequential",
+      "triggerFrameIndex": 8,
+      "delaySec": 0,
+      "holdDurationSec": 0,
+      "offsetX": 0,
+      "offsetY": 0,
+      "scale": 1,
+      "sourceConfig": {
+        "slicerMode": "contour",
+        "gridConfig": {
+          "cols": 3,
+          "rows": 3,
+          "marginX": 0,
+          "marginY": 0,
+          "paddingX": 0,
+          "paddingY": 0,
+          "borderPadding": 0
+        },
+        "chromaKey": {
+          "enabled": true,
+          "keyColor": "#000201",
+          "similarity": 0.05,
+          "smoothness": 0.01,
+          "spill": 0,
+          "isolationMode": "all",
+          "shadowMode": "include",
+          "shadowType": "auto",
+          "shadowRetention": 100,
+          "shadowSolidThreshold": 90,
+          "shadowUnmixColor": true
+        },
+        "contourConfig": {
+          "alphaThreshold": 24,
+          "minArea": 48,
+          "mergeGap": 8,
+          "uniformSize": true,
+          "alignAnchor": "bottom",
+          "readingOrder": "row_first"
+        }
+      }
+    }
+  ],
+  "sourceConfig": {
+    "slicerMode": "contour",
+    "gridConfig": {
+      "cols": 3,
+      "rows": 3,
+      "marginX": 0,
+      "marginY": 0,
+      "paddingX": 0,
+      "paddingY": 0,
+      "borderPadding": 0
+    },
+    "chromaKey": {
+      "enabled": true,
+      "keyColor": "#000201",
+      "similarity": 0.05,
+      "smoothness": 0.01,
+      "spill": 0,
+      "isolationMode": "all",
+      "shadowMode": "include",
+      "shadowType": "auto",
+      "shadowRetention": 100,
+      "shadowSolidThreshold": 90,
+      "shadowUnmixColor": true
+    },
+    "contourConfig": {
+      "alphaThreshold": 24,
+      "minArea": 48,
+      "mergeGap": 8,
+      "uniformSize": true,
+      "alignAnchor": "bottom",
+      "readingOrder": "row_first"
+    }
+  },
+  "createdAt": 1793955096252,
+  "updatedAt": 1793955096275
+}

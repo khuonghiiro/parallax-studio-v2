@@ -392,6 +392,11 @@ function applyDialogSwitch(p: Params): void {
           ? audioMode
           : v.audioDialogMode
       v.openAudioDialog(mode)
+    } else if (dialog === 'photo_editor') {
+      const img = str(p, 'image_url')
+      v.openPhotoEditor(img)
+    } else if (dialog === 'create_3d') {
+      v.openDialog('create_3d')
     } else if (
       dialog === 'path' ||
       dialog === 'sketch' ||
@@ -407,7 +412,7 @@ function applyDialogSwitch(p: Params): void {
       requestOpenLayerAssembly(str(p, 'composite_id') ?? undefined)
     } else {
       throw new ParamError(
-        `Invalid dialog "${dialog}". Expected none, path, sketch, performance, manifest, mcp, remote, audio, export, loop_animator, layer_assembly, or layer_assembly_create.`
+        `Invalid dialog "${dialog}". Expected none, path, sketch, performance, manifest, mcp, remote, audio, export, loop_animator, layer_assembly, layer_assembly_create, photo_editor, or create_3d.`
       )
     }
   } else if (audioMode === 'levels' || audioMode === 'mixer' || audioMode === 'waveform') {
