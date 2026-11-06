@@ -348,8 +348,8 @@ export function unmixPixelRgb(
     } else if (rf > gf + 4 && bf > gf + 4) {
       // Khử phần dư sắc tím/hồng trên mép tối mà không làm biến đổi màu nâu/da ấm (nơi bf <= gf)
       const magExcess = Math.min(rf, bf) - gf
-      rf = Math.max(gf, rf - magExcess * 0.65)
-      bf = Math.max(gf, bf - magExcess * 0.85)
+      rf = Math.max(gf, rf - magExcess * 0.95)
+      bf = Math.max(gf, bf - magExcess * 0.95)
     }
   }
 

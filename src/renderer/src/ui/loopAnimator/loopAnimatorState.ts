@@ -128,6 +128,7 @@ export interface LoopAnimatorStore {
   setSyncChromaAll: (enabled: boolean) => void
   toggleGroupSyncChroma: (groupIndex: number, enabled?: boolean) => void
   applyActiveChromaToSyncedGroups: () => number
+  applyActiveGridToAllGroups: () => number
   updateGroupByIndex: (
     groupIndex: number,
     patch: Partial<
@@ -633,6 +634,22 @@ export const useLoopAnimator = create<LoopAnimatorStore>((rawSet, get) => {
           : {}),
         sourceVersion: s.sourceVersion + 1
       })
+    },
+
+    applyActiveGridToAllGroups: () => {
+      const s = get()
+      if (s.groups.length <= 1) return 0
+      const activeGrid = { ...s.gridConfig }
+      const synced = syncActiveGroupToGroups(s)
+      const nextGroups = synced.map((g) => ({
+        ...g,
+        gridConfig: { ...activeGrid }
+      }))
+      rawSet({
+        groups: nextGroups,
+        sourceVersion: s.sourceVersion + 1
+      })
+      return nextGroups.length
     },
 
     applyActiveChromaToSyncedGroups: () => {

@@ -331,6 +331,7 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   loop_animator_toolbar: region('loop_animator_toolbar', '.loop-pane-toolbar', '.loop-source-card'),
   loop_animator_chroma: region('loop_animator_chroma', '.loop-chroma-bar'),
   loop_animator_frames: region('loop_animator_frames', '.loop-frame-strip', '.loop-frame-strip-panel'),
+  loop_player_bottom_tabs: region('loop_player_bottom_tabs', '.la-bottom-tabs'),
   assets_loop: region('assets_loop', '.loop-assets-layout', '.loop-assets-container'),
   inspector_loop_logic: region('inspector_loop_logic'),
   workflow_loop_params: region('workflow_loop_params'),

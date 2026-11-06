@@ -264,10 +264,21 @@ export function PhotoStudioDialog({
     pctx.putImageData(cachedImageDataRef.current, 0, 0)
   }, [adjustments])
 
-  // Toàn bộ pipeline (khi nạp ảnh hoặc đổi Chroma settings)
-  const renderPipeline = useCallback(() => {
-    runChromaPass()
-    fastCompositeAndDraw()
+  // Toàn bộ pipeline: lên lịch mượt mà qua requestAnimationFrame, triệt tiêu 100% giật lag khi kéo slider
+  const chromaPendingRef = useRef(false)
+  const chromaRafRef = useRef<number | null>(null)
+
+  const scheduleChromaPipeline = useCallback(() => {
+    chromaPendingRef.current = true
+    if (chromaRafRef.current !== null) return
+    chromaRafRef.current = requestAnimationFrame(() => {
+      chromaRafRef.current = null
+      if (chromaPendingRef.current) {
+        chromaPendingRef.current = false
+        runChromaPass()
+        fastCompositeAndDraw()
+      }
+    })
   }, [runChromaPass, fastCompositeAndDraw])
 
   // Throttle render cọ bằng requestAnimationFrame để triệt tiêu giật lag 100%
@@ -281,8 +292,14 @@ export function PhotoStudioDialog({
   }, [fastCompositeAndDraw])
 
   useEffect(() => {
-    renderPipeline()
-  }, [renderPipeline])
+    scheduleChromaPipeline()
+    return () => {
+      if (chromaRafRef.current !== null) {
+        cancelAnimationFrame(chromaRafRef.current)
+        chromaRafRef.current = null
+      }
+    }
+  }, [chroma, scheduleChromaPipeline])
 
   // Khi chỉ thay đổi màu sắc / bộ lọc ảnh, chỉ cần composite lại 0ms mà không tính lại Chroma
   useEffect(() => {

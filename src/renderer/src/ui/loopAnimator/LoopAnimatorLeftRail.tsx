@@ -32,6 +32,12 @@ type FlyoutType = 'grid' | 'contour' | 'manual' | 'chroma' | 'zoom' | null
 
 const KEY_SWATCHES = ['#00ff00', '#ff00ff', '#0000ff', '#ffffff', '#000000']
 
+const SHADOW_TYPES: { id: LoopShadowType; label: string; title: string }[] = [
+  { id: 'auto', label: 'Tự động', title: 'Tự nhận diện cả bóng tối lẫn quầng sáng mây' },
+  { id: 'light', label: 'Mây/Sáng', title: 'Giữ lại quầng sáng hào quang và mây khói trắng' },
+  { id: 'dark', label: 'Bóng tối', title: 'Giữ lại bóng đổ tối bên dưới chân nhân vật' }
+]
+
 const SHADOW_MODES: { id: LoopShadowMode; label: string; title: string }[] = [
   { id: 'off', label: 'Xoá bóng', title: 'Xoá toàn bộ bóng và quầng bán trong suốt cùng nền' },
   { id: 'include', label: '☁️ Cả bóng', title: 'Giữ lại cả vật thể chính lẫn bóng mờ / hào quang' },
@@ -67,6 +73,7 @@ export function LoopAnimatorLeftRail({
   const setSyncChromaAll = useLoopAnimator((s) => s.setSyncChromaAll)
   const toggleGroupSyncChroma = useLoopAnimator((s) => s.toggleGroupSyncChroma)
   const applyActiveChromaToSyncedGroups = useLoopAnimator((s) => s.applyActiveChromaToSyncedGroups)
+  const applyActiveGridToAllGroups = useLoopAnimator((s) => s.applyActiveGridToAllGroups)
   const equalizeFrameSizes = useLoopAnimator((s) => s.equalizeFrameSizes)
   const autoCenterFrames = useLoopAnimator((s) => s.autoCenterFrames)
 

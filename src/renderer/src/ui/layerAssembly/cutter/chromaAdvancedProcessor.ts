@@ -122,8 +122,9 @@ export function computeChromaMatteAlpha(
       0,
       Math.min(1, ((r - cMean) * kcr + (g - cMean) * kcg + (b - cMean) * kcb) / kcLenSq)
     )
-    if (pChroma > 0.14) {
-      const chromaDistance = (1 - pChroma) * 210
+    if (pChroma > 0.08) {
+      const tolFactor = tolerance > 45 ? 1.0 + (tolerance - 45) * 0.016 : 1.0
+      const chromaDistance = Math.max(0, (1 - pChroma * tolFactor) * 200)
       if (chromaDistance < distance) {
         distance = chromaDistance
       }
@@ -271,9 +272,8 @@ function applyDefringeAndDespill(
   effectiveKeyRgb?: { r: number; g: number; b: number },
   zone?: Uint8Array
 ): void {
-  const strength =
-    Math.max(0, Math.min(100, settings.defringeStrength ?? (settings.despill ? 50 : 0))) / 100
-  if (strength <= 0) return
+  const rawStrength = settings.defringeStrength ?? (settings.despill ? 65 : 55)
+  const strength = Math.max(0.1, Math.min(100, rawStrength)) / 100
 
   const fringeType = settings.fringeColorType || settings.keyColorType || 'custom'
   const fringeRgb =
@@ -569,6 +569,21 @@ export function processAdvancedChromaPixelData(
     }
     if (settings.removeSoftHalo) {
       removeSoftHaloPixels(data, w, h, settings, effectiveKeyRgb, analysis, zone)
+    }
+    // Tự động unmix màu nền khỏi các pixel mép biên để khử triệt để viền tím/xanh ám vào tóc
+    for (let p = 0; p < totalPixels; p++) {
+      if (zone[p] && analysis.rawAlpha[p] < 0.98 && data[p * 4 + 3] > 0) {
+        unmixPixelRgb(
+          data,
+          p * 4,
+          effectiveKeyRgb,
+          analysis.rawAlpha[p],
+          analysis.isLight[p] === 1,
+          analysis.isGreenKey,
+          analysis.isBlueKey,
+          analysis.isMagentaKey
+        )
+      }
     }
   }
 
