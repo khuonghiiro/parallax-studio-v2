@@ -32,6 +32,9 @@ export interface RigToolState {
   testPoses: Record<string, BonePose>
   /** Nét 1 (Nét đứt kết nối từ vỏ uốn đến điểm đặt khớp) đang chờ vẽ Nét 2 (Nét tạo xương). */
   pendingDashedLink: PendingBoneDashedLink | null
+  /** Layer đang được chỉ định gắn xương khi vẽ xương bằng chuột trên Canvas. */
+  targetBindingLayerId?: string | null
+  targetBindingMode?: 'rigid' | 'soft'
 }
 
 const INITIAL_STATE: RigToolState = {
@@ -41,7 +44,9 @@ const INITIAL_STATE: RigToolState = {
   autoWeld: true,
   statusHint: null,
   testPoses: {},
-  pendingDashedLink: null
+  pendingDashedLink: null,
+  targetBindingLayerId: null,
+  targetBindingMode: 'rigid'
 }
 
 let state: RigToolState = { ...INITIAL_STATE }

@@ -7,6 +7,7 @@ import { SegmentedTabs } from '../primitives'
 import { WorkshopMixamoRigCard } from './WorkshopMixamoRigCard'
 import { WorkshopSmartRig25DCard } from './WorkshopSmartRig25DCard'
 import { WorkshopRigBindingSection } from './WorkshopRigBindingSection'
+import { WorkshopCutoutRigSection } from './WorkshopCutoutRigSection'
 import { WorkshopCreatureRigCard } from './WorkshopCreatureRigCard'
 import { WorkshopBoneBuilderCard } from './WorkshopBoneBuilderCard'
 import { BoneInspectorCard, BoneTreeCard, type BoneEnvelopeDeltaPatch } from './WorkshopBoneInspector'
@@ -338,7 +339,7 @@ export function WorkshopRigPanel({ composite, boneId, selectBone, selectedIds, s
         items={[
           { id: 'hierarchy', label: 'Cây xương', icon: <IconBoneHierarchy width={12} height={12} />, title: `Cây phân cấp (${bones.length} xương), thuộc tính khớp & giới hạn góc` },
           { id: 'build', label: 'Thủ công', icon: <IconBoneChainBuild width={12} height={12} />, title: 'Dựng kết cấu xương bằng tay: chuỗi đốt, chia đốt, nhân chi vòng tròn, đối xứng' },
-          { id: 'binding', label: 'Gắn Mesh', icon: <IconFlexiMeshBind width={12} height={12} />, title: `Gắn layer cứng / uốn mềm Flexi-Bind (${boundLayersTotal}/${composite.layers.length} layer đã gắn)` },
+          { id: 'binding', label: 'Ghép bộ phận', icon: <IconFlexiMeshBind width={12} height={12} />, title: `Tạo xương theo từng bộ phận tách rời & ghép nối phân cấp cha-con (${boundLayersTotal}/${composite.layers.length} bộ phận đã gắn)` },
           { id: 'autorig', label: 'Tự động', icon: <IconAutoRigSpark width={12} height={12} />, title: 'Thư viện khung xương sinh vật (nhện, cá, ngựa, chim…), Mixamo & Smart 2.5D' }
         ]}
       />
@@ -377,7 +378,28 @@ export function WorkshopRigPanel({ composite, boneId, selectBone, selectedIds, s
         <div className="lw-rig-body">
           {subTab === 'build' && <WorkshopBoneBuilderCard bones={bones} bone={bone} run={run} selectBone={selectBone} switchTool={switchTool} />}
           {subTab === 'binding' && (
-            <WorkshopRigBindingSection composite={composite} bones={bones} bone={bone} activeLayerId={activeLayerId} targetIds={targetIds} onSelectLayer={bindTarget} run={run} />
+            composite.layers.length >= 2 ? (
+              <WorkshopCutoutRigSection
+                composite={composite}
+                bones={bones}
+                bone={bone}
+                activeLayerId={activeLayerId}
+                targetIds={targetIds}
+                onSelectLayer={bindTarget}
+                selectBone={selectBone}
+                run={run}
+              />
+            ) : (
+              <WorkshopRigBindingSection
+                composite={composite}
+                bones={bones}
+                bone={bone}
+                activeLayerId={activeLayerId}
+                targetIds={targetIds}
+                onSelectLayer={bindTarget}
+                run={run}
+              />
+            )
           )}
           {subTab === 'autorig' && <AutoRigSection composite={composite} run={run} onApplied={() => setSubTab('hierarchy')} />}
         </div>

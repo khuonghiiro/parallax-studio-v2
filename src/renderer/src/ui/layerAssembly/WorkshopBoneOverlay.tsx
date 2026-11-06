@@ -658,21 +658,30 @@ export function WorkshopBoneOverlay({
       if (Math.hypot(d.current.x - d.start.x, d.current.y - d.start.y) >= 12) {
         beginGesture?.()
         const created = createBoneFromCanvasDrag(d.start, d.current, d.parentBone, rig.bones.length, undefined, d.parentJoint)
+        const targetLayerId = rigTool.targetBindingLayerId
+        const targetMode = rigTool.targetBindingMode ?? 'rigid'
         setComposite((c) => {
           let next = applyRigAction(c, { action: 'add-bone', bone: created })
           if (rigTool.mirrorDraw && Math.abs(created.x) > 10) {
             next = applyRigAction(next, { action: 'mirror-bone', boneId: created.id })
           }
+          if (targetLayerId) {
+            next = applyRigAction(next, { action: 'bind', boneId: created.id, layerIds: [targetLayerId], mode: targetMode })
+          }
           return next
         })
         selectBone(created.id)
+        const boundLayer = targetLayerId ? composite.layers.find((l) => l.id === targetLayerId) : null
         setRigToolState({
           pendingDashedLink: null,
-          statusHint: d.parentBone
-            ? d.snapped
-              ? `Đã hàn khớp xương "${created.name}" vào "${d.parentBone.name}".`
-              : `Đã tạo xương "${created.name}" nối nét đứt với "${d.parentBone.name}".`
-            : `Đã tạo xương gốc mới tách rời "${created.name}".`
+          targetBindingLayerId: null,
+          statusHint: boundLayer
+            ? `✓ Đã tạo "${created.name}" và gắn thẳng vào bộ phận "${boundLayer.name}".`
+            : d.parentBone
+              ? d.snapped
+                ? `Đã hàn khớp xương "${created.name}" vào "${d.parentBone.name}".`
+                : `Đã tạo xương "${created.name}" nối nét đứt với "${d.parentBone.name}".`
+              : `Đã tạo xương gốc mới tách rời "${created.name}".`
         })
         endGesture?.()
       }
