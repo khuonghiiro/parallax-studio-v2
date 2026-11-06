@@ -319,19 +319,22 @@ export function unmixPixelRgb(
   isLightGlow: boolean,
   isGreenKey: boolean,
   isBlueKey: boolean,
-  isMagentaKey: boolean
+  isMagentaKey: boolean,
+  effectiveOutAlpha?: number
 ): void {
   const r = data[idx]
   const g = data[idx + 1]
   const b = data[idx + 2]
-  // Đối với phông nền đen/tối hoặc tia sáng/hào quang sáng trên nền tối (Additive Light),
-  // màu sắc gốc chính là màu tự thân của ánh sáng. Nhân nghịch đảo 1/aUnmix sẽ làm cháy rực màu (R, G cực đại) tạo viền răng cưa vàng/cam!
-  const isDarkKey = keyRgb.r < 30 && keyRgb.g < 30 && keyRgb.b < 30
-  if (isDarkKey || (isLightGlow && keyRgb.r < 80 && keyRgb.g < 80 && keyRgb.b < 80)) {
-    return
-  }
+  const isDarkKey = keyRgb.r < 35 && keyRgb.g < 35 && keyRgb.b < 35
+  const isAdditiveGlow = isDarkKey || (isLightGlow && keyRgb.r < 75 && keyRgb.g < 75 && keyRgb.b < 75)
 
-  const aUnmix = Math.max(0.07, Math.min(1, aAll))
+  // Trên nền tối hoặc hào quang sáng trên nền tối:
+  // Bảo toàn năng lượng sáng hiển thị (F * alpha_out <= I) bằng cách đặt aUnmix >= alpha_out.
+  // Nhờ đó vùng bán trong suốt được khử sạch nền đen giữ nguyên sắc vàng rực rỡ (không bị đen đục),
+  // còn vùng đặc (alpha_out = 1.0) giữ nguyên 100% màu gốc I, triệt tiêu hoàn toàn đường viền vàng cam cháy sáng!
+  const aUnmix = isAdditiveGlow
+    ? Math.max(0.08, Math.min(1, Math.max(aAll, effectiveOutAlpha ?? aAll)))
+    : Math.max(0.07, Math.min(1, aAll))
   const invA = 1 / aUnmix
 
   let rf = Math.max(0, Math.min(255, keyRgb.r + (r - keyRgb.r) * invA))
@@ -396,20 +399,22 @@ export function applyShadowAndMistExtraction(
   const solidCutoff = resolveSolidCutoff(settings)
   const unmixColor = settings.shadowUnmixColor !== false
   const { rawAlpha, dirAlpha, isLight, isGreenKey, isBlueKey, isMagentaKey } = analysis
-  const noiseFloor = Math.max(analysis.measuredNoise + 0.01, Math.max(0.025, 0.13 - strength * 0.085))
+  const tol = Math.max(0, Math.min(100, settings.tolerance ?? 36))
+  // Kết nối thanh trượt Độ nhạy (tolerance) với ngưỡng cắt nhiễu nền khi Lấy cả bóng:
+  // Kéo Độ nhạy cao (> 38%) sẽ nâng sàn lọc nhiễu để xoá sạch sạn nền JPEG / đốm màu phông dư thừa
+  const tolFloor = tol > 38 ? ((tol - 38) / 62) * 0.42 : 0
+  const baseFloor = Math.max(analysis.measuredNoise + 0.012, Math.max(0.035, 0.135 - strength * 0.085))
+  const noiseFloor = Math.min(Math.max(0.08, solidCutoff - 0.05), Math.max(baseFloor, tolFloor))
 
   const solidMask = new Uint8Array(totalPixels)
-  const nonSolidMask = new Uint8Array(totalPixels)
-  for (let p = 0; p < totalPixels; p++) {
-    if (mode === 'only' && (!zone[p] || rawAlpha[p] >= solidCutoff)) {
-      solidMask[p] = 1
-    }
-    if (data[p * 4 + 3] < 15 || (zone[p] && rawAlpha[p] < solidCutoff)) {
-      nonSolidMask[p] = 1
+  if (mode === 'only') {
+    for (let p = 0; p < totalPixels; p++) {
+      if (!zone[p] || rawAlpha[p] >= solidCutoff) {
+        solidMask[p] = 1
+      }
     }
   }
   const nearSolid = mode === 'only' ? dilateMaskBox(solidMask, w, h, 2) : solidMask
-  const nearBoundary = mode === 'include' && unmixColor ? dilateMaskBox(nonSolidMask, w, h, 3) : null
   const isShadowPixel = new Uint8Array(totalPixels)
   const span = Math.max(0.08, solidCutoff - noiseFloor)
   const gamma = 1.35 - strength * 0.65
@@ -461,15 +466,41 @@ export function applyShadowAndMistExtraction(
       finalA = Math.max(0, Math.min(255, Math.round(origA * Math.min(1, shadowCurved * effScale))))
     }
 
-    // Chỉ unmix các pixel bán trong suốt (bóng/mây/quầng) hoặc pixel nằm sát biên 3px với nền;
-    // giữ nguyên 100% màu gốc của phần ruột vật thể đặc bên trong (tóc nâu, da, ngọc, trang phục).
-    const shouldUnmix =
-      unmixColor &&
-      finalA > 0 &&
-      (isSolidForeground ? Boolean(nearBoundary && nearBoundary[p]) && aAll < 0.96 : aAll < 0.98)
+    // Với pixel bán trong suốt (bóng/mây/quầng): luôn unmix màu nền pha trộn.
+    // Với pixel đặc (isSolidForeground): chỉ unmix khi thực sự có sắc màu nền tràn vào (hasKeySpill),
+    // giúp khử sạch 100% viền xanh/tím quanh tóc đen kể cả khi chọn Độ đặc thấp (30%) mà vẫn giữ nguyên
+    // tuyệt đối màu tóc nâu, da, ngọc bích bên trong và không bao giờ tạo viền sáng 3px trên tia nắng!
+    let shouldUnmix = false
+    if (unmixColor && finalA > 0) {
+      if (!isSolidForeground) {
+        shouldUnmix = aAll < 0.98
+      } else if (aAll < 0.96) {
+        const r = data[idx]
+        const g = data[idx + 1]
+        const b = data[idx + 2]
+        const hasKeySpill = isGreenKey
+          ? g > Math.max(r, b) + 4
+          : isBlueKey
+            ? b > Math.max(r, g) + 4
+            : isMagentaKey
+              ? Math.min(r, b) > g + 4
+              : false
+        shouldUnmix = hasKeySpill
+      }
+    }
 
     if (shouldUnmix) {
-      unmixPixelRgb(data, idx, keyRgb, aAll, isLight[p] === 1, isGreenKey, isBlueKey, isMagentaKey)
+      unmixPixelRgb(
+        data,
+        idx,
+        keyRgb,
+        aAll,
+        isLight[p] === 1,
+        isGreenKey,
+        isBlueKey,
+        isMagentaKey,
+        finalA / 255
+      )
     }
 
     data[idx + 3] = finalA
@@ -515,12 +546,16 @@ export function removeSoftHaloPixels(
       data[idx + 3] = 0
       continue
     }
+    let outA = a
     if (ra < cut + feather) {
       const t = (ra - cut) / feather
-      data[idx + 3] = Math.round(a * t * t * (3 - 2 * t))
+      outA = Math.round(a * t * t * (3 - 2 * t))
+      data[idx + 3] = outA
     }
     const keepInnerColor = outerOnly && ra < solid
-    if (ra < 0.98 && !keepInnerColor) unmixPixelRgb(data, idx, keyRgb, ra, isLight[p] === 1, isGreenKey, isBlueKey, isMagentaKey)
+    if (ra < 0.98 && !keepInnerColor) {
+      unmixPixelRgb(data, idx, keyRgb, ra, isLight[p] === 1, isGreenKey, isBlueKey, isMagentaKey, outA / 255)
+    }
   }
 }
 

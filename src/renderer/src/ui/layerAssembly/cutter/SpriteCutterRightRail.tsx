@@ -257,13 +257,13 @@ export function SpriteCutterRightRail({
         </SpriteCutterFlyout>
       </div>
 
-      {/* 2. Khử Viền & Viền Nét */}
+      {/* 2. Khử Viền, Lọc Sạn & Viền Nét */}
       <div className="sc-rail-item-wrap">
         <button
           type="button"
-          className={`sc-rail-btn ${isStrokeActive || (chroma.defringeStrength ?? 0) > 0 ? 'active' : ''} ${activeFlyout === 'stroke' ? 'has-flyout-open' : ''}`}
+          className={`sc-rail-btn ${isStrokeActive || (chroma.defringeStrength ?? 0) > 0 || (chroma.despeckleSize ?? 0) > 0 ? 'active' : ''} ${activeFlyout === 'stroke' ? 'has-flyout-open' : ''}`}
           onClick={() => toggleFlyout('stroke')}
-          title="Khử viền ám màu & Vẽ viền nét mịn xung quanh đối tượng"
+          title="Khử viền ám màu, Lọc đốm sạn pixel & Vẽ viền nét mịn xung quanh đối tượng"
         >
           <IconSliders width={18} height={18} />
           <span className="sc-rail-label">Viền nét</span>
@@ -274,10 +274,10 @@ export function SpriteCutterRightRail({
           isOpen={activeFlyout === 'stroke'}
           onClose={() => setActiveFlyout(null)}
           side="right"
-          title="Khử Ám Viền & Vẽ Viền Nét Mịn"
+          title="Khử Ám Viền, Lọc Sạn & Viền Nét"
           icon={<IconSliders width={14} height={14} />}
           badge={isStrokeActive ? `${chroma.strokeWidth}px` : undefined}
-          width={300}
+          width={310}
         >
           <div className="sc-flyout-field">
             <div className="sc-flyout-label-row">
@@ -291,6 +291,54 @@ export function SpriteCutterRightRail({
               step={1}
               value={chroma.defringeStrength ?? 0}
               onChange={(e) => onChangeChroma({ defringeStrength: Number(e.target.value) })}
+              className="sc-slider"
+            />
+          </div>
+
+          <div className="sc-flyout-field">
+            <div className="sc-flyout-label-row">
+              <span>Làm mịn răng cưa mép (Smooth)</span>
+              <strong>{chroma.edgeSmooth ?? 0}px</strong>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={10}
+              step={1}
+              value={chroma.edgeSmooth ?? 0}
+              onChange={(e) => onChangeChroma({ edgeSmooth: Number(e.target.value) })}
+              className="sc-slider"
+            />
+          </div>
+
+          <div className="sc-flyout-field">
+            <div className="sc-flyout-label-row">
+              <span>Lọc đốm rác / Sạn nền (Despeckle)</span>
+              <strong>{chroma.despeckleSize ?? 0}px²</strong>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={120}
+              step={2}
+              value={chroma.despeckleSize ?? 0}
+              onChange={(e) => onChangeChroma({ despeckleSize: Number(e.target.value) })}
+              className="sc-slider"
+            />
+          </div>
+
+          <div className="sc-flyout-field">
+            <div className="sc-flyout-label-row">
+              <span>Khử hạt sạn trắng viền</span>
+              <strong>{chroma.whiteSpeckleSensitivity ?? 0}%</strong>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={5}
+              value={chroma.whiteSpeckleSensitivity ?? 0}
+              onChange={(e) => onChangeChroma({ whiteSpeckleSensitivity: Number(e.target.value) })}
               className="sc-slider"
             />
           </div>

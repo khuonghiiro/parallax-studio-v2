@@ -5,8 +5,6 @@ import { LoopAnimatorLeftRail } from './LoopAnimatorLeftRail'
 import { PhotoshopEyedropperOverlay } from '../layerAssembly/cutter/PhotoshopEyedropperOverlay'
 import { sampleEyedropperAtPoint } from '../layerAssembly/cutter/chromaKey'
 import type { EyedropperSample } from '../layerAssembly/cutter/types'
-import { LoopChromaControls } from './LoopChromaControls'
-import { LoopSlicerControls } from './LoopSlicerControls'
 import { LoopSourceEmptyState } from './LoopSourceEmptyState'
 import {
   applyChromaKeyToImageData,
@@ -39,7 +37,7 @@ interface Props {
   templates: LoopAnimationTemplate[]
 }
 
-const MODES: { id: SlicerMode; label: string; icon: React.ReactElement; title: string }[] = [
+export const MODES: { id: SlicerMode; label: string; icon: React.ReactElement; title: string }[] = [
   { id: 'grid', label: 'Lưới đều', icon: <IconGrid width={12} height={12} />, title: 'Chia ảnh thành lưới hàng × cột bằng nhau' },
   { id: 'contour', label: 'Tự dò vùng', icon: <IconLightning width={12} height={12} />, title: 'Tự dò từng chi tiết tách biệt trong ảnh' },
   { id: 'manual', label: 'Kéo tay', icon: <IconScissors width={12} height={12} />, title: 'Tự kéo / chỉnh từng khung cắt' }
@@ -67,7 +65,6 @@ function drawFrameOverlay(
     const isCursor = isPlaying && idx === playing
     ctx.save()
     if (pad > 0) {
-      // Vẽ dải viền lưới mở rộng theo đúng độ dày Padding viền đã cắt bỏ
       ctx.strokeStyle = isSelected
         ? 'rgba(245, 158, 11, 0.38)'
         : 'rgba(56, 189, 248, 0.28)'
@@ -118,7 +115,6 @@ export function LoopAnimatorSourcePane({ sourceCanvasRef, onRequestUpload, templ
   const isPlaying = useLoopAnimator((s) => s.playback.isPlaying)
   const setSourceDimensions = useLoopAnimator((s) => s.setSourceDimensions)
   const bumpSourceVersion = useLoopAnimator((s) => s.bumpSourceVersion)
-  const setSlicerMode = useLoopAnimator((s) => s.setSlicerMode)
   const runContourSlicer = useLoopAnimator((s) => s.runContourSlicer)
   const setChromaKey = useLoopAnimator((s) => s.setChromaKey)
   const selectFrame = useLoopAnimator((s) => s.selectFrame)
@@ -127,10 +123,8 @@ export function LoopAnimatorSourcePane({ sourceCanvasRef, onRequestUpload, templ
 
   const overlayCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const scrollRef = useRef<HTMLDivElement | null>(null)
-  // Hiển thị đúng tỉ lệ ảnh gốc (contain-fit), không bóp méo để xem trước khớp với lúc tách
   const fit = useContainFitSize(scrollRef, sourceWidth, sourceHeight)
   const rawImageRef = useRef<HTMLImageElement | HTMLCanvasElement | null>(null)
-  /** Bộ đệm ImageData gốc đã thu nhỏ xuống kích thước proxy (<= 1280px) để kéo thanh trượt Chroma Key tức thì không phải đọc lại GPU 4K */
   const baseWorkDataRef = useRef<ImageData | null>(null)
   const [eyedropperActive, setEyedropperActive] = useState(false)
   const [eyedropperSample, setEyedropperSample] = useState<EyedropperSample | null>(null)
@@ -140,7 +134,7 @@ export function LoopAnimatorSourcePane({ sourceCanvasRef, onRequestUpload, templ
   function drawOverlay(): void {
     const src = sourceCanvasRef.current
     const ov = overlayCanvasRef.current
-    if (!src || !ov) return
+    if (!src || !ov || !rawImageRef.current || src.width <= 0 || src.height <= 0) return
     if (ov.width !== src.width || ov.height !== src.height) {
       ov.width = src.width
       ov.height = src.height
@@ -225,7 +219,6 @@ export function LoopAnimatorSourcePane({ sourceCanvasRef, onRequestUpload, templ
     drawOverlay()
   }
 
-  // Nạp ảnh nguồn khi URL đổi; phiên trống → xoá sạch canvas để không còn ảnh cũ
   useEffect(() => {
     if (!sourceImageUrl) {
       rawImageRef.current = null
@@ -247,14 +240,52 @@ export function LoopAnimatorSourcePane({ sourceCanvasRef, onRequestUpload, templ
       const { w, h } = getSourceNaturalSize(src)
       setSourceDimensions(w, h)
       const st = useLoopAnimator.getState()
-      renderProcessedSource(src, st.chromaKey, st.gridConfig, true)
+      let nextChroma = st.chromaKey
+
+      // Khi nạp ảnh mới tải lên (custom/combo) mà chưa bật tách nền, tự nhận diện màu 4 góc và bật tách nền thông minh
+      if (!nextChroma.enabled && !st.activePresetId) {
+        const sampleScale = Math.min(1, 512 / Math.max(1, w, h))
+        const sw = Math.max(1, Math.round(w * sampleScale))
+        const sh = Math.max(1, Math.round(h * sampleScale))
+        const temp = document.createElement('canvas')
+        temp.width = sw
+        temp.height = sh
+        const tctx = temp.getContext('2d', { willReadFrequently: true })
+        if (tctx) {
+          tctx.drawImage(src, 0, 0, sw, sh)
+          const cornerData = tctx.getImageData(Math.min(4, sw - 1), Math.min(4, sh - 1), 1, 1).data
+          if (cornerData[3] >= 200) {
+            const detectedHex = detectCornerKeyColor(
+              tctx,
+              sw,
+              sh,
+              Math.round((st.gridConfig.borderPadding ?? 0) * sampleScale)
+            )
+            const r = cornerData[0]
+            const g = cornerData[1]
+            const b = cornerData[2]
+            const isDarkBg = r < 40 && g < 40 && b < 40
+            nextChroma = {
+              ...nextChroma,
+              enabled: true,
+              keyColor: detectedHex,
+              shadowMode: isDarkBg ? 'include' : nextChroma.shadowMode ?? 'include',
+              shadowType: isDarkBg ? 'light' : nextChroma.shadowType ?? 'auto',
+              shadowRetention: nextChroma.shadowRetention ?? 72,
+              shadowSolidThreshold: nextChroma.shadowSolidThreshold ?? 35
+            }
+            setChromaKey(nextChroma)
+          }
+        }
+      }
+
+      renderProcessedSource(src, nextChroma, st.gridConfig, true)
       if (st.pendingMeshUpgrade) {
         st.alignUpgradedFramesByMesh(sourceCanvasRef.current)
       }
       bumpSourceVersion()
     }
 
-    // Ưu tiên lấy trực tiếp từ bộ nhớ đệm Canvas RAM (khi vừa mở gói 4K hoặc ghép nhiều frame) -> 0ms
     const memCanvas = getRegisteredMemoryCanvas(sourceImageUrl)
     if (memCanvas && memCanvas.width > 0 && memCanvas.height > 0) {
       applyLoadedSource(memCanvas)
@@ -300,7 +331,6 @@ export function LoopAnimatorSourcePane({ sourceCanvasRef, onRequestUpload, templ
     drawOverlay()
   }, [frames, selectedFrameIndex, focusedFrameIndex, playingFrameIndex, isPlaying, slicerMode, gridConfig.borderPadding])
 
-  
   useEffect(() => {
     if (!eyedropperActive) return
     const onKeyDown = (e: KeyboardEvent) => {
@@ -426,7 +456,6 @@ export function LoopAnimatorSourcePane({ sourceCanvasRef, onRequestUpload, templ
 
   return (
     <div className="loop-source-pane" data-mcp-region="loop_animator_source" style={{ position: 'relative' }}>
-      {/* Kính lúp Pixel Photoshop phóng to 9x9 với vòng so sánh màu */}
       <PhotoshopEyedropperOverlay
         target={eyedropperActive ? 'key' : null}
         currentHex={chromaKey.keyColor || '#000000'}

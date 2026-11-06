@@ -18,7 +18,7 @@ const LOOP_MODES: { id: LoopAnimationMode; label: string; desc: string }[] = [
   { id: 'loop', label: 'Vòng lặp', desc: 'Phát hết frame rồi lặp lại từ đầu' },
   { id: 'ping-pong', label: 'Lắc lư', desc: 'Phát xuôi rồi phát ngược (Ping-Pong)' },
   { id: 'once', label: 'Một lần', desc: 'Phát một lượt rồi dừng ở frame cuối' },
-  { id: 'random', label: 'Ngẫu nhiên', desc: 'Nhảy frame bất kỳ (hiệu ứng tia điện/lửa)' }
+  { id: 'random', label: 'Ngẫu nhiên', desc: 'Nhảy frame bất kỳ (tia điện/lửa)' }
 ]
 
 const RHYTHM_MODES: { id: LoopRhythmMode; label: string }[] = [
@@ -36,7 +36,7 @@ const BG_OPTIONS: { id: LoopPlaybackConfig['previewBg']; label: string; bgClass:
   { id: 'green', label: 'Xanh phông', bgClass: 'la-bg-opt--green' }
 ]
 
-function IconSpeedClock({ width = 13, height = 13 }: { width?: number; height?: number }) {
+function IconSpeedClock({ width = 12, height = 12 }: { width?: number; height?: number }) {
   return (
     <svg width={width} height={height} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="10" />
@@ -76,7 +76,7 @@ export function LoopPlayerBottomTabs(): React.ReactElement {
 
   return (
     <div className="la-bottom-tabs-shell" data-mcp-region="loop_player_bottom_tabs">
-      {/* 1. Dải Tabs Segmented bên dưới Transport (thay thế thanh bên phải) */}
+      {/* 1. Dải Tabs Segmented bên dưới Transport */}
       <div className="la-bottom-tabs-bar" role="tablist">
         <button
           type="button"
@@ -84,10 +84,10 @@ export function LoopPlayerBottomTabs(): React.ReactElement {
           onClick={() => setActiveTab('speed')}
           role="tab"
           aria-selected={activeTab === 'speed'}
-          title="Tốc độ phát (FPS & Tốc độ nhân)"
+          title="Tốc độ phát (FPS & Hệ số tốc độ)"
         >
-          <IconSpeedClock width={12} height={12} />
-          <span className="la-bottom-tab-label">Tốc độ</span>
+          <IconSpeedClock width={11} height={11} />
+          <span className="la-bottom-tab-label">FPS</span>
           <span className="la-bottom-tab-badge">{playback.fps}</span>
         </button>
 
@@ -99,7 +99,7 @@ export function LoopPlayerBottomTabs(): React.ReactElement {
           aria-selected={activeTab === 'loop'}
           title="Kiểu lặp khung hình (Vòng lặp, Lắc lư, 1 lần, Ngẫu nhiên)"
         >
-          <IconLoopAnimate width={12} height={12} />
+          <IconLoopAnimate width={11} height={11} />
           <span className="la-bottom-tab-label">Lặp</span>
           <span className="la-bottom-tab-badge">
             {playback.loopMode === 'loop'
@@ -120,7 +120,7 @@ export function LoopPlayerBottomTabs(): React.ReactElement {
           aria-selected={activeTab === 'rhythm'}
           title="Nhịp điệu & Hiệu ứng chớp giật theo nhịp"
         >
-          <IconLightning width={12} height={12} />
+          <IconLightning width={11} height={11} />
           <span className="la-bottom-tab-label">Nhịp</span>
           <span className={`la-bottom-tab-badge ${r.rhythmMode !== 'none' ? 'highlight' : ''}`}>
             {r.rhythmMode !== 'none' ? 'Bật' : 'Tắt'}
@@ -135,7 +135,7 @@ export function LoopPlayerBottomTabs(): React.ReactElement {
           aria-selected={activeTab === 'anchor'}
           title="Điểm neo căn chỉnh (Chân sàn, Tâm, Đỉnh, Trái, Phải)"
         >
-          <IconAnchor width={12} height={12} />
+          <IconAnchor width={11} height={11} />
           <span className="la-bottom-tab-label">Neo</span>
           <span className="la-bottom-tab-badge">
             {currentAnchor === 'center'
@@ -158,21 +158,17 @@ export function LoopPlayerBottomTabs(): React.ReactElement {
           aria-selected={activeTab === 'bg'}
           title="Màu nền sân khấu xem trước (Caro, Tối, Sáng, Xanh phông)"
         >
-          <IconGrid width={12} height={12} />
+          <IconGrid width={11} height={11} />
           <span className="la-bottom-tab-label">Nền</span>
         </button>
       </div>
 
       {/* 2. Nội dung cấu hình trực tiếp của Tab được chọn */}
       <div className="la-bottom-tab-content">
-        {/* Tab 1: Tốc độ */}
         {activeTab === 'speed' && (
           <div className="la-tab-panel">
             <div className="la-tab-row">
-              <span className="la-tab-label">Tốc độ khung hình (FPS):</span>
-              <strong className="la-tab-val">{playback.fps} FPS</strong>
-            </div>
-            <div className="la-tab-row">
+              <span className="la-tab-label">Khung hình/giây:</span>
               <input
                 type="range"
                 min={1}
@@ -180,41 +176,43 @@ export function LoopPlayerBottomTabs(): React.ReactElement {
                 value={playback.fps}
                 onChange={(e) => setFps(Number(e.target.value))}
                 className="la-slider"
+                style={{ flex: 1, margin: '0 6px' }}
               />
+              <strong className="la-tab-val">{playback.fps} FPS</strong>
             </div>
-            <div className="la-tab-chips-grid">
+            <div className="la-tab-chips-grid" style={{ gridTemplateColumns: 'repeat(7, 1fr)' }}>
               {FPS_PRESETS.map((f) => (
                 <button
                   key={f}
                   type="button"
                   className={`la-chip-btn ${playback.fps === f ? 'active' : ''}`}
                   onClick={() => setFps(f)}
+                  style={{ padding: '3px 2px', fontSize: 10.5 }}
                 >
-                  {f} fps
+                  {f}
                 </button>
               ))}
             </div>
 
-            <div className="la-tab-row" style={{ marginTop: 6 }}>
-              <span className="la-tab-label">Hệ số tốc độ (Multiplier):</span>
-              <strong className="la-tab-val">{playback.speed}×</strong>
-            </div>
-            <div className="la-tab-chips-grid">
-              {SPEED_PRESETS.map((sp) => (
-                <button
-                  key={sp}
-                  type="button"
-                  className={`la-chip-btn ${playback.speed === sp ? 'active' : ''}`}
-                  onClick={() => setSpeed(sp)}
-                >
-                  {sp}×
-                </button>
-              ))}
+            <div className="la-tab-row" style={{ marginTop: 4 }}>
+              <span className="la-tab-label">Hệ số tốc độ:</span>
+              <div style={{ display: 'flex', gap: 4, flex: 1, justifyContent: 'flex-end' }}>
+                {SPEED_PRESETS.map((sp) => (
+                  <button
+                    key={sp}
+                    type="button"
+                    className={`la-chip-btn ${playback.speed === sp ? 'active' : ''}`}
+                    onClick={() => setSpeed(sp)}
+                    style={{ minWidth: 44 }}
+                  >
+                    {sp}×
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         )}
 
-        {/* Tab 2: Kiểu lặp */}
         {activeTab === 'loop' && (
           <div className="la-tab-panel">
             <div className="la-tab-cards-grid">
@@ -233,7 +231,6 @@ export function LoopPlayerBottomTabs(): React.ReactElement {
           </div>
         )}
 
-        {/* Tab 3: Nhịp điệu (Rhythm FX) */}
         {activeTab === 'rhythm' && (
           <div className="la-tab-panel">
             <div className="la-tab-chips-grid">
@@ -251,7 +248,7 @@ export function LoopPlayerBottomTabs(): React.ReactElement {
 
             {r.rhythmMode !== 'none' && (
               <>
-                <div className="la-tab-row" style={{ marginTop: 6 }}>
+                <div className="la-tab-row" style={{ marginTop: 4 }}>
                   <span className="la-tab-label">Tần số nhịp (Hz):</span>
                   <strong className="la-tab-val">{r.rhythmRateHz || 2} Hz</strong>
                 </div>
@@ -283,7 +280,6 @@ export function LoopPlayerBottomTabs(): React.ReactElement {
           </div>
         )}
 
-        {/* Tab 4: Điểm neo (Anchor) */}
         {activeTab === 'anchor' && (
           <div className="la-tab-panel">
             <div className="la-tab-row">
@@ -301,14 +297,14 @@ export function LoopPlayerBottomTabs(): React.ReactElement {
                   key={opt.id}
                   type="button"
                   className={`la-chip-btn ${currentAnchor === opt.id ? 'active' : ''}`}
-                  onClick={() => handleSelectAnchor(opt.id as any)}
+                  onClick={() => handleSelectAnchor(opt.id as 'bottom' | 'center' | 'top' | 'left' | 'right')}
                 >
                   {opt.label}
                 </button>
               ))}
             </div>
 
-            <div className="la-tab-actions" style={{ marginTop: 8 }}>
+            <div className="la-tab-actions" style={{ marginTop: 6 }}>
               <button
                 type="button"
                 className="la-btn la-btn--secondary sm"
@@ -324,7 +320,6 @@ export function LoopPlayerBottomTabs(): React.ReactElement {
           </div>
         )}
 
-        {/* Tab 5: Màu nền sân khấu */}
         {activeTab === 'bg' && (
           <div className="la-tab-panel">
             <div className="la-tab-row">

@@ -124,15 +124,24 @@ function boxBlur3(src: Float32Array, w: number, h: number): Float32Array {
   return out
 }
 
-function legacyChromaGapSeed(data: Uint8ClampedArray, isGreen: boolean): (p: number) => boolean {
+function legacyChromaGapSeed(
+  data: Uint8ClampedArray,
+  rawAlpha: Float32Array,
+  isGreen: boolean,
+  isBlue: boolean,
+  isMagenta: boolean
+): (p: number) => boolean {
   return (p) => {
     const idx = p * 4
     if (data[idx + 3] < 15) return true
+    if (rawAlpha[p] < 0.08) return true
     const r = data[idx]
     const g = data[idx + 1]
     const b = data[idx + 2]
-    const dom = isGreen ? g - (r > b ? r : b) : b - (r > g ? r : g)
-    return dom >= 50
+    if (isGreen) return g - (r > b ? r : b) >= 42
+    if (isBlue) return b - (r > g ? r : g) >= 42
+    if (isMagenta) return Math.min(r, b) - g >= 42
+    return false
   }
 }
 
@@ -141,7 +150,7 @@ function legacyChromaGapSeed(data: Uint8ClampedArray, isGreen: boolean): (p: num
  * - `all` (Tách toàn bộ): toàn ảnh — xoá cả nền bên trong lẫn bên ngoài đường viền.
  * - `outer_only` (Chỉ nền ngoài): nền liên thông với mép ảnh (loang qua pixel có độ phủ dưới ngưỡng viền)
  *   cộng dải mềm biên 1–4px; phần ruột nằm trong đường viền giữ nguyên 100%.
- *   `strictOuterIsolation === false` bật lại kiểu cũ: tự gieo hạt ở khe phông xanh thuần khiết (kẽ tóc).
+ *   `strictOuterIsolation !== true` bật lại kiểu tự gieo hạt ở khe phông xanh/lam/hồng thuần khiết (kẽ tóc, hốc mắt).
  */
 export function computeChromaZone(
   analysis: ChromaAlphaAnalysis,
@@ -167,11 +176,22 @@ export function computeChromaZone(
     if (clear || rawAlpha[p] < wall) passable[p] = 1
     if (clear || rawAlpha[p] < solidCut) soft[p] = 1
   }
-  const legacy = settings.strictOuterIsolation === false && (analysis.isGreenKey || analysis.isBlueKey)
-  const seed = legacy ? legacyChromaGapSeed(data, analysis.isGreenKey) : transparentSeed(data)
+  const legacy =
+    settings.strictOuterIsolation !== true &&
+    (analysis.isGreenKey || analysis.isBlueKey || analysis.isMagentaKey)
+  const seed = legacy
+    ? legacyChromaGapSeed(
+        data,
+        analysis.rawAlpha,
+        analysis.isGreenKey,
+        analysis.isBlueKey,
+        analysis.isMagentaKey
+      )
+    : transparentSeed(data)
   const outer = floodFromBorder(passable, w, h, seed)
   // Dải mềm biên: ôm thêm vài px viền chuyển tiếp để mép ngoài mịn mà không ăn sâu vào trong
-  const band = 1 + Math.round(Math.max(0, Math.min(30, settings.smoothness ?? 0)) / 10)
+  const baseBand = legacy ? 3 : 1
+  const band = baseBand + Math.round(Math.max(0, Math.min(30, settings.smoothness ?? 0)) / 10)
   growMaskWithin(outer, soft, w, h, band)
   // Nét vật thể ĐẶC luôn được xử lý (khử ám màu mép); chỉ phần mềm / nền bị bao kín bên trong mới giữ nguyên
   for (let p = 0; p < total; p++) {

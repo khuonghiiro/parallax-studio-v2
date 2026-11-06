@@ -16,7 +16,7 @@ import { LoopRangeField } from './LoopChromaControls'
 import { LoopNumField } from './LoopSlicerControls'
 import { useLoopAnimator } from './loopAnimatorState'
 import { resolveLoopIsolationMode } from './loopChromaProcessor'
-import type { LoopShadowMode, LoopShadowType, SlicerMode } from './types'
+import type { LoopShadowMode, LoopShadowType } from './types'
 
 interface Props {
   sourceCanvasRef: React.RefObject<HTMLCanvasElement | null>
@@ -68,10 +68,8 @@ export function LoopAnimatorLeftRail({
   const chromaKey = useLoopAnimator((s) => s.chromaKey)
   const setChromaKey = useLoopAnimator((s) => s.setChromaKey)
   const groups = useLoopAnimator((s) => s.groups)
-  const activeGroupIndex = useLoopAnimator((s) => s.activeGroupIndex)
   const syncChromaAll = useLoopAnimator((s) => s.syncChromaAll)
   const setSyncChromaAll = useLoopAnimator((s) => s.setSyncChromaAll)
-  const toggleGroupSyncChroma = useLoopAnimator((s) => s.toggleGroupSyncChroma)
   const applyActiveChromaToSyncedGroups = useLoopAnimator((s) => s.applyActiveChromaToSyncedGroups)
   const applyActiveGridToAllGroups = useLoopAnimator((s) => s.applyActiveGridToAllGroups)
   const equalizeFrameSizes = useLoopAnimator((s) => s.equalizeFrameSizes)
@@ -79,8 +77,6 @@ export function LoopAnimatorLeftRail({
 
   const fullKey = resolveLoopIsolationMode(chromaKey) === 'all'
   const shadowMode: LoopShadowMode = chromaKey.shadowMode ?? 'off'
-  const activeGroup = groups[activeGroupIndex]
-  const isCurrentGroupSynced = activeGroup ? activeGroup.syncChromaKey !== false : true
   const syncedGroupCount = groups.filter((g) => g.syncChromaKey !== false).length
 
   const handleCenter = (): void => {
@@ -118,7 +114,7 @@ export function LoopAnimatorLeftRail({
           title="Thông số Lưới đều"
           icon={<IconGrid width={14} height={14} />}
           badge={`${gridConfig.cols}×${gridConfig.rows}`}
-          width={290}
+          width={325}
         >
           <div className="la-field-group">
             <div className="la-field-row">
@@ -154,6 +150,23 @@ export function LoopAnimatorLeftRail({
                 <LoopNumField label="Y" unit="px" value={gridConfig.paddingY} min={0} max={200} onChange={(v) => setGridConfig({ paddingY: v })} />
               </div>
             </div>
+
+            {groups.length > 1 && (
+              <div style={{ marginTop: 6, paddingTop: 6, borderTop: '1px solid var(--line-soft)' }}>
+                <button
+                  type="button"
+                  className="la-btn la-btn--primary la-btn--sm"
+                  style={{ width: '100%' }}
+                  onClick={() => {
+                    const count = applyActiveGridToAllGroups()
+                    toast(`📐 Đã áp dụng lưới ${gridConfig.cols}×${gridConfig.rows} cho cả ${count} nhóm`)
+                  }}
+                  title="Sao chép cấu hình Hàng × Cột, Lề, Khe và Khử viền sang tất cả các nhóm trong chuỗi nối tiếp"
+                >
+                  <IconGrid width={12} height={12} /> Áp dụng lưới cho tất cả ({groups.length}) nhóm
+                </button>
+              </div>
+            )}
           </div>
         </LoopAnimatorFlyout>
       </div>
@@ -282,6 +295,22 @@ export function LoopAnimatorLeftRail({
                 <IconAnchor width={12} height={12} /> Căn chân
               </button>
             </div>
+
+            {groups.length > 1 && (
+              <div style={{ marginTop: 6, paddingTop: 6, borderTop: '1px solid var(--line-soft)' }}>
+                <button
+                  type="button"
+                  className="la-btn la-btn--outline la-btn--sm"
+                  style={{ width: '100%' }}
+                  onClick={() => {
+                    const count = applyActiveGridToAllGroups()
+                    toast(`⚡ Đã áp dụng cấu hình cắt khung cho cả ${count} nhóm`)
+                  }}
+                >
+                  Áp dụng cấu hình cắt cho cả ({groups.length}) nhóm
+                </button>
+              </div>
+            )}
           </div>
         </LoopAnimatorFlyout>
       </div>
@@ -345,7 +374,7 @@ export function LoopAnimatorLeftRail({
           title="Tách nền Chroma Key"
           icon={<IconWand width={14} height={14} />}
           badge={chromaKey.enabled ? 'Đang bật' : 'Tắt'}
-          width={310}
+          width={320}
         >
           <div className="la-field-group">
             <div className="la-field-row">
@@ -438,6 +467,15 @@ export function LoopAnimatorLeftRail({
                     step={0.01}
                     onChange={(v) => setChromaKey({ smoothness: v })}
                   />
+                  <LoopRangeField
+                    label="Khử lem"
+                    value={chromaKey.spill}
+                    display={`${Math.round(chromaKey.spill * 100)}%`}
+                    min={0}
+                    max={1}
+                    step={0.02}
+                    onChange={(v) => setChromaKey({ spill: v })}
+                  />
                 </div>
 
                 {/* Chế độ bóng mờ */}
@@ -515,7 +553,7 @@ export function LoopAnimatorLeftRail({
                 {/* Đồng bộ nhóm */}
                 {groups.length > 1 && (
                   <div style={{ marginTop: 6, padding: '6px 8px', background: 'var(--bg-2)', borderRadius: 'var(--radius-sm)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
                       <label style={{ fontSize: 10.5, display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
                         <input
                           type="checkbox"
@@ -524,18 +562,16 @@ export function LoopAnimatorLeftRail({
                         />
                         <span>Đồng bộ {syncedGroupCount}/{groups.length} nhóm</span>
                       </label>
-                      {syncChromaAll && (
-                        <button
-                          type="button"
-                          className="la-btn la-btn--outline la-btn--xs"
-                          onClick={() => {
-                            const count = applyActiveChromaToSyncedGroups()
-                            toast(`✨ Đã áp Tách nền cho ${count} nhóm`)
-                          }}
-                        >
-                          Áp nhóm
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        className="la-btn la-btn--primary la-btn--xs"
+                        onClick={() => {
+                          const count = applyActiveChromaToSyncedGroups()
+                          toast(`✨ Đã áp Tách nền cho ${count} nhóm`)
+                        }}
+                      >
+                        Áp dụng các nhóm
+                      </button>
                     </div>
                   </div>
                 )}

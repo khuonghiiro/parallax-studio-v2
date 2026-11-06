@@ -148,9 +148,7 @@ function buildAdvancedCutterSettings(chroma: ChromaKeyConfig): ChromaKeySettings
     // (ví dụ ruột vòng tròn / quầng sáng bên trong đường viền)
     isolationMode: resolveLoopIsolationMode(chroma),
     strictOuterIsolation: true,
-    // Chỉ loại bỏ mảng màu xanh/lam/hồng đục khi xoá bóng trên phông màu;
-    // tuyệt đối không xoá quầng sáng/hào quang trên phông đen/tối
-    removeSoftHalo: (chroma.shadowMode ?? 'off') === 'off' && (kr > 30 || kg > 30 || kb > 30),
+    removeSoftHalo: (chroma.shadowMode ?? 'off') === 'off',
     cleanupMode: 'all',
     previewMode: 'transparent'
   }

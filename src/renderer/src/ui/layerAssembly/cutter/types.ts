@@ -86,13 +86,14 @@ export const DEFAULT_CHROMA_SETTINGS: ChromaKeySettings = {
   keyColor: '#00DB4E',
   keyColorType: 'chroma_green',
   isolationMode: 'outer_only',
+  strictOuterIsolation: false,
   tolerance: 36,
   smoothness: 2,
   despill: true,
   previewBackground: 'checkerboard',
   shadowMode: 'include',
   shadowType: 'auto',
-  shadowRetention: 100,
+  shadowRetention: 68,
   shadowSolidThreshold: 30,
   shadowUnmixColor: true,
   strokeWidth: 0,
@@ -161,7 +162,6 @@ export interface TemplateSlotDef {
   category?: 'head' | 'body' | 'limb' | 'accessory' | 'prop'
   /** Default relative X on 2D assembly board (-220 to 220) */
   x: number
-  /** Default relative Y on 2D assembly board (-240 to 240) */
   y: number
   /** Visual guide box width */
   width: number
