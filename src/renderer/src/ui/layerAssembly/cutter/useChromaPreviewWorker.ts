@@ -18,6 +18,8 @@ interface UseChromaPreviewWorkerOptions {
   onIslands: (islands: DetectedIsland[]) => void
 }
 
+const CHROMA_WORKER_ALGO_REV = 2
+
 function scaleSettings(settings: ChromaKeySettings, scale: number): ChromaKeySettings {
   if (scale >= 1) return settings
   return {
@@ -166,7 +168,9 @@ export function useChromaPreviewWorker(options: UseChromaPreviewWorkerOptions) {
 
   useEffect(() => {
     if (typeof Worker === 'undefined') return
-    const worker = new Worker(new URL('./chromaPreviewWorker.ts', import.meta.url), {
+    const workerUrl = new URL('./chromaPreviewWorker.ts', import.meta.url)
+    workerUrl.searchParams.set('rev', String(CHROMA_WORKER_ALGO_REV))
+    const worker = new Worker(workerUrl, {
       type: 'module'
     })
     workerRef.current = worker

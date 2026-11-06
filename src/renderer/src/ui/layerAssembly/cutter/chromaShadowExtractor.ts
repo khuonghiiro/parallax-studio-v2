@@ -237,6 +237,13 @@ export function analyzeChromaAlpha(
   const invNegG = keyRgb.g > 20 ? 1 / Math.max(64, keyRgb.g) : 1 / 255
   const invNegB = keyRgb.b > 20 ? 1 / Math.max(64, keyRgb.b) : 1 / 255
 
+  const kMean = (keyRgb.r + keyRgb.g + keyRgb.b) / 3
+  const kcr = keyRgb.r - kMean
+  const kcg = keyRgb.g - kMean
+  const kcb = keyRgb.b - kMean
+  const kcLenSq = kcr * kcr + kcg * kcg + kcb * kcb
+  const isChromaticKey = kcLenSq > 600
+
   const dirAlpha = new Float32Array(totalPixels)
   const rawAlpha = new Float32Array(totalPixels)
   const isLight = new Uint8Array(totalPixels)
@@ -259,7 +266,25 @@ export function analyzeChromaAlpha(
     )
     const maxAD = Math.max(alphaLight, alphaDark)
     const minAD = Math.min(alphaLight, alphaDark)
-    const alphaAll = Math.min(1, maxAD + minAD * 0.5)
+    let alphaAll = Math.min(1, maxAD + minAD * 0.5)
+
+    if (isChromaticKey) {
+      const cMean = (r + g + b) / 3
+      const pChroma = Math.max(
+        0,
+        Math.min(1, ((r - cMean) * kcr + (g - cMean) * kcg + (b - cMean) * kcb) / kcLenSq)
+      )
+      const alphaChroma = 1 - pChroma
+      if (alphaChroma > alphaAll) {
+        alphaAll = alphaChroma
+      }
+      // Nếu một kênh sáng hơn nền rõ rệt trong khi kênh khác tối hơn nền rõ rệt (đối chiều màu, ví dụ tóc nâu / da trên nền hồng),
+      // pixel không phải bóng tối hay mây trắng mà là màu vật thể đặc.
+      if (alphaLight > 0.12 && alphaDark > 0.18 && pChroma < 0.25) {
+        alphaAll = Math.max(alphaAll, Math.min(1, 1 - pChroma * 0.35))
+      }
+    }
+
     rawAlpha[p] = alphaAll
     isLight[p] = alphaLight >= alphaDark ? 1 : 0
     dirAlpha[p] =
@@ -312,13 +337,20 @@ export function unmixPixelRgb(
   } else if (isBlueKey) {
     const rgMax = rf > gf ? rf : gf
     bf = Math.min(bf, rgMax * 1.02 + 2)
-  } else if (isMagentaKey && isLightGlow) {
-    // Trên phông hồng magenta (#FF00FF), khôi phục chính xác tia vàng, tia xanh cyan và hào quang trắng
-    const aRb = Math.max(aUnmix, 0.28)
-    const rbDiff = r - b - (keyRgb.r - keyRgb.b) * (1 - aUnmix)
-    rf = rbDiff >= 0 ? 255 : Math.max(0, Math.min(255, 255 + rbDiff / aRb))
-    bf = rbDiff <= 0 ? 255 : Math.max(0, Math.min(255, 255 - rbDiff / aRb))
-    gf = Math.min(gf, Math.max(rf, bf))
+  } else if (isMagentaKey) {
+    if (isLightGlow && r > 180 && b > 180 && g > 40) {
+      // Trên phông hồng magenta (#FF00FF), khôi phục chính xác tia sáng / hào quang trắng pha hồng
+      const aRb = Math.max(aUnmix, 0.28)
+      const rbDiff = r - b - (keyRgb.r - keyRgb.b) * (1 - aUnmix)
+      rf = rbDiff >= 0 ? 255 : Math.max(0, Math.min(255, 255 + rbDiff / aRb))
+      bf = rbDiff <= 0 ? 255 : Math.max(0, Math.min(255, 255 - rbDiff / aRb))
+      gf = Math.min(gf, Math.max(rf, bf))
+    } else if (rf > gf + 4 && bf > gf + 4) {
+      // Khử phần dư sắc tím/hồng trên mép tối mà không làm biến đổi màu nâu/da ấm (nơi bf <= gf)
+      const magExcess = Math.min(rf, bf) - gf
+      rf = Math.max(gf, rf - magExcess * 0.65)
+      bf = Math.max(gf, bf - magExcess * 0.85)
+    }
   }
 
   data[idx] = Math.round(rf)
@@ -359,12 +391,17 @@ export function applyShadowAndMistExtraction(
   const noiseFloor = Math.max(analysis.measuredNoise + 0.01, Math.max(0.025, 0.13 - strength * 0.085))
 
   const solidMask = new Uint8Array(totalPixels)
-  if (mode === 'only') {
-    for (let p = 0; p < totalPixels; p++) {
-      if (!zone[p] || rawAlpha[p] >= solidCutoff) solidMask[p] = 1
+  const nonSolidMask = new Uint8Array(totalPixels)
+  for (let p = 0; p < totalPixels; p++) {
+    if (mode === 'only' && (!zone[p] || rawAlpha[p] >= solidCutoff)) {
+      solidMask[p] = 1
+    }
+    if (data[p * 4 + 3] < 15 || (zone[p] && rawAlpha[p] < solidCutoff)) {
+      nonSolidMask[p] = 1
     }
   }
   const nearSolid = mode === 'only' ? dilateMaskBox(solidMask, w, h, 2) : solidMask
+  const nearBoundary = mode === 'include' && unmixColor ? dilateMaskBox(nonSolidMask, w, h, 3) : null
   const isShadowPixel = new Uint8Array(totalPixels)
   const span = Math.max(0.08, solidCutoff - noiseFloor)
   const gamma = 1.35 - strength * 0.65
@@ -399,7 +436,8 @@ export function applyShadowAndMistExtraction(
 
     const aAll = rawAlpha[p]
     let finalA: number
-    if (mode === 'include' && aAll >= solidCutoff) {
+    const isSolidForeground = mode === 'include' && aAll >= solidCutoff
+    if (isSolidForeground) {
       finalA = origA
       activeBg[p] = 0
     } else {
@@ -408,7 +446,14 @@ export function applyShadowAndMistExtraction(
       finalA = Math.max(0, Math.min(255, Math.round(origA * Math.min(1, curved))))
     }
 
-    if (unmixColor && finalA > 0 && aAll < 0.98) {
+    // Chỉ unmix các pixel bán trong suốt (bóng/mây/quầng) hoặc pixel nằm sát biên 3px với nền;
+    // giữ nguyên 100% màu gốc của phần ruột vật thể đặc bên trong (tóc nâu, da, ngọc, trang phục).
+    const shouldUnmix =
+      unmixColor &&
+      finalA > 0 &&
+      (isSolidForeground ? Boolean(nearBoundary && nearBoundary[p]) && aAll < 0.96 : aAll < 0.98)
+
+    if (shouldUnmix) {
       unmixPixelRgb(data, idx, keyRgb, aAll, isLight[p] === 1, isGreenKey, isBlueKey, isMagentaKey)
     }
 
@@ -461,5 +506,104 @@ export function removeSoftHaloPixels(
     }
     const keepInnerColor = outerOnly && ra < solid
     if (ra < 0.98 && !keepInnerColor) unmixPixelRgb(data, idx, keyRgb, ra, isLight[p] === 1, isGreenKey, isBlueKey, isMagentaKey)
+  }
+}
+
+/**
+ * Làm mềm biên (Feather) mượt mà không răng cưa bằng biến đổi khoảng cách Chamfer 3-4 (O(N))
+ * kết hợp lọc mịn đường đồng mức Gaussian 3×3 trên dải biên.
+ */
+export function applySmoothEdgeFeather(
+  data: Uint8ClampedArray,
+  w: number,
+  h: number,
+  feather: number,
+  alphaSnap: Uint8Array,
+  excludeShadowMask?: Uint8Array | null
+): void {
+  if (feather <= 0 || w < 3 || h < 3) return
+  const total = w * h
+  for (let p = 0; p < total; p++) {
+    alphaSnap[p] = data[p * 4 + 3]
+  }
+
+  const featherRadius = feather <= 2 ? 0.95 : 0.95 + (feather - 2) * 0.19
+  const maxDist3 = Math.ceil((featherRadius + 2) * 3)
+  const dist3 = new Uint16Array(total)
+  dist3.fill(maxDist3)
+
+  for (let p = 0; p < total; p++) {
+    if (alphaSnap[p] < 16) dist3[p] = 0
+  }
+
+  for (let y = 0; y < h; y++) {
+    const row = y * w
+    for (let x = 0; x < w; x++) {
+      const p = row + x
+      let d = dist3[p]
+      if (d === 0) continue
+      if (x > 0 && dist3[p - 1] + 3 < d) d = dist3[p - 1] + 3
+      if (y > 0) {
+        const up = p - w
+        if (dist3[up] + 3 < d) d = dist3[up] + 3
+        if (x > 0 && dist3[up - 1] + 4 < d) d = dist3[up - 1] + 4
+        if (x < w - 1 && dist3[up + 1] + 4 < d) d = dist3[up + 1] + 4
+      }
+      dist3[p] = d
+    }
+  }
+
+  for (let y = h - 1; y >= 0; y--) {
+    const row = y * w
+    for (let x = w - 1; x >= 0; x--) {
+      const p = row + x
+      let d = dist3[p]
+      if (d === 0) continue
+      if (x < w - 1 && dist3[p + 1] + 3 < d) d = dist3[p + 1] + 3
+      if (y < h - 1) {
+        const dn = p + w
+        if (dist3[dn] + 3 < d) d = dist3[dn] + 3
+        if (x < w - 1 && dist3[dn + 1] + 4 < d) d = dist3[dn + 1] + 4
+        if (x > 0 && dist3[dn - 1] + 4 < d) d = dist3[dn - 1] + 4
+      }
+      dist3[p] = d
+    }
+  }
+
+  const invRadius = 1 / featherRadius
+  for (let p = 0; p < total; p++) {
+    const origA = alphaSnap[p]
+    if (origA === 0 || (excludeShadowMask && excludeShadowMask[p])) continue
+    const d = dist3[p] / 3
+    if (d <= featherRadius) {
+      const t = Math.max(0, Math.min(1, d * invRadius))
+      const smooth = t * t * (3 - 2 * t)
+      data[p * 4 + 3] = Math.min(origA, Math.round(origA * smooth))
+    }
+  }
+
+  const smoothPasses = feather >= 8 ? 2 : feather >= 2 ? 1 : 0
+  const maxBand3 = feather <= 2 ? 3 : Math.ceil((featherRadius + 1.2) * 3)
+  for (let pass = 0; pass < smoothPasses; pass++) {
+    for (let p = 0; p < total; p++) alphaSnap[p] = data[p * 4 + 3]
+    for (let y = 1; y < h - 1; y++) {
+      const row = y * w
+      for (let x = 1; x < w - 1; x++) {
+        const p = row + x
+        const d3 = dist3[p]
+        if (d3 === 0 || d3 > maxBand3 || (excludeShadowMask && excludeShadowMask[p])) continue
+        const up = p - w
+        const dn = p + w
+        data[p * 4 + 3] =
+          (alphaSnap[p] * 4 +
+            (alphaSnap[p - 1] + alphaSnap[p + 1] + alphaSnap[up] + alphaSnap[dn]) * 2 +
+            alphaSnap[up - 1] +
+            alphaSnap[up + 1] +
+            alphaSnap[dn - 1] +
+            alphaSnap[dn + 1] +
+            8) >>
+          4
+      }
+    }
   }
 }

@@ -44,7 +44,7 @@ import { extractHighResRegionDataUrl } from './highResCutterExport'
 import { SAMPLE_ANIME_SPRITESHEET_URL } from './sampleSpriteSheet'
 
 /** Độ phân giải buffer tương tác tối đa để đảm bảo 60fps trên cả ảnh 4K/8K (vẫn giữ ảnh gốc 4K/8K khi cắt xuất mảnh) */
-const MAX_WORK_DIM = 1280
+const MAX_WORK_DIM = 2048
 
 export interface SpriteCutterSourcePaneProps {
   onSelectPiece: (piece: CutPiece | null) => void

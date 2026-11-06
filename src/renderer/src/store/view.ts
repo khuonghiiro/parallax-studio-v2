@@ -105,6 +105,17 @@ const ASSET_SUBTAB_KEY = 'pxs:asset-subtab'
 const LEFT_COLLAPSED_KEY = 'pxs:left-col-collapsed'
 const RIGHT_COLLAPSED_KEY = 'pxs:right-col-collapsed'
 const RIGHT_EXPANDED_KEY = 'pxs:right-col-expanded'
+const TIMELINE_TAB_KEY = 'pxs:timeline-tab'
+
+function loadTimelineTab(): TimelineMainTab {
+  try {
+    const raw = localStorage.getItem(TIMELINE_TAB_KEY)
+    if (raw === 'timeline' || raw === 'workflow') return raw
+  } catch {
+    /* ignore */
+  }
+  return 'timeline'
+}
 
 function loadLeftTab(): LeftTab {
   try {
@@ -251,9 +262,14 @@ export const useView = create<ViewState>((set, get) => ({
       /* ignore */
     }
   },
-  timelineTab: 'timeline',
+  timelineTab: loadTimelineTab(),
   setTimelineTab(timelineTab) {
     set({ timelineTab, mobileTab: 'timeline' })
+    try {
+      localStorage.setItem(TIMELINE_TAB_KEY, timelineTab)
+    } catch {
+      /* ignore */
+    }
   },
   mobileTab: 'timeline',
   setMobileTab(mobileTab) {

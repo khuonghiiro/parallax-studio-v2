@@ -465,5 +465,127 @@ describe('chromaKey algorithms', () => {
     // Unmixed from magenta to neutral bright white/cyan (G channel lifted from 104 to >= 230)
     expect(magBuf[haloIdx + 1]).toBeGreaterThanOrEqual(230)
   })
+
+  it('removes magenta anti-aliased fringe and preserves exact original brown hair & jade colors in both off and include shadow modes', async () => {
+    const { processAdvancedChromaPixelData } = await import('./chromaAdvancedProcessor')
+    const w = 30
+    const h = 30
+
+    const buildCharacterOnMagenta = () => {
+      const buf = new Uint8ClampedArray(w * h * 4)
+      // Fill with magenta background #FB02FA (251, 2, 250)
+      for (let i = 0; i < w * h; i++) {
+        buf[i * 4] = 251
+        buf[i * 4 + 1] = 2
+        buf[i * 4 + 2] = 250
+        buf[i * 4 + 3] = 255
+      }
+      // Solid warm brown hair block at (8..21, 8..21): [89, 71, 62]
+      for (let y = 8; y <= 21; y++) {
+        for (let x = 8; x <= 21; x++) {
+          const idx = (y * w + x) * 4
+          buf[idx] = 89
+          buf[idx + 1] = 71
+          buf[idx + 2] = 62
+          buf[idx + 3] = 255
+        }
+      }
+      // Jade green gem at center (14, 14): [135, 195, 165]
+      const jadeIdx = (14 * w + 14) * 4
+      buf[jadeIdx] = 135
+      buf[jadeIdx + 1] = 195
+      buf[jadeIdx + 2] = 165
+
+      // Anti-aliased magenta-contaminated edge pixels at x=6 (outer AA) and x=7 (inner AA) on row y=14
+      const outerEdgeIdx = (14 * w + 6) * 4
+      buf[outerEdgeIdx] = 199
+      buf[outerEdgeIdx + 1] = 25
+      buf[outerEdgeIdx + 2] = 189
+
+      const innerEdgeIdx = (14 * w + 7) * 4
+      buf[innerEdgeIdx] = 104
+      buf[innerEdgeIdx + 1] = 18
+      buf[innerEdgeIdx + 2] = 87
+
+      return buf
+    }
+
+    // 1. Mode 'off' with max tolerance (100%): removes stubborn dark-magenta fringe and preserves brown hair
+    const bufOff = buildCharacterOnMagenta()
+    processAdvancedChromaPixelData(bufOff, w, h, {
+      ...DEFAULT_CHROMA_SETTINGS,
+      enabled: true,
+      keyColorType: 'custom',
+      keyColorHex: '#FB02FA',
+      fringeColorType: 'custom',
+      fringeColorHex: '#FB02FA',
+      isolationMode: 'all',
+      tolerance: 100,
+      smoothness: 0,
+      shadowMode: 'off'
+    })
+
+    const outerEdgeIdx = (14 * w + 6) * 4
+    const innerEdgeIdx = (14 * w + 7) * 4
+    const hairInteriorIdx = (14 * w + 12) * 4
+    const jadeIdx = (14 * w + 14) * 4
+
+    expect(bufOff[outerEdgeIdx + 3]).toBe(0)
+    expect(bufOff[innerEdgeIdx + 3]).toBe(0)
+    expect(bufOff[hairInteriorIdx + 3]).toBe(255)
+    expect([bufOff[hairInteriorIdx], bufOff[hairInteriorIdx + 1], bufOff[hairInteriorIdx + 2]]).toEqual([
+      89, 71, 62
+    ])
+
+    // 2. Mode 'include' with high solid threshold (90%) and unmix enabled:
+    // Edge is unmixed cleanly without turning interior brown hair green or jade gem pink
+    const bufInc = buildCharacterOnMagenta()
+    processAdvancedChromaPixelData(bufInc, w, h, {
+      ...DEFAULT_CHROMA_SETTINGS,
+      enabled: true,
+      keyColorType: 'custom',
+      keyColorHex: '#FB02FA',
+      fringeColorType: 'custom',
+      fringeColorHex: '#FB02FA',
+      isolationMode: 'all',
+      tolerance: 100,
+      smoothness: 0,
+      shadowMode: 'include',
+      shadowRetention: 76,
+      shadowSolidThreshold: 90,
+      shadowUnmixColor: true
+    })
+
+    // Interior brown hair must stay 100% opaque and keep exact warm brown RGB (R > G > B, never green)
+    expect(bufInc[hairInteriorIdx + 3]).toBe(255)
+    expect([bufInc[hairInteriorIdx], bufInc[hairInteriorIdx + 1], bufInc[hairInteriorIdx + 2]]).toEqual([
+      89, 71, 62
+    ])
+    // Jade gem must stay exact jade green
+    expect(bufInc[jadeIdx + 3]).toBe(255)
+    expect([bufInc[jadeIdx], bufInc[jadeIdx + 1], bufInc[jadeIdx + 2]]).toEqual([135, 195, 165])
+    // Inner edge pixel (104, 18, 87) has its purple spill unmixed so blue no longer exceeds green
+    expect(bufInc[innerEdgeIdx + 2]).toBeLessThanOrEqual(bufInc[innerEdgeIdx + 1] + 4)
+
+    // 3. Smoothness (Mềm biên = 20px): creates a monotonic smooth alpha gradient without discoloring interior
+    const bufFeather = buildCharacterOnMagenta()
+    processAdvancedChromaPixelData(bufFeather, w, h, {
+      ...DEFAULT_CHROMA_SETTINGS,
+      enabled: true,
+      keyColorType: 'custom',
+      keyColorHex: '#FB02FA',
+      isolationMode: 'all',
+      tolerance: 80,
+      smoothness: 12,
+      shadowMode: 'off'
+    })
+    const aEdge1 = bufFeather[(14 * w + 8) * 4 + 3]
+    const aEdge2 = bufFeather[(14 * w + 10) * 4 + 3]
+    const aCenter = bufFeather[(14 * w + 14) * 4 + 3]
+    expect(aEdge1).toBeGreaterThan(0)
+    expect(aEdge1).toBeLessThan(aEdge2)
+    expect(aEdge2).toBeLessThanOrEqual(aCenter)
+    expect(aCenter).toBe(255)
+  })
 })
 

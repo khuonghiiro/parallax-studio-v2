@@ -2,8 +2,11 @@ import type { ChromaKeySettings, DetectedIsland, GridSlicerSettings } from './ty
 import {
   analyzeChromaAlpha,
   applyShadowAndMistExtraction,
+  applySmoothEdgeFeather,
   removeSoftHaloPixels,
-  resolveImageEffectiveKeyRgb
+  resolveImageEffectiveKeyRgb,
+  unmixPixelRgb,
+  type ChromaAlphaAnalysis
 } from './chromaShadowExtractor'
 import { computeChromaZone } from './chromaOuterIsolation'
 
@@ -105,8 +108,31 @@ export function computeChromaMatteAlpha(
     distance = Math.sqrt(dr * dr + dg * dg + db * db)
   }
 
-  const hardThreshold = 5 + tolerance * 1.08
-  const transitionWidth = 8 + feather * 1.6 + tolerance * 0.18
+  // Đối với màu phông có độ bão hoà cao (xanh, lam, hồng magenta, đỏ, vàng, cyan...),
+  // chiếu vector sắc độ để nhận diện chính xác các pixel viền tối bị pha màu nền (anti-aliased dark fringe).
+  const kMean = (key.r + key.g + key.b) / 3
+  const kcr = key.r - kMean
+  const kcg = key.g - kMean
+  const kcb = key.b - kMean
+  const kcLenSq = kcr * kcr + kcg * kcg + kcb * kcb
+  if (kcLenSq > 600) {
+    const cMean = (r + g + b) / 3
+    const pChroma = Math.max(
+      0,
+      Math.min(1, ((r - cMean) * kcr + (g - cMean) * kcg + (b - cMean) * kcb) / kcLenSq)
+    )
+    if (pChroma > 0.14) {
+      const chromaDistance = (1 - pChroma) * 210
+      if (chromaDistance < distance) {
+        distance = chromaDistance
+      }
+    }
+  }
+
+  const highTolBoost = tolerance > 55 ? (tolerance - 55) * 0.85 : 0
+  const hardThreshold = 5 + tolerance * 1.08 + highTolBoost
+  const effectiveFeather = Math.min(10, feather)
+  const transitionWidth = 8 + effectiveFeather * 1.6 + tolerance * 0.18
   if (distance <= hardThreshold) return 0
   if (distance >= hardThreshold + transitionWidth) return sourceAlpha
   return Math.round(sourceAlpha * smoothstep((distance - hardThreshold) / transitionWidth))
@@ -224,30 +250,7 @@ function applyFeatherAndChoke(
   }
 
   if (feather > 0) {
-    const boundary = collectBoundaryIndices(data, w, h, alphaSnap, excludeShadowMask)
-    const radius = Math.min(6, Math.max(1, Math.ceil(feather / 2)))
-    const atten = Math.max(0.18, 1 - feather / 26)
-    for (let i = 0; i < boundary.length; i++) {
-      const p = boundary[i]
-      const cx = p % w
-      const cy = (p - cx) / w
-      if (cx < radius || cx >= w - radius || cy < radius || cy >= h - radius) continue
-      let minNeighborA = 255
-      for (let dy = -radius; dy <= radius; dy++) {
-        const row = (cy + dy) * w
-        for (let dx = -radius; dx <= radius; dx++) {
-          const na = alphaSnap[row + cx + dx]
-          if (na < minNeighborA) {
-            minNeighborA = na
-            if (na === 0) break
-          }
-        }
-        if (minNeighborA === 0) break
-      }
-      if (minNeighborA < 40) {
-        data[p * 4 + 3] = Math.round(alphaSnap[p] * atten)
-      }
-    }
+    applySmoothEdgeFeather(data, w, h, feather, alphaSnap, excludeShadowMask)
   }
 }
 
@@ -257,7 +260,10 @@ function applyDefringeAndDespill(
   h: number,
   settings: ChromaKeySettings,
   alphaSnap: Uint8Array,
-  excludeShadowMask?: Uint8Array | null
+  excludeShadowMask?: Uint8Array | null,
+  analysis?: ChromaAlphaAnalysis,
+  effectiveKeyRgb?: { r: number; g: number; b: number },
+  zone?: Uint8Array
 ): void {
   const strength =
     Math.max(0, Math.min(100, settings.defringeStrength ?? (settings.despill ? 50 : 0))) / 100
@@ -273,7 +279,7 @@ function applyDefringeAndDespill(
       ? { r: 255, g: 255, b: 255 }
       : fringeType === 'pure_black'
       ? { r: 0, g: 0, b: 0 }
-      : parseHexRgb(settings.fringeColorHex || settings.keyColorHex)
+      : effectiveKeyRgb || parseHexRgb(settings.fringeColorHex || settings.keyColorHex)
 
   const isGreenFringe =
     fringeType === 'chroma_green' || (fringeRgb.g > fringeRgb.r + 25 && fringeRgb.g > fringeRgb.b + 15)
@@ -281,18 +287,34 @@ function applyDefringeAndDespill(
     fringeType === 'chroma_blue' || (fringeRgb.b > fringeRgb.r + 25 && fringeRgb.b > fringeRgb.g + 15)
 
   const boundary = collectBoundaryIndices(data, w, h, alphaSnap, excludeShadowMask)
-  const maxFringeDistSq = (45 + strength * 165) ** 2
+  const maxFringeDistSq = (55 + strength * 175) ** 2
 
   for (let i = 0; i < boundary.length; i++) {
     const p = boundary[i]
+    if (zone && !zone[p]) continue
     const idx = p * 4
-    let r = data[idx]
-    let g = data[idx + 1]
-    let b = data[idx + 2]
     let a = data[idx + 3]
     if (a === 0) continue
 
-    // 1. Khử ám xanh lá trực tiếp (Color Unmixing & Green Clamp O(1))
+    // 0. Giải pha màu (Color Unmixing) trực tiếp trên pixel mép bị ám màu nền (hồng, xanh, lam, tuỳ chỉnh...)
+    if (analysis && effectiveKeyRgb && analysis.rawAlpha[p] < 0.96) {
+      unmixPixelRgb(
+        data,
+        idx,
+        effectiveKeyRgb,
+        analysis.rawAlpha[p],
+        analysis.isLight[p] === 1,
+        analysis.isGreenKey,
+        analysis.isBlueKey,
+        analysis.isMagentaKey
+      )
+    }
+
+    let r = data[idx]
+    let g = data[idx + 1]
+    let b = data[idx + 2]
+
+    // 1. Khử ám xanh lá / xanh dương trực tiếp (Green / Blue Clamp O(1))
     if (isGreenFringe) {
       const rbMax = r > b ? r : b
       const rbAvg = (r + b) * 0.5
@@ -323,7 +345,7 @@ function applyDefringeAndDespill(
 
     if (a === 0) continue
 
-    // 2. Kéo màu từ pixel đặc bên trong ra viền để xoá halo trắng/đen/xanh
+    // 2. Kéo màu từ pixel đặc bên trong ra viền để xoá halo trắng/đen/xanh/hồng
     const dr = r - fringeRgb.r
     const dg = g - fringeRgb.g
     const db = b - fringeRgb.b
@@ -336,10 +358,10 @@ function applyDefringeAndDespill(
       let bestB = b
       let bestScore = distSq
 
-      const y0 = Math.max(0, cy - 2)
-      const y1 = Math.min(h - 1, cy + 2)
-      const x0 = Math.max(0, cx - 2)
-      const x1 = Math.min(w - 1, cx + 2)
+      const y0 = Math.max(0, cy - 3)
+      const y1 = Math.min(h - 1, cy + 3)
+      const x0 = Math.max(0, cx - 3)
+      const x1 = Math.min(w - 1, cx + 3)
       for (let ny = y0; ny <= y1; ny++) {
         const row = ny * w
         for (let nx = x0; nx <= x1; nx++) {
@@ -367,8 +389,8 @@ function applyDefringeAndDespill(
         data[idx + 1] = Math.round(g + (bestG - g) * pull)
         data[idx + 2] = Math.round(b + (bestB - b) * pull)
       }
-      if (closeness > 0.28) {
-        data[idx + 3] = Math.round(a * Math.max(0, 1 - closeness * strength * 1.25))
+      if (closeness > 0.45) {
+        data[idx + 3] = Math.round(a * Math.max(0, 1 - closeness * strength * 1.15))
       }
     }
   }
@@ -635,10 +657,28 @@ export function processAdvancedChromaPixelData(
   const cleanupMode = settings.cleanupMode || 'all'
   const edgeChoke =
     cleanupMode === 'all' || cleanupMode === 'smooth' ? settings.edgeChoke ?? 0 : 0
-  applyFeatherAndChoke(data, w, h, settings.smoothness, edgeChoke, alphaSnap, isShadowPixel)
 
+  // Bước 1: Gọt viền (nếu có) và Khử ám màu mép (Defringe & Color Unmixing) trước khi làm mềm biên
+  if (edgeChoke > 0) {
+    applyFeatherAndChoke(data, w, h, 0, edgeChoke, alphaSnap, isShadowPixel)
+  }
   if (cleanupMode === 'all' || cleanupMode === 'defringe') {
-    applyDefringeAndDespill(data, w, h, settings, alphaSnap, isShadowPixel)
+    applyDefringeAndDespill(
+      data,
+      w,
+      h,
+      settings,
+      alphaSnap,
+      isShadowPixel,
+      analysis,
+      effectiveKeyRgb,
+      zone
+    )
+  }
+
+  // Bước 2: Làm mềm biên không răng cưa (Chamfer Euclidean + Gaussian 3x3)
+  if (settings.smoothness > 0) {
+    applyFeatherAndChoke(data, w, h, settings.smoothness, 0, alphaSnap, isShadowPixel)
   }
 
   if (cleanupMode === 'all' || cleanupMode === 'despeckle') {

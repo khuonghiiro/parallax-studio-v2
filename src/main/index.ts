@@ -7,6 +7,7 @@ import { FfmpegEncoder } from './ffmpeg'
 import { McpBridge } from './mcpBridge'
 import { RemoteControlServer } from './remoteServer'
 import { recentPaths } from './recentPaths'
+import { windowState } from './windowState'
 import { getSystemHardwareInfo } from './systemInfo'
 import { registerBuiltInAssetsIpc } from './builtInAssets'
 import { registerAsset3DsIpc } from './asset3ds'
@@ -73,9 +74,13 @@ function enforceWindowZoom100(win: BrowserWindow | null): void {
 function createWindow(): void {
   clearCachedZoomPreferences()
   Menu.setApplicationMenu(null)
+  const savedWindowState = windowState.load()
   mainWindow = new BrowserWindow({
-    width: 1600,
-    height: 960,
+    ...(typeof savedWindowState.x === 'number' && typeof savedWindowState.y === 'number'
+      ? { x: savedWindowState.x, y: savedWindowState.y }
+      : {}),
+    width: savedWindowState.width,
+    height: savedWindowState.height,
     minWidth: 480,
     minHeight: 360,
     backgroundColor: '#0b0d12',
@@ -92,6 +97,7 @@ function createWindow(): void {
     }
   })
 
+  windowState.trackWindow(mainWindow)
   mainWindow.setMenu(null)
   mainWindow.removeMenu()
   mainWindow.setMenuBarVisibility(false)
@@ -111,7 +117,10 @@ function createWindow(): void {
 
   mainWindow.once('ready-to-show', () => {
     enforceWindowZoom100(mainWindow)
-    mainWindow?.show()
+    if (mainWindow) {
+      windowState.applyRestoredState(mainWindow)
+      mainWindow.show()
+    }
   })
   mainWindow.webContents.on('did-start-loading', () => mcp?.onWindowLoading())
   mainWindow.on('closed', () => {
