@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { evaluateLoopLayerRhythm } from '../../project/gifHelper'
 import { IconFilm, IconGrid, IconPause, IconPlay, IconStepBack, IconStepFwd } from '../icons'
+import { LoopAnimatorRightRail } from './LoopAnimatorRightRail'
 import { LoopPlayerSettings } from './LoopPlayerSettings'
 import {
   applyChromaKeyToImageData,
@@ -436,55 +437,11 @@ export function LoopAnimatorPlayer({ sourceCanvasRef }: Props): React.ReactEleme
   }
 
   return (
-    <div className="loop-player-pane" data-mcp-region="loop_animator_player">
-      <div className="loop-pane-toolbar">
-        <div className="loop-pane-heading">
-          <span className="loop-step">2</span>
-          <span>Xem trước</span>
-        </div>
-        <div className="la-seg" title="Điểm neo khi phát">
-          <button
-            type="button"
-            className={`la-seg-btn${playback.anchor !== 'center' ? ' active' : ''}`}
-            onClick={() => setPlayback({ anchor: 'bottom' })}
-            title="Giữ đáy frame cố định trên mặt sàn"
-          >
-            Chân
-          </button>
-          <button
-            type="button"
-            className={`la-seg-btn${playback.anchor === 'center' ? ' active' : ''}`}
-            onClick={() => setPlayback({ anchor: 'center' })}
-            title="Căn giữa sân khấu"
-          >
-            Tâm
-          </button>
-        </div>
-        {hasFrames && (
-          <button
-            type="button"
-            className="la-btn la-btn--xs la-btn--align-open"
-            onClick={() => setAlignModalOpen(true)}
-            title="Mở Khung So Sánh Đa Cột & Căn Chỉnh Vị Trí Chạy chuyên sâu"
-          >
-            📐 So sánh
-          </button>
-        )}
-        <div className="loop-bg-pills" role="radiogroup" aria-label="Nền sân khấu">
-          {BG_OPTIONS.map((bg) => (
-            <button
-              key={bg.id}
-              type="button"
-              role="radio"
-              aria-checked={playback.previewBg === bg.id}
-              className={`loop-bg-pill bg-${bg.id}${playback.previewBg === bg.id ? ' active' : ''}`}
-              onClick={() => setPlayback({ previewBg: bg.id })}
-              title={bg.label}
-              aria-label={bg.label}
-            />
-          ))}
-        </div>
-      </div>
+    <div className="loop-player-pane" data-mcp-region="loop_animator_player" style={{ position: 'relative' }}>
+      <LoopAnimatorRightRail
+        hasFrames={hasFrames}
+        onOpenAlignModal={() => setAlignModalOpen(true)}
+      />
 
       <div
         className={`loop-player-stage bg-${playback.previewBg}`}
@@ -580,8 +537,6 @@ export function LoopAnimatorPlayer({ sourceCanvasRef }: Props): React.ReactEleme
           {playback.fps} FPS × {playback.speed}
         </span>
       </div>
-
-      <LoopPlayerSettings />
     </div>
   )
 }

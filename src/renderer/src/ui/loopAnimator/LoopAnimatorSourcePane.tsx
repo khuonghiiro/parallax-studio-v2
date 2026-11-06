@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { toast } from '../../actions'
 import { IconGrid, IconLightning, IconScissors } from '../icons'
+import { LoopAnimatorLeftRail } from './LoopAnimatorLeftRail'
 import { LoopChromaControls } from './LoopChromaControls'
 import { LoopSlicerControls } from './LoopSlicerControls'
 import { LoopSourceEmptyState } from './LoopSourceEmptyState'
@@ -379,56 +380,17 @@ export function LoopAnimatorSourcePane({ sourceCanvasRef, onRequestUpload, templ
   const hasSource = Boolean(sourceImageUrl)
 
   return (
-    <div className="loop-source-pane" data-mcp-region="loop_animator_source">
-      <div className="loop-pane-toolbar">
-        <div className="loop-pane-heading">
-          <span className="loop-step">1</span>
-          <span>Cắt khung hình</span>
-        </div>
-        <div className="la-seg" role="tablist" aria-label="Chế độ cắt khung">
-          {MODES.map((m) => (
-            <button
-              key={m.id}
-              type="button"
-              role="tab"
-              aria-selected={slicerMode === m.id}
-              className={`la-seg-btn${slicerMode === m.id ? ' active' : ''}`}
-              disabled={!hasSource}
-              title={m.title}
-              onClick={() => {
-                setSlicerMode(m.id)
-                if (m.id === 'contour') handleRunContour()
-              }}
-            >
-              {m.icon}
-              <span>{m.label}</span>
-            </button>
-          ))}
-        </div>
-        <div className="loop-zoom-group" aria-label="Thu phóng ảnh nguồn">
-          <button type="button" className="la-icon-btn" disabled={!hasSource} onClick={() => setZoom((z) => Math.max(0.5, +(z - 0.25).toFixed(2)))} title="Thu nhỏ" aria-label="Thu nhỏ">
-            −
-          </button>
-          <button
-            type="button"
-            className="loop-zoom-val loop-zoom-reset-btn"
-            disabled={!hasSource}
-            onClick={() => setZoom(1)}
-            title="Bấm để vừa khít khung nhìn (100%)"
-          >
-            {Math.round(zoom * 100)}%
-          </button>
-          <button type="button" className="la-icon-btn" disabled={!hasSource} onClick={() => setZoom((z) => Math.min(2.5, +(z + 0.25).toFixed(2)))} title="Phóng to" aria-label="Phóng to">
-            +
-          </button>
-        </div>
-      </div>
-
+    <div className="loop-source-pane" data-mcp-region="loop_animator_source" style={{ position: 'relative' }}>
       {hasSource && (
-        <div className="loop-controls-stack">
-          <LoopSlicerControls sourceCanvasRef={sourceCanvasRef} onRunContour={handleRunContour} />
-          <LoopChromaControls eyedropperActive={eyedropperActive} onToggleEyedropper={() => setEyedropperActive((v) => !v)} onAutoDetect={handleAutoDetect} />
-        </div>
+        <LoopAnimatorLeftRail
+          sourceCanvasRef={sourceCanvasRef}
+          zoom={zoom}
+          onChangeZoom={setZoom}
+          eyedropperActive={eyedropperActive}
+          onToggleEyedropper={() => setEyedropperActive((v) => !v)}
+          onAutoDetect={handleAutoDetect}
+          onRunContour={handleRunContour}
+        />
       )}
 
       <div
