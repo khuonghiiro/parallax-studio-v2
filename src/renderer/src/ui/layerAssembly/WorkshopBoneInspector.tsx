@@ -246,10 +246,11 @@ export interface BoneInspectorCardProps {
   patchAllDelta?: (delta: BoneEnvelopeDeltaPatch) => void
   onDelete: (id: string) => void
   onMirror: (id: string) => void
+  onSplit?: (id: string) => void
   onDeselect: () => void
 }
 
-function InspectorHeader({ bone, patch, onDelete, onMirror, onDeselect }: Pick<BoneInspectorCardProps, 'bone' | 'patch' | 'onDelete' | 'onMirror' | 'onDeselect'>) {
+function InspectorHeader({ bone, patch, onDelete, onMirror, onSplit, onDeselect }: Pick<BoneInspectorCardProps, 'bone' | 'patch' | 'onDelete' | 'onMirror' | 'onSplit' | 'onDeselect'>) {
   const side = classifyBoneSide(bone)
   return (
     <div className="lw-bone-insp-head">
@@ -264,6 +265,16 @@ function InspectorHeader({ bone, patch, onDelete, onMirror, onDeselect }: Pick<B
       >
         <IconPin width={12} height={12} />
       </button>
+      {!bone.pin && bone.length >= 16 && (
+        <button
+          type="button"
+          className="lw-bone-insp-icon"
+          onClick={() => onSplit?.(bone.id)}
+          title="✂️ Chia đôi xương (Tạo khớp gối/khuỷu 2 đoạn chuẩn Moho)"
+        >
+          ✂️
+        </button>
+      )}
       <button type="button" className="lw-bone-insp-icon" onClick={() => onMirror(bone.id)} title="Nhân bản xương + nhánh con sang bên kia trục X = 0">
         <IconBoneDuplicateLR width={12} height={12} />
       </button>

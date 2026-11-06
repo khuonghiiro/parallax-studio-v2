@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react'
 import type { BonePose } from '@shared/layerRig'
+import { loadLayerWorkshopViewPrefs, saveLayerWorkshopViewPrefs } from './layerAssemblyViewPrefs'
 
 /**
  * Bộ công cụ Tạo xương chuẩn Moho Pro:
@@ -43,6 +44,8 @@ export interface RigToolState {
   dimOtherLayers?: boolean
   /** Yêu cầu chuyển chế độ xem (2d / split / 3d) từ bất kỳ đâu */
   requestedView?: '2d' | '3d' | 'split' | null
+  /** Hiển thị nhãn tên xương trên sân khấu 2D */
+  showBoneLabels?: boolean
 }
 
 const INITIAL_STATE: RigToolState = {
@@ -58,7 +61,8 @@ const INITIAL_STATE: RigToolState = {
   cutoutStageMode: false,
   focusedCutoutLayerId: null,
   dimOtherLayers: true,
-  requestedView: null
+  requestedView: null,
+  showBoneLabels: typeof window !== 'undefined' ? loadLayerWorkshopViewPrefs().showBoneLabels : true
 }
 
 let state: RigToolState = { ...INITIAL_STATE }
@@ -149,6 +153,13 @@ export function openCutoutPartRig(targetLayerId?: string | null) {
     tool: 'add',
     statusHint: '🎨 Chế độ vẽ xương theo bộ phận: Chọn ô vuông preview để focus và vẽ xương cho từng mảnh.'
   })
+}
+
+export function toggleBoneLabels(): void {
+  const current = state.showBoneLabels ?? true
+  const next = !current
+  setRigToolState({ showBoneLabels: next })
+  saveLayerWorkshopViewPrefs({ showBoneLabels: next })
 }
 
 export function closeCutoutPartRig() {

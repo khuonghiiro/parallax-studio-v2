@@ -19,7 +19,7 @@ import { grabbedSpine } from './plantSpineEdit'
 import { toggleMotionSketchArmed } from './motionSketchStore'
 import { buildManipulateTestRig, type BoneOverlayProps } from './WorkshopBoneOverlay'
 import { confirmPoseAndStep } from './workshopStepRecord'
-import { resetTestPoses, setRigToolState, useRigToolStore } from './rigToolStore'
+import { resetTestPoses, setRigToolState, useRigToolStore, toggleBoneLabels } from './rigToolStore'
 
 export function WorkshopWorkspace({
   state,
@@ -160,6 +160,11 @@ export function WorkshopWorkspace({
           setRigToolState({ tool: 'manipulate' })
           return
         }
+      }
+      if (e.shiftKey && (e.key === 't' || e.key === 'T')) {
+        e.preventDefault()
+        toggleBoneLabels()
+        return
       }
       if ((e.shiftKey && (e.key === 'b' || e.key === 'B')) || ((e.key === 'b' || e.key === 'B') && tab === 'bones')) {
         if (view === '3d') toggleBones3D()

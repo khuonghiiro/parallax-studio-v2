@@ -879,6 +879,7 @@ export function WorkshopBoneOverlay({
           isManipulateTool={isManipulateTool}
           hasMixamoLandmarks={Boolean(mixamoLandmarks)}
           ikEnabled={assist.ik}
+          showLabels={rigTool.showBoneLabels ?? true}
           onPointerDown={handlePointerDown}
           tailMode={tailMode}
           headMode={headMode}

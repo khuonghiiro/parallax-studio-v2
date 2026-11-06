@@ -17,6 +17,7 @@ import { buildMirroredBoneChain, retimeOrClampTracks, weldConnectedLimbBones } f
 import { autoBindLayersToMixamoBones } from './workshopMixamoAutoRig'
 import { applyAnimTool, type AnimToolOp } from './workshopAnimTools'
 import { applyHoldFramesAction, applyRigClipAction, isRigClipAction, type RigClipAction } from './workshopRigClips'
+import { splitBoneInHalf } from './workshopBoneSplit'
 import { applyRigStructureAction, isRigStructureAction, type RigStructureAction } from './workshopRigStructure'
 import { assertValidAngleLimits, stripEmptyAngleLimit } from './boneConstraints'
 import { autoRigAllCutoutParts, createBoneForSingleLayer } from './workshopCutoutRig'
@@ -123,6 +124,7 @@ export type RigAction =
   | { action: 'update-bones'; patches: Array<{ boneId: string; patch: Partial<Omit<LayerBone, 'id'>> }> }
   | { action: 'snap-joints' }
   | { action: 'delete-bone'; boneId: string }
+  | { action: 'split-bone'; boneId: string }
   | { action: 'mirror-bone'; boneId: string }
   | { action: 'bind'; boneId?: string; layerIds: string[]; mode?: 'rigid' | 'soft' }
   | { action: 'mirror-pose'; time: number }
@@ -296,6 +298,9 @@ export function applyRigAction(composite: LayerComposite, action: RigAction): La
   }
   if (action.action === 'snap-joints') {
     rig.bones = weldConnectedLimbBones(rig.bones, 0.45)
+  }
+  if (action.action === 'split-bone') {
+    return splitBoneInHalf(composite, action.boneId).composite
   }
   if (action.action === 'delete-bone') {
     const removed = new Set([action.boneId])

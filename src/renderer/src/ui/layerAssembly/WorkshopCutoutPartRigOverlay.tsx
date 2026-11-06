@@ -7,7 +7,7 @@ import {
   type CutoutPartInfo
 } from './workshopCutoutRig'
 import type { RigAction } from './workshopRig'
-import { useRigToolStore, setRigToolState } from './rigToolStore'
+import { useRigToolStore, setRigToolState, toggleBoneLabels } from './rigToolStore'
 import {
   IconChevronDown,
   IconEye,
@@ -15,6 +15,7 @@ import {
   IconLayers,
   IconPlus,
   IconSparkles,
+  IconText,
   IconX
 } from '../icons'
 import {
@@ -483,6 +484,15 @@ export function WorkshopCutoutPartRigOverlay({
             title={isDimmed ? 'Đang làm mờ các lớp khác (Bấm để hiện rõ tất cả)' : 'Làm mờ các lớp khác để tập trung'}
           >
             {isDimmed ? <IconEyeOff width={12} height={12} /> : <IconEye width={12} height={12} />}
+          </button>
+
+          <button
+            type="button"
+            className={`btn xs icon ghost lw-cutout-hud-btn${(rigTool.showBoneLabels ?? true) ? ' active' : ''}`}
+            onClick={toggleBoneLabels}
+            title={(rigTool.showBoneLabels ?? true) ? 'Nhãn tên xương (Đang hiện) · Bấm để ẩn bớt rối' : 'Nhãn tên xương (Đang ẩn) · Bấm để hiện'}
+          >
+            <IconText width={12} height={12} />
           </button>
 
           <div className="lw-cutout-hud-nav">

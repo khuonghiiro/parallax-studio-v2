@@ -19,6 +19,7 @@ export interface WorkshopBoneItemSvgProps {
   isManipulateTool: boolean
   hasMixamoLandmarks: boolean
   ikEnabled: boolean
+  showLabels?: boolean
   onPointerDown: (e: PointerEvent, id: string, mode: BoneDragMode) => void
   tailMode: (e: PointerEvent) => BoneDragMode
   headMode: (e: PointerEvent, bone: LayerBone) => BoneDragMode
@@ -37,6 +38,7 @@ export function WorkshopBoneItemSvg({
   isManipulateTool,
   hasMixamoLandmarks,
   ikEnabled,
+  showLabels = true,
   onPointerDown,
   tailMode,
   headMode
@@ -48,7 +50,8 @@ export function WorkshopBoneItemSvg({
   const isDragging = activeDrag === bone.id || chainIds.includes(bone.id)
   const isHovered = hoveredBoneId === bone.id
   const showLabel =
-    (editing && !hasMixamoLandmarks && bones.length <= LABEL_ALL_MAX_BONES) || isSelected || isDragging || isHovered
+    showLabels &&
+    ((editing && !hasMixamoLandmarks && bones.length <= LABEL_ALL_MAX_BONES) || isSelected || isDragging || isHovered)
   const angle = bone.angle + tf.rotation
   const rad = (angle * Math.PI) / 180
   const ux = Math.cos(rad)

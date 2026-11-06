@@ -14,6 +14,7 @@ import { WorkshopRetargetDialog } from './WorkshopRetargetDialog'
 import { WorkshopInterpolation } from './WorkshopInterpolation'
 import { WorkshopMotionSketchCard } from './WorkshopMotionSketchCard'
 import { WorkshopAnimAssistCard, WorkshopSecondaryMotionCard } from './WorkshopAnimAssistCards'
+import { WorkshopBoneConstraintCard } from './WorkshopBoneConstraintCard'
 import { setAnimAssist, useAnimAssist } from './animAssistStore'
 import { toggleMotionSketchArmed, useMotionSketch } from './motionSketchStore'
 import {
@@ -51,6 +52,79 @@ type Props = RigPanelProps & {
 export type AnimInspectorSubTab = 'pose' | 'clips' | 'physics'
 
 const STUDIO_FPS_PRESETS = [12, 24, 30, 60] as const
+
+function MohoQuickPoseCard({
+  bone,
+  rotation,
+  setKey,
+  onSplit
+}: {
+  bone: LayerBone
+  rotation: number
+  setKey: (patch: Partial<BoneKeyframe>) => void
+  onSplit?: () => void
+}) {
+  return (
+    <div className="lw-card-section lw-quick-pose-card" style={{ marginTop: 6, padding: '8px 10px', background: 'var(--bg-2)', borderRadius: 'var(--radius)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text)' }}>
+          🦵 Tư thế đá chân & uốn khớp (Moho)
+        </span>
+        {!bone.pin && bone.length >= 16 && onSplit && (
+          <button
+            type="button"
+            className="btn xs"
+            onClick={onSplit}
+            style={{ fontSize: 10, padding: '2px 6px', color: 'var(--accent-cyan)' }}
+            title="✂️ Chia đôi xương này thành 2 đoạn (Đùi + Cẳng chân hoặc Bắp tay + Cẳng tay) để tạo khớp gối/khuỷu gập cong tự nhiên"
+          >
+            ✂️ Bẻ đôi (Gối/Khuỷu)
+          </button>
+        )}
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+        <input
+          type="range"
+          min={-180}
+          max={180}
+          step={1}
+          value={Math.round(rotation)}
+          aria-label="Xoay góc FK 360°"
+          onChange={(e) => setKey({ rotation: Number(e.target.value) })}
+          style={{ flex: 1 }}
+        />
+        <strong style={{ fontSize: 11, minWidth: 44, textAlign: 'right', color: 'var(--text)' }}>
+          {Math.round(rotation)}°
+        </strong>
+      </div>
+
+      <div className="lw-creature-pills" style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+        <button type="button" className="lw-creature-pill" onClick={() => setKey({ rotation: 0 })} title="Thẳng đứng ban đầu (0°)">
+          🧍 Thẳng 0°
+        </button>
+        <button type="button" className="lw-creature-pill" onClick={() => setKey({ rotation: 45 })} title="Đá trước nhẹ / Khuỵu (+45°)">
+          🦵 Đá +45°
+        </button>
+        <button type="button" className="lw-creature-pill" onClick={() => setKey({ rotation: 90 })} title="Đá cao ngang người (+90°)">
+          🦵 Đá +90°
+        </button>
+        <button type="button" className="lw-creature-pill" onClick={() => setKey({ rotation: 135 })} title="Đá thẳng lên cao (+135°)">
+          🦵 Đá +135°
+        </button>
+        <button type="button" className="lw-creature-pill" onClick={() => setKey({ rotation: -45 })} title="Đá / bẻ ra sau (-45°)">
+          🦵 Bẻ -45°
+        </button>
+        <button type="button" className="lw-creature-pill" onClick={() => setKey({ rotation: -90 })} title="Đá thẳng lên phía sau / co chân (-90°)">
+          🦵 Đá -90°
+        </button>
+        <button type="button" className="lw-creature-pill" onClick={() => setKey({ rotation: 180 })} title="Đá thẳng ngược lên (180°)">
+          🦵 Đá 180°
+        </button>
+      </div>
+    </div>
+  )
+}
 
 export function WorkshopAnimationPanel({
   composite,
@@ -277,6 +351,20 @@ export function WorkshopAnimationPanel({
             {bone ? (
               <>
                 <PoseFields keyframe={key} setKey={setKey} />
+
+                <MohoQuickPoseCard
+                  bone={bone}
+                  rotation={key.rotation}
+                  setKey={setKey}
+                  onSplit={() => run({ action: 'split-bone', boneId: bone.id })}
+                />
+
+                {!bone.pin && (
+                  <WorkshopBoneConstraintCard
+                    bone={bone}
+                    patch={(patch) => run({ action: 'update-bone', boneId: bone.id, patch })}
+                  />
+                )}
 
                 <WorkshopBoneDepthCard
                   composite={composite}

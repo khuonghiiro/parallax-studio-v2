@@ -384,6 +384,7 @@ export function WorkshopRigPanel({ composite, boneId, selectBone, selectedIds, s
                 patchAllDelta={patchAllDelta}
                 onDelete={handleDeleteBone}
                 onMirror={(id) => run({ action: 'mirror-bone', boneId: id })}
+                onSplit={(id) => run({ action: 'split-bone', boneId: id })}
                 onDeselect={() => selectBone(null)}
               />
             ) : null

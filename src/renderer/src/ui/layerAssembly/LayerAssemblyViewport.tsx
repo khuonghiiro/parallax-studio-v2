@@ -27,7 +27,7 @@ import { EraserIsolatedCanvas } from './LayerAssemblyEraser'
 import { LayerAssemblyCalloutOverlay } from './LayerAssemblyCalloutOverlay'
 import { WorkshopCutoutPartRigOverlay } from './WorkshopCutoutPartRigOverlay'
 import { applyRigAction } from './workshopRig'
-import { useRigToolStore, setRigToolState, closeCutoutPartRig } from './rigToolStore'
+import { useRigToolStore, setRigToolState, closeCutoutPartRig, toggleBoneLabels } from './rigToolStore'
 import type { WorkshopTab } from './WorkshopRightPanel'
 import type { AssemblyWorkspaceView } from './LayerAssemblyDialog'
 import { usePinchPanGesture } from '../../hooks/usePinchPanGesture'
@@ -678,6 +678,8 @@ export function LayerAssemblyViewport({
           hasBones={!!composite.rig?.bones?.length}
           showBones={isBonesVisible}
           onToggleShowBones={onToggleShowBones}
+          showBoneLabels={rigTool.showBoneLabels ?? true}
+          onToggleShowBoneLabels={toggleBoneLabels}
           showMesh={showMesh}
           onToggleShowMesh={onToggleShowMesh}
           lighting={composite.lighting}

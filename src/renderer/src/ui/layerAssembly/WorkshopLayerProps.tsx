@@ -174,7 +174,8 @@ function RigSection({ composite, layer, onUpdateLayer }: Pick<WorkshopLayerProps
         {layer.boneId && <span className="lw-tag bone">{layer.bindingMode === 'soft' ? 'Uốn mềm' : 'Khớp cứng'}</span>}
       </div>
       {bones.length ? (
-        <div className="lw-prop-grid">
+        <>
+          <div className="lw-prop-grid">
           <div className="lw-field">
             <span className="lw-field-label">Gắn vào xương</span>
             <Select size="sm" value={layer.boneId ?? ''}
@@ -188,6 +189,84 @@ function RigSection({ composite, layer, onUpdateLayer }: Pick<WorkshopLayerProps
               onChange={(v) => onUpdateLayer(layer.id, { bindingMode: v as 'soft' | 'rigid' })} />
           </div>
         </div>
+
+        {bones.length > 0 && layer.boneId && (
+          <div className="lw-cloth-dynamics-box" style={{ marginTop: 8, padding: '8px 10px', background: 'var(--bg-2)', borderRadius: 'var(--radius)', border: '1px solid var(--line-soft)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+              <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text)' }}>
+                👗 Nhãn Vải & Uốn Mesh theo Chân (Cloth)
+              </span>
+              <label className="lw-rig-check" style={{ margin: 0, cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={Boolean(layer.isCloth)}
+                  onChange={(e) => {
+                    const isCloth = e.target.checked
+                    const defaultFollowBone = bones.find((b) => /chân|leg/i.test(b.name))?.id || bones[0]?.id
+                    const extra = Array.isArray(layer.extraBoneIds) ? [...layer.extraBoneIds] : []
+                    if (isCloth && defaultFollowBone && !extra.includes(defaultFollowBone)) {
+                      extra.push(defaultFollowBone)
+                    }
+                    onUpdateLayer(layer.id, {
+                      isCloth,
+                      bindingMode: isCloth ? 'soft' : layer.bindingMode,
+                      clothFollowBoneId: isCloth ? (layer.clothFollowBoneId || defaultFollowBone) : undefined,
+                      clothAmplitude: isCloth ? (layer.clothAmplitude ?? 40) : undefined,
+                      extraBoneIds: isCloth ? extra : layer.extraBoneIds
+                    })
+                  }}
+                />
+                <span style={{ fontSize: 11, fontWeight: 500 }}>{layer.isCloth ? 'Đã bật' : 'Bật nhãn Vải'}</span>
+              </label>
+            </div>
+
+            {layer.isCloth && (
+              <>
+                <div className="lw-field" style={{ marginBottom: 6 }}>
+                  <span className="lw-field-label">Xương chân/tay uốn vải theo</span>
+                  <Select
+                    size="sm"
+                    value={layer.clothFollowBoneId ?? ''}
+                    options={[
+                      { value: '', label: 'Tự động bắt xương gần nhất' },
+                      ...bones.filter((b) => b.id !== layer.boneId).map((b) => ({ value: b.id, label: `${b.name}` }))
+                    ]}
+                    onChange={(v) => {
+                      const followId = String(v) || undefined
+                      const extra = (layer.extraBoneIds || []).filter((id) => id !== layer.clothFollowBoneId)
+                      if (followId && !extra.includes(followId)) extra.push(followId)
+                      onUpdateLayer(layer.id, {
+                        clothFollowBoneId: followId,
+                        extraBoneIds: extra
+                      })
+                    }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 11, color: 'var(--text-dim)', minWidth: 80 }}>Biên độ vải uốn:</span>
+                  <input
+                    type="range"
+                    min={5}
+                    max={100}
+                    step={5}
+                    value={layer.clothAmplitude ?? 40}
+                    aria-label="Biên độ uốn vải"
+                    onChange={(e) => onUpdateLayer(layer.id, { clothAmplitude: Number(e.target.value) })}
+                    style={{ flex: 1 }}
+                  />
+                  <strong style={{ fontSize: 11, minWidth: 36, textAlign: 'right', color: 'var(--text)' }}>
+                    {layer.clothAmplitude ?? 40}%
+                  </strong>
+                </div>
+                <p style={{ fontSize: 10, color: 'var(--text-dim)', marginTop: 4, lineHeight: 1.3 }}>
+                  💡 Khi xương chân/tay nhấc lên hoặc đá thẳng, Mesh của vạt vải sẽ tự động uốn cong theo biên độ {layer.clothAmplitude ?? 40}%.
+                </p>
+              </>
+            )}
+          </div>
+        )}
+        </>
       ) : (
         <p className="lw-callout">Chưa có khung xương. Mở tab <b>Tạo xương</b> để thêm xương hoặc áp dụng mẫu xương nhân vật.</p>
       )}

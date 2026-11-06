@@ -9,6 +9,7 @@ import {
   IconBoundingBox,
   IconFitCharacter,
   IconBone,
+  IconText,
   IconMeshWireframe,
   IconSun,
   IconStageGuide
@@ -16,7 +17,7 @@ import {
 import type { Assembly2DTool, BrushSettings } from './useLayerBrushEraser'
 import { LightingControlPopover } from './LightingControlPopover'
 import type { AssemblyLighting } from '../assets/models3d/types'
-import { useRigToolStore } from './rigToolStore'
+import { useRigToolStore, toggleBoneLabels } from './rigToolStore'
 
 export interface LayerAssembly2DToolbarProps {
   activeTool: Assembly2DTool
@@ -39,6 +40,8 @@ export interface LayerAssembly2DToolbarProps {
   hasBones?: boolean
   showBones?: boolean
   onToggleShowBones?: () => void
+  showBoneLabels?: boolean
+  onToggleShowBoneLabels?: () => void
   showMesh?: boolean
   onToggleShowMesh?: () => void
   lighting?: AssemblyLighting
@@ -74,6 +77,8 @@ export function LayerAssembly2DToolbar({
   hasBones = false,
   showBones = false,
   onToggleShowBones,
+  showBoneLabels,
+  onToggleShowBoneLabels,
   showMesh = false,
   onToggleShowMesh,
   lighting,
@@ -192,6 +197,12 @@ export function LayerAssembly2DToolbar({
         sub: 'Rigging 2D',
         desc: 'Hiển thị khung xương và khớp nối Blender gắn liền với các bộ phận layer.',
         tip: '🦴 Bấm để bật / ẩn xương'
+      },
+      boneLabels: {
+        title: (showBoneLabels ?? rigTool.showBoneLabels ?? true) ? 'Tên nhãn xương (Đang hiện)' : 'Tên nhãn xương (Đang ẩn)',
+        sub: 'Shift+T',
+        desc: 'Hiển thị tên các xương trên sân khấu 2D. Bấm tắt để sân khấu gọn gàng, không bị chữ đè lên nhân vật.',
+        tip: '🏷️ Bấm để bật / ẩn tên xương'
       },
       mesh: {
         title: showMesh ? 'Lưới tam giác Mesh 2D (Đang hiện)' : 'Lưới Mesh 2D (Đang ẩn)',
@@ -392,6 +403,24 @@ export function LayerAssembly2DToolbar({
             aria-label="Khung xương Blender"
           >
             <IconBone width={15} height={15} />
+          </button>
+        )}
+
+        {/* 8b. Bật/tắt nhãn tên xương */}
+        {hasBones && (
+          <button
+            type="button"
+            className={`layer-3d-dock-btn${(showBoneLabels ?? rigTool.showBoneLabels ?? true) ? ' active' : ''}`}
+            onClick={() => {
+              if (onToggleShowBoneLabels) onToggleShowBoneLabels()
+              else toggleBoneLabels()
+              hideTooltip()
+            }}
+            onMouseEnter={(e) => showTooltip(e, 'boneLabels')}
+            onMouseLeave={hideTooltip}
+            aria-label="Tên nhãn xương"
+          >
+            <IconText width={14} height={14} />
           </button>
         )}
 
