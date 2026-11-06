@@ -4,6 +4,7 @@ import {
   IconFilm,
   IconGrid,
   IconPlus,
+  IconSparkles,
   IconReplace,
   IconTrash,
   IconUpload
@@ -284,6 +285,20 @@ export function LoopGroupSliderBar({ onRequestAppendUpload }: Props = {}): React
         </div>
 
         <div className="loop-group-slider-actions">
+          {groups.length > 1 && (
+            <button
+              type="button"
+              className="la-btn la-btn--outline la-btn--sm loop-inherit-config-btn"
+              onClick={() => {
+                useLoopAnimator.getState().inheritActiveGroupConfigToAllGroups()
+                toast(`✨ Đã áp dụng toàn bộ cấu hình từ Nhóm #${activeGroupIndex + 1} sang ${groups.length - 1} nhóm khác!`)
+              }}
+              title={`Sao chép toàn bộ cấu hình (Lưới cắt, Tách nền, FPS, Nhịp) từ Nhóm #${activeGroupIndex + 1} sang tất cả các nhóm khác`}
+            >
+              <IconSparkles width={12} height={12} />
+              <span>Kế thừa cấu hình</span>
+            </button>
+          )}
           <button
             type="button"
             className="la-btn la-btn--primary la-btn--sm loop-open-align-btn"

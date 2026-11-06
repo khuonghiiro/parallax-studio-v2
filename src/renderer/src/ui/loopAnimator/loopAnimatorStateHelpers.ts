@@ -459,3 +459,36 @@ export function computeCustomMultiFramesState(
   }
 }
 
+
+export function computeInheritedActiveGroupConfig(s: any): any[] {
+  if (s.groups.length <= 1) return s.groups
+  const synced = syncActiveGroupToGroups(s)
+  const active = synced[s.activeGroupIndex] || synced[0]
+  return synced.map((g: any, idx: number) => {
+    if (idx === s.activeGroupIndex) return g
+    const frames =
+      active.slicerMode === 'grid'
+        ? buildGridFrames(g.sourceWidth || s.sourceWidth, g.sourceHeight || s.sourceHeight, active.gridConfig).map(
+            (f: any, fIdx: number) => ({
+              ...f,
+              groupId: g.id,
+              groupIndex: idx,
+              groupName: g.name,
+              localFrameIndex: fIdx
+            })
+          )
+        : g.frames
+    return {
+      ...g,
+      slicerMode: active.slicerMode,
+      gridConfig: { ...active.gridConfig },
+      contourConfig: { ...active.contourConfig },
+      chromaKey: { ...active.chromaKey },
+      fps: active.fps,
+      speed: active.speed,
+      loopMode: active.loopMode,
+      rhythm: { ...active.rhythm },
+      frames
+    }
+  })
+}

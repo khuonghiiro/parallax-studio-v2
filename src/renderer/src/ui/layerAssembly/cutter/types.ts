@@ -85,31 +85,58 @@ export const DEFAULT_CHROMA_SETTINGS: ChromaKeySettings = {
   keyColorHex: '#00DB4E',
   keyColor: '#00DB4E',
   keyColorType: 'chroma_green',
-  isolationMode: 'outer_only',
+  isolationMode: 'all',
   strictOuterIsolation: false,
-  tolerance: 36,
-  smoothness: 2,
-  despill: true,
+  tolerance: 1,
+  smoothness: 0,
+  despill: false,
   previewBackground: 'checkerboard',
   shadowMode: 'include',
   shadowType: 'auto',
-  shadowRetention: 68,
-  shadowSolidThreshold: 30,
+  shadowRetention: 0,
+  shadowSolidThreshold: 100,
   shadowUnmixColor: true,
   strokeWidth: 0,
   strokeColorHex: '#FFFFFF',
   cleanupMode: 'all',
   fringeColorType: 'chroma_green',
   fringeColorHex: '#00DB4E',
-  defringeStrength: 45,
+  defringeStrength: 0,
   edgeChoke: 0,
-  edgeSmooth: 2,
+  edgeSmooth: 0,
   smoothColorType: 'none',
   smoothColorHex: '#000000',
-  despeckleSize: 16,
+  despeckleSize: 0,
   whiteSpeckleSensitivity: 0,
   keepLargestIslandOnly: false,
   previewMode: 'transparent'
+}
+
+export const CUTTER_CHROMA_CACHE_KEY = 'pxs:sprite-cutter-chroma-settings-v3'
+
+export function getStoredChromaSettings(): ChromaKeySettings {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return { ...DEFAULT_CHROMA_SETTINGS }
+  }
+  try {
+    const raw = window.localStorage.getItem(CUTTER_CHROMA_CACHE_KEY)
+    if (!raw) return { ...DEFAULT_CHROMA_SETTINGS }
+    const parsed = JSON.parse(raw)
+    return { ...DEFAULT_CHROMA_SETTINGS, ...parsed }
+  } catch {
+    return { ...DEFAULT_CHROMA_SETTINGS }
+  }
+}
+
+export function saveStoredChromaSettings(settings: Partial<ChromaKeySettings>): void {
+  if (typeof window === 'undefined' || !window.localStorage) return
+  try {
+    const current = getStoredChromaSettings()
+    const merged = { ...current, ...settings }
+    window.localStorage.setItem(CUTTER_CHROMA_CACHE_KEY, JSON.stringify(merged))
+  } catch {
+    /* ignore storage errors */
+  }
 }
 
 export interface GridSlicerSettings {

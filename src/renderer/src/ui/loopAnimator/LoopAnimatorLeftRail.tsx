@@ -573,6 +573,18 @@ export function LoopAnimatorLeftRail({
                         Áp dụng các nhóm
                       </button>
                     </div>
+                    <button
+                      type="button"
+                      className="la-btn la-btn--outline la-btn--xs"
+                      style={{ width: '100%', marginTop: 6 }}
+                      onClick={() => {
+                        useLoopAnimator.getState().inheritActiveGroupConfigToAllGroups()
+                        toast(`✨ Đã kế thừa toàn bộ cấu hình sang ${groups.length - 1} nhóm khác`)
+                      }}
+                      title="Sao chép toàn bộ cấu hình Lưới cắt, Tách nền, FPS, Nhịp sang tất cả các nhóm khác"
+                    >
+                      ⚡ Kế thừa cấu hình cho các nhóm
+                    </button>
                   </div>
                 )}
               </>

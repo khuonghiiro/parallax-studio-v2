@@ -130,8 +130,8 @@ export function computeChromaMatteAlpha(
     }
   }
 
-  const highTolBoost = tolerance > 55 ? (tolerance - 55) * 0.85 : 0
-  const hardThreshold = 5 + tolerance * 1.08 + highTolBoost
+  const highTolBoost = tolerance > 45 ? (tolerance - 45) * 1.25 : 0
+  const hardThreshold = 5 + tolerance * 1.12 + highTolBoost
   const effectiveFeather = Math.min(10, feather)
   const transitionWidth = 8 + effectiveFeather * 1.6 + tolerance * 0.18
   if (distance <= hardThreshold) return 0

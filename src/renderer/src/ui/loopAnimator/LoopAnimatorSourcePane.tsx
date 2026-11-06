@@ -11,6 +11,9 @@ import {
   clearGridBorderPadding,
   detectCornerKeyColor
 } from './loopFrameExtractor'
+import { getAllLoopTemplates } from './loopAnimatorStorage'
+import { isLoopTemplatePackage } from './loopAnimatorStateHelpers'
+import { getCachedLoopTemplateSheet } from './loopFrameExtractor'
 import {
   clearLoopSourceCanvasMeta,
   getLoopSourceLogicalSize,
@@ -299,7 +302,23 @@ export function LoopAnimatorSourcePane({ sourceCanvasRef, onRequestUpload, templ
       if (cancelled) return
       applyLoadedSource(img)
     }
-    img.onerror = () => !cancelled && toast('⚠ Không đọc được ảnh nguồn')
+    img.onerror = () => {
+      if (cancelled) return
+      const st = useLoopAnimator.getState()
+      const allTemplates = getAllLoopTemplates()
+      const foundTpl = allTemplates.find((t) => t.id === st.activePresetId || t.name === st.layerName)
+      if (foundTpl && isLoopTemplatePackage(foundTpl)) {
+        void getCachedLoopTemplateSheet(foundTpl).then((sheet) => {
+          if (!cancelled && sheet && sheet.canvas.width > 0) {
+            applyLoadedSource(sheet.canvas)
+            return
+          }
+          if (!cancelled) toast('⚠ Không đọc được ảnh nguồn')
+        })
+        return
+      }
+      toast('⚠ Không đọc được ảnh nguồn')
+    }
     void resolveLoopAssetUrl(sourceImageUrl).then((resolved) => {
       if (cancelled) return
       const resolvedMem = getRegisteredMemoryCanvas(resolved || sourceImageUrl)

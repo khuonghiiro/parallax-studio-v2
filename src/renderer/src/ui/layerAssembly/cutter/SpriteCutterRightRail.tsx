@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import type { ChromaKeySettings, EyedropperTarget } from './types'
 import type { CanvasBgMode, TagDisplayMode } from './SpriteCutterSourceToolbar'
 import {
@@ -27,6 +27,7 @@ export interface SpriteCutterRightRailProps {
   onResetChroma: () => void
   eyedropperTarget?: EyedropperTarget | null
   onToggleEyedropper?: (target: EyedropperTarget) => void
+  isProcessing?: boolean
 }
 
 type RightFlyoutId = 'chroma' | 'stroke' | 'shadow' | 'canvasBg' | 'view' | null
@@ -39,6 +40,85 @@ const STROKE_COLOR_PRESETS = [
   { label: 'Đen', hex: '#0f172a' },
   { label: 'Tím', hex: '#8b5cf6' }
 ]
+
+interface RailRangeSliderProps {
+  label: string
+  value: number
+  min: number
+  max: number
+  step?: number
+  unit?: string
+  onChange: (val: number) => void
+}
+
+function RailRangeSlider({
+  label,
+  value,
+  min,
+  max,
+  step = 1,
+  unit = '',
+  onChange
+}: RailRangeSliderProps) {
+  const [localVal, setLocalVal] = useState(value)
+  const isDraggingRef = useRef(false)
+  const debounceRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    if (!isDraggingRef.current) {
+      setLocalVal(value)
+    }
+  }, [value])
+
+  const commit = (val: number) => {
+    isDraggingRef.current = false
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    if (val !== value) {
+      onChange(val)
+    }
+  }
+
+  const handlePointerDown = () => {
+    isDraggingRef.current = true
+  }
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLInputElement>) => {
+    commit(Number(e.currentTarget.value))
+  }
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const v = Number(e.target.value)
+    setLocalVal(v)
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = window.setTimeout(() => {
+      commit(v)
+    }, 280)
+  }
+
+  return (
+    <div className="sc-flyout-field">
+      <div className="sc-flyout-label-row">
+        <span>{label}</span>
+        <strong>
+          {localVal}
+          {unit}
+        </strong>
+      </div>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={localVal}
+        onPointerDown={handlePointerDown}
+        onPointerUp={handlePointerUp}
+        onKeyUp={(e) => commit(Number(e.currentTarget.value))}
+        onChange={handleChange}
+        className="sc-slider"
+      />
+    </div>
+  )
+}
 
 export function SpriteCutterRightRail({
   chroma,
@@ -53,7 +133,8 @@ export function SpriteCutterRightRail({
   onSetZoomMode,
   onResetChroma,
   eyedropperTarget,
-  onToggleEyedropper
+  onToggleEyedropper,
+  isProcessing
 }: SpriteCutterRightRailProps) {
   const [activeFlyout, setActiveFlyout] = useState<RightFlyoutId>(null)
 
@@ -78,7 +159,7 @@ export function SpriteCutterRightRail({
         >
           <IconSparkles width={18} height={18} />
           <span className="sc-rail-label">Tách nền</span>
-          <span className="sc-rail-badge">{chroma.enabled ? `${chroma.tolerance}%` : 'Tắt'}</span>
+          <span className="sc-rail-badge">{isProcessing ? '⏳' : chroma.enabled ? `${chroma.tolerance}%` : 'Tắt'}</span>
         </button>
 
         <SpriteCutterFlyout
@@ -91,6 +172,7 @@ export function SpriteCutterRightRail({
           width={310}
           onReset={onResetChroma}
           resetTitle="Khôi phục toàn bộ thông số tách nền về mặc định"
+          isProcessing={isProcessing}
         >
           <div className="sc-flyout-field">
             <div className="sc-flyout-switch-row">
@@ -207,53 +289,35 @@ export function SpriteCutterRightRail({
             </div>
           </div>
 
-          <div className="sc-flyout-field">
-            <div className="sc-flyout-label-row">
-              <span>Độ nhạy tách màu (Tolerance)</span>
-              <strong>{chroma.tolerance}%</strong>
-            </div>
-            <input
-              type="range"
-              min={1}
-              max={100}
-              step={1}
-              value={chroma.tolerance}
-              onChange={(e) => onChangeChroma({ tolerance: Number(e.target.value) })}
-              className="sc-slider"
-            />
-          </div>
+          <RailRangeSlider
+            label="Độ nhạy tách màu (Tolerance)"
+            value={chroma.tolerance}
+            min={1}
+            max={100}
+            step={1}
+            unit="%"
+            onChange={(v) => onChangeChroma({ tolerance: v })}
+          />
 
-          <div className="sc-flyout-field">
-            <div className="sc-flyout-label-row">
-              <span>Làm mềm biên (Feather)</span>
-              <strong>{chroma.smoothness}px</strong>
-            </div>
-            <input
-              type="range"
-              min={0}
-              max={20}
-              step={1}
-              value={chroma.smoothness}
-              onChange={(e) => onChangeChroma({ smoothness: Number(e.target.value) })}
-              className="sc-slider"
-            />
-          </div>
+          <RailRangeSlider
+            label="Làm mềm biên (Feather)"
+            value={chroma.smoothness}
+            min={0}
+            max={20}
+            step={1}
+            unit="px"
+            onChange={(v) => onChangeChroma({ smoothness: v })}
+          />
 
-          <div className="sc-flyout-field">
-            <div className="sc-flyout-label-row">
-              <span>Gọt viền bám màu (Choke)</span>
-              <strong>{chroma.edgeChoke ?? 0}px</strong>
-            </div>
-            <input
-              type="range"
-              min={0}
-              max={10}
-              step={1}
-              value={chroma.edgeChoke ?? 0}
-              onChange={(e) => onChangeChroma({ edgeChoke: Number(e.target.value) })}
-              className="sc-slider"
-            />
-          </div>
+          <RailRangeSlider
+            label="Gọt viền bám màu (Choke)"
+            value={chroma.edgeChoke ?? 0}
+            min={0}
+            max={10}
+            step={1}
+            unit="px"
+            onChange={(v) => onChangeChroma({ edgeChoke: v })}
+          />
         </SpriteCutterFlyout>
       </div>
 
@@ -278,70 +342,47 @@ export function SpriteCutterRightRail({
           icon={<IconSliders width={14} height={14} />}
           badge={isStrokeActive ? `${chroma.strokeWidth}px` : undefined}
           width={310}
+          isProcessing={isProcessing}
         >
-          <div className="sc-flyout-field">
-            <div className="sc-flyout-label-row">
-              <span>Khử viền ám màu (Despill)</span>
-              <strong>{chroma.defringeStrength ?? 0}%</strong>
-            </div>
-            <input
-              type="range"
-              min={0}
-              max={100}
-              step={1}
-              value={chroma.defringeStrength ?? 0}
-              onChange={(e) => onChangeChroma({ defringeStrength: Number(e.target.value) })}
-              className="sc-slider"
-            />
-          </div>
+          <RailRangeSlider
+            label="Khử viền ám màu (Despill)"
+            value={chroma.defringeStrength ?? 0}
+            min={0}
+            max={100}
+            step={1}
+            unit="%"
+            onChange={(v) => onChangeChroma({ defringeStrength: v })}
+          />
 
-          <div className="sc-flyout-field">
-            <div className="sc-flyout-label-row">
-              <span>Làm mịn răng cưa mép (Smooth)</span>
-              <strong>{chroma.edgeSmooth ?? 0}px</strong>
-            </div>
-            <input
-              type="range"
-              min={0}
-              max={10}
-              step={1}
-              value={chroma.edgeSmooth ?? 0}
-              onChange={(e) => onChangeChroma({ edgeSmooth: Number(e.target.value) })}
-              className="sc-slider"
-            />
-          </div>
+          <RailRangeSlider
+            label="Làm mịn răng cưa mép (Smooth)"
+            value={chroma.edgeSmooth ?? 0}
+            min={0}
+            max={10}
+            step={1}
+            unit="px"
+            onChange={(v) => onChangeChroma({ edgeSmooth: v })}
+          />
 
-          <div className="sc-flyout-field">
-            <div className="sc-flyout-label-row">
-              <span>Lọc đốm rác / Sạn nền (Despeckle)</span>
-              <strong>{chroma.despeckleSize ?? 0}px²</strong>
-            </div>
-            <input
-              type="range"
-              min={0}
-              max={120}
-              step={2}
-              value={chroma.despeckleSize ?? 0}
-              onChange={(e) => onChangeChroma({ despeckleSize: Number(e.target.value) })}
-              className="sc-slider"
-            />
-          </div>
+          <RailRangeSlider
+            label="Lọc đốm rác / Sạn nền (Despeckle)"
+            value={chroma.despeckleSize ?? 0}
+            min={0}
+            max={120}
+            step={2}
+            unit="px²"
+            onChange={(v) => onChangeChroma({ despeckleSize: v })}
+          />
 
-          <div className="sc-flyout-field">
-            <div className="sc-flyout-label-row">
-              <span>Khử hạt sạn trắng viền</span>
-              <strong>{chroma.whiteSpeckleSensitivity ?? 0}%</strong>
-            </div>
-            <input
-              type="range"
-              min={0}
-              max={100}
-              step={5}
-              value={chroma.whiteSpeckleSensitivity ?? 0}
-              onChange={(e) => onChangeChroma({ whiteSpeckleSensitivity: Number(e.target.value) })}
-              className="sc-slider"
-            />
-          </div>
+          <RailRangeSlider
+            label="Khử hạt sạn trắng viền"
+            value={chroma.whiteSpeckleSensitivity ?? 0}
+            min={0}
+            max={100}
+            step={5}
+            unit="%"
+            onChange={(v) => onChangeChroma({ whiteSpeckleSensitivity: v })}
+          />
 
           <div className="sc-flyout-field">
             <div className="sc-flyout-switch-row">
@@ -357,21 +398,15 @@ export function SpriteCutterRightRail({
 
           {isStrokeActive && (
             <>
-              <div className="sc-flyout-field">
-                <div className="sc-flyout-label-row">
-                  <span>Độ dày nét viền</span>
-                  <strong>{chroma.strokeWidth}px</strong>
-                </div>
-                <input
-                  type="range"
-                  min={1}
-                  max={10}
-                  step={1}
-                  value={chroma.strokeWidth ?? 3}
-                  onChange={(e) => onChangeChroma({ strokeWidth: Number(e.target.value) })}
-                  className="sc-slider"
-                />
-              </div>
+              <RailRangeSlider
+                label="Độ dày nét viền"
+                value={chroma.strokeWidth ?? 3}
+                min={1}
+                max={10}
+                step={1}
+                unit="px"
+                onChange={(v) => onChangeChroma({ strokeWidth: v })}
+              />
 
               <div className="sc-flyout-field">
                 <div className="sc-flyout-label-row">
@@ -484,37 +519,25 @@ export function SpriteCutterRightRail({
                 </div>
               </div>
 
-              <div className="sc-flyout-field">
-                <div className="sc-flyout-label-row">
-                  <span>Độ đậm bóng (Retention)</span>
-                  <strong>{chroma.shadowRetention ?? 0}%</strong>
-                </div>
-                <input
-                  type="range"
-                  min={0}
-                  max={100}
-                  step={5}
-                  value={chroma.shadowRetention ?? 0}
-                  onChange={(e) => onChangeChroma({ shadowRetention: Number(e.target.value) })}
-                  className="sc-slider"
-                />
-              </div>
+              <RailRangeSlider
+                label="Độ đậm bóng (Retention)"
+                value={chroma.shadowRetention ?? 0}
+                min={0}
+                max={100}
+                step={5}
+                unit="%"
+                onChange={(v) => onChangeChroma({ shadowRetention: v })}
+              />
 
-              <div className="sc-flyout-field">
-                <div className="sc-flyout-label-row">
-                  <span>Độ đặc khối bóng (Solid Threshold)</span>
-                  <strong>{chroma.shadowSolidThreshold ?? 30}%</strong>
-                </div>
-                <input
-                  type="range"
-                  min={0}
-                  max={100}
-                  step={1}
-                  value={chroma.shadowSolidThreshold ?? 30}
-                  onChange={(e) => onChangeChroma({ shadowSolidThreshold: Number(e.target.value) })}
-                  className="sc-slider"
-                />
-              </div>
+              <RailRangeSlider
+                label="Độ đặc khối bóng (Solid Threshold)"
+                value={chroma.shadowSolidThreshold ?? 100}
+                min={0}
+                max={100}
+                step={1}
+                unit="%"
+                onChange={(v) => onChangeChroma({ shadowSolidThreshold: v })}
+              />
 
               <div className="sc-flyout-field">
                 <div className="sc-flyout-switch-row">

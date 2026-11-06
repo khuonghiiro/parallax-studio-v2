@@ -178,9 +178,8 @@ function applyContourEdgeSmooth(
  * Vẽ Viền nét ngoài (Smooth Outer Contour Stroke - chuẩn Adobe Photoshop Layer Style Stroke):
  * 1. Bảo toàn tuyệt đối 100% pixel bên trong nhân vật và nét vẽ gốc (Foreground OVER Stroke),
  *    không bao giờ lem màu viền vào da hay làm tối màu nét vẽ có sẵn.
- * 2. Làm mịn cả răng cưa bậc thang ở mép trong (giữa vật thể và nét viền) lẫn mép ngoài
- *    bằng trường mật độ biên mượt (`buildSmoothedContourField`) + khoảng cách Euclid sub-pixel,
- *    biến hình tròn bị răng cưa sau khi tách nền thành đường tròn trơn láng với màu viền đã chọn.
+ * 2. Lan truyền khoảng cách Euclid chuẩn xác từ toàn bộ các pixel mầm biên của vật thể,
+ *    tạo đường viền ngoài trơn láng, tròn đều, sắc sảo và chống răng cưa sub-pixel.
  */
 function applySmoothContourStroke(
   data: Uint8ClampedArray,
@@ -202,18 +201,10 @@ function applySmoothContourStroke(
     coreAlpha[p] = excludeShadowMask && excludeShadowMask[p] && a < 165 ? 0 : a
   }
 
-  // Trường mật độ biên đã làm mịn (2 lượt Gaussian 5x5) để khử răng cưa bậc thang
-  const smoothField = buildSmoothedContourField(coreAlpha, w, h, 2, excludeShadowMask)
-
-  const maxR = Math.ceil(strokeWidth) + 2
+  const maxR = Math.ceil(strokeWidth) + 1
+  const outerCutoff = strokeWidth + 0.65
   const distMap = new Float32Array(totalPixels)
   distMap.fill(999.0)
-
-  for (let p = 0; p < totalPixels; p++) {
-    if (coreAlpha[p] >= 200 && smoothField[p] >= 180) {
-      distMap[p] = 0
-    }
-  }
 
   // Bảng tra offset hình tròn trong bán kính maxR
   const offsetDx: number[] = []
@@ -222,7 +213,7 @@ function applySmoothContourStroke(
   for (let dy = -maxR; dy <= maxR; dy++) {
     for (let dx = -maxR; dx <= maxR; dx++) {
       const d = Math.hypot(dx, dy)
-      if (d <= maxR + 0.25) {
+      if (d <= outerCutoff) {
         offsetDx.push(dx)
         offsetDy.push(dy)
         offsetD.push(d)
@@ -231,7 +222,7 @@ function applySmoothContourStroke(
   }
   const numOffsets = offsetDx.length
 
-  // Quét tìm các pixel biên trên trường mượt để lan truyền khoảng cách chính xác
+  // Quét tìm các pixel mầm biên (Edge Seeds: coreAlpha >= 160 tiếp giáp với pixel nền hoặc biên trong suốt)
   for (let y = 0; y < h; y++) {
     const row = y * w
     const ym1 = y > 0 ? (y - 1) * w : 0
@@ -239,38 +230,39 @@ function applySmoothContourStroke(
 
     for (let x = 0; x < w; x++) {
       const p = row + x
-      const sa = smoothField[p]
-      if (sa < 36) continue
+      const ca = coreAlpha[p]
+      if (ca < 160) continue
 
       const xm1 = x > 0 ? x - 1 : 0
       const xp1 = x < w - 1 ? x + 1 : w - 1
 
-      // Kiểm tra có tiếp giáp với vùng biên / nền trong suốt không
-      const hasBgNeighbor =
-        smoothField[row + xm1] < 160 ||
-        smoothField[row + xp1] < 160 ||
-        smoothField[ym1 + x] < 160 ||
-        smoothField[yp1 + x] < 160 ||
-        smoothField[ym1 + xm1] < 96 ||
-        smoothField[ym1 + xp1] < 96 ||
-        smoothField[yp1 + xm1] < 96 ||
-        smoothField[yp1 + xp1] < 96
+      // Kiểm tra có tiếp giáp với vùng nền hoặc mép ảnh không
+      const isEdgeSeed =
+        x === 0 ||
+        x === w - 1 ||
+        y === 0 ||
+        y === h - 1 ||
+        coreAlpha[row + xm1] < 160 ||
+        coreAlpha[row + xp1] < 160 ||
+        coreAlpha[ym1 + x] < 160 ||
+        coreAlpha[yp1 + x] < 160 ||
+        coreAlpha[ym1 + xm1] < 100 ||
+        coreAlpha[ym1 + xp1] < 100 ||
+        coreAlpha[yp1 + xm1] < 100 ||
+        coreAlpha[yp1 + xp1] < 100
 
-      if (!hasBgNeighbor) continue
+      if (!isEdgeSeed) continue
 
-      // Độ lệch sub-pixel dựa trên mật độ trường đã làm mịn (0.0 nếu sa = 255, ~0.5 nếu sa = 128)
-      const subPixelOffset = Math.max(0, (255 - sa) / 255) * 0.55
-
-      // Lan truyền khoảng cách hình học chuẩn ra xung quanh
+      // Lan truyền khoảng cách Euclid chuẩn ra xung quanh
       for (let k = 0; k < numOffsets; k++) {
         const nx = x + offsetDx[k]
         const ny = y + offsetDy[k]
         if (nx < 0 || nx >= w || ny < 0 || ny >= h) continue
         const np = ny * w + nx
-        // Chỉ bỏ qua phần lõi sâu hoàn toàn bên trong
-        if (coreAlpha[np] >= 250 && smoothField[np] >= 246) continue
+        // Không ghi đè khoảng cách vào lõi sâu của vật thể
+        if (coreAlpha[np] >= 180) continue
 
-        const d = offsetD[k] + subPixelOffset
+        const d = offsetD[k]
         if (d < distMap[np]) {
           distMap[np] = d
         }
@@ -279,43 +271,36 @@ function applySmoothContourStroke(
   }
 
   const strokeRgb = parseHexRgb(strokeColorHex || '#ffffff')
-  const outerFeather = 0.85
-  const outerCutoff = strokeWidth + outerFeather
 
   for (let p = 0; p < totalPixels; p++) {
     const ca = coreAlpha[p]
-    const sa = smoothField[p]
-    // 100% bảo toàn phần lõi sâu bên trong vật thể
-    if (ca >= 250 && sa >= 246) continue
+    // 100% BẢO TOÀN VÙNG VẬT THỂ GỐC: Tuyệt đối không thay đổi màu hoặc alpha của nhân vật
+    if (ca >= 180) continue
 
     const d = distMap[p]
     if (d >= outerCutoff) continue
 
-    // Tính độ phủ nét viền (Stroke Coverage 0.0 .. 1.0)
+    // Tính độ phủ nét viền (Stroke Coverage 0.0 .. 1.0) với anti-aliasing mượt 1px ở rìa ngoài
     let strokeCoverage = 1.0
-    if (d > strokeWidth - 0.35) {
-      const t = Math.max(0, Math.min(1, (d - (strokeWidth - 0.35)) / (outerFeather + 0.35)))
-      strokeCoverage = 1.0 - t * t * (3.0 - 2.0 * t)
+    if (d > strokeWidth - 0.5) {
+      strokeCoverage = Math.max(0, Math.min(1, strokeWidth + 0.5 - d))
     }
     if (strokeCoverage <= 0.005) continue
 
     const idx = p * 4
-    // Dùng mật độ biên mượt cho các răng cưa lồi ra ở mép ngoài để hoà trộn trơn tru vào màu viền
-    const effectiveFgByte =
-      ca >= 180 && sa < ca ? Math.max(0, Math.min(ca, (sa - 96) * 1.6)) : Math.min(ca, sa)
-    const fgA = Math.max(0, Math.min(1, effectiveFgByte / 255.0))
+    const fgA = ca / 255.0
 
-    // Stroke nằm dưới Foreground (Porter-Duff Under):
-    const strokeWeight = strokeCoverage * (1.0 - fgA)
-    const compAlpha = fgA + strokeWeight
+    // Stroke nằm DƯỚI Foreground (Porter-Duff Under):
+    const strokeA = strokeCoverage * (1.0 - fgA)
+    const compAlpha = fgA + strokeA
     if (compAlpha <= 0.002) continue
 
-    let outR = (data[idx] * fgA + strokeRgb.r * strokeWeight) / compAlpha
-    let outG = (data[idx + 1] * fgA + strokeRgb.g * strokeWeight) / compAlpha
-    let outB = (data[idx + 2] * fgA + strokeRgb.b * strokeWeight) / compAlpha
+    let outR = (data[idx] * fgA + strokeRgb.r * strokeA) / compAlpha
+    let outG = (data[idx + 1] * fgA + strokeRgb.g * strokeA) / compAlpha
+    let outB = (data[idx + 2] * fgA + strokeRgb.b * strokeA) / compAlpha
     let outA = compAlpha
 
-    // Nếu có bóng mờ bên dưới, giữ bóng mờ dưới đáy nét viền
+    // Nếu có bóng mờ bên dưới, hoà trộn bóng mờ dưới đáy nét viền
     if (excludeShadowMask && excludeShadowMask[p] && alphaSnap[p] > 0) {
       const shA = alphaSnap[p] / 255.0
       const finalA = outA + shA * (1.0 - outA)

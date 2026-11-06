@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, type ReactNode } from 'react'
+import React, { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 
 export interface SpriteCutterFlyoutProps {
   isOpen: boolean
@@ -11,12 +12,14 @@ export interface SpriteCutterFlyoutProps {
   onReset?: () => void
   resetTitle?: string
   width?: number
+  isProcessing?: boolean
   children: ReactNode
 }
 
 /**
  * Floating popover flyout xuất hiện ngay cạnh icon trên Left Rail hoặc Right Rail của Xưởng Cắt Tách Sprite 2.5D.
- * Bắt sự kiện capture phase cho click-outside và phím Escape, ngăn chặn việc đóng nhầm dialog lớn.
+ * Định vị cố định (fixed portal) vươn sang phía bên phải của nút để tránh đè lên ảnh đang cắt tách bên trái,
+ * đồng thời thoát khỏi mọi vùng overflow: hidden của các pane cha.
  */
 export function SpriteCutterFlyout({
   isOpen,
@@ -28,10 +31,45 @@ export function SpriteCutterFlyout({
   badge,
   onReset,
   resetTitle = 'Đặt lại',
-  width = 280,
+  width = 310,
+  isProcessing,
   children
 }: SpriteCutterFlyoutProps) {
-  const ref = useRef<HTMLDivElement>(null)
+  const flyoutRef = useRef<HTMLDivElement>(null)
+  const anchorRef = useRef<HTMLSpanElement>(null)
+  const [coords, setCoords] = useState<{ top: number; left: number } | null>(null)
+
+  useLayoutEffect(() => {
+    if (!isOpen) return
+
+    const updatePosition = () => {
+      const parent = anchorRef.current?.parentElement
+      if (!parent) return
+      const rect = parent.getBoundingClientRect()
+
+      // Mặc định luôn mở sang phía bên PHẢI của thanh rail (trên khoảng trống của Bố cục 2D)
+      let left = rect.right + 10
+      if (left + width > window.innerWidth - 10) {
+        left = Math.max(10, window.innerWidth - width - 10)
+      }
+
+      let top = rect.top
+      const maxTop = window.innerHeight - 560
+      if (top > maxTop) {
+        top = Math.max(10, maxTop)
+      }
+
+      setCoords({ top, left })
+    }
+
+    updatePosition()
+    window.addEventListener('resize', updatePosition)
+    window.addEventListener('scroll', updatePosition, true)
+    return () => {
+      window.removeEventListener('resize', updatePosition)
+      window.removeEventListener('scroll', updatePosition, true)
+    }
+  }, [isOpen, width])
 
   useEffect(() => {
     if (!isOpen) return
@@ -43,8 +81,8 @@ export function SpriteCutterFlyout({
         return
       }
 
-      if (ref.current && !ref.current.contains(target as Node)) {
-        const parentBtn = ref.current.parentElement
+      const parentBtn = anchorRef.current?.parentElement
+      if (flyoutRef.current && !flyoutRef.current.contains(target as Node)) {
         if (!parentBtn?.contains(target as Node)) {
           onClose()
         }
@@ -70,13 +108,24 @@ export function SpriteCutterFlyout({
     }
   }, [isOpen, onClose])
 
-  if (!isOpen) return null
+  if (!isOpen) {
+    return <span ref={anchorRef} style={{ display: 'none' }} aria-hidden />
+  }
 
-  return (
+  const flyoutStyle: React.CSSProperties = {
+    position: 'fixed',
+    top: coords ? coords.top : 20,
+    left: coords ? coords.left : 20,
+    width,
+    maxWidth: 'calc(100vw - 120px)',
+    zIndex: 50000
+  }
+
+  const content = (
     <div
-      ref={ref}
+      ref={flyoutRef}
       className={`sc-flyout sc-flyout-${side} sc-flyout-${placement}`}
-      style={{ width, maxWidth: 'calc(100vw - 120px)' }}
+      style={flyoutStyle}
       role="dialog"
       aria-label={title}
     >
@@ -85,6 +134,21 @@ export function SpriteCutterFlyout({
           {icon && <span className="sc-flyout-icon">{icon}</span>}
           <span>{title}</span>
           {badge !== undefined && <span className="sc-flyout-badge">{badge}</span>}
+          {isProcessing && (
+            <span
+              className="sc-flyout-processing-badge"
+              style={{
+                marginLeft: 6,
+                fontSize: 10,
+                color: 'var(--accent-cyan)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4
+              }}
+            >
+              ⏳ Đang xử lý…
+            </span>
+          )}
         </div>
         <div className="sc-flyout-actions">
           {onReset && (
@@ -109,5 +173,12 @@ export function SpriteCutterFlyout({
       </div>
       <div className="sc-flyout-body">{children}</div>
     </div>
+  )
+
+  return (
+    <>
+      <span ref={anchorRef} style={{ display: 'none' }} aria-hidden />
+      {typeof document !== 'undefined' ? createPortal(content, document.body) : content}
+    </>
   )
 }

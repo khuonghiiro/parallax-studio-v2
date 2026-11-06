@@ -394,17 +394,18 @@ export function applyShadowAndMistExtraction(
   if (mode === 'off') return null
 
   const totalPixels = w * h
-  const rawRetention = settings.shadowRetention ?? 0
-  const strength = Math.max(5, Math.min(100, rawRetention > 0 ? rawRetention : 68)) / 100
+  const rawRetention = settings.shadowRetention !== undefined ? Number(settings.shadowRetention) : 68
+  // Khi người dùng kéo Độ đậm bóng = 0%, triệt tiêu hoàn toàn bóng mờ (xóa sạch 100% bóng và sạn nền)
+  const strength = rawRetention <= 0 ? 0 : Math.max(5, Math.min(100, rawRetention)) / 100
   const solidCutoff = resolveSolidCutoff(settings)
   const unmixColor = settings.shadowUnmixColor !== false
   const { rawAlpha, dirAlpha, isLight, isGreenKey, isBlueKey, isMagentaKey } = analysis
   const tol = Math.max(0, Math.min(100, settings.tolerance ?? 36))
   // Kết nối thanh trượt Độ nhạy (tolerance) với ngưỡng cắt nhiễu nền khi Lấy cả bóng:
-  // Kéo Độ nhạy cao (> 38%) sẽ nâng sàn lọc nhiễu để xoá sạch sạn nền JPEG / đốm màu phông dư thừa
-  const tolFloor = tol > 38 ? ((tol - 38) / 62) * 0.42 : 0
-  const baseFloor = Math.max(analysis.measuredNoise + 0.012, Math.max(0.035, 0.135 - strength * 0.085))
-  const noiseFloor = Math.min(Math.max(0.08, solidCutoff - 0.05), Math.max(baseFloor, tolFloor))
+  // Kéo Độ nhạy cao (> 40%) sẽ nâng sàn lọc nhiễu để xoá sạch mọi sạn nền JPEG / đốm màu phông dư thừa
+  const tolFloor = tol > 40 ? ((tol - 40) / 60) * 0.22 : 0
+  const baseFloor = Math.max(analysis.measuredNoise + 0.012, Math.max(0.02, 0.12 - strength * 0.08))
+  const noiseFloor = Math.min(Math.max(0.04, solidCutoff - 0.05), Math.max(baseFloor, tolFloor))
 
   const solidMask = new Uint8Array(totalPixels)
   if (mode === 'only') {
@@ -450,7 +451,9 @@ export function applyShadowAndMistExtraction(
     const aAll = rawAlpha[p]
     let finalA: number
     const isSolidForeground = mode === 'include' && aAll >= solidCutoff
-    if (mode === 'only') {
+    if (strength <= 0 && !isSolidForeground) {
+      finalA = 0
+    } else if (mode === 'only') {
       const aNorm = Math.max(0, Math.min(1, (dirAlpha[p] - noiseFloor) / span))
       const curved = Math.pow(aNorm, gamma) * maxShadowScale
       finalA = Math.max(0, Math.min(255, Math.round(origA * Math.min(1, curved))))
