@@ -1,10 +1,15 @@
-# Commit workflow
+# Commit Workflow
 
-Perform a simple commit directly; use a git specialist only when it adds useful isolation or handles a complex history change.
+Thực hiện commit trực tiếp trên nhánh logic hiện tại:
 
-1. Inspect `git status --short`, the worktree diff and already-staged diff. Identify which paths belong to the authorized change; preserve unrelated staged work.
-2. Review those paths for real credentials, private material, generated noise and unintended behavior. A keyword match alone is not a secret. If a real secret is present, stop the commit and report its location with the value redacted.
-3. Stage the specific authorized paths with `git add -- <paths>`, then inspect `git diff --cached`. Do not use blanket staging or reset another contributor's index changes.
-4. Group commits by coherent behavior and repository conventions, not file-count thresholds. Documentation uses `docs` where appropriate; agent configuration paths have no special type restriction. Reference related issues when the repository requires it.
-5. Run required checks (`pnpm verify`, unit tests). **Parallax Studio V2 rule:** If the live Electron app is running (TCP 9877), capture a full-screen app screenshot (`pnpm pxs review --view app`) to visually confirm there is no black screen, blank canvas, or error toast before committing. Commit with `git commit -m "type(scope): description"` in accented Vietnamese. Verify the resulting commit and remaining status. Never bypass hooks.
-6. Push only when requested, using the repository's permitted branch and ordinary push, after confirming the full-screen visual verification passes cleanly. Report the actual command result.
+1. Kiểm tra trạng thái: `git status --short`, kiểm tra các file đã thay đổi thuộc đúng logic của nhánh hiện tại.
+2. Quét bảo mật: Đảm bảo không có secret, key, token, `.env`.
+3. Stage các file thuộc logic: `git add -- <paths>`, kiểm tra `git diff --cached --stat`.
+4. Chạy các bước kiểm tra chất lượng (Quality Gates):
+   - Chạy `pnpm verify` (esbuild + typecheck toàn bộ dự án).
+   - Chạy unit tests liên quan (`pnpm test`).
+   - Nếu app Electron đang chạy (`127.0.0.1:9877`), chụp ảnh toàn màn hình Visual QA (`pnpm pxs review --view app`) để đảm bảo không đen màn, không lỗi toast/banner.
+5. Commit bằng định dạng tiếng Việt:
+   `git commit -m "[loại] (phạm vi): mô tả chi tiết bằng tiếng Việt có dấu"`
+   (Ví dụ: `git commit -m "[sửa lỗi] (layer): sửa lỗi vị trí @import trong photoStudio.css"`, `[tính năng] (photoStudio): thêm thanh công cụ rail Photoshop`).
+6. Khi hoàn tất logic: chuyển về `main`, merge bằng `--no-ff` (`git merge <nhánh> --no-ff -m "[hợp nhất] nhánh '<nhánh>' vào main"`), và push lên remote.
