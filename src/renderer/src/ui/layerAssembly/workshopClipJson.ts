@@ -10,11 +10,13 @@ import {
 import {
   buildBoneBiomechanicsGuide,
   buildMeshDeformationExportSection,
+  buildOrientationGuide,
   inferDescriptiveClipName,
   isGenericClipName,
   normalizeAndFixBiomechanicalTracks,
   upgradeCompositeSoftMeshForImpact,
-  type MotionMeshExportSection
+  type MotionMeshExportSection,
+  type MotionOrientationGuide
 } from './workshopClipBiomechanics'
 
 export {
@@ -23,7 +25,9 @@ export {
   normalizeAndFixBiomechanicalTracks,
   buildMeshDeformationExportSection,
   upgradeCompositeSoftMeshForImpact,
-  type MotionMeshExportSection
+  buildOrientationGuide,
+  type MotionMeshExportSection,
+  type MotionOrientationGuide
 }
 
 export interface MotionLayerWindItem {
@@ -70,9 +74,12 @@ export interface MotionJsonExportFormat {
   loop: boolean
   fps?: number
   viewAngle?: 'front' | 'diagonal' | 'side' | 'back'
+  /** Chi tiết góc độ (°), hướng nhìn khuôn mặt & quy tắc giải phẫu riêng cho góc đó */
+  characterOrientation?: MotionOrientationGuide
   description?: string
   rigConventions?: {
     coordinateSystem: string
+    viewAngleGuide?: string
     depthOrderRule?: string
     armRotationRule: string
     frontViewLegRule: string
@@ -244,8 +251,10 @@ export function exportAnimationClipToJson(
     fps: clip.fps ?? 30,
     viewAngle,
     description: clip.description || undefined,
+    characterOrientation: buildOrientationGuide(viewAngle),
     rigConventions: {
       coordinateSystem: '2D Screen Space (+X sang phải, +Y hướng xuống, +rotation xoay cùng chiều kim đồng hồ).',
+      viewAngleGuide: `Nhân vật đang ở góc ${viewAngle === 'side' ? 'NGANG 90° (side)' : viewAngle === 'diagonal' ? 'CHÉO 45° (diagonal)' : viewAngle === 'back' ? 'SAU LƯNG 180° (back)' : 'CHÍNH DIỆN 0° (front)'}. ${buildOrientationGuide(viewAngle).description}`,
       depthOrderRule:
         'Quy chuẩn Z-Index / Chiều sâu 2.5D: Z càng CAO (dương) thì bộ phận CÀNG Ở PHÍA TRƯỚC (Foreground, hiển thị đè lên các bộ phận khác). Z càng THẤP (âm) thì CÀNG Ở PHÍA SAU (Background, bị các bộ phận có Z cao hơn đè lên). Ví dụ: Kính mắt Z=+42 > Biểu cảm mặt Z=+30..+32 > Đầu Z=+20 > Thân áo Z=0 > Đùi/Cẳng chân Z=-20..-25 > Cánh tay sau Z=-35..-40.',
       armRotationRule:
@@ -335,7 +344,10 @@ ${promptIntent}
 - Thời lượng ("duration"): ${clip.duration.toFixed(1)} giây (có thể điều chỉnh 1.2s – 3.0s tuỳ nhịp độ động tác)
 - Tốc độ khung hình ("fps"): ${clip.fps ?? 30} fps
 - Vòng lặp ("loop"): ${clip.loop ? 'true (Lặp vô tận — tư thế tại time = 0 và time = duration BẮT BUỘC giống hệt nhau)' : 'false (Chạy 1 lần)'}
-- Góc nhìn nhân vật ("viewAngle"): "${viewAngle}" (${viewAngle === 'front' ? 'Chính diện 0°' : viewAngle === 'side' ? 'Góc ngang 90°' : 'Góc chéo 45°'})
+📐 GÓC ĐỘ & HƯỚNG NHÌN NHÂN VẬT ("characterOrientation"):
+- Mã góc nhìn ("viewAngle"): "${viewAngle}" (${viewAngle === 'front' ? 'Chính diện 0°' : viewAngle === 'side' ? 'Góc ngang 90°' : viewAngle === 'diagonal' ? 'Góc chéo 45°' : 'Góc sau lưng 180°'})
+- Hướng mặt & thân người: ${buildOrientationGuide(viewAngle).facing}
+- Đặc điểm giải phẫu góc này: ${buildOrientationGuide(viewAngle).description}
 
 🦴 CẤU TRÚC KHUNG XƯƠNG & QUY ƯỚC CHIỀU XOAY TỪNG KHỚP (BẮT BUỘC TUÂN THỦ 100%):
 ${boneTreeLines.join('\n')}
