@@ -6,6 +6,7 @@ export type RigClipAction =
   | { action: 'add-clip'; clip: AnimationClip }
   | { action: 'switch-clip'; clipId: string }
   | { action: 'rename-clip'; clipId: string; name: string }
+  | { action: 'replace-clip'; clipId: string; clip: AnimationClip }
   | { action: 'delete-clip'; clipId: string }
   | { action: 'delete-all-clips' }
   | { action: 'duplicate-clip'; clipId: string }
@@ -16,6 +17,7 @@ export function isRigClipAction(action: { action: string }): action is RigClipAc
     action.action === 'add-clip' ||
     action.action === 'switch-clip' ||
     action.action === 'rename-clip' ||
+    action.action === 'replace-clip' ||
     action.action === 'delete-clip' ||
     action.action === 'delete-all-clips' ||
     action.action === 'duplicate-clip' ||
@@ -61,6 +63,19 @@ export function applyRigClipAction(rig: LayerRig, action: RigClipAction): void {
   if (action.action === 'rename-clip') {
     if (rig.clips) {
       rig.clips = rig.clips.map((c) => (c.id === action.clipId ? { ...c, name: action.name } : c))
+    }
+    return
+  }
+
+  if (action.action === 'replace-clip') {
+    if (rig.clips) {
+      rig.clips = rig.clips.map((c) => (c.id === action.clipId ? { ...action.clip, id: action.clipId } : c))
+    }
+    if (rig.activeClipId === action.clipId) {
+      rig.tracks = structuredClone(action.clip.tracks)
+      rig.duration = action.clip.duration
+      rig.loop = action.clip.loop
+      if (action.clip.fps) rig.fps = action.clip.fps
     }
     return
   }

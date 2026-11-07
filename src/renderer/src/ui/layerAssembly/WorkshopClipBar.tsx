@@ -2,8 +2,9 @@ import { useState } from 'react'
 import type { AnimationClip, LayerRig, MotionViewAngle } from '@shared/layerRig'
 import type { LayerComposite } from './types'
 import type { RigAction } from './workshopRig'
-import { IconCopy, IconPen, IconPlus, IconTrash } from '../icons'
+import { IconCode, IconCopy, IconPen, IconPlus, IconTrash } from '../icons'
 import { WorkshopNewMotionModal } from './WorkshopNewMotionModal'
+import { WorkshopClipJsonModal } from './WorkshopClipJsonModal'
 
 export interface WorkshopClipBarProps {
   rig: LayerRig
@@ -22,6 +23,7 @@ export function WorkshopClipBar({
 }: WorkshopClipBarProps) {
   const clips = rig.clips ?? [activeClip]
   const [isNewMotionModalOpen, setIsNewMotionModalOpen] = useState(false)
+  const [isClipJsonModalOpen, setIsClipJsonModalOpen] = useState(false)
   const [angleFilter, setAngleFilter] = useState<MotionViewAngle | 'all'>('all')
   const [isRenaming, setIsRenaming] = useState(false)
   const [renameValue, setRenameValue] = useState(activeClip.name)
@@ -30,6 +32,14 @@ export function WorkshopClipBar({
     if (clipId === activeClip.id) return
     run({ action: 'switch-clip', clipId })
     setIsRenaming(false)
+  }
+
+  const handleImportClip = (clip: AnimationClip, mode: 'new' | 'replace') => {
+    if (mode === 'new') {
+      run({ action: 'add-clip', clip })
+    } else {
+      run({ action: 'replace-clip', clipId: activeClip.id, clip })
+    }
   }
 
   const handleCreatedClip = (clip: AnimationClip) => {
@@ -138,6 +148,15 @@ export function WorkshopClipBar({
           >
             <span>Mixamo</span>
           </button>
+          <button
+            type="button"
+            className="btn xs"
+            onClick={() => setIsClipJsonModalOpen(true)}
+            title="Xuất / Nhập JSON động tác hoặc sao chép Prompt cho AI khác (ChatGPT / Claude)"
+          >
+            <IconCode width={10} height={10} />
+            <span>JSON</span>
+          </button>
         </div>
       </div>
 
@@ -185,6 +204,14 @@ export function WorkshopClipBar({
           </div>
         )}
       </div>
+
+      <WorkshopClipJsonModal
+        isOpen={isClipJsonModalOpen}
+        onClose={() => setIsClipJsonModalOpen(false)}
+        clip={activeClip}
+        bones={rig.bones}
+        onImportClip={handleImportClip}
+      />
 
       <WorkshopNewMotionModal
         isOpen={isNewMotionModalOpen}
@@ -241,6 +268,15 @@ export function WorkshopClipBar({
             >
               <IconTrash width={10} height={10} />
               <span>Xoá</span>
+            </button>
+            <button
+              type="button"
+              className="btn xs lw-clip-json-btn"
+              onClick={() => setIsClipJsonModalOpen(true)}
+              title="Xuất / Nhập JSON động tác hoặc sao chép Prompt cho AI khác (ChatGPT / Claude)"
+            >
+              <IconCode width={10} height={10} />
+              <span>JSON / AI</span>
             </button>
             <button
               type="button"

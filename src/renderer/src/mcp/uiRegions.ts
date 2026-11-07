@@ -237,6 +237,7 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   layer_assembly_animation_panel: region('layer_assembly_animation_panel'),
   layer_assembly_bone_depth: region('layer_assembly_bone_depth', '.lw-bone-depth-card'),
   layer_assembly_retarget: region('layer_assembly_retarget'),
+  layer_assembly_clip_json: region('layer_assembly_clip_json', '.lw-clip-json-modal'),
   layer_assembly_create: region('layer_assembly_create'),
   layer_assembly_confirm: region('layer_assembly_confirm', '.lw-confirm-modal'),
   layer_assembly_cutter: ['.layer-cutter-split-container'],
