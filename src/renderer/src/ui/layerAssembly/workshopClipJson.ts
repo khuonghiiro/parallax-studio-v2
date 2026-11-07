@@ -732,12 +732,22 @@ export function parseAnimationClipFromJson(
 
   let viewAngle: MotionViewAngle = 'front'
   const facingStr = typeof charOrient?.facing === 'string' ? charOrient.facing : ''
-  if (VALID_ANGLES.includes(rawViewAngle as MotionViewAngle)) {
+  const contextText = `${data.name ?? ''} ${data.description ?? ''} ${facingStr}`
+  const isDiagonalText = /chéo|diagonal|nghiêng/i.test(contextText)
+  const isSideText = /ngang|side|profile/i.test(contextText)
+  const isLeftText = /trái|left/i.test(contextText)
+  const isRightText = /phải|right/i.test(contextText)
+
+  if (isLeftText && (isDiagonalText || rawViewAngle.includes('diag'))) {
+    viewAngle = 'diagonal-left'
+  } else if (isRightText && (isDiagonalText || rawViewAngle.includes('diag'))) {
+    viewAngle = 'diagonal-right'
+  } else if (isLeftText && (isSideText || rawViewAngle.includes('side'))) {
+    viewAngle = 'side-left'
+  } else if (isRightText && (isSideText || rawViewAngle.includes('side'))) {
+    viewAngle = 'side-right'
+  } else if (VALID_ANGLES.includes(rawViewAngle as MotionViewAngle)) {
     viewAngle = rawViewAngle as MotionViewAngle
-  } else if (/trái|left/i.test(`${data.name ?? ''} ${data.description ?? ''} ${facingStr}`)) {
-    viewAngle = rawViewAngle.includes('side') ? 'side-left' : 'diagonal-left'
-  } else if (/phải|right/i.test(`${data.name ?? ''} ${data.description ?? ''} ${facingStr}`)) {
-    viewAngle = rawViewAngle.includes('side') ? 'side-right' : 'diagonal-right'
   } else if (rawViewAngle.startsWith('diag')) {
     viewAngle = 'diagonal'
   } else if (rawViewAngle.startsWith('side')) {

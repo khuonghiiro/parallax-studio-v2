@@ -634,4 +634,91 @@ describe('workshopClipJson', () => {
     expect(thighRKfs[0].scaleX).toBeLessThanOrEqual(0.95)
   })
 
+  it('auto-detects diagonal-left from name/description and heals paralyzed thigh swings, joint dislocation & torso lean', () => {
+    const humanoidBones = createHumanoidBones()
+    const userJson = JSON.stringify({
+      format: 'parallax-motion-v1',
+      name: 'Bước đi chéo sang trái tại chỗ (Diagonal Walk Left In-place)',
+      description: 'Bước đi tại chỗ, nhân vật tiến về phía camera và lệch chéo sang trái màn hình...',
+      duration: 1.6,
+      loop: true,
+      fps: 30,
+      viewAngle: 'front',
+      tracks: {
+        'bone-pelvis': [
+          { time: 0.0, x: -1, y: 12, rotation: 0 },
+          { time: 0.4, x: -3, y: 2, rotation: -2 },
+          { time: 0.8, x: -1, y: 12, rotation: 0 },
+          { time: 1.2, x: 2, y: 2, rotation: 2 },
+          { time: 1.6, x: -1, y: 12, rotation: 0 }
+        ],
+        'bone-torso': [
+          { time: 0.0, y: 4, rotation: -6 },
+          { time: 0.4, y: -3, rotation: -3 },
+          { time: 0.8, y: 4, rotation: -6 },
+          { time: 1.2, y: -3, rotation: -3 },
+          { time: 1.6, y: 4, rotation: -6 }
+        ],
+        'bone-head': [
+          { time: 0.0, y: 2, rotation: -3 },
+          { time: 0.4, y: -2, rotation: -5 },
+          { time: 0.8, y: 2, rotation: -3 },
+          { time: 1.2, y: -2, rotation: -5 },
+          { time: 1.6, y: 2, rotation: -3 }
+        ],
+        'bone-thigh-l': [
+          { time: 0.0, x: -3, y: 6, rotation: 10, zOrder: 15 },
+          { time: 0.4, x: 0, y: 2, rotation: 5, zOrder: -15 },
+          { time: 0.8, x: 3, y: -8, rotation: 4, zOrder: -15 },
+          { time: 1.2, x: 0, y: -6, rotation: 7, zOrder: 15 },
+          { time: 1.6, x: -3, y: 6, rotation: 10, zOrder: 15 }
+        ],
+        'bone-shin-l': [
+          { time: 0.0, y: 6, rotation: -8 },
+          { time: 0.4, y: 2, rotation: -5 },
+          { time: 0.8, y: -9, rotation: -12 },
+          { time: 1.2, y: -7, rotation: -12 },
+          { time: 1.6, y: 6, rotation: -8 }
+        ],
+        'bone-thigh-r': [
+          { time: 0.0, x: 3, y: -8, rotation: -4, zOrder: -15 },
+          { time: 0.4, x: 0, y: -4, rotation: -5, zOrder: 15 },
+          { time: 0.8, x: -3, y: 6, rotation: -8, zOrder: 15 },
+          { time: 1.2, x: 0, y: 2, rotation: -5, zOrder: -15 },
+          { time: 1.6, x: 3, y: -8, rotation: -4, zOrder: -15 }
+        ],
+        'bone-shin-r': [
+          { time: 0.0, y: -9, rotation: 12 },
+          { time: 0.4, y: -7, rotation: 12 },
+          { time: 0.8, y: 6, rotation: 8 },
+          { time: 1.2, y: 2, rotation: 5 },
+          { time: 1.6, y: -9, rotation: 12 }
+        ]
+      }
+    })
+
+    const res = parseAnimationClipFromJson(userJson, humanoidBones)
+    expect(res.success).toBe(true)
+    expect(res.clip?.viewAngle).toBe('diagonal-left')
+
+    // Dislocated hip joint translations (x: -3..3) are zeroed out
+    const tlKfs = res.clip?.tracks['bone-thigh-l']!
+    expect(tlKfs[0].x).toBe(0)
+    expect(tlKfs[2].x).toBe(0)
+
+    // Paralyzed thigh swing rotations are restored to natural walk stride
+    expect(tlKfs[0].rotation).toBe(20)
+    expect(tlKfs[2].rotation).toBe(-16)
+
+    // Passing position has natural knee flexion (shin bent to 36°)
+    const slKfs = res.clip?.tracks['bone-shin-l']!
+    expect(slKfs[1].rotation).toBe(36)
+
+    // Torso rotation is re-centered across zero
+    const torsoKfs = res.clip?.tracks['bone-torso']!
+    expect(torsoKfs[0].rotation).toBeLessThan(0)
+    expect(torsoKfs[1].rotation).toBeGreaterThan(0)
+    expect(Math.abs(torsoKfs[0].rotation)).toBeLessThanOrEqual(5)
+  })
+
 })

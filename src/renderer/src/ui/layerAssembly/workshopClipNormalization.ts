@@ -74,18 +74,36 @@ function fixUnnaturalTorsoTwistInPlace(
   let fixedTwist = false
 
   for (const boneId of [torsoId, headId]) {
-    const kfs = tracks[boneId]
+    let kfs = tracks[boneId]
     if (!kfs || kfs.length === 0) continue
 
     const maxAbsRot = Math.max(...kfs.map((k) => Math.abs(k.rotation ?? 0)))
     if (maxAbsRot > 8) {
       const scale = 5 / maxAbsRot
-      tracks[boneId] = kfs.map((k) => ({
+      kfs = kfs.map((k) => ({
         ...k,
         rotation: Number(((k.rotation ?? 0) * scale).toFixed(2))
       }))
       fixedTwist = true
     }
+
+    // Khử lệch vẹo cột sống một chiều (khi AI để thân nghiêng vĩnh viễn không đối xứng qua nhịp bước)
+    const rots = kfs.map((k) => k.rotation ?? 0)
+    const avgRot = rots.reduce((a, b) => a + b, 0) / rots.length
+    if (Math.abs(avgRot) > 2.2 && kfs.length >= 3) {
+      const targetBias = Math.sign(avgRot) * Math.min(1.2, Math.abs(avgRot) * 0.2)
+      kfs = kfs.map((k) => {
+        const centered = (k.rotation ?? 0) - avgRot + targetBias
+        const clamped = Math.max(-5, Math.min(5, centered))
+        return {
+          ...k,
+          rotation: Number(clamped.toFixed(2))
+        }
+      })
+      fixedTwist = true
+    }
+
+    tracks[boneId] = kfs
   }
 
   if (fixedTwist) {
@@ -563,6 +581,93 @@ function deduplicateHierarchicalChildZOrderInPlace(
   }
 }
 
+
+/** Khôi phục sải chân vung đùi - gập gối tự nhiên khi AI bị tê liệt góc xoay chân hoặc dịch chuyển X/Y sai khớp háng */
+function fixSuffocatedWalkCycleStridesInPlace(
+  tracks: Record<string, BoneKeyframe[]>,
+  roles: HumanoidBoneRoleMap,
+  fixes: string[]
+): void {
+  const thighLId = roles.thighL ?? 'bone-thigh-l'
+  const thighRId = roles.thighR ?? 'bone-thigh-r'
+  const shinLId = roles.shinL ?? 'bone-shin-l'
+  const shinRId = roles.shinR ?? 'bone-shin-r'
+  const tlKfs = tracks[thighLId]
+  const trKfs = tracks[thighRId]
+  if (!tlKfs || !trKfs || tlKfs.length < 2 || trKfs.length < 2) return
+
+  // 1. Khử lệch X trật khớp háng/vai trên các chi dạng socket
+  let fixedDislocation = false
+  for (const boneId of [thighLId, thighRId, shinLId, shinRId]) {
+    const kfs = tracks[boneId]
+    if (!kfs) continue
+    for (const kf of kfs) {
+      if (kf.x !== undefined && Math.abs(kf.x) > 0.5) {
+        kf.x = 0
+        fixedDislocation = true
+      }
+    }
+  }
+
+  // 2. Kiểm tra nếu biên độ vung đùi bị tê liệt (< 14°) trong khi có nhịp bước
+  const tlRange = getTrackRange(tlKfs)
+  const trRange = getTrackRange(trKfs)
+  const tlSpan = Math.abs(tlRange.maxRot - tlRange.minRot)
+  const trSpan = Math.abs(trRange.maxRot - trRange.minRot)
+  const isThighSuffocated = tlSpan < 14 && trSpan < 14
+
+  if (isThighSuffocated) {
+    const hasStepInYOrZ = tlKfs.some(
+      (k) => (k.y !== undefined && Math.abs(k.y) > 2) || (k.zOrder !== undefined && Math.abs(k.zOrder) >= 10)
+    )
+    if (hasStepInYOrZ) {
+      let fixedLegs = false
+      const synthesizeStride = (kfs: BoneKeyframe[], shinKfs?: BoneKeyframe[]) => {
+        kfs.forEach((kf, idx) => {
+          const rawY = kf.y ?? 0
+          const rawZ = kf.zOrder ?? 0
+          const isForward = rawY > 3 || (rawZ > 0 && rawY >= 0)
+          const isBackward = (rawY < -3 && rawZ < 0) || rawY <= -6
+          const isPassing = !isForward && !isBackward
+
+          if (isForward) {
+            kf.rotation = 20
+            fixedLegs = true
+            if (shinKfs && shinKfs[idx]) {
+              shinKfs[idx].rotation = -4
+            }
+          } else if (isBackward) {
+            kf.rotation = -16
+            fixedLegs = true
+            if (shinKfs && shinKfs[idx]) {
+              shinKfs[idx].rotation = 10
+            }
+          } else if (isPassing) {
+            kf.rotation = 2
+            fixedLegs = true
+            if (shinKfs && shinKfs[idx]) {
+              shinKfs[idx].rotation = 36
+            }
+          }
+        })
+      }
+
+      synthesizeStride(tlKfs, tracks[shinLId])
+      synthesizeStride(trKfs, tracks[shinRId])
+
+      if (fixedLegs) {
+        fixes.push(
+          'Khôi phục sải chân vung đùi (±18..20°) và gập gối (36°) tự nhiên (khắc phục lỗi AI làm tê liệt góc xoay chân hoặc trật khớp háng)'
+        )
+      }
+    }
+  }
+
+  if (fixedDislocation && !fixes.some((f) => f.includes('trật khớp háng'))) {
+    fixes.push('Khử lệch toạ độ X của khớp Đùi & Cẳng chân (giữ chân gắn chặt vào ổ khớp hông)')
+  }
+}
+
 export function normalizeAndFixBiomechanicalTracks(
   rawTracks: Record<string, BoneKeyframe[]>,
   bones: ReadonlyArray<LayerBone> = [],
@@ -575,6 +680,7 @@ export function normalizeAndFixBiomechanicalTracks(
   fixDriftingPelvisXInPlace(tracks, roles, fixesApplied)
   fixUnnaturalTorsoTwistInPlace(tracks, roles, fixesApplied)
   fixCrossedArmsInPlace(tracks, roles, fixesApplied)
+  fixSuffocatedWalkCycleStridesInPlace(tracks, roles, fixesApplied)
   fixPelvisAndTorsoSquashInPlace(tracks, roles, fixesApplied)
   deduplicateHierarchicalChildZOrderInPlace(tracks, roles, fixesApplied)
   fixWalkPerspectiveAndContralateralLimbSwingInPlace(tracks, roles, fixesApplied)
