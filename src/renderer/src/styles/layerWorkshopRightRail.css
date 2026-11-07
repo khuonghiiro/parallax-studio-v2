@@ -1,101 +1,108 @@
 /* ============================================================================
- * XƯỞNG LAYER 2.5D · DẢI TAB DỌC ICON CỘT BÊN PHẢI (Right Rail Sub-Tabs)
+ * XƯỞNG LAYER 2.5D · DẢI TAB NGANG CON CỘT BÊN PHẢI (Horizontal Sub-Tabs)
  * ============================================================================ */
 
-.lw-right-body-with-rail {
+/* ──────────────────────────────────────────────────────────────────────────
+   1. Horizontal Sub-Tabs Bar (Placed below Main Parent Tabs)
+   ────────────────────────────────────────────────────────────────────────── */
+.lw-right-subtabs {
   display: flex;
   flex-direction: row;
-  flex: 1 1 auto;
-  min-height: 0;
-  min-width: 0;
-  overflow: hidden;
-  position: relative;
-}
-
-/* ──────────────────────────────────────────────────────────────────────────
-   1. Vertical Icon Rail Strip (Left of Right Inspector Body)
-   ────────────────────────────────────────────────────────────────────────── */
-.lw-right-vertical-rail {
-  width: 44px;
-  min-width: 44px;
-  max-width: 44px;
-  background: var(--bg-1);
-  border-right: 1px solid var(--line-soft);
-  display: flex;
-  flex-direction: column;
   align-items: center;
-  padding: 8px 4px;
-  gap: 6px;
+  gap: 3px;
+  padding: 3px;
+  margin: 6px 8px 8px 8px;
+  background: color-mix(in srgb, var(--bg-1) 85%, #05070f);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
   user-select: none;
-  z-index: 10;
   flex-shrink: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
+  position: relative;
+  z-index: 5;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
-/* Clean scrollbar for vertical rail */
-.lw-right-vertical-rail::-webkit-scrollbar {
-  width: 3px;
-}
-.lw-right-vertical-rail::-webkit-scrollbar-thumb {
-  background: var(--line-soft);
-  border-radius: var(--radius-sm);
+[data-theme='light'] .lw-right-subtabs {
+  background: color-mix(in srgb, var(--bg-2) 92%, #e2e8f0);
+  border-color: var(--line-soft);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
-.lw-vtab-btn {
-  width: 36px;
-  height: 36px;
-  min-height: 36px;
+/* Individual Sub-Tab Button (Chữ nhật bo góc 4px thống nhất quy chuẩn) */
+.lw-htab-btn {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 28px;
+  min-height: 28px;
   border-radius: var(--radius-sm);
   border: 1px solid transparent;
   background: transparent;
   color: var(--text-dim);
-  display: flex;
-  flex-direction: column;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 5px;
   cursor: pointer;
   position: relative;
-  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
-  padding: 0;
+  padding: 0 4px;
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.lw-vtab-btn:hover {
-  background: color-mix(in srgb, var(--accent) 12%, var(--bg-2));
+.lw-htab-btn:hover {
+  background: color-mix(in srgb, var(--accent-cyan, #06b6d4) 12%, var(--bg-2));
   color: var(--text);
   border-color: var(--line-soft);
 }
 
-.lw-vtab-btn.active {
-  background: var(--accent);
-  color: var(--on-accent);
-  border-color: var(--line-focus);
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
+/* ──────────────────────────────────────────────────────────────────────────
+   Màu Active / Focus Phân Cấp Cha - Con Rõ Ràng:
+   - Tab cha (SegmentedTabs): Nền Royal Blue (--accent), chữ trắng.
+   - Tab con (.lw-htab-btn.active): Viền & nền Cyan Electric (--accent-cyan),
+     phân biệt tuyệt đối cấp độ giao diện.
+   ────────────────────────────────────────────────────────────────────────── */
+.lw-htab-btn.active {
+  background: color-mix(in srgb, var(--accent-cyan, #06b6d4) 20%, var(--bg-2));
+  color: var(--accent-cyan, #22d3ee);
+  border-color: color-mix(in srgb, var(--accent-cyan, #06b6d4) 60%, transparent);
+  box-shadow: 0 1px 4px rgba(6, 182, 212, 0.22);
+  font-weight: 600;
 }
 
-.lw-vtab-btn:focus-visible {
-  outline: 2px solid var(--line-focus);
+[data-theme='light'] .lw-htab-btn.active {
+  background: color-mix(in srgb, #0891b2 15%, #ffffff);
+  color: #0e7490;
+  border-color: #0891b2;
+  box-shadow: 0 1px 3px rgba(8, 145, 178, 0.18);
+}
+
+.lw-htab-btn:focus-visible {
+  outline: 2px solid var(--accent-cyan, #22d3ee);
   outline-offset: 1px;
 }
 
-.lw-vtab-icon {
+.lw-htab-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
+  width: 14px;
+  height: 14px;
   flex-shrink: 0;
 }
 
-.lw-vtab-btn.active .lw-vtab-icon svg {
-  stroke-width: 2.1;
+.lw-htab-btn.active .lw-htab-icon svg {
+  stroke-width: 2.2;
 }
 
-.lw-vtab-badge {
-  position: absolute;
-  top: 1px;
-  right: 1px;
+.lw-htab-label {
+  font-size: 11px;
+  letter-spacing: 0.1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Badge con (đếm số layer, nhãn 'Vải' / 'Xương') */
+.lw-htab-badge {
   font-size: 8.5px;
   line-height: 1;
   padding: 1.5px 3.5px;
@@ -105,30 +112,31 @@
   border: 1px solid var(--line-soft);
   font-weight: 700;
   pointer-events: none;
+  flex-shrink: 0;
 }
 
-.lw-vtab-btn.active .lw-vtab-badge {
-  background: rgba(255, 255, 255, 0.25);
+.lw-htab-btn.active .lw-htab-badge {
+  background: color-mix(in srgb, var(--accent-cyan, #06b6d4) 28%, var(--bg-1));
+  color: var(--accent-cyan, #22d3ee);
+  border-color: color-mix(in srgb, var(--accent-cyan, #06b6d4) 50%, transparent);
+}
+
+[data-theme='light'] .lw-htab-btn.active .lw-htab-badge {
+  background: #0891b2;
   color: #ffffff;
-  border-color: rgba(255, 255, 255, 0.4);
+  border-color: #0891b2;
 }
 
-.lw-vtab-badge.tone-accent {
+.lw-htab-badge.tone-accent {
   background: var(--accent);
   color: var(--on-accent);
   border-color: transparent;
 }
 
-.lw-vtab-badge.tone-cyan {
-  background: var(--accent-cyan);
-  color: #022c22;
-  border-color: transparent;
-}
-
 /* ──────────────────────────────────────────────────────────────────────────
-   2. Main Subtab Content Area
+   2. Main Subtab Content Area (Chiếm 100% diện tích còn lại)
    ────────────────────────────────────────────────────────────────────────── */
-.lw-right-content.lw-vtab-content {
+.lw-right-content.lw-htab-content {
   flex: 1 1 auto;
   min-width: 0;
   min-height: 0;
@@ -163,7 +171,7 @@
 }
 
 .lw-vtab-pane-title svg {
-  color: var(--accent);
+  color: var(--accent-cyan, #22d3ee);
   flex-shrink: 0;
 }
 
@@ -240,4 +248,16 @@
   display: flex;
   align-items: center;
   gap: 4px;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   4. Responsive Adjustments (< 340px)
+   ────────────────────────────────────────────────────────────────────────── */
+@media (max-width: 340px) {
+  .lw-htab-label {
+    display: none;
+  }
+  .lw-htab-btn {
+    padding: 0;
+  }
 }

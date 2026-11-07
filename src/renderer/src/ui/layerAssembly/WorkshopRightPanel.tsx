@@ -25,12 +25,19 @@ import {
   IconTabLayersStack,
   IconTabWindMotion
 } from './LayerWorkshopStudioIcons'
-import { WorkshopAnimationPanel, type AnimInspectorSubTab } from './WorkshopAnimationPanel'
-import { WorkshopLoopLogicPanel, type LoopSubTab } from './WorkshopLoopLogicPanel'
+import { WorkshopAnimationPanel } from './WorkshopAnimationPanel'
+import { WorkshopLoopLogicPanel } from './WorkshopLoopLogicPanel'
 import { useWorkshopLoopActions } from './useWorkshopLoopActions'
-import { WorkshopPlantPanel, type WindPanelSubTab } from './WorkshopPlantPanel'
-import { WorkshopRigPanel, type RigSubTab } from './WorkshopRigPanel'
-import type { LayerSubTab } from './LayerAssemblyInspector'
+import { WorkshopPlantPanel } from './WorkshopPlantPanel'
+import { WorkshopRigPanel } from './WorkshopRigPanel'
+import {
+  useWorkshopSubTab,
+  type LayerSubTab,
+  type RigSubTab,
+  type AnimInspectorSubTab,
+  type WindPanelSubTab,
+  type LoopSubTab
+} from './workshopSubTabStore'
 import type { useLayerWorkshop } from './useLayerWorkshop'
 import type { useWorkshopPlayback } from './useWorkshopPlayback'
 import { applyRigAction, ensureRigClips, type RigAction } from './workshopRig'
@@ -58,12 +65,12 @@ export function WorkshopRightPanel({
 }) {
   const [error, setError] = useState('')
 
-  // Trạng thái tab dọc icon tương ứng của từng tab chính
-  const [layerSubTab, setLayerSubTab] = useState<LayerSubTab>('stack')
-  const [rigSubTab, setRigSubTab] = useState<RigSubTab>('hierarchy')
-  const [animSubTab, setAnimSubTab] = useState<AnimInspectorSubTab>('pose')
-  const [plantSubTab, setPlantSubTab] = useState<WindPanelSubTab>('spines')
-  const [loopSubTab, setLoopSubTab] = useState<LoopSubTab>('template')
+  // Trạng thái sub-tab con đồng bộ store (hỗ trợ cả UI lẫn MCP điều khiển)
+  const [layerSubTab, setLayerSubTab] = useWorkshopSubTab('layers')
+  const [rigSubTab, setRigSubTab] = useWorkshopSubTab('bones')
+  const [animSubTab, setAnimSubTab] = useWorkshopSubTab('animation')
+  const [plantSubTab, setPlantSubTab] = useWorkshopSubTab('plant')
+  const [loopSubTab, setLoopSubTab] = useWorkshopSubTab('loop')
 
   const run = (action: RigAction) => {
     try {
@@ -323,47 +330,48 @@ export function WorkshopRightPanel({
         </div>
       )}
 
-      {/* Thân cột phải với dải tab dọc icon bên trái để giảm tải UI */}
-      <div className="lw-right-body-with-rail">
-        <nav
-          className="lw-right-vertical-rail"
-          role="tablist"
-          aria-orientation="vertical"
-          aria-label={`Phân khu ${tab}`}
-        >
-          {subTabs.map((st) => {
-            const isActive = currentSubTabId === st.id
-            return (
-              <button
-                key={st.id}
-                type="button"
-                role="tab"
-                aria-selected={isActive}
-                className={`lw-vtab-btn${isActive ? ' active' : ''}`}
-                onClick={() => handleSelectSubTab(st.id)}
-                title={`${st.label} · ${st.title}`}
-                aria-label={st.label}
-              >
-                <span className="lw-vtab-icon">{st.icon}</span>
-                {st.badge !== undefined && (
-                  <span
-                    className={`lw-vtab-badge${typeof st.badge === 'string' ? ' tone-accent' : ''}`}
-                  >
-                    {st.badge}
-                  </span>
-                )}
-              </button>
-            )
-          })}
-        </nav>
+      {/* Dải tab ngang con (Horizontal Sub-Tabs cấp 2) với màu và style phân cấp rõ nét */}
+      <nav
+        className="lw-right-subtabs"
+        role="tablist"
+        aria-orientation="horizontal"
+        aria-label={`Phân khu ${tab}`}
+      >
+        {subTabs.map((st) => {
+          const isActive = currentSubTabId === st.id
+          return (
+            <button
+              key={st.id}
+              type="button"
+              role="tab"
+              aria-selected={isActive}
+              className={`lw-htab-btn${isActive ? ' active' : ''}`}
+              onClick={() => handleSelectSubTab(st.id)}
+              title={`${st.label} · ${st.title}`}
+              aria-label={st.label}
+              data-mcp-subtab={st.id}
+            >
+              <span className="lw-htab-icon">{st.icon}</span>
+              <span className="lw-htab-label">{st.label}</span>
+              {st.badge !== undefined && (
+                <span
+                  className={`lw-htab-badge${typeof st.badge === 'string' ? ' tone-accent' : ''}`}
+                >
+                  {st.badge}
+                </span>
+              )}
+            </button>
+          )
+        })}
+      </nav>
 
-        {/* Nội dung tương ứng của phân khu đang chọn */}
-        <div
-          className="lw-right-content lw-vtab-content"
-          role="tabpanel"
-          id={`lw-panel-${tab}`}
-          aria-labelledby={`lw-tab-${tab}`}
-        >
+      {/* Nội dung tương ứng của phân khu đang chọn */}
+      <div
+        className="lw-right-content lw-htab-content"
+        role="tabpanel"
+        id={`lw-panel-${tab}`}
+        aria-labelledby={`lw-tab-${tab}`}
+      >
           {tab === 'layers' ? (
             children && typeof children === 'object' && 'props' in children ? (
               cloneElement(children as ReactElement<any>, {
@@ -408,7 +416,6 @@ export function WorkshopRightPanel({
               onChangeSubTab={setAnimSubTab}
             />
           )}
-        </div>
       </div>
     </aside>
   )

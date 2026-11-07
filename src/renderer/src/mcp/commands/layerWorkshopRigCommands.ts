@@ -17,6 +17,7 @@ import { parseRigStructureAction } from './layerWorkshopRigStructureParams'
 import { getStoredComposites } from '../../ui/layerAssembly/layerAssemblyStorage'
 import { setPlantSpineEditorState, getPlantSpineEditorState } from '../../ui/layerAssembly/plantSpineEditorStore'
 import { setAnimAssist, getAnimAssist } from '../../ui/layerAssembly/animAssistStore'
+import { setAnyWorkshopSubTab, getWorkshopSubTab } from '../../ui/layerAssembly/workshopSubTabStore'
 import { getRigToolState, resetTestPoses, setRigToolState } from '../../ui/layerAssembly/rigToolStore'
 import {
   autoDetectLandmarksFromComposite,
@@ -343,13 +344,21 @@ export const layerWorkshopRigCommands: Record<string, Handler> = {
   set_layer_assembly_panel: (p) => {
     const session = activeWorkshop()
     const tab = str(p, 'tab')
-    if (tab && !['layers', 'bones', 'animation', 'plant'].includes(tab)) throw new ParamError('Invalid tab')
-    const activeTab = (tab ?? session.getTab?.() ?? 'layers') as 'layers' | 'bones' | 'animation' | 'plant'
+    if (tab && !['layers', 'bones', 'animation', 'plant', 'loop'].includes(tab)) throw new ParamError('Invalid tab')
+    const activeTab = (tab ?? session.getTab?.() ?? 'layers') as 'layers' | 'bones' | 'animation' | 'plant' | 'loop'
 
     const boneId = str(p, 'bone_id') || null
     if (boneId && !session.getComposite().rig?.bones.some((b) => b.id === boneId)) throw new ParamError('Unknown bone ID')
     if (tab) session.setTab?.(activeTab)
     if (boneId !== null || p.bone_id !== undefined) session.setSelectedBoneId?.(boneId)
+
+    const subTab = str(p, 'sub_tab') || str(p, 'subTab')
+    if (subTab) {
+      const okSub = setAnyWorkshopSubTab(activeTab, subTab)
+      if (!okSub) {
+        throw new ParamError(`Invalid sub_tab "${subTab}" for tab "${activeTab}"`)
+      }
+    }
 
     const spineId = str(p, 'spine_id')
     const plantPatch: Record<string, unknown> = {}
@@ -422,6 +431,8 @@ export const layerWorkshopRigCommands: Record<string, Handler> = {
     return {
       ok: true,
       tab: activeTab,
+      sub_tab: getWorkshopSubTab(activeTab as any),
+      subTab: getWorkshopSubTab(activeTab as any),
       boneId,
       spineId: getPlantSpineEditorState().selectedSpineId,
       animAssist: getAnimAssist(),
