@@ -13,12 +13,16 @@ import type { LoopAnimationTemplate } from '../loopAnimator/types'
 import type { AssembledLayerItem, LoopWorkshopLayerConfig } from './types'
 import { useLoopTemplateList } from './WorkshopLoopAssetTab'
 
+export type LoopSubTab = 'template' | 'playback' | 'rhythm'
+
 interface Props {
   selectedLayer: AssembledLayerItem | null
   isPlaying: boolean
   onTogglePlaying: () => void
   onUpdateLayer: (id: string, patch: Partial<AssembledLayerItem>) => void
   onBindLoopTemplate: (template: LoopAnimationTemplate) => void
+  subTab?: LoopSubTab
+  onChangeSubTab?: (tab: LoopSubTab) => void
 }
 
 export function buildWorkshopLoopConfigFromTemplate(template: LoopAnimationTemplate): LoopWorkshopLayerConfig {
@@ -119,7 +123,8 @@ function BoundTemplateCard({
   )
 }
 
-export function WorkshopLoopLogicPanel({ selectedLayer, isPlaying, onTogglePlaying, onUpdateLayer, onBindLoopTemplate }: Props): React.ReactElement {
+export function WorkshopLoopLogicPanel(props: Props): React.ReactElement {
+  const { selectedLayer, isPlaying, onTogglePlaying, onUpdateLayer, onBindLoopTemplate, subTab } = props
   const templates = useLoopTemplateList()
 
   if (!selectedLayer) {
@@ -152,68 +157,74 @@ export function WorkshopLoopLogicPanel({ selectedLayer, isPlaying, onTogglePlayi
 
   return (
     <div className="lw-loop-panel" data-mcp-region="layer_assembly_loop_logic">
-      <BoundTemplateCard layer={selectedLayer} template={template} templates={templates} onBind={onBindLoopTemplate} />
+      {(!subTab || subTab === 'template') && (
+        <BoundTemplateCard layer={selectedLayer} template={template} templates={templates} onBind={onBindLoopTemplate} />
+      )}
 
-      <section className="lw-loop-section">
-        <div className="lw-loop-section-head">
-          <label className="la-switch" title="Bật xử lý phát lặp & nhịp nháy cho mảnh này">
-            <input type="checkbox" checked={Boolean(cfg?.enabled)} onChange={(e) => patch({ enabled: e.target.checked })} />
-            <span className="la-switch-track" aria-hidden />
-            <span className="la-switch-text">Phát lặp</span>
-          </label>
-          <button type="button" className={`la-btn la-btn--sm ${isPlaying ? 'la-btn--outline' : 'la-btn--primary'}`} onClick={onTogglePlaying}>
-            {isPlaying ? <IconPause width={11} height={11} /> : <IconPlay width={11} height={11} />}
-            <span>{isPlaying ? 'Dừng thử' : 'Chạy thử'}</span>
-          </button>
-        </div>
-        {cfg?.enabled && (
-          <>
-            {cfg.frames && cfg.frames.length > 1 && (
-              <>
-                <LoopRangeField label="FPS" value={cfg.fps} display={`${cfg.fps}`} min={1} max={60} step={1} onChange={(v) => patch({ fps: v })} />
-                <div className="la-seg la-seg--fill">
-                  {LOOP_MODES.map((m) => (
-                    <button key={m.id} type="button" className={`la-seg-btn${cfg.loopMode === m.id ? ' active' : ''}`} onClick={() => patch({ loopMode: m.id })}>
-                      {m.label}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-            <LoopRangeField label="Tốc độ" value={cfg.speed ?? 1} display={`${(cfg.speed ?? 1).toFixed(2)}×`} min={0.2} max={4} step={0.05} onChange={(v) => patch({ speed: v })} />
-            <LoopRangeField label="Lệch pha" value={cfg.timeOffset ?? 0} display={`${(cfg.timeOffset ?? 0).toFixed(2)}s`} min={0} max={3} step={0.05} onChange={(v) => patch({ timeOffset: v })} />
-          </>
-        )}
-      </section>
-
-      <section className="lw-loop-section">
-        <div className="lw-loop-section-head">
-          <span className="la-label">Nhịp & Nháy (Rhythm FX)</span>
-        </div>
-        <div className="la-seg la-seg--fill la-seg--wrap">
-          {RHYTHM_MODES.map((m) => (
-            <button key={m.id} type="button" className={`la-seg-btn${r === m.id ? ' active' : ''}`} onClick={() => patch({ enabled: true, rhythmMode: m.id })}>
-              {m.label}
+      {(!subTab || subTab === 'playback') && (
+        <section className="lw-loop-section">
+          <div className="lw-loop-section-head">
+            <label className="la-switch" title="Bật xử lý phát lặp & nhịp nháy cho mảnh này">
+              <input type="checkbox" checked={Boolean(cfg?.enabled)} onChange={(e) => patch({ enabled: e.target.checked })} />
+              <span className="la-switch-track" aria-hidden />
+              <span className="la-switch-text">Phát lặp</span>
+            </label>
+            <button type="button" className={`la-btn la-btn--sm ${isPlaying ? 'la-btn--outline' : 'la-btn--primary'}`} onClick={onTogglePlaying}>
+              {isPlaying ? <IconPause width={11} height={11} /> : <IconPlay width={11} height={11} />}
+              <span>{isPlaying ? 'Dừng thử' : 'Chạy thử'}</span>
             </button>
-          ))}
-        </div>
-        {cfg?.enabled && r !== 'none' && (
-          <>
-            <LoopRangeField label="Tần số" value={cfg.rhythmRateHz ?? 2.5} display={`${(cfg.rhythmRateHz ?? 2.5).toFixed(1)} Hz`} min={0.2} max={10} step={0.1} onChange={(v) => patch({ rhythmRateHz: v })} />
-            <LoopRangeField label="Cường độ" value={cfg.rhythmIntensity ?? 0.4} display={`${Math.round((cfg.rhythmIntensity ?? 0.4) * 100)}%`} min={0.05} max={1} step={0.05} onChange={(v) => patch({ rhythmIntensity: v })} />
-            {(r === 'flicker_opacity' || r === 'sync_both' || r === 'strobe_beat') && (
-              <LoopRangeField label="Mờ đáy" value={cfg.minOpacity ?? 0.6} display={`${Math.round((cfg.minOpacity ?? 0.6) * 100)}%`} min={0.05} max={0.95} step={0.05} onChange={(v) => patch({ minOpacity: v })} />
-            )}
-            {(r === 'pulse_scale' || r === 'sync_both' || r === 'strobe_beat') && (
-              <LoopRangeField label="Biên độ" value={cfg.scaleBeatPct ?? 12} display={`+${cfg.scaleBeatPct ?? 12}%`} min={2} max={40} step={1} onChange={(v) => patch({ scaleBeatPct: v })} />
-            )}
-          </>
-        )}
-        <button type="button" className="la-btn la-btn--outline la-btn--sm lw-loop-light-btn" onClick={handleSyncLight} title="Bật nguồn sáng ảo 2.5D nháy theo nhịp Loop của mảnh này">
-          <IconSun width={12} height={12} />
-          <span>Nguồn sáng ảo nháy theo Loop</span>
-        </button>
-      </section>
+          </div>
+          {cfg?.enabled && (
+            <>
+              {cfg.frames && cfg.frames.length > 1 && (
+                <>
+                  <LoopRangeField label="FPS" value={cfg.fps} display={`${cfg.fps}`} min={1} max={60} step={1} onChange={(v) => patch({ fps: v })} />
+                  <div className="la-seg la-seg--fill">
+                    {LOOP_MODES.map((m) => (
+                      <button key={m.id} type="button" className={`la-seg-btn${cfg.loopMode === m.id ? ' active' : ''}`} onClick={() => patch({ loopMode: m.id })}>
+                        {m.label}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+              <LoopRangeField label="Tốc độ" value={cfg.speed ?? 1} display={`${(cfg.speed ?? 1).toFixed(2)}×`} min={0.2} max={4} step={0.05} onChange={(v) => patch({ speed: v })} />
+              <LoopRangeField label="Lệch pha" value={cfg.timeOffset ?? 0} display={`${(cfg.timeOffset ?? 0).toFixed(2)}s`} min={0} max={3} step={0.05} onChange={(v) => patch({ timeOffset: v })} />
+            </>
+          )}
+        </section>
+      )}
+
+      {(!subTab || subTab === 'rhythm') && (
+        <section className="lw-loop-section">
+          <div className="lw-loop-section-head">
+            <span className="la-label">Nhịp & Nháy (Rhythm FX)</span>
+          </div>
+          <div className="la-seg la-seg--fill la-seg--wrap">
+            {RHYTHM_MODES.map((m) => (
+              <button key={m.id} type="button" className={`la-seg-btn${r === m.id ? ' active' : ''}`} onClick={() => patch({ enabled: true, rhythmMode: m.id })}>
+                {m.label}
+              </button>
+            ))}
+          </div>
+          {cfg?.enabled && r !== 'none' && (
+            <>
+              <LoopRangeField label="Tần số" value={cfg.rhythmRateHz ?? 2.5} display={`${(cfg.rhythmRateHz ?? 2.5).toFixed(1)} Hz`} min={0.2} max={10} step={0.1} onChange={(v) => patch({ rhythmRateHz: v })} />
+              <LoopRangeField label="Cường độ" value={cfg.rhythmIntensity ?? 0.4} display={`${Math.round((cfg.rhythmIntensity ?? 0.4) * 100)}%`} min={0.05} max={1} step={0.05} onChange={(v) => patch({ rhythmIntensity: v })} />
+              {(r === 'flicker_opacity' || r === 'sync_both' || r === 'strobe_beat') && (
+                <LoopRangeField label="Mờ đáy" value={cfg.minOpacity ?? 0.6} display={`${Math.round((cfg.minOpacity ?? 0.6) * 100)}%`} min={0.05} max={0.95} step={0.05} onChange={(v) => patch({ minOpacity: v })} />
+              )}
+              {(r === 'pulse_scale' || r === 'sync_both' || r === 'strobe_beat') && (
+                <LoopRangeField label="Biên độ" value={cfg.scaleBeatPct ?? 12} display={`+${cfg.scaleBeatPct ?? 12}%`} min={2} max={40} step={1} onChange={(v) => patch({ scaleBeatPct: v })} />
+              )}
+            </>
+          )}
+          <button type="button" className="la-btn la-btn--outline la-btn--sm lw-loop-light-btn" onClick={handleSyncLight} title="Bật nguồn sáng ảo 2.5D nháy theo nhịp Loop của mảnh này">
+            <IconSun width={12} height={12} />
+            <span>Nguồn sáng ảo nháy theo Loop</span>
+          </button>
+        </section>
+      )}
     </div>
   )
 }

@@ -343,3 +343,189 @@ export const IconJointLimitArc = (p: P) => (
     <path d="M6 9.5v2.6M14.5 18h-2.6" />
   </svg>
 )
+
+/* ============================================================================
+ * Các Biểu Tượng Tab Dọc Cho Cột Phải Xưởng Layer 2.5D (Vertical Sub-Tab Icons)
+ * ============================================================================ */
+
+/** 1. Tab dọc Layer: Xếp chồng các lớp */
+export const IconSubTabLayerStack = (p: P) => (
+  <svg {...base(p)}>
+    <polygon points="12 2 22 7 12 12 2 7" />
+    <polyline points="2 12 12 17 22 12" />
+    <polyline points="2 17 12 22 22 17" />
+  </svg>
+)
+
+/** 2. Tab dọc Layer: Biến đổi 2.5D (Toạ độ, Tỷ lệ, Lật, Xoay) */
+export const IconSubTabTransform = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M5 9l-3 3 3 3M9 5l3-3 3 3M19 9l3 3-3 3M9 19l3 3 3-3" />
+    <line x1="2" y1="12" x2="22" y2="12" />
+    <line x1="12" y1="2" x2="12" y2="22" />
+    <circle cx="12" cy="12" r="2.5" />
+  </svg>
+)
+
+/** 3. Tab dọc Layer: Chiều sâu Z & Không gian 2.5D */
+export const IconSubTabDepth = (p: P) => (
+  <svg {...base(p)}>
+    <rect x="3" y="3" width="12" height="12" rx="2" strokeDasharray="2.5 2.5" />
+    <rect x="9" y="9" width="12" height="12" rx="2" />
+    <line x1="3" y1="15" x2="9" y2="21" />
+    <line x1="15" y1="3" x2="21" y2="9" />
+  </svg>
+)
+
+/** 4. Tab dọc Layer: Bộ phận & Hoán đổi biến thể */
+export const IconSubTabParts = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M19 11h-4a1 1 0 0 1-1-1V6a2 2 0 0 0-4 0v4a1 1 0 0 1-1 1H5a2 2 0 0 0 0 4h4a1 1 0 0 1 1 1v4a2 2 0 0 0 4 0v-4a1 1 0 0 1 1-1h4a2 2 0 0 0 0-4Z" />
+  </svg>
+)
+
+/** 5. Tab dọc Layer: Khung xương & Nhãn vải mềm đung đưa */
+export const IconSubTabCloth = (p: P) => (
+  <svg {...base(p)}>
+    <circle cx="12" cy="4" r="2" />
+    <path d="M12 6v4" />
+    <path d="M8 10h8l3 10c-3 1.5-6-1-11 1l3-11Z" />
+    <path d="M10 14c2 .8 4 .8 6 0" />
+  </svg>
+)
+
+/** 6. Tab dọc Xương: Cây phân cấp xương cha - con */
+export const IconSubTabBoneTree = (p: P) => (
+  <svg {...base(p)}>
+    <circle cx="6" cy="6" r="2.5" />
+    <line x1="8.5" y1="6" x2="15" y2="6" />
+    <circle cx="17.5" cy="6" r="2.5" />
+    <path d="M6 8.5v8.5a2 2 0 0 0 2 2h7" />
+    <circle cx="17.5" cy="19" r="2.5" />
+  </svg>
+)
+
+/** 7. Tab dọc Xương: Dựng kết cấu xương thủ công */
+export const IconSubTabBoneBuild = (p: P) => (
+  <svg {...base(p)}>
+    <circle cx="5" cy="19" r="2" />
+    <path d="M6.5 17.5l7-7" />
+    <circle cx="15" cy="9" r="2" />
+    <path d="M16.5 7.5L20 4" />
+    <circle cx="20" cy="4" r="1.5" />
+    <line x1="14" y1="18" x2="20" y2="18" />
+    <line x1="17" y1="15" x2="17" y2="21" />
+  </svg>
+)
+
+/** 8. Tab dọc Xương: Gắn Mesh & Uốn mềm Flexi-Bind */
+export const IconSubTabMeshBind = (p: P) => (
+  <svg {...base(p)}>
+    <polygon points="12 3 20 9 17 19 7 19 4 9" />
+    <circle cx="12" cy="12" r="2" />
+    <line x1="12" y1="3" x2="12" y2="10" />
+    <line x1="20" y1="9" x2="13.7" y2="11" />
+    <line x1="17" y1="19" x2="13.2" y2="13.5" />
+    <line x1="7" y1="19" x2="10.8" y2="13.5" />
+    <line x1="4" y1="9" x2="10.3" y2="11" />
+  </svg>
+)
+
+/** 9. Tab dọc Xương: Tự động hoá (Thư viện sinh vật, Mixamo, Mẫu chi) */
+export const IconSubTabAutoRig = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M12 2l1.8 4.2L18 8l-4.2 1.8L12 14l-1.8-4.2L6 8l4.2-1.8L12 2Z" />
+    <circle cx="16" cy="17" r="1.5" />
+    <path d="M16 18.5v3" />
+    <path d="M14 20h4" />
+    <path d="M6 16l2 5M10 16l-2 5" />
+    <circle cx="8" cy="15" r="1.5" />
+  </svg>
+)
+
+/** 10. Tab dọc Anim: Tạo dáng & Keyframe (Bẻ khớp & Dope Sheet) */
+export const IconSubTabAnimPose = (p: P) => (
+  <svg {...base(p)}>
+    <circle cx="12" cy="5" r="2.2" />
+    <path d="M12 7.2v6l4 4M12 10l-4-2-2 3M12 10l4-2 2 3M12 13.2l-3 5.8" />
+    <polygon points="19 14 22 17 19 20 16 17" fill="currentColor" fillOpacity="0.25" />
+  </svg>
+)
+
+/** 11. Tab dọc Anim: Hành động & Thư viện Clips */
+export const IconSubTabAnimClips = (p: P) => (
+  <svg {...base(p)}>
+    <rect x="3" y="4" width="18" height="16" rx="2" />
+    <line x1="3" y1="9" x2="21" y2="9" />
+    <line x1="8" y1="4" x2="6.5" y2="9" />
+    <line x1="13" y1="4" x2="11.5" y2="9" />
+    <line x1="18" y1="4" x2="16.5" y2="9" />
+    <polygon points="10 12 15 15 10 18" fill="currentColor" fillOpacity="0.3" />
+  </svg>
+)
+
+/** 12. Tab dọc Anim: Vật lý đàn hồi & Rung lắc */
+export const IconSubTabAnimPhysics = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M4 6h4l2 4 4-8 4 8 2-4h4" />
+    <circle cx="12" cy="17" r="3" />
+    <path d="M6 17c0-2 1-3 2.5-3.5M18 17c0-2-1-3-2.5-3.5" />
+  </svg>
+)
+
+/** 13. Tab dọc Gió: Danh sách trục sống thực vật */
+export const IconSubTabPlantList = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M7 21c2-6 5-11 11-15" />
+    <circle cx="8" cy="18" r="1.5" />
+    <circle cx="11" cy="13" r="1.5" />
+    <circle cx="15" cy="9" r="1.5" />
+    <path d="M11 13c3-1 5 1 6 3M15 9c2-2 4-1 5 1" />
+  </svg>
+)
+
+/** 14. Tab dọc Gió: Thêm trục sống & Hướng mọc */
+export const IconSubTabPlantAdd = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M6 20c2-5 6-10 10-12" />
+    <path d="M12 4v6M9 7h6" />
+    <circle cx="16" cy="8" r="2" />
+  </svg>
+)
+
+/** 15. Tab dọc Gió: Hòa sắc & Nhịp sóng gió */
+export const IconSubTabPlantHarmony = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M2 9c4-3 7-3 10 0s6 3 10 0" />
+    <path d="M2 15c4-3 7-3 10 0s6 3 10 0" />
+    <circle cx="12" cy="9" r="2" />
+    <circle cx="12" cy="15" r="2" />
+  </svg>
+)
+
+/** 16. Tab dọc Loop: Mẫu hoạt ảnh từ kho */
+export const IconSubTabLoopTemplate = (p: P) => (
+  <svg {...base(p)}>
+    <rect x="3" y="3" width="18" height="14" rx="2" />
+    <path d="M7 10l3 3 5-5" />
+    <path d="M17 19a4 4 0 0 1-5 2l2-2-2-2" />
+  </svg>
+)
+
+/** 17. Tab dọc Loop: Phát lặp & Tốc độ FPS */
+export const IconSubTabLoopPlay = (p: P) => (
+  <svg {...base(p)}>
+    <circle cx="12" cy="12" r="9" />
+    <polygon points="10 8 16 12 10 16" fill="currentColor" fillOpacity="0.3" />
+    <path d="M12 3a9 9 0 0 1 9 9" strokeDasharray="3 3" />
+  </svg>
+)
+
+/** 18. Tab dọc Loop: Nhịp điệu & Ánh sáng ảo Virtual Light */
+export const IconSubTabLoopRhythm = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M3 13h4l2-4 3 8 2-6 2 2h5" />
+    <circle cx="12" cy="5" r="1.5" />
+    <path d="M12 2v1M9.5 3.5l.7.7M14.5 3.5l-.7.7" />
+  </svg>
+)

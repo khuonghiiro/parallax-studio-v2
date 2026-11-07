@@ -36,6 +36,8 @@ interface PanelProps {
   selectedIds: string[]
   isPlaying: boolean
   onTogglePlay: () => void
+  subTab?: WindPanelSubTab
+  onChangeSubTab?: (t: WindPanelSubTab) => void
 }
 
 export type WindPanelSubTab = 'spines' | 'create' | 'harmony'
@@ -59,16 +61,13 @@ const WIND_LEAN_PRESETS: Array<{ lean: number; label: string; hint: string }> = 
 ]
 
 /** Tab "Gió": Studio điều khiển thời tiết gió trực tiếp, quản lý trục uốn tự nhiên & Hòa âm 2.5D. */
-export function WorkshopPlantPanel({
-  composite,
-  setComposite,
-  selectedIds,
-  isPlaying,
-  onTogglePlay
-}: PanelProps) {
+export function WorkshopPlantPanel(props: PanelProps) {
+  const { composite, setComposite, selectedIds, isPlaying, onTogglePlay } = props
   const editor = usePlantSpineEditor()
   const spines = composite.plantSpines ?? []
-  const [subTab, setSubTab] = useState<WindPanelSubTab>(() => (spines.length > 0 ? 'spines' : 'create'))
+  const [internalSubTab, setInternalSubTab] = useState<WindPanelSubTab>(() => (spines.length > 0 ? 'spines' : 'create'))
+  const subTab = props.subTab ?? internalSubTab
+  const setSubTab = props.onChangeSubTab ?? setInternalSubTab
   const [error, setError] = useState('')
   const [showGuide, setShowGuide] = useState(false)
   const [newName, setNewName] = useState('')
@@ -320,7 +319,7 @@ export function WorkshopPlantPanel({
       </div>
 
       {/* 2. Thanh 3 Sub-Tabs chuẩn Studio */}
-      <SegmentedTabs<WindPanelSubTab>
+      {!props.subTab && <SegmentedTabs<WindPanelSubTab>
         variant="segmented"
         size="sm"
         ariaLabel="Phân khu Gió & Chuyển động mềm"
@@ -349,7 +348,7 @@ export function WorkshopPlantPanel({
             title: 'Phân bổ dao động sóng hài (Thở, Đung đưa, Lơ lửng) theo tầng chiều sâu Z 2.5D'
           }
         ]}
-      />
+      />}
 
       {error && (
         <div className="lw-error" role="alert">
