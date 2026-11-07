@@ -538,9 +538,9 @@ describe('workshopRig & layerRig engine', () => {
       boneId: 'bone-chest',
       motion: { type: 'none' as const, speed: 1, amplitude: 0, anchor: 'center' as const }
     }
-    const armLayer = { ...torsoLayer, id: 'arm-r', name: 'Bắp tay phải', z: 35, boneId: 'bone-arm-r' }
-    const forearmLayer = { ...torsoLayer, id: 'forearm-r', name: 'Cẳng tay phải', z: 40, boneId: 'bone-forearm-r' }
-    const handLayer = { ...torsoLayer, id: 'hand-r', name: 'Bàn tay phải', z: 42, boneId: 'bone-hand-r' }
+    const armLayer = { ...torsoLayer, id: 'arm-r', name: 'Bắp tay phải', z: -35, boneId: 'bone-arm-r' }
+    const forearmLayer = { ...torsoLayer, id: 'forearm-r', name: 'Cẳng tay phải', z: -40, boneId: 'bone-forearm-r' }
+    const handLayer = { ...torsoLayer, id: 'hand-r', name: 'Bàn tay phải', z: -42, boneId: 'bone-hand-r' }
     comp = { ...comp, layers: [torsoLayer, armLayer, forearmLayer, handLayer] }
 
     // 1. At t = 0.4s: put right arm behind the back (zOrder = -30 on bone-arm-r)
@@ -549,9 +549,9 @@ describe('workshopRig & layerRig engine', () => {
     expect(tfBehind.get('bone-arm-r')?.zOrder).toBe(-30)
     expect(tfBehind.get('bone-forearm-r')?.zOrder).toBe(-30)
     expect(tfBehind.get('bone-hand-r')?.zOrder).toBe(-30)
-    expect(transformRigLayer(armLayer, tfBehind).z).toBe(65)
-    expect(transformRigLayer(forearmLayer, tfBehind).z).toBe(70)
-    expect(transformRigLayer(handLayer, tfBehind).z).toBe(72)
+    expect(transformRigLayer(armLayer, tfBehind).z).toBe(-65)
+    expect(transformRigLayer(forearmLayer, tfBehind).z).toBe(-70)
+    expect(transformRigLayer(handLayer, tfBehind).z).toBe(-72)
 
     // 2. At t = 1.2s: swing right arm in front of chest/face (preset 'front-face')
     comp = applyBoneZOrderPreset(comp, 'bone-arm-r', 1.2, 'front-face')
@@ -559,15 +559,15 @@ describe('workshopRig & layerRig engine', () => {
     comp = applyBoneZOrderStep(comp, 'bone-hand-r', 1.2, 10)
 
     const rig = comp.rig!
-    // At t = 1.2s (front-face): arm, forearm, and hand all rise in front of torso (Z < torsoLayer.z)
+    // At t = 1.2s (front-face): arm, forearm, and hand all rise in front of torso (Z > torsoLayer.z)
     const tfFront = evaluateRig({ ...rig, loop: false }, 1.2)
     const parentFrontZOrder = tfFront.get('bone-arm-r')?.zOrder ?? 0
     expect(parentFrontZOrder).toBeGreaterThanOrEqual(55)
     expect(tfFront.get('bone-forearm-r')?.zOrder).toBe(parentFrontZOrder)
     expect(tfFront.get('bone-hand-r')?.zOrder).toBe(parentFrontZOrder + 10)
-    expect(transformRigLayer(armLayer, tfFront).z).toBeLessThan(torsoLayer.z)
-    expect(transformRigLayer(forearmLayer, tfFront).z).toBeLessThan(torsoLayer.z)
-    expect(transformRigLayer(handLayer, tfFront).z).toBeLessThan(transformRigLayer(forearmLayer, tfFront).z)
+    expect(transformRigLayer(armLayer, tfFront).z).toBeGreaterThan(torsoLayer.z)
+    expect(transformRigLayer(forearmLayer, tfFront).z).toBeGreaterThan(torsoLayer.z)
+    expect(transformRigLayer(handLayer, tfFront).z).toBeGreaterThan(transformRigLayer(forearmLayer, tfFront).z)
 
     // Summary on child bone reports inherited parent zOrder accurately
     const childSummary = getBoneDepthSummary(comp, rig, 'bone-forearm-r', 1.2)

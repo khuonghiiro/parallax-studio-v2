@@ -103,7 +103,7 @@ export function SpriteCutterTargetPane({
     () =>
       composite.layers
         .filter((l) => !l.hidden)
-        .sort((a, b) => (b.z ?? 0) - (a.z ?? 0)),
+        .sort((a, b) => (a.z ?? 0) - (b.z ?? 0)),
     [composite.layers]
   )
 

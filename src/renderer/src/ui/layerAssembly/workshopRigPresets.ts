@@ -405,9 +405,9 @@ export function generateJump(
     if (ids.shinR) tracks[ids.shinR] = [k(0, 0), k(d * 0.24, 14, 0, -4, 1, 0.88), k(d * 0.54, 4, 0, 0, 1, 1.02), k(d * 0.84, 10, 0, -3, 1, 0.92), k(d, 0)]
     if (ids.footL) tracks[ids.footL] = [k(0, 0), k(d * 0.24, -6), k(d * 0.54, -18), k(d * 0.84, -4), k(d, 0)]
     if (ids.footR) tracks[ids.footR] = [k(0, 0), k(d * 0.24, 6), k(d * 0.54, 18), k(d * 0.84, 4), k(d, 0)]
-    // Hai tay mở lấy đà rồi vươn cao chữ V đối xứng
-    if (ids.armL) tracks[ids.armL] = [k(0, 0), k(d * 0.24, 24), k(d * 0.54, 122), k(d * 0.84, 26), k(d, 0)]
-    if (ids.armR) tracks[ids.armR] = [k(0, 0), k(d * 0.24, -24), k(d * 0.54, -122), k(d * 0.84, -26), k(d, 0)]
+    // Hai tay mở lấy đà rồi vươn cao chữ V đối xứng (nâng zOrder +50 để tay nổi trước thân & đầu khi vươn cao)
+    if (ids.armL) tracks[ids.armL] = [k(0, 0), k(d * 0.24, 24, 0, 0, 1, 1, 45), k(d * 0.54, 122, 0, 0, 1, 1, 55), k(d * 0.84, 26, 0, 0, 1, 1, 45), k(d, 0)]
+    if (ids.armR) tracks[ids.armR] = [k(0, 0), k(d * 0.24, -24, 0, 0, 1, 1, 45), k(d * 0.54, -122, 0, 0, 1, 1, 55), k(d * 0.84, -26, 0, 0, 1, 1, 45), k(d, 0)]
     if (ids.forearmL) tracks[ids.forearmL] = [k(0, 0), k(d * 0.24, 20), k(d * 0.54, 16), k(d * 0.84, 14), k(d, 0)]
     if (ids.forearmR) tracks[ids.forearmR] = [k(0, 0), k(d * 0.24, -20), k(d * 0.54, -16), k(d * 0.84, -14), k(d, 0)]
   }
@@ -465,30 +465,36 @@ export function generateActionSlash(
     ]
   }
   if (ids.armR) {
-    // Lấy đà ra sau (-20) rồi vung chém xiên mạnh qua phía trước ngực (+60, cẳng tay & bàn tay ăn theo)
+    // Giương cao tay phải chéo lên phía trước (+55) rồi vung chém xiên mạnh qua trước ngực (+65, cẳng tay & bàn tay kế thừa nổi trước thân)
     tracks[ids.armR] = [
       k(0, 0),
-      k(d * 0.32, -124, 0, 0, 1, 1, -20),
-      k(d * 0.54, 48, 0, 0, 1, 1, 60),
-      k(d * 0.76, 32, 0, 0, 1, 1, 55),
+      k(d * 0.32, -124, 0, 0, 1, 1, 55),
+      k(d * 0.54, 48, 0, 0, 1, 1, 65),
+      k(d * 0.76, 32, 0, 0, 1, 1, 60),
       k(d, 0)
     ]
   }
   if (ids.forearmR) {
     tracks[ids.forearmR] = [
       k(0, 0),
-      k(d * 0.32, -34),
-      k(d * 0.54, 26),
-      k(d * 0.76, 14),
+      k(d * 0.32, -34, 0, 0, 1, 1, 15),
+      k(d * 0.54, 26, 0, 0, 1, 1, 20),
+      k(d * 0.76, 14, 0, 0, 1, 1, 15),
       k(d, 0)
     ]
   }
   if (ids.handR) {
     tracks[ids.handR] = [k(0, 0), k(d * 0.32, -24), k(d * 0.54, 42), k(d * 0.76, 16), k(d, 0)]
   }
-  // Tay trái thủ thế mở ngang bên trái giữ thăng bằng
+  // Tay trái thủ thế mở ngang bên trái giữ thăng bằng (nâng zOrder +45 để nổi trước thân)
   if (ids.armL) {
-    tracks[ids.armL] = [k(0, 0), k(d * 0.32, 34), k(d * 0.56, 54), k(d * 0.76, 38), k(d, 0)]
+    tracks[ids.armL] = [
+      k(0, 0),
+      k(d * 0.32, 34, 0, 0, 1, 1, 45),
+      k(d * 0.56, 54, 0, 0, 1, 1, 45),
+      k(d * 0.76, 38, 0, 0, 1, 1, 45),
+      k(d, 0)
+    ]
   }
   if (ids.forearmL) {
     tracks[ids.forearmL] = [k(0, 0), k(d * 0.32, -28), k(d * 0.56, 18), k(d, 0)]
@@ -568,9 +574,9 @@ export function generateTripAndFall(
       k(d, 0, 0, 22)
     ]
   }
-  // Lúc vấp: hai tay vung bấn loạn sang 2 bên -> lúc ngã: chống 2 tay xuống trước ngực
-  if (ids.armL) tracks[ids.armL] = [k(0, 0), k(d * 0.22, 78), k(d * 0.56, 26, 6, 12), k(d, 24, 6, 12)]
-  if (ids.armR) tracks[ids.armR] = [k(0, 0), k(d * 0.22, -84), k(d * 0.56, -26, -6, 12), k(d, -24, -6, 12)]
+  // Lúc vấp: hai tay vung bấn loạn sang 2 bên -> lúc ngã: chống 2 tay xuống trước ngực (zOrder +55 nổi trước thân)
+  if (ids.armL) tracks[ids.armL] = [k(0, 0), k(d * 0.22, 78, 0, 0, 1, 1, 45), k(d * 0.56, 26, 6, 12, 1, 1, 55), k(d, 24, 6, 12, 1, 1, 55)]
+  if (ids.armR) tracks[ids.armR] = [k(0, 0), k(d * 0.22, -84, 0, 0, 1, 1, 45), k(d * 0.56, -26, -6, 12, 1, 1, 55), k(d, -24, -6, 12, 1, 1, 55)]
   if (ids.forearmL) tracks[ids.forearmL] = [k(0, 0), k(d * 0.22, 24), k(d * 0.56, -28), k(d, -24)]
   if (ids.forearmR) tracks[ids.forearmR] = [k(0, 0), k(d * 0.22, -24), k(d * 0.56, 28), k(d, 24)]
   // Hai chân khuỵu gập gối xuống sàn
@@ -630,8 +636,8 @@ export function generateLand(
     if (ids.thighR) tracks[ids.thighR] = [k(0, -5), k(d * 0.34, -22, 0, 0, 1, 0.86), k(d * 0.72, -6, 0, 0, 1, 0.96), k(d, 0)]
     if (ids.shinL) tracks[ids.shinL] = [k(0, -3), k(d * 0.34, -18, 0, -6, 1, 0.85), k(d * 0.72, -5), k(d, 0)]
     if (ids.shinR) tracks[ids.shinR] = [k(0, 3), k(d * 0.34, 18, 0, -6, 1, 0.85), k(d * 0.72, 5), k(d, 0)]
-    if (ids.armL) tracks[ids.armL] = [k(0, 48), k(d * 0.34, 34), k(d * 0.72, 10), k(d, 0)]
-    if (ids.armR) tracks[ids.armR] = [k(0, -48), k(d * 0.34, -34), k(d * 0.72, -10), k(d, 0)]
+    if (ids.armL) tracks[ids.armL] = [k(0, 48, 0, 0, 1, 1, 45), k(d * 0.34, 34, 0, 0, 1, 1, 50), k(d * 0.72, 10, 0, 0, 1, 1, 30), k(d, 0)]
+    if (ids.armR) tracks[ids.armR] = [k(0, -48, 0, 0, 1, 1, 45), k(d * 0.34, -34, 0, 0, 1, 1, 50), k(d * 0.72, -10, 0, 0, 1, 1, 30), k(d, 0)]
     if (ids.forearmL) tracks[ids.forearmL] = [k(0, 14), k(d * 0.34, 24), k(d, 0)]
     if (ids.forearmR) tracks[ids.forearmR] = [k(0, -14), k(d * 0.34, -24), k(d, 0)]
   }

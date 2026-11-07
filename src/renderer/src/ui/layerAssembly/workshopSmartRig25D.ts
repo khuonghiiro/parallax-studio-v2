@@ -367,31 +367,31 @@ export function smartAutoBindCompositeLayers(
 }
 
 /**
- * Chuẩn hóa thứ tự độ sâu Z 2.5D (Z-Depth Planes) theo giải phẫu nhân vật / sinh vật:
- * - Z âm (gần camera hơn): kính (-42), ngũ quan/mặt (-30), tóc mái (-24), đầu (-20), vũ khí/bàn tay trước (-14).
+ * Chuẩn hóa thứ tự độ sâu Z 2.5D (Z-Depth Planes) theo giải phẫu nhân vật / sinh vật (Z càng lớn càng ở phía trước):
+ * - Z dương (ở phía trước, đè lên trên): kính (+42), vũ khí (+36), ngũ quan/mặt (+30..+32), tóc mái (+25), đầu (+20).
  * - Z = 0: thân / ngực (torso).
- * - Z dương (xa camera hơn): đùi (20), cẳng chân & giày (25), bắp tay (35), cẳng tay (40), tóc sau / áo choàng / đuôi (52).
+ * - Z âm (ở phía sau, bị thân đè lên): hông (-8), đùi (-20), cẳng chân & giày (-25), bắp tay (-35), cẳng tay (-40), tóc sau / áo choàng / đuôi (-52).
  */
 export function autoSortLayersZDepth25D(layers: AssembledLayerItem[]): AssembledLayerItem[] {
   return layers.map((layer, idx) => {
     if (layer.locked) return layer
     const tag = `${layer.id} ${layer.name} ${layer.slot ?? ''}`.toLowerCase()
     let z = layer.z
-    if (/(glass|visor|mask|kính|mặt nạ)/i.test(tag)) z = -42
-    else if (/(weapon|sword|blade|wand|kiếm|vũ khí)/i.test(tag)) z = -36
-    else if (/(face|eye|mouth|brow|lip|biểu cảm|mặt|mắt|miệng|mày)/i.test(tag)) z = layer.hidden ? -32 : -30
-    else if (/(bang|hair[-_ ]?front|tóc mái)/i.test(tag)) z = -25
-    else if (/(head|hat|helmet|crown|đầu|mũ|nón)/i.test(tag)) z = -20
+    if (/(glass|visor|mask|kính|mặt nạ)/i.test(tag)) z = 42
+    else if (/(weapon|sword|blade|wand|kiếm|vũ khí)/i.test(tag)) z = 36
+    else if (/(face|eye|mouth|brow|lip|biểu cảm|mặt|mắt|miệng|mày)/i.test(tag)) z = layer.hidden ? 32 : 30
+    else if (/(bang|hair[-_ ]?front|tóc mái)/i.test(tag)) z = 25
+    else if (/(head|hat|helmet|crown|đầu|mũ|nón)/i.test(tag)) z = 20
     else if (/(torso|chest|body|shirt|vest|thân|ngực|áo)/i.test(tag)) z = 0
-    else if (/(pelvis|hip|belt|hông|thắt lưng)/i.test(tag)) z = 8
-    else if (/(thigh|upperleg|đùi)/i.test(tag)) z = 20
-    else if (/(shin|calf|foot|shoe|sneaker|cẳng chân|ống quần|bàn chân|giày)/i.test(tag)) z = 25
-    else if (/(arm|sleeve|bắp tay|tay áo)/i.test(tag) && !/(forearm|cẳng tay)/i.test(tag)) z = 35
-    else if (/(forearm|hand|cẳng tay|bàn tay)/i.test(tag)) z = 40
-    else if (/(hair[-_ ]?back|ponytail|cape|cloak|tail|wing|tóc sau|áo choàng|đuôi|cánh)/i.test(tag)) z = 52
+    else if (/(pelvis|hip|belt|hông|thắt lưng)/i.test(tag)) z = -8
+    else if (/(thigh|upperleg|đùi)/i.test(tag)) z = -20
+    else if (/(shin|calf|foot|shoe|sneaker|cẳng chân|ống quần|bàn chân|giày)/i.test(tag)) z = -25
+    else if (/(arm|sleeve|bắp tay|tay áo)/i.test(tag) && !/(forearm|cẳng tay)/i.test(tag)) z = -35
+    else if (/(forearm|hand|cẳng tay|bàn tay)/i.test(tag)) z = -40
+    else if (/(hair[-_ ]?back|ponytail|cape|cloak|tail|wing|tóc sau|áo choàng|đuôi|cánh)/i.test(tag)) z = -52
     else {
       // Giữ độ sâu hợp lý theo chỉ số nếu không khớp từ khóa
-      z = Number.isFinite(layer.z) ? layer.z : idx * 4
+      z = Number.isFinite(layer.z) ? layer.z : -idx * 4
     }
     return { ...layer, z }
   })

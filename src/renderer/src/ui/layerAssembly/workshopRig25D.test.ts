@@ -63,10 +63,10 @@ describe('workshopSmartRig25D & workshopParallax25D & workshopLayerMotionHarmony
     const zTorso = zSorted.find((l) => l.name === 'torso')!.z
     const zThigh = zSorted.find((l) => l.name === 'thigh-left')!.z
 
-    expect(zGlasses).toBeLessThan(zFace)
-    expect(zFace).toBeLessThan(zHead)
-    expect(zHead).toBeLessThan(zTorso)
-    expect(zTorso).toBeLessThan(zThigh)
+    expect(zGlasses).toBeGreaterThan(zFace)
+    expect(zFace).toBeGreaterThan(zHead)
+    expect(zHead).toBeGreaterThan(zTorso)
+    expect(zTorso).toBeGreaterThan(zThigh)
   })
 
   it('computes Live2D/Spine 2.5D parallax pose and generates 2.5D parallax clips via applyRigAction', () => {

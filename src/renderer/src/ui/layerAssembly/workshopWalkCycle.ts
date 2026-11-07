@@ -167,7 +167,8 @@ export function generateWalkCycle(
           rotation: sign * (2 + 3 * stepPhase(p)) * signMod, // Lắc nhẹ đùi
           y: -14 * unit * lift(p), // Nhấc đùi lên theo trục Y để mô phỏng bước tới
           scaleX: 1 + 0.08 * stepPhase(p), // Phóng to/thu nhỏ tạo cảm giác phối cảnh 3D
-          scaleY: 1 + 0.08 * stepPhase(p)
+          scaleY: 1 + 0.08 * stepPhase(p),
+          zOrder: Number((15 * stepPhase(p) * signMod).toFixed(1)) // Chân bước tới nổi lên trước chân trụ
         }))
       }
       if (shin) {
@@ -285,7 +286,8 @@ export function generateRunCycle(
           rotation: sign * (4 + 6 * stepPhase(p)) * signMod,
           y: -22 * unit * lift(p),
           scaleX: 1 + 0.12 * stepPhase(p),
-          scaleY: 1 + 0.12 * stepPhase(p)
+          scaleY: 1 + 0.12 * stepPhase(p),
+          zOrder: Number((15 * stepPhase(p) * signMod).toFixed(1))
         }))
       }
       if (shin) {
