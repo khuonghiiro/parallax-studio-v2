@@ -63,6 +63,8 @@ export interface AssembledLayerItem {
   boneId?: string
   extraBoneIds?: string[]
   bindingMode?: 'rigid' | 'soft'
+  /** Transient: cô lập biến dạng mesh chỉ theo xương thuộc riêng bộ phận này khi composite có nhiều layer. */
+  isolateToBoundBones?: boolean
   /** Transient preview rig, never persisted by workshop actions. */
   previewRig?: import('@shared/layerRig').LayerRig
   /** Transient: xương motion đang tác động lên layer (chỉ để xem trước, không lưu). */

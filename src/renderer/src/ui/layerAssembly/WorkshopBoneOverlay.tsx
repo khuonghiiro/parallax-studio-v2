@@ -179,9 +179,8 @@ export function WorkshopBoneOverlay({
     return useIk ? 'ik' : 'rotate'
   }
 
-  const headMode = (e: PointerEvent, bone: LayerBone): BoneDragMode => {
-    if (editing && !isManipulateTool) return 'head'
-    return !bone.parentId || e.altKey ? 'head' : 'rotate'
+  const headMode = (_e: PointerEvent, _bone: LayerBone): BoneDragMode => {
+    return 'head'
   }
 
   const advanceLiveRecord = (liveDrag: LiveBoneRecordDrag, p: Point2D) => {
@@ -338,7 +337,7 @@ export function WorkshopBoneOverlay({
 
     if (isManipulateTool) {
       const testRig = buildManipulateTestRig(rig, rigTool.testPoses)
-      const manipMode: BoneDragMode = mode === 'tail' ? tailMode(e) : mode === 'head' ? 'rotate' : mode
+      const manipMode: BoneDragMode = mode === 'tail' ? tailMode(e) : mode
       manipulateDragRef.current = startBoneDrag(testRig, id, 0, false, manipMode, point, assist.ikChain)
       setActiveDrag(id)
       setChainIds(manipulateDragRef.current.ik?.chain.boneIds ?? [id])
@@ -682,12 +681,11 @@ export function WorkshopBoneOverlay({
           if (rigTool.mirrorDraw && Math.abs(created.x) > 10) {
             next = applyRigAction(next, { action: 'mirror-bone', boneId: created.id })
           }
-          // Tìm layer đích: hoặc từ targetBindingLayerId, hoặc layer đang gắn vào d.parentBone
-          const parentBone = d.parentBone
+          // Tìm layer đích khi đang focus bộ phận cụ thể (targetLayerId) hoặc nhân vật đơn 1 layer
           const effectiveTargetLayer = targetLayerId
             ? next.layers.find((l) => l.id === targetLayerId)
-            : parentBone
-              ? next.layers.find((l) => l.boneId === parentBone.id)
+            : next.layers.length === 1
+              ? next.layers[0]
               : null
 
           if (effectiveTargetLayer) {

@@ -13,7 +13,7 @@ import {
 } from './workshopRigPresets'
 import { applyAnimationAction, isAnimationAction, validateCurve, type AnimationAction, type AnimationBatch } from './workshopAnimation'
 export type { BonePoseEntry } from './workshopAnimation'
-import { buildMirroredBoneChain, retimeOrClampTracks, weldConnectedLimbBones } from './mohoRigHelpers'
+import { buildMirroredBoneChain, normalizeAnatomicalRootHierarchy, retimeOrClampTracks, weldConnectedLimbBones } from './mohoRigHelpers'
 import { autoBindLayersToMixamoBones } from './workshopMixamoAutoRig'
 import { applyAnimTool, type AnimToolOp } from './workshopAnimTools'
 import { applyHoldFramesAction, applyRigClipAction, isRigClipAction, type RigClipAction } from './workshopRigClips'
@@ -81,6 +81,7 @@ export function ensureRigClips(rig: LayerRig): { rig: LayerRig; activeClip: Anim
 
   const nextRig: LayerRig = {
     ...rig,
+    bones: normalizeAnatomicalRootHierarchy(rig.bones),
     clips,
     activeClipId: activeClip.id,
     duration: activeClip.duration,
@@ -92,7 +93,12 @@ export function ensureRigClips(rig: LayerRig): { rig: LayerRig; activeClip: Anim
   return { rig: nextRig, activeClip }
 }
 
-/** Lấy danh sách các xương độc lập khác trên cùng layer uốn mềm (không bị gắn vào layer khác). */
+/**
+ * Lấy danh sách các xương con thuộc về cùng một layer:
+ * - Nếu composite chỉ có 1 layer duy nhất: lấy tất cả các xương còn lại trong rig.
+ * - Nếu composite có nhiều layer (Cutout 2.5D): chỉ lấy các xương con cháu nối tiếp từ
+ *   `primaryBoneId` (hoặc `layer.extraBoneIds`), và dừng ngay khi gặp xương đã được gắn cho một layer khác.
+ */
 export function extraSoftBoneIdsForLayer(
   layers: LayerComposite['layers'],
   rig: LayerRig | undefined,
@@ -100,17 +106,35 @@ export function extraSoftBoneIdsForLayer(
   primaryBoneId?: string
 ): string[] {
   if (!rig?.bones.length) return []
-  const otherBound = new Set<string>()
+  if (layers.length <= 1) {
+    return rig.bones.filter((b) => b.id !== primaryBoneId).map((b) => b.id)
+  }
+  if (!primaryBoneId) return []
+
+  const layer = layers.find((l) => l.id === layerId)
+  const otherAssigned = new Set<string>()
   for (const other of layers) {
-    if (other.id === layerId || !other.boneId) continue
-    let cur: string | undefined = other.boneId
-    while (cur && !otherBound.has(cur)) {
-      otherBound.add(cur)
-      cur = rig.bones.find((b) => b.id === cur)?.parentId
+    if (other.id === layerId) continue
+    if (other.boneId) otherAssigned.add(other.boneId)
+    if (other.extraBoneIds) {
+      for (const id of other.extraBoneIds) otherAssigned.add(id)
     }
   }
+
+  const owned = new Set<string>([primaryBoneId, ...(layer?.extraBoneIds ?? [])])
+  let added = true
+  while (added) {
+    added = false
+    for (const b of rig.bones) {
+      if (b.parentId && owned.has(b.parentId) && !owned.has(b.id) && !otherAssigned.has(b.id)) {
+        owned.add(b.id)
+        added = true
+      }
+    }
+  }
+
   return rig.bones
-    .filter((b) => b.id !== primaryBoneId && !otherBound.has(b.id))
+    .filter((b) => b.id !== primaryBoneId && owned.has(b.id))
     .map((b) => b.id)
 }
 
@@ -608,6 +632,10 @@ export function applyRigAction(composite: LayerComposite, action: RigAction): La
           }
         : c
     )
+  }
+
+  if (rig.bones.length >= 2) {
+    rig.bones = normalizeAnatomicalRootHierarchy(rig.bones, layers)
   }
 
   const next = { ...composite, layers, rig }

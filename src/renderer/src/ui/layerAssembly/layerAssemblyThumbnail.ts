@@ -6,7 +6,8 @@ import { drawSkinTriangles } from './SoftLayerImage'
 import type { LayerComposite, AssembledLayerItem } from './types'
 import { resolveLayerImageUrlAsync } from './useLayerAssetImage'
 import { evaluateRig, transformRigLayer, rotatePoint } from '../../engine/layerRig'
-import { extraSoftBoneIdsForLayer } from './workshopRig'
+import { ensureRigClips, extraSoftBoneIdsForLayer } from './workshopRig'
+import { inferFallbackBoneForStackedLayer } from './mohoRigHelpers'
 import { computeLayerMotion } from './layerAssemblyMotion'
 import { computeLayer2DLighting } from './layerAssembly2DLighting'
 
@@ -167,19 +168,26 @@ export async function captureCompositeThumbnail(
   let effectiveLayers = composite.layers
   if (composite.rig?.bones?.length) {
     try {
-      const transforms = evaluateRig(composite.rig, time)
+      const { rig: normRig } = ensureRigClips(composite.rig)
+      const transforms = evaluateRig(normRig, time)
+      const isMultiLayerChar = composite.layers.length > 1
       effectiveLayers = composite.layers.map((l) => {
         const bindPose = { x: l.x, y: l.y, rotation: l.rotation }
         const implicitSingleSoft = !l.boneId && composite.layers.length === 1
-        const effectiveSoft = l.bindingMode === 'soft' || implicitSingleSoft
-        const effectiveBoneId = l.boneId ?? (implicitSingleSoft ? composite.rig!.bones[0]?.id : undefined)
-        const extraBoneIds = effectiveSoft
-          ? extraSoftBoneIdsForLayer(composite.layers, composite.rig, l.id, effectiveBoneId)
+        const fallbackStackedBoneId =
+          !l.boneId && isMultiLayerChar ? inferFallbackBoneForStackedLayer(l, composite.layers, normRig.bones) : undefined
+        const effectiveBoneId = l.boneId ?? fallbackStackedBoneId ?? (implicitSingleSoft ? normRig.bones[0]?.id : undefined)
+        const candidateExtraBones = effectiveBoneId
+          ? (l.extraBoneIds?.length ? l.extraBoneIds : extraSoftBoneIdsForLayer(composite.layers, normRig, l.id, effectiveBoneId))
           : undefined
-        const transformed = effectiveSoft ? l : transformRigLayer(l, transforms)
+        const hasMultiLimbBones = Boolean(candidateExtraBones && candidateExtraBones.length > 0)
+        const effectiveSoft = l.bindingMode === 'soft' || implicitSingleSoft || hasMultiLimbBones
+        const extraBoneIds = effectiveSoft ? candidateExtraBones : undefined
+        const layerWithBone = effectiveBoneId && !l.boneId ? { ...l, boneId: effectiveBoneId } : l
+        const transformed = effectiveSoft ? layerWithBone : transformRigLayer(layerWithBone, transforms)
         return {
           ...transformed,
-          ...(implicitSingleSoft ? { bindingMode: 'soft' as const, boneId: effectiveBoneId } : {}),
+          ...(effectiveSoft ? { bindingMode: 'soft' as const, boneId: effectiveBoneId, isolateToBoundBones: isMultiLayerChar } : {}),
           ...(extraBoneIds?.length ? { extraBoneIds } : {}),
           bindPose
         }

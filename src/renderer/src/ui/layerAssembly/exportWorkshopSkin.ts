@@ -16,7 +16,15 @@ export async function exportWorkshopSkin(
   _url?: string | undefined
 ): Promise<void> {
   const implicitSingleSoft = !item.boneId && composite.layers.length === 1 && Boolean(composite.rig?.bones.length)
-  const skinned = (item.bindingMode === 'soft' && Boolean(item.boneId) && Boolean(composite.rig)) || implicitSingleSoft
+  const isMultiLayerChar = composite.layers.length > 1
+  const boneId = item.boneId ?? (implicitSingleSoft ? composite.rig!.bones[0]?.id : undefined)
+  const candidateExtraBoneIds =
+    boneId && composite.rig
+      ? (item.extraBoneIds?.length ? item.extraBoneIds : extraSoftBoneIdsForLayer(composite.layers, composite.rig, item.id, boneId))
+      : []
+  const skinned =
+    Boolean(composite.rig) &&
+    ((item.bindingMode === 'soft' && Boolean(boneId)) || implicitSingleSoft || candidateExtraBoneIds.length > 0)
   const spines = spinesForLayer(composite.plantSpines, item.id)
   if (!skinned && !spines.length) return
 
@@ -24,8 +32,7 @@ export async function exportWorkshopSkin(
   const height = item.meshHeight || item.loopConfig?.meshHeight || layer.props.height || composite.height || 400
   const geometry = new THREE.PlaneGeometry(width, height, 16, 20)
   const { x, y, rotation, scale, scaleX, scaleY } = item
-  const boneId = item.boneId ?? (implicitSingleSoft ? composite.rig!.bones[0]?.id : undefined)
-  const extraBoneIds = skinned ? extraSoftBoneIdsForLayer(composite.layers, composite.rig, item.id, boneId) : []
+  const extraBoneIds = skinned ? candidateExtraBoneIds : []
 
   layer.mesh = {
     version: 1,
@@ -40,6 +47,7 @@ export async function exportWorkshopSkin(
       binding: {
         boneId: skinned ? boneId : undefined,
         ...(extraBoneIds.length ? { extraBoneIds } : {}),
+        ...(skinned && isMultiLayerChar ? { isolateToBoundBones: true } : {}),
         x,
         y,
         rotation,

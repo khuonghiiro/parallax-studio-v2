@@ -52,4 +52,25 @@ describe('workshopIk', () => {
     expect(rotations.map((x) => x.boneId).sort()).toEqual(['lower', 'upper'])
     expect(rotations.every((x) => Number.isFinite(x.rotation))).toBe(true)
   })
+
+  it('bẻ cong tự nhiên chuỗi xương chân/tay thẳng đứng (90°) khi kéo thẳng Lên/Xuống dọc theo trục xương', () => {
+    const verticalLegRig: LayerRig = {
+      bones: [
+        { id: 'torso', name: 'Thân', x: 0, y: -120, length: 180, angle: 90 },
+        { id: 'thigh', name: 'Đùi', parentId: 'torso', x: -40, y: 60, length: 75, angle: 90 },
+        { id: 'shin', name: 'Cẳng chân', parentId: 'thigh', x: -40, y: 135, length: 85, angle: 90 }
+      ],
+      tracks: {},
+      duration: 2,
+      loop: false
+    }
+    const chain = buildIkChain(verticalLegRig, 'shin', 2, 0)
+    // Bàn chân đang ở (-40, 220); người dùng kéo thẳng LÊN trên tới (-40, 150)
+    const targetUp = { x: -40, y: 150 }
+    const deltas = solveCcd(chain, targetUp, undefined, 20)
+    const tip = chainPositions(chain, deltas).at(-1)!
+    expect(dist(tip, targetUp)).toBeLessThan(1.5)
+    expect(Math.abs(deltas[0])).toBeGreaterThan(15)
+    expect(Math.abs(deltas[1])).toBeGreaterThan(25)
+  })
 })
