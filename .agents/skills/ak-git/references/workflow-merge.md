@@ -1,48 +1,41 @@
-# Merge Workflow
+# Quy Trình Hợp Nhất Nhánh Vào Main (Workflow Merge to Main)
 
-Execute via `git-manager` subagent.
+Mục tiêu: Đóng gói lịch sử của từng nhánh logic vào `main` (hoặc `master`) thông qua cờ `--no-ff` (No Fast-Forward). Nếu nhánh đó sau này phát sinh lỗi hoặc không dùng, có thể dễ dàng loại bỏ hoàn toàn sạch sẽ nhánh đó ra khỏi `main` (bằng `git revert -m 1 <merge-commit>`) mà không ảnh hưởng tới các nhánh logic khác.
 
-## Variables
-- TO_BRANCH: target (defaults to `main`)
-- FROM_BRANCH: source (defaults to current branch)
+## Quy Trình 4 Bước
 
-## Step 1: Sync with Remote
-
-**IMPORTANT: Always merge `main` (or any default branch) to current branch first.**
-
+### Bước 1: Chuẩn Bị Nhánh Chính
+Chuyển về nhánh chính và đồng bộ với remote:
 ```bash
-git fetch origin
-git checkout {TO_BRANCH}
-git pull origin {TO_BRANCH}
+git checkout main
+git pull origin main
 ```
 
-## Step 2: Merge from REMOTE
+### Bước 2: Hợp Nhất Nhánh Logic Với `--no-ff`
 ```bash
-git merge origin/{FROM_BRANCH} --no-ff -m "merge: {FROM_BRANCH} into {TO_BRANCH}"
+git merge {TEN_NHANH} --no-ff -m "[hợp nhất] nhánh '{TEN_NHANH}' vào main"
+```
+*Ghi chú: Luôn dùng `--no-ff` để Git tạo một commit merge rõ ràng, đóng vai trò ranh giới đóng gói logic.*
+
+### Bước 3: Đẩy Lên Remote
+```bash
+git push origin main
+git push origin {TEN_NHANH}
 ```
 
-**Why `origin/{FROM_BRANCH}`:** Ensures merging only committed+pushed changes, not local WIP.
-
-## Step 3: Resolve Conflicts
-If conflicts:
-1. Resolve manually
-2. `git add . && git commit`
-3. If clarifications needed, report to main agent
-
-## Step 4: Push
+### Bước 4: Tạo Nhánh Cho Logic Mới
+Từ `main` vừa hợp nhất sạch sẽ:
 ```bash
-git push origin {TO_BRANCH}
+git checkout main
+git checkout -b {LOAI_MOI}/{LOGIC_MOI}
 ```
 
-## Pre-Merge Checklist
-- Fetch latest: `git fetch origin`
-- Ensure FROM_BRANCH pushed to remote
-- Check for conflicts: `git merge --no-commit --no-ff origin/{FROM_BRANCH}` then abort
-
-## Error Handling
-
-| Error | Action |
-|-------|--------|
-| Merge conflicts | Resolve manually, then commit |
-| Branch not found | Verify branch name, ensure pushed |
-| Push rejected | `git pull --rebase`, retry |
+## Thao Tác Huỷ Bỏ / Loại Bỏ Nhánh Bị Lỗi Khỏi Main (Rollback / Drop)
+Nếu một nhánh sau khi đã merge vào `main` bị phát hiện lỗi nghiêm trọng hoặc không còn muốn dùng:
+```bash
+git checkout main
+git pull origin main
+git revert -m 1 {MERGE_COMMIT_HASH} -m "[hoàn tác] loại bỏ nhánh '{TEN_NHANH}' khỏi main"
+git push origin main
+```
+Toàn bộ thay đổi của nhánh đó sẽ được loại bỏ hoàn toàn sạch sẽ khỏi `main`.

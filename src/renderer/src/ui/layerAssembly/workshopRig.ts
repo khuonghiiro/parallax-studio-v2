@@ -17,8 +17,10 @@ import { buildMirroredBoneChain, retimeOrClampTracks, weldConnectedLimbBones } f
 import { autoBindLayersToMixamoBones } from './workshopMixamoAutoRig'
 import { applyAnimTool, type AnimToolOp } from './workshopAnimTools'
 import { applyHoldFramesAction, applyRigClipAction, isRigClipAction, type RigClipAction } from './workshopRigClips'
+import { splitBoneInHalf } from './workshopBoneSplit'
 import { applyRigStructureAction, isRigStructureAction, type RigStructureAction } from './workshopRigStructure'
 import { assertValidAngleLimits, stripEmptyAngleLimit } from './boneConstraints'
+import { autoRigAllCutoutParts, createBoneForSingleLayer } from './workshopCutoutRig'
 import {
   autoSortLayersZDepth25D,
   buildAnatomicalBonesFromLayers,
@@ -122,6 +124,7 @@ export type RigAction =
   | { action: 'update-bones'; patches: Array<{ boneId: string; patch: Partial<Omit<LayerBone, 'id'>> }> }
   | { action: 'snap-joints' }
   | { action: 'delete-bone'; boneId: string }
+  | { action: 'split-bone'; boneId: string }
   | { action: 'mirror-bone'; boneId: string }
   | { action: 'bind'; boneId?: string; layerIds: string[]; mode?: 'rigid' | 'soft' }
   | { action: 'mirror-pose'; time: number }
@@ -132,6 +135,9 @@ export type RigAction =
   | { action: 'clear-animation' }
   | { action: 'clear-bone-track'; boneId: string }
   | { action: 'anim-tool'; tool: AnimToolOp }
+  | { action: 'auto-rig-cutout-parts' }
+  | { action: 'create-bone-for-layer'; layerId: string; parentId?: string; mode?: 'rigid' | 'soft' }
+  | { action: 'reparent-bone'; boneId: string; newParentId?: string }
   | { action: 'smart-auto-rig-25d'; archetype?: SmartRigArchetype; bindMode?: 'auto' | 'rigid' | 'soft'; includeStarterClips?: boolean; sortZDepth?: boolean }
   | { action: 'smart-auto-bind-25d'; bindMode?: 'auto' | 'rigid' | 'soft' }
   | { action: 'auto-sort-z-25d' }
@@ -262,6 +268,8 @@ export function findMirrorBoneId(boneId: string, bones: LayerBone[]): string | n
 
 /** Shared immutable operation: UI and MCP each commit this as one draft history entry. */
 export function applyRigAction(composite: LayerComposite, action: RigAction): LayerComposite {
+
+
   const { rig: normalizedRig } = ensureRigClips(structuredClone(composite.rig ?? emptyRig()))
   const rig = normalizedRig
   let layers = composite.layers
@@ -290,6 +298,9 @@ export function applyRigAction(composite: LayerComposite, action: RigAction): La
   }
   if (action.action === 'snap-joints') {
     rig.bones = weldConnectedLimbBones(rig.bones, 0.45)
+  }
+  if (action.action === 'split-bone') {
+    return splitBoneInHalf(composite, action.boneId).composite
   }
   if (action.action === 'delete-bone') {
     const removed = new Set([action.boneId])
@@ -473,6 +484,23 @@ export function applyRigAction(composite: LayerComposite, action: RigAction): La
   }
 
   if (action.action === 'anim-tool') applyAnimTool(rig, action.tool)
+  if (action.action === 'auto-rig-cutout-parts') {
+    return autoRigAllCutoutParts(composite)
+  }
+  if (action.action === 'create-bone-for-layer') {
+    return createBoneForSingleLayer(action.layerId, composite, action.parentId, action.mode)
+  }
+  if (action.action === 'reparent-bone') {
+    const bList = composite.rig?.bones ?? []
+    const updatedBones = bList.map((b) => (b.id === action.boneId ? { ...b, parentId: action.newParentId } : b))
+    return {
+      ...composite,
+      rig: {
+        ...(composite.rig ?? { duration: 2.0, loop: true, tracks: {} }),
+        bones: updatedBones
+      }
+    }
+  }
 
   if (action.action === 'smart-auto-rig-25d') {
     const built = buildAnatomicalBonesFromLayers({ ...composite, layers }, action.archetype ?? 'auto')

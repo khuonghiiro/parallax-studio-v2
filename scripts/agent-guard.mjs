@@ -39,7 +39,9 @@ const JS_TS_LOADERS = {
   '.mjs': 'js',
   '.cjs': 'js'
 }
-const CONVENTIONAL = /^(feat|fix|refactor|perf|chore|docs|test|style|build|ci|revert)(\([\w./-]+\))?!?: .+/
+// Chuẩn commit tiếng Việt: [loại] (phạm vi): mô tả (ví dụ: [sửa lỗi] (layer): sửa lỗi...)
+const VI_COMMIT_PREFIX = /^\[(sửa lỗi|sửa|tính năng|thêm|chỉnh sửa|chỉnh|xoá|loại bỏ|tái cấu trúc|hiệu năng|tối ưu|dọn dẹp|bảo trì|giao diện|tài liệu|kiểm thử|xây dựng|tích hợp|hoàn tác|hợp nhất)\](\s*\([\w./\s-]+\))?!?: .+/i
+const LEGACY_CONVENTIONAL = /^(feat|fix|refactor|perf|chore|docs|test|style|build|ci|revert)(\([\w./-]+\))?!?: .+/
 const VI_DIACRITICS = /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i
 const AI_MENTION = /(co-authored-by:.*\b(claude|gpt|copilot|gemini|cursor|codex|antigravity|ai)\b|generated (with|by) .*(claude|gpt|copilot|gemini|ai)|🤖)/i
 const SECRET_FILE = /(^|\/)(\.env(\..+)?|id_rsa|id_ed25519|.*\.pem|.*\.p12|.*\.pfx|credentials\.json)$/i
@@ -51,8 +53,9 @@ export function checkCommitMessage(message) {
   const subject = (lines[0] || '').trim()
   const errors = []
   if (/^(Merge|Revert) /.test(subject) || /^(fixup|squash)! /.test(subject)) return errors
-  if (!CONVENTIONAL.test(subject)) {
-    errors.push('Tiêu đề phải theo Conventional Commits, ví dụ: "fix(ui): sửa lỗi ..." (feat|fix|refactor|perf|chore|docs|test...)')
+  if (/^\[hợp nhất\]/i.test(subject)) return errors
+  if (!VI_COMMIT_PREFIX.test(subject) && !LEGACY_CONVENTIONAL.test(subject)) {
+    errors.push('Tiêu đề commit phải theo chuẩn tiếng Việt, ví dụ: "[sửa lỗi] (layer): sửa lỗi ..." hoặc "[tính năng] (ui): thêm ...". Các loại: [sửa lỗi], [tính năng], [chỉnh sửa], [xoá], [tái cấu trúc], [hiệu năng], [dọn dẹp], [tài liệu], [kiểm thử]...')
   }
   if (!VI_DIACRITICS.test(lines.join('\n'))) {
     errors.push('Commit message phải viết bằng tiếng Việt CÓ DẤU (AGENTS.md §2.2).')

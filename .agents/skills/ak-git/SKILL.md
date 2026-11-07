@@ -1,6 +1,6 @@
 ---
 name: ak:git
-description: "Git operations with conventional commits. Use for staging, committing, pushing, PRs, merges, stacked PRs. Auto-splits commits by type/scope. Security scans for secrets."
+description: "Git operations with Vietnamese commit format and logic-driven branch lifecycle. Auto-splits commits, creates logic branches, merges --no-ff to main, security scans for secrets."
 user-invocable: true
 when_to_use: "Invoke for commits, PRs, stacked PRs, branch hygiene, or release git steps."
 category: workflow
@@ -103,14 +103,15 @@ git diff --cached | grep -iE "(api[_-]?key|token|password|secret|credential)"
 
 ### Step 4: Commit
 ```bash
-git commit -m "type(scope): description"
+git commit -m "[loại] (phạm vi): mô tả tiếng Việt có dấu"
+# Ví dụ: git commit -m "[sửa lỗi] (layer): sửa lỗi vị trí @import trong photoStudio.css"
 ```
 
 ## Output Format
 ```
 ✓ staged: N files (+X/-Y lines)
 ✓ security: passed
-✓ commit: HASH type(scope): description
+✓ commit: HASH [loại] (scope): description
 ✓ pushed: yes/no
 ```
 

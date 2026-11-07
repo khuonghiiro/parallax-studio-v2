@@ -134,6 +134,7 @@ export interface CutterQuickPartsStripProps {
   onChangeMergeGap?: (gap: number) => void
   onSelectIsland: (island: DetectedIsland) => void
   onQuickAddIsland: (island: DetectedIsland) => void
+  onReorderIslands?: (fromIdx: number, toIdx: number) => void
   onIslandDragStart?: (e: React.DragEvent, island: DetectedIsland) => void
   onSendAllToBoard: () => void
 }
@@ -148,6 +149,7 @@ export function CutterQuickPartsStrip({
   onChangeMergeGap,
   onSelectIsland,
   onQuickAddIsland,
+  onReorderIslands,
   onIslandDragStart,
   onSendAllToBoard
 }: CutterQuickPartsStripProps) {
@@ -232,7 +234,17 @@ export function CutterQuickPartsStrip({
               <div
                 key={isl.id}
                 className={`cutter-part-chip ${isSelected ? 'selected' : ''}`}
+                tabIndex={0}
                 draggable={true}
+                onKeyDown={(e) => {
+                  if (e.key === 'ArrowLeft' && idx > 0) {
+                    e.preventDefault()
+                    onReorderIslands?.(idx, idx - 1)
+                  } else if (e.key === 'ArrowRight' && idx < islands.length - 1) {
+                    e.preventDefault()
+                    onReorderIslands?.(idx, idx + 1)
+                  }
+                }}
                 onDragStart={(e) => onIslandDragStart?.(e, isl)}
                 onClick={() => onSelectIsland(isl)}
                 onDoubleClick={() => onQuickAddIsland(isl)}

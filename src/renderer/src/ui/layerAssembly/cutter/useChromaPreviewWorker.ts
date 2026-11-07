@@ -18,7 +18,7 @@ interface UseChromaPreviewWorkerOptions {
   onIslands: (islands: DetectedIsland[]) => void
 }
 
-const CHROMA_WORKER_ALGO_REV = 4
+const CHROMA_WORKER_ALGO_REV = 5
 
 function scaleSettings(settings: ChromaKeySettings, scale: number): ChromaKeySettings {
   if (scale >= 1) return settings

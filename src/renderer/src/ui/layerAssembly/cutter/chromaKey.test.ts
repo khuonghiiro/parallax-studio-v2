@@ -339,6 +339,7 @@ describe('chromaKey algorithms', () => {
     const bufOff = makeTestScene()
     processAdvancedChromaPixelData(bufOff, w, h, {
       ...DEFAULT_CHROMA_SETTINGS,
+      tolerance: 36,
       enabled: true,
       shadowMode: 'off',
       keepShadows: false
@@ -354,6 +355,7 @@ describe('chromaKey algorithms', () => {
     const bufInclude = makeTestScene()
     processAdvancedChromaPixelData(bufInclude, w, h, {
       ...DEFAULT_CHROMA_SETTINGS,
+      tolerance: 36,
       enabled: true,
       shadowMode: 'include',
       keepShadows: true,
@@ -375,6 +377,7 @@ describe('chromaKey algorithms', () => {
     const bufOnly = makeTestScene()
     processAdvancedChromaPixelData(bufOnly, w, h, {
       ...DEFAULT_CHROMA_SETTINGS,
+      tolerance: 36,
       enabled: true,
       shadowMode: 'only',
       keepShadows: true,

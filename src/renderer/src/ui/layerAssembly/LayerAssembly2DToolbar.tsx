@@ -9,6 +9,7 @@ import {
   IconBoundingBox,
   IconFitCharacter,
   IconBone,
+  IconText,
   IconMeshWireframe,
   IconSun,
   IconStageGuide
@@ -16,7 +17,7 @@ import {
 import type { Assembly2DTool, BrushSettings } from './useLayerBrushEraser'
 import { LightingControlPopover } from './LightingControlPopover'
 import type { AssemblyLighting } from '../assets/models3d/types'
-import { useRigToolStore } from './rigToolStore'
+import { useRigToolStore, toggleBoneLabels } from './rigToolStore'
 
 export interface LayerAssembly2DToolbarProps {
   activeTool: Assembly2DTool
@@ -39,6 +40,8 @@ export interface LayerAssembly2DToolbarProps {
   hasBones?: boolean
   showBones?: boolean
   onToggleShowBones?: () => void
+  showBoneLabels?: boolean
+  onToggleShowBoneLabels?: () => void
   showMesh?: boolean
   onToggleShowMesh?: () => void
   lighting?: AssemblyLighting
@@ -74,6 +77,8 @@ export function LayerAssembly2DToolbar({
   hasBones = false,
   showBones = false,
   onToggleShowBones,
+  showBoneLabels,
+  onToggleShowBoneLabels,
   showMesh = false,
   onToggleShowMesh,
   lighting,
@@ -83,7 +88,22 @@ export function LayerAssembly2DToolbar({
   selectedBoneName = null
 }: LayerAssembly2DToolbarProps) {
   const [isLightingOpen, setIsLightingOpen] = useState(false)
-  const [isGuidePinned, setIsGuidePinned] = useState(true)
+  const [isGuidePinned, setIsGuidePinned] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('pxs:stage-guide-pinned') === 'true'
+    } catch {
+      return false
+    }
+  })
+  const toggleGuidePinned = () => {
+    setIsGuidePinned((prev) => {
+      const next = !prev
+      try {
+        localStorage.setItem('pxs:stage-guide-pinned', String(next))
+      } catch {}
+      return next
+    })
+  }
   const [isGuideHovered, setIsGuideHovered] = useState(false)
   const [tooltip, setTooltip] = useState<TooltipInfo | null>(null)
   const rigTool = useRigToolStore()
@@ -177,6 +197,12 @@ export function LayerAssembly2DToolbar({
         sub: 'Rigging 2D',
         desc: 'Hiển thị khung xương và khớp nối Blender gắn liền với các bộ phận layer.',
         tip: '🦴 Bấm để bật / ẩn xương'
+      },
+      boneLabels: {
+        title: (showBoneLabels ?? rigTool.showBoneLabels ?? true) ? 'Tên nhãn xương (Đang hiện)' : 'Tên nhãn xương (Đang ẩn)',
+        sub: 'Shift+T',
+        desc: 'Hiển thị tên các xương trên sân khấu 2D. Bấm tắt để sân khấu gọn gàng, không bị chữ đè lên nhân vật.',
+        tip: '🏷️ Bấm để bật / ẩn tên xương'
       },
       mesh: {
         title: showMesh ? 'Lưới tam giác Mesh 2D (Đang hiện)' : 'Lưới Mesh 2D (Đang ẩn)',
@@ -380,6 +406,24 @@ export function LayerAssembly2DToolbar({
           </button>
         )}
 
+        {/* 8b. Bật/tắt nhãn tên xương */}
+        {hasBones && (
+          <button
+            type="button"
+            className={`layer-3d-dock-btn${(showBoneLabels ?? rigTool.showBoneLabels ?? true) ? ' active' : ''}`}
+            onClick={() => {
+              if (onToggleShowBoneLabels) onToggleShowBoneLabels()
+              else toggleBoneLabels()
+              hideTooltip()
+            }}
+            onMouseEnter={(e) => showTooltip(e, 'boneLabels')}
+            onMouseLeave={hideTooltip}
+            aria-label="Tên nhãn xương"
+          >
+            <IconText width={14} height={14} />
+          </button>
+        )}
+
         {/* 9. Lưới Mesh đa giác 2D */}
         {onToggleShowMesh && (
           <button
@@ -444,15 +488,38 @@ export function LayerAssembly2DToolbar({
       </div>
 
       {/* Bảng hiển thị thông tin thao tác tại vùng khoanh đỏ phía dưới thanh dock */}
-      <div
-        className={`lw-stage-guide-card tone-${statusTone}${showGuideCard ? ' is-expanded' : ' is-compact'}`}
-        data-mcp-region="layer_assembly_stage_guide"
-      >
-        <div className="lw-stage-guide-status" onClick={() => setIsGuidePinned((v) => !v)}>
-          <span className={`lw-stage-guide-dot tone-${statusTone}`} />
-          <span className="lw-stage-guide-status-text">{statusBadgeText}</span>
-        </div>
-        {showGuideCard && (
+      {showGuideCard && (
+        <div
+          className={`lw-stage-guide-card tone-${statusTone} is-expanded`}
+          data-mcp-region="layer_assembly_stage_guide"
+        >
+          <div className="lw-stage-guide-status" onClick={toggleGuidePinned}>
+            <span className={`lw-stage-guide-dot tone-${statusTone}`} />
+            <span className="lw-stage-guide-status-text">{statusBadgeText}</span>
+            <button
+              type="button"
+              className="lw-stage-guide-close-btn"
+              onClick={(e) => {
+                e.stopPropagation()
+                setIsGuidePinned(false)
+                try {
+                  localStorage.setItem('pxs:stage-guide-pinned', 'false')
+                } catch {}
+              }}
+              style={{
+                marginLeft: 'auto',
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--text-dim)',
+                cursor: 'pointer',
+                padding: '2px 6px',
+                fontSize: '12px'
+              }}
+              title="Đóng bảng hướng dẫn"
+            >
+              ✕
+            </button>
+          </div>
           <div className="lw-stage-guide-body">
             {rigTool.statusHint && <div className="lw-stage-guide-live-hint">{rigTool.statusHint}</div>}
             <div className="lw-stage-guide-rules">
@@ -474,8 +541,8 @@ export function LayerAssembly2DToolbar({
               </div>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Popover Chiếu sáng & Đổ bóng */}
       {isLightingOpen &&

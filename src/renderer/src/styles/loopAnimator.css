@@ -213,6 +213,12 @@
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--key) 45%, transparent);
 }
 
+.loop-group-chip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.45);
+}
+
 .loop-group-sync-chk {
   display: inline-flex;
   align-items: center;

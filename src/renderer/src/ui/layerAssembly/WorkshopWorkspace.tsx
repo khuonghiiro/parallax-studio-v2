@@ -19,7 +19,7 @@ import { grabbedSpine } from './plantSpineEdit'
 import { toggleMotionSketchArmed } from './motionSketchStore'
 import { buildManipulateTestRig, type BoneOverlayProps } from './WorkshopBoneOverlay'
 import { confirmPoseAndStep } from './workshopStepRecord'
-import { resetTestPoses, setRigToolState, useRigToolStore } from './rigToolStore'
+import { resetTestPoses, setRigToolState, useRigToolStore, toggleBoneLabels } from './rigToolStore'
 
 export function WorkshopWorkspace({
   state,
@@ -161,6 +161,11 @@ export function WorkshopWorkspace({
           return
         }
       }
+      if (e.shiftKey && (e.key === 't' || e.key === 'T')) {
+        e.preventDefault()
+        toggleBoneLabels()
+        return
+      }
       if ((e.shiftKey && (e.key === 'b' || e.key === 'B')) || ((e.key === 'b' || e.key === 'B') && tab === 'bones')) {
         if (view === '3d') toggleBones3D()
         else toggleBones2D()
@@ -217,12 +222,14 @@ export function WorkshopWorkspace({
         const bindPose = { x: l.x, y: l.y, rotation: l.rotation }
         const isSingleLayerChar = state.composite.layers.length === 1 && Boolean(effectiveRig?.bones.length)
         const implicitSingleSoft = !l.boneId && isSingleLayerChar
-        const effectiveSoft = l.bindingMode === 'soft' || isSingleLayerChar
         const effectiveBoneId = l.boneId ?? (isSingleLayerChar ? effectiveRig!.bones[0]?.id : undefined)
-        const extraBoneIds =
-          effectiveSoft && effectiveRig
+        const candidateExtraBones =
+          effectiveRig && effectiveBoneId
             ? (l.extraBoneIds?.length ? l.extraBoneIds : extraSoftBoneIdsForLayer(state.composite.layers, effectiveRig, l.id, effectiveBoneId))
             : undefined
+        const hasMultiLimbBones = Boolean(candidateExtraBones && candidateExtraBones.length > 0)
+        const effectiveSoft = l.bindingMode === 'soft' || isSingleLayerChar || hasMultiLimbBones
+        const extraBoneIds = effectiveSoft ? candidateExtraBones : undefined
         const boneTf = transforms && effectiveBoneId ? transforms.get(effectiveBoneId) : undefined
         const transformed =
           transforms && !effectiveSoft

@@ -15,6 +15,7 @@ export interface LayerWorkshopViewPrefs {
   showBones: boolean
   showBones2D: boolean
   showBones3D: boolean
+  showBoneLabels: boolean
   showMesh: boolean
 }
 
@@ -35,6 +36,7 @@ export const DEFAULT_LAYER_WORKSHOP_VIEW_PREFS: LayerWorkshopViewPrefs = {
   showBones: true,
   showBones2D: true,
   showBones3D: true,
+  showBoneLabels: true,
   showMesh: false
 }
 
@@ -68,6 +70,7 @@ export function loadLayerWorkshopViewPrefs(): LayerWorkshopViewPrefs {
       showBones: typeof parsed.showBones === 'boolean' ? parsed.showBones : DEFAULT_LAYER_WORKSHOP_VIEW_PREFS.showBones,
       showBones2D: typeof parsed.showBones2D === 'boolean' ? parsed.showBones2D : (typeof parsed.showBones === 'boolean' ? parsed.showBones : true),
       showBones3D: typeof parsed.showBones3D === 'boolean' ? parsed.showBones3D : (typeof parsed.showBones === 'boolean' ? parsed.showBones : true),
+      showBoneLabels: typeof parsed.showBoneLabels === 'boolean' ? parsed.showBoneLabels : true,
       showMesh: typeof parsed.showMesh === 'boolean' ? parsed.showMesh : DEFAULT_LAYER_WORKSHOP_VIEW_PREFS.showMesh
     }
   } catch (err) {

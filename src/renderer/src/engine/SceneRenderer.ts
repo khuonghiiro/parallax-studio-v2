@@ -477,10 +477,10 @@ export class SceneRenderer {
       if (a.particles !== b.particles) return a.particles ? 1 : -1
       if (a.shotId === b.shotId && !a.isModel3D && !b.isModel3D) {
         if (Math.abs(a.localZ - b.localZ) > 0.01) return b.localZ - a.localZ
-        return b.index - a.index
+        return a.index - b.index
       }
       if (Math.abs(a.dist - b.dist) > 0.01) return b.dist - a.dist
-      return b.index - a.index
+      return a.index - b.index
     })
     ordering.forEach((o, i) => (o.node.object.renderOrder = i))
     syncShotVolumetricLightBeams(this.scene, this.lightBeams, ev, ordering.length)

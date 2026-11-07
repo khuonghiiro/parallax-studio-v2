@@ -153,7 +153,7 @@ export function extractHighResFrameFromProxy(
   frame: LoopFrameBox,
   outW: number,
   outH: number,
-  anchor: 'bottom' | 'center' = 'bottom'
+  anchor: 'bottom' | 'center' | 'top' | 'left' | 'right' = 'bottom'
 ): HTMLCanvasElement | null {
   const raw = meta.rawImage
   if (!raw || typeof document === 'undefined') return null
@@ -187,11 +187,18 @@ export function extractHighResFrameFromProxy(
   const outCtx = outCanvas.getContext('2d')
   if (!outCtx) return cropCanvas
 
-  const drawX = Math.round((finalW - cropW) * 0.5 + frame.offsetX * capScale)
+  const drawX =
+    anchor === 'left'
+      ? Math.round(frame.offsetX * capScale)
+      : anchor === 'right'
+        ? Math.round(finalW - cropW + frame.offsetX * capScale)
+        : Math.round((finalW - cropW) * 0.5 + frame.offsetX * capScale)
   const drawY =
     anchor === 'bottom'
       ? Math.round(finalH - cropH + frame.offsetY * capScale)
-      : Math.round((finalH - cropH) * 0.5 + frame.offsetY * capScale)
+      : anchor === 'top'
+        ? Math.round(frame.offsetY * capScale)
+        : Math.round((finalH - cropH) * 0.5 + frame.offsetY * capScale)
 
   outCtx.drawImage(cropCanvas, 0, 0, cropW, cropH, drawX, drawY, cropW, cropH)
   return outCanvas

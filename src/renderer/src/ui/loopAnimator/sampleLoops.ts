@@ -4,6 +4,57 @@ import type { SampleLoopPreset } from './types'
 
 const _resolvedUrlCache = new Map<string, string>()
 
+function drawProceduralCampfireCell(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  phase: number,
+  cell: number
+): void {
+  const baseY = cy + cell * 0.28
+  // Khúc củi dưới đáy
+  ctx.fillStyle = '#5c3a21'
+  ctx.beginPath()
+  ctx.roundRect(cx - 24, baseY - 2, 48, 8, 4)
+  ctx.fill()
+
+  // Hào quang lửa ngoài
+  const outerR = 36 + Math.sin(phase) * 4
+  const glow = ctx.createRadialGradient(cx, cy - 2, 4, cx, cy - 2, outerR * 1.25)
+  glow.addColorStop(0, 'rgba(254, 240, 138, 0.95)')
+  glow.addColorStop(0.45, 'rgba(249, 115, 22, 0.82)')
+  glow.addColorStop(0.8, 'rgba(220, 38, 38, 0.35)')
+  glow.addColorStop(1, 'rgba(220, 38, 38, 0)')
+  ctx.fillStyle = glow
+  ctx.beginPath()
+  ctx.arc(cx, cy - 2, outerR * 1.25, 0, Math.PI * 2)
+  ctx.fill()
+
+  // Ngọn lửa chính uốn lượn theo pha
+  const sway = Math.sin(phase) * 6
+  const height = 48 + Math.cos(phase * 2) * 5
+  const flameGrad = ctx.createLinearGradient(cx, baseY, cx, baseY - height)
+  flameGrad.addColorStop(0, '#fef08a')
+  flameGrad.addColorStop(0.45, '#f97316')
+  flameGrad.addColorStop(1, '#dc2626')
+  ctx.fillStyle = flameGrad
+  ctx.beginPath()
+  ctx.moveTo(cx - 18, baseY)
+  ctx.quadraticCurveTo(cx - 22 - sway * 0.4, baseY - height * 0.55, cx + sway, baseY - height)
+  ctx.quadraticCurveTo(cx + 22 - sway * 0.4, baseY - height * 0.55, cx + 18, baseY)
+  ctx.closePath()
+  ctx.fill()
+
+  // Lõi lửa sáng vàng trắng
+  ctx.fillStyle = '#fef9c3'
+  ctx.beginPath()
+  ctx.moveTo(cx - 9, baseY)
+  ctx.quadraticCurveTo(cx - 10, baseY - height * 0.38, cx + sway * 0.5, baseY - height * 0.62)
+  ctx.quadraticCurveTo(cx + 10, baseY - height * 0.38, cx + 9, baseY)
+  ctx.closePath()
+  ctx.fill()
+}
+
 function generateProceduralSpriteSheet(kind: string): string {
   if (typeof document === 'undefined') return ''
   const size = 512
@@ -16,6 +67,11 @@ function generateProceduralSpriteSheet(kind: string): string {
   const ctx = canvas.getContext('2d')
   if (!ctx) return ''
 
+  if (kind === 'campfire_chroma') {
+    ctx.fillStyle = '#ff00ff'
+    ctx.fillRect(0, 0, size, size)
+  }
+
   for (let i = 0; i < 16; i++) {
     const col = i % cols
     const row = Math.floor(i / cols)
@@ -24,7 +80,9 @@ function generateProceduralSpriteSheet(kind: string): string {
     const phase = (i / 16) * Math.PI * 2
 
     ctx.save()
-    if (kind === 'magic_orb') {
+    if (kind === 'campfire' || kind === 'campfire_chroma') {
+      drawProceduralCampfireCell(ctx, cx, cy, phase, cell)
+    } else if (kind === 'magic_orb') {
       const r = 34 + Math.sin(phase) * 5
       const grad = ctx.createRadialGradient(cx, cy, 4, cx, cy, r * 1.45)
       grad.addColorStop(0, 'rgba(224, 242, 254, 1)')
@@ -36,7 +94,6 @@ function generateProceduralSpriteSheet(kind: string): string {
       ctx.arc(cx, cy, r * 1.45, 0, Math.PI * 2)
       ctx.fill()
 
-      // Orbiting energy rings
       ctx.strokeStyle = 'rgba(186, 230, 253, 0.9)'
       ctx.lineWidth = 2.5
       for (let k = 0; k < 3; k++) {
@@ -48,7 +105,6 @@ function generateProceduralSpriteSheet(kind: string): string {
     } else if (kind === 'butterfly') {
       const flap = 0.32 + 0.68 * Math.abs(Math.cos(phase))
       ctx.translate(cx, cy + Math.sin(phase) * 4)
-      // Left & right glowing wings
       for (const dir of [-1, 1]) {
         ctx.save()
         ctx.scale(dir * flap, 1)
@@ -57,13 +113,11 @@ function generateProceduralSpriteSheet(kind: string): string {
         wGrad.addColorStop(0.5, 'rgba(56, 189, 248, 0.9)')
         wGrad.addColorStop(1, 'rgba(59, 130, 246, 0.15)')
         ctx.fillStyle = wGrad
-        // Upper wing
         ctx.beginPath()
         ctx.moveTo(0, -4)
         ctx.bezierCurveTo(22, -38, 52, -24, 38, 4)
         ctx.bezierCurveTo(26, 12, 10, 6, 0, 2)
         ctx.fill()
-        // Lower wing
         ctx.beginPath()
         ctx.moveTo(0, 2)
         ctx.bezierCurveTo(18, 6, 34, 24, 20, 34)
@@ -71,13 +125,11 @@ function generateProceduralSpriteSheet(kind: string): string {
         ctx.fill()
         ctx.restore()
       }
-      // Body
       ctx.fillStyle = '#e2e8f0'
       ctx.beginPath()
       ctx.ellipse(0, 2, 3.2, 16, 0, 0, Math.PI * 2)
       ctx.fill()
     } else {
-      // Lightning spark ring
       const baseR = 32
       const glow = ctx.createRadialGradient(cx, cy, 8, cx, cy, 52)
       glow.addColorStop(0, 'rgba(254, 249, 195, 0.85)')
@@ -159,6 +211,22 @@ export async function resolveLoopAssetUrl(urlOrPath: string): Promise<string> {
     /* ignore */
   }
 
+  // 3. Fallback cho các mẫu campfire mặc định nếu file demo không có trên ổ đĩa
+  if (trimmed.includes('campfire_loop_chroma')) {
+    const dataUrl = generateProceduralSpriteSheet('campfire_chroma')
+    if (dataUrl) {
+      _resolvedUrlCache.set(trimmed, dataUrl)
+      return dataUrl
+    }
+  }
+  if (trimmed.includes('campfire_loop')) {
+    const dataUrl = generateProceduralSpriteSheet('campfire')
+    if (dataUrl) {
+      _resolvedUrlCache.set(trimmed, dataUrl)
+      return dataUrl
+    }
+  }
+
   return trimmed
 }
 
@@ -169,7 +237,7 @@ export const SAMPLE_LOOP_PRESETS: SampleLoopPreset[] = [
     category: 'fire',
     badge: '🔥 Lửa 16F',
     description: 'Ngọn lửa trại cháy lặp 16 frame mượt mà đã tách nền trong suốt, kết hợp nháy sáng ấm áp.',
-    imageUrl: 'assets/demo_transparent/campfire_loop_transparent.png',
+    imageUrl: 'procedural-loop:campfire',
     defaultGrid: { cols: 4, rows: 4, marginX: 0, marginY: 0, paddingX: 0, paddingY: 0 },
     defaultChroma: {
       enabled: false,
@@ -195,7 +263,7 @@ export const SAMPLE_LOOP_PRESETS: SampleLoopPreset[] = [
     category: 'fire',
     badge: '🔥 Chroma 16F',
     description: 'Sprite sheet 4×4 trên nền hồng Magenta (#ff00ff), tự động khử nền bằng Chroma Key.',
-    imageUrl: 'assets/demo_transparent/campfire_loop_chroma.jpg',
+    imageUrl: 'procedural-loop:campfire_chroma',
     defaultGrid: { cols: 4, rows: 4, marginX: 0, marginY: 0, paddingX: 0, paddingY: 0 },
     defaultChroma: {
       enabled: true,

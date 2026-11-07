@@ -295,10 +295,20 @@ export function computeEqualizedFrames(s: LoopAnimatorStore): LoopFrameBox[] {
   const h = s.sourceHeight || 1024
 
   return s.frames.map((f) => {
-    const centerX = f.x + f.width * 0.5
-    const newX = Math.max(0, Math.min(w - maxW, Math.round(centerX - maxW * 0.5)))
+    let newX: number
+    if (anchor === 'left') {
+      newX = Math.max(0, Math.min(w - maxW, f.x))
+    } else if (anchor === 'right') {
+      newX = Math.max(0, Math.min(w - maxW, Math.round(f.x + f.width - maxW)))
+    } else {
+      const centerX = f.x + f.width * 0.5
+      newX = Math.max(0, Math.min(w - maxW, Math.round(centerX - maxW * 0.5)))
+    }
+
     let newY: number
-    if (anchor === 'bottom') {
+    if (anchor === 'top') {
+      newY = Math.max(0, Math.min(h - maxH, f.y))
+    } else if (anchor === 'bottom') {
       const bottomY = f.y + f.height
       newY = Math.max(0, Math.min(h - maxH, Math.round(bottomY - maxH)))
     } else {
@@ -449,3 +459,36 @@ export function computeCustomMultiFramesState(
   }
 }
 
+
+export function computeInheritedActiveGroupConfig(s: any): any[] {
+  if (s.groups.length <= 1) return s.groups
+  const synced = syncActiveGroupToGroups(s)
+  const active = synced[s.activeGroupIndex] || synced[0]
+  return synced.map((g: any, idx: number) => {
+    if (idx === s.activeGroupIndex) return g
+    const frames =
+      active.slicerMode === 'grid'
+        ? buildGridFrames(g.sourceWidth || s.sourceWidth, g.sourceHeight || s.sourceHeight, active.gridConfig).map(
+            (f: any, fIdx: number) => ({
+              ...f,
+              groupId: g.id,
+              groupIndex: idx,
+              groupName: g.name,
+              localFrameIndex: fIdx
+            })
+          )
+        : g.frames
+    return {
+      ...g,
+      slicerMode: active.slicerMode,
+      gridConfig: { ...active.gridConfig },
+      contourConfig: { ...active.contourConfig },
+      chromaKey: { ...active.chromaKey },
+      fps: active.fps,
+      speed: active.speed,
+      loopMode: active.loopMode,
+      rhythm: { ...active.rhythm },
+      frames
+    }
+  })
+}

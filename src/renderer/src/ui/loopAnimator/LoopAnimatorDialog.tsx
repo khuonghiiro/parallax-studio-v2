@@ -5,6 +5,7 @@ import '../../styles/loopAnimatorPanes.css'
 import '../../styles/loopAnimatorStrip.css'
 import '../../styles/loopAlignStudio.css'
 import '../../styles/loopAnimator.css'
+import '../../styles/loopAnimatorRails.css'
 import { getActiveCategoriesForModule, useAssetManifestStore } from '../../store/assetManifest'
 import { renderCategoryIcon } from '../assets/categoryIcons'
 import { Menu } from '../controls/Menu'
@@ -39,6 +40,7 @@ import {
 import { LOOP_STORAGE_UPDATED_EVENT, getAllLoopTemplates } from './loopAnimatorStorage'
 import { useLoopAnimator } from './loopAnimatorState'
 import type { LoopAnimationTemplate } from './types'
+import { toUnaccentedSnakeCase } from '@shared/slugify'
 
 interface Props {
   isOpen?: boolean
@@ -118,6 +120,9 @@ export function LoopAnimatorDialog({ isOpen = true, onClose, initialImageUrl }: 
   const [isSaving, setIsSaving] = useState(false)
   const [saveProgressText, setSaveProgressText] = useState<string | null>(null)
   const [mobileTab, setMobileTab] = useState<MobileTab>('source')
+  const [isCustomCatOpen, setIsCustomCatOpen] = useState(false)
+  const [newCategoryName, setNewCategoryName] = useState('')
+  const [isSavingCategory, setIsSavingCategory] = useState(false)
   const templates = useLoopTemplates(isOpen, manifestRevision)
 
   useEffect(() => {
@@ -145,6 +150,38 @@ export function LoopAnimatorDialog({ isOpen = true, onClose, initialImageUrl }: 
   const isBusy = isSaving || isExporting
   const requestUpload = (): void => fileInputRef.current?.click()
   const requestUpgradeMesh = (): void => upgradeFileInputRef.current?.click()
+
+  async function handleSaveNewCategory(): Promise<void> {
+    const raw = newCategoryName.trim()
+    if (!raw) return
+    setIsSavingCategory(true)
+    try {
+      const slug = toUnaccentedSnakeCase(raw, 'cat')
+      const shortText = raw.slice(0, 3).toUpperCase()
+      const res = await useAssetManifestStore.getState().upsertCategory('loop_animator', {
+        id: slug,
+        folder: 'demo_transparent',
+        title: raw,
+        shortTitle: raw,
+        icon: 'folder',
+        iconText: shortText,
+        status: 'active',
+        order: 10
+      })
+      if (res.ok) {
+        setCategory(slug)
+        setIsCustomCatOpen(false)
+        setNewCategoryName('')
+        toast(`✨ Đã tạo và lưu nhóm hoạt ảnh "${raw}" vào danh mục!`)
+      } else {
+        toast(`⚠ Không thể lưu nhóm: ${res.error || 'Lỗi không xác định'}`)
+      }
+    } catch (err) {
+      toast(`⚠ Lỗi lưu nhóm: ${err instanceof Error ? err.message : String(err)}`)
+    } finally {
+      setIsSavingCategory(false)
+    }
+  }
 
   async function handleApplyToScene(): Promise<void> {
     if (!sourceCanvasRef.current || actionLockRef.current || isSaving || isExporting) return
@@ -488,7 +525,14 @@ export function LoopAnimatorDialog({ isOpen = true, onClose, initialImageUrl }: 
                     role="radio"
                     aria-checked={category === c.id}
                     className={`la-seg-btn${category === c.id ? ' active' : ''}`}
-                    onClick={() => setCategory(c.id)}
+                    onClick={() => {
+                      setCategory(c.id)
+                      if (c.id === 'custom') {
+                        setIsCustomCatOpen(true)
+                      } else {
+                        setIsCustomCatOpen(false)
+                      }
+                    }}
                     title={c.fullTitle}
                   >
                     {c.icon}
@@ -496,6 +540,33 @@ export function LoopAnimatorDialog({ isOpen = true, onClose, initialImageUrl }: 
                   </button>
                 ))}
               </div>
+              {(category === 'custom' || isCustomCatOpen) && (
+                <div className="loop-custom-cat-inline-row" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginLeft: 8 }}>
+                  <input
+                    type="text"
+                    className="la-input la-input--sm"
+                    style={{ width: 140, height: 26, fontSize: 11, padding: '2px 8px' }}
+                    placeholder="Nhập tên nhóm khác…"
+                    value={newCategoryName}
+                    autoFocus
+                    onChange={(e) => setNewCategoryName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') void handleSaveNewCategory()
+                      if (e.key === 'Escape') setIsCustomCatOpen(false)
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="la-btn la-btn--primary la-btn--xs"
+                    disabled={!newCategoryName.trim() || isSavingCategory}
+                    onClick={() => void handleSaveNewCategory()}
+                    title="Lưu nhóm loại mới này vào danh mục Loop"
+                  >
+                    <IconSave width={11} height={11} />
+                    <span>{isSavingCategory ? 'Lưu…' : 'Lưu nhóm'}</span>
+                  </button>
+                </div>
+              )}
             </div>
             <div className="loop-footer-stats" aria-live="polite">
               {groups.length > 1 && (

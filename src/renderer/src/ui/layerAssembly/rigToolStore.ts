@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react'
 import type { BonePose } from '@shared/layerRig'
+import { loadLayerWorkshopViewPrefs, saveLayerWorkshopViewPrefs } from './layerAssemblyViewPrefs'
 
 /**
  * Bộ công cụ Tạo xương chuẩn Moho Pro:
@@ -32,6 +33,19 @@ export interface RigToolState {
   testPoses: Record<string, BonePose>
   /** Nét 1 (Nét đứt kết nối từ vỏ uốn đến điểm đặt khớp) đang chờ vẽ Nét 2 (Nét tạo xương). */
   pendingDashedLink: PendingBoneDashedLink | null
+  /** Layer đang được chỉ định gắn xương khi vẽ xương bằng chuột trên Canvas. */
+  targetBindingLayerId?: string | null
+  targetBindingMode?: 'rigid' | 'soft'
+  /** Chế độ vẽ xương theo bộ phận (Cutout Part Rig Stage) trên sân khấu 2D */
+  cutoutStageMode?: boolean
+  /** ID layer bộ phận đang được focus để vẽ xương */
+  focusedCutoutLayerId?: string | null
+  /** Làm mờ các layer khác khi đang focus 1 bộ phận (mặc định true) */
+  dimOtherLayers?: boolean
+  /** Yêu cầu chuyển chế độ xem (2d / split / 3d) từ bất kỳ đâu */
+  requestedView?: '2d' | '3d' | 'split' | null
+  /** Hiển thị nhãn tên xương trên sân khấu 2D */
+  showBoneLabels?: boolean
 }
 
 const INITIAL_STATE: RigToolState = {
@@ -41,7 +55,14 @@ const INITIAL_STATE: RigToolState = {
   autoWeld: true,
   statusHint: null,
   testPoses: {},
-  pendingDashedLink: null
+  pendingDashedLink: null,
+  targetBindingLayerId: null,
+  targetBindingMode: 'rigid',
+  cutoutStageMode: false,
+  focusedCutoutLayerId: null,
+  dimOtherLayers: true,
+  requestedView: null,
+  showBoneLabels: typeof window !== 'undefined' ? loadLayerWorkshopViewPrefs().showBoneLabels : true
 }
 
 let state: RigToolState = { ...INITIAL_STATE }
@@ -119,4 +140,32 @@ function subscribe(listener: () => void): () => void {
 
 export function useRigToolStore(): RigToolState {
   return useSyncExternalStore(subscribe, getRigToolState, getRigToolState)
+}
+
+
+export function openCutoutPartRig(targetLayerId?: string | null) {
+  setRigToolState({
+    cutoutStageMode: true,
+    focusedCutoutLayerId: targetLayerId || null,
+    targetBindingLayerId: targetLayerId || null,
+    dimOtherLayers: true,
+    requestedView: '2d',
+    tool: 'add',
+    statusHint: '🎨 Chế độ vẽ xương theo bộ phận: Chọn ô vuông preview để focus và vẽ xương cho từng mảnh.'
+  })
+}
+
+export function toggleBoneLabels(): void {
+  const current = state.showBoneLabels ?? true
+  const next = !current
+  setRigToolState({ showBoneLabels: next })
+  saveLayerWorkshopViewPrefs({ showBoneLabels: next })
+}
+
+export function closeCutoutPartRig() {
+  setRigToolState({
+    cutoutStageMode: false,
+    focusedCutoutLayerId: null,
+    targetBindingLayerId: null
+  })
 }

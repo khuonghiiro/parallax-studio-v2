@@ -4,6 +4,7 @@ import {
   IconFilm,
   IconGrid,
   IconPlus,
+  IconSparkles,
   IconReplace,
   IconTrash,
   IconUpload
@@ -173,6 +174,7 @@ export function LoopGroupSliderBar({ onRequestAppendUpload }: Props = {}): React
                 )}
                 <div
                   role="tab"
+                  tabIndex={0}
                   aria-selected={isActive}
                   draggable
                   onDragStart={() => setDragIdx(idx)}
@@ -194,9 +196,24 @@ export function LoopGroupSliderBar({ onRequestAppendUpload }: Props = {}): React
                     setDragIdx(null)
                     setDragOverIdx(null)
                   }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'ArrowLeft') {
+                      if (idx > 0) {
+                        e.preventDefault()
+                        reorderGroup(idx, idx - 1)
+                        toast(`◀ Đã chuyển Nhóm #${idx + 1} sang vị trí #${idx}`)
+                      }
+                    } else if (e.key === 'ArrowRight') {
+                      if (idx < groups.length - 1) {
+                        e.preventDefault()
+                        reorderGroup(idx, idx + 1)
+                        toast(`▶ Đã chuyển Nhóm #${idx + 1} sang vị trí #${idx + 2}`)
+                      }
+                    }
+                  }}
                   className={`loop-group-chip${isActive ? ' active' : ''}${isDragOver ? ' drag-over' : ''}`}
                   onClick={() => selectGroup(idx)}
-                  title={`${g.name} (${enabledFrames}F · ${g.fps} FPS) — Bấm để chỉnh sửa, kéo thả để đổi thứ tự chạy`}
+                  title={`${g.name} (${enabledFrames}F · ${g.fps} FPS) — Bấm để chọn, dùng phím ◀ / ▶ để đổi thứ tự, kéo thả để sắp xếp`}
                 >
                   {groups.length > 1 && syncChromaAll && (
                     <input
@@ -268,6 +285,20 @@ export function LoopGroupSliderBar({ onRequestAppendUpload }: Props = {}): React
         </div>
 
         <div className="loop-group-slider-actions">
+          {groups.length > 1 && (
+            <button
+              type="button"
+              className="la-btn la-btn--outline la-btn--sm loop-inherit-config-btn"
+              onClick={() => {
+                useLoopAnimator.getState().inheritActiveGroupConfigToAllGroups()
+                toast(`✨ Đã áp dụng toàn bộ cấu hình từ Nhóm #${activeGroupIndex + 1} sang ${groups.length - 1} nhóm khác!`)
+              }}
+              title={`Sao chép toàn bộ cấu hình (Lưới cắt, Tách nền, FPS, Nhịp) từ Nhóm #${activeGroupIndex + 1} sang tất cả các nhóm khác`}
+            >
+              <IconSparkles width={12} height={12} />
+              <span>Kế thừa cấu hình</span>
+            </button>
+          )}
           <button
             type="button"
             className="la-btn la-btn--primary la-btn--sm loop-open-align-btn"

@@ -2,9 +2,20 @@ import { describe, expect, it } from 'vitest'
 import { checkCodeSyntax, checkCommitMessage, checkStagedFile } from './agent-guard.mjs'
 
 describe('agent-guard commit-msg', () => {
-  it('accepts Vietnamese conventional commits with diacritics', () => {
+  it('accepts Vietnamese commit format [loại] (scope): mô tả with diacritics', () => {
+    expect(checkCommitMessage('[sửa lỗi] (layer): sửa lỗi vị trí @import trong photoStudio.css\n')).toEqual([])
+    expect(checkCommitMessage('[tính năng] (ui): thêm thanh công cụ rail photoshop')).toEqual([])
+    expect(checkCommitMessage('[chỉnh sửa] (timeline): điều chỉnh thanh trượt 60fps')).toEqual([])
+    expect(checkCommitMessage('[xoá] (assets): loại bỏ file rác không dùng')).toEqual([])
+    expect(checkCommitMessage('[tái cấu trúc] (engine): tách module SceneRenderer')).toEqual([])
+    expect(checkCommitMessage('[hiệu năng] (viewer): tối ưu bộ nhớ texture LRU pool')).toEqual([])
+    expect(checkCommitMessage('[dọn dẹp]: cập nhật gitignore và dọn dẹp cache')).toEqual([])
     expect(checkCommitMessage('fix(ui): sửa lỗi combobox bị đơ 2 giây\n')).toEqual([])
     expect(checkCommitMessage('feat: thêm script dọn manifest.json')).toEqual([])
+  })
+
+  it('lets Vietnamese merge commits through', () => {
+    expect(checkCommitMessage("[hợp nhất] nhánh 'sua/photo-studio' vào main")).toEqual([])
   })
 
   it('rejects messages without diacritics or conventional prefix', () => {

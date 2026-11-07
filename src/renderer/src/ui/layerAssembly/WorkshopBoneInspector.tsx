@@ -7,7 +7,8 @@ import { RigNumber } from './RigNumber'
 import { WorkshopBoneConstraintCard } from './WorkshopBoneConstraintCard'
 import { classifyBoneSide, computeBoneInfluenceRadius } from './mohoRigHelpers'
 import { boneAncestorIds, buildBoneTreeRows, type BoneTreeRow } from './workshopBoneTree'
-import { IconAutoRigSpark, IconBoneAdd, IconBoneChainBuild, IconBoneDuplicateLR, IconBoneMirror } from './LayerWorkshopStudioIcons'
+import { IconAutoRigSpark, IconBoneAdd, IconBoneChainBuild, IconBoneDuplicateLR, IconBoneMirror, IconFlexiMeshBind } from './LayerWorkshopStudioIcons'
+import { openCutoutPartRig } from './rigToolStore'
 
 export interface BoneTreeCardProps {
   composite: LayerComposite
@@ -20,12 +21,21 @@ export interface BoneTreeCardProps {
   onOpenAuto: () => void
 }
 
-function BoneTreeEmpty({ onStartDraw, onOpenBuild, onOpenAuto }: Pick<BoneTreeCardProps, 'onStartDraw' | 'onOpenBuild' | 'onOpenAuto'>) {
+function BoneTreeEmpty({ onStartDraw, onOpenBuild, onOpenAuto, composite }: Pick<BoneTreeCardProps, 'onStartDraw' | 'onOpenBuild' | 'onOpenAuto' | 'composite'>) {
   return (
     <div className="lw-rig-empty-hint">
       <p>Chưa có xương nào trên nhân vật / vật thể.</p>
       <div className="lw-rig-empty-actions">
-        <button type="button" className="btn xs primary" onClick={onStartDraw}>
+        <button
+          type="button"
+          className="btn xs primary lw-btn-cutout-start"
+          onClick={() => openCutoutPartRig(composite.layers[0]?.id)}
+          style={{ background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)', color: '#fff' }}
+          title="Vẽ xương theo từng bộ phận layer trên Sân khấu 2D (hiện ô preview 2 bên và mũi tên chỉ dẫn)"
+        >
+          <IconFlexiMeshBind width={12} height={12} /> 🎨 Vẽ xương theo bộ phận (2D)
+        </button>
+        <button type="button" className="btn xs" onClick={onStartDraw}>
           <IconBoneAdd width={12} height={12} /> Vẽ xương (A) trên khung 2D
         </button>
         <button type="button" className="btn xs" onClick={onOpenBuild}>
@@ -152,6 +162,14 @@ export function BoneTreeCard(props: BoneTreeCardProps) {
                 </button>
               )}
             </label>
+            <button
+              type="button"
+              className="lw-bone-tree-btn lw-btn-cutout-quick"
+              onClick={() => openCutoutPartRig(composite.layers[0]?.id)}
+              title="Mở chế độ vẽ xương theo từng bộ phận layer (2D) kèm ô preview 2 bên & mũi tên nét đứt"
+            >
+              🎨 Vẽ theo layer (2D)
+            </button>
             {branchIds.size > 0 && (
               <button
                 type="button"
@@ -166,7 +184,7 @@ export function BoneTreeCard(props: BoneTreeCardProps) {
         )}
       </div>
       {bones.length === 0 ? (
-        <BoneTreeEmpty onStartDraw={props.onStartDraw} onOpenBuild={props.onOpenBuild} onOpenAuto={props.onOpenAuto} />
+        <BoneTreeEmpty onStartDraw={props.onStartDraw} onOpenBuild={props.onOpenBuild} onOpenAuto={props.onOpenAuto} composite={composite} />
       ) : (
         <div className="lw-bone-list" role="tree" aria-label="Danh sách xương" ref={listRef}>
           {rows.map((row) => (
@@ -228,10 +246,11 @@ export interface BoneInspectorCardProps {
   patchAllDelta?: (delta: BoneEnvelopeDeltaPatch) => void
   onDelete: (id: string) => void
   onMirror: (id: string) => void
+  onSplit?: (id: string) => void
   onDeselect: () => void
 }
 
-function InspectorHeader({ bone, patch, onDelete, onMirror, onDeselect }: Pick<BoneInspectorCardProps, 'bone' | 'patch' | 'onDelete' | 'onMirror' | 'onDeselect'>) {
+function InspectorHeader({ bone, patch, onDelete, onMirror, onSplit, onDeselect }: Pick<BoneInspectorCardProps, 'bone' | 'patch' | 'onDelete' | 'onMirror' | 'onSplit' | 'onDeselect'>) {
   const side = classifyBoneSide(bone)
   return (
     <div className="lw-bone-insp-head">
@@ -246,6 +265,16 @@ function InspectorHeader({ bone, patch, onDelete, onMirror, onDeselect }: Pick<B
       >
         <IconPin width={12} height={12} />
       </button>
+      {!bone.pin && bone.length >= 16 && (
+        <button
+          type="button"
+          className="lw-bone-insp-icon"
+          onClick={() => onSplit?.(bone.id)}
+          title="✂️ Chia đôi xương (Tạo khớp gối/khuỷu 2 đoạn chuẩn Moho)"
+        >
+          ✂️
+        </button>
+      )}
       <button type="button" className="lw-bone-insp-icon" onClick={() => onMirror(bone.id)} title="Nhân bản xương + nhánh con sang bên kia trục X = 0">
         <IconBoneDuplicateLR width={12} height={12} />
       </button>

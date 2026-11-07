@@ -150,6 +150,8 @@ interface AssembledLayerItemViewProps {
   lighting?: AssemblyLighting
   assetTable?: AssetTable
   show3DPerspective?: boolean
+  isDimmed?: boolean
+  isFocused?: boolean
   onPointerDown: (e: React.PointerEvent) => void
   onStartDragHandle?: (
     e: React.PointerEvent,
@@ -170,6 +172,8 @@ export function AssembledLayerItemView({
   lighting,
   assetTable,
   show3DPerspective = true,
+  isDimmed = false,
+  isFocused = false,
   onPointerDown,
   onStartDragHandle
 }: AssembledLayerItemViewProps) {
@@ -256,7 +260,7 @@ export function AssembledLayerItemView({
         transformStyle: 'preserve-3d',
         pointerEvents: 'none',
         willChange: 'transform',
-        zIndex: Math.round(1000 - layer.z)
+        zIndex: isFocused ? 2500 : Math.round(1000 - layer.z)
       }}
     >
       <div
@@ -268,12 +272,22 @@ export function AssembledLayerItemView({
           transform: layerTransform,
           transformOrigin: anchorOrigin,
           transformStyle: 'preserve-3d',
-          opacity: layer.opacity * loopRhythm.opacityMultiplier,
+          opacity: isDimmed ? (layer.opacity * loopRhythm.opacityMultiplier) * 0.18 : layer.opacity * loopRhythm.opacityMultiplier,
+          filter: isDimmed ? 'grayscale(0.65)' : undefined,
+          transition: 'opacity 0.18s ease, filter 0.18s ease',
           cursor: layer.locked ? 'default' : 'move',
-          outline: isSelected && !showBbox ? `${Math.max(1, 2 * invScale)}px solid var(--accent)` : 'none',
+          outline: isFocused
+            ? '2px solid var(--accent-cyan, #38bdf8)'
+            : isSelected && !showBbox
+              ? `${Math.max(1, 2 * invScale)}px solid var(--accent)`
+              : 'none',
           outlineOffset: '2px',
           borderRadius: '3px',
-          boxShadow: isSelected ? '0 0 12px rgba(38, 128, 235, 0.5)' : 'none',
+          boxShadow: isFocused
+            ? '0 0 16px rgba(56, 189, 248, 0.8), 0 0 0 2px var(--accent-cyan)'
+            : isSelected
+              ? '0 0 12px rgba(38, 128, 235, 0.5)'
+              : 'none',
           pointerEvents: 'auto'
         }}
         onPointerDown={onPointerDown}

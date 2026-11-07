@@ -1,6 +1,7 @@
 import type { ImageLayer, Vec3 } from '@shared/types'
 import { evaluateRig, transformRigLayer } from '../../engine/layerRig'
 import type { AssembledLayerItem, LayerComposite } from './types'
+import { COMPOSITE_Z_FACTOR } from './insertLayerComposite'
 
 type RigPoseMap = ReturnType<typeof evaluateRig>
 
@@ -64,7 +65,7 @@ export function bakeWorkshopRig(
     const pos: Vec3 = [
       Math.round((posed.x * scale + offset[0]) * 100) / 100,
       Math.round((-posed.y * scale + offset[1]) * 100) / 100,
-      Math.round((posed.z * scale + offset[2]) * 100) / 100
+      Math.round(((posed.z ?? 0) * COMPOSITE_Z_FACTOR * scale + offset[2]) * 100) / 100
     ]
     const rot: Vec3 = [
       Math.round((posed.rotationX ?? 0) * 100) / 100,

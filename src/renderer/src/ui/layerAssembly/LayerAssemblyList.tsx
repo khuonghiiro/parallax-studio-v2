@@ -360,21 +360,12 @@ function LayerCardItem({
         </button>
         <button
           type="button"
-          className="la-icon-btn la-icon-btn--bordered"
+          className="la-icon-btn la-icon-btn--bordered la-icon-btn--edit"
           onClick={onEdit}
           title="Chỉnh sửa chi tiết trong Xưởng Lắp Ráp Layer"
           aria-label="Chỉnh sửa"
         >
           <IconPen width={12} height={12} />
-        </button>
-        <button
-          type="button"
-          className="la-icon-btn la-icon-btn--bordered"
-          onClick={onDuplicate}
-          title="Nhân bản chi tiết này"
-          aria-label="Nhân bản"
-        >
-          <IconCopy width={12} height={12} />
         </button>
         <button
           type="button"

@@ -39,17 +39,51 @@ Tuân thủ nghiêm ngặt kỹ năng `code-modularization`:
   - Khi tạo hoặc chạy script/test Python, nếu thiếu thư viện (như `chardet`, `numpy`,...), chủ động kiểm tra và chạy `pip install <package>` bổ sung ngay lập tức để bảo đảm tiến trình thực thi thông suốt.
 - **Bảo vệ Secrets & Quyền riêng tư:**
   - Tuyệt đối không commit file `.env`, tokens, API keys, private keys hay file dữ liệu nhạy cảm.
-- **Git Commit & Push:**
-  - Sử dụng chuẩn Conventional Commits (`feat:`, `fix:`, `refactor:`, `perf:`, `chore:`).
-  - Viết commit message bằng **tiếng Việt CÓ DẤU** đầy đủ, chuẩn xác để phân biệt rành mạch các từ tiếng Anh và tiếng Việt giao thoa (ví dụ: `fix(ui): thay thế combobox và color picker native bằng custom component 60fps, triệt tiêu độ trễ 2s`).
-  - Không gắn watermark hoặc nhắc tên AI trong commit message.
+- **Chuẩn Commit Tiếng Việt (Vietnamese Commit Format - BẮT BUỘC):**
+  - Định dạng: `[loại] (phạm vi): mô tả bằng tiếng Việt CÓ DẤU` (hoặc `[loại]: mô tả...`).
+  - Thay thế toàn bộ tiền tố tiếng Anh (`fix(...)`, `feat(...)`) bằng các tiền tố tiếng Việt rõ ràng:
+    - `[sửa lỗi]` (hoặc `[sửa]`): Khắc phục lỗi, bug logic, CSS (ví dụ: `[sửa lỗi] (layer): sửa lỗi vị trí @import trong photoStudio.css`).
+    - `[tính năng]` (hoặc `[thêm]`): Thêm tính năng, module, công cụ mới.
+    - `[chỉnh sửa]` (hoặc `[chỉnh]`): Cập nhật, điều chỉnh logic hoặc giao diện hiện có.
+    - `[xoá]` (hoặc `[loại bỏ]`): Xoá bỏ code rác, file thừa, tài nguyên cũ không dùng.
+    - `[tái cấu trúc]`: Cải tổ kiến trúc, tách file/hàm vệ tinh, không đổi hành vi nghiệp vụ.
+    - `[hiệu năng]` (hoặc `[tối ưu]`): Tối ưu tốc độ xử lý, 60fps, giảm bộ nhớ, thuật toán.
+    - `[dọn dẹp]` (hoặc `[bảo trì]`): Cấu hình, dependencies, script bảo trì.
+    - `[giao diện]`: Tinh chỉnh CSS, layout, màu sắc, theme.
+    - `[tài liệu]`: Cập nhật tài liệu, README, quy chuẩn AGENTS.md.
+    - `[kiểm thử]`: Thêm mới hoặc cập nhật unit tests, E2E tests.
+    - `[hợp nhất]`: Merge commit từ nhánh logic vào main.
+  - Tuyệt đối không gắn watermark hoặc nhắc tên AI trong commit message.
   - **Bắt buộc kiểm tra sau mỗi lần sửa code (`pnpm verify`):** Ngay sau khi sửa bất kỳ file code nào, AI bắt buộc chạy `pnpm verify` (`node scripts/agent-guard.mjs verify` kiểm tra cú pháp `esbuild`/JSX toàn bộ dự án + `typecheck`), chạy unit test liên quan (`pnpm test`) và kiểm tra `pnpm pxs call ping '{}'` (`rendererReady: true`) nếu app đang mở. Tuyệt đối không chỉ chạy `tsc` đơn lẻ vì một số lỗi cú pháp Babel/esbuild (như trộn `&&` với `??` không có ngoặc đơn) chỉ bị bắt ở bước transform của Vite/esbuild.
   - **Kiểm tra trực quan toàn màn hình trước khi commit & push (Fullscreen Visual QA Gate - BẮT BUỘC):** Khi test xong và trước khi commit / push code, nếu app đang mở (`127.0.0.1:9877`), AI **BẮT BUỘC chụp lại ảnh toàn màn hình ứng dụng 1 lần nữa** (`pnpm pxs review --view app --out D:\_tmp\pre_commit_fullscreen.png` hoặc tool `get_app_screenshot` không truyền `region`), dùng công cụ xem ảnh phân tích để chắc chắn:
     - Không bị đen màn (black screen, trắng màn, sập canvas WebGL / Three.js).
     - Không có thông báo lỗi nổi lên (error toast, crash overlay, banner lỗi hoặc unhandled rejection dialog).
     - Toàn bộ giao diện render bình thường, đầy đủ các panel, viewer và timeline.
     - **Chỉ khi ảnh chụp toàn màn hình xác nhận an toàn tuyệt đối thì mới tiến hành commit và push code.**
-  - **Tự động Commit & Push khi hoàn tất sửa code trong prompt (BẮT BUỘC):** Khi AI hoàn thành các thay đổi code trong mỗi prompt, sau khi đã vượt qua các bước kiểm tra chất lượng bắt buộc (`pnpm verify`, unit test liên quan và ảnh chụp toàn màn hình xác nhận an toàn không lỗi), AI BẮT BUỘC tự động tạo Conventional Commit bằng tiếng Việt có dấu đầy đủ và tự động chạy `git push` đẩy code lên remote branch hiện tại.
+- **Quy Trình Quản Lý Nhánh Git Tự Động Theo Phân Loại Logic (Logic-Driven Branching & Merging Workflow - BẮT BUỘC):**
+  - **Mục tiêu:** Phân loại rành mạch từng logic chỉnh sửa (thêm / chỉnh / xoá / sửa lỗi gì ở logic đó), đóng gói thành từng nhánh độc lập rồi merge vào `main` (hoặc `master`). Nhờ đó, nếu một nhánh logic phát sinh lỗi hoặc không dùng, người dùng hoặc AI có thể dễ dàng loại bỏ (revert / drop nhánh) ra khỏi `main` mà không làm ảnh hưởng hay đứt gãy các logic khác.
+  - **Quy tắc đặt tên nhánh:** `<hành-động>/<tên-logic-kebab-case>` thể hiện rõ hành động và phạm vi logic:
+    - `sua/<logic>` hoặc `fix/<logic>`: Sửa lỗi logic/CSS (ví dụ `sua/photo-studio-import-css`).
+    - `them/<logic>` hoặc `feat/<logic>`: Thêm mới tính năng (ví dụ `them/loop-animator-presets`).
+    - `chinh/<logic>` hoặc `refactor/<logic>`: Chỉnh sửa/tái cấu trúc logic (ví dụ `chinh/layer-assembly-rig`).
+    - `xoa/<logic>`: Xoá bỏ code/file thừa (ví dụ `xoa/unused-assets`).
+  - **Vòng đời chu trình làm việc của AI (Mandatory Lifecycle):**
+    1. **Bắt đầu logic mới:** AI tự động kiểm tra và chuyển về nhánh chính (`main` hoặc `master`), kéo code mới nhất (`git checkout main && git pull origin main`), sau đó tạo nhánh mới tương ứng với logic cần làm:
+       `git checkout -b <hành-động>/<tên-logic>`
+    2. **Chỉnh sửa & Kiểm tra chất lượng:** Thực hiện toàn bộ công việc trên nhánh đó, chạy `pnpm verify` (esbuild + typecheck), unit test (`pnpm test`), kiểm tra realtime trên app, và chụp ảnh Fullscreen Visual QA.
+    3. **Commit trên nhánh logic:** Commit bằng format tiếng Việt:
+       `git commit -m "[loại] (phạm vi): mô tả chi tiết bằng tiếng Việt có dấu"`
+    4. **Hoàn tất logic hoặc chuyển logic khác (Merge vào main):**
+       - Chuyển về nhánh chính: `git checkout main` (hoặc `master`).
+       - Kéo mới nhất: `git pull origin main`.
+       - Hợp nhất nhánh logic vào `main` bằng cờ `--no-ff`:
+         `git merge <tên-nhánh> --no-ff -m "[hợp nhất] nhánh '<tên-nhánh>' vào main"`
+         *Lý do dùng `--no-ff` (No Fast-Forward):* Tạo một merge commit rõ ràng bao bọc toàn bộ thay đổi của logic đó. Khi cần rollback, chỉ cần 1 lệnh `git revert -m 1 <merge-commit-hash>` là rút sạch nhánh bị lỗi ra khỏi `main` an toàn tuyệt đối.
+       - Tự động đẩy code lên remote: `git push origin main` (hoặc `master`), đồng thời push nhánh logic lên remote nếu cần lưu vết (`git push origin <tên-nhánh>`).
+    5. **Tạo nhánh mới cho logic tiếp theo:** Từ `main` vừa hợp nhất, tiếp tục tạo nhánh mới cho logic tiếp theo:
+       `git checkout main`
+       `git checkout -b <hành-động-mới>/<logic-mới>`
+    - **CẤM:** Tuyệt đối không làm việc nhiều logic khác nhau chồng chéo trên cùng một nhánh.
 - **Cưỡng chế cho mọi AI (không chỉ Antigravity):**
   - Cầu nối tự nạp quy chuẩn: `CLAUDE.md` (Claude Code, `@AGENTS.md`), `.cursor/rules/parallax-studio.mdc` (Cursor, `alwaysApply`), `.github/copilot-instructions.md` (Copilot), `.windsurfrules` (Windsurf), `.clinerules` (Cline). Codex/Gemini CLI đọc trực tiếp `AGENTS.md`/`GEMINI.md`. Khi đổi quy chuẩn, cập nhật đồng bộ các file này.
   - Git hooks `.githooks/` (bật qua `prepare` khi `pnpm install` hoặc `node scripts/agent-guard.mjs install`): `commit-msg` chặn message không phải Conventional Commits / thiếu dấu tiếng Việt / nhắc tên AI; `pre-commit` kiểm tra cú pháp `esbuild`/JSX của mọi file code staged, chặn file code > 1000 dòng và secret; `pre-push` tự động chạy `verify` (quét cú pháp `esbuild` toàn dự án + `typecheck`) để chặn tuyệt đối việc push code lỗi lên Git.

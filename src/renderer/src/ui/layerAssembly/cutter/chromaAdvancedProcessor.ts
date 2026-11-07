@@ -44,7 +44,6 @@ function resolveEffectiveKeyRgb(settings: ChromaKeySettings): { r: number; g: nu
   const keyType = settings.keyColorType || 'custom'
   const parsed = parseHexRgb(settings.keyColorHex || settings.keyColor || '#00DB4E')
   if (keyType === 'chroma_green') {
-    // Nếu mã HEX hiện tại đã là tông xanh lá (ví dụ #02AD47 tự nhận diện từ góc ảnh), ưu tiên dùng chính xác màu đó
     if (parsed.g > parsed.r + 25 && parsed.g > parsed.b + 15) {
       return parsed
     }
@@ -122,16 +121,17 @@ export function computeChromaMatteAlpha(
       0,
       Math.min(1, ((r - cMean) * kcr + (g - cMean) * kcg + (b - cMean) * kcb) / kcLenSq)
     )
-    if (pChroma > 0.14) {
-      const chromaDistance = (1 - pChroma) * 210
+    if (pChroma > 0.08) {
+      const tolFactor = tolerance > 45 ? 1.0 + (tolerance - 45) * 0.016 : 1.0
+      const chromaDistance = Math.max(0, (1 - pChroma * tolFactor) * 200)
       if (chromaDistance < distance) {
         distance = chromaDistance
       }
     }
   }
 
-  const highTolBoost = tolerance > 55 ? (tolerance - 55) * 0.85 : 0
-  const hardThreshold = 5 + tolerance * 1.08 + highTolBoost
+  const highTolBoost = tolerance > 45 ? (tolerance - 45) * 1.25 : 0
+  const hardThreshold = 5 + tolerance * 1.12 + highTolBoost
   const effectiveFeather = Math.min(10, feather)
   const transitionWidth = 8 + effectiveFeather * 1.6 + tolerance * 0.18
   if (distance <= hardThreshold) return 0
@@ -271,9 +271,8 @@ function applyDefringeAndDespill(
   effectiveKeyRgb?: { r: number; g: number; b: number },
   zone?: Uint8Array
 ): void {
-  const strength =
-    Math.max(0, Math.min(100, settings.defringeStrength ?? (settings.despill ? 50 : 0))) / 100
-  if (strength <= 0) return
+  const rawStrength = settings.defringeStrength ?? (settings.despill ? 65 : 55)
+  const strength = Math.max(0.1, Math.min(100, rawStrength)) / 100
 
   const fringeType = settings.fringeColorType || settings.keyColorType || 'custom'
   const fringeRgb =
@@ -312,7 +311,8 @@ function applyDefringeAndDespill(
         analysis.isLight[p] === 1,
         analysis.isGreenKey,
         analysis.isBlueKey,
-        analysis.isMagentaKey
+        analysis.isMagentaKey,
+        a / 255
       )
     }
 
@@ -506,6 +506,7 @@ function applyDespeckleAndWhiteCrumbs(
   }
 
   const minPixelArea = despeckleSize * 4
+  const allowDespeckleWithShadow = !excludeShadowMask || totalPixels >= 4096
   for (let i = 0; i < starts.length; i++) {
     const s = starts[i]
     const e = ends[i]
@@ -514,7 +515,7 @@ function applyDespeckleAndWhiteCrumbs(
       for (let k = s; k < e; k++) data[queue[k] * 4 + 3] = 0
       continue
     }
-    if (despeckleSize > 0 && len <= minPixelArea && !excludeShadowMask) {
+    if (despeckleSize > 0 && len <= minPixelArea && allowDespeckleWithShadow) {
       const isDarkLine = darkCounts[i] >= Math.max(3, len * 0.25)
       if (!isDarkLine) {
         for (let k = s; k < e; k++) data[queue[k] * 4 + 3] = 0
@@ -570,6 +571,22 @@ export function processAdvancedChromaPixelData(
     if (settings.removeSoftHalo) {
       removeSoftHaloPixels(data, w, h, settings, effectiveKeyRgb, analysis, zone)
     }
+    // Tự động unmix màu nền khỏi các pixel mép biên để khử triệt để viền tím/xanh ám vào tóc
+    for (let p = 0; p < totalPixels; p++) {
+      if (zone[p] && analysis.rawAlpha[p] < 0.98 && data[p * 4 + 3] > 0) {
+        unmixPixelRgb(
+          data,
+          p * 4,
+          effectiveKeyRgb,
+          analysis.rawAlpha[p],
+          analysis.isLight[p] === 1,
+          analysis.isGreenKey,
+          analysis.isBlueKey,
+          analysis.isMagentaKey,
+          data[p * 4 + 3] / 255
+        )
+      }
+    }
   }
 
   const alphaSnap = new Uint8Array(totalPixels)
@@ -577,9 +594,10 @@ export function processAdvancedChromaPixelData(
   const edgeChoke =
     cleanupMode === 'all' || cleanupMode === 'smooth' ? settings.edgeChoke ?? 0 : 0
 
-  // Bước 1: Gọt viền (nếu có) và Khử ám màu mép (Defringe & Color Unmixing) trước khi làm mềm biên
+  // Bước 1: Gọt viền (nếu có) và Khử ám màu mép (Defringe & Color Unmixing) trước khi làm mềm biên.
+  // Khi người dùng chủ động kéo Gọt viền (edgeChoke > 0), tác động trực tiếp lên biên ngoài thực tế (không bị lớp bóng mờ chặn).
   if (edgeChoke > 0) {
-    applyFeatherAndChoke(data, w, h, 0, edgeChoke, alphaSnap, isShadowPixel)
+    applyFeatherAndChoke(data, w, h, 0, edgeChoke, alphaSnap, null)
   }
   if (cleanupMode === 'all' || cleanupMode === 'defringe') {
     applyDefringeAndDespill(
@@ -597,7 +615,8 @@ export function processAdvancedChromaPixelData(
 
   // Bước 2: Làm mềm biên không răng cưa (Chamfer Euclidean + Gaussian 3x3)
   if (settings.smoothness > 0) {
-    applyFeatherAndChoke(data, w, h, settings.smoothness, 0, alphaSnap, isShadowPixel)
+    const featherExclude = settings.smoothness > 2 ? null : isShadowPixel
+    applyFeatherAndChoke(data, w, h, settings.smoothness, 0, alphaSnap, featherExclude)
   }
 
   if (cleanupMode === 'all' || cleanupMode === 'despeckle') {

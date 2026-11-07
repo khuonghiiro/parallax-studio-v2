@@ -63,3 +63,5 @@ bin/*.exe
 
 # AI Agent runtime artifacts
 .claude/
+
+sleep.bat

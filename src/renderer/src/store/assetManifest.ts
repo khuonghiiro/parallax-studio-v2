@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+export type { BuiltInAssetCategory } from '@shared/ipc'
 import type {
   BuiltInAssetCategory,
   BuiltInAssetItem,

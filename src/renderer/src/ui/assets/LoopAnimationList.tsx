@@ -207,7 +207,7 @@ function LoopTemplateCard({
         >
           <IconPlus width={13} height={13} />
         </button>
-        <button type="button" className="la-icon-btn la-icon-btn--bordered" onClick={onEdit} title="Chỉnh sửa trong Xưởng Tách Hoạt Ảnh Loop" aria-label="Chỉnh sửa">
+        <button type="button" className="la-icon-btn la-icon-btn--bordered la-icon-btn--edit" onClick={onEdit} title="Chỉnh sửa trong Xưởng Tách Hoạt Ảnh Loop" aria-label="Chỉnh sửa">
           <IconPen width={13} height={13} />
         </button>
         <button type="button" className="la-icon-btn la-icon-btn--bordered la-icon-btn--danger" onClick={onDelete} title="Xoá mẫu khỏi kho (kiểm tra nơi đang dùng trước khi xoá)" aria-label="Xoá">

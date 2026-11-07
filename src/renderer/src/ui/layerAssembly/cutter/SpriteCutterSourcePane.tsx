@@ -9,7 +9,7 @@ import type {
   EyedropperSample,
   GridSlicerSettings
 } from './types'
-import { DEFAULT_CHROMA_SETTINGS } from './types'
+import { DEFAULT_CHROMA_SETTINGS, getStoredChromaSettings, saveStoredChromaSettings } from './types'
 import {
   clusterAndFilterIslands,
   extractRegionDataUrl,
@@ -27,8 +27,10 @@ import {
   readCutterSessionCache,
   writeCutterSessionCache
 } from './cutterHelpers'
-import { CutterBrushSubBar } from './CutterBrushSubBar'
-import { CutterGridSubBar, CutterQuickPartsStrip } from './CutterSlicesBar'
+import { SpriteCutterLeftRail } from './SpriteCutterLeftRail'
+import { SpriteCutterRightRail } from './SpriteCutterRightRail'
+import '../../../styles/spriteCutterRails.css'
+import { CutterQuickPartsStrip } from './CutterSlicesBar'
 import { PhotoshopEyedropperOverlay } from './PhotoshopEyedropperOverlay'
 import {
   SpriteCutterSourceToolbar,
@@ -42,6 +44,7 @@ import { SpriteCutterOverlays } from './SpriteCutterOverlays'
 import { useCutterUndoRedo } from './useCutterUndoRedo'
 import { useChromaPreviewWorker } from './useChromaPreviewWorker'
 import { useCutterViewportZoom } from './useCutterViewportZoom'
+import { useCutterPieceTransfer } from './useCutterPieceTransfer'
 import { extractHighResRegionDataUrl } from './highResCutterExport'
 import { SAMPLE_ANIME_SPRITESHEET_URL } from './sampleSpriteSheet'
 
@@ -66,7 +69,7 @@ export function SpriteCutterSourcePane({
     () => cachedSession?.imageUrl || SAMPLE_ANIME_SPRITESHEET_URL
   )
   const [chroma, setChroma] = useState<ChromaKeySettings>(
-    () => cachedSession?.chroma || DEFAULT_CHROMA_SETTINGS
+    () => cachedSession?.chroma || getStoredChromaSettings()
   )
   const lastDetectedUrlRef = useRef<string | null>(cachedSession?.imageUrl || null)
   const [showChromaStudio, setShowChromaStudio] = useState<boolean>(true)
@@ -144,7 +147,7 @@ export function SpriteCutterSourcePane({
     naturalHeight: imgNaturalSize.h
   })
 
-  const { requestProcessing: requestChromaProcessing } = useChromaPreviewWorker({
+  const { requestProcessing: requestChromaProcessing, isProcessing } = useChromaPreviewWorker({
     chroma,
     imageRevision: imageDecodeRev,
     rawDataRef: workRawDataRef,
@@ -294,6 +297,8 @@ export function SpriteCutterSourcePane({
     )
   }, [rawIslands, imgNaturalSize.w, imgNaturalSize.h, minIslandArea, mergeGap, chroma.enabled, chroma.previewMode])
 
+  const [activeIslandOverride, setActiveIslandOverride] = useState<DetectedIsland[] | null>(null)
+
   const activeIslands = useMemo(() => {
     if (tool === 'grid') {
       return computeGridIslands(imgNaturalSize.w, imgNaturalSize.h, gridSettings)
@@ -301,107 +306,47 @@ export function SpriteCutterSourcePane({
     return islands
   }, [tool, islands, imgNaturalSize.w, imgNaturalSize.h, gridSettings])
 
+  const displayIslands = activeIslandOverride || activeIslands
+
+  const handleReorderIslands = useCallback((fromIdx: number, toIdx: number) => {
+    setActiveIslandOverride((prev) => {
+      const list = [...(prev || activeIslands)]
+      if (fromIdx < 0 || fromIdx >= list.length || toIdx < 0 || toIdx >= list.length) return list
+      const temp = list[fromIdx]
+      list[fromIdx] = list[toIdx]
+      list[toIdx] = temp
+      return list
+    })
+  }, [activeIslands])
+
   const handleUpdateChroma = useCallback((patch: Partial<ChromaKeySettings>) => {
     setChroma((prev) => {
       const next = { ...prev, ...patch }
       if (patch.keyColorHex) next.keyColor = patch.keyColorHex
+      saveStoredChromaSettings(next)
       return next
     })
   }, [])
 
-  const extractPieceFromBox = useCallback(
-    async (box: { x: number; y: number; width: number; height: number }, polygon?: CutPoint[]) => {
-      const proc = procCanvasRef.current
-      if (!proc) return ''
-      const hasManualEdits = Boolean(
-        userAlphaOverrideRef.current?.some((alpha) => alpha >= 0)
-      )
-      try {
-        return await extractHighResRegionDataUrl(
-          proc,
-          box,
-          polygon,
-          fullRawCanvasRef.current,
-          chroma,
-          hasManualEdits
-        )
-      } catch {
-        return extractRegionDataUrl(proc, box, polygon, fullRawCanvasRef.current, chroma)
-      }
-    },
-    [chroma]
-  )
-
-  const handleSelectIsland = useCallback(
-    async (isl: DetectedIsland) => {
-      setSelectedIslandId(isl.id)
-      setMarquee(null)
-      setLassoPoints([])
-
-      const dataUrl = await extractPieceFromBox(isl)
-      if (!dataUrl) return
-      const piece: CutPiece = {
-        id: isl.id,
-        dataUrl,
-        width: isl.width,
-        height: isl.height,
-        label: isl.label || 'Mảnh cắt',
-        sourceBox: isl,
-        sourceImageSize: { width: imgNaturalSize.w, height: imgNaturalSize.h }
-      }
-      try {
-        ;(window as unknown as { __parallax_cut_part?: CutPiece }).__parallax_cut_part = piece
-      } catch {}
-      onSelectPiece(piece)
-    },
-    [extractPieceFromBox, imgNaturalSize.w, imgNaturalSize.h, onSelectPiece]
-  )
-
-  const handleQuickAddIsland = useCallback(
-    async (isl: DetectedIsland) => {
-      const dataUrl = await extractPieceFromBox(isl)
-      if (!dataUrl) return
-      const piece: CutPiece = {
-        id: isl.id,
-        dataUrl,
-        width: isl.width,
-        height: isl.height,
-        label: isl.label || 'Mảnh cắt',
-        sourceBox: isl,
-        sourceImageSize: { width: imgNaturalSize.w, height: imgNaturalSize.h }
-      }
-      onSelectPiece(piece)
-      onTransferToTarget(piece, { x: 0, y: 0 })
-    },
-    [extractPieceFromBox, imgNaturalSize.w, imgNaturalSize.h, onSelectPiece, onTransferToTarget]
-  )
-
-  const handleSendAllToBoard = useCallback(async () => {
-    if (activeIslands.length === 0) return
-    const centerX = imgNaturalSize.w / 2
-    const centerY = imgNaturalSize.h / 2
-    const boardMin = Math.min(targetBoardSize?.width || 600, targetBoardSize?.height || 600)
-    const scaleToBoard = Math.min(1, (boardMin * 0.76) / Math.max(imgNaturalSize.w, imgNaturalSize.h))
-
-    for (const isl of activeIslands) {
-      const dataUrl = await extractPieceFromBox(isl)
-      if (!dataUrl) continue
-      const relX = Math.round((isl.x + isl.width / 2 - centerX) * scaleToBoard)
-      const relY = Math.round((isl.y + isl.height / 2 - centerY) * scaleToBoard)
-      onTransferToTarget(
-        {
-          id: `${isl.id}-${Date.now()}`,
-          dataUrl,
-          width: isl.width,
-          height: isl.height,
-          label: isl.label || 'Mảnh cắt',
-          sourceBox: isl,
-          sourceImageSize: { width: imgNaturalSize.w, height: imgNaturalSize.h }
-        },
-        { x: relX, y: relY }
-      )
-    }
-  }, [activeIslands, extractPieceFromBox, imgNaturalSize.w, imgNaturalSize.h, onTransferToTarget, targetBoardSize])
+  const {
+    extractPieceFromBox,
+    handleSelectIsland,
+    handleQuickAddIsland,
+    handleSendAllToBoard
+  } = useCutterPieceTransfer({
+    procCanvasRef,
+    fullRawCanvasRef,
+    userAlphaOverrideRef,
+    chroma,
+    imgNaturalSize,
+    targetBoardSize,
+    activeIslands: displayIslands,
+    onSelectPiece,
+    onTransferToTarget,
+    setSelectedIslandId,
+    setMarquee,
+    setLassoPoints
+  })
 
   const getCurrentTargetHex = useCallback(
     (t: EyedropperTarget | null) => {
@@ -810,60 +755,81 @@ export function SpriteCutterSourcePane({
         }}
       />
 
-      {/* Thanh công cụ + Bảng Studio Tách nền & Khử viền chuyên sâu */}
-      <SpriteCutterSourceToolbar
-        tool={tool}
-        islandsCount={islands.length}
-        gridSettings={gridSettings}
-        tagDisplayMode={tagDisplayMode}
-        canvasBg={canvasBg}
-        chroma={chroma}
-        showChromaStudio={showChromaStudio}
-        eyedropperTarget={eyedropperTarget}
-        eyedropperSample={eyedropperSample}
-        onChangeTool={handleSelectTool}
-        onChangeTagDisplayMode={setTagDisplayMode}
-        onChangeCanvasBg={setCanvasBg}
-        onChangeChroma={handleUpdateChroma}
-        onToggleChromaStudio={() => setShowChromaStudio((v) => !v)}
-        onToggleEyedropper={handleToggleEyedropper}
-        onResetChroma={handleResetAllChroma}
-      />
-
-      {/* Thanh cấu hình Cắt Lưới Ma Trận khi ở chế độ Grid */}
-      {tool === 'grid' && (
-        <CutterGridSubBar
-          grid={gridSettings}
-          totalCells={activeIslands.length}
-          onChangeGrid={(patch) => setGridSettings((prev) => ({ ...prev, ...patch }))}
-          onSendAllToBoard={handleSendAllToBoard}
-        />
-      )}
-
-      {/* Thanh cấu hình Đũa Thần / Cọ Tẩy / Khôi Phục */}
-      {(tool === 'wand' || tool === 'eraser' || tool === 'restore') && (
-        <CutterBrushSubBar
+      {/* Vùng hiển thị Canvas Ảnh Nguồn + Kính lúp Hút màu Photoshop */}
+      <div
+        ref={viewportWrapRef}
+        className={`layer-cutter-canvas-wrap ${bgCssClass} ${spacePanClassName}`}
+      >
+        {/* Left Rail: Công cụ cắt, đũa thần, cọ vẽ & hút màu kiểu Photoshop */}
+        <SpriteCutterLeftRail
           tool={tool}
+          islandsCount={activeIslands.length}
+          gridSettings={gridSettings}
           brushRadius={brushRadius}
           brushHardness={brushHardness}
           brushOpacity={brushOpacity}
           wandTolerance={wandTolerance}
           canUndo={canUndo}
           canRedo={canRedo}
+          eyedropperActive={eyedropperTarget === 'key'}
+          onChangeTool={handleSelectTool}
+          onChangeGrid={(patch) => setGridSettings((prev) => ({ ...prev, ...patch }))}
           onChangeRadius={setBrushRadius}
           onChangeHardness={setBrushHardness}
           onChangeOpacity={setBrushOpacity}
           onChangeWandTolerance={setWandTolerance}
           onUndo={handleUndo}
           onRedo={handleRedo}
+          onToggleEyedropper={() => handleToggleEyedropper('key')}
+          onSendAllToBoard={handleSendAllToBoard}
         />
-      )}
 
-      {/* Vùng hiển thị Canvas Ảnh Nguồn + Kính lúp Hút màu Photoshop */}
-      <div
-        ref={viewportWrapRef}
-        className={`layer-cutter-canvas-wrap ${bgCssClass} ${spacePanClassName}`}
-      >
+        {/* Right Rail: Tách nền Chroma, viền nét, bóng mờ, nền canvas, thu phóng & nhãn */}
+        <SpriteCutterRightRail
+          chroma={chroma}
+          canvasBg={canvasBg}
+          tagDisplayMode={tagDisplayMode}
+          zoomMode={zoomMode}
+          effectiveScale={effectiveScale}
+          onChangeChroma={handleUpdateChroma}
+          onChangeCanvasBg={setCanvasBg}
+          onChangeTagDisplayMode={setTagDisplayMode}
+          onStepZoom={stepZoom}
+          onSetZoomMode={handleSetZoomMode}
+          onResetChroma={handleResetAllChroma}
+          eyedropperTarget={eyedropperTarget}
+          onToggleEyedropper={handleToggleEyedropper}
+        />
+        {isProcessing && (
+          <div
+            className="cutter-processing-hud"
+            style={{
+              position: 'absolute',
+              top: 14,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              background: 'color-mix(in srgb, var(--bg-1) 85%, transparent)',
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
+              border: '1px solid var(--accent-cyan)',
+              color: 'var(--accent-cyan)',
+              fontSize: 11,
+              fontWeight: 600,
+              padding: '4px 12px',
+              borderRadius: 20,
+              boxShadow: '0 4px 14px rgba(0,0,0,0.35)',
+              zIndex: 60,
+              pointerEvents: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6
+            }}
+          >
+            <span style={{ animation: 'scPulseGlow 1.2s infinite' }}>⏳</span>
+            <span>Đang xử lý tách nền…</span>
+          </div>
+        )}
+
         {isSpacePressed && (
           <div className="cutter-space-pan-hud">
             <span>
@@ -959,8 +925,9 @@ export function SpriteCutterSourcePane({
       {(tool === 'auto' || tool === 'grid') && (
         <CutterQuickPartsStrip
           mode={tool}
-          islands={activeIslands}
+          islands={displayIslands}
           selectedIslandId={selectedIslandId}
+          onReorderIslands={handleReorderIslands}
           minIslandArea={minIslandArea}
           mergeGap={mergeGap}
           onChangeMinIslandArea={setMinIslandArea}

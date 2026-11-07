@@ -261,6 +261,9 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   layer_assembly_parallax_25d: region('layer_assembly_parallax_25d', '.lw-parallax-25d-card'),
   layer_assembly_motion_harmony: region('layer_assembly_motion_harmony', '.lw-motion-harmony-card'),
   layer_assembly_stage_guide: region('layer_assembly_stage_guide', '.lw-stage-guide-card'),
+  layer_assembly_cutout_stage: region('layer_assembly_cutout_stage', '.lw-cutout-part-rig-overlay'),
+  layer_assembly_cutout_rig: region('layer_assembly_cutout_rig', '.lw-cutout-rig-section'),
+  layer_assembly_cutout_hud: region('layer_assembly_cutout_hud', '.lw-cutout-floating-hud'),
 
   // 3. Audio Studio (Phòng thu Âm thanh)
   audio_studio: ['.audio-studio-modal', '.audio-studio-dialog'],
@@ -331,6 +334,7 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   loop_animator_toolbar: region('loop_animator_toolbar', '.loop-pane-toolbar', '.loop-source-card'),
   loop_animator_chroma: region('loop_animator_chroma', '.loop-chroma-bar'),
   loop_animator_frames: region('loop_animator_frames', '.loop-frame-strip', '.loop-frame-strip-panel'),
+  loop_player_bottom_tabs: region('loop_player_bottom_tabs', '.la-bottom-tabs'),
   assets_loop: region('assets_loop', '.loop-assets-layout', '.loop-assets-container'),
   inspector_loop_logic: region('inspector_loop_logic'),
   workflow_loop_params: region('workflow_loop_params'),
@@ -422,6 +426,9 @@ export const REGION_ALIASES: Record<string, string> = {
   manifest: 'manifest_dialog',
   dopesheet: 'layer_assembly_dopesheet',
   rig_tools: 'layer_assembly_rig_tools',
+  cutout_stage: 'layer_assembly_cutout_stage',
+  cutout_rig: 'layer_assembly_cutout_rig',
+  cutout_hud: 'layer_assembly_cutout_hud',
   photo_studio: 'photo_editor',
   photo_left_rail: 'photo_editor_left_rail',
   photo_right_rail: 'photo_editor_right_rail',

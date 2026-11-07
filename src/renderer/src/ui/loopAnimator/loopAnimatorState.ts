@@ -22,17 +22,19 @@ import {
   buildAndSaveTemplateFromStore,
   buildGroupFromSamplePreset,
   buildGroupFromSavedTemplate,
+  isLoopTemplatePackage,
   computeEqualizedFrames,
   computeSourceDimensionsUpdate,
   computeSyncedChromaGroups,
   computeToggleGroupSyncChroma,
   computeCustomMultiFramesState,
+  computeInheritedActiveGroupConfig,
   DEFAULT_PRESET,
   DEFAULT_RHYTHM,
   INITIAL_FRAMES,
   INITIAL_GROUP
 } from './loopAnimatorStateHelpers'
-import { canvasToBlobUrl } from './loopSourceProxy'
+import { canvasToBlobUrl, getRegisteredMemoryCanvas, registerMemoryCanvasUrl } from './loopSourceProxy'
 import { getAllLoopTemplates } from './loopAnimatorStorage'
 import { SAMPLE_LOOP_PRESETS } from './sampleLoops'
 import type {
@@ -128,6 +130,7 @@ export interface LoopAnimatorStore {
   setSyncChromaAll: (enabled: boolean) => void
   toggleGroupSyncChroma: (groupIndex: number, enabled?: boolean) => void
   applyActiveChromaToSyncedGroups: () => number
+  applyActiveGridToAllGroups: () => number
   updateGroupByIndex: (
     groupIndex: number,
     patch: Partial<
@@ -201,6 +204,7 @@ export interface LoopAnimatorStore {
   setFps: (fps: number) => void
   setSpeed: (speed: number) => void
   setLoopMode: (mode: LoopAnimationMode) => void
+  inheritActiveGroupConfigToAllGroups: () => void
   saveCurrentToLibrary: (sourceCanvas?: HTMLCanvasElement | null) => LoopAnimationTemplate | null
 }
 
@@ -312,7 +316,16 @@ export const useLoopAnimator = create<LoopAnimatorStore>((rawSet, get) => {
       const saved = allTemplates.find((t) => t.id === presetId)
       if (saved) {
         const s = get()
-        if (saved.sequenceGroups && saved.sequenceGroups.length > 0) {
+        const isPkg = isLoopTemplatePackage(saved)
+        const hasLiveGroups =
+          !isPkg &&
+          saved.sequenceGroups &&
+          saved.sequenceGroups.length > 0 &&
+          !saved.sequenceGroups.some(
+            (g) => g.sourceImageUrl?.startsWith('blob:') && !getRegisteredMemoryCanvas(g.sourceImageUrl)
+          )
+
+        if (hasLiveGroups && saved.sequenceGroups) {
           const first = saved.sequenceGroups[0]
           rawSet({
             activePresetId: saved.id,
@@ -323,7 +336,7 @@ export const useLoopAnimator = create<LoopAnimatorStore>((rawSet, get) => {
           })
           return
         }
-        const { group: initGroup, isPkg, nextFrames } = buildGroupFromSavedTemplate(
+        const { group: initGroup, nextFrames } = buildGroupFromSavedTemplate(
           saved,
           s.sourceWidth,
           s.sourceHeight,
@@ -344,6 +357,8 @@ export const useLoopAnimator = create<LoopAnimatorStore>((rawSet, get) => {
             if (!sheet || get().activePresetId !== saved.id) return
             const stripUrl = await canvasToBlobUrl(sheet.canvas)
             if (get().activePresetId !== saved.id) return
+            registerMemoryCanvasUrl(stripUrl, sheet.canvas)
+            if (saved.id) registerMemoryCanvasUrl(`pkg:${saved.id}`, sheet.canvas)
             const pkg = sheet.packageJson
             const cur = get()
             if (pkg) {
@@ -633,6 +648,22 @@ export const useLoopAnimator = create<LoopAnimatorStore>((rawSet, get) => {
           : {}),
         sourceVersion: s.sourceVersion + 1
       })
+    },
+
+    applyActiveGridToAllGroups: () => {
+      const s = get()
+      if (s.groups.length <= 1) return 0
+      const activeGrid = { ...s.gridConfig }
+      const synced = syncActiveGroupToGroups(s)
+      const nextGroups = synced.map((g) => ({
+        ...g,
+        gridConfig: { ...activeGrid }
+      }))
+      rawSet({
+        groups: nextGroups,
+        sourceVersion: s.sourceVersion + 1
+      })
+      return nextGroups.length
     },
 
     applyActiveChromaToSyncedGroups: () => {
@@ -945,6 +976,12 @@ export const useLoopAnimator = create<LoopAnimatorStore>((rawSet, get) => {
       set((s) => ({
         playback: { ...s.playback, loopMode }
       })),
+
+    inheritActiveGroupConfigToAllGroups: () => {
+      const s = get()
+      if (s.groups.length <= 1) return
+      rawSet({ groups: computeInheritedActiveGroupConfig(s) })
+    },
 
     saveCurrentToLibrary: (sourceCanvas) => {
       const res = buildAndSaveTemplateFromStore(get(), sourceCanvas)

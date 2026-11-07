@@ -1,0 +1,621 @@
+/* ==========================================================================
+   Sprite Cutter Rails & Flyouts CSS (Photoshop Style Tools & Controls)
+   Modular CSS for Left Slicer/Brush Rail, Right Chroma/View Rail & Popovers
+   ========================================================================== */
+
+/* ──────────────────────────────────────────────────────────────────────────
+   1. Left Vertical Tool Rail (Slicer, Wand, Eraser, Restore, Eyedropper)
+   ────────────────────────────────────────────────────────────────────────── */
+.sc-left-rail {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 5px;
+  background: color-mix(in srgb, var(--bg-1) 90%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  overflow: visible;
+  box-sizing: border-box;
+  max-height: calc(100% - 20px);
+}
+
+.sc-rail-item-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.sc-rail-btn {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  background: transparent;
+  color: var(--text-dim);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.12s ease;
+  position: relative;
+  padding: 2px 0 0 0;
+  box-sizing: border-box;
+}
+
+.sc-rail-btn:hover {
+  background: var(--bg-3);
+  color: var(--text);
+  border-color: var(--line-soft);
+}
+
+.sc-rail-btn.active {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
+}
+
+.sc-rail-btn.has-flyout-open {
+  box-shadow: 0 0 0 2px var(--accent-cyan);
+}
+
+.sc-rail-label {
+  font-size: 8.5px;
+  line-height: 1;
+  opacity: 0.9;
+  white-space: nowrap;
+}
+
+.sc-rail-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  background: var(--accent-cyan);
+  color: #0f172a;
+  font-size: 8px;
+  font-weight: 700;
+  font-family: var(--font-mono, monospace);
+  padding: 1px 3px;
+  border-radius: 3px;
+  line-height: 1;
+  pointer-events: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  z-index: 2;
+}
+
+.sc-rail-badge-dot {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 6px #22c55e;
+}
+
+.sc-rail-btn.sc-eyedropper-pulsing {
+  border-color: #22c55e;
+  color: #22c55e;
+  animation: scPulseGlow 1.5s infinite;
+}
+
+@keyframes scPulseGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5); }
+  50% { box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.15); }
+}
+
+.sc-rail-btn.sc-transparent-active {
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.sc-rail-btn.sc-original-active {
+  background: color-mix(in srgb, #f59e0b 20%, transparent);
+  border-color: #f59e0b;
+  color: var(--text);
+}
+
+.sc-rail-sep {
+  height: 1px;
+  background: var(--line-soft);
+  margin: 3px 2px;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   2. Right Vertical Tool Rail (Chroma, Fringe/Stroke, Shadow, View)
+   ────────────────────────────────────────────────────────────────────────── */
+.sc-right-rail {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 5px;
+  background: color-mix(in srgb, var(--bg-1) 90%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  overflow: visible;
+  box-sizing: border-box;
+  max-height: calc(100% - 20px);
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   3. Flyout Popover Styling
+   ────────────────────────────────────────────────────────────────────────── */
+.sc-flyout {
+  position: absolute;
+  z-index: 1000;
+  background: var(--bg-1);
+  border: 1px solid var(--line-focus);
+  border-radius: var(--radius-md);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
+  animation: scFlyoutIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes scFlyoutIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.sc-flyout-left {
+  left: calc(100% + 8px);
+  top: 0;
+}
+
+.sc-flyout-right {
+  right: calc(100% + 8px);
+  top: 0;
+}
+
+.sc-flyout-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.sc-flyout-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.sc-flyout-icon {
+  display: flex;
+  align-items: center;
+  color: var(--accent);
+}
+
+.sc-flyout-badge {
+  font-size: 9px;
+  font-weight: 600;
+  font-family: var(--font-mono, monospace);
+  background: var(--bg-3);
+  color: var(--accent-cyan);
+  padding: 1px 4px;
+  border-radius: 3px;
+  border: 1px solid var(--line-soft);
+}
+
+.sc-flyout-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sc-flyout-btn-reset {
+  background: transparent;
+  border: none;
+  font-size: 10px;
+  color: var(--text-faint);
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: var(--radius-sm);
+  transition: all 0.12s;
+}
+
+.sc-flyout-btn-reset:hover {
+  background: var(--bg-3);
+  color: var(--text);
+}
+
+.sc-flyout-btn-close {
+  background: transparent;
+  border: none;
+  font-size: 12px;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 2px 5px;
+  border-radius: var(--radius-sm);
+  transition: all 0.12s;
+  line-height: 1;
+}
+
+.sc-flyout-btn-close:hover {
+  background: var(--bg-3);
+  color: var(--text);
+}
+
+.sc-flyout-body {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: calc(80vh - 80px);
+  overflow-y: auto;
+}
+
+.sc-flyout-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.sc-flyout-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 10.5px;
+  color: var(--text-dim);
+}
+
+.sc-flyout-label-row strong {
+  font-family: var(--font-mono, monospace);
+  color: var(--text);
+  font-size: 11px;
+}
+
+.sc-flyout-switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.sc-switch-input {
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+}
+
+.sc-color-pill {
+  font-family: var(--font-mono, monospace);
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   4. Controls inside Flyouts (Sliders, Swatches, Segmented Buttons)
+   ────────────────────────────────────────────────────────────────────────── */
+.sc-slider {
+  width: 100%;
+  accent-color: var(--accent);
+  cursor: pointer;
+  height: 4px;
+}
+
+.sc-slider-ticks {
+  display: flex;
+  justify-content: space-between;
+  font-size: 8px;
+  color: var(--text-faint);
+  font-family: var(--font-mono, monospace);
+}
+
+.sc-grid-num-buttons,
+.sc-quick-radii,
+.sc-zoom-buttons-row {
+  display: flex;
+  gap: 4px;
+}
+
+.sc-chip-btn {
+  flex: 1;
+  padding: 4px 6px;
+  font-size: 10px;
+  font-weight: 600;
+  background: var(--bg-2);
+  color: var(--text-dim);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.12s;
+}
+
+.sc-chip-btn:hover {
+  background: var(--bg-3);
+  color: var(--text);
+  border-color: var(--line);
+}
+
+.sc-chip-btn.active {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
+}
+
+.sc-segmented-row {
+  display: flex;
+  background: var(--bg-2);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+  gap: 2px;
+}
+
+.sc-segment-btn {
+  flex: 1;
+  padding: 4px 6px;
+  font-size: 10px;
+  font-weight: 600;
+  background: transparent;
+  color: var(--text-dim);
+  border: none;
+  border-radius: calc(var(--radius-sm) - 1px);
+  cursor: pointer;
+  transition: all 0.12s;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.sc-segment-btn:hover {
+  color: var(--text);
+  background: var(--bg-3);
+}
+
+.sc-segment-btn.active {
+  background: var(--accent);
+  color: var(--on-accent);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.sc-color-swatches-grid,
+.sc-stroke-colors-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 5px;
+}
+
+.sc-swatch-chip,
+.sc-stroke-color-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  font-size: 10px;
+  font-weight: 600;
+  background: var(--bg-2);
+  color: var(--text);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+.sc-swatch-chip:hover,
+.sc-stroke-color-chip:hover {
+  background: var(--bg-3);
+  border-color: var(--line);
+}
+
+.sc-swatch-chip.active,
+.sc-stroke-color-chip.active {
+  background: color-mix(in srgb, var(--accent) 18%, var(--bg-2));
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.sc-swatch-dot,
+.sc-stroke-color-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.sc-canvas-bg-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+
+.sc-bg-choice-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 6px;
+  background: var(--bg-2);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: var(--text-dim);
+  font-size: 10px;
+  font-weight: 600;
+  transition: all 0.12s;
+}
+
+.sc-bg-choice-card:hover {
+  background: var(--bg-3);
+  color: var(--text);
+  border-color: var(--line);
+}
+
+.sc-bg-choice-card.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg-2));
+}
+
+.sc-bg-preview {
+  width: 100%;
+  height: 28px;
+  border-radius: 3px;
+  border: 1px solid var(--line-soft);
+}
+
+.sc-bg-checker-dark {
+  background-image: linear-gradient(45deg, #181c24 25%, transparent 25%),
+    linear-gradient(-45deg, #181c24 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #181c24 75%),
+    linear-gradient(-45deg, transparent 75%, #181c24 75%);
+  background-size: 12px 12px;
+  background-position: 0 0, 0 6px, 6px -6px, -6px 0;
+  background-color: #0b0e14;
+}
+
+.sc-bg-checker-light {
+  background-image: linear-gradient(45deg, #cbd5e1 25%, transparent 25%),
+    linear-gradient(-45deg, #cbd5e1 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #cbd5e1 75%),
+    linear-gradient(-45deg, transparent 75%, #cbd5e1 75%);
+  background-size: 12px 12px;
+  background-position: 0 0, 0 6px, 6px -6px, -6px 0;
+  background-color: #f1f5f9;
+}
+
+.sc-bg-solid-dark {
+  background: #090d16;
+}
+
+.sc-bg-solid-light {
+  background: #f8fafc;
+}
+
+.sc-flyout-actions-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.sc-btn-primary {
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--accent);
+  color: var(--on-accent);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.12s;
+  text-align: center;
+}
+
+.sc-btn-primary:hover {
+  filter: brightness(1.1);
+}
+
+.sc-btn-secondary {
+  flex: 1;
+  padding: 5px 8px;
+  font-size: 10px;
+  font-weight: 600;
+  background: var(--bg-2);
+  color: var(--text);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transition: all 0.12s;
+}
+
+.sc-btn-secondary:hover:not(:disabled) {
+  background: var(--bg-3);
+  border-color: var(--line);
+}
+
+.sc-btn-secondary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.sc-flyout-tip {
+  font-size: 9.5px;
+  line-height: 1.4;
+  color: var(--text-dim);
+  background: var(--bg-2);
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  border-left: 2px solid var(--accent-cyan);
+}
+
+.sc-flyout-tip code {
+  font-family: var(--font-mono, monospace);
+  background: var(--bg-3);
+  padding: 1px 3px;
+  border-radius: 2px;
+}
+
+.sc-flyout-eyedropper-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 10px;
+  margin-top: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--bg-2);
+  color: var(--text);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.12s;
+  box-sizing: border-box;
+}
+
+.sc-flyout-eyedropper-btn:hover {
+  background: var(--bg-3);
+  border-color: var(--accent);
+  color: var(--accent-cyan);
+}
+
+.sc-flyout-eyedropper-btn.active {
+  background: color-mix(in srgb, #22c55e 18%, var(--bg-2));
+  border-color: #22c55e;
+  color: #22c55e;
+  box-shadow: 0 0 0 1px #22c55e;
+}

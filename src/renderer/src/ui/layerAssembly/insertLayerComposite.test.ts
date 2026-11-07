@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach } from 'vitest'
-import { insertLayerCompositeToScene } from './insertLayerComposite'
+import { insertLayerCompositeToScene, COMPOSITE_Z_FACTOR } from './insertLayerComposite'
 import { useEditor } from '../../store/editor'
 import { createProject, createShot } from '../../project/factory'
 import type { LayerComposite } from './types'
@@ -90,7 +90,7 @@ describe('Insert Layer Composite To Scene', () => {
     expect(layer1.motion?.type).toBe('sway')
     expect(layer1.motion?.speed).toBe(1)
     expect(layer1.motion?.amplitude).toEqual([10, 10, 0])
-    expect(layer1.transform.position.value).toEqual([100, 200 - 50 * 1.5, 50 + 20 * 1.5])
+    expect(layer1.transform.position.value).toEqual([100, 200 - 50 * 1.5, 50 + 20 * COMPOSITE_Z_FACTOR * 1.5])
     expect(layer1.transform.scale.value).toEqual([1.5, 1.5, 1])
     expect((layer1.props as { width?: number }).width).toBe(400)
     expect((layer1.props as { height?: number }).height).toBe(600)

@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { evaluateLoopLayerRhythm } from '../../project/gifHelper'
-import { IconFilm, IconGrid, IconPause, IconPlay, IconStepBack, IconStepFwd } from '../icons'
-import { LoopPlayerSettings } from './LoopPlayerSettings'
+import { IconFilm, IconPause, IconPlay, IconStepBack, IconStepFwd } from '../icons'
+import { LoopPlayerBottomTabs } from './LoopPlayerBottomTabs'
 import {
   applyChromaKeyToImageData,
   clearGridBorderPadding
@@ -24,34 +24,48 @@ interface Props {
   sourceCanvasRef: React.RefObject<HTMLCanvasElement | null>
 }
 
-const STAGE = 360
-const BG_OPTIONS: { id: LoopPlaybackConfig['previewBg']; label: string }[] = [
-  { id: 'checker', label: 'Ô caro trong suốt' },
-  { id: 'dark', label: 'Nền tối' },
-  { id: 'light', label: 'Nền sáng' },
-  { id: 'green', label: 'Nền xanh lá' }
-]
+const STAGE = 440
+const STAGE_W = 520
+const STAGE_H = 360
 
 export function drawFrameOnStage(
   ctx: CanvasRenderingContext2D,
   src: HTMLCanvasElement,
   f: LoopFrameBox,
   scale: number,
-  anchor: 'bottom' | 'center',
+  anchor: 'bottom' | 'center' | 'top' | 'left' | 'right',
   groupOffsetX = 0,
   groupOffsetY = 0,
   groupScale = 1,
-  stageDim = STAGE
+  stageDim = STAGE,
+  stageHeight?: number,
+  refBoxW?: number,
+  refBoxH?: number
 ): void {
   const { sx, sy } = getLoopSourceLogicalSize(src)
   const effScale = scale * Math.max(0.1, groupScale || 1)
   const w = Math.round(f.width * effScale)
   const h = Math.round(f.height * effScale)
-  const x = Math.round((stageDim - w) * 0.5 + (f.offsetX + groupOffsetX) * scale)
+  const sw = stageDim
+  const sh = stageHeight ?? stageDim
+  const boxW = refBoxW ? Math.round(refBoxW * effScale) : sw - 16
+  const boxH = refBoxH ? Math.round(refBoxH * effScale) : sh - 16
+  const boxLeft = Math.round((sw - boxW) * 0.5)
+  const boxTop = Math.round((sh - boxH) * 0.5)
+
+  const x =
+    anchor === 'left'
+      ? Math.round(boxLeft + (f.offsetX + groupOffsetX) * scale)
+      : anchor === 'right'
+        ? Math.round(boxLeft + boxW - w + (f.offsetX + groupOffsetX) * scale)
+        : Math.round((sw - w) * 0.5 + (f.offsetX + groupOffsetX) * scale)
   const y =
     anchor === 'bottom'
-      ? Math.round(stageDim - 24 - h + (f.offsetY + groupOffsetY) * scale)
-      : Math.round((stageDim - h) * 0.5 + (f.offsetY + groupOffsetY) * scale)
+      ? Math.round(boxTop + boxH - h + (f.offsetY + groupOffsetY) * scale)
+      : anchor === 'top'
+        ? Math.round(boxTop + (f.offsetY + groupOffsetY) * scale)
+        : Math.round((sh - h) * 0.5 + (f.offsetY + groupOffsetY) * scale)
+
   ctx.drawImage(
     src,
     f.x * sx,
@@ -70,12 +84,27 @@ function drawFrame(
   src: HTMLCanvasElement,
   f: LoopFrameBox,
   scale: number,
-  anchor: 'bottom' | 'center',
+  anchor: 'bottom' | 'center' | 'top' | 'left' | 'right',
   groupOffsetX = 0,
   groupOffsetY = 0,
-  groupScale = 1
+  groupScale = 1,
+  refBoxW?: number,
+  refBoxH?: number
 ): void {
-  drawFrameOnStage(ctx, src, f, scale, anchor, groupOffsetX, groupOffsetY, groupScale, STAGE)
+  drawFrameOnStage(
+    ctx,
+    src,
+    f,
+    scale,
+    anchor,
+    groupOffsetX,
+    groupOffsetY,
+    groupScale,
+    STAGE_W,
+    STAGE_H,
+    refBoxW,
+    refBoxH
+  )
 }
 
 function prevEnabledIndex(frames: LoopFrameBox[], from: number): number {
@@ -86,7 +115,6 @@ function prevEnabledIndex(frames: LoopFrameBox[], from: number): number {
   return -1
 }
 
-/** Vị trí kế tiếp trong danh sách frame đang bật theo kiểu lặp; -1 = dừng (chế độ 1 lần) */
 function advanceCursor(
   mode: LoopPlaybackConfig['loopMode'],
   pos: number,
@@ -118,7 +146,7 @@ const _groupCanvasCache = new Map<string, HTMLCanvasElement>()
 function getGroupCacheKey(g: LoopSequenceGroup): string {
   const c = g.chromaKey
   const pad = g.gridConfig.borderPadding ?? 0
-  return `${g.id}:${g.sourceImageUrl.slice(0, 80)}:${pad}:${c.enabled}:${c.keyColor}:${c.similarity}:${c.smoothness}:${c.spill}:${c.isolationMode ?? 'all'}`
+  return `${g.id}:${g.sourceImageUrl.slice(0, 80)}:${pad}:${c.enabled}:${c.keyColor}:${c.similarity}:${c.smoothness}:${c.spill}:${c.shadowMode ?? 'off'}:${c.shadowType ?? 'auto'}:${c.shadowRetention ?? 68}:${c.shadowSolidThreshold ?? 30}:${c.isolationMode ?? 'all'}`
 }
 
 export async function ensureGroupProcessedCanvas(g: LoopSequenceGroup): Promise<HTMLCanvasElement | null> {
@@ -189,7 +217,6 @@ export function LoopAnimatorPlayer({ sourceCanvasRef }: Props): React.ReactEleme
   const togglePlaying = useLoopAnimator((s) => s.togglePlaying)
   const updateActiveGroupMeta = useLoopAnimator((s) => s.updateActiveGroupMeta)
   const setComboPreviewMode = useLoopAnimator((s) => s.setComboPreviewMode)
-  const setAlignModalOpen = useLoopAnimator((s) => s.setAlignModalOpen)
 
   const previewCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const pingPongDirRef = useRef<1 | -1>(1)
@@ -209,7 +236,6 @@ export function LoopAnimatorPlayer({ sourceCanvasRef }: Props): React.ReactEleme
   const showPause = playback.isPlaying && hasFrames
   const isComboActive = groups.length > 1 && comboPreviewMode
 
-  // Giải mã trước Canvas proxy cho các nhóm phụ trong chuỗi tổ hợp
   useEffect(() => {
     if (groups.length <= 1) return
     let cancelled = false
@@ -223,8 +249,8 @@ export function LoopAnimatorPlayer({ sourceCanvasRef }: Props): React.ReactEleme
     }
   }, [groups, activeGroupIndex])
 
-  const getCommonStageScale = useCallback((): number => {
-    if (groups.length > 1) {
+  const getCommonStageBounds = useCallback((): { scale: number; maxW: number; maxH: number } => {
+    if (isComboActive && groups.length > 1) {
       let maxW = 1
       let maxH = 1
       for (const g of groups) {
@@ -233,32 +259,43 @@ export function LoopAnimatorPlayer({ sourceCanvasRef }: Props): React.ReactEleme
           if (f.height > maxH) maxH = f.height
         }
       }
-      return Math.min((STAGE - 36) / maxW, (STAGE - 36) / maxH)
+      return {
+        scale: Math.min((STAGE_W - 12) / maxW, (STAGE_H - 12) / maxH),
+        maxW,
+        maxH
+      }
     }
-    const maxW = Math.max(1, ...frames.map((f) => f.width))
-    const maxH = Math.max(1, ...frames.map((f) => f.height))
-    return Math.min((STAGE - 36) / maxW, (STAGE - 36) / maxH)
-  }, [groups, frames])
+    const targetFrames = activeGroup?.frames?.length ? activeGroup.frames : frames
+    const maxW = Math.max(1, ...targetFrames.map((f) => f.width))
+    const maxH = Math.max(1, ...targetFrames.map((f) => f.height))
+    return {
+      scale: Math.min((STAGE_W - 12) / maxW, (STAGE_H - 12) / maxH),
+      maxW,
+      maxH
+    }
+  }, [isComboActive, groups, activeGroup, frames])
 
   const drawSingleOrAlignedPreview = useCallback(
     (frameIndex: number, nowSec = 0) => {
       const canvas = previewCanvasRef.current
       const src = sourceCanvasRef.current
       if (!canvas) return
-      if (canvas.width !== STAGE) canvas.width = canvas.height = STAGE
+      if (canvas.width !== STAGE_W || canvas.height !== STAGE_H) {
+        canvas.width = STAGE_W
+        canvas.height = STAGE_H
+      }
       const ctx = canvas.getContext('2d')
       if (!ctx) return
-      ctx.clearRect(0, 0, STAGE, STAGE)
+      ctx.clearRect(0, 0, STAGE_W, STAGE_H)
       const current = frames[frameIndex] ?? frames[0]
       if (!src || src.width === 0 || !current) return
 
-      const scale = getCommonStageScale()
+      const { scale, maxW, maxH } = getCommonStageBounds()
       const anchor = playback.anchor ?? 'bottom'
       const gOffX = activeGroup?.offsetX ?? 0
       const gOffY = activeGroup?.offsetY ?? 0
       const gScale = activeGroup?.scale ?? 1
 
-      // Khi đang căn chỉnh vị trí của Nhóm #k (k >= 2), vẽ bóng mờ của Nhóm #(k-1) tại đúng frame chạm (VD: sét chạm đất) để căn vị trí vụ nổ chính xác!
       if (activeGroupIndex > 0 && groups[activeGroupIndex - 1]) {
         const prevG = groups[activeGroupIndex - 1]
         const prevCanvas = _groupCanvasCache.get(getGroupCacheKey(prevG))
@@ -271,7 +308,7 @@ export function LoopAnimatorPlayer({ sourceCanvasRef }: Props): React.ReactEleme
           const refFrame = prevEnabled[refIdx] ?? prevEnabled[0]
           ctx.save()
           ctx.globalAlpha = 0.42
-          drawFrame(ctx, prevCanvas, refFrame, scale, anchor, prevG.offsetX, prevG.offsetY, prevG.scale)
+          drawFrame(ctx, prevCanvas, refFrame, scale, anchor, prevG.offsetX, prevG.offsetY, prevG.scale, maxW, maxH)
           ctx.restore()
         }
       }
@@ -280,7 +317,7 @@ export function LoopAnimatorPlayer({ sourceCanvasRef }: Props): React.ReactEleme
       if (prevIdx >= 0 && prevIdx !== frameIndex) {
         ctx.save()
         ctx.globalAlpha = playback.onionSkinOpacity
-        drawFrame(ctx, src, frames[prevIdx], scale, anchor, gOffX, gOffY, gScale)
+        drawFrame(ctx, src, frames[prevIdx], scale, anchor, gOffX, gOffY, gScale, maxW, maxH)
         ctx.restore()
       }
 
@@ -302,7 +339,7 @@ export function LoopAnimatorPlayer({ sourceCanvasRef }: Props): React.ReactEleme
           : { opacityMultiplier: 1, scaleMultiplier: 1 }
       ctx.save()
       ctx.globalAlpha = fx.opacityMultiplier
-      drawFrame(ctx, src, current, scale * fx.scaleMultiplier, anchor, gOffX, gOffY, gScale)
+      drawFrame(ctx, src, current, scale * fx.scaleMultiplier, anchor, gOffX, gOffY, gScale, maxW, maxH)
       ctx.restore()
     },
     [
@@ -310,7 +347,7 @@ export function LoopAnimatorPlayer({ sourceCanvasRef }: Props): React.ReactEleme
       activeGroup,
       activeGroupIndex,
       groups,
-      getCommonStageScale,
+      getCommonStageBounds,
       playback.onionSkin,
       playback.onionSkinOpacity,
       playback.isPlaying,
@@ -326,13 +363,16 @@ export function LoopAnimatorPlayer({ sourceCanvasRef }: Props): React.ReactEleme
     (comboTimeSec: number) => {
       const canvas = previewCanvasRef.current
       if (!canvas) return
-      if (canvas.width !== STAGE) canvas.width = canvas.height = STAGE
+      if (canvas.width !== STAGE_W || canvas.height !== STAGE_H) {
+        canvas.width = STAGE_W
+        canvas.height = STAGE_H
+      }
       const ctx = canvas.getContext('2d')
       if (!ctx) return
-      ctx.clearRect(0, 0, STAGE, STAGE)
+      ctx.clearRect(0, 0, STAGE_W, STAGE_H)
 
       const schedule = computeLoopGroupsSchedule(groups)
-      const scale = getCommonStageScale()
+      const { scale, maxW, maxH } = getCommonStageBounds()
       const anchor = playback.anchor ?? 'bottom'
 
       for (const item of schedule.items) {
@@ -355,12 +395,14 @@ export function LoopAnimatorPlayer({ sourceCanvasRef }: Props): React.ReactEleme
           anchor,
           item.group.offsetX,
           item.group.offsetY,
-          item.group.scale
+          item.group.scale,
+          maxW,
+          maxH
         )
         ctx.restore()
       }
     },
-    [groups, activeGroupIndex, getCommonStageScale, playback.anchor, sourceCanvasRef, groupCanvasReadyRev]
+    [groups, activeGroupIndex, getCommonStageBounds, playback.anchor, sourceCanvasRef, groupCanvasReadyRev]
   )
 
   useEffect(() => {
@@ -369,7 +411,6 @@ export function LoopAnimatorPlayer({ sourceCanvasRef }: Props): React.ReactEleme
     }
   }, [activeFrameIndex, sourceVersion, playback.isPlaying, isComboActive, drawSingleOrAlignedPreview])
 
-  // Vòng RAF mượt 60fps: hỗ trợ cả phát đơn nhóm lẫn phát Tổ hợp đa nhóm (Combo Timeline)
   useEffect(() => {
     if (!playback.isPlaying) return
     if (isComboActive) {
@@ -436,56 +477,7 @@ export function LoopAnimatorPlayer({ sourceCanvasRef }: Props): React.ReactEleme
   }
 
   return (
-    <div className="loop-player-pane" data-mcp-region="loop_animator_player">
-      <div className="loop-pane-toolbar">
-        <div className="loop-pane-heading">
-          <span className="loop-step">2</span>
-          <span>Xem trước</span>
-        </div>
-        <div className="la-seg" title="Điểm neo khi phát">
-          <button
-            type="button"
-            className={`la-seg-btn${playback.anchor !== 'center' ? ' active' : ''}`}
-            onClick={() => setPlayback({ anchor: 'bottom' })}
-            title="Giữ đáy frame cố định trên mặt sàn"
-          >
-            Chân
-          </button>
-          <button
-            type="button"
-            className={`la-seg-btn${playback.anchor === 'center' ? ' active' : ''}`}
-            onClick={() => setPlayback({ anchor: 'center' })}
-            title="Căn giữa sân khấu"
-          >
-            Tâm
-          </button>
-        </div>
-        {hasFrames && (
-          <button
-            type="button"
-            className="la-btn la-btn--xs la-btn--align-open"
-            onClick={() => setAlignModalOpen(true)}
-            title="Mở Khung So Sánh Đa Cột & Căn Chỉnh Vị Trí Chạy chuyên sâu"
-          >
-            📐 So sánh
-          </button>
-        )}
-        <div className="loop-bg-pills" role="radiogroup" aria-label="Nền sân khấu">
-          {BG_OPTIONS.map((bg) => (
-            <button
-              key={bg.id}
-              type="button"
-              role="radio"
-              aria-checked={playback.previewBg === bg.id}
-              className={`loop-bg-pill bg-${bg.id}${playback.previewBg === bg.id ? ' active' : ''}`}
-              onClick={() => setPlayback({ previewBg: bg.id })}
-              title={bg.label}
-              aria-label={bg.label}
-            />
-          ))}
-        </div>
-      </div>
-
+    <div className="loop-player-pane" data-mcp-region="loop_animator_player" style={{ position: 'relative' }}>
       <div
         className={`loop-player-stage bg-${playback.previewBg}`}
         data-mcp-region="loop_animator_stage"
@@ -493,13 +485,13 @@ export function LoopAnimatorPlayer({ sourceCanvasRef }: Props): React.ReactEleme
         onMouseDown={(e) => {
           if (!hasFrames || !activeGroup) return
           const rect = e.currentTarget.getBoundingClientRect()
-          const cssScale = rect.width > 0 ? STAGE / rect.width : 1
+          const cssScale = rect.width > 0 ? STAGE_W / rect.width : 1
           stageDragRef.current = {
             startX: e.clientX,
             startY: e.clientY,
             origOffsetX: activeGroup.offsetX || 0,
             origOffsetY: activeGroup.offsetY || 0,
-            scale: Math.max(0.05, getCommonStageScale() / cssScale)
+            scale: Math.max(0.05, getCommonStageBounds().scale / cssScale)
           }
         }}
         onMouseMove={(e) => {
@@ -581,7 +573,7 @@ export function LoopAnimatorPlayer({ sourceCanvasRef }: Props): React.ReactEleme
         </span>
       </div>
 
-      <LoopPlayerSettings />
+      <LoopPlayerBottomTabs />
     </div>
   )
 }

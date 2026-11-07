@@ -104,6 +104,12 @@ export interface AssembledLayerItem {
   virtualLight?: import('@shared/types').LayerVirtualLight
   /** Cấu hình Hoạt ảnh Lặp (Loop Animate Sprite & Logic Nhịp Nháy) gắn trực tiếp cho mảnh trong Xưởng 2.5D */
   loopConfig?: LoopWorkshopLayerConfig
+  /** Nhãn Vải / Quần áo: Uốn mềm Mesh theo xương chân/tay dẫn dắt */
+  isCloth?: boolean
+  /** Xương dẫn dắt uốn vải (chân/tay) */
+  clothFollowBoneId?: string
+  /** Biên độ uốn vải theo xương dẫn dắt (0..100%, mặc định 40%) */
+  clothAmplitude?: number
 }
 
 export type LayerPartKind = 'head' | 'torso' | 'arm' | 'leg' | 'accessory' | 'custom'

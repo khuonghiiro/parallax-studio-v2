@@ -1,0 +1,688 @@
+/* ==========================================================================
+   Loop Animator Rails & Flyouts CSS (Photoshop Style Tools & Controls)
+   Modular CSS for Left Slicer/Chroma Rail, Right Motion Rail & Popovers
+   ========================================================================== */
+
+/* ──────────────────────────────────────────────────────────────────────────
+   1. Left Vertical Tool Rail (Slicer & Chroma Tools)
+   ────────────────────────────────────────────────────────────────────────── */
+.la-left-rail {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 5px;
+  background: color-mix(in srgb, var(--bg-1) 90%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  overflow: visible;
+  box-sizing: border-box;
+  max-height: calc(100% - 24px);
+}
+
+.la-rail-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.la-rail-btn {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  background: transparent;
+  color: var(--text-dim);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.12s ease;
+  position: relative;
+  padding: 2px 0 0 0;
+  box-sizing: border-box;
+}
+
+.la-rail-btn:hover {
+  background: var(--bg-3);
+  color: var(--text);
+  border-color: var(--line-soft);
+}
+
+.la-rail-btn.active {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
+}
+
+.la-rail-btn.modified {
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+}
+
+.la-rail-label {
+  font-size: 8px;
+  line-height: 1;
+  opacity: 0.85;
+  white-space: nowrap;
+}
+
+.la-rail-badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  background: var(--accent-cyan);
+  color: #0f172a;
+  font-size: 8px;
+  font-weight: 700;
+  font-family: var(--font-mono, monospace);
+  padding: 1px 3px;
+  border-radius: 3px;
+  line-height: 1;
+  pointer-events: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+  z-index: 2;
+}
+
+.la-rail-badge.swatch {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+}
+
+.la-rail-separator {
+  width: 100%;
+  height: 1px;
+  background: var(--line);
+  margin: 2px 0;
+  opacity: 0.6;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   2. Right Vertical Control Rail (Motion & Playback Controls)
+   ────────────────────────────────────────────────────────────────────────── */
+.la-right-rail {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 5px;
+  background: color-mix(in srgb, var(--bg-1) 90%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  overflow: visible;
+  box-sizing: border-box;
+  max-height: calc(100% - 24px);
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   3. Popover Flyout Panels (Left & Right)
+   ────────────────────────────────────────────────────────────────────────── */
+.la-flyout {
+  position: absolute;
+  z-index: 500;
+  background: var(--bg-1);
+  border: 1px solid var(--line-focus);
+  border-radius: var(--radius-md);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: laFlyoutFadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+}
+
+@keyframes laFlyoutFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateX(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateX(0);
+  }
+}
+
+.la-flyout-left {
+  left: calc(100% + 10px);
+  top: 0;
+}
+
+.la-flyout-right {
+  right: calc(100% + 10px);
+  top: 0;
+}
+
+.la-flyout-bottom {
+  top: auto;
+  bottom: 0;
+}
+
+.la-flyout-header {
+  height: 38px;
+  padding: 0 10px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.la-flyout-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.la-flyout-icon {
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+}
+
+.la-flyout-badge {
+  font-size: 9px;
+  font-weight: 700;
+  font-family: var(--font-mono, monospace);
+  color: var(--accent-cyan);
+  background: color-mix(in srgb, var(--accent-cyan) 14%, transparent);
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  border: 1px solid color-mix(in srgb, var(--accent-cyan) 25%, transparent);
+}
+
+.la-flyout-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.la-flyout-btn-reset {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-size: 10px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  transition: all 0.12s ease;
+}
+
+.la-flyout-btn-reset:hover {
+  color: var(--accent-cyan);
+  background: var(--bg-3);
+}
+
+.la-flyout-btn-close {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px 5px;
+  border-radius: var(--radius-sm);
+  line-height: 1;
+  transition: all 0.12s ease;
+}
+
+.la-flyout-btn-close:hover {
+  color: var(--text);
+  background: var(--bg-3);
+}
+
+.la-flyout-body {
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 480px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   4. Control Rows Inside Flyouts (Anti-Desert, 1-Click Pills, Sliders)
+   ────────────────────────────────────────────────────────────────────────── */
+.la-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.la-field-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.la-field-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.la-field-val {
+  font-size: 11px;
+  font-family: var(--font-mono, monospace);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.la-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.la-slider-row input[type='range'] {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+  margin: 0;
+}
+
+.la-pills-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+  gap: 4px;
+}
+
+.la-pill-btn {
+  padding: 5px 8px;
+  font-size: 10.5px;
+  font-weight: 500;
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.12s ease;
+  white-space: nowrap;
+}
+
+.la-pill-btn:hover {
+  background: var(--bg-3);
+  border-color: var(--line-focus);
+}
+
+.la-pill-btn.active {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+/* Swatches trong flyout tách nền */
+.la-swatch-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.la-swatch-item {
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--line);
+  cursor: pointer;
+  transition: transform 0.12s ease, border-color 0.12s ease;
+  padding: 0;
+}
+
+.la-swatch-item:hover {
+  transform: scale(1.12);
+  border-color: var(--text);
+}
+
+.la-swatch-item.active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1.5px var(--accent);
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   5. Stage & Player Expansion (Triệt tiêu chật chội, Tối ưu không gian)
+   ────────────────────────────────────────────────────────────────────────── */
+.loop-player-pane {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 390px;
+  min-width: 350px;
+  max-width: 480px;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+  background: var(--bg-1);
+  border-left: 1px solid var(--line);
+}
+
+.loop-player-stage {
+  flex: 1 1 0 !important;
+  height: auto !important;
+  min-height: 185px !important;
+  max-height: 460px !important;
+  border-bottom: none !important;
+  padding: 4px !important;
+}
+
+.loop-player-canvas {
+  width: calc(100% - 8px) !important;
+  height: calc(100% - 8px) !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  object-fit: contain !important;
+}
+
+.loop-transport-bar {
+  background: var(--bg-2);
+  border-top: 1px solid var(--line);
+  padding: 6px 10px;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   6. Responsive Styles
+   ────────────────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .la-left-rail,
+  .la-right-rail {
+    position: static;
+    flex-direction: row;
+    overflow-x: auto;
+    width: 100%;
+    border-radius: 0;
+    box-shadow: none;
+    border: none;
+    border-bottom: 1px solid var(--line);
+    padding: 4px 8px;
+    max-height: none;
+  }
+
+  .la-flyout-left,
+  .la-flyout-right {
+    left: 8px;
+    right: 8px;
+    top: auto;
+    bottom: 50px;
+    width: auto !important;
+  }
+
+  .loop-player-pane {
+    flex: 1 1 auto;
+    max-width: 100%;
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   7. Loop Player Bottom Tabs (Thay thế cột mép phải sang Tabs trực tiếp)
+   ────────────────────────────────────────────────────────────────────────── */
+.la-bottom-tabs-shell {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 auto;
+  background: var(--bg-2);
+  border-top: 1px solid var(--line);
+  overflow: hidden;
+  min-height: 0;
+}
+
+.la-bottom-tabs-bar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  background: var(--bg-3);
+  border-bottom: 1px solid var(--line-soft);
+  flex-shrink: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.la-bottom-tab-btn {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 4px 4px;
+  font-size: 10.5px;
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-dim);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  white-space: nowrap;
+}
+
+.la-bottom-tab-label {
+  white-space: nowrap;
+}
+
+.la-bottom-tab-btn:hover {
+  background: var(--bg-2);
+  color: var(--text);
+  border-color: var(--line-soft);
+}
+
+.la-bottom-tab-btn.active {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+.la-bottom-tab-badge {
+  font-size: 8.5px;
+  font-family: var(--font-mono, monospace);
+  padding: 1px 3px;
+  border-radius: 3px;
+  background: var(--bg-1);
+  color: var(--text-dim);
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.la-bottom-tab-btn.active .la-bottom-tab-badge {
+  background: rgba(255, 255, 255, 0.25);
+  color: var(--on-accent);
+}
+
+.la-bottom-tab-badge.highlight {
+  background: var(--accent-cyan);
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.la-bottom-tab-content {
+  padding: 8px 10px;
+  background: var(--bg-1);
+  overflow-y: auto;
+  max-height: 215px;
+  box-sizing: border-box;
+}
+
+.la-bottom-tab-content::-webkit-scrollbar {
+  width: 4px;
+}
+
+.la-bottom-tab-content::-webkit-scrollbar-thumb {
+  background: var(--line-soft);
+  border-radius: 2px;
+}
+
+.la-tab-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.la-tab-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.la-tab-label {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.la-tab-val {
+  font-size: 11.5px;
+  color: var(--text);
+  font-family: var(--font-mono, monospace);
+}
+
+.la-tab-chips-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.la-chip-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 4px 6px;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  background: var(--bg-2);
+  color: var(--text-dim);
+  border: 1px solid var(--line-soft);
+  cursor: pointer;
+  transition: all 0.12s ease;
+  white-space: nowrap;
+}
+
+.la-chip-btn:hover {
+  background: var(--bg-3);
+  color: var(--text);
+  border-color: var(--line);
+}
+
+.la-chip-btn.active {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+.la-tab-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 5px;
+}
+
+.la-card-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 5px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-2);
+  color: var(--text-dim);
+  border: 1px solid var(--line-soft);
+  cursor: pointer;
+  transition: all 0.12s ease;
+  text-align: left;
+}
+
+.la-card-btn:hover {
+  background: var(--bg-3);
+  color: var(--text);
+  border-color: var(--line);
+}
+
+.la-card-btn.active {
+  background: color-mix(in srgb, var(--accent) 15%, var(--bg-2));
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.la-card-btn.active .la-card-title {
+  color: var(--accent-cyan);
+  font-weight: 600;
+}
+
+.la-card-title {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.la-card-desc {
+  font-size: 9px;
+  color: var(--text-faint);
+  line-height: 1.2;
+}
+
+.la-bg-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  flex-shrink: 0;
+}
+
+.la-bg-opt--checker {
+  background-image: linear-gradient(45deg, #1e293b 25%, transparent 25%),
+    linear-gradient(-45deg, #1e293b 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #1e293b 75%),
+    linear-gradient(-45deg, transparent 75%, #1e293b 75%);
+  background-size: 6px 6px;
+  background-position: 0 0, 0 3px, 3px -3px, -3px 0;
+  background-color: #0f172a;
+}
+
+.la-bg-opt--dark {
+  background-color: #0b0f19;
+}
+
+.la-bg-opt--light {
+  background-color: #f8fafc;
+}
+
+.la-bg-opt--green {
+  background-color: #00ff00;
+}
