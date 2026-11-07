@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react'
-import type { AssembledLayerItem, LayerComposite } from './types'
+import type { AssembledLayerItem, LayerComposite, WorkshopTab } from './types'
+import { useLayerAssetImage } from './useLayerAssetImage'
 import type { LayerBone } from '@shared/layerRig'
 import {
   analyzeCutoutParts,
@@ -34,6 +35,7 @@ const IconChevronRight = (p: { width?: number; height?: number }) => (
 import '../../styles/workshopCutoutPartRig.css'
 
 export interface WorkshopCutoutPartRigOverlayProps {
+  tab?: WorkshopTab
   composite: LayerComposite
   canvasWidth: number
   canvasHeight: number
@@ -61,7 +63,78 @@ const TILE_SIZE = 56
 const TILE_GAP = 8
 const TOP_OFFSET = 54
 
+interface CutoutRailTileProps {
+  item: PositionedRailItem
+  isSelected: boolean
+  isHovered: boolean
+  hasBone: boolean
+  assets?: LayerComposite['assets']
+  onSelect: (id: string) => void
+  onHover: (id: string | null) => void
+}
+
+function CutoutRailTile({
+  item,
+  isSelected,
+  isHovered,
+  hasBone,
+  assets,
+  onSelect,
+  onHover
+}: CutoutRailTileProps) {
+  const layer = item.part.layer
+  const resolvedUrl = useLayerAssetImage(layer.asset || layer.assetPath, layer.imageUrl, assets)
+
+  return (
+    <div
+      className={`lw-cutout-preview-tile ${item.side}${isSelected ? ' is-active' : ''}${isHovered ? ' is-hovered' : ''}`}
+      style={{
+        left: `${item.railX}px`,
+        top: `${item.railY}px`,
+        width: `${TILE_SIZE}px`,
+        height: `${TILE_SIZE}px`
+      }}
+      onClick={() => onSelect(layer.id)}
+      onPointerEnter={() => onHover(layer.id)}
+      onPointerLeave={() => onHover(null)}
+      title={`#${item.index + 1}: ${layer.name} (${item.part.roleLabel})\nZ: ${layer.z ?? 0} · ${hasBone ? 'Đã có xương' : 'Chưa có xương'}\n• Click: Focus để ${hasBone ? 'chọn' : 'vẽ xương cho'} bộ phận này`}
+    >
+      {/* Ảnh thumbnail của bộ phận */}
+      <div className="lw-cutout-tile-imgbox">
+        {resolvedUrl ? (
+          <img
+            src={resolvedUrl}
+            alt={layer.name}
+            className="lw-cutout-tile-img"
+            draggable={false}
+          />
+        ) : (
+          <IconLayers width={22} height={22} style={{ opacity: 0.4 }} />
+        )}
+      </div>
+
+      {/* Badge role góc trên trái */}
+      <span className="lw-cutout-tile-role-badge" title={item.part.roleLabel}>
+        {item.part.roleIcon}
+      </span>
+
+      {/* Badge trạng thái xương góc dưới phải */}
+      <span className={`lw-cutout-tile-bone-status${hasBone ? ' has-bone' : ''}`}>
+        {hasBone ? '🦴' : '+'}
+      </span>
+
+      {/* Khung tên thu nhỏ khi hover */}
+      {isHovered && (
+        <span className={`lw-cutout-tile-name-tooltip ${item.side}`}>
+          {layer.name}
+        </span>
+      )}
+    </div>
+  )
+}
+
 export function WorkshopCutoutPartRigOverlay({
+  tab,
   composite,
   canvasWidth,
   canvasHeight,
@@ -75,6 +148,7 @@ export function WorkshopCutoutPartRigOverlay({
   onClose
 }: WorkshopCutoutPartRigOverlayProps) {
   const rigTool = useRigToolStore()
+  const isAnimTab = tab === 'animation' || tab === 'plant'
   const bones = composite.rig?.bones || []
   const [viewportSize, setViewportSize] = useState<{ w: number; h: number }>({ w: 800, h: 600 })
   const [hoveredLayerId, setHoveredLayerId] = useState<string | null>(null)
@@ -374,15 +448,21 @@ export function WorkshopCutoutPartRigOverlay({
       </svg>
 
       {/* 2. Thanh Công cụ HUD nổi trên đỉnh Sân khấu 2D */}
-      <div className="lw-cutout-floating-hud">
+      <div className={`lw-cutout-floating-hud${isAnimTab ? ' is-anim-tab' : ''}`}>
         <div className="lw-cutout-hud-part-info">
           <span className="lw-cutout-hud-icon">{activePart?.roleIcon || '🧩'}</span>
           <div className="lw-cutout-hud-titles">
-            <strong>{activePart?.layer.name || 'Chọn bộ phận'}</strong>
+            <strong title={activePart?.layer.name || 'Chọn bộ phận'}>
+              {activePart?.layer.name || 'Chọn bộ phận'}
+            </strong>
             <small>
-              {activePart?.roleLabel} · Z: {activePart?.layer.z ?? 0}
+              <span className="lw-cutout-role-text" title={`${activePart?.roleLabel || ''} · Z: ${activePart?.layer.z ?? 0}`}>
+                {activePart?.roleLabel} · Z: {activePart?.layer.z ?? 0}
+              </span>
               {activeBone ? (
-                <span className="lw-cutout-bone-badge bound">🦴 {activeBone.name}</span>
+                <span className="lw-cutout-bone-badge bound" title={`Gắn với xương ${activeBone.name}`}>
+                  🦴 {activeBone.name}
+                </span>
               ) : (
                 <span className="lw-cutout-bone-badge unbound">Chưa có xương</span>
               )}
@@ -393,7 +473,9 @@ export function WorkshopCutoutPartRigOverlay({
         <div className="lw-cutout-hud-sep" />
 
         <div className="lw-cutout-hud-actions">
-          <button
+          {!isAnimTab && (
+            <>
+<button
             type="button"
             className="btn xs primary lw-cutout-hud-btn"
             onClick={handleAutoCreateBone}
@@ -455,6 +537,9 @@ export function WorkshopCutoutPartRigOverlay({
             </>
           )}
 
+                      </>
+          )}
+
           <button
             type="button"
             className={`btn xs icon ghost lw-cutout-hud-btn${isDimmed ? ' active' : ''}`}
@@ -504,59 +589,18 @@ export function WorkshopCutoutPartRigOverlay({
       </div>
 
       {/* 3. Các Ô Vuông Preview Bộ Phận ở 2 Bên Sân Khấu (Trái & Phải) */}
-      {positionedItems.map((item) => {
-        const isSelected = item.part.layer.id === activeLayerId
-        const isHovered = item.part.layer.id === hoveredLayerId
-        const hasBone = Boolean(item.part.layer.boneId)
-
-        return (
-          <div
-            key={`rail-tile-${item.part.layer.id}`}
-            className={`lw-cutout-preview-tile ${item.side}${isSelected ? ' is-active' : ''}${isHovered ? ' is-hovered' : ''}`}
-            style={{
-              left: `${item.railX}px`,
-              top: `${item.railY}px`,
-              width: `${TILE_SIZE}px`,
-              height: `${TILE_SIZE}px`
-            }}
-            onClick={() => handleSelectPart(item.part.layer.id)}
-            onPointerEnter={() => setHoveredLayerId(item.part.layer.id)}
-            onPointerLeave={() => setHoveredLayerId(null)}
-            title={`#${item.index + 1}: ${item.part.layer.name} (${item.part.roleLabel})\nZ: ${item.part.layer.z ?? 0} · ${hasBone ? 'Đã có xương' : 'Chưa có xương'}\n• Click: Focus để vẽ xương cho bộ phận này`}
-          >
-            {/* Ảnh thumbnail của bộ phận */}
-            <div className="lw-cutout-tile-imgbox">
-              {item.part.layer.imageUrl ? (
-                <img
-                  src={item.part.layer.imageUrl}
-                  alt={item.part.layer.name}
-                  className="lw-cutout-tile-img"
-                  draggable={false}
-                />
-              ) : (
-                <IconLayers width={22} height={22} style={{ opacity: 0.4 }} />
-              )}
-            </div>
-
-            {/* Badge role góc trên trái */}
-            <span className="lw-cutout-tile-role-badge" title={item.part.roleLabel}>
-              {item.part.roleIcon}
-            </span>
-
-            {/* Badge trạng thái xương góc dưới phải */}
-            <span className={`lw-cutout-tile-bone-status${hasBone ? ' has-bone' : ''}`}>
-              {hasBone ? '🦴' : '+'}
-            </span>
-
-            {/* Khung tên thu nhỏ khi hover */}
-            {isHovered && (
-              <span className={`lw-cutout-tile-name-tooltip ${item.side}`}>
-                {item.part.layer.name}
-              </span>
-            )}
-          </div>
-        )
-      })}
+      {positionedItems.map((item) => (
+        <CutoutRailTile
+          key={`rail-tile-${item.part.layer.id}`}
+          item={item}
+          isSelected={item.part.layer.id === activeLayerId}
+          isHovered={item.part.layer.id === hoveredLayerId}
+          hasBone={Boolean(item.part.layer.boneId)}
+          assets={composite.assets}
+          onSelect={handleSelectPart}
+          onHover={setHoveredLayerId}
+        />
+      ))}
     </div>
   )
 }

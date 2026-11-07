@@ -608,6 +608,7 @@ export function LayerAssemblyViewport({
         {/* Chế độ vẽ xương theo bộ phận (Cutout Part Rig Stage) 2D */}
         {isCutoutRigActive && (
           <WorkshopCutoutPartRigOverlay
+            tab={tab}
             composite={composite}
             canvasWidth={composite.width || 600}
             canvasHeight={composite.height || 600}

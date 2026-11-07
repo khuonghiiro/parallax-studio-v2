@@ -43,10 +43,9 @@
 }
 
 .lw-rig-toolbelt-row {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+  display: flex;
+  flex-direction: column;
   gap: 4px;
-  align-items: stretch;
 }
 
 .lw-rig-toolbelt-row .lw-moho-opt-pill {
