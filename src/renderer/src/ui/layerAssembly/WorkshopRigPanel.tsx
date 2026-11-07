@@ -392,6 +392,7 @@ export function WorkshopRigPanel({
               onStartDraw={() => switchTool('add')}
               onOpenBuild={() => setSubTab('build')}
               onOpenAuto={() => setSubTab('autorig')}
+              onSyncSpineRig={() => run({ action: 'sync-spine-rig', renameGenericBones: true, rebuildEmptyPresetClips: true })}
             />
           }
           inspector={

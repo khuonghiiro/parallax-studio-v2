@@ -17,6 +17,7 @@ export {
 import type { AnimationClip, BoneKeyframe, LayerBone, LayerRig, MotionViewAngle } from '@shared/layerRig'
 import type { LayerComposite } from './types'
 import { weldConnectedLimbBones } from './mohoRigHelpers'
+import { inferHumanoidBoneRoles } from './spineRigWorkflow'
 
 /** Preset humanoid 2D armature in workshop coordinates (origin 0,0 at center), with welded parent-child joints. */
 export function createHumanoidBones(): LayerBone[] {
@@ -127,22 +128,23 @@ function fillRestTracks(bones: LayerBone[], tracks: Record<string, BoneKeyframe[
 }
 
 function resolveBodyIds(bones: LayerBone[]) {
+  const inferred = inferHumanoidBoneRoles(bones)
   return {
-    pelvis: findBoneId(bones, ['pelvis', 'hông', 'root']),
-    torso: findBoneId(bones, ['torso', 'thân', 'ngực']),
-    head: findBoneId(bones, ['head', 'đầu']),
-    armL: findBoneId(bones, ['arm-l', 'arm_l', 'bắp tay trái', 'upperarm-l']),
-    armR: findBoneId(bones, ['arm-r', 'arm_r', 'bắp tay phải', 'upperarm-r']),
-    forearmL: findBoneId(bones, ['forearm-l', 'forearm_l', 'cẳng tay trái', 'lowerarm-l']),
-    forearmR: findBoneId(bones, ['forearm-r', 'forearm_r', 'cẳng tay phải', 'lowerarm-r']),
-    handL: findBoneId(bones, ['hand-l', 'hand_l', 'bàn tay trái']),
-    handR: findBoneId(bones, ['hand-r', 'hand_r', 'bàn tay phải']),
-    thighL: findBoneId(bones, ['thigh-l', 'thigh_l', 'đùi trái']),
-    thighR: findBoneId(bones, ['thigh-r', 'thigh_r', 'đùi phải']),
-    shinL: findBoneId(bones, ['shin-l', 'shin_l', 'cẳng chân trái']),
-    shinR: findBoneId(bones, ['shin-r', 'shin_r', 'cẳng chân phải']),
-    footL: findBoneId(bones, ['foot-l', 'foot_l', 'bàn chân trái']),
-    footR: findBoneId(bones, ['foot-r', 'foot_r', 'bàn chân phải'])
+    pelvis: findBoneId(bones, ['pelvis', 'hông', 'root']) ?? inferred.pelvis,
+    torso: findBoneId(bones, ['torso', 'thân', 'ngực']) ?? inferred.torso,
+    head: findBoneId(bones, ['head', 'đầu']) ?? inferred.head,
+    armL: findBoneId(bones, ['arm-l', 'arm_l', 'bắp tay trái', 'upperarm-l']) ?? inferred.armL,
+    armR: findBoneId(bones, ['arm-r', 'arm_r', 'bắp tay phải', 'upperarm-r']) ?? inferred.armR,
+    forearmL: findBoneId(bones, ['forearm-l', 'forearm_l', 'cẳng tay trái', 'lowerarm-l']) ?? inferred.forearmL,
+    forearmR: findBoneId(bones, ['forearm-r', 'forearm_r', 'cẳng tay phải', 'lowerarm-r']) ?? inferred.forearmR,
+    handL: findBoneId(bones, ['hand-l', 'hand_l', 'bàn tay trái']) ?? inferred.handL,
+    handR: findBoneId(bones, ['hand-r', 'hand_r', 'bàn tay phải']) ?? inferred.handR,
+    thighL: findBoneId(bones, ['thigh-l', 'thigh_l', 'đùi trái']) ?? inferred.thighL,
+    thighR: findBoneId(bones, ['thigh-r', 'thigh_r', 'đùi phải']) ?? inferred.thighR,
+    shinL: findBoneId(bones, ['shin-l', 'shin_l', 'cẳng chân trái']) ?? inferred.shinL,
+    shinR: findBoneId(bones, ['shin-r', 'shin_r', 'cẳng chân phải']) ?? inferred.shinR,
+    footL: findBoneId(bones, ['foot-l', 'foot_l', 'bàn chân trái']) ?? inferred.footL,
+    footR: findBoneId(bones, ['foot-r', 'foot_r', 'bàn chân phải']) ?? inferred.footR
   }
 }
 

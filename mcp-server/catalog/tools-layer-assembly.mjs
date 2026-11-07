@@ -297,7 +297,8 @@ export const LAYER_ASSEMBLY_TOOLS = [
           'add-bone-chain',
           'subdivide-bone',
           'radial-array-bone',
-          'scale-bones'
+          'scale-bones',
+          'sync-spine-rig'
         ])
         .describe(d('Rigging or animation action to perform.', 'Hành động tạo xương hoặc animation cần thực hiện.')),
       bone_id: z.string().optional().describe(d('Target bone ID.', 'ID xương mục tiêu.')),

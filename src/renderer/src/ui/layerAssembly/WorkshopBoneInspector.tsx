@@ -9,6 +9,7 @@ import { classifyBoneSide, computeBoneInfluenceRadius } from './mohoRigHelpers'
 import { boneAncestorIds, buildBoneTreeRows, type BoneTreeRow } from './workshopBoneTree'
 import { IconAutoRigSpark, IconBoneAdd, IconBoneChainBuild, IconBoneDuplicateLR, IconBoneMirror, IconFlexiMeshBind } from './LayerWorkshopStudioIcons'
 import { openCutoutPartRig } from './rigToolStore'
+import { getBoundLayersForBone } from './spineRigWorkflow'
 
 export interface BoneTreeCardProps {
   composite: LayerComposite
@@ -19,6 +20,7 @@ export interface BoneTreeCardProps {
   onStartDraw: () => void
   onOpenBuild: () => void
   onOpenAuto: () => void
+  onSyncSpineRig?: () => void
 }
 
 function BoneTreeEmpty({ onStartDraw, onOpenBuild, onOpenAuto, composite }: Pick<BoneTreeCardProps, 'onStartDraw' | 'onOpenBuild' | 'onOpenAuto' | 'composite'>) {
@@ -94,12 +96,13 @@ interface BoneTreeRowItemProps {
   row: BoneTreeRow
   selected: boolean
   layers: number
+  slotLabel?: string
   onSelect: () => void
   onToggle: (e: React.MouseEvent) => void
   onDelete: (e: React.MouseEvent) => void
 }
 
-function BoneTreeRowItem({ row, selected, layers, onSelect, onToggle, onDelete }: BoneTreeRowItemProps) {
+function BoneTreeRowItem({ row, selected, layers, slotLabel, onSelect, onToggle, onDelete }: BoneTreeRowItemProps) {
   const { bone: b, depth, childCount, collapsed } = row
   const side = classifyBoneSide(b)
   return (
@@ -138,8 +141,8 @@ function BoneTreeRowItem({ row, selected, layers, onSelect, onToggle, onDelete }
           </span>
         )}
         {layers > 0 && (
-          <span className="lw-bone-item-count" title={`${layers} layer đang gắn`}>
-            {layers}
+          <span className="lw-bone-item-count" title={slotLabel ? `Slot gắn: ${slotLabel}` : `${layers} layer đang gắn`}>
+            {slotLabel ? `🖼️ ${slotLabel}` : layers}
           </span>
         )}
       </div>
@@ -150,18 +153,25 @@ function BoneTreeRowItem({ row, selected, layers, onSelect, onToggle, onDelete }
   )
 }
 
-/** Cây phân cấp xương (Moho Bone List): duyệt sâu cha → con, thu gọn nhánh, lọc theo tên, tự cuộn tới xương đang chọn. */
+/** Cây phân cấp xương (Moho & Spine 2D Bone-Slot Tree): duyệt sâu cha → con, hiển thị Slot/Layer gắn trực tiếp trên mỗi xương. */
 export function BoneTreeCard(props: BoneTreeCardProps) {
-  const { composite, bones, boneId, selectBone, onDelete } = props
+  const { composite, bones, boneId, selectBone, onDelete, onSyncSpineRig } = props
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set())
   const [filter, setFilter] = useState('')
   const listRef = useRef<HTMLDivElement>(null)
   const rows = useMemo(() => buildBoneTreeRows(bones, collapsed, filter), [bones, collapsed, filter])
-  const boundCount = useMemo(() => {
-    const map = new Map<string, number>()
-    for (const l of composite.layers) if (l.boneId) map.set(l.boneId, (map.get(l.boneId) ?? 0) + 1)
+  const boundSlotInfo = useMemo(() => {
+    const map = new Map<string, { count: number; label: string }>()
+    for (const b of bones) {
+      const bound = getBoundLayersForBone(b.id, composite.layers, bones)
+      if (bound.length > 0) {
+        const firstShort = (bound[0].layer.name || '').replace(/\s*\(\d+.*\)$/, '').trim()
+        const label = bound.length > 1 ? `${firstShort} +${bound.length - 1}` : firstShort
+        map.set(b.id, { count: bound.length, label })
+      }
+    }
     return map
-  }, [composite.layers])
+  }, [composite.layers, bones])
   const branchIds = useMemo(() => new Set(bones.map((b) => b.parentId).filter(Boolean) as string[]), [bones])
 
   useEffect(() => {
@@ -188,7 +198,7 @@ export function BoneTreeCard(props: BoneTreeCardProps) {
   return (
     <div className="lw-card-section lw-bone-tree-card" data-mcp-region="layer_assembly_bone_tree">
       <div className="lw-bone-tree-head">
-        <span className="lw-card-title">
+        <span className="lw-card-title" style={{ flexShrink: 0 }}>
           <span>Cây xương</span>
           <span className="lw-card-badge">{bones.length}</span>
         </span>
@@ -203,14 +213,6 @@ export function BoneTreeCard(props: BoneTreeCardProps) {
                 </button>
               )}
             </label>
-            <button
-              type="button"
-              className="lw-bone-tree-btn lw-btn-cutout-quick"
-              onClick={() => openCutoutPartRig(composite.layers[0]?.id)}
-              title="Mở chế độ vẽ xương theo từng bộ phận layer (2D) kèm ô preview 2 bên & mũi tên nét đứt"
-            >
-              🎨 Vẽ theo layer (2D)
-            </button>
             {branchIds.size > 0 && (
               <button
                 type="button"
@@ -224,21 +226,49 @@ export function BoneTreeCard(props: BoneTreeCardProps) {
           </div>
         )}
       </div>
+      {bones.length > 0 && (
+        <div style={{ display: 'flex', gap: 6, marginBottom: 6, flexWrap: 'wrap' }}>
+          {onSyncSpineRig && (
+            <button
+              type="button"
+              className="lw-bone-tree-btn lw-btn-cutout-quick"
+              style={{ flex: '1 1 auto', justifyContent: 'center' }}
+              onClick={onSyncSpineRig}
+              title="Chuẩn hoá cây xương & tự gắn toàn bộ Slot/Mesh đa đốt kiểu Spine 2D (gắn phụ kiện, đặt tên giải phẫu & đồng bộ động tác)"
+            >
+              ⚡ Chuẩn Spine 2D (Slot & Mesh)
+            </button>
+          )}
+          <button
+            type="button"
+            className="lw-bone-tree-btn lw-btn-cutout-quick"
+            style={{ flex: '1 1 auto', justifyContent: 'center' }}
+            onClick={() => openCutoutPartRig(composite.layers[0]?.id)}
+            title="Mở chế độ vẽ xương theo từng bộ phận layer (2D) kèm ô preview 2 bên & mũi tên nét đứt"
+          >
+            🎨 Vẽ theo layer (2D)
+          </button>
+        </div>
+      )}
       {bones.length === 0 ? (
         <BoneTreeEmpty onStartDraw={props.onStartDraw} onOpenBuild={props.onOpenBuild} onOpenAuto={props.onOpenAuto} composite={composite} />
       ) : (
         <div className="lw-bone-list" role="tree" aria-label="Danh sách xương" ref={listRef}>
-          {rows.map((row) => (
-            <BoneTreeRowItem
-              key={row.bone.id}
-              row={row}
-              selected={row.bone.id === boneId}
-              layers={boundCount.get(row.bone.id) ?? 0}
-              onSelect={() => selectBone(row.bone.id)}
-              onToggle={(e) => toggle(row.bone.id, e)}
-              onDelete={(e) => onDelete(row.bone.id, e)}
-            />
-          ))}
+          {rows.map((row) => {
+            const info = boundSlotInfo.get(row.bone.id)
+            return (
+              <BoneTreeRowItem
+                key={row.bone.id}
+                row={row}
+                selected={row.bone.id === boneId}
+                layers={info?.count ?? 0}
+                slotLabel={info?.label}
+                onSelect={() => selectBone(row.bone.id)}
+                onToggle={(e) => toggle(row.bone.id, e)}
+                onDelete={(e) => onDelete(row.bone.id, e)}
+              />
+            )
+          })}
           {rows.length === 0 && <div className="lw-bone-tree-noresult">Không có xương khớp “{filter}”.</div>}
         </div>
       )}
@@ -589,7 +619,7 @@ export function BoneInspectorCard(props: BoneInspectorCardProps) {
           </div>
         </div>
       )}
-<BoneEnvelopeControls bone={bone} bones={bones} patch={patch} patchAllDelta={props.patchAllDelta} />
+      <BoneEnvelopeControls bone={bone} bones={bones} patch={patch} patchAllDelta={props.patchAllDelta} />
       <LimbQuickAngles bone={bone} patch={patch} />
       {!bone.pin && <WorkshopBoneConstraintCard bone={bone} patch={patch} />}
     </div>

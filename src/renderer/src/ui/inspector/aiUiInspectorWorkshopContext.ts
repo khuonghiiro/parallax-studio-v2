@@ -1,4 +1,6 @@
 import { getActiveLayerAssemblySession } from '../layerAssembly/layerAssemblyBridge'
+import { inferFallbackBoneForStackedLayer } from '../layerAssembly/mohoRigHelpers'
+import { getBoundLayersForBone } from '../layerAssembly/spineRigWorkflow'
 import { analyzeCutoutParts } from '../layerAssembly/workshopCutoutRig'
 import { getActiveAssemblySession } from '../assets/models3d/assemblyBridge'
 import { useLoopAnimator } from '../loopAnimator/loopAnimatorState'
@@ -143,7 +145,12 @@ export function buildScanned25DPartInfo(layerId: string): Scanned25DPartInfo | n
   const cutoutParts = analyzeCutoutParts(composite.layers)
   const partMeta = cutoutParts.find((p) => p.layer.id === layerId)
   const bones = composite.rig?.bones || []
-  const boundBone = layer.boneId ? bones.find((b) => b.id === layer.boneId) || null : null
+  const effectiveBoneId =
+    layer.boneId ||
+    (composite.layers.length > 1 && bones.length > 0
+      ? inferFallbackBoneForStackedLayer(layer, composite.layers, bones, 64)
+      : undefined)
+  const boundBone = effectiveBoneId ? bones.find((b) => b.id === effectiveBoneId) || null : null
   const selectedIds = session.getSelectedLayerIds?.() || []
   const isSelected = session.getSelectedLayerId() === layer.id || selectedIds.includes(layer.id)
 
@@ -159,9 +166,9 @@ export function buildScanned25DPartInfo(layerId: string): Scanned25DPartInfo | n
     scale: Number((layer.scale ?? 1).toFixed(2)),
     rotation: Math.round(layer.rotation || 0),
     opacity: Number((layer.opacity ?? 1).toFixed(2)),
-    boneId: layer.boneId || null,
+    boneId: effectiveBoneId || null,
     boneName: boundBone?.name || null,
-    bindingMode: layer.bindingMode === 'soft' ? 'soft' : 'rigid',
+    bindingMode: layer.bindingMode === 'soft' || (layer.extraBoneIds?.length ?? 0) > 0 ? 'soft' : 'rigid',
     isSelected,
     assetPath: layer.asset || layer.assetPath || (layer.imageUrl ? 'Ảnh cắt trực tiếp (Data URL)' : 'Chưa gắn ảnh')
   }
@@ -176,9 +183,7 @@ export function buildScanned25DBoneInfo(boneId: string): Scanned25DBoneInfo | nu
   if (!bone) return null
 
   const parentBone = bone.parentId ? bones.find((b) => b.id === bone.parentId) || null : null
-  const boundLayers = (composite.layers || []).filter(
-    (l) => l.boneId === bone.id || l.extraBoneIds?.includes(bone.id)
-  )
+  const boundEntries = getBoundLayersForBone(bone.id, composite.layers || [], bones)
 
   return {
     id: bone.id,
@@ -191,7 +196,7 @@ export function buildScanned25DBoneInfo(boneId: string): Scanned25DBoneInfo | nu
     angle: Math.round(bone.angle || 0),
     pin: Boolean(bone.pin),
     isSelected: session.getSelectedBoneId?.() === bone.id,
-    boundLayerNames: boundLayers.map((l) => l.name)
+    boundLayerNames: boundEntries.map((entry) => entry.layer.name)
   }
 }
 

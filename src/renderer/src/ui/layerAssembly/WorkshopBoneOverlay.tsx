@@ -19,6 +19,7 @@ import {
 } from './workshopMotionSketch'
 import { setMotionSketchState } from './motionSketchStore'
 import { markBoneAdjusted, setStepRecordState } from './workshopStepRecord'
+import { findCutoutLayerAtStroke, resolveSpineParentForStroke } from './spineRigWorkflow'
 import {
   buildHumanoidBonesFromLandmarks,
   extractLandmarksFromBones,
@@ -672,7 +673,13 @@ export function WorkshopBoneOverlay({
 
       if (Math.hypot(d.current.x - d.start.x, d.current.y - d.start.y) >= 12) {
         beginGesture?.()
-        const created = createBoneFromCanvasDrag(d.start, d.current, d.parentBone, rig.bones.length, undefined, d.parentJoint)
+        const spineResolved =
+          (d.mode === 'outside-bone' || d.mode === 'root-bone') && !d.snapped && composite.layers.length > 1
+            ? resolveSpineParentForStroke(rig.bones, composite.layers, d.start, d.current, d.parentBone)
+            : null
+        const effectiveParent = spineResolved?.hitLayer ? spineResolved.parentBone : d.parentBone
+        const effectiveParentJoint = spineResolved?.hitLayer ? (spineResolved.parentJoint ?? d.parentJoint) : d.parentJoint
+        const created = createBoneFromCanvasDrag(d.start, d.current, effectiveParent, rig.bones.length, undefined, effectiveParentJoint)
         const targetLayerId = rigTool.targetBindingLayerId
         const targetMode = rigTool.targetBindingMode ?? 'rigid'
         let boundLayerName: string | null = null
@@ -681,19 +688,19 @@ export function WorkshopBoneOverlay({
           if (rigTool.mirrorDraw && Math.abs(created.x) > 10) {
             next = applyRigAction(next, { action: 'mirror-bone', boneId: created.id })
           }
-          // Tìm layer đích khi đang focus bộ phận cụ thể (targetLayerId) hoặc nhân vật đơn 1 layer
+          // Tìm layer đích chuẩn Spine 2D: ưu tiên targetLayerId -> nhân vật 1 layer -> tự động hit-test mảnh Layer dưới nét vẽ xương
           const effectiveTargetLayer = targetLayerId
             ? next.layers.find((l) => l.id === targetLayerId)
             : next.layers.length === 1
               ? next.layers[0]
-              : null
+              : findCutoutLayerAtStroke(next.layers, d.start, d.current, effectiveParent)
 
           if (effectiveTargetLayer) {
             boundLayerName = effectiveTargetLayer.name
             const hasExistingBone = Boolean(effectiveTargetLayer.boneId && effectiveTargetLayer.boneId !== created.id)
             if (hasExistingBone) {
-              // Layer đã có xương cha (ví dụ đã có xương Đùi, giờ vẽ thêm xương Cẳng chân):
-              // Tự động chuyển layer sang soft mesh uốn cong và bổ sung xương con mới vào extraBoneIds
+              // Layer đã có xương cha (ví dụ đã có xương Đùi/Bắp tay, giờ vẽ thêm Cẳng chân/Cẳng tay/Bàn tay):
+              // Tự động chuyển layer sang soft mesh uốn cong và bổ sung xương con mới vào extraBoneIds chuẩn Spine 2D
               const extra = Array.isArray(effectiveTargetLayer.extraBoneIds) ? [...effectiveTargetLayer.extraBoneIds] : []
               if (!extra.includes(created.id)) extra.push(created.id)
               next = {
@@ -716,11 +723,11 @@ export function WorkshopBoneOverlay({
           pendingDashedLink: null,
           targetBindingLayerId: isCutoutActive ? rigTool.focusedCutoutLayerId : null,
           statusHint: boundLayerName
-            ? `✓ Đã tạo "${created.name}" và gắn khớp uốn cho "${boundLayerName}".`
-            : d.parentBone
+            ? `✓ Đã tạo "${created.name}" và tự gắn Slot "${boundLayerName}"${effectiveParent ? ` (Cha: ${effectiveParent.name})` : ''} chuẩn Spine 2D.`
+            : effectiveParent
               ? d.snapped
-                ? `Đã hàn khớp xương "${created.name}" vào "${d.parentBone.name}".`
-                : `Đã tạo xương "${created.name}" nối nét đứt với "${d.parentBone.name}".`
+                ? `Đã hàn khớp xương "${created.name}" vào "${effectiveParent.name}".`
+                : `Đã tạo xương "${created.name}" nối nét đứt với "${effectiveParent.name}".`
               : `Đã tạo xương gốc mới tách rời "${created.name}".`
         })
         endGesture?.()
