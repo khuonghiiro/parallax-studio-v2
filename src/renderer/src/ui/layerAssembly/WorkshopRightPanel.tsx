@@ -65,6 +65,9 @@ export function WorkshopRightPanel({
 }) {
   const [error, setError] = useState('')
 
+  // Chuẩn hoá tab: tab plant tự động ánh xạ vào animation
+  const effectiveTab = tab === 'plant' ? 'animation' : tab
+
   // Trạng thái sub-tab con đồng bộ store (hỗ trợ cả UI lẫn MCP điều khiển)
   const [layerSubTab, setLayerSubTab] = useWorkshopSubTab('layers')
   const [rigSubTab, setRigSubTab] = useWorkshopSubTab('bones')
@@ -103,7 +106,7 @@ export function WorkshopRightPanel({
 
   // Danh sách các tab dọc icon đặc trưng cho từng phân khu logic
   const subTabs = useMemo(() => {
-    switch (tab) {
+    switch (effectiveTab) {
       case 'layers':
         return [
           {
@@ -185,34 +188,20 @@ export function WorkshopRightPanel({
             title: `Hành động & Clips (${clipCount} clip: quản lý động tác, Mixamo retargeting, thư viện mẫu)`
           },
           {
+            id: 'plant' as const,
+            label: 'Gió (Tóc/Áo)',
+            icon: <IconTabWindMotion width={16} height={16} />,
+            badge: spineCount || undefined,
+            title: `Chuyển động gió & Uốn tóc/vải/cây (${spineCount} trục sống uốn: tóc, tà áo, ruy băng, cành lá)`
+          },
+          {
             id: 'physics' as const,
             label: 'Vật lý & Rung',
             icon: <IconSubTabAnimPhysics width={16} height={16} />,
             title: 'Vật lý & Rung lắc (Secondary Motion lò xo đàn hồi, nhịp đập, Parallax 2.5D, chiều sâu xương)'
           }
         ]
-      case 'plant':
-        return [
-          {
-            id: 'spines' as const,
-            label: 'Trục gió',
-            icon: <IconSubTabPlantList width={16} height={16} />,
-            badge: spineCount || undefined,
-            title: `Danh sách trục sống gió (${spineCount} trục: độ cứng cành/lá, tần số rung, biên độ gió)`
-          },
-          {
-            id: 'create' as const,
-            label: 'Thêm trục',
-            icon: <IconSubTabPlantAdd width={16} height={16} />,
-            title: 'Thêm trục sống mới (Vẽ sống trên sân khấu 2D, hướng mọc: mọc lên / ngang / rủ xuống)'
-          },
-          {
-            id: 'harmony' as const,
-            label: 'Hòa sắc gió',
-            icon: <IconSubTabPlantHarmony width={16} height={16} />,
-            title: 'Hòa sắc gió & Nhịp sóng (Độ lệch pha giữa các cành/lá, mẫu nhịp sóng gió tự nhiên)'
-          }
-        ]
+
       case 'loop':
         return [
           {
@@ -239,21 +228,18 @@ export function WorkshopRightPanel({
   }, [tab, state.composite, boneCount, clipCount, spineCount, loopCount, selectedLayer])
 
   const currentSubTabId =
-    tab === 'layers'
+    effectiveTab === 'layers'
       ? layerSubTab
-      : tab === 'bones'
+      : effectiveTab === 'bones'
         ? rigSubTab
-        : tab === 'animation'
+        : effectiveTab === 'animation'
           ? animSubTab
-          : tab === 'plant'
-            ? plantSubTab
-            : loopSubTab
+          : loopSubTab
 
   const handleSelectSubTab = (id: string) => {
-    if (tab === 'layers') setLayerSubTab(id as LayerSubTab)
-    else if (tab === 'bones') setRigSubTab(id as RigSubTab)
-    else if (tab === 'animation') setAnimSubTab(id as AnimInspectorSubTab)
-    else if (tab === 'plant') setPlantSubTab(id as WindPanelSubTab)
+    if (effectiveTab === 'layers') setLayerSubTab(id as LayerSubTab)
+    else if (effectiveTab === 'bones') setRigSubTab(id as RigSubTab)
+    else if (effectiveTab === 'animation') setAnimSubTab(id as AnimInspectorSubTab)
     else setLoopSubTab(id as LoopSubTab)
   }
 
@@ -268,7 +254,7 @@ export function WorkshopRightPanel({
         size="sm"
         ariaLabel="Chế độ thanh tra Xưởng Layer"
         className="lw-right-segmented-tabs"
-        value={tab}
+        value={effectiveTab}
         onChange={(nextTab) => {
           setTab(nextTab)
           setError('')
@@ -298,19 +284,11 @@ export function WorkshopRightPanel({
           {
             id: 'animation',
             domId: 'lw-tab-animation',
-            label: 'Anim',
+            label: 'Anim & Gió',
             icon: <IconTabAnimateFilm width={13} height={13} />,
-            badge: clipCount > 0 && boneCount > 0 ? clipCount : undefined,
+            badge: (clipCount + spineCount) || undefined,
             badgeTone: 'accent',
-            title: 'Diễn hoạt chuẩn Moho & Adobe Animate (Auto-Key, Dope Sheet Tween Spans, IK, Onion Skin)'
-          },
-          {
-            id: 'plant',
-            domId: 'lw-tab-plant',
-            label: 'Gió',
-            icon: <IconTabWindMotion width={13} height={13} />,
-            badge: spineCount || undefined,
-            title: 'Vẽ đường sống lá / cành cây đung đưa tự nhiên theo gió'
+            title: 'Diễn hoạt chuyển động xương & Gió uốn tóc/áo/cây (Tạo dáng, Clips, Sống gió uốn & Vật lý)'
           },
           {
             id: 'loop',
@@ -335,7 +313,7 @@ export function WorkshopRightPanel({
         className="lw-right-subtabs"
         role="tablist"
         aria-orientation="horizontal"
-        aria-label={`Phân khu ${tab}`}
+        aria-label={`Phân khu ${effectiveTab}`}
       >
         {subTabs.map((st) => {
           const isActive = currentSubTabId === st.id
@@ -369,10 +347,10 @@ export function WorkshopRightPanel({
       <div
         className="lw-right-content lw-htab-content"
         role="tabpanel"
-        id={`lw-panel-${tab}`}
-        aria-labelledby={`lw-tab-${tab}`}
+        id={`lw-panel-${effectiveTab}`}
+        aria-labelledby={`lw-tab-${effectiveTab}`}
       >
-          {tab === 'layers' ? (
+          {effectiveTab === 'layers' ? (
             children && typeof children === 'object' && 'props' in children ? (
               cloneElement(children as ReactElement<any>, {
                 subTab: layerSubTab,
@@ -381,13 +359,13 @@ export function WorkshopRightPanel({
             ) : (
               children
             )
-          ) : tab === 'bones' ? (
+          ) : effectiveTab === 'bones' ? (
             <WorkshopRigPanel
               {...props}
               subTab={rigSubTab}
               onChangeSubTab={setRigSubTab}
             />
-          ) : tab === 'plant' ? (
+          ) : (effectiveTab === 'animation' && animSubTab === 'plant') ? (
             <WorkshopPlantPanel
               composite={state.composite}
               setComposite={state.setComposite}
@@ -397,7 +375,7 @@ export function WorkshopRightPanel({
               subTab={plantSubTab}
               onChangeSubTab={setPlantSubTab}
             />
-          ) : tab === 'loop' ? (
+          ) : effectiveTab === 'loop' ? (
             <WorkshopLoopLogicPanel
               selectedLayer={selectedLayer}
               isPlaying={playback.isPlaying}

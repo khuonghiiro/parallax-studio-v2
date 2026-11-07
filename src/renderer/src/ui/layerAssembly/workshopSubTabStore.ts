@@ -2,7 +2,7 @@ import { useSyncExternalStore } from 'react'
 
 export type LayerSubTab = 'stack' | 'transform' | 'depth' | 'parts' | 'cloth'
 export type RigSubTab = 'hierarchy' | 'build' | 'binding' | 'autorig'
-export type AnimInspectorSubTab = 'pose' | 'clips' | 'physics'
+export type AnimInspectorSubTab = 'pose' | 'clips' | 'plant' | 'physics'
 export type WindPanelSubTab = 'spines' | 'create' | 'harmony'
 export type LoopSubTab = 'template' | 'playback' | 'rhythm'
 
@@ -58,7 +58,7 @@ export function setAnyWorkshopSubTab(tab: string, subTab: string): boolean {
   const validSubTabs: Record<WorkshopTabKey, string[]> = {
     layers: ['stack', 'transform', 'depth', 'parts', 'cloth'],
     bones: ['hierarchy', 'build', 'binding', 'autorig'],
-    animation: ['pose', 'clips', 'physics'],
+    animation: ['pose', 'clips', 'plant', 'physics'],
     plant: ['spines', 'create', 'harmony'],
     loop: ['template', 'playback', 'rhythm']
   }

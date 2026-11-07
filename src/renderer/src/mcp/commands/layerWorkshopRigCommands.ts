@@ -352,11 +352,16 @@ export const layerWorkshopRigCommands: Record<string, Handler> = {
     const session = activeWorkshop()
     const tab = str(p, 'tab')
     if (tab && !['layers', 'bones', 'animation', 'plant', 'loop'].includes(tab)) throw new ParamError('Invalid tab')
-    const activeTab = (tab ?? session.getTab?.() ?? 'layers') as 'layers' | 'bones' | 'animation' | 'plant' | 'loop'
+    const activeTab = (tab === 'plant' ? 'animation' : (tab ?? session.getTab?.() ?? 'layers')) as 'layers' | 'bones' | 'animation' | 'loop'
 
     const boneId = str(p, 'bone_id') || null
     if (boneId && !session.getComposite().rig?.bones.some((b) => b.id === boneId)) throw new ParamError('Unknown bone ID')
-    if (tab) session.setTab?.(activeTab)
+    if (tab === 'plant') {
+      session.setTab?.('animation')
+      setAnyWorkshopSubTab('animation', 'plant')
+    } else if (tab) {
+      session.setTab?.(activeTab)
+    }
     if (boneId !== null || p.bone_id !== undefined) session.setSelectedBoneId?.(boneId)
 
     const subTab = str(p, 'sub_tab') || str(p, 'subTab')

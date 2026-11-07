@@ -15,6 +15,7 @@ import type { BrushPreview } from './useLayerBrushEraser'
 import { spinesForLayer } from '../../engine/plantSpine'
 import { usePlantClockOffset, usePlantLiveClock } from './usePlantClock'
 import { usePlantSpineEditor } from './plantSpineEditorStore'
+import { useWorkshopSubTab } from './workshopSubTabStore'
 import { grabbedSpine } from './plantSpineEdit'
 import { toggleMotionSketchArmed } from './motionSketchStore'
 import { buildManipulateTestRig, type BoneOverlayProps } from './WorkshopBoneOverlay'
@@ -181,8 +182,10 @@ export function WorkshopWorkspace({
   const normalizedRig = state.composite.rig ? ensureRigClips(state.composite.rig).rig : undefined
   const plantOffset = usePlantClockOffset(playback.time, playback.isPlaying, normalizedRig?.duration ?? 4)
   const plantEditor = usePlantSpineEditor()
+  const [animSubTab] = useWorkshopSubTab('animation')
+  const isPlantActive = tab === 'plant' || (tab === 'animation' && animSubTab === 'plant')
   const hasSpines = (state.composite.plantSpines?.length ?? 0) > 0
-  const liveEnabled = tab === 'plant' && plantEditor.live && hasSpines && !playback.isPlaying
+  const liveEnabled = isPlantActive && plantEditor.live && hasSpines && !playback.isPlaying
   const plantLive = usePlantLiveClock(liveEnabled, !plantEditor.dragging && !plantEditor.grab)
   const plantTime = plantOffset + plantLive
   const shiftedSpines = (state.composite.plantSpines ?? []).map((s) => {
@@ -379,7 +382,7 @@ export function WorkshopWorkspace({
                       setComposite: state.setComposite,
                       selectedIds: state.selection,
                       time: playback.time + plantTime,
-                      drawing: tab === 'plant',
+                      drawing: isPlantActive,
                       beginGesture: () => state.history.begin(),
                       endGesture: () => state.history.end()
                     }

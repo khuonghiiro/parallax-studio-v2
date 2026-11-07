@@ -354,11 +354,9 @@ export function LayerAssemblyDialog({
                       label:
                         tab === 'bones'
                           ? 'Tạo xương'
-                          : tab === 'animation'
-                            ? 'Animate'
-                            : tab === 'plant'
-                              ? 'Gió'
-                              : 'Thuộc tính Lớp',
+                          : (tab === 'animation' || tab === 'plant')
+                            ? 'Anim & Gió'
+                            : 'Thuộc tính Lớp',
                       icon: <IconTabBoneRig width={13} height={13} />,
                       badge: activeRig?.bones.length || undefined
                     }
