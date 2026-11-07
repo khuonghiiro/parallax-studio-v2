@@ -261,3 +261,163 @@
     padding: 0;
   }
 }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   5. Rig Empty Action Grid (2x2 Compact Action Tiles)
+   ────────────────────────────────────────────────────────────────────────── */
+.lw-rig-empty-hint {
+  padding: 12px 10px;
+  text-align: center;
+}
+
+.lw-rig-empty-hint p {
+  margin: 0 0 10px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.lw-rig-empty-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.lw-rig-action-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  min-height: 48px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line-soft);
+  background: var(--bg-2);
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.14s ease;
+  user-select: none;
+  box-sizing: border-box;
+}
+
+.lw-rig-action-card:hover {
+  background: color-mix(in srgb, var(--accent-cyan, #06b6d4) 12%, var(--bg-3));
+  border-color: var(--accent-cyan, #06b6d4);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.lw-rig-action-card.is-primary {
+  background: color-mix(in srgb, var(--accent) 14%, var(--bg-2));
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line-soft));
+}
+
+.lw-rig-action-card.is-primary:hover {
+  background: color-mix(in srgb, var(--accent) 24%, var(--bg-2));
+  border-color: var(--accent);
+}
+
+.lw-rig-card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-3);
+  color: var(--accent-cyan, #22d3ee);
+  flex-shrink: 0;
+}
+
+.lw-rig-action-card.is-primary .lw-rig-card-icon {
+  background: var(--accent);
+  color: #ffffff;
+}
+
+.lw-rig-card-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.lw-rig-card-text strong {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+
+.lw-rig-card-text small {
+  font-size: 9.5px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   6. Animation Compact Transport Bar (Single-row 34px Header)
+   ────────────────────────────────────────────────────────────────────────── */
+.lw-anim-compact-bar {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 8px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--line-soft);
+  flex-shrink: 0;
+  min-height: 34px;
+  user-select: none;
+  box-sizing: border-box;
+}
+
+.lw-anim-compact-bar .lw-anim-play-btn {
+  min-width: 58px;
+  height: 25px;
+  font-weight: 600;
+  font-size: 11px;
+  padding: 0 8px;
+}
+
+.lw-anim-compact-bar .lw-anim-f0-btn {
+  height: 25px;
+  padding: 0 6px;
+  font-size: 10.5px;
+}
+
+.lw-anim-compact-bar .lw-frame-mode-badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-1);
+  color: var(--text-dim);
+  border: 1px solid var(--line-soft);
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.lw-anim-compact-bar .lw-frame-mode-badge strong {
+  color: var(--accent-cyan, #22d3ee);
+  font-weight: 700;
+}
+
+.lw-anim-compact-bar .lw-autokey-pill {
+  margin-left: auto;
+  height: 25px;
+  padding: 0 6px;
+  font-size: 10px;
+}
+
+.lw-anim-compact-bar .lw-speed-pill,
+.lw-anim-compact-bar .lw-loop-pill {
+  height: 25px;
+  padding: 0 6px;
+  font-size: 10px;
+}

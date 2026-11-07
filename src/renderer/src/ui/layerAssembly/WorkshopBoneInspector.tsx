@@ -25,24 +25,65 @@ function BoneTreeEmpty({ onStartDraw, onOpenBuild, onOpenAuto, composite }: Pick
   return (
     <div className="lw-rig-empty-hint">
       <p>Chưa có xương nào trên nhân vật / vật thể.</p>
-      <div className="lw-rig-empty-actions">
+      <div className="lw-rig-empty-grid" role="group" aria-label="Khởi tạo khung xương">
         <button
           type="button"
-          className="btn xs primary lw-btn-cutout-start"
+          className="lw-rig-action-card is-primary lw-btn-cutout-start"
           onClick={() => openCutoutPartRig(composite.layers[0]?.id)}
-          style={{ background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)', color: '#fff' }}
           title="Vẽ xương theo từng bộ phận layer trên Sân khấu 2D (hiện ô preview 2 bên và mũi tên chỉ dẫn)"
         >
-          <IconFlexiMeshBind width={12} height={12} /> 🎨 Vẽ xương theo bộ phận (2D)
+          <span className="lw-rig-card-icon">
+            <IconFlexiMeshBind width={15} height={15} />
+          </span>
+          <span className="lw-rig-card-text">
+            <strong>Theo bộ phận</strong>
+            <small>Vẽ xương bám layer 2D</small>
+          </span>
         </button>
-        <button type="button" className="btn xs" onClick={onStartDraw}>
-          <IconBoneAdd width={12} height={12} /> Vẽ xương (A) trên khung 2D
+
+        <button
+          type="button"
+          className="lw-rig-action-card"
+          onClick={onStartDraw}
+          title="Vẽ xương tự do bằng công cụ Vẽ xương (phím A) trên Sân khấu 2D"
+        >
+          <span className="lw-rig-card-icon">
+            <IconBoneAdd width={15} height={15} />
+          </span>
+          <span className="lw-rig-card-text">
+            <strong>Vẽ tự do (A)</strong>
+            <small>Vẽ trên khung 2D</small>
+          </span>
         </button>
-        <button type="button" className="btn xs" onClick={onOpenBuild}>
-          <IconBoneChainBuild width={12} height={12} /> Dựng thủ công
+
+        <button
+          type="button"
+          className="lw-rig-action-card"
+          onClick={onOpenBuild}
+          title="Mở tab dựng kết cấu xương thủ công: chuỗi đốt, chia đốt, đối xứng"
+        >
+          <span className="lw-rig-card-icon">
+            <IconBoneChainBuild width={15} height={15} />
+          </span>
+          <span className="lw-rig-card-text">
+            <strong>Dựng thủ công</strong>
+            <small>Chuỗi đốt & chi khớp</small>
+          </span>
         </button>
-        <button type="button" className="btn xs" onClick={onOpenAuto}>
-          <IconAutoRigSpark width={12} height={12} /> Tự động: nhện, cá, ngựa, chim…
+
+        <button
+          type="button"
+          className="lw-rig-action-card"
+          onClick={onOpenAuto}
+          title="Thư viện khung xương tự động: người, thú, cá, chim, nhện…"
+        >
+          <span className="lw-rig-card-icon">
+            <IconAutoRigSpark width={15} height={15} />
+          </span>
+          <span className="lw-rig-card-text">
+            <strong>Khung tự động</strong>
+            <small>Sinh vật, người, thú…</small>
+          </span>
         </button>
       </div>
     </div>

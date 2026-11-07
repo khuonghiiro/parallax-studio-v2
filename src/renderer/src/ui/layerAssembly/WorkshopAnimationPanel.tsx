@@ -236,28 +236,17 @@ export function WorkshopAnimationPanel({
 
   return (
     <div className="lw-rig-panel lw-animation-panel" data-mcp-region="layer_assembly_animation_panel">
-      {/* 0. Thanh chọn Clip đang sửa + Tạo Động tác mới (Blank / Từ dáng hiện tại) ngay đầu tab */}
-      <ActiveActionClipHeader
+      {/* Thanh điều khiển phát lại Compact duy nhất, không chiếm diện tích sub-tab */}
+      <AnimationCompactTransportBar
         rig={rig}
         activeClip={activeClip}
-        fps={fps}
-        time={time}
-        playback={playback}
-        run={run}
-      />
-
-      {/* 1. Bảng điều khiển Nhịp độ, FPS, Tổng Frame ⇄ Giây chuẩn Moho Pro & Adobe Animate */}
-      <AnimationTransportCard
-        rig={rig}
-        fps={fps}
-        activeClipName={activeClip.name}
         frameNumber={frameNumber}
         totalFrames={totalFrames}
+        time={time}
+        playback={playback}
         autoKey={assist.autoKey}
         onToggleAutoKey={() => setAnimAssist({ autoKey: !assist.autoKey })}
-        playback={playback}
         run={run}
-        onConfirmStep={handleConfirmStep}
       />
 
       {/* 2. Thanh 3 Sub-Tabs gọn gàng (ẩn khi dùng dải tab dọc bên ngoài) */}
@@ -419,6 +408,9 @@ export function WorkshopAnimationPanel({
                   </button>
                 </div>
 
+                {/* Thanh Chốt bước Pose-by-Pose: nhảy sang frame tiếp theo */}
+                <StepRecordBar onConfirmStep={handleConfirmStep} fps={fps} />
+
                 <WorkshopInterpolation
                   keyframe={key}
                   onChange={(patch: Partial<BoneKeyframe>) => {
@@ -468,7 +460,7 @@ export function WorkshopAnimationPanel({
         </>
       )}
 
-      {/* SUB-TAB 2: CLIPS ĐỘNG TÁC, MẪU NHANH, BIỂU CẢM SPRITE & GHI ĐỘNG TÁC REALTIME */}
+      {/* SUB-TAB 2: QUẢN LÝ CLIPS, CÀI ĐẶT THỜI LƯỢNG FPS, BIỂU CẢM SPRITE & GHI ĐỘNG TÁC REALTIME */}
       {subTab === 'clips' && (
         <>
           <WorkshopClipBar
@@ -492,7 +484,12 @@ export function WorkshopAnimationPanel({
             }}
             onOpenRetarget={() => setIsRetargetOpen(true)}
           />
-          <QuickMotionPresetCard playback={playback} run={run} defaultAsNewClip={true} />
+          <ClipTimingSettingsCard
+            rig={rig}
+            fps={fps}
+            totalFrames={totalFrames}
+            run={run}
+          />
           <WorkshopMotionSketchCard
             isPlaying={playback.isPlaying}
             onTogglePlay={playback.toggle}
@@ -531,32 +528,140 @@ export function WorkshopAnimationPanel({
   )
 }
 
-function AnimationTransportCard({
+function AnimationCompactTransportBar({
   rig,
-  fps,
-  activeClipName,
+  activeClip,
   frameNumber,
   totalFrames,
+  time,
+  playback,
   autoKey,
   onToggleAutoKey,
-  playback,
-  run,
-  onConfirmStep
+  run
+}: {
+  rig: LayerRig
+  activeClip: AnimationClip
+  frameNumber: number
+  totalFrames: number
+  time: number
+  playback: Props['playback']
+  autoKey: boolean
+  onToggleAutoKey: () => void
+  run: Props['run']
+}) {
+  const isFrameZero = frameNumber === 0
+
+  return (
+    <div className="lw-anim-compact-bar">
+      <button
+        type="button"
+        className="btn xs primary lw-anim-play-btn"
+        onClick={playback.toggle}
+        title={playback.isPlaying ? 'Tạm dừng (Phím Space)' : 'Phát thử (Phím Space)'}
+      >
+        {playback.isPlaying ? '⏸ Dừng' : '▶ Phát'}
+      </button>
+
+      <button
+        type="button"
+        className="btn xs lw-anim-f0-btn"
+        onClick={() => {
+          playback.setIsPlaying(false)
+          playback.setTime(0)
+        }}
+        title="Về đầu mốc Frame 0 (0.00s)"
+      >
+        ⏮ F0
+      </button>
+
+      <span
+        className={`lw-frame-mode-badge ${isFrameZero ? 'is-setup' : 'is-animating'}`}
+        title={`Đang sửa clip "${activeClip.name}"`}
+      >
+        <strong>{isFrameZero ? 'F0' : `F${frameNumber}`}</strong>/{totalFrames} · {time.toFixed(2)}s
+      </span>
+
+      <button
+        type="button"
+        className={`lw-autokey-pill${autoKey ? ' active' : ''}`}
+        onClick={onToggleAutoKey}
+        aria-pressed={autoKey}
+        title="Auto-Key: Tự động ghi Keyframe khi kéo chỉnh xương trên sân khấu"
+      >
+        <IconAutoKeyRec width={11} height={11} />
+        <span>Auto-Key</span>
+      </button>
+
+      <button
+        type="button"
+        className={`lw-moho-opt-pill lw-speed-pill${playback.speed !== 1 ? ' active' : ''}`}
+        onClick={playback.cycleSpeed}
+        title={`Tốc độ phát: ${playback.speed}x (Bấm để đổi 0.5x, 1x, 1.5x, 2x)`}
+      >
+        <span>{playback.speed}×</span>
+      </button>
+
+      <button
+        type="button"
+        className={`lw-moho-opt-pill lw-loop-pill${rig.loop ? ' active' : ''}`}
+        onClick={() => run({ action: 'settings', loop: !rig.loop })}
+        aria-pressed={rig.loop}
+        title="Bật/tắt tự động phát lặp vòng"
+      >
+        <span>{rig.loop ? '🔁 Lặp' : '↦ 1 lần'}</span>
+      </button>
+    </div>
+  )
+}
+
+function StepRecordBar({ onConfirmStep, fps }: { onConfirmStep: () => void; fps: number }) {
+  const stepRecord = useStepRecord()
+
+  return (
+    <div className="lw-step-record-bar" style={{ marginTop: 8 }}>
+      <div className="lw-step-record-main">
+        <button
+          type="button"
+          className={`btn xs lw-confirm-step-btn${stepRecord.pendingConfirm ? ' pending' : ''}`}
+          onClick={onConfirmStep}
+          title="Chốt tư thế toàn bộ xương tại mốc hiện tại, giữ nguyên tư thế và nhảy sang bước kế tiếp (Phím tắt: Enter)"
+        >
+          ✓ Chốt bước <kbd>Enter</kbd>
+        </button>
+        <div className="lw-step-duration-group" role="group" aria-label="Bước nhảy Frame">
+          {[1, 3, 6, 12].map((f) => {
+            const sec = Number((f / fps).toFixed(4))
+            const active = Math.abs(stepRecord.stepDuration - sec) < 0.008
+            return (
+              <button
+                key={f}
+                type="button"
+                className={`lw-step-dur-pill${active ? ' active' : ''}`}
+                onClick={() => setStepRecordFrames(f, fps)}
+                title={`Mỗi bước nhảy +${f} Frame`}
+              >
+                +{f}F
+              </button>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ClipTimingSettingsCard({
+  rig,
+  fps,
+  totalFrames,
+  run
 }: {
   rig: LayerRig
   fps: number
-  activeClipName: string
-  frameNumber: number
   totalFrames: number
-  autoKey: boolean
-  onToggleAutoKey: () => void
-  playback: Props['playback']
   run: Props['run']
-  onConfirmStep: () => void
 }) {
-  const stepRecord = useStepRecord()
   const [scaleKeys, setScaleKeys] = useState(true)
-  const isFrameZero = frameNumber === 0
 
   const handleFpsChange = (nextFps: number) => {
     run({ action: 'settings', fps: nextFps })
@@ -573,85 +678,27 @@ function AnimationTransportCard({
     run({ action: 'settings', duration: safeDuration, scaleKeys })
   }
 
-  const handleCurrentFrameChange = (nextFrame: number) => {
-    const clampedFrame = Math.max(0, Math.min(totalFrames, Math.round(nextFrame)))
-    playback.setIsPlaying(false)
-    playback.setTime(Math.min(rig.duration, Number((clampedFrame / fps).toFixed(4))))
-  }
-
   return (
-    <div className="lw-card-section lw-anim-transport-card">
-      <div className="lw-moho-frame0-bar">
-        <span className={`lw-frame-mode-badge ${isFrameZero ? 'is-setup' : 'is-animating'}`} title={activeClipName}>
-          {isFrameZero ? `◇ F0/${totalFrames} · KHỞI ĐẦU` : `◆ F${frameNumber}/${totalFrames} · ${activeClipName}`}
-        </span>
-        <button
-          type="button"
-          className={`lw-autokey-pill${autoKey ? ' active' : ''}`}
-          onClick={onToggleAutoKey}
-          aria-pressed={autoKey}
-          title="Auto-Key (Moho & Adobe Animate): Tự động ghi Keyframe ngay khi kéo xương"
-        >
-          <IconAutoKeyRec width={11} height={11} />
-          <span>Auto-Key</span>
-        </button>
+    <div className="lw-card-section lw-clip-timing-card">
+      <div className="lw-card-header">
+        <span className="lw-card-title">Cài đặt nhịp FPS & Thời lượng Clip</span>
       </div>
 
-      {/* Hàng điều khiển phát, tốc độ chạy thử & vòng lặp */}
-      <div className="lw-anim-transport-row">
-        <button type="button" className="btn xs primary lw-play-main-btn" onClick={playback.toggle}>
-          {playback.isPlaying ? '⏸ Dừng' : '▶ Phát'}
-        </button>
-        <button
-          type="button"
-          className="btn xs"
-          onClick={() => {
-            playback.setIsPlaying(false)
-            playback.setTime(0)
-          }}
-          title="Đưa đầu phát về Frame 0 (0.00s)"
-        >
-          ⏮ F0
-        </button>
-        <button
-          type="button"
-          className={`lw-moho-opt-pill lw-speed-pill${playback.speed !== 1 ? ' active' : ''}`}
-          onClick={playback.cycleSpeed}
-          title="Đổi tốc độ chạy thử động tác (0.5× → 1× → 1.5× → 2×)"
-        >
-          <span>Tốc độ {playback.speed}×</span>
-        </button>
-        <button
-          type="button"
-          className={`lw-moho-opt-pill lw-loop-pill${rig.loop ? ' active' : ''}`}
-          onClick={() => run({ action: 'settings', loop: !rig.loop })}
-          aria-pressed={rig.loop}
-          title="Bật/tắt tự động lặp vòng khi phát hết động tác"
-        >
-          {rig.loop && <IconLoopCycle width={11} height={11} />}
-          <span>{rig.loop ? 'Lặp' : '↦ 1 lần'}</span>
-        </button>
-      </div>
-
-      {/* Thanh chọn tốc độ khung hình FPS & Co giãn Key chuẩn Moho / Adobe Animate */}
       <div className="lw-fps-retime-bar">
         <div className="lw-fps-seg" role="radiogroup" aria-label="Số khung hình trên giây (FPS)">
-          {STUDIO_FPS_PRESETS.map((presetFps) => {
-            const active = fps === presetFps
-            return (
-              <button
-                key={presetFps}
-                type="button"
-                role="radio"
-                aria-checked={active}
-                className={`lw-fps-seg-btn${active ? ' active' : ''}`}
-                onClick={() => handleFpsChange(presetFps)}
-                title={`Đặt nhịp chuẩn ${presetFps} frame/giây (mỗi frame = ${(1000 / presetFps).toFixed(1)}ms)`}
-              >
-                {presetFps}
-              </button>
-            )
-          })}
+          {STUDIO_FPS_PRESETS.map((presetFps) => (
+            <button
+              key={presetFps}
+              type="button"
+              role="radio"
+              aria-checked={fps === presetFps}
+              className={`lw-fps-seg-btn${fps === presetFps ? ' active' : ''}`}
+              onClick={() => handleFpsChange(presetFps)}
+              title={`Đặt ${presetFps} FPS`}
+            >
+              {presetFps}
+            </button>
+          ))}
           <span className="lw-fps-unit">fps</span>
         </div>
 
@@ -660,38 +707,14 @@ function AnimationTransportCard({
           className={`lw-moho-opt-pill lw-scale-keys-pill${scaleKeys ? ' active' : ''}`}
           onClick={() => setScaleKeys((v) => !v)}
           aria-pressed={scaleKeys}
-          title={
-            scaleKeys
-              ? 'Đang bật Co giãn Key: khi đổi Tổng Frame hoặc Thời lượng (s), toàn bộ Keyframe tự co giãn tỷ lệ mượt mà'
-              : 'Đang tắt Co giãn Key: giữ nguyên vị trí giây của các Keyframe cũ khi tăng/giảm độ dài clip'
-          }
+          title="Tự động co giãn tỷ lệ các Keyframe khi đổi thời lượng"
         >
           <IconRetimeStretch width={11} height={11} />
           <span>Co giãn Key</span>
         </button>
       </div>
 
-      {/* Lưới tự động quy đổi 2 chiều: Khung F ⇄ Thời điểm (s) và Tổng Frame ⇄ Độ dài (s) */}
       <div className="lw-rig-grid lw-anim-time-grid">
-        <RigNumber
-          label="Khung hiện tại (F)"
-          value={frameNumber}
-          min={0}
-          max={totalFrames}
-          step={1}
-          onChange={handleCurrentFrameChange}
-        />
-        <RigNumber
-          label="Thời điểm (s)"
-          value={Number(playback.time.toFixed(2))}
-          min={0}
-          max={rig.duration}
-          step={Number((1 / fps).toFixed(3))}
-          onChange={(t) => {
-            playback.setIsPlaying(false)
-            playback.setTime(t)
-          }}
-        />
         <RigNumber
           label={`Tổng Frame (@${fps}fps)`}
           value={totalFrames}
@@ -708,83 +731,6 @@ function AnimationTransportCard({
           step={0.1}
           onChange={handleDurationChange}
         />
-      </div>
-
-      {/* Thanh Chốt bước nhanh (Pose-by-Pose Stepper: chỉnh được số Frame mỗi bước & mỗi bước cách bao nhiêu giây) */}
-      <div className="lw-step-record-bar">
-        <div className="lw-step-record-main">
-          <button
-            type="button"
-            className={`btn xs lw-confirm-step-btn${stepRecord.pendingConfirm ? ' pending' : ''}`}
-            onClick={onConfirmStep}
-            title="Chốt tư thế toàn bộ xương tại mốc hiện tại, giữ nguyên tư thế trên 2D/3D và nhảy sang bước kế tiếp (Phím tắt: Enter)"
-          >
-            ✓ Chốt bước <kbd>Enter</kbd>
-          </button>
-          <div className="lw-step-duration-group" role="group" aria-label="Bước nhảy Frame mỗi lần nhấn Enter">
-            {[1, 3, 6, 12].map((f) => {
-              const sec = Number((f / fps).toFixed(4))
-              const active = Math.abs(stepRecord.stepDuration - sec) < 0.008
-              return (
-                <button
-                  key={f}
-                  type="button"
-                  className={`lw-step-dur-pill${active ? ' active' : ''}`}
-                  onClick={() => setStepRecordFrames(f, fps)}
-                  title={`Mỗi lần nhấn Enter tiến +${f} Frame (+${sec.toFixed(2)}s @ ${fps}fps)`}
-                >
-                  +{f}F
-                </button>
-              )
-            })}
-          </div>
-        </div>
-
-        <div className="lw-step-custom-row">
-          <label className="lw-step-custom-field" title="Mỗi lần nhấn Enter nhảy tiếp bao nhiêu Frame">
-            <span>Bước</span>
-            <input
-              type="number"
-              min={1}
-              max={120}
-              step={1}
-              value={Math.max(1, Math.round(stepRecord.stepDuration * fps))}
-              onChange={(e) => setStepRecordFrames(Number(e.target.value) || 1, fps)}
-            />
-            <small>F</small>
-          </label>
-          <label className="lw-step-custom-field" title="Mỗi bước nhấn Enter cách nhau bao nhiêu giây (VD 0.04s, 0.25s, 0.50s, 1.00s)">
-            <span>Cách</span>
-            <input
-              type="number"
-              min={0.02}
-              max={10}
-              step={0.05}
-              value={Number(stepRecord.stepDuration.toFixed(2))}
-              onChange={(e) => setStepRecordSeconds(Number(e.target.value) || 0.1, fps)}
-            />
-            <small>s</small>
-          </label>
-          <div className="lw-step-sec-presets">
-            {[0.1, 0.25, 0.5, 1.0].map((sec) => (
-              <button
-                key={sec}
-                type="button"
-                className={`lw-step-dur-pill${Math.abs(stepRecord.stepDuration - sec) < 0.008 ? ' active' : ''}`}
-                onClick={() => setStepRecordSeconds(sec, fps)}
-                title={`Mỗi bước nhấn Enter cách nhau ${sec}s`}
-              >
-                {sec}s
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {stepRecord.status && (
-          <div className="lw-step-record-status" role="status">
-            {stepRecord.status}
-          </div>
-        )}
       </div>
     </div>
   )
