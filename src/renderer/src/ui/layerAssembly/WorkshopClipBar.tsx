@@ -114,31 +114,20 @@ export function WorkshopClipBar({
 
   return (
     <div className="lw-card-section lw-clip-section">
-      <div className="lw-card-header">
+      <div className="lw-card-header lw-clip-card-header">
         <span className="lw-card-title">
-          <span>Danh sách Clips</span>
+          <span>Clips</span>
           <span className="lw-card-badge">{clips.length}</span>
         </span>
         <div className="lw-clip-head-actions">
-          {hasAnyKeyframes && (
-            <button
-              type="button"
-              className="btn xs lw-muted-danger-btn"
-              onClick={handleDeleteAll}
-              title="Xoá hết toàn bộ các động tác hoạt ảnh để đưa nhân vật về tư thế tĩnh (Ctrl+Z để hoàn tác)"
-            >
-              <IconTrash width={10} height={10} />
-              <span>Xoá hết</span>
-            </button>
-          )}
           <button
             type="button"
-            className="btn xs primary"
+            className="btn xs primary lw-clip-new-btn"
             onClick={handleCreateBlankClip}
             title="Tạo ngay một động tác trống mới từ dáng gốc để tự đặt Keyframe"
           >
             <IconPlus width={10} height={10} />
-            <span>Động tác mới</span>
+            <span>Mới</span>
           </button>
           <button
             type="button"
@@ -150,13 +139,23 @@ export function WorkshopClipBar({
           </button>
           <button
             type="button"
-            className="btn xs"
+            className="btn xs lw-clip-json-btn"
             onClick={() => setIsClipJsonModalOpen(true)}
             title="Xuất / Nhập JSON động tác hoặc sao chép Prompt cho AI khác (ChatGPT / Claude)"
           >
             <IconCode width={10} height={10} />
             <span>JSON</span>
           </button>
+          {hasAnyKeyframes && (
+            <button
+              type="button"
+              className="btn xs icon lw-muted-danger-btn"
+              onClick={handleDeleteAll}
+              title="Xoá hết toàn bộ các động tác hoạt ảnh để đưa nhân vật về tư thế tĩnh (Ctrl+Z để hoàn tác)"
+            >
+              <IconTrash width={10} height={10} />
+            </button>
+          )}
         </div>
       </div>
 
@@ -164,7 +163,7 @@ export function WorkshopClipBar({
       <div className="lw-angle-seg-bar compact" role="group" aria-label="Lọc clip theo góc nhìn">
         {[
           { id: 'all', label: 'Tất cả' },
-          { id: 'front', label: '0° Chính diện' },
+          { id: 'front', label: '0° Mặt' },
           { id: 'diagonal', label: '45° Chéo' },
           { id: 'side', label: '90° Ngang' }
         ].map((f) => (
@@ -252,40 +251,44 @@ export function WorkshopClipBar({
           </div>
         ) : (
           <>
-            <button type="button" className="btn xs" onClick={handleStartRename} title="Đổi tên động tác này">
-              <IconPen width={10} height={10} />
-              <span>Đổi tên</span>
-            </button>
-            <button type="button" className="btn xs" onClick={handleDuplicateCurrent} title="Nhân bản động tác này">
-              <IconCopy width={10} height={10} />
-              <span>Nhân bản</span>
-            </button>
-            <button
-              type="button"
-              className="btn xs lw-muted-danger-btn"
-              onClick={handleDelete}
-              title="Xóa động tác đang chọn"
-            >
-              <IconTrash width={10} height={10} />
-              <span>Xoá</span>
-            </button>
-            <button
-              type="button"
-              className="btn xs lw-clip-json-btn"
-              onClick={() => setIsClipJsonModalOpen(true)}
-              title="Xuất / Nhập JSON động tác hoặc sao chép Prompt cho AI khác (ChatGPT / Claude)"
-            >
-              <IconCode width={10} height={10} />
-              <span>JSON / AI</span>
-            </button>
-            <button
-              type="button"
-              className="btn xs lw-retarget-cta-btn"
-              onClick={onOpenRetarget}
-              title="Kế thừa góc xoay và vị trí chuyển động từ nhân vật/mẫu khác"
-            >
-              <span>⇄ Kế thừa</span>
-            </button>
+            <div className="lw-clip-tools-row">
+              <button type="button" className="btn xs" onClick={handleStartRename} title="Đổi tên động tác này">
+                <IconPen width={10} height={10} />
+                <span>Đổi tên</span>
+              </button>
+              <button type="button" className="btn xs" onClick={handleDuplicateCurrent} title="Nhân bản động tác này">
+                <IconCopy width={10} height={10} />
+                <span>Nhân bản</span>
+              </button>
+              <button
+                type="button"
+                className="btn xs lw-muted-danger-btn"
+                onClick={handleDelete}
+                title="Xóa động tác đang chọn"
+              >
+                <IconTrash width={10} height={10} />
+                <span>Xoá</span>
+              </button>
+            </div>
+            <div className="lw-clip-tools-row">
+              <button
+                type="button"
+                className="btn xs lw-clip-json-btn"
+                onClick={() => setIsClipJsonModalOpen(true)}
+                title="Xuất / Nhập JSON động tác hoặc sao chép Prompt cho AI khác (ChatGPT / Claude)"
+              >
+                <IconCode width={10} height={10} />
+                <span>JSON / AI</span>
+              </button>
+              <button
+                type="button"
+                className="btn xs lw-retarget-cta-btn"
+                onClick={onOpenRetarget}
+                title="Kế thừa góc xoay và vị trí chuyển động từ nhân vật/mẫu khác"
+              >
+                <span>⇄ Kế thừa động tác</span>
+              </button>
+            </div>
           </>
         )}
       </div>

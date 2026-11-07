@@ -851,3 +851,140 @@
 [data-theme='dark'] .lw-harmony-status {
   color: var(--accent-cyan);
 }
+
+/* Clip Bar Responsive & Ergonomic Layout */
+.lw-clip-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.lw-clip-card-header .lw-card-title {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.lw-clip-head-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.lw-clip-head-actions .btn {
+  height: 24px;
+  padding: 0 6px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.lw-clip-head-actions .lw-clip-new-btn {
+  padding: 0 8px;
+  font-weight: 600;
+}
+
+.lw-angle-seg-bar.compact {
+  display: flex;
+  width: 100%;
+  gap: 2px;
+  padding: 2px;
+  background: var(--bg-0);
+  border-radius: var(--radius-sm, 4px);
+  border: 1px solid var(--line-soft);
+  margin-bottom: 7px;
+  box-sizing: border-box;
+}
+
+.lw-angle-seg-bar.compact .lw-angle-seg-btn {
+  flex: 1 1 0;
+  min-width: 0;
+  text-align: center;
+  padding: 3px 2px;
+  font-size: 10.5px;
+  border-radius: 3px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: all 0.15s;
+}
+
+.lw-angle-seg-bar.compact .lw-angle-seg-btn:hover {
+  background: var(--bg-2);
+  color: var(--text);
+}
+
+.lw-angle-seg-bar.compact .lw-angle-seg-btn.active {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+.lw-clip-toolbar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(68px, 1fr));
+  gap: 4px;
+  width: 100%;
+  margin-top: 6px;
+  box-sizing: border-box;
+}
+
+.lw-clip-toolbar .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 25px;
+  padding: 0 6px;
+  font-size: 10.5px;
+  white-space: nowrap;
+  text-align: center;
+  margin: 0;
+}
+
+.lw-clip-toolbar .lw-retarget-cta-btn {
+  margin-left: 0;
+}
+
+.lw-clip-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  margin-top: 6px;
+  box-sizing: border-box;
+}
+
+.lw-clip-tools-row {
+  display: flex;
+  gap: 4px;
+  width: 100%;
+}
+
+.lw-clip-tools-row .btn {
+  flex: 1 1 0;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 25px;
+  padding: 0 6px;
+  font-size: 10.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+}
+
+.lw-clip-tools-row .lw-retarget-cta-btn {
+  margin-left: 0;
+}
