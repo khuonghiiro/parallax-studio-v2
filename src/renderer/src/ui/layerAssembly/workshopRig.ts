@@ -22,6 +22,7 @@ import { applyRigStructureAction, isRigStructureAction, type RigStructureAction 
 import { assertValidAngleLimits, stripEmptyAngleLimit } from './boneConstraints'
 import { autoRigAllCutoutParts, createBoneForSingleLayer } from './workshopCutoutRig'
 import { syncSpineStyleRigAndSlots } from './spineRigWorkflow'
+import { inferDescriptiveClipName, isGenericClipName } from './workshopClipBiomechanics'
 import {
   autoSortLayersZDepth25D,
   buildAnatomicalBonesFromLayers,
@@ -299,6 +300,7 @@ export function applyRigAction(composite: LayerComposite, action: RigAction): La
   const { rig: normalizedRig } = ensureRigClips(structuredClone(composite.rig ?? emptyRig()))
   const rig = normalizedRig
   let layers = composite.layers
+  let plantSpines = composite.plantSpines
 
   if ('boneId' in action && action.boneId && !rig.bones.some((b) => b.id === action.boneId)) {
     throw new Error('Unknown bone ID')
@@ -638,6 +640,28 @@ export function applyRigAction(composite: LayerComposite, action: RigAction): La
 
   if (isRigClipAction(action)) {
     applyRigClipAction(rig, action)
+    if ((action.action === 'add-clip' || action.action === 'replace-clip') && action.wind) {
+      if (action.wind.plantSpines && action.wind.plantSpines.length > 0) {
+        plantSpines = structuredClone(action.wind.plantSpines)
+      }
+      if (action.wind.layerMotions && action.wind.layerMotions.length > 0) {
+        const motionMap = new Map(action.wind.layerMotions.map((m) => [m.layerId, m]))
+        layers = layers.map((l) => {
+          const m = motionMap.get(l.id)
+          if (!m) return l
+          return {
+            ...l,
+            motion: {
+              type: m.type,
+              speed: m.speed,
+              amplitude: m.amplitude,
+              anchor: m.anchor,
+              ...(m.phaseOffset !== undefined ? { phaseOffset: m.phaseOffset } : {})
+            }
+          }
+        })
+      }
+    }
   }
 
   if (isRigStructureAction(action)) {
@@ -673,26 +697,42 @@ export function applyRigAction(composite: LayerComposite, action: RigAction): La
     }
   }
 
-  // Đồng bộ tracks/duration/loop/fps thay đổi vào activeClip trong clips
+  const isMotionModifyingAction =
+    isAnimationAction(action) ||
+    action.action === 'batch' ||
+    action.action === 'apply-parallax-25d-pose' ||
+    action.action === 'anim-tool' ||
+    action.action === 'mirror-pose'
+
+  // Đồng bộ tracks/duration/loop/fps thay đổi vào activeClip trong clips (và tự đặt tên nếu vẫn là "Động tác N")
   if (rig.clips && rig.activeClipId) {
-    rig.clips = rig.clips.map((c) =>
-      c.id === rig.activeClipId
-        ? {
-            ...c,
-            duration: rig.duration,
-            loop: rig.loop,
-            fps: rig.fps ?? c.fps,
-            tracks: structuredClone(rig.tracks)
-          }
-        : c
-    )
+    rig.clips = rig.clips.map((c) => {
+      if (c.id !== rig.activeClipId) return c
+      const autoName =
+        isMotionModifyingAction && isGenericClipName(c.name) && Object.keys(rig.tracks || {}).length > 0
+          ? inferDescriptiveClipName(rig.tracks, rig.bones, plantSpines?.length ?? 0)
+          : c.name
+      return {
+        ...c,
+        name: autoName,
+        duration: rig.duration,
+        loop: rig.loop,
+        fps: rig.fps ?? c.fps,
+        tracks: structuredClone(rig.tracks)
+      }
+    })
   }
 
   if (rig.bones.length >= 2) {
     rig.bones = normalizeAnatomicalRootHierarchy(rig.bones, layers)
   }
 
-  const next = { ...composite, layers, rig }
+  const next: LayerComposite = {
+    ...composite,
+    layers,
+    rig,
+    ...(plantSpines !== undefined ? { plantSpines } : {})
+  }
   validateRig(next)
   return next
 }

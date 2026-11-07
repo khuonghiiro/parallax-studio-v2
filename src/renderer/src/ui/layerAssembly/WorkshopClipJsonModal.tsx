@@ -1,19 +1,424 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { AnimationClip, LayerBone } from '@shared/layerRig'
+import type { LayerComposite } from './types'
 import { toast } from '../../actions'
 import { IconCode, IconCopy, IconDownload, IconSparkles, IconUpload, IconX } from '../icons'
 import {
   exportAnimationClipToJson,
   generateAiMotionPrompt,
-  parseAnimationClipFromJson
+  parseAnimationClipFromJson,
+  type ClipJsonParseResult,
+  type ParsedWindData
 } from './workshopClipJson'
+import { inferDescriptiveClipName, isGenericClipName } from './workshopClipBiomechanics'
 
 export interface WorkshopClipJsonModalProps {
   isOpen: boolean
   onClose: () => void
   clip: AnimationClip
   bones: LayerBone[]
-  onImportClip: (clip: AnimationClip, mode: 'new' | 'replace') => void
+  composite?: LayerComposite
+  onImportClip: (clip: AnimationClip, mode: 'new' | 'replace', wind?: ParsedWindData) => void
+}
+
+const QUICK_AI_INTENTS = [
+  { label: '👋 Vẫy tay chào', name: 'Vẫy tay chào tươi tắn', intent: 'Nhân vật giơ tay phải vẫy chào thân thiện, đầu nghiêng nhẹ tươi tắn, cơ thể nhún thở tự nhiên, tóc/áo đung đưa theo gió nhẹ' },
+  { label: '🎉 Nhún nhảy vui', name: 'Nhún nhảy vươn tay (Jump)', intent: 'Nhân vật hạ gối lấy đà rồi bật nhảy vui mừng, hai tay vươn mở rộng sang hai bên hướng lên trời, tiếp đất đàn hồi mượt mà' },
+  { label: '🚶 Bước đi 2.5D', name: 'Bước đi dạo phố (Walk)', intent: 'Nhân vật bước đi nhịp nhàng tự nhiên, tay đánh đối xứng với chân, thân người nhấp nhô nhẹ theo nhịp bước' },
+  { label: '🌬️ Đứng thở & Gió', name: 'Đứng thở & Gió thổi nhẹ', intent: 'Nhân vật đứng thở êm ái, lồng ngực nâng hạ nhẹ, đầu nghiêng khẽ và tà áo/mái tóc bay phấp phới theo làn gió' },
+  { label: '⚡ Tung chiêu', name: 'Tung chiêu thức 2.5D', intent: 'Nhân vật xoay thân lấy đà, vung tay tung chiêu mạnh mẽ về phía trước kèm độ nảy cơ học sắc nét rồi thu thế' }
+] as const
+
+interface ExportTabProps {
+  clip: AnimationClip
+  bones: LayerBone[]
+  windCount: number
+  exportName: string
+  setExportName: (v: string) => void
+  promptIntent: string
+  setPromptIntent: (v: string) => void
+  includeWind: boolean
+  setIncludeWind: (v: boolean) => void
+  exportedJson: string
+  onCopyPrompt: () => void
+  onCopyJson: () => void
+  onDownloadJson: () => void
+  onLoadCurrentToImport: () => void
+}
+
+function ExportTabPanel({
+  clip,
+  bones,
+  windCount,
+  exportName,
+  setExportName,
+  promptIntent,
+  setPromptIntent,
+  includeWind,
+  setIncludeWind,
+  exportedJson,
+  onCopyPrompt,
+  onCopyJson,
+  onDownloadJson,
+  onLoadCurrentToImport
+}: ExportTabProps) {
+  const activeTrackCount = Object.keys(clip.tracks || {}).length
+  return (
+    <>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '8px' }}>
+        <div>
+          <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, marginBottom: '4px', color: 'var(--text)' }}>
+            Tên động tác (gắn vào JSON & AI):
+          </label>
+          <input
+            type="text"
+            className="lw-field-input"
+            style={{
+              width: '100%',
+              padding: '6px 9px',
+              borderRadius: 'var(--radius-sm, 4px)',
+              background: 'var(--bg-0)',
+              border: '1px solid var(--line)',
+              color: 'var(--text)',
+              fontSize: '12px',
+              fontWeight: 600
+            }}
+            value={exportName}
+            onChange={(e) => setExportName(e.target.value)}
+            placeholder="Nhập tên mô tả động tác..."
+          />
+        </div>
+        <div>
+          <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, marginBottom: '4px', color: 'var(--text)' }}>
+            Mục tiêu chuyển động (để AI thiết kế đúng cơ học 2.5D):
+          </label>
+          <input
+            type="text"
+            className="lw-field-input"
+            style={{
+              width: '100%',
+              padding: '6px 9px',
+              borderRadius: 'var(--radius-sm, 4px)',
+              background: 'var(--bg-0)',
+              border: '1px solid var(--line)',
+              color: 'var(--text)',
+              fontSize: '12px'
+            }}
+            value={promptIntent}
+            onChange={(e) => setPromptIntent(e.target.value)}
+            placeholder="Ví dụ: Nhân vật vẫy tay chào, nhún nhảy hoặc bước đi..."
+          />
+        </div>
+      </div>
+
+      {/* Gợi ý nhanh ý đồ & tên động tác */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', alignItems: 'center' }}>
+        <span style={{ fontSize: '10px', color: 'var(--text-faint)', marginRight: '2px' }}>Gợi ý nhanh:</span>
+        {QUICK_AI_INTENTS.map((item) => (
+          <button
+            key={item.label}
+            type="button"
+            className="btn xs ghost"
+            onClick={() => {
+              setPromptIntent(item.intent)
+              setExportName(item.name)
+            }}
+            style={{ fontSize: '10px', padding: '2px 7px' }}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Tuỳ chọn đính kèm Gió & Chuẩn hoá nhanh */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '8px',
+          padding: '6px 10px',
+          borderRadius: 'var(--radius-sm, 4px)',
+          background: 'var(--bg-2)',
+          border: '1px solid var(--line-soft)'
+        }}
+      >
+        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', cursor: 'pointer' }}>
+          <input
+            type="checkbox"
+            checked={includeWind}
+            onChange={(e) => setIncludeWind(e.target.checked)}
+          />
+          <span>
+            🌿 Đính kèm cấu hình <strong>Gió &amp; Nhịp thở thực vật</strong> vào JSON/Prompt ({windCount} dây gió)
+          </span>
+        </label>
+        <button
+          type="button"
+          className="btn xs ghost"
+          onClick={onLoadCurrentToImport}
+          title="Chuyển JSON của clip đang mở sang tab Nhập để tự động chuẩn hoá cơ học 2.5D (sửa tay đan chéo, chân chữ X)"
+        >
+          ✨ Tự chuẩn hoá clip này
+        </button>
+      </div>
+
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+        <button
+          type="button"
+          className="btn xs primary"
+          onClick={onCopyPrompt}
+          style={{ display: 'flex', alignItems: 'center', gap: '5px' }}
+        >
+          <IconSparkles width={12} height={12} />
+          <span>Sao chép Prompt chuẩn 2.5D cho AI (ChatGPT/Claude)</span>
+        </button>
+        <button
+          type="button"
+          className="btn xs"
+          onClick={onCopyJson}
+          style={{ display: 'flex', alignItems: 'center', gap: '5px' }}
+        >
+          <IconCopy width={12} height={12} />
+          <span>Sao chép mã JSON</span>
+        </button>
+        <button
+          type="button"
+          className="btn xs"
+          onClick={onDownloadJson}
+          style={{ display: 'flex', alignItems: 'center', gap: '5px' }}
+        >
+          <IconDownload width={12} height={12} />
+          <span>Tải tệp .motion.json</span>
+        </button>
+      </div>
+
+      <div
+        style={{
+          background: 'color-mix(in srgb, var(--accent) 8%, var(--bg-2))',
+          border: '1px solid color-mix(in srgb, var(--accent) 24%, var(--line))',
+          borderRadius: 'var(--radius, 6px)',
+          padding: '8px 12px',
+          fontSize: '11px',
+          lineHeight: 1.45,
+          color: 'var(--text-dim)'
+        }}
+      >
+        💡 <strong>Đã nâng cấp quy chuẩn cơ học 2.5D + Gió:</strong> JSON và Prompt xuất ra đã đính kèm{' '}
+        <strong>Bảng quy ước dấu góc xoay từng xương</strong> (Tay trái <code>+</code> giơ lên / Tay phải{' '}
+        <code>-</code> giơ lên, nhịp nhún đầu gối <code>scaleY</code> góc chính diện) và cấu hình{' '}
+        <strong>Gió (wind.plantSpines)</strong> để AI bên ngoài tạo chuyển động chuẩn xác và tự đặt tên động tác.
+      </div>
+
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+          <label style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-dim)' }}>
+            Nội dung JSON ({exportName || clip.name}):
+          </label>
+          <span style={{ fontSize: '10px', color: 'var(--text-faint)' }}>
+            {bones.length} xương · {activeTrackCount} track hoạt ảnh · {windCount} dây gió
+          </span>
+        </div>
+        <textarea
+          readOnly
+          value={exportedJson}
+          style={{
+            width: '100%',
+            height: '155px',
+            fontFamily: 'monospace',
+            fontSize: '11px',
+            padding: '8px 10px',
+            background: 'var(--bg-0)',
+            border: '1px solid var(--line)',
+            borderRadius: 'var(--radius-sm, 4px)',
+            color: 'var(--text)',
+            resize: 'vertical',
+            whiteSpace: 'pre'
+          }}
+        />
+      </div>
+    </>
+  )
+}
+
+interface ImportTabProps {
+  importText: string
+  setImportText: (v: string) => void
+  importClipName: string
+  setImportClipName: (v: string) => void
+  autoFixBiomechanics: boolean
+  setAutoFixBiomechanics: (v: boolean) => void
+  applyImportedWind: boolean
+  setApplyImportedWind: (v: boolean) => void
+  parseResult: ClipJsonParseResult | null
+  onTriggerFileInput: () => void
+}
+
+function ImportTabPanel({
+  importText,
+  setImportText,
+  importClipName,
+  setImportClipName,
+  autoFixBiomechanics,
+  setAutoFixBiomechanics,
+  applyImportedWind,
+  setApplyImportedWind,
+  parseResult,
+  onTriggerFileInput
+}: ImportTabProps) {
+  const windSpinesCount = parseResult?.wind?.plantSpines?.length ?? 0
+  const windMotionsCount = Object.keys(parseResult?.wind?.layerMotions ?? {}).length
+  return (
+    <>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+        <label style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text)' }}>
+          Dán chuỗi JSON nhận được từ AI hoặc tệp bên ngoài vào đây:
+        </label>
+        <button
+          type="button"
+          className="btn xs"
+          onClick={onTriggerFileInput}
+          style={{ display: 'flex', alignItems: 'center', gap: '5px' }}
+        >
+          <IconUpload width={11} height={11} />
+          <span>Chọn tệp .json</span>
+        </button>
+      </div>
+
+      <div
+        style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '12px',
+          padding: '6px 10px',
+          borderRadius: 'var(--radius-sm, 4px)',
+          background: 'var(--bg-2)',
+          border: '1px solid var(--line-soft)',
+          fontSize: '11px'
+        }}
+      >
+        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+          <input
+            type="checkbox"
+            checked={autoFixBiomechanics}
+            onChange={(e) => setAutoFixBiomechanics(e.target.checked)}
+          />
+          <span>
+            ✨ <strong>Tự động chuẩn hoá cơ học 2.5D</strong> (sửa tay đan chéo bụng, chân chữ X, hông vọt lố)
+          </span>
+        </label>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+          <input
+            type="checkbox"
+            checked={applyImportedWind}
+            onChange={(e) => setApplyImportedWind(e.target.checked)}
+          />
+          <span>🌿 Áp dụng luôn dữ liệu Gió (nếu có trong JSON)</span>
+        </label>
+      </div>
+
+      <textarea
+        value={importText}
+        onChange={(e) => setImportText(e.target.value)}
+        placeholder="Dán mã JSON (kể cả khối ```json ... ``` từ ChatGPT / Claude) vào đây..."
+        style={{
+          width: '100%',
+          height: '135px',
+          fontFamily: 'monospace',
+          fontSize: '11px',
+          padding: '8px 10px',
+          background: 'var(--bg-0)',
+          border: '1px solid var(--line)',
+          borderRadius: 'var(--radius-sm, 4px)',
+          color: 'var(--text)',
+          resize: 'vertical'
+        }}
+      />
+
+      {parseResult && (
+        <div
+          style={{
+            padding: '10px 12px',
+            borderRadius: 'var(--radius, 6px)',
+            border: `1px solid ${
+              parseResult.success
+                ? 'color-mix(in srgb, #10b981 40%, var(--line))'
+                : 'color-mix(in srgb, #ef4444 40%, var(--line))'
+            }`,
+            background: parseResult.success
+              ? 'color-mix(in srgb, #10b981 10%, var(--bg-2))'
+              : 'color-mix(in srgb, #ef4444 10%, var(--bg-2))',
+            fontSize: '11px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '6px'
+          }}
+        >
+          {parseResult.success && parseResult.clip ? (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <span style={{ fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap' }}>
+                  ✓ Tên động tác sẽ lưu:
+                </span>
+                <input
+                  type="text"
+                  className="lw-field-input"
+                  value={importClipName}
+                  onChange={(e) => setImportClipName(e.target.value)}
+                  style={{
+                    flex: '1 1 200px',
+                    padding: '4px 8px',
+                    borderRadius: 'var(--radius-sm, 4px)',
+                    background: 'var(--bg-0)',
+                    border: '1px solid var(--line-focus)',
+                    color: 'var(--text)',
+                    fontSize: '12px',
+                    fontWeight: 600
+                  }}
+                />
+              </div>
+              <div style={{ color: 'var(--text-dim)', lineHeight: 1.5 }}>
+                - Thời lượng: <strong>{parseResult.clip.duration.toFixed(2)}s</strong> | FPS:{' '}
+                <strong>{parseResult.clip.fps ?? 30}</strong> | Lặp:{' '}
+                <strong>{parseResult.clip.loop ? 'Có' : 'Không'}</strong> | Khớp xương:{' '}
+                <strong>{Object.keys(parseResult.clip.tracks).length} xương</strong>
+                {(windSpinesCount > 0 || windMotionsCount > 0) && (
+                  <span>
+                    {' '}| 🌿 Gió: <strong>{windSpinesCount} dây xương sống, {windMotionsCount} mảnh</strong>
+                  </span>
+                )}
+              </div>
+              {parseResult.fixesApplied && parseResult.fixesApplied.length > 0 && (
+                <div
+                  style={{
+                    padding: '6px 8px',
+                    borderRadius: 'var(--radius-sm, 4px)',
+                    background: 'color-mix(in srgb, var(--accent) 12%, var(--bg-1))',
+                    border: '1px solid color-mix(in srgb, var(--accent) 30%, var(--line))',
+                    color: 'var(--text)',
+                    lineHeight: 1.45
+                  }}
+                >
+                  <strong>✨ Đã tự động chuẩn hoá cơ học 2.5D ({parseResult.fixesApplied.length} mục):</strong>
+                  <ul style={{ margin: '3px 0 0 16px', padding: 0 }}>
+                    {parseResult.fixesApplied.map((fix: string, idx: number) => (
+                      <li key={idx}>{fix}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {parseResult.warnings && (
+                <div style={{ color: '#f59e0b' }}>⚠️ {parseResult.warnings.join(' ')}</div>
+              )}
+            </>
+          ) : (
+            <div style={{ color: '#ef4444', fontWeight: 500 }}>✕ {parseResult.error}</div>
+          )}
+        </div>
+      )}
+    </>
+  )
 }
 
 export function WorkshopClipJsonModal({
@@ -21,37 +426,61 @@ export function WorkshopClipJsonModal({
   onClose,
   clip,
   bones,
+  composite,
   onImportClip
 }: WorkshopClipJsonModalProps) {
   const [activeTab, setActiveTab] = useState<'export' | 'import'>('export')
-  const [promptIntent, setPromptIntent] = useState('Nhân vật thực hiện động tác tự nhiên, mượt mà')
+  const [promptIntent, setPromptIntent] = useState('Nhân vật thực hiện động tác tự nhiên, đúng cơ học 2.5D, có nhịp gió nhẹ')
+  const [exportName, setExportName] = useState(clip.name)
+  const [includeWind, setIncludeWind] = useState(true)
   const [importText, setImportText] = useState('')
+  const [importClipName, setImportClipName] = useState('')
+  const [autoFixBiomechanics, setAutoFixBiomechanics] = useState(true)
+  const [applyImportedWind, setApplyImportedWind] = useState(true)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // JSON xuất ra từ clip hiện tại
-  const exportedJson = useMemo(() => {
-    return exportAnimationClipToJson(clip, bones, true)
-  }, [clip, bones])
+  const windCount = composite?.plantSpines?.length ?? 0
 
-  // Prompt AI sinh ra từ clip và bones
-  const aiPrompt = useMemo(() => {
-    return generateAiMotionPrompt(clip, bones, promptIntent)
-  }, [clip, bones, promptIntent])
-
-  // Phân tích kết quả khi người dùng dán JSON
-  const parseResult = useMemo(() => {
-    if (!importText.trim()) return null
-    return parseAnimationClipFromJson(importText, bones)
-  }, [importText, bones])
-
-  // Reset tab và text khi mở
   useEffect(() => {
     if (isOpen) {
       setImportText('')
+      const smartName = isGenericClipName(clip.name)
+        ? inferDescriptiveClipName(clip.tracks, bones, windCount, promptIntent)
+        : clip.name
+      setExportName(smartName)
     }
-  }, [isOpen])
+  }, [isOpen, clip, bones, windCount])
 
-  // Đóng bằng phím Escape
+  const exportedJson = useMemo(() => {
+    return exportAnimationClipToJson(clip, bones, true, {
+      composite,
+      includeWind,
+      suggestedName: exportName
+    })
+  }, [clip, bones, composite, includeWind, exportName])
+
+  const aiPrompt = useMemo(() => {
+    return generateAiMotionPrompt(clip, bones, promptIntent, {
+      composite,
+      includeWind,
+      suggestedName: exportName
+    })
+  }, [clip, bones, promptIntent, composite, includeWind, exportName])
+
+  const parseResult = useMemo(() => {
+    if (!importText.trim()) return null
+    return parseAnimationClipFromJson(importText, bones, {
+      autoFixBiomechanics,
+      composite
+    })
+  }, [importText, bones, autoFixBiomechanics, composite])
+
+  useEffect(() => {
+    if (parseResult?.success && parseResult.clip) {
+      setImportClipName(parseResult.clip.name)
+    }
+  }, [parseResult])
+
   useEffect(() => {
     if (!isOpen) return
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -69,7 +498,7 @@ export function WorkshopClipJsonModal({
   const handleCopyJson = async () => {
     try {
       await navigator.clipboard.writeText(exportedJson)
-      toast('✓ Đã sao chép JSON động tác vào Clipboard!')
+      toast('✓ Đã sao chép JSON động tác (kèm quy ước 2.5D & Gió) vào Clipboard!')
     } catch {
       toast('Không thể sao chép tự động, vui lòng chọn văn bản và nhấn Ctrl+C.')
     }
@@ -78,7 +507,7 @@ export function WorkshopClipJsonModal({
   const handleCopyPrompt = async () => {
     try {
       await navigator.clipboard.writeText(aiPrompt)
-      toast('✓ Đã sao chép Prompt AI vào Clipboard! Bạn có thể dán vào ChatGPT / Claude ngay.')
+      toast('✓ Đã sao chép Prompt AI chuẩn cơ học 2.5D vào Clipboard!')
     } catch {
       toast('Không thể sao chép tự động, vui lòng chọn văn bản và nhấn Ctrl+C.')
     }
@@ -89,21 +518,17 @@ export function WorkshopClipJsonModal({
       const blob = new Blob([exportedJson], { type: 'application/json;charset=utf-8' })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
-      const safeName = clip.name.replace(/[^\w\s-]/gi, '').trim().replace(/\s+/g, '_') || 'clip'
+      const baseName = (exportName || clip.name).replace(/[^\w\s\u00C0-\u1EF9-]/gi, '').trim().replace(/\s+/g, '_') || 'clip'
       a.href = url
-      a.download = `${safeName}.motion.json`
+      a.download = `${baseName}.motion.json`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
-      toast(`✓ Đã tải tệp "${safeName}.motion.json"!`)
+      toast(`✓ Đã tải tệp "${baseName}.motion.json"!`)
     } catch (err) {
       toast(`Lỗi khi tải tệp: ${err instanceof Error ? err.message : String(err)}`)
     }
-  }
-
-  const handleTriggerFileInput = () => {
-    fileInputRef.current?.click()
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -126,11 +551,17 @@ export function WorkshopClipJsonModal({
       toast('Dữ liệu JSON không hợp lệ để áp dụng.')
       return
     }
-    onImportClip(parseResult.clip, mode)
+    const finalName = importClipName.trim() || parseResult.clip.name
+    const finalClip: AnimationClip = {
+      ...parseResult.clip,
+      name: finalName
+    }
+    const windToApply = applyImportedWind ? parseResult.wind : undefined
+    onImportClip(finalClip, mode, windToApply)
     toast(
       mode === 'new'
-        ? `✓ Đã tạo động tác mới "${parseResult.clip.name}" từ JSON!`
-        : `✓ Đã ghi đè động tác "${clip.name}" bằng dữ liệu JSON mới!`
+        ? `✓ Đã tạo động tác "${finalName}" (đã chuẩn hoá 2.5D${windToApply ? ' & Gió' : ''})!`
+        : `✓ Đã cập nhật động tác "${finalName}" (đã chuẩn hoá 2.5D${windToApply ? ' & Gió' : ''})!`
     )
     onClose()
   }
@@ -157,9 +588,9 @@ export function WorkshopClipJsonModal({
         data-mcp-region="layer_assembly_clip_json"
         data-mcp-dialog
         style={{
-          width: '640px',
-          maxWidth: '94vw',
-          maxHeight: '90vh',
+          width: '680px',
+          maxWidth: '95vw',
+          maxHeight: '92vh',
           background: 'var(--bg-1)',
           border: '1px solid var(--line-focus)',
           borderRadius: 'var(--radius-lg, 10px)',
@@ -172,10 +603,9 @@ export function WorkshopClipJsonModal({
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header Modal */}
         <div
           style={{
-            padding: '14px 18px',
+            padding: '12px 18px',
             borderBottom: '1px solid var(--line)',
             display: 'flex',
             alignItems: 'center',
@@ -200,11 +630,10 @@ export function WorkshopClipJsonModal({
             </span>
             <div>
               <h3 style={{ margin: 0, fontSize: '13px', fontWeight: 600 }}>
-                Xuất / Nhập JSON Động Tác Hoạt Ảnh
+                Xuất / Nhập JSON Động Tác 2.5D &amp; Gió (Chuẩn Hoá AI)
               </h3>
               <p style={{ margin: 0, color: 'var(--text-dim)', fontSize: '11px' }}>
-                Động tác hiện tại: <strong>{clip.name}</strong> ({clip.duration.toFixed(2)}s ·{' '}
-                {activeTrackCount} xương có keyframe)
+                Đang chọn: <strong>{clip.name}</strong> ({clip.duration.toFixed(2)}s · {activeTrackCount} xương · {windCount} dây gió)
               </p>
             </div>
           </div>
@@ -219,7 +648,6 @@ export function WorkshopClipJsonModal({
           </button>
         </div>
 
-        {/* Tab switcher */}
         <div
           style={{
             display: 'flex',
@@ -236,7 +664,7 @@ export function WorkshopClipJsonModal({
             style={{ display: 'flex', alignItems: 'center', gap: '5px' }}
           >
             <IconSparkles width={12} height={12} />
-            <span>Xuất JSON & Prompt AI</span>
+            <span>Xuất JSON &amp; Prompt AI Chuẩn 2.5D</span>
           </button>
           <button
             type="button"
@@ -245,225 +673,59 @@ export function WorkshopClipJsonModal({
             style={{ display: 'flex', alignItems: 'center', gap: '5px' }}
           >
             <IconUpload width={12} height={12} />
-            <span>Nhập JSON từ AI / Tệp</span>
+            <span>Nhập &amp; Chuẩn Hoá JSON từ AI / Tệp</span>
           </button>
         </div>
 
-        {/* Modal Body */}
         <div
           style={{
-            padding: '16px 18px',
+            padding: '14px 18px',
             overflowY: 'auto',
             flex: '1 1 auto',
             display: 'flex',
             flexDirection: 'column',
-            gap: '12px'
+            gap: '10px'
           }}
         >
           {activeTab === 'export' ? (
-            <>
-              {/* Ý đồ hoạt ảnh để AI hiểu */}
-              <div>
-                <label
-                  style={{
-                    display: 'block',
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    marginBottom: '4px',
-                    color: 'var(--text)'
-                  }}
-                >
-                  Mục tiêu động tác (để gắn vào Prompt AI):
-                </label>
-                <input
-                  type="text"
-                  className="lw-field-input"
-                  style={{
-                    width: '100%',
-                    padding: '6px 10px',
-                    borderRadius: 'var(--radius-sm, 4px)',
-                    background: 'var(--bg-0)',
-                    border: '1px solid var(--line)',
-                    color: 'var(--text)',
-                    fontSize: '12px'
-                  }}
-                  value={promptIntent}
-                  onChange={(e) => setPromptIntent(e.target.value)}
-                  placeholder="Ví dụ: Nhân vật cúi chào trang trọng, mắt nhìn xuống, tay khép nhẹ..."
-                />
-              </div>
-
-              {/* Nút hành động copy Prompt & JSON */}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                <button
-                  type="button"
-                  className="btn xs primary"
-                  onClick={handleCopyPrompt}
-                  style={{ display: 'flex', alignItems: 'center', gap: '5px' }}
-                >
-                  <IconSparkles width={12} height={12} />
-                  <span>Sao chép Prompt cho AI (ChatGPT/Claude)</span>
-                </button>
-                <button
-                  type="button"
-                  className="btn xs"
-                  onClick={handleCopyJson}
-                  style={{ display: 'flex', alignItems: 'center', gap: '5px' }}
-                >
-                  <IconCopy width={12} height={12} />
-                  <span>Sao chép mã JSON</span>
-                </button>
-                <button
-                  type="button"
-                  className="btn xs"
-                  onClick={handleDownloadJson}
-                  style={{ display: 'flex', alignItems: 'center', gap: '5px' }}
-                >
-                  <IconDownload width={12} height={12} />
-                  <span>Tải tệp .motion.json</span>
-                </button>
-              </div>
-
-              {/* Hướng dẫn nhanh */}
-              <div
-                style={{
-                  background: 'color-mix(in srgb, var(--accent) 8%, var(--bg-2))',
-                  border: '1px solid color-mix(in srgb, var(--accent) 24%, var(--line))',
-                  borderRadius: 'var(--radius, 6px)',
-                  padding: '8px 12px',
-                  fontSize: '11px',
-                  lineHeight: 1.5,
-                  color: 'var(--text-dim)'
-                }}
-              >
-                💡 <strong>Mẹo quy trình với AI:</strong> Bấm <em>&quot;Sao chép Prompt cho AI&quot;</em> ➔ Dán
-                vào ChatGPT / Claude / DeepSeek ➔ AI sẽ trả về mã JSON chuẩn đúng với {bones.length} khớp
-                xương của nhân vật này ➔ Sao chép khối JSON của AI và chuyển sang tab <em>&quot;Nhập JSON từ AI&quot;</em>.
-              </div>
-
-              {/* Xem trước JSON */}
-              <div>
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    marginBottom: '4px'
-                  }}
-                >
-                  <label style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-dim)' }}>
-                    Nội dung JSON của động tác:
-                  </label>
-                  <span style={{ fontSize: '10px', color: 'var(--text-faint)' }}>
-                    {bones.length} xương trong rig · {activeTrackCount} xương có chuyển động
-                  </span>
-                </div>
-                <textarea
-                  readOnly
-                  value={exportedJson}
-                  style={{
-                    width: '100%',
-                    height: '180px',
-                    fontFamily: 'monospace',
-                    fontSize: '11px',
-                    padding: '8px 10px',
-                    background: 'var(--bg-0)',
-                    border: '1px solid var(--line)',
-                    borderRadius: 'var(--radius-sm, 4px)',
-                    color: 'var(--text)',
-                    resize: 'vertical',
-                    whiteSpace: 'pre'
-                  }}
-                />
-              </div>
-            </>
+            <ExportTabPanel
+              clip={clip}
+              bones={bones}
+              windCount={windCount}
+              exportName={exportName}
+              setExportName={setExportName}
+              promptIntent={promptIntent}
+              setPromptIntent={setPromptIntent}
+              includeWind={includeWind}
+              setIncludeWind={setIncludeWind}
+              exportedJson={exportedJson}
+              onCopyPrompt={handleCopyPrompt}
+              onCopyJson={handleCopyJson}
+              onDownloadJson={handleDownloadJson}
+              onLoadCurrentToImport={() => {
+                setImportText(exportedJson)
+                setActiveTab('import')
+              }}
+            />
           ) : (
-            <>
-              {/* Tab Nhập JSON */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <label style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text)' }}>
-                  Dán chuỗi JSON nhận được từ AI hoặc tệp bên ngoài vào đây:
-                </label>
-                <button
-                  type="button"
-                  className="btn xs"
-                  onClick={handleTriggerFileInput}
-                  style={{ display: 'flex', alignItems: 'center', gap: '5px' }}
-                >
-                  <IconUpload width={11} height={11} />
-                  <span>Chọn tệp .json</span>
-                </button>
-              </div>
-
-              <textarea
-                value={importText}
-                onChange={(e) => setImportText(e.target.value)}
-                placeholder="Dán mã JSON (kể cả khối ```json ... ``` từ ChatGPT / Claude) vào đây..."
-                style={{
-                  width: '100%',
-                  height: '160px',
-                  fontFamily: 'monospace',
-                  fontSize: '11px',
-                  padding: '8px 10px',
-                  background: 'var(--bg-0)',
-                  border: '1px solid var(--line)',
-                  borderRadius: 'var(--radius-sm, 4px)',
-                  color: 'var(--text)',
-                  resize: 'vertical'
-                }}
-              />
-
-              {/* Kết quả kiểm tra JSON */}
-              {parseResult && (
-                <div
-                  style={{
-                    padding: '10px 12px',
-                    borderRadius: 'var(--radius, 6px)',
-                    border: `1px solid ${
-                      parseResult.success
-                        ? 'color-mix(in srgb, #10b981 40%, var(--line))'
-                        : 'color-mix(in srgb, #ef4444 40%, var(--line))'
-                    }`,
-                    background: parseResult.success
-                      ? 'color-mix(in srgb, #10b981 10%, var(--bg-2))'
-                      : 'color-mix(in srgb, #ef4444 10%, var(--bg-2))',
-                    fontSize: '11px'
-                  }}
-                >
-                  {parseResult.success && parseResult.clip ? (
-                    <div>
-                      <div style={{ fontWeight: 600, color: 'var(--text)', marginBottom: '4px' }}>
-                        ✓ JSON hợp lệ: &ldquo;{parseResult.clip.name}&rdquo;
-                      </div>
-                      <div style={{ color: 'var(--text-dim)', lineHeight: 1.5 }}>
-                        - Thời lượng: <strong>{parseResult.clip.duration.toFixed(2)}s</strong> | FPS:{' '}
-                        <strong>{parseResult.clip.fps ?? 30}</strong> | Lặp:{' '}
-                        <strong>{parseResult.clip.loop ? 'Có' : 'Không'}</strong>
-                        <br />- Khớp xương có hoạt ảnh:{' '}
-                        <strong>{Object.keys(parseResult.clip.tracks).length} xương</strong> (
-                        {Object.keys(parseResult.clip.tracks).join(', ')})
-                      </div>
-                      {parseResult.warnings && (
-                        <div style={{ color: '#f59e0b', marginTop: '4px' }}>
-                          ⚠️ {parseResult.warnings.join(' ')}
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div style={{ color: '#ef4444', fontWeight: 500 }}>
-                      ✕ {parseResult.error}
-                    </div>
-                  )}
-                </div>
-              )}
-            </>
+            <ImportTabPanel
+              importText={importText}
+              setImportText={setImportText}
+              importClipName={importClipName}
+              setImportClipName={setImportClipName}
+              autoFixBiomechanics={autoFixBiomechanics}
+              setAutoFixBiomechanics={setAutoFixBiomechanics}
+              applyImportedWind={applyImportedWind}
+              setApplyImportedWind={setApplyImportedWind}
+              parseResult={parseResult}
+              onTriggerFileInput={() => fileInputRef.current?.click()}
+            />
           )}
         </div>
 
-        {/* Footer Modal */}
         <div
           style={{
-            padding: '12px 18px',
+            padding: '10px 18px',
             borderTop: '1px solid var(--line)',
             display: 'flex',
             alignItems: 'center',
@@ -472,7 +734,7 @@ export function WorkshopClipJsonModal({
           }}
         >
           <div style={{ fontSize: '11px', color: 'var(--text-faint)' }}>
-            Hỗ trợ format Parallax Motion JSON V1 & AnimationClip
+            Format: <code>parallax-motion-v2</code> (tương thích ngược v1 + hỗ trợ Gió &amp; 2.5D Smart Fix)
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <button type="button" className="btn xs" onClick={onClose}>
@@ -484,7 +746,7 @@ export function WorkshopClipJsonModal({
                   type="button"
                   className="btn xs lw-muted-danger-btn"
                   onClick={() => handleApplyImport('replace')}
-                  title="Thay thế toàn bộ keyframe của động tác đang chọn bằng dữ liệu JSON mới"
+                  title="Cập nhật đè vào động tác đang mở (kèm tên mới và chuẩn hoá 2.5D)"
                 >
                   <span>⚡ Ghi đè vào clip này</span>
                 </button>
@@ -501,7 +763,6 @@ export function WorkshopClipJsonModal({
           </div>
         </div>
 
-        {/* Input ẩn để nạp file */}
         <input
           ref={fileInputRef}
           type="file"

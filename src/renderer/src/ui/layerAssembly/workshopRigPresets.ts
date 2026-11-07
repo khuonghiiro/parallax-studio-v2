@@ -18,6 +18,7 @@ import type { AnimationClip, BoneKeyframe, LayerBone, LayerRig, MotionViewAngle 
 import type { LayerComposite } from './types'
 import { weldConnectedLimbBones } from './mohoRigHelpers'
 import { inferHumanoidBoneRoles } from './spineRigWorkflow'
+import { isGenericClipName } from './workshopClipBiomechanics'
 
 /** Preset humanoid 2D armature in workshop coordinates (origin 0,0 at center), with welded parent-child joints. */
 export function createHumanoidBones(): LayerBone[] {
@@ -736,13 +737,16 @@ export function applyMotionPresetToRig(
   const existingClips = currentRig.clips ?? []
   const activeId = currentRig.activeClipId
 
+  const shouldRenameClip = (c: AnimationClip) =>
+    isGenericClipName(c.name) || Boolean(c.presetKey) || MOTION_PRESETS.some((m) => c.name.startsWith(m.name))
+
   let nextClips: AnimationClip[]
   if (activeId && existingClips.some((c) => c.id === activeId)) {
     nextClips = existingClips.map((c) =>
       c.id === activeId
         ? {
             ...c,
-            name: c.name === 'Động tác 1' || !c.name ? clip.name : c.name,
+            name: shouldRenameClip(c) ? clip.name : c.name,
             duration: clip.duration,
             loop: clip.loop,
             tracks: clip.tracks,
@@ -756,7 +760,7 @@ export function applyMotionPresetToRig(
       i === 0
         ? {
             ...c,
-            name: c.name === 'Động tác 1' || !c.name ? clip.name : c.name,
+            name: shouldRenameClip(c) ? clip.name : c.name,
             duration: clip.duration,
             loop: clip.loop,
             tracks: clip.tracks,

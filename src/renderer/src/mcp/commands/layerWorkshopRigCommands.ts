@@ -5,6 +5,14 @@ import { bool, num, str, toPlain } from '../params'
 import { getActiveLayerAssemblySession } from '../../ui/layerAssembly/layerAssemblyBridge'
 import { applyRigAction, ensureRigClips, type RigAction } from '../../ui/layerAssembly/workshopRig'
 import {
+  exportAnimationClipToJson,
+  generateAiMotionPrompt,
+  inferDescriptiveClipName,
+  isGenericClipName,
+  normalizeAndFixBiomechanicalTracks,
+  parseAnimationClipFromJson
+} from '../../ui/layerAssembly/workshopClipJson'
+import {
   applyBoneZOrderPreset,
   applyBoneZOrderStep,
   applyBoneZOrderValue,
@@ -172,6 +180,20 @@ function rigAction(p: Params, composite?: LayerComposite, currentTime = 0): RigA
           }
     return { action, clip }
   }
+  if (action === 'replace-clip') {
+    const clipId = str(p, 'clip_id') ?? composite?.rig?.activeClipId ?? 'clip-default'
+    const clip =
+      p.clip && typeof p.clip === 'object'
+        ? (p.clip as any)
+        : {
+            id: clipId,
+            name: str(p, 'name') ?? 'Động tác mới',
+            duration: num(p, 'duration') ?? 2.0,
+            loop: bool(p, 'loop') ?? true,
+            tracks: (p.tracks as any) || {}
+          }
+    return { action, clipId, clip }
+  }
   if (action === 'switch-clip') {
     return { action, clipId: str(p, 'clip_id', true) }
   }
@@ -321,6 +343,75 @@ export const layerWorkshopRigCommands: Record<string, Handler> = {
               descendantBoneIds: summary.descendants.map((d) => d.id)
             }
           : null,
+        composite: toPlain(next)
+      }
+    }
+    const actName = str(p, 'action')
+    if (actName === 'export-clip-json') {
+      const { rig, activeClip } = ensureRigClips(current.rig ?? { bones: [], duration: 2, loop: true, tracks: {} })
+      const targetClipId = str(p, 'clip_id')
+      const clip = (targetClipId ? rig.clips?.find((c) => c.id === targetClipId) : activeClip) ?? activeClip
+      const intent = str(p, 'prompt_intent') ?? 'Nhân vật thực hiện động tác tự nhiên, chuẩn cơ học 2.5D'
+      const json = exportAnimationClipToJson(clip, rig.bones, true, { composite: current, includeWind: true })
+      const prompt = generateAiMotionPrompt(clip, rig.bones, intent, { composite: current, includeWind: true })
+      return { ok: true, clipId: clip.id, clipName: clip.name, json, prompt }
+    }
+    if (actName === 'import-clip-json') {
+      const { rig, activeClip } = ensureRigClips(current.rig ?? { bones: [], duration: 2, loop: true, tracks: {} })
+      const rawJson = typeof p.json === 'string' ? p.json : JSON.stringify(p.json ?? {})
+      const parsed = parseAnimationClipFromJson(rawJson, rig.bones, {
+        composite: current,
+        autoFixBiomechanics: bool(p, 'auto_fix') ?? true,
+        customNameOverride: str(p, 'name') || undefined
+      })
+      if (!parsed.success || !parsed.clip) {
+        throw new ParamError(parsed.error || 'Invalid motion JSON')
+      }
+      const mode = str(p, 'mode') === 'new' ? 'new' : 'replace'
+      const wind = (bool(p, 'apply_wind') ?? true) ? parsed.wind : undefined
+      const targetId = str(p, 'clip_id') ?? activeClip.id
+      const next = applyRigAction(
+        current,
+        mode === 'new'
+          ? { action: 'add-clip', clip: parsed.clip, wind }
+          : { action: 'replace-clip', clipId: targetId, clip: { ...parsed.clip, id: targetId }, wind }
+      )
+      session.setComposite(next)
+      return {
+        ok: true,
+        mode,
+        clipId: mode === 'new' ? parsed.clip.id : targetId,
+        clipName: parsed.clip.name,
+        fixesApplied: parsed.fixesApplied ?? [],
+        windSpinesCount: wind?.plantSpines?.length ?? 0,
+        composite: toPlain(next)
+      }
+    }
+    if (actName === 'normalize-clip-25d') {
+      const { rig, activeClip } = ensureRigClips(current.rig ?? { bones: [], duration: 2, loop: true, tracks: {} })
+      const targetId = str(p, 'clip_id') ?? activeClip.id
+      const clip = rig.clips?.find((c) => c.id === targetId) ?? activeClip
+      const { tracks, fixesApplied } = normalizeAndFixBiomechanicalTracks(
+        clip.tracks || {},
+        rig.bones,
+        clip.viewAngle ?? 'front'
+      )
+      const nextName =
+        str(p, 'name') ||
+        (isGenericClipName(clip.name)
+          ? inferDescriptiveClipName(tracks, rig.bones, current.plantSpines?.length ?? 0)
+          : clip.name)
+      const next = applyRigAction(current, {
+        action: 'replace-clip',
+        clipId: clip.id,
+        clip: { ...clip, name: nextName, tracks }
+      })
+      session.setComposite(next)
+      return {
+        ok: true,
+        clipId: clip.id,
+        clipName: nextName,
+        fixesApplied,
         composite: toPlain(next)
       }
     }
