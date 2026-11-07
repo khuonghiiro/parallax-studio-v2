@@ -220,21 +220,11 @@ export function boneDragAction(
   const ux = Math.cos(worldAngleRad)
   const uy = Math.sin(worldAngleRad)
   const axial = dx * ux + dy * uy
-  const perp = dx * -uy + dy * ux
 
   const angle = (Math.atan2(point.y - transform.y, point.x - transform.x) * 180) / Math.PI
-  let delta = (((angle - drag.mouseAngle + 180) % 360) + 360) % 360 - 180
+  const delta = (((angle - drag.mouseAngle + 180) % 360) + 360) % 360 - 180
 
   const side = classifyBoneSide(bone)
-  // Hỗ trợ kéo Lên/Xuống cho xương chi dọc (tay/chân hướng xuống) khi kéo dọc theo trục xương mà atan2 bị khóa góc
-  if (!editing && side !== 'center' && Math.abs(uy) > 0.65 && Math.abs(axial) > Math.abs(perp) * 1.15) {
-    const liftSign = side === 'left' ? 1 : -1
-    const axialLiftDeg = (-dy / Math.max(24, bone.length)) * 75 * liftSign
-    if (Math.abs(axialLiftDeg) > Math.abs(delta)) {
-      delta = axialLiftDeg
-    }
-  }
-
   const rawRot = pose.rotation + delta
   const rotation = clampBoneRotation(bone, editing && shift ? Math.round(rawRot / 15) * 15 : rawRot)
 

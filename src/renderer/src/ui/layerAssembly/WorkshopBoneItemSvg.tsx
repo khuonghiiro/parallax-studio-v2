@@ -124,16 +124,11 @@ export function WorkshopBoneItemSvg({
   const hy = tf.y
   const tx = hx + ux * L
   const ty = hy + uy * L
-  const mx = hx + ux * (L * 0.52)
-  const my = hy + uy * (L * 0.52)
   const scaleHandleX = tx + ux * 16
   const scaleHandleY = ty + uy * 16
 
-  const isMostlyVertical = Math.abs(uy) >= Math.abs(ux)
-  const bodyCursor =
-    editing && !isManipulateTool ? 'move' : isMostlyVertical ? 'ew-resize' : 'ns-resize'
-  const tailCursor =
-    editing && !isManipulateTool ? 'nwse-resize' : isMostlyVertical ? 'ns-resize' : 'ew-resize'
+  const bodyCursor = isDragging ? 'grabbing' : editing && !isManipulateTool ? 'move' : 'grab'
+  const tailCursor = isDragging ? 'grabbing' : editing && !isManipulateTool ? 'crosshair' : 'grab'
 
   const waistFraction = 0.22
   const waistW = Math.max(2.2, Math.min(9.5, L * 0.08))
@@ -158,21 +153,6 @@ export function WorkshopBoneItemSvg({
     setHoveredBoneId((prev) => (prev === bone.id ? null : prev))
   }
 
-  const hoverHintText =
-    hoverZone === 'head'
-      ? `✥ ${bone.name}: Kéo 4 hướng (Trái/Phải/Lên/Xuống) để dời khớp & bộ phận`
-      : hoverZone === 'scale'
-        ? `⤢ ${bone.name}: Kéo Phóng to / Thu nhỏ bộ phận & xương (${Math.round(boneScale * 100)}%)`
-        : hoverZone === 'tail'
-          ? editing && !isManipulateTool
-            ? `⤢ ${bone.name}: Kéo ngọn để chỉnh độ dài (${Math.round(L)}px) & góc xoay`
-            : `↕↔ ${bone.name}: Kéo Lên/Xuống để co/nhấc khớp · Trái/Phải để vung chi`
-          : hoverZone === 'body'
-            ? isMostlyVertical
-              ? `↔ ${bone.name}: Kéo Trái/Phải để vung xoay · ↕ Lên/Xuống để nhấc/nhún`
-              : `↕ ${bone.name}: Kéo Lên/Xuống để xoay khớp · ↔ Trái/Phải để vung`
-            : null
-
   return (
     <g
       className={`lw-blender-bone side-${side}${isSelected ? ' selected' : ''}${isHovered ? ' is-hovered' : ''}${isDragging ? ' dragging' : ''}${bone.pin ? ' is-pin' : ''}`}
@@ -189,17 +169,16 @@ export function WorkshopBoneItemSvg({
             cy={hy}
             r={18}
             fill="transparent"
-            style={{ cursor: 'move', pointerEvents: 'all' }}
+            style={{ cursor: isDragging ? 'grabbing' : 'move', pointerEvents: 'all' }}
             onPointerEnter={() => enterZone('head')}
             onPointerDown={(e) => onPointerDown(e, bone.id, headMode(e, bone))}
-          >
-            <title>{`Khớp gốc "${bone.name}" · Kéo 4 hướng để dời vị trí (X, Y)`}</title>
-          </circle>
+          />
           <circle
             cx={hx}
             cy={hy}
             r={isSelected ? 7.5 : 6}
             className="lw-pin-bone-ring"
+            style={{ cursor: isDragging ? 'grabbing' : 'move' }}
             onPointerEnter={() => enterZone('head')}
             onPointerDown={(e) => onPointerDown(e, bone.id, headMode(e, bone))}
           />
@@ -227,13 +206,7 @@ export function WorkshopBoneItemSvg({
             style={{ cursor: bodyCursor }}
             onPointerEnter={() => enterZone('body')}
             onPointerDown={(e) => onPointerDown(e, bone.id, bodyDragMode(e))}
-          >
-            <title>
-              {editing && !isManipulateTool
-                ? `${bone.name} (Chế độ tạo xương)`
-                : `${bone.name} · Kéo Trái/Phải/Lên/Xuống để xoay & diễn hoạt · Shift+Kéo: ghi Realtime`}
-            </title>
-          </polygon>
+          />
           <polygon
             points={`${hx},${hy} ${rightX},${rightY} ${tx},${ty}`}
             className="lw-bone-facet lw-bone-facet-bottom"
@@ -243,23 +216,6 @@ export function WorkshopBoneItemSvg({
           />
           <line x1={hx} y1={hy} x2={tx} y2={ty} className="lw-bone-ridge" pointerEvents="none" />
 
-          {/* Gizmo mũi tên vung Trái/Phải hoặc Lên/Xuống ngay trên thân xương khi hover */}
-          {hoverZone === 'body' && !isDragging && (
-            <g pointerEvents="none" opacity={0.95}>
-              <line
-                x1={mx - nx * (waistW + 13)}
-                y1={my - ny * (waistW + 13)}
-                x2={mx + nx * (waistW + 13)}
-                y2={my + ny * (waistW + 13)}
-                stroke={boneColor}
-                strokeWidth={2}
-                strokeDasharray="2 2"
-              />
-              <circle cx={mx - nx * (waistW + 14)} cy={my - ny * (waistW + 14)} r={3} fill={boneColor} />
-              <circle cx={mx + nx * (waistW + 14)} cy={my + ny * (waistW + 14)} r={3} fill={boneColor} />
-            </g>
-          )}
-
           <circle
             cx={tx}
             cy={ty}
@@ -268,13 +224,7 @@ export function WorkshopBoneItemSvg({
             style={{ cursor: tailCursor, pointerEvents: 'all' }}
             onPointerEnter={() => enterZone('tail')}
             onPointerDown={(e) => onPointerDown(e, bone.id, tailMode(e))}
-          >
-            <title>
-              {editing && !isManipulateTool
-                ? `Khớp ngọn "${bone.name}" · Kéo để chỉnh độ dài (${Math.round(L)}px) & góc xoay`
-                : `${bone.name} (Ngọn) · Kéo Lên/Xuống để co/nhấc · Trái/Phải để vung`}
-            </title>
-          </circle>
+          />
           {isSelected && editing && !isManipulateTool && (
             <circle
               cx={tx}
@@ -310,7 +260,6 @@ export function WorkshopBoneItemSvg({
               onPointerEnter={() => enterZone('scale')}
               onPointerDown={(e) => onPointerDown(e, bone.id, 'scale')}
             >
-              <title>{`⤢ Phóng to / Thu nhỏ "${bone.name}" & bộ phận gắn kèm (${Math.round(boneScale * 100)}%)`}</title>
               <line
                 x1={tx}
                 y1={ty}
@@ -341,32 +290,22 @@ export function WorkshopBoneItemSvg({
             cy={hy}
             r={18}
             fill="transparent"
-            style={{ cursor: 'move', pointerEvents: 'all' }}
+            style={{ cursor: isDragging ? 'grabbing' : 'move', pointerEvents: 'all' }}
             onPointerEnter={() => enterZone('head')}
             onPointerDown={(e) => onPointerDown(e, bone.id, headMode(e, bone))}
-          >
-            <title>{`Khớp gốc "${bone.name}" · Kéo 4 hướng (✥) để dời vị trí Lên / Xuống / Trái / Phải`}</title>
-          </circle>
+          />
           <circle
             cx={hx}
             cy={hy}
             r={headR}
             className="lw-bone-head-joint"
             style={{
-              cursor: 'move',
+              cursor: isDragging ? 'grabbing' : 'move',
               ...(editing && hasMixamoLandmarks && !isSelected && !isHovered ? { opacity: 0.45 } : {})
             }}
             onPointerEnter={() => enterZone('head')}
             onPointerDown={(e) => onPointerDown(e, bone.id, headMode(e, bone))}
           />
-
-          {/* Gizmo 4 mũi tên (✥) tại Khớp Gốc khi hover để báo hiệu Di chuyển 4 hướng */}
-          {hoverZone === 'head' && !isDragging && (
-            <g pointerEvents="none" stroke={boneColor} strokeWidth={1.8}>
-              <line x1={hx - 13} y1={hy} x2={hx + 13} y2={hy} />
-              <line x1={hx} y1={hy - 13} x2={hx} y2={hy + 13} />
-            </g>
-          )}
         </>
       )}
 
@@ -383,18 +322,6 @@ export function WorkshopBoneItemSvg({
           {!editing && Math.abs(tf.zOrder ?? 0) >= 1
             ? ` · Z${(tf.zOrder ?? 0) > 0 ? '+' : ''}${Math.round(tf.zOrder ?? 0)}`
             : ''}
-        </text>
-      )}
-
-      {isHovered && !isDragging && hoverHintText && (
-        <text
-          x={wx + nx * (waistW + 8)}
-          y={wy + ny * (waistW + 8) + 13}
-          className="lw-bone-name"
-          style={{ fontSize: '9.5px', fill: 'var(--text, #f8fafc)', opacity: 0.92 }}
-          pointerEvents="none"
-        >
-          {hoverHintText}
         </text>
       )}
     </g>

@@ -68,13 +68,7 @@ export function WorkshopBoneCapsuleSvg({
                       ? (e) => onStartStrengthDrag(e, bone, tf.x, tf.y, angle)
                       : undefined
                   }
-                >
-                  {interactive && (
-                    <title>
-                      {`[Bám sát Mesh] Vùng Mesh "${bone.name}" (${pctLabel}) — Tự động ôm theo nếp gấp Mesh của bộ phận`}
-                    </title>
-                  )}
-                </path>
+                />
                 <path
                   d={meshRegion.boundaryPath}
                   className="lw-bone-mesh-envelope-boundary"
@@ -96,13 +90,7 @@ export function WorkshopBoneCapsuleSvg({
                       ? (e) => onStartStrengthDrag(e, bone, tf.x, tf.y, angle)
                       : undefined
                   }
-                >
-                  {interactive && (
-                    <title>
-                      {`Vùng ảnh hưởng "${bone.name}" (${pctLabel}) — Kéo ra/vào để chỉnh bán kính uốn Mesh`}
-                    </title>
-                  )}
-                </rect>
+                />
               </g>
             )}
 
@@ -119,9 +107,7 @@ export function WorkshopBoneCapsuleSvg({
                       ? (e) => onStartStrengthDrag(e, bone, tf.x, tf.y, angle)
                       : undefined
                   }
-                >
-                  <title>{`Kéo tay nắm để chỉnh Vùng uốn "${bone.name}" (${pctLabel})`}</title>
-                </circle>
+                />
                 <circle
                   cx={len * 0.5}
                   cy={handleRadius}
@@ -133,9 +119,7 @@ export function WorkshopBoneCapsuleSvg({
                       ? (e) => onStartStrengthDrag(e, bone, tf.x, tf.y, angle)
                       : undefined
                   }
-                >
-                  <title>{`Kéo tay nắm để chỉnh Vùng uốn "${bone.name}" (${pctLabel})`}</title>
-                </circle>
+                />
                 {isSelected && (
                   <text
                     x={len * 0.5}
