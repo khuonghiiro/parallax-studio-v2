@@ -59,15 +59,28 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 4px 8px 4px 10px;
+  height: 34px;
+  max-height: 34px;
+  box-sizing: border-box;
+  padding: 0 8px 0 10px;
   background: color-mix(in srgb, var(--bg-1) 94%, transparent);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--line-focus);
   border-radius: var(--radius-md, 6px);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-  max-width: calc(100% - 160px);
+  max-width: calc(100% - 140px);
   user-select: none;
+  transition: top 0.16s ease;
+}
+
+/* Khi đang ở tab Animation / Plant (trên top đã có thanh AnimAssistChips ở top: 10px):
+   Thanh HUD bộ phận tự động hạ xuống tầng dưới (top: 48px) để không bị đè lên nhau */
+.lw-cutout-floating-hud.is-anim-tab {
+  top: 48px;
+  z-index: 5290;
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line-focus));
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
 }
 
 .lw-cutout-hud-part-info {
@@ -75,34 +88,58 @@
   align-items: center;
   gap: 6px;
   min-width: 0;
+  flex: 0 1 auto;
+  max-width: 320px;
 }
 
 .lw-cutout-hud-icon {
   font-size: 15px;
   line-height: 1;
+  flex-shrink: 0;
 }
 
 .lw-cutout-hud-titles {
   display: flex;
   flex-direction: column;
+  justify-content: center;
   min-width: 0;
+  overflow: hidden;
+  line-height: 1.25;
 }
 
 .lw-cutout-hud-titles strong {
   font-size: 11px;
+  font-weight: 600;
   color: var(--text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 130px;
+  max-width: 160px;
+}
+
+.lw-cutout-role-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
 }
 
 .lw-cutout-hud-titles small {
   font-size: 9.5px;
   color: var(--text-dim);
-  display: flex;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+  display: inline-flex;
   align-items: center;
   gap: 4px;
+}
+
+.lw-cutout-hud-titles small > span:first-child {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .lw-cutout-bone-badge {
@@ -110,6 +147,11 @@
   padding: 1px 4px;
   border-radius: var(--radius-sm, 4px);
   font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 110px;
+  flex-shrink: 0;
 }
 
 .lw-cutout-bone-badge.bound {

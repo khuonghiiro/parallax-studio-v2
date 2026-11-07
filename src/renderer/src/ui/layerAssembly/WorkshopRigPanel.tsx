@@ -102,9 +102,13 @@ function RigToolbelt({ bones, bone, run, onAdd, switchTool }: { bones: LayerBone
             <kbd>{hotkey}</kbd>
           </button>
         ))}
+        </div>
+      <div className="lw-rig-toolbelt-row">
+        <div className="lw-rig-toolbelt-pills">
         <button
           type="button"
-          className={`lw-moho-tool-btn lw-btn-cutout-part-stage${rigTool.cutoutStageMode ? ' active' : ''}`}
+          aria-pressed={rigTool.cutoutStageMode}
+          className={`lw-moho-opt-pill${rigTool.cutoutStageMode ? ' active' : ''}`}
           onClick={() => {
             if (rigTool.cutoutStageMode) {
               closeCutoutPartRig()
@@ -112,14 +116,11 @@ function RigToolbelt({ bones, bone, run, onAdd, switchTool }: { bones: LayerBone
               openCutoutPartRig()
             }
           }}
-          title="Vẽ xương theo từng bộ phận layer (2D): hiện ô preview 2 bên & mũi tên nét đứt trỏ vào nhân vật"
+          title="Bật/tắt chế độ vẽ xương theo từng bộ phận layer (2D): hiện ô preview 2 bên & mũi tên nét đứt trỏ vào nhân vật"
         >
-          <IconFlexiMeshBind width={14} height={14} />
-          <span className="lw-moho-tool-label">Theo layer</span>
-          <kbd>2D</kbd>
+          <IconFlexiMeshBind width={12} height={12} />
+          <span>Bộ phận 2D</span>
         </button>
-      </div>
-      <div className="lw-rig-toolbelt-row">
         <button type="button" aria-pressed={rigTool.showInfluence} className={`lw-moho-opt-pill${rigTool.showInfluence ? ' active' : ''}`} onClick={toggleInfluence} title="Hiện/ẩn lớp vỏ viên nang Vùng ảnh hưởng xương (Moho Bone Strength Envelope)">
           <IconBoneStrength width={12} height={12} />
           <span>Vỏ uốn</span>
@@ -132,6 +133,7 @@ function RigToolbelt({ bones, bone, run, onAdd, switchTool }: { bones: LayerBone
           <IconBoneWeld width={12} height={12} />
           <span>Hàn khớp{weldSummary.looseCount > 0 ? ` (${weldSummary.looseCount})` : ''}</span>
         </button>
+        </div>
         {testing && hasTestPose ? (
           <button type="button" className="btn xs lw-reset-test-btn lw-rig-toolbelt-cta" onClick={resetTestPoses} title="Trả toàn bộ xương đang bẻ thử về tư thế gốc Frame 0">
             ↺ Frame 0
