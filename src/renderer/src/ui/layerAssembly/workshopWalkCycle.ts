@@ -1,10 +1,37 @@
 import type { BoneKeyframe, BonePose, LayerBone, MotionViewAngle } from '@shared/layerRig'
 import { solveWalkLeg, walkRoot } from './workshopWalkFeet'
+import { inferHumanoidBoneRoles, type HumanoidBoneRoleMap } from './spineRigWorkflow'
 
-/** Match complete roles: forearm-l must never be mistaken for arm-l. */
+const ROLE_TO_KEY: Record<string, keyof HumanoidBoneRoleMap> = {
+  pelvis: 'pelvis',
+  torso: 'torso',
+  head: 'head',
+  'arm-l': 'armL',
+  'forearm-l': 'forearmL',
+  'hand-l': 'handL',
+  'arm-r': 'armR',
+  'forearm-r': 'forearmR',
+  'hand-r': 'handR',
+  'thigh-l': 'thighL',
+  'shin-l': 'shinL',
+  'foot-l': 'footL',
+  'thigh-r': 'thighR',
+  'shin-r': 'shinR',
+  'foot-r': 'footR'
+}
+
+/** Match complete roles: forearm-l must never be mistaken for arm-l. Falls back to Spine spatial/hierarchy inference. */
 function roleBone(bones: LayerBone[], role: string, label: string): LayerBone | undefined {
-  return bones.find((b) => b.id.replaceAll('_', '-').match(new RegExp(`(^|-)${role}$`)))
-    ?? bones.find((b) => b.name.toLocaleLowerCase('vi').includes(label))
+  const direct =
+    bones.find((b) => b.id.replaceAll('_', '-').match(new RegExp(`(^|-)${role}$`))) ??
+    bones.find((b) => b.name.toLocaleLowerCase('vi').includes(label))
+  if (direct) return direct
+  const roles = inferHumanoidBoneRoles(bones)
+  const key = ROLE_TO_KEY[role]
+  if (!key) return undefined
+  if (role === 'torso' && roles.torso && roles.torso === roles.pelvis) return undefined
+  const inferredId = roles[key]
+  return inferredId ? bones.find((b) => b.id === inferredId) : undefined
 }
 
 function track(duration: number, pose: (phase: number) => Partial<BonePose>): BoneKeyframe[] {

@@ -118,6 +118,8 @@ export function analyzeCutoutParts(layers: AssembledLayerItem[]): CutoutPartInfo
 
     const dxFromMid = m.cx - midX
     const isOuterSide = Math.abs(dxFromMid) > totalW * 0.15
+    const isBelowWaistForLegs =
+      relY >= 0.72 || (relY >= 0.55 && m.cy >= torsoMetric.bottom - torsoMetric.h * 0.18)
 
     if (l.id === torsoId) {
       role = 'torso'
@@ -136,13 +138,13 @@ export function analyzeCutoutParts(layers: AssembledLayerItem[]): CutoutPartInfo
       // Cánh tay ở 2 bên sườn (dù buông thõng xuống ngang đùi như nhân vật chibi)
       role = dxFromMid < 0 ? 'arm_left' : 'arm_right'
       suggestedParentRole = 'torso'
-    } else if (relY >= 0.55) {
-      // Đôi chân ở nửa dưới cơ thể gần trục giữa
+    } else if (isBelowWaistForLegs) {
+      // Đôi chân ở nửa dưới cơ thể gần trục giữa (nằm thấp hơn vùng bụng/đai hông của thân áo)
       role = dxFromMid < 0 ? 'leg_left' : 'leg_right'
       suggestedParentRole = 'torso'
     } else {
-      // Vùng thân: Đai ngọc, mặt nạ, phụ kiện
-      if (/mask|mặt nạ|treo/i.test(name) || (m.area < 25000 && relY > 0.38)) {
+      // Vùng thân: Đai ngọc, mặt nạ, tua rua, phụ kiện đeo hông
+      if (/mask|mặt nạ|treo|tua rua/i.test(name) || (m.w < totalW * 0.18 && m.area < 16000 && relY > 0.38)) {
         role = 'hanging_prop'
         suggestedParentRole = 'waist_prop'
       } else if (/belt|waist|đai|ngọc|thắt lưng/i.test(name) || relY >= 0.42) {

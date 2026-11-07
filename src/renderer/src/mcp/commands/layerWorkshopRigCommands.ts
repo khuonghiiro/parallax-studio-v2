@@ -219,6 +219,13 @@ function rigAction(p: Params, composite?: LayerComposite, currentTime = 0): RigA
       clipName: str(p, 'clip_name') || str(p, 'name') || undefined
     }
   }
+  if (action === 'sync-spine-rig') {
+    return {
+      action,
+      renameGenericBones: bool(p, 'rename_generic_bones') ?? bool(p, 'renameGenericBones') ?? true,
+      rebuildEmptyPresetClips: bool(p, 'rebuild_empty_preset_clips') ?? bool(p, 'rebuildEmptyPresetClips') ?? true
+    }
+  }
   if (action === 'bind') {
     if (!Array.isArray(p.layer_ids) || p.layer_ids.some((id) => typeof id !== 'string')) {
       throw new ParamError('layer_ids must be a string array')

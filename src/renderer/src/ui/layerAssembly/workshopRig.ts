@@ -21,6 +21,7 @@ import { splitBoneInHalf } from './workshopBoneSplit'
 import { applyRigStructureAction, isRigStructureAction, type RigStructureAction } from './workshopRigStructure'
 import { assertValidAngleLimits, stripEmptyAngleLimit } from './boneConstraints'
 import { autoRigAllCutoutParts, createBoneForSingleLayer } from './workshopCutoutRig'
+import { syncSpineStyleRigAndSlots } from './spineRigWorkflow'
 import {
   autoSortLayersZDepth25D,
   buildAnatomicalBonesFromLayers,
@@ -168,6 +169,7 @@ export type RigAction =
   | { action: 'apply-parallax-25d-pose'; time: number; yawX: number; pitchY: number; intensity?: number; applyLayerTilt?: boolean }
   | { action: 'add-parallax-25d-clip'; preset: Parallax25DClipPreset; intensity?: number }
   | { action: 'add-parameterized-cycle-25d'; config: Partial<ParameterizedCycle25DConfig>; asNewClip?: boolean }
+  | { action: 'sync-spine-rig'; renameGenericBones?: boolean; rebuildEmptyPresetClips?: boolean }
   | {
       action: 'apply-mixamo-rig-motion'
       bones: LayerBone[]
@@ -543,6 +545,58 @@ export function applyRigAction(composite: LayerComposite, action: RigAction): La
   }
   if (action.action === 'smart-auto-bind-25d') {
     layers = smartAutoBindCompositeLayers(layers, rig.bones, action.bindMode ?? 'auto')
+  }
+  if (action.action === 'sync-spine-rig') {
+    const synced = syncSpineStyleRigAndSlots(
+      { ...composite, layers, rig },
+      {
+        renameGenericBones: action.renameGenericBones ?? true,
+        extraBonesResolver: extraSoftBoneIdsForLayer
+      }
+    )
+    layers = synced.layers
+    if (synced.rig) {
+      rig.bones = synced.rig.bones
+    }
+    if (action.rebuildEmptyPresetClips !== false && rig.clips && rig.bones.length >= 2) {
+      rig.clips = rig.clips.map((c) => {
+        const lower = `${c.id} ${c.name}`.toLowerCase()
+        const presetKey =
+          (c.presetKey as ProceduralMotionPreset | undefined) ??
+          (lower.includes('walk') || lower.includes('bước đi')
+            ? 'walk'
+            : lower.includes('idle') || lower.includes('đứng thở')
+              ? 'idle'
+              : lower.includes('run') || lower.includes('chạy')
+                ? 'run'
+                : lower.includes('wave') || lower.includes('vẫy')
+                  ? 'wave'
+                  : lower.includes('jump') || lower.includes('nhún nhảy') || lower.includes('nhảy')
+                    ? 'jump'
+                    : lower.includes('action') || lower.includes('vung đòn')
+                      ? 'action'
+                      : lower.includes('bow') || lower.includes('cúi chào')
+                        ? 'bow'
+                        : lower.includes('sway') || lower.includes('đung đưa')
+                          ? 'sway'
+                          : undefined)
+        if (!presetKey || Object.keys(c.tracks || {}).length > 1) return c
+        const rebuilt = createClipFromPreset(presetKey, rig.bones, c.name, c.viewAngle ?? 'front')
+        return {
+          ...c,
+          presetKey: c.presetKey ?? presetKey,
+          duration: rebuilt.duration,
+          loop: rebuilt.loop,
+          tracks: rebuilt.tracks
+        }
+      })
+      const activeClip = rig.clips.find((c) => c.id === rig.activeClipId) ?? rig.clips[0]
+      if (activeClip) {
+        rig.duration = activeClip.duration
+        rig.loop = activeClip.loop
+        rig.tracks = structuredClone(activeClip.tracks)
+      }
+    }
   }
   if (action.action === 'auto-sort-z-25d') {
     layers = autoSortLayersZDepth25D(layers)
