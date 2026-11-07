@@ -184,12 +184,13 @@ export function WorkshopClipBar({
           </button>
           <button
             type="button"
-            className="btn xs lw-clip-json-btn"
+            className="btn xs lw-clip-json-btn lw-clip-json-highlight-btn"
             onClick={() => setIsClipJsonModalOpen(true)}
             title="Xuất / Nhập JSON động tác (kèm quy chuẩn 2.5D & Gió) hoặc sao chép Prompt cho AI khác"
           >
-            <IconCode width={10} height={10} />
+            <IconCode width={11} height={11} />
             <span>JSON</span>
+            <span className="lw-json-badge-sparkle">✨</span>
           </button>
           {hasAnyKeyframes && (
             <button
@@ -328,12 +329,13 @@ export function WorkshopClipBar({
             <div className="lw-clip-tools-row">
               <button
                 type="button"
-                className="btn xs lw-clip-json-btn"
+                className="btn xs lw-clip-json-btn lw-clip-json-highlight-btn"
                 onClick={() => setIsClipJsonModalOpen(true)}
                 title="Xuất / Nhập JSON động tác (kèm Gió & Quy chuẩn 2.5D) hoặc sao chép Prompt cho AI"
               >
-                <IconCode width={10} height={10} />
+                <IconCode width={11} height={11} />
                 <span>JSON / AI</span>
+                <span className="lw-json-badge-sparkle">✨</span>
               </button>
               <button
                 type="button"
