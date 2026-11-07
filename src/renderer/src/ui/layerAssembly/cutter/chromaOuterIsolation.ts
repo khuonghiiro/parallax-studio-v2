@@ -44,6 +44,31 @@ export function floodFromBorder(
     }
   }
 
+  // Quét tia từ 4 mép vào trong nếu đường biên 1px ngoài cùng không có pixel passable (ảnh có khung viền / viền xám / shadow)
+  if (tail === 0) {
+    const step = Math.max(1, Math.floor(Math.min(w, h) / 120))
+    for (let x = 0; x < w; x += step) {
+      for (let y = 0; y < h; y++) {
+        const p = y * w + x
+        if (passable[p]) { push(p); break }
+      }
+      for (let y = h - 1; y >= 0; y--) {
+        const p = y * w + x
+        if (passable[p]) { push(p); break }
+      }
+    }
+    for (let y = 0; y < h; y += step) {
+      for (let x = 0; x < w; x++) {
+        const p = y * w + x
+        if (passable[p]) { push(p); break }
+      }
+      for (let x = w - 1; x >= 0; x--) {
+        const p = y * w + x
+        if (passable[p]) { push(p); break }
+      }
+    }
+  }
+
   while (head < tail) {
     const curr = queue[head++]
     const cx = curr % w
@@ -100,7 +125,9 @@ export function resolveOuterWallAlpha(settings: ChromaKeySettings, analysis: Chr
   const shadowOn = settings.shadowMode === 'include' || settings.shadowMode === 'only'
   if (shadowOn) return Math.max(0.3, Math.min(0.92, (settings.shadowSolidThreshold ?? 62) / 100))
   const tol = Math.max(0, Math.min(100, settings.tolerance)) / 100
-  return Math.max(0.08, Math.min(0.6, Math.max(analysis.measuredNoise + 0.05, tol * 0.4)))
+  // Khi Xoá bóng (shadowMode off): ngưỡng viền ngăn loang BFS phải nhạy cảm đủ để chặn đứng dòng loang
+  // khi chạm nét vẽ / đường viền áo (alpha >= 0.15..0.35), tuyệt đối không đẩy lên 0.92 làm thủng áo/cổ nhân vật.
+  return Math.max(0.08, Math.min(0.35, Math.max(analysis.measuredNoise + 0.04, tol * 0.3)))
 }
 
 /** Làm mịn hộp 3×3 tách 2 lượt ngang–dọc (O(N)) */

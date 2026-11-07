@@ -165,14 +165,21 @@ export function SpriteCutterSourcePane({
     if (!preset) return
     detectedCornerHexRef.current = preset
     const { type, hex } = preset
-    setChroma((prev) => ({
-      ...prev,
-      keyColorType: type,
-      keyColorHex: hex,
-      keyColor: hex,
-      fringeColorType: type === 'pure_black' ? 'pure_white' : type,
-      fringeColorHex: type === 'pure_black' ? '#FFFFFF' : hex
-    }))
+    setChroma((prev) => {
+      const next = {
+        ...prev,
+        enabled: true,
+        keyColorType: type,
+        keyColorHex: hex,
+        keyColor: hex,
+        tolerance: prev.tolerance > 5 ? prev.tolerance : 18,
+        isolationMode: prev.isolationMode || 'outer_only',
+        fringeColorType: type === 'pure_black' ? 'pure_white' : type,
+        fringeColorHex: type === 'pure_black' ? '#FFFFFF' : hex
+      }
+      saveStoredChromaSettings(next)
+      return next
+    })
   }, [])
 
   // Tái quét mảnh cắt sau khi chỉnh sửa thủ công

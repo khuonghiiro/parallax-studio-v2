@@ -87,14 +87,14 @@ export const DEFAULT_CHROMA_SETTINGS: ChromaKeySettings = {
   keyColorType: 'chroma_green',
   isolationMode: 'all',
   strictOuterIsolation: false,
-  tolerance: 1,
-  smoothness: 0,
+  tolerance: 18,
+  smoothness: 1,
   despill: false,
   previewBackground: 'checkerboard',
-  shadowMode: 'include',
+  shadowMode: 'off',
   shadowType: 'auto',
   shadowRetention: 0,
-  shadowSolidThreshold: 100,
+  shadowSolidThreshold: 62,
   shadowUnmixColor: true,
   strokeWidth: 0,
   strokeColorHex: '#FFFFFF',
@@ -115,16 +115,17 @@ export const DEFAULT_CHROMA_SETTINGS: ChromaKeySettings = {
 export const CUTTER_CHROMA_CACHE_KEY = 'pxs:sprite-cutter-chroma-settings-v3'
 
 export function getStoredChromaSettings(): ChromaKeySettings {
+  const base: ChromaKeySettings = { ...DEFAULT_CHROMA_SETTINGS, isolationMode: 'outer_only' }
   if (typeof window === 'undefined' || !window.localStorage) {
-    return { ...DEFAULT_CHROMA_SETTINGS }
+    return base
   }
   try {
     const raw = window.localStorage.getItem(CUTTER_CHROMA_CACHE_KEY)
-    if (!raw) return { ...DEFAULT_CHROMA_SETTINGS }
+    if (!raw) return base
     const parsed = JSON.parse(raw)
-    return { ...DEFAULT_CHROMA_SETTINGS, ...parsed }
+    return { ...base, ...parsed }
   } catch {
-    return { ...DEFAULT_CHROMA_SETTINGS }
+    return base
   }
 }
 
