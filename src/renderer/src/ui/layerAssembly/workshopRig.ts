@@ -23,6 +23,7 @@ import { assertValidAngleLimits, stripEmptyAngleLimit } from './boneConstraints'
 import { autoRigAllCutoutParts, createBoneForSingleLayer } from './workshopCutoutRig'
 import { syncSpineStyleRigAndSlots } from './spineRigWorkflow'
 import { inferDescriptiveClipName, isGenericClipName, upgradeCompositeSoftMeshForImpact } from './workshopClipBiomechanics'
+import { filterExportableWindSpines } from './workshopClipWindGuide'
 import {
   autoSortLayersZDepth25D,
   buildAnatomicalBonesFromLayers,
@@ -649,6 +650,11 @@ export function applyRigAction(composite: LayerComposite, action: RigAction): La
     if ((action.action === 'add-clip' || action.action === 'replace-clip') && action.wind) {
       if (action.wind.plantSpines && action.wind.plantSpines.length > 0) {
         plantSpines = structuredClone(action.wind.plantSpines)
+      } else if (plantSpines && plantSpines.length > 0) {
+        plantSpines = filterExportableWindSpines(
+          { ...composite, layers, plantSpines },
+          new Set(Object.keys(action.clip.tracks || {}))
+        )
       }
       if (action.wind.layerMotions && action.wind.layerMotions.length > 0) {
         const motionMap = new Map(action.wind.layerMotions.map((m) => [m.layerId, m]))

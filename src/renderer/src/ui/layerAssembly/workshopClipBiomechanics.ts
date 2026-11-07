@@ -625,86 +625,125 @@ function fixWalkPerspectiveAndContralateralLimbSwingInPlace(
   const hasLegMotion =
     (tlKfs && trKfs && tlKfs.length > 1 && trKfs.length > 1) ||
     (flKfs && frKfs && flKfs.length > 1 && frKfs.length > 1)
-  if (!hasLegMotion) return
-
-  const tlRange = getTrackRange(tlKfs)
-  const trRange = getTrackRange(trKfs)
-  const flRange = getTrackRange(flKfs)
-  const frRange = getTrackRange(frKfs)
-
-  const isAlternatingLegs =
-    Math.abs(tlRange.maxRot - tlRange.minRot) > 5 ||
-    Math.abs(trRange.maxRot - trRange.minRot) > 5 ||
-    Math.abs(flRange.maxY - flRange.minY) > 3 ||
-    Math.abs(frRange.maxY - frRange.minY) > 3
-
-  if (!isAlternatingLegs) return
-
-  const refKfs = flKfs && flKfs.length >= 2 ? flKfs : tlKfs
-  if (!refKfs || refKfs.length < 2) return
 
   let fixedDepthCount = 0
-  const count = refKfs.length
 
-  for (let i = 0; i < count; i++) {
-    const kfL = flKfs?.[i] ?? tlKfs?.[i]
-    const kfR = frKfs?.[i] ?? trKfs?.[i]
-    if (!kfL || !kfR) continue
+  if (hasLegMotion) {
+    const tlRange = getTrackRange(tlKfs)
+    const trRange = getTrackRange(trKfs)
+    const flRange = getTrackRange(flKfs)
+    const frRange = getTrackRange(frKfs)
 
-    const scoreL = (kfL.y || 0) * 1.5 + ((kfL.scaleY ?? 1) - 1) * 30 - kfL.rotation * 0.1
-    const scoreR = (kfR.y || 0) * 1.5 + ((kfR.scaleY ?? 1) - 1) * 30 + kfR.rotation * 0.1
+    const isAlternatingLegs =
+      Math.abs(tlRange.maxRot - tlRange.minRot) > 5 ||
+      Math.abs(trRange.maxRot - trRange.minRot) > 5 ||
+      Math.abs(flRange.maxY - flRange.minY) > 3 ||
+      Math.abs(frRange.maxY - frRange.minY) > 3
 
-    if (Math.abs(scoreL - scoreR) > 1.0) {
-      const leftIsForward = scoreL > scoreR
+    const refKfs = flKfs && flKfs.length >= 2 ? flKfs : tlKfs
+    if (isAlternatingLegs && refKfs && refKfs.length >= 2) {
+      const count = refKfs.length
 
-      if (tlKfs && tlKfs[i] && trKfs && trKfs[i]) {
-        if (tlKfs[i].zOrder === undefined || trKfs[i].zOrder === undefined || tlKfs[i].zOrder === trKfs[i].zOrder) {
-          tlKfs[i].zOrder = leftIsForward ? 15 : -15
-          trKfs[i].zOrder = leftIsForward ? -15 : 15
-          fixedDepthCount++
-        }
-      }
+      for (let i = 0; i < count; i++) {
+        const kfL = flKfs?.[i] ?? tlKfs?.[i]
+        const kfR = frKfs?.[i] ?? trKfs?.[i]
+        if (!kfL || !kfR) continue
 
-      if (flKfs && flKfs[i] && frKfs && frKfs[i]) {
-        const parentHasZ = Boolean(tlKfs?.[i]?.zOrder !== undefined && trKfs?.[i]?.zOrder !== undefined)
-        const needZFix =
-          flKfs[i].zOrder === undefined ||
-          frKfs[i].zOrder === undefined ||
-          flKfs[i].zOrder === frKfs[i].zOrder
+        const scoreL = (kfL.y || 0) * 1.5 + ((kfL.scaleY ?? 1) - 1) * 30 - kfL.rotation * 0.1
+        const scoreR = (kfR.y || 0) * 1.5 + ((kfR.scaleY ?? 1) - 1) * 30 + kfR.rotation * 0.1
 
-        if (needZFix) {
-          if (!parentHasZ) {
-            flKfs[i].zOrder = leftIsForward ? 15 : -15
-            frKfs[i].zOrder = leftIsForward ? -15 : 15
+        if (Math.abs(scoreL - scoreR) > 1.0) {
+          const leftIsForward = scoreL > scoreR
+
+          if (tlKfs && tlKfs[i] && trKfs && trKfs[i]) {
+            if (tlKfs[i].zOrder === undefined || trKfs[i].zOrder === undefined || tlKfs[i].zOrder === trKfs[i].zOrder) {
+              tlKfs[i].zOrder = leftIsForward ? 15 : -15
+              trKfs[i].zOrder = leftIsForward ? -15 : 15
+              fixedDepthCount++
+            }
           }
 
-          if (leftIsForward) {
-            flKfs[i].scaleX = Math.max(flKfs[i].scaleX ?? 1, 1.06)
-            flKfs[i].scaleY = Math.max(flKfs[i].scaleY ?? 1, 1.06)
-            frKfs[i].scaleX = Math.min(frKfs[i].scaleX ?? 1, 0.95)
-            frKfs[i].scaleY = Math.min(frKfs[i].scaleY ?? 1, 0.95)
-          } else {
-            frKfs[i].scaleX = Math.max(frKfs[i].scaleX ?? 1, 1.06)
-            frKfs[i].scaleY = Math.max(frKfs[i].scaleY ?? 1, 1.06)
-            flKfs[i].scaleX = Math.min(flKfs[i].scaleX ?? 1, 0.95)
-            flKfs[i].scaleY = Math.min(flKfs[i].scaleY ?? 1, 0.95)
-          }
-          fixedDepthCount++
-        }
-      }
+          if (flKfs && flKfs[i] && frKfs && frKfs[i]) {
+            const parentHasZ = Boolean(tlKfs?.[i]?.zOrder !== undefined && trKfs?.[i]?.zOrder !== undefined)
+            const needZFix =
+              flKfs[i].zOrder === undefined ||
+              frKfs[i].zOrder === undefined ||
+              flKfs[i].zOrder === frKfs[i].zOrder
 
-      const armLKf = tracks[armLId]?.[i]
-      const armRKf = tracks[armRId]?.[i]
-      if (armLKf && armRKf && (armLKf.zOrder === undefined || armRKf.zOrder === undefined)) {
-        armLKf.zOrder = leftIsForward ? -50 : 50
-        armRKf.zOrder = leftIsForward ? 50 : -50
+            if (needZFix) {
+              if (!parentHasZ) {
+                flKfs[i].zOrder = leftIsForward ? 15 : -15
+                frKfs[i].zOrder = leftIsForward ? -15 : 15
+              }
+
+              if (leftIsForward) {
+                flKfs[i].scaleX = Math.max(flKfs[i].scaleX ?? 1, 1.06)
+                flKfs[i].scaleY = Math.max(flKfs[i].scaleY ?? 1, 1.06)
+                frKfs[i].scaleX = Math.min(frKfs[i].scaleX ?? 1, 0.95)
+                frKfs[i].scaleY = Math.min(frKfs[i].scaleY ?? 1, 0.95)
+              } else {
+                frKfs[i].scaleX = Math.max(frKfs[i].scaleX ?? 1, 1.06)
+                frKfs[i].scaleY = Math.max(frKfs[i].scaleY ?? 1, 1.06)
+                flKfs[i].scaleX = Math.min(flKfs[i].scaleX ?? 1, 0.95)
+                flKfs[i].scaleY = Math.min(flKfs[i].scaleY ?? 1, 0.95)
+              }
+              fixedDepthCount++
+            }
+          }
+
+          const armLKf = tracks[armLId]?.[i]
+          const armRKf = tracks[armRId]?.[i]
+          if (armLKf && armRKf && (armLKf.zOrder === undefined || armRKf.zOrder === undefined)) {
+            armLKf.zOrder = leftIsForward ? -50 : 50
+            armRKf.zOrder = leftIsForward ? 50 : -50
+          }
+        }
       }
     }
   }
 
-  if (fixedDepthCount > 0) {
+  // Đồng bộ vị trí dọc Y trên Đùi & Cẳng chân theo phối cảnh bước tới (hạ thấp Y > 0) và nhấc chân sau (nâng cao Y < 0)
+  const shinLId = roles.shinL ?? 'bone-shin-l'
+  const shinRId = roles.shinR ?? 'bone-shin-r'
+  let fixedLegVerticalPerspective = false
+
+  for (const [thighId, shinId] of [
+    [thighLId, shinLId],
+    [thighRId, shinRId]
+  ] as const) {
+    const tTrack = tracks[thighId]
+    const sTrack = tracks[shinId]
+    if (tTrack) {
+      for (const kf of tTrack) {
+        const sx = kf.scaleX ?? 1
+        const sy = kf.scaleY ?? 1
+        if (sx >= 1.04 && sy >= 1.01 && (kf.y ?? 0) <= 0) {
+          kf.y = 4
+          fixedLegVerticalPerspective = true
+        } else if (sx <= 0.96 && sy <= 0.94 && (kf.y ?? 0) >= 0) {
+          kf.y = -8
+          fixedLegVerticalPerspective = true
+        }
+      }
+    }
+    if (sTrack) {
+      for (const kf of sTrack) {
+        const sx = kf.scaleX ?? 1
+        const sy = kf.scaleY ?? 1
+        if (sx >= 1.04 && sy >= 1.01 && (kf.y ?? 0) < 0) {
+          kf.y = Math.abs(kf.y)
+          fixedLegVerticalPerspective = true
+        } else if (sx <= 0.96 && sy <= 0.91 && (kf.y ?? 0) >= 0) {
+          kf.y = -6
+          fixedLegVerticalPerspective = true
+        }
+      }
+    }
+  }
+
+  if (fixedDepthCount > 0 || fixedLegVerticalPerspective) {
     fixes.push(
-      'Tự động áp dụng Phối Cảnh Bước Đi 2.5D: Chân bước tới trước nổi lên (zOrder: +15, scale: 1.06) đè lên chân sau (zOrder: -15, scale: 0.95) kèm đánh tay nghịch pha đối xứng'
+      'Tự động áp dụng Phối Cảnh Bước Đi 2.5D: Chân bước tới hạ thấp & nổi lên trước (y > 0, zOrder: +15, scale: 1.06), chân sau nhấc cao & lùi sau (y < 0, zOrder: -15)'
     )
   }
 }
