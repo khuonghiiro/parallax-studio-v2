@@ -632,24 +632,28 @@ function fixSuffocatedWalkCycleStridesInPlace(
           const isPassing = !isForward && !isBackward
 
           if (isForward) {
-            kf.rotation = Number((outSign * 8).toFixed(2))
+            kf.rotation = Number((outSign * 2).toFixed(2))
             fixedLegs = true
             if (shinKfs && shinKfs[idx]) {
-              shinKfs[idx].rotation = Number((-outSign * 4).toFixed(2))
-              shinKfs[idx].y = -5
+              shinKfs[idx].rotation = 0
+              shinKfs[idx].y = 2
+              shinKfs[idx].scaleY = Math.max(shinKfs[idx].scaleY ?? 1, 1.04)
             }
           } else if (isBackward) {
-            kf.rotation = Number((outSign * 3).toFixed(2))
+            kf.rotation = 0
             fixedLegs = true
             if (shinKfs && shinKfs[idx]) {
-              shinKfs[idx].rotation = Number((-outSign * 2).toFixed(2))
-              shinKfs[idx].y = 0
+              shinKfs[idx].rotation = 0
+              shinKfs[idx].y = -2
+              shinKfs[idx].scaleY = Math.min(shinKfs[idx].scaleY ?? 1, 0.96)
             }
           } else if (isPassing) {
-            kf.rotation = Number((outSign * 5).toFixed(2))
+            kf.rotation = Number((outSign * 1).toFixed(2))
             fixedLegs = true
             if (shinKfs && shinKfs[idx]) {
-              shinKfs[idx].rotation = Number((-outSign * 10).toFixed(2))
+              shinKfs[idx].rotation = 0
+              shinKfs[idx].y = -8
+              shinKfs[idx].scaleY = 0.88
             }
           }
         })
@@ -692,10 +696,10 @@ function fixCrossedLegsInPlace(
   if (tlKfs) {
     for (const kf of tlKfs) {
       if (kf.rotation < -0.5) {
-        kf.rotation = Number(Math.max(2.5, Math.abs(kf.rotation) * 0.35).toFixed(2))
+        kf.rotation = Number(Math.max(1, Math.abs(kf.rotation) * 0.15).toFixed(2))
         fixedCrossing = true
-      } else if (kf.rotation > 10) {
-        kf.rotation = Number(Math.min(8.5, kf.rotation * 0.45).toFixed(2))
+      } else if (kf.rotation > 4) {
+        kf.rotation = Number(Math.min(3, kf.rotation * 0.25).toFixed(2))
         fixedCrossing = true
       }
     }
@@ -704,10 +708,10 @@ function fixCrossedLegsInPlace(
   if (trKfs) {
     for (const kf of trKfs) {
       if (kf.rotation > 0.5) {
-        kf.rotation = Number((-Math.max(2.5, Math.abs(kf.rotation) * 0.35)).toFixed(2))
+        kf.rotation = Number((-Math.max(1, Math.abs(kf.rotation) * 0.15)).toFixed(2))
         fixedCrossing = true
-      } else if (kf.rotation < -10) {
-        kf.rotation = Number(Math.max(-8.5, kf.rotation * 0.45).toFixed(2))
+      } else if (kf.rotation < -4) {
+        kf.rotation = Number(Math.max(-3, kf.rotation * 0.25).toFixed(2))
         fixedCrossing = true
       }
     }
@@ -715,16 +719,16 @@ function fixCrossedLegsInPlace(
 
   if (tracks[shinLId]) {
     for (const kf of tracks[shinLId]) {
-      if (Math.abs(kf.rotation) > 16) {
-        kf.rotation = Number((Math.sign(kf.rotation) * 10).toFixed(2))
+      if (Math.abs(kf.rotation) > 3) {
+        kf.rotation = 0
         fixedCrossing = true
       }
     }
   }
   if (tracks[shinRId]) {
     for (const kf of tracks[shinRId]) {
-      if (Math.abs(kf.rotation) > 16) {
-        kf.rotation = Number((Math.sign(kf.rotation) * 10).toFixed(2))
+      if (Math.abs(kf.rotation) > 3) {
+        kf.rotation = 0
         fixedCrossing = true
       }
     }
