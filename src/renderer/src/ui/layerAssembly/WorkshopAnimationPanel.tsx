@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { AnimationClip, BoneKeyframe, LayerBone, LayerRig } from '@shared/layerRig'
 import { sampleBonePose } from '../../engine/layerRig'
 import { RigNumber } from './RigNumber'
-import type { RigPanelProps } from './WorkshopRigPanel'
+import type { RigCommonProps } from './WorkshopRigPanel'
 import { emptyRig, ensureRigClips } from './workshopRig'
 import { sameKeyTime, type BonePoseEntry } from './workshopAnimation'
 import type { useWorkshopPlayback } from './useWorkshopPlayback'
@@ -44,9 +44,11 @@ import {
   IconRetimeStretch
 } from './LayerWorkshopStudioIcons'
 
-type Props = RigPanelProps & {
+type Props = RigCommonProps & {
   playback: ReturnType<typeof useWorkshopPlayback>
   setComposite: (update: (prev: LayerComposite) => LayerComposite) => void
+  subTab?: AnimInspectorSubTab
+  onChangeSubTab?: (t: AnimInspectorSubTab) => void
 }
 
 export type AnimInspectorSubTab = 'pose' | 'clips' | 'physics'
@@ -132,7 +134,9 @@ export function WorkshopAnimationPanel({
   selectBone,
   run,
   playback,
-  setComposite
+  setComposite,
+  subTab: controlledSubTab,
+  onChangeSubTab
 }: Props) {
   const { rig, activeClip } = ensureRigClips(composite.rig ?? emptyRig())
   const projectFps = useEditor((s) => s.project.comp.fps) || 30
@@ -152,7 +156,9 @@ export function WorkshopAnimationPanel({
   }
   const [isRetargetOpen, setIsRetargetOpen] = useState(false)
   const [copiedPose, setCopiedPose] = useState<BonePoseEntry[] | null>(null)
-  const [subTab, setSubTab] = useState<AnimInspectorSubTab>('pose')
+  const [internalSubTab, setInternalSubTab] = useState<AnimInspectorSubTab>('pose')
+  const subTab = controlledSubTab ?? internalSubTab
+  const setSubTab = onChangeSubTab ?? setInternalSubTab
   const assist = useAnimAssist()
   const sketch = useMotionSketch()
 
@@ -254,8 +260,8 @@ export function WorkshopAnimationPanel({
         onConfirmStep={handleConfirmStep}
       />
 
-      {/* 2. Thanh 3 Sub-Tabs gọn gàng */}
-      <SegmentedTabs<AnimInspectorSubTab>
+      {/* 2. Thanh 3 Sub-Tabs gọn gàng (ẩn khi dùng dải tab dọc bên ngoài) */}
+      {!controlledSubTab && <SegmentedTabs<AnimInspectorSubTab>
         variant="segmented"
         size="sm"
         ariaLabel="Phân khu Diễn hoạt"
@@ -287,7 +293,7 @@ export function WorkshopAnimationPanel({
             title: 'Xoay nghiêng đầu/thân 2.5D, Nướng quán tính vật lý tóc/áo/đuôi & Cấu hình IK / Onion Skin'
           }
         ]}
-      />
+      />}
 
       <WorkshopRetargetDialog
         isOpen={isRetargetOpen}

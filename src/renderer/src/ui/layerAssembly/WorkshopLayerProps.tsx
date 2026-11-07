@@ -17,6 +17,7 @@ export interface WorkshopLayerPropsProps {
   onDelete: (id: string) => void
   onSelectLayer: (id: string) => void
   onOpenSwap: (layerId: string, mode: 'replace' | 'variant') => void
+  section?: 'all' | 'transform' | 'depth' | 'parts' | 'cloth'
 }
 
 const DEPTH_PRESETS: Array<[number, string, string]> = [
@@ -276,7 +277,7 @@ function RigSection({ composite, layer, onUpdateLayer }: Pick<WorkshopLayerProps
 
 /** Thuộc tính layer đang chọn: tên, bộ phận & thay thế, biến đổi, chiều sâu Z, khung xương. */
 export function WorkshopLayerProps(props: WorkshopLayerPropsProps) {
-  const { layer, onUpdateLayer, onDuplicate, onDelete } = props
+  const { layer, onUpdateLayer, onDuplicate, onDelete, section = 'all' } = props
   return (
     <div className="lw-props-panel" data-mcp-region="layer_assembly_properties">
       <div className="lw-prop-head">
@@ -284,11 +285,10 @@ export function WorkshopLayerProps(props: WorkshopLayerPropsProps) {
         <button type="button" className="lw-icon-btn" onClick={() => onDuplicate(layer.id)} title="Nhân bản layer (Ctrl+D)"><IconCopy width={13} height={13} /></button>
         <button type="button" className="lw-icon-btn danger" onClick={() => onDelete(layer.id)} title="Xoá layer (Delete)"><IconTrash width={13} height={13} /></button>
       </div>
-      <PartSection {...props} />
-      <TransformSection {...props} />
-      <DepthSection {...props} />
-
-      <RigSection {...props} />
+      {(section === 'all' || section === 'parts') && <PartSection {...props} />}
+      {(section === 'all' || section === 'transform') && <TransformSection {...props} />}
+      {(section === 'all' || section === 'depth') && <DepthSection {...props} />}
+      {(section === 'all' || section === 'cloth') && <RigSection {...props} />}
     </div>
   )
 }

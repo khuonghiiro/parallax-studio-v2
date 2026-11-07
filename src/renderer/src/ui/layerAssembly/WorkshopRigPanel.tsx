@@ -28,7 +28,7 @@ import {
 import '../../styles/layerWorkshopRigLayout.css'
 
 
-export interface RigPanelProps {
+export interface RigCommonProps {
   composite: LayerComposite
   boneId: string | null
   selectBone: (id: string | null) => void
@@ -36,6 +36,11 @@ export interface RigPanelProps {
   selectedLayerId?: string | null
   selectLayer?: (id: string | null) => void
   run: (action: RigAction) => void
+}
+
+export interface RigPanelProps extends RigCommonProps {
+  subTab?: RigSubTab
+  onChangeSubTab?: (tab: RigSubTab) => void
 }
 
 /** 4 phân khu: Cây xương · Thủ công (dựng kết cấu tay) · Gắn Mesh · Tự động (thư viện sinh vật, Mixamo, 2.5D). */
@@ -270,12 +275,24 @@ function AutoRigSection({ composite, run, onApplied }: { composite: LayerComposi
     </>
   )
 }
-export function WorkshopRigPanel({ composite, boneId, selectBone, selectedIds, selectedLayerId, selectLayer, run }: RigPanelProps) {
+export function WorkshopRigPanel({
+  composite,
+  boneId,
+  selectBone,
+  selectedIds,
+  selectedLayerId,
+  selectLayer,
+  run,
+  subTab: controlledSubTab,
+  onChangeSubTab
+}: RigPanelProps) {
   const bones = composite.rig?.bones ?? []
   const bone = bones.find((b) => b.id === boneId)
   const selected = composite.layers.filter((l) => selectedIds.includes(l.id))
   const [localLayerId, setLocalLayerId] = useState<string>('')
-  const [subTab, setSubTab] = useState<RigSubTab>('hierarchy')
+  const [internalSubTab, setInternalSubTab] = useState<RigSubTab>('hierarchy')
+  const subTab = controlledSubTab ?? internalSubTab
+  const setSubTab = onChangeSubTab ?? setInternalSubTab
   const rigTool = useRigToolStore()
   const mirrorTwin = useMemo(() => {
     const id = bone ? findMirrorBoneId(bone.id, bones) : null
@@ -345,20 +362,22 @@ export function WorkshopRigPanel({ composite, boneId, selectBone, selectedIds, s
   return (
     <div className="lw-rig-panel lw-rig-studio" data-mcp-region="layer_assembly_rig_panel">
       <RigToolbelt bones={bones} bone={bone} run={run} onAdd={add} switchTool={switchTool} />
-      <SegmentedTabs<RigSubTab>
-        variant="segmented"
-        size="sm"
-        ariaLabel="Phân khu Tạo xương"
-        className="lw-rig-subtabs"
-        value={subTab}
-        onChange={setSubTab}
-        items={[
-          { id: 'hierarchy', label: 'Cây xương', icon: <IconBoneHierarchy width={12} height={12} />, title: `Cây phân cấp (${bones.length} xương), thuộc tính khớp & giới hạn góc` },
-          { id: 'build', label: 'Thủ công', icon: <IconBoneChainBuild width={12} height={12} />, title: 'Dựng kết cấu xương bằng tay: chuỗi đốt, chia đốt, nhân chi vòng tròn, đối xứng' },
-          { id: 'binding', label: 'Ghép bộ phận', icon: <IconFlexiMeshBind width={12} height={12} />, title: `Tạo xương theo từng bộ phận tách rời & ghép nối phân cấp cha-con (${boundLayersTotal}/${composite.layers.length} bộ phận đã gắn)` },
-          { id: 'autorig', label: 'Tự động', icon: <IconAutoRigSpark width={12} height={12} />, title: 'Thư viện khung xương sinh vật (nhện, cá, ngựa, chim…), Mixamo & Smart 2.5D' }
-        ]}
-      />
+      {!controlledSubTab && (
+        <SegmentedTabs<RigSubTab>
+          variant="segmented"
+          size="sm"
+          ariaLabel="Phân khu Tạo xương"
+          className="lw-rig-subtabs"
+          value={subTab}
+          onChange={setSubTab}
+          items={[
+            { id: 'hierarchy', label: 'Cây xương', icon: <IconBoneHierarchy width={12} height={12} />, title: `Cây phân cấp (${bones.length} xương), thuộc tính khớp & giới hạn góc` },
+            { id: 'build', label: 'Thủ công', icon: <IconBoneChainBuild width={12} height={12} />, title: 'Dựng kết cấu xương bằng tay: chuỗi đốt, chia đốt, nhân chi vòng tròn, đối xứng' },
+            { id: 'binding', label: 'Ghép bộ phận', icon: <IconFlexiMeshBind width={12} height={12} />, title: `Tạo xương theo từng bộ phận tách rời & ghép nối phân cấp cha-con (${boundLayersTotal}/${composite.layers.length} bộ phận đã gắn)` },
+            { id: 'autorig', label: 'Tự động', icon: <IconAutoRigSpark width={12} height={12} />, title: 'Thư viện khung xương sinh vật (nhện, cá, ngựa, chim…), Mixamo & Smart 2.5D' }
+          ]}
+        />
+      )}
       {subTab === 'hierarchy' && (
         <HierarchySplit
           tree={
