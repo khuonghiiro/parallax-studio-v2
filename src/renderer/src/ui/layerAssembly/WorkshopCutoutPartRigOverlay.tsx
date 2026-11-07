@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react'
-import type { AssembledLayerItem, LayerComposite, WorkshopTab } from './types'
+import type { AssembledLayerItem, LayerComposite } from './types'
+import type { WorkshopTab } from './WorkshopRightPanel'
 import { useLayerAssetImage } from './useLayerAssetImage'
 import type { LayerBone } from '@shared/layerRig'
 import {
