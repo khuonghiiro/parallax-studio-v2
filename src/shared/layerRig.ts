@@ -58,7 +58,24 @@ export interface BoneKeyframe extends BonePose {
   bezier?: BoneBezier
 }
 
-export type MotionViewAngle = 'front' | 'diagonal' | 'side' | 'back'
+export type MotionViewAngle =
+  | 'front'
+  | 'diagonal'
+  | 'diagonal-left'
+  | 'diagonal-right'
+  | 'side'
+  | 'side-left'
+  | 'side-right'
+  | 'back'
+
+/** Rút gọn góc nhìn chi tiết về 4 góc cơ bản ('front' | 'diagonal' | 'side' | 'back') */
+export function normalizeBaseViewAngle(angle?: string | null): 'front' | 'diagonal' | 'side' | 'back' {
+  if (!angle) return 'front'
+  if (angle.startsWith('diagonal')) return 'diagonal'
+  if (angle.startsWith('side')) return 'side'
+  if (angle === 'back') return 'back'
+  return 'front'
+}
 
 /** Từng phân đoạn động tác hoạt ảnh độc lập (Animation Clip) của khung xương */
 export interface AnimationClip {

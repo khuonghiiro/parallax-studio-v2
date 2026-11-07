@@ -35,7 +35,11 @@ export interface WorkshopNewMotionModalProps {
 const ANGLE_LABEL: Record<MotionViewAngle, string> = {
   front: '0° Chính diện',
   diagonal: '45° Góc chéo',
+  'diagonal-left': '45° Chéo Trái',
+  'diagonal-right': '45° Chéo Phải',
   side: '90° Góc ngang',
+  'side-left': '90° Ngang Trái',
+  'side-right': '90° Ngang Phải',
   back: '180° Sau lưng'
 }
 
