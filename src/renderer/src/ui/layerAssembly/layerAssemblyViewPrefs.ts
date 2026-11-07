@@ -114,7 +114,7 @@ export interface LayerWorkshopColumnPrefs {
 export const DEFAULT_LAYER_WORKSHOP_COLUMN_PREFS: LayerWorkshopColumnPrefs = {
   leftSidebarWidth: 260,
   centerSplitRatio: 0.5,
-  rightPanelWidth: 330
+  rightPanelWidth: 360
 }
 
 export const LAYER_WORKSHOP_COLUMN_PREFS_KEY = 'pxs.layerWorkshopColumnPrefs'
@@ -128,7 +128,7 @@ export function clampCenterSplitRatio(r: number): number {
 }
 
 export function clampRightPanelWidth(w: number): number {
-  return Math.max(250, Math.min(640, Math.round(w)))
+  return Math.max(280, Math.min(640, Math.round(w)))
 }
 
 export function isDefaultLayerWorkshopColumnPrefs(prefs: LayerWorkshopColumnPrefs): boolean {
