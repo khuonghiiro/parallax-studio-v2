@@ -425,11 +425,21 @@ export const LAYER_ASSEMBLY_TOOLS = [
     name: 'set_layer_assembly_panel',
     cat: 'layer_assembly',
     doc: L(
-      'Switch between the 4 inspector tabs (layers, bones, animation, plant) and select active bone in the workshop.',
-      'Chuyển đổi giữa 4 tab cột phải (layers, bones, animation, plant) và chọn xương kích hoạt trong xưởng.'
+      'Switch between the 5 inspector tabs (layers, bones, animation, plant, loop) and their horizontal sub-tabs, and select active bone in the workshop.',
+      'Chuyển đổi giữa 5 tab chính cột phải (layers, bones, animation, plant, loop) cùng các sub-tab ngang con và chọn xương kích hoạt trong xưởng.'
     ),
     shape: (d) => ({
-      tab: z.enum(['layers', 'bones', 'animation', 'plant']).optional().describe(d('Active right panel tab ("plant" = draw plant spines for wind sway).', 'Tab cột phải cần mở ("plant" = vẽ xương motion đung đưa theo gió).')),
+      tab: z.enum(['layers', 'bones', 'animation', 'plant', 'loop']).optional().describe(d('Active right panel tab ("plant" = draw plant spines for wind sway, "loop" = loop animate logic).', 'Tab cột phải cần mở ("plant" = vẽ xương motion đung đưa theo gió, "loop" = logic hoạt ảnh lặp).')),
+      sub_tab: z.enum([
+        'stack', 'transform', 'depth', 'parts', 'cloth',
+        'hierarchy', 'build', 'binding', 'autorig',
+        'pose', 'clips', 'physics',
+        'spines', 'create', 'harmony',
+        'template', 'playback', 'rhythm'
+      ]).optional().describe(d(
+        'Active horizontal sub-tab: layers (stack, transform, depth, parts, cloth), bones (hierarchy, build, binding, autorig), animation (pose, clips, physics), plant (spines, create, harmony), loop (template, playback, rhythm).',
+        'Sub-tab ngang con cần kích hoạt: layers (stack, transform, depth, parts, cloth), bones (hierarchy, build, binding, autorig), animation (pose, clips, physics), plant (spines, add, wind), loop (template, playback, rhythm).'
+      )),
       bone_id: z.string().optional().describe(d('Optional bone ID to select.', 'ID xương cần chọn.')),
       spine_id: z.string().optional().describe(d('Optional plant spine ID to select.', 'ID xương motion cần chọn.')),
       plant_grab_mode: z.enum(['record', 'learn']).optional().describe(d('Plant grab circle behavior: "record" = records custom hand-drawn sway · "learn" = infers procedural wind amplitude/lean/period.', 'Hành vi vòng tròn ở ngọn: "record" = ghi chuyển động vẽ tay · "learn" = học biên độ/độ nghiêng/nhịp gió tự động.')),
@@ -448,7 +458,7 @@ export const LAYER_ASSEMBLY_TOOLS = [
       rig_influence: z.boolean().optional().describe(d('Show or hide Moho Bone Strength / Influence capsules on the 2D stage.', 'Hiện/ẩn lớp vỏ viên nang Vùng ảnh hưởng xương trên sân khấu 2D.')),
       rig_mirror_draw: z.boolean().optional().describe(d('Enable symmetrical Left ⇄ Right bone drawing across X = 0 when using the Add Bone (A) tool.', 'Bật/tắt chế độ Vẽ xương đối xứng Trái ⇄ Phải qua trục X = 0 khi dùng công cụ Vẽ xương (A).'))
     }),
-    example: '{"tab":"animation","anim_ik":true}'
+    example: '{"tab":"layers","sub_tab":"transform"}'
   },
   {
     name: 'layer_assembly_plant_spine',
