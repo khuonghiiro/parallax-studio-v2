@@ -21,6 +21,7 @@ import { Create3DModal } from './ui/assets/models3d/Create3DModal'
 import { PhotoStudioDialog } from './ui/photoStudio/PhotoStudioDialog'
 import { GlobalLayerAssemblyHost } from './ui/layerAssembly/GlobalLayerAssemblyHost'
 import { AiControlOverlay } from './ui/AiControlOverlay'
+import { AiUiInspectorOverlay } from './ui/AiUiInspectorOverlay'
 import { RemoteClientHud } from './ui/remote/RemoteClientHud'
 import { isRemoteWebClient } from './remote/remoteSession'
 import { bootstrapAndSyncRemoteClient, initHostRemoteBridge } from './remote/remoteStudioSync'
@@ -241,6 +242,7 @@ export default function App() {
       <Timeline />
 
       <AiControlOverlay />
+      <AiUiInspectorOverlay />
       <RemoteClientHud />
 
       {dialog === 'export' && <ExportDialog onClose={() => useView.getState().openDialog(null)} />}

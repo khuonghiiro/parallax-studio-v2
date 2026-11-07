@@ -19,6 +19,7 @@ import type { McpStatus } from '@shared/ipc'
 import { useEditor } from '../store/editor'
 import { useView } from '../store/view'
 import {
+  IconAiScan,
   IconAssetManifest,
   IconExport,
   IconFile,
@@ -352,6 +353,16 @@ export function Toolbar({ onExport }: { onExport: () => void }) {
         <McpChip />
 
         <ToolCluster ariaLabel="Tiện ích Studio" className="tb-utility-cluster">
+          <button
+            id="ai-ui-inspector-btn"
+            type="button"
+            className="tb-btn-icon ai-inspector-chip"
+            aria-label="Soi giao diện cho AI"
+            onClick={() => window.dispatchEvent(new CustomEvent('pxs:toggle-ai-inspector'))}
+            title="Soi vùng giao diện cho AI (Phím tắt: Win + Shift + Nhấn giữ chuột trái quét khung, hoặc click vào đây rồi quét)"
+          >
+            <IconAiScan width={14} height={14} style={{ color: 'var(--accent-cyan)' }} />
+          </button>
           <button
             id="remote-qr-btn"
             type="button"
