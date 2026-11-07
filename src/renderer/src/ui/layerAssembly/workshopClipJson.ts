@@ -9,12 +9,22 @@ import {
 } from './workshopPlantSpines'
 import {
   buildBoneBiomechanicsGuide,
+  buildMeshDeformationExportSection,
   inferDescriptiveClipName,
   isGenericClipName,
-  normalizeAndFixBiomechanicalTracks
+  normalizeAndFixBiomechanicalTracks,
+  upgradeCompositeSoftMeshForImpact,
+  type MotionMeshExportSection
 } from './workshopClipBiomechanics'
 
-export { isGenericClipName, inferDescriptiveClipName, normalizeAndFixBiomechanicalTracks }
+export {
+  isGenericClipName,
+  inferDescriptiveClipName,
+  normalizeAndFixBiomechanicalTracks,
+  buildMeshDeformationExportSection,
+  upgradeCompositeSoftMeshForImpact,
+  type MotionMeshExportSection
+}
 
 export interface MotionLayerWindItem {
   layerId: string
@@ -66,6 +76,7 @@ export interface MotionJsonExportFormat {
     armRotationRule: string
     frontViewLegRule: string
     pelvisVerticalRule: string
+    meshImpactRule: string
   }
   /** Danh sách xương kèm hướng dẫn cơ học từng khớp */
   bones: Array<{
@@ -77,18 +88,28 @@ export interface MotionJsonExportFormat {
     y?: number
     length?: number
     angle?: number
+    meshEnvelope?: boolean
+    strength?: number
+    influenceReach?: number
+    pin?: boolean
     boundLayers?: string[]
     directionGuide?: string
   }>
-  /** Danh sách các mảnh Layer để AI biết ID khi gán trục Gió (Tóc/Áo/Cây) */
+  /** Danh sách các mảnh Layer kèm chế độ gắn Mesh (soft/rigid) & vật lý */
   layers?: Array<{
     id: string
     name: string
     boneId?: string | null
+    bindingMode?: 'soft' | 'rigid'
+    extraBoneIds?: string[]
     partGroupId?: string | null
+    isCloth?: boolean
+    physicsMaterial?: string | null
   }>
   /** Keyframe của từng xương theo thời gian */
   tracks: Record<string, BoneKeyframe[]>
+  /** Cấu hình biến dạng Lưới Mesh chịu tác lực tiếp đất & uốn mềm da cơ (Soft Mesh & Ground Impact) */
+  meshDeformation?: MotionMeshExportSection
   /** Cấu hình chuyển động Gió uốn mềm (Tóc, Tà áo, Khăn choàng, Cành lá) */
   wind?: MotionWindExportSection
 }
@@ -121,6 +142,7 @@ function inferWeatherPresetFromSpines(spines: ReadonlyArray<PlantSpine>): WindWe
 export interface ExportClipJsonOptions {
   composite?: LayerComposite
   includeWind?: boolean
+  includeMesh?: boolean
   suggestedName?: string
 }
 
@@ -136,6 +158,7 @@ export function exportAnimationClipToJson(
       : (optionsOrComposite as ExportClipJsonOptions) ?? { includeWind: true }
   const composite = opts.composite
   const includeWind = opts.includeWind !== false
+  const includeMesh = opts.includeMesh !== false
   const viewAngle = clip.viewAngle ?? 'front'
   const bonesMeta = buildBoneBiomechanicsGuide(bones, composite, viewAngle).map((b) => ({
     id: b.id,
@@ -146,6 +169,10 @@ export function exportAnimationClipToJson(
     y: b.y,
     length: b.length,
     angle: b.angle,
+    meshEnvelope: b.meshEnvelope,
+    strength: b.strength,
+    influenceReach: b.influenceReach,
+    ...(b.pin ? { pin: true } : {}),
     ...(b.boundLayers.length > 0 ? { boundLayers: b.boundLayers } : {}),
     directionGuide: b.directionGuide
   }))
@@ -221,7 +248,9 @@ export function exportAnimationClipToJson(
       frontViewLegRule:
         'Ở góc chính diện 0° (front): khi khuỵu gối / nhún nhảy, đặt thigh-l DƯƠNG nhẹ (+8°..+16°), thigh-r ÂM nhẹ (-8°..-16°), shin-l ÂM (-6°..-14°), shin-r DƯƠNG (+6°..+14°) KÈM scaleY (0.88..0.94) để tạo phối cảnh thu ngắn 2.5D. Không xoay chân ±35° ở góc 0°.',
       pelvisVerticalRule:
-        'Hông gốc (pelvis): y > 0 (+8..+22px) là nhún gối hạ thấp; y < 0 (-15..-46px) là bật nhảy lên cao. Giữ trong ngưỡng -48px <= y <= +22px để chân bám đất tự nhiên.'
+        'Hông gốc (pelvis): y > 0 (+8..+22px) là nhún gối hạ thấp; y < 0 (-15..-46px) là bật nhảy lên cao. Giữ trong ngưỡng -48px <= y <= +22px để chân bám đất tự nhiên.',
+      meshImpactRule:
+        'Biến dạng lưới Mesh chịu tác lực tiếp đất (Soft Mesh & Ground Contact Impact): Các bộ phận cơ thể uốn mềm theo lưới tam giác Alpha Mesh (bindingMode: "soft", meshEnvelope: true). Khi chân tiếp xúc mặt đất (nhún lấy đà / tiếp đất chịu lực), BẮT BUỘC truyền phản lực nén Mesh qua scaleX > 1 & scaleY < 1: Bàn chân (foot-l/r) bè ngang & nén dẹt (scaleX: 1.14..1.18, scaleY: 0.82..0.86, y: +2..+4), Cẳng chân (shin-l/r) nén cơ (scaleX: 1.06, scaleY: 0.88, y: -6), Đùi (thigh-l/r) nén phối cảnh (scaleX: 1.05, scaleY: 0.89). Khi bật nhảy rời đất, duỗi thon Mesh bàn chân (scaleX: 0.94, scaleY: 1.10).'
     },
     bones: bonesMeta,
     ...(composite?.layers?.length
@@ -230,11 +259,16 @@ export function exportAnimationClipToJson(
             id: l.id,
             name: l.name,
             boneId: l.boneId || null,
-            partGroupId: l.partGroupId || null
+            bindingMode: l.bindingMode ?? 'soft',
+            ...(l.extraBoneIds?.length ? { extraBoneIds: l.extraBoneIds } : {}),
+            partGroupId: l.partGroupId || null,
+            ...(l.isCloth ? { isCloth: true } : {}),
+            physicsMaterial: l.physics?.enabled ? l.physics.material : null
           }))
         }
       : {}),
     tracks: sortedTracks,
+    ...(includeMesh ? { meshDeformation: buildMeshDeformationExportSection(bones, composite) } : {}),
     ...(includeWind ? { wind: windSection } : {})
   }
 
@@ -305,7 +339,17 @@ ${layerLines.length > 0 ? `🧩 DANH SÁCH MẢNH LAYER (ĐỂ GẮN HIỆU ỨN
 3. Đàn hồi Squash & Stretch cho Thân ("bone-torso") & Đầu ("bone-head"):
    - Khi nhún lấy đà / tiếp đất: "bone-torso" nén nhẹ ("scaleX": 1.03, "scaleY": 0.93, "y": 4).
    - Khi vươn người / bật nhảy / hít vào: "bone-torso" giãn nhẹ ("scaleX": 0.98, "scaleY": 1.03, "y": -3).
-4. Hiệu ứng Gió uốn mềm ("wind") cho Tóc / Tà áo / Cành lá:
+4. Biến dạng Lưới Mesh Chịu Tác Lực Tiếp Đất & Uốn Mềm Da Cơ ("meshDeformation" & Keyframe scaleX/scaleY):
+   - Toàn bộ các mảnh cơ thể (đùi, cẳng chân, bàn chân, thân, cánh tay) đều dùng lưới tam giác Alpha Mesh uốn mềm ("bindingMode": "soft", "meshEnvelope": true).
+   - KHI NHÚN LẤY ĐÀ / CHÂN TIẾP XÚC MẶT ĐẤT CHỊU LỰC (Ground Contact Impact):
+     * Bàn chân ("bone-foot-l", "bone-foot-r"): chịu phản lực trực tiếp từ mặt sàn ➔ Mesh đế giày bè ngang và nén dẹt ("scaleX": 1.14..1.18, "scaleY": 0.82..0.86, "y": 2.5, "rotation": ±3°).
+     * Cẳng chân ("bone-shin-l", "bone-shin-r"): hấp thụ xung lực từ cổ chân lên gối ➔ Mesh bắp chân & ống quần nén dọc, phình ngang ("scaleX": 1.06, "scaleY": 0.88, "y": -6).
+     * Đùi ("bone-thigh-l", "bone-thigh-r"): nén cơ đùi phối cảnh 2.5D ("scaleX": 1.05, "scaleY": 0.89).
+   - KHI BẬT NHẢY TRÊN KHÔNG / DUỖI CHÂN RỜI ĐẤT (Airborne Stretch):
+     * Bàn chân ("bone-foot-l", "bone-foot-r"): thoát lực nén, duỗi thon mũi giày ("scaleX": 0.94, "scaleY": 1.10, "rotation": ∓6°).
+     * Cẳng chân & Đùi: duỗi thon ("scaleX": 0.97, "scaleY": 1.04).
+   - Bổ sung trường "meshDeformation" trong JSON đầu ra để kích hoạt uốn mềm Mesh ("meshEnvelope": true) và thông số nén phản lực mặt đất.
+5. Hiệu ứng Gió uốn mềm ("wind") cho Tóc / Tà áo / Cành lá:
    - Bổ sung trường "wind" trong JSON để mái tóc (layer đầu/tóc) và tà áo (layer thân/áo) đung đưa mềm mại theo quán tính và thời tiết:
    - "weatherPreset": "breeze" (Hiu hiu ±6°) | "moderate" (Gió vừa ±13°) | "strong" (Gió mạnh ±22°) | "storm" (Gió lốc ±32°).
    - "plantSpines": danh sách trục uốn gió gắn vào layer tóc/đầu (direction: "down" cho tóc/áo rủ xuống, "up" cho cây cỏ mọc lên, "horizontal" cho khăn/cờ bay ngang).
@@ -328,7 +372,24 @@ Chỉ trả về DUY NHẤT một khối mã JSON hợp lệ nằm trong \`\`\`j
       { "time": ${(clip.duration * 0.25).toFixed(2)}, "x": 0, "y": 16, "rotation": 0, "scaleX": 1, "scaleY": 1, "easing": "ease-in-out" },
       { "time": ${(clip.duration * 0.55).toFixed(2)}, "x": 0, "y": -38, "rotation": 0, "scaleX": 1, "scaleY": 1, "easing": "smooth" },
       { "time": ${clip.duration.toFixed(2)}, "x": 0, "y": 0, "rotation": 0, "scaleX": 1, "scaleY": 1, "easing": "smooth" }
+    ],
+    "bone-foot-l": [
+      { "time": 0.0, "x": 0, "y": 0, "rotation": 0, "scaleX": 1, "scaleY": 1, "easing": "smooth" },
+      { "time": ${(clip.duration * 0.25).toFixed(2)}, "x": 0, "y": 2.5, "rotation": 3, "scaleX": 1.16, "scaleY": 0.84, "easing": "ease-in-out" },
+      { "time": ${(clip.duration * 0.55).toFixed(2)}, "x": 0, "y": -1.5, "rotation": -6, "scaleX": 0.94, "scaleY": 1.10, "easing": "smooth" },
+      { "time": ${clip.duration.toFixed(2)}, "x": 0, "y": 0, "rotation": 0, "scaleX": 1, "scaleY": 1, "easing": "smooth" }
     ]
+  },
+  "meshDeformation": {
+    "enabled": true,
+    "meshEnvelope": true,
+    "groundContactImpact": {
+      "enabled": true,
+      "footImpactSquash": { "scaleX": 1.16, "scaleY": 0.84, "offsetY": 2.5 },
+      "shinImpactCompression": { "scaleX": 1.06, "scaleY": 0.88, "offsetY": -6 },
+      "thighImpactCompression": { "scaleX": 1.05, "scaleY": 0.89 },
+      "airborneFootStretch": { "scaleX": 0.94, "scaleY": 1.10 }
+    }
   },
   "wind": {
     "enabled": true,
@@ -375,6 +436,7 @@ export interface ParseClipResult {
   success: boolean
   clip?: AnimationClip
   wind?: ParsedWindData
+  mesh?: Partial<MotionMeshExportSection>
   fixesApplied?: string[]
   error?: string
   warnings?: string[]
@@ -621,6 +683,10 @@ export function parseAnimationClipFromJson(
 
   const data = parsed as Record<string, unknown>
   const parsedWind = parseWindFromData(data, composite, fixesApplied)
+  const parsedMesh =
+    typeof data.meshDeformation === 'object' && data.meshDeformation !== null
+      ? (data.meshDeformation as Partial<MotionMeshExportSection>)
+      : { enabled: true, meshEnvelope: true }
 
   const rawTracks = data.tracks
   const hasValidWind = Boolean(parsedWind && (parsedWind.plantSpines.length > 0 || parsedWind.layerMotions.length > 0))
@@ -778,6 +844,7 @@ export function parseAnimationClipFromJson(
     success: true,
     clip,
     wind: parsedWind,
+    mesh: parsedMesh,
     fixesApplied: fixesApplied.length > 0 ? fixesApplied : undefined,
     warnings: warnings.length > 0 ? warnings : undefined
   }

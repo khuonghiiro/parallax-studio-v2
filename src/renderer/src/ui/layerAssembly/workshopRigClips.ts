@@ -1,13 +1,13 @@
 import type { AnimationClip, BoneKeyframe, LayerBone, LayerRig } from '@shared/layerRig'
 import { sampleBonePose } from '../../engine/layerRig'
 import { retargetAnimationClip } from './workshopRetarget'
-import type { ParsedWindData } from './workshopClipJson'
+import type { MotionMeshExportSection, ParsedWindData } from './workshopClipJson'
 
 export type RigClipAction =
-  | { action: 'add-clip'; clip: AnimationClip; wind?: ParsedWindData }
+  | { action: 'add-clip'; clip: AnimationClip; wind?: ParsedWindData; mesh?: Partial<MotionMeshExportSection> }
   | { action: 'switch-clip'; clipId: string }
   | { action: 'rename-clip'; clipId: string; name: string }
-  | { action: 'replace-clip'; clipId: string; clip: AnimationClip; wind?: ParsedWindData }
+  | { action: 'replace-clip'; clipId: string; clip: AnimationClip; wind?: ParsedWindData; mesh?: Partial<MotionMeshExportSection> }
   | { action: 'delete-clip'; clipId: string }
   | { action: 'delete-all-clips' }
   | { action: 'duplicate-clip'; clipId: string }

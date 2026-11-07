@@ -1,5 +1,6 @@
-import type { BoneKeyframe, LayerBone, MotionViewAngle } from '@shared/layerRig'
-import type { LayerComposite } from './types'
+import type { BoneKeyframe, LayerBone, LayerRig, MotionViewAngle } from '@shared/layerRig'
+import type { AssembledLayerItem, LayerComposite } from './types'
+import { extraSoftBoneIdsForLayer } from './workshopRig'
 import { inferHumanoidBoneRoles, type HumanoidBoneRoleMap } from './spineRigWorkflow'
 
 export type AnatomicalBoneRole = keyof HumanoidBoneRoleMap | 'custom'
@@ -13,12 +14,61 @@ export interface BoneBiomechanicsMeta {
   y: number
   length: number
   angle: number
+  meshEnvelope: boolean
+  strength: number
+  influenceReach: number
+  pin?: boolean
   boundLayers: string[]
   directionGuide: string
 }
 
+export interface MotionBoneEnvelopeItem {
+  boneId: string
+  boneName?: string
+  meshEnvelope: boolean
+  strength: number
+  influenceReach: number
+  pin?: boolean
+}
+
+export interface MotionLayerMeshBindingItem {
+  layerId: string
+  layerName: string
+  bindingMode: 'soft' | 'rigid'
+  boneId: string | null
+  extraBoneIds?: string[]
+  meshWidth?: number
+  meshHeight?: number
+  isCloth?: boolean
+  clothFollowBoneId?: string
+  clothAmplitude?: number
+  physics?: {
+    enabled: boolean
+    material: string
+    role?: string
+    stiffness?: number
+    damping?: number
+    bounciness?: number
+  }
+}
+
+export interface MotionMeshExportSection {
+  enabled: boolean
+  meshEnvelope: boolean
+  groundContactImpact: {
+    enabled: boolean
+    footImpactSquash: { scaleX: number; scaleY: number; offsetY: number }
+    shinImpactCompression: { scaleX: number; scaleY: number; offsetY: number }
+    thighImpactCompression: { scaleX: number; scaleY: number }
+    airborneFootStretch: { scaleX: number; scaleY: number }
+    torsoElasticity: { squashScaleX: number; squashScaleY: number; stretchScaleX: number; stretchScaleY: number }
+  }
+  boneEnvelopes: MotionBoneEnvelopeItem[]
+  layerBindings: MotionLayerMeshBindingItem[]
+}
+
 const GENERIC_CLIP_NAME_RE =
-  /^(động tác\s*\d*|động tác mới|động tác mặc định|tên động tác|động tác nhập.*|clip\s*\d*|new clip|untitled|motion\s*\d*)$/i
+  /^(động tác\s*\d*|động tác mới\s*\d*|động tác mặc định|tên động tác|động tác nhập.*|clip\s*\d*|new clip|untitled|motion\s*\d*)$/i
 
 /** Kiểm tra xem tên clip có phải là tên mặc định chung chung (ví dụ "Động tác 6", "Tên động tác") hay không */
 export function isGenericClipName(name?: string | null): boolean {
@@ -26,54 +76,54 @@ export function isGenericClipName(name?: string | null): boolean {
   return GENERIC_CLIP_NAME_RE.test(name.trim())
 }
 
-/** Xây dựng hướng dẫn chiều xoay & phối cảnh 2.5D cho từng vai trò khớp giải phẫu */
+/** Xây dựng hướng dẫn chiều xoay, phối cảnh 2.5D & biến dạng lưới Mesh chịu lực cho từng vai trò khớp */
 function getRoleDirectionGuide(role: AnatomicalBoneRole, viewAngle: MotionViewAngle = 'front'): string {
   const isSide = viewAngle === 'side'
   switch (role) {
     case 'pelvis':
-      return 'Hông gốc (Root): y DƯƠNG (+8..+22px) = hạ trọng tâm chùng gối; y ÂM (-15..-48px) = bật nhảy lên không. Tuyệt đối giữ -50 <= y <= +25px để chân không lún xuyên sàn hay bay khỏi khung. rotation giữ nhỏ (±4°).'
+      return 'Hông gốc (Root): y DƯƠNG (+8..+22px) = hạ trọng tâm chùng gối; y ÂM (-15..-48px) = bật nhảy lên không. Giữ -50 <= y <= +25px để chân bám sàn tự nhiên. rotation giữ nhỏ (±4°).'
     case 'torso':
-      return 'Thân/Ngực: rotation ±2°..±12° (nghiêng/xoay thân). Phối cảnh 2.5D: scaleY < 1 (0.80..0.94) + y dương (+5..+14px) = gập ngực cúi chào hoặc nén người lấy đà; scaleY > 1 (1.01..1.05) = hít thở / vươn người bật nhảy.'
+      return 'Thân/Ngực (Soft Mesh): rotation ±2°..±12°. Khi nhún/tiếp đất chịu lực: nén Mesh thân (scaleX: 1.04, scaleY: 0.93, y: +3.5px); khi bật nhảy/vươn người: giãn Mesh thân (scaleX: 0.97, scaleY: 1.04, y: -3px).'
     case 'head':
-      return 'Đầu: rotation DƯƠNG (+3°..+12°) = nghiêng đầu sang phải; ÂM (-3°..-12°) = nghiêng sang trái. y DƯƠNG (+6..+24px) kèm scaleY 0.93 = gật đầu cúi xuống 2.5D; y ÂM (-2..-6px) = ngẩng đầu.'
+      return 'Đầu: rotation DƯƠNG (+3°..+12°) = nghiêng phải; ÂM (-3°..-12°) = nghiêng trái. y DƯƠNG (+4..+18px) kèm scaleY 0.95 = gật/nén quán tính khi tiếp đất; y ÂM (-2..-6px) = ngẩng đầu.'
     case 'armL':
-      return 'Bắp tay trái (mặc định chúc xuống ~95°): QUAN TRỌNG: rotation DƯƠNG (+20°..+130°) = GIƠ TAY TRÁI MỞ RA NGOÀI & LÊN CAO; rotation ÂM (-5°..-20°) = khép nhẹ vào ngực. Không dùng góc âm lớn làm tay đâm xuyên qua bụng!'
+      return 'Bắp tay trái (mặc định chúc xuống ~95°): QUAN TRỌNG: rotation DƯƠNG (+20°..+130°) = GIƠ TAY TRÁI MỞ RA NGOÀI & LÊN CAO; rotation ÂM (-5°..-18°) = khép nhẹ vào ngực. Đặt zOrder: 50 khi vươn tay.'
     case 'forearmL':
-      return 'Cẳng tay trái: rotation DƯƠNG (+10°..+45°) = mở/nâng cẳng tay trái hướng ra ngoài; rotation ÂM (-10°..-35°) = gập khuỷu tay trái vào trong.'
+      return 'Cẳng tay trái (Soft Mesh): rotation DƯƠNG (+10°..+45°) = mở/nâng cẳng tay trái hướng ra ngoài; có thể kèm scaleY: 0.95..1.04 tạo độ văng cơ.'
     case 'handL':
       return 'Bàn tay trái: rotation ±10°..±25° vẫy cổ tay mềm mại theo cẳng tay trái (Follow-through).'
     case 'armR':
-      return 'Bắp tay phải (mặc định chúc xuống ~85°): QUAN TRỌNG: rotation ÂM (-20°..-130°) = GIƠ TAY PHẢI MỞ RA NGOÀI & LÊN CAO; rotation DƯƠNG (+5°..+20°) = khép nhẹ vào ngực. Đặt zOrder: 50..60 khi đưa tay lên trước thân.'
+      return 'Bắp tay phải (mặc định chúc xuống ~85°): QUAN TRỌNG: rotation ÂM (-20°..-130°) = GIƠ TAY PHẢI MỞ RA NGOÀI & LÊN CAO; rotation DƯƠNG (+5°..+18°) = khép nhẹ vào ngực. Đặt zOrder: 50..60 khi đưa tay lên trước thân.'
     case 'forearmR':
-      return 'Cẳng tay phải: rotation ÂM (-15°..-45°) = gập khuỷu tay phải lên/ra ngoài (khi vẫy tay: dao động -15°..-60°); rotation DƯƠNG (+10°..+35°) = gập vào trong.'
+      return 'Cẳng tay phải (Soft Mesh): rotation ÂM (-15°..-45°) = gập khuỷu tay phải lên/ra ngoài; có thể kèm scaleY: 0.95..1.04.'
     case 'handR':
       return 'Bàn tay phải: rotation ±15°..±25° vẫy cổ tay mềm mại theo cẳng tay phải.'
     case 'thighL':
       return isSide
-        ? 'Đùi trái (góc ngang 90°): rotation ÂM (-20°..-35°) = bước đùi về trước; DƯƠNG (+15°..+25°) = đạp chân ra sau.'
-        : 'Đùi trái (góc chính diện 0°): khi khuỵu gối đặt rotation DƯƠNG (+8°..+16°) mở gối nhẹ + scaleY (0.88..0.94) thu ngắn phối cảnh 2.5D. Cấm dùng góc âm lớn làm 2 đầu gối chụm chữ X!'
+        ? 'Đùi trái (góc ngang 90°): rotation ÂM (-20°..-35°) = bước đùi về trước; DƯƠNG (+15°..+25°) = đạp chân ra sau. Khi tiếp đất: scaleX: 1.05, scaleY: 0.90.'
+        : 'Đùi trái (góc 0° - Soft Mesh): khi khuỵu gối/tiếp đất đặt rotation DƯƠNG nhẹ (+4°..+7°) + TÁC LỰC NÉN MESH ĐÙI (scaleX: 1.05, scaleY: 0.88..0.91); khi bật nhảy trên không đặt scaleX: 0.97, scaleY: 1.03.'
     case 'shinL':
       return isSide
-        ? 'Cẳng chân trái (góc ngang 90°): rotation DƯƠNG (+15°..+45°) = gập gối ra sau.'
-        : 'Cẳng chân trái (góc chính diện 0°): khi khuỵu gối đặt rotation ÂM (-6°..-14°) ngược dấu đùi trái để ống chân thẳng đứng + scaleY (0.88..0.94).'
+        ? 'Cẳng chân trái (góc ngang 90°): rotation DƯƠNG (+15°..+45°) = gập gối ra sau. Khi tiếp đất: scaleX: 1.06, scaleY: 0.88.'
+        : 'Cẳng chân trái (góc 0° - Soft Mesh): khi khuỵu gối/tiếp đất đặt rotation ÂM nhẹ (-4°..-6°) + TÁC LỰC NÉN MESH CẲNG CHÂN (scaleX: 1.06, scaleY: 0.87..0.90, y: -5..-7px); khi trên không đặt scaleX: 0.97, scaleY: 1.04.'
     case 'footL':
-      return 'Bàn chân trái: bù góc nhẹ (±4°..±16°) để đế giày bám phẳng mặt đất khi nhún hoặc duỗi mũi chân (-15°) khi bật nhảy.'
+      return 'Bàn chân trái (Mesh Chịu Tác Lực Tiếp Đất): Khi nhún lấy đà / chạm đất chịu lực, BẮT BUỘC nén dẹt & bè ngang lưới Mesh đế giày (scaleX: 1.14..1.18, scaleY: 0.82..0.86, y: +2..+4px, rotation: +2°..+5°); khi bật nhảy rời đất, duỗi thon bàn chân (scaleX: 0.93..0.95, scaleY: 1.08..1.12, rotation: -6°..-10°).'
     case 'thighR':
       return isSide
         ? 'Đùi phải (góc ngang 90°): rotation ÂM (-20°..-35°) = bước đùi về trước; DƯƠNG (+15°..+25°) = đạp chân ra sau.'
-        : 'Đùi phải (góc chính diện 0°): khi khuỵu gối đặt rotation ÂM (-8°..-16°) đối xứng gương với đùi trái + scaleY (0.88..0.94) thu ngắn phối cảnh 2.5D.'
+        : 'Đùi phải (góc 0° - Soft Mesh): khi khuỵu gối/tiếp đất đặt rotation ÂM nhẹ (-4°..-7°) đối xứng đùi trái + TÁC LỰC NÉN MESH ĐÙI (scaleX: 1.05, scaleY: 0.88..0.91); khi trên không đặt scaleX: 0.97, scaleY: 1.03.'
     case 'shinR':
       return isSide
         ? 'Cẳng chân phải (góc ngang 90°): rotation DƯƠNG (+15°..+45°) = gập gối ra sau.'
-        : 'Cẳng chân phải (góc chính diện 0°): khi khuỵu gối đặt rotation DƯƠNG (+6°..+14°) ngược dấu đùi phải để ống chân thẳng đứng + scaleY (0.88..0.94).'
+        : 'Cẳng chân phải (góc 0° - Soft Mesh): khi khuỵu gối/tiếp đất đặt rotation DƯƠNG nhẹ (+4°..+6°) + TÁC LỰC NÉN MESH CẲNG CHÂN (scaleX: 1.06, scaleY: 0.87..0.90, y: -5..-7px); khi trên không đặt scaleX: 0.97, scaleY: 1.04.'
     case 'footR':
-      return 'Bàn chân phải: bù góc nhẹ (±4°..±16°) đối xứng với bàn chân trái để giữ thăng bằng.'
+      return 'Bàn chân phải (Mesh Chịu Tác Lực Tiếp Đất): Khi nhún lấy đà / chạm đất chịu lực, BẮT BUỘC nén dẹt & bè ngang lưới Mesh đế giày (scaleX: 1.14..1.18, scaleY: 0.82..0.86, y: +2..+4px, rotation: -2°..-5°); khi bật nhảy rời đất, duỗi thon bàn chân (scaleX: 0.93..0.95, scaleY: 1.08..1.12, rotation: +6°..+10°).'
     default:
-      return 'Khớp tuỳ chỉnh: xoay mượt mà (±5°..±35°) theo hướng gốc của xương.'
+      return 'Khớp tuỳ chỉnh (Soft Mesh): xoay mượt mà (±5°..±35°), kết hợp scaleX/scaleY (0.90..1.10) để uốn lưới tam giác theo quán tính.'
   }
 }
 
-/** Tạo danh sách metadata giải phẫu chi tiết cho từng xương để xuất JSON và gắn vào Prompt AI */
+/** Tạo danh sách metadata giải phẫu & vùng uốn Mesh chi tiết cho từng xương */
 export function buildBoneBiomechanicsGuide(
   bones: ReadonlyArray<LayerBone>,
   composite?: LayerComposite,
@@ -99,10 +149,77 @@ export function buildBoneBiomechanicsGuide(
       y: Math.round(b.y),
       length: Math.round(b.length),
       angle: Math.round(b.angle),
+      meshEnvelope: b.meshEnvelope ?? composite?.rig?.meshEnvelope ?? true,
+      strength: Number((b.strength ?? 1.15).toFixed(2)),
+      influenceReach: Number((b.influenceReach ?? 1.1).toFixed(2)),
+      ...(b.pin ? { pin: true } : {}),
       boundLayers,
       directionGuide: getRoleDirectionGuide(role, viewAngle)
     }
   })
+}
+
+/** Xuất cấu hình Mesh Deformation & Tác lực tiếp đất của nhân vật ra JSON */
+export function buildMeshDeformationExportSection(
+  bones: ReadonlyArray<LayerBone>,
+  composite?: LayerComposite
+): MotionMeshExportSection {
+  const layers = composite?.layers ?? []
+  const rig = composite?.rig
+  return {
+    enabled: true,
+    meshEnvelope: rig?.meshEnvelope ?? true,
+    groundContactImpact: {
+      enabled: true,
+      footImpactSquash: { scaleX: 1.16, scaleY: 0.84, offsetY: 2.5 },
+      shinImpactCompression: { scaleX: 1.06, scaleY: 0.88, offsetY: -6.0 },
+      thighImpactCompression: { scaleX: 1.05, scaleY: 0.89 },
+      airborneFootStretch: { scaleX: 0.94, scaleY: 1.10 },
+      torsoElasticity: { squashScaleX: 1.04, squashScaleY: 0.93, stretchScaleX: 0.97, stretchScaleY: 1.04 }
+    },
+    boneEnvelopes: bones.map((b) => ({
+      boneId: b.id,
+      boneName: b.name,
+      meshEnvelope: b.meshEnvelope ?? rig?.meshEnvelope ?? true,
+      strength: Number((b.strength ?? 1.15).toFixed(2)),
+      influenceReach: Number((b.influenceReach ?? 1.1).toFixed(2)),
+      ...(b.pin ? { pin: true } : {})
+    })),
+    layerBindings: layers
+      .filter((l) => Boolean(l.boneId || l.extraBoneIds?.length || l.physics?.enabled || l.isCloth))
+      .map((l) => {
+        const extra = l.extraBoneIds?.length
+          ? l.extraBoneIds
+          : extraSoftBoneIdsForLayer(layers, rig, l.id, l.boneId)
+        return {
+          layerId: l.id,
+          layerName: l.name,
+          bindingMode: l.bindingMode ?? 'soft',
+          boneId: l.boneId ?? null,
+          ...(extra.length > 0 ? { extraBoneIds: extra } : {}),
+          ...(l.meshWidth && l.meshHeight ? { meshWidth: l.meshWidth, meshHeight: l.meshHeight } : {}),
+          ...(l.isCloth
+            ? {
+                isCloth: true,
+                clothFollowBoneId: l.clothFollowBoneId,
+                clothAmplitude: l.clothAmplitude ?? 40
+              }
+            : {}),
+          ...(l.physics?.enabled
+            ? {
+                physics: {
+                  enabled: true,
+                  material: l.physics.material,
+                  role: l.physics.role,
+                  stiffness: l.physics.stiffness,
+                  damping: l.physics.damping,
+                  bounciness: l.physics.bounciness
+                }
+              }
+            : {})
+        }
+      })
+  }
 }
 
 function getTrackRange(kfs?: BoneKeyframe[]) {
@@ -158,23 +275,14 @@ export function inferDescriptiveClipName(
   const armR = getTrackRange(tracks[roles.armR ?? 'bone-arm-r'])
   const thighL = getTrackRange(tracks[roles.thighL ?? 'bone-thigh-l'])
   const thighR = getTrackRange(tracks[roles.thighR ?? 'bone-thigh-r'])
-
   const windSuffix = windSpinesCount > 0 ? ' + Gió' : ''
 
-  // 1. Nhún nhảy bật cao (Pelvis nhảy lên y < -14)
   if (pelvis.minY < -14) {
     const armsHigh = Math.max(Math.abs(armL.maxRot), Math.abs(armL.minRot), Math.abs(armR.maxRot), Math.abs(armR.minRot)) > 35
     return (armsHigh ? 'Nhún nhảy vươn tay (Jump)' : 'Nhún nhảy bật cao (Jump)') + windSuffix
   }
-  // 2. Vấp ngã / Khuỵu sâu (Pelvis hạ sâu y > 45)
-  if (pelvis.maxY > 45) {
-    return 'Khuỵu gối tiếp đất (Land)' + windSuffix
-  }
-  // 3. Cúi chào (Torso scaleY < 0.90 hoặc gập sâu)
-  if (torso.minSy < 0.9 || torso.maxRot > 20 || head.maxY > 14) {
-    return 'Cúi chào lịch thiệp (Bow)' + windSuffix
-  }
-  // 4. Bước đi / Chạy (2 đùi đều chuyển động biên độ >= 10°)
+  if (pelvis.maxY > 45) return 'Khuỵu gối tiếp đất (Land)' + windSuffix
+  if (torso.minSy < 0.9 || torso.maxRot > 20 || head.maxY > 14) return 'Cúi chào lịch thiệp (Bow)' + windSuffix
   if (
     Math.max(Math.abs(thighL.maxRot), Math.abs(thighL.minRot)) >= 10 &&
     Math.max(Math.abs(thighR.maxRot), Math.abs(thighR.minRot)) >= 10
@@ -182,36 +290,18 @@ export function inferDescriptiveClipName(
     const isFast = Math.max(Math.abs(thighL.maxRot), Math.abs(thighL.minRot)) >= 24
     return (isFast ? 'Chạy bước nhanh (Run)' : 'Bước đi tự nhiên (Walk)') + windSuffix
   }
-  // 5. Vẫy tay / Vung tay
   const armLAmp = Math.max(Math.abs(armL.maxRot), Math.abs(armL.minRot))
   const armRAmp = Math.max(Math.abs(armR.maxRot), Math.abs(armR.minRot))
-  if (armRAmp >= 35 && armLAmp < 25) {
-    return 'Vẫy tay chào (Wave)' + windSuffix
-  }
-  if (armLAmp >= 35 && armRAmp < 25) {
-    return 'Vẫy tay trái (Wave)' + windSuffix
-  }
-  if (armLAmp >= 30 && armRAmp >= 30) {
-    return 'Vươn hai tay (Cheer)' + windSuffix
-  }
-  // 6. Nhún gối hạ trọng tâm
-  if (pelvis.maxY >= 8) {
-    return 'Nhún gối nhịp nhàng' + windSuffix
-  }
-  // 7. Đứng thở nhẹ
-  if (torso.active || head.active) {
-    return 'Đứng thở tự nhiên (Idle)' + windSuffix
-  }
-  // 8. Chỉ có gió hoặc xương bất kỳ
+  if (armRAmp >= 35 && armLAmp < 25) return 'Vẫy tay chào (Wave)' + windSuffix
+  if (armLAmp >= 35 && armRAmp < 25) return 'Vẫy tay trái (Wave)' + windSuffix
+  if (armLAmp >= 30 && armRAmp >= 30) return 'Vươn hai tay (Cheer)' + windSuffix
+  if (pelvis.maxY >= 8) return 'Nhún gối nhịp nhàng' + windSuffix
+  if (torso.active || head.active) return 'Đứng thở tự nhiên (Idle)' + windSuffix
   const activeBoneNames = Object.keys(tracks)
     .filter((id) => getTrackRange(tracks[id]).active)
     .map((id) => bones.find((b) => b.id === id)?.name || id)
-  if (activeBoneNames.length > 0) {
-    return `Cử động ${activeBoneNames.slice(0, 2).join(' & ')}${windSuffix}`
-  }
-  if (windSpinesCount > 0) {
-    return 'Chuyển động Gió đung đưa'
-  }
+  if (activeBoneNames.length > 0) return `Cử động ${activeBoneNames.slice(0, 2).join(' & ')}${windSuffix}`
+  if (windSpinesCount > 0) return 'Chuyển động Gió đung đưa'
   return 'Động tác tuỳ chỉnh'
 }
 
@@ -289,7 +379,6 @@ function fixPelvisAndTorsoSquashInPlace(
     )
   }
 
-  // Bổ sung độ nén giãn Squash & Stretch 2.5D cho thân nếu thân chưa có scaleY
   const torsoKfs = tracks[torsoId]
   if (torsoKfs && torsoKfs.length === tracks[pelvisId].length) {
     const tRange = getTrackRange(torsoKfs)
@@ -301,8 +390,8 @@ function fixPelvisAndTorsoSquashInPlace(
           return {
             ...kf,
             y: kf.y || Number((3.5 * factor).toFixed(2)),
-            scaleX: Number((1 + 0.035 * factor).toFixed(3)),
-            scaleY: Number((1 - 0.065 * factor).toFixed(3))
+            scaleX: Number((1 + 0.04 * factor).toFixed(3)),
+            scaleY: Number((1 - 0.07 * factor).toFixed(3))
           }
         }
         if (py < -12) {
@@ -310,7 +399,7 @@ function fixPelvisAndTorsoSquashInPlace(
           return {
             ...kf,
             y: kf.y || Number((-3.0 * factor).toFixed(2)),
-            scaleX: Number((1 - 0.025 * factor).toFixed(3)),
+            scaleX: Number((1 - 0.03 * factor).toFixed(3)),
             scaleY: Number((1 + 0.045 * factor).toFixed(3))
           }
         }
@@ -320,8 +409,8 @@ function fixPelvisAndTorsoSquashInPlace(
   }
 }
 
-/** Chuẩn hoá khớp chân ở góc Chính diện 0° (khắc phục lỗi chụm gối chữ X & bổ sung thu ngắn phối cảnh scaleY) */
-function fixFrontViewLegsInPlace(
+/** Chuẩn hoá khớp chân ở góc Chính diện 0° & tích hợp biến dạng lưới Mesh chịu tác lực tiếp đất (Ground Contact Impact Mesh) */
+function fixFrontViewLegsAndMeshImpactInPlace(
   tracks: Record<string, BoneKeyframe[]>,
   roles: HumanoidBoneRoleMap,
   fixes: string[]
@@ -336,70 +425,119 @@ function fixFrontViewLegsInPlace(
 
   const tlKfs = tracks[thighLId]
   const trKfs = tracks[thighRId]
-  if (!tlKfs || !trKfs || tlKfs.length === 0 || trKfs.length === 0) return
+  if (tlKfs && trKfs && tlKfs.length > 0 && trKfs.length > 0) {
+    const tlRange = getTrackRange(tlKfs)
+    const trRange = getTrackRange(trKfs)
+    const isSymmetricKnockKneed =
+      tlRange.minRot <= -12 &&
+      (tlRange.maxRot <= 12 || Math.abs(tlRange.minRot) > tlRange.maxRot * 1.35) &&
+      trRange.maxRot >= 12 &&
+      (trRange.minRot >= -12 || trRange.maxRot > Math.abs(trRange.minRot) * 1.35)
 
-  const tlRange = getTrackRange(tlKfs)
-  const trRange = getTrackRange(trKfs)
-
-  // Phát hiện squat đối xứng bị ngược dấu (thighL âm, thighR dương cùng lúc -> chụm gối chữ X)
-  const isSymmetricKnockKneed =
-    tlRange.minRot <= -12 &&
-    (tlRange.maxRot <= 12 || Math.abs(tlRange.minRot) > tlRange.maxRot * 1.35) &&
-    trRange.maxRot >= 12 &&
-    (trRange.minRot >= -12 || trRange.maxRot > Math.abs(trRange.minRot) * 1.35)
-  if (!isSymmetricKnockKneed) return
-
-  const maxRawThigh = Math.max(Math.abs(tlRange.minRot), Math.abs(trRange.maxRot), 1)
-  const thighScale = maxRawThigh > 6 ? 6 / maxRawThigh : 1
-
-  const mapLegTrack = (kfs: BoneKeyframe[], outSign: 1 | -1, maxDeg: number, isShin: boolean) => {
-    const rawMax = Math.max(...kfs.map((k) => Math.abs(k.rotation)), 1)
-    const scale = rawMax > maxDeg ? maxDeg / rawMax : thighScale
-    return kfs.map((kf, idx) => {
-      const py = tracks[pelvisId]?.[idx]?.y ?? 0
-      const isAirborne = py < -12
-      const mag = Math.abs(kf.rotation) * scale
-      const rot = Number(((isAirborne ? -outSign * 0.6 : outSign) * mag).toFixed(2))
-      const bendRatio = Math.min(1, Math.abs(kf.rotation) / 25)
-      const autoSy =
-        kf.scaleY !== undefined && Math.abs(kf.scaleY - 1) > 0.01
-          ? kf.scaleY
-          : isAirborne
-            ? 1.03
-            : Number((1 - bendRatio * (isShin ? 0.13 : 0.12)).toFixed(3))
-      const autoSx =
-        kf.scaleX !== undefined && Math.abs(kf.scaleX - 1) > 0.01
-          ? kf.scaleX
-          : isAirborne
-            ? 0.98
-            : Number((1 + bendRatio * 0.035).toFixed(3))
-      return {
-        ...kf,
-        rotation: rot,
-        scaleX: autoSx,
-        scaleY: autoSy,
-        ...(isShin && !isAirborne && bendRatio > 0.2 && kf.y === 0 ? { y: Number((-7 * bendRatio).toFixed(2)) } : {})
+    if (isSymmetricKnockKneed) {
+      const maxRawThigh = Math.max(Math.abs(tlRange.minRot), Math.abs(trRange.maxRot), 1)
+      const thighScale = maxRawThigh > 6 ? 6 / maxRawThigh : 1
+      const mapLegTrack = (kfs: BoneKeyframe[], outSign: 1 | -1, maxDeg: number, isShin: boolean) => {
+        const rawMax = Math.max(...kfs.map((k) => Math.abs(k.rotation)), 1)
+        const scale = rawMax > maxDeg ? maxDeg / rawMax : thighScale
+        return kfs.map((kf, idx) => {
+          const py = tracks[pelvisId]?.[idx]?.y ?? 0
+          const isAirborne = py < -12
+          const mag = Math.abs(kf.rotation) * scale
+          const rot = Number(((isAirborne ? -outSign * 0.6 : outSign) * mag).toFixed(2))
+          const bendRatio = Math.min(1, Math.abs(kf.rotation) / 25)
+          const autoSy =
+            kf.scaleY !== undefined && Math.abs(kf.scaleY - 1) > 0.01
+              ? kf.scaleY
+              : isAirborne
+                ? 1.04
+                : Number((1 - bendRatio * (isShin ? 0.13 : 0.11)).toFixed(3))
+          const autoSx =
+            kf.scaleX !== undefined && Math.abs(kf.scaleX - 1) > 0.01
+              ? kf.scaleX
+              : isAirborne
+                ? 0.97
+                : Number((1 + bendRatio * (isShin ? 0.065 : 0.05)).toFixed(3))
+          return {
+            ...kf,
+            rotation: rot,
+            scaleX: autoSx,
+            scaleY: autoSy,
+            ...(isShin && !isAirborne && bendRatio > 0.2 && kf.y === 0 ? { y: Number((-7 * bendRatio).toFixed(2)) } : {})
+          }
+        })
       }
+
+      tracks[thighLId] = mapLegTrack(tlKfs, 1, 6, false)
+      tracks[thighRId] = mapLegTrack(trKfs, -1, 6, false)
+      if (tracks[shinLId]) tracks[shinLId] = mapLegTrack(tracks[shinLId], -1, 5, true)
+      if (tracks[shinRId]) tracks[shinRId] = mapLegTrack(tracks[shinRId], 1, 5, true)
+      fixes.push('Chuẩn hoá khớp Đùi & Cẳng chân góc chính diện 2.5D (mở gối tự nhiên + thu ngắn phối cảnh scaleY thay vì vặn chân chữ X)')
+    }
+  }
+
+  // Bổ sung tác lực tiếp đất (Ground Contact Impact Mesh Deformation) cho Bàn chân & Cẳng chân khi nhún/nhảy
+  const pelvisKfs = tracks[pelvisId]
+  if (!pelvisKfs || pelvisKfs.length === 0) return
+  const pRange = getTrackRange(pelvisKfs)
+  if (pRange.maxY < 6 && pRange.minY > -10) return
+
+  let appliedFootImpact = false
+  const applyFootImpactTrack = (footId: string, sideSign: 1 | -1) => {
+    const baseKfs =
+      tracks[footId] && tracks[footId].length === pelvisKfs.length
+        ? tracks[footId]
+        : pelvisKfs.map((pk) => ({
+            time: pk.time,
+            x: 0,
+            y: 0,
+            rotation: 0,
+            scaleX: 1,
+            scaleY: 1,
+            easing: pk.easing
+          }))
+    const fRange = getTrackRange(baseKfs)
+    const alreadyHasSquash = fRange.minSy < 0.92 || fRange.maxSy > 1.05
+    if (alreadyHasSquash && tracks[footId]) return
+
+    tracks[footId] = baseKfs.map((kf, idx) => {
+      const py = pelvisKfs[idx]?.y ?? 0
+      if (py >= 6) {
+        const impact = Math.min(1, py / 20)
+        appliedFootImpact = true
+        return {
+          ...kf,
+          y: kf.y || Number((2.5 * impact).toFixed(2)),
+          rotation: Number((sideSign * Math.min(4, Math.abs(kf.rotation || 3) * 0.35)).toFixed(2)),
+          scaleX: Number((1 + 0.16 * impact).toFixed(3)),
+          scaleY: Number((1 - 0.16 * impact).toFixed(3))
+        }
+      }
+      if (py <= -10) {
+        const air = Math.min(1, Math.abs(py) / 42)
+        appliedFootImpact = true
+        return {
+          ...kf,
+          y: kf.y || Number((-1.5 * air).toFixed(2)),
+          rotation: Number((-sideSign * Math.min(8, 6 * air)).toFixed(2)),
+          scaleX: Number((1 - 0.06 * air).toFixed(3)),
+          scaleY: Number((1 + 0.10 * air).toFixed(3))
+        }
+      }
+      return { ...kf, rotation: Number((kf.rotation * 0.25).toFixed(2)), scaleX: 1, scaleY: 1 }
     })
   }
 
-  tracks[thighLId] = mapLegTrack(tlKfs, 1, 6, false)
-  tracks[thighRId] = mapLegTrack(trKfs, -1, 6, false)
-  if (tracks[shinLId]) tracks[shinLId] = mapLegTrack(tracks[shinLId], -1, 5, true)
-  if (tracks[shinRId]) tracks[shinRId] = mapLegTrack(tracks[shinRId], 1, 5, true)
-  if (tracks[footLId]) {
-    tracks[footLId] = tracks[footLId].map((kf) => ({ ...kf, rotation: Number((Math.abs(kf.rotation) * 0.25).toFixed(2)) }))
+  applyFootImpactTrack(footLId, 1)
+  applyFootImpactTrack(footRId, -1)
+  if (appliedFootImpact) {
+    fixes.push('Tích hợp biến dạng lưới Mesh bàn chân & cổ chân chịu tác lực tiếp đất (Squash scaleX 1.16 / scaleY 0.84 khi chạm sàn & Stretch khi bật nhảy)')
   }
-  if (tracks[footRId]) {
-    tracks[footRId] = tracks[footRId].map((kf) => ({ ...kf, rotation: Number((-Math.abs(kf.rotation) * 0.25).toFixed(2)) }))
-  }
-
-  fixes.push('Chuẩn hoá khớp Đùi & Cẳng chân góc chính diện 2.5D (mở gối tự nhiên + thu ngắn phối cảnh scaleY thay vì vặn chân chữ X)')
 }
 
 /**
- * Tự động kiểm tra và khử các dị dạng cơ học phổ biến do AI bên ngoài sinh ra
- * (tay bắt chéo bụng, chân chụm chữ X ở góc 0°, hông nhảy vọt/lún sàn, thiếu co giãn phối cảnh 2.5D).
+ * Tự động kiểm tra và khử các dị dạng cơ học phổ biến do AI bên ngoài sinh ra,
+ * đồng thời bổ sung biến dạng lưới Mesh chịu tác lực tiếp đất (Ground Contact Impact Mesh).
  */
 export function normalizeAndFixBiomechanicalTracks(
   rawTracks: Record<string, BoneKeyframe[]>,
@@ -413,8 +551,63 @@ export function normalizeAndFixBiomechanicalTracks(
   fixCrossedArmsInPlace(tracks, roles, fixesApplied)
   fixPelvisAndTorsoSquashInPlace(tracks, roles, fixesApplied)
   if (viewAngle !== 'side') {
-    fixFrontViewLegsInPlace(tracks, roles, fixesApplied)
+    fixFrontViewLegsAndMeshImpactInPlace(tracks, roles, fixesApplied)
   }
 
   return { tracks, fixesApplied }
+}
+
+/**
+ * Tự động kích hoạt Uốn mềm Lưới Mesh (bindingMode: 'soft', meshEnvelope: true, extraBoneIds liên kết khớp)
+ * cho các bộ phận cơ thể và áp dụng cấu hình meshDeformation từ JSON để hiệu ứng nén/giãn Mesh hiển thị rõ nét.
+ */
+export function upgradeCompositeSoftMeshForImpact(
+  layers: ReadonlyArray<AssembledLayerItem>,
+  rig: LayerRig,
+  meshSection?: Partial<MotionMeshExportSection>
+): { layers: AssembledLayerItem[]; rig: LayerRig } {
+  const envMap = new Map(
+    (meshSection?.boneEnvelopes ?? []).map((e) => [e.boneId.toLowerCase(), e])
+  )
+  const bindMap = new Map(
+    (meshSection?.layerBindings ?? []).map((b) => [b.layerId.toLowerCase(), b])
+  )
+
+  const nextBones = rig.bones.map((b) => {
+    const customEnv = envMap.get(b.id.toLowerCase())
+    return {
+      ...b,
+      meshEnvelope: customEnv?.meshEnvelope ?? b.meshEnvelope ?? true,
+      strength: customEnv?.strength ?? b.strength ?? 1.15,
+      influenceReach: customEnv?.influenceReach ?? b.influenceReach ?? 1.1
+    }
+  })
+
+  const nextRig: LayerRig = {
+    ...rig,
+    meshEnvelope: meshSection?.meshEnvelope ?? rig.meshEnvelope ?? true,
+    bones: nextBones
+  }
+
+  const nextLayers = layers.map((l) => {
+    const customBind = bindMap.get(l.id.toLowerCase())
+    const isRigidAccessory = /glass|kính|hat|mũ|eye|mắt|mouth|miệng|brow|mày/i.test(`${l.id} ${l.name} ${l.slot ?? ''}`)
+    const targetMode: 'soft' | 'rigid' =
+      customBind?.bindingMode ?? (isRigidAccessory ? (l.bindingMode ?? 'rigid') : 'soft')
+    const boneId = customBind?.boneId ?? l.boneId
+    const computedExtra =
+      customBind?.extraBoneIds ??
+      (l.extraBoneIds?.length ? l.extraBoneIds : extraSoftBoneIdsForLayer(layers as AssembledLayerItem[], nextRig, l.id, boneId))
+
+    return {
+      ...l,
+      ...(boneId ? { boneId, bindingMode: targetMode } : {}),
+      ...(targetMode === 'soft' && computedExtra.length > 0 ? { extraBoneIds: computedExtra } : {}),
+      ...(customBind?.isCloth !== undefined ? { isCloth: customBind.isCloth } : {}),
+      ...(customBind?.clothFollowBoneId ? { clothFollowBoneId: customBind.clothFollowBoneId } : {}),
+      ...(customBind?.clothAmplitude !== undefined ? { clothAmplitude: customBind.clothAmplitude } : {})
+    }
+  })
+
+  return { layers: nextLayers, rig: nextRig }
 }

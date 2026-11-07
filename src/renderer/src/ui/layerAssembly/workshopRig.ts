@@ -22,7 +22,7 @@ import { applyRigStructureAction, isRigStructureAction, type RigStructureAction 
 import { assertValidAngleLimits, stripEmptyAngleLimit } from './boneConstraints'
 import { autoRigAllCutoutParts, createBoneForSingleLayer } from './workshopCutoutRig'
 import { syncSpineStyleRigAndSlots } from './spineRigWorkflow'
-import { inferDescriptiveClipName, isGenericClipName } from './workshopClipBiomechanics'
+import { inferDescriptiveClipName, isGenericClipName, upgradeCompositeSoftMeshForImpact } from './workshopClipBiomechanics'
 import {
   autoSortLayersZDepth25D,
   buildAnatomicalBonesFromLayers,
@@ -640,6 +640,12 @@ export function applyRigAction(composite: LayerComposite, action: RigAction): La
 
   if (isRigClipAction(action)) {
     applyRigClipAction(rig, action)
+    if ((action.action === 'add-clip' || action.action === 'replace-clip') && action.mesh) {
+      const upgraded = upgradeCompositeSoftMeshForImpact(layers, rig, action.mesh)
+      layers = upgraded.layers
+      rig.bones = upgraded.rig.bones
+      rig.meshEnvelope = upgraded.rig.meshEnvelope
+    }
     if ((action.action === 'add-clip' || action.action === 'replace-clip') && action.wind) {
       if (action.wind.plantSpines && action.wind.plantSpines.length > 0) {
         plantSpines = structuredClone(action.wind.plantSpines)

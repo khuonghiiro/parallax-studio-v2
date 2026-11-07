@@ -369,12 +369,13 @@ export const layerWorkshopRigCommands: Record<string, Handler> = {
       }
       const mode = str(p, 'mode') === 'new' ? 'new' : 'replace'
       const wind = (bool(p, 'apply_wind') ?? true) ? parsed.wind : undefined
+      const mesh = (bool(p, 'auto_fix') ?? true) ? (parsed.mesh ?? { enabled: true, meshEnvelope: true }) : undefined
       const targetId = str(p, 'clip_id') ?? activeClip.id
       const next = applyRigAction(
         current,
         mode === 'new'
-          ? { action: 'add-clip', clip: parsed.clip, wind }
-          : { action: 'replace-clip', clipId: targetId, clip: { ...parsed.clip, id: targetId }, wind }
+          ? { action: 'add-clip', clip: parsed.clip, wind, mesh }
+          : { action: 'replace-clip', clipId: targetId, clip: { ...parsed.clip, id: targetId }, wind, mesh }
       )
       session.setComposite(next)
       return {
@@ -404,7 +405,8 @@ export const layerWorkshopRigCommands: Record<string, Handler> = {
       const next = applyRigAction(current, {
         action: 'replace-clip',
         clipId: clip.id,
-        clip: { ...clip, name: nextName, tracks }
+        clip: { ...clip, name: nextName, tracks },
+        mesh: { enabled: true, meshEnvelope: true }
       })
       session.setComposite(next)
       return {
