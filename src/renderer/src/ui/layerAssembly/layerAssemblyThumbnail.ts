@@ -184,7 +184,12 @@ export async function captureCompositeThumbnail(
         const effectiveSoft = l.bindingMode === 'soft' || implicitSingleSoft || hasMultiLimbBones
         const extraBoneIds = effectiveSoft ? candidateExtraBones : undefined
         const layerWithBone = effectiveBoneId && !l.boneId ? { ...l, boneId: effectiveBoneId } : l
-        const transformed = effectiveSoft ? layerWithBone : transformRigLayer(layerWithBone, transforms)
+        const boneTf = effectiveBoneId ? transforms.get(effectiveBoneId) : undefined
+        const transformed = effectiveSoft
+          ? boneTf?.zOrder
+            ? { ...layerWithBone, z: Number((l.z + boneTf.zOrder).toFixed(3)) }
+            : layerWithBone
+          : transformRigLayer(layerWithBone, transforms)
         return {
           ...transformed,
           ...(effectiveSoft ? { bindingMode: 'soft' as const, boneId: effectiveBoneId, isolateToBoundBones: isMultiLayerChar } : {}),

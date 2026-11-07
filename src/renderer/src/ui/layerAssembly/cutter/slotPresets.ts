@@ -8,19 +8,19 @@ export const BUILTIN_SLOT_PRESETS: TemplateSlotPreset[] = [
     category: 'character',
     description: 'Khung mẫu giải phẫu 13 bộ phận chuẩn ảnh minh hoạ: Đầu kèm tóc trơn, Gọng kính, 2 Biểu cảm mặt rời, Thân áo sơ mi, 2 Bắp tay, 2 Cẳng tay, 2 Đùi và 2 Ống quần kèm giày.',
     slots: [
-      { id: 'head', name: '1. Đầu & Mái tóc trơn', role: 'head', x: -3, y: -162, width: 199, height: 166, z: -20, scale: 0.52 },
-      { id: 'glasses', name: '2. Gọng mắt kính rời', role: 'glasses', x: -7, y: -121, width: 105, height: 16, z: -30, scale: 0.52 },
-      { id: 'face_normal', name: '3. Biểu cảm 1 (Bình thường)', role: 'face', x: -7, y: -125, width: 74, height: 53, z: -25, scale: 0.52 },
-      { id: 'face_happy', name: '4. Biểu cảm 2 (Cười mỉm)', role: 'face-alt', x: -7, y: -123, width: 78, height: 62, z: -26, scale: 0.52 },
-      { id: 'arm_left', name: '5. Bắp tay áo trái', role: 'arm-left', x: -50, y: -18, width: 45, height: 94, z: 10, scale: 0.52 },
-      { id: 'arm_right', name: '6. Bắp tay áo phải', role: 'arm-right', x: 52, y: -18, width: 45, height: 94, z: 10, scale: 0.52 },
+      { id: 'head', name: '1. Đầu & Mái tóc trơn', role: 'head', x: -3, y: -162, width: 199, height: 166, z: 20, scale: 0.52 },
+      { id: 'glasses', name: '2. Gọng mắt kính rời', role: 'glasses', x: -7, y: -121, width: 105, height: 16, z: 42, scale: 0.52 },
+      { id: 'face_normal', name: '3. Biểu cảm 1 (Bình thường)', role: 'face', x: -7, y: -125, width: 74, height: 53, z: 30, scale: 0.52 },
+      { id: 'face_happy', name: '4. Biểu cảm 2 (Cười mỉm)', role: 'face-alt', x: -7, y: -123, width: 78, height: 62, z: 32, scale: 0.52 },
+      { id: 'arm_left', name: '5. Bắp tay áo trái', role: 'arm-left', x: -50, y: -18, width: 45, height: 94, z: -35, scale: 0.52 },
+      { id: 'arm_right', name: '6. Bắp tay áo phải', role: 'arm-right', x: 52, y: -18, width: 45, height: 94, z: -35, scale: 0.52 },
       { id: 'torso', name: '7. Thân áo, Cổ & Thắt lưng', role: 'torso', x: 0, y: -12, width: 113, height: 184, z: 0, scale: 0.52 },
-      { id: 'thigh_left', name: '8. Đùi quần trái', role: 'thigh-left', x: -23, y: 92, width: 48, height: 114, z: 20, scale: 0.52 },
-      { id: 'thigh_right', name: '9. Đùi quần phải', role: 'thigh-right', x: 25, y: 92, width: 48, height: 114, z: 20, scale: 0.52 },
-      { id: 'shin_left', name: '10. Ống quần & Giày trái', role: 'shin-left', x: -28, y: 184, width: 54, height: 123, z: 25, scale: 0.52 },
-      { id: 'shin_right', name: '11. Ống quần & Giày phải', role: 'shin-right', x: 20, y: 184, width: 54, height: 123, z: 25, scale: 0.52 },
-      { id: 'forearm_left', name: '12. Cẳng tay & Bàn tay trái', role: 'forearm-left', x: -56, y: 52, width: 27, height: 89, z: 15, scale: 0.52 },
-      { id: 'forearm_right', name: '13. Cẳng tay & Bàn tay phải', role: 'forearm-right', x: 58, y: 52, width: 27, height: 87, z: 15, scale: 0.52 }
+      { id: 'thigh_left', name: '8. Đùi quần trái', role: 'thigh-left', x: -23, y: 92, width: 48, height: 114, z: -20, scale: 0.52 },
+      { id: 'thigh_right', name: '9. Đùi quần phải', role: 'thigh-right', x: 25, y: 92, width: 48, height: 114, z: -20, scale: 0.52 },
+      { id: 'shin_left', name: '10. Ống quần & Giày trái', role: 'shin-left', x: -28, y: 184, width: 54, height: 123, z: -25, scale: 0.52 },
+      { id: 'shin_right', name: '11. Ống quần & Giày phải', role: 'shin-right', x: 20, y: 184, width: 54, height: 123, z: -25, scale: 0.52 },
+      { id: 'forearm_left', name: '12. Cẳng tay & Bàn tay trái', role: 'forearm-left', x: -56, y: 52, width: 27, height: 89, z: -40, scale: 0.52 },
+      { id: 'forearm_right', name: '13. Cẳng tay & Bàn tay phải', role: 'forearm-right', x: 58, y: 52, width: 27, height: 87, z: -40, scale: 0.52 }
     ]
   },
   {

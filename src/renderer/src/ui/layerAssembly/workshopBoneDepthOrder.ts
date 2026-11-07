@@ -97,23 +97,23 @@ export function getBoneDepthSummary(
   const torsoCandidates = otherLayers.filter((l) =>
     /(torso|chest|body|shirt|vest|thân|ngực|áo)/i.test(`${l.id} ${l.name} ${l.slot ?? ''}`)
   )
-  const torsoRefZ = torsoCandidates.length > 0 ? Math.min(...torsoCandidates.map((l) => l.z || 0)) : 0
+  const torsoRefZ = torsoCandidates.length > 0 ? Math.max(...torsoCandidates.map((l) => l.z || 0)) : 0
 
   const frontHeadCandidates = otherLayers.filter((l) =>
     /(head|face|glass|visor|bang|đầu|mặt|biểu cảm|kính|mái)/i.test(`${l.id} ${l.name} ${l.slot ?? ''}`)
   )
   const frontHeadRefZ =
     frontHeadCandidates.length > 0
-      ? Math.min(...frontHeadCandidates.map((l) => l.z || 0))
-      : Math.min(torsoRefZ - 30, ...(otherLayers.length ? otherLayers.map((l) => l.z || 0) : [-35]))
+      ? Math.max(...frontHeadCandidates.map((l) => l.z || 0))
+      : Math.max(torsoRefZ + 30, ...(otherLayers.length ? otherLayers.map((l) => l.z || 0) : [35]))
 
   const backBodyCandidates = otherLayers.filter((l) =>
     /(torso|pelvis|hip|thigh|shin|leg|body|thân|hông|đùi|chân|quần)/i.test(`${l.id} ${l.name} ${l.slot ?? ''}`)
   )
   const backBodyRefZ =
     backBodyCandidates.length > 0
-      ? Math.max(...backBodyCandidates.map((l) => l.z || 0))
-      : Math.max(torsoRefZ + 25, 25)
+      ? Math.min(...backBodyCandidates.map((l) => l.z || 0))
+      : Math.min(torsoRefZ - 25, -25)
 
   let zone: BoneDepthSemanticPreset = 'default'
   if (Math.abs(effectiveZOrder) < 3) {
@@ -121,13 +121,13 @@ export function getBoneDepthSummary(
   } else if (subtreeLayers.length > 0) {
     const effectiveLayerZs = subtreeLayers.map((l) => {
       const tfZ = l.boneId ? (transforms.get(l.boneId)?.zOrder ?? effectiveZOrder) : effectiveZOrder
-      return (l.z || 0) - tfZ
+      return (l.z || 0) + tfZ
     })
     const maxEffZ = Math.max(...effectiveLayerZs)
     const minEffZ = Math.min(...effectiveLayerZs)
-    if (maxEffZ < frontHeadRefZ) zone = 'front-face'
-    else if (maxEffZ < torsoRefZ) zone = 'front-torso'
-    else if (minEffZ > backBodyRefZ || effectiveZOrder <= -15) zone = 'behind-back'
+    if (minEffZ > frontHeadRefZ) zone = 'front-face'
+    else if (minEffZ > torsoRefZ) zone = 'front-torso'
+    else if (maxEffZ < backBodyRefZ || effectiveZOrder <= -15) zone = 'behind-back'
     else zone = effectiveZOrder > 0 ? 'front-torso' : 'behind-back'
   } else {
     if (effectiveZOrder >= 75) zone = 'front-face'
@@ -183,11 +183,11 @@ export function computeSemanticBoneZOrder(
   }
 
   const baseZs = summary.subtreeLayers.map((l) => l.z || 0)
-  const maxBaseZ = baseZs.length > 0 ? Math.max(...baseZs) : 35
-  const minBaseZ = baseZs.length > 0 ? Math.min(...baseZs) : 35
+  const maxBaseZ = baseZs.length > 0 ? Math.max(...baseZs) : -35
+  const minBaseZ = baseZs.length > 0 ? Math.min(...baseZs) : -35
 
   if (preset === 'front-torso') {
-    const desiredEffective = Math.max(20, Math.ceil((maxBaseZ - (summary.torsoRefZ - 15)) / 5) * 5)
+    const desiredEffective = Math.max(20, Math.ceil(((summary.torsoRefZ + 15) - minBaseZ) / 5) * 5)
     return {
       localZOrder: clampBoneZOrder(desiredEffective - summary.inheritedZOrder),
       resetDescendantIds
@@ -195,7 +195,7 @@ export function computeSemanticBoneZOrder(
   }
 
   if (preset === 'front-face') {
-    const desiredEffective = Math.max(55, Math.ceil((maxBaseZ - (summary.frontHeadRefZ - 10)) / 5) * 5)
+    const desiredEffective = Math.max(55, Math.ceil(((summary.frontHeadRefZ + 10) - minBaseZ) / 5) * 5)
     return {
       localZOrder: clampBoneZOrder(desiredEffective - summary.inheritedZOrder),
       resetDescendantIds
@@ -203,7 +203,7 @@ export function computeSemanticBoneZOrder(
   }
 
   // 'behind-back': đảm bảo mọi mảnh con trong nhánh xương lùi sâu ra sau thân & chân
-  const neededForBack = Math.floor((minBaseZ - (summary.backBodyRefZ + 20)) / 5) * 5
+  const neededForBack = Math.floor(((summary.backBodyRefZ - 20) - maxBaseZ) / 5) * 5
   const desiredEffective = Math.min(-20, neededForBack)
   return {
     localZOrder: clampBoneZOrder(desiredEffective - summary.inheritedZOrder),

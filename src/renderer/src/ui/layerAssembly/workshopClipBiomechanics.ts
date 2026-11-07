@@ -657,15 +657,26 @@ function fixWalkPerspectiveAndContralateralLimbSwingInPlace(
     if (Math.abs(scoreL - scoreR) > 1.0) {
       const leftIsForward = scoreL > scoreR
 
+      if (tlKfs && tlKfs[i] && trKfs && trKfs[i]) {
+        if (tlKfs[i].zOrder === undefined || trKfs[i].zOrder === undefined || tlKfs[i].zOrder === trKfs[i].zOrder) {
+          tlKfs[i].zOrder = leftIsForward ? 15 : -15
+          trKfs[i].zOrder = leftIsForward ? -15 : 15
+          fixedDepthCount++
+        }
+      }
+
       if (flKfs && flKfs[i] && frKfs && frKfs[i]) {
+        const parentHasZ = Boolean(tlKfs?.[i]?.zOrder !== undefined && trKfs?.[i]?.zOrder !== undefined)
         const needZFix =
           flKfs[i].zOrder === undefined ||
           frKfs[i].zOrder === undefined ||
           flKfs[i].zOrder === frKfs[i].zOrder
 
         if (needZFix) {
-          flKfs[i].zOrder = leftIsForward ? 15 : -15
-          frKfs[i].zOrder = leftIsForward ? -15 : 15
+          if (!parentHasZ) {
+            flKfs[i].zOrder = leftIsForward ? 15 : -15
+            frKfs[i].zOrder = leftIsForward ? -15 : 15
+          }
 
           if (leftIsForward) {
             flKfs[i].scaleX = Math.max(flKfs[i].scaleX ?? 1, 1.06)
@@ -698,6 +709,58 @@ function fixWalkPerspectiveAndContralateralLimbSwingInPlace(
   }
 }
 
+/** Khử lỗi cộng dồn gấp đôi zOrder cha-con khi AI gán trùng cùng một mức zOrder tuyệt đối lên cả xương cha (đùi/bắp tay) lẫn xương con (cẳng chân/bàn chân/cẳng tay) */
+function deduplicateHierarchicalChildZOrderInPlace(
+  tracks: Record<string, BoneKeyframe[]>,
+  roles: HumanoidBoneRoleMap,
+  fixes: string[]
+): void {
+  const chains: Array<[string, string, string | undefined, number]> = [
+    [roles.thighL ?? 'bone-thigh-l', roles.shinL ?? 'bone-shin-l', roles.footL ?? 'bone-foot-l', 2],
+    [roles.thighR ?? 'bone-thigh-r', roles.shinR ?? 'bone-shin-r', roles.footR ?? 'bone-foot-r', 2],
+    [roles.armL ?? 'bone-arm-l', roles.forearmL ?? 'bone-forearm-l', roles.handL ?? 'bone-hand-l', 8],
+    [roles.armR ?? 'bone-arm-r', roles.forearmR ?? 'bone-forearm-r', roles.handR ?? 'bone-hand-r', 8]
+  ]
+
+  let deduped = false
+  const findParentZAt = (parentKfs: BoneKeyframe[], t: number): number | undefined => {
+    let best: BoneKeyframe | undefined
+    let bestDist = Infinity
+    for (const pk of parentKfs) {
+      const d = Math.abs(pk.time - t)
+      if (d < bestDist) {
+        bestDist = d
+        best = pk
+      }
+    }
+    return bestDist <= 0.12 ? best?.zOrder : undefined
+  }
+
+  for (const [rootId, midId, tipId, maxChildDelta] of chains) {
+    const rootKfs = tracks[rootId]
+    if (!rootKfs || rootKfs.length === 0) continue
+
+    for (const childId of [midId, tipId]) {
+      if (!childId || !tracks[childId]) continue
+      for (const ckf of tracks[childId]) {
+        if (ckf.zOrder === undefined || Math.abs(ckf.zOrder) < 10) continue
+        const pZ = findParentZAt(rootKfs, ckf.time)
+        if (pZ !== undefined && Math.abs(pZ) >= 10 && Math.sign(pZ) === Math.sign(ckf.zOrder)) {
+          if (Math.abs(ckf.zOrder - pZ) <= Math.max(12, Math.abs(pZ) * 0.45)) {
+            const rawDelta = ckf.zOrder - pZ
+            ckf.zOrder = Math.max(-maxChildDelta, Math.min(maxChildDelta, rawDelta))
+            deduped = true
+          }
+        }
+      }
+    }
+  }
+
+  if (deduped) {
+    fixes.push('Chuẩn hoá kế thừa zOrder cha-con (tránh cộng dồn gấp đôi zOrder giữa Đùi/Cẳng chân và Bắp tay/Cẳng tay)')
+  }
+}
+
 export function normalizeAndFixBiomechanicalTracks(
   rawTracks: Record<string, BoneKeyframe[]>,
   bones: ReadonlyArray<LayerBone> = [],
@@ -709,6 +772,7 @@ export function normalizeAndFixBiomechanicalTracks(
 
   fixCrossedArmsInPlace(tracks, roles, fixesApplied)
   fixPelvisAndTorsoSquashInPlace(tracks, roles, fixesApplied)
+  deduplicateHierarchicalChildZOrderInPlace(tracks, roles, fixesApplied)
   fixWalkPerspectiveAndContralateralLimbSwingInPlace(tracks, roles, fixesApplied)
   if (viewAngle !== 'side') {
     fixFrontViewLegsAndMeshImpactInPlace(tracks, roles, fixesApplied)

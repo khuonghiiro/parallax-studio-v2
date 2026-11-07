@@ -101,7 +101,7 @@ export function transformRigLayer<
   const sx = bone.scaleX ?? 1
   const sy = bone.scaleY ?? 1
   const position = rotatePoint(layer.x * sx, layer.y * sy, bone.rotation)
-  const nextZ = typeof layer.z === 'number' ? Number((layer.z - (bone.zOrder ?? 0)).toFixed(3)) : layer.z
+  const nextZ = typeof layer.z === 'number' ? Number((layer.z + (bone.zOrder ?? 0)).toFixed(3)) : layer.z
   return {
     ...layer,
     x: position.x + bone.tx,

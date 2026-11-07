@@ -244,7 +244,7 @@ export function WorkshopWorkspace({
           transforms && !effectiveSoft
             ? transformRigLayer(layerWithEffectiveBone, transforms)
             : boneTf?.zOrder
-              ? { ...layerWithEffectiveBone, z: Number((l.z - boneTf.zOrder).toFixed(3)) }
+              ? { ...layerWithEffectiveBone, z: Number((l.z + boneTf.zOrder).toFixed(3)) }
               : layerWithEffectiveBone
         const layerSpines = !isErasing && !l.hidden ? spinesForLayer(shiftedSpines, l.id) : undefined
         return {

@@ -149,7 +149,7 @@ export function applyLayerParallax25DOffset(
   const k = clamp(intensity, 0.1, 2.5)
   return layers.map((layer) => {
     if (layer.locked) return layer
-    const depthFactor = clamp(1 - (layer.z ?? 0) / 140, 0.35, 1.5)
+    const depthFactor = clamp(1 + (layer.z ?? 0) / 140, 0.35, 1.5)
     return {
       ...layer,
       rotationY: r2(yaw * 18 * k * depthFactor),
