@@ -332,4 +332,72 @@ describe('workshopClipJson', () => {
     expect(res2.success).toBe(false)
     expect(res2.error).toContain('tracks')
   })
+
+  it('exports JSON with namingConvention and perspectiveWalkDepthRule for screen space and walk depth cues', () => {
+    const jsonStr = exportAnimationClipToJson(sampleClip, sampleBones, true)
+    const parsed = JSON.parse(jsonStr)
+    expect(parsed.rigConventions.namingConvention).toBeDefined()
+    expect(parsed.rigConventions.namingConvention.rule).toBe('SCREEN_SPACE_NAMING')
+    expect(parsed.rigConventions.namingConvention.screenLeft).toContain('BÊN TRÁI MÀN HÌNH')
+    expect(parsed.rigConventions.namingConvention.contralateralCoordination).toContain('PHỐI HỢP TAY - CHÂN NGHỊCH PHA')
+
+    expect(parsed.rigConventions.perspectiveWalkDepthRule).toBeDefined()
+    expect(parsed.rigConventions.perspectiveWalkDepthRule.forwardFoot.depthOrder).toContain('BẮT BUỘC ĐÈ LÊN')
+    expect(parsed.rigConventions.perspectiveWalkDepthRule.forwardFoot.scale).toContain('1.05')
+  })
+
+  it('parses flexible keys (t, rot, scale, zIndex) and auto-fixes 2.5D walk depth perspective with contralateral limb coordination', () => {
+    const humanoidBones = createHumanoidBones()
+    const walkJson = JSON.stringify({
+      format: 'parallax-motion-v1',
+      name: 'Bước đi mẫu từ AI',
+      duration: 1.6,
+      tracks: {
+        'bone-foot-l': [
+          { t: 0.0, y: 0, scale: 1 },
+          { t: 0.4, y: 8, scale: 1.02 },
+          { t: 0.8, y: 0, scale: 1 },
+          { t: 1.2, y: -6, scale: 0.98 },
+          { t: 1.6, y: 0, scale: 1 }
+        ],
+        'bone-foot-r': [
+          { t: 0.0, y: 0, scale: 1 },
+          { t: 0.4, y: -6, scale: 0.98 },
+          { t: 0.8, y: 0, scale: 1 },
+          { t: 1.2, y: 8, scale: 1.02 },
+          { t: 1.6, y: 0, scale: 1 }
+        ],
+        'bone-arm-l': [
+          { t: 0.0, rot: 0 },
+          { t: 0.4, rot: -20 },
+          { t: 0.8, rot: 0 },
+          { t: 1.2, rot: 25 },
+          { t: 1.6, rot: 0 }
+        ],
+        'bone-arm-r': [
+          { t: 0.0, rot: 0 },
+          { t: 0.4, rot: 25 },
+          { t: 0.8, rot: 0 },
+          { t: 1.2, rot: -20 },
+          { t: 1.6, rot: 0 }
+        ]
+      }
+    })
+
+    const res = parseAnimationClipFromJson(walkJson, humanoidBones, { autoFixBiomechanics: true })
+    expect(res.success).toBe(true)
+    expect(res.clip).toBeDefined()
+
+    const footLAt04 = res.clip?.tracks['bone-foot-l'].find((k) => k.time === 0.4)
+    const footRAt04 = res.clip?.tracks['bone-foot-r'].find((k) => k.time === 0.4)
+    expect(footLAt04?.zOrder).toBe(15)
+    expect(footRAt04?.zOrder).toBe(-15)
+    expect(footLAt04?.scaleX).toBeGreaterThanOrEqual(1.05)
+    expect(footRAt04?.scaleX).toBeLessThanOrEqual(0.96)
+
+    const armLAt04 = res.clip?.tracks['bone-arm-l'].find((k) => k.time === 0.4)
+    const armRAt04 = res.clip?.tracks['bone-arm-r'].find((k) => k.time === 0.4)
+    expect(armRAt04?.zOrder).toBe(50)
+    expect(armLAt04?.zOrder).toBe(-50)
+  })
 })

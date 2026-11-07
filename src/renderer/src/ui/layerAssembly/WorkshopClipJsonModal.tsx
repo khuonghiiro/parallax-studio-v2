@@ -194,9 +194,9 @@ function ExportTabPanel({
       </div>
 
       <div className="lw-clip-banner">
-        💡 <strong>Đã tích hợp Cơ học 2.5D + Lưới Mesh Chịu Lực + Gió:</strong> JSON và Prompt xuất ra đã đính kèm{' '}
-        <strong>Bảng quy ước dấu góc xoay từng xương</strong>, cấu hình <strong>Lưới Mesh chịu tác lực tiếp đất (meshDeformation: nén dẹt đế giày &amp; bắp chân khi chạm đất, uốn mềm da cơ Soft Mesh)</strong> và{' '}
-        <strong>Gió (wind.plantSpines)</strong> để AI phân tích và tạo động tác mới chuẩn xác.
+        💡 <strong>Đã tích hợp Cơ học 2.5D + Phối Cảnh Bước Đi + Lưới Mesh Chịu Lực + Gió:</strong> JSON và Prompt xuất ra đã đính kèm{' '}
+        <strong>Quy ước tên xương theo Màn hình</strong>, <strong>Phối cảnh bước đi 2.5D (chân tới chạm sàn thấp hơn, to hơn, zOrder đè chân sau, tay nghịch pha)</strong>, cấu hình <strong>Lưới Mesh (meshDeformation)</strong> và{' '}
+        <strong>Gió (wind.plantSpines)</strong> để AI phân tích và tạo chuyển động có chiều sâu chân thực.
       </div>
 
       {/* Khung Code Terminal xem trước JSON */}
