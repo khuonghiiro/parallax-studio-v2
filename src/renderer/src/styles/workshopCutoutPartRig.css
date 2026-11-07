@@ -77,7 +77,8 @@
 /* Khi đang ở tab Animation / Plant (trên top đã có thanh AnimAssistChips ở top: 10px):
    Thanh HUD bộ phận tự động hạ xuống tầng dưới (top: 48px) để không bị đè lên nhau */
 .lw-cutout-floating-hud.is-anim-tab {
-  top: 48px;
+  top: auto;
+  bottom: 48px;
   z-index: 5290;
   border-color: color-mix(in srgb, var(--accent) 45%, var(--line-focus));
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);

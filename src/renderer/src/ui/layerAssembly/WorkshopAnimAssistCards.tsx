@@ -100,8 +100,15 @@ export function WorkshopSecondaryMotionCard({ rig, boneId, setComposite, onDone 
   }
   return (
     <div className="lw-card-section lw-secondary-card">
-      <div className="lw-card-header"><span className="lw-card-title">🌊 Chuyển động thứ cấp (vật lý)</span></div>
-      <p className="lw-assist-hint">Chọn xương gốc của nhánh tóc / đuôi / vải. Sau khi đã có động tác chính, bấm nướng: nhánh tự trễ nhịp và nảy theo quán tính.</p>
+      <div className="lw-card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span className="lw-card-title">🌊 Chuyển động thứ cấp (vật lý)</span>
+        <span
+          title="Chọn xương gốc của nhánh tóc / đuôi / vạt vải. Sau khi đã có động tác chính, bấm nướng: nhánh tự trễ nhịp và nảy quán tính."
+          style={{ cursor: 'help', fontSize: '11px', color: 'var(--text-dim)', padding: '0 4px' }}
+        >
+          ℹ️
+        </span>
+      </div>
       <div className="lw-secondary-target">{bone ? `Nhánh: ${bone.name} → ${ids.length} xương` : 'Chưa chọn xương'}</div>
       <div className="lw-assist-row">
         <Segmented

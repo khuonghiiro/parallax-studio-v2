@@ -140,16 +140,36 @@ export function WorkshopBoneItemSvg({
           <circle
             cx={tx}
             cy={ty}
-            r={16}
+            r={20}
             fill="transparent"
-            style={{ cursor: 'crosshair', pointerEvents: 'all' }}
+            style={{ cursor: editing && !isManipulateTool ? 'crosshair' : 'grab', pointerEvents: 'all' }}
             onPointerDown={(e) => onPointerDown(e, bone.id, tailMode(e))}
-          />
+          >
+            <title>
+              {editing && !isManipulateTool
+                ? `Khớp ngọn "${bone.name}" · Kéo để chỉnh độ dài (${Math.round(bone.length)}px) & góc xoay`
+                : `${bone.name} (Ngọn)`}
+            </title>
+          </circle>
+          {/* Vầng sáng halo neon cho khớp ngọn của xương đang chọn */}
+          {isSelected && editing && !isManipulateTool && (
+            <circle
+              cx={tx}
+              cy={ty}
+              r={tailR + 5}
+              fill="none"
+              stroke="var(--accent-cyan, #38bdf8)"
+              strokeWidth={1.5}
+              strokeDasharray="3 2"
+              opacity={0.85}
+              pointerEvents="none"
+            />
+          )}
           {(isSelected || isHovered || !isBoneTailCoincidentWithChild(bone, bones, transforms, 3)) && (
             <circle
               cx={tx}
               cy={ty}
-              r={tailR}
+              r={isSelected ? tailR + 1.2 : tailR}
               className={`lw-bone-tail-joint${(!editing || isManipulateTool) && ikEnabled ? ' ik' : ''}`}
               style={editing && hasMixamoLandmarks && !isSelected && !isHovered ? { opacity: 0.45 } : undefined}
               onPointerDown={(e) => onPointerDown(e, bone.id, tailMode(e))}

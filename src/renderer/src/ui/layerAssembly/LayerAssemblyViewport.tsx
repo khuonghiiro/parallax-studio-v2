@@ -115,6 +115,7 @@ export function LayerAssemblyViewport({
   }, [composite.layers, selectedLayerId])
 
   const [isolatedPreviewUrl, setIsolatedPreviewUrl] = useState<string | null>(null)
+  const [showStageHint, setShowStageHint] = useState<boolean>(false)
   const handleBrushPreview = useCallback((preview: BrushPreview | null) => {
     setIsolatedPreviewUrl(preview?.imageUrl || null)
     if (onBrushPreview) onBrushPreview(preview)
@@ -708,35 +709,70 @@ export function LayerAssemblyViewport({
         )}
         {tab === 'plant' && plantOverlay && brush.activeTool !== 'eraser' && <PlantMotionChips />}
 
-        {/* Floating 2D Hint */}
+        {/* Floating 2D Hint (Ẩn mặc định, có toggle icon nhỏ gọn) */}
         {brush.activeTool !== 'eraser' && (
           <div
             style={{
               position: 'absolute',
               bottom: '12px',
               left: '14px',
-              right: '14px',
-              maxWidth: 'calc(100% - 28px)',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              fontSize: '10px',
-              color: 'var(--text-dim)',
-              background: 'var(--bg-1)',
-              backdropFilter: 'blur(6px)',
-              padding: '2px 8px',
-              borderRadius: '4px',
-              pointerEvents: 'none',
-              zIndex: 30
+              zIndex: 32,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              pointerEvents: 'auto'
             }}
           >
-            {tab === 'animation'
-              ? '🎭 Hoạt ảnh: Chuột trái chỉnh xương → nhấn Enter ⏎ xác nhận vị trí · Giữ Shift + Chuột trái: ghi động tác Realtime · D: bút vẽ · Space: phát thử'
-              : tab === 'bones'
-                ? '🦴 Khung xương: Click xương/vỏ để focus · Kéo ở 2 tâm điểm = hàn khớp · Kéo trong vỏ uốn = Nét 1 nét đứt + Nét 2 xương · Kéo ngoài vỏ = 1 nét · Esc: huỷ vẽ / bỏ focus tạo xương rời'
-                : tab === 'plant'
-                  ? '🌿 Motion: Kéo từ GỐC lên NGỌN để vẽ xương · Nắm vòng tròn ở ngọn kéo theo nhịp để GHI chuyển động · R: vẽ quỹ đạo ngọn · Kéo chấm để sửa dáng'
-                  : 'Kéo layer / Mũi tên: dời 2D · +/-: độ sâu Z · Alt / chuột giữa: dời khung · Cuộn: zoom'}
+            <button
+              type="button"
+              className={`lw-stage-hint-btn${showStageHint ? ' active' : ''}`}
+              onClick={() => setShowStageHint((v) => !v)}
+              title={showStageHint ? 'Ẩn phím tắt & hướng dẫn sân khấu' : 'Hiện phím tắt & hướng dẫn sân khấu 2D (nhấn để bật)'}
+              style={{
+                width: '20px',
+                height: '20px',
+                padding: 0,
+                borderRadius: '50%',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '11px',
+                background: showStageHint ? 'var(--accent)' : 'color-mix(in srgb, var(--bg-1) 85%, transparent)',
+                color: showStageHint ? 'var(--on-accent)' : 'var(--text-dim)',
+                border: '1px solid var(--line-soft)',
+                backdropFilter: 'blur(6px)',
+                cursor: 'pointer',
+                lineHeight: 1
+              }}
+            >
+              ℹ️
+            </button>
+            {showStageHint && (
+              <div
+                style={{
+                  maxWidth: 'calc(100vw - 360px)',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  fontSize: '10.5px',
+                  color: 'var(--text)',
+                  background: 'var(--bg-1)',
+                  border: '1px solid var(--line-focus)',
+                  backdropFilter: 'blur(10px)',
+                  padding: '3px 8px',
+                  borderRadius: 'var(--radius-sm, 4px)',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.35)'
+                }}
+              >
+                {tab === 'animation'
+                  ? '🎭 Hoạt ảnh: Chuột trái chỉnh xương → nhấn Enter ⏎ xác nhận vị trí · Giữ Shift + Chuột trái: ghi động tác Realtime · D: bút vẽ · Space: phát thử'
+                  : tab === 'bones'
+                    ? '🦴 Khung xương: Kéo chuột để vẽ xương · Kéo ngọn để chỉnh độ dài & góc · Click xương để focus · Space: phát thử'
+                    : tab === 'plant'
+                      ? '🌿 Motion: Kéo từ GỐC lên NGỌN để vẽ xương · Nắm vòng tròn ở ngọn kéo theo nhịp để GHI chuyển động · R: vẽ quỹ đạo ngọn'
+                      : 'Kéo layer / Mũi tên: dời 2D · +/-: độ sâu Z · Alt / chuột giữa: dời khung · Cuộn: zoom'}
+              </div>
+            )}
           </div>
         )}
 

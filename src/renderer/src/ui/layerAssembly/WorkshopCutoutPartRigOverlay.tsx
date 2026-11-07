@@ -219,7 +219,9 @@ export function WorkshopCutoutPartRigOverlay({
     const leftRailX = 64
     leftList.forEach((p, idx) => {
       const railY = TOP_OFFSET + idx * (TILE_SIZE + TILE_GAP)
-      const targetX = centerX + p.cx * zoom
+      const halfW = Math.max(14, (p.w / 2) * zoom)
+      // Mũi tên từ trái sang phải trỏ vào cạnh trái bbox của bộ phận (không che tâm hay xương)
+      const targetX = centerX + p.cx * zoom - halfW - 6
       const targetY = centerY + p.cy * zoom
       result.push({
         part: p,
@@ -236,7 +238,9 @@ export function WorkshopCutoutPartRigOverlay({
     const rightRailX = Math.max(120, viewportSize.w - 16 - TILE_SIZE)
     rightList.forEach((p, idx) => {
       const railY = TOP_OFFSET + idx * (TILE_SIZE + TILE_GAP)
-      const targetX = centerX + p.cx * zoom
+      const halfW = Math.max(14, (p.w / 2) * zoom)
+      // Mũi tên từ phải sang trái trỏ vào cạnh phải bbox của bộ phận
+      const targetX = centerX + p.cx * zoom + halfW + 6
       const targetY = centerY + p.cy * zoom
       result.push({
         part: p,

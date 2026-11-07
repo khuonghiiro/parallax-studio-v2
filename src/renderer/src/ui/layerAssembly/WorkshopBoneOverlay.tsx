@@ -36,6 +36,7 @@ import {
 export { buildManipulateTestRig } from './mohoRigHelpers'
 import {
   buildManipulateTestRig,
+  computeBoneTail,
   computeBoneInfluenceRadius,
   computeStrengthFromPointerDistance,
   createBoneFromCanvasDrag,
@@ -219,7 +220,21 @@ export function WorkshopBoneOverlay({
     if (!point) return
     stopPlayback?.()
 
-    const jointHit = findClosestBoneJoint(rig.bones, transforms, point, 24)
+    // Bán kính hút khớp 36px thuận tay hơn nhiều khi vẽ xương
+    let jointHit = findClosestBoneJoint(rig.bones, transforms, point, 36)
+    
+    // Nếu đang chọn xương cha, ưu tiên bắt vào ngọn (tail) của xương đang chọn nếu gần
+    if (!jointHit && boneId) {
+      const curBone = rig.bones.find((b) => b.id === boneId)
+      const curTf = curBone ? transforms.get(curBone.id) : null
+      if (curBone && curTf) {
+        const curTail = computeBoneTail({ ...curBone, x: curTf.x, y: curTf.y, angle: curBone.angle + curTf.rotation })
+        if (Math.hypot(point.x - curTail.x, point.y - curTail.y) <= 45) {
+          jointHit = { bone: curBone, joint: 'tail', point: curTail, dist: Math.hypot(point.x - curTail.x, point.y - curTail.y) }
+        }
+      }
+    }
+
     const capsuleHit = !jointHit ? findBoneCapsuleHit(rig.bones, transforms, point, boneId) : null
     const fallbackBone = fallbackBoneId ? (rig.bones.find((b) => b.id === fallbackBoneId) ?? null) : null
     const clickedBoneId = jointHit?.bone.id ?? capsuleHit?.bone.id ?? fallbackBone?.id
@@ -259,7 +274,8 @@ export function WorkshopBoneOverlay({
         parentBone: targetBone,
         parentJoint: nearest?.joint ?? capsuleHit?.nearestJoint ?? 'tail',
         snapped: false,
-        mode: 'link-step1',
+        // Chế độ 1-bước: Kéo chuột từ xương cha tạo ngay xương con bám theo, không bắt ép 2 bước
+        mode: 'weld-bone',
         clickedBoneId: targetBone.id
       }
     } else {
