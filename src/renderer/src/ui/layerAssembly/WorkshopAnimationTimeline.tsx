@@ -380,9 +380,10 @@ function AnimationTimeline({ state, playback, boneId, selectBone, rig }: Props &
           </button>
           <button
             type="button"
-            className={`btn xs${playback.isPlaying ? ' primary' : ''}`}
+            className={`btn xs lw-dope-play-btn${playback.isPlaying ? ' is-playing' : ''}`}
             onClick={playback.toggle}
-            title="Phát / Tạm dừng (Space)"
+            title={playback.isPlaying ? 'Tạm dừng hoạt ảnh (Phím Space)' : 'Phát hoạt ảnh (Phím Space)'}
+            aria-label={playback.isPlaying ? 'Tạm dừng' : 'Phát'}
           >
             {playback.isPlaying ? '⏸' : '▶'}
           </button>
