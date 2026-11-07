@@ -22,6 +22,7 @@ export const WorkshopCustomActionsCard: React.FC<Props> = ({ composite, setCompo
     [composite.customActions]
   )
   const [selectedId, setSelectedId] = useState<string | null>(actions[0]?.id ?? null)
+  const [showHint, setShowHint] = useState(false)
   const activeAction = actions.find((a) => a.id === selectedId) ?? actions[0] ?? null
 
   const updateActions = (next: CompositeCustomAction[]): void => {
@@ -62,7 +63,7 @@ export const WorkshopCustomActionsCard: React.FC<Props> = ({ composite, setCompo
     } else if (presetKind === 'expr') {
       item = {
         id,
-        name: 'Đổi biểu cảm khuôn mặt',
+        name: 'Đổi biểu cảm',
         icon: '😊',
         kind: 'sprite_cycle',
         layerIds: findMatchingLayers(composite, /face|mặt|biểu cảm|cười|vui|buồn|giận/i),
@@ -100,44 +101,101 @@ export const WorkshopCustomActionsCard: React.FC<Props> = ({ composite, setCompo
   }
 
   return (
-    <div className="lw-rig-card lw-custom-actions-card" style={{ marginBottom: 8 }}>
-      <div className="lw-rig-section-head">
-        <div>
-          <strong>🎭 Động tác Ảnh &amp; Tên Động (Đồng bộ Node Animation)</strong>
-          <div className="lw-rig-hint">
-            Tạo động tác nhép miệng, nháy mắt, đổi biểu cảm và đặt tên tuỳ ý để chọn trực tiếp trên Node Animation
-          </div>
-        </div>
+    <div className="lw-card-section lw-custom-actions-card">
+      <div className="lw-card-header">
+        <span className="lw-card-title">
+          <span>🎭 Biểu cảm &amp; Động tác ảnh</span>
+          <span className="lw-card-badge">{actions.length}</span>
+        </span>
+        <button
+          type="button"
+          className={`btn xs icon${showHint ? ' active' : ''}`}
+          style={{ width: 22, height: 22, padding: 0 }}
+          onClick={() => setShowHint((v) => !v)}
+          title={showHint ? 'Ẩn chú thích hướng dẫn' : 'Hiện chú thích hướng dẫn'}
+        >
+          ℹ
+        </button>
       </div>
 
-      {/* Các nút tạo nhanh động tác */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 5, marginTop: 6 }}>
-        <button type="button" className="btn ghost sm" onClick={() => addQuickAction('mouth')}>
-          + 👄 Nhép miệng
+      {/* Chú thích toggle: Mặc định tắt, chỉ hiện khi người dùng bấm icon ℹ */}
+      {showHint && (
+        <div
+          style={{
+            fontSize: 11,
+            color: 'var(--text-dim)',
+            lineHeight: 1.5,
+            padding: '6px 8px',
+            marginBottom: 8,
+            background: 'var(--bg-0)',
+            borderRadius: 'var(--radius-sm, 4px)',
+            border: '1px solid var(--line-soft)'
+          }}
+        >
+          💡 Tạo động tác nhép miệng, nháy mắt, đổi biểu cảm khuôn mặt sprite để điều khiển trực tiếp trên Node Animation.
+        </div>
+      )}
+
+      {/* 4 Nút tạo nhanh động tác dạng lưới 2x2 cực gọn */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 4, marginBottom: 8 }}>
+        <button
+          type="button"
+          className="btn ghost xs"
+          style={{ height: 26, fontSize: 11, justifyContent: 'flex-start', padding: '0 8px' }}
+          onClick={() => addQuickAction('mouth')}
+          title="Tạo động tác nhép miệng nói theo nhịp âm thanh"
+        >
+          👄 Nhép miệng
         </button>
-        <button type="button" className="btn ghost sm" onClick={() => addQuickAction('blink')}>
-          + 👁 Nháy mắt
+        <button
+          type="button"
+          className="btn ghost xs"
+          style={{ height: 26, fontSize: 11, justifyContent: 'flex-start', padding: '0 8px' }}
+          onClick={() => addQuickAction('blink')}
+          title="Tạo động tác nháy mắt tự nhiên chu kỳ 0.8s"
+        >
+          👁 Nháy mắt
         </button>
-        <button type="button" className="btn ghost sm" onClick={() => addQuickAction('expr')}>
-          + 😊 Đổi biểu cảm
+        <button
+          type="button"
+          className="btn ghost xs"
+          style={{ height: 26, fontSize: 11, justifyContent: 'flex-start', padding: '0 8px' }}
+          onClick={() => addQuickAction('expr')}
+          title="Tạo động tác đổi biểu cảm khuôn mặt (vui, buồn, giận...)"
+        >
+          😊 Biểu cảm
         </button>
-        <button type="button" className="btn ghost sm" onClick={() => addQuickAction('pose')}>
-          + 👋 Động tác bộ phận
+        <button
+          type="button"
+          className="btn ghost xs"
+          style={{ height: 26, fontSize: 11, justifyContent: 'flex-start', padding: '0 8px' }}
+          onClick={() => addQuickAction('pose')}
+          title="Tạo động tác cử động xoay lắc bộ phận tự do"
+        >
+          👋 Xoay mảnh
         </button>
       </div>
 
       {/* Danh sách động tác đã cấu hình */}
       {actions.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 8 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 8 }}>
           {actions.map((act) => {
             const isSel = act.id === activeAction?.id
             return (
               <button
                 key={act.id}
                 type="button"
-                className={`btn sm ${isSel ? 'primary' : 'ghost'}`}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                className={`btn xs ${isSel ? 'primary' : 'ghost'}`}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  height: 24,
+                  padding: '0 7px',
+                  fontSize: 11
+                }}
                 onClick={() => setSelectedId(act.id)}
+                title={`${act.name} (${act.layerIds.length} mảnh)`}
               >
                 <span>{act.icon || '🎬'}</span>
                 <span>{act.name}</span>
@@ -152,10 +210,9 @@ export const WorkshopCustomActionsCard: React.FC<Props> = ({ composite, setCompo
       {activeAction && (
         <div
           style={{
-            marginTop: 8,
             padding: 8,
-            borderRadius: 'var(--radius)',
-            background: 'var(--bg-2)',
+            borderRadius: 'var(--radius, 6px)',
+            background: 'var(--bg-0)',
             border: '1px solid var(--line-soft)',
             display: 'flex',
             flexDirection: 'column',
@@ -163,19 +220,30 @@ export const WorkshopCustomActionsCard: React.FC<Props> = ({ composite, setCompo
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 11, color: 'var(--text-dim)', whiteSpace: 'nowrap' }}>Tên động tác:</span>
             <input
               type="text"
-              className="lw-input"
+              className="lw-field-input"
               value={activeAction.name}
-              placeholder="Đặt tên động tác (VD: Nhép miệng nói, Nháy mắt...)"
+              placeholder="Tên động tác..."
+              title="Đặt tên động tác"
               onChange={(e) => patchActive({ name: e.target.value })}
-              style={{ flex: 1, minWidth: 0, height: 26, fontSize: 11.5 }}
+              style={{
+                flex: 1,
+                minWidth: 0,
+                height: 25,
+                fontSize: 11.5,
+                background: 'var(--bg-1)',
+                border: '1px solid var(--line)',
+                borderRadius: 'var(--radius-sm, 4px)',
+                padding: '0 8px',
+                color: 'var(--text)'
+              }}
             />
             <button
               type="button"
-              className="btn ghost sm"
+              className="btn xs icon lw-muted-danger-btn"
               title="Xoá động tác này"
+              style={{ width: 24, height: 25, padding: 0 }}
               onClick={() => {
                 const remain = actions.filter((a) => a.id !== activeAction.id)
                 updateActions(remain)
@@ -189,31 +257,46 @@ export const WorkshopCustomActionsCard: React.FC<Props> = ({ composite, setCompo
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
             <button
               type="button"
-              className={`btn sm ${activeAction.kind === 'sprite_cycle' ? 'primary' : 'ghost'}`}
+              className={`btn xs ${activeAction.kind === 'sprite_cycle' ? 'primary' : 'ghost'}`}
+              style={{ height: 25, fontSize: 10.5 }}
               onClick={() => patchActive({ kind: 'sprite_cycle' })}
+              title="Luân phiên hiển thị các ảnh / mảnh trong danh sách theo chu kỳ nhịp"
             >
-              🔄 Luân phiên ảnh (Nhép/Nháy)
+              🔄 Luân phiên ảnh
             </button>
             <button
               type="button"
-              className={`btn sm ${activeAction.kind === 'part_pose' ? 'primary' : 'ghost'}`}
+              className={`btn xs ${activeAction.kind === 'part_pose' ? 'primary' : 'ghost'}`}
+              style={{ height: 25, fontSize: 10.5 }}
               onClick={() => patchActive({ kind: 'part_pose' })}
+              title="Xoay lắc bộ phận theo góc dao động"
             >
-              📐 Cử động xoay bộ phận
+              📐 Cử động xoay
             </button>
           </div>
 
           <div>
-            <div style={{ fontSize: 10.5, color: 'var(--text-dim)', marginBottom: 4 }}>
-              Chọn các ảnh / mảnh tham gia động tác ({activeAction.layerIds.length} đã chọn):
+            <div
+              style={{
+                fontSize: 10.5,
+                color: 'var(--text-dim)',
+                marginBottom: 4,
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}
+            >
+              <span>Mảnh tham gia:</span>
+              <strong style={{ color: 'var(--accent)' }}>{activeAction.layerIds.length} đã chọn</strong>
             </div>
             <div
               style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
                 gap: 4,
-                maxHeight: 116,
-                overflowY: 'auto'
+                maxHeight: 110,
+                overflowY: 'auto',
+                paddingRight: 2
               }}
             >
               {composite.layers.map((l) => {
@@ -222,13 +305,15 @@ export const WorkshopCustomActionsCard: React.FC<Props> = ({ composite, setCompo
                   <button
                     key={l.id}
                     type="button"
-                    className={`btn sm ${checked ? 'primary' : 'ghost'}`}
+                    className={`btn xs ${checked ? 'primary' : 'ghost'}`}
                     style={{
                       justifyContent: 'flex-start',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap',
-                      fontSize: 10.5
+                      fontSize: 10.5,
+                      height: 24,
+                      padding: '0 6px'
                     }}
                     title={`${l.name}${l.slot ? ` (slot: ${l.slot})` : ''}`}
                     onClick={() => toggleLayerInAction(l.id)}
@@ -242,8 +327,8 @@ export const WorkshopCustomActionsCard: React.FC<Props> = ({ composite, setCompo
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-            <label style={{ fontSize: 10.5, color: 'var(--text-dim)' }}>
-              Tốc độ nhịp: <strong>{(activeAction.speedHz ?? 3.5).toFixed(1)} Hz</strong>
+            <label style={{ fontSize: 10.5, color: 'var(--text-dim)', whiteSpace: 'nowrap' }}>
+              Tốc độ: <strong>{(activeAction.speedHz ?? 3.5).toFixed(1)} Hz</strong>
             </label>
             <input
               type="range"

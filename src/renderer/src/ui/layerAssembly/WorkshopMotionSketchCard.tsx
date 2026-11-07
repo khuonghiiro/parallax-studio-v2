@@ -41,48 +41,49 @@ export function WorkshopMotionSketchCard({
           </span>
           <button
             type="button"
-            className={`btn xs${showHelp ? ' primary' : ''}`}
-            style={{ height: 20, padding: '0 6px', fontSize: 10, whiteSpace: 'nowrap' }}
+            className={`btn xs icon${showHelp ? ' active' : ''}`}
+            style={{ width: 22, height: 22, padding: 0 }}
             onClick={() => setShowHelp((v) => !v)}
-            title="Xem hướng dẫn chi tiết 3 cách ghi động tác"
+            title={showHelp ? 'Ẩn hướng dẫn thao tác' : 'Hiện hướng dẫn thao tác (Ghi Realtime & Từng bước)'}
           >
-            ? Cách dùng
+            ℹ
           </button>
-        </div>
-      </div>
-
-      {/* Thẻ tóm tắt 2 cách thao tác chính gọn gàng */}
-      <div className="lw-sketch-workflow-grid">
-        <div className="lw-sketch-workflow-item realtime">
-          <div className="lw-sketch-wf-badge">🔴 Ghi Realtime</div>
-          <div className="lw-sketch-wf-desc">
-            Giữ <kbd>Shift</kbd> + <strong>Chuột trái</strong> kéo xương để ghi trực tiếp theo thứ tự.
-          </div>
-        </div>
-        <div className="lw-sketch-workflow-item step">
-          <div className="lw-sketch-wf-badge">✓ Ghi từng bước</div>
-          <div className="lw-sketch-wf-desc">
-            <strong>Chuột trái</strong> chỉnh xương vừa ý → nhấn <kbd>Enter ⏎</kbd> chốt vị trí.
-          </div>
         </div>
       </div>
 
       <button
         type="button"
         className={`btn xs ${armed ? 'primary' : ''} lw-sketch-arm-btn`}
-        style={{ height: 26, fontWeight: 700, width: '100%' }}
+        style={{ height: 26, fontWeight: 700, width: '100%', marginBottom: showHelp ? 6 : 8 }}
         onClick={() => toggleMotionSketchArmed()}
         title="Bật chế độ bút vẽ tự do không cần giữ phím Shift (Phím tắt: D)"
       >
         {armed ? '■ Đang bật Bút vẽ tự do — Tắt (Phím D)' : '✏️ Bật Bút vẽ tự do trên khung 2D (Phím D)'}
       </button>
 
+      {/* Hướng dẫn thao tác: Mặc định tắt, chỉ hiện khi người dùng bấm nút ℹ */}
       {showHelp && (
-        <ol className="lw-sketch-steps">
-          <li><strong>Realtime (<kbd>Shift</kbd> + Chuột trái):</strong> Kéo xương theo nhịp tay, thả chuột tự đậu ở cuối để kéo tiếp xương sau.</li>
-          <li><strong>Từng bước (Chuột trái + <kbd>Enter</kbd>):</strong> Chỉnh các xương đến khi chuẩn dáng rồi nhấn <kbd>Enter</kbd> để chốt mốc.</li>
-          <li><strong>Bút vẽ tự do (<kbd>D</kbd>):</strong> Mọi nét kéo chuột trên khung 2D đều tự vẽ chuyển động mà không cần giữ Shift.</li>
-        </ol>
+        <div style={{ marginBottom: 8 }}>
+          <div className="lw-sketch-workflow-grid" style={{ marginBottom: 6 }}>
+            <div className="lw-sketch-workflow-item realtime">
+              <div className="lw-sketch-wf-badge">🔴 Ghi Realtime</div>
+              <div className="lw-sketch-wf-desc">
+                Giữ <kbd>Shift</kbd> + <strong>Chuột trái</strong> kéo xương để ghi trực tiếp theo thứ tự.
+              </div>
+            </div>
+            <div className="lw-sketch-workflow-item step">
+              <div className="lw-sketch-wf-badge">✓ Ghi từng bước</div>
+              <div className="lw-sketch-wf-desc">
+                <strong>Chuột trái</strong> chỉnh xương vừa ý → nhấn <kbd>Enter ⏎</kbd> chốt vị trí.
+              </div>
+            </div>
+          </div>
+          <ol className="lw-sketch-steps" style={{ margin: 0 }}>
+            <li><strong>Realtime (<kbd>Shift</kbd> + Chuột trái):</strong> Kéo xương theo nhịp tay, thả chuột tự đậu ở cuối để kéo tiếp xương sau.</li>
+            <li><strong>Từng bước (Chuột trái + <kbd>Enter</kbd>):</strong> Chỉnh các xương đến khi chuẩn dáng rồi nhấn <kbd>Enter</kbd> để chốt mốc.</li>
+            <li><strong>Bút vẽ tự do (<kbd>D</kbd>):</strong> Mọi nét kéo chuột trên khung 2D đều tự vẽ chuyển động mà không cần giữ Shift.</li>
+          </ol>
+        </div>
       )}
 
       <div className="lw-sketch-label-row">Kiểu chuyển động &amp; Chuỗi IK <span>(Ctrl = 1 xương)</span></div>
