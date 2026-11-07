@@ -1,5 +1,6 @@
 import type { ChromaKeySettings, CutPoint } from './types'
 import { extractRegionDataUrl } from './chromaKey'
+import { disambiguateCanvasOverlap } from './islandDisambiguation'
 import type {
   CutterExportWorkerRequest,
   CutterExportWorkerResponse
@@ -59,7 +60,8 @@ export async function extractHighResRegionDataUrl(
   polygon?: CutPoint[],
   fullRawCanvas?: HTMLCanvasElement | null,
   chromaSettings?: ChromaKeySettings,
-  hasManualEdits = false
+  hasManualEdits = false,
+  siblingBoxes?: Array<{ x: number; y: number; width: number; height: number }>
 ): Promise<string> {
   if (
     !fullRawCanvas ||
@@ -68,7 +70,7 @@ export async function extractHighResRegionDataUrl(
     typeof createImageBitmap === 'undefined' ||
     typeof OffscreenCanvas === 'undefined'
   ) {
-    return extractRegionDataUrl(sourceCanvas, box, polygon, fullRawCanvas, chromaSettings)
+    return extractRegionDataUrl(sourceCanvas, box, polygon, fullRawCanvas, chromaSettings, siblingBoxes)
   }
 
   const sx = Math.max(0, Math.min(fullRawCanvas.width - 1, Math.round(box.x)))
@@ -94,16 +96,33 @@ export async function extractHighResRegionDataUrl(
     resizeHeight: output.height,
     resizeQuality: 'high'
   })
-  const maskBitmapPromise = hasManualEdits
-    ? createImageBitmap(
-        sourceCanvas,
-        maskX,
-        maskY,
-        maskW,
-        maskH,
-        { resizeWidth: output.width, resizeHeight: output.height, resizeQuality: 'high' }
-      )
-    : Promise.resolve(undefined)
+
+  let maskBitmapPromise: Promise<ImageBitmap | undefined> = Promise.resolve(undefined)
+  if (hasManualEdits || (siblingBoxes && siblingBoxes.length > 0)) {
+    const maskCanvas = document.createElement('canvas')
+    maskCanvas.width = maskW
+    maskCanvas.height = maskH
+    const mctx = maskCanvas.getContext('2d', { willReadFrequently: true })
+    if (mctx) {
+      mctx.drawImage(sourceCanvas, maskX, maskY, maskW, maskH, 0, 0, maskW, maskH)
+      if (siblingBoxes && siblingBoxes.length > 0) {
+        const scaledBox = { x: maskX, y: maskY, width: maskW, height: maskH }
+        const scaledSiblings = siblingBoxes.map((s) => ({
+          x: s.x * workScaleX,
+          y: s.y * workScaleY,
+          width: s.width * workScaleX,
+          height: s.height * workScaleY
+        }))
+        disambiguateCanvasOverlap(maskCanvas, scaledBox, scaledSiblings)
+      }
+      maskBitmapPromise = createImageBitmap(maskCanvas, {
+        resizeWidth: output.width,
+        resizeHeight: output.height,
+        resizeQuality: 'high'
+      })
+    }
+  }
+
   const [rawBitmap, maskBitmap] = await Promise.all([
     rawBitmapPromise,
     maskBitmapPromise

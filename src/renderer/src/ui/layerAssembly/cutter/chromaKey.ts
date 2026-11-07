@@ -1,5 +1,6 @@
 import type { ChromaKeySettings, CutPoint, DetectedIsland, EyedropperSample } from './types'
 import { processAdvancedChromaPixelData, rgbToHex } from './chromaAdvancedProcessor'
+import { disambiguateCanvasOverlap } from './islandDisambiguation'
 
 export function hexToRgb(hex: string): { r: number; g: number; b: number } {
   const clean = (hex || '#ffffff').replace('#', '').trim()
@@ -525,14 +526,16 @@ export function applyBrushToCanvas(
 }
 
 /**
- * Trích xuất ảnh PNG trong suốt từ vùng chọn (hỗ trợ đồng bộ giữa ảnh gốc 4K/8K và mặt nạ đã tách nền trên canvas làm việc)
+ * Trích xuất ảnh PNG trong suốt từ vùng chọn (hỗ trợ đồng bộ giữa ảnh gốc 4K/8K và mặt nạ đã tách nền trên canvas làm việc,
+ * kèm cơ chế khử giao thoa chi tiết giữa các bounding box khi có siblingBoxes).
  */
 export function extractRegionDataUrl(
   sourceCanvas: HTMLCanvasElement,
   box: { x: number; y: number; width: number; height: number },
   polygon?: CutPoint[],
   fullRawCanvas?: HTMLCanvasElement | null,
-  chromaSettings?: ChromaKeySettings
+  chromaSettings?: ChromaKeySettings,
+  siblingBoxes?: Array<{ x: number; y: number; width: number; height: number }>
 ): string {
   const w = Math.max(1, Math.round(box.width))
   const h = Math.max(1, Math.round(box.height))
@@ -579,6 +582,14 @@ export function extractRegionDataUrl(
     tctx.imageSmoothingEnabled = true
     tctx.imageSmoothingQuality = 'high'
 
+    const scaledBox = { x: box.x * exportScale, y: box.y * exportScale, width: ew, height: eh }
+    const scaledSiblings = siblingBoxes?.map((s) => ({
+      x: s.x * exportScale,
+      y: s.y * exportScale,
+      width: s.width * exportScale,
+      height: s.height * exportScale
+    }))
+
     if (chromaSettings && chromaSettings.enabled && chromaSettings.previewMode !== 'original') {
       // Lấy chi tiết sắc nét trực tiếp từ ảnh gốc 4K/8K trên đúng vùng mảnh cắt
       tctx.drawImage(fullRawCanvas, box.x, box.y, w, h, 0, 0, ew, eh)
@@ -617,6 +628,9 @@ export function extractRegionDataUrl(
         }
       }
       tctx.putImageData(hiData, 0, 0)
+      if (scaledSiblings && scaledSiblings.length > 0) {
+        disambiguateCanvasOverlap(temp, scaledBox, scaledSiblings)
+      }
       return temp.toDataURL('image/png')
     }
 
@@ -633,9 +647,15 @@ export function extractRegionDataUrl(
       ew,
       eh
     )
+    if (scaledSiblings && scaledSiblings.length > 0) {
+      disambiguateCanvasOverlap(temp, scaledBox, scaledSiblings)
+    }
     return temp.toDataURL('image/png')
   }
 
   tctx.drawImage(sourceCanvas, box.x, box.y, w, h, 0, 0, w, h)
+  if (siblingBoxes && siblingBoxes.length > 0) {
+    disambiguateCanvasOverlap(temp, box, siblingBoxes)
+  }
   return temp.toDataURL('image/png')
 }
