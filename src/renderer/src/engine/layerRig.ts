@@ -17,7 +17,9 @@ import { sampleBonePose } from './boneInterpolation'
 export { sampleBonePose } from './boneInterpolation'
 
 export function rotatePoint(x: number, y: number, angle: number) {
-  const radians = angle * Math.PI / 180, c = Math.cos(radians), s = Math.sin(radians)
+  const radians = (angle * Math.PI) / 180
+  const c = Math.cos(radians)
+  const s = Math.sin(radians)
   return { x: x * c - y * s, y: x * s + y * c }
 }
 
@@ -40,15 +42,29 @@ export function evaluateRig(
     if (!bone || visiting.has(id)) return undefined
     visiting.add(id)
     const parent = bone.parentId ? visit(bone.parentId) : undefined
+    const parentBone = bone.parentId ? bones.get(bone.parentId) : undefined
     const sampled = rest ? REST : sampleBonePose(rig, id, time)
     const pose = adjust ? adjust(id, sampled) : sampled
     const parentAngle = parent?.rotation ?? 0
-    const pivot = rotatePoint(bone.x + pose.x, bone.y + pose.y, parentAngle)
-    const x = pivot.x + (parent?.tx ?? 0), y = pivot.y + (parent?.ty ?? 0)
+    const parentScaleX = parent?.scaleX ?? 1
+    const parentScaleY = parent?.scaleY ?? 1
+    let x: number
+    let y: number
+    if (parent && parentBone) {
+      const relX = (bone.x + pose.x - parentBone.x) * parentScaleX
+      const relY = (bone.y + pose.y - parentBone.y) * parentScaleY
+      const pivot = rotatePoint(relX, relY, parentAngle)
+      x = parent.x + pivot.x
+      y = parent.y + pivot.y
+    } else {
+      const pivot = rotatePoint(bone.x + pose.x, bone.y + pose.y, parentAngle)
+      x = pivot.x + (parent?.tx ?? 0)
+      y = pivot.y + (parent?.ty ?? 0)
+    }
     const rotation = parentAngle + pose.rotation
-    const origin = rotatePoint(bone.x, bone.y, rotation)
-    const scaleX = (parent?.scaleX ?? 1) * (pose.scaleX ?? 1)
-    const scaleY = (parent?.scaleY ?? 1) * (pose.scaleY ?? 1)
+    const scaleX = parentScaleX * (pose.scaleX ?? 1)
+    const scaleY = parentScaleY * (pose.scaleY ?? 1)
+    const origin = rotatePoint(bone.x * scaleX, bone.y * scaleY, rotation)
     const zOrder = (parent?.zOrder ?? 0) + (pose.zOrder ?? 0)
     const value: BoneTransform = {
       x,
@@ -82,7 +98,9 @@ export function transformRigLayer<
 >(layer: T, transforms: Map<string, BoneTransform>): T {
   const bone = layer.boneId ? transforms.get(layer.boneId) : undefined
   if (!bone) return layer
-  const position = rotatePoint(layer.x, layer.y, bone.rotation)
+  const sx = bone.scaleX ?? 1
+  const sy = bone.scaleY ?? 1
+  const position = rotatePoint(layer.x * sx, layer.y * sy, bone.rotation)
   const nextZ = typeof layer.z === 'number' ? Number((layer.z - (bone.zOrder ?? 0)).toFixed(3)) : layer.z
   return {
     ...layer,
@@ -90,7 +108,7 @@ export function transformRigLayer<
     y: position.y + bone.ty,
     ...(typeof nextZ === 'number' ? { z: nextZ } : {}),
     rotation: layer.rotation + bone.rotation,
-    scaleX: (bone.scaleX ?? 1) * (layer.scaleX ?? 1),
-    scaleY: (bone.scaleY ?? 1) * (layer.scaleY ?? 1)
+    scaleX: sx * (layer.scaleX ?? 1),
+    scaleY: sy * (layer.scaleY ?? 1)
   }
 }

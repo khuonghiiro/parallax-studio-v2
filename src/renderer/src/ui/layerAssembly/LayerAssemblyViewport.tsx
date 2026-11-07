@@ -209,7 +209,9 @@ export function LayerAssemblyViewport({
     onSelectLayer,
     onUpdateLayer,
     onChangeComposite,
-    brushActiveTool: brush.activeTool
+    brushActiveTool: brush.activeTool,
+    tab,
+    time
   })
 
   const panStartRef = useRef({ mouseX: 0, mouseY: 0, initPanX: 0, initPanY: 0 })

@@ -879,48 +879,40 @@
   fill: var(--key);
 }
 
-/* Unselected Anatomical Bone Tints (Left = Cyan, Center = Royal Blue, Right = Coral) */
-.lw-blender-bone.side-left:not(.selected) .lw-bone-facet {
-  fill: rgba(6, 182, 212, 0.22);
-  stroke: rgba(34, 211, 238, 0.88);
+/* Per-Bone Anatomical Color Tints & High-Contrast Hover Glow */
+.lw-blender-bone:not(.selected) .lw-bone-facet {
+  fill: color-mix(in srgb, var(--bone-color, #38bdf8) 24%, transparent);
+  stroke: var(--bone-color, #38bdf8);
 }
 
-.lw-blender-bone.side-left:not(.selected) .lw-bone-head-joint,
-.lw-blender-bone.side-left:not(.selected) .lw-bone-tail-joint {
-  stroke: #06b6d4;
+.lw-blender-bone:not(.selected) .lw-bone-head-joint,
+.lw-blender-bone:not(.selected) .lw-bone-tail-joint {
+  stroke: var(--bone-color, #38bdf8);
 }
 
-.lw-blender-bone.side-right:not(.selected) .lw-bone-facet {
-  fill: rgba(249, 115, 22, 0.22);
-  stroke: rgba(251, 146, 60, 0.88);
+.lw-blender-bone.is-hovered:not(.selected),
+.lw-blender-bone:hover:not(.selected) {
+  filter: drop-shadow(0 0 7px color-mix(in srgb, var(--bone-color, #00e5ff) 85%, transparent));
 }
 
-.lw-blender-bone.side-right:not(.selected) .lw-bone-head-joint,
-.lw-blender-bone.side-right:not(.selected) .lw-bone-tail-joint {
-  stroke: #f97316;
+.lw-blender-bone.is-hovered:not(.selected) .lw-bone-facet,
+.lw-blender-bone:hover:not(.selected) .lw-bone-facet {
+  fill: color-mix(in srgb, var(--bone-color, #00e5ff) 52%, transparent) !important;
+  stroke: var(--bone-color, #00e5ff) !important;
+  stroke-width: 2.5px !important;
 }
 
-.lw-blender-bone.side-center:not(.selected) .lw-bone-facet {
-  fill: rgba(59, 130, 246, 0.22);
-  stroke: rgba(96, 165, 250, 0.88);
+.lw-blender-bone.is-hovered:not(.selected) .lw-bone-head-joint,
+.lw-blender-bone:hover:not(.selected) .lw-bone-head-joint,
+.lw-blender-bone.is-hovered:not(.selected) .lw-bone-tail-joint,
+.lw-blender-bone:hover:not(.selected) .lw-bone-tail-joint {
+  fill: var(--bone-color, #00e5ff);
+  stroke: #ffffff;
 }
 
-.lw-blender-bone.side-center:not(.selected) .lw-bone-head-joint,
-.lw-blender-bone.side-center:not(.selected) .lw-bone-tail-joint {
-  stroke: #3b82f6;
-}
-
-/* Light Theme High-Contrast Bone Strokes over Light Checkerboard */
-[data-theme='light'] .lw-blender-bone.side-left:not(.selected) .lw-bone-facet {
-  stroke: #0891b2;
-}
-
-[data-theme='light'] .lw-blender-bone.side-right:not(.selected) .lw-bone-facet {
-  stroke: #ea580c;
-}
-
-[data-theme='light'] .lw-blender-bone.side-center:not(.selected) .lw-bone-facet {
-  stroke: #2563eb;
+[data-theme='light'] .lw-blender-bone:not(.selected) .lw-bone-facet {
+  fill: color-mix(in srgb, var(--bone-color, #0284c7) 30%, transparent);
+  stroke: color-mix(in srgb, var(--bone-color, #0284c7) 82%, #0f172a);
 }
 
 /* Moho Pin Bone Reticle Ring */

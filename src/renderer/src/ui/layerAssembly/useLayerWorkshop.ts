@@ -3,7 +3,7 @@ import type { AssembledLayerItem, LayerComposite } from './types'
 import { useWorkshopHistory } from './useWorkshopHistory'
 import { applyWorkshopAction, newLayerId, type WorkshopAction } from './workshopActions'
 import { invalidateLayerMeshCache } from './layerAssemblyAlphaMesh'
-import { moveLinked } from './workshopParts'
+import { moveLinked, scaleAndMoveLayerWithBoundBones } from './workshopParts'
 import { trimImageTransparency } from './imageAutoTrim'
 
 export function computeNextLayerZ(layers: { z?: number }[], customZ?: number): number {
@@ -42,7 +42,8 @@ export function useLayerWorkshop(initial?: LayerComposite | null) {
       if (existing?.imageUrl) invalidateLayerMeshCache(existing.imageUrl)
     }
     setComposite((prev) => ({ ...prev,
-      layers: prev.layers.map((l) => l.id === id && (!l.locked || Object.keys(patch).every((key) => key === 'locked')) ? { ...l, ...patch } : l)
+      layers: prev.layers.map((l) => l.id === id && (!l.locked || Object.keys(patch).every((key) => key === 'locked')) ? { ...l, ...patch } : l),
+      rig: patch.scale !== undefined ? scaleAndMoveLayerWithBoundBones(prev, id, patch).rig : prev.rig
     }), `${id}:${Object.keys(patch).sort().join(',')}`)
   }
   /** Dời X/Y một layer; nếu layer thuộc nhóm bộ phận đang khoá liên kết thì cả nhóm dời theo. */
