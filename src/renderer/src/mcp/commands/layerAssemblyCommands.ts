@@ -140,6 +140,7 @@ export const layerAssemblyCommands: Record<string, Handler> = {
 
     let thumbnail = str(p, 'thumbnail') || raw.thumbnail
     const candidate: LayerComposite = {
+      ...raw,
       id,
       name,
       category,
@@ -149,6 +150,10 @@ export const layerAssemblyCommands: Record<string, Handler> = {
       height,
       layers,
       rig: raw.rig,
+      assets: (p.assets as LayerComposite['assets']) || raw.assets,
+      partGroups: (p.partGroups as LayerComposite['partGroups']) || raw.partGroups,
+      plantSpines: (p.plantSpines as LayerComposite['plantSpines']) || raw.plantSpines,
+      customActions: raw.customActions,
       lighting: raw.lighting
     }
     validateWorkshop(candidate)
