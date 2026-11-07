@@ -2,7 +2,14 @@ import { useState } from 'react'
 import type { AnimationClip, LayerRig, MotionViewAngle } from '@shared/layerRig'
 import type { LayerComposite } from './types'
 import type { RigAction } from './workshopRig'
-import { IconCode, IconCopy, IconPen, IconPlus, IconTrash } from '../icons'
+import type { ParsedWindData } from './workshopClipJson'
+import {
+  inferDescriptiveClipName,
+  isGenericClipName,
+  normalizeAndFixBiomechanicalTracks
+} from './workshopClipBiomechanics'
+import { toast } from '../../actions'
+import { IconCode, IconCopy, IconPen, IconPlus, IconSparkles, IconTrash } from '../icons'
 import { WorkshopNewMotionModal } from './WorkshopNewMotionModal'
 import { WorkshopClipJsonModal } from './WorkshopClipJsonModal'
 
@@ -34,11 +41,33 @@ export function WorkshopClipBar({
     setIsRenaming(false)
   }
 
-  const handleImportClip = (clip: AnimationClip, mode: 'new' | 'replace') => {
+  const handleImportClip = (clip: AnimationClip, mode: 'new' | 'replace', wind?: ParsedWindData) => {
     if (mode === 'new') {
-      run({ action: 'add-clip', clip })
+      run({ action: 'add-clip', clip, ...(wind ? { wind } : {}) })
     } else {
-      run({ action: 'replace-clip', clipId: activeClip.id, clip })
+      run({ action: 'replace-clip', clipId: activeClip.id, clip, ...(wind ? { wind } : {}) })
+    }
+  }
+
+  const handleNormalizeCurrentClip = () => {
+    const { tracks, fixesApplied } = normalizeAndFixBiomechanicalTracks(
+      activeClip.tracks || {},
+      rig.bones,
+      activeClip.viewAngle ?? 'front'
+    )
+    const nextName = isGenericClipName(activeClip.name)
+      ? inferDescriptiveClipName(tracks, rig.bones, composite?.plantSpines?.length ?? 0)
+      : activeClip.name
+    const nextClip: AnimationClip = {
+      ...activeClip,
+      name: nextName,
+      tracks
+    }
+    run({ action: 'replace-clip', clipId: activeClip.id, clip: nextClip })
+    if (fixesApplied.length > 0 || nextName !== activeClip.name) {
+      toast(`✓ Đã chuẩn hoá 2.5D cho "${nextName}" (${fixesApplied.length} hiệu chỉnh cơ học)!`)
+    } else {
+      toast(`✓ Động tác "${nextName}" đã đạt chuẩn cơ học 2.5D!`)
     }
   }
 
@@ -101,7 +130,7 @@ export function WorkshopClipBar({
   const handleCreateBlankClip = () => {
     const newClip: AnimationClip = {
       id: `clip-custom-${Date.now().toString(36)}`,
-      name: `Động tác ${clips.length + 1}`,
+      name: `Động tác mới ${clips.length + 1}`,
       duration: 2.0,
       fps: rig.fps,
       loop: true,
@@ -141,7 +170,7 @@ export function WorkshopClipBar({
             type="button"
             className="btn xs lw-clip-json-btn"
             onClick={() => setIsClipJsonModalOpen(true)}
-            title="Xuất / Nhập JSON động tác hoặc sao chép Prompt cho AI khác (ChatGPT / Claude)"
+            title="Xuất / Nhập JSON động tác (kèm quy chuẩn 2.5D & Gió) hoặc sao chép Prompt cho AI khác"
           >
             <IconCode width={10} height={10} />
             <span>JSON</span>
@@ -209,6 +238,7 @@ export function WorkshopClipBar({
         onClose={() => setIsClipJsonModalOpen(false)}
         clip={activeClip}
         bones={rig.bones}
+        composite={composite}
         onImportClip={handleImportClip}
       />
 
@@ -256,6 +286,15 @@ export function WorkshopClipBar({
                 <IconPen width={10} height={10} />
                 <span>Đổi tên</span>
               </button>
+              <button
+                type="button"
+                className="btn xs"
+                onClick={handleNormalizeCurrentClip}
+                title="Tự động chuẩn hoá cơ học 2.5D (sửa tay đan chéo bụng, chân chữ X, tự đặt tên mô tả)"
+              >
+                <IconSparkles width={10} height={10} />
+                <span>Chuẩn 2.5D</span>
+              </button>
               <button type="button" className="btn xs" onClick={handleDuplicateCurrent} title="Nhân bản động tác này">
                 <IconCopy width={10} height={10} />
                 <span>Nhân bản</span>
@@ -275,7 +314,7 @@ export function WorkshopClipBar({
                 type="button"
                 className="btn xs lw-clip-json-btn"
                 onClick={() => setIsClipJsonModalOpen(true)}
-                title="Xuất / Nhập JSON động tác hoặc sao chép Prompt cho AI khác (ChatGPT / Claude)"
+                title="Xuất / Nhập JSON động tác (kèm Gió & Quy chuẩn 2.5D) hoặc sao chép Prompt cho AI"
               >
                 <IconCode width={10} height={10} />
                 <span>JSON / AI</span>
