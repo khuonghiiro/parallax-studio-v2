@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react'
 import type { ChromaKeySettings, CutPoint } from '../layerAssembly/cutter/types'
-import { DEFAULT_CHROMA_SETTINGS } from '../layerAssembly/cutter/types'
+import { DEFAULT_CHROMA_SETTINGS, getStoredChromaSettings, saveStoredChromaSettings } from '../layerAssembly/cutter/types'
 import {
   processAdvancedChromaPixelData
 } from '../layerAssembly/cutter/chromaAdvancedProcessor'
@@ -51,7 +51,7 @@ export function PhotoStudioDialog({
   const [tool, setTool] = useState<PhotoStudioTool>('wand')
   const [isChecker, setIsChecker] = useState<boolean>(true)
   const [tone, setTone] = useState<'dark' | 'light'>('dark')
-  const [chroma, setChroma] = useState<ChromaKeySettings>(DEFAULT_CHROMA_SETTINGS)
+  const [chroma, setChroma] = useState<ChromaKeySettings>(() => getStoredChromaSettings())
   const [adjustments, setAdjustments] = useState<PhotoAdjustments>(DEFAULT_PHOTO_ADJUSTMENTS)
 
   const canvasBgClass = useMemo(() => {
@@ -164,13 +164,21 @@ export function PhotoStudioDialog({
       // Tự động phát hiện màu phông
       const preset = detectCornerBackground(rctx)
       if (preset) {
-        setChroma((prev) => ({
-          ...prev,
-          enabled: true,
-          keyColorType: preset.type,
-          keyColorHex: preset.hex,
-          keyColor: preset.hex
-        }))
+        setChroma((prev) => {
+          const next = {
+            ...prev,
+            enabled: true,
+            keyColorType: preset.type,
+            keyColorHex: preset.hex,
+            keyColor: preset.hex,
+            tolerance: prev.tolerance > 5 ? prev.tolerance : 18,
+            isolationMode: prev.isolationMode || 'outer_only',
+            fringeColorType: preset.type,
+            fringeColorHex: preset.hex
+          }
+          saveStoredChromaSettings(next)
+          return next
+        })
       }
 
       // Auto fit zoom
@@ -468,13 +476,18 @@ export function PhotoStudioDialog({
         chroma.keyColorHex || '#00DB4E'
       )
       setEyedropperSample(sample)
-      setChroma((prev) => ({
-        ...prev,
-        enabled: true,
-        keyColorType: 'custom',
-        keyColorHex: sample.hex,
-        keyColor: sample.hex
-      }))
+      setChroma((prev) => {
+        const next = {
+          ...prev,
+          enabled: true,
+          keyColorType: 'custom' as const,
+          keyColorHex: sample.hex,
+          keyColor: sample.hex,
+          tolerance: prev.tolerance > 5 ? prev.tolerance : 18
+        }
+        saveStoredChromaSettings(next)
+        return next
+      })
       return
     }
 
@@ -893,7 +906,14 @@ export function PhotoStudioDialog({
           {/* Right Vertical Control Rail */}
           <PhotoStudioRightRail
             chroma={chroma}
-            onChangeChroma={(patch) => setChroma((c) => ({ ...c, ...patch }))}
+            onChangeChroma={(patch) =>
+            setChroma((c) => {
+              const next = { ...c, ...patch }
+              if (patch.keyColorHex) next.keyColor = patch.keyColorHex
+              saveStoredChromaSettings(next)
+              return next
+            })
+          }
             onPickEyedropper={() => setTool('eyedropper')}
             adjustments={adjustments}
             onChangeAdjustments={(patch) => setAdjustments((a) => ({ ...a, ...patch }))}

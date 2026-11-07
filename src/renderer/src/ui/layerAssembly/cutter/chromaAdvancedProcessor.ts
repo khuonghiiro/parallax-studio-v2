@@ -53,8 +53,14 @@ function resolveEffectiveKeyRgb(settings: ChromaKeySettings): { r: number; g: nu
     if (parsed.b > parsed.r + 25 && parsed.b > parsed.g + 15) return parsed
     return { r: 0, g: 92, b: 230 }
   }
-  if (keyType === 'pure_white') return { r: 255, g: 255, b: 255 }
-  if (keyType === 'pure_black') return { r: 0, g: 0, b: 0 }
+  if (keyType === 'pure_white') {
+    if (parsed.r > 240 && parsed.g > 240 && parsed.b > 240) return parsed
+    return { r: 255, g: 255, b: 255 }
+  }
+  if (keyType === 'pure_black') {
+    if (parsed.r < 35 && parsed.g < 35 && parsed.b < 35) return parsed
+    return { r: 0, g: 0, b: 0 }
+  }
   return parsed
 }
 

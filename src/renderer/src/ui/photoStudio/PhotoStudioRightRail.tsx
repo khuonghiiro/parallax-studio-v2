@@ -99,16 +99,17 @@ export function PhotoStudioRightRail({
         TÁCH NỀN
       </div>
 
-      {/* 1. Bảng màu tách phông */}
+      {/* 1. Bảng màu & Tách nền (Chroma Key) */}
       <div className="ps-rail-item">
         <button
           type="button"
           className={`ps-rail-btn ${activeFlyout === 'color' ? 'active' : ''}`}
           onClick={() => toggleFlyout('color')}
-          title="Bảng màu nền & Chế độ tách"
+          title="Tách nền Chroma Key: Chọn màu, phạm vi, độ nhạy & làm mềm biên"
         >
           <IconChromaBackdrop width={18} height={18} />
-          <span className="ps-rail-label">Màu nền</span>
+          <span className="ps-rail-label">Tách nền</span>
+          <span className="ps-rail-badge">{chroma.tolerance}%</span>
           <span
             className="ps-rail-color-dot"
             style={{ background: chroma.keyColorHex || '#00DB4E' }}
@@ -120,10 +121,34 @@ export function PhotoStudioRightRail({
           isOpen={activeFlyout === 'color'}
           onClose={() => setActiveFlyout(null)}
           side="left"
-          title="Màu nền & Chế độ tách"
+          title="Tách Nền Tự Động (Chroma Key)"
           icon={<IconChromaBackdrop width={15} height={15} />}
-          width={290}
+          badge={`${chroma.tolerance}%`}
+          onReset={() =>
+            onChangeChroma({
+              enabled: true,
+              tolerance: 18,
+              smoothness: 1,
+              edgeChoke: 0,
+              isolationMode: 'outer_only'
+            })
+          }
+          resetTitle="Khôi phục mặc định"
+          width={320}
         >
+          {/* Bật/tắt tách nền */}
+          <div className="ps-flyout-row" style={{ justifyContent: 'space-between' }}>
+            <span className="ps-flyout-row-title">Bật thuật toán tách nền:</span>
+            <input
+              type="checkbox"
+              checked={chroma.enabled}
+              onChange={(e) => onChangeChroma({ enabled: e.target.checked })}
+            />
+          </div>
+
+          <div className="ps-flyout-divider" />
+
+          {/* Màu phông cài sẵn */}
           <div className="ps-flyout-presets-grid">
             <button
               type="button"
@@ -193,7 +218,7 @@ export function PhotoStudioRightRail({
 
           <div className="ps-flyout-divider" />
 
-          {/* BFS vs All */}
+          {/* Phạm vi tách: BFS vs All */}
           <div className="ps-flyout-row">
             <span className="ps-flyout-row-title">Phạm vi:</span>
             <div className="ps-segmented-pill sm">
@@ -201,7 +226,7 @@ export function PhotoStudioRightRail({
                 type="button"
                 className={`ps-seg-item ${isolationMode === 'outer_only' ? 'active' : ''}`}
                 onClick={() => onChangeChroma({ isolationMode: 'outer_only' })}
-                title="Chỉ tách nền ngoài biên, bảo vệ mắt/áo bên trong"
+                title="Chỉ tách nền ngoài biên (BFS), bảo vệ áo trắng/mắt/da bên trong nhân vật"
               >
                 Giữ ruột (BFS)
               </button>
@@ -209,77 +234,21 @@ export function PhotoStudioRightRail({
                 type="button"
                 className={`ps-seg-item ${isolationMode === 'all' ? 'active' : ''}`}
                 onClick={() => onChangeChroma({ isolationMode: 'all' })}
-                title="Tách toàn bộ pixel trùng màu trên khắp ảnh"
+                title="Tách toàn bộ pixel trùng màu trên khắp ảnh (thích hợp cho cây cối/hoa lá có nhiều khe hở)"
               >
                 Toàn bộ
               </button>
             </div>
           </div>
 
-          {/* Bóng mờ */}
-          <div className="ps-flyout-row">
-            <span className="ps-flyout-row-title">Bóng mờ:</span>
-            <div className="ps-segmented-pill sm">
-              <button
-                type="button"
-                className={`ps-seg-item ${shadowMode === 'off' ? 'active' : ''}`}
-                onClick={() => onChangeChroma({ shadowMode: 'off', keepShadows: false })}
-                title="Xóa triệt để mọi bóng mờ"
-              >
-                Xóa bóng
-              </button>
-              <button
-                type="button"
-                className={`ps-seg-item ${shadowMode === 'include' ? 'active' : ''}`}
-                onClick={() => onChangeChroma({ shadowMode: 'include', keepShadows: true })}
-                title="Giữ lại bóng mờ mềm mại tự nhiên"
-              >
-                Lấy cả bóng
-              </button>
-            </div>
-          </div>
+          <div className="ps-flyout-divider" />
 
-          {/* Khử ám nền */}
-          <label className="ps-checkbox-label sm" title="Khử màu nền ám vào vùng bóng mờ">
-            <input
-              type="checkbox"
-              checked={chroma.shadowUnmixColor ?? true}
-              onChange={(e) => onChangeChroma({ shadowUnmixColor: e.target.checked })}
-            />
-            <span>Khử ám màu nền vào bóng</span>
-          </label>
-        </PhotoStudioFlyout>
-      </div>
-
-      {/* 2. Độ nhạy (Tolerance) */}
-      <div className="ps-rail-item">
-        <button
-          type="button"
-          className={`ps-rail-btn ${activeFlyout === 'tolerance' ? 'active' : ''}`}
-          onClick={() => toggleFlyout('tolerance')}
-          title="Độ nhạy tách nền (Tolerance)"
-        >
-          <IconChromaTolerance width={18} height={18} />
-          <span className="ps-rail-label">Độ nhạy</span>
-          <span className="ps-rail-badge">{chroma.tolerance}%</span>
-        </button>
-
-        <PhotoStudioFlyout
-          isOpen={activeFlyout === 'tolerance'}
-          onClose={() => setActiveFlyout(null)}
-          side="left"
-          title="Độ nhạy tách nền"
-          icon={<IconChromaTolerance width={15} height={15} />}
-          badge={`${chroma.tolerance}%`}
-          onReset={() => onChangeChroma({ tolerance: 36 })}
-          resetTitle="Đặt lại 36%"
-          width={280}
-        >
+          {/* Slider 1: Độ nhạy (Tolerance) */}
           <div className="ps-flyout-slider-row">
             <span className="ps-flyout-label">Độ nhạy:</span>
             <input
               type="range"
-              min={0}
+              min={1}
               max={100}
               value={chroma.tolerance}
               onChange={(e) => onChangeChroma({ tolerance: Number(e.target.value) })}
@@ -287,7 +256,7 @@ export function PhotoStudioRightRail({
             <span className="ps-flyout-val">{chroma.tolerance}%</span>
           </div>
           <div className="ps-flyout-presets">
-            {[15, 25, 36, 50, 75, 100].map((tol) => (
+            {[10, 18, 25, 36, 50, 75].map((tol) => (
               <button
                 key={tol}
                 type="button"
@@ -298,34 +267,9 @@ export function PhotoStudioRightRail({
               </button>
             ))}
           </div>
-        </PhotoStudioFlyout>
-      </div>
 
-      {/* 3. Mềm biên (Feather) */}
-      <div className="ps-rail-item">
-        <button
-          type="button"
-          className={`ps-rail-btn ${activeFlyout === 'feather' ? 'active' : ''}`}
-          onClick={() => toggleFlyout('feather')}
-          title="Làm mềm mờ biên ngoài (Feather không răng cưa)"
-        >
-          <IconFeatherSmooth width={18} height={18} />
-          <span className="ps-rail-label">Mềm biên</span>
-          <span className="ps-rail-badge">{chroma.smoothness}px</span>
-        </button>
-
-        <PhotoStudioFlyout
-          isOpen={activeFlyout === 'feather'}
-          onClose={() => setActiveFlyout(null)}
-          side="left"
-          title="Làm mềm biên"
-          icon={<IconFeatherSmooth width={15} height={15} />}
-          badge={`${chroma.smoothness}px`}
-          onReset={() => onChangeChroma({ smoothness: 2 })}
-          resetTitle="Đặt lại 2px"
-          width={280}
-        >
-          <div className="ps-flyout-slider-row">
+          {/* Slider 2: Mềm biên (Feather) */}
+          <div className="ps-flyout-slider-row" style={{ marginTop: 4 }}>
             <span className="ps-flyout-label">Mềm biên:</span>
             <input
               type="range"
@@ -348,34 +292,9 @@ export function PhotoStudioRightRail({
               </button>
             ))}
           </div>
-        </PhotoStudioFlyout>
-      </div>
 
-      {/* 4. Gọt viền (Edge Choke) */}
-      <div className="ps-rail-item">
-        <button
-          type="button"
-          className={`ps-rail-btn ${activeFlyout === 'choke' ? 'active' : ''}`}
-          onClick={() => toggleFlyout('choke')}
-          title="Gọt bớt lớp viền lem ám màu nền"
-        >
-          <IconEdgeChoke width={18} height={18} />
-          <span className="ps-rail-label">Gọt viền</span>
-          <span className="ps-rail-badge">{chroma.edgeChoke ?? 0}px</span>
-        </button>
-
-        <PhotoStudioFlyout
-          isOpen={activeFlyout === 'choke'}
-          onClose={() => setActiveFlyout(null)}
-          side="left"
-          title="Gọt viền lem"
-          icon={<IconEdgeChoke width={15} height={15} />}
-          badge={`${chroma.edgeChoke ?? 0}px`}
-          onReset={() => onChangeChroma({ edgeChoke: 0 })}
-          resetTitle="Đặt lại 0px"
-          width={280}
-        >
-          <div className="ps-flyout-slider-row">
+          {/* Slider 3: Gọt viền (Edge Choke) */}
+          <div className="ps-flyout-slider-row" style={{ marginTop: 4 }}>
             <span className="ps-flyout-label">Gọt viền:</span>
             <input
               type="range"
@@ -401,65 +320,18 @@ export function PhotoStudioRightRail({
         </PhotoStudioFlyout>
       </div>
 
-      {/* 5. Viền nét mịn (Contour Stroke) */}
+      {/* 2. Khử Viền, Lọc Sạn & Bóng Mờ (Cleanup) */}
       <div className="ps-rail-item">
         <button
           type="button"
-          className={`ps-rail-btn ${activeFlyout === 'stroke' ? 'active' : ''}`}
-          onClick={() => toggleFlyout('stroke')}
-          title="Vẽ viền nét mịn ngoài nhân vật"
-        >
-          <IconContourStroke width={18} height={18} />
-          <span className="ps-rail-label">Viền nét</span>
-          <span className="ps-rail-badge">{chroma.strokeWidth ?? 0}px</span>
-        </button>
-
-        <PhotoStudioFlyout
-          isOpen={activeFlyout === 'stroke'}
-          onClose={() => setActiveFlyout(null)}
-          side="left"
-          title="Viền nét nhân vật"
-          icon={<IconContourStroke width={15} height={15} />}
-          badge={`${chroma.strokeWidth ?? 0}px`}
-          onReset={() => onChangeChroma({ strokeWidth: 0, strokeColorHex: '#ffffff' })}
-          resetTitle="Tắt viền"
-          width={280}
-        >
-          <div className="ps-flyout-slider-row">
-            <span className="ps-flyout-label">Độ dày:</span>
-            <input
-              type="range"
-              min={0}
-              max={10}
-              value={chroma.strokeWidth ?? 0}
-              onChange={(e) => onChangeChroma({ strokeWidth: Number(e.target.value) })}
-            />
-            <span className="ps-flyout-val">{chroma.strokeWidth ?? 0}px</span>
-          </div>
-          <div className="ps-flyout-row" style={{ marginTop: 8 }}>
-            <span className="ps-flyout-label">Màu viền:</span>
-            <div className="ps-picker-box">
-              <ColorInput
-                compact={false}
-                showText={true}
-                value={chroma.strokeColorHex || '#ffffff'}
-                onChange={(hex: string) => onChangeChroma({ strokeColorHex: hex })}
-              />
-            </div>
-          </div>
-        </PhotoStudioFlyout>
-      </div>
-
-      {/* 6. Khử lem & Lọc đốm rác (Advanced) */}
-      <div className="ps-rail-item">
-        <button
-          type="button"
-          className={`ps-rail-btn ${activeFlyout === 'clean' ? 'active' : ''}`}
+          className={`ps-rail-btn ${activeFlyout === 'clean' ? 'active' : ''} ${
+            (chroma.defringeStrength ?? 0) > 0 || (chroma.despeckleSize ?? 0) > 0 ? 'modified' : ''
+          }`}
           onClick={() => toggleFlyout('clean')}
-          title="Khử tràn màu (Defringe), khử răng cưa và dọn rác"
+          title="Khử viền ám màu, làm mịn răng cưa, lọc đốm rác & xử lý bóng mờ"
         >
           <IconCleanArtifacts width={18} height={18} />
-          <span className="ps-rail-label">Lọc rác</span>
+          <span className="ps-rail-label">Khử viền</span>
         </button>
 
         <PhotoStudioFlyout
@@ -467,8 +339,19 @@ export function PhotoStudioRightRail({
           onClose={() => setActiveFlyout(null)}
           side="left"
           placement="bottom"
-          title="Lọc đốm rác & Khử lem"
+          title="Khử Viền & Lọc Sạn"
           icon={<IconCleanArtifacts width={15} height={15} />}
+          onReset={() =>
+            onChangeChroma({
+              defringeStrength: 0,
+              edgeSmooth: 0,
+              despeckleSize: 0,
+              removeSoftHalo: false,
+              shadowMode: 'off',
+              keepShadows: false
+            })
+          }
+          resetTitle="Đặt lại"
           width={310}
         >
           <div className="ps-flyout-row">
@@ -537,6 +420,93 @@ export function PhotoStudioRightRail({
               checked={chroma.removeSoftHalo ?? false}
               onChange={(e) => onChangeChroma({ removeSoftHalo: e.target.checked })}
             />
+          </div>
+
+          <div className="ps-flyout-divider" />
+
+          {/* Bóng mờ */}
+          <div className="ps-flyout-row">
+            <span className="ps-flyout-row-title">Bóng mờ:</span>
+            <div className="ps-segmented-pill sm">
+              <button
+                type="button"
+                className={`ps-seg-item ${shadowMode === 'off' ? 'active' : ''}`}
+                onClick={() => onChangeChroma({ shadowMode: 'off', keepShadows: false })}
+                title="Xóa triệt để mọi bóng mờ"
+              >
+                Xóa bóng
+              </button>
+              <button
+                type="button"
+                className={`ps-seg-item ${shadowMode === 'include' ? 'active' : ''}`}
+                onClick={() => onChangeChroma({ shadowMode: 'include', keepShadows: true, shadowRetention: 65, shadowSolidThreshold: 62 })}
+                title="Giữ lại bóng mờ mềm mại tự nhiên"
+              >
+                Lấy cả bóng
+              </button>
+            </div>
+          </div>
+
+          {shadowMode === 'include' && (
+            <label className="ps-checkbox-label sm" title="Khử màu nền ám vào vùng bóng mờ" style={{ marginTop: 4 }}>
+              <input
+                type="checkbox"
+                checked={chroma.shadowUnmixColor ?? true}
+                onChange={(e) => onChangeChroma({ shadowUnmixColor: e.target.checked })}
+              />
+              <span>Khử ám màu nền vào bóng</span>
+            </label>
+          )}
+        </PhotoStudioFlyout>
+      </div>
+
+      {/* 3. Viền nét mịn (Contour Stroke) */}
+      <div className="ps-rail-item">
+        <button
+          type="button"
+          className={`ps-rail-btn ${activeFlyout === 'stroke' ? 'active' : ''} ${
+            (chroma.strokeWidth ?? 0) > 0 ? 'modified' : ''
+          }`}
+          onClick={() => toggleFlyout('stroke')}
+          title="Vẽ viền nét mịn ngoài nhân vật"
+        >
+          <IconContourStroke width={18} height={18} />
+          <span className="ps-rail-label">Viền nét</span>
+          <span className="ps-rail-badge">{chroma.strokeWidth ?? 0}px</span>
+        </button>
+
+        <PhotoStudioFlyout
+          isOpen={activeFlyout === 'stroke'}
+          onClose={() => setActiveFlyout(null)}
+          side="left"
+          title="Viền nét nhân vật"
+          icon={<IconContourStroke width={15} height={15} />}
+          badge={`${chroma.strokeWidth ?? 0}px`}
+          onReset={() => onChangeChroma({ strokeWidth: 0, strokeColorHex: '#ffffff' })}
+          resetTitle="Tắt viền"
+          width={280}
+        >
+          <div className="ps-flyout-slider-row">
+            <span className="ps-flyout-label">Độ dày:</span>
+            <input
+              type="range"
+              min={0}
+              max={10}
+              value={chroma.strokeWidth ?? 0}
+              onChange={(e) => onChangeChroma({ strokeWidth: Number(e.target.value) })}
+            />
+            <span className="ps-flyout-val">{chroma.strokeWidth ?? 0}px</span>
+          </div>
+          <div className="ps-flyout-row" style={{ marginTop: 8 }}>
+            <span className="ps-flyout-label">Màu viền:</span>
+            <div className="ps-picker-box">
+              <ColorInput
+                compact={false}
+                showText={true}
+                value={chroma.strokeColorHex || '#ffffff'}
+                onChange={(hex: string) => onChangeChroma({ strokeColorHex: hex })}
+              />
+            </div>
           </div>
         </PhotoStudioFlyout>
       </div>

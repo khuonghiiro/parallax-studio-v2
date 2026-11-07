@@ -10,8 +10,10 @@ function classifyCornerColor(r: number, g: number, b: number): DetectedCornerPre
   const hex = rgbToHex(r, g, b)
   if (g > 110 && g > r + 32 && g > b + 28) return { type: 'chroma_green', hex }
   if (b > 110 && b > r + 28 && b > g + 24) return { type: 'chroma_blue', hex }
-  if (r < 30 && g < 30 && b < 30) return { type: 'pure_black', hex: '#000000' }
-  if (r > 228 && g > 228 && b > 228) return { type: 'pure_white', hex: '#FFFFFF' }
+  if (r < 25 && g < 25 && b < 25) return { type: 'pure_black', hex }
+  if (r > 248 && g > 248 && b > 248 && Math.max(r, g, b) - Math.min(r, g, b) <= 4) {
+    return { type: 'pure_white', hex: '#FFFFFF' }
+  }
   return { type: 'custom', hex }
 }
 
