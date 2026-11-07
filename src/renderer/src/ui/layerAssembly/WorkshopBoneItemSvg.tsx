@@ -124,14 +124,17 @@ export function WorkshopBoneItemSvg({
   const hy = tf.y
   const tx = hx + ux * L
   const ty = hy + uy * L
-  const scaleHandleX = tx + ux * 16
-  const scaleHandleY = ty + uy * 16
+  const waistFraction = 0.22
+  const waistW = Math.max(2.2, Math.min(9.5, L * 0.08))
+  const hasChildJoint = isBoneTailCoincidentWithChild(bone, bones, transforms, 8)
+  const normalSign = side === 'left' ? -1 : 1
+  const scaleOffsetDist = hasChildJoint ? Math.max(22, waistW + 16) : 16
+  const scaleHandleX = hasChildJoint ? tx + nx * scaleOffsetDist * normalSign : tx + ux * 16
+  const scaleHandleY = hasChildJoint ? ty + ny * scaleOffsetDist * normalSign : ty + uy * 16
 
   const bodyCursor = isDragging ? 'grabbing' : editing && !isManipulateTool ? 'move' : 'grab'
   const tailCursor = isDragging ? 'grabbing' : editing && !isManipulateTool ? 'crosshair' : 'grab'
 
-  const waistFraction = 0.22
-  const waistW = Math.max(2.2, Math.min(9.5, L * 0.08))
   const headBaseR = Math.max(3.2, Math.min(6.2, L * 0.065))
   const headR = isSelected ? headBaseR + 1.8 : editing && hasMixamoLandmarks && !isHovered ? 2.8 : headBaseR
   const tailBaseR = Math.max(2.2, Math.min(4.5, L * 0.045))
@@ -253,8 +256,8 @@ export function WorkshopBoneItemSvg({
             />
           )}
 
-          {/* Tay nắm ⤢ Scale phóng to / thu nhỏ bộ phận & xương theo bước hoạt ảnh */}
-          {(isSelected || isHovered) && (
+          {/* Tay nắm ⤢ Scale phóng to / thu nhỏ bộ phận & xương theo bước hoạt ảnh (chỉ hiện khi chọn xương) */}
+          {isSelected && (
             <g
               style={{ cursor: 'nwse-resize', pointerEvents: 'all' }}
               onPointerEnter={() => enterZone('scale')}

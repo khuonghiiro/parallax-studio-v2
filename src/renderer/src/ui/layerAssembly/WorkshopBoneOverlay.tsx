@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type PointerEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type PointerEvent } from 'react'
 import type { BonePose, LayerBone } from '@shared/layerRig'
 import { evaluateRig } from '../../engine/layerRig'
 import type { LayerComposite } from './types'
@@ -55,7 +55,6 @@ import { WorkshopBoneItemSvg } from './WorkshopBoneItemSvg'
 import {
   WorkshopBoneDrawPreview,
   WorkshopSymmetryGuide,
-  WorkshopBoneHudBadge,
   type DrawBoneStepMode,
   type DrawNewBoneDrag
 } from './WorkshopBoneDrawPreview'
@@ -161,6 +160,20 @@ export function WorkshopBoneOverlay({
   const activeRigForEval = isManipulateTool ? buildManipulateTestRig(rig, rigTool.testPoses) : { ...rig, loop: false }
   const transforms = evaluateRig(activeRigForEval, isManipulateTool ? 0 : time, editing && !isManipulateTool)
   const mixamoLandmarks = editing && rigTool.tool === 'select' ? extractLandmarksFromBones(rig.bones) : null
+
+  const sortedBones = useMemo(() => {
+    return [...rig.bones].sort((a, b) => {
+      const aFocus = a.id === boneId || activeDrag === a.id
+      const bFocus = b.id === boneId || activeDrag === b.id
+      if (aFocus && !bFocus) return 1
+      if (!aFocus && bFocus) return -1
+      const aHover = a.id === hoveredBoneId
+      const bHover = b.id === hoveredBoneId
+      if (aHover && !bHover) return 1
+      if (!aHover && bHover) return -1
+      return 0
+    })
+  }, [rig.bones, boneId, activeDrag, hoveredBoneId])
 
   const toLocalPoint = (event: PointerEvent) => {
     const rect = svgRef.current?.getBoundingClientRect()
@@ -915,7 +928,7 @@ export function WorkshopBoneOverlay({
       {editing && <WorkshopBoneConstraintArc bone={rig.bones.find((b) => b.id === boneId)} transforms={transforms} />}
       {liveStroke && liveStroke.length > 1 && <path d={toPath(liveStroke)} className="lw-sketch-path" pointerEvents="none" />}
       <WorkshopBoneRelationships bones={rig.bones} transforms={transforms} />
-      {rig.bones.map((bone) => (
+      {sortedBones.map((bone: LayerBone) => (
         <WorkshopBoneItemSvg
           key={bone.id}
           bone={bone}
@@ -956,7 +969,6 @@ export function WorkshopBoneOverlay({
           onStartDragLandmark={handleStartDragMixamoRing}
         />
       )}
-      <WorkshopBoneHudBadge hud={dragAngle} />
     </svg>
   )
 }
