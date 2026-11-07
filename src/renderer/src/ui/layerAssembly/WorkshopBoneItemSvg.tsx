@@ -259,31 +259,58 @@ export function WorkshopBoneItemSvg({
           {/* Tay nắm ⤢ Scale phóng to / thu nhỏ bộ phận & xương theo bước hoạt ảnh (chỉ hiện khi chọn xương) */}
           {isSelected && (
             <g
-              style={{ cursor: 'nwse-resize', pointerEvents: 'all' }}
+              style={{
+                cursor: 'nwse-resize',
+                pointerEvents: 'all',
+                filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.75))'
+              }}
               onPointerEnter={() => enterZone('scale')}
               onPointerDown={(e) => onPointerDown(e, bone.id, 'scale')}
             >
+              {/* Dây gióng nét đứt 2 lớp tương phản cao chống chìm trên mọi màu nền */}
               <line
                 x1={tx}
                 y1={ty}
                 x2={scaleHandleX}
                 y2={scaleHandleY}
-                stroke={boneColor}
-                strokeWidth={1.5}
-                strokeDasharray="2 2"
+                stroke="#0f172a"
+                strokeWidth={2.8}
+                strokeLinecap="round"
                 pointerEvents="none"
               />
-              <circle cx={scaleHandleX} cy={scaleHandleY} r={11} fill="transparent" />
-              <rect
-                x={scaleHandleX - 4.5}
-                y={scaleHandleY - 4.5}
-                width={9}
-                height={9}
-                rx={2}
-                transform={`rotate(45 ${scaleHandleX} ${scaleHandleY})`}
-                fill={hoverZone === 'scale' ? boneColor : 'var(--bg-0, #0f172a)'}
-                stroke={boneColor}
+              <line
+                x1={tx}
+                y1={ty}
+                x2={scaleHandleX}
+                y2={scaleHandleY}
+                stroke="#facc15"
                 strokeWidth={1.8}
+                strokeDasharray="2.5 2"
+                strokeLinecap="round"
+                pointerEvents="none"
+              />
+              {/* Vùng bấm cảm ứng rộng rãi */}
+              <circle cx={scaleHandleX} cy={scaleHandleY} r={14} fill="transparent" />
+
+              {/* Hình thoi Scale Vàng rực rỡ với viền tương phản cao chống chìm trên mọi nền */}
+              <rect
+                x={scaleHandleX - 5.5}
+                y={scaleHandleY - 5.5}
+                width={11}
+                height={11}
+                rx={2.2}
+                transform={`rotate(45 ${scaleHandleX} ${scaleHandleY})`}
+                fill={hoverZone === 'scale' ? '#fef08a' : '#facc15'}
+                stroke="#0f172a"
+                strokeWidth={1.8}
+              />
+              {/* Tâm điểm ngắm ở giữa hình thoi */}
+              <circle
+                cx={scaleHandleX}
+                cy={scaleHandleY}
+                r={1.8}
+                fill="#0f172a"
+                pointerEvents="none"
               />
             </g>
           )}
