@@ -17,16 +17,49 @@ export function computeNextLayerZ(layers: { z?: number }[], customZ?: number): n
  * Tính chiều sâu Z cho layer mới sao cho luôn nằm ở phía trước (tiền cảnh, Z nhỏ hơn)
  * đồng bộ 100% với quy ước zIndex = 1000 - z của Bố cục 2D và Chiều sâu 3D.
  */
+/**
+ * Tính chiều sâu Z cho layer mới sao cho luôn nằm ở phía trước (tiền cảnh, Z lớn nhất đè lên tất cả)
+ * đồng bộ 100% với quy ước zIndex = 1000 + z của Bố cục 2D và Chiều sâu 3D (Z càng cao càng ở phía trước).
+ */
 export function computeFrontLayerZ(layers: { z?: number }[], customZ?: number): number {
   if (typeof customZ === 'number') return customZ
-  if (layers.length === 0) return 0
-  const minZ = Math.min(0, ...layers.map((l) => l.z ?? 0))
-  return minZ - 1
+  if (layers.length === 0) return 10
+  const maxZ = Math.max(0, ...layers.map((l) => l.z ?? 0))
+  return maxZ + 1
+}
+
+/**
+ * Tự động chuẩn hoá quy ước Z-Index: Z CÀNG CAO THÌ CÀNG Ở PHÍA TRƯỚC (FOREGROUND).
+ * Nếu phát hiện composite mẫu cũ (legacy) có kính/mặt/mũ bị gán Z âm trong khi tay/chân bị gán Z dương,
+ * hàm sẽ tự động đảo dấu Z (z = -z) để chuyển đổi hoàn toàn sang quy ước mới.
+ */
+export function normalizeCompositeZIndex(comp: LayerComposite): LayerComposite {
+  if (!comp?.layers || comp.layers.length < 2) return comp
+  const hasInvertedFrontLayer = comp.layers.some(
+    (l) => /glasses|face|kính|mặt/i.test(`${l.id} ${l.name}`) && (l.z ?? 0) < -5
+  )
+  const hasInvertedBackLayer = comp.layers.some(
+    (l) => /arm|thigh|shin|tay|đùi|chân/i.test(`${l.id} ${l.name}`) && (l.z ?? 0) > 5
+  )
+
+  if (hasInvertedFrontLayer && hasInvertedBackLayer) {
+    return {
+      ...comp,
+      layers: comp.layers.map((l) => ({
+        ...l,
+        z: -Math.round(l.z ?? 0)
+      }))
+    }
+  }
+  return comp
 }
 
 export function useLayerWorkshop(initial?: LayerComposite | null) {
-  const state = useWorkshopHistory(() => initial ? structuredClone(initial) : {
-    id: `comp-${crypto.randomUUID()}`, name: 'Chi tiết Layer Mới', category: 'nature', width: 600, height: 600, layers: []
+  const state = useWorkshopHistory(() => {
+    const raw = initial ? structuredClone(initial) : {
+      id: `comp-${crypto.randomUUID()}`, name: 'Chi tiết Layer Mới', category: 'nature', width: 600, height: 600, layers: []
+    }
+    return normalizeCompositeZIndex(raw)
   })
   const { composite, setComposite } = state
   const [ids, setIds] = useState<string[]>(initial?.layers[0] ? [initial.layers[0].id] : [])

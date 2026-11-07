@@ -53,26 +53,26 @@ describe('2D Layer Cutter Stacking & Z-Index Ordering Rules', () => {
     expect(customZ).toBe(30)
   })
 
-  it('computes front-most Z (computeFrontLayerZ) and renders zIndex = 1000 - z identically between Tab 1 and Tab 2', () => {
-    // Nam Sinh Kính Cận layers: glasses (-42), face-normal (-30), head (-20), torso (0), arm-left (35)
+  it('computes front-most Z (computeFrontLayerZ) and renders zIndex = 1000 + z identically (Z càng cao càng ở phía trước)', () => {
+    // Nam Sinh Kính Cận layers chuẩn mới: glasses (+42), face-normal (+30), head (+20), torso (0), arm-left (-35)
     const animeLayers = [
-      { id: 'head', z: -20 },
-      { id: 'glasses', z: -42 },
-      { id: 'face-normal', z: -30 },
+      { id: 'head', z: 20 },
+      { id: 'glasses', z: 42 },
+      { id: 'face-normal', z: 30 },
       { id: 'torso', z: 0 },
-      { id: 'arm-left', z: 35 }
+      { id: 'arm-left', z: -35 }
     ]
 
-    const zIndexOf = (z: number) => Math.round(1000 - z)
-    expect(zIndexOf(-42)).toBeGreaterThan(zIndexOf(-30)) // Kính nổi trên biểu cảm mặt
-    expect(zIndexOf(-30)).toBeGreaterThan(zIndexOf(-20)) // Biểu cảm mặt nổi trên đầu trơn
-    expect(zIndexOf(-20)).toBeGreaterThan(zIndexOf(0))   // Đầu nổi trên thân áo
-    expect(zIndexOf(0)).toBeGreaterThan(zIndexOf(35))    // Thân áo nổi trên bắp tay sau
+    const zIndexOf = (z: number) => Math.round(1000 + z)
+    expect(zIndexOf(42)).toBeGreaterThan(zIndexOf(30)) // Kính nổi trên biểu cảm mặt
+    expect(zIndexOf(30)).toBeGreaterThan(zIndexOf(20)) // Biểu cảm mặt nổi trên đầu trơn
+    expect(zIndexOf(20)).toBeGreaterThan(zIndexOf(0))   // Đầu nổi trên thân áo
+    expect(zIndexOf(0)).toBeGreaterThan(zIndexOf(-35))  // Thân áo nổi trên bắp tay sau
 
-    // Khi kéo mảnh mới vào, mảnh mới nhận z = -43 để nổi lên trước toàn bộ nhân vật
+    // Khi kéo mảnh mới vào, mảnh mới nhận z = 43 (maxZ + 1) để nổi lên trước toàn bộ nhân vật
     const droppedZ = computeFrontLayerZ(animeLayers)
-    expect(droppedZ).toBe(-43)
-    expect(zIndexOf(droppedZ)).toBeGreaterThan(zIndexOf(-42))
+    expect(droppedZ).toBe(43)
+    expect(zIndexOf(droppedZ)).toBeGreaterThan(zIndexOf(42))
   })
 
   it('auto-scales 4K/8K cut pieces proportionally to composite board so they do not cover other details', () => {

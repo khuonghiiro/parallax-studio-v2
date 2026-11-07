@@ -163,9 +163,9 @@ describe('Layer Assembly Workshop Storage System', () => {
     const head = character?.layers.find((l) => l.name === 'head')
     const glasses = character?.layers.find((l) => l.name === 'glasses')
     const shinL = character?.layers.find((l) => l.name === 'shin-left')
-    expect(shinL?.z).toBeGreaterThan(0) // Ống quần nằm ở lớp sau đùi
-    expect(head!.z).toBeLessThan(0) // Đầu nằm phía trước cổ áo
-    expect(glasses!.z).toBeLessThan(head!.z) // Kính nằm phía trước đầu và mặt
+    expect(shinL?.z).toBeLessThan(0) // Ống quần nằm ở lớp sau thân (Z âm)
+    expect(head!.z).toBeGreaterThan(0) // Đầu nằm phía trước cổ áo (Z dương)
+    expect(glasses!.z).toBeGreaterThan(head!.z) // Kính nằm phía trước đầu và mặt (Z kính > Z đầu)
   })
 
   it('permanently remembers deleted built-in composites across app reloads and seed migrations', () => {

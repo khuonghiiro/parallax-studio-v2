@@ -290,9 +290,9 @@ export function LayerAssemblyViewport({
     }
   }, [handleFitView])
 
-  // Sắp xếp các layer: Z càng lớn ở sau (render trước), Z càng nhỏ ở trước (render sau)
+  // Sắp xếp các layer: Z càng thấp ở sau (render trước trong DOM), Z càng cao ở trước (render sau đè lên)
   const sortedLayers = useMemo(() => {
-    return [...composite.layers].sort((a, b) => b.z - a.z)
+    return [...composite.layers].sort((a, b) => (a.z ?? 0) - (b.z ?? 0))
   }, [composite.layers])
 
   const handlePointerDownViewport = (e: React.PointerEvent) => {

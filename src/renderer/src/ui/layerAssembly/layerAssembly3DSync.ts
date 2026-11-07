@@ -91,7 +91,7 @@ export function syncLayersGroupMeshes({
     //   layer phía sau (nằm gần camera hơn) sẽ che khuất layer phía trước đúng vật lý 3D,
     //   chỉ để lộ các phần layer không bị che khuất, triệt tiêu hoàn toàn hiện tượng "lật chính diện ngược lại"!
     const isFlatFrontView = zExaggeration <= 0
-    inst.mesh.renderOrder = isFlatFrontView ? Math.round(1000 - visualLayer.z) * 100 + idx : 0
+    inst.mesh.renderOrder = isFlatFrontView ? Math.round(1000 + visualLayer.z) * 100 + idx : 0
     if (inst.wireframeMesh) {
       inst.wireframeMesh.renderOrder = 190000 + idx
     }

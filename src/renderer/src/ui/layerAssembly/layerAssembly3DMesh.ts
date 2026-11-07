@@ -511,7 +511,7 @@ export function updateLayer3DInstance(
   const posX = layer.x + motion.animTranslateX
   const posY = -(layer.y + motion.animTranslateY)
   const isFlatFrontView = zExaggeration <= 0
-  const posZ = isFlatFrontView ? 0 : -layer.z * zExaggeration + layerIndex * 0.05
+  const posZ = isFlatFrontView ? 0 : layer.z * zExaggeration + layerIndex * 0.05
 
   // Group được định vị chính xác tại tâm của layer trong không gian 3D
   group.position.set(posX, posY, posZ)
