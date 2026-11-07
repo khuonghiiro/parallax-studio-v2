@@ -33,7 +33,7 @@ describe('workshopClipJson', () => {
     }
   }
 
-  it('exports AnimationClip to JSON with bones biomechanical guide, rigConventions, and wind', () => {
+  it('exports AnimationClip to JSON with bones biomechanical guide, rigConventions, meshDeformation, and wind', () => {
     const sampleComposite: LayerComposite = {
       id: 'comp-test',
       name: 'Nhân vật Test',
@@ -83,6 +83,8 @@ describe('workshopClipJson', () => {
     expect(jsonStr).toContain('"name": "Vẫy tay chào"')
     expect(jsonStr).toContain('"bone-arm-r"')
     expect(jsonStr).toContain('"rigConventions"')
+    expect(jsonStr).toContain('"meshDeformation"')
+    expect(jsonStr).toContain('"groundContactImpact"')
     expect(jsonStr).toContain('"wind"')
 
     const parsed = JSON.parse(jsonStr)
@@ -90,17 +92,22 @@ describe('workshopClipJson', () => {
     expect(parsed.bones.length).toBe(3)
     expect(parsed.bones[1].name).toBe('Thân / Ngực')
     expect(parsed.bones[2].directionGuide).toContain('GIƠ TAY PHẢI MỞ RA NGOÀI & LÊN CAO')
+    expect(parsed.meshDeformation.enabled).toBe(true)
+    expect(parsed.meshDeformation.boneEnvelopes.length).toBe(3)
+    expect(parsed.meshDeformation.layerBindings.length).toBe(1)
     expect(parsed.wind.plantSpines.length).toBe(1)
     expect(parsed.wind.plantSpines[0].name).toBe('Dây gió Tóc')
   })
 
-  it('generates rich AI motion prompt with bone biomechanical direction guide and wind section', () => {
+  it('generates rich AI motion prompt with bone biomechanical direction guide, mesh impact, and wind section', () => {
     const prompt = generateAiMotionPrompt(sampleClip, sampleBones, 'Nhân vật cúi chào trang trọng')
     expect(prompt).toContain('Parallax Studio')
     expect(prompt).toContain('Nhân vật cúi chào trang trọng')
     expect(prompt).toContain('bone-torso')
     expect(prompt).toContain('Thân / Ngực')
     expect(prompt).toContain('QUY TẮC KEYFRAME & GIẢI PHẪU 2.5D')
+    expect(prompt).toContain('Biến dạng Lưới Mesh Chịu Tác Lực Tiếp Đất')
+    expect(prompt).toContain('meshDeformation')
     expect(prompt).toContain('Hiệu ứng Gió uốn mềm ("wind")')
   })
 
@@ -136,7 +143,7 @@ describe('workshopClipJson', () => {
     expect(res.clip?.tracks['bone-arm-r'][1].rotation).toBe(-40)
   })
 
-  it('auto-fixes broken AI biomechanics and generic name ("Động tác 6") on import', () => {
+  it('auto-fixes broken AI biomechanics, generates ground-contact foot mesh impact, and renames "Động tác 6" on import', () => {
     const humanoidBones = createHumanoidBones()
     const brokenAiJson = JSON.stringify({
       format: 'parallax-motion-v1',
@@ -231,6 +238,14 @@ describe('workshopClipJson', () => {
     expect(thighLSquat?.rotation).toBeGreaterThan(0)
     expect(thighRSquat?.rotation).toBeLessThan(0)
     expect(thighLSquat?.scaleY).toBeLessThan(1)
+
+    // Foot ground-contact mesh impact is automatically generated at t=0.45 (squat) and t=0.95 (airborne)
+    const footLSquat = res.clip?.tracks['bone-foot-l']?.find((k) => k.time === 0.45)
+    const footLAir = res.clip?.tracks['bone-foot-l']?.find((k) => k.time === 0.95)
+    expect(footLSquat?.scaleX).toBeGreaterThan(1.1)
+    expect(footLSquat?.scaleY).toBeLessThan(0.9)
+    expect(footLAir?.scaleX).toBeLessThan(1)
+    expect(footLAir?.scaleY).toBeGreaterThan(1)
 
     // Pelvis vertical displacement is clamped to natural 2.5D limits
     const pelvisJump = res.clip?.tracks['bone-pelvis'].find((k) => k.time === 0.95)

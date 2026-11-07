@@ -8,6 +8,7 @@ import {
   generateAiMotionPrompt,
   parseAnimationClipFromJson,
   type ClipJsonParseResult,
+  type MotionMeshExportSection,
   type ParsedWindData
 } from './workshopClipJson'
 import { inferDescriptiveClipName, isGenericClipName } from './workshopClipBiomechanics'
@@ -18,7 +19,12 @@ export interface WorkshopClipJsonModalProps {
   clip: AnimationClip
   bones: LayerBone[]
   composite?: LayerComposite
-  onImportClip: (clip: AnimationClip, mode: 'new' | 'replace', wind?: ParsedWindData) => void
+  onImportClip: (
+    clip: AnimationClip,
+    mode: 'new' | 'replace',
+    wind?: ParsedWindData,
+    mesh?: Partial<MotionMeshExportSection>
+  ) => void
 }
 
 const QUICK_AI_INTENTS = [
@@ -151,7 +157,7 @@ function ExportTabPanel({
             onChange={(e) => setIncludeWind(e.target.checked)}
           />
           <span>
-            🌿 Đính kèm cấu hình <strong>Gió &amp; Nhịp thở thực vật</strong> vào JSON/Prompt ({windCount} dây gió)
+            🌿 Đính kèm <strong>Gió ({windCount} dây)</strong> + 🕸️ <strong>Lưới Mesh chịu tác lực tiếp đất (Soft Mesh)</strong>
           </span>
         </label>
         <button
@@ -205,10 +211,9 @@ function ExportTabPanel({
           color: 'var(--text-dim)'
         }}
       >
-        💡 <strong>Đã nâng cấp quy chuẩn cơ học 2.5D + Gió:</strong> JSON và Prompt xuất ra đã đính kèm{' '}
-        <strong>Bảng quy ước dấu góc xoay từng xương</strong> (Tay trái <code>+</code> giơ lên / Tay phải{' '}
-        <code>-</code> giơ lên, nhịp nhún đầu gối <code>scaleY</code> góc chính diện) và cấu hình{' '}
-        <strong>Gió (wind.plantSpines)</strong> để AI bên ngoài tạo chuyển động chuẩn xác và tự đặt tên động tác.
+        💡 <strong>Đã kết hợp Cơ học 2.5D + Lưới Mesh Chịu Lực + Gió:</strong> JSON và Prompt xuất ra đã đính kèm{' '}
+        <strong>Bảng quy ước dấu góc xoay từng xương</strong>, cấu hình <strong>Lưới Mesh chịu tác lực tiếp đất (meshDeformation: nén dẹt đế giày &amp; bắp chân khi chạm đất, uốn mềm da cơ Soft Mesh)</strong> và{' '}
+        <strong>Gió (wind.plantSpines)</strong> để AI phân tích và tạo động tác mới chuẩn xác.
       </div>
 
       <div>
@@ -305,7 +310,7 @@ function ImportTabPanel({
             onChange={(e) => setAutoFixBiomechanics(e.target.checked)}
           />
           <span>
-            ✨ <strong>Tự động chuẩn hoá cơ học 2.5D</strong> (sửa tay đan chéo bụng, chân chữ X, hông vọt lố)
+            ✨ <strong>Tự chuẩn hoá cơ học 2.5D &amp; Lưới Mesh chịu tác lực tiếp đất</strong> (tay chữ V, nén Mesh bàn chân/bắp chân)
           </span>
         </label>
         <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
@@ -557,7 +562,8 @@ export function WorkshopClipJsonModal({
       name: finalName
     }
     const windToApply = applyImportedWind ? parseResult.wind : undefined
-    onImportClip(finalClip, mode, windToApply)
+    const meshToApply = autoFixBiomechanics ? (parseResult.mesh ?? { enabled: true, meshEnvelope: true }) : undefined
+    onImportClip(finalClip, mode, windToApply, meshToApply)
     toast(
       mode === 'new'
         ? `✓ Đã tạo động tác "${finalName}" (đã chuẩn hoá 2.5D${windToApply ? ' & Gió' : ''})!`

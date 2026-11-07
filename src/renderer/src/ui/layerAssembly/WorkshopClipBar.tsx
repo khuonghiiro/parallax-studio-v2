@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { AnimationClip, LayerRig, MotionViewAngle } from '@shared/layerRig'
 import type { LayerComposite } from './types'
 import type { RigAction } from './workshopRig'
-import type { ParsedWindData } from './workshopClipJson'
+import type { MotionMeshExportSection, ParsedWindData } from './workshopClipJson'
 import {
   inferDescriptiveClipName,
   isGenericClipName,
@@ -41,11 +41,22 @@ export function WorkshopClipBar({
     setIsRenaming(false)
   }
 
-  const handleImportClip = (clip: AnimationClip, mode: 'new' | 'replace', wind?: ParsedWindData) => {
+  const handleImportClip = (
+    clip: AnimationClip,
+    mode: 'new' | 'replace',
+    wind?: ParsedWindData,
+    mesh?: Partial<MotionMeshExportSection>
+  ) => {
     if (mode === 'new') {
-      run({ action: 'add-clip', clip, ...(wind ? { wind } : {}) })
+      run({ action: 'add-clip', clip, ...(wind ? { wind } : {}), ...(mesh ? { mesh } : {}) })
     } else {
-      run({ action: 'replace-clip', clipId: activeClip.id, clip, ...(wind ? { wind } : {}) })
+      run({
+        action: 'replace-clip',
+        clipId: activeClip.id,
+        clip,
+        ...(wind ? { wind } : {}),
+        ...(mesh ? { mesh } : {})
+      })
     }
   }
 
@@ -63,7 +74,12 @@ export function WorkshopClipBar({
       name: nextName,
       tracks
     }
-    run({ action: 'replace-clip', clipId: activeClip.id, clip: nextClip })
+    run({
+      action: 'replace-clip',
+      clipId: activeClip.id,
+      clip: nextClip,
+      mesh: { enabled: true, meshEnvelope: true }
+    })
     if (fixesApplied.length > 0 || nextName !== activeClip.name) {
       toast(`✓ Đã chuẩn hoá 2.5D cho "${nextName}" (${fixesApplied.length} hiệu chỉnh cơ học)!`)
     } else {
