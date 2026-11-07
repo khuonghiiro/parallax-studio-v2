@@ -67,6 +67,71 @@ export interface MotionMeshExportSection {
   layerBindings: MotionLayerMeshBindingItem[]
 }
 
+export interface MotionOrientationGuide {
+  viewAngle: MotionViewAngle
+  angleDeg: number
+  facing: string
+  description: string
+  motionRules: string[]
+}
+
+/** Xây dựng cấu trúc định hướng góc nhìn chi tiết (0° front, 45° diagonal, 90° side, 180° back) cho AI */
+export function buildOrientationGuide(viewAngle: MotionViewAngle = 'front'): MotionOrientationGuide {
+  switch (viewAngle) {
+    case 'side':
+      return {
+        viewAngle: 'side',
+        angleDeg: 90,
+        facing: 'Góc ngang 90° (Nghiêng sườn Profile)',
+        description: 'Nhân vật quay ngang 90° sang một bên. Hoạt ảnh chân và tay vung dọc theo trục trước - sau (bước tới trước và đạp ra sau).',
+        motionRules: [
+          'Chân bước dọc: Đùi vung ra trước (rotation ÂM: -20°..-35°), chân đạp ra sau (rotation DƯƠNG: +15°..+25°).',
+          'Khớp gối: Cẳng chân gập ra sau (rotation DƯƠNG: +15°..+45°).',
+          'Cánh tay: Đánh tay so le theo trục trước - sau tự nhiên.',
+          'Chiều sâu: Chi tiết gần camera có Z lớn hơn chi tiết ở xa.'
+        ]
+      }
+    case 'diagonal':
+      return {
+        viewAngle: 'diagonal',
+        angleDeg: 45,
+        facing: 'Góc chéo 3/4 (45° Nghiêng chéo bán thân)',
+        description: 'Nhân vật quay góc 45° ba phần tư so với Camera. Một bên thân (gần camera) to hơn và rõ chi tiết hơn bên thân xa.',
+        motionRules: [
+          'Phân biệt rõ tay/chân gần camera (Foreground, Z lớn hơn) và tay/chân xa camera (Background, Z nhỏ hơn).',
+          'Cánh tay gần camera vươn rộng và nằm đè lên thân áo (zOrder: 50).',
+          'Nhún gối kết hợp mở nhẹ gối và thu ngắn phối cảnh scaleY (0.88..0.92).'
+        ]
+      }
+    case 'back':
+      return {
+        viewAngle: 'back',
+        angleDeg: 180,
+        facing: 'Góc sau lưng 180° (Nhìn từ phía sau)',
+        description: 'Nhân vật quay lưng 180° về phía Camera / Người xem.',
+        motionRules: [
+          'Lưng và mái tóc sau hiển thị trên cùng đè lên thân trước.',
+          'Hai cánh tay khi vung sang 2 bên có chiều xoay đối xứng ngược lại với góc chính diện.'
+        ]
+      }
+    case 'front':
+    default:
+      return {
+        viewAngle: 'front',
+        angleDeg: 0,
+        facing: 'Chính diện 0° (Đối diện trực tiếp với Camera / Người xem)',
+        description: 'Nhân vật nhìn thẳng 0° vào mắt người xem. Hai bên cơ thể đối xứng qua trục dọc giữa thân.',
+        motionRules: [
+          'Mặt và ngực hướng thẳng 0° vào người xem.',
+          'Hai cánh tay mở sang 2 bên đối xứng chữ V (Tay trái: rotation DƯƠNG +20°..+120°, Tay phải: rotation ÂM -20°..-120°).',
+          'Hai chân nhún khuỵu mở nhẹ gối sang 2 bên kết hợp thu ngắn phối cảnh scaleY (0.88..0.93), không xoay chân lộn xộn.',
+          'Bàn chân tiếp đất chịu lực nén dẹt (scaleX: 1.16, scaleY: 0.84) bám sàn tự nhiên.',
+          'Chiều sâu: Kính (+42) > Mặt (+30) > Đầu (+20) > Thân (0) > Cánh tay sau (-35).'
+        ]
+      }
+  }
+}
+
 const GENERIC_CLIP_NAME_RE =
   /^(động tác\s*\d*|động tác mới\s*\d*|động tác mặc định|tên động tác|động tác nhập.*|clip\s*\d*|new clip|untitled|motion\s*\d*)$/i
 
