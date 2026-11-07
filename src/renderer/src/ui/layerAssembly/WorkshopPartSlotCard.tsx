@@ -20,7 +20,7 @@ function VariantTile({ composite, slot, group, apply, onError }: Pick<PartCardCo
   const { over, handlers } = usePartDropTarget(composite, onDrop, onError)
   const extra = group.layers.length - 1
   return (
-    <div className={`lw-variant${group.active ? ' active' : ''}${over ? ' drop-over' : ''}`} {...handlers}
+    <div className={`lw-variant${group.active ? ' active' : ''}${over ? ' drop-over' : ''}`} data-layer-id={first.id} data-layer-name={first.name} {...handlers}
       title={`Biến thể "${group.variant}" · ${group.layers.map((l) => l.name).join(' + ')} — bấm để dùng, kéo thêm layer/ảnh vào để ghép nhiều lớp`}>
       <button type="button" className="lw-variant-hit" onClick={() => apply(activateVariant(composite, first.id), first.id)} aria-label={`Dùng biến thể ${group.variant}`}>
         <PartThumb path={layerAssetPath(composite, first)} previewUrl={first.imageUrl} assets={composite.assets} />

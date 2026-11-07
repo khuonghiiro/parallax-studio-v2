@@ -113,7 +113,7 @@ body.ai-ui-inspector-active {
   padding: 2px 6px;
   background: var(--bg-3, #0f172a);
   border: 1px solid var(--line-soft, rgba(255, 255, 255, 0.15));
-  border-radius: 4px;
+  border-radius: var(--radius-sm, 4px);
   font-family: var(--font-mono, monospace);
   font-size: 11px;
   color: var(--accent-cyan, #38bdf8);
@@ -123,20 +123,21 @@ body.ai-ui-inspector-active {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   background: transparent;
-  border: none;
+  border: 1px solid transparent;
   color: var(--text-dim, #94a3b8);
   font-size: 14px;
   cursor: pointer;
-  border-radius: 4px;
-  transition: color 0.15s, background 0.15s;
+  border-radius: var(--radius-sm, 4px);
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
 }
 
 .ai-ui-inspector-arm-close:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--text, #fff);
+  background: color-mix(in srgb, var(--accent) 14%, var(--bg-3));
+  border-color: var(--line-soft);
+  color: var(--text);
 }
 
 /* 4. Khung chữ nhật quét chuột (Marquee Snip Box) */
@@ -150,7 +151,6 @@ body.ai-ui-inspector-active {
   will-change: transform, width, height;
 }
 
-/* 4 góc ngắm toạ độ ngắm bắn Cyberpunk (Crosshairs Corner) */
 .ai-ui-inspector-marquee::before,
 .ai-ui-inspector-marquee::after {
   content: '';
@@ -174,7 +174,6 @@ body.ai-ui-inspector-active {
   border-width: 0 2.5px 2.5px 0;
 }
 
-/* Badge thông số kích thước gắn dưới góc khung */
 .ai-ui-inspector-badge {
   position: absolute;
   bottom: -28px;
@@ -208,7 +207,7 @@ body.ai-ui-inspector-active {
   padding: 8px 18px;
   background: color-mix(in srgb, var(--bg-1, #1e293b) 92%, #0f172a);
   border: 1px solid var(--accent-cyan, #38bdf8);
-  border-radius: var(--radius, 6px);
+  border-radius: var(--radius, 5px);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 16px rgba(56, 189, 248, 0.3);
   color: var(--text, #f8fafc);
   font-size: 13px;
@@ -245,76 +244,478 @@ body.ai-ui-inspector-active {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 4px 10px;
-  background: rgba(56, 189, 248, 0.15);
-  border: 1px solid rgba(56, 189, 248, 0.4);
+  padding: 5px 11px;
+  background: color-mix(in srgb, var(--accent-cyan) 16%, var(--bg-2));
+  border: 1px solid color-mix(in srgb, var(--accent-cyan) 45%, var(--line));
   border-radius: var(--radius-sm, 4px);
   color: var(--accent-cyan, #38bdf8);
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .ai-ui-inspector-toast-btn:hover {
-  background: var(--accent-cyan, #38bdf8);
-  color: #0f172a;
+  background: color-mix(in srgb, var(--accent-cyan) 78%, #0f172a);
+  color: #ffffff;
 }
 
-/* 6. Modal xem trước nội dung context */
+/* 6. Hộp thoại Nội Dung Ngữ Cảnh AI (Trực quan dễ đọc cho người dùng + Markdown cho AI) */
 .ai-ui-inspector-preview-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(9, 13, 22, 0.68);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 18px;
   z-index: 999999;
   pointer-events: auto;
   animation: aiInspectorFadeIn 0.15s ease;
 }
 
 .ai-ui-inspector-preview-modal {
-  width: 90%;
-  max-width: 680px;
-  max-height: 80vh;
-  background: var(--bg-1, #1e293b);
-  border: 1px solid var(--line-focus, rgba(56, 189, 248, 0.4));
-  border-radius: var(--radius-lg, 8px);
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.65);
+  width: min(94vw, 880px);
+  max-height: 86vh;
+  background: var(--bg-1);
+  border: 1px solid var(--line-focus);
+  border-radius: var(--radius-md, 6px);
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.55);
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  color: var(--text);
 }
 
 .ai-ui-inspector-preview-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
-  background: var(--bg-2, #0f172a);
-  border-bottom: 1px solid var(--line-soft, rgba(255, 255, 255, 0.1));
+  gap: 12px;
+  padding: 10px 16px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
 }
 
 .ai-ui-inspector-preview-title {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 14px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text);
+  min-width: 0;
+}
+
+.ai-ui-inspector-preview-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.ai-ui-inspector-mode-pills {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  background: var(--bg-0);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius, 5px);
+}
+
+.ai-ui-inspector-mode-pill {
+  padding: 4px 10px;
+  border: none;
+  border-radius: var(--radius-sm, 4px);
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 11px;
   font-weight: 600;
-  color: var(--text, #f8fafc);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.ai-ui-inspector-mode-pill:hover {
+  color: var(--text);
+  background: var(--bg-2);
+}
+
+.ai-ui-inspector-mode-pill.active {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+/* Thân đọc trực quan cho người dùng */
+.ai-ui-inspector-readable-body {
+  flex: 1;
+  padding: 14px 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--bg-0);
+}
+
+.ai-ui-summary-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 8px;
+}
+
+.ai-ui-summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 11px;
+  background: var(--bg-1);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius, 5px);
+}
+
+.ai-ui-summary-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.ai-ui-summary-value {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.3;
+}
+
+.ai-ui-summary-sub {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+/* Khối Section Card */
+.ai-ui-section-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 11px 13px;
+  background: var(--bg-1);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius, 5px);
+}
+
+.ai-ui-section-card.workshop-card {
+  border-color: color-mix(in srgb, var(--accent-cyan) 42%, var(--line));
+  background: color-mix(in srgb, var(--accent-cyan) 4%, var(--bg-1));
+}
+
+.ai-ui-section-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.ai-ui-section-header h4 {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.ai-ui-section-meta {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.ai-ui-section-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  background: color-mix(in srgb, var(--accent) 16%, var(--bg-2));
+  border: 1px solid color-mix(in srgb, var(--accent) 36%, var(--line));
+  border-radius: var(--radius-sm, 4px);
+  color: var(--accent-cyan);
+  font-size: 10.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.ai-ui-workshop-meta-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ai-ui-meta-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  background: var(--bg-2);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm, 4px);
+  font-size: 11px;
+  color: var(--text);
+}
+
+.ai-ui-subblock {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.ai-ui-subblock-title {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+/* Lưới Card đa cột cho Bộ phận 2.5D & Xương (chống Sa Mạc Trống Trải) */
+.ai-ui-parts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 8px;
+}
+
+.ai-ui-part-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  background: var(--bg-2);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius, 5px);
+}
+
+.ai-ui-part-card.is-selected {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-2));
+}
+
+.ai-ui-part-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  min-width: 0;
+}
+
+.ai-ui-part-icon {
+  font-size: 14px;
+  line-height: 1.2;
+  flex-shrink: 0;
+}
+
+.ai-ui-part-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.ai-ui-part-titles strong {
+  font-size: 11.5px;
+  color: var(--text);
+  line-height: 1.3;
+}
+
+.ai-ui-part-titles span {
+  font-size: 10px;
+  color: var(--accent-cyan);
+  font-weight: 600;
+}
+
+.ai-ui-status-pill {
+  padding: 1px 6px;
+  border-radius: var(--radius-sm, 4px);
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 10px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.ai-ui-part-specs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px 8px;
+  padding: 5px 7px;
+  background: var(--bg-1);
+  border-radius: var(--radius-sm, 4px);
+  font-size: 10.5px;
+  color: var(--text-dim);
+}
+
+.ai-ui-part-specs b {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.ai-ui-part-foot {
+  font-size: 10.5px;
+}
+
+.ai-ui-bone-tag.bound {
+  color: var(--accent-cyan);
+}
+
+.ai-ui-bone-tag.bound b {
+  color: var(--text);
+}
+
+.ai-ui-bone-tag.unbound {
+  color: var(--text-faint);
+  font-style: italic;
+}
+
+.ai-ui-extra-list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 11.5px;
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ai-ui-empty-notice {
+  padding: 16px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-dim);
+  background: var(--bg-2);
+  border: 1px dashed var(--line);
+  border-radius: var(--radius, 5px);
+}
+
+/* Lưới Card đa cột cho các Thành phần UI được chọn */
+.ai-ui-elements-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 8px;
+}
+
+.ai-ui-element-card {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 9px 11px;
+  background: var(--bg-2);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius, 5px);
+}
+
+.ai-ui-element-card-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.ai-ui-element-idx {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 22px;
+  padding: 0 5px;
+  background: var(--accent);
+  color: var(--on-accent);
+  border-radius: var(--radius-sm, 4px);
+  font-size: 10.5px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.ai-ui-element-main-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.ai-ui-element-main-title strong {
+  font-size: 12px;
+  color: var(--text);
+  word-break: break-word;
+}
+
+.ai-ui-element-kind {
+  font-size: 10.5px;
+  color: var(--accent-cyan);
+  font-weight: 600;
+}
+
+.ai-ui-element-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 5px;
+  border-top: 1px dashed var(--line-soft);
+}
+
+.ai-ui-element-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.ai-ui-element-row.highlight {
+  padding: 4px 7px;
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-1));
+  border-left: 2.5px solid var(--accent-cyan);
+  border-radius: var(--radius-sm, 4px);
+}
+
+.ai-ui-row-label {
+  color: var(--text-dim);
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-weight: 600;
+}
+
+.ai-ui-row-val {
+  color: var(--text);
+  word-break: break-word;
+}
+
+.ai-ui-row-code {
+  font-family: var(--font-mono, monospace);
+  font-size: 10.5px;
+  color: var(--accent-cyan);
+  word-break: break-all;
+}
+
+.ai-ui-studio-state-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 8px;
+  font-size: 11.5px;
+  color: var(--text);
+}
+
+.ai-ui-studio-state-grid span {
+  color: var(--text-dim);
 }
 
 .ai-ui-inspector-preview-body {
   flex: 1;
-  padding: 16px;
+  margin: 0;
+  padding: 14px 16px;
   overflow-y: auto;
   font-family: var(--font-mono, monospace);
   font-size: 12px;
   line-height: 1.5;
-  color: var(--text-dim, #cbd5e1);
-  background: var(--bg-0, #090d16);
+  color: var(--text);
+  background: var(--bg-0);
   white-space: pre-wrap;
   word-break: break-word;
 }
@@ -322,11 +723,44 @@ body.ai-ui-inspector-active {
 .ai-ui-inspector-preview-footer {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
+  justify-content: space-between;
+  gap: 12px;
   padding: 10px 16px;
-  background: var(--bg-2, #0f172a);
-  border-top: 1px solid var(--line-soft, rgba(255, 255, 255, 0.1));
+  background: var(--bg-2);
+  border-top: 1px solid var(--line);
+  flex-shrink: 0;
+}
+
+.ai-ui-inspector-footer-note {
+  font-size: 11px;
+  color: var(--text-dim);
+  min-width: 0;
+  flex: 1;
+}
+
+.ai-ui-inspector-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .ai-ui-inspector-preview-header,
+  .ai-ui-inspector-preview-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ai-ui-inspector-preview-header-right,
+  .ai-ui-inspector-footer-actions {
+    justify-content: flex-end;
+  }
+
+  .ai-ui-elements-grid,
+  .ai-ui-parts-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @keyframes aiInspectorPulseFrame {

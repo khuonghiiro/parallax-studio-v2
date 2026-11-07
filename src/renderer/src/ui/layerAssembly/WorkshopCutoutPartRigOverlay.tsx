@@ -88,7 +88,7 @@ function CutoutRailTile({
 
   return (
     <div
-      className={`lw-cutout-preview-tile ${item.side}${isSelected ? ' is-active' : ''}${isHovered ? ' is-hovered' : ''}`}
+      className={`lw-cutout-preview-tile ${item.side}${isSelected ? ' is-active' : ''}${isHovered ? ' is-hovered' : ''}`} data-layer-id={layer.id} data-layer-name={layer.name} data-part-role={item.part.roleLabel}
       style={{
         left: `${item.railX}px`,
         top: `${item.railY}px`,

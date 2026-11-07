@@ -107,7 +107,7 @@ export function CustomSelect<T extends string | number = string>({
   // Click outside to close
   useEffect(() => {
     if (!isOpen) return
-    const handlePointerDown = (e: PointerEvent): void => {
+    const handlePointerDown = (e: PointerEvent): void => { const t = e.target as Element | null; if (document.body.classList.contains('ai-ui-inspector-active') || t?.closest?.('#ai-ui-inspector-btn, .ai-ui-inspector-barrier, .ai-ui-inspector-arm-hud, .ai-ui-inspector-toast, .ai-ui-inspector-preview-backdrop')) return;
       const target = e.target as Node
       if (triggerRef.current?.contains(target) || listRef.current?.contains(target)) {
         return

@@ -81,7 +81,7 @@ export function WorkshopBoneItemSvg({
 
   return (
     <g
-      className={`lw-blender-bone side-${side}${isSelected ? ' selected' : ''}${isDragging ? ' dragging' : ''}${bone.pin ? ' is-pin' : ''}`}
+      className={`lw-blender-bone side-${side}${isSelected ? ' selected' : ''}${isDragging ? ' dragging' : ''}${bone.pin ? ' is-pin' : ''}`} data-bone-id={bone.id} data-bone-name={bone.name}
       onPointerEnter={() => setHoveredBoneId(bone.id)}
       onPointerLeave={() => setHoveredBoneId((prev) => (prev === bone.id ? null : prev))}
     >

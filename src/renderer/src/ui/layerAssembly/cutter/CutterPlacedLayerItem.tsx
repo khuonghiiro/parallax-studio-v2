@@ -88,6 +88,8 @@ export function CutterPlacedLayerItem({
         transformStyle: 'preserve-3d',
         zIndex: Math.round(1000 - zVal)
       }}
+      data-layer-id={layer.id}
+      data-layer-name={layer.name}
       onPointerDown={(e) => onPointerDown(e, layer)}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}

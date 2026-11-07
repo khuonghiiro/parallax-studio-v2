@@ -11,6 +11,7 @@ import {
   type Layer3DMeshInstance
 } from './layerAssembly3DMesh'
 import { syncLayersGroupMeshes } from './layerAssembly3DSync'
+import { query3DLayersInScreenBox } from './layerAssembly3DHelpers'
 import { LayerAssembly3DToolbar } from './LayerAssembly3DToolbar'
 import { LayerAssemblyGizmo } from './LayerAssemblyGizmo'
 import { useView } from '../../store/view'
@@ -119,6 +120,10 @@ export function LayerAssembly3DViewport({
 
   // Mesh instances map
   const meshInstancesRef = useRef<Map<string, Layer3DMeshInstance>>(new Map())
+  useEffect(() => {
+    const el = containerRef.current as any
+    if (el) el.__pxsQuery3DLayersInBox = (box: { left: number; top: number; width: number; height: number }) => query3DLayersInScreenBox(containerRef.current, cameraRef.current, meshInstancesRef.current, composite.layers, box)
+  }, [composite.layers])
 
   // Kích thước thực tế của viewport container
   const viewDimsRef = useRef({ w: 600, h: 500 })

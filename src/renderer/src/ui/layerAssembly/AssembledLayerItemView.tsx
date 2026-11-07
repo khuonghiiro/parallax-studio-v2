@@ -265,7 +265,7 @@ export function AssembledLayerItemView({
     >
       <div
         ref={boxRef}
-        data-layer-id={layer.id}
+        data-layer-id={layer.id} className="lw-stage-layer-item" data-layer-name={layer.name} data-layer-z={layer.z} data-bone-id={layer.boneId || ''} title={`Bộ phận 2.5D: "${layer.name}" (Z: ${layer.z}px${layer.boneId ? ` · Gắn xương: ${layer.boneId}` : ''})`}
         style={{
           position: 'relative',
           display: 'inline-block',

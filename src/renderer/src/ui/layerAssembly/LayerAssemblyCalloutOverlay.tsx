@@ -686,7 +686,7 @@ export function LayerAssemblyCalloutOverlay({
             return (
               <div
                 key={`layer-bubble-${node.layer.id}`}
-                className={`lw-layer-callout-bubble${isSelected ? ' active' : ''}${isHovered ? ' hovered' : ''}${isDragging ? ' dragging' : ''}${node.layer.locked ? ' locked' : ''}`}
+                className={`lw-layer-callout-bubble${isSelected ? ' active' : ''}${isHovered ? ' hovered' : ''}${isDragging ? ' dragging' : ''}${node.layer.locked ? ' locked' : ''}`} data-layer-id={node.layer.id} data-layer-name={node.layer.name}
                 style={{ left: node.bubbleX, top: node.bubbleY }}
                 onPointerEnter={() => setHoveredLayerId(node.layer.id)}
                 onPointerLeave={() =>
