@@ -7,6 +7,8 @@ export interface SkinBinding {
   boneId?: string
   /** Các xương phụ cùng gắn uốn mềm trên một layer (nhiều nhánh cây / nhiều đường kẻ độc lập). */
   extraBoneIds?: string[]
+  /** Khi true (nhân vật nhiều layer Cutout 2.5D): chỉ uốn theo đúng các xương trong [boneId, ...extraBoneIds], không lấy xương cha của layer khác làm chốt ghim. */
+  isolateToBoundBones?: boolean
   x: number
   y: number
   rotation: number
@@ -246,10 +248,13 @@ function cachedWeights(
 }
 
 /** Lấy nhánh xương được gắn cho layer (hỗ trợ cả xương chính lẫn danh sách xương phụ độc lập trên cùng layer). */
-export function skinBones(rig: LayerRig, root?: string, extraRoots?: string[]) {
+export function skinBones(rig: LayerRig, root?: string, extraRoots?: string[], isolateToBoundBones = false) {
   if (!root && (!extraRoots || !extraRoots.length)) return rig.bones
   const seeds = [root, ...(extraRoots ?? [])].filter((id): id is string => Boolean(id))
   const ids = new Set(seeds)
+  if (isolateToBoundBones) {
+    return rig.bones.filter((b) => ids.has(b.id))
+  }
   for (let i = 0; i < rig.bones.length; i++) {
     for (const b of rig.bones) if (b.parentId && ids.has(b.parentId)) ids.add(b.id)
   }
@@ -306,7 +311,7 @@ export function deformSkin(
   indices?: ArrayLike<number>,
   out?: Float32Array
 ): Float32Array {
-  const bones = skinBones(rig, binding.boneId, binding.extraBoneIds)
+  const bones = skinBones(rig, binding.boneId, binding.extraBoneIds, binding.isolateToBoundBones)
   if (!bones.length) {
     if (out && out !== positions) {
       out.set(positions)

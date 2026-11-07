@@ -98,12 +98,65 @@ const angleOf = (from: Point2D, to: Point2D) => (Math.atan2(to.y - from.y, to.x 
 const wrap = (deg: number) => ((deg + 180) % 360 + 360) % 360 - 180
 
 /**
- * Giải CCD: lần lượt từ xương ngọn về gốc, xoay mỗi khớp sao cho ngọn chuỗi hướng về target.
- * Bắt đầu từ nghiệm trước (deltas0) để chuyển động liền mạch, không lật khớp đột ngột.
+ * Giải CCD kết hợp Định lý Cosin (Analytical 2-Bone IK):
+ * - Tự động bẻ khớp gối/khuỷu theo tam giác Cosin khi kéo ngọn xương Lên/Xuống dọc theo trục xương thẳng (tránh hiện tượng khóa thẳng trục 180° của CCD thuần).
+ * - Lần lượt từ xương ngọn về gốc, xoay mỗi khớp sao cho ngọn chuỗi hướng về target.
+ * - Bắt đầu từ nghiệm trước (deltas0) để chuyển động liền mạch, không lật khớp đột ngột.
  */
 export function solveCcd(chain: IkChain, target: Point2D, deltas0?: number[], iterations = 14, tolerance = 0.4): number[] {
   const n = chain.boneIds.length
   const deltas = Array.from({ length: n }, (_, i) => deltas0?.[i] ?? 0)
+
+  if (n >= 2) {
+    const i0 = n - 2
+    const i1 = n - 1
+    const curPos = chainPositions(chain, deltas)
+    const p0 = curPos[i0]
+    const p1 = curPos[i0 + 1]
+    const p2 = curPos[i0 + 2]
+    const L1 = Math.hypot(p1.x - p0.x, p1.y - p0.y)
+    const L2 = Math.hypot(p2.x - p1.x, p2.y - p1.y)
+    const distTarget = Math.hypot(target.x - p0.x, target.y - p0.y)
+
+    if (L1 > 1e-4 && L2 > 1e-4 && distTarget < L1 + L2 - 0.5) {
+      const initA0 = angleOf(chain.points[i0], chain.points[i0 + 1])
+      const initA1 = angleOf(chain.points[i0 + 1], chain.points[i0 + 2])
+      const restBend = wrap(initA1 - initA0)
+      const curBend = wrap(restBend + (deltas[i1] ?? 0))
+
+      let bendSign = 1
+      if (Math.abs(curBend) > 1.5) {
+        bendSign = curBend >= 0 ? 1 : -1
+      } else if (Math.abs(restBend) > 1.5) {
+        bendSign = restBend >= 0 ? 1 : -1
+      } else {
+        const cross = (p2.x - p0.x) * (target.y - p0.y) - (p2.y - p0.y) * (target.x - p0.x)
+        if (Math.abs(cross) > 5) {
+          bendSign = cross >= 0 ? -1 : 1
+        } else {
+          bendSign = p0.x < 0 ? -1 : 1
+        }
+      }
+
+      const dClamped = Math.max(Math.abs(L1 - L2) + 0.5, Math.min(L1 + L2 - 0.5, distTarget))
+      const cosAlpha = Math.max(-1, Math.min(1, (L1 * L1 + dClamped * dClamped - L2 * L2) / (2 * L1 * dClamped)))
+      const cosBeta = Math.max(-1, Math.min(1, (L1 * L1 + L2 * L2 - dClamped * dClamped) / (2 * L1 * L2)))
+      const alpha = (Math.acos(cosAlpha) * 180) / Math.PI
+      const bendDeg = 180 - (Math.acos(cosBeta) * 180) / Math.PI
+      const dir = angleOf(p0, target)
+
+      let prefixAcc = 0
+      for (let k = 0; k < i0; k++) prefixAcc += deltas[k] ?? 0
+
+      const desiredA0 = dir - bendSign * alpha
+      const desiredA1 = desiredA0 + bendSign * bendDeg
+      const d0 = clampDelta(chain, i0, wrap(desiredA0 - initA0 - prefixAcc))
+      const d1 = clampDelta(chain, i1, wrap(desiredA1 - initA1 - prefixAcc - d0))
+      deltas[i0] = d0
+      deltas[i1] = d1
+    }
+  }
+
   for (let iter = 0; iter < iterations; iter++) {
     for (let j = n - 1; j >= 0; j--) {
       const pos = chainPositions(chain, deltas)

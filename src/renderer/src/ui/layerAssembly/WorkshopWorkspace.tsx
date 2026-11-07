@@ -18,6 +18,7 @@ import { usePlantSpineEditor } from './plantSpineEditorStore'
 import { grabbedSpine } from './plantSpineEdit'
 import { toggleMotionSketchArmed } from './motionSketchStore'
 import { buildManipulateTestRig, type BoneOverlayProps } from './WorkshopBoneOverlay'
+import { inferFallbackBoneForStackedLayer } from './mohoRigHelpers'
 import { confirmPoseAndStep } from './workshopStepRecord'
 import { resetTestPoses, setRigToolState, useRigToolStore, toggleBoneLabels } from './rigToolStore'
 
@@ -221,8 +222,12 @@ export function WorkshopWorkspace({
       layers: state.composite.layers.map((l) => {
         const bindPose = { x: l.x, y: l.y, rotation: l.rotation }
         const isSingleLayerChar = state.composite.layers.length === 1 && Boolean(effectiveRig?.bones.length)
-        const implicitSingleSoft = !l.boneId && isSingleLayerChar
-        const effectiveBoneId = l.boneId ?? (isSingleLayerChar ? effectiveRig!.bones[0]?.id : undefined)
+        const isMultiLayerChar = state.composite.layers.length > 1
+        const fallbackStackedBoneId =
+          !l.boneId && isMultiLayerChar && effectiveRig?.bones.length
+            ? inferFallbackBoneForStackedLayer(l, state.composite.layers, effectiveRig.bones)
+            : undefined
+        const effectiveBoneId = l.boneId ?? fallbackStackedBoneId ?? (isSingleLayerChar ? effectiveRig!.bones[0]?.id : undefined)
         const candidateExtraBones =
           effectiveRig && effectiveBoneId
             ? (l.extraBoneIds?.length ? l.extraBoneIds : extraSoftBoneIdsForLayer(state.composite.layers, effectiveRig, l.id, effectiveBoneId))
@@ -231,16 +236,17 @@ export function WorkshopWorkspace({
         const effectiveSoft = l.bindingMode === 'soft' || isSingleLayerChar || hasMultiLimbBones
         const extraBoneIds = effectiveSoft ? candidateExtraBones : undefined
         const boneTf = transforms && effectiveBoneId ? transforms.get(effectiveBoneId) : undefined
+        const layerWithEffectiveBone = effectiveBoneId && !l.boneId ? { ...l, boneId: effectiveBoneId } : l
         const transformed =
           transforms && !effectiveSoft
-            ? transformRigLayer(l, transforms)
+            ? transformRigLayer(layerWithEffectiveBone, transforms)
             : boneTf?.zOrder
-              ? { ...l, z: Number((l.z - boneTf.zOrder).toFixed(3)) }
-              : l
+              ? { ...layerWithEffectiveBone, z: Number((l.z - boneTf.zOrder).toFixed(3)) }
+              : layerWithEffectiveBone
         const layerSpines = !isErasing && !l.hidden ? spinesForLayer(shiftedSpines, l.id) : undefined
         return {
           ...transformed,
-          ...(effectiveSoft ? { bindingMode: 'soft' as const, boneId: effectiveBoneId } : {}),
+          ...(effectiveSoft ? { bindingMode: 'soft' as const, boneId: effectiveBoneId, isolateToBoundBones: isMultiLayerChar } : {}),
           ...(extraBoneIds?.length ? { extraBoneIds } : {}),
           ...(brushPreview?.id === l.id ? { imageUrl: brushPreview.imageUrl } : {}),
           ...(effectiveRig && !isErasing ? { previewRig: effectiveRig, bindPose } : {}),

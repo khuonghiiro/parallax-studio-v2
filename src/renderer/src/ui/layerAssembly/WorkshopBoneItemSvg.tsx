@@ -77,7 +77,7 @@ export function WorkshopBoneItemSvg({
   const leftY = wy + ny * waistW
   const rightX = wx - nx * waistW
   const rightY = wy + ny * -waistW
-  const bodyDragMode: BoneDragMode = editing && !isManipulateTool ? 'head' : 'rotate'
+  const bodyDragMode = (e: PointerEvent): BoneDragMode => (editing && !isManipulateTool ? 'head' : tailMode(e))
 
   return (
     <g
@@ -92,9 +92,11 @@ export function WorkshopBoneItemSvg({
             cy={hy}
             r={18}
             fill="transparent"
-            style={{ cursor: editing && !isManipulateTool ? 'move' : !bone.parentId ? 'move' : 'grab', pointerEvents: 'all' }}
+            style={{ cursor: 'move', pointerEvents: 'all' }}
             onPointerDown={(e) => onPointerDown(e, bone.id, headMode(e, bone))}
-          />
+          >
+            <title>{`Khớp gốc "${bone.name}" · Kéo để dời vị trí Lên / Xuống / Trái / Phải (X, Y)`}</title>
+          </circle>
           <circle
             cx={hx}
             cy={hy}
@@ -117,23 +119,23 @@ export function WorkshopBoneItemSvg({
             strokeWidth={Math.max(28, waistW * 2 + 14)}
             strokeLinecap="round"
             style={{ cursor: editing && !isManipulateTool ? 'move' : 'grab', pointerEvents: 'stroke' }}
-            onPointerDown={(e) => onPointerDown(e, bone.id, bodyDragMode)}
+            onPointerDown={(e) => onPointerDown(e, bone.id, bodyDragMode(e))}
           />
           <polygon
             points={`${hx},${hy} ${leftX},${leftY} ${tx},${ty}`}
             className="lw-bone-facet lw-bone-facet-top"
-            onPointerDown={(e) => onPointerDown(e, bone.id, bodyDragMode)}
+            onPointerDown={(e) => onPointerDown(e, bone.id, bodyDragMode(e))}
           >
             <title>
               {editing && !isManipulateTool
                 ? `${bone.name} (Chế độ tạo xương)`
-                : `${bone.name} · Chuột trái: xoay khớp · Shift+Chuột trái: ghi Realtime`}
+                : `${bone.name} · Kéo Trái/Phải/Lên/Xuống để xoay & diễn hoạt · Shift+Kéo: ghi Realtime`}
             </title>
           </polygon>
           <polygon
             points={`${hx},${hy} ${rightX},${rightY} ${tx},${ty}`}
             className="lw-bone-facet lw-bone-facet-bottom"
-            onPointerDown={(e) => onPointerDown(e, bone.id, bodyDragMode)}
+            onPointerDown={(e) => onPointerDown(e, bone.id, bodyDragMode(e))}
           />
           <line x1={hx} y1={hy} x2={tx} y2={ty} className="lw-bone-ridge" pointerEvents="none" />
 
@@ -181,9 +183,11 @@ export function WorkshopBoneItemSvg({
             cy={hy}
             r={18}
             fill="transparent"
-            style={{ cursor: editing && !isManipulateTool ? 'move' : !bone.parentId ? 'move' : 'grab', pointerEvents: 'all' }}
+            style={{ cursor: 'move', pointerEvents: 'all' }}
             onPointerDown={(e) => onPointerDown(e, bone.id, headMode(e, bone))}
-          />
+          >
+            <title>{`Khớp gốc "${bone.name}" · Kéo để dời vị trí Lên / Xuống / Trái / Phải (X, Y)`}</title>
+          </circle>
           <circle
             cx={hx}
             cy={hy}

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { applyRigAction, emptyRig, findMirrorBoneId, validateRig } from './workshopRig'
+import { applyRigAction, emptyRig, extraSoftBoneIdsForLayer, findMirrorBoneId, validateRig } from './workshopRig'
 import type { LayerComposite } from './types'
 import { evaluateRig, sampleBonePose, transformRigLayer } from '../../engine/layerRig'
-import { deformSkin } from '../../engine/layerSkinning'
+import { deformSkin, skinBones } from '../../engine/layerSkinning'
 import { bakeWorkshopRig } from './bakeWorkshopRig'
 import { createImageLayer } from '../../project/factory'
 import { BUILTIN_COMPOSITES } from './layerAssemblyDefaultComposites'
@@ -596,5 +596,62 @@ describe('workshopRig & layerRig engine', () => {
       boneId: 'bone-arm-r',
       key: expect.objectContaining({ time: 0.6, rotation: -45, zOrder: 60 })
     })
+  })
+
+  it('isolates multi-layer cutout bones per part and normalizes inverted Head->Torso hierarchy so moving Head keeps Torso stationary', () => {
+    const multiComp: LayerComposite = {
+      id: 'comp-cutout',
+      name: 'Nhân vật nhiều mảnh',
+      category: 'character',
+      width: 600,
+      height: 860,
+      layers: [
+        { id: 'l-head', name: 'Mảnh Đầu', x: -8, y: -206, z: 36, scale: 0.54, rotation: 0, opacity: 1, boneId: 'b-head', bindingMode: 'rigid', motion: { type: 'none', speed: 1, amplitude: 0, anchor: 'center' } },
+        { id: 'l-torso', name: 'Mảnh Thân', x: -14, y: -6, z: -2, scale: 0.4, rotation: 0, opacity: 1, boneId: 'b-torso', bindingMode: 'rigid', motion: { type: 'none', speed: 1, amplitude: 0, anchor: 'center' } },
+        { id: 'l-arm-l', name: 'Cánh tay trái', x: -88, y: 25, z: 0, scale: 0.51, rotation: 0, opacity: 1, boneId: 'b-arm-l', bindingMode: 'rigid', motion: { type: 'none', speed: 1, amplitude: 0, anchor: 'center' } },
+        { id: 'l-leg-l', name: 'Chân trái', x: -36, y: 162, z: -30, scale: 0.53, rotation: 0, opacity: 1, boneId: 'b-leg-l', bindingMode: 'rigid', motion: { type: 'none', speed: 1, amplitude: 0, anchor: 'center' } }
+      ],
+      rig: {
+        duration: 2,
+        loop: true,
+        bones: [
+          { id: 'b-head', name: 'Xương 1 (Đầu)', x: -11, y: -161, length: 110, angle: -89.3 },
+          { id: 'b-torso', name: 'Xương 2 (Thân)', parentId: 'b-head', x: -10, y: -121, length: 241, angle: 89.7 },
+          { id: 'b-arm-l', name: 'Xương 3 (Tay T)', parentId: 'b-torso', x: -56, y: -103, length: 59, angle: 108 },
+          { id: 'b-forearm-l', name: 'Xương 4 (Cẳng tay T)', parentId: 'b-arm-l', x: -74, y: -47, length: 51, angle: 119 },
+          { id: 'b-leg-l', name: 'Xương 6 (Đùi T)', parentId: 'b-torso', x: -43, y: 66, length: 74, angle: 90 },
+          { id: 'b-shin-l', name: 'Xương 7 (Cẳng chân T)', parentId: 'b-leg-l', x: -43, y: 140, length: 82, angle: 90 }
+        ],
+        tracks: {}
+      }
+    }
+
+    // 1. Khi xoay xương Đầu (b-head) sang phải/trái, xương Thân (b-torso) tự động trở thành Root đứng yên 100%
+    const posed = applyRigAction(multiComp, {
+      action: 'set-key',
+      boneId: 'b-head',
+      key: { time: 0.5, x: 0, y: 0, rotation: 25, easing: 'smooth' }
+    })
+    const torsoBone = posed.rig!.bones.find((b) => b.id === 'b-torso')!
+    const headBone = posed.rig!.bones.find((b) => b.id === 'b-head')!
+    expect(torsoBone.parentId).toBeUndefined()
+    expect(headBone.parentId).toBe('b-torso')
+
+    const tf = evaluateRig({ ...posed.rig!, loop: false }, 0.5)
+    const posedTorso = transformRigLayer(posed.layers[1], tf)
+    const posedHead = transformRigLayer(posed.layers[0], tf)
+    expect(posedTorso.x).toBeCloseTo(posed.layers[1].x, 4)
+    expect(posedTorso.y).toBeCloseTo(posed.layers[1].y, 4)
+    expect(posedTorso.rotation).toBeCloseTo(0, 4)
+    expect(posedHead.rotation).toBeCloseTo(25, 4)
+
+    // 2. extraSoftBoneIdsForLayer chỉ trả về đúng xương con của từng bộ phận, tuyệt đối không rò rỉ sang Đầu hay Thân
+    expect(extraSoftBoneIdsForLayer(posed.layers, posed.rig, 'l-head', 'b-head')).toEqual([])
+    expect(extraSoftBoneIdsForLayer(posed.layers, posed.rig, 'l-torso', 'b-torso')).toEqual([])
+    expect(extraSoftBoneIdsForLayer(posed.layers, posed.rig, 'l-arm-l', 'b-arm-l')).toEqual(['b-forearm-l'])
+    expect(extraSoftBoneIdsForLayer(posed.layers, posed.rig, 'l-leg-l', 'b-leg-l')).toEqual(['b-shin-l'])
+
+    // 3. skinBones với isolateToBoundBones = true không lấy xương Thân (b-torso) vào biến dạng mesh của cánh tay
+    expect(skinBones(posed.rig!, 'b-arm-l', ['b-forearm-l'], true).map((b) => b.id)).toEqual(['b-arm-l', 'b-forearm-l'])
   })
 })

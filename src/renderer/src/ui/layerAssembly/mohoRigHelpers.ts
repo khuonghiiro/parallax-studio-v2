@@ -674,3 +674,104 @@ export function buildManipulateTestRig(baseRig: LayerRig, testPoses: Record<stri
   }
   return { ...baseRig, duration: Math.max(1, baseRig.duration || 2), loop: false, tracks }
 }
+
+/**
+ * Chuẩn hoá phân cấp gốc giải phẫu (Anatomical Root Hub Normalization):
+ * Khi người dùng vẽ xương từ trên xuống (vẽ xương Đầu trước rồi vẽ xương Thân nối vào Đầu, sau đó vẽ Tay/Chân nối vào Thân),
+ * xương Đầu vô tình trở thành xương gốc (Root) kéo cả Thân và Tay/Chân xoay theo mỗi khi lắc đầu.
+ * Hàm này tự động đảo chiều liên kết Cha-Con giữa xương Đầu và xương Thân trung tâm để Thân làm Gốc đứng yên khi Đầu di chuyển.
+ */
+export function normalizeAnatomicalRootHierarchy(
+  bones: LayerBone[],
+  layers?: ReadonlyArray<{ id: string; boneId?: string; partRole?: string; y: number }>
+): LayerBone[] {
+  if (bones.length < 2) return bones
+  const childrenByParent = new Map<string, LayerBone[]>()
+  for (const b of bones) {
+    if (!b.parentId) continue
+    const list = childrenByParent.get(b.parentId) ?? []
+    list.push(b)
+    childrenByParent.set(b.parentId, list)
+  }
+
+  const swaps = new Map<string, { newParentId?: string; newParentJoint?: 'head' | 'tail' }>()
+
+  for (const root of bones) {
+    if (root.parentId) continue
+    const directChildren = childrenByParent.get(root.id) ?? []
+    if (directChildren.length !== 1) continue
+    const child = directChildren[0]
+    const grandChildren = childrenByParent.get(child.id) ?? []
+
+    const rootLayer = layers?.find((l) => l.boneId === root.id)
+    const childLayer = layers?.find((l) => l.boneId === child.id)
+    const isRootHeadRole = Boolean(rootLayer?.partRole && ['head', 'hair_back', 'hair_front', 'neck'].includes(rootLayer.partRole))
+    const isChildTorsoRole = Boolean(childLayer?.partRole && ['torso', 'hips'].includes(childLayer.partRole))
+
+    const rootPointsUp = root.angle <= -25 && root.angle >= -155
+    const childPointsDown = child.angle >= 25 && child.angle <= 155
+    const isChildHubWithBranches =
+      grandChildren.length >= 2 &&
+      (root.y <= child.y + child.length * 0.25 || rootPointsUp || root.length < child.length * 0.9)
+    const isOppositeHeadTorsoPair =
+      rootPointsUp &&
+      childPointsDown &&
+      child.length >= root.length * 1.25 &&
+      Math.hypot(root.x - child.x, root.y - child.y) <= Math.max(80, child.length * 0.45)
+
+    if (isChildHubWithBranches || isOppositeHeadTorsoPair || (isRootHeadRole && isChildTorsoRole)) {
+      swaps.set(child.id, { newParentId: undefined, newParentJoint: undefined })
+      swaps.set(root.id, { newParentId: child.id, newParentJoint: 'head' })
+    }
+  }
+
+  if (swaps.size === 0) return bones
+  return bones.map((b) => {
+    const swap = swaps.get(b.id)
+    if (!swap) return b
+    const next: LayerBone = { ...b, parentId: swap.newParentId }
+    if (swap.newParentJoint) {
+      next.parentJoint = swap.newParentJoint
+    } else {
+      delete next.parentJoint
+    }
+    return next
+  })
+}
+
+/**
+ * Tự động suy diễn xương gắn theo vị trí cho các mảnh phụ xếp chồng (như khuôn mặt, tóc sau, đai áo/ngọc bội)
+ * nằm chồng khít lên một xương chính đã được gắn với mảnh khác trong cùng nhân vật nhiều layer.
+ */
+export function inferFallbackBoneForStackedLayer(
+  layer: { id: string; boneId?: string; x: number; y: number },
+  allLayers: ReadonlyArray<{ id: string; boneId?: string; x: number; y: number }>,
+  bones: ReadonlyArray<LayerBone>,
+  maxDist = 48
+): string | undefined {
+  if (layer.boneId || allLayers.length <= 1 || bones.length === 0) return layer.boneId
+  const boundBoneIds = new Set<string>()
+  for (const other of allLayers) {
+    if (other.boneId) boundBoneIds.add(other.boneId)
+  }
+  if (boundBoneIds.size === 0) return undefined
+
+  let bestId: string | undefined
+  let bestDist = maxDist
+  for (const b of bones) {
+    if (!boundBoneIds.has(b.id)) continue
+    const rad = (b.angle * Math.PI) / 180
+    const tx = b.x + Math.cos(rad) * b.length
+    const ty = b.y + Math.sin(rad) * b.length
+    const dx = tx - b.x
+    const dy = ty - b.y
+    const len2 = dx * dx + dy * dy || 1
+    const t = Math.max(0, Math.min(1, ((layer.x - b.x) * dx + (layer.y - b.y) * dy) / len2))
+    const dist = Math.hypot(layer.x - (b.x + dx * t), layer.y - (b.y + dy * t))
+    if (dist <= bestDist) {
+      bestDist = dist
+      bestId = b.id
+    }
+  }
+  return bestId
+}

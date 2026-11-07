@@ -75,4 +75,30 @@ describe('bone pose gestures', () => {
       expect(parentPatch?.length).toBeCloseTo(Math.hypot(50, 30), 1)
     }
   })
+
+  it('cho phép kéo xương Đầu / Thân theo cả 4 hướng: sang Trái/Phải để xoay nghiêng và Lên/Xuống để gật/nhún', () => {
+    const charRig: LayerRig = {
+      duration: 2,
+      loop: true,
+      bones: [
+        { id: 'torso', name: 'Thân', x: 0, y: -120, length: 240, angle: 90 },
+        { id: 'head', name: 'Đầu', parentId: 'torso', x: 0, y: -160, length: 110, angle: -90 }
+      ],
+      tracks: {}
+    }
+    // Kéo xương Đầu thẳng xuống dưới (+24px Y) dọc theo trục xương
+    const dragDown = startBoneDrag(charRig, 'head', 0, false, 'rotate', { x: 0, y: -230 })
+    const actDown = boneDragAction(dragDown, { x: 0, y: -206 }, false)
+    expect(actDown.action).toBe('set-key')
+    if (actDown.action === 'set-key') {
+      expect(actDown.key.y).toBeCloseTo(24, 1)
+    }
+
+    // Kéo xương Đầu thẳng lên trên (-20px Y) dọc theo trục xương
+    const actUp = boneDragAction(dragDown, { x: 0, y: -250 }, false)
+    expect(actUp.action).toBe('set-key')
+    if (actUp.action === 'set-key') {
+      expect(actUp.key.y).toBeCloseTo(-20, 1)
+    }
+  })
 })

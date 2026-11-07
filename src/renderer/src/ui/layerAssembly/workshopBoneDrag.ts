@@ -3,7 +3,7 @@ import { evaluateRig, rotatePoint, sampleBonePose } from '../../engine/layerRig'
 import type { RigAction } from './workshopRig'
 import { buildIkChain, ikRotations, solveCcd, type IkChain } from './workshopIk'
 import { buildZeroAnchorOps } from './workshopStepRecord'
-import { aimBoneAtPoint, computeBoneTail } from './mohoRigHelpers'
+import { aimBoneAtPoint, classifyBoneSide, computeBoneTail } from './mohoRigHelpers'
 import { clampBoneRotation } from './boneConstraints'
 
 /** head = dời khớp · tail = chỉnh xương (tạo xương) · rotate = xoay FK · ik = kéo ngọn, chuỗi xương cha xoay theo. */
@@ -35,8 +35,10 @@ export function startBoneDrag(
   let ik: IkDragState | undefined
   if (mode === 'ik' && !editing) {
     const chain = buildIkChain(rig, boneId, ikChainLength, time)
-    const tip = chain.points[chain.points.length - 1]
-    ik = { chain, offset: { x: tip.x - point.x, y: tip.y - point.y }, deltas: chain.boneIds.map(() => 0) }
+    if (chain.boneIds.length > 1) {
+      const tip = chain.points[chain.points.length - 1]
+      ik = { chain, offset: { x: tip.x - point.x, y: tip.y - point.y }, deltas: chain.boneIds.map(() => 0) }
+    }
   }
   const affectedBoneIds = ik ? ik.chain.boneIds : [boneId]
   const zeroAnchorOps = editing ? [] : buildZeroAnchorOps(rig, affectedBoneIds, time)
@@ -193,13 +195,49 @@ export function boneDragAction(
     return buildWeldedTailEditAction(rig.bones, bone, transform, point, shift, altKey)
   }
 
+  const worldAngleRad = ((bone.angle + transform.rotation) * Math.PI) / 180
+  const ux = Math.cos(worldAngleRad)
+  const uy = Math.sin(worldAngleRad)
+  const axial = dx * ux + dy * uy
+  const perp = dx * -uy + dy * ux
+
   const angle = (Math.atan2(point.y - transform.y, point.x - transform.x) * 180) / Math.PI
-  const delta = (((angle - drag.mouseAngle + 180) % 360) + 360) % 360 - 180
-  const rotation = clampBoneRotation(bone, pose.rotation + delta)
+  let delta = (((angle - drag.mouseAngle + 180) % 360) + 360) % 360 - 180
+
+  const side = classifyBoneSide(bone)
+  // Hỗ trợ kéo Lên/Xuống cho xương chi dọc (tay/chân hướng xuống) khi kéo dọc theo trục xương mà atan2 bị khóa góc
+  if (!editing && side !== 'center' && Math.abs(uy) > 0.65 && Math.abs(axial) > Math.abs(perp) * 1.15) {
+    const liftSign = side === 'left' ? 1 : -1
+    const axialLiftDeg = (-dy / Math.max(24, bone.length)) * 75 * liftSign
+    if (Math.abs(axialLiftDeg) > Math.abs(delta)) {
+      delta = axialLiftDeg
+    }
+  }
+
+  const rawRot = pose.rotation + delta
+  const rotation = clampBoneRotation(bone, editing && shift ? Math.round(rawRot / 15) * 15 : rawRot)
+
+  // Với xương trung tâm (Đầu, Cổ, Thân/Cột sống): kéo Ngang (Trái/Phải) để xoay nghiêng, kéo Dọc theo trục (Lên/Xuống) để nhún/gật Lên/Xuống
+  if (!editing && (!bone.parentId || side === 'center') && Math.abs(axial) > 1.5) {
+    const axialWorldX = ux * axial
+    const axialWorldY = uy * axial
+    const local = rotatePoint(axialWorldX, axialWorldY, -(drag.parent?.rotation ?? 0))
+    const sx = drag.parent?.scaleX ?? 1
+    const sy = drag.parent?.scaleY ?? 1
+    const nextX = Number((pose.x + (Math.abs(sx) > 1e-8 ? local.x / sx : 0)).toFixed(2))
+    const nextY = Number((pose.y + (Math.abs(sy) > 1e-8 ? local.y / sy : 0)).toFixed(2))
+    const keyOp = {
+      action: 'set-key' as const,
+      boneId: bone.id,
+      key: { time, x: nextX, y: nextY, rotation }
+    }
+    return zeroAnchorOps.length ? { action: 'batch', operations: [...zeroAnchorOps, keyOp] } : keyOp
+  }
+
   const keyOp = {
     action: 'set-key' as const,
     boneId: bone.id,
-    key: { time, rotation: editing && shift ? Math.round(rotation / 15) * 15 : rotation }
+    key: { time, rotation }
   }
   return zeroAnchorOps.length ? { action: 'batch', operations: [...zeroAnchorOps, keyOp] } : keyOp
 }

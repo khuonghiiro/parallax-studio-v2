@@ -58,11 +58,15 @@ const STUDIO_FPS_PRESETS = [12, 24, 30, 60] as const
 function MohoQuickPoseCard({
   bone,
   rotation,
+  poseX = 0,
+  poseY = 0,
   setKey,
   onSplit
 }: {
   bone: LayerBone
   rotation: number
+  poseX?: number
+  poseY?: number
   setKey: (patch: Partial<BoneKeyframe>) => void
   onSplit?: () => void
 }) {
@@ -70,7 +74,7 @@ function MohoQuickPoseCard({
     <div className="lw-card-section lw-quick-pose-card" style={{ marginTop: 6, padding: '8px 10px', background: 'var(--bg-2)', borderRadius: 'var(--radius)' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
         <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text)' }}>
-          🦵 Tư thế đá chân & uốn khớp (Moho)
+          🦵 Tư thế khớp & Di chuyển 4 hướng (Moho)
         </span>
         {!bone.pin && bone.length >= 16 && onSplit && (
           <button
@@ -99,6 +103,24 @@ function MohoQuickPoseCard({
         <strong style={{ fontSize: 11, minWidth: 44, textAlign: 'right', color: 'var(--text)' }}>
           {Math.round(rotation)}°
         </strong>
+      </div>
+
+      <div className="lw-creature-pills" style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 6 }}>
+        <button type="button" className="lw-creature-pill" onClick={() => setKey({ y: Number((poseY - 12).toFixed(1)) })} title="Dời khớp Lên trên (-12px Y)">
+          ⬆️ Lên
+        </button>
+        <button type="button" className="lw-creature-pill" onClick={() => setKey({ y: Number((poseY + 12).toFixed(1)) })} title="Dời / gật khớp Xuống dưới (+12px Y)">
+          ⬇️ Xuống
+        </button>
+        <button type="button" className="lw-creature-pill" onClick={() => setKey({ x: Number((poseX - 12).toFixed(1)) })} title="Dời khớp sang Trái (-12px X)">
+          ⬅️ Trái
+        </button>
+        <button type="button" className="lw-creature-pill" onClick={() => setKey({ x: Number((poseX + 12).toFixed(1)) })} title="Dời khớp sang Phải (+12px X)">
+          ➡️ Phải
+        </button>
+        <button type="button" className="lw-creature-pill" onClick={() => setKey({ x: 0, y: 0 })} title="Đưa vị trí X, Y về tâm gốc (0, 0)">
+          🎯 Vị trí 0,0
+        </button>
       </div>
 
       <div className="lw-creature-pills" style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
@@ -350,6 +372,8 @@ export function WorkshopAnimationPanel({
                 <MohoQuickPoseCard
                   bone={bone}
                   rotation={key.rotation}
+                  poseX={key.x}
+                  poseY={key.y}
                   setKey={setKey}
                   onSplit={() => run({ action: 'split-bone', boneId: bone.id })}
                 />
