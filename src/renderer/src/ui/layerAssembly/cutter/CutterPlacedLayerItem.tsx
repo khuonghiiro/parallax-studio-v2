@@ -86,7 +86,7 @@ export function CutterPlacedLayerItem({
         transform: `translate(-50%, -50%) translate3d(${layer.x}px, ${layer.y}px, 0px) scale(${baseScale})`,
         transformOrigin: '50% 50%',
         transformStyle: 'preserve-3d',
-        zIndex: Math.round(1000 - zVal)
+        zIndex: Math.round(1000 + zVal)
       }}
       data-layer-id={layer.id}
       data-layer-name={layer.name}

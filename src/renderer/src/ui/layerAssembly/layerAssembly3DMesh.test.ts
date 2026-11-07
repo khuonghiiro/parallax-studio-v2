@@ -80,7 +80,7 @@ describe('layerAssembly3DMesh', () => {
 
     expect(inst.group.position.x).toBe(50)
     expect(inst.group.position.y).toBe(-100) // Three.js Y is inverted
-    expect(inst.group.position.z).toBe(-60) // -30 * 2.0 + 0 * 0.05
+    expect(inst.group.position.z).toBe(60) // 30 * 2.0 + 0 * 0.05
     expect(inst.outline.visible).toBe(true)
     expect(inst.anchorDot.visible).toBe(true)
     expect(inst.material.opacity).toBe(0.8)
@@ -93,7 +93,7 @@ describe('layerAssembly3DMesh', () => {
       name: 'Chậu Bonsai',
       x: 0,
       y: 155,
-      z: -5,
+      z: 5,
       scale: 1.0,
       rotation: 0,
       opacity: 1.0,
@@ -122,9 +122,9 @@ describe('layerAssembly3DMesh', () => {
     updateLayer3DInstance(potInst, potLayer, 0, 1.8, false, 0)
     updateLayer3DInstance(trunkInst, trunkLayer, 0, 1.8, false, 1)
 
-    // Pot is at z = -5, trunk is at z = 0
-    // In Three.js: pot posZ = -(-5) * 1.8 + 0 * 0.05 = 9.0
-    // trunk posZ = -(0) * 1.8 + 1 * 0.05 = 0.05
+    // Pot is at z = 5, trunk is at z = 0 (Z càng cao càng ở phía trước)
+    // In Three.js: pot posZ = 5 * 1.8 + 0 * 0.05 = 9.0
+    // trunk posZ = 0 * 1.8 + 1 * 0.05 = 0.05
     // Pot must be positioned closer to camera (+Z) than trunk!
     expect(potInst.group.position.z).toBeCloseTo(9.0)
     expect(trunkInst.group.position.z).toBeCloseTo(0.05)
@@ -179,7 +179,7 @@ describe('layerAssembly3DMesh', () => {
       name: 'Lưng / Lớp sau',
       x: 0,
       y: 0,
-      z: 50,
+      z: -50,
       scale: 1,
       rotation: 0,
       opacity: 1,
@@ -190,7 +190,7 @@ describe('layerAssembly3DMesh', () => {
       name: 'Ngực / Lớp trước',
       x: 0,
       y: 0,
-      z: -50,
+      z: 50,
       scale: 1,
       rotation: 0,
       opacity: 1,

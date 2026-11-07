@@ -236,8 +236,8 @@ export const WorkflowV2Logic25DPreview: React.FC<WorkflowV2Logic25DPreviewProps>
     const unionW = Math.max(60, maxX - minX)
     const unionH = Math.max(60, maxY - minY)
 
-    // Sắp xếp từ xa tới gần (Z lớn nằm sau, Z nhỏ nằm trước)
-    const sorted = [...rawItems].sort((a, b) => b.z - a.z)
+    // Sắp xếp từ xa tới gần (Z nhỏ nằm sau vẽ trước, Z lớn nằm trước vẽ sau đè lên)
+    const sorted = [...rawItems].sort((a, b) => a.z - b.z)
     const parts: AssembledPartBox[] = sorted.map((it) => ({
       id: it.id,
       name: it.name,

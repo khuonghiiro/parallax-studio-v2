@@ -73,6 +73,7 @@ export interface MotionJsonExportFormat {
   description?: string
   rigConventions?: {
     coordinateSystem: string
+    depthOrderRule?: string
     armRotationRule: string
     frontViewLegRule: string
     pelvisVerticalRule: string
@@ -99,6 +100,8 @@ export interface MotionJsonExportFormat {
   layers?: Array<{
     id: string
     name: string
+    z?: number
+    depthOrder?: string
     boneId?: string | null
     bindingMode?: 'soft' | 'rigid'
     extraBoneIds?: string[]
@@ -243,6 +246,8 @@ export function exportAnimationClipToJson(
     description: clip.description || undefined,
     rigConventions: {
       coordinateSystem: '2D Screen Space (+X sang phải, +Y hướng xuống, +rotation xoay cùng chiều kim đồng hồ).',
+      depthOrderRule:
+        'Quy chuẩn Z-Index / Chiều sâu 2.5D: Z càng CAO (dương) thì bộ phận CÀNG Ở PHÍA TRƯỚC (Foreground, hiển thị đè lên các bộ phận khác). Z càng THẤP (âm) thì CÀNG Ở PHÍA SAU (Background, bị các bộ phận có Z cao hơn đè lên). Ví dụ: Kính mắt Z=+42 > Biểu cảm mặt Z=+30..+32 > Đầu Z=+20 > Thân áo Z=0 > Đùi/Cẳng chân Z=-20..-25 > Cánh tay sau Z=-35..-40.',
       armRotationRule:
         'Bắp tay trái (arm-l) & phải (arm-r) mặc định buông xuống (~90°). Muốn GIƠ TAY TRÁI RA NGOÀI / LÊN CAO: arm-l phải DƯƠNG (+25°..+125°). Muốn GIƠ TAY PHẢI RA NGOÀI / LÊN CAO: arm-r phải ÂM (-25°..-125°). Tuyệt đối không đặt ngược dấu làm 2 tay đâm chéo qua bụng!',
       frontViewLegRule:
@@ -255,16 +260,22 @@ export function exportAnimationClipToJson(
     bones: bonesMeta,
     ...(composite?.layers?.length
       ? {
-          layers: composite.layers.map((l) => ({
-            id: l.id,
-            name: l.name,
-            boneId: l.boneId || null,
-            bindingMode: l.bindingMode ?? 'soft',
-            ...(l.extraBoneIds?.length ? { extraBoneIds: l.extraBoneIds } : {}),
-            partGroupId: l.partGroupId || null,
-            ...(l.isCloth ? { isCloth: true } : {}),
-            physicsMaterial: l.physics?.enabled ? l.physics.material : null
-          }))
+          layers: composite.layers.map((l) => {
+            const zVal = Math.round(l.z ?? 0)
+            const depthRole = zVal > 15 ? 'foreground' : zVal < -15 ? 'background' : 'mid'
+            return {
+              id: l.id,
+              name: l.name,
+              z: zVal,
+              depthOrder: `${depthRole} (Z: ${zVal >= 0 ? '+' : ''}${zVal}px · ${zVal > 0 ? 'ở phía trước' : zVal < 0 ? 'ở phía sau' : 'ở giữa'})`,
+              boneId: l.boneId || null,
+              bindingMode: l.bindingMode ?? 'soft',
+              ...(l.extraBoneIds?.length ? { extraBoneIds: l.extraBoneIds } : {}),
+              partGroupId: l.partGroupId || null,
+              ...(l.isCloth ? { isCloth: true } : {}),
+              physicsMaterial: l.physics?.enabled ? l.physics.material : null
+            }
+          })
         }
       : {}),
     tracks: sortedTracks,
@@ -301,9 +312,11 @@ export function generateAiMotionPrompt(
     return `  - ID: "${b.id}" | Tên: "${b.name}" (${parentLabel}, Góc nghỉ: ${b.angle}°, Dài: ${b.length}px${layersText})\n    ↳ Quy tắc cơ học: ${b.directionGuide}`
   })
 
-  const layerLines = (composite?.layers ?? []).map(
-    (l) => `  - Layer ID: "${l.id}" | Tên: "${l.name}" | Gắn xương: "${l.boneId || 'không'}"`
-  )
+  const layerLines = (composite?.layers ?? []).map((l) => {
+    const zVal = Math.round(l.z ?? 0)
+    const posDesc = zVal > 15 ? 'Phía trước (Foreground · Đè lên)' : zVal < -15 ? 'Phía sau (Background · Bị đè)' : 'Ở giữa (Mid)'
+    return `  - Layer ID: "${l.id}" | Tên: "${l.name}" | Z: ${zVal >= 0 ? '+' : ''}${zVal}px (${posDesc}) | Gắn xương: "${l.boneId || 'không'}"`
+  })
 
   const nameInstruction =
     suggestedName && !isGenericClipName(suggestedName)
@@ -332,7 +345,7 @@ ${layerLines.length > 0 ? `🧩 DANH SÁCH MẢNH LAYER (ĐỂ GẮN HIỆU ỨN
    - Hai cánh tay ở tư thế nghỉ đều buông dọc xuống (~90°).
    - Muốn GIƠ TAY TRÁI ("bone-arm-l") mở sang trái & lên cao: "rotation" PHẢI LÀ SỐ DƯƠNG (+25° đến +125°).
    - Muốn GIƠ TAY PHẢI ("bone-arm-r") mở sang phải & lên cao: "rotation" PHẢI LÀ SỐ ÂM (-25° đến -125°).
-   - Nếu đưa tay lên trước ngực (như vẫy tay, cúi chào, vung đòn), thêm "zOrder": 50 vào keyframe của bắp tay để tay nổi lên trước thân áo.
+   - QUY ƯỚC CHIỀU SÂU Z-INDEX: Z hoặc zOrder CÀNG CAO thì bộ phận CÀNG Ở PHÍA TRƯỚC (hiển thị đè lên các bộ phận khác); Z càng thấp thì càng ở phía sau (bị đè lên). Nếu vung tay ra trước ngực (vẫy tay, cúi chào, vung đòn), đặt "zOrder": 50 (lớn hơn Z thân áo = 0) để tay nổi lên trước ngực. Nếu giấu tay ra sau lưng, đặt "zOrder": -50 để chìm sau thân áo.
 2. Quy ước 2 chân & Hông ở góc Chính diện 0° ("front"):
    - Khi nhún gối / hạ trọng tâm: Hông ("bone-pelvis") dịch xuống "y" DƯƠNG vừa phải (+10 đến +22px, KHÔNG vượt quá +24px kẻo lún chân xuống đất). Khi bật nhảy lên không: "y" ÂM (-20 đến -45px, KHÔNG vượt quá -50px kẻo bay mất khỏi khung hình).
    - Khi khuỵu 2 gối ở góc Chính diện 0°: mở nhẹ 2 gối đối xứng ("bone-thigh-l" DƯƠNG +10°..+16°, "bone-thigh-r" ÂM -10°..-16°, "bone-shin-l" ÂM -8°..-14°, "bone-shin-r" DƯƠNG +8°..+14°) VÀ BẮT BUỘC kết hợp thu ngắn phối cảnh 2.5D "scaleY": 0.88..0.93 trên đùi & cẳng chân. Tuyệt đối KHÔNG đặt thigh-l âm / thigh-r dương ở góc 0° vì sẽ làm 2 đầu gối chụm chữ X!
@@ -349,7 +362,11 @@ ${layerLines.length > 0 ? `🧩 DANH SÁCH MẢNH LAYER (ĐỂ GẮN HIỆU ỨN
      * Bàn chân ("bone-foot-l", "bone-foot-r"): thoát lực nén, duỗi thon mũi giày ("scaleX": 0.94, "scaleY": 1.10, "rotation": ∓6°).
      * Cẳng chân & Đùi: duỗi thon ("scaleX": 0.97, "scaleY": 1.04).
    - Bổ sung trường "meshDeformation" trong JSON đầu ra để kích hoạt uốn mềm Mesh ("meshEnvelope": true) và thông số nén phản lực mặt đất.
-5. Hiệu ứng Gió uốn mềm ("wind") cho Tóc / Tà áo / Cành lá:
+5. QUY ƯỚC CHIỀU SÂU Z-INDEX 2.5D ("depthConventions" & Thứ tự xếp lớp hiển thị):
+   - Quy chuẩn bất biến của Parallax Studio: Z-INDEX / CHIỀU SÂU Z CÀNG CAO (DƯƠNG) THÌ CÀNG Ở PHÍA TRƯỚC (Foreground, hiển thị trên cùng đè lên các bộ phận khác). Z CÀNG THẤP (ÂM) THÌ CÀNG Ở PHÍA SAU (Background, bị các bộ phận có Z cao hơn đè lên).
+   - Thứ tự xếp lớp giải phẫu chuẩn: Kính mắt / Phụ kiện trước (Z: +42) > Biểu cảm mặt (Z: +30..+32) > Đầu (Z: +20) > Thân áo sơ mi (Z: 0) > Đùi & Cẳng chân (Z: -20..-25) > Cánh tay sau (Z: -35..-40).
+   - Khi tạo keyframe có chiều sâu: muốn đưa một chi tiết ra đằng trước một chi tiết khác, giá trị Z của chi tiết đó BẮT BUỘC phải lớn hơn Z của chi tiết bị che.
+6. Hiệu ứng Gió uốn mềm ("wind") cho Tóc / Tà áo / Cành lá:
    - Bổ sung trường "wind" trong JSON để mái tóc (layer đầu/tóc) và tà áo (layer thân/áo) đung đưa mềm mại theo quán tính và thời tiết:
    - "weatherPreset": "breeze" (Hiu hiu ±6°) | "moderate" (Gió vừa ±13°) | "strong" (Gió mạnh ±22°) | "storm" (Gió lốc ±32°).
    - "plantSpines": danh sách trục uốn gió gắn vào layer tóc/đầu (direction: "down" cho tóc/áo rủ xuống, "up" cho cây cỏ mọc lên, "horizontal" cho khăn/cờ bay ngang).

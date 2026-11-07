@@ -23,7 +23,7 @@ describe('Layer Assembly Brush Eraser & 3D Camera Depth', () => {
     const head = CUTOUT_HERO_COMPOSITE.layers.find((l) => l.name === 'head')
     expect(torso).toBeDefined()
     expect(head).toBeDefined()
-    expect(head!.z).toBeLessThan(0)
+    expect(head!.z).toBeGreaterThan(0)
   })
 
   it('creates extended camera frustum helper that bounds both foreground and background depth', () => {

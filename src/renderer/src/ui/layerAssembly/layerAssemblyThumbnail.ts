@@ -292,8 +292,8 @@ export async function captureCompositeThumbnail(
     contentCenterY = 0
   }
 
-  // 6. Sắp xếp các layer: Z càng lớn ở sau (vẽ trước), Z càng nhỏ ở trước (vẽ sau)
-  prepared.sort((a, b) => (b.layer.z ?? 0) - (a.layer.z ?? 0))
+  // 6. Sắp xếp các layer: Z càng thấp ở sau (vẽ trước), Z càng cao ở trước (vẽ sau đè lên)
+  prepared.sort((a, b) => (a.layer.z ?? 0) - (b.layer.z ?? 0))
 
   // 7. Khởi tạo canvas kết xuất
   const canvas = document.createElement('canvas')
