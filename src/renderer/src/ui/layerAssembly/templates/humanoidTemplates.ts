@@ -54,7 +54,17 @@ export const CUTOUT_QUARTER_BONES: LayerBone[] = weldConnectedLimbBones([
 function buildClipsForBones(bones: LayerBone[]): AnimationClip[] {
   return [
     { id: 'clip-idle', name: 'Đứng thở (Idle)', duration: 2.4, loop: true, presetKey: 'idle', viewAngle: 'front', tracks: generateIdleBreathe(bones, 2.4, 'front') },
-    { id: 'clip-walk', name: 'Bước đi (Walk)', duration: 1.6, loop: true, presetKey: 'walk', viewAngle: 'front', tracks: generateWalkCycle(bones, 1.6, 'front') },
+    {
+      id: 'clip-walk',
+      name: 'Bước đi (Walk)',
+      duration: 1.6,
+      loop: true,
+      presetKey: 'walk',
+      viewAngle: 'front',
+      description:
+        'Đi bộ chính diện 2 bước luân phiên (mỗi bước 0.8s). Chân bước tới thấp hơn, to hơn và đè lên chân kia, đổi lớp tức thời trong 0.04s. Tay vung nghịch pha với chân. Thân và đầu to nhẹ khi tiếp đất. Gió nhẹ ở tóc và tà áo.',
+      tracks: generateWalkCycle(bones, 1.6, 'front')
+    },
     { id: 'clip-wave', name: 'Vẫy tay chào (Wave)', duration: 1.8, loop: true, presetKey: 'wave', viewAngle: 'front', tracks: generateWaveHand(bones, 1.8, 'front') },
     { id: 'clip-bow', name: 'Cúi chào (Bow)', duration: 2.0, loop: false, presetKey: 'bow', viewAngle: 'front', tracks: generateBow(bones, 2.0, 'front') },
     { id: 'clip-action', name: 'Vung đòn (Action)', duration: 1.5, loop: true, presetKey: 'action', viewAngle: 'front', tracks: generateActionSlash(bones, 1.5, 'front') }

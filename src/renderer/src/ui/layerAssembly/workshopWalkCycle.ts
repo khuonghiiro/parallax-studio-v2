@@ -1,4 +1,4 @@
-import type { BoneKeyframe, BonePose, LayerBone, MotionViewAngle } from '@shared/layerRig'
+import type { BoneEasing, BoneKeyframe, BonePose, LayerBone, MotionViewAngle } from '@shared/layerRig'
 import { solveWalkLeg, walkRoot } from './workshopWalkFeet'
 import { inferHumanoidBoneRoles, type HumanoidBoneRoleMap } from './spineRigWorkflow'
 
@@ -146,70 +146,198 @@ export function generateWalkCycle(
     }
   } else {
     // === GÓC CHÍNH DIỆN 0° (Frontal) & SAU LƯNG 180° ===
+    // Chu kỳ bước đi 2.5D tiến về camera (Walk Cycle Frontal) với phối cảnh chiều sâu Z,
+    // hoán đổi thứ tự hiển thị zOrder tức thời tại điểm giao nhau và tay đánh nghịch pha với chân.
     const signMod = viewAngle === 'back' ? -1 : 1
-    assign(pelvis, (p) => {
-      const r = walkRoot(p, unit)
-      // Thêm lắt le hông trái/phải nhẹ nhàng
-      return { x: 3 * unit * Math.sin(p), y: r.y, rotation: 1.5 * Math.sin(p) }
-    })
-    assign(roleBone(bones, 'torso', 'thân'), (p) => ({ rotation: -1.5 * Math.sin(p - 0.2) * signMod }))
-    assign(roleBone(bones, 'head', 'đầu'), (p) => ({ rotation: 0.8 * Math.sin(p - 0.4) * signMod }))
-    
-    for (const [side, label, sign, offset] of [['l', 'trái', 1, 0], ['r', 'phải', -1, Math.PI]] as const) {
-      const thigh = roleBone(bones, `thigh-${side}`, `đùi ${label}`)
-      const shin = roleBone(bones, `shin-${side}`, `cẳng chân ${label}`)
-      
-      const stepPhase = (p: number) => Math.sin(p + offset)
-      const lift = (p: number) => Math.max(0, stepPhase(p))
-      
-      if (thigh) {
-        assign(thigh, (p) => ({ 
-          rotation: sign * (2 + 3 * stepPhase(p)) * signMod, // Lắc nhẹ đùi
-          y: -14 * unit * lift(p), // Nhấc đùi lên theo trục Y để mô phỏng bước tới
-          scaleX: 1 + 0.08 * stepPhase(p), // Phóng to/thu nhỏ tạo cảm giác phối cảnh 3D
-          scaleY: 1 + 0.08 * stepPhase(p),
-          zOrder: Number((15 * stepPhase(p) * signMod).toFixed(1)) // Chân bước tới nổi lên trước chân trụ
-        }))
-      }
-      if (shin) {
-        assign(shin, (p) => ({ 
-          rotation: -sign * (2 + 4 * lift(p)) * signMod, // Mũi chân hơi cụp vào trong
-          y: -6 * unit * lift(p), // Cẳng chân co thêm lên
-          scaleX: 1 + 0.12 * stepPhase(p),
-          scaleY: 1 + 0.12 * stepPhase(p)
-        }))
-      }
-      const armSwing = (p: number) => -Math.sin(p + offset) // Tay vung ngược pha với chân
-      const forwardSwing = (p: number) => Math.max(0, armSwing(p))
-      const backwardSwing = (p: number) => Math.max(0, -armSwing(p))
+    const tScale = duration / 1.6
+    const posScale = (pelvis?.length ?? 100) / 100
 
-      assign(roleBone(bones, `arm-${side}`, `bắp tay ${label}`), (p) => ({
-        rotation: -sign * (2 + 6 * armSwing(p)) * signMod, // Vung tới xoay nhẹ vào trong
-        y: -2 * unit * forwardSwing(p), // Vai nhấc rất nhẹ khi vung tới
-        scaleX: 1 + 0.04 * forwardSwing(p) - 0.02 * backwardSwing(p),
-        scaleY: 1 - 0.05 * forwardSwing(p),
-        zOrder: Number(((55 * forwardSwing(p) - 20 * backwardSwing(p)) * signMod).toFixed(1))
+    const mapKeys = (
+      keyframes: Array<{
+        time: number
+        x?: number
+        y?: number
+        rotation?: number
+        scaleX?: number
+        scaleY?: number
+        zOrder?: number
+        easing?: BoneEasing
+      }>
+    ): BoneKeyframe[] =>
+      keyframes.map((k) => ({
+        time: Number((k.time * tScale).toFixed(3)),
+        x: k.x !== undefined ? Number((k.x * posScale).toFixed(2)) : 0,
+        y: k.y !== undefined ? Number((k.y * posScale).toFixed(2)) : 0,
+        rotation: k.rotation !== undefined ? Number((k.rotation * signMod).toFixed(2)) : 0,
+        scaleX: k.scaleX ?? 1,
+        scaleY: k.scaleY ?? 1,
+        easing: k.easing ?? 'smooth',
+        ...(k.zOrder !== undefined ? { zOrder: Number((k.zOrder * signMod).toFixed(1)) } : {})
       }))
-      assign(roleBone(bones, `forearm-${side}`, `cẳng tay ${label}`), (p) => ({
-        rotation: sign * (4 + 8 * forwardSwing(p)) * signMod, // Gập nhẹ khuỷu tay
-        y: -10 * unit * forwardSwing(p) + 2 * unit * backwardSwing(p), // Trượt lên tạo phối cảnh 3D
-        scaleX: 1 + 0.08 * forwardSwing(p) - 0.04 * backwardSwing(p),
-        scaleY: 1 - 0.15 * forwardSwing(p)
-      }))
-      assign(roleBone(bones, `hand-${side}`, `bàn tay ${label}`), (p) => ({
-        rotation: sign * (8 * forwardSwing(p) - 4 * backwardSwing(p)) * signMod, // Bàn tay gập linh hoạt
-        x: sign * 1.5 * unit * forwardSwing(p), // Lệch ngang tự nhiên
-        y: -12 * unit * forwardSwing(p) + 3 * unit * backwardSwing(p),
-        scaleX: 1 + 0.12 * forwardSwing(p) - 0.05 * backwardSwing(p),
-        scaleY: 1 - 0.12 * forwardSwing(p)
-      }))
-      assign(roleBone(bones, `foot-${side}`, `bàn chân ${label}`), (p) => ({
-        rotation: -sign * (4 * lift(p)) * signMod,
-        x: sign * 1 * unit * lift(p), // Bàn chân mở nhẹ sang 2 bên khi bước
-        y: -4 * unit * lift(p),
-        scaleX: 1 + 0.1 * stepPhase(p),
-        scaleY: 1 + 0.1 * stepPhase(p)
-      }))
+
+    const pelvisKeys = [
+      { time: 0.0, x: 0, y: 10, rotation: 0, scaleX: 1, scaleY: 1, easing: 'smooth' as const },
+      { time: 0.4, x: -4, y: 0, rotation: -2, scaleX: 1, scaleY: 1, easing: 'smooth' as const },
+      { time: 0.8, x: 0, y: 10, rotation: 0, scaleX: 1, scaleY: 1, easing: 'smooth' as const },
+      { time: 1.2, x: 4, y: 0, rotation: 2, scaleX: 1, scaleY: 1, easing: 'smooth' as const },
+      { time: 1.6, x: 0, y: 10, rotation: 0, scaleX: 1, scaleY: 1, easing: 'smooth' as const }
+    ]
+
+    const torsoKeys = [
+      { time: 0.0, x: 0, y: 2, rotation: 0, scaleX: 1.03, scaleY: 1.03, easing: 'smooth' as const },
+      { time: 0.4, x: 0, y: -3, rotation: 2, scaleX: 0.98, scaleY: 0.99, easing: 'smooth' as const },
+      { time: 0.8, x: 0, y: 2, rotation: 0, scaleX: 1.03, scaleY: 1.03, easing: 'smooth' as const },
+      { time: 1.2, x: 0, y: -3, rotation: -2, scaleX: 0.98, scaleY: 0.99, easing: 'smooth' as const },
+      { time: 1.6, x: 0, y: 2, rotation: 0, scaleX: 1.03, scaleY: 1.03, easing: 'smooth' as const }
+    ]
+
+    const headKeys = [
+      { time: 0.0, x: 0, y: 2, rotation: 0, scaleX: 1.03, scaleY: 1.03, easing: 'smooth' as const },
+      { time: 0.4, x: 0, y: -1, rotation: -2, scaleX: 0.98, scaleY: 0.98, easing: 'smooth' as const },
+      { time: 0.8, x: 0, y: 2, rotation: 0, scaleX: 1.03, scaleY: 1.03, easing: 'smooth' as const },
+      { time: 1.2, x: 0, y: -1, rotation: 2, scaleX: 0.98, scaleY: 0.98, easing: 'smooth' as const },
+      { time: 1.6, x: 0, y: 2, rotation: 0, scaleX: 1.03, scaleY: 1.03, easing: 'smooth' as const }
+    ]
+
+    const armLKeys = [
+      { time: 0.0, rotation: 14, scaleY: 1.04, zOrder: -40, easing: 'smooth' as const },
+      { time: 0.38, rotation: 4, scaleY: 0.98, zOrder: -40, easing: 'smooth' as const },
+      { time: 0.42, rotation: 4, scaleY: 0.98, zOrder: 50, easing: 'smooth' as const },
+      { time: 0.8, rotation: -6, scaleY: 0.92, zOrder: 50, easing: 'smooth' as const },
+      { time: 1.18, rotation: 4, scaleY: 0.98, zOrder: 50, easing: 'smooth' as const },
+      { time: 1.22, rotation: 4, scaleY: 0.98, zOrder: -40, easing: 'smooth' as const },
+      { time: 1.6, rotation: 14, scaleY: 1.04, zOrder: -40, easing: 'smooth' as const }
+    ]
+
+    const forearmLKeys = [
+      { time: 0.0, rotation: 10, scaleY: 1.02, zOrder: -45, easing: 'smooth' as const },
+      { time: 0.38, rotation: 1, scaleY: 0.96, zOrder: -45, easing: 'smooth' as const },
+      { time: 0.42, rotation: 1, scaleY: 0.96, zOrder: 52, easing: 'smooth' as const },
+      { time: 0.8, rotation: -8, scaleY: 0.9, zOrder: 52, easing: 'smooth' as const },
+      { time: 1.18, rotation: 1, scaleY: 0.96, zOrder: 52, easing: 'smooth' as const },
+      { time: 1.22, rotation: 1, scaleY: 0.96, zOrder: -45, easing: 'smooth' as const },
+      { time: 1.6, rotation: 10, scaleY: 1.02, zOrder: -45, easing: 'smooth' as const }
+    ]
+
+    const handLKeys = [
+      { time: 0.0, rotation: 8, easing: 'smooth' as const },
+      { time: 0.4, rotation: 2, easing: 'smooth' as const },
+      { time: 0.8, rotation: -10, easing: 'smooth' as const },
+      { time: 1.2, rotation: 2, easing: 'smooth' as const },
+      { time: 1.6, rotation: 8, easing: 'smooth' as const }
+    ]
+
+    const armRKeys = [
+      { time: 0.0, rotation: 6, scaleY: 0.92, zOrder: 50, easing: 'smooth' as const },
+      { time: 0.38, rotation: -4, scaleY: 0.98, zOrder: 50, easing: 'smooth' as const },
+      { time: 0.42, rotation: -4, scaleY: 0.98, zOrder: -40, easing: 'smooth' as const },
+      { time: 0.8, rotation: -14, scaleY: 1.04, zOrder: -40, easing: 'smooth' as const },
+      { time: 1.18, rotation: -4, scaleY: 0.98, zOrder: -40, easing: 'smooth' as const },
+      { time: 1.22, rotation: -4, scaleY: 0.98, zOrder: 50, easing: 'smooth' as const },
+      { time: 1.6, rotation: 6, scaleY: 0.92, zOrder: 50, easing: 'smooth' as const }
+    ]
+
+    const forearmRKeys = [
+      { time: 0.0, rotation: 8, scaleY: 0.9, zOrder: 52, easing: 'smooth' as const },
+      { time: 0.38, rotation: -1, scaleY: 0.96, zOrder: 52, easing: 'smooth' as const },
+      { time: 0.42, rotation: -1, scaleY: 0.96, zOrder: -45, easing: 'smooth' as const },
+      { time: 0.8, rotation: -10, scaleY: 1.02, zOrder: -45, easing: 'smooth' as const },
+      { time: 1.18, rotation: -1, scaleY: 0.96, zOrder: -45, easing: 'smooth' as const },
+      { time: 1.22, rotation: -1, scaleY: 0.96, zOrder: 52, easing: 'smooth' as const },
+      { time: 1.6, rotation: 8, scaleY: 0.9, zOrder: 52, easing: 'smooth' as const }
+    ]
+
+    const handRKeys = [
+      { time: 0.0, rotation: 10, easing: 'smooth' as const },
+      { time: 0.4, rotation: -2, easing: 'smooth' as const },
+      { time: 0.8, rotation: -8, easing: 'smooth' as const },
+      { time: 1.2, rotation: -2, easing: 'smooth' as const },
+      { time: 1.6, rotation: 10, easing: 'smooth' as const }
+    ]
+
+    const thighLKeys = [
+      { time: 0.0, rotation: 8, scaleX: 1.06, scaleY: 1.04, zOrder: 16, easing: 'smooth' as const },
+      { time: 0.38, rotation: 4, scaleX: 1.02, scaleY: 1.0, zOrder: 16, easing: 'smooth' as const },
+      { time: 0.42, rotation: 4, scaleX: 1.02, scaleY: 1.0, zOrder: -16, easing: 'smooth' as const },
+      { time: 0.8, rotation: 3, scaleX: 0.97, scaleY: 0.97, zOrder: -16, easing: 'smooth' as const },
+      { time: 1.18, rotation: 6, scaleX: 0.95, scaleY: 0.93, zOrder: -16, easing: 'smooth' as const },
+      { time: 1.22, rotation: 6, scaleX: 0.95, scaleY: 0.93, zOrder: 16, easing: 'smooth' as const },
+      { time: 1.6, rotation: 8, scaleX: 1.06, scaleY: 1.04, zOrder: 16, easing: 'smooth' as const }
+    ]
+
+    const shinLKeys = [
+      { time: 0.0, rotation: -4, y: -5, scaleX: 1.08, scaleY: 1.05, zOrder: 15, easing: 'smooth' as const },
+      { time: 0.38, rotation: -3, y: 0, scaleX: 1.02, scaleY: 1.0, zOrder: 15, easing: 'smooth' as const },
+      { time: 0.42, rotation: -3, y: 0, scaleX: 1.02, scaleY: 1.0, zOrder: -17, easing: 'smooth' as const },
+      { time: 0.8, rotation: -2, y: 0, scaleX: 0.97, scaleY: 0.97, zOrder: -17, easing: 'smooth' as const },
+      { time: 1.18, rotation: -12, y: 0, scaleX: 0.95, scaleY: 0.88, zOrder: -17, easing: 'smooth' as const },
+      { time: 1.22, rotation: -12, y: 0, scaleX: 0.95, scaleY: 0.88, zOrder: 15, easing: 'smooth' as const },
+      { time: 1.6, rotation: -4, y: -5, scaleX: 1.08, scaleY: 1.05, zOrder: 15, easing: 'smooth' as const }
+    ]
+
+    const footLKeys = [
+      { time: 0.0, rotation: 3, y: 8, scaleX: 1.12, scaleY: 0.96, easing: 'smooth' as const },
+      { time: 0.4, rotation: 1, y: 2, scaleX: 1.02, scaleY: 1.0, easing: 'smooth' as const },
+      { time: 0.8, rotation: -4, y: -3, scaleX: 0.97, scaleY: 1.0, easing: 'smooth' as const },
+      { time: 1.2, rotation: -6, y: -8, scaleX: 0.95, scaleY: 0.98, easing: 'smooth' as const },
+      { time: 1.6, rotation: 3, y: 8, scaleX: 1.12, scaleY: 0.96, easing: 'smooth' as const }
+    ]
+
+    const thighRKeys = [
+      { time: 0.0, rotation: -3, scaleX: 0.97, scaleY: 0.97, zOrder: -16, easing: 'smooth' as const },
+      { time: 0.38, rotation: -6, scaleX: 0.95, scaleY: 0.93, zOrder: -16, easing: 'smooth' as const },
+      { time: 0.42, rotation: -6, scaleX: 0.95, scaleY: 0.93, zOrder: 16, easing: 'smooth' as const },
+      { time: 0.8, rotation: -8, scaleX: 1.06, scaleY: 1.04, zOrder: 16, easing: 'smooth' as const },
+      { time: 1.18, rotation: -4, scaleX: 1.02, scaleY: 1.0, zOrder: 16, easing: 'smooth' as const },
+      { time: 1.22, rotation: -4, scaleX: 1.02, scaleY: 1.0, zOrder: -16, easing: 'smooth' as const },
+      { time: 1.6, rotation: -3, scaleX: 0.97, scaleY: 0.97, zOrder: -16, easing: 'smooth' as const }
+    ]
+
+    const shinRKeys = [
+      { time: 0.0, rotation: 2, y: 0, scaleX: 0.97, scaleY: 0.97, zOrder: -17, easing: 'smooth' as const },
+      { time: 0.38, rotation: 12, y: 0, scaleX: 0.95, scaleY: 0.88, zOrder: -17, easing: 'smooth' as const },
+      { time: 0.42, rotation: 12, y: 0, scaleX: 0.95, scaleY: 0.88, zOrder: 15, easing: 'smooth' as const },
+      { time: 0.8, rotation: 4, y: -5, scaleX: 1.08, scaleY: 1.05, zOrder: 15, easing: 'smooth' as const },
+      { time: 1.18, rotation: 3, y: 0, scaleX: 1.02, scaleY: 1.0, zOrder: 15, easing: 'smooth' as const },
+      { time: 1.22, rotation: 3, y: 0, scaleX: 1.02, scaleY: 1.0, zOrder: -17, easing: 'smooth' as const },
+      { time: 1.6, rotation: 2, y: 0, scaleX: 0.97, scaleY: 0.97, zOrder: -17, easing: 'smooth' as const }
+    ]
+
+    const footRKeys = [
+      { time: 0.0, rotation: 4, y: -3, scaleX: 0.97, scaleY: 1.0, easing: 'smooth' as const },
+      { time: 0.4, rotation: 6, y: -8, scaleX: 0.95, scaleY: 0.98, easing: 'smooth' as const },
+      { time: 0.8, rotation: -3, y: 8, scaleX: 1.12, scaleY: 0.96, easing: 'smooth' as const },
+      { time: 1.2, rotation: -1, y: 2, scaleX: 1.02, scaleY: 1.0, easing: 'smooth' as const },
+      { time: 1.6, rotation: 4, y: -3, scaleX: 0.97, scaleY: 1.0, easing: 'smooth' as const }
+    ]
+
+    type WalkTemplateKey = Partial<BoneKeyframe> & { time: number }
+    const roleMapping: Record<string, { role: string; label: string; keys: WalkTemplateKey[] }> = {
+      pelvis: { role: 'pelvis', label: 'hông', keys: pelvisKeys },
+      torso: { role: 'torso', label: 'thân', keys: torsoKeys },
+      head: { role: 'head', label: 'đầu', keys: headKeys },
+      'arm-l': { role: 'arm-l', label: 'bắp tay trái', keys: armLKeys },
+      'forearm-l': { role: 'forearm-l', label: 'cẳng tay trái', keys: forearmLKeys },
+      'hand-l': { role: 'hand-l', label: 'bàn tay trái', keys: handLKeys },
+      'arm-r': { role: 'arm-r', label: 'bắp tay phải', keys: armRKeys },
+      'forearm-r': { role: 'forearm-r', label: 'cẳng tay phải', keys: forearmRKeys },
+      'hand-r': { role: 'hand-r', label: 'bàn tay phải', keys: handRKeys },
+      'thigh-l': { role: 'thigh-l', label: 'đùi trái', keys: thighLKeys },
+      'shin-l': { role: 'shin-l', label: 'cẳng chân trái', keys: shinLKeys },
+      'foot-l': { role: 'foot-l', label: 'bàn chân trái', keys: footLKeys },
+      'thigh-r': { role: 'thigh-r', label: 'đùi phải', keys: thighRKeys },
+      'shin-r': { role: 'shin-r', label: 'cẳng chân phải', keys: shinRKeys },
+      'foot-r': { role: 'foot-r', label: 'bàn chân phải', keys: footRKeys }
+    }
+
+    for (const [key, def] of Object.entries(roleMapping)) {
+      const b =
+        key === 'pelvis'
+          ? (roleBone(bones, 'pelvis', 'hông') ?? bones.find((bone) => !bone.parentId))
+          : roleBone(bones, def.role, def.label)
+      if (b) {
+        tracks[b.id] = mapKeys(def.keys)
+      }
     }
   }
 
