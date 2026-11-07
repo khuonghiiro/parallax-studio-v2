@@ -1,0 +1,287 @@
+/* ==========================================================================
+   AI UI Inspector — Khung quét vùng giao diện trích xuất ngữ cảnh cho AI
+   ========================================================================== */
+
+/* Lớp phủ toàn màn hình khi đang ở chế độ chờ hoặc đang quét */
+.ai-ui-inspector-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 999990;
+  user-select: none;
+}
+
+/* Con trỏ toàn màn hình khi kích hoạt chế độ sẵn sàng quét */
+body.ai-ui-inspector-active {
+  cursor: crosshair !important;
+  user-select: none !important;
+}
+
+/* Badge trạng thái nổi ở góc màn hình khi vừa bật chế độ Soi UI */
+.ai-ui-inspector-arm-hud {
+  position: fixed;
+  top: 48px;
+  right: 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: var(--bg-1, #1e293b);
+  border: 1px solid var(--accent-cyan, #38bdf8);
+  border-radius: var(--radius-md, 6px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), 0 0 10px rgba(56, 189, 248, 0.25);
+  color: var(--text, #f8fafc);
+  font-size: 12px;
+  font-weight: 500;
+  pointer-events: auto;
+  z-index: 999992;
+  animation: aiInspectorSlideDown 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ai-ui-inspector-arm-hud kbd {
+  display: inline-block;
+  padding: 2px 5px;
+  background: var(--bg-3, #0f172a);
+  border: 1px solid var(--line-soft, rgba(255, 255, 255, 0.15));
+  border-radius: 4px;
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  color: var(--accent-cyan, #38bdf8);
+}
+
+.ai-ui-inspector-arm-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  background: transparent;
+  border: none;
+  color: var(--text-dim, #94a3b8);
+  font-size: 14px;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: color 0.15s, background 0.15s;
+}
+
+.ai-ui-inspector-arm-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text, #fff);
+}
+
+/* Khung chữ nhật quét chuột (Marquee Box) */
+.ai-ui-inspector-marquee {
+  position: fixed;
+  border: 1.5px dashed var(--accent-cyan, #38bdf8);
+  background: rgba(56, 189, 248, 0.12);
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.35), inset 0 0 12px rgba(56, 189, 248, 0.12);
+  pointer-events: none;
+  z-index: 999995;
+  will-change: transform, width, height;
+}
+
+/* 4 góc ngắm toạ độ ngắm bắn Cyberpunk (Crosshairs Corner) */
+.ai-ui-inspector-marquee::before,
+.ai-ui-inspector-marquee::after {
+  content: '';
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-color: var(--accent-cyan, #38bdf8);
+  border-style: solid;
+  pointer-events: none;
+}
+
+.ai-ui-inspector-marquee::before {
+  top: -2px;
+  left: -2px;
+  border-width: 2.5px 0 0 2.5px;
+}
+
+.ai-ui-inspector-marquee::after {
+  bottom: -2px;
+  right: -2px;
+  border-width: 0 2.5px 2.5px 0;
+}
+
+/* Badge thông số kích thước & số lượng phần tử gắn dưới góc khung */
+.ai-ui-inspector-badge {
+  position: absolute;
+  bottom: -28px;
+  right: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  background: rgba(15, 23, 42, 0.92);
+  border: 1px solid var(--accent-cyan, #38bdf8);
+  border-radius: var(--radius-sm, 4px);
+  color: var(--accent-cyan, #38bdf8);
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+}
+
+/* Toast thông báo đã sao chép ngữ cảnh AI thành công */
+.ai-ui-inspector-toast {
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  background: color-mix(in srgb, var(--bg-1, #1e293b) 90%, #0f172a);
+  border: 1px solid var(--accent-cyan, #38bdf8);
+  border-radius: var(--radius, 6px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45), 0 0 16px rgba(56, 189, 248, 0.28);
+  color: var(--text, #f8fafc);
+  font-size: 13px;
+  font-weight: 500;
+  pointer-events: auto;
+  z-index: 999999;
+  animation: aiInspectorToastIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ai-ui-inspector-toast-icon {
+  color: var(--accent-cyan, #38bdf8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ai-ui-inspector-toast-msg {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.ai-ui-inspector-toast-title {
+  font-weight: 600;
+  color: var(--text, #f8fafc);
+}
+
+.ai-ui-inspector-toast-hint {
+  font-size: 11px;
+  color: var(--text-dim, #94a3b8);
+}
+
+.ai-ui-inspector-toast-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  border-radius: var(--radius-sm, 4px);
+  color: var(--accent-cyan, #38bdf8);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ai-ui-inspector-toast-btn:hover {
+  background: var(--accent-cyan, #38bdf8);
+  color: #0f172a;
+}
+
+/* Modal xem trước nội dung context đã copy */
+.ai-ui-inspector-preview-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999999;
+  pointer-events: auto;
+  animation: aiInspectorFadeIn 0.15s ease;
+}
+
+.ai-ui-inspector-preview-modal {
+  width: 90%;
+  max-width: 680px;
+  max-height: 80vh;
+  background: var(--bg-1, #1e293b);
+  border: 1px solid var(--line-focus, rgba(56, 189, 248, 0.4));
+  border-radius: var(--radius-lg, 8px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.ai-ui-inspector-preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--bg-2, #0f172a);
+  border-bottom: 1px solid var(--line-soft, rgba(255, 255, 255, 0.1));
+}
+
+.ai-ui-inspector-preview-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text, #f8fafc);
+}
+
+.ai-ui-inspector-preview-body {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-dim, #cbd5e1);
+  background: var(--bg-0, #090d16);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.ai-ui-inspector-preview-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--bg-2, #0f172a);
+  border-top: 1px solid var(--line-soft, rgba(255, 255, 255, 0.1));
+}
+
+@keyframes aiInspectorSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes aiInspectorToastIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -12px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+@keyframes aiInspectorFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
