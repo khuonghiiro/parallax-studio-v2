@@ -117,7 +117,10 @@ export const LAYER_ASSEMBLY_TOOLS = [
             })
           })
         )
-        .describe(d('Stacked layers list ordered by depth.', 'Danh sách các layer xếp chồng theo chiều sâu.'))
+        .describe(d('Stacked layers list ordered by depth.', 'Danh sách các layer xếp chồng theo chiều sâu.')),
+      assets: z.record(z.string()).optional().describe(d('Asset alias dictionary (@alias -> path).', 'Bảng ánh xạ nhãn tài nguyên (@alias -> path).')),
+      partGroups: z.array(z.any()).optional().describe(d('Part groups configuration.', 'Cấu hình các nhóm bộ phận liên kết.')),
+      plantSpines: z.array(z.any()).optional().describe(d('Plant spines list.', 'Danh sách sống uốn gió/thực vật.'))
     }),
     example:
       '{"name":"Cây Tùng Mini","category":"nature","width":500,"height":550,"layers":[{"id":"l1","name":"Chậu","x":0,"y":100,"z":-5,"scale":1,"rotation":0,"opacity":1,"motion":{"type":"none","speed":1,"amplitude":0,"anchor":"bottom"}}]}'
