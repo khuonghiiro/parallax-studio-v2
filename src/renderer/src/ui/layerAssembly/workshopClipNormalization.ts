@@ -622,7 +622,8 @@ function fixSuffocatedWalkCycleStridesInPlace(
     )
     if (hasStepInYOrZ) {
       let fixedLegs = false
-      const synthesizeStride = (kfs: BoneKeyframe[], shinKfs?: BoneKeyframe[]) => {
+      const synthesizeStride = (kfs: BoneKeyframe[], shinKfs: BoneKeyframe[] | undefined, isLeftLeg: boolean) => {
+        const outSign = isLeftLeg ? 1 : -1
         kfs.forEach((kf, idx) => {
           const rawY = kf.y ?? 0
           const rawZ = kf.zOrder ?? 0
@@ -631,29 +632,31 @@ function fixSuffocatedWalkCycleStridesInPlace(
           const isPassing = !isForward && !isBackward
 
           if (isForward) {
-            kf.rotation = 20
+            kf.rotation = Number((outSign * 8).toFixed(2))
             fixedLegs = true
             if (shinKfs && shinKfs[idx]) {
-              shinKfs[idx].rotation = -4
+              shinKfs[idx].rotation = Number((-outSign * 4).toFixed(2))
+              shinKfs[idx].y = -5
             }
           } else if (isBackward) {
-            kf.rotation = -16
+            kf.rotation = Number((outSign * 3).toFixed(2))
             fixedLegs = true
             if (shinKfs && shinKfs[idx]) {
-              shinKfs[idx].rotation = 10
+              shinKfs[idx].rotation = Number((-outSign * 2).toFixed(2))
+              shinKfs[idx].y = 0
             }
           } else if (isPassing) {
-            kf.rotation = 2
+            kf.rotation = Number((outSign * 5).toFixed(2))
             fixedLegs = true
             if (shinKfs && shinKfs[idx]) {
-              shinKfs[idx].rotation = 36
+              shinKfs[idx].rotation = Number((-outSign * 10).toFixed(2))
             }
           }
         })
       }
 
-      synthesizeStride(tlKfs, tracks[shinLId])
-      synthesizeStride(trKfs, tracks[shinRId])
+      synthesizeStride(tlKfs, tracks[shinLId], true)
+      synthesizeStride(trKfs, tracks[shinRId], false)
 
       if (fixedLegs) {
         fixes.push(
@@ -665,6 +668,72 @@ function fixSuffocatedWalkCycleStridesInPlace(
 
   if (fixedDislocation && !fixes.some((f) => f.includes('trật khớp háng'))) {
     fixes.push('Khử lệch toạ độ X của khớp Đùi & Cẳng chân (giữ chân gắn chặt vào ổ khớp hông)')
+  }
+}
+
+
+/** Khử lỗi hai chân bị vắt chéo hình chữ X (chân trái đá sang phải hoặc chân phải đá sang trái) */
+function fixCrossedLegsInPlace(
+  tracks: Record<string, BoneKeyframe[]>,
+  roles: HumanoidBoneRoleMap,
+  viewAngle: MotionViewAngle,
+  fixes: string[]
+): void {
+  if (viewAngle.startsWith('side')) return
+
+  const thighLId = roles.thighL ?? 'bone-thigh-l'
+  const thighRId = roles.thighR ?? 'bone-thigh-r'
+  const shinLId = roles.shinL ?? 'bone-shin-l'
+  const shinRId = roles.shinR ?? 'bone-shin-r'
+  const tlKfs = tracks[thighLId]
+  const trKfs = tracks[thighRId]
+  let fixedCrossing = false
+
+  if (tlKfs) {
+    for (const kf of tlKfs) {
+      if (kf.rotation < -0.5) {
+        kf.rotation = Number(Math.max(2.5, Math.abs(kf.rotation) * 0.35).toFixed(2))
+        fixedCrossing = true
+      } else if (kf.rotation > 10) {
+        kf.rotation = Number(Math.min(8.5, kf.rotation * 0.45).toFixed(2))
+        fixedCrossing = true
+      }
+    }
+  }
+
+  if (trKfs) {
+    for (const kf of trKfs) {
+      if (kf.rotation > 0.5) {
+        kf.rotation = Number((-Math.max(2.5, Math.abs(kf.rotation) * 0.35)).toFixed(2))
+        fixedCrossing = true
+      } else if (kf.rotation < -10) {
+        kf.rotation = Number(Math.max(-8.5, kf.rotation * 0.45).toFixed(2))
+        fixedCrossing = true
+      }
+    }
+  }
+
+  if (tracks[shinLId]) {
+    for (const kf of tracks[shinLId]) {
+      if (Math.abs(kf.rotation) > 16) {
+        kf.rotation = Number((Math.sign(kf.rotation) * 10).toFixed(2))
+        fixedCrossing = true
+      }
+    }
+  }
+  if (tracks[shinRId]) {
+    for (const kf of tracks[shinRId]) {
+      if (Math.abs(kf.rotation) > 16) {
+        kf.rotation = Number((Math.sign(kf.rotation) * 10).toFixed(2))
+        fixedCrossing = true
+      }
+    }
+  }
+
+  if (fixedCrossing) {
+    fixes.push(
+      'Khử lỗi hai chân bị vắt chéo hình chữ X (điều chỉnh đùi mở hướng chữ V tự nhiên 3..8°, tránh đá chéo qua thân)'
+    )
   }
 }
 
@@ -690,6 +759,7 @@ export function normalizeAndFixBiomechanicalTracks(
   if (!viewAngle.startsWith('side')) {
     fixFrontViewLegsAndMeshImpactInPlace(tracks, roles, fixesApplied)
   }
+  fixCrossedLegsInPlace(tracks, roles, viewAngle, fixesApplied)
 
   return { tracks, fixesApplied }
 }
