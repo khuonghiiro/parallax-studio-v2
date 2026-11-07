@@ -177,6 +177,7 @@ export function WorkshopAnimationPanel({
     bezier: exact?.bezier ?? previous?.bezier
   }
   const [isRetargetOpen, setIsRetargetOpen] = useState(false)
+  const [clipsMode, setClipsMode] = useState<'clips' | 'sketch' | 'custom'>('clips')
   const [copiedPose, setCopiedPose] = useState<BonePoseEntry[] | null>(null)
   const [internalSubTab, setInternalSubTab] = useState<AnimInspectorSubTab>('pose')
   const subTab = controlledSubTab ?? internalSubTab
@@ -487,39 +488,84 @@ export function WorkshopAnimationPanel({
       {/* SUB-TAB 2: QUẢN LÝ CLIPS, CÀI ĐẶT THỜI LƯỢNG FPS, BIỂU CẢM SPRITE & GHI ĐỘNG TÁC REALTIME */}
       {subTab === 'clips' && (
         <>
-          <WorkshopClipBar
-            rig={rig}
-            activeClip={activeClip}
-            composite={composite}
-            run={(action) => {
-              if (action.action === 'apply-mixamo-rig-motion') {
-                playback.setTime(0)
-                run(action)
-                playback.setIsPlaying(true)
-                return
-              }
-              playback.setIsPlaying(false)
-              if (
-                ['switch-clip', 'add-clip', 'duplicate-clip', 'delete-clip', 'delete-all-clips'].includes(action.action)
-              ) {
-                playback.setTime(0)
-              }
-              run(action)
-            }}
-            onOpenRetarget={() => setIsRetargetOpen(true)}
-          />
-          <ClipTimingSettingsCard
-            rig={rig}
-            fps={fps}
-            totalFrames={totalFrames}
-            run={run}
-          />
-          <WorkshopMotionSketchCard
-            isPlaying={playback.isPlaying}
-            onTogglePlay={playback.toggle}
-            onConfirmStep={handleConfirmStep}
-          />
-          <WorkshopCustomActionsCard composite={composite} setComposite={setComposite} />
+          {/* Phân khu Hành động: 1-Click Chuyển đổi giữa Clips động tác, Bút vẽ tự do và Biểu cảm */}
+          <div className="lw-clips-mode-nav" role="tablist" aria-label="Chế độ Hành động">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={clipsMode === 'clips'}
+              className={`lw-clips-mode-btn${clipsMode === 'clips' ? ' active' : ''}`}
+              onClick={() => setClipsMode('clips')}
+              title="Quản lý danh sách Động tác của khung xương & Cài đặt FPS"
+            >
+              <span>🎬 Clips ({rig.clips?.length ?? 1})</span>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={clipsMode === 'sketch'}
+              className={`lw-clips-mode-btn${clipsMode === 'sketch' ? ' active' : ''}`}
+              onClick={() => setClipsMode('sketch')}
+              title="Bút vẽ tự do & Ghi động tác Realtime / Từng bước bằng nét chuột"
+            >
+              <span>✏️ Bút vẽ &amp; Ghi</span>
+              {sketch.armed && <span className="lw-clips-mode-badge tone-rec">● Bật</span>}
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={clipsMode === 'custom'}
+              className={`lw-clips-mode-btn${clipsMode === 'custom' ? ' active' : ''}`}
+              onClick={() => setClipsMode('custom')}
+              title="Động tác ảnh & biểu cảm: Nhép miệng nói, nháy mắt, đổi khuôn mặt sprite"
+            >
+              <span>🎭 Biểu cảm ({(composite.customActions ?? []).length})</span>
+            </button>
+          </div>
+
+          {clipsMode === 'clips' && (
+            <>
+              <WorkshopClipBar
+                rig={rig}
+                activeClip={activeClip}
+                composite={composite}
+                run={(action) => {
+                  if (action.action === 'apply-mixamo-rig-motion') {
+                    playback.setTime(0)
+                    run(action)
+                    playback.setIsPlaying(true)
+                    return
+                  }
+                  playback.setIsPlaying(false)
+                  if (
+                    ['switch-clip', 'add-clip', 'duplicate-clip', 'delete-clip', 'delete-all-clips'].includes(action.action)
+                  ) {
+                    playback.setTime(0)
+                  }
+                  run(action)
+                }}
+                onOpenRetarget={() => setIsRetargetOpen(true)}
+              />
+              <ClipTimingSettingsCard
+                rig={rig}
+                fps={fps}
+                totalFrames={totalFrames}
+                run={run}
+              />
+            </>
+          )}
+
+          {clipsMode === 'sketch' && (
+            <WorkshopMotionSketchCard
+              isPlaying={playback.isPlaying}
+              onTogglePlay={playback.toggle}
+              onConfirmStep={handleConfirmStep}
+            />
+          )}
+
+          {clipsMode === 'custom' && (
+            <WorkshopCustomActionsCard composite={composite} setComposite={setComposite} />
+          )}
         </>
       )}
 

@@ -449,3 +449,111 @@
 .lw-anim-compact-right {
   margin-left: auto;
 }
+/* Clip Management Toolbar (Balanced 2 Rows) */
+.lw-clip-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  margin-top: 6px;
+  box-sizing: border-box;
+}
+
+.lw-clip-tools-row {
+  display: flex;
+  gap: 4px;
+  width: 100%;
+}
+
+.lw-clip-tools-row .btn {
+  flex: 1 1 0;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 25px;
+  padding: 0 6px;
+  font-size: 10.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+}
+
+.lw-clip-tools-row .lw-retarget-cta-btn {
+  margin-left: 0;
+}
+
+/* Clips Mode Switcher Navigation */
+.lw-clips-mode-nav {
+  display: flex;
+  gap: 3px;
+  padding: 3px;
+  background: var(--bg-1);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm, 4px);
+  margin-bottom: 8px;
+  box-sizing: border-box;
+}
+
+.lw-clips-mode-btn {
+  flex: 1 1 0;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 27px;
+  padding: 0 4px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: all 0.15s;
+}
+
+.lw-clips-mode-btn:hover {
+  background: var(--bg-2);
+  color: var(--text);
+}
+
+.lw-clips-mode-btn.active {
+  background: var(--bg-3);
+  color: var(--accent);
+  border-color: var(--line-focus);
+  font-weight: 600;
+}
+
+[data-theme='dark'] .lw-clips-mode-btn.active {
+  color: var(--accent-cyan, #22d3ee);
+}
+
+.lw-clips-mode-badge {
+  font-size: 9.5px;
+  padding: 1px 5px;
+  border-radius: 8px;
+  background: var(--bg-0);
+  color: var(--text-dim);
+  font-weight: 600;
+}
+
+.lw-clips-mode-btn.active .lw-clips-mode-badge {
+  background: color-mix(in srgb, var(--accent) 18%, var(--bg-0));
+  color: var(--accent);
+}
+
+[data-theme='dark'] .lw-clips-mode-btn.active .lw-clips-mode-badge {
+  color: var(--accent-cyan, #22d3ee);
+}
+
+.lw-clips-mode-badge.tone-rec {
+  background: color-mix(in srgb, #ef4444 20%, var(--bg-0));
+  color: #ef4444;
+}
