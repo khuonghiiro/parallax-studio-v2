@@ -400,4 +400,145 @@ describe('workshopClipJson', () => {
     expect(armRAt04?.zOrder).toBe(50)
     expect(armLAt04?.zOrder).toBe(-50)
   })
+
+  it('deduplicates hierarchical child zOrder, normalizes walk shin vertical y, and skips redundant wind on bone-driven layers', () => {
+    const humanoidBones = createHumanoidBones()
+    const cutoutComposite: LayerComposite = {
+      id: 'comp-character-cutout-demo-20261011',
+      name: 'Nhân Vật Anime 2.5D — Nam Sinh Kính Cận',
+      category: 'characters',
+      width: 750,
+      height: 1050,
+      layers: [
+        {
+          id: 'demo-head',
+          name: 'head',
+          assetPath: '',
+          x: 0,
+          y: -315,
+          z: 20,
+          scale: 1,
+          rotation: 0,
+          opacity: 1,
+          locked: false,
+          boneId: 'bone-head',
+          motion: { type: 'none', speed: 1, amplitude: 0, anchor: 'bottom' }
+        },
+        {
+          id: 'demo-glasses',
+          name: 'glasses',
+          assetPath: '',
+          x: 2,
+          y: -292,
+          z: 42,
+          scale: 1,
+          rotation: 0,
+          opacity: 1,
+          locked: false,
+          boneId: 'bone-head',
+          motion: { type: 'none', speed: 1, amplitude: 0, anchor: 'bottom' }
+        },
+        {
+          id: 'demo-torso',
+          name: 'torso',
+          assetPath: '',
+          x: 0,
+          y: -50,
+          z: 0,
+          scale: 1,
+          rotation: 0,
+          opacity: 1,
+          locked: false,
+          boneId: 'bone-torso',
+          motion: { type: 'none', speed: 1, amplitude: 0, anchor: 'bottom' }
+        }
+      ]
+    }
+
+    const userAiWalkJson = JSON.stringify({
+      format: 'parallax-motion-v1',
+      name: 'Bước đi tiến về camera',
+      duration: 1.6,
+      loop: true,
+      fps: 30,
+      viewAngle: 'front',
+      tracks: {
+        'bone-torso': [
+          { time: 0.0, x: 0, y: 2, rotation: 0, scaleX: 1.03, scaleY: 1.03, easing: 'smooth' },
+          { time: 0.8, x: 0, y: 2, rotation: 0, scaleX: 1.03, scaleY: 1.03, easing: 'smooth' }
+        ],
+        'bone-head': [
+          { time: 0.0, x: 0, y: 2, rotation: 0, scaleX: 1.03, scaleY: 1.03, easing: 'smooth' },
+          { time: 0.8, x: 0, y: 2, rotation: 0, scaleX: 1.03, scaleY: 1.03, easing: 'smooth' }
+        ],
+        'bone-arm-r': [
+          { time: 0.0, rotation: 16, scaleX: 1.05, scaleY: 1.05, zOrder: 50, easing: 'smooth' },
+          { time: 0.8, rotation: -12, scaleX: 0.96, scaleY: 0.96, zOrder: -50, easing: 'smooth' }
+        ],
+        'bone-forearm-r': [
+          { time: 0.0, rotation: 14, scaleX: 1.05, scaleY: 1.05, zOrder: 52, easing: 'smooth' },
+          { time: 0.8, rotation: -6, scaleX: 0.96, scaleY: 0.96, zOrder: -48, easing: 'smooth' }
+        ],
+        'bone-thigh-l': [
+          { time: 0.0, rotation: 10, y: 4, scaleX: 1.08, scaleY: 1.06, zOrder: 16, easing: 'smooth' },
+          { time: 0.8, rotation: 6, y: -3, scaleX: 0.94, scaleY: 0.91, zOrder: -16, easing: 'smooth' }
+        ],
+        'bone-shin-l': [
+          { time: 0.0, rotation: -8, y: -5, scaleX: 1.08, scaleY: 1.04, zOrder: 15, easing: 'smooth' },
+          { time: 0.8, rotation: -12, y: 0, scaleX: 0.94, scaleY: 0.89, zOrder: -15, easing: 'smooth' }
+        ],
+        'bone-foot-l': [
+          { time: 0.0, x: 0, y: 10, rotation: 3, scaleX: 1.14, scaleY: 0.9, zOrder: 18, easing: 'smooth' },
+          { time: 0.8, x: 0, y: -8, rotation: -4, scaleX: 0.93, scaleY: 0.95, zOrder: -18, easing: 'smooth' }
+        ]
+      },
+      wind: {
+        enabled: true,
+        weatherPreset: 'breeze',
+        lean: 3,
+        plantSpines: [
+          {
+            name: 'Gió nhẹ mái tóc',
+            layerIds: ['demo-head'],
+            direction: 'down',
+            amplitude: 5,
+            speed: 0.75
+          },
+          {
+            name: 'Nhịp tà áo khi bước',
+            layerIds: ['demo-torso'],
+            direction: 'down',
+            amplitude: 4,
+            speed: 0.75
+          }
+        ]
+      }
+    })
+
+    const res = parseAnimationClipFromJson(userAiWalkJson, humanoidBones, cutoutComposite)
+    expect(res.success).toBe(true)
+
+    // 1. Hierarchical child zOrder on forearm-r & shin-l is deduplicated so it does not double-stack with parent
+    expect(res.clip?.tracks['bone-forearm-r'][0].zOrder).toBe(2)
+    expect(res.clip?.tracks['bone-shin-l'][0].zOrder).toBe(-1)
+
+    // 2. Shin-l vertical y is normalized (+5 at forward step t=0.0, negative at backward lift t=0.8)
+    expect(res.clip?.tracks['bone-shin-l'][0].y).toBeGreaterThan(0)
+    expect(res.clip?.tracks['bone-shin-l'][1].y).toBeLessThan(0)
+
+    // 3. Redundant wind plantSpines on bone-driven head & torso are stripped
+    expect(res.wind?.plantSpines.length).toBe(0)
+    expect(res.wind?.enabled).toBe(false)
+
+    // 4. Exported JSON and AI Prompt include wind configurationGuide and disable wind when all parts have bone logic
+    const exported = JSON.parse(exportAnimationClipToJson(res.clip!, humanoidBones, true, cutoutComposite))
+    expect(exported.wind.enabled).toBe(false)
+    expect(exported.wind.configurationGuide.skipWindIfBoneAnimatedRule).toContain('TUYỆT ĐỐI KHÔNG tự ý gắn thêm trục gió')
+    expect(exported.wind.configurationGuide.parameterGuide.length).toBeGreaterThanOrEqual(8)
+    expect(exported.rigConventions.perspectiveWalkDepthRule.hierarchicalZOrder).toContain('QUY TẮC KẾ THỪA Z-ORDER CHA -> CON')
+
+    const prompt = generateAiMotionPrompt(res.clip!, humanoidBones, 'Bước đi về phía camera', cutoutComposite)
+    expect(prompt).toContain('ĐÃ CÓ LOGIC XƯƠNG THÌ KHÔNG CẦN BỔ SUNG GIÓ')
+    expect(prompt).toContain('"enabled": false')
+  })
 })

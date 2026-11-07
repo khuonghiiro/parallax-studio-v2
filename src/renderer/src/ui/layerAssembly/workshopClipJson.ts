@@ -18,6 +18,15 @@ import {
   type MotionMeshExportSection,
   type MotionOrientationGuide
 } from './workshopClipBiomechanics'
+import {
+  buildPromptWindInstructionBlock,
+  buildPromptWindJsonExampleBlock,
+  buildWindConfigurationGuide,
+  filterAndMergeImportedWindSpines,
+  filterExportableWindSpines,
+  isDedicatedWindAccessoryOrNatureLayer,
+  type MotionWindConfigurationGuide
+} from './workshopClipWindGuide'
 
 export {
   isGenericClipName,
@@ -26,8 +35,13 @@ export {
   buildMeshDeformationExportSection,
   upgradeCompositeSoftMeshForImpact,
   buildOrientationGuide,
+  buildWindConfigurationGuide,
+  filterAndMergeImportedWindSpines,
+  filterExportableWindSpines,
+  isDedicatedWindAccessoryOrNatureLayer,
   type MotionMeshExportSection,
-  type MotionOrientationGuide
+  type MotionOrientationGuide,
+  type MotionWindConfigurationGuide
 }
 
 export interface MotionLayerWindItem {
@@ -65,6 +79,8 @@ export interface MotionWindExportSection {
   lean?: number
   plantSpines: MotionWindSpineExportItem[]
   layerMotions?: MotionLayerWindItem[]
+  /** Hướng dẫn chi tiết cấu hình các tham số đung đưa Gió & quy tắc bỏ qua Gió khi đã có logic xương */
+  configurationGuide?: MotionWindConfigurationGuide
 }
 
 export interface MotionJsonExportFormat {
@@ -95,7 +111,8 @@ export interface MotionJsonExportFormat {
       contralateralArm: { forwardArm: string; backwardArm: string }
       torsoAndHeadBob: { rule: string }
       zOrderTransition: string
-    }
+      hierarchicalZOrder?: string
+    }
     armRotationRule: string
     frontViewLegRule: string
     pelvisVerticalRule: string
@@ -221,7 +238,7 @@ export function exportAnimationClipToJson(
         ? inferDescriptiveClipName(sortedTracks, bones, composite?.plantSpines?.length ?? 0, clip.description)
         : clip.name
 
-  const spines = composite?.plantSpines ?? []
+  const spines = filterExportableWindSpines(composite, new Set(Object.keys(sortedTracks)))
   const layerMotions: MotionLayerWindItem[] = (composite?.layers ?? [])
     .filter((l) => l.motion && l.motion.type !== 'none' && l.motion.amplitude > 0)
     .map((l) => ({
@@ -255,7 +272,8 @@ export function exportAnimationClipToJson(
       enabled: s.enabled !== false,
       ...(s.motion ? { motion: s.motion } : {})
     })),
-    ...(layerMotions.length > 0 ? { layerMotions } : {})
+    ...(layerMotions.length > 0 ? { layerMotions } : {}),
+    configurationGuide: buildWindConfigurationGuide(composite, spines)
   }
 
   const payload: MotionJsonExportFormat = {
@@ -279,23 +297,24 @@ export function exportAnimationClipToJson(
       perspectiveWalkDepthRule: {
         summary: 'Quy tắc tạo ảo giác chiều sâu 2.5D khi nhân vật bước đi / tiến về phía camera',
         forwardFoot: {
-          yPosition: 'Thấp hơn trên màn hình (y: +6..+12px) vì bàn chân bước về gần camera tiếp đất ở vị trí thấp hơn trong phối cảnh.',
-          scale: 'To hơn (scaleX & scaleY: 1.05..1.10) theo luật phối cảnh gần to xa nhỏ.',
-          depthOrder: 'BẮT BUỘC ĐÈ LÊN chân kia: đặt zOrder cao hơn chân kia (ví dụ zOrder: 15 trong khi chân sau zOrder: -15).'
+          yPosition: 'Thấp hơn trên màn hình: đặt y DƯƠNG (+4..+8px) trên cả bone-thigh và bone-shin (bàn chân bone-foot giữ y: +2..+4px) vì chân bước về gần camera hạ xuống vị trí thấp hơn trong phối cảnh.',
+          scale: 'To hơn (scaleX & scaleY: 1.05..1.10 trên thigh, shin, foot) theo luật phối cảnh gần to xa nhỏ.',
+          depthOrder: 'BẮT BUỘC ĐÈ LÊN chân kia: chỉ cần đặt zOrder: 15 trên xương đùi cha (bone-thigh); xương con (shin, foot) tự động kế thừa zOrder của đùi.'
         },
         backwardFoot: {
-          yPosition: 'Cao hơn trên màn hình (y: -4..-10px) khi nhấc ra phía sau.',
-          scale: 'Nhỏ hơn (scaleX & scaleY: 0.93..0.96) theo luật phối cảnh xa nhỏ.',
-          depthOrder: 'Bị che: zOrder thấp hơn chân trước, chui ra phía sau.'
+          yPosition: 'Cao hơn trên màn hình: đặt y ÂM (-6..-12px) trên bone-thigh và bone-shin khi chân co nhấc ra phía sau.',
+          scale: 'Nhỏ hơn (scaleX: 0.93..0.96, scaleY: 0.88..0.94 trên thigh, shin, foot) theo luật phối cảnh xa nhỏ.',
+          depthOrder: 'Bị che: đặt zOrder: -15 trên xương đùi cha (bone-thigh) để chui ra phía sau chân trước.'
         },
         contralateralArm: {
-          forwardArm: 'Tay đối diện chân bước tới đưa ra trước ngực: zOrder: 50 (đè lên thân áo sơ mi Z=0).',
-          backwardArm: 'Tay cùng bên chân bước tới đưa ra sau lưng: zOrder: -50 (chui ra sau thân áo).'
+          forwardArm: 'Tay đối diện chân bước tới đưa ra trước ngực: đặt zOrder: 50 trên xương bắp tay cha (bone-arm-l/r) để đè lên thân áo sơ mi Z=0. Cẳng tay con tự kế thừa.',
+          backwardArm: 'Tay cùng bên chân bước tới đưa ra sau lưng: đặt zOrder: -40 trên xương bắp tay cha (bone-arm-l/r) để chui ra sau thân áo.'
         },
         torsoAndHeadBob: {
           rule: 'Khi đi tới camera: Thân và Đầu hơi to ra (scale: 1.02..1.04, y nhún nhẹ +2px) ở bước tiếp đất dồn lực và hơi nhỏ lại (scale: 0.98..1.0) ở bước nhấc chân.'
         },
-        zOrderTransition: 'Đổi lớp zOrder là bước nhảy tức thời (dùng easing: "hold" hoặc chuyển đổi trong 0.03s - 0.05s), không nội suy mờ mịt.'
+        zOrderTransition: 'Đổi lớp zOrder là bước nhảy tức thời (dùng easing: "hold" hoặc chuyển đổi trong 0.03s - 0.05s), không nội suy mờ mịt.',
+        hierarchicalZOrder: 'QUY TẮC KẾ THỪA Z-ORDER CHA -> CON: Xương con (forearm, hand, shin, foot) tự động cộng dồn zOrder của xương cha (effectiveZ = layer.z + parent.zOrder + child.zOrder). Do đó CHỈ ĐẶT zOrder trên xương gốc của chi (bone-arm-l/r, bone-thigh-l/r) và ĐỂ TRỐNG zOrder ở xương con (forearm, shin, foot) để tránh bị cộng dồn gấp đôi làm cẳng chân đè lên thân áo!'
       },
       viewAngleGuide: `Nhân vật đang ở góc ${viewAngle === 'side' ? 'NGANG 90° (side)' : viewAngle === 'diagonal' ? 'CHÉO 45° (diagonal)' : viewAngle === 'back' ? 'SAU LƯNG 180° (back)' : 'CHÍNH DIỆN 0° (front)'}. ${buildOrientationGuide(viewAngle).description}`,
       depthOrderRule:
@@ -402,7 +421,7 @@ ${layerLines.length > 0 ? `🧩 DANH SÁCH MẢNH LAYER (ĐỂ GẮN HIỆU ỨN
    - Hai cánh tay ở tư thế nghỉ đều buông dọc xuống (~90°).
    - Muốn GIƠ TAY TRÁI ("bone-arm-l") mở sang trái & lên cao: "rotation" PHẢI LÀ SỐ DƯƠNG (+25° đến +125°).
    - Muốn GIƠ TAY PHẢI ("bone-arm-r") mở sang phải & lên cao: "rotation" PHẢI LÀ SỐ ÂM (-25° đến -125°).
-   - QUY ƯỚC CHIỀU SÂU Z-INDEX: Z hoặc zOrder CÀNG CAO thì bộ phận CÀNG Ở PHÍA TRƯỚC (hiển thị đè lên các bộ phận khác); Z càng thấp thì càng ở phía sau (bị đè lên). Nếu vung tay ra trước ngực (vẫy tay, cúi chào, vung đòn), đặt "zOrder": 50 (lớn hơn Z thân áo = 0) để tay nổi lên trước ngực. Nếu giấu tay ra sau lưng, đặt "zOrder": -50 để chìm sau thân áo.
+   - QUY ƯỚC CHIỀU SÂU Z-INDEX: Z hoặc zOrder CÀNG CAO thì bộ phận CÀNG Ở PHÍA TRƯỚC (hiển thị đè lên các bộ phận khác); Z càng thấp thì càng ở phía sau (bị đè lên). Nếu vung tay ra trước ngực (vẫy tay, cúi chào, vung đòn), đặt "zOrder": 50 (lớn hơn Z thân áo = 0) để tay nổi lên trước ngực. Nếu giấu tay ra sau lưng, đặt "zOrder": -40 để chìm sau thân áo.
 2. Quy ước 2 chân & Hông ở góc Chính diện 0° ("front"):
    - Khi nhún gối / hạ trọng tâm: Hông ("bone-pelvis") dịch xuống "y" DƯƠNG vừa phải (+10 đến +22px, KHÔNG vượt quá +24px kẻo lún chân xuống đất). Khi bật nhảy lên không: "y" ÂM (-20 đến -45px, KHÔNG vượt quá -50px kẻo bay mất khỏi khung hình).
    - Khi khuỵu 2 gối ở góc Chính diện 0°: mở nhẹ 2 gối đối xứng ("bone-thigh-l" DƯƠNG +10°..+16°, "bone-thigh-r" ÂM -10°..-16°, "bone-shin-l" ÂM -8°..-14°, "bone-shin-r" DƯƠNG +8°..+14°) VÀ BẮT BUỘC kết hợp thu ngắn phối cảnh 2.5D "scaleY": 0.88..0.93 trên đùi & cẳng chân. Tuyệt đối KHÔNG đặt thigh-l âm / thigh-r dương ở góc 0° vì sẽ làm 2 đầu gối chụm chữ X!
@@ -413,25 +432,24 @@ ${layerLines.length > 0 ? `🧩 DANH SÁCH MẢNH LAYER (ĐỂ GẮN HIỆU ỨN
    - Toàn bộ các mảnh cơ thể (đùi, cẳng chân, bàn chân, thân, cánh tay) đều dùng lưới tam giác Alpha Mesh uốn mềm ("bindingMode": "soft", "meshEnvelope": true).
    - KHI NHÚN LẤY ĐÀ / CHÂN TIẾP XÚC MẶT ĐẤT CHỊU LỰC (Ground Contact Impact):
      * Bàn chân ("bone-foot-l", "bone-foot-r"): chịu phản lực trực tiếp từ mặt sàn ➔ Mesh đế giày bè ngang và nén dẹt ("scaleX": 1.14..1.18, "scaleY": 0.82..0.86, "y": 2.5, "rotation": ±3°).
-     * Cẳng chân ("bone-shin-l", "bone-shin-r"): hấp thụ xung lực từ cổ chân lên gối ➔ Mesh bắp chân & ống quần nén dọc, phình ngang ("scaleX": 1.06, "scaleY": 0.88, "y": -6).
+     * Cẳng chân ("bone-shin-l", "bone-shin-r"): hấp thụ xung lực từ cổ chân lên gối ➔ Mesh bắp chân & ống quần nén dọc, phình ngang ("scaleX": 1.06, "scaleY": 0.88, "y": -6 khi bật nhảy tại chỗ; còn khi bước đi tiến về camera thì đặt "y": +4..+8 cho chân bước tới và "y": -6..-10 cho chân nhấc phía sau).
      * Đùi ("bone-thigh-l", "bone-thigh-r"): nén cơ đùi phối cảnh 2.5D ("scaleX": 1.05, "scaleY": 0.89).
    - KHI BẬT NHẢY TRÊN KHÔNG / DUỖI CHÂN RỜI ĐẤT (Airborne Stretch):
      * Bàn chân ("bone-foot-l", "bone-foot-r"): thoát lực nén, duỗi thon mũi giày ("scaleX": 0.94, "scaleY": 1.10, "rotation": ∓6°).
      * Cẳng chân & Đùi: duỗi thon ("scaleX": 0.97, "scaleY": 1.04).
    - Bổ sung trường "meshDeformation" trong JSON đầu ra để kích hoạt uốn mềm Mesh ("meshEnvelope": true) và thông số nén phản lực mặt đất.
-5. QUY ƯỚC CHIỀU SÂU Z-INDEX 2.5D ("depthConventions" & Thứ tự xếp lớp hiển thị):
+5. QUY ƯỚC CHIỀU SÂU Z-INDEX 2.5D & KẾ THỪA Z-ORDER CHA -> CON (CỰC KỲ QUAN TRỌNG):
    - Quy chuẩn bất biến của Parallax Studio: Z-INDEX / CHIỀU SÂU Z CÀNG CAO (DƯƠNG) THÌ CÀNG Ở PHÍA TRƯỚC (Foreground, hiển thị trên cùng đè lên các bộ phận khác). Z CÀNG THẤP (ÂM) THÌ CÀNG Ở PHÍA SAU (Background, bị các bộ phận có Z cao hơn đè lên).
    - Thứ tự xếp lớp giải phẫu chuẩn: Kính mắt / Phụ kiện trước (Z: +42) > Biểu cảm mặt (Z: +30..+32) > Đầu (Z: +20) > Thân áo sơ mi (Z: 0) > Đùi & Cẳng chân (Z: -20..-25) > Cánh tay sau (Z: -35..-40).
-   - Khi tạo keyframe có chiều sâu: muốn đưa một chi tiết ra đằng trước một chi tiết khác, giá trị Z của chi tiết đó BẮT BUỘC phải lớn hơn Z của chi tiết bị che.
-6. Hiệu ứng Gió uốn mềm ("wind") cho Tóc / Tà áo / Cành lá:
-   - Bổ sung trường "wind" trong JSON để mái tóc (layer đầu/tóc) và tà áo (layer thân/áo) đung đưa mềm mại theo quán tính và thời tiết:
-   - "weatherPreset": "breeze" (Hiu hiu ±6°) | "moderate" (Gió vừa ±13°) | "strong" (Gió mạnh ±22°) | "storm" (Gió lốc ±32°).
-   - "plantSpines": danh sách trục uốn gió gắn vào layer tóc/đầu (direction: "down" cho tóc/áo rủ xuống, "up" cho cây cỏ mọc lên, "horizontal" cho khăn/cờ bay ngang).
+   - QUY TẮC KẾ THỪA Z-ORDER CHA -> CON: Xương con ("bone-forearm-l/r", "bone-shin-l/r", "bone-foot-l/r") TỰ ĐỘNG CỘNG DỒN zOrder của xương cha (effectiveZ = layer.z + parent.zOrder + child.zOrder). Vì vậy:
+     * CHỈ ĐẶT "zOrder": 50 / -40 trên xương bắp tay cha ("bone-arm-l", "bone-arm-r") và CHỈ ĐẶT "zOrder": 15 / -15 trên xương đùi cha ("bone-thigh-l", "bone-thigh-r").
+     * ĐỂ TRỐNG (không khai báo) "zOrder" ở xương con ("bone-forearm-l/r", "bone-shin-l/r", "bone-foot-l/r") để chúng tự đi theo lớp của xương cha, tránh bị cộng dồn gấp đôi (15 + 15 = +30 làm cẳng chân đè lên cả vạt áo sơ mi Z=0)!
+${buildPromptWindInstructionBlock(composite)}
 7. BỘ QUY TẮC VÀNG PHỐI CẢNH 2.5D KHI BƯỚC ĐI / TIẾN VỀ PHÍA CAMERA (Tránh não đọc nhầm là đi lùi):
    - Ở sprite 2D, chuyển động đi tới và đi lùi rất dễ bị nhầm nếu thiếu tín hiệu phối cảnh chiều sâu. BẮT BUỘC kết hợp đủ 4 tín hiệu sau:
-   a) Vị trí Y tiếp đất: Chân bước tới trước chạm sàn THẤP HƠN trên màn hình ("y": +6..+12px). Chân sau đang nhấc cao hơn ("y": -4..-10px).
-   b) Kích thước Scale (Gần to xa nhỏ): Chân bước tới trước to hơn ("scaleX": 1.05..1.10, "scaleY": 1.05..1.10). Chân sau nhỏ hơn ("scaleX": 0.93..0.96, "scaleY": 0.93..0.96).
-   c) Thứ tự đè lớp (zOrder): Chân bước tới trước BẮT BUỘC ĐÈ LÊN chân kia (chân trước đặt "zOrder": 15..20, chân sau đặt "zOrder": -15..-20). Đổi zOrder giữa 2 chân phải là bước nhảy tức thời ("easing": "hold" hoặc chuyển trong 0.03s..0.05s), không nội suy làm lộn xộn các lớp.
+   a) Vị trí Y tiếp đất: Chân bước tới trước chạm sàn THẤP HƠN trên màn hình — đặt "y" DƯƠNG (+4..+8px) trên cả "bone-thigh" và "bone-shin" (bàn chân "bone-foot" giữ "y": +2..+4px). Chân sau đang co nhấc CAO HƠN trên màn hình — đặt "y" ÂM (-6..-12px) trên "bone-thigh" và "bone-shin".
+   b) Kích thước Scale (Gần to xa nhỏ): Chân bước tới trước to hơn ("scaleX": 1.06..1.10, "scaleY": 1.06..1.10 trên thigh, shin, foot). Chân sau nhỏ hơn ("scaleX": 0.93..0.96, "scaleY": 0.88..0.94).
+   c) Thứ tự đè lớp (zOrder): Chân bước tới trước BẮT BUỘC ĐÈ LÊN chân kia (đặt "zOrder": 15 trên "bone-thigh" bước tới, "zOrder": -15 trên "bone-thigh" chân sau; không lặp lại zOrder trên shin/foot). Đổi zOrder giữa 2 chân phải là bước nhảy tức thời ("easing": "hold" hoặc chuyển trong 0.03s..0.05s).
    d) Nhấp nhô Thân & Đầu (Torso & Head Bob): Thân và Đầu hơi to ra nhẹ ("scale": 1.02..1.04, nhún "y": +2px) ở bước tiếp đất dồn trọng tâm và thu nhỏ nhẹ ("scale": 0.98..1.0) ở bước nhấc chân.
 
 📦 ĐỊNH DẠNG ĐẦU RA (BẮT BUỘC):
@@ -455,7 +473,7 @@ Chỉ trả về DUY NHẤT một khối mã JSON hợp lệ nằm trong \`\`\`j
     ],
     "bone-foot-l": [
       { "time": 0.0, "x": 0, "y": 0, "rotation": 0, "scaleX": 1, "scaleY": 1, "easing": "smooth" },
-      { "time": ${(clip.duration * 0.25).toFixed(2)}, "x": 0, "y": 2.5, "rotation": 3, "scaleX": 1.16, "scaleY": 0.84, "zOrder": 15, "easing": "ease-in-out" },
+      { "time": ${(clip.duration * 0.25).toFixed(2)}, "x": 0, "y": 2.5, "rotation": 3, "scaleX": 1.16, "scaleY": 0.84, "easing": "ease-in-out" },
       { "time": ${(clip.duration * 0.55).toFixed(2)}, "x": 0, "y": -1.5, "rotation": -6, "scaleX": 0.94, "scaleY": 1.10, "easing": "smooth" },
       { "time": ${clip.duration.toFixed(2)}, "x": 0, "y": 0, "rotation": 0, "scaleX": 1, "scaleY": 1, "easing": "smooth" }
     ]
@@ -471,25 +489,7 @@ Chỉ trả về DUY NHẤT một khối mã JSON hợp lệ nằm trong \`\`\`j
       "airborneFootStretch": { "scaleX": 0.94, "scaleY": 1.10 }
     }
   },
-  "wind": {
-    "enabled": true,
-    "weatherPreset": "breeze",
-    "lean": 4,
-    "plantSpines": [
-      {
-        "name": "Gió bay mái tóc & đầu",
-        "layerIds": ["${composite?.layers.find((l) => /head|hair|đầu|tóc/i.test(`${l.id} ${l.name}`))?.id || composite?.layers[0]?.id || 'demo-head'}"],
-        "direction": "down",
-        "amplitude": 8,
-        "speed": 0.85,
-        "stiffness": 0.32,
-        "flexibility": 0.45,
-        "turbulence": 0.2,
-        "lean": 4,
-        "verticalBob": 0.06
-      }
-    ]
-  }
+${buildPromptWindJsonExampleBlock(composite)}
 }
 \`\`\``
 }
@@ -882,6 +882,16 @@ export function parseAnimationClipFromJson(
     const fixed = normalizeAndFixBiomechanicalTracks(normalizedTracks, existingBones ?? [], viewAngle)
     normalizedTracks = fixed.tracks
     fixesApplied.push(...fixed.fixesApplied)
+
+    if (parsedWind && parsedWind.plantSpines.length > 0) {
+      parsedWind.plantSpines = filterAndMergeImportedWindSpines(
+        parsedWind.plantSpines,
+        composite,
+        new Set(Object.keys(normalizedTracks)),
+        fixesApplied
+      )
+      parsedWind.enabled = parsedWind.plantSpines.length > 0 || parsedWind.layerMotions.length > 0
+    }
   }
 
   let duration = typeof data.duration === 'number' && !isNaN(data.duration) ? data.duration : 0
