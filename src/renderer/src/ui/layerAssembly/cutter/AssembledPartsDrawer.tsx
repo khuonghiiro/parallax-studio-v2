@@ -40,7 +40,7 @@ function AssembledPartCard({
 
   return (
     <div
-      className={`layer-cutter-slot-card ${isSelected ? 'drag-over' : ''}`}
+      className={`layer-cutter-slot-card ${isSelected ? 'drag-over' : ''}`} data-layer-id={layer.id} data-layer-name={layer.name}
       style={{
         display: 'flex',
         alignItems: 'center',

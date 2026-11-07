@@ -356,7 +356,8 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   create_3d: region('create_3d', '.c3d-modal'),
 
   // AI Neon HUD
-  ai_hud: ['.ai-neon-hud-badge']
+  ai_hud: ['.ai-neon-hud-badge'],
+  ai_inspector_preview: region('ai_inspector_preview', '.ai-ui-inspector-preview-modal')
 }
 
 export function isVisible(el: HTMLElement): boolean {

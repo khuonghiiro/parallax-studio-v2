@@ -330,7 +330,7 @@ export function WorkshopCutoutRigSection({
             return (
               <div
                 key={p.layer.id}
-                onClick={() => onSelectLayer(p.layer.id)}
+                onClick={() => onSelectLayer(p.layer.id)} className="lw-cutout-part-row" data-layer-id={p.layer.id} data-layer-name={p.layer.name}
                 style={{
                   display: 'flex',
                   alignItems: 'center',

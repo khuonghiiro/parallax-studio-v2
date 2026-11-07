@@ -22,7 +22,7 @@ export function PartLayerChip({ composite, layer, selected, isAnchor, onSelect, 
 }) {
   return (
     <div
-      className={`lw-part-member${selected ? ' selected' : ''}${layer.hidden ? ' is-hidden' : ''}${isAnchor ? ' is-anchor' : ''}`}
+      className={`lw-part-member${selected ? ' selected' : ''}${layer.hidden ? ' is-hidden' : ''}${isAnchor ? ' is-anchor' : ''}`} data-layer-id={layer.id} data-layer-name={layer.name}
       draggable
       onDragStart={(e) => startLayerDrag(e, layer.id)}
       title={`${layer.name}${isAnchor ? ' · neo của nhóm' : ''}${layer.hidden ? ' · đang ẩn' : ''} — kéo sang nhóm khác để chuyển`}

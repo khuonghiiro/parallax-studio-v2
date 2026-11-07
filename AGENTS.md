@@ -62,11 +62,11 @@ Tuân thủ nghiêm ngặt kỹ năng `code-modularization`:
     - **Chỉ khi ảnh chụp toàn màn hình xác nhận an toàn tuyệt đối thì mới tiến hành commit và push code.**
 - **Quy Trình Quản Lý Nhánh Git Tự Động Theo Phân Loại Logic (Logic-Driven Branching & Merging Workflow - BẮT BUỘC):**
   - **Mục tiêu:** Phân loại rành mạch từng logic chỉnh sửa (thêm / chỉnh / xoá / sửa lỗi gì ở logic đó), đóng gói thành từng nhánh độc lập rồi merge vào `main` (hoặc `master`). Nhờ đó, nếu một nhánh logic phát sinh lỗi hoặc không dùng, người dùng hoặc AI có thể dễ dàng loại bỏ (revert / drop nhánh) ra khỏi `main` mà không làm ảnh hưởng hay đứt gãy các logic khác.
-  - **Quy tắc đặt tên nhánh:** `<hành-động>/<tên-logic-kebab-case>` thể hiện rõ hành động và phạm vi logic:
-    - `sua/<logic>` hoặc `fix/<logic>`: Sửa lỗi logic/CSS (ví dụ `sua/photo-studio-import-css`).
-    - `them/<logic>` hoặc `feat/<logic>`: Thêm mới tính năng (ví dụ `them/loop-animator-presets`).
-    - `chinh/<logic>` hoặc `refactor/<logic>`: Chỉnh sửa/tái cấu trúc logic (ví dụ `chinh/layer-assembly-rig`).
-    - `xoa/<logic>`: Xoá bỏ code/file thừa (ví dụ `xoa/unused-assets`).
+  - **Quy tắc đặt tên nhánh (Tiếng Anh ngắn gọn theo hành động & logic):** `<action>/<logic-kebab-case>` dùng tiền tố tiếng Anh (không dùng tiếng Việt không dấu như `chinh/`, `them/`, `sua/`, `xoa/`):
+    - `fix/<logic>`: Sửa lỗi logic/CSS (ví dụ `fix/photo-studio-import-css`).
+    - `add/<logic>` hoặc `feat/<logic>`: Thêm mới tính năng (ví dụ `add/ai-ui`, `add/loop-animator-presets`).
+    - `edit/<logic>` hoặc `refactor/<logic>`: Chỉnh sửa/tái cấu trúc logic (ví dụ `edit/ai-ui`, `edit/layer-assembly-rig`).
+    - `remove/<logic>` hoặc `delete/<logic>`: Xoá bỏ code/file thừa (ví dụ `remove/unused-assets`).
   - **Vòng đời chu trình làm việc của AI (Mandatory Lifecycle):**
     1. **Bắt đầu logic mới:** AI tự động kiểm tra và chuyển về nhánh chính (`main` hoặc `master`), kéo code mới nhất (`git checkout main && git pull origin main`), sau đó tạo nhánh mới tương ứng với logic cần làm:
        `git checkout -b <hành-động>/<tên-logic>`

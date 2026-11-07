@@ -7,11 +7,11 @@ Mỗi nhánh mới bắt buộc thể hiện rõ loại hành động và logic 
 
 | Tiền tố hành động | Mục đích | Ví dụ |
 |-------------------|----------|-------|
-| `sua/` (hoặc `fix/`) | Sửa lỗi, khắc phục bug | `sua/photo-studio-import-css` |
-| `them/` (hoặc `feat/`) | Thêm mới tính năng, công cụ, module | `them/loop-animator-presets` |
-| `chinh/` (hoặc `refactor/`) | Chỉnh sửa, điều chỉnh, tái cấu trúc logic | `chinh/layer-assembly-rig` |
-| `xoa/` (hoặc `remove/`) | Xoá bỏ code rác, file thừa, tài nguyên cũ | `xoa/unused-assets` |
-| `toi-uu/` (hoặc `perf/`) | Tối ưu hóa hiệu năng, FPS, bộ nhớ | `toi-uu/viewer-canvas-60fps` |
+| `fix/` | Sửa lỗi, khắc phục bug | `fix/photo-studio-import-css` |
+| `add/` (hoặc `feat/`) | Thêm mới tính năng, công cụ, module | `add/ai-ui`, `add/loop-animator-presets` |
+| `edit/` (hoặc `refactor/`) | Chỉnh sửa, điều chỉnh, tái cấu trúc logic | `edit/ai-ui`, `edit/layer-assembly-rig` |
+| `remove/` (hoặc `delete/`) | Xoá bỏ code rác, file thừa, tài nguyên cũ | `remove/unused-assets` |
+| `perf/` | Tối ưu hóa hiệu năng, FPS, bộ nhớ | `perf/viewer-canvas-60fps` |
 
 ## 2. Vòng Đời Nhánh & Chu Trình Hợp Nhất Vào Main (Branch Lifecycle & Clean Merge)
 
@@ -23,7 +23,7 @@ Luôn bắt đầu từ nhánh chính (`main` hoặc `master`) đã cập nhật
 git checkout main
 git pull origin main
 git checkout -b <hành-động>/<tên-logic>
-# Ví dụ: git checkout -b sua/photo-studio-import-css
+# Ví dụ: git checkout -b edit/ai-ui
 ```
 
 ### Bước 2: Phát Triển & Kiểm Tra Chất Lượng (Quality Gates)

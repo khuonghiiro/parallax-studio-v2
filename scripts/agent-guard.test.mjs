@@ -15,7 +15,7 @@ describe('agent-guard commit-msg', () => {
   })
 
   it('lets Vietnamese merge commits through', () => {
-    expect(checkCommitMessage("[hợp nhất] nhánh 'sua/photo-studio' vào main")).toEqual([])
+    expect(checkCommitMessage("[hợp nhất] nhánh 'edit/ai-ui' vào main")).toEqual([])
   })
 
   it('rejects messages without diacritics or conventional prefix', () => {

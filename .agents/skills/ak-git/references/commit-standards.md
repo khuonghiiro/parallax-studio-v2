@@ -37,7 +37,7 @@
 - `[tái cấu trúc] (engine): tách module SceneRenderer khỏi viewer chính`
 - `[hiệu năng] (viewer): tối ưu texture LRU pool và khử giật lag canvas`
 - `[dọn dẹp]: cập nhật gitignore và cấu hình agent-guard`
-- `[hợp nhất] nhánh 'sua/photo-studio-import' vào main`
+- `[hợp nhất] nhánh 'edit/ai-ui' vào main`
 
 ## Ví Dụ Không Đúng Chuẩn
 - ❌ `Updated files` (không đúng định dạng và không mô tả rõ)

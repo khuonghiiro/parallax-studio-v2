@@ -107,7 +107,7 @@ function BoneTreeRowItem({ row, selected, layers, onSelect, onToggle, onDelete }
       role="treeitem"
       aria-selected={selected}
       aria-expanded={childCount > 0 ? !collapsed : undefined}
-      data-bone-row={b.id}
+      data-bone-row={b.id} data-bone-id={b.id} data-bone-name={b.name}
       onClick={onSelect}
       className={`lw-bone-item side-${side}${selected ? ' active' : ''}`}
       style={{ paddingLeft: `${4 + Math.min(8, depth) * 12}px` }}

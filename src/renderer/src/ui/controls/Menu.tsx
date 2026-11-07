@@ -51,7 +51,7 @@ export function Menu({
   useEffect(() => {
     if (!open) return
 
-    const handlePointerDown = (e: PointerEvent): void => {
+    const handlePointerDown = (e: PointerEvent): void => { const t = e.target as Element | null; if (document.body.classList.contains('ai-ui-inspector-active') || t?.closest?.('#ai-ui-inspector-btn, .ai-ui-inspector-barrier, .ai-ui-inspector-arm-hud, .ai-ui-inspector-toast, .ai-ui-inspector-preview-backdrop')) return;
       if (!ref.current?.contains(e.target as Node) && !popupRef.current?.contains(e.target as Node)) {
         setOpen(false)
       }

@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import {
   captureAiInspectorSnapshot,
-  formatAiInspectorMarkdown
+  formatAiInspectorMarkdown,
+  type AiInspectorSnapshot
 } from './inspector/aiUiInspectorScanner'
-import { IconAiScan, IconCopy, IconCheck, IconX } from './icons'
+import { AiUiInspectorPreviewModal } from './inspector/AiUiInspectorPreviewModal'
+import { IconAiScan, IconCheck } from './icons'
 import '../styles/aiUiInspector.css'
 
 export function AiUiInspectorOverlay() {
@@ -11,20 +13,24 @@ export function AiUiInspectorOverlay() {
   const [isDragging, setIsDragging] = useState(false)
   const [startPos, setStartPos] = useState({ x: 0, y: 0 })
   const [currentPos, setCurrentPos] = useState({ x: 0, y: 0 })
-  const [toastInfo, setToastInfo] = useState<{
-    count: number
+  const [lastCaptured, setLastCaptured] = useState<{
+    snapshot: AiInspectorSnapshot
     report: string
   } | null>(null)
+  const [toastVisible, setToastVisible] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
 
   const isDraggingRef = useRef(false)
   const isArmedRef = useRef(false)
+  const showPreviewRef = useRef(false)
+  const suppressNextClickRef = useRef(false)
   const startPosRef = useRef({ x: 0, y: 0 })
   const currentPosRef = useRef({ x: 0, y: 0 })
   const toastTimerRef = useRef<number | null>(null)
 
   isDraggingRef.current = isDragging
   isArmedRef.current = isArmed
+  showPreviewRef.current = showPreview
   startPosRef.current = startPos
   currentPosRef.current = currentPos
 
@@ -46,7 +52,7 @@ export function AiUiInspectorOverlay() {
       ta.focus()
       ta.select()
       const ok = document.execCommand('copy')
-      document.body.removeChild(ta)
+      document.body.appendChild(ta)
       return ok
     } catch {
       return false
@@ -55,22 +61,25 @@ export function AiUiInspectorOverlay() {
 
   const handleFinishCapture = useCallback(
     async (box: { left: number; top: number; width: number; height: number }) => {
+      // Quét DOM & trạng thái Xưởng đồng bộ ngay lập tức trước khi thực hiện bất kỳ thao tác bất đồng bộ nào
       const snapshot = captureAiInspectorSnapshot(box)
       const report = formatAiInspectorMarkdown(snapshot)
-      await copyToClipboard(report)
 
-      setToastInfo({
-        count: snapshot.elements.length,
-        report
-      })
+      setLastCaptured({ snapshot, report })
+      setToastVisible(true)
 
       if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current)
       toastTimerRef.current = window.setTimeout(() => {
-        setToastInfo(null)
+        setToastVisible(false)
       }, 5500)
+
+      await copyToClipboard(report)
     },
     [copyToClipboard]
   )
+
+  const finishCaptureRef = useRef(handleFinishCapture)
+  finishCaptureRef.current = handleFinishCapture
 
   useEffect(() => {
     const handleToggle = () => {
@@ -79,47 +88,99 @@ export function AiUiInspectorOverlay() {
       setIsArmed(next)
     }
 
-    const handleMouseDown = (e: MouseEvent) => {
-      // Phím tắt độc quyền: CHỈ Win + Shift (e.metaKey && e.shiftKey), không dùng Alt/Ctrl
-      const isWinShift =
-        e.shiftKey && e.metaKey && !e.altKey && !e.ctrlKey
-      const shouldTrigger = (isWinShift || isArmedRef.current) && e.button === 0
+    const isInspectorOwnUi = (target: EventTarget | null): boolean => {
+      if (!(target instanceof Element)) return false
+      return Boolean(
+        target.closest(
+          '.ai-ui-inspector-arm-hud, .ai-ui-inspector-toast, .ai-ui-inspector-preview-backdrop'
+        )
+      )
+    }
 
+    const isToolbarTriggerBtn = (target: EventTarget | null): boolean => {
+      if (!(target instanceof Element)) return false
+      return Boolean(target.closest('#ai-ui-inspector-btn'))
+    }
+
+    const startDragAt = (clientX: number, clientY: number) => {
+      isArmedRef.current = false
+      isDraggingRef.current = true
+      suppressNextClickRef.current = true
+      const pos = { x: clientX, y: clientY }
+      startPosRef.current = pos
+      currentPosRef.current = pos
+      setIsArmed(false)
+      setIsDragging(true)
+      setStartPos(pos)
+      setCurrentPos(pos)
+    }
+
+    const handlePointerDown = (e: PointerEvent) => {
+      if (isToolbarTriggerBtn(e.target)) {
+        // Chặn sự kiện pointerdown lan tới các popup/menu đang mở (như Xưởng sáng tạo) để không làm đóng popup
+        e.stopPropagation()
+        e.stopImmediatePropagation()
+        return
+      }
+      if (isInspectorOwnUi(e.target)) return
+
+      const isWinShift = e.shiftKey && e.metaKey && !e.altKey && !e.ctrlKey
+      const shouldTrigger = (isWinShift || isArmedRef.current) && e.button === 0
       if (shouldTrigger) {
         e.preventDefault()
         e.stopPropagation()
-        isArmedRef.current = false
-        isDraggingRef.current = true
-        const pos = { x: e.clientX, y: e.clientY }
-        startPosRef.current = pos
-        currentPosRef.current = pos
-        setIsArmed(false)
-        setIsDragging(true)
-        setStartPos(pos)
-        setCurrentPos(pos)
+        e.stopImmediatePropagation()
+        startDragAt(e.clientX, e.clientY)
       }
     }
 
-    const handleMouseMove = (e: MouseEvent) => {
+    const handleMouseDown = (e: MouseEvent) => {
+      if (isToolbarTriggerBtn(e.target)) {
+        e.stopPropagation()
+        e.stopImmediatePropagation()
+        return
+      }
+      if (isInspectorOwnUi(e.target)) return
+
+      if (isDraggingRef.current) {
+        e.preventDefault()
+        e.stopPropagation()
+        e.stopImmediatePropagation()
+        return
+      }
+
+      const isWinShift = e.shiftKey && e.metaKey && !e.altKey && !e.ctrlKey
+      const shouldTrigger = (isWinShift || isArmedRef.current) && e.button === 0
+      if (shouldTrigger) {
+        e.preventDefault()
+        e.stopPropagation()
+        e.stopImmediatePropagation()
+        startDragAt(e.clientX, e.clientY)
+      }
+    }
+
+    const handleMove = (e: MouseEvent | PointerEvent) => {
       if (!isDraggingRef.current) return
       e.preventDefault()
       e.stopPropagation()
+      e.stopImmediatePropagation()
       const pos = { x: e.clientX, y: e.clientY }
       currentPosRef.current = pos
       setCurrentPos(pos)
     }
 
-    const handleMouseUp = (e: MouseEvent) => {
-      if (!isDraggingRef.current) return
-      e.preventDefault()
-      e.stopPropagation()
+    const finishDragAt = (clientX: number, clientY: number) => {
       isDraggingRef.current = false
+      suppressNextClickRef.current = true
+      window.setTimeout(() => {
+        suppressNextClickRef.current = false
+      }, 80)
       setIsDragging(false)
 
       const x0 = startPosRef.current.x
       const y0 = startPosRef.current.y
-      const x1 = e.clientX
-      const y1 = e.clientY
+      const x1 = clientX
+      const y1 = clientY
 
       const box = {
         left: Math.min(x0, x1),
@@ -128,11 +189,60 @@ export function AiUiInspectorOverlay() {
         height: Math.abs(y1 - y0)
       }
 
-      handleFinishCapture(box)
+      void finishCaptureRef.current(box)
+    }
+
+    const handlePointerUp = (e: PointerEvent) => {
+      if (isToolbarTriggerBtn(e.target)) {
+        e.stopPropagation()
+        e.stopImmediatePropagation()
+        return
+      }
+      if (!isDraggingRef.current) return
+      e.preventDefault()
+      e.stopPropagation()
+      e.stopImmediatePropagation()
+      finishDragAt(e.clientX, e.clientY)
+    }
+
+    const handleMouseUp = (e: MouseEvent) => {
+      if (isToolbarTriggerBtn(e.target)) {
+        e.stopPropagation()
+        e.stopImmediatePropagation()
+        return
+      }
+      if (!isDraggingRef.current) {
+        if (suppressNextClickRef.current) {
+          e.preventDefault()
+          e.stopPropagation()
+          e.stopImmediatePropagation()
+        }
+        return
+      }
+      e.preventDefault()
+      e.stopPropagation()
+      e.stopImmediatePropagation()
+      finishDragAt(e.clientX, e.clientY)
+    }
+
+    const handleClickCapture = (e: MouseEvent) => {
+      if (isToolbarTriggerBtn(e.target)) {
+        e.preventDefault()
+        e.stopPropagation()
+        e.stopImmediatePropagation()
+        handleToggle()
+        return
+      }
+      if (isInspectorOwnUi(e.target)) return
+      if (suppressNextClickRef.current) {
+        suppressNextClickRef.current = false
+        e.preventDefault()
+        e.stopPropagation()
+        e.stopImmediatePropagation()
+      }
     }
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Nhấn tổ hợp Win + Shift để bật ngay chế độ soi UI (khoá màn hình + hiện viền neon)
       if (e.metaKey && e.shiftKey && !e.altKey && !e.ctrlKey) {
         if (!isArmedRef.current && !isDraggingRef.current) {
           isArmedRef.current = true
@@ -144,31 +254,44 @@ export function AiUiInspectorOverlay() {
         if (isDraggingRef.current || isArmedRef.current) {
           e.preventDefault()
           e.stopPropagation()
+          e.stopImmediatePropagation()
           isDraggingRef.current = false
           isArmedRef.current = false
           setIsDragging(false)
           setIsArmed(false)
-        } else if (showPreview) {
+        } else if (showPreviewRef.current) {
+          e.preventDefault()
+          e.stopPropagation()
+          e.stopImmediatePropagation()
+          showPreviewRef.current = false
           setShowPreview(false)
         }
       }
     }
 
     window.addEventListener('pxs:toggle-ai-inspector', handleToggle)
+    window.addEventListener('pointerdown', handlePointerDown, true)
     window.addEventListener('mousedown', handleMouseDown, true)
-    window.addEventListener('mousemove', handleMouseMove, true)
+    window.addEventListener('pointermove', handleMove, true)
+    window.addEventListener('mousemove', handleMove, true)
+    window.addEventListener('pointerup', handlePointerUp, true)
     window.addEventListener('mouseup', handleMouseUp, true)
+    window.addEventListener('click', handleClickCapture, true)
     window.addEventListener('keydown', handleKeyDown, true)
 
     return () => {
       window.removeEventListener('pxs:toggle-ai-inspector', handleToggle)
+      window.removeEventListener('pointerdown', handlePointerDown, true)
       window.removeEventListener('mousedown', handleMouseDown, true)
-      window.removeEventListener('mousemove', handleMouseMove, true)
+      window.removeEventListener('pointermove', handleMove, true)
+      window.removeEventListener('mousemove', handleMove, true)
+      window.removeEventListener('pointerup', handlePointerUp, true)
       window.removeEventListener('mouseup', handleMouseUp, true)
+      window.removeEventListener('click', handleClickCapture, true)
       window.removeEventListener('keydown', handleKeyDown, true)
       if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current)
     }
-  }, [handleFinishCapture, showPreview])
+  }, [])
 
   // Cập nhật class body để đổi con trỏ chuột sang dạng crosshair
   useEffect(() => {
@@ -179,7 +302,6 @@ export function AiUiInspectorOverlay() {
     }
   }, [isArmed, isDragging])
 
-  // Tính toạ độ khung chữ nhật
   const boxLeft = Math.min(startPos.x, currentPos.x)
   const boxTop = Math.min(startPos.y, currentPos.y)
   const boxWidth = Math.abs(currentPos.x - startPos.x)
@@ -210,11 +332,18 @@ export function AiUiInspectorOverlay() {
 
       {/* 3. Badge HUD trung tâm nổi ở đầu màn hình báo hiệu trạng thái sẵn sàng quét */}
       {isArmed && !isDragging && (
-        <div className="ai-ui-inspector-arm-hud" role="status">
+        <div
+          className="ai-ui-inspector-arm-hud"
+          role="status"
+          onPointerDown={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
           <div className="ai-ui-inspector-arm-dot" />
           <IconAiScan width={15} height={15} style={{ color: 'var(--accent-cyan)' }} />
           <span>ĐÃ BẬT SOI GIAO DIỆN AI (WIN+SHIFT)</span>
-          <span className="ai-ui-inspector-arm-desc">Nhấn giữ chuột trái &amp; kéo khung quanh nút cần soi</span>
+          <span className="ai-ui-inspector-arm-desc">
+            Nhấn giữ chuột trái &amp; kéo khung quanh vùng / bộ phận cần soi
+          </span>
           <kbd>Esc để thoát</kbd>
           <button
             type="button"
@@ -248,8 +377,14 @@ export function AiUiInspectorOverlay() {
       )}
 
       {/* 5. Toast thông báo kết quả sau khi nhả chuột */}
-      {toastInfo && !showPreview && (
-        <div className="ai-ui-inspector-toast" role="status" aria-live="polite">
+      {toastVisible && lastCaptured && !showPreview && (
+        <div
+          className="ai-ui-inspector-toast"
+          role="status"
+          aria-live="polite"
+          onPointerDown={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
           <div className="ai-ui-inspector-toast-icon">
             <IconCheck width={16} height={16} />
           </div>
@@ -258,23 +393,27 @@ export function AiUiInspectorOverlay() {
               Đã sao chép ngữ cảnh AI vào Clipboard!
             </div>
             <div className="ai-ui-inspector-toast-hint">
-              {toastInfo.count > 0
-                ? `Phát hiện ${toastInfo.count} phần tử. Nhấn Ctrl+V vào chat để gửi cho AI.`
+              {lastCaptured.snapshot.elements.length > 0
+                ? `Phát hiện ${lastCaptured.snapshot.elements.length} thành phần. Nhấn Ctrl+V vào chat để gửi cho AI.`
                 : 'Nhấn Ctrl+V vào chat để gửi thông tin cho AI.'}
             </div>
           </div>
           <button
             type="button"
             className="ai-ui-inspector-toast-btn"
-            onClick={() => setShowPreview(true)}
-            title="Xem nội dung Markdown vừa copy"
+            onClick={() => {
+              if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current)
+              setToastVisible(false)
+              setShowPreview(true)
+            }}
+            title="Mở hộp thoại xem chi tiết trực quan nội dung vừa quét"
           >
             Xem trước
           </button>
           <button
             type="button"
             className="ai-ui-inspector-arm-close"
-            onClick={() => setToastInfo(null)}
+            onClick={() => setToastVisible(false)}
             title="Đóng thông báo"
           >
             ✕
@@ -282,52 +421,14 @@ export function AiUiInspectorOverlay() {
         </div>
       )}
 
-      {/* 6. Modal xem trước nội dung context (tuỳ chọn) */}
-      {showPreview && toastInfo && (
-        <div
-          className="ai-ui-inspector-preview-backdrop"
-          onClick={() => setShowPreview(false)}
-        >
-          <div
-            className="ai-ui-inspector-preview-modal"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="ai-ui-inspector-preview-header">
-              <div className="ai-ui-inspector-preview-title">
-                <IconAiScan width={16} height={16} style={{ color: 'var(--accent-cyan)' }} />
-                <span>Nội Dung Ngữ Cảnh AI (Đã lưu trong Clipboard)</span>
-              </div>
-              <button
-                type="button"
-                className="ai-ui-inspector-arm-close"
-                onClick={() => setShowPreview(false)}
-                title="Đóng"
-              >
-                <IconX width={14} height={14} />
-              </button>
-            </div>
-            <pre className="ai-ui-inspector-preview-body">{toastInfo.report}</pre>
-            <div className="ai-ui-inspector-preview-footer">
-              <button
-                type="button"
-                className="btn ghost sm"
-                onClick={() => setShowPreview(false)}
-              >
-                Đóng (Esc)
-              </button>
-              <button
-                type="button"
-                className="btn primary sm"
-                onClick={async () => {
-                  await copyToClipboard(toastInfo.report)
-                  setShowPreview(false)
-                }}
-              >
-                <IconCopy width={13} height={13} /> Copy lại
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* 6. Hộp thoại Nội Dung Ngữ Cảnh AI (chỉ đóng khi bấm nút Đóng / ✕ hoặc phím Esc) */}
+      {showPreview && lastCaptured && (
+        <AiUiInspectorPreviewModal
+          snapshot={lastCaptured.snapshot}
+          report={lastCaptured.report}
+          onClose={() => setShowPreview(false)}
+          onCopyMarkdown={copyToClipboard}
+        />
       )}
     </>
   )

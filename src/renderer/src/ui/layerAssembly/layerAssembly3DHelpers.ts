@@ -117,3 +117,117 @@ export function createDepthGuideLine(posX: number, posY: number, posZ: number): 
   return line
 }
 
+/**
+ * Chiếu các tấm Mesh 3D của Xưởng Lắp Ráp 2.5D lên toạ độ màn hình (2D Screen Space)
+ * để công cụ AI UI Inspector nhận diện chính xác từng bộ phận khi quét trên Sân khấu 3D.
+ */
+export function query3DLayersInScreenBox<T extends { id: string; scale?: number; hidden?: boolean }>(
+  container: HTMLElement | null,
+  camera: THREE.PerspectiveCamera | null,
+  meshInstances: Map<string, { group: THREE.Group; mesh: THREE.Mesh }>,
+  layers: T[],
+  box: { left: number; top: number; width: number; height: number }
+): Array<{
+  layer: T
+  screenBounds: { left: number; top: number; width: number; height: number }
+  centerDist: number
+  centerInside: boolean
+}> {
+  if (!container || !camera) return []
+  const rect = container.getBoundingClientRect()
+  if (rect.width <= 0 || rect.height <= 0) return []
+
+  const isPointScan = box.width < 8 && box.height < 8
+  const boxRight = box.left + Math.max(4, box.width)
+  const boxBottom = box.top + Math.max(4, box.height)
+  const boxCx = box.left + box.width * 0.5
+  const boxCy = box.top + box.height * 0.5
+
+  const results: Array<{
+    layer: T
+    screenBounds: { left: number; top: number; width: number; height: number }
+    centerDist: number
+    centerInside: boolean
+  }> = []
+
+  const corners: [number, number][] = [
+    [-0.5, -0.5],
+    [0.5, -0.5],
+    [0.5, 0.5],
+    [-0.5, 0.5],
+    [0, 0]
+  ]
+
+  for (const layer of layers) {
+    if (layer.hidden) continue
+    const inst = meshInstances.get(layer.id)
+    if (!inst) continue
+
+    inst.group.updateMatrixWorld(true)
+    const worldMatrix = inst.group.matrixWorld
+    const planeGeom = inst.mesh.geometry as THREE.PlaneGeometry
+    const baseW = planeGeom.parameters?.width || 240
+    const baseH = planeGeom.parameters?.height || 240
+    const s = Math.max(0.05, layer.scale || 1)
+    const w = baseW * s
+    const h = baseH * s
+
+    let minX = Infinity
+    let maxX = -Infinity
+    let minY = Infinity
+    let maxY = -Infinity
+    let centerX = 0
+    let centerY = 0
+    let valid = false
+
+    for (let i = 0; i < corners.length; i++) {
+      const [kx, ky] = corners[i]
+      const pt = new THREE.Vector3(kx * w, ky * h, 0).applyMatrix4(worldMatrix)
+      const ndc = pt.project(camera)
+      if (ndc.z < -1 || ndc.z > 1) continue
+      valid = true
+      const sx = rect.left + (ndc.x * 0.5 + 0.5) * rect.width
+      const sy = rect.top + (-ndc.y * 0.5 + 0.5) * rect.height
+      if (i === 4) {
+        centerX = sx
+        centerY = sy
+      } else {
+        if (sx < minX) minX = sx
+        if (sx > maxX) maxX = sx
+        if (sy < minY) minY = sy
+        if (sy > maxY) maxY = sy
+      }
+    }
+
+    if (!valid || !Number.isFinite(minX)) continue
+
+    const intersects = isPointScan
+      ? boxCx >= minX && boxCx <= maxX && boxCy >= minY && boxCy <= maxY
+      : !(maxX < box.left || minX > boxRight || maxY < box.top || minY > boxBottom)
+
+    if (!intersects) continue
+
+    const centerInside =
+      centerX >= box.left && centerX <= boxRight && centerY >= box.top && centerY <= boxBottom
+    const centerDist = Math.hypot(centerX - boxCx, centerY - boxCy)
+
+    results.push({
+      layer,
+      screenBounds: {
+        left: Math.round(minX),
+        top: Math.round(minY),
+        width: Math.max(1, Math.round(maxX - minX)),
+        height: Math.max(1, Math.round(maxY - minY))
+      },
+      centerDist,
+      centerInside
+    })
+  }
+
+  results.sort((a, b) => {
+    if (a.centerInside !== b.centerInside) return a.centerInside ? -1 : 1
+    return a.centerDist - b.centerDist
+  })
+
+  return results
+}
