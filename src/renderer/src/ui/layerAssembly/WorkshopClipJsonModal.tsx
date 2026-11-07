@@ -12,6 +12,7 @@ import {
   type ParsedWindData
 } from './workshopClipJson'
 import { inferDescriptiveClipName, isGenericClipName } from './workshopClipBiomechanics'
+import '../../styles/workshopClipJsonModal.css'
 
 export interface WorkshopClipJsonModalProps {
   isOpen: boolean
@@ -28,11 +29,31 @@ export interface WorkshopClipJsonModalProps {
 }
 
 const QUICK_AI_INTENTS = [
-  { label: '👋 Vẫy tay chào', name: 'Vẫy tay chào tươi tắn', intent: 'Nhân vật giơ tay phải vẫy chào thân thiện, đầu nghiêng nhẹ tươi tắn, cơ thể nhún thở tự nhiên, tóc/áo đung đưa theo gió nhẹ' },
-  { label: '🎉 Nhún nhảy vui', name: 'Nhún nhảy vươn tay (Jump)', intent: 'Nhân vật hạ gối lấy đà rồi bật nhảy vui mừng, hai tay vươn mở rộng sang hai bên hướng lên trời, tiếp đất đàn hồi mượt mà' },
-  { label: '🚶 Bước đi 2.5D', name: 'Bước đi dạo phố (Walk)', intent: 'Nhân vật bước đi nhịp nhàng tự nhiên, tay đánh đối xứng với chân, thân người nhấp nhô nhẹ theo nhịp bước' },
-  { label: '🌬️ Đứng thở & Gió', name: 'Đứng thở & Gió thổi nhẹ', intent: 'Nhân vật đứng thở êm ái, lồng ngực nâng hạ nhẹ, đầu nghiêng khẽ và tà áo/mái tóc bay phấp phới theo làn gió' },
-  { label: '⚡ Tung chiêu', name: 'Tung chiêu thức 2.5D', intent: 'Nhân vật xoay thân lấy đà, vung tay tung chiêu mạnh mẽ về phía trước kèm độ nảy cơ học sắc nét rồi thu thế' }
+  {
+    label: '👋 Vẫy tay chào',
+    name: 'Vẫy tay chào tươi tắn',
+    intent: 'Nhân vật giơ tay phải vẫy chào thân thiện, đầu nghiêng nhẹ tươi tắn, cơ thể nhún thở tự nhiên, tóc/áo đung đưa theo gió nhẹ'
+  },
+  {
+    label: '🎉 Nhún nhảy vui',
+    name: 'Nhún nhảy vươn tay (Jump)',
+    intent: 'Nhân vật hạ gối lấy đà rồi bật nhảy vui mừng, hai tay vươn mở rộng sang hai bên hướng lên trời, tiếp đất đàn hồi mượt mà'
+  },
+  {
+    label: '🚶 Bước đi 2.5D',
+    name: 'Bước đi dạo phố (Walk)',
+    intent: 'Nhân vật bước đi nhịp nhàng tự nhiên, tay đánh đối xứng với chân, thân người nhấp nhô nhẹ theo nhịp bước'
+  },
+  {
+    label: '🌬️ Đứng thở & Gió',
+    name: 'Đứng thở & Gió thổi nhẹ',
+    intent: 'Nhân vật đứng thở êm ái, lồng ngực nâng hạ nhẹ, đầu nghiêng khẽ và tà áo/mái tóc bay phấp phới theo làn gió'
+  },
+  {
+    label: '⚡ Tung chiêu',
+    name: 'Tung chiêu thức 2.5D',
+    intent: 'Nhân vật xoay thân lấy đà, vung tay tung chiêu mạnh mẽ về phía trước kèm độ nảy cơ học sắc nét rồi thu thế'
+  }
 ] as const
 
 interface ExportTabProps {
@@ -69,47 +90,32 @@ function ExportTabPanel({
   onLoadCurrentToImport
 }: ExportTabProps) {
   const activeTrackCount = Object.keys(clip.tracks || {}).length
+  const fileName = `${(exportName || clip.name).replace(/[^\w\s\u00C0-\u1EF9-]/gi, '').trim().replace(/\s+/g, '_') || 'clip'}.motion.json`
+
   return (
     <>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '8px' }}>
+      <div className="lw-clip-grid-2col">
         <div>
-          <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, marginBottom: '4px', color: 'var(--text)' }}>
-            Tên động tác (gắn vào JSON & AI):
+          <label className="lw-form-label" style={{ display: 'block', marginBottom: '4px', fontWeight: 600 }}>
+            Tên động tác (đính vào JSON &amp; AI):
           </label>
           <input
             type="text"
             className="lw-field-input"
-            style={{
-              width: '100%',
-              padding: '6px 9px',
-              borderRadius: 'var(--radius-sm, 4px)',
-              background: 'var(--bg-0)',
-              border: '1px solid var(--line)',
-              color: 'var(--text)',
-              fontSize: '12px',
-              fontWeight: 600
-            }}
+            style={{ width: '100%', height: '32px', fontWeight: 600 }}
             value={exportName}
             onChange={(e) => setExportName(e.target.value)}
             placeholder="Nhập tên mô tả động tác..."
           />
         </div>
         <div>
-          <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, marginBottom: '4px', color: 'var(--text)' }}>
-            Mục tiêu chuyển động (để AI thiết kế đúng cơ học 2.5D):
+          <label className="lw-form-label" style={{ display: 'block', marginBottom: '4px', fontWeight: 600 }}>
+            Mục tiêu chuyển động (để AI thiết kế chuẩn cơ học 2.5D):
           </label>
           <input
             type="text"
             className="lw-field-input"
-            style={{
-              width: '100%',
-              padding: '6px 9px',
-              borderRadius: 'var(--radius-sm, 4px)',
-              background: 'var(--bg-0)',
-              border: '1px solid var(--line)',
-              color: 'var(--text)',
-              fontSize: '12px'
-            }}
+            style={{ width: '100%', height: '32px' }}
             value={promptIntent}
             onChange={(e) => setPromptIntent(e.target.value)}
             placeholder="Ví dụ: Nhân vật vẫy tay chào, nhún nhảy hoặc bước đi..."
@@ -118,39 +124,26 @@ function ExportTabPanel({
       </div>
 
       {/* Gợi ý nhanh ý đồ & tên động tác */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', alignItems: 'center' }}>
-        <span style={{ fontSize: '10px', color: 'var(--text-faint)', marginRight: '2px' }}>Gợi ý nhanh:</span>
+      <div className="lw-clip-intents-wrap">
+        <span className="lw-clip-intents-label">Gợi ý nhanh ý đồ:</span>
         {QUICK_AI_INTENTS.map((item) => (
           <button
             key={item.label}
             type="button"
-            className="btn xs ghost"
+            className="lw-clip-intent-chip"
             onClick={() => {
               setPromptIntent(item.intent)
               setExportName(item.name)
             }}
-            style={{ fontSize: '10px', padding: '2px 7px' }}
           >
-            {item.label}
+            <span>{item.label}</span>
           </button>
         ))}
       </div>
 
       {/* Tuỳ chọn đính kèm Gió & Chuẩn hoá nhanh */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '8px',
-          padding: '6px 10px',
-          borderRadius: 'var(--radius-sm, 4px)',
-          background: 'var(--bg-2)',
-          border: '1px solid var(--line-soft)'
-        }}
-      >
-        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', cursor: 'pointer' }}>
+      <div className="lw-clip-option-card">
+        <label>
           <input
             type="checkbox"
             checked={includeWind}
@@ -170,21 +163,21 @@ function ExportTabPanel({
         </button>
       </div>
 
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+      {/* Toolbar hành động copy/download */}
+      <div className="lw-clip-actions-bar">
         <button
           type="button"
-          className="btn xs primary"
+          className="btn xs primary lw-clip-prompt-cta"
           onClick={onCopyPrompt}
-          style={{ display: 'flex', alignItems: 'center', gap: '5px' }}
         >
-          <IconSparkles width={12} height={12} />
-          <span>Sao chép Prompt chuẩn 2.5D cho AI (ChatGPT/Claude)</span>
+          <IconSparkles width={13} height={13} />
+          <span>Sao chép Prompt chuẩn 2.5D cho AI (ChatGPT/Claude/DeepSeek)</span>
         </button>
         <button
           type="button"
           className="btn xs"
           onClick={onCopyJson}
-          style={{ display: 'flex', alignItems: 'center', gap: '5px' }}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}
         >
           <IconCopy width={12} height={12} />
           <span>Sao chép mã JSON</span>
@@ -193,54 +186,47 @@ function ExportTabPanel({
           type="button"
           className="btn xs"
           onClick={onDownloadJson}
-          style={{ display: 'flex', alignItems: 'center', gap: '5px' }}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}
         >
           <IconDownload width={12} height={12} />
           <span>Tải tệp .motion.json</span>
         </button>
       </div>
 
-      <div
-        style={{
-          background: 'color-mix(in srgb, var(--accent) 8%, var(--bg-2))',
-          border: '1px solid color-mix(in srgb, var(--accent) 24%, var(--line))',
-          borderRadius: 'var(--radius, 6px)',
-          padding: '8px 12px',
-          fontSize: '11px',
-          lineHeight: 1.45,
-          color: 'var(--text-dim)'
-        }}
-      >
-        💡 <strong>Đã kết hợp Cơ học 2.5D + Lưới Mesh Chịu Lực + Gió:</strong> JSON và Prompt xuất ra đã đính kèm{' '}
+      <div className="lw-clip-banner">
+        💡 <strong>Đã tích hợp Cơ học 2.5D + Lưới Mesh Chịu Lực + Gió:</strong> JSON và Prompt xuất ra đã đính kèm{' '}
         <strong>Bảng quy ước dấu góc xoay từng xương</strong>, cấu hình <strong>Lưới Mesh chịu tác lực tiếp đất (meshDeformation: nén dẹt đế giày &amp; bắp chân khi chạm đất, uốn mềm da cơ Soft Mesh)</strong> và{' '}
         <strong>Gió (wind.plantSpines)</strong> để AI phân tích và tạo động tác mới chuẩn xác.
       </div>
 
-      <div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-          <label style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-dim)' }}>
-            Nội dung JSON ({exportName || clip.name}):
-          </label>
-          <span style={{ fontSize: '10px', color: 'var(--text-faint)' }}>
-            {bones.length} xương · {activeTrackCount} track hoạt ảnh · {windCount} dây gió
-          </span>
+      {/* Khung Code Terminal xem trước JSON */}
+      <div className="lw-clip-terminal">
+        <div className="lw-clip-terminal-header">
+          <div className="lw-clip-terminal-dots">
+            <span />
+            <span />
+            <span />
+          </div>
+          <span className="lw-clip-terminal-file">{fileName}</span>
+          <div className="lw-clip-terminal-meta">
+            <span>{bones.length} xương · {activeTrackCount} track · {windCount} dây gió</span>
+            <button
+              type="button"
+              className="btn xs ghost"
+              onClick={onCopyJson}
+              title="Sao chép nhanh mã JSON"
+              style={{ padding: '2px 7px', height: '22px' }}
+            >
+              <IconCopy width={11} height={11} />
+              <span>Copy</span>
+            </button>
+          </div>
         </div>
         <textarea
           readOnly
+          className="lw-clip-terminal-textarea"
           value={exportedJson}
-          style={{
-            width: '100%',
-            height: '155px',
-            fontFamily: 'monospace',
-            fontSize: '11px',
-            padding: '8px 10px',
-            background: 'var(--bg-0)',
-            border: '1px solid var(--line)',
-            borderRadius: 'var(--radius-sm, 4px)',
-            color: 'var(--text)',
-            resize: 'vertical',
-            whiteSpace: 'pre'
-          }}
+          aria-label="Mã JSON động tác 2.5D"
         />
       </div>
     </>
@@ -258,6 +244,7 @@ interface ImportTabProps {
   setApplyImportedWind: (v: boolean) => void
   parseResult: ClipJsonParseResult | null
   onTriggerFileInput: () => void
+  onFileLoaded: (content: string) => void
 }
 
 function ImportTabPanel({
@@ -270,96 +257,102 @@ function ImportTabPanel({
   applyImportedWind,
   setApplyImportedWind,
   parseResult,
-  onTriggerFileInput
+  onTriggerFileInput,
+  onFileLoaded
 }: ImportTabProps) {
+  const [isDragOver, setIsDragOver] = useState(false)
   const windSpinesCount = parseResult?.wind?.plantSpines?.length ?? 0
   const windMotionsCount = Object.keys(parseResult?.wind?.layerMotions ?? {}).length
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    setIsDragOver(false)
+    const file = e.dataTransfer.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      const content = event.target?.result
+      if (typeof content === 'string') {
+        onFileLoaded(content)
+      }
+    }
+    reader.readAsText(file)
+  }
+
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
-        <label style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text)' }}>
-          Dán chuỗi JSON nhận được từ AI hoặc tệp bên ngoài vào đây:
-        </label>
-        <button
-          type="button"
-          className="btn xs"
-          onClick={onTriggerFileInput}
-          style={{ display: 'flex', alignItems: 'center', gap: '5px' }}
-        >
-          <IconUpload width={11} height={11} />
-          <span>Chọn tệp .json</span>
-        </button>
+      {/* Vùng Drag & Drop tệp .json */}
+      <div
+        className={`lw-clip-dropzone${isDragOver ? ' drag-over' : ''}`}
+        onDragOver={(e) => {
+          e.preventDefault()
+          setIsDragOver(true)
+        }}
+        onDragLeave={() => setIsDragOver(false)}
+        onDrop={handleDrop}
+        onClick={onTriggerFileInput}
+        title="Bấm hoặc kéo thả tệp .motion.json vào đây"
+      >
+        <IconUpload width={18} height={18} style={{ color: 'var(--accent-cyan)' }} />
+        <div className="lw-clip-dropzone-text">
+          <strong>Kéo thả tệp .json vào đây</strong> hoặc bấm để chọn tệp từ máy tính
+        </div>
       </div>
 
-      <div
-        style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: '12px',
-          padding: '6px 10px',
-          borderRadius: 'var(--radius-sm, 4px)',
-          background: 'var(--bg-2)',
-          border: '1px solid var(--line-soft)',
-          fontSize: '11px'
-        }}
-      >
-        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+      {/* Tuỳ chọn chuẩn hoá tự động */}
+      <div className="lw-clip-option-card">
+        <label>
           <input
             type="checkbox"
             checked={autoFixBiomechanics}
             onChange={(e) => setAutoFixBiomechanics(e.target.checked)}
           />
           <span>
-            ✨ <strong>Tự chuẩn hoá cơ học 2.5D &amp; Lưới Mesh chịu tác lực tiếp đất</strong> (tay chữ V, nén Mesh bàn chân/bắp chân)
+            ✨ <strong>Tự chuẩn hoá cơ học 2.5D &amp; Lưới Mesh chịu lực</strong> (sửa tay đan chéo, chân chữ X, nén Mesh tiếp đất)
           </span>
         </label>
-        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+        <label>
           <input
             type="checkbox"
             checked={applyImportedWind}
             onChange={(e) => setApplyImportedWind(e.target.checked)}
           />
-          <span>🌿 Áp dụng luôn dữ liệu Gió (nếu có trong JSON)</span>
+          <span>🌿 Áp dụng dữ liệu Gió (nếu có trong JSON)</span>
         </label>
       </div>
 
-      <textarea
-        value={importText}
-        onChange={(e) => setImportText(e.target.value)}
-        placeholder="Dán mã JSON (kể cả khối ```json ... ``` từ ChatGPT / Claude) vào đây..."
-        style={{
-          width: '100%',
-          height: '135px',
-          fontFamily: 'monospace',
-          fontSize: '11px',
-          padding: '8px 10px',
-          background: 'var(--bg-0)',
-          border: '1px solid var(--line)',
-          borderRadius: 'var(--radius-sm, 4px)',
-          color: 'var(--text)',
-          resize: 'vertical'
-        }}
-      />
+      {/* Terminal dán mã JSON */}
+      <div className="lw-clip-terminal">
+        <div className="lw-clip-terminal-header">
+          <div className="lw-clip-terminal-dots">
+            <span />
+            <span />
+            <span />
+          </div>
+          <span className="lw-clip-terminal-file">Dán mã JSON từ AI (hỗ trợ cả khối markdown ```json ... ```)</span>
+          {importText && (
+            <button
+              type="button"
+              className="btn xs ghost"
+              onClick={() => setImportText('')}
+              style={{ padding: '2px 7px', height: '22px' }}
+            >
+              <span>Xoá</span>
+            </button>
+          )}
+        </div>
+        <textarea
+          className="lw-clip-terminal-textarea"
+          value={importText}
+          onChange={(e) => setImportText(e.target.value)}
+          placeholder="Dán mã JSON nhận được từ AI vào đây..."
+          aria-label="Khung dán mã JSON động tác"
+        />
+      </div>
 
+      {/* Thẻ Phân Tích Kết Quả Parse */}
       {parseResult && (
-        <div
-          style={{
-            padding: '10px 12px',
-            borderRadius: 'var(--radius, 6px)',
-            border: `1px solid ${
-              parseResult.success
-                ? 'color-mix(in srgb, #10b981 40%, var(--line))'
-                : 'color-mix(in srgb, #ef4444 40%, var(--line))'
-            }`,
-            background: parseResult.success
-              ? 'color-mix(in srgb, #10b981 10%, var(--bg-2))'
-              : 'color-mix(in srgb, #ef4444 10%, var(--bg-2))',
-            fontSize: '11px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '6px'
-          }}
-        >
+        <div className={`lw-clip-result-card ${parseResult.success ? 'success' : 'error'}`}>
           {parseResult.success && parseResult.clip ? (
             <>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
@@ -373,18 +366,13 @@ function ImportTabPanel({
                   onChange={(e) => setImportClipName(e.target.value)}
                   style={{
                     flex: '1 1 200px',
-                    padding: '4px 8px',
-                    borderRadius: 'var(--radius-sm, 4px)',
-                    background: 'var(--bg-0)',
-                    border: '1px solid var(--line-focus)',
-                    color: 'var(--text)',
-                    fontSize: '12px',
+                    height: '28px',
                     fontWeight: 600
                   }}
                 />
               </div>
               <div style={{ color: 'var(--text-dim)', lineHeight: 1.5 }}>
-                - Thời lượng: <strong>{parseResult.clip.duration.toFixed(2)}s</strong> | FPS:{' '}
+                ⏱️ Thời lượng: <strong>{parseResult.clip.duration.toFixed(2)}s</strong> | FPS:{' '}
                 <strong>{parseResult.clip.fps ?? 30}</strong> | Lặp:{' '}
                 <strong>{parseResult.clip.loop ? 'Có' : 'Không'}</strong> | Khớp xương:{' '}
                 <strong>{Object.keys(parseResult.clip.tracks).length} xương</strong>
@@ -395,18 +383,9 @@ function ImportTabPanel({
                 )}
               </div>
               {parseResult.fixesApplied && parseResult.fixesApplied.length > 0 && (
-                <div
-                  style={{
-                    padding: '6px 8px',
-                    borderRadius: 'var(--radius-sm, 4px)',
-                    background: 'color-mix(in srgb, var(--accent) 12%, var(--bg-1))',
-                    border: '1px solid color-mix(in srgb, var(--accent) 30%, var(--line))',
-                    color: 'var(--text)',
-                    lineHeight: 1.45
-                  }}
-                >
+                <div className="lw-clip-fixes-box">
                   <strong>✨ Đã tự động chuẩn hoá cơ học 2.5D ({parseResult.fixesApplied.length} mục):</strong>
-                  <ul style={{ margin: '3px 0 0 16px', padding: 0 }}>
+                  <ul>
                     {parseResult.fixesApplied.map((fix: string, idx: number) => (
                       <li key={idx}>{fix}</li>
                     ))}
@@ -414,11 +393,11 @@ function ImportTabPanel({
                 </div>
               )}
               {parseResult.warnings && (
-                <div style={{ color: '#f59e0b' }}>⚠️ {parseResult.warnings.join(' ')}</div>
+                <div style={{ color: '#f59e0b', fontWeight: 500 }}>⚠️ {parseResult.warnings.join(' ')}</div>
               )}
             </>
           ) : (
-            <div style={{ color: '#ef4444', fontWeight: 500 }}>✕ {parseResult.error}</div>
+            <div style={{ color: '#ef4444', fontWeight: 600 }}>✕ {parseResult.error}</div>
           )}
         </div>
       )}
@@ -577,70 +556,31 @@ export function WorkshopClipJsonModal({
   return (
     <div
       className="lw-clip-json-backdrop"
-      style={{
-        position: 'fixed',
-        inset: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.72)',
-        zIndex: 65000,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '16px'
-      }}
       onPointerDown={(e) => e.target === e.currentTarget && onClose()}
     >
       <div
         className="lw-clip-json-modal"
         data-mcp-region="layer_assembly_clip_json"
         data-mcp-dialog
-        style={{
-          width: '680px',
-          maxWidth: '95vw',
-          maxHeight: '92vh',
-          background: 'var(--bg-1)',
-          border: '1px solid var(--line-focus)',
-          borderRadius: 'var(--radius-lg, 10px)',
-          boxShadow: 'var(--shadow-popup, 0 12px 36px rgba(0,0,0,0.5))',
-          color: 'var(--text)',
-          fontSize: '12px',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden'
-        }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div
-          style={{
-            padding: '12px 18px',
-            borderBottom: '1px solid var(--line)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            background: 'var(--bg-2)'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '26px',
-                height: '26px',
-                borderRadius: 'var(--radius-sm, 4px)',
-                background: 'color-mix(in srgb, var(--accent) 18%, transparent)',
-                color: 'var(--accent)'
-              }}
-            >
-              <IconCode width={15} height={15} />
+        {/* Header Hiện Đại Chuẩn Studio */}
+        <div className="lw-clip-json-header">
+          <div className="lw-clip-json-header-main">
+            <span className="lw-clip-json-icon-box">
+              <IconCode width={16} height={16} />
             </span>
-            <div>
-              <h3 style={{ margin: 0, fontSize: '13px', fontWeight: 600 }}>
-                Xuất / Nhập JSON Động Tác 2.5D &amp; Gió (Chuẩn Hoá AI)
+            <div className="lw-clip-json-title-wrap">
+              <h3 className="lw-clip-json-title">
+                <span>Xuất / Nhập JSON Động Tác 2.5D &amp; Gió</span>
+                <span className="lw-json-badge-sparkle">✨</span>
               </h3>
-              <p style={{ margin: 0, color: 'var(--text-dim)', fontSize: '11px' }}>
-                Đang chọn: <strong>{clip.name}</strong> ({clip.duration.toFixed(2)}s · {activeTrackCount} xương · {windCount} dây gió)
-              </p>
+              <div className="lw-clip-json-subtitle">
+                <span>Đang chọn: <strong>{clip.name}</strong></span>
+                <span className="lw-clip-stat-pill">⏱️ {clip.duration.toFixed(2)}s</span>
+                <span className="lw-clip-stat-pill">🦴 {activeTrackCount} xương</span>
+                {windCount > 0 && <span className="lw-clip-stat-pill">🌿 {windCount} dây gió</span>}
+              </div>
             </div>
           </div>
           <button
@@ -648,51 +588,34 @@ export function WorkshopClipJsonModal({
             className="btn xs icon"
             onClick={onClose}
             title="Đóng hộp thoại (Esc)"
-            style={{ width: '24px', height: '24px' }}
+            style={{ width: '26px', height: '26px' }}
           >
             <IconX width={13} height={13} />
           </button>
         </div>
 
-        <div
-          style={{
-            display: 'flex',
-            borderBottom: '1px solid var(--line)',
-            background: 'var(--bg-0)',
-            padding: '4px 12px',
-            gap: '8px'
-          }}
-        >
+        {/* Dải 2 Tab Chuyển Đổi */}
+        <div className="lw-clip-json-tabs">
           <button
             type="button"
-            className={`btn xs ${activeTab === 'export' ? 'primary' : 'ghost'}`}
+            className={`lw-clip-json-tab-btn${activeTab === 'export' ? ' active' : ''}`}
             onClick={() => setActiveTab('export')}
-            style={{ display: 'flex', alignItems: 'center', gap: '5px' }}
           >
-            <IconSparkles width={12} height={12} />
-            <span>Xuất JSON &amp; Prompt AI Chuẩn 2.5D</span>
+            <IconSparkles width={13} height={13} />
+            <span>✨ Xuất JSON &amp; Prompt AI (Chuẩn 2.5D + Mesh + Gió)</span>
           </button>
           <button
             type="button"
-            className={`btn xs ${activeTab === 'import' ? 'primary' : 'ghost'}`}
+            className={`lw-clip-json-tab-btn${activeTab === 'import' ? ' active' : ''}`}
             onClick={() => setActiveTab('import')}
-            style={{ display: 'flex', alignItems: 'center', gap: '5px' }}
           >
-            <IconUpload width={12} height={12} />
-            <span>Nhập &amp; Chuẩn Hoá JSON từ AI / Tệp</span>
+            <IconUpload width={13} height={13} />
+            <span>📥 Nhập &amp; Chuẩn Hoá JSON (Auto-Fix 2.5D)</span>
           </button>
         </div>
 
-        <div
-          style={{
-            padding: '14px 18px',
-            overflowY: 'auto',
-            flex: '1 1 auto',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '10px'
-          }}
-        >
+        {/* Nội Dung Cuộn Body */}
+        <div className="lw-clip-json-body">
           {activeTab === 'export' ? (
             <ExportTabPanel
               clip={clip}
@@ -725,22 +648,20 @@ export function WorkshopClipJsonModal({
               setApplyImportedWind={setApplyImportedWind}
               parseResult={parseResult}
               onTriggerFileInput={() => fileInputRef.current?.click()}
+              onFileLoaded={(content) => {
+                setImportText(content)
+                setActiveTab('import')
+              }}
             />
           )}
         </div>
 
-        <div
-          style={{
-            padding: '10px 18px',
-            borderTop: '1px solid var(--line)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            background: 'var(--bg-2)'
-          }}
-        >
-          <div style={{ fontSize: '11px', color: 'var(--text-faint)' }}>
-            Format: <code>parallax-motion-v2</code> (tương thích ngược v1 + hỗ trợ Gió &amp; 2.5D Smart Fix)
+        {/* Footer */}
+        <div className="lw-clip-json-footer">
+          <div className="lw-clip-json-format-badge">
+            <span>Format:</span>
+            <code>parallax-motion-v2</code>
+            <span>· 2.5D Biomechanics + Wind + Soft Mesh</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <button type="button" className="btn xs" onClick={onClose}>
