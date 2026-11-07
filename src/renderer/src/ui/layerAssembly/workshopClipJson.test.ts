@@ -707,16 +707,17 @@ describe('workshopClipJson', () => {
     expect(tlKfs[2].x).toBe(0)
 
     // Paralyzed thigh swing rotations are restored to natural walk stride without crossing legs
-    // Left leg is always positive (+3..+8°), Right leg is always negative (-3..-8°)
-    expect(tlKfs[0].rotation).toBe(8)
-    expect(tlKfs[2].rotation).toBe(3)
+    // Left leg is always slightly positive (+0..+2°), Right leg is always slightly negative (-0..-2°)
+    expect(tlKfs[0].rotation).toBe(2)
+    expect(tlKfs[2].rotation).toBe(0)
     const trKfs = res.clip?.tracks['bone-thigh-r']!
-    expect(trKfs[0].rotation).toBe(-3)
-    expect(trKfs[2].rotation).toBe(-8)
+    expect(trKfs[0].rotation).toBe(0)
+    expect(trKfs[2].rotation).toBe(-2)
 
-    // Passing position has natural shin flexion
+    // Passing position has natural shin foreshortening without sideways knee fracture
     const slKfs = res.clip?.tracks['bone-shin-l']!
-    expect(slKfs[1].rotation).toBe(-10)
+    expect(slKfs[1].rotation).toBe(0)
+    expect(slKfs[1].scaleY).toBe(0.88)
 
     // Torso rotation is re-centered across zero
     const torsoKfs = res.clip?.tracks['bone-torso']!
