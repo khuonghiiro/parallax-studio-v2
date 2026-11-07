@@ -242,7 +242,6 @@ export default function App() {
       <Timeline />
 
       <AiControlOverlay />
-      <AiUiInspectorOverlay />
       <RemoteClientHud />
 
       {dialog === 'export' && <ExportDialog onClose={() => useView.getState().openDialog(null)} />}
@@ -282,6 +281,7 @@ export default function App() {
         />
       )}
       <GlobalLayerAssemblyHost />
+      <AiUiInspectorOverlay />
       {toast && <div className="toast">{toast}</div>}
       {!ready && (
         <div className="loading-screen">
