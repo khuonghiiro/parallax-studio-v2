@@ -45,19 +45,36 @@
 .lw-rig-toolbelt-row {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
-.lw-rig-toolbelt-row .lw-moho-opt-pill {
+.lw-rig-toolbelt-pills {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+  width: 100%;
+}
+
+.lw-rig-toolbelt-pills .lw-moho-opt-pill {
   height: 28px;
-  padding: 0 5px;
+  padding: 0 4px;
+  justify-content: center;
+  font-size: 10px;
+  gap: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .lw-rig-toolbelt-cta {
+  width: 100%;
   height: 28px;
-  padding: 0 9px;
-  gap: 4px;
+  padding: 0 10px;
+  gap: 5px;
   white-space: nowrap;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 11px;
 }
 
 .lw-rig-toolbelt-mode {

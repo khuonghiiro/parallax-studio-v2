@@ -532,6 +532,63 @@ export function BoneInspectorCard(props: BoneInspectorCardProps) {
         <RigNumber label="Dài (px)" value={bone.length} min={1} onChange={(length) => patch({ length })} />
         <RigNumber label="Góc (°)" value={bone.angle} onChange={(angle) => patch({ angle })} />
       </div>
+
+      {/* Điều chỉnh độ dài xương trực quan (Length Slider + Phím nhanh +-10px) */}
+      {!bone.pin && (
+        <div
+          className="lw-bone-length-box"
+          style={{
+            margin: '8px 0 4px',
+            padding: '7px 9px',
+            background: 'var(--bg-2)',
+            borderRadius: 'var(--radius, 5px)',
+            border: '1px solid var(--line-soft)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '5px'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text)' }}>
+              Độ dài xương: <strong style={{ color: 'var(--accent-cyan)' }}>{Math.round(bone.length)}px</strong>
+            </span>
+            <div style={{ display: 'flex', gap: '3px' }}>
+              <button
+                type="button"
+                className="btn xs ghost"
+                style={{ padding: '0 6px', height: '20px', fontSize: '10px' }}
+                onClick={() => patch({ length: Math.max(10, Math.round(bone.length - 10)) })}
+                title="Thu ngắn 10px (-10px)"
+              >
+                -10px
+              </button>
+              <button
+                type="button"
+                className="btn xs ghost"
+                style={{ padding: '0 6px', height: '20px', fontSize: '10px' }}
+                onClick={() => patch({ length: Math.min(500, Math.round(bone.length + 10)) })}
+                title="Kéo dài 10px (+10px)"
+              >
+                +10px
+              </button>
+            </div>
+          </div>
+          <input
+            type="range"
+            min={10}
+            max={400}
+            step={1}
+            value={bone.length}
+            aria-label="Thanh trượt độ dài xương"
+            onChange={(e) => patch({ length: Number(e.target.value) })}
+            style={{ width: '100%', margin: 0 }}
+          />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '9.5px', color: 'var(--text-faint)' }}>
+            <span>💡</span>
+            <span>Kéo vòng tròn ở ngọn (Tail) trên sân khấu 2D để đổi độ dài & góc xoay</span>
+          </div>
+        </div>
+      )}
 <BoneEnvelopeControls bone={bone} bones={bones} patch={patch} patchAllDelta={props.patchAllDelta} />
       <LimbQuickAngles bone={bone} patch={patch} />
       {!bone.pin && <WorkshopBoneConstraintCard bone={bone} patch={patch} />}
