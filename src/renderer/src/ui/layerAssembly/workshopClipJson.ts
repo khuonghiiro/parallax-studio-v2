@@ -25,6 +25,7 @@ import {
   filterAndMergeImportedWindSpines,
   filterExportableWindSpines,
   isDedicatedWindAccessoryOrNatureLayer,
+  parseWindFromData,
   type MotionWindConfigurationGuide
 } from './workshopClipWindGuide'
 
@@ -89,7 +90,7 @@ export interface MotionJsonExportFormat {
   duration: number
   loop: boolean
   fps?: number
-  viewAngle?: 'front' | 'diagonal' | 'side' | 'back'
+  viewAngle?: MotionViewAngle
   /** Chi tiết góc độ (°), hướng nhìn khuôn mặt & quy tắc giải phẫu riêng cho góc đó */
   characterOrientation?: MotionOrientationGuide
   description?: string
@@ -102,6 +103,9 @@ export interface MotionJsonExportFormat {
       screenRight: string
       contralateralCoordination: string
     }
+    walkTypeGuide?: string
+    spriteIntegrityGuide?: string
+    diagonalWalkRule?: string
     viewAngleGuide?: string
     depthOrderRule?: string
     perspectiveWalkDepthRule?: {
@@ -186,6 +190,8 @@ export interface ExportClipJsonOptions {
   includeWind?: boolean
   includeMesh?: boolean
   suggestedName?: string
+  viewAngle?: MotionViewAngle
+  walkType?: 'in-place' | 'root-motion'
 }
 
 export function exportAnimationClipToJson(
@@ -201,7 +207,8 @@ export function exportAnimationClipToJson(
   const composite = opts.composite
   const includeWind = opts.includeWind !== false
   const includeMesh = opts.includeMesh !== false
-  const viewAngle = clip.viewAngle ?? 'front'
+  const viewAngle = opts.viewAngle ?? clip.viewAngle ?? 'front'
+  const walkType = opts.walkType ?? 'in-place'
   const bonesMeta = buildBoneBiomechanicsGuide(bones, composite, viewAngle).map((b) => ({
     id: b.id,
     name: b.name,
@@ -284,7 +291,7 @@ export function exportAnimationClipToJson(
     fps: clip.fps ?? 30,
     viewAngle,
     description: clip.description || undefined,
-    characterOrientation: buildOrientationGuide(viewAngle),
+    characterOrientation: buildOrientationGuide(viewAngle, walkType),
     rigConventions: {
       coordinateSystem: '2D Screen Space (+X sang phải, +Y hướng xuống, +rotation xoay cùng chiều kim đồng hồ).',
       namingConvention: {
@@ -294,6 +301,16 @@ export function exportAnimationClipToJson(
         screenRight: 'ID có đuôi "-r" (arm-r, leg-r, thigh-r, shin-r, foot-r) nằm ở BÊN PHẢI MÀN HÌNH (X > 0). Ở góc chính diện 0°, đây là TAY/CHÂN TRÁI CỦA BẢN THÂN NHÂN VẬT.',
         contralateralCoordination: 'PHỐI HỢP TAY - CHÂN NGHỊCH PHA: Khi chân bên trái màn hình bước tới trước, BẮT BUỘC vung tay bên phải màn hình ra trước ngực (zOrder: 50). Khi chân bên phải màn hình bước tới trước, BẮT BUỘC vung tay bên trái màn hình ra trước ngực (zOrder: 50). Tuyệt đối không đi cùng tay cùng chân!'
       },
+      walkTypeGuide:
+        'QUY ƯỚC BƯỚC ĐI TẠI CHỖ (In-place Walk): Chuyển động bước đi (Walk Cycle) là bước đi TẠI CHỖ để lặp vô tận (loop: true). Tọa độ "x" của Hông gốc (bone-pelvis) BẮT BUỘC giữ dao động nhỏ trong khoảng -4px <= x <= +4px (lắc hông nhịp nhàng theo từng bước), TUYỆT ĐỐI KHÔNG tịnh tiến dạt x sang trái (-50px, -100px...) làm nhân vật trôi ra khỏi vị trí!',
+      spriteIntegrityGuide:
+        'QUY TẮC BẢO TOÀN SPRITE 2.5D CẮT RỜI (Cutout Sprite Integrity): Bộ phận nhân vật là các mảnh vẽ 2D phẳng. Khi tạo dáng nghiêng trái/phải trên nhân vật nhìn thẳng: TUYỆT ĐỐI KHÔNG xoay thân áo (bone-torso) hoặc đầu (bone-head) quá ±5° và KHÔNG ép dẹp scaleX cơ thể. Hiệu ứng nghiêng được thể hiện 100% qua: (1) Chi gần camera to hơn & đè lên chi xa, (2) Chi xa nhỏ hơn & lùi sau, (3) Bước chân so le, (4) Tay đánh nghịch pha.',
+      diagonalWalkRule:
+        viewAngle === 'diagonal-left'
+          ? 'GÓC CHÉO NGHIÊNG TRÁI: Chi bên TRÁI màn hình (-l: arm-l, thigh-l, shin-l, foot-l) là CHI PHÍA TRƯỚC (Foreground, gần camera hơn) -> to hơn (scale: 1.06..1.09), hạ thấp (y: +4..+8px), zOrder: +15..+20 đè lên chi sau. Chi bên PHẢI màn hình (-r) là CHI PHÍA SAU (Background, xa camera hơn) -> nhỏ hơn (scale: 0.92..0.96), nhấc cao (y: -6..-10px), zOrder: -15..-20.'
+          : viewAngle === 'diagonal-right'
+            ? 'GÓC CHÉO NGHIÊNG PHẢI: Chi bên PHẢI màn hình (-r: arm-r, thigh-r, shin-r, foot-r) là CHI PHÍA TRƯỚC (Foreground, gần camera hơn) -> to hơn (scale: 1.06..1.09), hạ thấp (y: +4..+8px), zOrder: +15..+20 đè lên chi sau. Chi bên TRÁI màn hình (-l) là CHI PHÍA SAU (Background, xa camera hơn) -> nhỏ hơn (scale: 0.92..0.96), nhấc cao (y: -6..-10px), zOrder: -15..-20.'
+            : 'GÓC CHÍNH DIỆN: Hai chân so le đè lớp zOrder tức thời (15 / -15), phối hợp tay nghịch pha.',
       perspectiveWalkDepthRule: {
         summary: 'Quy tắc tạo ảo giác chiều sâu 2.5D khi nhân vật bước đi / tiến về phía camera',
         forwardFoot: {
@@ -374,7 +391,9 @@ export function generateAiMotionPrompt(
       : (optionsOrComposite as ExportClipJsonOptions) ?? { includeWind: true, suggestedName: legacySuggestedName }
   const composite = opts.composite
   const suggestedName = opts.suggestedName ?? legacySuggestedName
-  const viewAngle = clip.viewAngle ?? 'front'
+  const viewAngle = opts.viewAngle ?? clip.viewAngle ?? 'front'
+  const walkType = opts.walkType ?? 'in-place'
+  const orientationGuide = buildOrientationGuide(viewAngle, walkType)
   const boneMetaList = buildBoneBiomechanicsGuide(bones, composite, viewAngle)
   const boneTreeLines = boneMetaList.map((b) => {
     const parent = bones.find((p) => p.id === b.parentId)
@@ -407,9 +426,11 @@ ${promptIntent}
 - Tốc độ khung hình ("fps"): ${clip.fps ?? 30} fps
 - Vòng lặp ("loop"): ${clip.loop ? 'true (Lặp vô tận — tư thế tại time = 0 và time = duration BẮT BUỘC giống hệt nhau)' : 'false (Chạy 1 lần)'}
 📐 GÓC ĐỘ & HƯỚNG NHÌN NHÂN VẬT ("characterOrientation"):
-- Mã góc nhìn ("viewAngle"): "${viewAngle}" (${viewAngle === 'front' ? 'Chính diện 0°' : viewAngle === 'side' ? 'Góc ngang 90°' : viewAngle === 'diagonal' ? 'Góc chéo 45°' : 'Góc sau lưng 180°'})
-- Hướng mặt & thân người: ${buildOrientationGuide(viewAngle).facing}
-- Đặc điểm giải phẫu góc này: ${buildOrientationGuide(viewAngle).description}
+- Mã góc nhìn ("viewAngle"): "${viewAngle}" (${orientationGuide.facing})
+- Hướng mặt & thân người: ${orientationGuide.facing}
+- Kiểu chuyển động ("walkType"): "${walkType}" (${walkType === 'in-place' ? 'Bước đi tại chỗ In-place (giữ pelvis.x dao động nhỏ ±2..±4px, không trôi dạt)' : 'Tịnh tiến Root Motion'})
+- Đặc điểm giải phẫu góc này: ${orientationGuide.description}
+${orientationGuide.diagonalRules ? `- Phân định Chi trước (Foreground) vs Chi sau (Background):\n  * Chi phía trước (gần camera hơn): ${orientationGuide.diagonalRules.foreLimbSummary}\n  * Chi phía sau (xa camera hơn): ${orientationGuide.diagonalRules.hindLimbSummary}\n  * Quy ước toạ độ: ${orientationGuide.diagonalRules.walkCoordinateSummary}\n  * Bảo vệ sprite 2D: ${orientationGuide.diagonalRules.spriteIntegrityRule}` : ''}
 
 🦴 CẤU TRÚC KHUNG XƯƠNG & QUY ƯỚC CHIỀU XOAY TỪNG KHỚP (BẮT BUỘC TUÂN THỦ 100%):
 ${boneTreeLines.join('\n')}
@@ -539,188 +560,6 @@ export function extractJsonFromText(rawText: string): string {
   }
 
   return trimmed
-}
-
-function resolveLayerIdFromComposite(rawIdOrName: string, composite?: LayerComposite): string {
-  if (!composite?.layers?.length) return rawIdOrName
-  const clean = rawIdOrName.trim().toLowerCase()
-  const exact = composite.layers.find((l) => l.id.toLowerCase() === clean || l.name.toLowerCase() === clean)
-  if (exact) return exact.id
-  const partial = composite.layers.find(
-    (l) =>
-      l.id.toLowerCase().includes(clean) ||
-      l.name.toLowerCase().includes(clean) ||
-      clean.includes(l.name.toLowerCase())
-  )
-  return partial ? partial.id : rawIdOrName
-}
-
-function parseWindFromData(
-  data: Record<string, unknown>,
-  composite?: LayerComposite,
-  fixesApplied: string[] = []
-): ParsedWindData | undefined {
-  const rawWind =
-    typeof data.wind === 'object' && data.wind !== null ? (data.wind as Record<string, unknown>) : undefined
-  const rawTopSpines = Array.isArray(data.plantSpines) ? data.plantSpines : undefined
-  const rawTopMotions = Array.isArray(data.layerMotions) ? data.layerMotions : undefined
-
-  if (!rawWind && !rawTopSpines && !rawTopMotions) return undefined
-
-  const weatherIdRaw = typeof rawWind?.weatherPreset === 'string' ? rawWind.weatherPreset : undefined
-  const weatherPresetObj = WIND_WEATHER_PRESETS.find((w) => w.id === weatherIdRaw)
-  const defaultParams = weatherPresetObj?.params ?? WIND_WEATHER_PRESETS[0].params
-  const globalLean = typeof rawWind?.lean === 'number' && Number.isFinite(rawWind.lean) ? rawWind.lean : 0
-
-  const rawSpinesList = Array.isArray(rawWind?.plantSpines)
-    ? rawWind.plantSpines
-    : rawTopSpines ?? []
-
-  const plantSpines: PlantSpine[] = []
-  for (let i = 0; i < rawSpinesList.length; i++) {
-    const item = rawSpinesList[i]
-    if (typeof item !== 'object' || item === null) continue
-    const s = item as Record<string, unknown>
-
-    const rawLayerIds = Array.isArray(s.layerIds)
-      ? s.layerIds.filter((id): id is string => typeof id === 'string')
-      : typeof s.layerId === 'string'
-        ? [s.layerId]
-        : []
-    const resolvedLayerIds = rawLayerIds
-      .map((id) => resolveLayerIdFromComposite(id, composite))
-      .filter((id) => !composite || composite.layers.some((l) => l.id === id))
-
-    const finalLayerIds =
-      resolvedLayerIds.length > 0
-        ? resolvedLayerIds
-        : composite?.layers?.length
-          ? [
-              (
-                composite.layers.find((l) => /head|hair|đầu|tóc|torso|áo/i.test(`${l.id} ${l.name}`)) ??
-                composite.layers[0]
-              ).id
-            ]
-          : rawLayerIds
-
-    const dirRaw = typeof s.direction === 'string' ? s.direction : 'down'
-    const direction: PlantSpineDirection =
-      dirRaw === 'up' || dirRaw === 'horizontal' || dirRaw === 'down' ? dirRaw : 'down'
-
-    let points: PlantSpinePoint[] = []
-    if (Array.isArray(s.points)) {
-      points = s.points
-        .filter(
-          (p): p is { x: number; y: number } =>
-            typeof p === 'object' &&
-            p !== null &&
-            typeof (p as any).x === 'number' &&
-            typeof (p as any).y === 'number'
-        )
-        .map((p) => ({ x: Math.round(p.x), y: Math.round(p.y) }))
-    }
-    if (points.length < 2) {
-      points = composite
-        ? buildAutoPlantSpinePoints(composite, finalLayerIds, i, direction)
-        : [
-            { x: 0, y: -210 },
-            { x: 0, y: -165 },
-            { x: 0, y: -120 },
-            { x: 0, y: -75 }
-          ]
-    }
-
-    const numOr = (val: unknown, fallback: number, min: number, max: number) =>
-      typeof val === 'number' && Number.isFinite(val) ? Math.max(min, Math.min(max, val)) : fallback
-
-    plantSpines.push({
-      id:
-        typeof s.id === 'string' && s.id.trim()
-          ? s.id.trim()
-          : `spine-ai-${Date.now().toString(36)}-${i}`,
-      name:
-        typeof s.name === 'string' && s.name.trim()
-          ? s.name.trim()
-          : `Trục gió ${i + 1} (${weatherPresetObj?.label || 'Tự nhiên'})`,
-      points,
-      layerIds: finalLayerIds,
-      amplitude: numOr(s.amplitude, defaultParams.amplitude, 0, 90),
-      speed: numOr(s.speed, defaultParams.speed, 0.05, 8),
-      stiffness: numOr(s.stiffness, defaultParams.stiffness, 0, 1),
-      flexibility: numOr(s.flexibility, defaultParams.flexibility, 0, 1),
-      turbulence: numOr(s.turbulence, defaultParams.turbulence, 0, 1),
-      lean: numOr(s.lean, globalLean, -60, 60),
-      phaseOffset: numOr(s.phaseOffset, i * 0.35, -10, 10),
-      reach: numOr(s.reach, 0, 0, 2000),
-      verticalBob: numOr(s.verticalBob, defaultParams.verticalBob ?? 0.06, 0, 1),
-      enabled: s.enabled !== false
-    })
-  }
-
-  // Nếu AI bật wind.enabled = true + có weatherPreset nhưng để trống plantSpines, tự tạo trục gió cho tóc/đầu
-  if (rawWind?.enabled === true && plantSpines.length === 0 && composite && composite.layers.length > 0) {
-    const hairOrHead =
-      composite.layers.find((l) => /head|hair|đầu|tóc|cape|áo/i.test(`${l.id} ${l.name}`)) ??
-      composite.layers[0]
-    const autoPoints = buildAutoPlantSpinePoints(composite, [hairOrHead.id], 0, 'down')
-    plantSpines.push({
-      id: `spine-ai-auto-${Date.now().toString(36)}`,
-      name: `Gió ${weatherPresetObj?.label || 'Tự nhiên'} (${hairOrHead.name})`,
-      points: autoPoints,
-      layerIds: [hairOrHead.id],
-      ...defaultParams,
-      lean: globalLean,
-      phaseOffset: 0,
-      reach: 0,
-      enabled: true
-    })
-    fixesApplied.push(`Tự động khởi tạo trục sống Gió trên mảnh "${hairOrHead.name}" theo cấu hình wind`)
-  }
-
-  const rawMotionsList = Array.isArray(rawWind?.layerMotions)
-    ? rawWind.layerMotions
-    : rawTopMotions ?? []
-  const layerMotions: MotionLayerWindItem[] = []
-  for (const item of rawMotionsList) {
-    if (typeof item !== 'object' || item === null) continue
-    const m = item as Record<string, unknown>
-    const rawId = typeof m.layerId === 'string' ? m.layerId : typeof m.id === 'string' ? m.id : ''
-    if (!rawId) continue
-    const layerId = resolveLayerIdFromComposite(rawId, composite)
-    const type: MotionType =
-      typeof m.type === 'string' && VALID_MOTION_TYPES.has(m.type as MotionType)
-        ? (m.type as MotionType)
-        : 'sway'
-    const anchor: MotionAnchor =
-      typeof m.anchor === 'string' && VALID_ANCHORS.has(m.anchor as MotionAnchor)
-        ? (m.anchor as MotionAnchor)
-        : 'bottom'
-    const speed = typeof m.speed === 'number' && Number.isFinite(m.speed) ? Math.max(0.1, Math.min(10, m.speed)) : 1
-    const amplitude =
-      typeof m.amplitude === 'number' && Number.isFinite(m.amplitude) ? Math.max(0, Math.min(100, m.amplitude)) : 6
-    layerMotions.push({
-      layerId,
-      layerName: typeof m.layerName === 'string' ? m.layerName : undefined,
-      type,
-      speed,
-      amplitude,
-      anchor,
-      ...(typeof m.phaseOffset === 'number' && Number.isFinite(m.phaseOffset) ? { phaseOffset: m.phaseOffset } : {})
-    })
-  }
-
-  const enabled =
-    typeof rawWind?.enabled === 'boolean'
-      ? rawWind.enabled
-      : plantSpines.length > 0 || layerMotions.length > 0
-
-  return {
-    enabled,
-    weatherPreset: (weatherPresetObj?.id ?? 'custom') as WindWeatherPresetId | 'custom',
-    lean: globalLean,
-    plantSpines,
-    layerMotions
-  }
 }
 
 /**
@@ -872,10 +711,38 @@ export function parseAnimationClipFromJson(
     }
   }
 
-  const viewAngle: MotionViewAngle =
-    typeof data.viewAngle === 'string' && ['front', 'diagonal', 'side', 'back'].includes(data.viewAngle)
-      ? (data.viewAngle as MotionViewAngle)
-      : 'front'
+  const VALID_ANGLES: MotionViewAngle[] = [
+    'front',
+    'diagonal',
+    'diagonal-left',
+    'diagonal-right',
+    'side',
+    'side-left',
+    'side-right',
+    'back'
+  ]
+  const charOrient =
+    typeof data.characterOrientation === 'object' && data.characterOrientation !== null
+      ? (data.characterOrientation as Record<string, unknown>)
+      : null
+  let rawViewAngle = typeof data.viewAngle === 'string' ? data.viewAngle.toLowerCase().trim() : ''
+  if (!rawViewAngle && typeof charOrient?.viewAngle === 'string') {
+    rawViewAngle = charOrient.viewAngle.toLowerCase().trim()
+  }
+
+  let viewAngle: MotionViewAngle = 'front'
+  const facingStr = typeof charOrient?.facing === 'string' ? charOrient.facing : ''
+  if (VALID_ANGLES.includes(rawViewAngle as MotionViewAngle)) {
+    viewAngle = rawViewAngle as MotionViewAngle
+  } else if (/trái|left/i.test(`${data.name ?? ''} ${data.description ?? ''} ${facingStr}`)) {
+    viewAngle = rawViewAngle.includes('side') ? 'side-left' : 'diagonal-left'
+  } else if (/phải|right/i.test(`${data.name ?? ''} ${data.description ?? ''} ${facingStr}`)) {
+    viewAngle = rawViewAngle.includes('side') ? 'side-right' : 'diagonal-right'
+  } else if (rawViewAngle.startsWith('diag')) {
+    viewAngle = 'diagonal'
+  } else if (rawViewAngle.startsWith('side')) {
+    viewAngle = 'side'
+  }
 
   // Tự động khử lỗi cơ học (tay đâm chéo bụng, chân chữ X góc 0°, hông nhảy vọt/lún đất)
   if (autoFix && trackCount > 0) {

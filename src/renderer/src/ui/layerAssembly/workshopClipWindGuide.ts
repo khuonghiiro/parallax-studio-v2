@@ -1,6 +1,32 @@
-import type { PlantSpine } from '@shared/plantSpine'
-import type { LayerComposite } from './types'
-import { WIND_WEATHER_PRESETS, type WindWeatherPresetId } from './workshopPlantSpines'
+import type { PlantSpine, PlantSpinePoint } from '@shared/plantSpine'
+import type { LayerComposite, MotionAnchor, MotionType } from './types'
+import {
+  buildAutoPlantSpinePoints,
+  WIND_WEATHER_PRESETS,
+  type PlantSpineDirection,
+  type WindWeatherPresetId
+} from './workshopPlantSpines'
+
+export interface MotionLayerWindItem {
+  layerId: string
+  layerName?: string
+  type: MotionType
+  speed: number
+  amplitude: number
+  anchor: MotionAnchor
+  phaseOffset?: number
+}
+
+export interface ParsedWindData {
+  enabled: boolean
+  weatherPreset?: WindWeatherPresetId | 'custom'
+  lean?: number
+  plantSpines: PlantSpine[]
+  layerMotions: MotionLayerWindItem[]
+}
+
+const VALID_MOTION_TYPES = new Set<MotionType>(['none', 'sway', 'breathe', 'float', 'wave', 'rocking'])
+const VALID_ANCHORS = new Set<MotionAnchor>(['bottom', 'center', 'top', 'left', 'right'])
 
 export interface WindParameterRuleItem {
   param: string
@@ -394,5 +420,189 @@ export function buildPromptWindJsonExampleBlock(composite?: LayerComposite): str
     "lean": 0,
     "plantSpines": []
   }`
+}
+
+
+
+function resolveLayerIdFromComposite(rawIdOrName: string, composite?: LayerComposite): string {
+  if (!composite?.layers?.length) return rawIdOrName
+  const clean = rawIdOrName.trim().toLowerCase()
+  const exact = composite.layers.find((l) => l.id.toLowerCase() === clean || l.name.toLowerCase() === clean)
+  if (exact) return exact.id
+  const partial = composite.layers.find(
+    (l) =>
+      l.id.toLowerCase().includes(clean) ||
+      l.name.toLowerCase().includes(clean) ||
+      clean.includes(l.name.toLowerCase())
+  )
+  return partial ? partial.id : rawIdOrName
+}
+
+export function parseWindFromData(
+  data: Record<string, unknown>,
+  composite?: LayerComposite,
+  fixesApplied: string[] = []
+): ParsedWindData | undefined {
+  const rawWind =
+    typeof data.wind === 'object' && data.wind !== null ? (data.wind as Record<string, unknown>) : undefined
+  const rawTopSpines = Array.isArray(data.plantSpines) ? data.plantSpines : undefined
+  const rawTopMotions = Array.isArray(data.layerMotions) ? data.layerMotions : undefined
+
+  if (!rawWind && !rawTopSpines && !rawTopMotions) return undefined
+
+  const weatherIdRaw = typeof rawWind?.weatherPreset === 'string' ? rawWind.weatherPreset : undefined
+  const weatherPresetObj = WIND_WEATHER_PRESETS.find((w) => w.id === weatherIdRaw)
+  const defaultParams = weatherPresetObj?.params ?? WIND_WEATHER_PRESETS[0].params
+  const globalLean = typeof rawWind?.lean === 'number' && Number.isFinite(rawWind.lean) ? rawWind.lean : 0
+
+  const rawSpinesList = Array.isArray(rawWind?.plantSpines)
+    ? rawWind.plantSpines
+    : rawTopSpines ?? []
+
+  const plantSpines: PlantSpine[] = []
+  for (let i = 0; i < rawSpinesList.length; i++) {
+    const item = rawSpinesList[i]
+    if (typeof item !== 'object' || item === null) continue
+    const s = item as Record<string, unknown>
+
+    const rawLayerIds = Array.isArray(s.layerIds)
+      ? s.layerIds.filter((id): id is string => typeof id === 'string')
+      : typeof s.layerId === 'string'
+        ? [s.layerId]
+        : []
+    const resolvedLayerIds = rawLayerIds
+      .map((id) => resolveLayerIdFromComposite(id, composite))
+      .filter((id) => !composite || composite.layers.some((l) => l.id === id))
+
+    const finalLayerIds =
+      resolvedLayerIds.length > 0
+        ? resolvedLayerIds
+        : composite?.layers?.length
+          ? [
+              (
+                composite.layers.find((l) => /head|hair|đầu|tóc|torso|áo/i.test(`${l.id} ${l.name}`)) ??
+                composite.layers[0]
+              ).id
+            ]
+          : rawLayerIds
+
+    const dirRaw = typeof s.direction === 'string' ? s.direction : 'down'
+    const direction: PlantSpineDirection =
+      dirRaw === 'up' || dirRaw === 'horizontal' || dirRaw === 'down' ? dirRaw : 'down'
+
+    let points: PlantSpinePoint[] = []
+    if (Array.isArray(s.points)) {
+      points = s.points
+        .filter(
+          (p): p is { x: number; y: number } =>
+            typeof p === 'object' &&
+            p !== null &&
+            typeof (p as any).x === 'number' &&
+            typeof (p as any).y === 'number'
+        )
+        .map((p) => ({ x: Math.round(p.x), y: Math.round(p.y) }))
+    }
+    if (points.length < 2) {
+      points = composite
+        ? buildAutoPlantSpinePoints(composite, finalLayerIds, i, direction)
+        : [
+            { x: 0, y: -210 },
+            { x: 0, y: -165 },
+            { x: 0, y: -120 },
+            { x: 0, y: -75 }
+          ]
+    }
+
+    const numOr = (val: unknown, fallback: number, min: number, max: number) =>
+      typeof val === 'number' && Number.isFinite(val) ? Math.max(min, Math.min(max, val)) : fallback
+
+    plantSpines.push({
+      id:
+        typeof s.id === 'string' && s.id.trim()
+          ? s.id.trim()
+          : `spine-ai-${Date.now().toString(36)}-${i}`,
+      name:
+        typeof s.name === 'string' && s.name.trim()
+          ? s.name.trim()
+          : `Trục gió ${i + 1} (${weatherPresetObj?.label || 'Tự nhiên'})`,
+      points,
+      layerIds: finalLayerIds,
+      amplitude: numOr(s.amplitude, defaultParams.amplitude, 0, 90),
+      speed: numOr(s.speed, defaultParams.speed, 0.05, 8),
+      stiffness: numOr(s.stiffness, defaultParams.stiffness, 0, 1),
+      flexibility: numOr(s.flexibility, defaultParams.flexibility, 0, 1),
+      turbulence: numOr(s.turbulence, defaultParams.turbulence, 0, 1),
+      lean: numOr(s.lean, globalLean, -60, 60),
+      phaseOffset: numOr(s.phaseOffset, i * 0.35, -10, 10),
+      reach: numOr(s.reach, 0, 0, 2000),
+      verticalBob: numOr(s.verticalBob, defaultParams.verticalBob ?? 0.06, 0, 1),
+      enabled: s.enabled !== false
+    })
+  }
+
+  // Nếu AI bật wind.enabled = true + có weatherPreset nhưng để trống plantSpines, tự tạo trục gió cho tóc/đầu
+  if (rawWind?.enabled === true && plantSpines.length === 0 && composite && composite.layers.length > 0) {
+    const hairOrHead =
+      composite.layers.find((l) => /head|hair|đầu|tóc|cape|áo/i.test(`${l.id} ${l.name}`)) ??
+      composite.layers[0]
+    const autoPoints = buildAutoPlantSpinePoints(composite, [hairOrHead.id], 0, 'down')
+    plantSpines.push({
+      id: `spine-ai-auto-${Date.now().toString(36)}`,
+      name: `Gió ${weatherPresetObj?.label || 'Tự nhiên'} (${hairOrHead.name})`,
+      points: autoPoints,
+      layerIds: [hairOrHead.id],
+      ...defaultParams,
+      lean: globalLean,
+      phaseOffset: 0,
+      reach: 0,
+      enabled: true
+    })
+    fixesApplied.push(`Tự động khởi tạo trục sống Gió trên mảnh "${hairOrHead.name}" theo cấu hình wind`)
+  }
+
+  const rawMotionsList = Array.isArray(rawWind?.layerMotions)
+    ? rawWind.layerMotions
+    : rawTopMotions ?? []
+  const layerMotions: MotionLayerWindItem[] = []
+  for (const item of rawMotionsList) {
+    if (typeof item !== 'object' || item === null) continue
+    const m = item as Record<string, unknown>
+    const rawId = typeof m.layerId === 'string' ? m.layerId : typeof m.id === 'string' ? m.id : ''
+    if (!rawId) continue
+    const layerId = resolveLayerIdFromComposite(rawId, composite)
+    const type: MotionType =
+      typeof m.type === 'string' && VALID_MOTION_TYPES.has(m.type as MotionType)
+        ? (m.type as MotionType)
+        : 'sway'
+    const anchor: MotionAnchor =
+      typeof m.anchor === 'string' && VALID_ANCHORS.has(m.anchor as MotionAnchor)
+        ? (m.anchor as MotionAnchor)
+        : 'bottom'
+    const speed = typeof m.speed === 'number' && Number.isFinite(m.speed) ? Math.max(0.1, Math.min(10, m.speed)) : 1
+    const amplitude =
+      typeof m.amplitude === 'number' && Number.isFinite(m.amplitude) ? Math.max(0, Math.min(100, m.amplitude)) : 6
+    layerMotions.push({
+      layerId,
+      layerName: typeof m.layerName === 'string' ? m.layerName : undefined,
+      type,
+      speed,
+      amplitude,
+      anchor,
+      ...(typeof m.phaseOffset === 'number' && Number.isFinite(m.phaseOffset) ? { phaseOffset: m.phaseOffset } : {})
+    })
+  }
+
+  const enabled =
+    typeof rawWind?.enabled === 'boolean'
+      ? rawWind.enabled
+      : plantSpines.length > 0 || layerMotions.length > 0
+
+  return {
+    enabled,
+    weatherPreset: (weatherPresetObj?.id ?? 'custom') as WindWeatherPresetId | 'custom',
+    lean: globalLean,
+    plantSpines,
+    layerMotions
+  }
 }
 

@@ -541,4 +541,97 @@ describe('workshopClipJson', () => {
     expect(prompt).toContain('ĐÃ CÓ LOGIC XƯƠNG THÌ KHÔNG CẦN BỔ SUNG GIÓ')
     expect(prompt).toContain('"enabled": false')
   })
+
+  it('supports diagonal-left / diagonal-right orientation guide and auto-fixes drifting root X & torso twist', () => {
+    const humanoidBones = createHumanoidBones()
+
+    // 1. Export with diagonal-left
+    const sampleClip: AnimationClip = {
+      id: 'clip-diag-1',
+      name: 'Bước đi nghiêng trái',
+      duration: 1.6,
+      loop: true,
+      viewAngle: 'diagonal-left',
+      tracks: {
+        'bone-pelvis': [
+          { time: 0, x: 0, y: 10, rotation: 0, easing: 'smooth' },
+          { time: 1.6, x: 0, y: 10, rotation: 0, easing: 'smooth' }
+        ]
+      }
+    }
+
+    const exportedJsonStr = exportAnimationClipToJson(sampleClip, humanoidBones, true, {
+      viewAngle: 'diagonal-left',
+      walkType: 'in-place'
+    })
+    const exported = JSON.parse(exportedJsonStr)
+
+    expect(exported.viewAngle).toBe('diagonal-left')
+    expect(exported.characterOrientation.facing).toContain('BÊN TRÁI MÀN HÌNH')
+    expect(exported.characterOrientation.diagonalRules.foreLimbSide).toBe('left')
+    expect(exported.characterOrientation.diagonalRules.hindLimbSide).toBe('right')
+    expect(exported.characterOrientation.diagonalRules.spriteIntegrityRule).toContain('CẤM xoay thân áo/đầu quá ±5°')
+    expect(exported.rigConventions.walkTypeGuide).toContain('In-place Walk')
+    expect(exported.rigConventions.diagonalWalkRule).toContain('GÓC CHÉO NGHIÊNG TRÁI')
+
+    // 2. Generate prompt for diagonal-left
+    const prompt = generateAiMotionPrompt(sampleClip, humanoidBones, 'Bước đi nghiêng trái 45°', {
+      viewAngle: 'diagonal-left',
+      walkType: 'in-place'
+    })
+    expect(prompt).toContain('diagonal-left')
+    expect(prompt).toContain('Bên TRÁI màn hình (-l) là CHI PHÍA TRƯỚC')
+    expect(prompt).toContain('In-place')
+
+    // 3. Parse JSON from an external AI that made errors (excessive X drift, extreme torso twist)
+    const flawedAiJson = JSON.stringify({
+      format: 'parallax-motion-v1',
+      name: 'Bước đi nghiêng bên trái',
+      duration: 1.6,
+      loop: true,
+      viewAngle: 'diagonal-left',
+      tracks: {
+        'bone-pelvis': [
+          { time: 0, x: 0, y: 0, rotation: 0 },
+          { time: 0.8, x: -60, y: 15, rotation: 0 },
+          { time: 1.6, x: -120, y: 0, rotation: 0 }
+        ],
+        'bone-torso': [
+          { time: 0, rotation: -25 },
+          { time: 0.8, rotation: 20 },
+          { time: 1.6, rotation: -25 }
+        ],
+        'bone-thigh-l': [
+          { time: 0, rotation: 0, scaleX: 1, scaleY: 1 },
+          { time: 1.6, rotation: 0, scaleX: 1, scaleY: 1 }
+        ],
+        'bone-thigh-r': [
+          { time: 0, rotation: 0, scaleX: 1, scaleY: 1 },
+          { time: 1.6, rotation: 0, scaleX: 1, scaleY: 1 }
+        ]
+      }
+    })
+
+    const parseRes = parseAnimationClipFromJson(flawedAiJson, humanoidBones)
+    expect(parseRes.success).toBe(true)
+
+    // X drift is clamped to in-place walk (<= 4px)
+    const pelvisKfs = parseRes.clip?.tracks['bone-pelvis']!
+    expect(Math.abs(pelvisKfs[1].x)).toBeLessThanOrEqual(4)
+    expect(Math.abs(pelvisKfs[2].x)).toBeLessThanOrEqual(4)
+
+    // Torso twist is clamped to safe ±5° range on 2D sprite
+    const torsoKfs = parseRes.clip?.tracks['bone-torso']!
+    expect(Math.abs(torsoKfs[0].rotation)).toBeLessThanOrEqual(5)
+    expect(Math.abs(torsoKfs[1].rotation)).toBeLessThanOrEqual(5)
+
+    // Diagonal-left depth: Left thigh (foreground) gets zOrder: 15 & scale > 1, Right thigh gets zOrder: -15
+    const thighLKfs = parseRes.clip?.tracks['bone-thigh-l']!
+    const thighRKfs = parseRes.clip?.tracks['bone-thigh-r']!
+    expect(thighLKfs[0].zOrder).toBe(15)
+    expect(thighRKfs[0].zOrder).toBe(-15)
+    expect(thighLKfs[0].scaleX).toBeGreaterThanOrEqual(1.05)
+    expect(thighRKfs[0].scaleX).toBeLessThanOrEqual(0.95)
+  })
+
 })

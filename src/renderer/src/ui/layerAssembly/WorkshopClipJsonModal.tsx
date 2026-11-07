@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { AnimationClip, LayerBone } from '@shared/layerRig'
+import type { AnimationClip, LayerBone, MotionViewAngle } from '@shared/layerRig'
 import type { LayerComposite } from './types'
 import { toast } from '../../actions'
 import { IconCode, IconCopy, IconDownload, IconSparkles, IconUpload, IconX } from '../icons'
@@ -64,6 +64,10 @@ interface ExportTabProps {
   setExportName: (v: string) => void
   promptIntent: string
   setPromptIntent: (v: string) => void
+  selectedAngle: MotionViewAngle
+  setSelectedAngle: (v: MotionViewAngle) => void
+  walkType: 'in-place' | 'root-motion'
+  setWalkType: (v: 'in-place' | 'root-motion') => void
   includeWind: boolean
   setIncludeWind: (v: boolean) => void
   exportedJson: string
@@ -81,6 +85,10 @@ function ExportTabPanel({
   setExportName,
   promptIntent,
   setPromptIntent,
+  selectedAngle,
+  setSelectedAngle,
+  walkType,
+  setWalkType,
   includeWind,
   setIncludeWind,
   exportedJson,
@@ -139,6 +147,43 @@ function ExportTabPanel({
             <span>{item.label}</span>
           </button>
         ))}
+      </div>
+
+      {/* Chọn góc nhìn & Hướng diễn hoạt cho AI */}
+      <div className="lw-clip-option-card" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
+          <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text)' }}>
+            📐 Góc nhìn &amp; Hướng diễn hoạt cho AI:
+          </span>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', cursor: 'pointer', userSelect: 'none' }}>
+            <input
+              type="checkbox"
+              checked={walkType === 'in-place'}
+              onChange={(e) => setWalkType(e.target.checked ? 'in-place' : 'root-motion')}
+            />
+            <span>🚶 <strong>Bước đi tại chỗ (In-place)</strong> — giữ nhân vật giữa khung hình</span>
+          </label>
+        </div>
+        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+          {[
+            { id: 'front', label: '0° Chính diện' },
+            { id: 'diagonal-left', label: '45° Chéo Trái' },
+            { id: 'diagonal-right', label: '45° Chéo Phải' },
+            { id: 'side-left', label: '90° Ngang Trái' },
+            { id: 'side-right', label: '90° Ngang Phải' },
+            { id: 'back', label: '180° Sau lưng' }
+          ].map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              className={`btn xs ${selectedAngle === item.id ? 'primary' : 'ghost'}`}
+              onClick={() => setSelectedAngle(item.id as MotionViewAngle)}
+              style={{ fontSize: '11px', padding: '2px 8px' }}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Tuỳ chọn đính kèm Gió & Chuẩn hoá nhanh */}
@@ -416,6 +461,8 @@ export function WorkshopClipJsonModal({
   const [activeTab, setActiveTab] = useState<'export' | 'import'>('export')
   const [promptIntent, setPromptIntent] = useState('Nhân vật thực hiện động tác tự nhiên, đúng cơ học 2.5D, có nhịp gió nhẹ')
   const [exportName, setExportName] = useState(clip.name)
+  const [selectedAngle, setSelectedAngle] = useState<MotionViewAngle>(clip.viewAngle ?? 'front')
+  const [walkType, setWalkType] = useState<'in-place' | 'root-motion'>('in-place')
   const [includeWind, setIncludeWind] = useState(true)
   const [importText, setImportText] = useState('')
   const [importClipName, setImportClipName] = useState('')
@@ -432,6 +479,8 @@ export function WorkshopClipJsonModal({
         ? inferDescriptiveClipName(clip.tracks, bones, windCount, promptIntent)
         : clip.name
       setExportName(smartName)
+      setSelectedAngle(clip.viewAngle ?? 'front')
+      setWalkType('in-place')
     }
   }, [isOpen, clip, bones, windCount])
 
@@ -439,17 +488,21 @@ export function WorkshopClipJsonModal({
     return exportAnimationClipToJson(clip, bones, true, {
       composite,
       includeWind,
-      suggestedName: exportName
+      suggestedName: exportName,
+      viewAngle: selectedAngle,
+      walkType
     })
-  }, [clip, bones, composite, includeWind, exportName])
+  }, [clip, bones, composite, includeWind, exportName, selectedAngle, walkType])
 
   const aiPrompt = useMemo(() => {
     return generateAiMotionPrompt(clip, bones, promptIntent, {
       composite,
       includeWind,
-      suggestedName: exportName
+      suggestedName: exportName,
+      viewAngle: selectedAngle,
+      walkType
     })
-  }, [clip, bones, promptIntent, composite, includeWind, exportName])
+  }, [clip, bones, promptIntent, composite, includeWind, exportName, selectedAngle, walkType])
 
   const parseResult = useMemo(() => {
     if (!importText.trim()) return null
@@ -625,6 +678,10 @@ export function WorkshopClipJsonModal({
               setExportName={setExportName}
               promptIntent={promptIntent}
               setPromptIntent={setPromptIntent}
+              selectedAngle={selectedAngle}
+              setSelectedAngle={setSelectedAngle}
+              walkType={walkType}
+              setWalkType={setWalkType}
               includeWind={includeWind}
               setIncludeWind={setIncludeWind}
               exportedJson={exportedJson}
