@@ -80,10 +80,10 @@ export function AiUiInspectorOverlay() {
     }
 
     const handleMouseDown = (e: MouseEvent) => {
-      // Phím tắt: Win + Shift (e.metaKey && e.shiftKey), hoặc Alt + Shift, hoặc Ctrl + Shift
-      const isKeyChord =
-        e.shiftKey && (e.metaKey || e.altKey || (e.ctrlKey && e.shiftKey))
-      const shouldTrigger = (isKeyChord || isArmedRef.current) && e.button === 0
+      // Phím tắt độc quyền: CHỈ Win + Shift (e.metaKey && e.shiftKey), không dùng Alt/Ctrl
+      const isWinShift =
+        e.shiftKey && e.metaKey && !e.altKey && !e.ctrlKey
+      const shouldTrigger = (isWinShift || isArmedRef.current) && e.button === 0
 
       if (shouldTrigger) {
         e.preventDefault()
@@ -132,10 +132,20 @@ export function AiUiInspectorOverlay() {
     }
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Nhấn tổ hợp Win + Shift để bật ngay chế độ soi UI (khoá màn hình + hiện viền neon)
+      if (e.metaKey && e.shiftKey && !e.altKey && !e.ctrlKey) {
+        if (!isArmedRef.current && !isDraggingRef.current) {
+          isArmedRef.current = true
+          setIsArmed(true)
+        }
+      }
+
       if (e.key === 'Escape') {
         if (isDraggingRef.current || isArmedRef.current) {
           e.preventDefault()
           e.stopPropagation()
+          isDraggingRef.current = false
+          isArmedRef.current = false
           setIsDragging(false)
           setIsArmed(false)
         } else if (showPreview) {
@@ -175,26 +185,52 @@ export function AiUiInspectorOverlay() {
   const boxWidth = Math.abs(currentPos.x - startPos.x)
   const boxHeight = Math.abs(currentPos.y - startPos.y)
 
+  const isModeActive = isArmed || isDragging
+
   return (
     <>
-      {/* 1. Badge hướng dẫn khi người dùng bấm kích hoạt chế độ Soi UI */}
+      {/* 1. LỚP CHẮN BẢO VỆ KHOÁ TOÀN BỘ UI MÀN HÌNH ĐỂ TRÁNH THAO TÁC NHẦM VÀO APP */}
+      {isModeActive && (
+        <div
+          className="ai-ui-inspector-barrier"
+          title="Chế độ soi UI đang bật: Giữ chuột trái và kéo khung để quét vị trí code, hoặc nhấn Esc để thoát."
+        />
+      )}
+
+      {/* 2. VIỀN SÁNG NEON BÁO HIỆU TOÀN MÀN HÌNH ĐÃ ACTIVE CHẾ ĐỘ SOI */}
+      {isModeActive && (
+        <div className="ai-ui-inspector-screen-frame" aria-hidden="true">
+          <div className="ai-ui-inspector-screen-glow" />
+          <div className="ai-ui-inspector-screen-corner corner-tl" />
+          <div className="ai-ui-inspector-screen-corner corner-tr" />
+          <div className="ai-ui-inspector-screen-corner corner-bl" />
+          <div className="ai-ui-inspector-screen-corner corner-br" />
+        </div>
+      )}
+
+      {/* 3. Badge HUD trung tâm nổi ở đầu màn hình báo hiệu trạng thái sẵn sàng quét */}
       {isArmed && !isDragging && (
         <div className="ai-ui-inspector-arm-hud" role="status">
-          <IconAiScan width={14} height={14} style={{ color: 'var(--accent-cyan)' }} />
-          <span>Nhấn giữ chuột trái &amp; kéo khung quanh nút cần soi</span>
+          <div className="ai-ui-inspector-arm-dot" />
+          <IconAiScan width={15} height={15} style={{ color: 'var(--accent-cyan)' }} />
+          <span>ĐÃ BẬT SOI GIAO DIỆN AI (WIN+SHIFT)</span>
+          <span className="ai-ui-inspector-arm-desc">Nhấn giữ chuột trái &amp; kéo khung quanh nút cần soi</span>
           <kbd>Esc để thoát</kbd>
           <button
             type="button"
             className="ai-ui-inspector-arm-close"
-            onClick={() => setIsArmed(false)}
-            title="Đóng chế độ soi"
+            onClick={() => {
+              isArmedRef.current = false
+              setIsArmed(false)
+            }}
+            title="Đóng chế độ soi (Esc)"
           >
             ✕
           </button>
         </div>
       )}
 
-      {/* 2. Khung chữ nhật quét chuột (Marquee Snip Box) */}
+      {/* 4. Khung chữ nhật quét chuột (Marquee Snip Box) */}
       {isDragging && (
         <div
           className="ai-ui-inspector-marquee"
@@ -211,7 +247,7 @@ export function AiUiInspectorOverlay() {
         </div>
       )}
 
-      {/* 3. Toast thông báo kết quả sau khi nhả chuột */}
+      {/* 5. Toast thông báo kết quả sau khi nhả chuột */}
       {toastInfo && !showPreview && (
         <div className="ai-ui-inspector-toast" role="status" aria-live="polite">
           <div className="ai-ui-inspector-toast-icon">
@@ -246,7 +282,7 @@ export function AiUiInspectorOverlay() {
         </div>
       )}
 
-      {/* 4. Modal xem trước nội dung context (tuỳ chọn) */}
+      {/* 6. Modal xem trước nội dung context (tuỳ chọn) */}
       {showPreview && toastInfo && (
         <div
           className="ai-ui-inspector-preview-backdrop"

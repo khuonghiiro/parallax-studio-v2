@@ -359,7 +359,7 @@ export function Toolbar({ onExport }: { onExport: () => void }) {
             className="tb-btn-icon ai-inspector-chip"
             aria-label="Soi giao diện cho AI"
             onClick={() => window.dispatchEvent(new CustomEvent('pxs:toggle-ai-inspector'))}
-            title="Soi vùng giao diện cho AI (Phím tắt: Win + Shift + Nhấn giữ chuột trái quét khung, hoặc click vào đây rồi quét)"
+            title="Soi vùng giao diện cho AI (Phím tắt: Win + Shift để khoá & hiện viền, kéo chuột trái để quét khung, hoặc click vào đây)"
           >
             <IconAiScan width={14} height={14} style={{ color: 'var(--accent-cyan)' }} />
           </button>
