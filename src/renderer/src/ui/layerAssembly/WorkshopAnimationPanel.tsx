@@ -55,96 +55,97 @@ export type AnimInspectorSubTab = 'pose' | 'clips' | 'physics'
 
 const STUDIO_FPS_PRESETS = [12, 24, 30, 60] as const
 
-function MohoQuickPoseCard({
-  bone,
-  rotation,
-  poseX = 0,
-  poseY = 0,
-  setKey,
-  onSplit
+function UnifiedPoseCard({
+  keyframe: pose,
+  setKey
 }: {
-  bone: LayerBone
-  rotation: number
-  poseX?: number
-  poseY?: number
+  keyframe: BoneKeyframe
   setKey: (patch: Partial<BoneKeyframe>) => void
-  onSplit?: () => void
 }) {
   return (
-    <div className="lw-card-section lw-quick-pose-card" style={{ marginTop: 6, padding: '8px 10px', background: 'var(--bg-2)', borderRadius: 'var(--radius)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text)' }}>
-          🦵 Tư thế khớp & Di chuyển 4 hướng (Moho)
+    <div
+      className="lw-unified-pose-card"
+      style={{
+        marginTop: 6,
+        padding: '8px 10px',
+        background: 'var(--bg-2)',
+        borderRadius: 'var(--radius)',
+        border: '1px solid var(--line-soft)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 6
+      }}
+    >
+      {/* 1. Thanh xoay góc FK trực quan với thanh trượt */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap' }}>
+          Góc xoay
         </span>
-        {!bone.pin && bone.length >= 16 && onSplit && (
-          <button
-            type="button"
-            className="btn xs"
-            onClick={onSplit}
-            style={{ fontSize: 10, padding: '2px 6px', color: 'var(--accent-cyan)' }}
-            title="✂️ Chia đôi xương này thành 2 đoạn (Đùi + Cẳng chân hoặc Bắp tay + Cẳng tay) để tạo khớp gối/khuỷu gập cong tự nhiên"
-          >
-            ✂️ Bẻ đôi (Gối/Khuỷu)
-          </button>
-        )}
-      </div>
-
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
         <input
           type="range"
           min={-180}
           max={180}
           step={1}
-          value={Math.round(rotation)}
+          value={Math.round(pose.rotation ?? 0)}
           aria-label="Xoay góc FK 360°"
           onChange={(e) => setKey({ rotation: Number(e.target.value) })}
           style={{ flex: 1 }}
         />
-        <strong style={{ fontSize: 11, minWidth: 44, textAlign: 'right', color: 'var(--text)' }}>
-          {Math.round(rotation)}°
+        <strong style={{ fontSize: 11, minWidth: 44, textAlign: 'right', color: 'var(--accent)' }}>
+          {Math.round(pose.rotation ?? 0)}°
         </strong>
       </div>
 
-      <div className="lw-creature-pills" style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 6 }}>
-        <button type="button" className="lw-creature-pill" onClick={() => setKey({ y: Number((poseY - 12).toFixed(1)) })} title="Dời khớp Lên trên (-12px Y)">
+      {/* 2. Hàng nhập số 3 trường Xoay / X / Y */}
+      <div className="lw-pose-fields-row3">
+        <RigNumber label="Xoay (°)" value={pose.rotation} onChange={(rotation) => setKey({ rotation })} />
+        <RigNumber label="Dời X" value={pose.x} onChange={(x) => setKey({ x })} />
+        <RigNumber label="Dời Y" value={pose.y} onChange={(y) => setKey({ y })} />
+      </div>
+
+      {/* 3. Tỉ lệ X / Y */}
+      <div className="lw-rig-grid">
+        <RigNumber
+          label="Tỉ lệ X"
+          value={pose.scaleX ?? 1}
+          step={0.05}
+          onChange={(scaleX) => setKey({ scaleX })}
+        />
+        <RigNumber
+          label="Tỉ lệ Y"
+          value={pose.scaleY ?? 1}
+          step={0.05}
+          onChange={(scaleY) => setKey({ scaleY })}
+        />
+      </div>
+
+      {/* 4. Dời nhanh 4 hướng & Đặt lại vị trí */}
+      <div className="lw-creature-pills" style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+        <button type="button" className="lw-creature-pill" onClick={() => setKey({ y: Number(((pose.y ?? 0) - 12).toFixed(1)) })} title="Dời khớp Lên trên (-12px Y)">
           ⬆️ Lên
         </button>
-        <button type="button" className="lw-creature-pill" onClick={() => setKey({ y: Number((poseY + 12).toFixed(1)) })} title="Dời / gật khớp Xuống dưới (+12px Y)">
+        <button type="button" className="lw-creature-pill" onClick={() => setKey({ y: Number(((pose.y ?? 0) + 12).toFixed(1)) })} title="Dời / gật khớp Xuống dưới (+12px Y)">
           ⬇️ Xuống
         </button>
-        <button type="button" className="lw-creature-pill" onClick={() => setKey({ x: Number((poseX - 12).toFixed(1)) })} title="Dời khớp sang Trái (-12px X)">
+        <button type="button" className="lw-creature-pill" onClick={() => setKey({ x: Number(((pose.x ?? 0) - 12).toFixed(1)) })} title="Dời khớp sang Trái (-12px X)">
           ⬅️ Trái
         </button>
-        <button type="button" className="lw-creature-pill" onClick={() => setKey({ x: Number((poseX + 12).toFixed(1)) })} title="Dời khớp sang Phải (+12px X)">
+        <button type="button" className="lw-creature-pill" onClick={() => setKey({ x: Number(((pose.x ?? 0) + 12).toFixed(1)) })} title="Dời khớp sang Phải (+12px X)">
           ➡️ Phải
         </button>
         <button type="button" className="lw-creature-pill" onClick={() => setKey({ x: 0, y: 0 })} title="Đưa vị trí X, Y về tâm gốc (0, 0)">
-          🎯 Vị trí 0,0
+          🎯 Tâm (0,0)
         </button>
       </div>
 
+      {/* 5. Góc xoay nhanh */}
       <div className="lw-creature-pills" style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-        <button type="button" className="lw-creature-pill" onClick={() => setKey({ rotation: 0 })} title="Thẳng đứng ban đầu (0°)">
-          🧍 Thẳng 0°
-        </button>
-        <button type="button" className="lw-creature-pill" onClick={() => setKey({ rotation: 45 })} title="Đá trước nhẹ / Khuỵu (+45°)">
-          🦵 Đá +45°
-        </button>
-        <button type="button" className="lw-creature-pill" onClick={() => setKey({ rotation: 90 })} title="Đá cao ngang người (+90°)">
-          🦵 Đá +90°
-        </button>
-        <button type="button" className="lw-creature-pill" onClick={() => setKey({ rotation: 135 })} title="Đá thẳng lên cao (+135°)">
-          🦵 Đá +135°
-        </button>
-        <button type="button" className="lw-creature-pill" onClick={() => setKey({ rotation: -45 })} title="Đá / bẻ ra sau (-45°)">
-          🦵 Bẻ -45°
-        </button>
-        <button type="button" className="lw-creature-pill" onClick={() => setKey({ rotation: -90 })} title="Đá thẳng lên phía sau / co chân (-90°)">
-          🦵 Đá -90°
-        </button>
-        <button type="button" className="lw-creature-pill" onClick={() => setKey({ rotation: 180 })} title="Đá thẳng ngược lên (180°)">
-          🦵 Đá 180°
-        </button>
+        <button type="button" className="lw-creature-pill" onClick={() => setKey({ rotation: 0 })} title="Thẳng đứng ban đầu (0°)">0°</button>
+        <button type="button" className="lw-creature-pill" onClick={() => setKey({ rotation: 45 })} title="Đá trước nhẹ (+45°)">+45°</button>
+        <button type="button" className="lw-creature-pill" onClick={() => setKey({ rotation: 90 })} title="Đá cao ngang (+90°)">+90°</button>
+        <button type="button" className="lw-creature-pill" onClick={() => setKey({ rotation: -45 })} title="Bẻ ra sau (-45°)">-45°</button>
+        <button type="button" className="lw-creature-pill" onClick={() => setKey({ rotation: -90 })} title="Bẻ thẳng sau (-90°)">-90°</button>
+        <button type="button" className="lw-creature-pill" onClick={() => setKey({ rotation: 180 })} title="Ngược lên (180°)">180°</button>
       </div>
     </div>
   )
@@ -178,6 +179,7 @@ export function WorkshopAnimationPanel({
   }
   const [isRetargetOpen, setIsRetargetOpen] = useState(false)
   const [clipsMode, setClipsMode] = useState<'clips' | 'sketch' | 'custom'>('clips')
+  const [poseMode, setPoseMode] = useState<'pose' | 'constraints' | 'presets'>('pose')
   const [copiedPose, setCopiedPose] = useState<BonePoseEntry[] | null>(null)
   const [internalSubTab, setInternalSubTab] = useState<AnimInspectorSubTab>('pose')
   const subTab = controlledSubTab ?? internalSubTab
@@ -314,174 +316,236 @@ export function WorkshopAnimationPanel({
         onInherit={inherit}
       />
 
-      {/* SUB-TAB 1: TẠO DÁNG, KEYFRAME F6/F5/F7, MẪU ĐỘNG TÁC CHÍNH DIỆN & POSE-TO-POSE */}
+      {/* SUB-TAB 1: TẠO DÁNG, KEYFRAME F6/F5/F7, RÀNG BUỘC KHỚP & MẪU CỬ ĐỘNG */}
       {subTab === 'pose' && (
         <>
-          <div className="lw-card-section lw-animation-pose">
-            <div className="lw-card-header">
-              <span className="lw-card-title">Khớp diễn hoạt</span>
-              <span className={`lw-card-badge${exact ? ' lw-badge-keyed' : ''}`}>
-                {exact ? `◆ F${frameNumber}` : `Nội suy · F${frameNumber}`}
-              </span>
-            </div>
-
-            <Select
-              size="sm"
-              value={bone?.id ?? ''}
-              options={[
-                { value: '', label: 'Chọn xương trên sân khấu hoặc Dope Sheet' },
-                ...rig.bones.map((b) => ({
-                  value: b.id,
-                  label: `${b.name} (${(rig.tracks[b.id] ?? []).length} key)`
-                }))
-              ]}
-              onChange={(value) => selectBone(String(value) || null)}
-            />
-
-            <div className="lw-pose-quick-toggles">
-              <button
-                type="button"
-                className={`lw-pose-toggle-chip${assist.ik ? ' active' : ''}`}
-                onClick={() => setAnimAssist({ ik: !assist.ik })}
-                title="Bật/tắt kéo ngọn xương theo chuỗi CCD IK (Phím I)"
-              >
-                <span>IK {assist.ik ? `${assist.ikChain} đốt` : 'Tắt'}</span>
-              </button>
-              <button
-                type="button"
-                className={`lw-pose-toggle-chip${assist.onion ? ' active' : ''}`}
-                onClick={() => setAnimAssist({ onion: !assist.onion })}
-                title="Bật/tắt bóng mờ Onion Skin khung trước/sau (Phím O)"
-              >
-                <IconOnionSkin width={12} height={12} />
-                <span>Onion Skin</span>
-              </button>
-              <button
-                type="button"
-                className={`lw-pose-toggle-chip${assist.path ? ' active' : ''}`}
-                onClick={() => setAnimAssist({ path: !assist.path })}
-                title="Bật/tắt đường quỹ đạo chuyển động ngọn xương (Phím P)"
-              >
-                <span>Quỹ đạo</span>
-              </button>
-            </div>
-
-            {bone ? (
-              <>
-                <PoseFields keyframe={key} setKey={setKey} />
-
-                <MohoQuickPoseCard
-                  bone={bone}
-                  rotation={key.rotation}
-                  poseX={key.x}
-                  poseY={key.y}
-                  setKey={setKey}
-                  onSplit={() => run({ action: 'split-bone', boneId: bone.id })}
-                />
-
-                {!bone.pin && (
-                  <WorkshopBoneConstraintCard
-                    bone={bone}
-                    patch={(patch) => run({ action: 'update-bone', boneId: bone.id, patch })}
-                  />
-                )}
-
-                <WorkshopBoneDepthCard
-                  composite={composite}
-                  rig={rig}
-                  boneId={bone.id}
-                  time={time}
-                  selectBone={selectBone}
-                  playback={playback}
-                  setComposite={setComposite}
-                />
-
-                {/* Thanh thao tác Frame chuẩn Adobe Animate: F6 (Ghi Key), F5 (Giữ dáng +3F), F7 (Xóa Key), Về gốc */}
-                <div className="lw-animate-fkey-bar" role="group" aria-label="Thao tác Frame kiểu Adobe Animate">
-                  <button
-                    type="button"
-                    className="btn xs primary"
-                    onClick={() => setKey()}
-                    title="Adobe Animate F6 (Insert Keyframe): Ghi chốt tư thế xương tại khung hiện tại"
-                  >
-                    ◆ Ghi Key <kbd>F6</kbd>
-                  </button>
-                  <button
-                    type="button"
-                    className="btn xs"
-                    onClick={() => holdPoseFrames(3)}
-                    title="Adobe Animate F5 (Insert Frame): Giữ nguyên tư thế này thêm +3 frame và đẩy các key sau lùi lại"
-                  >
-                    + Giữ 3F <kbd>F5</kbd>
-                  </button>
-                  <button
-                    type="button"
-                    className="btn xs"
-                    disabled={!exact}
-                    onClick={deleteExactKey}
-                    title="Adobe Animate F7 (Clear Keyframe): Xóa keyframe tại đúng khung đang đứng"
-                  >
-                    ✕ Xóa <kbd>F7</kbd>
-                  </button>
-                  <button
-                    type="button"
-                    className="btn xs"
-                    onClick={() => setKey({ x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1, zOrder: 0 })}
-                    title="Đưa xương đang chọn về tư thế và Z-Index gốc Frame 0 tại thời điểm này"
-                  >
-                    ↺ Gốc
-                  </button>
-                </div>
-
-                {/* Thanh Chốt bước Pose-by-Pose: nhảy sang frame tiếp theo */}
-                <StepRecordBar onConfirmStep={handleConfirmStep} fps={fps} />
-
-                <WorkshopInterpolation
-                  keyframe={key}
-                  onChange={(patch: Partial<BoneKeyframe>) => {
-                    if (exact && patch.easing) {
-                      run({
-                        action: 'set-interpolation',
-                        boneId: bone.id,
-                        time: exact.time,
-                        easing: patch.easing,
-                        bezier: patch.bezier
-                      })
-                    } else {
-                      setKey(patch)
-                    }
-                  }}
-                />
-
-                <AnimationPoseActions
-                  rig={rig}
-                  time={time}
-                  run={run}
-                  playback={playback}
-                  onCopyPose={copyPose}
-                  onPastePose={pastePose}
-                  onResetAllPose={resetAllPose}
-                  canPaste={!!copiedPose}
-                />
-
-                <AnimationKeyList
-                  bone={bone}
-                  keys={keys}
-                  time={time}
-                  duration={rig.duration}
-                  fps={fps}
-                  playback={playback}
-                  run={run}
-                />
-              </>
-            ) : (
-              <p className="lw-empty-note">Chọn một xương trên sân khấu 2D hoặc hàng Dope Sheet phía dưới để tạo dáng.</p>
-            )}
+          {/* Phân khu Dáng & Key: 1-Click Chuyển đổi Tạo dáng, Khớp & Trục Z, Mẫu cử động */}
+          <div className="lw-clips-mode-nav" role="tablist" aria-label="Chế độ Dáng & Key">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={poseMode === 'pose'}
+              className={`lw-clips-mode-btn${poseMode === 'pose' ? ' active' : ''}`}
+              onClick={() => setPoseMode('pose')}
+              title="Tạo dáng xương FK/IK, đặt Keyframe F6/F5/F7 & Sao chép tư thế"
+            >
+              <span>🦵 Tạo dáng</span>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={poseMode === 'constraints'}
+              className={`lw-clips-mode-btn${poseMode === 'constraints' ? ' active' : ''}`}
+              onClick={() => setPoseMode('constraints')}
+              title="Giới hạn góc xoay khớp cơ học (∠) & Thứ tự lớp chiều sâu Z-Index"
+            >
+              <span>📐 Khớp &amp; Trục Z</span>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={poseMode === 'presets'}
+              className={`lw-clips-mode-btn${poseMode === 'presets' ? ' active' : ''}`}
+              onClick={() => setPoseMode('presets')}
+              title="Thư viện mẫu cử động nhanh, danh sách Keyframe &amp; Đường cong nội suy Easing"
+            >
+              <span>📦 Mẫu cử động</span>
+            </button>
           </div>
 
-          <QuickMotionPresetCard playback={playback} run={run} defaultAsNewClip={false} />
+          {poseMode === 'pose' && (
+            <div className="lw-card-section lw-animation-pose">
+              <div className="lw-card-header">
+                <span className="lw-card-title">Khớp diễn hoạt</span>
+                <span className={`lw-card-badge${exact ? ' lw-badge-keyed' : ''}`}>
+                  {exact ? `◆ F${frameNumber}` : `Nội suy · F${frameNumber}`}
+                </span>
+              </div>
 
-          {bone && <WorkshopAnimToolsCard rig={rig} boneId={bone.id} playback={playback} run={run} />}
+              <Select
+                size="sm"
+                value={bone?.id ?? ''}
+                options={[
+                  { value: '', label: 'Chọn xương trên sân khấu hoặc Dope Sheet' },
+                  ...rig.bones.map((b) => ({
+                    value: b.id,
+                    label: `${b.name} (${(rig.tracks[b.id] ?? []).length} key)`
+                  }))
+                ]}
+                onChange={(value) => selectBone(String(value) || null)}
+              />
+
+              <div className="lw-pose-quick-toggles">
+                <button
+                  type="button"
+                  className={`lw-pose-toggle-chip${assist.ik ? ' active' : ''}`}
+                  onClick={() => setAnimAssist({ ik: !assist.ik })}
+                  title="Bật/tắt kéo ngọn xương theo chuỗi CCD IK (Phím I)"
+                >
+                  <span>IK {assist.ik ? `${assist.ikChain} đốt` : 'Tắt'}</span>
+                </button>
+                <button
+                  type="button"
+                  className={`lw-pose-toggle-chip${assist.onion ? ' active' : ''}`}
+                  onClick={() => setAnimAssist({ onion: !assist.onion })}
+                  title="Bật/tắt bóng mờ Onion Skin khung trước/sau (Phím O)"
+                >
+                  <IconOnionSkin width={12} height={12} />
+                  <span>Onion Skin</span>
+                </button>
+                <button
+                  type="button"
+                  className={`lw-pose-toggle-chip${assist.path ? ' active' : ''}`}
+                  onClick={() => setAnimAssist({ path: !assist.path })}
+                  title="Bật/tắt đường quỹ đạo chuyển động ngọn xương (Phím P)"
+                >
+                  <span>Quỹ đạo</span>
+                </button>
+              </div>
+
+              {bone ? (
+                <>
+                  <UnifiedPoseCard keyframe={key} setKey={setKey} />
+
+                  {/* Thanh thao tác Frame chuẩn Adobe Animate: F6 (Ghi Key), F5 (Giữ dáng +3F), F7 (Xóa Key), Về gốc */}
+                  <div className="lw-animate-fkey-bar" role="group" aria-label="Thao tác Frame kiểu Adobe Animate">
+                    <button
+                      type="button"
+                      className="btn xs primary"
+                      onClick={() => setKey()}
+                      title="Adobe Animate F6 (Insert Keyframe): Ghi chốt tư thế xương tại khung hiện tại"
+                    >
+                      ◆ Ghi Key <kbd>F6</kbd>
+                    </button>
+                    <button
+                      type="button"
+                      className="btn xs"
+                      onClick={() => holdPoseFrames(3)}
+                      title="Adobe Animate F5 (Insert Frame): Giữ nguyên tư thế này thêm +3 frame và đẩy các key sau lùi lại"
+                    >
+                      + Giữ 3F <kbd>F5</kbd>
+                    </button>
+                    <button
+                      type="button"
+                      className="btn xs"
+                      disabled={!exact}
+                      onClick={deleteExactKey}
+                      title="Adobe Animate F7 (Clear Keyframe): Xóa keyframe tại đúng khung đang đứng"
+                    >
+                      ✕ Xóa <kbd>F7</kbd>
+                    </button>
+                    <button
+                      type="button"
+                      className="btn xs"
+                      onClick={() => setKey({ x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1, zOrder: 0 })}
+                      title="Đưa xương đang chọn về tư thế và Z-Index gốc Frame 0 tại thời điểm này"
+                    >
+                      ↺ Gốc
+                    </button>
+                  </div>
+
+                  {/* Thanh Chốt bước Pose-by-Pose: nhảy sang frame tiếp theo */}
+                  <StepRecordBar onConfirmStep={handleConfirmStep} fps={fps} />
+
+                  <AnimationPoseActions
+                    rig={rig}
+                    time={time}
+                    run={run}
+                    playback={playback}
+                    onCopyPose={copyPose}
+                    onPastePose={pastePose}
+                    onResetAllPose={resetAllPose}
+                    canPaste={!!copiedPose}
+                  />
+                </>
+              ) : (
+                <p className="lw-empty-note">Chọn một xương trên sân khấu 2D hoặc hàng Dope Sheet phía dưới để tạo dáng.</p>
+              )}
+            </div>
+          )}
+
+          {poseMode === 'constraints' && (
+            <div className="lw-card-section lw-animation-pose">
+              <div className="lw-card-header">
+                <span className="lw-card-title">Ràng buộc cơ học &amp; Chiều sâu Z</span>
+                <span className="lw-card-badge">{bone ? bone.name : 'Chưa chọn'}</span>
+              </div>
+              {bone ? (
+                <>
+                  {!bone.pin && bone.length >= 16 && (
+                    <div style={{ marginBottom: 6, display: 'flex', justifyContent: 'flex-end' }}>
+                      <button
+                        type="button"
+                        className="btn xs"
+                        onClick={() => run({ action: 'split-bone', boneId: bone.id })}
+                        style={{ fontSize: 10, padding: '2px 8px', color: 'var(--accent-cyan)' }}
+                        title="Chia đôi xương này thành 2 đoạn (Đùi + Cẳng chân hoặc Bắp tay + Cẳng tay) để tạo khớp gối/khuỷu gập cong tự nhiên"
+                      >
+                        ✂️ Bẻ đôi xương (Tạo Gối / Khuỷu)
+                      </button>
+                    </div>
+                  )}
+                  {!bone.pin && (
+                    <WorkshopBoneConstraintCard
+                      bone={bone}
+                      patch={(patch) => run({ action: 'update-bone', boneId: bone.id, patch })}
+                    />
+                  )}
+                  <WorkshopBoneDepthCard
+                    composite={composite}
+                    rig={rig}
+                    boneId={bone.id}
+                    time={time}
+                    selectBone={selectBone}
+                    playback={playback}
+                    setComposite={setComposite}
+                  />
+                </>
+              ) : (
+                <p className="lw-empty-note">Chọn một xương trên sân khấu 2D để cài đặt góc giới hạn hoặc thứ tự đè lớp Z-Index.</p>
+              )}
+            </div>
+          )}
+
+          {poseMode === 'presets' && (
+            <>
+              <QuickMotionPresetCard playback={playback} run={run} defaultAsNewClip={false} />
+              {bone && (
+                <div className="lw-card-section" style={{ marginTop: 6 }}>
+                  <div className="lw-card-header">
+                    <span className="lw-card-title">Đường cong nội suy Easing</span>
+                    <span className="lw-card-badge">{bone.name}</span>
+                  </div>
+                  <WorkshopInterpolation
+                    keyframe={key}
+                    onChange={(patch: Partial<BoneKeyframe>) => {
+                      if (exact && patch.easing) {
+                        run({
+                          action: 'set-interpolation',
+                          boneId: bone.id,
+                          time: exact.time,
+                          easing: patch.easing,
+                          bezier: patch.bezier
+                        })
+                      } else {
+                        setKey(patch)
+                      }
+                    }}
+                  />
+                  <AnimationKeyList
+                    bone={bone}
+                    keys={keys}
+                    time={time}
+                    duration={rig.duration}
+                    fps={fps}
+                    playback={playback}
+                    run={run}
+                  />
+                </div>
+              )}
+              {bone && <WorkshopAnimToolsCard rig={rig} boneId={bone.id} playback={playback} run={run} />}
+            </>
+          )}
         </>
       )}
 
@@ -806,34 +870,4 @@ function ClipTimingSettingsCard({
   )
 }
 
-function PoseFields({
-  keyframe: pose,
-  setKey
-}: {
-  keyframe: BoneKeyframe
-  setKey: (patch: Partial<BoneKeyframe>) => void
-}) {
-  return (
-    <div className="lw-pose-fields-stack">
-      <div className="lw-pose-fields-row3">
-        <RigNumber label="Xoay (°)" value={pose.rotation} onChange={(rotation) => setKey({ rotation })} />
-        <RigNumber label="Dời X" value={pose.x} onChange={(x) => setKey({ x })} />
-        <RigNumber label="Dời Y" value={pose.y} onChange={(y) => setKey({ y })} />
-      </div>
-      <div className="lw-rig-grid">
-        <RigNumber
-          label="Tỉ lệ X"
-          value={pose.scaleX ?? 1}
-          step={0.05}
-          onChange={(scaleX) => setKey({ scaleX })}
-        />
-        <RigNumber
-          label="Tỉ lệ Y"
-          value={pose.scaleY ?? 1}
-          step={0.05}
-          onChange={(scaleY) => setKey({ scaleY })}
-        />
-      </div>
-    </div>
-  )
-}
+
