@@ -79,8 +79,23 @@ export interface MotionJsonExportFormat {
   description?: string
   rigConventions?: {
     coordinateSystem: string
+    namingConvention?: {
+      rule: string
+      explanation: string
+      screenLeft: string
+      screenRight: string
+      contralateralCoordination: string
+    }
     viewAngleGuide?: string
     depthOrderRule?: string
+    perspectiveWalkDepthRule?: {
+      summary: string
+      forwardFoot: { yPosition: string; scale: string; depthOrder: string }
+      backwardFoot: { yPosition: string; scale: string; depthOrder: string }
+      contralateralArm: { forwardArm: string; backwardArm: string }
+      torsoAndHeadBob: { rule: string }
+      zOrderTransition: string
+    }
     armRotationRule: string
     frontViewLegRule: string
     pelvisVerticalRule: string
@@ -254,6 +269,34 @@ export function exportAnimationClipToJson(
     characterOrientation: buildOrientationGuide(viewAngle),
     rigConventions: {
       coordinateSystem: '2D Screen Space (+X sang phải, +Y hướng xuống, +rotation xoay cùng chiều kim đồng hồ).',
+      namingConvention: {
+        rule: 'SCREEN_SPACE_NAMING',
+        explanation: 'Hậu tố "-l" (Left) và "-r" (Right) được đặt THEO MÀN HÌNH (Screen Space), KHÔNG PHẢI giải phẫu nhân vật.',
+        screenLeft: 'ID có đuôi "-l" (arm-l, leg-l, thigh-l, shin-l, foot-l) nằm ở BÊN TRÁI MÀN HÌNH (X < 0). Ở góc chính diện 0°, đây là TAY/CHÂN PHẢI CỦA BẢN THÂN NHÂN VẬT.',
+        screenRight: 'ID có đuôi "-r" (arm-r, leg-r, thigh-r, shin-r, foot-r) nằm ở BÊN PHẢI MÀN HÌNH (X > 0). Ở góc chính diện 0°, đây là TAY/CHÂN TRÁI CỦA BẢN THÂN NHÂN VẬT.',
+        contralateralCoordination: 'PHỐI HỢP TAY - CHÂN NGHỊCH PHA: Khi chân bên trái màn hình bước tới trước, BẮT BUỘC vung tay bên phải màn hình ra trước ngực (zOrder: 50). Khi chân bên phải màn hình bước tới trước, BẮT BUỘC vung tay bên trái màn hình ra trước ngực (zOrder: 50). Tuyệt đối không đi cùng tay cùng chân!'
+      },
+      perspectiveWalkDepthRule: {
+        summary: 'Quy tắc tạo ảo giác chiều sâu 2.5D khi nhân vật bước đi / tiến về phía camera',
+        forwardFoot: {
+          yPosition: 'Thấp hơn trên màn hình (y: +6..+12px) vì bàn chân bước về gần camera tiếp đất ở vị trí thấp hơn trong phối cảnh.',
+          scale: 'To hơn (scaleX & scaleY: 1.05..1.10) theo luật phối cảnh gần to xa nhỏ.',
+          depthOrder: 'BẮT BUỘC ĐÈ LÊN chân kia: đặt zOrder cao hơn chân kia (ví dụ zOrder: 15 trong khi chân sau zOrder: -15).'
+        },
+        backwardFoot: {
+          yPosition: 'Cao hơn trên màn hình (y: -4..-10px) khi nhấc ra phía sau.',
+          scale: 'Nhỏ hơn (scaleX & scaleY: 0.93..0.96) theo luật phối cảnh xa nhỏ.',
+          depthOrder: 'Bị che: zOrder thấp hơn chân trước, chui ra phía sau.'
+        },
+        contralateralArm: {
+          forwardArm: 'Tay đối diện chân bước tới đưa ra trước ngực: zOrder: 50 (đè lên thân áo sơ mi Z=0).',
+          backwardArm: 'Tay cùng bên chân bước tới đưa ra sau lưng: zOrder: -50 (chui ra sau thân áo).'
+        },
+        torsoAndHeadBob: {
+          rule: 'Khi đi tới camera: Thân và Đầu hơi to ra (scale: 1.02..1.04, y nhún nhẹ +2px) ở bước tiếp đất dồn lực và hơi nhỏ lại (scale: 0.98..1.0) ở bước nhấc chân.'
+        },
+        zOrderTransition: 'Đổi lớp zOrder là bước nhảy tức thời (dùng easing: "hold" hoặc chuyển đổi trong 0.03s - 0.05s), không nội suy mờ mịt.'
+      },
       viewAngleGuide: `Nhân vật đang ở góc ${viewAngle === 'side' ? 'NGANG 90° (side)' : viewAngle === 'diagonal' ? 'CHÉO 45° (diagonal)' : viewAngle === 'back' ? 'SAU LƯNG 180° (back)' : 'CHÍNH DIỆN 0° (front)'}. ${buildOrientationGuide(viewAngle).description}`,
       depthOrderRule:
         'Quy chuẩn Z-Index / Chiều sâu 2.5D: Z càng CAO (dương) thì bộ phận CÀNG Ở PHÍA TRƯỚC (Foreground, hiển thị đè lên các bộ phận khác). Z càng THẤP (âm) thì CÀNG Ở PHÍA SAU (Background, bị các bộ phận có Z cao hơn đè lên). Ví dụ: Kính mắt Z=+42 > Biểu cảm mặt Z=+30..+32 > Đầu Z=+20 > Thân áo Z=0 > Đùi/Cẳng chân Z=-20..-25 > Cánh tay sau Z=-35..-40.',
@@ -353,7 +396,9 @@ ${promptIntent}
 ${boneTreeLines.join('\n')}
 
 ${layerLines.length > 0 ? `🧩 DANH SÁCH MẢNH LAYER (ĐỂ GẮN HIỆU ỨNG GIÓ "wind" CHO TÓC / ÁO / ĐẠO CỤ):\n${layerLines.join('\n')}\n` : ''}📋 QUY TẮC KEYFRAME & GIẢI PHẪU 2.5D QUAN TRỌNG (TRÁNH LỖI DỊ DẠNG):
-1. Quy ước chiều xoay 2 cánh tay (CỰC KỲ QUAN TRỌNG):
+1. Quy ước đặt tên xương theo Màn hình & Chiều xoay 2 cánh tay (CỰC KỲ QUAN TRỌNG):
+   - ĐẶT TÊN THEO MÀN HÌNH (Screen Space): ID có đuôi "-l" (arm-l, thigh-l, foot-l...) nằm ở BÊN TRÁI MÀN HÌNH (X < 0). Với nhân vật nhìn chính diện 0°, đây là NỬA NGƯỜI BÊN PHẢI CỦA BẢN THÂN NHÂN VẬT. ID "-r" nằm ở BÊN PHẢI MÀN HÌNH (X > 0), là NỬA NGƯỜI BÊN TRÁI NHÂN VẬT.
+   - PHỐI HỢP TAY - CHÂN NGHỊCH PHA (Contralateral Limb Swing): Khi chân bên trái màn hình bước tới trước, BẮT BUỘC vung tay bên phải màn hình ra trước ngực ("zOrder": 50). Khi chân bên phải màn hình bước tới trước, BẮT BUỘC vung tay bên trái màn hình ra trước ngực ("zOrder": 50). Tuyệt đối không đi cùng tay cùng chân làm thân bị xoắn ngược!
    - Hai cánh tay ở tư thế nghỉ đều buông dọc xuống (~90°).
    - Muốn GIƠ TAY TRÁI ("bone-arm-l") mở sang trái & lên cao: "rotation" PHẢI LÀ SỐ DƯƠNG (+25° đến +125°).
    - Muốn GIƠ TAY PHẢI ("bone-arm-r") mở sang phải & lên cao: "rotation" PHẢI LÀ SỐ ÂM (-25° đến -125°).
@@ -382,6 +427,12 @@ ${layerLines.length > 0 ? `🧩 DANH SÁCH MẢNH LAYER (ĐỂ GẮN HIỆU ỨN
    - Bổ sung trường "wind" trong JSON để mái tóc (layer đầu/tóc) và tà áo (layer thân/áo) đung đưa mềm mại theo quán tính và thời tiết:
    - "weatherPreset": "breeze" (Hiu hiu ±6°) | "moderate" (Gió vừa ±13°) | "strong" (Gió mạnh ±22°) | "storm" (Gió lốc ±32°).
    - "plantSpines": danh sách trục uốn gió gắn vào layer tóc/đầu (direction: "down" cho tóc/áo rủ xuống, "up" cho cây cỏ mọc lên, "horizontal" cho khăn/cờ bay ngang).
+7. BỘ QUY TẮC VÀNG PHỐI CẢNH 2.5D KHI BƯỚC ĐI / TIẾN VỀ PHÍA CAMERA (Tránh não đọc nhầm là đi lùi):
+   - Ở sprite 2D, chuyển động đi tới và đi lùi rất dễ bị nhầm nếu thiếu tín hiệu phối cảnh chiều sâu. BẮT BUỘC kết hợp đủ 4 tín hiệu sau:
+   a) Vị trí Y tiếp đất: Chân bước tới trước chạm sàn THẤP HƠN trên màn hình ("y": +6..+12px). Chân sau đang nhấc cao hơn ("y": -4..-10px).
+   b) Kích thước Scale (Gần to xa nhỏ): Chân bước tới trước to hơn ("scaleX": 1.05..1.10, "scaleY": 1.05..1.10). Chân sau nhỏ hơn ("scaleX": 0.93..0.96, "scaleY": 0.93..0.96).
+   c) Thứ tự đè lớp (zOrder): Chân bước tới trước BẮT BUỘC ĐÈ LÊN chân kia (chân trước đặt "zOrder": 15..20, chân sau đặt "zOrder": -15..-20). Đổi zOrder giữa 2 chân phải là bước nhảy tức thời ("easing": "hold" hoặc chuyển trong 0.03s..0.05s), không nội suy làm lộn xộn các lớp.
+   d) Nhấp nhô Thân & Đầu (Torso & Head Bob): Thân và Đầu hơi to ra nhẹ ("scale": 1.02..1.04, nhún "y": +2px) ở bước tiếp đất dồn trọng tâm và thu nhỏ nhẹ ("scale": 0.98..1.0) ở bước nhấc chân.
 
 📦 ĐỊNH DẠNG ĐẦU RA (BẮT BUỘC):
 Chỉ trả về DUY NHẤT một khối mã JSON hợp lệ nằm trong \`\`\`json ... \`\`\` theo cấu trúc chuẩn sau:
@@ -404,7 +455,7 @@ Chỉ trả về DUY NHẤT một khối mã JSON hợp lệ nằm trong \`\`\`j
     ],
     "bone-foot-l": [
       { "time": 0.0, "x": 0, "y": 0, "rotation": 0, "scaleX": 1, "scaleY": 1, "easing": "smooth" },
-      { "time": ${(clip.duration * 0.25).toFixed(2)}, "x": 0, "y": 2.5, "rotation": 3, "scaleX": 1.16, "scaleY": 0.84, "easing": "ease-in-out" },
+      { "time": ${(clip.duration * 0.25).toFixed(2)}, "x": 0, "y": 2.5, "rotation": 3, "scaleX": 1.16, "scaleY": 0.84, "zOrder": 15, "easing": "ease-in-out" },
       { "time": ${(clip.duration * 0.55).toFixed(2)}, "x": 0, "y": -1.5, "rotation": -6, "scaleX": 0.94, "scaleY": 1.10, "easing": "smooth" },
       { "time": ${clip.duration.toFixed(2)}, "x": 0, "y": 0, "rotation": 0, "scaleX": 1, "scaleY": 1, "easing": "smooth" }
     ]
@@ -767,19 +818,27 @@ export function parseAnimationClipFromJson(
         if (typeof item !== 'object' || item === null) continue
         const kf = item as Record<string, unknown>
 
-        const time = typeof kf.time === 'number' && !isNaN(kf.time) ? Math.max(0, kf.time) : 0
+        const rawTime = kf.time ?? kf.t
+        const time = typeof rawTime === 'number' && !isNaN(rawTime) ? Math.max(0, rawTime) : 0
+        const rawRot = kf.rotation ?? kf.rot ?? kf.angle ?? 0
+        const generalScale = typeof kf.scale === 'number' && !isNaN(kf.scale) ? kf.scale : 1
+        const rawSx = kf.scaleX ?? kf.sx ?? generalScale
+        const rawSy = kf.scaleY ?? kf.sy ?? generalScale
+        const rawZ = kf.zOrder ?? kf.zIndex ?? kf.z ?? kf.layerZ ?? kf.order
+        const parsedZ = rawZ !== undefined && Number.isFinite(Number(rawZ)) ? Number(rawZ) : undefined
         const rotation =
-          typeof kf.rotation === 'number' && !isNaN(kf.rotation) ? Number(kf.rotation.toFixed(3)) : 0
+          typeof rawRot === 'number' && !isNaN(rawRot) ? Number(rawRot.toFixed(3)) : 0
         const x = typeof kf.x === 'number' && !isNaN(kf.x) ? Number(kf.x.toFixed(2)) : 0
         const y = typeof kf.y === 'number' && !isNaN(kf.y) ? Number(kf.y.toFixed(2)) : 0
         const scaleX =
-          typeof kf.scaleX === 'number' && !isNaN(kf.scaleX) ? Number(kf.scaleX.toFixed(3)) : 1
+          typeof rawSx === 'number' && !isNaN(rawSx) ? Number(rawSx.toFixed(3)) : 1
         const scaleY =
-          typeof kf.scaleY === 'number' && !isNaN(kf.scaleY) ? Number(kf.scaleY.toFixed(3)) : 1
+          typeof rawSy === 'number' && !isNaN(rawSy) ? Number(rawSy.toFixed(3)) : 1
 
         let easing: BoneEasing = 'smooth'
-        if (typeof kf.easing === 'string' && VALID_EASINGS.has(kf.easing as BoneEasing)) {
-          easing = kf.easing as BoneEasing
+        const rawEase = kf.easing ?? kf.ease
+        if (typeof rawEase === 'string' && VALID_EASINGS.has(rawEase as BoneEasing)) {
+          easing = rawEase as BoneEasing
         }
 
         if (time > maxKeyframeTime) {
@@ -794,7 +853,7 @@ export function parseAnimationClipFromJson(
           scaleX,
           scaleY,
           easing,
-          ...(kf.zOrder !== undefined && Number.isFinite(Number(kf.zOrder)) ? { zOrder: Number(kf.zOrder) } : {})
+          ...(parsedZ !== undefined ? { zOrder: parsedZ } : {})
         })
       }
 

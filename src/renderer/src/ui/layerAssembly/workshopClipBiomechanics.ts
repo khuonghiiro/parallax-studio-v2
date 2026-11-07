@@ -604,6 +604,100 @@ function fixFrontViewLegsAndMeshImpactInPlace(
  * Tự động kiểm tra và khử các dị dạng cơ học phổ biến do AI bên ngoài sinh ra,
  * đồng thời bổ sung biến dạng lưới Mesh chịu tác lực tiếp đất (Ground Contact Impact Mesh).
  */
+/** Tự động chuẩn hoá phối cảnh chiều sâu bước đi 2.5D (Walk Depth Perspective), hoán đổi zOrder và tay-chân nghịch pha */
+function fixWalkPerspectiveAndContralateralLimbSwingInPlace(
+  tracks: Record<string, BoneKeyframe[]>,
+  roles: HumanoidBoneRoleMap,
+  fixes: string[]
+): void {
+  const thighLId = roles.thighL ?? 'bone-thigh-l'
+  const thighRId = roles.thighR ?? 'bone-thigh-r'
+  const footLId = roles.footL ?? 'bone-foot-l'
+  const footRId = roles.footR ?? 'bone-foot-r'
+  const armLId = roles.armL ?? 'bone-arm-l'
+  const armRId = roles.armR ?? 'bone-arm-r'
+
+  const tlKfs = tracks[thighLId]
+  const trKfs = tracks[thighRId]
+  const flKfs = tracks[footLId]
+  const frKfs = tracks[footRId]
+
+  const hasLegMotion =
+    (tlKfs && trKfs && tlKfs.length > 1 && trKfs.length > 1) ||
+    (flKfs && frKfs && flKfs.length > 1 && frKfs.length > 1)
+  if (!hasLegMotion) return
+
+  const tlRange = getTrackRange(tlKfs)
+  const trRange = getTrackRange(trKfs)
+  const flRange = getTrackRange(flKfs)
+  const frRange = getTrackRange(frKfs)
+
+  const isAlternatingLegs =
+    Math.abs(tlRange.maxRot - tlRange.minRot) > 5 ||
+    Math.abs(trRange.maxRot - trRange.minRot) > 5 ||
+    Math.abs(flRange.maxY - flRange.minY) > 3 ||
+    Math.abs(frRange.maxY - frRange.minY) > 3
+
+  if (!isAlternatingLegs) return
+
+  const refKfs = flKfs && flKfs.length >= 2 ? flKfs : tlKfs
+  if (!refKfs || refKfs.length < 2) return
+
+  let fixedDepthCount = 0
+  const count = refKfs.length
+
+  for (let i = 0; i < count; i++) {
+    const kfL = flKfs?.[i] ?? tlKfs?.[i]
+    const kfR = frKfs?.[i] ?? trKfs?.[i]
+    if (!kfL || !kfR) continue
+
+    const scoreL = (kfL.y || 0) * 1.5 + ((kfL.scaleY ?? 1) - 1) * 30 - kfL.rotation * 0.1
+    const scoreR = (kfR.y || 0) * 1.5 + ((kfR.scaleY ?? 1) - 1) * 30 + kfR.rotation * 0.1
+
+    if (Math.abs(scoreL - scoreR) > 1.0) {
+      const leftIsForward = scoreL > scoreR
+
+      if (flKfs && flKfs[i] && frKfs && frKfs[i]) {
+        const needZFix =
+          flKfs[i].zOrder === undefined ||
+          frKfs[i].zOrder === undefined ||
+          flKfs[i].zOrder === frKfs[i].zOrder
+
+        if (needZFix) {
+          flKfs[i].zOrder = leftIsForward ? 15 : -15
+          frKfs[i].zOrder = leftIsForward ? -15 : 15
+
+          if (leftIsForward) {
+            flKfs[i].scaleX = Math.max(flKfs[i].scaleX ?? 1, 1.06)
+            flKfs[i].scaleY = Math.max(flKfs[i].scaleY ?? 1, 1.06)
+            frKfs[i].scaleX = Math.min(frKfs[i].scaleX ?? 1, 0.95)
+            frKfs[i].scaleY = Math.min(frKfs[i].scaleY ?? 1, 0.95)
+          } else {
+            frKfs[i].scaleX = Math.max(frKfs[i].scaleX ?? 1, 1.06)
+            frKfs[i].scaleY = Math.max(frKfs[i].scaleY ?? 1, 1.06)
+            flKfs[i].scaleX = Math.min(flKfs[i].scaleX ?? 1, 0.95)
+            flKfs[i].scaleY = Math.min(flKfs[i].scaleY ?? 1, 0.95)
+          }
+          fixedDepthCount++
+        }
+      }
+
+      const armLKf = tracks[armLId]?.[i]
+      const armRKf = tracks[armRId]?.[i]
+      if (armLKf && armRKf && (armLKf.zOrder === undefined || armRKf.zOrder === undefined)) {
+        armLKf.zOrder = leftIsForward ? -50 : 50
+        armRKf.zOrder = leftIsForward ? 50 : -50
+      }
+    }
+  }
+
+  if (fixedDepthCount > 0) {
+    fixes.push(
+      'Tự động áp dụng Phối Cảnh Bước Đi 2.5D: Chân bước tới trước nổi lên (zOrder: +15, scale: 1.06) đè lên chân sau (zOrder: -15, scale: 0.95) kèm đánh tay nghịch pha đối xứng'
+    )
+  }
+}
+
 export function normalizeAndFixBiomechanicalTracks(
   rawTracks: Record<string, BoneKeyframe[]>,
   bones: ReadonlyArray<LayerBone> = [],
@@ -615,6 +709,7 @@ export function normalizeAndFixBiomechanicalTracks(
 
   fixCrossedArmsInPlace(tracks, roles, fixesApplied)
   fixPelvisAndTorsoSquashInPlace(tracks, roles, fixesApplied)
+  fixWalkPerspectiveAndContralateralLimbSwingInPlace(tracks, roles, fixesApplied)
   if (viewAngle !== 'side') {
     fixFrontViewLegsAndMeshImpactInPlace(tracks, roles, fixesApplied)
   }
