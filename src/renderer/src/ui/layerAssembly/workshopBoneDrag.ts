@@ -6,8 +6,8 @@ import { buildZeroAnchorOps } from './workshopStepRecord'
 import { aimBoneAtPoint, classifyBoneSide, computeBoneTail } from './mohoRigHelpers'
 import { clampBoneRotation } from './boneConstraints'
 
-/** head = dời khớp · tail = chỉnh xương (tạo xương) · rotate = xoay FK · ik = kéo ngọn, chuỗi xương cha xoay theo. */
-export type BoneDragMode = 'head' | 'tail' | 'rotate' | 'ik'
+/** head = dời khớp · tail = chỉnh xương (tạo xương) · rotate = xoay FK · ik = kéo ngọn, chuỗi xương cha xoay theo · scale = phóng to/thu nhỏ bộ phận & xương. */
+export type BoneDragMode = 'head' | 'tail' | 'rotate' | 'ik' | 'scale'
 
 interface IkDragState {
   chain: IkChain
@@ -173,6 +173,27 @@ export function boneDragAction(
   const dx = point.x - drag.point.x
   const dy = point.y - drag.point.y
   if (mode === 'ik' && drag.ik) return ikDragAction(drag, drag.ik, point)
+
+  if (mode === 'scale') {
+    const initDist = Math.max(12, Math.hypot(drag.point.x - transform.x, drag.point.y - transform.y))
+    const curDist = Math.max(4, Math.hypot(point.x - transform.x, point.y - transform.y))
+    const ratio = Math.max(0.15, Math.min(4.0, curDist / initDist))
+    if (editing) {
+      return {
+        action: 'update-bone',
+        boneId: bone.id,
+        patch: { length: Number(Math.max(4, bone.length * ratio).toFixed(2)) }
+      }
+    }
+    const nextScaleX = Number(Math.max(0.15, Math.min(4.0, (pose.scaleX ?? 1) * ratio)).toFixed(3))
+    const nextScaleY = Number(Math.max(0.15, Math.min(4.0, (pose.scaleY ?? 1) * ratio)).toFixed(3))
+    const keyOp = {
+      action: 'set-key' as const,
+      boneId: bone.id,
+      key: { time, scaleX: nextScaleX, scaleY: nextScaleY }
+    }
+    return zeroAnchorOps.length ? { action: 'batch', operations: [...zeroAnchorOps, keyOp] } : keyOp
+  }
 
   if (mode === 'head') {
     if (editing) return buildWeldedHeadEditAction(rig.bones, bone, dx, dy, altKey)

@@ -30,6 +30,8 @@ export interface LayerBone {
    */
   minAngle?: number
   maxAngle?: number
+  /** Màu sắc riêng biệt của xương trên sân khấu 2D (tự động cấp phát nếu bỏ trống). */
+  color?: string
 }
 
 export interface BonePose {

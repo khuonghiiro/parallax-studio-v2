@@ -115,6 +115,60 @@ export function moveLinked(composite: LayerComposite, id: string, x: number, y: 
   }
 }
 
+/**
+ * Đồng bộ chiều dài và vị trí (x, y) của chuỗi xương gắn với layer khi người dùng phóng to / thu nhỏ (scale)
+ * hoặc dời vị trí layer ở chế độ lắp ráp / chỉnh khớp.
+ */
+export function scaleAndMoveLayerWithBoundBones(
+  composite: LayerComposite,
+  id: string,
+  patch: Partial<AssembledLayerItem>
+): LayerComposite {
+  const prevLayer = composite.layers.find((l) => l.id === id)
+  if (!prevLayer || prevLayer.locked) return composite
+  const nextLayer = { ...prevLayer, ...patch }
+  const prevScale = Math.max(0.05, prevLayer.scale || 1)
+  const nextScale = Math.max(0.05, nextLayer.scale || 1)
+  const scaleRatio = nextScale / prevScale
+  const dx = nextLayer.x - prevLayer.x
+  const dy = nextLayer.y - prevLayer.y
+  const hasScaleChange = Math.abs(scaleRatio - 1) > 1e-4
+  const hasPosChange = Math.abs(dx) > 1e-4 || Math.abs(dy) > 1e-4
+
+  const nextLayers = composite.layers.map((l) => (l.id === id ? nextLayer : l))
+  if (!composite.rig?.bones?.length || (!hasScaleChange && !hasPosChange)) {
+    return { ...composite, layers: nextLayers }
+  }
+
+  const bonesToSync = getBonesForLayers(composite, [id])
+  if (!bonesToSync.length) {
+    return { ...composite, layers: nextLayers }
+  }
+
+  const syncSet = new Set(bonesToSync)
+  const nextBones = composite.rig.bones.map((b) => {
+    if (!syncSet.has(b.id)) return b
+    const nextX = Number((nextLayer.x + (b.x - prevLayer.x) * scaleRatio).toFixed(2))
+    const nextY = Number((nextLayer.y + (b.y - prevLayer.y) * scaleRatio).toFixed(2))
+    const nextLength = hasScaleChange ? Math.max(8, Number((b.length * scaleRatio).toFixed(2))) : b.length
+    return {
+      ...b,
+      x: nextX,
+      y: nextY,
+      length: nextLength
+    }
+  })
+
+  return {
+    ...composite,
+    layers: nextLayers,
+    rig: {
+      ...composite.rig,
+      bones: nextBones
+    }
+  }
+}
+
 export function createPartGroup(composite: LayerComposite, name: string, layerIds: string[], kind: LayerPartKind = 'custom'): LayerComposite {
   const id = `part-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
   const group: LayerPartGroup = { id, name: name.trim() || 'Nhóm mới', kind, locked: true, anchorLayerId: layerIds[0] }

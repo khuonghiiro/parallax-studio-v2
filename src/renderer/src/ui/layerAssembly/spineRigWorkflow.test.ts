@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { LayerComposite } from './types'
 import type { LayerBone } from '@shared/layerRig'
+import { evaluateRig } from '../../engine/layerRig'
 import {
   findCutoutLayerAtStroke,
   getBoundLayersForBone,
@@ -8,6 +9,9 @@ import {
   resolveSpineParentForStroke,
   syncSpineStyleRigAndSlots
 } from './spineRigWorkflow'
+import { scaleAndMoveLayerWithBoundBones } from './workshopParts'
+import { boneDragAction, startBoneDrag } from './workshopBoneDrag'
+import { getBoneDistinctColor } from './WorkshopBoneItemSvg'
 import { applyRigAction } from './workshopRig'
 
 const USER_HAND_DRAWN_BONES: LayerBone[] = [
@@ -255,5 +259,64 @@ describe('spineRigWorkflow (Spine 2D Trial style)', () => {
     const idleClip = rig.clips?.find((c) => c.id === 'clip-idle')!
     expect(Object.keys(walkClip.tracks).length).toBeGreaterThanOrEqual(8)
     expect(Object.keys(idleClip.tracks).length).toBeGreaterThanOrEqual(5)
+  })
+
+  it('scales bound bones proportionally when scaling a layer (scaleAndMoveLayerWithBoundBones)', () => {
+    const comp = applyRigAction(createUserCutoutComposite(), { action: 'sync-spine-rig' })
+    const layer8Before = comp.layers.find((l) => l.id === 'layer-8')!
+    const thighBefore = comp.rig!.bones.find((b) => b.id === 'bone-l3o2cxr')!
+    const shinBefore = comp.rig!.bones.find((b) => b.id === 'bone-13n76z2')!
+    const footBefore = comp.rig!.bones.find((b) => b.id === 'bone-48x18v0')!
+
+    // Scale Right Leg (layer-8) by 2x
+    const scaled = scaleAndMoveLayerWithBoundBones(comp, 'layer-8', { scale: layer8Before.scale * 2 })
+    const thighAfter = scaled.rig!.bones.find((b) => b.id === 'bone-l3o2cxr')!
+    const shinAfter = scaled.rig!.bones.find((b) => b.id === 'bone-13n76z2')!
+    const footAfter = scaled.rig!.bones.find((b) => b.id === 'bone-48x18v0')!
+
+    expect(thighAfter.length).toBeCloseTo(thighBefore.length * 2, 1)
+    expect(shinAfter.length).toBeCloseTo(shinBefore.length * 2, 1)
+    expect(footAfter.length).toBeCloseTo(footBefore.length * 2, 1)
+  })
+
+  it('records animated scaleX/scaleY keyframes via bone scale drag and propagates scale to child bones in evaluateRig', () => {
+    const baseComp = applyRigAction(createUserCutoutComposite(), { action: 'sync-spine-rig' })
+    const comp = applyRigAction(baseComp, {
+      action: 'add-clip',
+      clip: { id: 'clip-custom', name: 'Động tác Scale Chân Phải', duration: 2, loop: true, tracks: {} }
+    })
+    const rig = comp.rig!
+    const thigh = rig.bones.find((b) => b.id === 'bone-l3o2cxr')!
+    const shin = rig.bones.find((b) => b.id === 'bone-13n76z2')!
+
+    // Start scale drag at distance 100px from thigh head and drag to 150px (1.5x scale) at t = 0.6s
+    const drag = startBoneDrag(rig, thigh.id, 0.6, false, 'scale', { x: thigh.x, y: thigh.y + 100 })
+    const action = boneDragAction(drag, { x: thigh.x, y: thigh.y + 150 }, false)
+    const updated = applyRigAction(comp, action)
+
+    // Evaluate at t = 0 (1.0x) vs t = 0.3 (~1.25x) vs t = 0.6 (1.5x)
+    const tf0 = evaluateRig(updated.rig!, 0)
+    const tfMid = evaluateRig(updated.rig!, 0.3)
+    const tfEnd = evaluateRig(updated.rig!, 0.6)
+
+    expect(tf0.get(thigh.id)?.scaleX).toBeCloseTo(1, 2)
+    expect(tfMid.get(thigh.id)?.scaleX).toBeGreaterThan(1.15)
+    expect(tfEnd.get(thigh.id)?.scaleX).toBeCloseTo(1.5, 2)
+    expect(tfEnd.get(shin.id)?.scaleX).toBeCloseTo(1.5, 2)
+    // Child knee joint (shin.y) scales its distance from parent hip joint (thigh.y) by 1.5x!
+    const restKneeDist = shin.y - thigh.y
+    const scaledKneeDist = (tfEnd.get(shin.id)?.y ?? 0) - (tfEnd.get(thigh.id)?.y ?? 0)
+    expect(scaledKneeDist).toBeCloseTo(restKneeDist * 1.5, 1)
+  })
+
+  it('assigns distinct anatomical colors to bones via getBoneDistinctColor', () => {
+    const comp = applyRigAction(createUserCutoutComposite(), { action: 'sync-spine-rig' })
+    const bones = comp.rig!.bones
+    const colors = bones.map((b) => getBoneDistinctColor(b, bones))
+    expect(colors.every((c) => c.startsWith('#'))).toBe(true)
+    // Left Leg and Right Leg have distinct colors
+    const leftThighColor = getBoneDistinctColor(bones.find((b) => b.id === 'bone-b87b4i9')!, bones)
+    const rightThighColor = getBoneDistinctColor(bones.find((b) => b.id === 'bone-l3o2cxr')!, bones)
+    expect(leftThighColor).not.toBe(rightThighColor)
   })
 })

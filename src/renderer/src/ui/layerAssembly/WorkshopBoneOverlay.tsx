@@ -575,19 +575,23 @@ export function WorkshopBoneOverlay({
     )
     const mirrorSuffix = mirrorOn ? ' · 🪞 Đối xứng' : ''
     const text =
-      rawAction.action === 'batch'
-        ? drag.ik
-          ? `IK · ${drag.ik.chain.boneIds.length} xương · Enter ⏎ chốt`
-          : `${drag.bone.name} · Enter ⏎ chốt`
-        : rawAction.action === 'set-key'
-          ? rawAction.key.rotation !== undefined
-            ? `${rawAction.key.rotation.toFixed(1)}° · Enter ⏎ chốt`
-            : `${rawAction.key.x?.toFixed(0)}, ${rawAction.key.y?.toFixed(0)} · Enter ⏎ chốt`
-          : rawAction.action === 'update-bones'
-            ? `${drag.bone.name} · 🔗 Hàn khớp${mirrorSuffix}`
-            : rawAction.action === 'update-bone'
-              ? `${rawAction.patch.angle !== undefined ? `${rawAction.patch.angle.toFixed(0)}°` : `${Math.round(rawAction.patch.x ?? drag.bone.x)}, ${Math.round(rawAction.patch.y ?? drag.bone.y)}`}${mirrorSuffix}`
-              : ''
+      drag.mode === 'scale'
+        ? `⤢ Scale "${drag.bone.name}" · Enter ⏎ chốt`
+        : rawAction.action === 'batch'
+          ? drag.ik
+            ? `IK · ${drag.ik.chain.boneIds.length} xương · Enter ⏎ chốt`
+            : `${drag.bone.name} · Enter ⏎ chốt`
+          : rawAction.action === 'set-key'
+            ? rawAction.key.scaleX !== undefined
+              ? `⤢ ${Math.round(rawAction.key.scaleX * 100)}% · Enter ⏎ chốt`
+              : rawAction.key.rotation !== undefined
+                ? `${rawAction.key.rotation.toFixed(1)}° · Enter ⏎ chốt`
+                : `${rawAction.key.x?.toFixed(0)}, ${rawAction.key.y?.toFixed(0)} · Enter ⏎ chốt`
+            : rawAction.action === 'update-bones'
+              ? `${drag.bone.name} · 🔗 Hàn khớp${mirrorSuffix}`
+              : rawAction.action === 'update-bone'
+                ? `${rawAction.patch.angle !== undefined ? `${rawAction.patch.angle.toFixed(0)}°` : `${Math.round(rawAction.patch.x ?? drag.bone.x)}, ${Math.round(rawAction.patch.y ?? drag.bone.y)}`}${mirrorSuffix}`
+                : ''
     setDragAngle({ x: point.x, y: point.y, text })
   }
 

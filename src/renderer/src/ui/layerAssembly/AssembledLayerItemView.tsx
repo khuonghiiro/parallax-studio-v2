@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { evaluateRig, rotatePoint } from '../../engine/layerRig'
 import { evaluateLoopLayerRhythm } from '../../project/gifHelper'
 import type { AssemblyLighting } from '../assets/models3d/types'
 import { getCachedLoopTemplateSheet } from '../loopAnimator/loopFrameExtractor'
@@ -243,6 +244,27 @@ export function AssembledLayerItemView({
   const squashScaleY = (layer.scaleY ?? 1) * animScaleY * loopRhythm.scaleMultiplier
   const invScale = 1 / Math.max(0.2, baseScale)
 
+  const softBboxState = useMemo(() => {
+    if (!usesMeshCanvas || !layer.previewRig || !layer.boneId) return null
+    const bone = layer.previewRig.bones.find((b) => b.id === layer.boneId)
+    if (!bone) return null
+    const tf = evaluateRig(layer.previewRig, time).get(layer.boneId)
+    if (!tf) return null
+    const sx = tf.scaleX ?? 1
+    const sy = tf.scaleY ?? 1
+    const rotated = rotatePoint((layer.x - bone.x) * sx, (layer.y - bone.y) * sy, tf.rotation)
+    const worldX = tf.x + rotated.x
+    const worldY = tf.y + rotated.y
+    const localDx = (worldX - layer.x) / baseScale
+    const localDy = (worldY - layer.y) / baseScale
+    return {
+      transform: `translate(${localDx}px, ${localDy}px) rotate(${tf.rotation}deg) scale(${sx}, ${sy})`,
+      invBboxScale: 1 / Math.max(0.2, baseScale * Math.max(Math.abs(sx), Math.abs(sy)))
+    }
+  }, [usesMeshCanvas, layer.previewRig, layer.boneId, layer.x, layer.y, baseScale, time])
+
+  const invBboxScale = softBboxState?.invBboxScale ?? invScale
+
   const layerTransform = show3DPerspective
     ? `perspective(1400px) rotateY(${-rotY}deg) rotateX(${rotX}deg) rotateZ(${rotZ + animRotate}deg) scale(${squashScaleX}, ${squashScaleY})`
     : `rotate(${rotZ + animRotate}deg) scale(${squashScaleX}, ${squashScaleY})`
@@ -375,12 +397,21 @@ export function AssembledLayerItemView({
         )}
 
         {isSelected && showBbox && !layer.locked && (
-          <>
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              transform: softBboxState?.transform,
+              transformOrigin: '50% 50%',
+              pointerEvents: 'none',
+              zIndex: 15
+            }}
+          >
             <div
               style={{
                 position: 'absolute',
                 inset: '-2px',
-                border: `${Math.max(1, 1.5 * invScale)}px solid var(--accent)`,
+                border: `${Math.max(1, 1.5 * invBboxScale)}px solid var(--accent)`,
                 borderRadius: '2px',
                 pointerEvents: 'none',
                 zIndex: 15
@@ -395,7 +426,7 @@ export function AssembledLayerItemView({
                   bottom: h.bottom,
                   left: h.left,
                   right: h.right,
-                  transform: h.transform ? `${h.transform} scale(${invScale})` : `scale(${invScale})`,
+                  transform: h.transform ? `${h.transform} scale(${invBboxScale})` : `scale(${invBboxScale})`,
                   width: '9px',
                   height: '9px',
                   background: 'var(--bg-0)',
@@ -415,7 +446,7 @@ export function AssembledLayerItemView({
                 }}
               />
             ))}
-          </>
+          </div>
         )}
       </div>
     </div>
