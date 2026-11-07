@@ -33,7 +33,11 @@ export function useCutterPieceTransfer({
   setLassoPoints
 }: UseCutterPieceTransferOptions) {
   const extractPieceFromBox = useCallback(
-    async (box: { x: number; y: number; width: number; height: number }, polygon?: CutPoint[]) => {
+    async (
+      box: { x: number; y: number; width: number; height: number },
+      polygon?: CutPoint[],
+      siblingBoxes?: Array<{ x: number; y: number; width: number; height: number }>
+    ) => {
       const proc = procCanvasRef.current
       if (!proc) return ''
       const hasManualEdits = Boolean(
@@ -46,10 +50,11 @@ export function useCutterPieceTransfer({
           polygon,
           fullRawCanvasRef.current,
           chroma,
-          hasManualEdits
+          hasManualEdits,
+          siblingBoxes
         )
       } catch {
-        return extractRegionDataUrl(proc, box, polygon, fullRawCanvasRef.current, chroma)
+        return extractRegionDataUrl(proc, box, polygon, fullRawCanvasRef.current, chroma, siblingBoxes)
       }
     },
     [chroma, fullRawCanvasRef, procCanvasRef, userAlphaOverrideRef]
@@ -61,7 +66,8 @@ export function useCutterPieceTransfer({
       setMarquee(null)
       setLassoPoints([])
 
-      const dataUrl = await extractPieceFromBox(isl)
+      const siblingBoxes = activeIslands.filter((o) => o.id !== isl.id)
+      const dataUrl = await extractPieceFromBox(isl, undefined, siblingBoxes)
       if (!dataUrl) return
       const piece: CutPiece = {
         id: isl.id,
@@ -77,12 +83,13 @@ export function useCutterPieceTransfer({
       } catch {}
       onSelectPiece(piece)
     },
-    [extractPieceFromBox, imgNaturalSize.w, imgNaturalSize.h, onSelectPiece, setLassoPoints, setMarquee, setSelectedIslandId]
+    [activeIslands, extractPieceFromBox, imgNaturalSize.w, imgNaturalSize.h, onSelectPiece, setLassoPoints, setMarquee, setSelectedIslandId]
   )
 
   const handleQuickAddIsland = useCallback(
     async (isl: DetectedIsland) => {
-      const dataUrl = await extractPieceFromBox(isl)
+      const siblingBoxes = activeIslands.filter((o) => o.id !== isl.id)
+      const dataUrl = await extractPieceFromBox(isl, undefined, siblingBoxes)
       if (!dataUrl) return
       const piece: CutPiece = {
         id: isl.id,
@@ -96,7 +103,7 @@ export function useCutterPieceTransfer({
       onSelectPiece(piece)
       onTransferToTarget(piece, { x: 0, y: 0 })
     },
-    [extractPieceFromBox, imgNaturalSize.w, imgNaturalSize.h, onSelectPiece, onTransferToTarget]
+    [activeIslands, extractPieceFromBox, imgNaturalSize.w, imgNaturalSize.h, onSelectPiece, onTransferToTarget]
   )
 
   const handleSendAllToBoard = useCallback(async () => {
@@ -107,7 +114,8 @@ export function useCutterPieceTransfer({
     const scaleToBoard = Math.min(1, (boardMin * 0.76) / Math.max(imgNaturalSize.w, imgNaturalSize.h))
 
     for (const isl of activeIslands) {
-      const dataUrl = await extractPieceFromBox(isl)
+      const siblingBoxes = activeIslands.filter((o) => o.id !== isl.id)
+      const dataUrl = await extractPieceFromBox(isl, undefined, siblingBoxes)
       if (!dataUrl) continue
       const relX = Math.round((isl.x + isl.width / 2 - centerX) * scaleToBoard)
       const relY = Math.round((isl.y + isl.height / 2 - centerY) * scaleToBoard)

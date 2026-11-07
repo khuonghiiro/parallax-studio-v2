@@ -17,6 +17,7 @@ import {
   sampleEyedropperAtPoint,
   type CutterStrokeSession
 } from './chromaKey'
+import { boxesIntersect } from './islandDisambiguation'
 import {
   computeGridIslands,
   applyMagicWandFlood
@@ -592,7 +593,8 @@ export function SpriteCutterSourcePane({
       const h = Math.abs(marquee.currentY - marquee.startY)
       if (w >= 10 && h >= 10) {
         const box = { x: minX, y: minY, width: w, height: h }
-        const dataUrl = await extractPieceFromBox(box)
+        const siblingBoxes = activeIslands.filter((o) => boxesIntersect(box, o))
+        const dataUrl = await extractPieceFromBox(box, undefined, siblingBoxes)
         const piece: CutPiece = {
           id: `box-${Date.now()}`,
           dataUrl,
@@ -622,7 +624,8 @@ export function SpriteCutterSourcePane({
       const h = maxY - minY
       if (w >= 10 && h >= 10) {
         const box = { x: minX, y: minY, width: w, height: h }
-        const dataUrl = await extractPieceFromBox(box, lassoPoints)
+        const siblingBoxes = activeIslands.filter((o) => boxesIntersect(box, o))
+        const dataUrl = await extractPieceFromBox(box, lassoPoints, siblingBoxes)
         const piece: CutPiece = {
           id: `lasso-${Date.now()}`,
           dataUrl,
@@ -658,12 +661,14 @@ export function SpriteCutterSourcePane({
     }
     const proc = procCanvasRef.current
     if (!proc) return
+    const siblingBoxes = activeIslands.filter((o) => o.id !== isl.id)
     const syncDataUrl = extractRegionDataUrl(
       proc,
       isl,
       undefined,
       fullRawCanvasRef.current,
-      chroma
+      chroma,
+      siblingBoxes
     )
     if (!syncDataUrl) return
     const syncPiece: CutPiece = {
