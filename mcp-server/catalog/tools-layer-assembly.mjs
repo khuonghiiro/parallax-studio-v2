@@ -434,12 +434,12 @@ export const LAYER_ASSEMBLY_TOOLS = [
       sub_tab: z.enum([
         'stack', 'transform', 'depth', 'parts', 'cloth',
         'hierarchy', 'build', 'binding', 'autorig',
-        'pose', 'clips', 'physics',
+        'pose', 'clips', 'plant', 'physics',
         'spines', 'create', 'harmony',
         'template', 'playback', 'rhythm'
       ]).optional().describe(d(
-        'Active horizontal sub-tab: layers (stack, transform, depth, parts, cloth), bones (hierarchy, build, binding, autorig), animation (pose, clips, physics), plant (spines, create, harmony), loop (template, playback, rhythm).',
-        'Sub-tab ngang con cần kích hoạt: layers (stack, transform, depth, parts, cloth), bones (hierarchy, build, binding, autorig), animation (pose, clips, physics), plant (spines, add, wind), loop (template, playback, rhythm).'
+        'Active horizontal sub-tab: layers (stack, transform, depth, parts, cloth), bones (hierarchy, build, binding, autorig), animation (pose, clips, plant, physics), plant (spines, create, harmony), loop (template, playback, rhythm).',
+        'Sub-tab ngang con cần kích hoạt: layers (stack, transform, depth, parts, cloth), bones (hierarchy, build, binding, autorig), animation (pose, clips, plant, physics), plant (spines, add, wind), loop (template, playback, rhythm).'
       )),
       bone_id: z.string().optional().describe(d('Optional bone ID to select.', 'ID xương cần chọn.')),
       spine_id: z.string().optional().describe(d('Optional plant spine ID to select.', 'ID xương motion cần chọn.')),

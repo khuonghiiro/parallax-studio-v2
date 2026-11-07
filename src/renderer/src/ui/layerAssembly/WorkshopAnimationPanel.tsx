@@ -51,7 +51,7 @@ type Props = RigCommonProps & {
   onChangeSubTab?: (t: AnimInspectorSubTab) => void
 }
 
-export type AnimInspectorSubTab = 'pose' | 'clips' | 'physics'
+export type AnimInspectorSubTab = 'pose' | 'clips' | 'plant' | 'physics'
 
 const STUDIO_FPS_PRESETS = [12, 24, 30, 60] as const
 

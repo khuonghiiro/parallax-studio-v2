@@ -5,6 +5,7 @@ import { PlantSpineOverlay, type PlantSpineOverlayProps } from './PlantSpineOver
 import { MotionSketchOverlay, type MotionSketchOverlayProps } from './MotionSketchOverlay'
 import { AnimAssistChips } from './AnimAssistChips'
 import { confirmPoseAndStep } from './workshopStepRecord'
+import { useWorkshopSubTab } from './workshopSubTabStore'
 import { PlantMotionChips } from './PlantMotionSection'
 import { RigGhostOverlay } from './RigGhostOverlay'
 import { LayerAssemblyTransportBar } from './LayerAssemblyTransportBar'
@@ -115,6 +116,8 @@ export function LayerAssemblyViewport({
   }, [composite.layers, selectedLayerId])
 
   const [isolatedPreviewUrl, setIsolatedPreviewUrl] = useState<string | null>(null)
+  const [animSubTab] = useWorkshopSubTab('animation')
+  const isPlantActive = tab === 'plant' || (tab === 'animation' && animSubTab === 'plant')
   const [showStageHint, setShowStageHint] = useState<boolean>(false)
   const handleBrushPreview = useCallback((preview: BrushPreview | null) => {
     setIsolatedPreviewUrl(preview?.imageUrl || null)
@@ -709,7 +712,7 @@ export function LayerAssemblyViewport({
             }}
           />
         )}
-        {tab === 'plant' && plantOverlay && brush.activeTool !== 'eraser' && <PlantMotionChips />}
+        {isPlantActive && plantOverlay && brush.activeTool !== 'eraser' && <PlantMotionChips />}
 
         {/* Floating 2D Hint (Ẩn mặc định, có toggle icon nhỏ gọn) */}
         {brush.activeTool !== 'eraser' && (
