@@ -186,7 +186,7 @@ export function findElementsInBox(box: {
     if (
       target &&
       (target.classList?.contains?.('ai-safety-barrier') ||
-        target.classList?.contains?.('ai-ui-inspector-overlay'))
+        target.classList?.contains?.('ai-ui-inspector-overlay') || target.classList?.contains?.('ai-ui-inspector-barrier'))
     ) {
       const origPointerEvents = (target as HTMLElement).style.pointerEvents
       ;(target as HTMLElement).style.pointerEvents = 'none'
@@ -232,7 +232,7 @@ export function findElementsInBox(box: {
   for (const el of candidates) {
     // Bỏ qua các overlay của chính công cụ soi AI hoặc safety barrier
     if (
-      el.closest('.ai-ui-inspector-overlay') ||
+      el.closest('.ai-ui-inspector-overlay') || el.closest('.ai-ui-inspector-barrier') || el.closest('.ai-ui-inspector-screen-frame') ||
       el.closest('.ai-control-overlay') ||
       el.classList.contains('ai-safety-barrier') ||
       el.classList.contains('ai-neon-border-frame')

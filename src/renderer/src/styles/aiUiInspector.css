@@ -2,45 +2,115 @@
    AI UI Inspector — Khung quét vùng giao diện trích xuất ngữ cảnh cho AI
    ========================================================================== */
 
-/* Lớp phủ toàn màn hình khi đang ở chế độ chờ hoặc đang quét */
-.ai-ui-inspector-overlay {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 999990;
-  user-select: none;
-}
-
 /* Con trỏ toàn màn hình khi kích hoạt chế độ sẵn sàng quét */
 body.ai-ui-inspector-active {
   cursor: crosshair !important;
   user-select: none !important;
 }
 
-/* Badge trạng thái nổi ở góc màn hình khi vừa bật chế độ Soi UI */
+/* 1. LỚP CHẮN BẢO VỆ KHOÁ TOÀN BỘ UI MÀN HÌNH ĐỂ TRÁNH THAO TÁC NHẦM VÀO APP */
+.ai-ui-inspector-barrier {
+  position: fixed;
+  inset: 0;
+  z-index: 999980;
+  pointer-events: auto !important;
+  cursor: crosshair !important;
+  background: rgba(15, 23, 42, 0.14);
+  backdrop-filter: blur(0.5px);
+  user-select: none;
+}
+
+/* 2. VIỀN SÁNG NEON BÁO HIỆU TOÀN MÀN HÌNH ĐÃ ACTIVE CHẾ ĐỘ SOI */
+.ai-ui-inspector-screen-frame {
+  position: fixed;
+  inset: 0;
+  z-index: 999985;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 2.5px var(--accent-cyan, #38bdf8), inset 0 0 32px rgba(56, 189, 248, 0.3);
+  animation: aiInspectorPulseFrame 2s infinite ease-in-out;
+}
+
+.ai-ui-inspector-screen-glow {
+  position: absolute;
+  inset: 0;
+  box-shadow: inset 0 0 64px rgba(56, 189, 248, 0.15);
+}
+
+.ai-ui-inspector-screen-corner {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  border-color: var(--accent-cyan, #38bdf8);
+  border-style: solid;
+  pointer-events: none;
+  filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.6));
+}
+
+.ai-ui-inspector-screen-corner.corner-tl {
+  top: 4px;
+  left: 4px;
+  border-width: 3.5px 0 0 3.5px;
+}
+
+.ai-ui-inspector-screen-corner.corner-tr {
+  top: 4px;
+  right: 4px;
+  border-width: 3.5px 3.5px 0 0;
+}
+
+.ai-ui-inspector-screen-corner.corner-bl {
+  bottom: 4px;
+  left: 4px;
+  border-width: 0 0 3.5px 3.5px;
+}
+
+.ai-ui-inspector-screen-corner.corner-br {
+  bottom: 4px;
+  right: 4px;
+  border-width: 0 3.5px 3.5px 0;
+}
+
+/* 3. Badge HUD trung tâm nổi ở đầu màn hình báo hiệu trạng thái sẵn sàng quét */
 .ai-ui-inspector-arm-hud {
   position: fixed;
-  top: 48px;
-  right: 18px;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
-  background: var(--bg-1, #1e293b);
+  gap: 10px;
+  padding: 8px 16px;
+  background: color-mix(in srgb, var(--bg-1, #1e293b) 92%, #0f172a);
   border: 1px solid var(--accent-cyan, #38bdf8);
   border-radius: var(--radius-md, 6px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), 0 0 10px rgba(56, 189, 248, 0.25);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 16px rgba(56, 189, 248, 0.35);
   color: var(--text, #f8fafc);
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
+  letter-spacing: 0.2px;
   pointer-events: auto;
-  z-index: 999992;
+  z-index: 999996;
   animation: aiInspectorSlideDown 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ai-ui-inspector-arm-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent-cyan, #38bdf8);
+  box-shadow: 0 0 8px var(--accent-cyan, #38bdf8);
+  animation: aiInspectorDotPulse 1.2s infinite ease-in-out;
+}
+
+.ai-ui-inspector-arm-desc {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-dim, #94a3b8);
 }
 
 .ai-ui-inspector-arm-hud kbd {
   display: inline-block;
-  padding: 2px 5px;
+  padding: 2px 6px;
   background: var(--bg-3, #0f172a);
   border: 1px solid var(--line-soft, rgba(255, 255, 255, 0.15));
   border-radius: 4px;
@@ -53,14 +123,14 @@ body.ai-ui-inspector-active {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   background: transparent;
   border: none;
   color: var(--text-dim, #94a3b8);
   font-size: 14px;
   cursor: pointer;
-  border-radius: 3px;
+  border-radius: 4px;
   transition: color 0.15s, background 0.15s;
 }
 
@@ -69,12 +139,12 @@ body.ai-ui-inspector-active {
   color: var(--text, #fff);
 }
 
-/* Khung chữ nhật quét chuột (Marquee Box) */
+/* 4. Khung chữ nhật quét chuột (Marquee Snip Box) */
 .ai-ui-inspector-marquee {
   position: fixed;
   border: 1.5px dashed var(--accent-cyan, #38bdf8);
-  background: rgba(56, 189, 248, 0.12);
-  box-shadow: 0 0 16px rgba(56, 189, 248, 0.35), inset 0 0 12px rgba(56, 189, 248, 0.12);
+  background: rgba(56, 189, 248, 0.14);
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.4), inset 0 0 16px rgba(56, 189, 248, 0.18);
   pointer-events: none;
   z-index: 999995;
   will-change: transform, width, height;
@@ -85,8 +155,8 @@ body.ai-ui-inspector-active {
 .ai-ui-inspector-marquee::after {
   content: '';
   position: absolute;
-  width: 10px;
-  height: 10px;
+  width: 12px;
+  height: 12px;
   border-color: var(--accent-cyan, #38bdf8);
   border-style: solid;
   pointer-events: none;
@@ -104,7 +174,7 @@ body.ai-ui-inspector-active {
   border-width: 0 2.5px 2.5px 0;
 }
 
-/* Badge thông số kích thước & số lượng phần tử gắn dưới góc khung */
+/* Badge thông số kích thước gắn dưới góc khung */
 .ai-ui-inspector-badge {
   position: absolute;
   bottom: -28px;
@@ -113,7 +183,7 @@ body.ai-ui-inspector-active {
   align-items: center;
   gap: 6px;
   padding: 3px 8px;
-  background: rgba(15, 23, 42, 0.92);
+  background: rgba(15, 23, 42, 0.94);
   border: 1px solid var(--accent-cyan, #38bdf8);
   border-radius: var(--radius-sm, 4px);
   color: var(--accent-cyan, #38bdf8);
@@ -122,11 +192,11 @@ body.ai-ui-inspector-active {
   font-weight: 600;
   letter-spacing: 0.3px;
   white-space: nowrap;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
   pointer-events: none;
 }
 
-/* Toast thông báo đã sao chép ngữ cảnh AI thành công */
+/* 5. Toast thông báo đã sao chép ngữ cảnh AI thành công */
 .ai-ui-inspector-toast {
   position: fixed;
   top: 24px;
@@ -134,12 +204,12 @@ body.ai-ui-inspector-active {
   transform: translateX(-50%);
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 16px;
-  background: color-mix(in srgb, var(--bg-1, #1e293b) 90%, #0f172a);
+  gap: 12px;
+  padding: 8px 18px;
+  background: color-mix(in srgb, var(--bg-1, #1e293b) 92%, #0f172a);
   border: 1px solid var(--accent-cyan, #38bdf8);
   border-radius: var(--radius, 6px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45), 0 0 16px rgba(56, 189, 248, 0.28);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 16px rgba(56, 189, 248, 0.3);
   color: var(--text, #f8fafc);
   font-size: 13px;
   font-weight: 500;
@@ -158,7 +228,7 @@ body.ai-ui-inspector-active {
 .ai-ui-inspector-toast-msg {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
 }
 
 .ai-ui-inspector-toast-title {
@@ -175,7 +245,7 @@ body.ai-ui-inspector-active {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 4px 8px;
+  padding: 4px 10px;
   background: rgba(56, 189, 248, 0.15);
   border: 1px solid rgba(56, 189, 248, 0.4);
   border-radius: var(--radius-sm, 4px);
@@ -191,11 +261,11 @@ body.ai-ui-inspector-active {
   color: #0f172a;
 }
 
-/* Modal xem trước nội dung context đã copy */
+/* 6. Modal xem trước nội dung context */
 .ai-ui-inspector-preview-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.65);
+  background: rgba(0, 0, 0, 0.7);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
@@ -212,7 +282,7 @@ body.ai-ui-inspector-active {
   background: var(--bg-1, #1e293b);
   border: 1px solid var(--line-focus, rgba(56, 189, 248, 0.4));
   border-radius: var(--radius-lg, 8px);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.65);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -259,14 +329,34 @@ body.ai-ui-inspector-active {
   border-top: 1px solid var(--line-soft, rgba(255, 255, 255, 0.1));
 }
 
+@keyframes aiInspectorPulseFrame {
+  0%, 100% {
+    box-shadow: inset 0 0 0 2.5px var(--accent-cyan, #38bdf8), inset 0 0 32px rgba(56, 189, 248, 0.25);
+  }
+  50% {
+    box-shadow: inset 0 0 0 2.5px var(--accent-cyan, #38bdf8), inset 0 0 48px rgba(56, 189, 248, 0.45);
+  }
+}
+
+@keyframes aiInspectorDotPulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(0.8);
+  }
+}
+
 @keyframes aiInspectorSlideDown {
   from {
     opacity: 0;
-    transform: translateY(-8px);
+    transform: translate(-50%, -10px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translate(-50%, 0);
   }
 }
 
