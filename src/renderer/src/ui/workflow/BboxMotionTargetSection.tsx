@@ -40,16 +40,13 @@ export function BboxMotionTargetSection({ model }: { model: BboxMotionModel }): 
   const currentStartPos = currentEnt
     ? bboxStartPosition(currentEnt.rootLayer, tStart, node.id)
     : startPos
-  const activeTargetX = currentCustom?.targetX ?? (
-    currentEnt && currentEnt.id !== primaryEnt?.id
-      ? Math.round(currentStartPos[0] + 280)
-      : targetX
-  )
-  const activeTargetY = currentCustom?.targetY ?? (
-    currentEnt && currentEnt.id !== primaryEnt?.id
-      ? Math.round(currentStartPos[1])
-      : targetY
-  )
+  const isPrimary = !currentEnt || currentEnt.id === primaryEnt?.id
+  const activeTargetX = isPrimary
+    ? targetX
+    : (currentCustom?.targetX ?? Math.round(currentStartPos[0] + 280))
+  const activeTargetY = isPrimary
+    ? targetY
+    : (currentCustom?.targetY ?? Math.round(currentStartPos[1]))
   const activeTargetScalePct = currentCustom?.targetScalePct ?? targetScalePct
   const activeTargetRotZ = currentCustom?.targetRotZ ?? p.bboxTargetRotZ ?? 0
   const activeTargetRotY = currentCustom?.targetRotY ?? p.bboxTargetRotY ?? 0
@@ -410,7 +407,8 @@ export function BboxMotionTargetSection({ model }: { model: BboxMotionModel }): 
               if (rl) rl.transform.position.value = [activeTargetX, activeTargetY, startZ]
               const wfNode = d.workflow?.nodes.find((n) => n.id === node.id)
               if (wfNode?.params) {
-                if (currentEnt && currentEnt.id !== primaryEnt?.id) {
+                const isPrim = !primaryEnt || currentEnt?.id === primaryEnt.id
+                if (currentEnt) {
                   wfNode.params.layerBboxTargets = {
                     ...(wfNode.params.layerBboxTargets ?? {}),
                     [currentEnt.id]: {
@@ -420,7 +418,8 @@ export function BboxMotionTargetSection({ model }: { model: BboxMotionModel }): 
                       targetScalePct: activeTargetScalePct
                     }
                   }
-                } else {
+                }
+                if (isPrim) {
                   wfNode.params.bboxTargetX = curX
                   wfNode.params.bboxTargetY = curY
                 }
