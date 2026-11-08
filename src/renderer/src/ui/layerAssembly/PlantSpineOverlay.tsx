@@ -33,6 +33,8 @@ export interface PlantSpineOverlayProps {
   time: number
   /** Đang ở tab Motion: vẽ xương mới, chọn & sửa xương bằng tay nắm. */
   drawing: boolean
+  /** Bật / ẩn hiển thị nét vẽ trục gió trên sân khấu 2D (mặc định true) */
+  visible?: boolean
   beginGesture?: () => void
   endGesture?: () => void
   onError?: (message: string) => void
@@ -49,7 +51,7 @@ const RECORD_LIMIT = 85
 
 /** Lớp SVG trên Bố cục 2D: hiển thị xương motion, vẽ tay xương mới và chỉnh trực tiếp bằng tay nắm. */
 export function PlantSpineOverlay(props: PlantSpineOverlayProps) {
-  const { composite, setComposite, time, drawing } = props
+  const { composite, setComposite, time, drawing, visible = true } = props
   const svgRef = useRef<SVGSVGElement>(null)
   const dragRef = useRef<Drag | null>(null)
   const [stroke, setStroke] = useState<PlantSpinePoint[] | null>(null)
@@ -325,6 +327,8 @@ export function PlantSpineOverlay(props: PlantSpineOverlayProps) {
       })
     }
   }
+
+  if (visible === false) return null
 
   return (
     <svg

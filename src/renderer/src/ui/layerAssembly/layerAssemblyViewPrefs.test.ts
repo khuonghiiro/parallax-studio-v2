@@ -35,6 +35,7 @@ describe('layerAssemblyViewPrefs', () => {
     expect(prefs.showGrid).toBe(true)
     expect(prefs.clipToCamera).toBe(true)
     expect(prefs.showBbox2D).toBe(true)
+    expect(prefs.showWindSpines).toBe(true)
     expect(prefs.zExaggeration).toBe(1.8)
     expect(prefs.cameraFov).toBe(45)
   })
@@ -47,7 +48,8 @@ describe('layerAssemblyViewPrefs', () => {
       cameraFov: 60,
       cameraPreset: 'top',
       showTranslate: false,
-      showBbox2D: false
+      showBbox2D: false,
+      showWindSpines: false
     })
 
     const loaded = loadLayerWorkshopViewPrefs()
@@ -58,6 +60,7 @@ describe('layerAssemblyViewPrefs', () => {
     expect(loaded.cameraPreset).toBe('top')
     expect(loaded.showTranslate).toBe(false)
     expect(loaded.showBbox2D).toBe(false)
+    expect(loaded.showWindSpines).toBe(false)
     // Các giá trị không đổi vẫn giữ nguyên
     expect(loaded.showRotate).toBe(true)
     expect(loaded.clipToCamera).toBe(true)
