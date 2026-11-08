@@ -442,6 +442,7 @@ export function WorkshopWorkspace({
               isPlaying={playback.isPlaying}
               onTogglePlay={playback.toggle}
               onSeekTime={playback.setTime}
+              duration={rig?.duration ?? state.composite.rig?.duration}
               hideTransport
               view={view}
             />
@@ -485,7 +486,7 @@ export function WorkshopWorkspace({
             />
           </div>
         )}
-        {!isErasing && !isLayersOrBonesTab && (
+        {!isErasing && !isLayersOrBonesTab && !rigTool.cutoutStageMode && (
           <LayerAssemblyTransportBar
             duration={rig?.duration ?? state.composite.rig?.duration}
             isPlaying={playback.isPlaying}
