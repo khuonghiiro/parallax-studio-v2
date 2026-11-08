@@ -24,6 +24,7 @@ import { resolvePlantGrab } from './plantMotionRecord'
 import { layersUnderClientStroke } from './plantStrokeHitTest'
 import { PlantSpineShape, SelectedSpineHandles, toPlantPath } from './PlantSpineShapes'
 import { getPlantSpineEditorState, setPlantSpineEditorState, usePlantSpineEditor } from './plantSpineEditorStore'
+import { getRigToolState } from './rigToolStore'
 
 export interface PlantSpineOverlayProps {
   composite: LayerComposite
@@ -219,14 +220,31 @@ export function PlantSpineOverlay(props: PlantSpineOverlayProps) {
       return
     }
     try {
+      const rigState = getRigToolState()
+      const focusedPartId = rigState.cutoutStageMode ? rigState.focusedCutoutLayerId : null
+      const effectiveTarget = rigState.cutoutStageMode ? 'selected' : editor.target
+      const effectiveSelectedIds =
+        focusedPartId && composite.layers.some((l) => l.id === focusedPartId)
+          ? [focusedPartId]
+          : props.selectedIds
       const order = composite.layers.map((l) => l.id)
-      const hits = editor.target === 'auto' ? layersUnderClientStroke(svgRef.current, client, order) : []
-      const layerIds = resolveSpineLayerIds(composite, editor.target, props.selectedIds, hits)
-      const spine = createPlantSpine({ points: simplifyStroke(pts), layerIds, preset: editor.preset })
+      const hits = effectiveTarget === 'auto' ? layersUnderClientStroke(svgRef.current, client, order) : []
+      const layerIds = resolveSpineLayerIds(composite, effectiveTarget, effectiveSelectedIds, hits)
+      const singleLayer = layerIds.length === 1 ? composite.layers.find((l) => l.id === layerIds[0]) : undefined
+      const spine = createPlantSpine({
+        points: simplifyStroke(pts),
+        layerIds,
+        preset: editor.preset,
+        ...(singleLayer ? { name: `Gió: ${singleLayer.name}` } : {})
+      })
       setComposite((c) => applyPlantSpineAction(c, { action: 'add', spine }))
-      setPlantSpineEditorState({ selectedSpineId: spine.id })
+      setPlantSpineEditorState({ selectedSpineId: spine.id, live: true })
       const names = composite.layers.filter((l) => layerIds.includes(l.id)).map((l) => l.name)
-      setFlash(`Gắn vào: ${names.slice(0, 3).join(', ')}${names.length > 3 ? ` +${names.length - 3}` : ''}`)
+      setFlash(
+        layerIds.length === composite.layers.length && composite.layers.length > 1
+          ? `🌐 Đã gắn nét gió vào toàn bộ ${composite.layers.length} lớp`
+          : `🌬️ Gắn riêng vào: ${names.slice(0, 3).join(', ')}${names.length > 3 ? ` +${names.length - 3}` : ''}`
+      )
     } catch (err) {
       props.onError?.(err instanceof Error ? err.message : String(err))
     }

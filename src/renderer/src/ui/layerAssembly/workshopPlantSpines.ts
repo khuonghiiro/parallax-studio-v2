@@ -6,6 +6,7 @@ import {
 } from '@shared/plantSpine'
 import type { LayerComposite } from './types'
 import { validatePlantMotion } from '../../engine/plantMotion'
+import { analyzeCutoutParts, extractLayerDimensions } from './workshopCutoutRig'
 
 /** auto = layer nằm dưới nét vẽ · selected = layer đang chọn · all = toàn bộ layer. */
 export type PlantSpineTarget = 'auto' | 'selected' | 'all'
@@ -233,6 +234,32 @@ export function createPlantSpine(options: {
 }
 
 /**
+ * Gợi ý hướng mọc trục gió tự nhiên cho từng mảnh bộ phận (tóc, tà áo, ống tay, đai ngọc rủ từ trên xuống 'down'; cây cỏ mọc từ dưới lên 'up')
+ */
+export function inferBestPlantDirectionForLayer(
+  composite: LayerComposite,
+  layerId?: string | null,
+  fallback: PlantSpineDirection = 'up'
+): PlantSpineDirection {
+  if (!layerId || composite.layers.length <= 1) return fallback
+  const parts = analyzeCutoutParts(composite.layers)
+  const part = parts.find((p) => p.layer.id === layerId)
+  if (!part) return fallback
+  if (
+    part.role === 'hair_front' ||
+    part.role === 'hair_back' ||
+    part.role === 'hanging_prop' ||
+    part.role === 'waist_prop' ||
+    part.role === 'torso' ||
+    part.role === 'arm_left' ||
+    part.role === 'arm_right'
+  ) {
+    return 'down'
+  }
+  return fallback
+}
+
+/**
  * Tự động sinh đường trục xương 4 điểm theo 3 hướng mọc:
  * - `'up'`: Gốc dưới → Ngọn trên (cây, bụi cỏ, bông hoa)
  * - `'horizontal'`: Gốc trái → Ngọn phải (cành ngang, cờ bay, khăn choàng)
@@ -245,6 +272,10 @@ export function buildAutoPlantSpinePoints(
   direction: PlantSpineDirection = 'up'
 ): PlantSpinePoint[] {
   const targetLayers = composite.layers.filter((l) => targetLayerIds.includes(l.id))
+  const isSpecificPartScope =
+    composite.layers.length > 1 &&
+    targetLayers.length > 0 &&
+    targetLayers.length < composite.layers.length
   const pool = targetLayers.length > 0 ? targetLayers : composite.layers
   const canvasW = composite.width || 600
   const canvasH = composite.height || 600
@@ -261,6 +292,18 @@ export function buildAutoPlantSpinePoints(
     maxX = Math.round(canvasW * 0.32)
     minY = -Math.round(canvasH * 0.34)
     maxY = Math.round(canvasH * 0.34)
+  } else if (isSpecificPartScope) {
+    for (const l of pool) {
+      sumX += l.x
+      sumY += l.y
+      const { w, h } = extractLayerDimensions(l)
+      const halfW = Math.max(24, Math.round(w * 0.42))
+      const halfH = Math.max(24, Math.round(h * 0.42))
+      if (l.x - halfW < minX) minX = l.x - halfW
+      if (l.x + halfW > maxX) maxX = l.x + halfW
+      if (l.y - halfH < minY) minY = l.y - halfH
+      if (l.y + halfH > maxY) maxY = l.y + halfH
+    }
   } else {
     for (const l of pool) {
       sumX += l.x
@@ -279,9 +322,13 @@ export function buildAutoPlantSpinePoints(
   const offset = existingCount > 0 && pool.length > 1 ? ((existingCount % 3) - 1) * 18 : 0
 
   if (direction === 'horizontal') {
-    const leftX = Math.max(-Math.round(canvasW * 0.44), Math.min(-40, Math.round(minX * 0.85)))
-    const rightX = Math.min(Math.round(canvasW * 0.44), Math.max(40, Math.round(maxX * 0.85)))
-    const spanX = Math.max(110, rightX - leftX)
+    const leftX = isSpecificPartScope
+      ? Math.round(minX)
+      : Math.max(-Math.round(canvasW * 0.44), Math.min(-40, Math.round(minX * 0.85)))
+    const rightX = isSpecificPartScope
+      ? Math.round(maxX)
+      : Math.min(Math.round(canvasW * 0.44), Math.max(40, Math.round(maxX * 0.85)))
+    const spanX = Math.max(isSpecificPartScope ? 44 : 110, rightX - leftX)
     const startX = Math.round((leftX + rightX) / 2 - spanX / 2)
     const endX = Math.round((leftX + rightX) / 2 + spanX / 2)
     const rootY = avgY + offset
@@ -293,9 +340,13 @@ export function buildAutoPlantSpinePoints(
     ]
   }
 
-  const bottomY = Math.min(Math.round(canvasH * 0.44), Math.max(40, Math.round(maxY * 0.85)))
-  const topY = Math.max(-Math.round(canvasH * 0.44), Math.min(-40, Math.round(minY * 0.85)))
-  const spanY = Math.max(110, bottomY - topY)
+  const bottomY = isSpecificPartScope
+    ? Math.round(maxY)
+    : Math.min(Math.round(canvasH * 0.44), Math.max(40, Math.round(maxY * 0.85)))
+  const topY = isSpecificPartScope
+    ? Math.round(minY)
+    : Math.max(-Math.round(canvasH * 0.44), Math.min(-40, Math.round(minY * 0.85)))
+  const spanY = Math.max(isSpecificPartScope ? 44 : 110, bottomY - topY)
   const rY = Math.round((bottomY + topY) / 2 + spanY / 2)
   const tY = Math.round((bottomY + topY) / 2 - spanY / 2)
   const rootX = avgX + offset

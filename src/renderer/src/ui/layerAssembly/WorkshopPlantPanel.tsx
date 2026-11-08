@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { PLANT_SPINE_PRESETS, type PlantSpine } from '@shared/plantSpine'
 import type { LayerComposite } from './types'
 import {
@@ -6,12 +6,20 @@ import {
   applyPlantSpineAction,
   buildAutoPlantSpinePoints,
   createPlantSpine,
+  inferBestPlantDirectionForLayer,
   resolveSpineLayerIds,
   type PlantSpineAction,
   type PlantSpineDirection,
   type PlantSpineTarget,
   type WindWeatherPreset
 } from './workshopPlantSpines'
+import { analyzeCutoutParts, extractLayerDimensions } from './workshopCutoutRig'
+import {
+  closeCutoutPartRig,
+  openCutoutPartRig,
+  setRigToolState,
+  useRigToolStore
+} from './rigToolStore'
 import { setPlantSpineEditorState, usePlantSpineEditor } from './plantSpineEditorStore'
 import { PlantSpineCard } from './PlantSpineCard'
 import { WorkshopLayerMotionHarmonyCard } from './WorkshopLayerMotionHarmonyCard'
@@ -22,6 +30,7 @@ import {
 } from './plantMotionRecord'
 import { SegmentedTabs } from '../primitives'
 import {
+  IconFlexiMeshBind,
   IconMotionHarmonyWave,
   IconPlantAddSpine,
   IconPlantSpineBranch,
@@ -34,6 +43,7 @@ interface PanelProps {
   composite: LayerComposite
   setComposite: (update: (prev: LayerComposite) => LayerComposite, key?: string) => void
   selectedIds: string[]
+  onSelectLayer?: (id: string | null, additive?: boolean) => void
   isPlaying: boolean
   onTogglePlay: () => void
   subTab?: WindPanelSubTab
@@ -62,8 +72,9 @@ const WIND_LEAN_PRESETS: Array<{ lean: number; label: string; hint: string }> = 
 
 /** Tab "Gió": Studio điều khiển thời tiết gió trực tiếp, quản lý trục uốn tự nhiên & Hòa âm 2.5D. */
 export function WorkshopPlantPanel(props: PanelProps) {
-  const { composite, setComposite, selectedIds, isPlaying, onTogglePlay } = props
+  const { composite, setComposite, selectedIds, onSelectLayer, isPlaying, onTogglePlay } = props
   const editor = usePlantSpineEditor()
+  const rigTool = useRigToolStore()
   const spines = composite.plantSpines ?? []
   const [internalSubTab, setInternalSubTab] = useState<WindPanelSubTab>(() => (spines.length > 0 ? 'spines' : 'create'))
   const subTab = props.subTab ?? internalSubTab
@@ -78,6 +89,19 @@ export function WorkshopPlantPanel(props: PanelProps) {
   const [customStiff, setCustomStiff] = useState<number>(0.28)
   const [newPattern, setNewPattern] = useState<PlantCustomPatternId>('sine')
   const prevSpineCountRef = useRef(spines.length)
+
+  const parts = useMemo(() => analyzeCutoutParts(composite.layers), [composite.layers])
+  const isPerPartMode = Boolean(rigTool.cutoutStageMode) || editor.target === 'selected'
+  const activePartLayerId =
+    rigTool.focusedCutoutLayerId || selectedIds[0] || parts[0]?.layer.id || composite.layers[0]?.id || null
+  const activePart = useMemo(
+    () => parts.find((p) => p.layer.id === activePartLayerId) || parts[0] || null,
+    [parts, activePartLayerId]
+  )
+  const activePartSpines = useMemo(
+    () => (activePartLayerId ? spines.filter((s) => s.layerIds.includes(activePartLayerId)) : []),
+    [spines, activePartLayerId]
+  )
 
   // Khi người dùng vẽ trực tiếp trục mới trên Sân khấu 2D, tự chuyển về tab Trục gió và chọn trục mới
   useEffect(() => {
@@ -103,11 +127,82 @@ export function WorkshopPlantPanel(props: PanelProps) {
     }
   }
 
-  /** Áp nhanh cấp độ gió: nếu đã có trục thì cập nhật tức thì; nếu chưa có trục mà có layer thì tự tạo trục đầu tiên và chạy ngay! */
+  /** Chuyển đổi chế độ: Toàn bộ Layer ('all') vs Riêng từng Layer / Bộ phận 2D ('part') vs Tự nhận khi vẽ ('auto') */
+  const handleSelectScopeMode = (mode: 'all' | 'part' | 'auto') => {
+    if (mode === 'all') {
+      closeCutoutPartRig()
+      setPlantSpineEditorState({ target: 'all' })
+      return
+    }
+    if (mode === 'auto') {
+      closeCutoutPartRig()
+      setPlantSpineEditorState({ target: 'auto' })
+      return
+    }
+    const targetId = activePartLayerId || composite.layers[0]?.id || null
+    openCutoutPartRig(targetId || undefined)
+    if (targetId) {
+      onSelectLayer?.(targetId, false)
+      setDirection(inferBestPlantDirectionForLayer(composite, targetId, direction))
+    }
+    const partSpines = targetId ? spines.filter((s) => s.layerIds.includes(targetId)) : []
+    setPlantSpineEditorState({
+      target: 'selected',
+      ...(partSpines[0] ? { selectedSpineId: partSpines[0].id } : {})
+    })
+  }
+
+  /** Chọn một mảnh bộ phận cụ thể để vẽ / tạo nét gió riêng cho mảnh đó (đồng bộ với ô Bộ phận 2D trên Sân khấu) */
+  const handleSelectCutoutPart = (layerId: string) => {
+    openCutoutPartRig(layerId)
+    onSelectLayer?.(layerId, false)
+    setDirection(inferBestPlantDirectionForLayer(composite, layerId, direction))
+    const partSpines = spines.filter((s) => s.layerIds.includes(layerId))
+    setPlantSpineEditorState({
+      target: 'selected',
+      ...(partSpines[0] ? { selectedSpineId: partSpines[0].id } : {})
+    })
+  }
+
+  /** Áp nhanh cấp độ gió: ở chế độ Riêng từng Layer sẽ áp hoặc tạo trục gió riêng cho đúng bộ phận đang chọn! */
   const handleApplyWeatherPreset = (weather: WindWeatherPreset) => {
     setCustomAmp(weather.params.amplitude)
     setCustomSpeed(weather.params.speed)
     setCustomStiff(weather.params.stiffness)
+
+    if (isPerPartMode && activePartLayerId && composite.layers.length > 1) {
+      const targetLayer = composite.layers.find((l) => l.id === activePartLayerId)
+      if (activePartSpines.length > 0) {
+        for (const sp of activePartSpines) {
+          run(
+            {
+              action: 'apply-weather',
+              spineId: sp.id,
+              patch: weather.params
+            },
+            `plant:weather:${weather.id}:${sp.id}`
+          )
+        }
+        setPlantSpineEditorState({ selectedSpineId: activePartSpines[0].id, live: true })
+        setSubTab('spines')
+        return
+      }
+      const bestDir = inferBestPlantDirectionForLayer(composite, activePartLayerId, direction)
+      const points = buildAutoPlantSpinePoints(composite, [activePartLayerId], spines.length, bestDir)
+      const autoSpine: PlantSpine = {
+        ...createPlantSpine({
+          points,
+          layerIds: [activePartLayerId],
+          preset: editor.preset,
+          name: `Gió ${weather.label}: ${targetLayer?.name || 'Bộ phận'}`
+        }),
+        ...weather.params
+      }
+      run({ action: 'add', spine: autoSpine }, `plant:auto-weather:${weather.id}:${activePartLayerId}`)
+      setPlantSpineEditorState({ selectedSpineId: autoSpine.id, target: 'selected', live: true })
+      setSubTab('spines')
+      return
+    }
 
     if (spines.length > 0) {
       run(
@@ -126,7 +221,7 @@ export function WorkshopPlantPanel(props: PanelProps) {
     if (composite.layers.length > 0) {
       const targetIds = resolveSpineLayerIds(
         composite,
-        editor.target === 'auto' ? 'selected' : editor.target,
+        editor.target === 'auto' ? 'all' : editor.target,
         selectedIds
       )
       const points = buildAutoPlantSpinePoints(composite, targetIds, 0, direction)
@@ -147,6 +242,13 @@ export function WorkshopPlantPanel(props: PanelProps) {
 
   const handleApplyWindLean = (lean: number) => {
     if (spines.length === 0) return
+    if (isPerPartMode && activePartSpines.length > 0) {
+      for (const sp of activePartSpines) {
+        run({ action: 'apply-weather', spineId: sp.id, patch: { lean } }, `plant:lean:${lean}:${sp.id}`)
+      }
+      setPlantSpineEditorState({ live: true })
+      return
+    }
     run({ action: 'apply-weather', patch: { lean } }, `plant:lean:${lean}`)
     setPlantSpineEditorState({ live: true })
   }
@@ -156,16 +258,22 @@ export function WorkshopPlantPanel(props: PanelProps) {
       setError('Cần ít nhất 1 lớp trong mẫu để tạo trục gió.')
       return
     }
+    const effectiveSelected =
+      isPerPartMode && activePartLayerId ? [activePartLayerId] : selectedIds
     const targetIds = resolveSpineLayerIds(
       composite,
-      editor.target === 'auto' ? 'selected' : editor.target,
-      selectedIds
+      isPerPartMode ? 'selected' : editor.target === 'auto' ? 'all' : editor.target,
+      effectiveSelected
     )
-    const points = buildAutoPlantSpinePoints(composite, targetIds, spines.length, direction)
+    const effectiveDir =
+      targetIds.length === 1
+        ? inferBestPlantDirectionForLayer(composite, targetIds[0], direction)
+        : direction
+    const points = buildAutoPlantSpinePoints(composite, targetIds, spines.length, effectiveDir)
     const defaultLabel =
       newName.trim() ||
       (targetIds.length === 1
-        ? `Trục gió ${composite.layers.find((l) => l.id === targetIds[0])?.name || 'Lớp'}`
+        ? `Gió: ${composite.layers.find((l) => l.id === targetIds[0])?.name || 'Lớp'}`
         : `Trục gió #${spines.length + 1}`)
 
     const baseSpine = createPlantSpine({
@@ -251,6 +359,123 @@ export function WorkshopPlantPanel(props: PanelProps) {
               ?
             </button>
           </div>
+        </div>
+
+        {/* Phạm vi vẽ & gắn nét gió: Toàn bộ Layer vs Riêng từng Layer (Bộ phận 2D) */}
+        <div className="lw-wind-scope-block">
+          <div className="lw-wind-scope-header">
+            <span className="lw-plant-section-label">Phạm vi vẽ &amp; gắn nét gió:</span>
+            {composite.layers.length > 1 && (
+              <button
+                type="button"
+                className={`lw-moho-opt-pill${rigTool.cutoutStageMode ? ' active' : ''}`}
+                onClick={() => {
+                  if (rigTool.cutoutStageMode) {
+                    closeCutoutPartRig()
+                  } else {
+                    handleSelectScopeMode('part')
+                  }
+                }}
+                title="Bật/tắt ô Bộ phận 2D ở 2 bên Sân khấu 2D để chọn riêng từng mảnh và vẽ nét gió cho mảnh đó"
+              >
+                <IconFlexiMeshBind width={11} height={11} />
+                <span>Ô Bộ phận 2D</span>
+              </button>
+            )}
+          </div>
+          <div className="lw-angle-seg-bar compact" role="radiogroup" aria-label="Phạm vi lớp gắn nét gió">
+            <button
+              type="button"
+              role="radio"
+              aria-checked={!isPerPartMode && editor.target === 'all'}
+              className={`lw-angle-seg-btn${!isPerPartMode && editor.target === 'all' ? ' active' : ''}`}
+              onClick={() => handleSelectScopeMode('all')}
+              title="Vẽ hoặc áp cấp độ gió chung cho toàn bộ các layer trong mẫu"
+            >
+              🌐 Toàn bộ Layer ({composite.layers.length})
+            </button>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={isPerPartMode}
+              className={`lw-angle-seg-btn${isPerPartMode ? ' active' : ''}`}
+              onClick={() => handleSelectScopeMode('part')}
+              title="Hiện ô từng bộ phận 2D trên sân khấu & bảng chọn mảnh để vẽ nét gió riêng cho từng layer (Tóc, Tà áo, Tay áo, Đai ngọc...)"
+            >
+              🧩 Riêng từng Layer ({parts.length})
+            </button>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={!isPerPartMode && editor.target === 'auto'}
+              className={`lw-angle-seg-btn${!isPerPartMode && editor.target === 'auto' ? ' active' : ''}`}
+              onClick={() => handleSelectScopeMode('auto')}
+              title="Kéo chuột vẽ trên sân khấu 2D đi qua mảnh nào thì tự nhận mảnh đó"
+            >
+              ✨ Tự nhận
+            </button>
+          </div>
+
+          {isPerPartMode && parts.length > 0 && (
+            <div className="lw-wind-part-picker-box">
+              <div className="lw-wind-part-picker-head">
+                <span className="lw-wind-part-active-label" title={activePart?.layer.name || ''}>
+                  {activePart?.roleIcon || '🧩'} Đang vẽ cho:{' '}
+                  <strong>{activePart?.layer.name || 'Chưa chọn'}</strong>
+                </span>
+                <div className="lw-wind-part-head-actions">
+                  <button
+                    type="button"
+                    className={`lw-moho-opt-pill${(rigTool.dimOtherLayers ?? true) ? ' active' : ''}`}
+                    onClick={() => setRigToolState({ dimOtherLayers: !(rigTool.dimOtherLayers ?? true) })}
+                    title="Làm mờ các bộ phận khác trên Sân khấu 2D để dễ nhìn và vẽ nét gió chính xác trên mảnh đang chọn"
+                  >
+                    <span>{(rigTool.dimOtherLayers ?? true) ? '👁 Làm mờ khác' : '👁 Hiện đủ'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="btn xs primary"
+                    onClick={handleQuickCreateSpine}
+                    title="Tự động tạo ngay 1 trục gió dọc theo mảnh bộ phận đang chọn"
+                  >
+                    + Tạo trục mảnh này
+                  </button>
+                </div>
+              </div>
+              <div className="lw-wind-part-grid" role="listbox" aria-label="Danh sách từng bộ phận để vẽ nét gió riêng">
+                {parts.map((p, idx) => {
+                  const isFocused = p.layer.id === activePartLayerId
+                  const partSpineCount = spines.filter((s) => s.layerIds.includes(p.layer.id)).length
+                  const dims = extractLayerDimensions(p.layer)
+                  return (
+                    <button
+                      key={p.layer.id}
+                      type="button"
+                      role="option"
+                      aria-selected={isFocused}
+                      className={`lw-wind-part-card${isFocused ? ' active' : ''}${partSpineCount > 0 ? ' has-wind' : ''}`}
+                      onClick={() => handleSelectCutoutPart(p.layer.id)}
+                      title={`#${idx + 1} ${p.layer.name} (${p.roleLabel} · ${Math.round(dims.w)}×${Math.round(dims.h)}px)\n• Click để focus mảnh này trên Sân khấu 2D rồi kéo chuột vẽ nét gió riêng`}
+                    >
+                      <span className="lw-wind-part-icon">{p.roleIcon}</span>
+                      <span className="lw-wind-part-info">
+                        <span className="lw-wind-part-name">{p.layer.name}</span>
+                        <small className="lw-wind-part-meta">
+                          {p.roleLabel} · {Math.round(dims.w)}×{Math.round(dims.h)}
+                        </small>
+                      </span>
+                      <span className={`lw-wind-part-badge${partSpineCount > 0 ? ' active' : ''}`}>
+                        {partSpineCount > 0 ? `🌬️${partSpineCount}` : '+'}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+              <div className="lw-wind-part-tip">
+                💡 Kéo chuột trực tiếp trên <strong>Sân khấu 2D</strong> (hoặc bấm <strong>Cấp độ gió</strong> bên dưới) để gắn nét gió chỉ riêng cho mảnh <strong>{activePart?.layer.name}</strong>.
+              </div>
+            </div>
+          )}
         </div>
 
         {/* 1-Click Cấp độ gió (Beaufort Studio Presets) */}
@@ -469,10 +694,10 @@ export function WorkshopPlantPanel(props: PanelProps) {
                 key={id}
                 type="button"
                 title={hint}
-                className={`lw-plant-chip${editor.target === id ? ' active' : ''}`}
-                onClick={() => setPlantSpineEditorState({ target: id })}
+                className={`lw-plant-chip${(id === 'selected' ? isPerPartMode : !isPerPartMode && editor.target === id) ? ' active' : ''}`}
+                onClick={() => handleSelectScopeMode(id === 'selected' ? 'part' : id)}
               >
-                {id === 'selected' ? `${title} (${selectedIds.length})` : title}
+                {id === 'selected' ? `🧩 Riêng từng Layer (${activePart?.layer.name || selectedIds.length})` : title}
               </button>
             ))}
           </div>

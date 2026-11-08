@@ -370,6 +370,7 @@ export function WorkshopRightPanel({
               composite={state.composite}
               setComposite={state.setComposite}
               selectedIds={state.selection}
+              onSelectLayer={state.select}
               isPlaying={playback.isPlaying}
               onTogglePlay={playback.toggle}
               subTab={plantSubTab}

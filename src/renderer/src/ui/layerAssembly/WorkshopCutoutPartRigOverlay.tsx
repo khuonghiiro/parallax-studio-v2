@@ -9,6 +9,13 @@ import {
   type CutoutPartInfo
 } from './workshopCutoutRig'
 import type { RigAction } from './workshopRig'
+import {
+  buildAutoPlantSpinePoints,
+  createPlantSpine,
+  inferBestPlantDirectionForLayer,
+  type PlantSpineAction
+} from './workshopPlantSpines'
+import { getPlantSpineEditorState, setPlantSpineEditorState } from './plantSpineEditorStore'
 import { useRigToolStore, setRigToolState, toggleBoneLabels } from './rigToolStore'
 import {
   IconChevronDown,
@@ -37,6 +44,7 @@ import '../../styles/workshopCutoutPartRig.css'
 
 export interface WorkshopCutoutPartRigOverlayProps {
   tab?: WorkshopTab
+  isPlantMode?: boolean
   composite: LayerComposite
   canvasWidth: number
   canvasHeight: number
@@ -47,6 +55,7 @@ export interface WorkshopCutoutPartRigOverlayProps {
   selectedLayerId: string | null
   onSelectLayer: (layerId: string | null) => void
   run: (action: RigAction) => void
+  runPlant?: (action: PlantSpineAction) => void
   onClose: () => void
 }
 
@@ -69,6 +78,8 @@ interface CutoutRailTileProps {
   isSelected: boolean
   isHovered: boolean
   hasBone: boolean
+  isPlantMode?: boolean
+  windSpineCount?: number
   assets?: LayerComposite['assets']
   onSelect: (id: string) => void
   onHover: (id: string | null) => void
@@ -79,12 +90,15 @@ function CutoutRailTile({
   isSelected,
   isHovered,
   hasBone,
+  isPlantMode,
+  windSpineCount = 0,
   assets,
   onSelect,
   onHover
 }: CutoutRailTileProps) {
   const layer = item.part.layer
   const resolvedUrl = useLayerAssetImage(layer.asset || layer.assetPath, layer.imageUrl, assets)
+  const hasWind = windSpineCount > 0
 
   return (
     <div
@@ -98,7 +112,11 @@ function CutoutRailTile({
       onClick={() => onSelect(layer.id)}
       onPointerEnter={() => onHover(layer.id)}
       onPointerLeave={() => onHover(null)}
-      title={`#${item.index + 1}: ${layer.name} (${item.part.roleLabel})\nZ: ${layer.z ?? 0} · ${hasBone ? 'Đã có xương' : 'Chưa có xương'}\n• Click: Focus để ${hasBone ? 'chọn' : 'vẽ xương cho'} bộ phận này`}
+      title={
+        isPlantMode
+          ? `#${item.index + 1}: ${layer.name} (${item.part.roleLabel})\nZ: ${layer.z ?? 0} · ${hasWind ? `Đã gắn ${windSpineCount} trục gió` : 'Chưa có trục gió'}\n• Click: Focus mảnh này rồi kéo chuột vẽ nét gió riêng trên Sân khấu 2D`
+          : `#${item.index + 1}: ${layer.name} (${item.part.roleLabel})\nZ: ${layer.z ?? 0} · ${hasBone ? 'Đã có xương' : 'Chưa có xương'}\n• Click: Focus để ${hasBone ? 'chọn' : 'vẽ xương cho'} bộ phận này`
+      }
     >
       {/* Ảnh thumbnail của bộ phận */}
       <div className="lw-cutout-tile-imgbox">
@@ -119,10 +137,16 @@ function CutoutRailTile({
         {item.part.roleIcon}
       </span>
 
-      {/* Badge trạng thái xương góc dưới phải */}
-      <span className={`lw-cutout-tile-bone-status${hasBone ? ' has-bone' : ''}`}>
-        {hasBone ? '🦴' : '+'}
-      </span>
+      {/* Badge trạng thái xương hoặc trục gió góc dưới phải */}
+      {isPlantMode ? (
+        <span className={`lw-cutout-tile-bone-status${hasWind ? ' has-bone' : ''}`}>
+          {hasWind ? `🌬️${windSpineCount}` : '+🌬️'}
+        </span>
+      ) : (
+        <span className={`lw-cutout-tile-bone-status${hasBone ? ' has-bone' : ''}`}>
+          {hasBone ? '🦴' : '+'}
+        </span>
+      )}
 
       {/* Khung tên thu nhỏ khi hover */}
       {isHovered && (
@@ -136,6 +160,7 @@ function CutoutRailTile({
 
 export function WorkshopCutoutPartRigOverlay({
   tab,
+  isPlantMode = false,
   composite,
   canvasWidth,
   canvasHeight,
@@ -146,11 +171,13 @@ export function WorkshopCutoutPartRigOverlay({
   selectedLayerId,
   onSelectLayer,
   run,
+  runPlant,
   onClose
 }: WorkshopCutoutPartRigOverlayProps) {
   const rigTool = useRigToolStore()
   const isAnimTab = tab === 'animation' || tab === 'plant'
   const bones = composite.rig?.bones || []
+  const spines = composite.plantSpines ?? []
   const [viewportSize, setViewportSize] = useState<{ w: number; h: number }>({ w: 800, h: 600 })
   const [hoveredLayerId, setHoveredLayerId] = useState<string | null>(null)
   const [isDimmed, setIsDimmed] = useState<boolean>(() => rigTool.dimOtherLayers ?? true)
@@ -256,6 +283,11 @@ export function WorkshopCutoutPartRigOverlay({
     return result
   }, [parts, viewportSize, panX, panY, zoom])
 
+  const activePartSpines = useMemo(
+    () => (activePart ? spines.filter((s) => s.layerIds.includes(activePart.layer.id)) : []),
+    [spines, activePart]
+  )
+
   // Chọn layer để focus
   const handleSelectPart = (id: string) => {
     setRigToolState({
@@ -263,7 +295,38 @@ export function WorkshopCutoutPartRigOverlay({
       targetBindingLayerId: id,
       statusHint: `Đang focus bộ phận "${parts.find((p) => p.layer.id === id)?.layer.name}".`
     })
+    if (isPlantMode) {
+      const partSpines = spines.filter((s) => s.layerIds.includes(id))
+      setPlantSpineEditorState({
+        target: 'selected',
+        ...(partSpines[0] ? { selectedSpineId: partSpines[0].id } : {})
+      })
+    }
     onSelectLayer(id)
+  }
+
+  // Tạo trục gió tự động cho đúng mảnh bộ phận đang focus
+  const handleAutoCreatePlantSpine = () => {
+    if (!activePart || !runPlant) return
+    const bestDir = inferBestPlantDirectionForLayer(composite, activePart.layer.id, 'down')
+    const points = buildAutoPlantSpinePoints(composite, [activePart.layer.id], spines.length, bestDir)
+    const preset = getPlantSpineEditorState().preset
+    const spine = createPlantSpine({
+      points,
+      layerIds: [activePart.layer.id],
+      preset,
+      name: `Gió: ${activePart.layer.name}`
+    })
+    runPlant({ action: 'add', spine })
+    setPlantSpineEditorState({ selectedSpineId: spine.id, target: 'selected', live: true })
+  }
+
+  // Xoá các trục gió gắn riêng vào mảnh bộ phận đang focus
+  const handleClearPartSpines = () => {
+    if (!activePart || !runPlant || activePartSpines.length === 0) return
+    for (const sp of activePartSpines) {
+      runPlant({ action: 'delete', id: sp.id })
+    }
   }
 
   // Điều hướng trước / sau
@@ -464,7 +527,18 @@ export function WorkshopCutoutPartRigOverlay({
               <span className="lw-cutout-role-text" title={`${activePart?.roleLabel || ''} · Z: ${activePart?.layer.z ?? 0}`}>
                 {activePart?.roleLabel} · Z: {activePart?.layer.z ?? 0}
               </span>
-              {activeBone ? (
+              {isPlantMode ? (
+                activePartSpines.length > 0 ? (
+                  <span
+                    className="lw-cutout-bone-badge bound"
+                    title={`Mảnh này đang gắn ${activePartSpines.length} trục gió: ${activePartSpines.map((s) => s.name).join(', ')}`}
+                  >
+                    🌬️ {activePartSpines.length} trục gió
+                  </span>
+                ) : (
+                  <span className="lw-cutout-bone-badge unbound">Chưa có nét gió</span>
+                )
+              ) : activeBone ? (
                 <span className="lw-cutout-bone-badge bound" title={`Gắn với xương ${activeBone.name}`}>
                   🦴 {activeBone.name}
                 </span>
@@ -478,6 +552,36 @@ export function WorkshopCutoutPartRigOverlay({
         <div className="lw-cutout-hud-sep" />
 
         <div className="lw-cutout-hud-actions">
+          {isPlantMode && runPlant && (
+            <>
+              <button
+                type="button"
+                className="btn xs primary lw-cutout-hud-btn"
+                onClick={handleAutoCreatePlantSpine}
+                title="Tự động sinh trục gió khớp với hình dáng mảnh bộ phận này (hoặc kéo chuột trực tiếp trên sân khấu 2D để vẽ tay)"
+              >
+                <IconSparkles width={11} height={11} />
+                <span>+ Trục gió mảnh này</span>
+              </button>
+              <span
+                className="lw-cutout-bone-badge bound"
+                title="Kéo chuột trực tiếp trên Sân khấu 2D từ Gốc tới Ngọn để vẽ nét gió gắn riêng vào bộ phận này"
+              >
+                ✏️ Kéo chuột 2D để vẽ
+              </span>
+              {activePartSpines.length > 0 && (
+                <button
+                  type="button"
+                  className="btn xs lw-cutout-hud-btn"
+                  onClick={handleClearPartSpines}
+                  title="Xoá các trục gió đang gắn trên mảnh bộ phận này"
+                >
+                  <span>Xoá gió ({activePartSpines.length})</span>
+                </button>
+              )}
+            </>
+          )}
+
           {!isAnimTab && (
             <>
 <button
@@ -594,18 +698,23 @@ export function WorkshopCutoutPartRigOverlay({
       </div>
 
       {/* 3. Các Ô Vuông Preview Bộ Phận ở 2 Bên Sân Khấu (Trái & Phải) */}
-      {positionedItems.map((item) => (
-        <CutoutRailTile
-          key={`rail-tile-${item.part.layer.id}`}
-          item={item}
-          isSelected={item.part.layer.id === activeLayerId}
-          isHovered={item.part.layer.id === hoveredLayerId}
-          hasBone={Boolean(item.part.layer.boneId)}
-          assets={composite.assets}
-          onSelect={handleSelectPart}
-          onHover={setHoveredLayerId}
-        />
-      ))}
+      {positionedItems.map((item) => {
+        const windSpineCount = spines.filter((s) => s.layerIds.includes(item.part.layer.id)).length
+        return (
+          <CutoutRailTile
+            key={`rail-tile-${item.part.layer.id}`}
+            item={item}
+            isSelected={item.part.layer.id === activeLayerId}
+            isHovered={item.part.layer.id === hoveredLayerId}
+            hasBone={Boolean(item.part.layer.boneId)}
+            isPlantMode={isPlantMode}
+            windSpineCount={windSpineCount}
+            assets={composite.assets}
+            onSelect={handleSelectPart}
+            onHover={setHoveredLayerId}
+          />
+        )
+      })}
     </div>
   )
 }
