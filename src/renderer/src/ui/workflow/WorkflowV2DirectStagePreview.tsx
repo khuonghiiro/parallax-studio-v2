@@ -169,7 +169,7 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
     project.shots[0]?.id ??
     null
 
-  const sampleTime = workflowBboxEditTime(node, currentTime, playing)
+  const sampleTime = workflowBboxEditTime(node, currentTime, playing, workflow)
 
   const stageLayout = useMemo(() => computeShotStageLayout(project, 0), [project])
   const frames = useMemo(() => extractCameraFrames2D(project, stageLayout), [project, stageLayout])

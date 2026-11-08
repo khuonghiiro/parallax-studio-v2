@@ -64,6 +64,7 @@ export {
   type ShotCameraWaypointStep
 } from './workflowV2Scope'
 export * from './workflowV2ClusterRigAndSwap'
+export * from './workflowV2ClusterActionsAndAttach'
 export * from './workflowV2CompositeParts'
 export * from './workflowV2BboxMotionAndCollision'
 export {

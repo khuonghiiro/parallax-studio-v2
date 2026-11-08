@@ -4,7 +4,6 @@ import { WorkflowMotionStageTools } from './WorkflowMotionStageTools'
 import { WorkflowMotionIcon } from './WorkflowMotionIcons'
 import { WorkflowV2BboxGimbal } from './WorkflowV2BboxGimbal'
 import { resolveMotionMode } from '../../project/workflowMotionMode'
-import { useShiftToFocus } from './workflowFocusGuard'
 import { bboxStartPosition, bboxStartScale } from '../../project/workflowMotionStart'
 import { bboxStepNumber } from '../../project/workflowBboxSteps'
 import React, { useCallback, useMemo, useState } from 'react'
@@ -65,7 +64,6 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
   sampleTime,
   onSelectNode
 }) => {
-  const shiftToFocus = useShiftToFocus()
   const update = useEditor((s) => s.update)
   const setPlaying = useEditor((s) => s.setPlaying)
   const motionNode = resolveActiveMotionNode(workflow, node, coordRefLayer?.id, clusterInstId)
@@ -75,10 +73,11 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
       resolveMotionMode(mp ?? {}) === 'bbox'
   )
 
-  const focusMotionForEdit = (event: { shiftKey: boolean }): boolean => {
-    if (!motionNode || motionNode.id === node.id) return true
-    if (event.shiftKey) onSelectNode?.(motionNode.id)
-    return false
+  const focusMotionForEdit = (event?: { shiftKey?: boolean }): boolean => {
+    if (motionNode && motionNode.id !== node.id) {
+      onSelectNode?.(motionNode.id)
+    }
+    return true
   }
 
   const patchMotionNode = useCallback(
@@ -193,29 +192,27 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
 
       const customTarget = mp?.layerBboxTargets?.[ent.id]
       const entTargetX =
-        customTarget?.targetX ??
-        (isPrimary
-          ? defaultTargetX
-          : Math.round(defaultTargetX + (entStartPos[0] - startPos[0])))
+        isPrimary
+          ? (mp?.bboxTargetX ?? customTarget?.targetX ?? Math.round(startPos[0] + 280))
+          : (customTarget?.targetX ?? Math.round(defaultTargetX + (entStartPos[0] - startPos[0])))
       const entTargetY =
-        customTarget?.targetY ??
-        (isPrimary
-          ? defaultTargetY
-          : Math.round(defaultTargetY + (entStartPos[1] - startPos[1])))
-      const entTargetScalePct = customTarget?.targetScalePct ?? defaultTargetScalePct
+        isPrimary
+          ? (mp?.bboxTargetY ?? customTarget?.targetY ?? Math.round(startPos[1]))
+          : (customTarget?.targetY ?? Math.round(defaultTargetY + (entStartPos[1] - startPos[1])))
+      const entTargetScalePct =
+        isPrimary
+          ? (mp?.bboxTargetScalePct ?? customTarget?.targetScalePct ?? 135)
+          : (customTarget?.targetScalePct ?? defaultTargetScalePct)
       const entScaleRatio = Math.max(0.15, Math.min(4.0, entTargetScalePct / 100))
       const entStartZ = Math.round(entStartPos[2] ?? 0)
       const entTargetZ =
-        customTarget?.targetZ ??
-        (depthMode === 'depth_z'
-          ? isPrimary
-            ? defaultTargetZ
-            : Math.round(entStartZ - (entScaleRatio - 1) * 180)
-          : entStartZ)
+        isPrimary
+          ? (mp?.bboxTargetZ ?? customTarget?.targetZ ?? (depthMode === 'depth_z' ? Math.round(entStartZ - (entScaleRatio - 1) * 180) : entStartZ))
+          : (customTarget?.targetZ ?? (depthMode === 'depth_z' ? Math.round(entStartZ - (entScaleRatio - 1) * 180) : entStartZ))
 
-      const entRotZ = customTarget?.targetRotZ ?? (isPrimary ? (mp?.bboxTargetRotZ ?? 0) : 0)
-      const entRotY = customTarget?.targetRotY ?? (isPrimary ? (mp?.bboxTargetRotY ?? 0) : 0)
-      const entRotX = customTarget?.targetRotX ?? (isPrimary ? (mp?.bboxTargetRotX ?? 0) : 0)
+      const entRotZ = isPrimary ? (mp?.bboxTargetRotZ ?? customTarget?.targetRotZ ?? 0) : (customTarget?.targetRotZ ?? 0)
+      const entRotY = isPrimary ? (mp?.bboxTargetRotY ?? customTarget?.targetRotY ?? 0) : (customTarget?.targetRotY ?? 0)
+      const entRotX = isPrimary ? (mp?.bboxTargetRotX ?? customTarget?.targetRotX ?? 0) : (customTarget?.targetRotX ?? 0)
 
       const pEnd = refD / Math.max(80, refD + entTargetZ)
       const currentPos = evaluate(ent.rootLayer.transform.position, sampleTime)
@@ -317,6 +314,10 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
     sampleTime,
     refD,
     mp?.layerBboxTargets,
+    mp?.bboxTargetX,
+    mp?.bboxTargetY,
+    mp?.bboxTargetScalePct,
+    mp?.bboxTargetZ,
     mp?.bboxTargetRotZ,
     mp?.bboxTargetRotY,
     mp?.bboxTargetRotX,
@@ -352,6 +353,7 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
     e.preventDefault()
     if (!focusMotionForEdit(e)) return
     setPlaying(false)
+    useEditor.getState().setTime(tStart)
     const sx = e.clientX
     const sy = e.clientY
     const origX = entTargetX
@@ -362,33 +364,29 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
     const onMove = (pev: PointerEvent): void => {
       const dxStage = (pev.clientX - sx) / safeZoom
       const dyStage = (pev.clientY - sy) / safeZoom
+      const isPrimary = !primaryEntity || ent.id === primaryEntity.id
       if (dragMode === 'move') {
         const nx = Math.round(origX + dxStage / entPFactorEnd)
         const ny = Math.round(origY - dyStage / entPFactorEnd)
-        if (connectedEntities.length === 1) {
-          patchMotionNode({ bboxTargetX: nx, bboxTargetY: ny }, 'wf-bbox2-move')
-        } else {
-          const existing = mp?.layerBboxTargets ?? {}
-          const cur = existing[ent.id]
-          const updatedTargets = {
-            ...existing,
-            [ent.id]: {
-              ...(cur ?? {}),
-              targetX: nx,
-              targetY: ny,
-              targetScalePct: cur?.targetScalePct ?? origPct,
-              targetZ: cur?.targetZ ?? entStartZ
-            }
+        const existing = mp?.layerBboxTargets ?? {}
+        const cur = existing[ent.id]
+        const updatedTargets = {
+          ...existing,
+          [ent.id]: {
+            ...(cur ?? {}),
+            targetX: nx,
+            targetY: ny,
+            targetScalePct: cur?.targetScalePct ?? origPct,
+            targetZ: cur?.targetZ ?? entStartZ
           }
-          const isPrimary = ent.id === primaryEntity?.id
-          patchMotionNode(
-            {
-              layerBboxTargets: updatedTargets,
-              ...(isPrimary ? { bboxTargetX: nx, bboxTargetY: ny } : {})
-            },
-            'wf-bbox2-move'
-          )
         }
+        patchMotionNode(
+          {
+            layerBboxTargets: updatedTargets,
+            ...(isPrimary ? { bboxTargetX: nx, bboxTargetY: ny } : {})
+          },
+          'wf-bbox2-move'
+        )
       } else {
         const signX = dragMode === 'ne' || dragMode === 'se' ? 1 : -1
         const signY = dragMode === 'sw' || dragMode === 'se' ? 1 : -1
@@ -402,38 +400,27 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
           depthMode === 'depth_z' && !mp?.depthRefLayerId
             ? Math.round(entStartZ - (ratio - 1) * 180)
             : mp?.bboxTargetZ
-        if (connectedEntities.length === 1) {
-          patchMotionNode(
-            {
-              bboxTargetScalePct: nextPct,
-              ...(autoZ !== undefined ? { bboxTargetZ: autoZ } : {})
-            },
-            'wf-bbox2-scale'
-          )
-        } else {
-          const existing = mp?.layerBboxTargets ?? {}
-          const cur = existing[ent.id]
-          const updatedTargets = {
-            ...existing,
-            [ent.id]: {
-              ...(cur ?? {}),
-              targetX: cur?.targetX ?? entTargetX,
-              targetY: cur?.targetY ?? entTargetY,
-              targetScalePct: nextPct,
-              targetZ: autoZ ?? cur?.targetZ ?? entStartZ
-            }
+        const existing = mp?.layerBboxTargets ?? {}
+        const cur = existing[ent.id]
+        const updatedTargets = {
+          ...existing,
+          [ent.id]: {
+            ...(cur ?? {}),
+            targetX: cur?.targetX ?? entTargetX,
+            targetY: cur?.targetY ?? entTargetY,
+            targetScalePct: nextPct,
+            targetZ: autoZ ?? cur?.targetZ ?? entStartZ
           }
-          const isPrimary = ent.id === primaryEntity?.id
-          patchMotionNode(
-            {
-              layerBboxTargets: updatedTargets,
-              ...(isPrimary
-                ? { bboxTargetScalePct: nextPct, ...(autoZ !== undefined ? { bboxTargetZ: autoZ } : {}) }
-                : {})
-            },
-            'wf-bbox2-scale'
-          )
         }
+        patchMotionNode(
+          {
+            layerBboxTargets: updatedTargets,
+            ...(isPrimary
+              ? { bboxTargetScalePct: nextPct, ...(autoZ !== undefined ? { bboxTargetZ: autoZ } : {}) }
+              : {})
+          },
+          'wf-bbox2-scale'
+        )
       }
     }
 
@@ -446,37 +433,30 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
   }
 
   const patchBboxRotation = (entId: string, rotZ: number, rotY: number, rotX: number): void => {
-    if (connectedEntities.length === 1) {
-      patchMotionNode({
+    const isPrimary = !primaryEntity || entId === primaryEntity?.id
+    const existing = mp?.layerBboxTargets ?? {}
+    const cur = existing[entId]
+    const updatedTargets = {
+      ...existing,
+      [entId]: {
+        ...(cur ?? {}),
+        targetX: cur?.targetX ?? defaultTargetX,
+        targetY: cur?.targetY ?? defaultTargetY,
+        targetScalePct: cur?.targetScalePct ?? defaultTargetScalePct,
+        targetZ: cur?.targetZ ?? defaultStartZ,
+        targetRotZ: rotZ,
+        targetRotY: rotY,
+        targetRotX: rotX
+      }
+    }
+    patchMotionNode({
+      layerBboxTargets: updatedTargets,
+      ...(isPrimary ? {
         bboxTargetRotZ: rotZ,
         bboxTargetRotY: rotY,
         bboxTargetRotX: rotX
-      }, 'wf-bbox-rot')
-    } else {
-      const existing = mp?.layerBboxTargets ?? {}
-      const cur = existing[entId]
-      const isPrimary = entId === primaryEntity?.id
-      patchMotionNode({
-        layerBboxTargets: {
-          ...existing,
-          [entId]: {
-            ...(cur ?? {}),
-            targetX: cur?.targetX ?? defaultTargetX,
-            targetY: cur?.targetY ?? defaultTargetY,
-            targetScalePct: cur?.targetScalePct ?? defaultTargetScalePct,
-            targetZ: cur?.targetZ ?? defaultStartZ,
-            targetRotZ: rotZ,
-            targetRotY: rotY,
-            targetRotX: rotX
-          }
-        },
-        ...(isPrimary ? {
-          bboxTargetRotZ: rotZ,
-          bboxTargetRotY: rotY,
-          bboxTargetRotX: rotX
-        } : {})
-      }, 'wf-bbox-rot')
-    }
+      } : {})
+    }, 'wf-bbox-rot')
   }
 
   const primaryItem = renderedEntities.find((i) => i.isPrimary) ?? renderedEntities[0]
@@ -743,7 +723,7 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
               data-bbox-focused={isFocused ? 'true' : undefined}
               data-workflow-node-id={motionNode?.id ?? node.id}
               style={{
-                pointerEvents: motionNode?.id === node.id || shiftToFocus ? 'auto' : 'none',
+                pointerEvents: 'auto',
                 left: item.box2Left,
                 top: item.box2Top,
                 width: item.box2W,
@@ -770,6 +750,9 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
               }
               onPointerDown={(e) => {
                 if (e.button === 0) {
+                  if (motionNode && motionNode.id !== node.id) {
+                    onSelectNode?.(motionNode.id)
+                  }
                   if (!isFocused) {
                     setLocalFocusedId(item.ent.id)
                     patchMotionNode({ activeMotionTargetEntityId: item.ent.id }, 'wf-stage-focus-bbox')
@@ -839,7 +822,10 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
                   <span
                     key={h.key}
                     className={`wf-v2-bbox-handle ${h.cls}`}
-                    onPointerDown={(e) =>
+                    onPointerDown={(e) => {
+                      if (motionNode && motionNode.id !== node.id) {
+                        onSelectNode?.(motionNode.id)
+                      }
                       startBbox2DragForEntity(
                         e,
                         h.key,
@@ -851,7 +837,7 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
                         item.entStartZ,
                         item.pEnd
                       )
-                    }
+                    }}
                   />
                 ))}
             </div>

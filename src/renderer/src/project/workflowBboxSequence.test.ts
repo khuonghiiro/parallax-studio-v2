@@ -193,4 +193,35 @@ describe('Multi-layer Motion BBox with per-entity targets', () => {
     expect(endRot[1]).toBeCloseTo(-20, 1)
     expect(endRot[2]).toBeCloseTo(45, 1)
   })
+
+  it('supports cluster instance targets keyed by instanceId in layerBboxTargets', () => {
+    const { project, a } = fixture()
+    const instId = 'comp-inst-test-01'
+    a.composite = { instanceId: instId, compositeId: 'comp-1', compositeName: 'Test', isRoot: true, lockedGroup: true }
+    project.workflow = syncWorkflowV2Graph(project)
+    const attachRes = attachLogicNodeToLayerV2(
+      project.workflow,
+      `v2-cluster-${instId}`,
+      'action',
+      'v2:action:bbox_target',
+      {
+        timeStart: 0,
+        timeEnd: 2,
+        instanceId: instId,
+        targetLayerIds: [a.id],
+        bboxTargetX: 999,
+        bboxTargetY: 888,
+        layerBboxTargets: {
+          [instId]: { targetX: 250, targetY: -80, targetScalePct: 180 }
+        }
+      }
+    )
+    project.workflow = attachRes.workflow
+    const n = project.workflow.nodes.find((node) => node.id === attachRes.createdNodeId)!
+    syncWorkflowV2NodeToProject(project, n)
+
+    expect(evaluate(a.transform.position, 2)[0]).toBeCloseTo(250)
+    expect(evaluate(a.transform.position, 2)[1]).toBeCloseTo(-80)
+    expect(evaluate(a.transform.scale, 2)[0]).toBeCloseTo(1.8)
+  })
 })

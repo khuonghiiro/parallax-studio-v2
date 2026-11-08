@@ -335,7 +335,11 @@ export function bakeBboxTargetMotionToScene(
     const relY = mBasePos[1] - entityStartPos[1]
     const relZ = mBasePos[2] - entityStartPos[2]
 
-    const entityTargetConfig = params.layerBboxTargets?.[entityRoot.id] ?? params.layerBboxTargets?.[m.id]
+    const instId = m.composite?.instanceId ?? m.model3d?.instanceId ?? params.instanceId
+    const entityTargetConfig =
+      (instId ? params.layerBboxTargets?.[instId] : undefined) ??
+      params.layerBboxTargets?.[entityRoot.id] ??
+      params.layerBboxTargets?.[m.id]
     const isRoot = entityRoot.id === rootLayer.id
     const entityTargetX = entityTargetConfig?.targetX ?? (
       isRoot || convergeEachEntity
