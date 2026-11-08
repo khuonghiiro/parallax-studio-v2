@@ -46,6 +46,10 @@ export interface ChromaKeySettings {
   /** "Xoá bóng" sạch cho hiệu ứng ánh sáng (Xưởng Loop): loại quầng / bóng bán trong suốt dưới ngưỡng Độ nhạy và khử ám màu mép còn lại */
   removeSoftHalo?: boolean
   tolerance: number // 0 to 100
+  /** Bảo vệ chi tiết có sắc độ/màu gần nền xám/trắng/kem (0..100, mặc định 75) */
+  detailProtection?: number
+  /** Độ kín tường viền BFS ngăn loang qua khe hở / nét mảnh (0..100, mặc định 70) */
+  contourBarrier?: number
   smoothness: number // Feather: 0 to 30
   despill: boolean
   previewBackground?: 'checkerboard' | 'dark' | 'light'
@@ -88,6 +92,8 @@ export const DEFAULT_CHROMA_SETTINGS: ChromaKeySettings = {
   isolationMode: 'all',
   strictOuterIsolation: false,
   tolerance: 18,
+  detailProtection: 75,
+  contourBarrier: 70,
   smoothness: 1,
   despill: false,
   previewBackground: 'checkerboard',
@@ -112,7 +118,7 @@ export const DEFAULT_CHROMA_SETTINGS: ChromaKeySettings = {
   previewMode: 'transparent'
 }
 
-export const CUTTER_CHROMA_CACHE_KEY = 'pxs:sprite-cutter-chroma-settings-v3'
+export const CUTTER_CHROMA_CACHE_KEY = 'pxs:sprite-cutter-chroma-settings-v4'
 
 export function getStoredChromaSettings(): ChromaKeySettings {
   const base: ChromaKeySettings = { ...DEFAULT_CHROMA_SETTINGS, isolationMode: 'outer_only' }

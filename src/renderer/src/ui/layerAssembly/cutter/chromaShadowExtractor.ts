@@ -230,12 +230,13 @@ export function analyzeChromaAlpha(
 ): ChromaAlphaAnalysis {
   const totalPixels = w * h
   const shadowType = settings.shadowType || 'auto'
-  const invPosR = keyRgb.r < 235 ? 1 / Math.max(64, 255 - keyRgb.r) : 1 / 255
-  const invPosG = keyRgb.g < 235 ? 1 / Math.max(64, 255 - keyRgb.g) : 1 / 255
-  const invPosB = keyRgb.b < 235 ? 1 / Math.max(64, 255 - keyRgb.b) : 1 / 255
-  const invNegR = keyRgb.r > 20 ? 1 / Math.max(64, keyRgb.r) : 1 / 255
-  const invNegG = keyRgb.g > 20 ? 1 / Math.max(64, keyRgb.g) : 1 / 255
-  const invNegB = keyRgb.b > 20 ? 1 / Math.max(64, keyRgb.b) : 1 / 255
+  const detailProtection = Math.max(0, Math.min(100, settings.detailProtection ?? 75)) / 100
+  const invPosR = keyRgb.r <= 238 ? 1 / Math.max(20, 255 - keyRgb.r) : 1 / 255
+  const invPosG = keyRgb.g <= 238 ? 1 / Math.max(20, 255 - keyRgb.g) : 1 / 255
+  const invPosB = keyRgb.b <= 238 ? 1 / Math.max(20, 255 - keyRgb.b) : 1 / 255
+  const invNegR = keyRgb.r >= 17 ? 1 / Math.max(20, keyRgb.r) : 1 / 255
+  const invNegG = keyRgb.g >= 17 ? 1 / Math.max(20, keyRgb.g) : 1 / 255
+  const invNegB = keyRgb.b >= 17 ? 1 / Math.max(20, keyRgb.b) : 1 / 255
 
   const kMean = (keyRgb.r + keyRgb.g + keyRgb.b) / 3
   const kcr = keyRgb.r - kMean
@@ -282,6 +283,26 @@ export function analyzeChromaAlpha(
       // pixel không phải bóng tối hay mây trắng mà là màu vật thể đặc.
       if (alphaLight > 0.12 && alphaDark > 0.18 && pChroma < 0.25) {
         alphaAll = Math.max(alphaAll, Math.min(1, 1 - pChroma * 0.35))
+      }
+    } else if (detailProtection > 0) {
+      // Trên nền trung tính / ít bão hoà (xám, trắng, kem, đen):
+      // Bóng đổ và mây mờ thật chỉ dịch chuyển độ sáng đồng hướng (dr ≈ dg ≈ db, sắc độ lệch rất thấp).
+      // Ngược lại, da mặt, mũ áo nâu/xám xanh, lá cây có vector sắc độ (chromaVec) hoặc đối cực kênh màu rõ rệt → bảo vệ làm vật thể đặc!
+      const dr = r - keyRgb.r
+      const dg = g - keyRgb.g
+      const db = b - keyRgb.b
+      const meanD = (dr + dg + db) / 3
+      const cdR = dr - meanD
+      const cdG = dg - meanD
+      const cdB = db - meanD
+      const chromaVec = Math.sqrt(cdR * cdR + cdG * cdG + cdB * cdB)
+      const effChroma = Math.max(0, chromaVec - 2.2)
+      const maxPos = Math.max(0, dr, dg, db)
+      const maxNeg = Math.max(0, -dr, -dg, -db)
+      const oppPol = maxPos > 1.5 && maxNeg > 1.5 ? Math.min(maxPos, maxNeg) : 0
+      if (effChroma > 0 || oppPol > 0) {
+        const boost = (effChroma / 12 + oppPol / 9) * detailProtection
+        alphaAll = Math.min(1, alphaAll + boost)
       }
     }
 

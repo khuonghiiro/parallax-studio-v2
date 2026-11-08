@@ -662,5 +662,122 @@ describe('chromaKey algorithms', () => {
       expect([buf[centerIdx], buf[centerIdx + 1], buf[centerIdx + 2]]).toEqual([90, 72, 64])
     }
   })
+
+  it('protects brown-grey hood and blue-grey shirt on #8A8A8A grey background and keeps peach face 100% solid & original color on #E4E4E4 in both off and include shadow modes', async () => {
+    const { processAdvancedChromaPixelData } = await import('./chromaAdvancedProcessor')
+    const w = 32
+    const h = 32
+
+    // 1. Medium grey #8A8A8A (138, 138, 138) with brown-grey hood [151, 145, 133] and blue-grey shirt [147, 150, 165]
+    const greyBuf = new Uint8ClampedArray(w * h * 4)
+    for (let i = 0; i < w * h; i++) {
+      greyBuf[i * 4] = 138
+      greyBuf[i * 4 + 1] = 138
+      greyBuf[i * 4 + 2] = 138
+      greyBuf[i * 4 + 3] = 255
+    }
+    for (let y = 8; y <= 14; y++) {
+      for (let x = 8; x <= 14; x++) {
+        const idx = (y * w + x) * 4
+        greyBuf[idx] = 151
+        greyBuf[idx + 1] = 145
+        greyBuf[idx + 2] = 133
+      }
+    }
+    for (let y = 16; y <= 22; y++) {
+      for (let x = 8; x <= 14; x++) {
+        const idx = (y * w + x) * 4
+        greyBuf[idx] = 147
+        greyBuf[idx + 1] = 150
+        greyBuf[idx + 2] = 165
+      }
+    }
+
+    processAdvancedChromaPixelData(greyBuf, w, h, {
+      ...DEFAULT_CHROMA_SETTINGS,
+      enabled: true,
+      keyColorType: 'custom',
+      keyColorHex: '#8A8A8A',
+      isolationMode: 'outer_only',
+      tolerance: 24,
+      detailProtection: 75,
+      contourBarrier: 70,
+      smoothness: 0,
+      shadowMode: 'off'
+    })
+
+    const hoodIdx = (11 * w + 11) * 4
+    const shirtIdx = (19 * w + 11) * 4
+    expect(greyBuf[3]).toBe(0) // #8A8A8A background removed
+    expect(greyBuf[hoodIdx + 3]).toBe(255) // Brown-grey hood 100% preserved
+    expect([greyBuf[hoodIdx], greyBuf[hoodIdx + 1], greyBuf[hoodIdx + 2]]).toEqual([151, 145, 133])
+    expect(greyBuf[shirtIdx + 3]).toBe(255) // Blue-grey shirt 100% preserved
+    expect([greyBuf[shirtIdx], greyBuf[shirtIdx + 1], greyBuf[shirtIdx + 2]]).toEqual([147, 150, 165])
+
+    // 2. Light grey #E4E4E4 (228, 228, 228) with bald forehead top skin [252, 232, 225], face skin [243, 214, 204], and white T-shirt [252, 252, 252]
+    for (const shadowMode of ['off', 'include'] as const) {
+      const lightBuf = new Uint8ClampedArray(w * h * 4)
+      for (let i = 0; i < w * h; i++) {
+        lightBuf[i * 4] = 228
+        lightBuf[i * 4 + 1] = 228
+        lightBuf[i * 4 + 2] = 228
+        lightBuf[i * 4 + 3] = 255
+      }
+      // Bald forehead top edge (no black outline) at y=8..10, x=8..16
+      for (let y = 8; y <= 10; y++) {
+        for (let x = 8; x <= 16; x++) {
+          const idx = (y * w + x) * 4
+          lightBuf[idx] = 252
+          lightBuf[idx + 1] = 232
+          lightBuf[idx + 2] = 225
+        }
+      }
+      // Peach face skin at y=11..18, x=8..16
+      for (let y = 11; y <= 18; y++) {
+        for (let x = 8; x <= 16; x++) {
+          const idx = (y * w + x) * 4
+          lightBuf[idx] = 243
+          lightBuf[idx + 1] = 214
+          lightBuf[idx + 2] = 204
+        }
+      }
+      // White T-shirt at y=20..25, x=8..16
+      for (let y = 20; y <= 25; y++) {
+        for (let x = 8; x <= 16; x++) {
+          const idx = (y * w + x) * 4
+          lightBuf[idx] = 252
+          lightBuf[idx + 1] = 252
+          lightBuf[idx + 2] = 252
+        }
+      }
+
+      processAdvancedChromaPixelData(lightBuf, w, h, {
+        ...DEFAULT_CHROMA_SETTINGS,
+        enabled: true,
+        keyColorType: 'custom',
+        keyColorHex: '#E4E4E4',
+        isolationMode: 'outer_only',
+        tolerance: 24,
+        detailProtection: 75,
+        contourBarrier: 70,
+        smoothness: 0,
+        shadowMode,
+        shadowRetention: 68,
+        shadowSolidThreshold: 62,
+        shadowUnmixColor: true
+      })
+
+      const foreheadIdx = (9 * w + 12) * 4
+      const faceIdx = (14 * w + 12) * 4
+      const whiteShirtIdx = (22 * w + 12) * 4
+
+      expect(lightBuf[3]).toBe(0) // #E4E4E4 background removed
+      expect(lightBuf[foreheadIdx + 3]).toBe(255) // Bald forehead top skin preserved
+      expect([lightBuf[foreheadIdx], lightBuf[foreheadIdx + 1], lightBuf[foreheadIdx + 2]]).toEqual([252, 232, 225])
+      expect(lightBuf[faceIdx + 3]).toBe(255) // Peach face skin stays 100% opaque
+      expect([lightBuf[faceIdx], lightBuf[faceIdx + 1], lightBuf[faceIdx + 2]]).toEqual([243, 214, 204]) // Never turns dark brown!
+      expect(lightBuf[whiteShirtIdx + 3]).toBe(255) // White T-shirt preserved
+    }
+  })
 })
 

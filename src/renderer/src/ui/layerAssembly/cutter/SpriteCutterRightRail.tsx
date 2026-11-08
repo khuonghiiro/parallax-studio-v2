@@ -300,6 +300,28 @@ export function SpriteCutterRightRail({
           />
 
           <RailRangeSlider
+            label="Bảo vệ chi tiết gần nền (Sắc độ)"
+            value={chroma.detailProtection ?? 75}
+            min={0}
+            max={100}
+            step={5}
+            unit="%"
+            onChange={(v) => onChangeChroma({ detailProtection: v })}
+          />
+
+          {isOuterOnly && (
+            <RailRangeSlider
+              label="Độ kín tường viền BFS (Ngăn loang)"
+              value={chroma.contourBarrier ?? 70}
+              min={0}
+              max={100}
+              step={5}
+              unit="%"
+              onChange={(v) => onChangeChroma({ contourBarrier: v })}
+            />
+          )}
+
+          <RailRangeSlider
             label="Làm mềm biên (Feather)"
             value={chroma.smoothness}
             min={0}

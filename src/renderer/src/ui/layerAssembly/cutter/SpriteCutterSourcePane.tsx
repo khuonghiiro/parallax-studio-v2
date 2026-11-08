@@ -173,6 +173,8 @@ export function SpriteCutterSourcePane({
         keyColorHex: hex,
         keyColor: hex,
         tolerance: prev.tolerance > 5 ? prev.tolerance : 18,
+        detailProtection: prev.detailProtection ?? 75,
+        contourBarrier: prev.contourBarrier ?? 70,
         isolationMode: prev.isolationMode || 'outer_only',
         fringeColorType: type === 'pure_black' ? 'pure_white' : type,
         fringeColorHex: type === 'pure_black' ? '#FFFFFF' : hex
