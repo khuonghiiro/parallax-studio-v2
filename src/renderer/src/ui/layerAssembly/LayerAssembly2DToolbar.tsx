@@ -14,10 +14,11 @@ import {
   IconSun,
   IconStageGuide
 } from '../icons'
+import { IconFlexiMeshBind } from './LayerWorkshopStudioIcons'
 import type { Assembly2DTool, BrushSettings } from './useLayerBrushEraser'
 import { LightingControlPopover } from './LightingControlPopover'
 import type { AssemblyLighting } from '../assets/models3d/types'
-import { useRigToolStore, toggleBoneLabels } from './rigToolStore'
+import { useRigToolStore, toggleBoneLabels, openCutoutPartRig, closeCutoutPartRig } from './rigToolStore'
 
 export interface LayerAssembly2DToolbarProps {
   activeTool: Assembly2DTool
@@ -209,6 +210,12 @@ export function LayerAssembly2DToolbar({
         sub: 'Deformation Mesh',
         desc: 'Hiển thị mạng lưới đa giác tam giác 2D phục vụ uốn cong mềm mại theo khung xương.',
         tip: '🕸 Bấm để bật / ẩn lưới mesh'
+      },
+      cutoutPart: {
+        title: rigTool.cutoutStageMode ? 'Bộ phận 2D (Đang BẬT)' : 'Bộ phận 2D (Đang TẮT)',
+        sub: 'Gắn Xương / Trục Gió Từng Mảnh',
+        desc: 'Hiển thị các ô preview bộ phận 2 bên sân khấu 2D để focus và gắn xương Moho hoặc trục gió riêng biệt cho từng mảnh.',
+        tip: '🧩 Bấm để bật / tắt chế độ Bộ phận 2D'
       },
       lighting: {
         title: `Hệ thống chiếu sáng: ${atmosphereLabel}`,
@@ -440,6 +447,25 @@ export function LayerAssembly2DToolbar({
             <IconMeshWireframe width={15} height={15} />
           </button>
         )}
+
+        {/* 9b. Bật/tắt chế độ gắn xương theo Bộ phận 2D */}
+        <button
+          type="button"
+          className={`layer-3d-dock-btn${rigTool.cutoutStageMode ? ' active' : ''}`}
+          onClick={() => {
+            if (rigTool.cutoutStageMode) {
+              closeCutoutPartRig()
+            } else {
+              openCutoutPartRig()
+            }
+            hideTooltip()
+          }}
+          onMouseEnter={(e) => showTooltip(e, 'cutoutPart')}
+          onMouseLeave={hideTooltip}
+          aria-label="Chế độ Bộ phận 2D"
+        >
+          <IconFlexiMeshBind width={15} height={15} />
+        </button>
 
         {/* 10. Hướng sáng & Đổ bóng ngày đêm */}
         {onChangeLighting && (

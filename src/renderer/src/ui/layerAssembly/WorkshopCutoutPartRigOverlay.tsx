@@ -572,7 +572,7 @@ export function WorkshopCutoutPartRigOverlay({
                 type="button"
                 className="btn xs icon lw-cutout-play-btn"
                 onClick={playback.onTogglePlay}
-                title={playback.isPlaying ? 'Tạm dừng xem trước hoạt ảnh (Phím Space)' : 'Phát xem trước hoạt ảnh (Phím Space)'}
+                title={playback.isPlaying ? 'Tạm dừng xem trước hoạt ảnh' : 'Phát xem trước hoạt ảnh'}
               >
                 {playback.isPlaying ? <IconPause width={12} height={12} /> : <IconPlay width={12} height={12} />}
               </button>

@@ -44,7 +44,7 @@ export function LayerAssemblyTransportBar({
         className="btn sm icon"
         onClick={onTogglePlay}
         style={{ width: '28px', height: '28px' }}
-        title={isPlaying ? 'Tạm dừng xem trước hoạt ảnh (Phím Space)' : 'Phát xem trước hoạt ảnh (Phím Space)'}
+        title={isPlaying ? 'Tạm dừng xem trước hoạt ảnh' : 'Phát xem trước hoạt ảnh'}
       >
         {isPlaying ? <IconPause width={14} height={14} /> : <IconPlay width={14} height={14} />}
       </button>

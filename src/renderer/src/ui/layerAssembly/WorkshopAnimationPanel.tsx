@@ -691,7 +691,7 @@ function AnimationCompactTransportBar({
         type="button"
         className="btn xs primary lw-anim-play-btn"
         onClick={playback.toggle}
-        title={playback.isPlaying ? 'Tạm dừng (Phím Space)' : 'Phát thử (Phím Space)'}
+        title={playback.isPlaying ? 'Tạm dừng hoạt ảnh' : 'Phát thử hoạt ảnh'}
       >
         {playback.isPlaying ? '⏸ Dừng' : '▶ Phát'}
       </button>
