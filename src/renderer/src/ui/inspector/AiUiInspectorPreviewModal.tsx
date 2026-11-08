@@ -128,11 +128,11 @@ export function AiUiInspectorPreviewModal({
               </div>
             </div>
 
-            {/* 2. Thông tin Xưởng & Các bộ phận 2.5D (nếu đang mở Xưởng Lắp Ráp 2.5D hoặc xưởng khác) */}
+            {/* 2. Thông tin Xưởng & Hộp thoại đang mở */}
             {workshopContext && (
               <section className="ai-ui-section-card workshop-card">
                 <div className="ai-ui-section-header">
-                  <span className="ai-ui-section-badge accent">Xưởng Đang Mở</span>
+                  <span className="ai-ui-section-badge accent">Xưởng / Hộp Thoại Đang Mở</span>
                   <h4>{workshopContext.workshopTitle}</h4>
                   <span className="ai-ui-section-meta">
                     Mẫu: <strong>{workshopContext.modelName}</strong>
@@ -267,6 +267,15 @@ export function AiUiInspectorPreviewModal({
                     ))}
                   </ul>
                 )}
+
+                {workshopContext.relatedFiles && workshopContext.relatedFiles.length > 0 && (
+                  <div className="ai-ui-element-row">
+                    <span className="ai-ui-row-label">Tệp nguồn Hộp thoại:</span>
+                    <span className="ai-ui-row-code">
+                      {workshopContext.relatedFiles.join(' · ')}
+                    </span>
+                  </div>
+                )}
               </section>
             )}
 
@@ -285,7 +294,12 @@ export function AiUiInspectorPreviewModal({
                 <div className="ai-ui-elements-grid">
                   {elements.map((item, idx) => {
                     const displayTitle =
-                      item.text || item.title || item.part25D?.name || item.bone25D?.name || `Phần tử #${idx + 1}`
+                      item.text ||
+                      item.controlDetails?.fieldLabel ||
+                      item.title ||
+                      item.part25D?.name ||
+                      item.bone25D?.name ||
+                      `Phần tử #${idx + 1}`
                     const readableHandler = cleanHandlerLabel(item.primaryHandler)
                     const chainNames = item.componentChain.slice(0, 4).map((c) => c.componentName)
 
@@ -317,16 +331,52 @@ export function AiUiInspectorPreviewModal({
                           )}
 
                           {item.primaryFile && (
-                            <div className="ai-ui-element-row">
-                              <span className="ai-ui-row-label">Tệp mã nguồn:</span>
-                              <span className="ai-ui-row-code">{item.primaryFile}</span>
+                            <div className="ai-ui-element-row highlight">
+                              <span className="ai-ui-row-label">Vị trí sửa logic:</span>
+                              <span className="ai-ui-row-code">
+                                {item.primaryFile}
+                                {item.ownerComponentName ? ` (<${item.ownerComponentName}>)` : ''}
+                              </span>
                             </div>
                           )}
+
+                          {item.controlDetails &&
+                            (item.controlDetails.fieldLabel ||
+                              item.controlDetails.currentValue ||
+                              item.controlDetails.propBinding) && (
+                              <div className="ai-ui-element-row">
+                                <span className="ai-ui-row-label">Thông số Control:</span>
+                                <span className="ai-ui-row-val">
+                                  {[
+                                    item.controlDetails.fieldLabel
+                                      ? `Nhãn: "${item.controlDetails.fieldLabel}${item.controlDetails.axis ? ` (${item.controlDetails.axis})` : ''}"`
+                                      : null,
+                                    item.controlDetails.currentValue
+                                      ? `Giá trị: ${item.controlDetails.currentValue}`
+                                      : null,
+                                    item.controlDetails.propBinding
+                                      ? `PropRef: ${item.controlDetails.propBinding}`
+                                      : null
+                                  ]
+                                    .filter(Boolean)
+                                    .join(' · ')}
+                                </span>
+                              </div>
+                            )}
 
                           {readableHandler && (
                             <div className="ai-ui-element-row">
                               <span className="ai-ui-row-label">Hành động:</span>
                               <span className="ai-ui-row-code">{readableHandler}</span>
+                            </div>
+                          )}
+
+                          {item.linkedTarget && (
+                            <div className="ai-ui-element-row highlight">
+                              <span className="ai-ui-row-label">Dialog / Module đích:</span>
+                              <span className="ai-ui-row-code">
+                                &lt;{item.linkedTarget.name}&gt; — {item.linkedTarget.file}
+                              </span>
                             </div>
                           )}
 

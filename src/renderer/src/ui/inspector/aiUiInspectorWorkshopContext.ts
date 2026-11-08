@@ -5,6 +5,10 @@ import { analyzeCutoutParts } from '../layerAssembly/workshopCutoutRig'
 import { getActiveAssemblySession } from '../assets/models3d/assemblyBridge'
 import { useLoopAnimator } from '../loopAnimator/loopAnimatorState'
 import { useView } from '../../store/view'
+import {
+  detectNestedLayerAssemblySubModal,
+  extractOtherDialogOrWorkshopContext
+} from './aiUiInspectorDialogContext'
 
 export interface Scanned25DPartInfo {
   id: string
@@ -40,7 +44,13 @@ export interface Scanned25DBoneInfo {
 }
 
 export interface AiWorkshopContext {
-  workshopType: 'layer_assembly_25d' | 'assembly_3d' | 'loop_animator' | 'photo_editor' | 'audio_studio' | 'general'
+  workshopType:
+    | 'layer_assembly_25d'
+    | 'assembly_3d'
+    | 'loop_animator'
+    | 'photo_editor'
+    | 'audio_studio'
+    | 'general'
   workshopTitle: string
   modelName: string
   modelId: string
@@ -53,6 +63,7 @@ export interface AiWorkshopContext {
   selectedBone?: Scanned25DBoneInfo | null
   scannedParts: Scanned25DPartInfo[]
   scannedBones: Scanned25DBoneInfo[]
+  relatedFiles?: string[]
   extraSummaryLines?: string[]
 }
 
@@ -61,19 +72,47 @@ const REGION_FRIENDLY_NAMES: Record<string, string> = {
   toolbar_left: 'Cụm Menu Tệp / Thêm Layer / Xưởng sáng tạo',
   toolbar_doc: 'Tiêu đề Dự án (Composition)',
   toolbar_actions: 'Cụm Tiện ích & Xuất Video',
+  mcp_chip: 'Nút Trạng thái Kết nối AI (MCP Chip)',
+  remote_chip: 'Nút Điều khiển Điện thoại QR (Mobile Remote Chip)',
+  manifest_chip: 'Nút Quản lý Manifest Tài nguyên',
   left_panel: 'Bảng Tài nguyên & Phân cảnh bên trái',
+  left_tabs: 'Dải Tab Cột Trái (Phân cảnh / Tài nguyên / Sơ đồ 2.5D)',
   assets: 'Kho Tài nguyên (Assets)',
+  asset_subtabs: 'Dải Sub-Tab Kho Tài nguyên',
+  asset_grid: 'Lưới Thẻ Tài nguyên (Asset Grid)',
+  asset_bar: 'Thanh Chủ đề Tài nguyên',
+  assets_loop: 'Kho Tài nguyên Hoạt ảnh Lặp (Loop Assets)',
+  music: 'Kho Âm nhạc & Nhạc nền',
   shots: 'Danh sách Phân cảnh (Shots)',
+  topview: 'Sơ đồ Chiều sâu 2.5D (Top / Side View)',
   viewer: 'Khung nhìn Sân khấu chính (Viewer 2.5D/3D)',
+  viewer_canvas: 'Canvas 3D WebGL chính',
+  viewer_hud: 'HUD Thông số Khung nhìn 3D',
+  viewer_tools: 'Thanh công cụ Khung nhìn 3D',
+  viewer_3d_presets: 'Cụm Góc nhìn 3D nhanh',
   viewer_stage2d: 'Sân khấu 2D tổng thể (Animate Camera Stage)',
   inspector: 'Bảng Thuộc tính bên phải (Inspector)',
+  inspector_tabs: 'Dải Tab Thuộc tính (Inspector Tabs)',
+  inspector_body: 'Nội dung Thuộc tính (Inspector Body)',
+  inspector_composite: 'Cấu hình Nhóm Lắp Ráp 2.5D (Composite)',
+  inspector_physics: 'Cấu hình Vật lý & Va chạm 2.5D',
+  inspector_virtual_light: 'Cấu hình Ánh sáng Ảo 2.5D',
+  inspector_loop_logic: 'Cấu hình Logic Hoạt ảnh Lặp (Loop Logic)',
   timeline: 'Khung Dòng thời gian (Timeline)',
+  timeline_tabs: 'Chuyển chế độ Timeline / Workflow V2',
+  timeline_toolbar: 'Thanh công cụ Timeline',
+  timeline_tracks: 'Danh sách Rãnh Layer trên Timeline',
   timeline_workflow: 'Bảng Sơ đồ Node (Workflow V2)',
+  workflow_toolbar: 'Thanh công cụ Workflow V2',
+  workflow_palette: 'Bảng Thêm Node Workflow V2',
   workflow_canvas: 'Sân khấu kéo thả Node (Workflow Canvas)',
+  workflow_canvas_hud: 'Cụm điều khiển nổi trên Workflow Canvas',
   workflow_inspector: 'Cột Cấu hình Node Workflow',
+  workflow_node_config: 'Hộp thoại Cấu hình Node Workflow V2',
   layer_assembly: 'Xưởng Lắp Ráp Layer & Rigging 2.5D',
   layer_assembly_workspace: 'Không gian làm việc Xưởng Lắp Ráp 2.5D',
   layer_assembly_sidebar: 'Cột Kho & Mẫu Xưởng Lắp Ráp 2.5D',
+  layer_assembly_toolbar: 'Thanh công cụ Xưởng Lắp Ráp 2.5D',
   layer_assembly_viewport_2d: 'Sân khấu 2D/2.5D (Xưởng Lắp Ráp Layer)',
   layer_assembly_viewport_3d: 'Sân khấu Không gian 3D (Xưởng Lắp Ráp Layer)',
   layer_assembly_cutout_stage: 'Sân khấu Gắn Xương Theo Bộ Phận 2.5D (Cutout Rig)',
@@ -90,20 +129,65 @@ const REGION_FRIENDLY_NAMES: Record<string, string> = {
   layer_assembly_dopesheet: 'Dòng thời gian Keyframe Xương (Dopesheet)',
   layer_assembly_cutter: 'Xưởng Cắt Tách Mảnh Ảnh (Sprite Cutter)',
   layer_assembly_mixamo_studio: 'Studio Dựng Dáng & Chuyển Động Mixamo 2.5D',
+  layer_assembly_clip_json: 'Hộp thoại Trao đổi JSON Hoạt ảnh Clip & Gió 2.5D',
+  layer_assembly_swap: 'Hộp thoại Thay thế Bộ phận 2.5D (Part Swap)',
+  layer_assembly_retarget: 'Hộp thoại Retarget Chuyển động 2.5D',
+  layer_assembly_create: 'Hộp thoại Tạo Mẫu Lắp Ráp 2.5D mới',
   assembly_3d: 'Xưởng Lắp Ráp Mô Hình 3D',
+  assembly_sidebar: 'Cột Mẫu & Tài nguyên 3D',
   assembly_viewport: 'Khung nhìn 3D (Xưởng Mô Hình 3D)',
+  assembly_inspector: 'Cột Thuộc tính Mặt 3D (Face Inspector)',
   loop_animator: 'Xưởng Hoạt Ảnh Lặp (Loop Sprite Animator)',
+  loop_animator_header: 'Thanh Tiêu đề Xưởng Hoạt Ảnh Lặp',
+  loop_animator_source: 'Khung Ảnh Gốc & Lưới Cắt (Loop Source Pane)',
+  loop_animator_player: 'Khung Phát Thử Hoạt Ảnh Lặp (Loop Player Pane)',
+  loop_animator_stage: 'Sân khấu Xem trước Loop Animator',
+  loop_animator_settings: 'Bảng Thông số Cắt & Tốc độ Loop',
+  loop_animator_chroma: 'Thanh Tách nền Chroma Key (Loop Animator)',
+  loop_animator_frames: 'Dải Khung hình Đã cắt (Loop Frame Strip)',
+  loop_animator_align_studio: 'Studio Căn chỉnh Tâm Khung hình Loop',
   photo_editor: 'Xưởng Tách Nền & Chỉnh Sửa Ảnh (Photo Studio)',
+  photo_editor_toolbar: 'Thanh công cụ Photo Studio',
+  photo_editor_canvas: 'Khung vẽ Chỉnh sửa Ảnh (Photo Studio Canvas)',
+  photo_editor_left_rail: 'Cột Công cụ Tách nền Trái (Photo Studio Left Rail)',
+  photo_editor_right_rail: 'Cột Thông số & Chỉnh màu Phải (Photo Studio Right Rail)',
+  photo_editor_save_modal: 'Hộp thoại Lưu Ảnh Tách Nền (Photo Studio Save)',
   audio_studio: 'Phòng Thu Âm Thanh & Bàn Trộn Mixer',
+  audio_studio_sidebar: 'Danh sách Rãnh Âm thanh (Audio Track List)',
+  audio_studio_waveform: 'Khung Sóng âm & Cắt nhạc (Audio Waveform)',
+  audio_studio_tone: 'Bảng Chỉnh Âm sắc EQ (Audio Tone)',
+  audio_studio_mixer: 'Bàn Trộn Âm lượng Đa kênh (Audio Mixer)',
   manifest_dialog: 'Quản Lý Manifest Tài Nguyên & Khôi Phục File',
+  manifest_sidebar: 'Cột Phân hệ Manifest JSON',
+  manifest_categories: 'Bảng Quản lý Chủ đề Manifest',
+  manifest_assets: 'Bảng Quản lý Mục Tài nguyên Manifest',
+  manifest_trash: 'Kho Tạm Khôi Phục File Đã Xoá (_temp_deleted)',
+  manifest_json_editor: 'Trình Sửa Mã JSON Manifest Trực Tiếp',
+  remote_dialog: 'Hộp thoại Điều khiển qua Điện thoại (Mobile QR Remote)',
+  remote_qr_card: 'Thẻ Mã QR & Địa chỉ Wi-Fi LAN',
+  remote_touchpad_card: 'Bàn di Cảm ứng 3D Trực tiếp (Live Touchpad)',
+  remote_devices_list: 'Danh sách Thiết bị Điện thoại Đang kết nối',
+  mcp_dialog: 'Hộp thoại Cấu hình Kết nối AI (MCP Server)',
+  perf_dialog: 'Hộp thoại Cấu hình Hiệu năng & GPU',
+  camera_path: 'Hộp thoại Lộ trình Camera 3D',
+  camera_sketch: 'Hộp thoại Vẽ Đường Bay Camera',
   export: 'Hộp thoại Xuất Video MP4'
 }
 
 const DIALOG_FRIENDLY_NAMES: Record<string, string> = {
   layer_assembly: 'Xưởng Lắp Ráp Layer & Rigging 2.5D',
+  layer_assembly_mixamo_studio: 'Studio Dựng Dáng & Chuyển Động Mixamo 2.5D',
+  layer_assembly_clip_json: 'Hộp Thoại Trao Đổi JSON Hoạt Ảnh Clip & Gió 2.5D',
+  layer_assembly_swap: 'Hộp Thoại Thay Thế Bộ Phận 2.5D (Part Swap)',
+  layer_assembly_retarget: 'Hộp Thoại Retarget Chuyển Động 2.5D',
+  layer_assembly_create: 'Hộp Thoại Tạo Mẫu Lắp Ráp 2.5D Mới',
+  template_prompt: 'Hộp Thoại Lưu / Tạo Mẫu (Template Prompt)',
   create_3d: 'Xưởng Mô Hình 3D',
   loop_animator: 'Xưởng Hoạt Ảnh Lặp (Loop Animator)',
+  loop_animator_align_studio: 'Studio Căn Chỉnh Khung Hình Loop',
+  loop_delete_confirm: 'Hộp Thoại Xác Nhận Xoá Mẫu',
   photo_editor: 'Xưởng Tách Nền & Chỉnh Sửa Ảnh (Photo Studio)',
+  photo_editor_save_modal: 'Hộp Thoại Lưu Ảnh Tách Nền (Photo Studio)',
   audio: 'Phòng Thu Âm Thanh & Mixer',
   manifest: 'Quản Lý Manifest Tài Nguyên',
   export: 'Xuất Video MP4',
@@ -111,7 +195,8 @@ const DIALOG_FRIENDLY_NAMES: Record<string, string> = {
   remote: 'Điều Khiển Qua Điện Thoại (QR Remote)',
   performance: 'Cấu Hình Hiệu Năng & GPU',
   path: 'Lộ Trình Camera 3D',
-  sketch: 'Vẽ Đường Bay Camera'
+  sketch: 'Vẽ Đường Bay Camera',
+  workflow_node_config: 'Hộp Thoại Cấu Hình Node Workflow V2'
 }
 
 const TAB_LABELS: Record<string, string> = {
@@ -168,9 +253,13 @@ export function buildScanned25DPartInfo(layerId: string): Scanned25DPartInfo | n
     opacity: Number((layer.opacity ?? 1).toFixed(2)),
     boneId: effectiveBoneId || null,
     boneName: boundBone?.name || null,
-    bindingMode: layer.bindingMode === 'soft' || (layer.extraBoneIds?.length ?? 0) > 0 ? 'soft' : 'rigid',
+    bindingMode:
+      layer.bindingMode === 'soft' || (layer.extraBoneIds?.length ?? 0) > 0 ? 'soft' : 'rigid',
     isSelected,
-    assetPath: layer.asset || layer.assetPath || (layer.imageUrl ? 'Ảnh cắt trực tiếp (Data URL)' : 'Chưa gắn ảnh')
+    assetPath:
+      layer.asset ||
+      layer.assetPath ||
+      (layer.imageUrl ? 'Ảnh cắt trực tiếp (Data URL)' : 'Chưa gắn ảnh')
   }
 }
 
@@ -201,7 +290,7 @@ export function buildScanned25DBoneInfo(boneId: string): Scanned25DBoneInfo | nu
 }
 
 /**
- * Thu thập ngữ cảnh chuyên sâu của Xưởng đang mở (đặc biệt là Xưởng Lắp Ráp 2.5D và các bộ phận trên sân khấu 2D/3D).
+ * Thu thập ngữ cảnh chuyên sâu của Xưởng / Hộp thoại đang mở (hỗ trợ đầy đủ Xưởng 2.5D, 3D, Loop, Photo Studio, Audio, Manifest, Remote, MCP, Export, Performance...).
  */
 export function extractActiveWorkshopContext(
   box: { left: number; top: number; width: number; height: number },
@@ -219,19 +308,19 @@ export function extractActiveWorkshopContext(
     const partIds = new Set<string>()
     const boneIds = new Set<string>()
 
-    // a) Lấy các bộ phận & xương từ các phần tử DOM đã quét trúng
     for (const el of matchedElements) {
-      const layerEl = el.closest?.('[data-layer-id]') || (el.hasAttribute?.('data-layer-id') ? el : null)
+      const layerEl =
+        el.closest?.('[data-layer-id]') || (el.hasAttribute?.('data-layer-id') ? el : null)
       const lid = layerEl?.getAttribute?.('data-layer-id')
       if (lid) partIds.add(lid)
 
-      const boneEl = el.closest?.('[data-bone-id]') || (el.hasAttribute?.('data-bone-id') ? el : null)
+      const boneEl =
+        el.closest?.('[data-bone-id]') || (el.hasAttribute?.('data-bone-id') ? el : null)
       const bid = boneEl?.getAttribute?.('data-bone-id')
       if (bid) boneIds.add(bid)
     }
 
-    // b) Nếu quét trên Sân khấu 3D (.layer-workshop-3d-viewport), gọi hàm chiếu 3D sang 2D Screen Box
-    if ( typeof document !== 'undefined' && typeof document.querySelectorAll === 'function') {
+    if (typeof document !== 'undefined' && typeof document.querySelectorAll === 'function') {
       const viewports3D = Array.from(document.querySelectorAll('.layer-workshop-3d-viewport'))
       for (const vp of viewports3D) {
         const vpRect = vp.getBoundingClientRect()
@@ -246,7 +335,9 @@ export function extractActiveWorkshopContext(
         )
         if (intersectsVp && typeof (vp as any).__pxsQuery3DLayersInBox === 'function') {
           try {
-            const hits3D = (vp as any).__pxsQuery3DLayersInBox(box) as Array<{ layer: { id: string } }>
+            const hits3D = (vp as any).__pxsQuery3DLayersInBox(box) as Array<{
+              layer: { id: string }
+            }>
             for (const h of hits3D.slice(0, 8)) {
               if (h?.layer?.id) partIds.add(h.layer.id)
             }
@@ -257,7 +348,6 @@ export function extractActiveWorkshopContext(
       }
     }
 
-    // c) Nếu quét vào vùng Sân khấu 2D/3D mà chưa trúng riêng phần tử con nào, bổ sung bộ phận đang chọn hoặc top bộ phận hiển thị
     if (partIds.size === 0 && selectedLayerId) {
       partIds.add(selectedLayerId)
     }
@@ -284,20 +374,39 @@ export function extractActiveWorkshopContext(
     const selectedPart = selectedLayerId ? buildScanned25DPartInfo(selectedLayerId) : null
     const selectedBone = selectedBoneId ? buildScanned25DBoneInfo(selectedBoneId) : null
 
+    const nestedSubModal = detectNestedLayerAssemblySubModal(matchedElements)
+    const defaultLaFiles =
+      primaryMode === 'cutter'
+        ? [
+            'src/renderer/src/ui/layerAssembly/cutter/SpriteCutterLeftRail.tsx',
+            'src/renderer/src/ui/layerAssembly/cutter/SpriteCutterRightRail.tsx',
+            'src/renderer/src/ui/layerAssembly/cutter/SpriteCutterTargetPane.tsx'
+          ]
+        : [
+            'src/renderer/src/ui/layerAssembly/LayerAssemblyDialog.tsx',
+            'src/renderer/src/ui/layerAssembly/WorkshopWorkspace.tsx',
+            'src/renderer/src/ui/layerAssembly/LayerAssemblyInspector.tsx'
+          ]
+
     return {
       workshopType: 'layer_assembly_25d',
-      workshopTitle: 'Xưởng Lắp Ráp Layer & Rigging 2.5D',
+      workshopTitle: nestedSubModal
+        ? `${nestedSubModal.title} (trong Xưởng 2.5D)`
+        : 'Xưởng Lắp Ráp Layer & Rigging 2.5D',
       modelName: composite.name || 'Mẫu 2.5D chưa đặt tên',
       modelId: composite.id,
       canvasSize: `${composite.width || 600} × ${composite.height || 600} px`,
-      primaryModeLabel: primaryMode === 'cutter' ? 'Cắt tách Sprite (Cutter)' : 'Lắp ráp & Rigging 2.5D',
+      primaryModeLabel:
+        primaryMode === 'cutter' ? 'Cắt tách Sprite (Cutter)' : 'Lắp ráp & Rigging 2.5D',
       activeTabLabel: TAB_LABELS[tab] || tab,
       totalLayers: composite.layers.length,
       totalBones: composite.rig?.bones?.length || 0,
       selectedPart,
       selectedBone,
       scannedParts,
-      scannedBones
+      scannedBones,
+      relatedFiles: nestedSubModal ? nestedSubModal.relatedFiles : defaultLaFiles,
+      extraSummaryLines: nestedSubModal ? [nestedSubModal.summaryLine] : undefined
     }
   }
 
@@ -307,9 +416,7 @@ export function extractActiveWorkshopContext(
     const model = asm3d.getModel()
     const selFaceId = asm3d.getSelectedFaceId()
     const selFace = model.faces.find((f) => f.id === selFaceId) || null
-    const extra: string[] = [
-      `Tổng số mặt 3D: ${model.faces.length} mặt · Tỷ lệ: ${model.scale ?? 1}`
-    ]
+    const extra: string[] = [`Tổng số mặt 3D: ${model.faces.length} mặt · Tỷ lệ: ${model.scale ?? 1}`]
     if (selFace) {
       extra.push(
         `Mặt 3D đang chọn: "${selFace.name}" (${selFace.id}) · Kích thước: ${selFace.width}×${selFace.height}`
@@ -322,6 +429,11 @@ export function extractActiveWorkshopContext(
       modelId: model.id,
       scannedParts: [],
       scannedBones: [],
+      relatedFiles: [
+        'src/renderer/src/ui/assets/models3d/Assembly3DDialog.tsx',
+        'src/renderer/src/ui/assets/models3d/AssemblyViewport.tsx',
+        'src/renderer/src/ui/assets/models3d/FaceInspector.tsx'
+      ],
       extraSummaryLines: extra
     }
   }
@@ -337,6 +449,13 @@ export function extractActiveWorkshopContext(
       modelId: loopState.activePresetId || 'custom_loop',
       scannedParts: [],
       scannedBones: [],
+      relatedFiles: [
+        'src/renderer/src/ui/loopAnimator/LoopAnimatorDialog.tsx',
+        'src/renderer/src/ui/loopAnimator/LoopAnimatorSourcePane.tsx',
+        'src/renderer/src/ui/loopAnimator/LoopAnimatorPlayerPane.tsx',
+        'src/renderer/src/ui/loopAnimator/LoopAnimatorLeftRail.tsx',
+        'src/renderer/src/ui/loopAnimator/LoopAnimatorRightRail.tsx'
+      ],
       extraSummaryLines: [
         `Chủ đề: ${loopState.category} · Chế độ cắt: ${loopState.slicerMode}`,
         `Số khung hình (Frames): ${loopState.frames.length} frames · Tốc độ: ${loopState.playback.fps} FPS (${loopState.playback.loopMode})`
@@ -344,5 +463,6 @@ export function extractActiveWorkshopContext(
     }
   }
 
-  return null
+  // 4. Kiểm tra tất cả các Hộp thoại (Dialogs / Modals) khác trong ứng dụng
+  return extractOtherDialogOrWorkshopContext(matchedElements)
 }
