@@ -2,6 +2,7 @@ import { scaleClusterFromSnapshot } from './clusterTransform'
 import type { Layer, Project, Vec3 } from '@shared/types'
 import type { LayerBone, LayerRig } from '@shared/layerRig'
 import { evaluateRig, transformRigLayer } from '../engine/layerRig'
+import { COMPOSITE_Z_FACTOR } from '../ui/layerAssembly/insertLayerComposite'
 import { findCompositeTemplate } from '../ui/layerAssembly/scenePartSwap'
 import { CUTOUT_FRONT_BONES } from '../ui/layerAssembly/templates/humanoidTemplates'
 import {
@@ -291,7 +292,7 @@ function sampleRigLayerKeyframes(
   const off: Vec3 = l.composite?.rootOffset ?? [0, 0, 0]
   const itemX = off[0] / scale
   const itemY = -off[1] / scale
-  const itemZ = off[2] / scale
+  const itemZ = COMPOSITE_Z_FACTOR > 0 ? -off[2] / (scale * COMPOSITE_Z_FACTOR) : 0
   const virtItem = { x: itemX, y: itemY, z: itemZ, rotation: 0, boneId, scale: 1 }
 
   const samples: { t: number; pos: Vec3; rot: Vec3 }[] = []
@@ -301,7 +302,7 @@ function sampleRigLayerKeyframes(
     const posed = transformRigLayer(virtItem, evaluateRig(rig, tClip))
     const dx = (posed.x - itemX) * scale * intensity
     const dy = -(posed.y - itemY) * scale * intensity
-    const dz = ((posed.z ?? itemZ) - itemZ) * scale
+    const dz = -((posed.z ?? itemZ) - itemZ) * COMPOSITE_Z_FACTOR * scale
     const rotZ = posed.rotation * intensity
     samples.push({
       t: tScene,

@@ -311,7 +311,8 @@ export function evaluateScene(project: Project, rawT: number): EvaluatedScene {
       }
     }
     if (layer.type === 'image' && layer.mesh?.skin) {
-      bounds.expandByScalar(Math.max(size[0], size[1]) * 0.25 + 150)
+      const maxSc = Math.max(Math.abs(scale[0]), Math.abs(scale[1]))
+      bounds.expandByScalar(Math.max(size[0], size[1]) * maxSc * 0.2)
     }
 
     let opacity = Math.max(0, Math.min(1, evaluate(tr.opacity, t)))

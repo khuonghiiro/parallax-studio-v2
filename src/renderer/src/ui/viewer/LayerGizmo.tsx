@@ -132,8 +132,13 @@ function GizmoPane({
 
   if (isGroup) {
     groupBounds = new THREE.Box3()
+    const _vCorner = new THREE.Vector3()
     for (const gl of groupLayers) {
-      if (!gl.bounds.isEmpty()) groupBounds.union(gl.bounds)
+      if (!gl.active) continue
+      for (const [hx, hy] of [[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]]) {
+        _vCorner.set(hx * gl.size[0], hy * gl.size[1], 0).applyMatrix4(gl.world)
+        groupBounds.expandByPoint(_vCorner)
+      }
     }
     if (groupBounds.isEmpty()) groupBounds.copy(el.bounds)
     pivot = groupBounds.getCenter(new THREE.Vector3())
@@ -152,41 +157,40 @@ function GizmoPane({
   let boxPoints = ''
 
   if (showBbox) {
-    if (isGroup && groupBounds) {
-      const b = groupBounds
-      const corners3D = [
-        new THREE.Vector3(b.min.x, b.min.y, b.min.z),
-        new THREE.Vector3(b.max.x, b.min.y, b.min.z),
-        new THREE.Vector3(b.max.x, b.max.y, b.min.z),
-        new THREE.Vector3(b.min.x, b.max.y, b.min.z),
-        new THREE.Vector3(b.min.x, b.min.y, b.max.z),
-        new THREE.Vector3(b.max.x, b.min.y, b.max.z),
-        new THREE.Vector3(b.max.x, b.max.y, b.max.z),
-        new THREE.Vector3(b.min.x, b.max.y, b.max.z)
-      ]
+    if (isGroup) {
       let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
-      for (const c of corners3D) {
-        const pt = project(c)
-        if (pt[0] < minX) minX = pt[0]
-        if (pt[1] < minY) minY = pt[1]
-        if (pt[0] > maxX) maxX = pt[0]
-        if (pt[1] > maxY) maxY = pt[1]
+      const _vCorner = new THREE.Vector3()
+      for (const gl of groupLayers) {
+        if (!gl.active) continue
+        for (const [hx, hy] of [[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]]) {
+          _vCorner.set(hx * gl.size[0], hy * gl.size[1], 0).applyMatrix4(gl.world)
+          const pt = project(_vCorner)
+          if (pt[0] < minX) minX = pt[0]
+          if (pt[1] < minY) minY = pt[1]
+          if (pt[0] > maxX) maxX = pt[0]
+          if (pt[1] > maxY) maxY = pt[1]
+        }
       }
-      const pad = 6
-      minX -= pad; minY -= pad; maxX += pad; maxY += pad
-      const midX = (minX + maxX) / 2
-      const midY = (minY + maxY) / 2
-      handles = [
-        [minX, minY],
-        [midX, minY],
-        [maxX, minY],
-        [maxX, midY],
-        [maxX, maxY],
-        [midX, maxY],
-        [minX, maxY],
-        [minX, midY]
-      ]
-      boxPoints = `${minX},${minY} ${maxX},${minY} ${maxX},${maxY} ${minX},${maxY}`
+      if (minX === Infinity) {
+        handles = BOX_HANDLES.map(([x, y]) => project(new THREE.Vector3(x * el.size[0] / 2, y * el.size[1] / 2, 0).applyMatrix4(el.world)))
+        boxPoints = [0, 2, 4, 6].map((i) => handles[i].join(',')).join(' ')
+      } else {
+        const pad = 6
+        minX -= pad; minY -= pad; maxX += pad; maxY += pad
+        const midX = (minX + maxX) / 2
+        const midY = (minY + maxY) / 2
+        handles = [
+          [minX, minY],
+          [midX, minY],
+          [maxX, minY],
+          [maxX, midY],
+          [maxX, maxY],
+          [midX, maxY],
+          [minX, maxY],
+          [minX, midY]
+        ]
+        boxPoints = `${minX},${minY} ${maxX},${minY} ${maxX},${maxY} ${minX},${maxY}`
+      }
     } else {
       handles = BOX_HANDLES.map(([x, y]) => project(new THREE.Vector3(x * el.size[0] / 2, y * el.size[1] / 2, 0).applyMatrix4(el.world)))
       boxPoints = [0, 2, 4, 6].map((i) => handles[i].join(',')).join(' ')
