@@ -1,4 +1,6 @@
 import type { BoneKeyframe, LayerBone, MotionViewAngle } from '@shared/layerRig'
+import type { LayerComposite } from './types'
+import { detectGarmentCoversLegs } from './workshopClothScanner'
 import { inferHumanoidBoneRoles, type HumanoidBoneRoleMap } from './spineRigWorkflow'
 
 function getTrackRange(kfs?: BoneKeyframe[]) {
@@ -741,10 +743,48 @@ function fixCrossedLegsInPlace(
   }
 }
 
+/**
+ * Khi nhân vật mặc trang phục Áo dài / Cổ trang / Váy dài che phủ đùi và có Z cao hơn chân (VD: Áo Z=-2, Chân Z=-10),
+ * kẹp giá trị `zOrder` dương của xương đùi không vượt quá `maxSafeLegZOrder` để chân bước tới không bao giờ lòi đè lên trên tà áo dài.
+ */
+export function clampLongGarmentLegZOrderInPlace(
+  tracks: Record<string, BoneKeyframe[]>,
+  bones: ReadonlyArray<LayerBone>,
+  composite: LayerComposite | undefined,
+  fixes: string[]
+): void {
+  if (!composite?.layers?.length) return
+  const garment = detectGarmentCoversLegs(composite.layers, bones)
+  if (!garment.hasLongGarmentCoveringLegs) return
+
+  const roles = inferHumanoidBoneRoles(bones)
+  const thighIds = [roles.thighL ?? 'bone-thigh-l', roles.thighR ?? 'bone-thigh-r']
+  const maxSafe = garment.maxSafeLegZOrder
+  let clamped = false
+
+  for (const boneId of thighIds) {
+    const kfs = tracks[boneId]
+    if (!kfs) continue
+    for (const kf of kfs) {
+      if (kf.zOrder !== undefined && kf.zOrder > maxSafe) {
+        kf.zOrder = maxSafe
+        clamped = true
+      }
+    }
+  }
+
+  if (clamped) {
+    fixes.push(
+      `Bảo vệ lớp trang phục Áo dài / Cổ trang: Kẹp zOrder xương đùi ≤ +${maxSafe} (để chân Z=${garment.maxLegBaseZ}+${maxSafe}=${garment.maxLegBaseZ + maxSafe}px luôn ẩn dưới tà áo dài Z=${garment.minRobeZ}px mà vẫn đè lên chân sau)`
+    )
+  }
+}
+
 export function normalizeAndFixBiomechanicalTracks(
   rawTracks: Record<string, BoneKeyframe[]>,
   bones: ReadonlyArray<LayerBone> = [],
-  viewAngle: MotionViewAngle = 'front'
+  viewAngle: MotionViewAngle = 'front',
+  composite?: LayerComposite
 ): { tracks: Record<string, BoneKeyframe[]>; fixesApplied: string[] } {
   const tracks = structuredClone(rawTracks)
   const fixesApplied: string[] = []
@@ -764,6 +804,7 @@ export function normalizeAndFixBiomechanicalTracks(
     fixFrontViewLegsAndMeshImpactInPlace(tracks, roles, fixesApplied)
   }
   fixCrossedLegsInPlace(tracks, roles, viewAngle, fixesApplied)
+  clampLongGarmentLegZOrderInPlace(tracks, bones, composite, fixesApplied)
 
   return { tracks, fixesApplied }
 }

@@ -20,6 +20,7 @@ import { grabbedSpine } from './plantSpineEdit'
 import { toggleMotionSketchArmed } from './motionSketchStore'
 import { buildManipulateTestRig, type BoneOverlayProps } from './WorkshopBoneOverlay'
 import { inferFallbackBoneForStackedLayer } from './mohoRigHelpers'
+import { detectGarmentCoversLegs } from './workshopClothScanner'
 import { confirmPoseAndStep } from './workshopStepRecord'
 import { resetTestPoses, setRigToolState, useRigToolStore, toggleBoneLabels } from './rigToolStore'
 
@@ -213,16 +214,20 @@ export function WorkshopWorkspace({
   const isErasing = brushEditing && tab === 'layers' && !playback.isPlaying
   const animated =
     tab === 'animation'
-      ? (!isErasing && (playback.isPlaying || playback.time > 0) ? rig : undefined)
+      ? (!isErasing ? rig : undefined)
       : tab === 'bones'
         ? (isManipulatingRigTest ? rig : undefined)
         : undefined
   const effectiveRig = useMemo(() => {
     if (!rig) return undefined
     if (animated) return rig
-    return { ...rig, loop: false, tracks: {} }
+    return { ...rig, loop: false, tracks: {}, clips: undefined, activeClipId: undefined }
   }, [rig, animated])
   const transforms = animated ? evaluateRig(animated, evalTime) : undefined
+  const garmentOcclusion = useMemo(
+    () => detectGarmentCoversLegs(state.composite.layers, effectiveRig?.bones ?? []),
+    [state.composite.layers, effectiveRig?.bones]
+  )
 
   const composite = useMemo(
     () => ({
@@ -237,26 +242,46 @@ export function WorkshopWorkspace({
             ? inferFallbackBoneForStackedLayer(l, state.composite.layers, effectiveRig.bones)
             : undefined
         const effectiveBoneId = l.boneId ?? fallbackStackedBoneId ?? (isSingleLayerChar ? effectiveRig!.bones[0]?.id : undefined)
-        const candidateExtraBones =
+        const robeMatch = garmentOcclusion.robeLayers.find((r) => r.id === l.id)
+        const isCoveredLegLayer =
+          garmentOcclusion.hasLongGarmentCoveringLegs && garmentOcclusion.legLayers.some((leg) => leg.id === l.id)
+        const baseExtraBones =
           effectiveRig && effectiveBoneId
             ? (l.extraBoneIds?.length ? l.extraBoneIds : extraSoftBoneIdsForLayer(state.composite.layers, effectiveRig, l.id, effectiveBoneId))
             : undefined
+        const candidateExtraBones =
+          robeMatch && robeMatch.coveredBoneIds.length > 0
+            ? Array.from(new Set([...(baseExtraBones ?? []), ...robeMatch.coveredBoneIds]))
+            : baseExtraBones
         const hasMultiLimbBones = Boolean(candidateExtraBones && candidateExtraBones.length > 0)
-        const effectiveSoft = l.bindingMode === 'soft' || isSingleLayerChar || hasMultiLimbBones
+        const effectiveSoft = l.bindingMode === 'soft' || isSingleLayerChar || hasMultiLimbBones || Boolean(robeMatch)
         const extraBoneIds = effectiveSoft ? candidateExtraBones : undefined
+        const effectiveIsCloth = Boolean(l.isCloth || (robeMatch && robeMatch.coveredBoneIds.length > 0))
+        const effectiveClothAmp = l.clothAmplitude ?? (effectiveIsCloth ? 45 : undefined)
         const boneTf = transforms && effectiveBoneId ? transforms.get(effectiveBoneId) : undefined
+        const rawZOrder = boneTf?.zOrder ?? 0
+        const safeZOrder =
+          isCoveredLegLayer && rawZOrder > garmentOcclusion.maxSafeLegZOrder
+            ? garmentOcclusion.maxSafeLegZOrder
+            : rawZOrder
         const layerWithEffectiveBone = effectiveBoneId && !l.boneId ? { ...l, boneId: effectiveBoneId } : l
         const transformed =
           transforms && !effectiveSoft
             ? transformRigLayer(layerWithEffectiveBone, transforms)
-            : boneTf?.zOrder
-              ? { ...layerWithEffectiveBone, z: Number((l.z + boneTf.zOrder).toFixed(3)) }
+            : Math.abs(safeZOrder) > 1e-6
+              ? { ...layerWithEffectiveBone, z: Number((l.z + safeZOrder).toFixed(3)) }
               : layerWithEffectiveBone
+        const finalZ =
+          isCoveredLegLayer && typeof transformed.z === 'number' && transformed.z > l.z + garmentOcclusion.maxSafeLegZOrder
+            ? Number((l.z + garmentOcclusion.maxSafeLegZOrder).toFixed(3))
+            : transformed.z
         const layerSpines = !isErasing && !l.hidden ? spinesForLayer(shiftedSpines, l.id) : undefined
         return {
           ...transformed,
+          z: finalZ,
           ...(effectiveSoft ? { bindingMode: 'soft' as const, boneId: effectiveBoneId, isolateToBoundBones: isMultiLayerChar } : {}),
           ...(extraBoneIds?.length ? { extraBoneIds } : {}),
+          ...(effectiveIsCloth ? { isCloth: true, clothAmplitude: effectiveClothAmp } : {}),
           ...(brushPreview?.id === l.id ? { imageUrl: brushPreview.imageUrl } : {}),
           ...(effectiveRig && !isErasing ? { previewRig: effectiveRig, bindPose } : {}),
           ...(layerSpines?.length ? { previewPlantSpines: layerSpines } : {}),
@@ -265,11 +290,14 @@ export function WorkshopWorkspace({
         }
       })
     }),
-    [state.composite, effectiveRig, transforms, isErasing, shiftedSpines, brushPreview]
+    [state.composite, effectiveRig, transforms, garmentOcclusion, isErasing, shiftedSpines, brushPreview]
   )
 
   const boneOverlay: BoneOverlayProps = {
-    composite: { ...state.composite, rig: normalizedRig ?? state.composite.rig },
+    composite: {
+      ...state.composite,
+      rig: (isLayersOrBonesTab && !isManipulatingRigTest ? effectiveRig : normalizedRig) ?? state.composite.rig
+    },
     boneId,
     selectBone,
     setComposite: state.setComposite,
@@ -283,7 +311,8 @@ export function WorkshopWorkspace({
       playback.setIsPlaying(true)
     },
     time: evalTime,
-    editing: tab === 'bones'
+    editing: tab === 'bones',
+    restPose: isLayersOrBonesTab && !isManipulatingRigTest
   }
 
   const props = {

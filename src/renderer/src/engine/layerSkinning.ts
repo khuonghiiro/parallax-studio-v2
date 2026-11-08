@@ -9,6 +9,8 @@ export interface SkinBinding {
   extraBoneIds?: string[]
   /** Khi true (nhân vật nhiều layer Cutout 2.5D): chỉ uốn theo đúng các xương trong [boneId, ...extraBoneIds], không lấy xương cha của layer khác làm chốt ghim. */
   isolateToBoundBones?: boolean
+  isCloth?: boolean
+  clothAmplitude?: number
   x: number
   y: number
   rotation: number
@@ -369,6 +371,12 @@ export function deformSkin(
   const invCurSin = Math.sin(invCurRad)
   const invSx = 1 / sx
   const invSy = 1 / sy
+  const primaryBone = binding.boneId ? boneById.get(binding.boneId) : undefined
+  const primaryTf = binding.boneId ? transforms.get(binding.boneId) : undefined
+  const clothFactor =
+    binding.isCloth && primaryBone && primaryTf
+      ? Math.max(0.05, Math.min(1, (binding.clothAmplitude ?? 45) / 100))
+      : 1
 
   for (let i = 0; i < positions.length; i += 3) {
     const influences = weights[i / 3]
@@ -377,6 +385,15 @@ export function deformSkin(
     const py = -positions[i + 1] * sy
     const wx = px * restCos - py * restSin + restBx
     const wy = px * restSin + py * restCos + restBy
+    let primaryPtX = wx
+    let primaryPtY = wy
+    if (clothFactor < 0.999 && primaryBone && primaryTf) {
+      const pSx = primaryTf.scaleX ?? 1
+      const pSy = primaryTf.scaleY ?? 1
+      const pDelta = rotatePoint((wx - primaryBone.x) * pSx, (wy - primaryBone.y) * pSy, primaryTf.rotation)
+      primaryPtX = primaryTf.x + pDelta.x
+      primaryPtY = primaryTf.y + pDelta.y
+    }
     let x = 0, y = 0, totalW = 0
     let p0x = 0, p0y = 0, p1x = 0, p1y = 0
     let hasP0 = false, hasP1 = false
@@ -390,8 +407,12 @@ export function deformSkin(
       const dxRel = (wx - bone.x) * scaleX
       const dyRel = (wy - bone.y) * scaleY
       const delta = rotatePoint(dxRel, dyRel, transform.rotation)
-      const ptX = transform.x + delta.x
-      const ptY = transform.y + delta.y
+      let ptX = transform.x + delta.x
+      let ptY = transform.y + delta.y
+      if (clothFactor < 0.999 && influence.id !== binding.boneId) {
+        ptX = primaryPtX + (ptX - primaryPtX) * clothFactor
+        ptY = primaryPtY + (ptY - primaryPtY) * clothFactor
+      }
       const w = influence.weight
       x += ptX * w
       y += ptY * w

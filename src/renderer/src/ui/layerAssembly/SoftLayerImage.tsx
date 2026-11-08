@@ -167,7 +167,7 @@ export function SoftLayerImage({ url, layer, time, showMesh, filter }: Props) {
     ctx.setTransform(ratio, 0, 0, ratio, -alloc.minX * ratio, -alloc.minY * ratio)
     if (!drawnByGL) drawSkinTriangles(ctx, data.image, data.geometry, positions)
     if (showMesh) strokeMeshWireframe(ctx, data.geometry, positions, '#00e5ff')
-  }, [data, layer.x, layer.y, layer.rotation, layer.scale, layer.scaleX, layer.scaleY, layer.bindingMode, layer.boneId, layer.extraBoneIds, layer.previewRig, layer.previewPlantSpines, time, showMesh])
+  }, [data, layer.x, layer.y, layer.rotation, layer.scale, layer.scaleX, layer.scaleY, layer.bindingMode, layer.boneId, layer.extraBoneIds, layer.isCloth, layer.clothAmplitude, layer.previewRig, layer.previewPlantSpines, time, showMesh])
 
   if (loadFailed || !data) {
     return (

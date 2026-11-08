@@ -28,6 +28,11 @@ import {
   parseWindFromData,
   type MotionWindConfigurationGuide
 } from './workshopClipWindGuide'
+import {
+  analyzeCharacterRestPosture,
+  type CharacterPostureSummary
+} from './workshopClothScanner'
+import { analyzeCutoutParts, extractLayerDimensions } from './workshopCutoutRig'
 
 export {
   isGenericClipName,
@@ -93,6 +98,8 @@ export interface MotionJsonExportFormat {
   viewAngle?: MotionViewAngle
   /** Chi tiết góc độ (°), hướng nhìn khuôn mặt & quy tắc giải phẫu riêng cho góc đó */
   characterOrientation?: MotionOrientationGuide
+  /** Tổng hợp tư thế gốc của khung xương, hướng từng chi và cấu trúc trang phục (áo dài che chân hay quần rời) */
+  characterPostureAndGarment?: CharacterPostureSummary
   description?: string
   rigConventions?: {
     coordinateSystem: string
@@ -122,7 +129,7 @@ export interface MotionJsonExportFormat {
     pelvisVerticalRule: string
     meshImpactRule: string
   }
-  /** Danh sách xương kèm hướng dẫn cơ học từng khớp */
+  /** Danh sách xương kèm hướng dẫn cơ học từng khớp & hướng xương ở tư thế nghỉ */
   bones: Array<{
     id: string
     name: string
@@ -130,8 +137,11 @@ export interface MotionJsonExportFormat {
     role?: string
     x?: number
     y?: number
+    tailX?: number
+    tailY?: number
     length?: number
     angle?: number
+    restDirectionDesc?: string
     meshEnvelope?: boolean
     strength?: number
     influenceReach?: number
@@ -139,17 +149,28 @@ export interface MotionJsonExportFormat {
     boundLayers?: string[]
     directionGuide?: string
   }>
-  /** Danh sách các mảnh Layer kèm chế độ gắn Mesh (soft/rigid) & vật lý */
+  /** Danh sách các mảnh Layer kèm tên gọi, vai trò giải phẫu, kích thước hiển thị (px), độ sâu Z & chế độ gắn xương/vải */
   layers?: Array<{
     id: string
     name: string
+    role?: string
+    roleLabel?: string
+    renderedWidth?: number
+    renderedHeight?: number
+    renderedSize?: string
+    x?: number
+    y?: number
     z?: number
+    boundingBox?: { left: number; right: number; top: number; bottom: number }
     depthOrder?: string
     boneId?: string | null
+    boneName?: string | null
     bindingMode?: 'soft' | 'rigid'
     extraBoneIds?: string[]
     partGroupId?: string | null
     isCloth?: boolean
+    clothAmplitude?: number
+    coversLowerBody?: boolean
     physicsMaterial?: string | null
   }>
   /** Keyframe của từng xương theo thời gian */
@@ -209,6 +230,14 @@ export function exportAnimationClipToJson(
   const includeMesh = opts.includeMesh !== false
   const viewAngle = opts.viewAngle ?? clip.viewAngle ?? 'front'
   const walkType = opts.walkType ?? 'in-place'
+  const postureAndGarment = analyzeCharacterRestPosture(
+    bones,
+    composite?.layers ?? [],
+    viewAngle,
+    composite ? { width: composite.width, height: composite.height } : undefined
+  )
+  const partMap = new Map(analyzeCutoutParts(composite?.layers ?? []).map((p) => [p.layer.id, p]))
+  const boneNameMap = new Map(bones.map((b) => [b.id, b.name]))
   const bonesMeta = buildBoneBiomechanicsGuide(bones, composite, viewAngle).map((b) => ({
     id: b.id,
     name: b.name,
@@ -216,8 +245,11 @@ export function exportAnimationClipToJson(
     role: b.role,
     x: b.x,
     y: b.y,
+    tailX: b.tailX,
+    tailY: b.tailY,
     length: b.length,
     angle: b.angle,
+    restDirectionDesc: b.restDirectionDesc,
     meshEnvelope: b.meshEnvelope,
     strength: b.strength,
     influenceReach: b.influenceReach,
@@ -292,6 +324,7 @@ export function exportAnimationClipToJson(
     viewAngle,
     description: clip.description || undefined,
     characterOrientation: buildOrientationGuide(viewAngle, walkType),
+    characterPostureAndGarment: postureAndGarment,
     rigConventions: {
       coordinateSystem: '2D Screen Space (+X sang phải, +Y hướng xuống, +rotation xoay cùng chiều kim đồng hồ).',
       namingConvention: {
@@ -316,7 +349,9 @@ export function exportAnimationClipToJson(
         forwardFoot: {
           yPosition: 'Thấp hơn trên màn hình: đặt y DƯƠNG (+4..+8px) trên cả bone-thigh và bone-shin (bàn chân bone-foot giữ y: +2..+4px) vì chân bước về gần camera hạ xuống vị trí thấp hơn trong phối cảnh.',
           scale: 'To hơn (scaleX & scaleY: 1.05..1.10 trên thigh, shin, foot) theo luật phối cảnh gần to xa nhỏ.',
-          depthOrder: 'BẮT BUỘC ĐÈ LÊN chân kia: chỉ cần đặt zOrder: 15 trên xương đùi cha (bone-thigh); xương con (shin, foot) tự động kế thừa zOrder của đùi.'
+          depthOrder: postureAndGarment.garmentOcclusion.hasLongGarmentCoveringLegs
+            ? `TRANG PHỤC ÁO DÀI / CỔ TRANG CHE CHÂN: Chỉ đặt zOrder <= +${postureAndGarment.garmentOcclusion.maxSafeLegZOrder} trên xương đùi bước tới và zOrder: -15 trên đùi sau để chân bước tới đè lên chân sau nhưng TUYỆT ĐỐI KHÔNG vượt mặt tà áo dài!`
+            : 'BẮT BUỘC ĐÈ LÊN chân kia: chỉ cần đặt zOrder: 15 trên xương đùi cha (bone-thigh); xương con (shin, foot) tự động kế thừa zOrder của đùi.'
         },
         backwardFoot: {
           yPosition: 'Cao hơn trên màn hình: đặt y ÂM (-6..-12px) trên bone-thigh và bone-shin khi chân co nhấc ra phía sau.',
@@ -351,16 +386,36 @@ export function exportAnimationClipToJson(
           layers: composite.layers.map((l) => {
             const zVal = Math.round(l.z ?? 0)
             const depthRole = zVal > 15 ? 'foreground' : zVal < -15 ? 'background' : 'mid'
+            const part = partMap.get(l.id)
+            const dims = extractLayerDimensions(l)
+            const rw = Math.round(dims.w)
+            const rh = Math.round(dims.h)
+            const coversLower = postureAndGarment.garmentOcclusion.robeLayers.some((r) => r.id === l.id)
             return {
               id: l.id,
               name: l.name,
+              role: part?.role,
+              roleLabel: part?.roleLabel,
+              renderedWidth: rw,
+              renderedHeight: rh,
+              renderedSize: `${rw}×${rh}px`,
+              x: Math.round(l.x ?? 0),
+              y: Math.round(l.y ?? 0),
               z: zVal,
+              boundingBox: {
+                left: Math.round((l.x ?? 0) - rw * 0.5),
+                right: Math.round((l.x ?? 0) + rw * 0.5),
+                top: Math.round((l.y ?? 0) - rh * 0.5),
+                bottom: Math.round((l.y ?? 0) + rh * 0.5)
+              },
               depthOrder: `${depthRole} (Z: ${zVal >= 0 ? '+' : ''}${zVal}px · ${zVal > 0 ? 'ở phía trước' : zVal < 0 ? 'ở phía sau' : 'ở giữa'})`,
               boneId: l.boneId || null,
+              boneName: l.boneId ? boneNameMap.get(l.boneId) ?? null : null,
               bindingMode: l.bindingMode ?? 'soft',
               ...(l.extraBoneIds?.length ? { extraBoneIds: l.extraBoneIds } : {}),
               partGroupId: l.partGroupId || null,
-              ...(l.isCloth ? { isCloth: true } : {}),
+              ...(l.isCloth ? { isCloth: true, clothAmplitude: l.clothAmplitude ?? 45 } : {}),
+              ...(coversLower ? { coversLowerBody: true } : {}),
               physicsMaterial: l.physics?.enabled ? l.physics.material : null
             }
           })
@@ -394,18 +449,30 @@ export function generateAiMotionPrompt(
   const viewAngle = opts.viewAngle ?? clip.viewAngle ?? 'front'
   const walkType = opts.walkType ?? 'in-place'
   const orientationGuide = buildOrientationGuide(viewAngle, walkType)
+  const postureAndGarment = analyzeCharacterRestPosture(
+    bones,
+    composite?.layers ?? [],
+    viewAngle,
+    composite ? { width: composite.width, height: composite.height } : undefined
+  )
+  const partMap = new Map(analyzeCutoutParts(composite?.layers ?? []).map((p) => [p.layer.id, p]))
   const boneMetaList = buildBoneBiomechanicsGuide(bones, composite, viewAngle)
   const boneTreeLines = boneMetaList.map((b) => {
     const parent = bones.find((p) => p.id === b.parentId)
     const parentLabel = parent ? `Cha: "${parent.name}" [${parent.id}]` : 'Gốc / Root'
     const layersText = b.boundLayers.length ? ` | Layer gắn: ${b.boundLayers.join(', ')}` : ''
-    return `  - ID: "${b.id}" | Tên: "${b.name}" (${parentLabel}, Góc nghỉ: ${b.angle}°, Dài: ${b.length}px${layersText})\n    ↳ Quy tắc cơ học: ${b.directionGuide}`
+    return `  - ID: "${b.id}" | Tên: "${b.name}" (${parentLabel}, Góc nghỉ: ${b.angle}°, Dài: ${b.length}px${layersText})\n    ↳ Tư thế gốc: ${b.restDirectionDesc}\n    ↳ Quy tắc cơ học: ${b.directionGuide}`
   })
 
   const layerLines = (composite?.layers ?? []).map((l) => {
     const zVal = Math.round(l.z ?? 0)
     const posDesc = zVal > 15 ? 'Phía trước (Foreground · Đè lên)' : zVal < -15 ? 'Phía sau (Background · Bị đè)' : 'Ở giữa (Mid)'
-    return `  - Layer ID: "${l.id}" | Tên: "${l.name}" | Z: ${zVal >= 0 ? '+' : ''}${zVal}px (${posDesc}) | Gắn xương: "${l.boneId || 'không'}"`
+    const part = partMap.get(l.id)
+    const dims = extractLayerDimensions(l)
+    const rw = Math.round(dims.w)
+    const rh = Math.round(dims.h)
+    const clothText = l.extraBoneIds?.length ? ` | Vải uốn theo xương: [${l.extraBoneIds.join(', ')}]` : ''
+    return `  - Layer ID: "${l.id}" | Tên: "${l.name}" | Vai trò: ${part?.roleLabel ?? 'Chưa phân loại'} | Kích thước: ${rw}×${rh}px | Tọa độ: (${Math.round(l.x ?? 0)}, ${Math.round(l.y ?? 0)}) | Z: ${zVal >= 0 ? '+' : ''}${zVal}px (${posDesc}) | Gắn xương: "${l.boneId || 'không'}"${clothText}`
   })
 
   const nameInstruction =
@@ -425,10 +492,12 @@ ${promptIntent}
 - Thời lượng ("duration"): ${clip.duration.toFixed(1)} giây (có thể điều chỉnh 1.2s – 3.0s tuỳ nhịp độ động tác)
 - Tốc độ khung hình ("fps"): ${clip.fps ?? 30} fps
 - Vòng lặp ("loop"): ${clip.loop ? 'true (Lặp vô tận — tư thế tại time = 0 và time = duration BẮT BUỘC giống hệt nhau)' : 'false (Chạy 1 lần)'}
-📐 GÓC ĐỘ & HƯỚNG NHÌN NHÂN VẬT ("characterOrientation"):
+📐 GÓC ĐỘ & HƯỚNG NHÌN NHÂN VẬT ("characterOrientation" & "characterPostureAndGarment"):
 - Mã góc nhìn ("viewAngle"): "${viewAngle}" (${orientationGuide.facing})
 - Hướng mặt & thân người: ${orientationGuide.facing}
 - Kiểu chuyển động ("walkType"): "${walkType}" (${walkType === 'in-place' ? 'Bước đi tại chỗ In-place (giữ pelvis.x dao động nhỏ ±2..±4px, không trôi dạt)' : 'Tịnh tiến Root Motion'})
+- Tư thế đứng gốc (Rest Pose): ${postureAndGarment.postureSummary}
+- Đặc điểm trang phục & quy tắc che chân: ${postureAndGarment.garmentOcclusion.aiRuleDescription}
 - Đặc điểm giải phẫu góc này: ${orientationGuide.description}
 ${orientationGuide.diagonalRules ? `- Phân định Chi trước (Foreground) vs Chi sau (Background):\n  * Chi phía trước (gần camera hơn): ${orientationGuide.diagonalRules.foreLimbSummary}\n  * Chi phía sau (xa camera hơn): ${orientationGuide.diagonalRules.hindLimbSummary}\n  * Quy ước toạ độ: ${orientationGuide.diagonalRules.walkCoordinateSummary}\n  * Bảo vệ sprite 2D: ${orientationGuide.diagonalRules.spriteIntegrityRule}` : ''}
 
@@ -754,9 +823,9 @@ export function parseAnimationClipFromJson(
     viewAngle = 'side'
   }
 
-  // Tự động khử lỗi cơ học (tay đâm chéo bụng, chân chữ X góc 0°, hông nhảy vọt/lún đất)
+  // Tự động khử lỗi cơ học (tay đâm chéo bụng, chân chữ X góc 0°, hông nhảy vọt/lún đất, zOrder chân vượt áo dài)
   if (autoFix && trackCount > 0) {
-    const fixed = normalizeAndFixBiomechanicalTracks(normalizedTracks, existingBones ?? [], viewAngle)
+    const fixed = normalizeAndFixBiomechanicalTracks(normalizedTracks, existingBones ?? [], viewAngle, composite)
     normalizedTracks = fixed.tracks
     fixesApplied.push(...fixed.fixesApplied)
 

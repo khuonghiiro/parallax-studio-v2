@@ -726,4 +726,123 @@ describe('workshopClipJson', () => {
     expect(Math.abs(torsoKfs[0].rotation)).toBeLessThanOrEqual(5)
   })
 
+  it('detects long robe covering legs, binds cloth follower bones, exports part dimensions/posture, and clamps leg zOrder below robe', () => {
+    const humanoidBones = createHumanoidBones()
+    const robeComposite: LayerComposite = {
+      id: 'comp-robe-test',
+      name: 'Nhân vật cổ trang áo dài',
+      category: 'characters',
+      width: 600,
+      height: 860,
+      createdAt: Date.now(),
+      rig: {
+        bones: humanoidBones,
+        clips: [],
+        activeClipId: undefined,
+        duration: 2,
+        loop: true,
+        tracks: {}
+      },
+      layers: [
+        {
+          id: 'layer-head',
+          name: 'Mảnh #3 (245×289)',
+          assetPath: 'head.png',
+          x: -13,
+          y: -210,
+          z: 20,
+          scale: 0.53,
+          opacity: 1,
+          rotation: 0,
+          boneId: 'bone-head',
+          bindingMode: 'rigid',
+          motion: { type: 'none', speed: 1, amplitude: 0, anchor: 'center' }
+        },
+        {
+          id: 'layer-robe',
+          name: 'Mảnh #4 (387×726)',
+          assetPath: 'robe.png',
+          x: -10,
+          y: -6,
+          z: -2,
+          scale: 0.4,
+          opacity: 1,
+          rotation: 0,
+          boneId: 'bone-torso',
+          bindingMode: 'soft',
+          motion: { type: 'none', speed: 1, amplitude: 0, anchor: 'center' }
+        },
+        {
+          id: 'layer-leg-l',
+          name: 'Mảnh #7 (141×411)',
+          assetPath: 'leg-l.png',
+          x: -36,
+          y: 165,
+          z: -10,
+          scale: 0.53,
+          opacity: 1,
+          rotation: 0,
+          boneId: 'bone-thigh-l',
+          bindingMode: 'soft',
+          motion: { type: 'none', speed: 1, amplitude: 0, anchor: 'center' }
+        },
+        {
+          id: 'layer-leg-r',
+          name: 'Mảnh #8 (141×410)',
+          assetPath: 'leg-r.png',
+          x: 24,
+          y: 165,
+          z: -10,
+          scale: 0.53,
+          opacity: 1,
+          rotation: 0,
+          boneId: 'bone-thigh-r',
+          bindingMode: 'soft',
+          motion: { type: 'none', speed: 1, amplitude: 0, anchor: 'center' }
+        }
+      ]
+    }
+
+    const walkJson = JSON.stringify({
+      format: 'parallax-motion-v1',
+      name: 'Bước đi cổ trang',
+      duration: 1.6,
+      loop: true,
+      viewAngle: 'front',
+      tracks: {
+        'bone-thigh-l': [
+          { time: 0.0, y: 6, rotation: 2, scaleX: 1.07, scaleY: 1.07, zOrder: 15 },
+          { time: 0.8, y: -8, rotation: 0, scaleX: 0.94, scaleY: 0.91, zOrder: -15 },
+          { time: 1.6, y: 6, rotation: 2, scaleX: 1.07, scaleY: 1.07, zOrder: 15 }
+        ],
+        'bone-thigh-r': [
+          { time: 0.0, y: -8, rotation: 0, scaleX: 0.94, scaleY: 0.91, zOrder: -15 },
+          { time: 0.8, y: 6, rotation: -2, scaleX: 1.07, scaleY: 1.07, zOrder: 15 },
+          { time: 1.6, y: -8, rotation: 0, scaleX: 0.94, scaleY: 0.91, zOrder: -15 }
+        ]
+      }
+    })
+
+    const parsed = parseAnimationClipFromJson(walkJson, humanoidBones, robeComposite)
+    expect(parsed.success).toBe(true)
+
+    // Forward leg zOrder (originally 15) must be clamped to maxSafeLegZOrder = -2 - (-10) - 2 = +6
+    // so effectiveZ = -10 + 6 = -4 < -2 (strictly below the robe at Z=-2)
+    expect(parsed.clip?.tracks['bone-thigh-l'][0].zOrder).toBe(6)
+    expect(parsed.clip?.tracks['bone-thigh-l'][1].zOrder).toBe(-15)
+    expect(parsed.clip?.tracks['bone-thigh-r'][1].zOrder).toBe(6)
+
+    const exported = JSON.parse(exportAnimationClipToJson(parsed.clip!, humanoidBones, true, robeComposite))
+    expect(exported.characterPostureAndGarment).toBeDefined()
+    expect(exported.characterPostureAndGarment.garmentOcclusion.hasLongGarmentCoveringLegs).toBe(true)
+    expect(exported.characterPostureAndGarment.garmentOcclusion.maxSafeLegZOrder).toBe(6)
+    expect(exported.layers[1].renderedSize).toBe('155×290px')
+    expect(exported.layers[1].coversLowerBody).toBe(true)
+    expect(exported.bones[0].restDirectionDesc).toContain('Gốc')
+
+    const prompt = generateAiMotionPrompt(parsed.clip!, humanoidBones, 'Bước đi về phía trước', robeComposite)
+    expect(prompt).toContain('TRANG PHỤC CỔ TRANG / ÁO DÀI CHE CHÂN')
+    expect(prompt).toContain('Kích thước: 155×290px')
+  })
+
 })
