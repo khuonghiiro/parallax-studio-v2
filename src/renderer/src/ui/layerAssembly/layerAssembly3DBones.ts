@@ -67,7 +67,7 @@ export function update3DBonesGroup({
   const boneDepthMap = new Map<string, number>()
   layers.forEach((layer) => {
     if (layer.boneId) {
-      boneDepthMap.set(layer.boneId, -layer.z * zExaggeration + 1.2)
+      boneDepthMap.set(layer.boneId, layer.z * zExaggeration + 1.2)
     }
   })
 

@@ -168,10 +168,10 @@ export function startLayerAssemblyGizmoDrag(
         const nextY = Math.round(startPos.y - delta)
         onUpdateLayer(layer.id, { y: nextY })
       } else if (axis === 2) {
-        // Trục Z (Độ sâu): Three.js +Z là Gần camera (Tiền cảnh -> Z nhỏ/âm hơn)
+        // Trục Z (Độ sâu): Three.js +Z là Gần camera (Tiền cảnh -> Z lớn/dương hơn, đè lên các lớp dưới)
         const zStep = delta / Math.max(0.1, zExaggeration)
         const roundedZ = ev.shiftKey ? Math.round(zStep / 10) * 10 : zStep
-        const nextZ = Math.round(startPos.z - roundedZ)
+        const nextZ = Math.round(startPos.z + roundedZ)
         onUpdateLayer(layer.id, { z: nextZ })
       }
     }

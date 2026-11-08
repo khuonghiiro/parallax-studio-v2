@@ -233,7 +233,7 @@ export function aimAtSelectedLayer(
 ) {
   const tx = Math.round(layer.x)
   const ty = Math.round(-layer.y)
-  const tz = Math.round(-layer.z * zExaggeration)
+  const tz = Math.round(layer.z * zExaggeration)
   orbit.target.set(tx, ty, tz)
   setCameraTarget({ x: tx, y: ty, z: tz })
   requestRender()
