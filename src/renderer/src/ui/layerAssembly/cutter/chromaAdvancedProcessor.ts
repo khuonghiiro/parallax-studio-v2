@@ -134,10 +134,38 @@ export function computeChromaMatteAlpha(
         distance = chromaDistance
       }
     }
+  } else {
+    // Trên phông nền trung tính / ít bão hoà (xám #8A8A8A, #E4E4E4, trắng kem #FEF9F3, đen):
+    // Bảo vệ các chi tiết có sắc độ màu (da mặt, áo nâu xám, áo xanh xám, lá cây) hoặc đạt biên trắng/đen
+    // ngay cả khi độ sáng (luminance) của chi tiết rất gần với độ sáng của nền.
+    const detailProtection = Math.max(0, Math.min(100, settings.detailProtection ?? 75)) / 100
+    if (detailProtection > 0) {
+      const dr = r - key.r
+      const dg = g - key.g
+      const db = b - key.b
+      const meanD = (dr + dg + db) / 3
+      const cdR = dr - meanD
+      const cdG = dg - meanD
+      const cdB = db - meanD
+      const chromaVec = Math.sqrt(cdR * cdR + cdG * cdG + cdB * cdB)
+      const effChroma = Math.max(0, chromaVec - 2.2)
+      const maxPos = Math.max(0, dr, dg, db)
+      const maxNeg = Math.max(0, -dr, -dg, -db)
+      const oppPol = maxPos > 1.5 && maxNeg > 1.5 ? Math.min(maxPos, maxNeg) : 0
+      let headroomBoost = 0
+      if (kMean >= 185 && kMean <= 238 && meanD > 5) {
+        headroomBoost = ((meanD - 5) / Math.max(18, 255 - kMean)) * 45
+      } else if (kMean >= 17 && kMean <= 70 && -meanD > 5) {
+        headroomBoost = ((-meanD - 5) / Math.max(18, kMean)) * 45
+      }
+      distance += (effChroma * 4.2 + oppPol * 2.8 + headroomBoost) * detailProtection
+    }
   }
 
+  const cb = Math.max(0, Math.min(100, settings.contourBarrier ?? 70)) / 100
+  const barrierScale = kcLenSq <= 600 ? Math.max(0.65, Math.min(1.25, 1 - (cb - 0.5) * 0.4)) : 1
   const highTolBoost = tolerance > 45 ? (tolerance - 45) * 1.25 : 0
-  const hardThreshold = 5 + tolerance * 1.12 + highTolBoost
+  const hardThreshold = (5 + tolerance * 1.12 + highTolBoost) * barrierScale
   const effectiveFeather = Math.min(10, feather)
   const transitionWidth = 8 + effectiveFeather * 1.6 + tolerance * 0.18
   if (distance <= hardThreshold) return 0
@@ -308,7 +336,8 @@ function applyDefringeAndDespill(
     if (a === 0) continue
 
     // 0. Giải pha màu (Color Unmixing) trực tiếp trên pixel mép bị ám màu nền (hồng, xanh, lam, tuỳ chỉnh...)
-    if (analysis && effectiveKeyRgb && analysis.rawAlpha[p] < 0.96) {
+    const isChromatic = analysis && (analysis.isGreenKey || analysis.isBlueKey || analysis.isMagentaKey)
+    if (analysis && effectiveKeyRgb && analysis.rawAlpha[p] < 0.96 && (isChromatic || a < 250)) {
       unmixPixelRgb(
         data,
         idx,
@@ -578,8 +607,10 @@ export function processAdvancedChromaPixelData(
       removeSoftHaloPixels(data, w, h, settings, effectiveKeyRgb, analysis, zone)
     }
     // Tự động unmix màu nền khỏi các pixel mép biên để khử triệt để viền tím/xanh ám vào tóc
+    const isChromaticKey = analysis.isGreenKey || analysis.isBlueKey || analysis.isMagentaKey
     for (let p = 0; p < totalPixels; p++) {
-      if (zone[p] && analysis.rawAlpha[p] < 0.98 && data[p * 4 + 3] > 0) {
+      const outA = data[p * 4 + 3]
+      if (zone[p] && analysis.rawAlpha[p] < 0.98 && outA > 0 && (isChromaticKey || outA < 250)) {
         unmixPixelRgb(
           data,
           p * 4,
@@ -589,7 +620,7 @@ export function processAdvancedChromaPixelData(
           analysis.isGreenKey,
           analysis.isBlueKey,
           analysis.isMagentaKey,
-          data[p * 4 + 3] / 255
+          outA / 255
         )
       }
     }

@@ -123,11 +123,20 @@ export function transparentSeed(data: Uint8ClampedArray): (p: number) => boolean
  */
 export function resolveOuterWallAlpha(settings: ChromaKeySettings, analysis: ChromaAlphaAnalysis): number {
   const shadowOn = settings.shadowMode === 'include' || settings.shadowMode === 'only'
-  if (shadowOn) return Math.max(0.3, Math.min(0.92, (settings.shadowSolidThreshold ?? 62) / 100))
+  const cb = Math.max(0, Math.min(100, settings.contourBarrier ?? 70)) / 100
+  const isChromatic = analysis.isGreenKey || analysis.isBlueKey || analysis.isMagentaKey
+  if (shadowOn) {
+    const baseSolid = Math.max(0.3, Math.min(0.92, (settings.shadowSolidThreshold ?? 62) / 100))
+    if (!isChromatic && settings.contourBarrier !== undefined) {
+      return Math.max(0.22, Math.min(0.92, baseSolid * (1.15 - cb * 0.45)))
+    }
+    return baseSolid
+  }
   const tol = Math.max(0, Math.min(100, settings.tolerance)) / 100
-  // Khi Xoá bóng (shadowMode off): ngưỡng viền ngăn loang BFS phải nhạy cảm đủ để chặn đứng dòng loang
-  // khi chạm nét vẽ / đường viền áo (alpha >= 0.15..0.35), tuyệt đối không đẩy lên 0.92 làm thủng áo/cổ nhân vật.
-  return Math.max(0.08, Math.min(0.35, Math.max(analysis.measuredNoise + 0.04, tol * 0.3)))
+  const barrierFactor = 1.35 - cb * 0.75
+  // Khi Xoá bóng (shadowMode off): ngưỡng viền ngăn loang BFS điều chỉnh theo Độ kín tường viền (contourBarrier)
+  // để chặn đứng dòng loang khi chạm nét vẽ / đường viền mảnh (alpha >= 0.06..0.35), không làm thủng áo/trán nhân vật.
+  return Math.max(0.06, Math.min(0.42, Math.max(analysis.measuredNoise + 0.035, tol * 0.28 * barrierFactor)))
 }
 
 /** Làm mịn hộp 3×3 tách 2 lượt ngang–dọc (O(N)) */

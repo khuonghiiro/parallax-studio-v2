@@ -54,22 +54,30 @@ export function SpriteCutterFlyout({
       }
 
       let top = rect.top
-      const maxTop = window.innerHeight - 560
+      const flyoutHeight = flyoutRef.current?.offsetHeight || 460
+      const maxTop = window.innerHeight - flyoutHeight - 12
       if (top > maxTop) {
-        top = Math.max(10, maxTop)
+        top = maxTop
       }
+      top = Math.max(54, top)
 
       setCoords({ top, left })
     }
 
     updatePosition()
+    const ro =
+      typeof ResizeObserver !== 'undefined' && flyoutRef.current
+        ? new ResizeObserver(updatePosition)
+        : null
+    if (flyoutRef.current) ro?.observe(flyoutRef.current)
     window.addEventListener('resize', updatePosition)
     window.addEventListener('scroll', updatePosition, true)
     return () => {
+      ro?.disconnect()
       window.removeEventListener('resize', updatePosition)
       window.removeEventListener('scroll', updatePosition, true)
     }
-  }, [isOpen, width])
+  }, [isOpen, width, children])
 
   useEffect(() => {
     if (!isOpen) return

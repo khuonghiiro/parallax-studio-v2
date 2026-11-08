@@ -298,6 +298,10 @@
   gap: 8px;
   width: 100%;
   box-sizing: border-box;
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-height: calc(100vh - 130px);
+  padding-right: 2px;
 }
 
 .ps-flyout-slider-row {

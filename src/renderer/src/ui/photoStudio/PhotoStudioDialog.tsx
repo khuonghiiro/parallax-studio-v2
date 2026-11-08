@@ -172,6 +172,8 @@ export function PhotoStudioDialog({
             keyColorHex: preset.hex,
             keyColor: preset.hex,
             tolerance: prev.tolerance > 5 ? prev.tolerance : 18,
+            detailProtection: prev.detailProtection ?? 75,
+            contourBarrier: prev.contourBarrier ?? 70,
             isolationMode: prev.isolationMode || 'outer_only',
             fringeColorType: preset.type,
             fringeColorHex: preset.hex

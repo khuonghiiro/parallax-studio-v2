@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, type ReactNode } from 'react'
+import React, { useEffect, useLayoutEffect, useRef, type ReactNode } from 'react'
 
 export interface PhotoStudioFlyoutProps {
   isOpen: boolean
@@ -32,6 +32,43 @@ export function PhotoStudioFlyout({
   children
 }: PhotoStudioFlyoutProps) {
   const ref = useRef<HTMLDivElement>(null)
+
+  useLayoutEffect(() => {
+    if (!isOpen) return
+    const el = ref.current
+    if (!el) return
+
+    const updateVerticalPosition = (): void => {
+      const parentItem = el.parentElement
+      if (!parentItem) return
+      const workspace = el.closest('.ps-workspace-layout') as HTMLElement | null
+      const wsRect = workspace
+        ? workspace.getBoundingClientRect()
+        : { top: 48, bottom: window.innerHeight, height: window.innerHeight - 48 }
+      const itemRect = parentItem.getBoundingClientRect()
+      const flyoutHeight = el.offsetHeight
+
+      const desiredViewportTop =
+        placement === 'bottom' ? itemRect.bottom - flyoutHeight : itemRect.top
+      const minTop = wsRect.top + 8
+      const maxTop = Math.max(minTop, wsRect.bottom - flyoutHeight - 8)
+      const clampedViewportTop = Math.max(minTop, Math.min(maxTop, desiredViewportTop))
+      const offsetTop = Math.round(clampedViewportTop - itemRect.top)
+
+      el.style.top = `${offsetTop}px`
+      el.style.bottom = 'auto'
+      el.style.maxHeight = `${Math.max(180, Math.floor(wsRect.height - 16))}px`
+    }
+
+    updateVerticalPosition()
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(updateVerticalPosition) : null
+    ro?.observe(el)
+    window.addEventListener('resize', updateVerticalPosition)
+    return () => {
+      ro?.disconnect()
+      window.removeEventListener('resize', updateVerticalPosition)
+    }
+  }, [isOpen, placement, children])
 
   useEffect(() => {
     if (!isOpen) return
