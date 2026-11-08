@@ -58,7 +58,7 @@ export function handleWorkshopKeydown(
       state.run('delete')
     }
   } else if (e.code === 'Space') {
-    if (ctx?.isErasing) {
+    if (ctx?.isErasing || ctx?.tab === 'layers' || ctx?.tab === 'bones') {
       return
     }
     togglePlay()

@@ -772,7 +772,7 @@ export function LayerAssemblyViewport({
                 {tab === 'animation'
                   ? '🎭 Hoạt ảnh: Chuột trái chỉnh xương → nhấn Enter ⏎ xác nhận vị trí · Giữ Shift + Chuột trái: ghi động tác Realtime · D: bút vẽ · Space: phát thử'
                   : tab === 'bones'
-                    ? '🦴 Khung xương: Kéo chuột để vẽ xương · Kéo ngọn để chỉnh độ dài & góc · Click xương để focus · Space: phát thử'
+                    ? '🦴 Khung xương: Kéo chuột để vẽ xương · Kéo ngọn để chỉnh độ dài & góc · Click xương để focus · Chuyển tab Anim để diễn hoạt'
                     : tab === 'plant'
                       ? '🌿 Motion: Kéo từ GỐC lên NGỌN để vẽ xương · Nắm vòng tròn ở ngọn kéo theo nhịp để GHI chuyển động · R: vẽ quỹ đạo ngọn'
                       : 'Kéo layer / Mũi tên: dời 2D · +/-: độ sâu Z · Alt / chuột giữa: dời khung · Cuộn: zoom'}
