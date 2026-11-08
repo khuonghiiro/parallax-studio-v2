@@ -56,6 +56,7 @@ export function WorkshopWorkspace({
   const [showBones2D, setShowBones2D] = useState(() => initialPrefs.showBones2D)
   const [showBones3D, setShowBones3D] = useState(() => initialPrefs.showBones3D)
   const [showMesh, setShowMesh] = useState(() => loadLayerWorkshopViewPrefs().showMesh)
+  const [showWindSpines, setShowWindSpines] = useState(() => initialPrefs.showWindSpines ?? true)
   const [hasOpened3D, setHasOpened3D] = useState(() => view !== '2d')
   const [brushEditing, setBrushEditing] = useState(false)
   const [brushPreview, setBrushPreview] = useState<BrushPreview | null>(null)
@@ -107,6 +108,14 @@ export function WorkshopWorkspace({
     setShowMesh((v) => {
       const next = !v
       saveLayerWorkshopViewPrefs({ showMesh: next })
+      return next
+    })
+  }, [])
+
+  const toggleWindSpines = useCallback(() => {
+    setShowWindSpines((v) => {
+      const next = !v
+      saveLayerWorkshopViewPrefs({ showWindSpines: next })
       return next
     })
   }, [])
@@ -191,11 +200,13 @@ export function WorkshopWorkspace({
         else toggleBones2D()
       } else if (e.key === 'm' || e.key === 'M') {
         toggleMesh()
+      } else if (e.key === 'w' || e.key === 'W') {
+        toggleWindSpines()
       }
     }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
-  }, [toggleBones2D, toggleBones3D, toggleMesh, tab, view, handleConfirmStep])
+  }, [toggleBones2D, toggleBones3D, toggleMesh, toggleWindSpines, tab, view, handleConfirmStep])
 
   const normalizedRig = state.composite.rig ? ensureRigClips(state.composite.rig).rig : undefined
   const plantOffset = usePlantClockOffset(playback.time, playback.isPlaying, normalizedRig?.duration ?? 4)
@@ -439,6 +450,8 @@ export function WorkshopWorkspace({
               onToggleShowBones={toggleBones2D}
               showMesh={showMesh}
               onToggleShowMesh={toggleMesh}
+              showWindSpines={showWindSpines}
+              onToggleShowWindSpines={toggleWindSpines}
               sketchOverlay={
                 isErasing
                   ? undefined
@@ -461,6 +474,7 @@ export function WorkshopWorkspace({
                       selectedIds: state.selection,
                       time: isLayersOrBonesTab ? 0 : playback.time + plantTime,
                       drawing: isPlantActive,
+                      visible: showWindSpines,
                       beginGesture: () => state.history.begin(),
                       endGesture: () => state.history.end()
                     }

@@ -17,6 +17,7 @@ export interface LayerWorkshopViewPrefs {
   showBones3D: boolean
   showBoneLabels: boolean
   showMesh: boolean
+  showWindSpines: boolean
 }
 
 export const DEFAULT_LAYER_WORKSHOP_VIEW_PREFS: LayerWorkshopViewPrefs = {
@@ -37,7 +38,8 @@ export const DEFAULT_LAYER_WORKSHOP_VIEW_PREFS: LayerWorkshopViewPrefs = {
   showBones2D: true,
   showBones3D: true,
   showBoneLabels: true,
-  showMesh: false
+  showMesh: false,
+  showWindSpines: true
 }
 
 export const LAYER_WORKSHOP_VIEW_PREFS_KEY = 'pxs.layerWorkshopViewPrefs'
@@ -71,7 +73,8 @@ export function loadLayerWorkshopViewPrefs(): LayerWorkshopViewPrefs {
       showBones2D: typeof parsed.showBones2D === 'boolean' ? parsed.showBones2D : (typeof parsed.showBones === 'boolean' ? parsed.showBones : true),
       showBones3D: typeof parsed.showBones3D === 'boolean' ? parsed.showBones3D : (typeof parsed.showBones === 'boolean' ? parsed.showBones : true),
       showBoneLabels: typeof parsed.showBoneLabels === 'boolean' ? parsed.showBoneLabels : true,
-      showMesh: typeof parsed.showMesh === 'boolean' ? parsed.showMesh : DEFAULT_LAYER_WORKSHOP_VIEW_PREFS.showMesh
+      showMesh: typeof parsed.showMesh === 'boolean' ? parsed.showMesh : DEFAULT_LAYER_WORKSHOP_VIEW_PREFS.showMesh,
+      showWindSpines: typeof parsed.showWindSpines === 'boolean' ? parsed.showWindSpines : DEFAULT_LAYER_WORKSHOP_VIEW_PREFS.showWindSpines
     }
   } catch (err) {
     console.warn('[LayerAssembly] Failed to load view preferences:', err)

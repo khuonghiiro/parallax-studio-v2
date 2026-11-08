@@ -717,6 +717,19 @@ export const IconWindAmbience = (p: P) => (
   </svg>
 )
 
+/** Nét vẽ trục gió / sống cây Motion (Plant Wind Spine Stroke) */
+export const IconWindSpineStroke = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M5 20c2-5 5.5-8.5 7.5-12.5C13.5 5 15.5 3.5 19 3" />
+    <circle cx="5" cy="20" r="1.8" fill="currentColor" />
+    <circle cx="12.5" cy="7.5" r="1.5" />
+    <circle cx="19" cy="3" r="1.5" fill="currentColor" />
+    <path d="M8.5 4.5c2.2-1.2 5-1.2 7.5 0" />
+    <path d="M3 13.5c2.5-1.5 5.8-1.5 8.5 0" />
+    <path d="M11 17c3-1.6 6.5-1.4 9.5.5" />
+  </svg>
+)
+
 export const IconActionFx = (p: P) => (
   <svg {...base(p)}>
     <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />

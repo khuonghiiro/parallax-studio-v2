@@ -62,6 +62,8 @@ export interface LayerAssemblyViewportProps {
   onToggleShowBones?: () => void
   showMesh?: boolean
   onToggleShowMesh?: () => void
+  showWindSpines?: boolean
+  onToggleShowWindSpines?: () => void
   /** Lớp Vẽ động tác (tab Animation): nhấn gần xương rồi vẽ đường đi của ngọn xương. */
   sketchOverlay?: MotionSketchOverlayProps
 }
@@ -93,6 +95,8 @@ export function LayerAssemblyViewport({
   onToggleShowBones,
   showMesh = false,
   onToggleShowMesh,
+  showWindSpines = true,
+  onToggleShowWindSpines,
   sketchOverlay
 }: LayerAssemblyViewportProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
@@ -683,7 +687,7 @@ export function LayerAssemblyViewport({
           {boneOverlay && isBonesVisible && <WorkshopBoneOverlay {...boneOverlay} />}
 
           {/* Xương motion: hiển thị đường uốn & vẽ tay xương mới khi ở tab Motion */}
-          {plantOverlay && <PlantSpineOverlay {...plantOverlay} />}
+          {plantOverlay && showWindSpines && <PlantSpineOverlay {...plantOverlay} visible={showWindSpines} />}
 
           {/* Lớp Vẽ động tác (tab Animation): bật bút (D) rồi nhấn gần xương và vẽ đường đi của ngọn xương */}
           {tab === 'animation' && !isPlantActive && sketchOverlay && <MotionSketchOverlay {...sketchOverlay} />}
@@ -824,6 +828,9 @@ export function LayerAssemblyViewport({
           onToggleShowBoneLabels={toggleBoneLabels}
           showMesh={showMesh}
           onToggleShowMesh={onToggleShowMesh}
+          hasWindSpines={(composite.plantSpines?.length ?? 0) > 0 || tab === 'plant'}
+          showWindSpines={showWindSpines}
+          onToggleShowWindSpines={onToggleShowWindSpines}
           lighting={composite.lighting}
           onChangeLighting={onChangeComposite ? handleUpdateLighting : undefined}
           atmosphereLabel={atmosphere.label}

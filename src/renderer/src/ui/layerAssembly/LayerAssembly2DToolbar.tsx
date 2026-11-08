@@ -14,7 +14,7 @@ import {
   IconSun,
   IconStageGuide
 } from '../icons'
-import { IconFlexiMeshBind } from './LayerWorkshopStudioIcons'
+import { IconFlexiMeshBind, IconWindSpineStroke } from './LayerWorkshopStudioIcons'
 import type { Assembly2DTool, BrushSettings } from './useLayerBrushEraser'
 import { LightingControlPopover } from './LightingControlPopover'
 import type { AssemblyLighting } from '../assets/models3d/types'
@@ -45,6 +45,9 @@ export interface LayerAssembly2DToolbarProps {
   onToggleShowBoneLabels?: () => void
   showMesh?: boolean
   onToggleShowMesh?: () => void
+  hasWindSpines?: boolean
+  showWindSpines?: boolean
+  onToggleShowWindSpines?: () => void
   lighting?: AssemblyLighting
   onChangeLighting?: (lighting: AssemblyLighting) => void
   atmosphereLabel?: string
@@ -82,6 +85,9 @@ export function LayerAssembly2DToolbar({
   onToggleShowBoneLabels,
   showMesh = false,
   onToggleShowMesh,
+  hasWindSpines,
+  showWindSpines = true,
+  onToggleShowWindSpines,
   lighting,
   onChangeLighting,
   atmosphereLabel = 'Ban ngày',
@@ -216,6 +222,12 @@ export function LayerAssembly2DToolbar({
         sub: 'Gắn Xương / Trục Gió Từng Mảnh',
         desc: 'Hiển thị các ô preview bộ phận 2 bên sân khấu 2D để focus và gắn xương Moho hoặc trục gió riêng biệt cho từng mảnh.',
         tip: '🧩 Bấm để bật / tắt chế độ Bộ phận 2D'
+      },
+      windSpines: {
+        title: showWindSpines ? 'Nét vẽ gió (Đang hiện)' : 'Nét vẽ gió (Đang ẩn)',
+        sub: 'Trục sống cây & Lực gió (W)',
+        desc: 'Hiển thị hoặc ẩn các đường uốn nét vẽ gió (trục sống cây, tóc, tà áo) trên sân khấu 2D để quan sát rõ nhân vật.',
+        tip: '💨 Bấm hoặc phím W để bật / ẩn nét vẽ gió'
       },
       lighting: {
         title: `Hệ thống chiếu sáng: ${atmosphereLabel}`,
@@ -466,6 +478,24 @@ export function LayerAssembly2DToolbar({
         >
           <IconFlexiMeshBind width={15} height={15} />
         </button>
+
+        {/* 9c. Bật/tắt nét vẽ gió (Plant Spine Wind Lines) */}
+        {onToggleShowWindSpines && (
+          <button
+            type="button"
+            className={`layer-3d-dock-btn${showWindSpines ? ' active' : ''}`}
+            onClick={() => {
+              onToggleShowWindSpines()
+              hideTooltip()
+            }}
+            onMouseEnter={(e) => showTooltip(e, 'windSpines')}
+            onMouseLeave={hideTooltip}
+            aria-label="Nét vẽ gió"
+            title="Nét vẽ gió (W)"
+          >
+            <IconWindSpineStroke width={15} height={15} />
+          </button>
+        )}
 
         {/* 10. Hướng sáng & Đổ bóng ngày đêm */}
         {onChangeLighting && (
