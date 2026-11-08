@@ -11,7 +11,7 @@ import '../styles/aiUiInspector.css'
 export function AiUiInspectorOverlay() {
   const [isArmed, setIsArmed] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
-  const [hudPlacement, setHudPlacement] = useState<'top' | 'bottom'>('top')
+  const [armHudPlacement, setArmHudPlacement] = useState<'top' | 'bottom'>('top')
   const [startPos, setStartPos] = useState({ x: 0, y: 0 })
   const [currentPos, setCurrentPos] = useState({ x: 0, y: 0 })
   const [lastCaptured, setLastCaptured] = useState<{
@@ -25,8 +25,7 @@ export function AiUiInspectorOverlay() {
 
   const isDraggingRef = useRef(false)
   const isArmedRef = useRef(false)
-  const hudPlacementRef = useRef<'top' | 'bottom'>('top')
-  const toastVisibleRef = useRef(false)
+  const armHudPlacementRef = useRef<'top' | 'bottom'>('top')
   const showPreviewRef = useRef(false)
   const suppressNextClickRef = useRef(false)
   const startPosRef = useRef({ x: 0, y: 0 })
@@ -36,8 +35,7 @@ export function AiUiInspectorOverlay() {
 
   isDraggingRef.current = isDragging
   isArmedRef.current = isArmed
-  hudPlacementRef.current = hudPlacement
-  toastVisibleRef.current = toastVisible
+  armHudPlacementRef.current = armHudPlacement
   showPreviewRef.current = showPreview
   startPosRef.current = startPos
   currentPosRef.current = currentPos
@@ -73,12 +71,6 @@ export function AiUiInspectorOverlay() {
       const snapshot = captureAiInspectorSnapshot(box)
       const report = formatAiInspectorMarkdown(snapshot)
 
-      // Nếu vùng vừa quét nằm ở nửa trên màn hình, đặt Toast thông báo xuống dưới để không che hiệu ứng đánh dấu
-      if (typeof window !== 'undefined' && box.top < 140) {
-        hudPlacementRef.current = 'bottom'
-        setHudPlacement('bottom')
-      }
-
       setLastCaptured({ snapshot, report })
       setToastVisible(true)
       setHighlightVisible(true)
@@ -108,6 +100,8 @@ export function AiUiInspectorOverlay() {
       isArmedRef.current = next
       setIsArmed(next)
       if (next) {
+        armHudPlacementRef.current = 'top'
+        setArmHudPlacement('top')
         setHighlightVisible(false)
       }
     }
@@ -116,7 +110,7 @@ export function AiUiInspectorOverlay() {
       if (!(target instanceof Element)) return false
       return Boolean(
         target.closest(
-          '.ai-ui-inspector-arm-close, .ai-ui-inspector-toast-btn, .ai-ui-inspector-preview-backdrop'
+          '.ai-ui-inspector-arm-close, .ai-ui-inspector-toast, .ai-ui-inspector-toast-btn, .ai-ui-inspector-preview-backdrop'
         )
       )
     }
@@ -126,19 +120,21 @@ export function AiUiInspectorOverlay() {
       return Boolean(target.closest('#ai-ui-inspector-btn'))
     }
 
-    const maybeAutoDodgeHud = (clientX: number, clientY: number) => {
+    // Chỉ né khi đang ở chế độ quét (isArmed) để không che khuất các nút thanh công cụ
+    const maybeAutoDodgeArmHud = (clientX: number, clientY: number) => {
+      if (!isArmedRef.current) return
       if (typeof window === 'undefined') return
       const winW = window.innerWidth || 1920
       const winH = window.innerHeight || 1080
       const nearHorizontalCenter = Math.abs(clientX - winW * 0.5) < 430
       if (!nearHorizontalCenter) return
 
-      if (hudPlacementRef.current === 'top' && clientY < 105) {
-        hudPlacementRef.current = 'bottom'
-        setHudPlacement('bottom')
-      } else if (hudPlacementRef.current === 'bottom' && clientY > winH - 115) {
-        hudPlacementRef.current = 'top'
-        setHudPlacement('top')
+      if (armHudPlacementRef.current === 'top' && clientY < 105) {
+        armHudPlacementRef.current = 'bottom'
+        setArmHudPlacement('bottom')
+      } else if (armHudPlacementRef.current === 'bottom' && clientY > winH - 115) {
+        armHudPlacementRef.current = 'top'
+        setArmHudPlacement('top')
       }
     }
 
@@ -201,8 +197,8 @@ export function AiUiInspectorOverlay() {
     }
 
     const handleMove = (e: MouseEvent | PointerEvent) => {
-      if (isArmedRef.current || toastVisibleRef.current) {
-        maybeAutoDodgeHud(e.clientX, e.clientY)
+      if (isArmedRef.current) {
+        maybeAutoDodgeArmHud(e.clientX, e.clientY)
       }
       if (!isDraggingRef.current) return
       e.preventDefault()
@@ -290,6 +286,8 @@ export function AiUiInspectorOverlay() {
       if (e.metaKey && e.shiftKey && !e.altKey && !e.ctrlKey) {
         if (!isArmedRef.current && !isDraggingRef.current) {
           isArmedRef.current = true
+          armHudPlacementRef.current = 'top'
+          setArmHudPlacement('top')
           setIsArmed(true)
           setHighlightVisible(false)
         }
@@ -376,10 +374,10 @@ export function AiUiInspectorOverlay() {
         </div>
       )}
 
-      {/* 3. Badge HUD trung tâm tự động né chuột (top/bottom) & cho phép kéo xuyên qua */}
+      {/* 3. Badge HUD trung tâm tự động né chuột (top/bottom) khi đang ở chế độ quét & cho phép kéo xuyên qua */}
       {isArmed && !isDragging && (
         <div
-          className={`ai-ui-inspector-arm-hud${hudPlacement === 'bottom' ? ' is-bottom' : ''}`}
+          className={`ai-ui-inspector-arm-hud${armHudPlacement === 'bottom' ? ' is-bottom' : ''}`}
           role="status"
         >
           <div className="ai-ui-inspector-arm-dot" />
@@ -484,12 +482,24 @@ export function AiUiInspectorOverlay() {
         </div>
       )}
 
-      {/* 5. Toast thông báo kết quả sau khi nhả chuột (tự động né chuột top/bottom) */}
+      {/* 5. Toast thông báo kết quả sau khi nhả chuột — Cố định vị trí, không đổi vị trí để người dùng thoải mái click Xem trước */}
       {toastVisible && lastCaptured && !showPreview && (
         <div
-          className={`ai-ui-inspector-toast${hudPlacement === 'bottom' ? ' is-bottom' : ''}`}
+          className="ai-ui-inspector-toast"
           role="status"
           aria-live="polite"
+          onMouseEnter={() => {
+            if (toastTimerRef.current) {
+              window.clearTimeout(toastTimerRef.current)
+              toastTimerRef.current = null
+            }
+          }}
+          onMouseLeave={() => {
+            if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current)
+            toastTimerRef.current = window.setTimeout(() => {
+              setToastVisible(false)
+            }, 4000)
+          }}
           onPointerDown={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
         >
