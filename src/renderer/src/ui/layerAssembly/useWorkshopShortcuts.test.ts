@@ -277,45 +277,15 @@ describe('useWorkshopShortcuts', () => {
     expect(selectBone).toHaveBeenCalledWith(null)
   })
 
-  it('không kích hoạt togglePlay khi phím Space được nhấn trong lúc isErasing là true (chế độ cọ tẩy)', () => {
-    const { togglePlay } = setupHook({
-      boneContext: {
-        isErasing: true
-      }
-    })
-    fireKey({ key: ' ', code: 'Space' })
-    expect(togglePlay).not.toHaveBeenCalled()
-  })
-
-  it('kích hoạt togglePlay khi phím Space được nhấn trong lúc bình thường (tab animation)', () => {
+  it('không kích hoạt togglePlay khi phím Space được nhấn vì phím Space dành riêng cho thao tác kéo lia khung hình (Hand Tool)', () => {
     const { togglePlay } = setupHook({
       boneContext: {
         isErasing: false,
         tab: 'animation'
       }
     })
-    const ev = fireKey({ key: ' ', code: 'Space' })
-    expect(togglePlay).toHaveBeenCalledTimes(1)
-    expect(ev.defaultPrevented).toBe(true)
-    expect(ev.propagationStopped).toBe(true)
-  })
-
-  it('không kích hoạt togglePlay khi phím Space được nhấn ở tab layers hoặc tab bones (giữ nguyên tư thế gốc)', () => {
-    const { togglePlay: tpLayers } = setupHook({
-      boneContext: {
-        tab: 'layers'
-      }
-    })
     fireKey({ key: ' ', code: 'Space' })
-    expect(tpLayers).not.toHaveBeenCalled()
-
-    const { togglePlay: tpBones } = setupHook({
-      boneContext: {
-        tab: 'bones'
-      }
-    })
-    fireKey({ key: ' ', code: 'Space' })
-    expect(tpBones).not.toHaveBeenCalled()
+    expect(togglePlay).not.toHaveBeenCalled()
   })
 
   it('không xoá layer và không chỉnh Z khi đang ở tab plant', () => {

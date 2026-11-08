@@ -223,6 +223,37 @@ export function LayerAssemblyViewport({
   })
 
   const panStartRef = useRef({ mouseX: 0, mouseY: 0, initPanX: 0, initPanY: 0 })
+  const [isSpacePressed, setIsSpacePressed] = useState(false)
+
+  // Bắt giữ phím Space để kéo lia sân khấu 2D (Adobe Photoshop Hand Tool logic)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName?.toLowerCase()
+      if (tag === 'input' || tag === 'textarea' || (e.target as HTMLElement)?.isContentEditable) return
+      if (e.code === 'Space' && !e.repeat) {
+        e.preventDefault()
+        setIsSpacePressed(true)
+      }
+    }
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        setIsSpacePressed(false)
+        setIsPanning(false)
+      }
+    }
+    const handleBlur = () => {
+      setIsSpacePressed(false)
+      setIsPanning(false)
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('keyup', handleKeyUp)
+    window.addEventListener('blur', handleBlur)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('keyup', handleKeyUp)
+      window.removeEventListener('blur', handleBlur)
+    }
+  }, [setIsPanning])
 
   // Zoom lăn chuột hướng tâm theo vị trí con trỏ chuột (Cursor-anchored zoom 60fps)
   useEffect(() => {
@@ -347,8 +378,8 @@ export function LayerAssemblyViewport({
       return
     }
 
-    // Nếu bấm chuột giữa hoặc giữ phím Alt (khi không ở tab animation) -> Bắt đầu Pan
-    if (e.button === 1 || (e.altKey && tab !== 'animation')) {
+    // Nếu bấm chuột giữa hoặc giữ phím Space / Alt -> Bắt đầu Pan (Adobe Photoshop Hand Tool)
+    if (isSpacePressed || e.button === 1 || (e.altKey && tab !== 'animation')) {
       setIsPanning(true)
       panStartRef.current = {
         mouseX: e.clientX,
@@ -473,11 +504,15 @@ export function LayerAssemblyViewport({
           height: isEraserActive && !is2DOnly ? undefined : '100%',
           background: 'var(--bg-0)',
           overflow: 'hidden',
-          cursor: isPanning
-            ? 'grab'
-            : isDraggingHandle
-              ? 'crosshair'
-              : 'default',
+          cursor: isSpacePressed
+            ? isPanning
+              ? 'grabbing'
+              : 'grab'
+            : isPanning
+              ? 'grab'
+              : isDraggingHandle
+                ? 'crosshair'
+                : 'default',
           userSelect: 'none'
         }}
         onPointerDown={handlePointerDownViewport}
@@ -516,6 +551,52 @@ export function LayerAssemblyViewport({
           }
         }}
       >
+        {/* Lớp chặn kéo lia khi giữ phím Space (Adobe Photoshop Hand Tool logic 60fps) */}
+        {isSpacePressed && (
+          <div
+            className="lw-space-pan-barrier"
+            style={{
+              position: 'absolute',
+              inset: 0,
+              zIndex: 60000,
+              cursor: isPanning ? 'grabbing' : 'grab',
+              pointerEvents: 'auto'
+            }}
+            onPointerDown={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              setIsPanning(true)
+              panStartRef.current = {
+                mouseX: e.clientX,
+                mouseY: e.clientY,
+                initPanX: pan.x,
+                initPanY: pan.y
+              }
+              try {
+                ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+              } catch {}
+            }}
+            onPointerMove={(e) => {
+              if (isPanning) {
+                const dx = e.clientX - panStartRef.current.mouseX
+                const dy = e.clientY - panStartRef.current.mouseY
+                setPan({
+                  x: panStartRef.current.initPanX + dx,
+                  y: panStartRef.current.initPanY + dy
+                })
+              }
+            }}
+            onPointerUp={(e) => {
+              setIsPanning(false)
+              try {
+                ;(e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId)
+              } catch {}
+            }}
+            onPointerCancel={() => {
+              setIsPanning(false)
+            }}
+          />
+        )}
         {/* 2.5D Checkerboard Canvas Box */}
         <div
           style={{
@@ -824,12 +905,12 @@ export function LayerAssemblyViewport({
                 }}
               >
                 {tab === 'animation'
-                  ? '🎭 Hoạt ảnh: Chuột trái chỉnh xương → nhấn Enter ⏎ xác nhận vị trí · Giữ Shift + Chuột trái: ghi động tác Realtime · D: bút vẽ · Space: phát thử'
+                  ? '🎭 Hoạt ảnh: Chuột trái chỉnh xương → nhấn Enter ⏎ xác nhận vị trí · Giữ Shift + Chuột trái: ghi động tác Realtime · D: bút vẽ · Giữ Space: kéo lia view'
                   : tab === 'bones'
-                    ? '🦴 Khung xương: Kéo chuột để vẽ xương · Kéo ngọn để chỉnh độ dài & góc · Click xương để focus · Chuyển tab Anim để diễn hoạt'
+                    ? '🦴 Khung xương: Kéo chuột để vẽ xương · Kéo ngọn để chỉnh độ dài & góc · Click xương để focus · Giữ Space: kéo lia view'
                     : tab === 'plant'
-                      ? '🌿 Motion: Kéo từ GỐC lên NGỌN để vẽ xương · Nắm vòng tròn ở ngọn kéo theo nhịp để GHI chuyển động · R: vẽ quỹ đạo ngọn'
-                      : 'Kéo layer / Mũi tên: dời 2D · +/-: độ sâu Z · Alt / chuột giữa: dời khung · Cuộn: zoom'}
+                      ? '🌿 Motion: Kéo từ GỐC lên NGỌN để vẽ xương · Nắm vòng tròn ở ngọn kéo theo nhịp để GHI chuyển động · Giữ Space: kéo lia view'
+                      : 'Kéo layer / Mũi tên: dời 2D · +/-: độ sâu Z · Giữ Space / Chuột giữa: dời khung · Cuộn: zoom'}
               </div>
             )}
           </div>

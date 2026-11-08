@@ -39,7 +39,38 @@ export function Mesh2DTextureEditor({
   const [zoom, setZoom] = useState(1.0)
   const [pan, setPan] = useState({ x: 0, y: 0 })
   const [isPanning, setIsPanning] = useState(false)
+  const [isSpacePressed, setIsSpacePressed] = useState(false)
   const panStartRef = useRef({ x: 0, y: 0, startPanX: 0, startPanY: 0 })
+
+  // Bắt giữ phím Space để kéo lia canvas (Photoshop Hand Tool logic)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName?.toLowerCase()
+      if (tag === 'input' || tag === 'textarea' || (e.target as HTMLElement)?.isContentEditable) return
+      if (e.code === 'Space' && !e.repeat) {
+        e.preventDefault()
+        setIsSpacePressed(true)
+      }
+    }
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        setIsSpacePressed(false)
+        setIsPanning(false)
+      }
+    }
+    const handleBlur = () => {
+      setIsSpacePressed(false)
+      setIsPanning(false)
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('keyup', handleKeyUp)
+    window.addEventListener('blur', handleBlur)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('keyup', handleKeyUp)
+      window.removeEventListener('blur', handleBlur)
+    }
+  }, [])
 
   // Bounding box marquee selection state
   const [marquee, setMarquee] = useState<{
@@ -138,8 +169,8 @@ export function Mesh2DTextureEditor({
 
   // Pointer Down: Marquee drag or Pan
   const handlePointerDown = (e: React.PointerEvent) => {
-    // Middle click or right click -> Pan
-    if (e.button === 1 || e.button === 2 || tool === 'pan' || (e.shiftKey && e.altKey)) {
+    // Middle click, right click, or Space/Alt+Shift -> Pan
+    if (isSpacePressed || e.button === 1 || e.button === 2 || tool === 'pan' || (e.shiftKey && e.altKey)) {
       e.preventDefault()
       setIsPanning(true)
       panStartRef.current = {
@@ -360,6 +391,7 @@ export function Mesh2DTextureEditor({
         <div
           ref={canvasWrapperRef}
           className={`mesh2d-canvas-wrapper tool-${tool}`}
+          style={{ cursor: isSpacePressed ? (isPanning ? 'grabbing' : 'grab') : undefined }}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
@@ -415,7 +447,7 @@ export function Mesh2DTextureEditor({
               style={{
                 transform: `rotate(${rotation}deg)`,
                 transformOrigin: '50% 50%',
-                pointerEvents: showMesh ? 'all' : 'none'
+                pointerEvents: isSpacePressed ? 'none' : showMesh ? 'all' : 'none'
               }}
             >
               {showMesh && (

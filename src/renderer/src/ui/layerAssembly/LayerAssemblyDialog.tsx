@@ -28,7 +28,7 @@ import { WorkshopRightPanel, type WorkshopTab } from './WorkshopRightPanel'
 import { useWorkshopLoopActions } from './useWorkshopLoopActions'
 import { ensureRigClips } from './workshopRig'
 import { CreateLayerAssemblyModal } from './CreateLayerAssemblyModal'
-import { useRigToolStore, setRigToolState } from './rigToolStore'
+import { useRigToolStore, setRigToolState, closeCutoutPartRig, getRigToolState } from './rigToolStore'
 import {
   clearActiveWorkshopSession,
   updateActiveWorkshopDraft
@@ -88,6 +88,12 @@ export function LayerAssemblyDialog({
   const [tab, setTab] = useState<WorkshopTab>(() => initialTab ?? 'layers')
 
   useEffect(() => {
+    // Tự động ngắt chế độ Bộ phận 2D (cutoutStageMode) khi đổi tab
+    // để tránh bị kẹt overlay hoặc không biết tắt khi sang tab khác
+    const rig = getRigToolState()
+    if (rig.cutoutStageMode) {
+      closeCutoutPartRig()
+    }
     if (tab === 'layers' || tab === 'bones') {
       playback.setIsPlaying(false)
       playback.setTime(0)
@@ -537,7 +543,7 @@ export function LayerAssemblyDialog({
             {tab === 'bones'
               ? 'Moho Rig: S chọn · A vẽ xương/Pin · T vùng uốn · Z thử bẻ khớp · B ẩn/hiện xương · M hiện lưới Mesh'
               : tab === 'animation'
-                ? 'Moho/Animate: Kéo xương tạo dáng · Enter chốt bước · Shift+Kéo ghi Realtime · I bật IK · O Onion Skin · Space phát'
+                ? 'Moho/Animate: Kéo xương tạo dáng · Enter chốt bước · Shift+Kéo ghi Realtime · I bật IK · O Onion Skin · Giữ Space kéo lia view'
                 : 'Ctrl+Z hoàn tác · Ctrl+D nhân bản · Mũi tên: dời 2D · Phím +/-: độ sâu Z · Chuyển tab Anim để diễn hoạt'}
           </span>
         </footer>

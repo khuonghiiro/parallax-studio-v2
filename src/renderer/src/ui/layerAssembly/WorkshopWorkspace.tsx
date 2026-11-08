@@ -7,6 +7,7 @@ import { LayerAssembly3DViewport } from './LayerAssembly3DViewport'
 import { LayerAssemblyTransportBar } from './LayerAssemblyTransportBar'
 import { useResponsiveViewport } from '../primitives'
 import { IconCube, IconImage } from '../icons'
+import { IconFlexiMeshBind } from './LayerWorkshopStudioIcons'
 import { evaluateRig, transformRigLayer } from '../../engine/layerRig'
 import { ensureRigClips, extraSoftBoneIdsForLayer } from './workshopRig'
 import type { WorkshopTab } from './WorkshopRightPanel'
@@ -22,7 +23,7 @@ import { buildManipulateTestRig, type BoneOverlayProps } from './WorkshopBoneOve
 import { inferFallbackBoneForStackedLayer } from './mohoRigHelpers'
 import { detectGarmentCoversLegs } from './workshopClothScanner'
 import { confirmPoseAndStep } from './workshopStepRecord'
-import { resetTestPoses, setRigToolState, useRigToolStore, toggleBoneLabels } from './rigToolStore'
+import { resetTestPoses, setRigToolState, useRigToolStore, toggleBoneLabels, openCutoutPartRig, closeCutoutPartRig } from './rigToolStore'
 
 export function WorkshopWorkspace({
   state,
@@ -123,6 +124,10 @@ export function WorkshopWorkspace({
 
   useEffect(() => {
     if (prevTabRef.current !== tab) {
+      // Tự động ngắt chế độ "Bộ phận 2D" (cutoutStageMode) khi đổi tab
+      if (rigTool.cutoutStageMode) {
+        closeCutoutPartRig()
+      }
       if (tab === 'bones' || tab === 'animation') {
         if (view === '2d' && !showBones2D) setShowBones2D(true)
         else if (view === '3d' && !showBones3D) setShowBones3D(true)
@@ -401,6 +406,28 @@ export function WorkshopWorkspace({
                 <IconImage width={13} height={13} /> Sân khấu 2D
               </span>
               <span className="pane-mode-chip">{stage2dModeLabel}</span>
+              <button
+                type="button"
+                className={`lw-stage-cutout-btn${rigTool.cutoutStageMode ? ' active' : ''}`}
+                onClick={() => {
+                  if (rigTool.cutoutStageMode) {
+                    closeCutoutPartRig()
+                  } else {
+                    openCutoutPartRig()
+                  }
+                }}
+                title={
+                  rigTool.cutoutStageMode
+                    ? 'Tắt chế độ Bộ phận 2D (Đang BẬT) · Phím Esc'
+                    : 'Bật chế độ Bộ phận 2D: hiện ô preview 2 bên sân khấu để focus từng mảnh'
+                }
+              >
+                <IconFlexiMeshBind width={12} height={12} />
+                <span>Bộ phận 2D</span>
+                <span className={`lw-stage-cutout-status${rigTool.cutoutStageMode ? ' active' : ''}`}>
+                  {rigTool.cutoutStageMode ? 'BẬT' : 'TẮT'}
+                </span>
+              </button>
             </div>
             <LayerAssemblyViewport
               {...props}

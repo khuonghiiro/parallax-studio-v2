@@ -58,10 +58,8 @@ export function handleWorkshopKeydown(
       state.run('delete')
     }
   } else if (e.code === 'Space') {
-    if (ctx?.isErasing || ctx?.tab === 'layers' || ctx?.tab === 'bones') {
-      return
-    }
-    togglePlay()
+    // Phím Space dành riêng cho thao tác kéo lia khung hình (Adobe Photoshop Hand Tool), không dùng để play/pause
+    return
   } else if (e.key === 'Escape') {
     if (cancelActiveBoneOverlayOrLink()) {
       // Đã huỷ thao tác kéo vẽ xương hoặc huỷ nét đứt Nét 1 đang chờ Nét 2

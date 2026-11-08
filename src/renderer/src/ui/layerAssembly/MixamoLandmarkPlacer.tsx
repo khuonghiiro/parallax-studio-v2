@@ -83,6 +83,37 @@ export function MixamoLandmarkPlacer({
   const [zoom, setZoom] = useState<number>(1)
   const [pan, setPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 })
   const [isPanning, setIsPanning] = useState<boolean>(false)
+  const [isSpacePressed, setIsSpacePressed] = useState<boolean>(false)
+
+  // Bắt giữ phím Space để kéo lia canvas (Photoshop Hand Tool logic)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName?.toLowerCase()
+      if (tag === 'input' || tag === 'textarea' || (e.target as HTMLElement)?.isContentEditable) return
+      if (e.code === 'Space' && !e.repeat) {
+        e.preventDefault()
+        setIsSpacePressed(true)
+      }
+    }
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        setIsSpacePressed(false)
+        setIsPanning(false)
+      }
+    }
+    const handleBlur = () => {
+      setIsSpacePressed(false)
+      setIsPanning(false)
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('keyup', handleKeyUp)
+    window.addEventListener('blur', handleBlur)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('keyup', handleKeyUp)
+      window.removeEventListener('blur', handleBlur)
+    }
+  }, [])
 
   const compW = Math.max(320, composite?.width || 550)
   const compH = Math.max(360, composite?.height || 600)
@@ -157,7 +188,7 @@ export function MixamoLandmarkPlacer({
   }, [draggingId, landmarks, symmetry, onChange, zoom, pan])
 
   const handleCanvasPointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
-    if (e.button === 1 || e.shiftKey) {
+    if (isSpacePressed || e.button === 1 || e.shiftKey) {
       e.preventDefault()
       setIsPanning(true)
       const startX = e.clientX
@@ -399,7 +430,7 @@ export function MixamoLandmarkPlacer({
               width: '100%',
               height: '100%',
               display: 'block',
-              cursor: isPanning ? 'grabbing' : draggingId ? 'grabbing' : 'crosshair'
+              cursor: isSpacePressed ? (isPanning ? 'grabbing' : 'grab') : isPanning ? 'grabbing' : draggingId ? 'grabbing' : 'crosshair'
             }}
             onPointerDown={handleCanvasPointerDown}
             onWheel={handleWheel}
@@ -496,7 +527,10 @@ export function MixamoLandmarkPlacer({
                 <g
                   key={meta.id}
                   transform={`translate(${pt.x}, ${pt.y})`}
-                  style={{ cursor: 'grab' }}
+                  style={{
+                    cursor: isSpacePressed ? 'inherit' : 'grab',
+                    pointerEvents: isSpacePressed ? 'none' : 'auto'
+                  }}
                   onPointerDown={(e) => {
                     e.stopPropagation()
                     setSelectedDockId(meta.id)
@@ -578,7 +612,7 @@ export function MixamoLandmarkPlacer({
             {activeMeta.label}
           </strong>
           <span style={{ color: 'var(--text-dim)', fontSize: '9.5px' }}>
-            (Giữ Alt khi kéo để chỉnh 1 bên)
+            (Giữ Space: lia view · Giữ Alt khi kéo để chỉnh 1 bên)
           </span>
         </div>
 
