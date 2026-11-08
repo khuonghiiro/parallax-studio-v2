@@ -52,7 +52,7 @@ export function computeClusterOutlineMatrix(
   _boxCluster.makeEmpty()
 
   for (const gl of groupLayers) {
-    if (!gl.active) continue
+    if (!gl.active || gl.opacity <= 0.001) continue
     const nodeMat = getNodeMatrix(gl.layer.id)
     if (nodeMat) {
       const localMat = invShot ? _mNodeLocal.multiplyMatrices(invShot, nodeMat) : nodeMat

@@ -108,5 +108,91 @@ describe('Insert Layer Composite To Scene', () => {
     expect(layer2.composite?.isRoot).toBe(false)
     expect(layer2.composite?.lockedGroup).toBe(true)
   })
-})
 
+  it('does not double-bake X/Y/rotation on soft-skinned layers while still baking zOrder and rigid layers', async () => {
+    const comp: LayerComposite = {
+      id: 'comp-rig-test',
+      name: 'Nhân Vật Test',
+      category: 'character',
+      width: 600,
+      height: 800,
+      rig: {
+        bones: [
+          { id: 'bone-root', name: 'Root', x: 0, y: 0, length: 80, angle: -90 },
+          { id: 'bone-shin', name: 'Shin', parentId: 'bone-root', x: 0, y: 120, length: 90, angle: 90 },
+          { id: 'bone-glasses', name: 'Glasses', parentId: 'bone-root', x: 0, y: -150, length: 40, angle: 0 }
+        ],
+        duration: 2,
+        loop: true,
+        tracks: {
+          'bone-shin': [
+            { time: 0, x: 0, y: 0, rotation: 0, zOrder: 10, easing: 'linear' },
+            { time: 1, x: 25, y: -40, rotation: -30, zOrder: -10, easing: 'linear' },
+            { time: 2, x: 0, y: 0, rotation: 0, zOrder: 10, easing: 'linear' }
+          ],
+          'bone-glasses': [
+            { time: 0, x: 0, y: 0, rotation: 0, easing: 'linear' },
+            { time: 1, x: 10, y: -12, rotation: 15, easing: 'linear' },
+            { time: 2, x: 0, y: 0, rotation: 0, easing: 'linear' }
+          ]
+        }
+      },
+      layers: [
+        {
+          id: 'shin',
+          name: 'Cẳng chân',
+          assetPath: 'nature/tree-trunk.png',
+          x: 20,
+          y: 150,
+          z: -10,
+          scale: 1,
+          rotation: 0,
+          opacity: 1,
+          boneId: 'bone-shin',
+          bindingMode: 'soft',
+          motion: { type: 'none', speed: 1, amplitude: 0, anchor: 'center' }
+        },
+        {
+          id: 'glasses',
+          name: 'Mắt kính',
+          assetPath: 'nature/tree-trunk.png',
+          x: 0,
+          y: -150,
+          z: 40,
+          scale: 1,
+          rotation: 0,
+          opacity: 1,
+          boneId: 'bone-glasses',
+          bindingMode: 'rigid',
+          motion: { type: 'none', speed: 1, amplitude: 0, anchor: 'center' }
+        }
+      ]
+    }
+
+    const shotId = useEditor.getState().project.shots[0].id
+    await insertLayerCompositeToScene({
+      composite: comp,
+      targetShotId: shotId,
+      positionOffset: [0, 0, 0],
+      globalScale: 1
+    })
+
+    const project = useEditor.getState().project
+    const shinLayer = project.layers.find((l) => l.composite?.sourceLayerId === 'shin')!
+    const glassesLayer = project.layers.find((l) => l.composite?.sourceLayerId === 'glasses')!
+
+    // Soft-skinned layer has mesh.skin attached, keeps static X/Y and 0 rotation, and only animates Z depth (zOrder)
+    expect(shinLayer.mesh?.skin?.binding.boneId).toBe('bone-shin')
+    expect(shinLayer.transform.rotation.keyframes.length).toBe(0)
+    expect(shinLayer.transform.position.keyframes.length).toBeGreaterThan(0)
+    for (const kf of shinLayer.transform.position.keyframes) {
+      expect(kf.value[0]).toBeCloseTo(20, 2)
+      expect(kf.value[1]).toBeCloseTo(-150, 2)
+    }
+
+    // Rigid layer has no mesh.skin and bakes full X/Y position and rotation keyframes
+    expect(glassesLayer.mesh?.skin).toBeUndefined()
+    expect(glassesLayer.transform.rotation.keyframes.length).toBeGreaterThan(0)
+    expect(glassesLayer.transform.position.keyframes.some((kf) => Math.abs(kf.value[0]) > 1)).toBe(true)
+  })
+})

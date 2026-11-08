@@ -409,6 +409,12 @@ export class SceneRenderer {
         u.map.value = entry.texture
         u.texSize.value.set(entry.w, entry.h)
         u.planeSize.value.set(node.planeW, node.planeH)
+        const hasRepeat = el.layer.type === 'image' && Boolean(el.layer.props.repeat)
+        const targetWrapS = hasRepeat || Boolean(el.uvOffset) ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping
+        if (entry.texture.wrapS !== targetWrapS) {
+          entry.texture.wrapS = targetWrapS
+          entry.texture.needsUpdate = true
+        }
         if (el.layer.type === 'image' && el.layer.props.repeat) {
           u.uvRepeat.value.set(el.layer.props.repeat[0], el.layer.props.repeat[1])
         } else {
@@ -419,7 +425,7 @@ export class SceneRenderer {
         } else {
           u.uvOffset.value.set(0, 0)
         }
-        applyBlend(mat, el.layer.blendMode)
+        applyBlend(mat, el.layer.blendMode, Boolean(el.layer.model3d))
         u.multiplyOut.value = el.layer.blendMode === 'multiply' ? 1 : 0
         u.screenOut.value = el.layer.blendMode === 'screen' ? 1 : 0
         u.isModel3D.value = el.layer.model3d ? 1 : 0
@@ -579,7 +585,7 @@ export class SceneRenderer {
     this.lastScene = ev
     applyEvaluatedCamera(this.camera, ev.camera, project.comp.width / project.comp.height)
     this.layoutLayers(project, ev, project.look, cam, vp.h, { editor: true, cullCam: opts.cameraOnly ? this.camera : undefined })
-    this.updateOutline(opts.selectedId, opts.selectionScope)
+    this.updateOutline(opts.selectedId, opts.selectionScope, true)
 
     this.helpers ??= new EditorHelpers()
     const infos = new Map<string, HelperLayerInfo>()
@@ -613,8 +619,8 @@ export class SceneRenderer {
     return this.helpers.labels(ev, cam, this.camera, vp.w, vp.h)
   }
 
-  private updateOutline(selectedId?: string | null, scope?: 'cluster' | 'layer'): void {
-    if (!selectedId) {
+  private updateOutline(selectedId?: string | null, scope?: 'cluster' | 'layer', editorView = false): void {
+    if (!selectedId || this.isPlaying || this.isExport || !editorView) {
       this.outline.visible = false
       return
     }

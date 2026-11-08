@@ -2,7 +2,9 @@ import * as THREE from 'three'
 import type { ImageLayer } from '@shared/types'
 import type { AssembledLayerItem, LayerComposite } from './types'
 import { spinesForLayer } from '../../engine/plantSpine'
-import { extraSoftBoneIdsForLayer } from './workshopRig'
+import { ensureRigClips, extraSoftBoneIdsForLayer } from './workshopRig'
+import { inferFallbackBoneForStackedLayer } from './mohoRigHelpers'
+import { detectGarmentCoversLegs } from './workshopClothScanner'
 
 /**
  * Lưu topology phẳng tiêu chuẩn (rest topology) và rig/spine xương cho layer 2.5D.
@@ -15,16 +17,31 @@ export async function exportWorkshopSkin(
   composite: LayerComposite,
   _url?: string | undefined
 ): Promise<void> {
-  const implicitSingleSoft = !item.boneId && composite.layers.length === 1 && Boolean(composite.rig?.bones.length)
+  const normalizedRig = composite.rig ? ensureRigClips(composite.rig).rig : undefined
+  const garmentOcclusion = normalizedRig ? detectGarmentCoversLegs(composite.layers, normalizedRig.bones) : undefined
+  const robeMatch = garmentOcclusion?.robeLayers.find((r) => r.id === item.id)
+  const implicitSingleSoft = !item.boneId && composite.layers.length === 1 && Boolean(normalizedRig?.bones.length)
   const isMultiLayerChar = composite.layers.length > 1
-  const boneId = item.boneId ?? (implicitSingleSoft ? composite.rig!.bones[0]?.id : undefined)
-  const candidateExtraBoneIds =
-    boneId && composite.rig
-      ? (item.extraBoneIds?.length ? item.extraBoneIds : extraSoftBoneIdsForLayer(composite.layers, composite.rig, item.id, boneId))
+  const fallbackBoneId =
+    !item.boneId && isMultiLayerChar && normalizedRig?.bones.length
+      ? inferFallbackBoneForStackedLayer(item, composite.layers, normalizedRig.bones)
+      : undefined
+  const boneId = item.boneId ?? fallbackBoneId ?? (implicitSingleSoft ? normalizedRig!.bones[0]?.id : undefined)
+  const baseExtraBones =
+    boneId && normalizedRig
+      ? (item.extraBoneIds?.length ? item.extraBoneIds : extraSoftBoneIdsForLayer(composite.layers, normalizedRig, item.id, boneId))
       : []
+  const candidateExtraBoneIds =
+    robeMatch && robeMatch.coveredBoneIds.length > 0
+      ? Array.from(new Set([...baseExtraBones, ...robeMatch.coveredBoneIds]))
+      : baseExtraBones
   const skinned =
-    Boolean(composite.rig) &&
-    ((item.bindingMode === 'soft' && Boolean(boneId)) || implicitSingleSoft || candidateExtraBoneIds.length > 0)
+    Boolean(normalizedRig) &&
+    ((item.bindingMode === 'soft' && Boolean(boneId)) ||
+      Boolean(robeMatch) ||
+      Boolean(fallbackBoneId) ||
+      implicitSingleSoft ||
+      candidateExtraBoneIds.length > 0)
   const spines = spinesForLayer(composite.plantSpines, item.id)
   if (!skinned && !spines.length) return
 
@@ -33,6 +50,8 @@ export async function exportWorkshopSkin(
   const geometry = new THREE.PlaneGeometry(width, height, 16, 20)
   const { x, y, rotation, scale, scaleX, scaleY } = item
   const extraBoneIds = skinned ? candidateExtraBoneIds : []
+  const effectiveIsCloth = Boolean(item.isCloth || (robeMatch && robeMatch.coveredBoneIds.length > 0))
+  const effectiveClothAmp = item.clothAmplitude ?? (effectiveIsCloth ? 45 : undefined)
 
   layer.mesh = {
     version: 1,
@@ -43,11 +62,18 @@ export async function exportWorkshopSkin(
     modifiers: [],
     materials: {},
     skin: {
-      rig: skinned ? structuredClone(composite.rig!) : { bones: [], duration: 0, loop: true, tracks: {} },
+      rig: skinned ? structuredClone(normalizedRig!) : { bones: [], duration: 0, loop: true, tracks: {} },
       binding: {
         boneId: skinned ? boneId : undefined,
         ...(extraBoneIds.length ? { extraBoneIds } : {}),
         ...(skinned && isMultiLayerChar ? { isolateToBoundBones: true } : {}),
+        ...(effectiveIsCloth
+          ? {
+              isCloth: true,
+              clothFollowBoneId: item.clothFollowBoneId ?? robeMatch?.coveredBoneIds[0],
+              clothAmplitude: effectiveClothAmp
+            }
+          : {}),
         x,
         y,
         rotation,

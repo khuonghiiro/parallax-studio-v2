@@ -134,7 +134,7 @@ function GizmoPane({
     groupBounds = new THREE.Box3()
     const _vCorner = new THREE.Vector3()
     for (const gl of groupLayers) {
-      if (!gl.active) continue
+      if (!gl.active || gl.opacity <= 0.001) continue
       for (const [hx, hy] of [[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]]) {
         _vCorner.set(hx * gl.size[0], hy * gl.size[1], 0).applyMatrix4(gl.world)
         groupBounds.expandByPoint(_vCorner)
@@ -161,7 +161,7 @@ function GizmoPane({
       let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
       const _vCorner = new THREE.Vector3()
       for (const gl of groupLayers) {
-        if (!gl.active) continue
+        if (!gl.active || gl.opacity <= 0.001) continue
         for (const [hx, hy] of [[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]]) {
           _vCorner.set(hx * gl.size[0], hy * gl.size[1], 0).applyMatrix4(gl.world)
           const pt = project(_vCorner)
@@ -175,7 +175,7 @@ function GizmoPane({
         handles = BOX_HANDLES.map(([x, y]) => project(new THREE.Vector3(x * el.size[0] / 2, y * el.size[1] / 2, 0).applyMatrix4(el.world)))
         boxPoints = [0, 2, 4, 6].map((i) => handles[i].join(',')).join(' ')
       } else {
-        const pad = 6
+        const pad = 8
         minX -= pad; minY -= pad; maxX += pad; maxY += pad
         const midX = (minX + maxX) / 2
         const midY = (minY + maxY) / 2
