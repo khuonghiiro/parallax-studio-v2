@@ -4,10 +4,12 @@ import {
   extractFiberInfo,
   scanElementContext,
   findElementsInBox,
+  captureAiInspectorSnapshot,
   AiInspectorSnapshot
 } from './aiUiInspectorScanner'
 import { extractActiveWorkshopContext } from './aiUiInspectorWorkshopContext'
 import { useView } from '../../store/view'
+import { useEditor } from '../../store/editor'
 
 describe('aiUiInspectorScanner', () => {
   let originalDocument: any
@@ -16,6 +18,7 @@ describe('aiUiInspectorScanner', () => {
     originalDocument = (globalThis as any).document
     ;(globalThis as any).document = {
       elementFromPoint: vi.fn(),
+      getElementById: vi.fn().mockReturnValue(null),
       querySelector: vi.fn().mockReturnValue(null),
       querySelectorAll: vi.fn().mockReturnValue([])
     }
@@ -99,7 +102,7 @@ describe('aiUiInspectorScanner', () => {
       classList: ['custom-select-trigger'],
       innerText: '1080p (Full HD)',
       textContent: '1080p (Full HD)',
-      getBoundingClientRect: () => ({ left: 200, top: 150, width: 160, height: 32 }),
+      getBoundingClientRect: () => ({ left: 200, top: 150, right: 360, bottom: 182, width: 160, height: 32 }),
       getAttribute: () => null,
       closest: () => null,
       __reactFiber$abc: {
@@ -126,7 +129,6 @@ describe('aiUiInspectorScanner', () => {
     expect(ctx.controlDetails?.fieldLabel).toBe('Độ phân giải')
     expect(ctx.controlDetails?.currentValue).toBe('"1080p (Full HD)" (1080)')
     expect(ctx.controlDetails?.optionsSummary).toContain('720p (HD) | 1080p (Full HD)')
-    // Component chain only includes React components, not host <button>
     expect(ctx.componentChain.map((c) => c.componentName)).toEqual([
       'CustomSelect',
       'Row',
@@ -141,7 +143,7 @@ describe('aiUiInspectorScanner', () => {
       classList: ['tb-btn-icon', 'remote-qr-chip'],
       innerText: '',
       textContent: '',
-      getBoundingClientRect: () => ({ left: 1572, top: 3, width: 32, height: 32 }),
+      getBoundingClientRect: () => ({ left: 1572, top: 3, right: 1604, bottom: 35, width: 32, height: 32 }),
       getAttribute: (attr: string) => {
         if (attr === 'aria-label') return 'Điều khiển Điện thoại QR'
         if (attr === 'title') {
@@ -171,6 +173,7 @@ describe('aiUiInspectorScanner', () => {
       closest: () => null,
       contains: () => false,
       matches: () => false,
+      getAttribute: () => null,
       getBoundingClientRect: () => ({
         left: 1540,
         top: 5,
@@ -188,6 +191,7 @@ describe('aiUiInspectorScanner', () => {
       closest: () => null,
       contains: () => false,
       matches: () => false,
+      getAttribute: () => null,
       getBoundingClientRect: () => ({
         left: 1576,
         top: 5,
@@ -203,9 +207,241 @@ describe('aiUiInspectorScanner', () => {
       return []
     })
 
-    // Box (1572, 3, 34x36) covers remoteQrBtn completely while grazing aiInspectorBtn by 2px
     const found = findElementsInBox({ left: 1572, top: 3, width: 34, height: 36 })
     expect(found).toEqual([remoteQrBtn])
+  })
+
+  it('clips scrolled elements inside .wf-v2-insp-body so they do not leak into #tab-node-props (inspector_bottom_tabs)', () => {
+    const inspScrollBody = {
+      tagName: 'DIV',
+      matches: (sel: string) => sel.includes('.wf-v2-insp-body'),
+      getBoundingClientRect: () => ({
+        left: 1530,
+        top: 300,
+        right: 1910,
+        bottom: 910,
+        width: 380,
+        height: 610
+      }),
+      parentElement: null
+    } as unknown as HTMLElement
+
+    // "🧩 Cẳng chân phải" has raw rect extending down to y=940, but its parent .wf-v2-insp-body clips at bottom=910
+    const scrolledMemberBtn = {
+      tagName: 'BUTTON',
+      id: '',
+      parentElement: inspScrollBody,
+      classList: { contains: () => false },
+      closest: (sel: string) => (sel.includes('.wf-v2-insp-body') ? inspScrollBody : null),
+      contains: () => false,
+      matches: () => false,
+      getAttribute: () => null,
+      getBoundingClientRect: () => ({
+        left: 1550,
+        top: 912,
+        right: 1880,
+        bottom: 940,
+        width: 330,
+        height: 28
+      })
+    } as unknown as Element
+
+    const tabNodePropsBtn = {
+      tagName: 'BUTTON',
+      id: 'tab-node-props',
+      parentElement: null,
+      classList: { contains: () => false },
+      closest: () => null,
+      contains: () => false,
+      matches: () => false,
+      getAttribute: () => null,
+      getBoundingClientRect: () => ({
+        left: 1535,
+        top: 916,
+        right: 1720,
+        bottom: 952,
+        width: 185,
+        height: 36
+      })
+    } as unknown as Element
+
+    ;(globalThis as any).document.querySelectorAll = vi.fn().mockImplementation((sel: string) => {
+      if (sel.includes('button')) return [scrolledMemberBtn, tabNodePropsBtn]
+      return []
+    })
+
+    const found = findElementsInBox({ left: 1532, top: 916, width: 382, height: 41 })
+    expect(found).toEqual([tabNodePropsBtn])
+  })
+
+  it('prioritizes focused Layer / 2.5D Cluster BBox inside Khung chỉnh BBox (workflow_preview)', () => {
+    const focusedBboxEl = {
+      tagName: 'DIV',
+      id: '',
+      parentElement: null,
+      classList: { contains: () => false },
+      closest: () => null,
+      contains: () => false,
+      matches: (sel: string) => sel.includes('.wf-v2-direct-layer-bbox'),
+      getAttribute: (attr: string) => (attr === 'data-bbox-focused' ? 'true' : null),
+      getBoundingClientRect: () => ({
+        left: 1350,
+        top: 400,
+        right: 1550,
+        bottom: 600,
+        width: 200,
+        height: 200
+      })
+    } as unknown as Element
+
+    const backgroundStageLayerEl = {
+      tagName: 'DIV',
+      id: '',
+      parentElement: null,
+      classList: { contains: () => false },
+      closest: () => null,
+      contains: () => false,
+      matches: (sel: string) => sel.includes('.wf-v2-direct-layer') && !sel.includes('-bbox'),
+      getAttribute: () => null,
+      getBoundingClientRect: () => ({
+        left: 1220,
+        top: 350,
+        right: 1880,
+        bottom: 700,
+        width: 660,
+        height: 350
+      })
+    } as unknown as Element
+
+    const outerSectionEl = {
+      tagName: 'SECTION',
+      id: '',
+      parentElement: null,
+      classList: { contains: () => false },
+      closest: () => null,
+      contains: (other: Element) => other === focusedBboxEl || other === backgroundStageLayerEl,
+      matches: (sel: string) => sel.includes('[data-mcp-region]') || sel.includes('section'),
+      getAttribute: (attr: string) => (attr === 'data-mcp-region' ? 'workflow_preview' : null),
+      querySelectorAll: () => [focusedBboxEl],
+      getBoundingClientRect: () => ({
+        left: 1205,
+        top: 344,
+        right: 1917,
+        bottom: 713,
+        width: 712,
+        height: 369
+      })
+    } as unknown as Element
+
+    ;(globalThis as any).document.querySelectorAll = vi.fn().mockImplementation((sel: string) => {
+      if (sel.includes('.wf-v2-direct-layer-bbox')) {
+        return [outerSectionEl, backgroundStageLayerEl, focusedBboxEl]
+      }
+      return []
+    })
+
+    const found = findElementsInBox({ left: 1205, top: 344, width: 712, height: 369 })
+    expect(found).toEqual([focusedBboxEl])
+  })
+
+  it('captures Scene Layer / 2.5D Cluster on #viewer-canvas and filters out peripheral toolbar buttons when scanning the scene', () => {
+    const baseProject = useEditor.getState().project
+    const mockLayer = {
+      id: 'layer_hero_1',
+      name: 'Cô Gái Áo Đỏ 2.5D',
+      type: 'image' as const,
+      visible: true,
+      locked: false,
+      inPoint: 0,
+      outPoint: 10,
+      composite: {
+        compositeId: 'comp_girl',
+        instanceId: 'inst_girl_1',
+        partKey: 'torso',
+        partName: 'Thân áo'
+      },
+      transform: {
+        position: { value: [120, -40, 0] as [number, number, number], keyframes: [] },
+        scale: { value: [1, 1, 1] as [number, number, number], keyframes: [] },
+        rotation: { value: [0, 0, 0] as [number, number, number], keyframes: [] },
+        opacity: { value: 1, keyframes: [] }
+      }
+    }
+    useEditor.setState({
+      project: { ...baseProject, layers: [mockLayer as any] },
+      selectedLayerId: mockLayer.id
+    })
+    const targetLayer = mockLayer
+
+    const viewerCanvas = {
+      tagName: 'CANVAS',
+      id: 'viewer-canvas',
+      classList: [],
+      getAttribute: (attr: string) => (attr === 'data-mcp-region' ? 'viewer_canvas' : null),
+      closest: () => null,
+      contains: () => false,
+      matches: () => false,
+      getBoundingClientRect: () => ({
+        left: 340,
+        top: 60,
+        right: 1500,
+        bottom: 760,
+        width: 1160,
+        height: 700
+      }),
+      __pxsQuerySceneLayersInBox: vi.fn().mockReturnValue([
+        {
+          layerId: targetLayer.id,
+          isFocused: true,
+          selectionScope: 'layer',
+          clusterInstanceId: null,
+          workflowNodeId: `v2:layer:${targetLayer.id}`,
+          pane: 'camera',
+          screenBounds: { left: 680, top: 210, width: 320, height: 360 }
+        }
+      ])
+    } as unknown as Element
+
+    const peripheralToolBtn = {
+      tagName: 'BUTTON',
+      id: 'view-path',
+      classList: ['viewer-tool-btn', 'icon', 'active'],
+      innerText: 'Hiện/ẩn đường bay camera 3D',
+      textContent: 'Hiện/ẩn đường bay camera 3D',
+      getAttribute: () => null,
+      closest: () => null,
+      contains: () => false,
+      matches: () => false,
+      getBoundingClientRect: () => ({
+        left: 420,
+        top: 34,
+        right: 452,
+        bottom: 62,
+        width: 32,
+        height: 28
+      })
+    } as unknown as Element
+
+    ;(globalThis as any).document.getElementById = vi.fn().mockImplementation((id: string) => {
+      if (id === 'viewer-canvas') return viewerCanvas
+      return null
+    })
+    ;(globalThis as any).document.querySelectorAll = vi.fn().mockImplementation((sel: string) => {
+      if (sel.includes('canvas')) return [viewerCanvas, peripheralToolBtn]
+      return []
+    })
+
+    const snap = captureAiInspectorSnapshot({ left: 342, top: 31, width: 1157, height: 749 })
+    expect(snap.primaryRegion).toBe('viewer_canvas')
+    expect(snap.elements.length).toBe(1)
+    expect(snap.elements[0].id).toBe(targetLayer.id)
+    expect(snap.elements[0].sceneEntity?.layerName).toBe(targetLayer.name)
+    expect(snap.elements[0].bounds).toEqual({ left: 680, top: 210, width: 320, height: 360 })
+
+    const md = formatAiInspectorMarkdown(snap)
+    expect(md).toContain('Đối tượng Cảnh / Khung BBox đang chọn:')
+    expect(md).toContain(targetLayer.name)
+    expect(md).not.toContain('#view-path')
   })
 
   it('extracts dialog context for Photo Studio, Audio Studio, Manifest, and Remote dialogs', () => {
@@ -330,13 +566,13 @@ describe('aiUiInspectorScanner', () => {
     expect(found.length).toBe(1)
     expect(found[0]).toBe(mockButton)
 
-    // Test marquee drag scoping to open popup (.menu) instead of background elements
     const popupMenuItem = {
       tagName: 'BUTTON',
       classList: { contains: () => false },
       closest: () => null,
       contains: () => false,
       matches: () => false,
+      getAttribute: () => null,
       getBoundingClientRect: () => ({
         left: 120,
         top: 60,

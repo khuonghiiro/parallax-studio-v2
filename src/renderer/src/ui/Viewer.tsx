@@ -32,6 +32,7 @@ import { ViewerOverlays } from './viewer/ViewerOverlays'
 import { LayerGizmo, type GizmoController, type GizmoFrame } from './viewer/LayerGizmo'
 import { AnimateCameraStage } from './viewer/animateCamera/AnimateCameraStage'
 import { TopView, useFocusShotId } from './TopView'
+import { queryViewerSceneLayersInBox } from './viewer/viewerSceneInspectorBridge'
 
 export { EDITOR_KINDS }
 
@@ -386,6 +387,19 @@ export function Viewer() {
     r.maxTextureSize = perf.maxTextureSize
     rendererRef.current = r
     setLiveRenderer(r)
+    ;(canvasEl as any).__pxsQuerySceneLayersInBox = (box: {
+      left: number
+      top: number
+      width: number
+      height: number
+    }) =>
+      queryViewerSceneLayersInBox({
+        box,
+        canvasEl,
+        renderer: r,
+        layout: layoutRef.current,
+        edCam
+      })
     r.onInvalidate = () => requestRender()
     r.onContextLost = () => {
       if (healTimerRef.current !== null) window.clearTimeout(healTimerRef.current)
@@ -440,6 +454,7 @@ export function Viewer() {
         window.clearTimeout(healTimerRef.current)
         healTimerRef.current = null
       }
+      delete (canvasEl as any).__pxsQuerySceneLayersInBox
       unsubStore()
       unsubView()
       unsubAssets()

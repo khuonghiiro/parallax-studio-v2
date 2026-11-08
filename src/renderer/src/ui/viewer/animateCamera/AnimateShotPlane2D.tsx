@@ -222,6 +222,7 @@ export const AnimateShotPlane2D = memo(function AnimateShotPlane2D({
   return (
     <div
       className={`anim2d-shot-card${isSelectedShot ? ' selected' : ''}${isActiveCameraShot ? ' cam-here' : ''}${box.visible ? '' : ' hidden-shot'}`}
+      data-shot-id={box.shotId || undefined}
       style={{
         left: screenLeft,
         top: screenTop,
@@ -293,6 +294,7 @@ export const AnimateShotPlane2D = memo(function AnimateShotPlane2D({
           const lh = layer.height * zoom
           const lx = screenW / 2 + layer.offsetX * zoom - lw / 2
           const ly = screenH / 2 + layer.offsetY * zoom - lh / 2
+          const isSel = selectedLayerId === layer.id
           const baseStyle: React.CSSProperties = {
             position: 'absolute',
             isolation: 'isolate',
@@ -320,6 +322,9 @@ export const AnimateShotPlane2D = memo(function AnimateShotPlane2D({
             return (
               <div
                 key={layer.id}
+                data-scene-layer-id={layer.id}
+                data-scene-layer-name={layer.name}
+                data-bbox-focused={isSel ? 'true' : undefined}
                 className={`anim2d-layer-item${aimMode ? ' aimable' : ''}`}
                 style={baseStyle}
                 onClick={onLayerClick}
@@ -353,6 +358,9 @@ export const AnimateShotPlane2D = memo(function AnimateShotPlane2D({
             return (
               <div
                 key={layer.id}
+                data-scene-layer-id={layer.id}
+                data-scene-layer-name={layer.name}
+                data-bbox-focused={isSel ? 'true' : undefined}
                 className={`anim2d-layer-item${aimMode ? ' aimable' : ''}`}
                 style={{ ...baseStyle, background: bg }}
                 onClick={onLayerClick}
@@ -365,6 +373,9 @@ export const AnimateShotPlane2D = memo(function AnimateShotPlane2D({
             return (
               <div
                 key={layer.id}
+                data-scene-layer-id={layer.id}
+                data-scene-layer-name={layer.name}
+                data-bbox-focused={isSel ? 'true' : undefined}
                 className={`anim2d-layer-item${aimMode ? ' aimable' : ''}`}
                 style={{
                   ...baseStyle,
@@ -411,6 +422,10 @@ export const AnimateShotPlane2D = memo(function AnimateShotPlane2D({
             return (
               <div
                 className="anim2d-selected-layer-bbox"
+                data-scene-layer-id={selLayer.id}
+                data-scene-layer-name={selLayer.name}
+                data-bbox-role="stage2d_layer_bbox"
+                data-bbox-focused="true"
                 style={{
                   position: 'absolute',
                   left: lx,
@@ -485,6 +500,8 @@ export const AnimateShotPlane2D = memo(function AnimateShotPlane2D({
                     key={`aim-pin-${layer.id}`}
                     type="button"
                     className="anim2d-layer-pin"
+                    data-scene-layer-id={layer.id}
+                    data-scene-layer-name={layer.name}
                     onPointerDown={(e) => e.stopPropagation()}
                     onClick={(e) => {
                       e.stopPropagation()

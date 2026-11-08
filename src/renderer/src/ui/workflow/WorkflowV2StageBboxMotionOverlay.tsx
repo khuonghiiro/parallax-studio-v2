@@ -659,6 +659,13 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
           return (
             <div
               key={`start-bbox-${item.ent.id}`}
+              data-scene-layer-id={item.ent.rootLayer.id}
+              data-scene-layer-name={item.ent.name}
+              data-cluster-id={item.ent.isCluster ? item.ent.id : undefined}
+              data-bbox-scope={item.ent.isCluster ? 'cluster' : 'layer'}
+              data-bbox-role="motion_start"
+              data-bbox-focused={isFocused ? 'true' : undefined}
+              data-workflow-node-id={motionNode?.id ?? node.id}
               className={`wf-v2-direct-layer-bbox is-start-bbox${isFocused ? ' is-focused is-locked-start' : ' is-silhouette'}`}
               style={{
                 pointerEvents: isFocused ? 'none' : 'auto',
@@ -728,6 +735,13 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
               key={`ghost-${item.ent.id}`}
               className={`wf-v2-direct-layer-bbox is-ghost-target${isFocused ? ' is-focused' : ' is-silhouette'}`}
               data-mcp-region="workflow_motion_ghost"
+              data-scene-layer-id={item.ent.rootLayer.id}
+              data-scene-layer-name={item.ent.name}
+              data-cluster-id={item.ent.isCluster ? item.ent.id : undefined}
+              data-bbox-scope={item.ent.isCluster ? 'cluster' : 'layer'}
+              data-bbox-role="motion_target"
+              data-bbox-focused={isFocused ? 'true' : undefined}
+              data-workflow-node-id={motionNode?.id ?? node.id}
               style={{
                 pointerEvents: motionNode?.id === node.id || shiftToFocus ? 'auto' : 'none',
                 left: item.box2Left,

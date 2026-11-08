@@ -69,7 +69,9 @@ export function formatAiInspectorMarkdown(snapshot: AiInspectorSnapshot): string
           : focusItem.title
             ? `[${focusItem.title}]`
             : `<${focusItem.tagName}>`
-      const sel = focusItem.controlDetails?.targetSelector || (focusItem.id ? `#${focusItem.id}` : focusItem.tagName)
+      const sel =
+        focusItem.controlDetails?.targetSelector ||
+        (focusItem.id ? `#${focusItem.id}` : focusItem.tagName)
       lines.push(
         `- **Control trọng tâm:** **${focusTitle}** (${focusItem.kindLabel}) — Selector: \`${sel}\``
       )
@@ -78,6 +80,39 @@ export function formatAiInspectorMarkdown(snapshot: AiInspectorSnapshot): string
           ? ` (trong component \`<${focusItem.ownerComponentName}>\`)`
           : ''
         lines.push(`- **File & dòng logic cần sửa:** \`${focusItem.primaryFile}\`${ownerSuffix}`)
+      }
+      if (focusItem.sceneEntity) {
+        const se = focusItem.sceneEntity
+        lines.push(
+          `- **Đối tượng Cảnh / Khung BBox đang chọn:** **${se.displayName}** (\`id="${se.layerId}"\` · ${se.bboxRoleLabel} · ${se.isFocused ? '🎯 Đang Focus BBox' : 'Trong vùng quét'})`
+        )
+        lines.push(`- **Tọa độ & Biến đổi 3D/2.5D:** ${se.coordsSummary}`)
+        if (se.clusterSummary) {
+          const cs = se.clusterSummary
+          lines.push(
+            `- **Thông tin Cụm 2.5D:** Cụm "${cs.clusterName}" (\`instanceId="${cs.instanceId}"\`, ${cs.memberCount} mảnh · Phạm vi BBox: ${se.bboxScope === 'cluster' ? 'Toàn bộ cụm 2.5D' : `Riêng mảnh "${cs.partShortName}"`})`
+          )
+        }
+        if (se.connectedLogicSummaries && se.connectedLogicSummaries.length > 0) {
+          lines.push(
+            `- **Các Node Logic Workflow V2 đang gắn:** ${se.connectedLogicSummaries.join(', ')}`
+          )
+        }
+        if (se.relatedFiles.length > 0) {
+          lines.push(
+            `- **File xử lý Khung nhìn / BBox liên quan:** ${se.relatedFiles.map((f) => `\`${f}\``).join(', ')}`
+          )
+        }
+      }
+      if (focusItem.workflowNode) {
+        const wn = focusItem.workflowNode
+        lines.push(
+          `- **Node Workflow V2 đang thao tác:** **"${wn.title}"** (\`id="${wn.nodeId}"\` · ${wn.levelLabel} · Thời gian: \`${wn.timeRange}\`)`
+        )
+        lines.push(`- **Đối tượng đích của Node:** ${wn.targetSummary} · Tóm tắt: ${wn.summaryText}`)
+        lines.push(
+          `- **File Inspector & Engine của Node:** UI: \`${wn.inspectorSourceFile}\` · Engine: \`${wn.engineSourceFile}\``
+        )
       }
       const specsLine = formatControlSpecsLine(focusItem)
       if (specsLine) {
@@ -167,6 +202,23 @@ export function formatAiInspectorMarkdown(snapshot: AiInspectorSnapshot): string
         `${idx + 1}. **${label}** (${item.kindLabel || 'Thành phần'}) — \`${tagDesc}\`${focusBadge}`
       )
 
+      if (item.sceneEntity) {
+        const se = item.sceneEntity
+        lines.push(
+          `   - 🎬 **Chi tiết Layer / Cụm 2.5D:** \`id="${se.layerId}"\` · ${se.bboxRoleLabel} · ${se.isFocused ? '🎯 Đang Focus BBox' : 'Trong vùng quét'} · ${se.coordsSummary}`
+        )
+        if (se.clusterSummary) {
+          lines.push(
+            `   - 🧩 **Thuộc Cụm 2.5D:** "${se.clusterSummary.clusterName}" (\`instanceId="${se.clusterSummary.instanceId}"\`, ${se.clusterSummary.memberCount} mảnh · Chế độ BBox: ${se.bboxScope === 'cluster' ? 'Toàn cụm' : `Mảnh "${se.clusterSummary.partShortName}"`})`
+          )
+        }
+      }
+      if (item.workflowNode) {
+        const wn = item.workflowNode
+        lines.push(
+          `   - 🔗 **Node Workflow V2:** "${wn.title}" (\`id="${wn.nodeId}"\` · ${wn.levelLabel}) · Đích: ${wn.targetSummary} · UI: \`${wn.inspectorSourceFile}\` · Engine: \`${wn.engineSourceFile}\``
+        )
+      }
       if (item.part25D) {
         const p = item.part25D
         lines.push(

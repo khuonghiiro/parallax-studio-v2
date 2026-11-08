@@ -17,9 +17,20 @@ import {
   type LinkedTargetModule,
   type ScannedControlDetails
 } from './aiUiInspectorControlMeta'
+import {
+  enrichScannedWithViewerSceneHits,
+  extractDomSceneEntityInfo,
+  extractDomWorkflowNodeInfo,
+  type ScannedSceneEntityInfo,
+  type ScannedWorkflowNodeInfo
+} from './aiUiInspectorSceneAndWorkflowContext'
 
 export { formatAiInspectorMarkdown } from './aiUiInspectorMarkdown'
 export type { LinkedTargetModule, ScannedControlDetails } from './aiUiInspectorControlMeta'
+export type {
+  ScannedSceneEntityInfo,
+  ScannedWorkflowNodeInfo
+} from './aiUiInspectorSceneAndWorkflowContext'
 
 export interface ElementFiberInfo {
   componentName: string
@@ -43,6 +54,8 @@ export interface ScannedElementContext {
   bounds: { left: number; top: number; width: number; height: number }
   part25D?: Scanned25DPartInfo | null
   bone25D?: Scanned25DBoneInfo | null
+  sceneEntity?: ScannedSceneEntityInfo | null
+  workflowNode?: ScannedWorkflowNodeInfo | null
   ownerComponentName?: string | null
   controlDetails?: ScannedControlDetails | null
   linkedTarget?: LinkedTargetModule | null
@@ -111,6 +124,16 @@ const INTERACTIVE_ELEMENT_SELECTORS = [
   '.custom-select-trigger',
   '.switch',
   '[role="switch"]',
+  '.wf-v2-direct-layer-bbox',
+  '.wf-v2-direct-cam-bbox',
+  '.wf-v2-direct-layer',
+  'polygon.gizmo-box',
+  '.anim2d-selected-layer-bbox',
+  '.anim2d-layer-pin',
+  '.anim2d-layer-item',
+  '.anim2d-shot-card',
+  '[data-scene-layer-id]',
+  '[data-waypoint-node-id]',
   '.lw-stage-layer-item',
   '.layer-cutter-placed-layer',
   '.lw-cutout-preview-tile',
@@ -131,8 +154,6 @@ const INTERACTIVE_ELEMENT_SELECTORS = [
   '.lw-template-card',
   '.wf-v2-card',
   '.loop-frame-card',
-  '.anim2d-layer-item',
-  '.anim2d-shot-card',
   'button',
   'input',
   'select',
@@ -153,6 +174,9 @@ const INTERACTIVE_ELEMENT_SELECTORS = [
   'canvas',
   '[data-mcp-region]'
 ]
+
+const SCROLL_CLIP_CONTAINER_SELECTOR =
+  '.wf-v2-insp-body, .inspector-body, .asset-grid, .shots-list, .tl-tracks-scroll, .lw-layers-list, .lw-parts-list, .wf-canvas-viewport'
 
 /**
  * Phân tích React Fiber và trích xuất cây component, đường dẫn file nguồn (.tsx) và tên hàm xử lý.
@@ -175,8 +199,12 @@ function classifyElementKindLabel(
   tagName: string,
   classes: string[],
   part25D: Scanned25DPartInfo | null,
-  bone25D: Scanned25DBoneInfo | null
+  bone25D: Scanned25DBoneInfo | null,
+  sceneEntity: ScannedSceneEntityInfo | null
 ): string {
+  if (sceneEntity) {
+    return sceneEntity.bboxRoleLabel
+  }
   if (classes.includes('lw-stage-layer-item') || classes.includes('layer-cutter-placed-layer')) {
     return 'Bộ phận 2.5D trên sân khấu'
   }
@@ -233,10 +261,72 @@ function classifyElementKindLabel(
 }
 
 /**
- * Trích xuất toàn bộ ngữ cảnh DOM + React Fiber + Thông số Control + Bộ phận 2.5D/Xương của 1 phần tử.
+ * Tính hình chữ nhật hiển thị thực tế của phần tử sau khi cắt theo các khung cuộn cha (scroll containers)
+ * và các thanh ghim cố định (sticky bottom/top bars) đè lên trên.
+ */
+function getVisibleElementRect(el: Element): {
+  left: number
+  top: number
+  right: number
+  bottom: number
+  width: number
+  height: number
+} {
+  const raw = el.getBoundingClientRect()
+  let left = raw.left
+  let top = raw.top
+  let right = raw.right
+  let bottom = raw.bottom
+
+  let parent = el.parentElement
+  let depth = 0
+  while (parent && parent !== document.body && parent !== document.documentElement && depth < 14) {
+    depth++
+    let shouldClip = false
+    if (parent.matches?.(SCROLL_CLIP_CONTAINER_SELECTOR)) {
+      shouldClip = true
+    } else if (typeof window !== 'undefined' && typeof window.getComputedStyle === 'function') {
+      const style = window.getComputedStyle(parent)
+      const ov = `${style.overflow || ''} ${style.overflowY || ''} ${style.overflowX || ''}`
+      if (/(auto|scroll|hidden|clip)/.test(ov)) {
+        shouldClip = true
+      }
+    }
+    if (shouldClip) {
+      const pr = parent.getBoundingClientRect()
+      if (pr.width > 0 && pr.height > 0) {
+        left = Math.max(left, pr.left)
+        top = Math.max(top, pr.top)
+        right = Math.min(right, pr.right)
+        bottom = Math.min(bottom, pr.bottom)
+      }
+    }
+    parent = parent.parentElement
+  }
+
+  // Nếu phần tử nằm trong thân cuộn của cột Inspector (.wf-v2-insp-body / .inspector-body),
+  // cắt phần bị che khuất bởi thanh tab dưới cùng [data-mcp-region="inspector_bottom_tabs"]
+  if (el.closest?.('.wf-v2-insp-body, .inspector-body')) {
+    const bottomTabs = document.querySelector?.('[data-mcp-region="inspector_bottom_tabs"]')
+    if (bottomTabs && !bottomTabs.contains(el)) {
+      const btr = bottomTabs.getBoundingClientRect()
+      if (btr.width > 0 && btr.height > 0 && btr.top < bottom && btr.bottom >= raw.bottom - 4) {
+        bottom = Math.min(bottom, btr.top)
+      }
+    }
+  }
+
+  const width = Math.max(0, right - left)
+  const height = Math.max(0, bottom - top)
+  return { left, top, right: left + width, bottom: top + height, width, height }
+}
+
+/**
+ * Trích xuất toàn bộ ngữ cảnh DOM + React Fiber + Thông số Control + Bộ phận 2.5D/Xương + Scene Layer/Workflow Node.
  */
 export function scanElementContext(el: Element): ScannedElementContext {
-  const rect = el.getBoundingClientRect()
+  const rect = getVisibleElementRect(el)
+  const rawRect = rect.width > 0 && rect.height > 0 ? rect : el.getBoundingClientRect()
   const fiberResult = extractEnhancedFiberInfo(el)
   const { componentChain, primaryFile, primaryHandler, ownerComponentName } = fiberResult
 
@@ -252,6 +342,8 @@ export function scanElementContext(el: Element): ScannedElementContext {
 
   const part25D = layerAttrId ? buildScanned25DPartInfo(layerAttrId) : null
   const bone25D = boneAttrId ? buildScanned25DBoneInfo(boneAttrId) : null
+  const sceneEntity = extractDomSceneEntityInfo(el)
+  const workflowNode = extractDomWorkflowNodeInfo(el)
 
   const classes = Array.from(el.classList || []).filter(
     (c) => !c.startsWith('ai-ui-') && !c.includes('hover')
@@ -262,9 +354,26 @@ export function scanElementContext(el: Element): ScannedElementContext {
   const rawText = (el as HTMLElement).innerText || el.textContent || ''
   let cleanText = rawText.replace(/\s+/g, ' ').trim().slice(0, 80)
 
-  if (!cleanText) {
+  if (
+    sceneEntity &&
+    (classes.includes('wf-v2-direct-layer-bbox') ||
+      classes.includes('wf-v2-direct-cam-bbox') ||
+      classes.includes('wf-v2-direct-layer') ||
+      classes.includes('layer-gizmo') ||
+      classes.includes('anim2d-selected-layer-bbox') ||
+      classes.includes('anim2d-layer-item') ||
+      classes.includes('anim2d-layer-pin') ||
+      el.hasAttribute?.('data-scene-layer-id'))
+  ) {
+    cleanText = sceneEntity.displayName
+  } else if (workflowNode && classes.includes('wf-v2-card')) {
+    cleanText = `${workflowNode.title} (${workflowNode.levelLabel})`
+  } else if (!cleanText) {
     const ariaLabel = el.getAttribute?.('aria-label')?.trim()
-    const attrName = el.getAttribute?.('data-layer-name') || el.getAttribute?.('data-bone-name')
+    const attrName =
+      el.getAttribute?.('data-scene-layer-name') ||
+      el.getAttribute?.('data-layer-name') ||
+      el.getAttribute?.('data-bone-name')
     if (ariaLabel && ariaLabel.length <= 80) {
       cleanText = ariaLabel
     } else if (attrName) {
@@ -297,10 +406,16 @@ export function scanElementContext(el: Element): ScannedElementContext {
     el.getAttribute?.('title') ||
     el.getAttribute?.('aria-label') ||
     el.getAttribute?.('placeholder') ||
-    null
+    (sceneEntity ? `${sceneEntity.bboxRoleLabel} · ${sceneEntity.coordsSummary}` : null)
 
-  const kindLabel = classifyElementKindLabel(el, tagName, classes, part25D, bone25D)
-  const effectiveId = el.id || layerAttrId || boneAttrId || ''
+  const kindLabel = classifyElementKindLabel(el, tagName, classes, part25D, bone25D, sceneEntity)
+  const effectiveId =
+    el.id ||
+    sceneEntity?.layerId ||
+    workflowNode?.nodeId ||
+    layerAttrId ||
+    boneAttrId ||
+    ''
   const linkedTarget = resolveLinkedTargetModule(effectiveId, classes, primaryHandler, mcpRegion)
 
   return {
@@ -317,13 +432,15 @@ export function scanElementContext(el: Element): ScannedElementContext {
     mcpRegion,
     mcpDialog,
     bounds: {
-      left: Math.round(rect.left),
-      top: Math.round(rect.top),
-      width: Math.round(rect.width),
-      height: Math.round(rect.height)
+      left: Math.round(rawRect.left),
+      top: Math.round(rawRect.top),
+      width: Math.round(rawRect.width),
+      height: Math.round(rawRect.height)
     },
     part25D,
     bone25D,
+    sceneEntity,
+    workflowNode,
     ownerComponentName,
     controlDetails,
     linkedTarget
@@ -355,7 +472,6 @@ function rectIntersectsBox(
   if (r.right < box.left || r.left > boxRight || r.bottom < box.top || r.top > boxBottom) {
     return false
   }
-  // Với khung kéo marquee (>= 10px), đòi hỏi phần giao nhau tối thiểu 3px để loại bỏ lỗi chạm viền 1-2px với nút bên cạnh
   if (box.width >= 10 && box.height >= 10 && r.width >= 8 && r.height >= 8) {
     const iw = Math.min(r.right, boxRight) - Math.max(r.left, box.left)
     const ih = Math.min(r.bottom, boxBottom) - Math.max(r.top, box.top)
@@ -395,8 +511,6 @@ function computeBoxCoverageRatio(
 
 /**
  * Tìm kiếm các phần tử giao diện nằm bên trong hoặc cắt ngang khung quét hình chữ nhật.
- * - Tự động ưu tiên Popup đang mở (Menu, Dropdown, Flyout) và Hộp thoại lồng / Xưởng nổi trên cùng.
- * - Loại bỏ các nút lân cận chỉ chạm viền mỏng (Anti-Grazing Dominance Filter) và khử trùng lặp thẻ bọc cha-con.
  */
 export function findElementsInBox(box: {
   left: number
@@ -420,7 +534,7 @@ export function findElementsInBox(box: {
     }
     if (!target) return []
     const meaningful = target.closest?.(
-      '.menu-item, [role="menuitem"], [role="option"], .custom-select-item, .custom-select-trigger, .switch, [role="switch"], .lw-stage-layer-item, .layer-cutter-placed-layer, .lw-cutout-preview-tile, .lw-layer-callout-bubble, g.lw-blender-bone, .lw-bone-item, [data-bone-id], [data-layer-id], button, input, select, textarea, [role="button"], [role="tab"], a, .btn, .tab, .pxs-tab, .wf-v2-card, .lw-row, .card, .shot-item, .tl-track, .panel-header, [data-mcp-region]'
+      '.menu-item, [role="menuitem"], [role="option"], .custom-select-item, .custom-select-trigger, .switch, [role="switch"], .wf-v2-direct-layer-bbox, .wf-v2-direct-cam-bbox, .wf-v2-direct-layer, svg.layer-gizmo, .anim2d-selected-layer-bbox, .anim2d-layer-pin, .anim2d-layer-item, [data-scene-layer-id], [data-waypoint-node-id], .lw-stage-layer-item, .layer-cutter-placed-layer, .lw-cutout-preview-tile, .lw-layer-callout-bubble, g.lw-blender-bone, .lw-bone-item, [data-bone-id], [data-layer-id], button, input, select, textarea, [role="button"], [role="tab"], a, .btn, .tab, .pxs-tab, .wf-v2-card, .lw-row, .card, .shot-item, .tl-track, .panel-header, [data-mcp-region]'
     )
     if (meaningful?.matches?.('label.num') && typeof meaningful.querySelector === 'function') {
       const innerInput = meaningful.querySelector('input')
@@ -437,7 +551,7 @@ export function findElementsInBox(box: {
     const popupNodes = Array.from(document.querySelectorAll(POPUP_CONTAINER_SELECTORS.join(', ')))
     for (const pop of popupNodes) {
       if (isInspectorInternalElement(pop)) continue
-      const r = pop.getBoundingClientRect()
+      const r = getVisibleElementRect(pop)
       if (rectIntersectsBox(r, box)) {
         openPopups.push(pop)
       }
@@ -445,7 +559,7 @@ export function findElementsInBox(box: {
     const nestedNodes = Array.from(document.querySelectorAll(NESTED_MODAL_SELECTORS.join(', ')))
     for (const nm of nestedNodes) {
       if (isInspectorInternalElement(nm)) continue
-      const r = nm.getBoundingClientRect()
+      const r = getVisibleElementRect(nm)
       if (r.width >= 60 && r.height >= 40 && rectIntersectsBox(r, box)) {
         openNestedModals.push(nm)
       }
@@ -477,9 +591,25 @@ export function findElementsInBox(box: {
   const matched: Element[] = []
   for (const el of candidateSet) {
     if (isInspectorInternalElement(el)) continue
-    const r = el.getBoundingClientRect()
+    const r = getVisibleElementRect(el)
     if (rectIntersectsBox(r, box)) {
       matched.push(el)
+    }
+  }
+
+  // Nếu người dùng quét bên trong Khung chỉnh BBox ([data-mcp-region="workflow_preview"]),
+  // đảm bảo BBox đang được focus ([data-bbox-focused="true"]) trong khung đó luôn được đưa vào tập kết quả
+  const wfPreviewStage = matched.find((el) =>
+    el.matches?.('[data-mcp-region="workflow_preview"]')
+  )
+  if (wfPreviewStage && typeof wfPreviewStage.querySelectorAll === 'function') {
+    const focusedBboxes = Array.from(
+      wfPreviewStage.querySelectorAll('[data-bbox-focused="true"]')
+    )
+    for (const fb of focusedBboxes) {
+      if (!matched.includes(fb)) {
+        matched.push(fb)
+      }
     }
   }
 
@@ -488,7 +618,15 @@ export function findElementsInBox(box: {
   const boxCx = box.left + box.width * 0.5
   const boxCy = box.top + box.height * 0.5
 
-  // 1. Khử trùng lặp cha-con, wrapper của compound control (label.num > input, .slider > input) & vùng bao lớn
+  // 1. Khử trùng lặp cha-con, wrapper của compound control & ưu tiên BBox đang được focus trong Khung chỉnh BBox
+  const hasFocusedDirectBbox = matched.some(
+    (el) =>
+      el.getAttribute?.('data-bbox-focused') === 'true' &&
+      el.matches?.(
+        '.wf-v2-direct-layer-bbox, .wf-v2-direct-cam-bbox, [data-bbox-role="motion_start"], [data-bbox-role="motion_target"]'
+      )
+  )
+
   let filtered = matched.filter((el) => {
     const tag = (el.tagName || '').toLowerCase()
     if (tag === 'canvas') {
@@ -507,6 +645,21 @@ export function findElementsInBox(box: {
       if (hasChildControlInMatched) return false
     }
 
+    // Trong Khung chỉnh BBox (WorkflowV2DirectStagePreview):
+    // Khi đã có khung .wf-v2-direct-layer-bbox đang focus, loại bỏ các layer nền phụ (.wf-v2-direct-layer)
+    // và các nút nắm phụ nhỏ (.wf-v2-direct-rot-handle, .wf-v2-direct-scale-badge) để tập trung vào đúng BBox
+    if (hasFocusedDirectBbox) {
+      if (el.matches?.('.wf-v2-direct-layer')) {
+        return false
+      }
+      if (
+        (box.width >= 48 || box.height >= 48) &&
+        el.matches?.('.wf-v2-direct-rot-handle, .wf-v2-direct-scale-badge')
+      ) {
+        return false
+      }
+    }
+
     const hasDescendantInMatched = matched.some((other) => other !== el && el.contains?.(other))
     if (
       hasDescendantInMatched &&
@@ -523,11 +676,11 @@ export function findElementsInBox(box: {
   if (filtered.length > 1) {
     const aiTriggerBtn = filtered.find((el) => el.id === 'ai-ui-inspector-btn')
     if (aiTriggerBtn) {
-      const aiRect = aiTriggerBtn.getBoundingClientRect()
+      const aiRect = getVisibleElementRect(aiTriggerBtn)
       const aiOverlap = computeOverlapRatio(aiRect, box)
       const hasBetterTarget = filtered.some((other) => {
         if (other === aiTriggerBtn) return false
-        const or = other.getBoundingClientRect()
+        const or = getVisibleElementRect(other)
         const ocx = or.left + or.width * 0.5
         const ocy = or.top + or.height * 0.5
         const oCenterIn = ocx >= box.left && ocx <= boxRight && ocy >= box.top && ocy <= boxBottom
@@ -545,7 +698,7 @@ export function findElementsInBox(box: {
   )
   if (stageParts.length > 1) {
     const focusedStageParts = stageParts.filter((el) => {
-      const r = el.getBoundingClientRect()
+      const r = getVisibleElementRect(el)
       const cx = r.left + r.width * 0.5
       const cy = r.top + r.height * 0.5
       const centerIn = cx >= box.left && cx <= boxRight && cy >= box.top && cy <= boxBottom
@@ -560,22 +713,22 @@ export function findElementsInBox(box: {
     }
   }
 
-  // 4. Bộ lọc Tập trung Tâm điểm (Anti-Grazing Dominance Filter) cho các UI Control thông thường:
-  // Khi đã có ít nhất 1 control nằm trọn tâm hoặc có độ phủ cao (>= 45%) trong khung quét,
-  // tự động loại bỏ các nút/control hàng xóm chỉ bị chạm sượt mép khung (< 30% diện tích và tâm nằm ngoài khung).
+  // 4. Bộ lọc Tập trung Tâm điểm (Anti-Grazing Dominance Filter):
   if (filtered.length > 1) {
     const scored = filtered.map((el) => {
-      const r = el.getBoundingClientRect()
+      const r = getVisibleElementRect(el)
       const cx = r.left + r.width * 0.5
       const cy = r.top + r.height * 0.5
       const centerIn = cx >= box.left && cx <= boxRight && cy >= box.top && cy <= boxBottom
       const elOverlap = computeOverlapRatio(r, box)
       const boxCover = computeBoxCoverageRatio(r, box)
+      const isFocusedBbox = el.getAttribute?.('data-bbox-focused') === 'true'
       const isStrong =
+        isFocusedBbox ||
         (centerIn && elOverlap >= 0.42) ||
         elOverlap >= 0.62 ||
         (boxCover >= 0.55 && elOverlap >= 0.25)
-      return { el, centerIn, elOverlap, boxCover, isStrong }
+      return { el, centerIn, elOverlap, boxCover, isStrong, isFocusedBbox }
     })
 
     const hasStrongTarget = scored.some((s) => s.isStrong)
@@ -590,8 +743,11 @@ export function findElementsInBox(box: {
   }
 
   filtered.sort((a, b) => {
-    const ra = a.getBoundingClientRect()
-    const rb = b.getBoundingClientRect()
+    const aFocusBbox = a.getAttribute?.('data-bbox-focused') === 'true'
+    const bFocusBbox = b.getAttribute?.('data-bbox-focused') === 'true'
+    if (aFocusBbox !== bFocusBbox) return aFocusBbox ? -1 : 1
+    const ra = getVisibleElementRect(a)
+    const rb = getVisibleElementRect(b)
     const acx = ra.left + ra.width * 0.5
     const acy = ra.top + ra.height * 0.5
     const bcx = rb.left + rb.width * 0.5
@@ -609,7 +765,7 @@ export function findElementsInBox(box: {
 }
 
 /**
- * Chụp toàn bộ trạng thái app + Xưởng 2.5D/3D/Dialogs và tạo snapshot cho AI & giao diện Xem trước.
+ * Chụp toàn bộ trạng thái app + Xưởng 2.5D/3D/Dialogs/Scene Layers và tạo snapshot cho AI & giao diện Xem trước.
  */
 export function captureAiInspectorSnapshot(box: {
   left: number
@@ -617,13 +773,24 @@ export function captureAiInspectorSnapshot(box: {
   width: number
   height: number
 }): AiInspectorSnapshot {
+  const editor = useEditor.getState()
+  const view = useView.getState()
+
   const elements = findElementsInBox(box)
-  const scanned = elements.map((el, idx) => {
+  let scanned = elements.map((el, idx) => {
     const ctx = scanElementContext(el)
     ctx.isPrimaryFocus = idx === 0
     return ctx
   })
   const workshopContext = extractActiveWorkshopContext(box, elements)
+
+  // Trích xuất các Layer / Cụm 2.5D trong Khung nhìn 3D / Camera (#viewer-canvas) qua cầu nối WebGL Raycast & 3D Projection
+  scanned = enrichScannedWithViewerSceneHits(
+    editor.project,
+    box,
+    scanned,
+    Boolean(findActiveDialog(document))
+  )
 
   if (
     workshopContext?.workshopType === 'layer_assembly_25d' &&
@@ -670,6 +837,10 @@ export function captureAiInspectorSnapshot(box: {
     }
   }
 
+  scanned.forEach((item, idx) => {
+    item.isPrimaryFocus = idx === 0
+  })
+
   let primaryRegion = 'general_view'
   for (const item of scanned) {
     if (item.mcpRegion) {
@@ -680,9 +851,6 @@ export function captureAiInspectorSnapshot(box: {
   if (primaryRegion === 'general_view' && workshopContext?.workshopType === 'layer_assembly_25d') {
     primaryRegion = 'layer_assembly'
   }
-
-  const editor = useEditor.getState()
-  const view = useView.getState()
 
   const shots = editor.project.shots || []
   const shotIdx = shots.findIndex((s) => s.id === editor.selectedShotId)
