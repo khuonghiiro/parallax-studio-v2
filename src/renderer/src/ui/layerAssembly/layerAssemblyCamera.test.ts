@@ -60,14 +60,14 @@ describe('layerAssemblyCamera', () => {
     }
     const zExaggeration = 1.8
 
-    // Three.js world mapping: x -> layer.x, y -> -layer.y, z -> -layer.z * zExaggeration
+    // Three.js world mapping: x -> layer.x, y -> -layer.y, z -> layer.z * zExaggeration
     const targetX = Math.round(layer.x)
     const targetY = Math.round(-layer.y)
-    const targetZ = Math.round(-layer.z * zExaggeration)
+    const targetZ = Math.round(layer.z * zExaggeration)
 
     expect(targetX).toBe(120)
     expect(targetY).toBe(-80)
-    expect(targetZ).toBe(-90)
+    expect(targetZ).toBe(90)
   })
 
   it('validates FOV bounds and category labels', () => {

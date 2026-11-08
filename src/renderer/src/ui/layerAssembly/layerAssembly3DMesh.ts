@@ -507,7 +507,7 @@ export function updateLayer3DInstance(
   // 3. Tọa độ Three.js đồng bộ chuẩn 2D:
   // - X: ngang (layer.x + animTranslateX)
   // - Y: dọc (-(layer.y + animTranslateY), đảo dấu vì màn hình Y hướng xuống)
-  // - Z: chiều sâu (-layer.z * zExaggeration + micro-offset layerIndex để triệt tiêu Z-fighting khi trùng Z)
+  // - Z: chiều sâu (layer.z * zExaggeration + micro-offset layerIndex để triệt tiêu Z-fighting khi trùng Z)
   const posX = layer.x + motion.animTranslateX
   const posY = -(layer.y + motion.animTranslateY)
   const isFlatFrontView = zExaggeration <= 0

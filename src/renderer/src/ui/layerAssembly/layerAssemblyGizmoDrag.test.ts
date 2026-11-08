@@ -59,7 +59,7 @@ describe('layerAssemblyGizmoDrag', () => {
     camera.updateMatrixWorld()
 
     const rect = { x: 0, y: 0, w: 900, h: 600 }
-    const worldMatrix = new THREE.Matrix4().setPosition(layer.x, -layer.y, -layer.z)
+    const worldMatrix = new THREE.Matrix4().setPosition(layer.x, -layer.y, layer.z)
     const onUpdateLayer = vi.fn()
     const onDragStateChange = vi.fn()
 
@@ -112,6 +112,19 @@ describe('layerAssemblyGizmoDrag', () => {
     const lastPatch = onUpdateLayer.mock.calls.at(-1)?.[1]
     expect(lastPatch).toHaveProperty('x')
     expect(typeof lastPatch.x).toBe('number')
+  })
+
+  it('translates Z axis (depth) forward increasing layer.z on pointer move', () => {
+    const { context, onUpdateLayer } = createTestContext({ z: 10 })
+    const startEvent = mockPointerEvent(450, 300)
+    startLayerAssemblyGizmoDrag(startEvent, context, { kind: 'translate', axis: 2, edgeOn: true })
+
+    fire({ type: 'pointermove', pointerId: 1, clientX: 450, clientY: 280 })
+    expect(onUpdateLayer).toHaveBeenCalled()
+    const lastPatch = onUpdateLayer.mock.calls.at(-1)?.[1]
+    expect(lastPatch).toHaveProperty('z')
+    expect(typeof lastPatch.z).toBe('number')
+    expect(lastPatch.z).toBeGreaterThan(10)
   })
 
   it('rotates layer around Z axis (Roll)', () => {

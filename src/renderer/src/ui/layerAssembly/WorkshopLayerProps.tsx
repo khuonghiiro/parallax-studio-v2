@@ -21,11 +21,11 @@ export interface WorkshopLayerPropsProps {
 }
 
 const DEPTH_PRESETS: Array<[number, string, string]> = [
-  [-120, 'Tiền cảnh', 'Gần sát camera (-120px)'],
-  [-50, 'Cận cảnh', 'Cận cảnh (-50px)'],
+  [-120, 'Nền xa', 'Nền xa nằm sâu phía dưới (-120px)'],
+  [-50, 'Hậu cảnh', 'Hậu cảnh nằm bên dưới (-50px)'],
   [0, 'Trọng tâm', 'Mặt phẳng chuẩn (0px)'],
-  [120, 'Hậu cảnh', 'Hậu cảnh xa vừa (+120px)'],
-  [350, 'Nền xa', 'Núi/bầu trời xa (+350px)']
+  [50, 'Cận cảnh', 'Cận cảnh nổi lên trên (+50px)'],
+  [120, 'Tiền cảnh', 'Tiền cảnh đè lên trước (+120px)']
 ]
 
 function NumField({ label, value, step = 1, axis, onChange }: { label: string; value: number; step?: number; axis?: 'x' | 'y' | 'z'; onChange: (v: number) => void }) {
@@ -145,7 +145,7 @@ function TransformSection({ layer, onUpdateLayer, onMoveLayer }: Pick<WorkshopLa
 }
 
 function DepthSection({ layer, onUpdateLayer }: Pick<WorkshopLayerPropsProps, 'layer' | 'onUpdateLayer'>) {
-  const zone = layer.z < -20 ? ['front', 'Tiền cảnh · gần camera'] : layer.z > 20 ? ['back', 'Hậu cảnh · xa về sau'] : ['', 'Trọng tâm · chuẩn']
+  const zone = layer.z > 20 ? ['front', 'Tiền cảnh · đè lên trên'] : layer.z < -20 ? ['back', 'Hậu cảnh · nằm phía dưới'] : ['', 'Trọng tâm · chuẩn']
   return (
     <section className="lw-prop-section">
       <div className="lw-prop-head">
@@ -154,7 +154,7 @@ function DepthSection({ layer, onUpdateLayer }: Pick<WorkshopLayerPropsProps, 'l
       </div>
       <span className="lw-range-row">
         <input type="range" min={-500} max={800} step={5} value={layer.z} onChange={(e) => onUpdateLayer(layer.id, { z: Number(e.target.value) })}
-          title="Z âm: gần camera · Z dương: xa phía sau" />
+          title="Z dương (+): Tiến lên trên (đè lên lớp dưới) · Z âm (-): Lùi xuống dưới (bị lớp trên đè)" />
         <span className="lw-range-value">{layer.z}px</span>
       </span>
       <div className="lw-chip-row">
