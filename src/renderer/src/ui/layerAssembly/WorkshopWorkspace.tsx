@@ -58,6 +58,18 @@ export function WorkshopWorkspace({
   const [hasOpened3D, setHasOpened3D] = useState(() => view !== '2d')
   const [brushEditing, setBrushEditing] = useState(false)
   const [brushPreview, setBrushPreview] = useState<BrushPreview | null>(null)
+
+  // Tự động dừng phát và đồng bộ thời gian về 0 (Rest Pose) khi chuyển sang tab Lớp hoặc Xương
+  useEffect(() => {
+    if (tab === 'layers' || tab === 'bones') {
+      if (playback.isPlaying) {
+        playback.setIsPlaying(false)
+      }
+      if (playback.time !== 0) {
+        playback.setTime(0)
+      }
+    }
+  }, [tab, playback])
   const [resizingSplit, setResizingSplit] = useState(false)
   const splitContainerRef = useRef<HTMLDivElement | null>(null)
   const prevTabRef = useRef(tab)
@@ -276,6 +288,10 @@ export function WorkshopWorkspace({
             ? Number((l.z + garmentOcclusion.maxSafeLegZOrder).toFixed(3))
             : transformed.z
         const layerSpines = !isErasing && !l.hidden ? spinesForLayer(shiftedSpines, l.id) : undefined
+        const shouldAttachPreviewRig =
+          Boolean(effectiveRig) &&
+          !isErasing &&
+          (tab === 'animation' || (tab === 'bones' && isManipulatingRigTest) || tab === 'plant' || tab === 'loop')
         return {
           ...transformed,
           z: finalZ,
@@ -283,7 +299,7 @@ export function WorkshopWorkspace({
           ...(extraBoneIds?.length ? { extraBoneIds } : {}),
           ...(effectiveIsCloth ? { isCloth: true, clothAmplitude: effectiveClothAmp } : {}),
           ...(brushPreview?.id === l.id ? { imageUrl: brushPreview.imageUrl } : {}),
-          ...(effectiveRig && !isErasing ? { previewRig: effectiveRig, bindPose } : {}),
+          ...(shouldAttachPreviewRig ? { previewRig: effectiveRig, bindPose } : {}),
           ...(layerSpines?.length ? { previewPlantSpines: layerSpines } : {}),
           ...(isErasing ? { bindingMode: 'rigid' as const, motion: { ...l.motion, type: 'none' as const } } : {}),
           locked: l.locked

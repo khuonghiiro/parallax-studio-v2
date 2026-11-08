@@ -193,8 +193,23 @@ export function MixamoLandmarkPlacer({
 
   const handleWheel = (e: React.WheelEvent<SVGSVGElement>) => {
     e.preventDefault()
+    if (!svgRef.current) return
+    const rect = svgRef.current.getBoundingClientRect()
     const delta = e.deltaY < 0 ? 0.15 : -0.15
-    setZoom((z) => Math.max(0.6, Math.min(2.8, Number((z + delta).toFixed(2)))))
+    const curZoom = zoom
+    const nextZoom = Math.max(0.6, Math.min(2.8, Number((curZoom + delta).toFixed(2))))
+    if (nextZoom === curZoom) return
+    const ux = e.clientX - (rect.left + rect.width / 2)
+    const uy = e.clientY - (rect.top + rect.height / 2)
+    const svgPerPx = (compW / curZoom) / Math.max(1, rect.width)
+    const nextSvgPerPx = (compW / nextZoom) / Math.max(1, rect.width)
+    const dx = ux * (svgPerPx - nextSvgPerPx)
+    const dy = uy * (svgPerPx - nextSvgPerPx)
+    setPan((p) => ({
+      x: Math.round(p.x + dx),
+      y: Math.round(p.y + dy)
+    }))
+    setZoom(nextZoom)
   }
 
   const baseLandmarks = useMemo(

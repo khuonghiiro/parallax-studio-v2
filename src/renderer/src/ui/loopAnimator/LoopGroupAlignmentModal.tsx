@@ -581,8 +581,20 @@ export function LoopGroupAlignmentModal(): React.ReactElement | null {
               }}
               onWheel={(e) => {
                 e.preventDefault()
+                const rect = e.currentTarget.getBoundingClientRect()
                 const delta = e.deltaY < 0 ? 0.15 : -0.15
-                setMasterZoom((cur) => Math.max(0.5, Math.min(3.0, Number((cur + delta).toFixed(2)))))
+                const curZoom = masterZoom
+                const nextZoom = Math.max(0.5, Math.min(3.0, Number((curZoom + delta).toFixed(2))))
+                if (nextZoom === curZoom) return
+                const ux = e.clientX - (rect.left + rect.width / 2)
+                const uy = e.clientY - (rect.top + rect.height / 2)
+                const dx = ux * (1 / nextZoom - 1 / curZoom)
+                const dy = uy * (1 / nextZoom - 1 / curZoom)
+                setMasterPan((p) => ({
+                  x: Math.round(p.x + dx),
+                  y: Math.round(p.y + dy)
+                }))
+                setMasterZoom(nextZoom)
               }}
               title="Kéo chuột trực tiếp để căn chỉnh toạ độ X/Y của nhóm đang chọn · Lăn chuột để phóng to/thu nhỏ · Giữ Shift hoặc Alt để lia khung"
             >
