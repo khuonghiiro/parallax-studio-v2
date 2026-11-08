@@ -200,7 +200,8 @@ function classifyElementKindLabel(
   classes: string[],
   part25D: Scanned25DPartInfo | null,
   bone25D: Scanned25DBoneInfo | null,
-  sceneEntity: ScannedSceneEntityInfo | null
+  sceneEntity: ScannedSceneEntityInfo | null,
+  workflowNode: ScannedWorkflowNodeInfo | null = null
 ): string {
   if (sceneEntity) {
     return sceneEntity.bboxRoleLabel
@@ -248,7 +249,17 @@ function classifyElementKindLabel(
   if (classes.includes('tab') || classes.includes('pxs-tab') || el.getAttribute?.('role') === 'tab') {
     return 'Thẻ chuyển Tab'
   }
-  if (classes.includes('wf-v2-card')) return 'Thẻ Node Sơ đồ (Workflow V2 Node)'
+  if (classes.includes('wf-v2-card')) {
+    return workflowNode
+      ? `Thẻ Node Sơ đồ (${workflowNode.levelLabel})`
+      : 'Thẻ Node Sơ đồ (Workflow V2 Node)'
+  }
+  if (classes.includes('wf-v2-time-pill') || classes.includes('wf-v2-timebar')) {
+    return 'Thanh Thời lượng Node'
+  }
+  if (classes.includes('wf-v2-socket')) {
+    return 'Cổng nối dây sơ đồ'
+  }
   if (tagName === 'canvas') return 'Khung vẽ Đồ hoạ (Canvas 2D/3D)'
   if (tagName === 'input' || tagName === 'textarea' || classes.includes('num')) {
     return 'Ô nhập / Điều chỉnh thông số'
@@ -354,6 +365,8 @@ export function scanElementContext(el: Element): ScannedElementContext {
   const rawText = (el as HTMLElement).innerText || el.textContent || ''
   let cleanText = rawText.replace(/\s+/g, ' ').trim().slice(0, 80)
 
+  const isV2Card = classes.includes('wf-v2-card')
+
   if (
     sceneEntity &&
     (classes.includes('wf-v2-direct-layer-bbox') ||
@@ -366,8 +379,53 @@ export function scanElementContext(el: Element): ScannedElementContext {
       el.hasAttribute?.('data-scene-layer-id'))
   ) {
     cleanText = sceneEntity.displayName
-  } else if (workflowNode && classes.includes('wf-v2-card')) {
-    cleanText = `${workflowNode.title} (${workflowNode.levelLabel})`
+  } else if (workflowNode && isV2Card) {
+    cleanText = workflowNode.title
+  } else if (workflowNode && !isV2Card) {
+    // Phần tử con bên trong Thẻ Node Workflow V2 (.wf-v2-icon-btn, .wf-v2-toggle-pill, .wf-v2-time-pill, .wf-v2-socket, v.v.)
+    // Đặt tên tường minh, tránh các ký tự đơn độc như "−", "🔒", "0.0–15.0s"
+    const titleAttr = el.getAttribute?.('title') || ''
+    if (classes.includes('wf-v2-icon-btn')) {
+      if (cleanText === '−' || cleanText.startsWith('+')) {
+        const actionWord = titleAttr.includes('Thu gọn')
+          ? 'Thu gọn mảnh phụ'
+          : titleAttr.includes('Bung')
+            ? 'Bung mở rộng'
+            : 'Thu gọn/Bung'
+        cleanText = `Nút ${actionWord} (${cleanText})`
+      } else if (classes.includes('danger') || cleanText === '✕') {
+        cleanText = 'Nút Xoá Node khỏi Layer (✕)'
+      } else if (classes.includes('wf-v2-cam-add-btn') || cleanText === '+') {
+        cleanText = 'Nút Thêm mốc quay Camera (+)'
+      } else if (cleanText.length <= 2 && titleAttr) {
+        cleanText = `Nút ${titleAttr.slice(0, 45)} (${cleanText})`
+      }
+    } else if (classes.includes('wf-v2-toggle-pill') || el.getAttribute?.('role') === 'switch') {
+      if (
+        workflowNode.logicCategory === 'cluster_lock' ||
+        cleanText === '🔒' ||
+        cleanText === '🔓'
+      ) {
+        const isLocked =
+          cleanText === '🔒' || cleanText === 'BẬT' || el.classList?.contains?.('on')
+        cleanText = `Công tắc Khóa Cụm 2.5D (${isLocked ? '🔒 Đang Khóa' : '🔓 Đang Mở'})`
+      } else {
+        const onState = el.classList?.contains?.('on') ? 'BẬT' : 'TẮT'
+        cleanText = `Công tắc Bật/Tắt Node (${cleanText || onState})`
+      }
+    } else if (classes.includes('wf-v2-time-pill') || el.closest?.('.wf-v2-timebar')) {
+      cleanText = `Thời lượng Node (${cleanText})`
+    } else if (classes.includes('wf-v2-socket')) {
+      const isIn =
+        classes.includes('in') || classes.includes('port-left') || classes.includes('port-top')
+      cleanText = `Cổng kết nối dây (${isIn ? 'Cổng Vào' : 'Cổng Ra'})`
+    } else if (classes.includes('wf-v2-card-badge')) {
+      cleanText = `Huy hiệu Cấp bậc Node (${cleanText})`
+    } else if (classes.includes('wf-v2-time-chip')) {
+      cleanText = `Chip Nhóm Thời gian (${cleanText})`
+    } else if (cleanText.length <= 2 && titleAttr) {
+      cleanText = `${titleAttr.slice(0, 45)} (${cleanText})`
+    }
   } else if (!cleanText) {
     const ariaLabel = el.getAttribute?.('aria-label')?.trim()
     const attrName =
@@ -408,11 +466,19 @@ export function scanElementContext(el: Element): ScannedElementContext {
     el.getAttribute?.('placeholder') ||
     (sceneEntity ? `${sceneEntity.bboxRoleLabel} · ${sceneEntity.coordsSummary}` : null)
 
-  const kindLabel = classifyElementKindLabel(el, tagName, classes, part25D, bone25D, sceneEntity)
+  const kindLabel = classifyElementKindLabel(
+    el,
+    tagName,
+    classes,
+    part25D,
+    bone25D,
+    sceneEntity,
+    workflowNode
+  )
   const effectiveId =
     el.id ||
     sceneEntity?.layerId ||
-    workflowNode?.nodeId ||
+    (isV2Card ? workflowNode?.nodeId : null) ||
     layerAttrId ||
     boneAttrId ||
     ''
@@ -663,6 +729,7 @@ export function findElementsInBox(box: {
     const hasDescendantInMatched = matched.some((other) => other !== el && el.contains?.(other))
     if (
       hasDescendantInMatched &&
+      !el.matches?.('.wf-v2-card') &&
       el.matches?.(
         '[data-mcp-region], .panel, .tabs, .pxs-tabs, header, aside, section, .viewer-wrap, .layer-workshop-dialog, .lw-workspace-column, .row, .custom-select-wrap, .slider, .card, .lw-row, .lw-part-slot-card, .lw-part-group-card, .composite-card, .shot-item, .tl-track'
       )
@@ -746,6 +813,16 @@ export function findElementsInBox(box: {
     const aFocusBbox = a.getAttribute?.('data-bbox-focused') === 'true'
     const bFocusBbox = b.getAttribute?.('data-bbox-focused') === 'true'
     if (aFocusBbox !== bFocusBbox) return aFocusBbox ? -1 : 1
+
+    // Khi quét khung chữ nhật (marquee scan >= 36x24px):
+    // Ưu tiên Thẻ Node Workflow V2 (.wf-v2-card) lên trước các nút con bên trong nó
+    if (box.width >= 36 && box.height >= 24) {
+      const aIsV2Card = a.matches?.('.wf-v2-card')
+      const bIsV2Card = b.matches?.('.wf-v2-card')
+      if (aIsV2Card && a.contains?.(b)) return -1
+      if (bIsV2Card && b.contains?.(a)) return 1
+    }
+
     const ra = getVisibleElementRect(a)
     const rb = getVisibleElementRect(b)
     const acx = ra.left + ra.width * 0.5
