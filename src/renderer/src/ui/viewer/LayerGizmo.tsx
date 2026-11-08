@@ -125,6 +125,7 @@ function GizmoPane({
   const compRef = el.layer.composite
   const isCompLocked = !!compRef && compRef.lockedGroup !== false && groupLayers.length > 1
   const isGroup = isModel3D || isCompLocked
+  const clusterId = (isModel3D ? el.layer.model3d?.instanceId : compRef?.instanceId) || undefined
 
   let pivot: THREE.Vector3
   let groupBounds: THREE.Box3 | null = null
@@ -198,11 +199,22 @@ function GizmoPane({
   const rotation = evaluate(el.layer.transform.rotation, time)
   const position = isGroup ? [pivot.x, pivot.y, -pivot.z] as Vec3 : evaluate(el.layer.transform.position, time)
   return (
-    <svg data-mcp-region="viewer_layer_gizmo" className="layer-gizmo" aria-label="Layer transform controls" style={{ left: rect.x, top: rect.y, width: rect.w, height: rect.h }}>
+    <svg
+      data-mcp-region="viewer_layer_gizmo"
+      className="layer-gizmo"
+      aria-label="Layer transform controls"
+      style={{ left: rect.x, top: rect.y, width: rect.w, height: rect.h }}
+    >
       {showBbox && (
         <polygon
           className="gizmo-box"
           points={boxPoints}
+          data-scene-layer-id={el.layer.id}
+          data-scene-layer-name={el.layer.name}
+          data-cluster-id={clusterId}
+          data-bbox-scope={isGroup ? 'cluster' : 'layer'}
+          data-bbox-role={isGroup ? 'viewer_cluster_bbox' : 'viewer_layer_bbox'}
+          data-bbox-focused="true"
           style={{ pointerEvents: 'none' }}
         />
       )}

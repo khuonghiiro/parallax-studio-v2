@@ -612,6 +612,12 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
                 return (
                   <div
                     key={l.id}
+                    data-scene-layer-id={l.id}
+                    data-scene-layer-name={l.name}
+                    data-cluster-id={clusterInstId && clusterMemberIds.has(l.id) ? clusterInstId : undefined}
+                    data-bbox-scope={useClusterBbox && clusterMemberIds.has(l.id) ? 'cluster' : 'layer'}
+                    data-bbox-focused={isTarget ? 'true' : undefined}
+                    data-workflow-node-id={node.id}
                     className={`wf-v2-direct-layer${isTarget ? ' is-target' : ''}`}
                     style={{
                       left: lx,
@@ -720,6 +726,9 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
                   <div
                     key={`wp-bbox-${wp.index}`}
                     data-waypoint-node-id={wpNodeId}
+                    data-workflow-node-id={wpNodeId}
+                    data-bbox-role="camera_waypoint_bbox"
+                    data-bbox-focused={isFocusedWp ? 'true' : undefined}
                     onClick={e => {
                       if (e.detail !== 0 || isFocusedWp || !e.shiftKey) return
                       e.stopPropagation()
@@ -768,6 +777,13 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
             {selectedProjLayer && !isCollisionNode && (!isMotionNode || !hasBboxMotion) && (
               <div
                 className={`wf-v2-direct-layer-bbox${isMotionNode ? ' is-locked-start' : ''}`}
+                data-scene-layer-id={coordRefLayer?.id || selectedProjLayer.id}
+                data-scene-layer-name={selectedProjLayer.name}
+                data-cluster-id={useClusterBbox && clusterInstId ? clusterInstId : undefined}
+                data-bbox-scope={useClusterBbox ? 'cluster' : 'layer'}
+                data-bbox-role={isMotionNode ? 'motion_start' : useClusterBbox ? 'cluster_bbox' : 'layer_bbox'}
+                data-bbox-focused="true"
+                data-workflow-node-id={node.id}
                 style={{
                   left: shotLeft + shotScreenW / 2 + selectedProjLayer.offsetX * zoom - Math.max(18, selectedProjLayer.width * zoom) / 2,
                   top: shotTop + shotScreenH / 2 + selectedProjLayer.offsetY * zoom - Math.max(18, selectedProjLayer.height * zoom) / 2,

@@ -11,6 +11,7 @@ import '../styles/aiUiInspector.css'
 export function AiUiInspectorOverlay() {
   const [isArmed, setIsArmed] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
+  const [hudPlacement, setHudPlacement] = useState<'top' | 'bottom'>('top')
   const [startPos, setStartPos] = useState({ x: 0, y: 0 })
   const [currentPos, setCurrentPos] = useState({ x: 0, y: 0 })
   const [lastCaptured, setLastCaptured] = useState<{
@@ -24,6 +25,8 @@ export function AiUiInspectorOverlay() {
 
   const isDraggingRef = useRef(false)
   const isArmedRef = useRef(false)
+  const hudPlacementRef = useRef<'top' | 'bottom'>('top')
+  const toastVisibleRef = useRef(false)
   const showPreviewRef = useRef(false)
   const suppressNextClickRef = useRef(false)
   const startPosRef = useRef({ x: 0, y: 0 })
@@ -33,6 +36,8 @@ export function AiUiInspectorOverlay() {
 
   isDraggingRef.current = isDragging
   isArmedRef.current = isArmed
+  hudPlacementRef.current = hudPlacement
+  toastVisibleRef.current = toastVisible
   showPreviewRef.current = showPreview
   startPosRef.current = startPos
   currentPosRef.current = currentPos
@@ -68,6 +73,12 @@ export function AiUiInspectorOverlay() {
       const snapshot = captureAiInspectorSnapshot(box)
       const report = formatAiInspectorMarkdown(snapshot)
 
+      // Nếu vùng vừa quét nằm ở nửa trên màn hình, đặt Toast thông báo xuống dưới để không che hiệu ứng đánh dấu
+      if (typeof window !== 'undefined' && box.top < 140) {
+        hudPlacementRef.current = 'bottom'
+        setHudPlacement('bottom')
+      }
+
       setLastCaptured({ snapshot, report })
       setToastVisible(true)
       setHighlightVisible(true)
@@ -101,11 +112,11 @@ export function AiUiInspectorOverlay() {
       }
     }
 
-    const isInspectorOwnUi = (target: EventTarget | null): boolean => {
+    const isInspectorOwnActionControl = (target: EventTarget | null): boolean => {
       if (!(target instanceof Element)) return false
       return Boolean(
         target.closest(
-          '.ai-ui-inspector-arm-hud, .ai-ui-inspector-toast, .ai-ui-inspector-preview-backdrop'
+          '.ai-ui-inspector-arm-close, .ai-ui-inspector-toast-btn, .ai-ui-inspector-preview-backdrop'
         )
       )
     }
@@ -113,6 +124,22 @@ export function AiUiInspectorOverlay() {
     const isToolbarTriggerBtn = (target: EventTarget | null): boolean => {
       if (!(target instanceof Element)) return false
       return Boolean(target.closest('#ai-ui-inspector-btn'))
+    }
+
+    const maybeAutoDodgeHud = (clientX: number, clientY: number) => {
+      if (typeof window === 'undefined') return
+      const winW = window.innerWidth || 1920
+      const winH = window.innerHeight || 1080
+      const nearHorizontalCenter = Math.abs(clientX - winW * 0.5) < 430
+      if (!nearHorizontalCenter) return
+
+      if (hudPlacementRef.current === 'top' && clientY < 105) {
+        hudPlacementRef.current = 'bottom'
+        setHudPlacement('bottom')
+      } else if (hudPlacementRef.current === 'bottom' && clientY > winH - 115) {
+        hudPlacementRef.current = 'top'
+        setHudPlacement('top')
+      }
     }
 
     const startDragAt = (clientX: number, clientY: number) => {
@@ -136,7 +163,7 @@ export function AiUiInspectorOverlay() {
         e.stopImmediatePropagation()
         return
       }
-      if (isInspectorOwnUi(e.target)) return
+      if (isInspectorOwnActionControl(e.target)) return
 
       const isWinShift = e.shiftKey && e.metaKey && !e.altKey && !e.ctrlKey
       const shouldTrigger = (isWinShift || isArmedRef.current) && e.button === 0
@@ -154,7 +181,7 @@ export function AiUiInspectorOverlay() {
         e.stopImmediatePropagation()
         return
       }
-      if (isInspectorOwnUi(e.target)) return
+      if (isInspectorOwnActionControl(e.target)) return
 
       if (isDraggingRef.current) {
         e.preventDefault()
@@ -174,6 +201,9 @@ export function AiUiInspectorOverlay() {
     }
 
     const handleMove = (e: MouseEvent | PointerEvent) => {
+      if (isArmedRef.current || toastVisibleRef.current) {
+        maybeAutoDodgeHud(e.clientX, e.clientY)
+      }
       if (!isDraggingRef.current) return
       e.preventDefault()
       e.stopPropagation()
@@ -247,7 +277,7 @@ export function AiUiInspectorOverlay() {
         handleToggle()
         return
       }
-      if (isInspectorOwnUi(e.target)) return
+      if (isInspectorOwnActionControl(e.target)) return
       if (suppressNextClickRef.current) {
         suppressNextClickRef.current = false
         e.preventDefault()
@@ -346,13 +376,11 @@ export function AiUiInspectorOverlay() {
         </div>
       )}
 
-      {/* 3. Badge HUD trung tâm nổi ở đầu màn hình báo hiệu trạng thái sẵn sàng quét */}
+      {/* 3. Badge HUD trung tâm tự động né chuột (top/bottom) & cho phép kéo xuyên qua */}
       {isArmed && !isDragging && (
         <div
-          className="ai-ui-inspector-arm-hud"
+          className={`ai-ui-inspector-arm-hud${hudPlacement === 'bottom' ? ' is-bottom' : ''}`}
           role="status"
-          onPointerDown={(e) => e.stopPropagation()}
-          onMouseDown={(e) => e.stopPropagation()}
         >
           <div className="ai-ui-inspector-arm-dot" />
           <IconAiScan width={15} height={15} style={{ color: 'var(--accent-cyan)' }} />
@@ -364,6 +392,8 @@ export function AiUiInspectorOverlay() {
           <button
             type="button"
             className="ai-ui-inspector-arm-close"
+            onPointerDown={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
             onClick={() => {
               isArmedRef.current = false
               setIsArmed(false)
@@ -454,10 +484,10 @@ export function AiUiInspectorOverlay() {
         </div>
       )}
 
-      {/* 5. Toast thông báo kết quả sau khi nhả chuột */}
+      {/* 5. Toast thông báo kết quả sau khi nhả chuột (tự động né chuột top/bottom) */}
       {toastVisible && lastCaptured && !showPreview && (
         <div
-          className="ai-ui-inspector-toast"
+          className={`ai-ui-inspector-toast${hudPlacement === 'bottom' ? ' is-bottom' : ''}`}
           role="status"
           aria-live="polite"
           onPointerDown={(e) => e.stopPropagation()}

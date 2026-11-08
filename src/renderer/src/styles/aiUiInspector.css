@@ -70,7 +70,7 @@ body.ai-ui-inspector-active {
   border-width: 0 3.5px 3.5px 0;
 }
 
-/* 3. Badge HUD trung tâm nổi ở đầu màn hình báo hiệu trạng thái sẵn sàng quét */
+/* 3. Badge HUD trung tâm tự động né chuột (top/bottom) & cho phép kéo xuyên qua */
 .ai-ui-inspector-arm-hud {
   position: fixed;
   top: 16px;
@@ -88,9 +88,15 @@ body.ai-ui-inspector-active {
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.2px;
-  pointer-events: auto;
+  pointer-events: none;
   z-index: 999996;
+  transition: top 0.22s cubic-bezier(0.16, 1, 0.3, 1), bottom 0.22s cubic-bezier(0.16, 1, 0.3, 1);
   animation: aiInspectorSlideDown 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ai-ui-inspector-arm-hud.is-bottom {
+  top: auto;
+  bottom: 22px;
 }
 
 .ai-ui-inspector-arm-dot {
@@ -130,6 +136,7 @@ body.ai-ui-inspector-active {
   color: var(--text-dim, #94a3b8);
   font-size: 14px;
   cursor: pointer;
+  pointer-events: auto;
   border-radius: var(--radius-sm, 4px);
   transition: color 0.15s, background 0.15s, border-color 0.15s;
 }
@@ -309,7 +316,13 @@ body.ai-ui-inspector-active {
   font-weight: 500;
   pointer-events: auto;
   z-index: 999999;
+  transition: top 0.22s cubic-bezier(0.16, 1, 0.3, 1), bottom 0.22s cubic-bezier(0.16, 1, 0.3, 1);
   animation: aiInspectorToastIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ai-ui-inspector-toast.is-bottom {
+  top: auto;
+  bottom: 24px;
 }
 
 .ai-ui-inspector-toast-icon {

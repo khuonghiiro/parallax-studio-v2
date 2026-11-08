@@ -314,6 +314,28 @@ export function AiUiInspectorPreviewModal({
                         </div>
 
                         <div className="ai-ui-element-rows">
+                          {item.sceneEntity && (
+                            <div className="ai-ui-element-row highlight">
+                              <span className="ai-ui-row-label">Layer / Cụm 2.5D:</span>
+                              <span className="ai-ui-row-val">
+                                <strong>{item.sceneEntity.displayName}</strong> ·{' '}
+                                {item.sceneEntity.isFocused ? '🎯 Đang Focus BBox' : 'Trong khung quét'} ·{' '}
+                                {item.sceneEntity.coordsSummary}
+                              </span>
+                            </div>
+                          )}
+
+                          {item.workflowNode && (
+                            <div className="ai-ui-element-row highlight">
+                              <span className="ai-ui-row-label">Node Workflow V2:</span>
+                              <span className="ai-ui-row-val">
+                                <strong>{item.workflowNode.title}</strong> ({item.workflowNode.levelLabel}) ·{' '}
+                                Đích: {item.workflowNode.targetSummary} · UI:{' '}
+                                {item.workflowNode.inspectorSourceFile}
+                              </span>
+                            </div>
+                          )}
+
                           {item.title && item.title !== displayTitle && (
                             <div className="ai-ui-element-row">
                               <span className="ai-ui-row-label">Mô tả / Chú thích:</span>
