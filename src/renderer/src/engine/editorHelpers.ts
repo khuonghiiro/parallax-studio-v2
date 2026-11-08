@@ -25,6 +25,7 @@ export interface HelperLayerInfo {
 
 export interface HelperOptions {
   selectedId?: string | null
+  selectionScope?: 'cluster' | 'layer'
   selectedShotId?: string | null
   showPath?: boolean
   theme?: 'dark' | 'light'
@@ -238,7 +239,13 @@ export class EditorHelpers {
 
     for (const el of ev.layers) {
       const info = layers.get(el.layer.id)
-      if (!info || !el.active) continue
+      if (!info || !el.active || el.opacity <= 0.001) continue
+      const isLockedCompositePart = Boolean(el.layer.composite && el.layer.composite.lockedGroup !== false)
+      const isLockedModelPart = Boolean(el.layer.model3d && el.layer.model3d.lockedGroup !== false)
+      if ((isLockedCompositePart || isLockedModelPart) && !(opts.selectionScope === 'layer' && el.layer.id === opts.selectedId)) {
+        appendLayerLightAndPortalGizmos(el, info.matrix, lp, lc, tmp)
+        continue
+      }
       const isSelModel = !!(selModelInstanceId && el.layer.model3d?.instanceId === selModelInstanceId)
       const isSelComp = !!(selCompInstanceId && el.layer.composite?.instanceId === selCompInstanceId)
       const sel = el.layer.id === opts.selectedId || isSelModel || isSelComp

@@ -294,16 +294,20 @@ function sampleRigLayerKeyframes(
   const itemY = -off[1] / scale
   const itemZ = COMPOSITE_Z_FACTOR > 0 ? -off[2] / (scale * COMPOSITE_Z_FACTOR) : 0
   const virtItem = { x: itemX, y: itemY, z: itemZ, rotation: 0, boneId, scale: 1 }
+  const isSoftSkinned = Boolean(l.mesh?.skin?.binding?.boneId)
+  if (isSoftSkinned && l.mesh?.skin) {
+    l.mesh.skin.rig = structuredClone(rig)
+  }
 
   const samples: { t: number; pos: Vec3; rot: Vec3 }[] = []
   for (let step = 0; step <= totalSteps; step++) {
     const tScene = Number((tStart + (span * step) / totalSteps).toFixed(3))
     const tClip = ((tScene - tStart) % rig.duration + rig.duration) % rig.duration
     const posed = transformRigLayer(virtItem, evaluateRig(rig, tClip))
-    const dx = (posed.x - itemX) * scale * intensity
-    const dy = -(posed.y - itemY) * scale * intensity
+    const dx = isSoftSkinned ? 0 : (posed.x - itemX) * scale * intensity
+    const dy = isSoftSkinned ? 0 : -(posed.y - itemY) * scale * intensity
     const dz = -((posed.z ?? itemZ) - itemZ) * COMPOSITE_Z_FACTOR * scale
-    const rotZ = posed.rotation * intensity
+    const rotZ = isSoftSkinned ? 0 : posed.rotation * intensity
     samples.push({
       t: tScene,
       pos: [
@@ -332,6 +336,7 @@ function sampleRigLayerKeyframes(
 
   if (!isStaticPos && !hasTrajectoryPosKeys) {
     let lastP: Vec3 | null = null
+    let lastPIdx = -1
     for (let i = 0; i < samples.length; i++) {
       const s = samples[i]
       if (
@@ -340,19 +345,30 @@ function sampleRigLayerKeyframes(
         !lastP ||
         Math.hypot(s.pos[0] - lastP[0], s.pos[1] - lastP[1], s.pos[2] - lastP[2]) >= 0.08
       ) {
+        if (i - 1 > lastPIdx && lastPIdx >= 0) {
+          const prev = samples[i - 1]
+          l.transform.position.keyframes.push({ id: `${l.id}-rig-p-${nodeTag}${i - 1}`, t: prev.t, value: prev.pos, ease: 'linear' })
+        }
         l.transform.position.keyframes.push({ id: `${l.id}-rig-p-${nodeTag}${i}`, t: s.t, value: s.pos, ease: 'linear' })
         lastP = s.pos
+        lastPIdx = i
       }
     }
     l.transform.position.keyframes.sort((a, b) => a.t - b.t)
   }
   if (!isStaticRot) {
     let lastR: Vec3 | null = null
+    let lastRIdx = -1
     for (let i = 0; i < samples.length; i++) {
       const s = samples[i]
       if (i === 0 || i === samples.length - 1 || !lastR || Math.abs(s.rot[2] - lastR[2]) >= 0.08) {
+        if (i - 1 > lastRIdx && lastRIdx >= 0) {
+          const prev = samples[i - 1]
+          l.transform.rotation.keyframes.push({ id: `${l.id}-rig-r-${nodeTag}${i - 1}`, t: prev.t, value: prev.rot, ease: 'linear' })
+        }
         l.transform.rotation.keyframes.push({ id: `${l.id}-rig-r-${nodeTag}${i}`, t: s.t, value: s.rot, ease: 'linear' })
         lastR = s.rot
+        lastRIdx = i
       }
     }
     l.transform.rotation.keyframes.sort((a, b) => a.t - b.t)

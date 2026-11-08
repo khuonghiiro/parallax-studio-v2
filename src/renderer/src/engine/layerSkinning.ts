@@ -228,7 +228,7 @@ function cachedWeights(
 
   let weights: SkinInfluence[][] | null = null
   if (useCorridor) {
-    if (bones.length >= 2 || bones.some((b) => Boolean(b.meshEnvelope))) {
+    if (bones.length >= 2 || Boolean(binding.isolateToBoundBones) || bones.some((b) => Boolean(b.meshEnvelope))) {
       weights = buildGeodesicSkinWeights(world, bones, indices!)
     } else {
       weights = buildCorridorWeights(world, bones, indices!)

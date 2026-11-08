@@ -92,7 +92,12 @@ export function useWorkflowV2Controller() {
       }
 
       if ((level === 'layer' || (level === 'logic' && node.type !== 'camera_director')) && repLayerId) {
-        const targetScope: 'cluster' | 'layer' = level === 'layer' ? 'layer' : instId ? 'cluster' : 'layer'
+        const repLayer = st.project.layers.find((l) => l.id === repLayerId)
+        const isLockedClusterMember = Boolean(
+          (repLayer?.composite && repLayer.composite.lockedGroup !== false) ||
+            (repLayer?.model3d && repLayer.model3d.lockedGroup !== false)
+        )
+        const targetScope: 'cluster' | 'layer' = instId || isLockedClusterMember ? 'cluster' : 'layer'
         if (st.selectedLayerId !== repLayerId || st.layerSelectionScope !== targetScope) {
           st.selectLayer(repLayerId, targetScope)
         }

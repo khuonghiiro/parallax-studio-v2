@@ -93,9 +93,9 @@ export function sharedUniforms() {
   }
 }
 
-export function applyBlend(mat: THREE.ShaderMaterial, mode: BlendMode): void {
+export function applyBlend(mat: THREE.ShaderMaterial, mode: BlendMode, isModel3D = false): void {
   mat.blending = THREE.NormalBlending
-  mat.depthWrite = mode === 'normal' || mode === 'multiply'
+  mat.depthWrite = isModel3D && (mode === 'normal' || mode === 'multiply')
   switch (mode) {
     case 'add':
       mat.blending = THREE.AdditiveBlending

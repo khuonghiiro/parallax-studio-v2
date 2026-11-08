@@ -703,9 +703,17 @@ export function Viewer() {
       const id = r.pick(nx, ny, st.project, cam, false, st.selectedLayerId)
       if (id) {
         if (st.playing) st.setPlaying(false)
-        st.selectLayer(id, 'layer')
-        window.dispatchEvent(new CustomEvent('pxs:focus-layer-target', { detail: { layerId: id, scope: 'layer' } }))
-        startLayerDrag(e, id, cam, ed, 'facing')
+        const picked = st.project.layers.find((l) => l.id === id)
+        if (isLayerClusterLocked(picked)) {
+          const root = findClusterRootLayer(st.project, picked) ?? picked!
+          st.selectLayer(root.id, 'cluster')
+          window.dispatchEvent(new CustomEvent('pxs:focus-layer-target', { detail: { layerId: root.id, scope: 'cluster' } }))
+          startLayerDrag(e, root.id, cam, ed, 'facing')
+        } else {
+          st.selectLayer(id, 'layer')
+          window.dispatchEvent(new CustomEvent('pxs:focus-layer-target', { detail: { layerId: id, scope: 'layer' } }))
+          startLayerDrag(e, id, cam, ed, 'facing')
+        }
         return
       }
     }

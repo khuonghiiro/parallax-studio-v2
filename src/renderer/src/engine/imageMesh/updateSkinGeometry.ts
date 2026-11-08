@@ -15,7 +15,8 @@ export function updateSkinGeometry(
 ): void {
   if (!def.skin) return
   const ud = geometry.userData
-  const quantizedTime = Math.round(time * 240) / 240
+  const localTime = Math.max(0, time - (layer?.inPoint ?? 0))
+  const quantizedTime = Math.round(localTime * 240) / 240
   const hasPhysics = Boolean(layer?.physics?.enabled && layer.physics.material !== 'none' && project)
   if (!hasPhysics && ud.lastSkinDef === def && ud.lastSkinTime === quantizedTime) return
   ud.lastSkinDef = def
@@ -32,9 +33,9 @@ export function updateSkinGeometry(
       : (ud.skinWorkB = new Float32Array(rest.length))
 
   const indices = geometry.getIndex()?.array ?? def.skin.indices
-  const skinned = deformSkin(rest, def.skin.binding, def.skin.rig, time, indices, workA)
+  const skinned = deformSkin(rest, def.skin.binding, def.skin.rig, localTime, indices, workA)
   const positions = def.skin.plantSpines?.length
-    ? deformPlantSpines(skinned, def.skin.binding, def.skin.plantSpines, time, indices, rest, workB)
+    ? deformPlantSpines(skinned, def.skin.binding, def.skin.plantSpines, localTime, indices, rest, workB)
     : skinned
 
   if (hasPhysics && layer && project) {
@@ -79,4 +80,3 @@ export function updatePhysicsPlaneGeometry(
   arr.set(work)
   attribute.needsUpdate = true
 }
-
