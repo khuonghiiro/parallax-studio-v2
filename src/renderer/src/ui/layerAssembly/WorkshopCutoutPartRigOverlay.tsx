@@ -22,6 +22,8 @@ import {
   IconEye,
   IconEyeOff,
   IconLayers,
+  IconPause,
+  IconPlay,
   IconPlus,
   IconSparkles,
   IconText,
@@ -56,6 +58,13 @@ export interface WorkshopCutoutPartRigOverlayProps {
   onSelectLayer: (layerId: string | null) => void
   run: (action: RigAction) => void
   runPlant?: (action: PlantSpineAction) => void
+  playback?: {
+    isPlaying: boolean
+    onTogglePlay: () => void
+    time: number
+    onSeekTime: (t: number) => void
+    duration?: number
+  }
   onClose: () => void
 }
 
@@ -172,6 +181,7 @@ export function WorkshopCutoutPartRigOverlay({
   onSelectLayer,
   run,
   runPlant,
+  playback,
   onClose
 }: WorkshopCutoutPartRigOverlayProps) {
   const rigTool = useRigToolStore()
@@ -515,8 +525,11 @@ export function WorkshopCutoutPartRigOverlay({
         })}
       </svg>
 
-      {/* 2. Thanh Công cụ HUD nổi trên đỉnh Sân khấu 2D */}
-      <div className={`lw-cutout-floating-hud${isAnimTab ? ' is-anim-tab' : ''}`}>
+      {/* 2. Thanh Công cụ HUD nổi trên đỉnh/đáy Sân khấu 2D (tích hợp cùng dòng với Play/Timeline) */}
+      <div
+        className={`lw-cutout-floating-hud${isAnimTab ? ' is-anim-tab' : ''}`}
+        onPointerDown={(e) => e.stopPropagation()}
+      >
         <div className="lw-cutout-hud-part-info">
           <span className="lw-cutout-hud-icon">{activePart?.roleIcon || '🧩'}</span>
           <div className="lw-cutout-hud-titles">
@@ -550,6 +563,36 @@ export function WorkshopCutoutPartRigOverlay({
         </div>
 
         <div className="lw-cutout-hud-sep" />
+
+        {/* Cụm điều khiển Play & Timeline tua thời gian tích hợp trực tiếp trên cùng một dòng */}
+        {playback && (
+          <>
+            <div className="lw-cutout-hud-playback">
+              <button
+                type="button"
+                className="btn xs icon lw-cutout-play-btn"
+                onClick={playback.onTogglePlay}
+                title={playback.isPlaying ? 'Tạm dừng xem trước hoạt ảnh (Phím Space)' : 'Phát xem trước hoạt ảnh (Phím Space)'}
+              >
+                {playback.isPlaying ? <IconPause width={12} height={12} /> : <IconPlay width={12} height={12} />}
+              </button>
+              <span className="lw-cutout-playback-time">
+                {playback.time.toFixed(2)}s
+              </span>
+              <input
+                type="range"
+                min="0"
+                max={playback.duration ?? 4}
+                step="0.05"
+                value={Math.min(playback.time, playback.duration ?? 4)}
+                onChange={(e) => playback.onSeekTime(Number(e.target.value))}
+                className="lw-cutout-playback-scrubber"
+                title={`Tua mốc thời gian chuyển động (0s - ${playback.duration ?? 4}s)`}
+              />
+            </div>
+            <div className="lw-cutout-hud-sep" />
+          </>
+        )}
 
         <div className="lw-cutout-hud-actions">
           {isPlantMode && runPlant && (

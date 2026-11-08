@@ -50,6 +50,7 @@ export interface LayerAssemblyViewportProps {
   onChangeComposite?: (update: LayerComposite | ((prev: LayerComposite) => LayerComposite)) => void
   onAddLayerFromAsset?: (name: string, path: string, url?: string, pos?: { x: number; y: number }) => void
   onAppendPresetLayers?: (layers: AssembledLayerItem[], offset?: { x: number; y: number }) => void
+  duration?: number
   isPlaying: boolean
   onTogglePlay: () => void
   time: number
@@ -78,6 +79,7 @@ export function LayerAssemblyViewport({
   onChangeComposite,
   onAddLayerFromAsset,
   onAppendPresetLayers,
+  duration,
   isPlaying,
   onTogglePlay,
   time,
@@ -673,6 +675,17 @@ export function LayerAssemblyViewport({
             runPlant={
               plantOverlay
                 ? (action) => plantOverlay.setComposite((prev) => applyPlantSpineAction(prev, action), 'plant:cutout')
+                : undefined
+            }
+            playback={
+              tab !== 'layers' && tab !== 'bones'
+                ? {
+                    isPlaying: Boolean(isPlaying),
+                    onTogglePlay,
+                    time,
+                    onSeekTime,
+                    duration: duration ?? composite.rig?.duration ?? 4
+                  }
                 : undefined
             }
             onClose={() => closeCutoutPartRig()}
