@@ -195,6 +195,101 @@ body.ai-ui-inspector-active {
   pointer-events: none;
 }
 
+/* 4b. HIỆU ỨNG ĐÁNH DẤU TRỰC QUAN CÁC THÀNH PHẦN GIAO DIỆN VỪA QUÉT (~3.6s) */
+.ai-ui-scanned-highlights-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none !important;
+  z-index: 999990;
+  animation: aiScannedLayerFade 3.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.ai-ui-scanned-region-pulse {
+  position: fixed;
+  pointer-events: none !important;
+  border: 1.5px dashed color-mix(in srgb, var(--accent-cyan, #38bdf8) 72%, transparent);
+  background: rgba(56, 189, 248, 0.06);
+  border-radius: var(--radius-sm, 4px);
+  animation: aiScannedRegionFade 1.8s ease-out forwards;
+}
+
+.ai-ui-scanned-target-box {
+  position: fixed;
+  pointer-events: none !important;
+  box-sizing: border-box;
+  border-radius: var(--radius-sm, 4px);
+  animation:
+    aiScannedTargetPop 0.36s cubic-bezier(0.16, 1, 0.3, 1) both,
+    aiScannedTargetPulse 1.05s ease-in-out 3;
+}
+
+.ai-ui-scanned-target-box.is-primary {
+  border: 2px solid var(--key, #f59e0b);
+  background: color-mix(in srgb, var(--key, #f59e0b) 16%, rgba(56, 189, 248, 0.1));
+  box-shadow:
+    0 0 0 2px rgba(245, 158, 11, 0.32),
+    0 0 20px rgba(56, 189, 248, 0.55),
+    inset 0 0 12px rgba(245, 158, 11, 0.2);
+  z-index: 2;
+}
+
+.ai-ui-scanned-target-box.is-secondary {
+  border: 1.5px solid var(--accent-cyan, #38bdf8);
+  background: rgba(56, 189, 248, 0.12);
+  box-shadow:
+    0 0 14px rgba(56, 189, 248, 0.42),
+    inset 0 0 8px rgba(56, 189, 248, 0.15);
+  z-index: 1;
+}
+
+.ai-ui-scanned-target-ripple {
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  border: 2px solid var(--accent-cyan, #38bdf8);
+  pointer-events: none !important;
+  animation: aiScannedRippleOut 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.ai-ui-scanned-target-box.is-primary .ai-ui-scanned-target-ripple {
+  border-color: var(--key, #f59e0b);
+}
+
+.ai-ui-scanned-target-tag {
+  position: absolute;
+  top: -23px;
+  left: -2px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm, 4px);
+  background: color-mix(in srgb, var(--accent-cyan, #38bdf8) 78%, #0f172a);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.26);
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1.25;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+  pointer-events: none !important;
+}
+
+.ai-ui-scanned-target-box.is-primary .ai-ui-scanned-target-tag {
+  background: var(--key, #f59e0b);
+  color: var(--on-key, #0f172a);
+  border-color: rgba(15, 23, 42, 0.35);
+}
+
+.ai-ui-scanned-target-tag.flip-down {
+  top: calc(100% + 4px);
+}
+
+.ai-ui-scanned-target-tag.align-right {
+  left: auto;
+  right: -2px;
+}
+
 /* 5. Toast thông báo đã sao chép ngữ cảnh AI thành công */
 .ai-ui-inspector-toast {
   position: fixed;
@@ -808,4 +903,45 @@ body.ai-ui-inspector-active {
 @keyframes aiInspectorFadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+@keyframes aiScannedLayerFade {
+  0%, 74% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes aiScannedRegionFade {
+  0% { opacity: 0.9; }
+  100% { opacity: 0; }
+}
+
+@keyframes aiScannedTargetPop {
+  0% {
+    opacity: 0;
+    transform: scale(1.06);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes aiScannedTargetPulse {
+  0%, 100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.22);
+  }
+}
+
+@keyframes aiScannedRippleOut {
+  0% {
+    opacity: 0.88;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.18);
+  }
 }

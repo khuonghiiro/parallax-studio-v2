@@ -338,6 +338,7 @@ function isInspectorInternalElement(el: Element): boolean {
       el.closest?.('.ai-ui-inspector-arm-hud') ||
       el.closest?.('.ai-ui-inspector-toast') ||
       el.closest?.('.ai-ui-inspector-preview-backdrop') ||
+      el.closest?.('.ai-ui-scanned-highlights-layer') ||
       el.closest?.('.ai-control-overlay') ||
       el.classList?.contains?.('ai-safety-barrier') ||
       el.classList?.contains?.('ai-neon-border-frame')
@@ -655,7 +656,7 @@ export function captureAiInspectorSnapshot(box: {
           ],
           mcpRegion: 'layer_assembly_viewport_2d',
           mcpDialog: 'layer_assembly',
-          bounds: {
+          bounds: part.screenBounds || {
             left: Math.round(box.left),
             top: Math.round(box.top),
             width: Math.round(box.width),
