@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { WorkshopSelectionPanel } from './WorkshopSelectionPanel'
 import type { WorkshopAction } from './workshopActions'
 import type { LayerComposite, AssembledLayerItem } from './types'
@@ -7,6 +7,11 @@ import { WorkshopLayerProps } from './WorkshopLayerProps'
 import { WorkshopPartsPanel } from './WorkshopPartsPanel'
 import { WorkshopPartSwap } from './WorkshopPartSwap'
 import { findGroup } from './workshopParts'
+import { analyzeCutoutParts } from './workshopCutoutRig'
+import {
+  autoScanAndBindClothRegionsForComposite,
+  detectGarmentCoversLegs
+} from './workshopClothScanner'
 import { IconLayersStack, IconPlus } from '../icons'
 import {
   IconSubTabCloth,
@@ -40,17 +45,46 @@ export interface LayerAssemblyInspectorProps {
 
 function LayerStack({
   composite,
+  setComposite,
   selectedIds,
-  selectedLayer,
   onSelectLayer,
   onUpdateLayer,
   onMoveLayerOrder,
   onAddLayer,
-  onAllAction,
-  onSelectSubTab
+  onAllAction
 }: LayerAssemblyInspectorProps & {
   selectedLayer: AssembledLayerItem | null
 }) {
+  const cutoutParts = useMemo(() => analyzeCutoutParts(composite.layers), [composite.layers])
+  const garmentInfo = useMemo(
+    () => detectGarmentCoversLegs(composite.layers, composite.rig?.bones ?? []),
+    [composite.layers, composite.rig?.bones]
+  )
+  const roleLabelById = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const p of cutoutParts) {
+      const isRobe = garmentInfo.robeLayers.some((r) => r.id === p.layer.id)
+      map.set(p.layer.id, isRobe ? 'Thân áo dài (che chân)' : p.roleLabel)
+    }
+    return map
+  }, [cutoutParts, garmentInfo.robeLayers])
+
+  const handleAutoSemanticNames = () => {
+    const nextLayers = composite.layers.map((l, idx) => {
+      const roleLabel = roleLabelById.get(l.id)
+      if (!roleLabel) return l
+      const sizeMatch = (l.name || '').match(/\(\d+\s*[×x*]\s*\d+\)/)
+      const sizeSuffix = sizeMatch ? ` ${sizeMatch[0]}` : ''
+      const isGeneric = /^mảnh\s*#?\d+/i.test((l.name || '').trim())
+      if (!isGeneric && !l.name.startsWith(roleLabel)) return l
+      return {
+        ...l,
+        name: `${roleLabel} #${idx + 1}${sizeSuffix}`
+      }
+    })
+    setComposite({ ...composite, layers: nextLayers })
+  }
+
   return (
     <section className="lw-layer-stack" data-mcp-region="layer_assembly_layers" aria-label="Xếp chồng layer">
       <div className="lw-pane-head">
@@ -93,6 +127,14 @@ function LayerStack({
         >
           Gom về 0
         </button>
+        <button
+          type="button"
+          className="lw-chip"
+          onClick={handleAutoSemanticNames}
+          title="Tự động điền tên bộ phận gợi ý (Thân áo dài, Chân trái, Cánh tay...) cho các mảnh để AI hiểu rõ giải phẫu nhân vật"
+        >
+          🏷️ Tên gợi ý AI
+        </button>
       </div>
       <div
         className="lw-layer-rows"
@@ -108,8 +150,10 @@ function LayerStack({
             totalCount={composite.layers.length}
             isSelected={selectedIds.includes(layer.id)}
             partKind={findGroup(composite, layer.partGroupId)?.kind}
+            roleLabel={roleLabelById.get(layer.id)}
             assets={composite.assets}
             onSelect={(additive) => onSelectLayer(layer.id, additive)}
+            onRename={(newName) => onUpdateLayer(layer.id, { name: newName })}
             onToggleHide={() => onUpdateLayer(layer.id, { hidden: !layer.hidden })}
             onToggleLock={() => onUpdateLayer(layer.id, { locked: !layer.locked })}
             onMoveUp={() => onMoveLayerOrder(layer.id, 'up')}
@@ -122,38 +166,6 @@ function LayerStack({
           </div>
         )}
       </div>
-
-      {selectedLayer && (
-        <div className="lw-stack-quick-sel">
-          <span className="lw-stack-quick-name">Đang chọn: {selectedLayer.name}</span>
-          <div className="lw-stack-quick-actions">
-            <button
-              type="button"
-              className="lw-chip"
-              onClick={() => onSelectSubTab?.('transform')}
-              title="Mở tab Biến đổi 2.5D (Vị trí, Scale, Lật, Xoay)"
-            >
-              Biến đổi →
-            </button>
-            <button
-              type="button"
-              className="lw-chip"
-              onClick={() => onSelectSubTab?.('depth')}
-              title="Mở tab Chiều sâu Z & Không gian 2.5D"
-            >
-              Chiều sâu →
-            </button>
-            <button
-              type="button"
-              className="lw-chip"
-              onClick={() => onSelectSubTab?.('cloth')}
-              title="Mở tab Gắn Xương & Nhãn Vải mềm"
-            >
-              Xương/Vải →
-            </button>
-          </div>
-        </div>
-      )}
     </section>
   )
 }
@@ -336,13 +348,50 @@ export function LayerAssemblyInspector(props: LayerAssemblyInspectorProps) {
                   section="cloth"
                 />
               ) : (
-                <div className="lw-subtab-empty">
-                  <div className="lw-subtab-empty-icon">
-                    <IconSubTabCloth width={24} height={24} />
-                  </div>
-                  <div className="lw-subtab-empty-title">Khung xương &amp; Nhãn vải</div>
-                  <div className="lw-subtab-empty-desc">
-                    Chọn một layer để gắn vào xương, chọn uốn mềm Mesh 2D hoặc bật nhãn Vải đung đưa theo bước chân/tay.
+                <div className="lw-props-panel">
+                  <div className="lw-prop-section">
+                    <div className="lw-prop-head">
+                      <span className="lw-prop-title">
+                        <IconSubTabCloth width={13} height={13} />
+                        Quét vùng vải &amp; Áo dài uốn theo chân
+                      </span>
+                    </div>
+                    <p style={{ fontSize: 11, color: 'var(--text-dim)', margin: 0, lineHeight: 1.45 }}>
+                      Quét tự động các mảnh Áo dài / Trường bào / Váy che khuất chân để gắn xương đùi uốn vải vật lý khi bước đi và giữ chân không lòi đè lên áo:
+                    </p>
+                    <button
+                      type="button"
+                      className="lw-btn primary block"
+                      onClick={() => {
+                        const res = autoScanAndBindClothRegionsForComposite(composite)
+                        setComposite(res.composite)
+                        const robe = detectGarmentCoversLegs(
+                          res.composite.layers,
+                          res.composite.rig?.bones ?? []
+                        ).robeLayers[0]
+                        if (robe) onSelectLayer(robe.id)
+                      }}
+                    >
+                      🔍 Quét &amp; Gắn Vùng Vải Uốn Theo Chân/Tay
+                    </button>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
+                      <span style={{ fontSize: 10.5, color: 'var(--text-faint)' }}>
+                        Hoặc chọn nhanh một mảnh để cấu hình Xương &amp; Vải:
+                      </span>
+                      <div className="lw-chip-row">
+                        {composite.layers.map((l) => (
+                          <button
+                            key={l.id}
+                            type="button"
+                            className="lw-chip"
+                            onClick={() => onSelectLayer(l.id)}
+                          >
+                            {l.isCloth ? '👗 ' : ''}
+                            {l.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}

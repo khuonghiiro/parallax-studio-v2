@@ -1,3 +1,4 @@
+import { useMemo, useState } from 'react'
 import type { AssembledLayerItem, LayerComposite } from './types'
 import { Select } from '../controls'
 import { PartThumb } from './PartThumb'
@@ -5,6 +6,11 @@ import { IconAnchor, IconBone, IconCopy, IconFaceSwap, IconLayersStack, IconPuzz
 import { activateVariant, assignToGroup, layerAssetPath, updatePartGroup } from './workshopParts'
 import { addLayersToVariant, createVariantSet, removeFromSlot, renameVariant, slotNames, slotVariantGroups } from './workshopPartSets'
 import { PartEditableTitle } from './PartEditableTitle'
+import {
+  autoScanAndBindClothRegionsForComposite,
+  detectGarmentCoversLegs,
+  scanClothFollowerRegionsForLayer
+} from './workshopClothScanner'
 
 
 export interface WorkshopLayerPropsProps {
@@ -166,107 +172,277 @@ function DepthSection({ layer, onUpdateLayer }: Pick<WorkshopLayerPropsProps, 'l
   )
 }
 
-function RigSection({ composite, layer, onUpdateLayer }: Pick<WorkshopLayerPropsProps, 'composite' | 'layer' | 'onUpdateLayer'>) {
+function RigSection({
+  composite,
+  layer,
+  setComposite,
+  onUpdateLayer
+}: Pick<WorkshopLayerPropsProps, 'composite' | 'layer' | 'setComposite' | 'onUpdateLayer'>) {
   const bones = composite.rig?.bones ?? []
+  const [scanStatus, setScanStatus] = useState<string | null>(null)
+  const clothMatches = useMemo(
+    () => scanClothFollowerRegionsForLayer(layer, composite.layers, bones),
+    [layer, composite.layers, bones]
+  )
+  const garmentInfo = useMemo(
+    () => detectGarmentCoversLegs(composite.layers, bones),
+    [composite.layers, bones]
+  )
+  const isRobeCoveringLegs = garmentInfo.robeLayers.some((r) => r.id === layer.id)
+
+  const handleScanCurrentLayerCloth = () => {
+    if (clothMatches.length === 0) {
+      const fallbackBone = bones.find((b) => b.id !== layer.boneId && /chân|đùi|tay|leg|thigh|arm/i.test(b.name))
+      if (fallbackBone) {
+        const extra = Array.from(new Set([...(layer.extraBoneIds ?? []), fallbackBone.id]))
+        onUpdateLayer(layer.id, {
+          isCloth: true,
+          bindingMode: 'soft',
+          clothFollowBoneId: fallbackBone.id,
+          clothAmplitude: layer.clothAmplitude ?? 45,
+          extraBoneIds: extra
+        })
+        setScanStatus(`Đã gắn vùng vải uốn theo xương "${fallbackBone.name}"`)
+      } else {
+        setScanStatus('Không phát hiện xương chi nào nằm dưới vùng phủ của mảnh này.')
+      }
+      return
+    }
+    const extra = Array.from(new Set([...(layer.extraBoneIds ?? []), ...clothMatches.map((m) => m.boneId)]))
+    onUpdateLayer(layer.id, {
+      isCloth: true,
+      bindingMode: 'soft',
+      clothFollowBoneId: clothMatches[0]?.boneId,
+      clothAmplitude: layer.clothAmplitude ?? 45,
+      extraBoneIds: extra
+    })
+    setScanStatus(
+      `✓ Đã quét & gắn ${clothMatches.length} vùng xương uốn theo vải: ${clothMatches.map((m) => m.boneName).join(', ')}`
+    )
+  }
+
+  const handleScanAllCharacterCloth = () => {
+    const res = autoScanAndBindClothRegionsForComposite(composite)
+    setComposite(res.composite)
+    if (res.updatedLayerNames.length > 0) {
+      setScanStatus(
+        `✓ Đã quét toàn nhân vật: Gắn ${res.totalBoundBones} vùng xương uốn vải cho ${res.updatedLayerNames.join(', ')}`
+      )
+    } else {
+      setScanStatus('Không phát hiện mảnh áo/váy nào che phủ xương chi.')
+    }
+  }
+
+  const toggleExtraClothBone = (boneId: string) => {
+    const current = new Set(layer.extraBoneIds ?? [])
+    if (current.has(boneId)) current.delete(boneId)
+    else current.add(boneId)
+    const nextExtra = Array.from(current)
+    onUpdateLayer(layer.id, {
+      isCloth: nextExtra.length > 0 ? true : layer.isCloth,
+      bindingMode: 'soft',
+      clothFollowBoneId: nextExtra[0] ?? layer.clothFollowBoneId,
+      clothAmplitude: layer.clothAmplitude ?? 45,
+      extraBoneIds: nextExtra
+    })
+  }
+
   return (
     <section className="lw-prop-section">
       <div className="lw-prop-head">
-        <span className="lw-prop-title"><IconBone width={13} height={13} /> Khung xương</span>
+        <span className="lw-prop-title"><IconBone width={13} height={13} /> Khung xương &amp; Vùng uốn vải</span>
         {layer.boneId && <span className="lw-tag bone">{layer.bindingMode === 'soft' ? 'Uốn mềm' : 'Khớp cứng'}</span>}
       </div>
       {bones.length ? (
         <>
           <div className="lw-prop-grid">
-          <div className="lw-field">
-            <span className="lw-field-label">Gắn vào xương</span>
-            <Select size="sm" value={layer.boneId ?? ''}
-              options={[{ value: '', label: 'Không gắn' }, ...bones.map((b) => ({ value: b.id, label: `${b.parentId ? '↳ ' : ''}${b.name}` }))]}
-              onChange={(v) => onUpdateLayer(layer.id, { boneId: String(v) || undefined, bindingMode: String(v) ? layer.bindingMode || 'soft' : undefined })} />
-          </div>
-          <div className="lw-field">
-            <span className="lw-field-label">Chế độ gắn</span>
-            <Select size="sm" value={layer.bindingMode || 'soft'} disabled={!layer.boneId}
-              options={[{ value: 'soft', label: 'Uốn mềm Mesh 2D' }, { value: 'rigid', label: 'Gắn cứng theo xương' }]}
-              onChange={(v) => onUpdateLayer(layer.id, { bindingMode: v as 'soft' | 'rigid' })} />
-          </div>
-        </div>
-
-        {bones.length > 0 && layer.boneId && (
-          <div className="lw-cloth-dynamics-box" style={{ marginTop: 8, padding: '8px 10px', background: 'var(--bg-2)', borderRadius: 'var(--radius)', border: '1px solid var(--line-soft)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-              <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text)' }}>
-                👗 Nhãn Vải & Uốn Mesh theo Chân (Cloth)
-              </span>
-              <label className="lw-rig-check" style={{ margin: 0, cursor: 'pointer' }}>
-                <input
-                  type="checkbox"
-                  checked={Boolean(layer.isCloth)}
-                  onChange={(e) => {
-                    const isCloth = e.target.checked
-                    const defaultFollowBone = bones.find((b) => /chân|leg/i.test(b.name))?.id || bones[0]?.id
-                    const extra = Array.isArray(layer.extraBoneIds) ? [...layer.extraBoneIds] : []
-                    if (isCloth && defaultFollowBone && !extra.includes(defaultFollowBone)) {
-                      extra.push(defaultFollowBone)
-                    }
-                    onUpdateLayer(layer.id, {
-                      isCloth,
-                      bindingMode: isCloth ? 'soft' : layer.bindingMode,
-                      clothFollowBoneId: isCloth ? (layer.clothFollowBoneId || defaultFollowBone) : undefined,
-                      clothAmplitude: isCloth ? (layer.clothAmplitude ?? 40) : undefined,
-                      extraBoneIds: isCloth ? extra : layer.extraBoneIds
-                    })
-                  }}
-                />
-                <span style={{ fontSize: 11, fontWeight: 500 }}>{layer.isCloth ? 'Đã bật' : 'Bật nhãn Vải'}</span>
-              </label>
+            <div className="lw-field">
+              <span className="lw-field-label">Gắn vào xương chính</span>
+              <Select
+                size="sm"
+                value={layer.boneId ?? ''}
+                options={[
+                  { value: '', label: 'Không gắn' },
+                  ...bones.map((b) => ({ value: b.id, label: `${b.parentId ? '↳ ' : ''}${b.name}` }))
+                ]}
+                onChange={(v) =>
+                  onUpdateLayer(layer.id, {
+                    boneId: String(v) || undefined,
+                    bindingMode: String(v) ? layer.bindingMode || 'soft' : undefined
+                  })
+                }
+              />
             </div>
+            <div className="lw-field">
+              <span className="lw-field-label">Chế độ gắn</span>
+              <Select
+                size="sm"
+                value={layer.bindingMode || 'soft'}
+                disabled={!layer.boneId}
+                options={[
+                  { value: 'soft', label: 'Uốn mềm Mesh 2D' },
+                  { value: 'rigid', label: 'Gắn cứng theo xương' }
+                ]}
+                onChange={(v) => onUpdateLayer(layer.id, { bindingMode: v as 'soft' | 'rigid' })}
+              />
+            </div>
+          </div>
 
-            {layer.isCloth && (
-              <>
-                <div className="lw-field" style={{ marginBottom: 6 }}>
-                  <span className="lw-field-label">Xương chân/tay uốn vải theo</span>
-                  <Select
-                    size="sm"
-                    value={layer.clothFollowBoneId ?? ''}
-                    options={[
-                      { value: '', label: 'Tự động bắt xương gần nhất' },
-                      ...bones.filter((b) => b.id !== layer.boneId).map((b) => ({ value: b.id, label: `${b.name}` }))
-                    ]}
-                    onChange={(v) => {
-                      const followId = String(v) || undefined
-                      const extra = (layer.extraBoneIds || []).filter((id) => id !== layer.clothFollowBoneId)
-                      if (followId && !extra.includes(followId)) extra.push(followId)
+          {bones.length > 0 && (
+            <div
+              className="lw-cloth-dynamics-box"
+              style={{
+                marginTop: 8,
+                padding: '9px 10px',
+                background: 'var(--bg-2)',
+                borderRadius: 'var(--radius)',
+                border: '1px solid var(--line-soft)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 8
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text)' }}>
+                  👗 Vùng Vải Uốn Theo Chân/Tay (Cloth Physics)
+                </span>
+                <label className="lw-rig-check" style={{ margin: 0, cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={Boolean(layer.isCloth || isRobeCoveringLegs)}
+                    onChange={(e) => {
+                      const isCloth = e.target.checked
+                      const detectedIds = clothMatches.map((m) => m.boneId)
+                      const defaultFollowBone =
+                        detectedIds[0] || bones.find((b) => /chân|đùi|leg|thigh/i.test(b.name))?.id || bones[0]?.id
+                      const extra = Array.from(
+                        new Set([...(layer.extraBoneIds ?? []), ...(isCloth ? detectedIds : [])])
+                      )
+                      if (isCloth && defaultFollowBone && !extra.includes(defaultFollowBone)) {
+                        extra.push(defaultFollowBone)
+                      }
                       onUpdateLayer(layer.id, {
-                        clothFollowBoneId: followId,
-                        extraBoneIds: extra
+                        isCloth,
+                        bindingMode: isCloth ? 'soft' : layer.bindingMode,
+                        clothFollowBoneId: isCloth ? (layer.clothFollowBoneId || defaultFollowBone) : undefined,
+                        clothAmplitude: isCloth ? (layer.clothAmplitude ?? 45) : undefined,
+                        extraBoneIds: isCloth ? extra : []
                       })
                     }}
                   />
-                </div>
+                  <span style={{ fontSize: 11, fontWeight: 500 }}>
+                    {layer.isCloth || isRobeCoveringLegs ? 'Đã bật' : 'Bật nhãn Vải'}
+                  </span>
+                </label>
+              </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 11, color: 'var(--text-dim)', minWidth: 80 }}>Biên độ vải uốn:</span>
-                  <input
-                    type="range"
-                    min={5}
-                    max={100}
-                    step={5}
-                    value={layer.clothAmplitude ?? 40}
-                    aria-label="Biên độ uốn vải"
-                    onChange={(e) => onUpdateLayer(layer.id, { clothAmplitude: Number(e.target.value) })}
-                    style={{ flex: 1 }}
-                  />
-                  <strong style={{ fontSize: 11, minWidth: 36, textAlign: 'right', color: 'var(--text)' }}>
-                    {layer.clothAmplitude ?? 40}%
-                  </strong>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                <button
+                  type="button"
+                  className="lw-btn sm primary"
+                  onClick={handleScanCurrentLayerCloth}
+                  title="Tự động quét các xương Đùi/Chân/Tay nằm dưới vạt vải của mảnh này và gắn uốn mềm"
+                  style={{ flex: '1 1 auto' }}
+                >
+                  🔍 Quét vùng vải mảnh này ({clothMatches.length})
+                </button>
+                <button
+                  type="button"
+                  className="lw-btn sm"
+                  onClick={handleScanAllCharacterCloth}
+                  title="Tự động quét toàn bộ nhân vật để phát hiện Áo dài / Váy che chân và gắn vùng uốn vải tự động"
+                  style={{ flex: '1 1 auto' }}
+                >
+                  🪄 Quét toàn nhân vật
+                </button>
+              </div>
+
+              {scanStatus && (
+                <div
+                  style={{
+                    fontSize: 10.5,
+                    padding: '5px 8px',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'color-mix(in srgb, var(--accent) 12%, var(--bg-1))',
+                    color: 'var(--text)',
+                    border: '1px solid var(--line-focus)'
+                  }}
+                >
+                  {scanStatus}
                 </div>
-                <p style={{ fontSize: 10, color: 'var(--text-dim)', marginTop: 4, lineHeight: 1.3 }}>
-                  💡 Khi xương chân/tay nhấc lên hoặc đá thẳng, Mesh của vạt vải sẽ tự động uốn cong theo biên độ {layer.clothAmplitude ?? 40}%.
-                </p>
-              </>
-            )}
-          </div>
-        )}
+              )}
+
+              {garmentInfo.hasLongGarmentCoveringLegs && (
+                <div
+                  style={{
+                    fontSize: 10.5,
+                    padding: '6px 8px',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'color-mix(in srgb, var(--key) 12%, var(--bg-1))',
+                    border: '1px solid color-mix(in srgb, var(--key) 35%, transparent)',
+                    color: 'var(--text)',
+                    lineHeight: 1.4
+                  }}
+                >
+                  👘 <b>Trang phục Áo dài / Cổ trang che chân:</b> Phát hiện thân áo phủ qua đùi (Z={garmentInfo.minRobeZ}px &gt; Chân Z={garmentInfo.maxLegBaseZ}px). Hệ thống tự động khóa Z chân (zOrder ≤ +{garmentInfo.maxSafeLegZOrder}) để chân luôn ẩn dưới tà áo và truyền chuyển động bước chân lên vạt áo!
+                </div>
+              )}
+
+              {clothMatches.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <span style={{ fontSize: 10.5, color: 'var(--text-dim)', fontWeight: 600 }}>
+                    Vùng xương nằm dưới mảnh vải này (bấm để bật/tắt uốn theo):
+                  </span>
+                  <div className="lw-chip-row">
+                    {clothMatches.map((m) => {
+                      const active = Boolean(
+                        layer.extraBoneIds?.includes(m.boneId) ||
+                          (isRobeCoveringLegs && m.role.startsWith('thigh'))
+                      )
+                      return (
+                        <button
+                          key={m.boneId}
+                          type="button"
+                          className={`lw-chip${active ? ' active' : ''}`}
+                          onClick={() => toggleExtraClothBone(m.boneId)}
+                          title={`${m.regionDesc} · Độ phủ ${Math.round(m.overlapRatio * 100)}%${m.coveredLayerNames.length ? ` · Che bộ phận: ${m.coveredLayerNames.join(', ')}` : ''}`}
+                        >
+                          {active ? '✓ ' : '+ '}
+                          {m.boneName} ({Math.round(m.overlapRatio * 100)}%)
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {(layer.isCloth || isRobeCoveringLegs) && (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 11, color: 'var(--text-dim)', minWidth: 80 }}>Biên độ vải uốn:</span>
+                    <input
+                      type="range"
+                      min={5}
+                      max={100}
+                      step={5}
+                      value={layer.clothAmplitude ?? 45}
+                      aria-label="Biên độ uốn vải"
+                      onChange={(e) =>
+                        onUpdateLayer(layer.id, { isCloth: true, clothAmplitude: Number(e.target.value) })
+                      }
+                      style={{ flex: 1 }}
+                    />
+                    <strong style={{ fontSize: 11, minWidth: 36, textAlign: 'right', color: 'var(--text)' }}>
+                      {layer.clothAmplitude ?? 45}%
+                    </strong>
+                  </div>
+                  <p style={{ fontSize: 10, color: 'var(--text-dim)', margin: 0, lineHeight: 1.35 }}>
+                    💡 Khi chân bước hoặc nhấc gối dưới lớp áo dài, vùng lưới Mesh ở vạt áo sẽ uốn lượn vật lý theo chân với biên độ {layer.clothAmplitude ?? 45}%.
+                  </p>
+                </>
+              )}
+            </div>
+          )}
         </>
       ) : (
         <p className="lw-callout">Chưa có khung xương. Mở tab <b>Tạo xương</b> để thêm xương hoặc áp dụng mẫu xương nhân vật.</p>

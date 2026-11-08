@@ -6,6 +6,9 @@ import {
   type MotionViewAngle
 } from '@shared/layerRig'
 import type { AssembledLayerItem, LayerComposite } from './types'
+import { computeBoneTail } from './mohoRigHelpers'
+import { extractLayerDimensions } from './workshopCutoutRig'
+import { describeBoneRestDirection, detectGarmentCoversLegs } from './workshopClothScanner'
 import { extraSoftBoneIdsForLayer } from './workshopRig'
 import { inferHumanoidBoneRoles, type HumanoidBoneRoleMap } from './spineRigWorkflow'
 
@@ -18,8 +21,11 @@ export interface BoneBiomechanicsMeta {
   role: AnatomicalBoneRole
   x: number
   y: number
+  tailX: number
+  tailY: number
   length: number
   angle: number
+  restDirectionDesc: string
   meshEnvelope: boolean
   strength: number
   influenceReach: number
@@ -317,9 +323,13 @@ export function buildBoneBiomechanicsGuide(
 
   return bones.map((b) => {
     const role = idToRole.get(b.id) ?? 'custom'
+    const tail = computeBoneTail(b)
     const boundLayers = (composite?.layers ?? [])
       .filter((l) => l.boneId === b.id || l.extraBoneIds?.includes(b.id))
-      .map((l) => `${l.name} (${l.id})`)
+      .map((l) => {
+        const { w, h } = extractLayerDimensions(l)
+        return `${l.name} (${l.id} · ${Math.round(w)}×${Math.round(h)}px · Z=${Math.round(l.z ?? 0)}px)`
+      })
     return {
       id: b.id,
       name: b.name,
@@ -327,8 +337,11 @@ export function buildBoneBiomechanicsGuide(
       role,
       x: Math.round(b.x),
       y: Math.round(b.y),
+      tailX: Math.round(tail.x),
+      tailY: Math.round(tail.y),
       length: Math.round(b.length),
-      angle: Math.round(b.angle),
+      angle: Number(b.angle.toFixed(1)),
+      restDirectionDesc: describeBoneRestDirection(b, role),
       meshEnvelope: b.meshEnvelope ?? composite?.rig?.meshEnvelope ?? true,
       strength: Number((b.strength ?? 1.15).toFixed(2)),
       influenceReach: Number((b.influenceReach ?? 1.1).toFixed(2)),
@@ -436,23 +449,33 @@ export function upgradeCompositeSoftMeshForImpact(
     bones: nextBones
   }
 
+  const garmentInfo = detectGarmentCoversLegs(layers, nextRig.bones)
+
   const nextLayers = layers.map((l) => {
     const customBind = bindMap.get(l.id.toLowerCase())
+    const robeMatch = garmentInfo.robeLayers.find((r) => r.id === l.id)
     const isRigidAccessory = /glass|kính|hat|mũ|eye|mắt|mouth|miệng|brow|mày/i.test(`${l.id} ${l.name} ${l.slot ?? ''}`)
     const targetMode: 'soft' | 'rigid' =
       customBind?.bindingMode ?? (isRigidAccessory ? (l.bindingMode ?? 'rigid') : 'soft')
     const boneId = customBind?.boneId ?? l.boneId
-    const computedExtra =
+    const baseExtra =
       customBind?.extraBoneIds ??
       (l.extraBoneIds?.length ? l.extraBoneIds : extraSoftBoneIdsForLayer(layers as AssembledLayerItem[], nextRig, l.id, boneId))
+    const computedExtra =
+      robeMatch && robeMatch.coveredBoneIds.length > 0
+        ? Array.from(new Set([...baseExtra, ...robeMatch.coveredBoneIds]))
+        : baseExtra
+    const effectiveIsCloth = customBind?.isCloth ?? (l.isCloth || Boolean(robeMatch && robeMatch.coveredBoneIds.length > 0))
+    const effectiveClothFollow = customBind?.clothFollowBoneId ?? l.clothFollowBoneId ?? robeMatch?.coveredBoneIds[0]
+    const effectiveClothAmp = customBind?.clothAmplitude ?? l.clothAmplitude ?? (effectiveIsCloth ? 45 : undefined)
 
     return {
       ...l,
       ...(boneId ? { boneId, bindingMode: targetMode } : {}),
       ...(targetMode === 'soft' && computedExtra.length > 0 ? { extraBoneIds: computedExtra } : {}),
-      ...(customBind?.isCloth !== undefined ? { isCloth: customBind.isCloth } : {}),
-      ...(customBind?.clothFollowBoneId ? { clothFollowBoneId: customBind.clothFollowBoneId } : {}),
-      ...(customBind?.clothAmplitude !== undefined ? { clothAmplitude: customBind.clothAmplitude } : {})
+      ...(effectiveIsCloth ? { isCloth: true } : {}),
+      ...(effectiveClothFollow ? { clothFollowBoneId: effectiveClothFollow } : {}),
+      ...(effectiveClothAmp !== undefined ? { clothAmplitude: effectiveClothAmp } : {})
     }
   })
 

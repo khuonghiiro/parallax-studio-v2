@@ -66,6 +66,7 @@ export interface BoneOverlayProps {
   setComposite: (update: (prev: LayerComposite) => LayerComposite) => void
   time: number
   editing: boolean
+  restPose?: boolean
   stopPlayback?: () => void
   cancelGesture?: () => void
   beginGesture?: () => void
@@ -112,6 +113,7 @@ export function WorkshopBoneOverlay({
   setComposite,
   time,
   editing,
+  restPose,
   stopPlayback,
   cancelGesture,
   beginGesture,
@@ -158,7 +160,8 @@ export function WorkshopBoneOverlay({
   if (!rig.bones.length && !isAddBoneTool && !(editing && rigTool.mirrorDraw)) return null
 
   const activeRigForEval = isManipulateTool ? buildManipulateTestRig(rig, rigTool.testPoses) : { ...rig, loop: false }
-  const transforms = evaluateRig(activeRigForEval, isManipulateTool ? 0 : time, editing && !isManipulateTool)
+  const isRestPose = Boolean(restPose ?? editing) && !isManipulateTool
+  const transforms = evaluateRig(activeRigForEval, isManipulateTool ? 0 : time, isRestPose)
   const mixamoLandmarks = editing && rigTool.tool === 'select' ? extractLandmarksFromBones(rig.bones) : null
 
   const sortedBones = useMemo(() => {
@@ -188,7 +191,7 @@ export function WorkshopBoneOverlay({
   }
 
   const tailMode = (e: PointerEvent): BoneDragMode => {
-    if (editing && !isManipulateTool) return 'tail'
+    if (isRestPose) return 'tail'
     const useIk = e.ctrlKey || e.metaKey ? !assist.ik : assist.ik
     return useIk ? 'ik' : 'rotate'
   }
@@ -365,7 +368,7 @@ export function WorkshopBoneOverlay({
     beginGesture?.()
     movedRef.current = false
 
-    if (!editing && e.shiftKey) {
+    if (!isRestPose && e.shiftKey) {
       const sketchMode: MotionSketchMode = mode === 'head' ? 'move' : 'rotate'
       const useIk = sketchMode === 'rotate' && (mode === 'ik' || assist.ik) && !e.ctrlKey && !e.metaKey
       const chain = useIk ? Math.max(1, assist.ikChain) : 1
@@ -402,7 +405,7 @@ export function WorkshopBoneOverlay({
       return
     }
 
-    dragRef.current = startBoneDrag(rig, id, time, editing, mode, point, assist.ikChain)
+    dragRef.current = startBoneDrag(rig, id, time, isRestPose, mode, point, assist.ikChain)
     setActiveDrag(id)
     setChainIds(dragRef.current.ik?.chain.boneIds ?? [])
     try {
