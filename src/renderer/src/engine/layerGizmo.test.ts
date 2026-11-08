@@ -60,4 +60,35 @@ describe('layer transform gizmo geometry', () => {
     const expected = new THREE.Vector3(10, 20, -30).applyMatrix4(matrix)
     expect(layerPivot(scene.layers[1], [0.25, 0.5, 0]).distanceTo(expected)).toBeLessThan(1e-8)
   })
+
+  it('computes tight 2.5D composite bounding box without huge empty gaps', () => {
+    const project = createProject()
+    const l1 = createSolidLayer(project.comp)
+    const l2 = createSolidLayer(project.comp)
+    l1.autoScale = l2.autoScale = false
+    l1.props.width = 100
+    l1.props.height = 100
+    l2.props.width = 100
+    l2.props.height = 100
+    l1.transform.position.value = [0, 0, 0]
+    l2.transform.position.value = [50, 50, 0]
+    l1.composite = { instanceId: 'comp-1', compositeId: 'c1', compositeName: 'Comp', isRoot: true, lockedGroup: true, centerPosition: [0, 0, 0], rootOffset: [0, 0, 0] }
+    l2.composite = { instanceId: 'comp-1', compositeId: 'c1', compositeName: 'Comp', isRoot: false, lockedGroup: true, centerPosition: [0, 0, 0], rootOffset: [50, 50, 0] }
+    project.layers = [l1, l2]
+    const scene = evaluateScene(project, 0)
+
+    const groupLayers = scene.layers.filter((l) => l.layer.composite?.instanceId === 'comp-1')
+    const tightBox = new THREE.Box3()
+    const _vCorner = new THREE.Vector3()
+    for (const gl of groupLayers) {
+      for (const [hx, hy] of [[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]]) {
+        _vCorner.set(hx * gl.size[0], hy * gl.size[1], 0).applyMatrix4(gl.world)
+        tightBox.expandByPoint(_vCorner)
+      }
+    }
+    const size = tightBox.getSize(new THREE.Vector3())
+    // l1: [-50, 50] in x, l2: [0, 100] in x => total width = 150
+    expect(size.x).toBeCloseTo(150, 1)
+    expect(size.y).toBeCloseTo(150, 1)
+  })
 })

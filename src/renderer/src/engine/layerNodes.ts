@@ -26,7 +26,7 @@ export function makeLayerMaterial(): THREE.ShaderMaterial {
     vertexShader: LAYER_VERT,
     fragmentShader: LAYER_COMPOSE_FRAG,
     transparent: true,
-    depthWrite: true,
+    depthWrite: false,
     depthTest: true,
     depthFunc: THREE.LessEqualDepth,
     side: THREE.DoubleSide,

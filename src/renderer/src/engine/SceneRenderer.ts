@@ -393,6 +393,7 @@ export class SceneRenderer {
       }
 
       const mat = obj.material as THREE.ShaderMaterial
+      mat.depthWrite = Boolean(el.layer.model3d)
       const u = mat.uniforms
       if (node.type !== 'particles') {
         const level = this.pool.desiredLevel(el, node.planeW, node.planeH, cam, viewportH, mode.editor ? EDITOR_MIN_LEVEL : 0)
@@ -476,10 +477,10 @@ export class SceneRenderer {
     ordering.sort((a, b) => {
       if (a.particles !== b.particles) return a.particles ? 1 : -1
       if (a.shotId === b.shotId && !a.isModel3D && !b.isModel3D) {
-        if (Math.abs(a.localZ - b.localZ) > 0.01) return b.localZ - a.localZ
+        if (Math.abs(a.localZ - b.localZ) > 0.0001) return b.localZ - a.localZ
         return a.index - b.index
       }
-      if (Math.abs(a.dist - b.dist) > 0.01) return b.dist - a.dist
+      if (Math.abs(a.dist - b.dist) > 0.0001) return b.dist - a.dist
       return a.index - b.index
     })
     ordering.forEach((o, i) => (o.node.object.renderOrder = i))
