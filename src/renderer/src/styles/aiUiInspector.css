@@ -70,7 +70,7 @@ body.ai-ui-inspector-active {
   border-width: 0 3.5px 3.5px 0;
 }
 
-/* 3. Badge HUD trung tâm tự động né chuột (top/bottom) & cho phép kéo xuyên qua */
+/* 3. Badge HUD trung tâm tự động né chuột (top/bottom) khi đang ở chế độ quét & cho phép kéo xuyên qua */
 .ai-ui-inspector-arm-hud {
   position: fixed;
   top: 16px;
@@ -297,7 +297,7 @@ body.ai-ui-inspector-active {
   right: -2px;
 }
 
-/* 5. Toast thông báo đã sao chép ngữ cảnh AI thành công */
+/* 5. Toast thông báo đã sao chép ngữ cảnh AI thành công (Cố định vị trí, không đổi vị trí) */
 .ai-ui-inspector-toast {
   position: fixed;
   top: 24px;
@@ -316,13 +316,7 @@ body.ai-ui-inspector-active {
   font-weight: 500;
   pointer-events: auto;
   z-index: 999999;
-  transition: top 0.22s cubic-bezier(0.16, 1, 0.3, 1), bottom 0.22s cubic-bezier(0.16, 1, 0.3, 1);
   animation: aiInspectorToastIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.ai-ui-inspector-toast.is-bottom {
-  top: auto;
-  bottom: 24px;
 }
 
 .ai-ui-inspector-toast-icon {
