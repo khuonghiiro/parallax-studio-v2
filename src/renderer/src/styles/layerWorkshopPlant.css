@@ -24,6 +24,7 @@
 .lw-plant-overlay.drawing {
   pointer-events: auto;
   cursor: crosshair;
+  z-index: 55000;
 }
 
 .lw-plant-rest {

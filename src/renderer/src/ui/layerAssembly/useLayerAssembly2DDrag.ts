@@ -21,6 +21,7 @@ export interface UseLayerAssembly2DDragProps {
   onChangeComposite?: (update: LayerComposite | ((prev: LayerComposite) => LayerComposite)) => void
   brushActiveTool: string
   tab?: string
+  isPlantActive?: boolean
   time?: number
 }
 
@@ -38,6 +39,7 @@ export function useLayerAssembly2DDrag({
   onChangeComposite,
   brushActiveTool,
   tab,
+  isPlantActive,
   time = 0
 }: UseLayerAssembly2DDragProps) {
   const [isDraggingLayer, setIsDraggingLayer] = useState(false)
@@ -179,7 +181,7 @@ export function useLayerAssembly2DDrag({
     baseH: number
   ) => {
     e.stopPropagation()
-    if (layer.locked) return
+    if (layer.locked || isPlantActive || tab === 'plant') return
     setIsDraggingHandle(true)
 
     const initBoneGeometry = new Map<string, { x: number; y: number; length: number }>()
@@ -225,6 +227,11 @@ export function useLayerAssembly2DDrag({
   }
 
   const handleStartDragLayer = (e: React.PointerEvent, layer: AssembledLayerItem) => {
+    // Không kéo layer khi đang ở chế độ Gió (Plant/Wind) hoặc vẽ nét gió
+    if (isPlantActive || tab === 'plant') {
+      return
+    }
+
     e.stopPropagation()
 
     // Nếu đang ở công cụ Cọ Tẩy (Eraser):

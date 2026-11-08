@@ -32,6 +32,7 @@ import { applyPlantSpineAction } from './workshopPlantSpines'
 import { useRigToolStore, setRigToolState, closeCutoutPartRig, toggleBoneLabels } from './rigToolStore'
 import type { WorkshopTab } from './WorkshopRightPanel'
 import type { AssemblyWorkspaceView } from './LayerAssemblyDialog'
+import { computeCursorAnchoredZoom } from './cutter/cutterHelpers'
 import { usePinchPanGesture } from '../../hooks/usePinchPanGesture'
 
 export interface LayerAssemblyViewportProps {
@@ -215,10 +216,48 @@ export function LayerAssemblyViewport({
     onChangeComposite,
     brushActiveTool: brush.activeTool,
     tab,
+    isPlantActive,
     time
   })
 
   const panStartRef = useRef({ mouseX: 0, mouseY: 0, initPanX: 0, initPanY: 0 })
+
+  // Zoom lăn chuột hướng tâm theo vị trí con trỏ chuột (Cursor-anchored zoom 60fps)
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+
+    const handleNativeWheel = (e: WheelEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+      const rect = container.getBoundingClientRect()
+      const factor = e.deltaY < 0 ? 1.12 : 0.88
+      setZoom((curZoom) => {
+        const nextZoom = Math.max(0.15, Math.min(4.0, curZoom * factor))
+        setPan((curPan) => {
+          const res = computeCursorAnchoredZoom({
+            cursorClientX: e.clientX,
+            cursorClientY: e.clientY,
+            viewportCenterX: rect.left + rect.width / 2,
+            viewportCenterY: rect.top + rect.height / 2,
+            currentPanX: curPan.x,
+            currentPanY: curPan.y,
+            oldScale: curZoom,
+            newScale: nextZoom,
+            minScale: 0.15,
+            maxScale: 4.0
+          })
+          return { x: res.panX, y: res.panY }
+        })
+        return nextZoom
+      })
+    }
+
+    container.addEventListener('wheel', handleNativeWheel, { passive: false })
+    return () => {
+      container.removeEventListener('wheel', handleNativeWheel)
+    }
+  }, [])
 
   const maxZ = useMemo(() => {
     if (composite.layers.length === 0) return 0
@@ -473,11 +512,6 @@ export function LayerAssemblyViewport({
           } catch (err) {
             console.warn('[LayerAssemblyViewport] Failed to parse drop data:', err)
           }
-        }}
-        onWheel={(e) => {
-          e.preventDefault()
-          const factor = e.deltaY < 0 ? 1.12 : 0.88
-          setZoom((z) => Math.max(0.15, Math.min(4.0, z * factor)))
         }}
       >
         {/* 2.5D Checkerboard Canvas Box */}

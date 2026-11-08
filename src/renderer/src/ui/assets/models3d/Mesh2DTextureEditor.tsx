@@ -7,6 +7,7 @@ import { hasFaceDeformation, generateDeformedFramePath } from './mesh2dDeform'
 import { Mesh2DHorizontalBar, type ContextTab } from './Mesh2DHorizontalBar'
 import { Mesh2DVerticalPalette, type EditorTool } from './Mesh2DVerticalPalette'
 import { DeformedMesh2DCanvas } from './DeformedMesh2DCanvas'
+import { computeCursorAnchoredZoom } from '../../layerAssembly/cutter/cutterHelpers'
 import { IconEye, IconEyeOff } from '../../icons'
 
 interface Mesh2DTextureEditorProps {
@@ -268,8 +269,25 @@ export function Mesh2DTextureEditor({
 
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault()
+    if (!canvasWrapperRef.current) return
+    const rect = canvasWrapperRef.current.getBoundingClientRect()
     const factor = e.deltaY < 0 ? 1.15 : 0.87
-    setZoom((prev) => Math.max(0.15, Math.min(6.0, prev * factor)))
+    const curZoom = zoom
+    const nextZoom = Math.max(0.15, Math.min(6.0, curZoom * factor))
+    const res = computeCursorAnchoredZoom({
+      cursorClientX: e.clientX,
+      cursorClientY: e.clientY,
+      viewportCenterX: rect.left + rect.width / 2,
+      viewportCenterY: rect.top + rect.height / 2,
+      currentPanX: pan.x,
+      currentPanY: pan.y,
+      oldScale: curZoom,
+      newScale: nextZoom,
+      minScale: 0.15,
+      maxScale: 6.0
+    })
+    setZoom(res.scale)
+    setPan({ x: res.panX, y: res.panY })
   }
 
   // Quick rotations
