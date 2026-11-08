@@ -27,6 +27,7 @@ export interface Scanned25DPartInfo {
   bindingMode: 'rigid' | 'soft'
   isSelected: boolean
   assetPath: string
+  screenBounds?: { left: number; top: number; width: number; height: number } | null
 }
 
 export interface Scanned25DBoneInfo {
@@ -120,7 +121,7 @@ const REGION_FRIENDLY_NAMES: Record<string, string> = {
   layer_assembly_inspector: 'Cột Thuộc tính & Công cụ (Xưởng Lắp Ráp 2.5D)',
   layer_assembly_layers: 'Danh sách Lớp / Bộ phận 2.5D',
   layer_assembly_parts: 'Bảng Bộ phận & Biến thể 2.5D',
-  layer_assembly_properties: 'Thuộc tính Тоạ độ & Chiều sâu 2.5D',
+  layer_assembly_properties: 'Thuộc tính Toạ độ & Chiều sâu 2.5D',
   layer_assembly_rig_panel: 'Bảng Tạo Xương & Ràng buộc 2.5D',
   layer_assembly_rig_tools: 'Thanh Công cụ Vẽ & Chỉnh Xương (Moho Rig)',
   layer_assembly_bone_tree: 'Cây Phân cấp Xương 2.5D',
@@ -306,13 +307,30 @@ export function extractActiveWorkshopContext(
     const selectedBoneId = laSession.getSelectedBoneId?.() || null
 
     const partIds = new Set<string>()
+    const partBoundsMap = new Map<
+      string,
+      { left: number; top: number; width: number; height: number }
+    >()
     const boneIds = new Set<string>()
 
     for (const el of matchedElements) {
       const layerEl =
         el.closest?.('[data-layer-id]') || (el.hasAttribute?.('data-layer-id') ? el : null)
       const lid = layerEl?.getAttribute?.('data-layer-id')
-      if (lid) partIds.add(lid)
+      if (lid) {
+        partIds.add(lid)
+        if (!partBoundsMap.has(lid) && typeof layerEl?.getBoundingClientRect === 'function') {
+          const r = layerEl.getBoundingClientRect()
+          if (r.width > 0 && r.height > 0) {
+            partBoundsMap.set(lid, {
+              left: Math.round(r.left),
+              top: Math.round(r.top),
+              width: Math.round(r.width),
+              height: Math.round(r.height)
+            })
+          }
+        }
+      }
 
       const boneEl =
         el.closest?.('[data-bone-id]') || (el.hasAttribute?.('data-bone-id') ? el : null)
@@ -337,9 +355,15 @@ export function extractActiveWorkshopContext(
           try {
             const hits3D = (vp as any).__pxsQuery3DLayersInBox(box) as Array<{
               layer: { id: string }
+              screenBounds?: { left: number; top: number; width: number; height: number }
             }>
             for (const h of hits3D.slice(0, 8)) {
-              if (h?.layer?.id) partIds.add(h.layer.id)
+              if (h?.layer?.id) {
+                partIds.add(h.layer.id)
+                if (h.screenBounds && !partBoundsMap.has(h.layer.id)) {
+                  partBoundsMap.set(h.layer.id, h.screenBounds)
+                }
+              }
             }
           } catch {
             /* ignore projection error */
@@ -356,6 +380,7 @@ export function extractActiveWorkshopContext(
     for (const pid of partIds) {
       const info = buildScanned25DPartInfo(pid)
       if (info) {
+        info.screenBounds = partBoundsMap.get(pid) || null
         scannedParts.push(info)
         if (info.boneId) boneIds.add(info.boneId)
       }

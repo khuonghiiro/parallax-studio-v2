@@ -18,6 +18,8 @@ export function AiUiInspectorOverlay() {
     report: string
   } | null>(null)
   const [toastVisible, setToastVisible] = useState(false)
+  const [highlightVisible, setHighlightVisible] = useState(false)
+  const [highlightWaveId, setHighlightWaveId] = useState(0)
   const [showPreview, setShowPreview] = useState(false)
 
   const isDraggingRef = useRef(false)
@@ -27,6 +29,7 @@ export function AiUiInspectorOverlay() {
   const startPosRef = useRef({ x: 0, y: 0 })
   const currentPosRef = useRef({ x: 0, y: 0 })
   const toastTimerRef = useRef<number | null>(null)
+  const highlightTimerRef = useRef<number | null>(null)
 
   isDraggingRef.current = isDragging
   isArmedRef.current = isArmed
@@ -52,7 +55,7 @@ export function AiUiInspectorOverlay() {
       ta.focus()
       ta.select()
       const ok = document.execCommand('copy')
-      document.body.appendChild(ta)
+      document.body.removeChild(ta)
       return ok
     } catch {
       return false
@@ -67,11 +70,18 @@ export function AiUiInspectorOverlay() {
 
       setLastCaptured({ snapshot, report })
       setToastVisible(true)
+      setHighlightVisible(true)
+      setHighlightWaveId((prev) => prev + 1)
 
       if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current)
       toastTimerRef.current = window.setTimeout(() => {
         setToastVisible(false)
       }, 5500)
+
+      if (highlightTimerRef.current) window.clearTimeout(highlightTimerRef.current)
+      highlightTimerRef.current = window.setTimeout(() => {
+        setHighlightVisible(false)
+      }, 3600)
 
       await copyToClipboard(report)
     },
@@ -86,6 +96,9 @@ export function AiUiInspectorOverlay() {
       const next = !isArmedRef.current
       isArmedRef.current = next
       setIsArmed(next)
+      if (next) {
+        setHighlightVisible(false)
+      }
     }
 
     const isInspectorOwnUi = (target: EventTarget | null): boolean => {
@@ -110,6 +123,7 @@ export function AiUiInspectorOverlay() {
       startPosRef.current = pos
       currentPosRef.current = pos
       setIsArmed(false)
+      setHighlightVisible(false)
       setIsDragging(true)
       setStartPos(pos)
       setCurrentPos(pos)
@@ -247,6 +261,7 @@ export function AiUiInspectorOverlay() {
         if (!isArmedRef.current && !isDraggingRef.current) {
           isArmedRef.current = true
           setIsArmed(true)
+          setHighlightVisible(false)
         }
       }
 
@@ -290,6 +305,7 @@ export function AiUiInspectorOverlay() {
       window.removeEventListener('click', handleClickCapture, true)
       window.removeEventListener('keydown', handleKeyDown, true)
       if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current)
+      if (highlightTimerRef.current) window.clearTimeout(highlightTimerRef.current)
     }
   }, [])
 
@@ -376,6 +392,68 @@ export function AiUiInspectorOverlay() {
         </div>
       )}
 
+      {/* 4b. HIỆU ỨNG ĐÁNH DẤU CÁC THÀNH PHẦN & VÙNG VỪA QUÉT TRONG VÀI GIÂY */}
+      {highlightVisible && lastCaptured && !isDragging && !showPreview && (
+        <div
+          key={`scan-wave-${highlightWaveId}`}
+          className="ai-ui-scanned-highlights-layer"
+          aria-hidden="true"
+        >
+          {/* Khung vùng quét gốc nếu người dùng kéo khung marquee */}
+          {lastCaptured.snapshot.rect.width >= 10 && lastCaptured.snapshot.rect.height >= 10 && (
+            <div
+              className="ai-ui-scanned-region-pulse"
+              style={{
+                left: `${lastCaptured.snapshot.rect.left}px`,
+                top: `${lastCaptured.snapshot.rect.top}px`,
+                width: `${lastCaptured.snapshot.rect.width}px`,
+                height: `${lastCaptured.snapshot.rect.height}px`
+              }}
+            />
+          )}
+
+          {/* Khung viền sáng + Nhãn đánh số cho từng thành phần UI đã được quét */}
+          {lastCaptured.snapshot.elements.map((item, idx) => {
+            if (item.bounds.width <= 0 || item.bounds.height <= 0) return null
+            const rawLabel =
+              item.text ||
+              item.controlDetails?.fieldLabel ||
+              item.part25D?.name ||
+              item.bone25D?.name ||
+              item.title ||
+              `<${item.tagName}>`
+            const shortLabel = rawLabel.length > 34 ? `${rawLabel.slice(0, 32)}…` : rawLabel
+            const flipDown = item.bounds.top < 30
+            const alignRight =
+              typeof window !== 'undefined' && item.bounds.left + 210 > window.innerWidth
+            const isPrimary = idx === 0
+
+            return (
+              <div
+                key={`scanned-hl-${item.tagName}-${item.id}-${idx}`}
+                className={`ai-ui-scanned-target-box${isPrimary ? ' is-primary' : ' is-secondary'}`}
+                style={{
+                  left: `${item.bounds.left}px`,
+                  top: `${item.bounds.top}px`,
+                  width: `${Math.max(16, item.bounds.width)}px`,
+                  height: `${Math.max(16, item.bounds.height)}px`
+                }}
+              >
+                <div className="ai-ui-scanned-target-ripple" />
+                <div
+                  className={`ai-ui-scanned-target-tag${flipDown ? ' flip-down' : ''}${alignRight ? ' align-right' : ''}`}
+                >
+                  <span className="ai-ui-scanned-target-idx">
+                    {isPrimary ? '🎯 #1' : `#${idx + 1}`}
+                  </span>
+                  <span className="ai-ui-scanned-target-name">{shortLabel}</span>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
       {/* 5. Toast thông báo kết quả sau khi nhả chuột */}
       {toastVisible && lastCaptured && !showPreview && (
         <div
@@ -394,7 +472,7 @@ export function AiUiInspectorOverlay() {
             </div>
             <div className="ai-ui-inspector-toast-hint">
               {lastCaptured.snapshot.elements.length > 0
-                ? `Phát hiện ${lastCaptured.snapshot.elements.length} thành phần. Nhấn Ctrl+V vào chat để gửi cho AI.`
+                ? `Đã đánh dấu ${lastCaptured.snapshot.elements.length} thành phần trên màn hình. Nhấn Ctrl+V để gửi cho AI.`
                 : 'Nhấn Ctrl+V vào chat để gửi thông tin cho AI.'}
             </div>
           </div>
@@ -403,7 +481,9 @@ export function AiUiInspectorOverlay() {
             className="ai-ui-inspector-toast-btn"
             onClick={() => {
               if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current)
+              if (highlightTimerRef.current) window.clearTimeout(highlightTimerRef.current)
               setToastVisible(false)
+              setHighlightVisible(false)
               setShowPreview(true)
             }}
             title="Mở hộp thoại xem chi tiết trực quan nội dung vừa quét"
@@ -413,7 +493,10 @@ export function AiUiInspectorOverlay() {
           <button
             type="button"
             className="ai-ui-inspector-arm-close"
-            onClick={() => setToastVisible(false)}
+            onClick={() => {
+              setToastVisible(false)
+              setHighlightVisible(false)
+            }}
             title="Đóng thông báo"
           >
             ✕
