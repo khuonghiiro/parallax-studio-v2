@@ -4,6 +4,7 @@ import {
   applyPlantSpineAction,
   buildAutoPlantSpinePoints,
   createPlantSpine,
+  inferBestPlantDirectionForLayer,
   prunePlantSpines,
   resamplePlantSpinePoints,
   resolveSpineLayerIds,
@@ -162,5 +163,43 @@ describe('workshop plant spines', () => {
     expect(next.plantSpines![1].amplitude).toBe(22)
     expect(next.plantSpines![0].lean).toBe(9)
     expect(next.plantSpines![1].phaseOffset).toBeGreaterThan(0)
+  })
+
+  it('infers hanging direction and fits spine points to a single cutout part bounding box', () => {
+    const charComp: LayerComposite = {
+      id: 'char-wind',
+      name: 'Nhân vật tóc dài',
+      category: 'characters',
+      width: 600,
+      height: 860,
+      layers: [
+        {
+          ...layer('hair'),
+          name: 'Mảnh #1 (332×329)',
+          x: -13,
+          y: -234,
+          z: 32,
+          scale: 0.53
+        },
+        {
+          ...layer('robe'),
+          name: 'Mảnh #4 (387×726)',
+          x: 0,
+          y: 0,
+          z: -2,
+          scale: 0.4
+        }
+      ]
+    }
+    const dir = inferBestPlantDirectionForLayer(charComp, 'hair', 'up')
+    expect(dir).toBe('down')
+
+    const pts = buildAutoPlantSpinePoints(charComp, ['hair'], 0, dir)
+    expect(pts).toHaveLength(4)
+    expect(pts[0].x).toBe(-13)
+    // Root at top of hair (around -234 - 73 = -307), tip at bottom of hair (around -234 + 73 = -161)
+    expect(pts[0].y).toBeLessThan(-250)
+    expect(pts[3].y).toBeLessThan(-140)
+    expect(pts[0].y).toBeLessThan(pts[3].y)
   })
 })

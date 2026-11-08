@@ -305,3 +305,153 @@
 .lw-plant-overlay.drawing.path-record {
   cursor: crosshair;
 }
+
+/* ---------- Khối chọn Phạm vi vẽ gió & Ô Bộ phận 2D trong Tab Gió ---------- */
+.lw-wind-scope-block {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 6px 8px;
+  border-radius: var(--radius-md, 6px);
+  background: var(--bg-0);
+  border: 1px solid var(--line-soft);
+}
+
+.lw-wind-scope-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.lw-wind-scope-header .lw-plant-section-label {
+  margin: 0;
+}
+
+.lw-wind-part-picker-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 7px 8px;
+  border-radius: var(--radius-md, 6px);
+  background: color-mix(in srgb, var(--accent-cyan) 6%, var(--bg-1));
+  border: 1px solid color-mix(in srgb, var(--accent-cyan) 32%, var(--line));
+}
+
+.lw-wind-part-picker-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.lw-wind-part-active-label {
+  font-size: 10.5px;
+  color: var(--text-dim);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lw-wind-part-active-label strong {
+  color: var(--accent-cyan);
+  font-weight: 700;
+}
+
+.lw-wind-part-head-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.lw-wind-part-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  max-height: 176px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.lw-wind-part-card {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 6px;
+  border-radius: var(--radius-sm, 4px);
+  background: var(--bg-2);
+  border: 1px solid var(--line-soft);
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  min-width: 0;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+
+.lw-wind-part-card:hover {
+  background: var(--bg-3);
+  border-color: var(--line-focus);
+}
+
+.lw-wind-part-card.active {
+  background: color-mix(in srgb, var(--accent-cyan) 16%, var(--bg-2));
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-cyan) 35%, transparent);
+}
+
+.lw-wind-part-icon {
+  font-size: 13px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.lw-wind-part-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1 1 auto;
+  line-height: 1.2;
+}
+
+.lw-wind-part-name {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lw-wind-part-meta {
+  font-size: 8.8px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lw-wind-part-badge {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: var(--radius-sm, 4px);
+  background: var(--bg-1);
+  color: var(--text-faint);
+  border: 1px solid var(--line-soft);
+  flex-shrink: 0;
+}
+
+.lw-wind-part-badge.active {
+  background: color-mix(in srgb, var(--plant-green, #3ddc84) 18%, var(--bg-1));
+  color: var(--plant-green, #3ddc84);
+  border-color: color-mix(in srgb, var(--plant-green, #3ddc84) 45%, transparent);
+}
+
+.lw-wind-part-tip {
+  font-size: 9.5px;
+  line-height: 1.4;
+  color: var(--text-dim);
+}

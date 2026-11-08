@@ -28,6 +28,7 @@ import { EraserIsolatedCanvas } from './LayerAssemblyEraser'
 import { LayerAssemblyCalloutOverlay } from './LayerAssemblyCalloutOverlay'
 import { WorkshopCutoutPartRigOverlay } from './WorkshopCutoutPartRigOverlay'
 import { applyRigAction } from './workshopRig'
+import { applyPlantSpineAction } from './workshopPlantSpines'
 import { useRigToolStore, setRigToolState, closeCutoutPartRig, toggleBoneLabels } from './rigToolStore'
 import type { WorkshopTab } from './WorkshopRightPanel'
 import type { AssemblyWorkspaceView } from './LayerAssemblyDialog'
@@ -568,7 +569,7 @@ export function LayerAssemblyViewport({
           {plantOverlay && <PlantSpineOverlay {...plantOverlay} />}
 
           {/* Lớp Vẽ động tác (tab Animation): bật bút (D) rồi nhấn gần xương và vẽ đường đi của ngọn xương */}
-          {tab === 'animation' && sketchOverlay && <MotionSketchOverlay {...sketchOverlay} />}
+          {tab === 'animation' && !isPlantActive && sketchOverlay && <MotionSketchOverlay {...sketchOverlay} />}
 
           {composite.layers.length === 0 && (
             <div
@@ -611,10 +612,11 @@ export function LayerAssemblyViewport({
           />
         )}
 
-        {/* Chế độ vẽ xương theo bộ phận (Cutout Part Rig Stage) 2D */}
+        {/* Chế độ vẽ xương / nét gió theo bộ phận (Cutout Part Rig Stage) 2D */}
         {isCutoutRigActive && (
           <WorkshopCutoutPartRigOverlay
             tab={tab}
+            isPlantMode={isPlantActive}
             composite={composite}
             canvasWidth={composite.width || 600}
             canvasHeight={composite.height || 600}
@@ -634,6 +636,11 @@ export function LayerAssemblyViewport({
                 onChangeComposite((prev) => applyRigAction(prev, action))
               }
             }}
+            runPlant={
+              plantOverlay
+                ? (action) => plantOverlay.setComposite((prev) => applyPlantSpineAction(prev, action), 'plant:cutout')
+                : undefined
+            }
             onClose={() => closeCutoutPartRig()}
           />
         )}
@@ -698,7 +705,7 @@ export function LayerAssemblyViewport({
         />
 
         {/* Thanh công cụ hoạt họa nổi: Xác nhận vị trí (Enter), Bút vẽ động tác, IK, Onion skin, Quỹ đạo */}
-        {tab === 'animation' && sketchOverlay && brush.activeTool !== 'eraser' && (
+        {tab === 'animation' && !isPlantActive && sketchOverlay && brush.activeTool !== 'eraser' && (
           <AnimAssistChips
             onConfirmStep={() => {
               sketchOverlay.stopPlayback?.()
