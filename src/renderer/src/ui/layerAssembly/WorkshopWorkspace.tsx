@@ -187,7 +187,8 @@ export function WorkshopWorkspace({
   const hasSpines = (state.composite.plantSpines?.length ?? 0) > 0
   const liveEnabled = isPlantActive && plantEditor.live && hasSpines && !playback.isPlaying
   const plantLive = usePlantLiveClock(liveEnabled, !plantEditor.dragging && !plantEditor.grab)
-  const plantTime = plantOffset + plantLive
+  const isLayersOrBonesTab = tab === 'layers' || tab === 'bones'
+  const plantTime = isLayersOrBonesTab ? 0 : plantOffset + plantLive
   const shiftedSpines = (state.composite.plantSpines ?? []).map((s) => {
     const grabbed =
       plantEditor.grab?.spineId === s.id
@@ -208,9 +209,14 @@ export function WorkshopWorkspace({
       : { ...normalizedRig, loop: playback.isPlaying && normalizedRig.loop }
     : undefined
 
-  const evalTime = isManipulatingRigTest ? 0 : playback.time
+  const evalTime = isLayersOrBonesTab ? 0 : isManipulatingRigTest ? 0 : playback.time
   const isErasing = brushEditing && tab === 'layers' && !playback.isPlaying
-  const animated = !isErasing && (isManipulatingRigTest || tab === 'animation' || playback.isPlaying || playback.time > 0) && rig
+  const animated =
+    tab === 'animation'
+      ? (!isErasing && (playback.isPlaying || playback.time > 0) ? rig : undefined)
+      : tab === 'bones'
+        ? (isManipulatingRigTest ? rig : undefined)
+        : undefined
   const effectiveRig = useMemo(() => {
     if (!rig) return undefined
     if (animated) return rig
@@ -381,7 +387,7 @@ export function WorkshopWorkspace({
                       composite: state.composite,
                       setComposite: state.setComposite,
                       selectedIds: state.selection,
-                      time: playback.time + plantTime,
+                      time: isLayersOrBonesTab ? 0 : playback.time + plantTime,
                       drawing: isPlantActive,
                       beginGesture: () => state.history.begin(),
                       endGesture: () => state.history.end()
@@ -434,7 +440,7 @@ export function WorkshopWorkspace({
             />
           </div>
         )}
-        {!isErasing && tab !== 'animation' && (
+        {!isErasing && !isLayersOrBonesTab && (
           <LayerAssemblyTransportBar
             duration={rig?.duration ?? state.composite.rig?.duration}
             isPlaying={playback.isPlaying}

@@ -86,6 +86,13 @@ export function LayerAssemblyDialog({
   const activeRig = composite.rig ? ensureRigClips(composite.rig).rig : undefined
   const playback = useWorkshopPlayback(activeRig?.duration, activeRig?.loop)
   const [tab, setTab] = useState<WorkshopTab>(() => initialTab ?? 'layers')
+
+  useEffect(() => {
+    if (tab === 'layers' || tab === 'bones') {
+      playback.setIsPlaying(false)
+      playback.setTime(0)
+    }
+  }, [tab])
   const loopActions = useWorkshopLoopActions(state, playback, setTab)
   const [boneId, selectBone] = useState<string | null>(() => initialBoneId ?? null)
   const saving = useWorkshopSave(() => history.current, onClose, () => playback.time)
@@ -531,7 +538,7 @@ export function LayerAssemblyDialog({
               ? 'Moho Rig: S chọn · A vẽ xương/Pin · T vùng uốn · Z thử bẻ khớp · B ẩn/hiện xương · M hiện lưới Mesh'
               : tab === 'animation'
                 ? 'Moho/Animate: Kéo xương tạo dáng · Enter chốt bước · Shift+Kéo ghi Realtime · I bật IK · O Onion Skin · Space phát'
-                : 'Ctrl+Z hoàn tác · Ctrl+D nhân bản · Mũi tên: dời 2D · Phím +/-: độ sâu Z · Space xem chuyển động'}
+                : 'Ctrl+Z hoàn tác · Ctrl+D nhân bản · Mũi tên: dời 2D · Phím +/-: độ sâu Z · Chuyển tab Anim để diễn hoạt'}
           </span>
         </footer>
       </div>
