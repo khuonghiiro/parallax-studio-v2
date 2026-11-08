@@ -400,12 +400,13 @@ export function extractDomWorkflowNodeInfo(el: Element): ScannedWorkflowNodeInfo
   const nodeCardEl =
     el.hasAttribute?.('data-node-id') || el.hasAttribute?.('data-workflow-node-id')
       ? el
-      : el.closest?.('[data-node-id], [data-workflow-node-id], [data-focus-node]')
+      : el.closest?.('[data-node-id], [data-workflow-node-id], [data-focus-node], .wf-v2-card')
 
   let nodeId =
     nodeCardEl?.getAttribute?.('data-node-id') ||
     nodeCardEl?.getAttribute?.('data-workflow-node-id') ||
     nodeCardEl?.getAttribute?.('data-focus-node') ||
+    (nodeCardEl?.classList?.contains?.('wf-v2-card') ? nodeCardEl.id : null) ||
     null
 
   // Nếu quét bên trong cột Thuộc tính Node (workflow_inspector / workflow_preview / inspector_bottom_tabs)

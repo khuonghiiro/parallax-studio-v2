@@ -62,6 +62,9 @@ export function formatAiInspectorMarkdown(snapshot: AiInspectorSnapshot): string
   if (focusItem || workshopContext?.relatedFiles?.length) {
     lines.push('#### 🎯 Tâm điểm cần sửa (AI Focus Target):')
     if (focusItem) {
+      const isV2Card =
+        focusItem.classes.includes('wf-v2-card') ||
+        (Boolean(focusItem.workflowNode) && focusItem.tagName === 'div')
       const focusTitle = focusItem.text
         ? `"${focusItem.text}"`
         : focusItem.controlDetails?.fieldLabel
@@ -72,9 +75,15 @@ export function formatAiInspectorMarkdown(snapshot: AiInspectorSnapshot): string
       const sel =
         focusItem.controlDetails?.targetSelector ||
         (focusItem.id ? `#${focusItem.id}` : focusItem.tagName)
-      lines.push(
-        `- **Control trọng tâm:** **${focusTitle}** (${focusItem.kindLabel}) — Selector: \`${sel}\``
-      )
+      if (isV2Card && focusItem.workflowNode) {
+        lines.push(
+          `- **Thẻ Node trọng tâm:** **"${focusItem.workflowNode.title}"** (${focusItem.workflowNode.levelLabel} · \`id="${focusItem.workflowNode.nodeId}"\`) — Selector: \`${sel}\``
+        )
+      } else {
+        lines.push(
+          `- **Control trọng tâm:** **${focusTitle}** (${focusItem.kindLabel}) — Selector: \`${sel}\``
+        )
+      }
       if (focusItem.primaryFile) {
         const ownerSuffix = focusItem.ownerComponentName
           ? ` (trong component \`<${focusItem.ownerComponentName}>\`)`
@@ -196,7 +205,21 @@ export function formatAiInspectorMarkdown(snapshot: AiInspectorSnapshot): string
     elements.forEach((item, idx) => {
       const rawHeading = item.text || item.controlDetails?.fieldLabel || item.title || 'Phần tử'
       const label = item.text ? `"${item.text}"` : `[${rawHeading}]`
-      const tagDesc = `<${item.tagName}${item.id ? ` id="${item.id}"` : ''}>`
+      let tagDesc = `<${item.tagName}${item.id ? ` id="${item.id}"` : ''}>`
+      if (!item.id && item.classes.length > 0) {
+        const keyClass =
+          item.classes.find(
+            (c) =>
+              c.startsWith('wf-v2-') ||
+              c.startsWith('lw-') ||
+              c.startsWith('btn-') ||
+              c.startsWith('tb-') ||
+              c.startsWith('custom-select-')
+          ) || item.classes[0]
+        if (keyClass) {
+          tagDesc = `<${item.tagName} class="${keyClass}">`
+        }
+      }
       const focusBadge = idx === 0 && elements.length > 1 ? ' · 🎯 **Tâm điểm**' : ''
       lines.push(
         `${idx + 1}. **${label}** (${item.kindLabel || 'Thành phần'}) — \`${tagDesc}\`${focusBadge}`

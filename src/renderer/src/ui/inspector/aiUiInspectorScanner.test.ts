@@ -606,4 +606,159 @@ describe('aiUiInspectorScanner', () => {
     const popupFound = findElementsInBox({ left: 105, top: 55, width: 180, height: 60 })
     expect(popupFound).toEqual([popupMenuItem])
   })
+
+  it('preserves Workflow V2 Node Card as primary focus target and provides descriptive labels for inner controls', () => {
+    useEditor.setState({
+      project: {
+        comp: { duration: 15 },
+        layers: [
+          {
+            id: 'layer-root-1',
+            name: 'Nhân Vật Anime 2.5D',
+            composite: { instanceId: 'comp-inst-wIt2GIGV', templateId: 'tpl-1' }
+          }
+        ],
+        shots: [],
+        workflow: {
+          nodes: [
+            {
+              id: 'v2-cluster-comp-inst-wIt2GIGV',
+              type: 'cluster_lock',
+              title: 'Nhân Vật Anime 2.5D — Nam Sinh Kính Cận (13 Mảnh + 2 Biểu Cảm)',
+              position: { x: 600, y: 780 },
+              enabled: true,
+              params: {
+                logicCategory: 'cluster_lock',
+                instanceId: 'comp-inst-wIt2GIGV',
+                timeStart: 0,
+                timeEnd: 15
+              }
+            }
+          ],
+          edges: []
+        }
+      } as any
+    })
+
+    const createClassList = (classes: string[]) => {
+      const arr: any = [...classes]
+      arr.contains = (c: string) => classes.includes(c)
+      return arr
+    }
+
+    const collapseBtn = {
+      tagName: 'BUTTON',
+      classList: createClassList(['wf-v2-icon-btn']),
+      innerText: '−',
+      textContent: '−',
+      getAttribute: (k: string) =>
+        k === 'title' ? 'Thu gọn các mảnh phụ của cụm trên sơ đồ (chỉ giữ Gốc neo)' : null,
+      closest: (sel: string) => (sel.includes('.wf-v2-card') ? nodeCard : null),
+      matches: (sel: string) => sel.includes('button'),
+      getBoundingClientRect: () => ({ left: 680, top: 805, right: 704, bottom: 829, width: 24, height: 24 })
+    } as unknown as Element
+
+    const toggleBtn = {
+      tagName: 'BUTTON',
+      classList: createClassList(['wf-v2-toggle-pill', 'on']),
+      innerText: '🔒',
+      textContent: '🔒',
+      getAttribute: (k: string) =>
+        k === 'title'
+          ? 'Đang khoá cả cụm — nhấn để mở khoá cụm (chỉnh lẻ từng mảnh)'
+          : k === 'role'
+            ? 'switch'
+            : null,
+      closest: (sel: string) => (sel.includes('.wf-v2-card') ? nodeCard : null),
+      matches: (sel: string) => sel.includes('button') || sel.includes('[role="switch"]'),
+      getBoundingClientRect: () => ({ left: 710, top: 805, right: 746, bottom: 829, width: 36, height: 24 })
+    } as unknown as Element
+
+    const timeBtn = {
+      tagName: 'BUTTON',
+      classList: createClassList(['wf-v2-time-pill']),
+      innerText: '0.0–15.0s',
+      textContent: '0.0–15.0s',
+      getAttribute: (k: string) =>
+        k === 'title' ? 'Nhấn để tua tới mốc bắt đầu' : null,
+      closest: (sel: string) => (sel.includes('.wf-v2-card') ? nodeCard : null),
+      matches: (sel: string) => sel.includes('button'),
+      getBoundingClientRect: () => ({ left: 685, top: 840, right: 755, bottom: 860, width: 70, height: 20 })
+    } as unknown as Element
+
+    const nodeCard = {
+      tagName: 'DIV',
+      id: 'v2-cluster-comp-inst-wIt2GIGV',
+      classList: createClassList(['wf-v2-card', 'level-logic', 'is-locked']),
+      innerText: '',
+      textContent: '',
+      getAttribute: (k: string) => {
+        if (k === 'data-mcp-region') return 'workflow_node_card'
+        if (k === 'data-node-id') return 'v2-cluster-comp-inst-wIt2GIGV'
+        return null
+      },
+      hasAttribute: (k: string) => k === 'data-node-id',
+      closest: (sel: string) => (sel.includes('.wf-v2-card') ? nodeCard : null),
+      matches: (sel: string) => sel.includes('.wf-v2-card') || sel.includes('[data-mcp-region]'),
+      contains: (other: any) =>
+        other === collapseBtn || other === toggleBtn || other === timeBtn,
+      getBoundingClientRect: () => ({ left: 600, top: 780, right: 820, bottom: 870, width: 220, height: 90 })
+    } as unknown as Element
+
+    ;(globalThis as any).document.querySelectorAll = vi.fn().mockImplementation((sel: string) => {
+      if (sel.includes('.wf-v2-card') || sel.includes('button')) {
+        return [nodeCard, collapseBtn, toggleBtn, timeBtn]
+      }
+      return []
+    })
+
+    const found = findElementsInBox({ left: 679, top: 803, width: 188, height: 74 })
+    // Thẻ Node không bị loại bỏ và được xếp làm phần tử số 1 (Tâm điểm)
+    expect(found[0]).toBe(nodeCard)
+    expect(found).toContain(collapseBtn)
+    expect(found).toContain(toggleBtn)
+    expect(found).toContain(timeBtn)
+
+    const cardCtx = scanElementContext(nodeCard)
+    expect(cardCtx.kindLabel).toBe('Thẻ Node Sơ đồ (Node Logic (cluster_lock))')
+    expect(cardCtx.text).toContain('Nhân Vật Anime 2.5D')
+    expect(cardCtx.id).toBe('v2-cluster-comp-inst-wIt2GIGV')
+
+    const collapseCtx = scanElementContext(collapseBtn)
+    expect(collapseCtx.text).toBe('Nút Thu gọn mảnh phụ (−)')
+    expect(collapseCtx.id).toBe('') // Không bị gán nhầm id của node
+
+    const toggleCtx = scanElementContext(toggleBtn)
+    expect(toggleCtx.text).toBe('Công tắc Khóa Cụm 2.5D (🔒 Đang Khóa)')
+    expect(toggleCtx.id).toBe('')
+
+    const timeCtx = scanElementContext(timeBtn)
+    expect(timeCtx.text).toBe('Thời lượng Node (0.0–15.0s)')
+    expect(timeCtx.id).toBe('')
+
+    const md = formatAiInspectorMarkdown({
+      rect: { left: 679, top: 803, width: 188, height: 74 },
+      primaryRegion: 'workflow_node_card',
+      elements: [cardCtx, collapseCtx, timeCtx, toggleCtx],
+      workshopContext: null,
+      appState: {
+        shotName: 'Cánh Đồng Gió Mùa',
+        shotIndex: 1,
+        currentTime: 0,
+        duration: 15.0,
+        fps: 30,
+        isPlaying: false,
+        selectedLayerNames: [],
+        activeDialog: null,
+        theme: 'dark'
+      }
+    })
+
+    expect(md).toContain('Thẻ Node trọng tâm:')
+    expect(md).toContain('Nhân Vật Anime 2.5D — Nam Sinh Kính Cận')
+    expect(md).toContain('`<div id="v2-cluster-comp-inst-wIt2GIGV">` · 🎯 **Tâm điểm**')
+    expect(md).toContain('**"Nút Thu gọn mảnh phụ (−)"** (Nút bấm thao tác) — `<button class="wf-v2-icon-btn">`')
+    expect(md).toContain('"Thời lượng Node (0.0–15.0s)"')
+    expect(md).toContain('"Công tắc Khóa Cụm 2.5D (🔒 Đang Khóa)"')
+  })
 })

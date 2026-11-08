@@ -226,6 +226,7 @@ export const WorkflowNodeCardV2 = memo(function WorkflowNodeCardV2({
 
   return (
     <div
+      id={node.id}
       data-mcp-region="workflow_node_card"
       className={[
         'wf-v2-card',
