@@ -548,3 +548,94 @@
     width: 32px;
   }
 }
+
+/* ── 8. Gom thanh công cụ về 1 dòng duy nhất ─────────────────────────────
+   Mặc định: icon-only cho kiểu Tween / bộ lọc, ẩn badge phím tắt (vẫn có trong tooltip).
+   Chỉ hiện thêm nhãn khi thanh đủ rộng; chỉ cho xuống dòng khi màn hình rất hẹp. */
+.lw-animation-timeline-toolbar.lw-tl-toolbar {
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  column-gap: 8px;
+  min-height: 40px;
+  padding: 5px 10px;
+}
+
+.lw-tl-toolbar .lw-tl-group {
+  flex: 0 0 auto;
+}
+
+.lw-tl-toolbar .lw-tl-keys {
+  justify-content: flex-start;
+  padding-left: 8px;
+  border-left: 1px solid var(--line-soft);
+}
+
+.lw-tl-toolbar .lw-tl-view {
+  margin-left: auto;
+}
+
+.lw-tl-toolbar .lw-tl-icon-btn {
+  width: 26px;
+  height: 26px;
+}
+
+.lw-tl-toolbar .lw-tl-icon-btn.is-play {
+  width: 32px;
+}
+
+.lw-tl-toolbar .lw-tl-text-btn,
+.lw-tl-toolbar .lw-tl-readout,
+.lw-tl-toolbar .lw-dope-keytime-box,
+.lw-tl-toolbar .lw-autokey-pill {
+  height: 26px;
+}
+
+.lw-tl-toolbar .lw-tl-text-btn {
+  padding: 0 7px;
+}
+
+.lw-tl-toolbar .lw-tl-text-btn kbd,
+.lw-tl-toolbar .lw-tl-readout-meta em,
+.lw-tl-toolbar .lw-dope-seg-btn .lw-seg-label {
+  display: none;
+}
+
+.lw-tl-toolbar .lw-dope-seg-btn {
+  min-width: 24px;
+  padding: 0 5px;
+}
+
+@container timeline-toolbar (min-width: 1380px) {
+  .lw-tl-toolbar .lw-tl-readout-meta em {
+    display: inline;
+  }
+}
+
+@container timeline-toolbar (min-width: 1560px) {
+  .lw-tl-toolbar .lw-tl-text-btn kbd {
+    display: inline;
+  }
+}
+
+@container timeline-toolbar (min-width: 1720px) {
+  .lw-tl-toolbar .lw-dope-seg-btn .lw-seg-label {
+    display: inline;
+  }
+
+  .lw-tl-toolbar .lw-dope-seg-btn {
+    padding: 0 6px;
+  }
+}
+
+/* Màn hình hẹp (tablet dọc / phone): cho phép xuống dòng, vùng bấm lớn */
+@container timeline-toolbar (max-width: 900px) {
+  .lw-animation-timeline-toolbar.lw-tl-toolbar {
+    flex-wrap: wrap;
+    row-gap: 5px;
+  }
+
+  .lw-tl-toolbar .lw-tl-keys {
+    padding-left: 0;
+    border-left: 0;
+  }
+}
