@@ -710,9 +710,10 @@ function AnimationCompactTransportBar({
 
       <span
         className={`lw-frame-mode-badge ${isFrameZero ? 'is-setup' : 'is-animating'}`}
-        title={`Đang sửa clip "${activeClip.name}"`}
+        title={`Đang sửa clip "${activeClip.name}" · Frame ${frameNumber}/${totalFrames} · ${time.toFixed(2)}s`}
       >
-        <strong>{isFrameZero ? 'F0' : `F${frameNumber}`}</strong>/{totalFrames} · {time.toFixed(2)}s
+        <strong>{isFrameZero ? 'F0' : `F${frameNumber}`}</strong>/{totalFrames}
+        <span className="lw-frame-mode-time"> · {time.toFixed(2)}s</span>
       </span>
 
       <button

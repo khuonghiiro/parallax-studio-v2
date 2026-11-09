@@ -1,0 +1,368 @@
+/* ============================================================================
+ * XƯỞNG LAYER 2.5D · TINH CHỈNH CỘT THANH TRA BÊN PHẢI (Inspector Polish)
+ * - Tab cha (Lớp · Xương · Anim & Gió · Loop) + dải tab con gộp thành 1 khối header.
+ * - Tab con xếp Icon trên / Nhãn dưới + gạch chân Cyan để không bị cắt chữ "Xếp l…".
+ * - Gọn hoá nội dung bên trong các tab con: Xếp lớp, Thanh công cụ xương,
+ *   Thanh phát Anim, Thẻ vật lý thứ cấp.
+ * ============================================================================ */
+
+/* ── 1. Khối header: tab cha + tab con liền mạch ─────────────────────────── */
+.lw-right-column > .lw-right-segmented-tabs {
+  padding: 8px 8px 6px;
+  border-bottom: 0;
+  background: var(--bg-1);
+}
+
+.lw-right-column > .lw-right-segmented-tabs .pxs-tab {
+  height: 28px;
+}
+
+/* ── 2. Dải tab con: Icon trên · Nhãn dưới · Gạch chân Cyan ─────────────── */
+.lw-right-column > .lw-right-subtabs {
+  gap: 2px;
+  margin: 0;
+  padding: 0 6px;
+  background: var(--bg-1);
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+[data-theme='light'] .lw-right-column > .lw-right-subtabs {
+  background: var(--bg-1);
+  box-shadow: none;
+}
+
+.lw-right-column .lw-right-subtabs .lw-htab-btn {
+  flex-direction: column;
+  gap: 3px;
+  height: 44px;
+  min-height: 44px;
+  padding: 5px 2px 7px;
+  border: 0;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-dim);
+}
+
+.lw-right-column .lw-right-subtabs .lw-htab-btn::after {
+  content: '';
+  position: absolute;
+  left: 14%;
+  right: 14%;
+  bottom: -1px;
+  height: 2px;
+  border-radius: 2px 2px 0 0;
+  background: transparent;
+  transition: background 0.15s ease, left 0.15s ease, right 0.15s ease;
+}
+
+.lw-right-column .lw-right-subtabs .lw-htab-btn:hover {
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg-2));
+  color: var(--text);
+  border: 0;
+}
+
+.lw-right-column .lw-right-subtabs .lw-htab-btn:hover::after {
+  background: var(--line-focus);
+}
+
+.lw-right-column .lw-right-subtabs .lw-htab-btn.active {
+  background: color-mix(in srgb, var(--accent-cyan, #06b6d4) 10%, transparent);
+  color: var(--accent-cyan, #22d3ee);
+  border: 0;
+  box-shadow: none;
+  font-weight: 600;
+}
+
+.lw-right-column .lw-right-subtabs .lw-htab-btn.active::after {
+  left: 8%;
+  right: 8%;
+  background: var(--accent-cyan, #22d3ee);
+}
+
+[data-theme='light'] .lw-right-column .lw-right-subtabs .lw-htab-btn.active {
+  background: color-mix(in srgb, #0891b2 9%, transparent);
+  color: #0e7490;
+  border: 0;
+  box-shadow: none;
+}
+
+[data-theme='light'] .lw-right-column .lw-right-subtabs .lw-htab-btn.active::after {
+  background: #0891b2;
+}
+
+.lw-right-column .lw-right-subtabs .lw-htab-btn:focus-visible {
+  outline-offset: -2px;
+}
+
+.lw-right-column .lw-right-subtabs .lw-htab-icon {
+  position: relative;
+  width: 16px;
+  height: 16px;
+}
+
+.lw-right-column .lw-right-subtabs .lw-htab-label {
+  max-width: 100%;
+  font-size: 10.5px;
+  line-height: 1.1;
+  letter-spacing: 0;
+}
+
+/* Badge nổi góc phải icon, không chiếm chỗ của nhãn */
+.lw-right-column .lw-right-subtabs .lw-htab-badge {
+  position: absolute;
+  top: -5px;
+  left: calc(100% - 3px);
+  min-width: 14px;
+  height: 13px;
+  padding: 0 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8.5px;
+  line-height: 1;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+/* Cột hẹp: ẩn badge chữ để không đè tab bên cạnh */
+@container (max-width: 320px) {
+  .lw-right-column .lw-right-subtabs .lw-htab-label {
+    font-size: 9.5px;
+  }
+
+  .lw-right-column .lw-right-subtabs .lw-htab-badge.tone-accent {
+    display: none;
+  }
+}
+
+/* ── 3. Tiêu đề phân khu (Biến đổi / Chiều sâu / Bộ phận / Xương & Vải) ── */
+.lw-right-column .lw-vtab-pane-header {
+  min-height: 36px;
+  padding: 7px 12px;
+  background: var(--bg-2);
+}
+
+.lw-right-column .lw-vtab-pane-hint {
+  min-width: 0;
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lw-right-column .lw-subtab-empty-icon {
+  color: var(--accent-cyan, #22d3ee);
+  background: color-mix(in srgb, var(--accent-cyan, #06b6d4) 8%, var(--bg-2));
+  border-color: color-mix(in srgb, var(--accent-cyan, #06b6d4) 28%, var(--line-soft));
+}
+
+[data-theme='light'] .lw-right-column .lw-subtab-empty-icon {
+  color: #0e7490;
+}
+
+.lw-right-column .lw-subtab-empty-desc strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* ── 4. Xếp lớp: header gọn + thanh Tách Z 1 hàng ───────────────────────── */
+.lw-right-column .lw-layer-stack .lw-pane-head {
+  padding: 10px 12px 8px;
+}
+
+.lw-pane-head-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.lw-right-column .lw-layer-stack .lw-pane-head .lw-btn.sm {
+  height: 26px;
+  padding: 0 10px;
+  gap: 4px;
+  border-radius: var(--radius-sm);
+}
+
+.lw-right-column .lw-ai-name-btn {
+  border-color: var(--line-soft);
+}
+
+.lw-right-column .lw-ai-name-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-3));
+}
+
+.lw-right-column .lw-layer-stack .lw-ztools {
+  display: grid;
+  grid-template-columns: auto repeat(3, minmax(0, 1fr));
+  align-items: center;
+  gap: 4px;
+  margin: 0 12px 8px;
+  padding: 4px;
+  background: var(--bg-2);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-md);
+}
+
+.lw-right-column .lw-layer-stack .lw-ztools-label {
+  padding: 0 4px 0 6px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.lw-right-column .lw-layer-stack .lw-ztools .lw-chip {
+  justify-content: center;
+  min-width: 0;
+  height: 26px;
+  padding: 0 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background: var(--bg-1);
+}
+
+.lw-right-column .lw-layer-stack .lw-ztools .lw-chip:hover {
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-3));
+  border-color: var(--line-focus);
+  color: var(--text);
+}
+
+.lw-right-column .lw-layer-stack .lw-layer-rows {
+  border-top: 1px solid var(--line-soft);
+}
+
+/* ── 5. Thanh công cụ xương Moho: Icon trên · Nhãn dưới (không cắt "Vẽ xươ…") */
+.lw-right-column .lw-rig-toolbelt .lw-moho-tool-btn {
+  flex-direction: column;
+  gap: 3px;
+  min-height: 42px;
+  padding: 5px 3px 4px;
+}
+
+.lw-right-column .lw-rig-toolbelt .lw-moho-tool-label {
+  font-size: 10.5px;
+}
+
+.lw-right-column .lw-rig-toolbelt .lw-moho-tool-btn kbd {
+  top: 3px;
+  right: 3px;
+}
+
+/* ── 6. Thanh phát Anim: luôn 1 hàng, badge frame tự co ─────────────────── */
+.lw-right-column .lw-anim-compact-bar {
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  gap: 4px;
+  padding: 6px 10px;
+  min-height: 38px;
+}
+
+.lw-right-column .lw-anim-compact-bar > * {
+  flex-shrink: 0;
+}
+
+.lw-right-column .lw-anim-compact-bar .lw-anim-play-btn {
+  min-width: 52px;
+  height: 26px;
+}
+
+.lw-right-column .lw-anim-compact-bar .lw-anim-f0-btn,
+.lw-right-column .lw-anim-compact-bar .lw-autokey-pill,
+.lw-right-column .lw-anim-compact-bar .lw-speed-pill,
+.lw-right-column .lw-anim-compact-bar .lw-loop-pill {
+  height: 26px;
+}
+
+.lw-right-column .lw-anim-compact-bar .lw-frame-mode-badge {
+  flex: 0 1 auto;
+  min-width: 0;
+  height: 22px;
+}
+
+/* ── 7. Thẻ Chuyển động thứ cấp: preset dạng lưới chip thay vì 5 ô ép dòng ── */
+.lw-right-column .lw-secondary-card .lw-assist-seg {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 4px;
+  width: 100%;
+  border: 0;
+  overflow: visible;
+}
+
+.lw-right-column .lw-secondary-card .lw-assist-seg button {
+  min-width: 0;
+  height: 26px;
+  padding: 0 6px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  font-size: 10.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lw-right-column .lw-secondary-card .lw-assist-seg button:hover:not(.active) {
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-3));
+  color: var(--text);
+}
+
+/* Badge chữ ('Vải' / 'Xương') trên tab con → chấm trạng thái gọn, chữ giữ trong tooltip */
+.lw-right-column .lw-right-subtabs .lw-htab-badge.tone-accent {
+  top: -2px;
+  left: calc(100% - 1px);
+  min-width: 7px;
+  width: 7px;
+  height: 7px;
+  padding: 0;
+  font-size: 0;
+  border: 1px solid var(--bg-1);
+  border-radius: 50%;
+  background: var(--accent-cyan, #22d3ee);
+}
+
+[data-theme='light'] .lw-right-column .lw-right-subtabs .lw-htab-badge.tone-accent {
+  background: #0891b2;
+}
+
+/* Thời gian trong badge frame tự ẩn khi thanh phát chật */
+@container (max-width: 400px) {
+  .lw-right-column .lw-anim-compact-bar .lw-frame-mode-time {
+    display: none;
+  }
+}
+
+/* Chiều sâu Z: 5 nấc preset cùng 1 hàng */
+.lw-right-column .lw-depth-presets {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.lw-right-column .lw-depth-presets .lw-chip {
+  justify-content: center;
+  min-width: 0;
+  height: 26px;
+  padding: 0 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Loop · Nhịp & Nháy: 5 chế độ dàn đều 1 hàng thay vì rớt "Chớp beat" xuống dòng */
+.lw-right-column .lw-loop-panel .la-seg--wrap {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+}
+
+.lw-right-column .lw-loop-panel .la-seg--wrap .la-seg-btn {
+  min-width: 0;
+  padding: 0 4px;
+  font-size: 10.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
