@@ -220,6 +220,7 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   layer_assembly_rig_panel: region('layer_assembly_rig_panel', '.lw-rig-panel'),
   layer_assembly_rig_tools: region('layer_assembly_rig_tools', '.lw-moho-toolbelt-card'),
   layer_assembly_dopesheet: region('layer_assembly_dopesheet', '.lw-animation-timeline'),
+  layer_assembly_tab_playbar: region('layer_assembly_tab_playbar', '.lw-tab-playbar'),
   layer_assembly_mixamo_card: region('layer_assembly_mixamo_card', '.lw-mixamo-card'),
   layer_assembly_mixamo_studio: region('layer_assembly_mixamo_studio', '.lw-mixamo-motion-modal'),
   layer_assembly_mixamo_header: region('layer_assembly_mixamo_header', '.mx-header'),

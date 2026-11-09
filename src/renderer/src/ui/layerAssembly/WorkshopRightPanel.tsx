@@ -41,6 +41,8 @@ import {
 import type { useLayerWorkshop } from './useLayerWorkshop'
 import type { useWorkshopPlayback } from './useWorkshopPlayback'
 import { applyRigAction, ensureRigClips, type RigAction } from './workshopRig'
+import { WorkshopTabPlayBar } from './WorkshopTabPlayBar'
+import { useEditor } from '../../store/editor'
 import '../../styles/layerWorkshopInspectorPolish.css'
 
 export type WorkshopTab = 'layers' | 'bones' | 'animation' | 'plant' | 'loop'
@@ -86,6 +88,7 @@ export function WorkshopRightPanel({
   }
 
   const loopActions = useWorkshopLoopActions(state, playback, setTab)
+  const projectFps = useEditor((s) => s.project.comp.fps) || 30
 
   const rigInfo = state.composite.rig ? ensureRigClips(state.composite.rig).rig : undefined
   const boneCount = rigInfo?.bones.length ?? 0
@@ -345,6 +348,18 @@ export function WorkshopRightPanel({
           )
         })}
       </nav>
+
+      {/* Thanh phát riêng cho tab Anim & Gió / Loop: bật tắt hành động tương ứng ở mọi phân khu */}
+      {(effectiveTab === 'animation' || effectiveTab === 'loop') && (
+        <WorkshopTabPlayBar
+          mode={effectiveTab}
+          playback={playback}
+          rig={rigInfo}
+          fps={rigInfo?.fps || projectFps}
+          loopCount={loopCount}
+          onToggleRigLoop={() => run({ action: 'settings', loop: !rigInfo?.loop })}
+        />
+      )}
 
       {/* Nội dung tương ứng của phân khu đang chọn */}
       <div

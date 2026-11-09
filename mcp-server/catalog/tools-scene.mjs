@@ -81,7 +81,7 @@ export const SCENE_TOOLS = [
         'assembly_3d', 'assembly_sidebar', 'assembly_viewport', 'assembly_inspector', 'assembly_header', 'assembly_footer', 'assembly_hud', 'assembly_responsive_tabs',
         'layer_assembly', 'layer_assembly_sidebar', 'layer_assembly_workspace', 'layer_assembly_inspector', 'layer_assembly_tools', 'layer_assembly_header', 'layer_assembly_responsive_tabs',
         'layer_assembly_toolbar', 'layer_assembly_viewport_2d', 'layer_assembly_viewport_3d', 'layer_assembly_layers', 'layer_assembly_parts',
-        'layer_assembly_properties', 'layer_assembly_physics', 'layer_assembly_swap', 'layer_assembly_rig_panel', 'layer_assembly_rig_tools', 'layer_assembly_dopesheet', 'layer_assembly_mixamo_card', 'layer_assembly_mixamo_studio',
+        'layer_assembly_properties', 'layer_assembly_physics', 'layer_assembly_swap', 'layer_assembly_rig_panel', 'layer_assembly_rig_tools', 'layer_assembly_dopesheet', 'layer_assembly_tab_playbar', 'layer_assembly_mixamo_card', 'layer_assembly_mixamo_studio',
         'layer_assembly_mixamo_header', 'layer_assembly_mixamo_stage', 'layer_assembly_mixamo_toolbar', 'layer_assembly_mixamo_canvas', 'layer_assembly_mixamo_coords', 'layer_assembly_mixamo_guide',
         'layer_assembly_mixamo_sidebar', 'layer_assembly_mixamo_preview', 'layer_assembly_mixamo_angles', 'layer_assembly_mixamo_presets', 'layer_assembly_mixamo_settings', 'layer_assembly_mixamo_footer',
         'layer_assembly_animation_panel', 'layer_assembly_bone_depth', 'layer_assembly_retarget', 'layer_assembly_clip_json', 'layer_assembly_create', 'layer_assembly_confirm',

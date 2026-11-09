@@ -35,7 +35,6 @@ import {
 import { useEditor } from '../../store/editor'
 import type { LayerComposite } from './types'
 import {
-  IconAutoKeyRec,
   IconClipsAction,
   IconLoopCycle,
   IconOnionSkin,
@@ -261,18 +260,7 @@ export function WorkshopAnimationPanel({
 
   return (
     <div className="lw-rig-panel lw-animation-panel" data-mcp-region="layer_assembly_animation_panel">
-      {/* Thanh điều khiển phát lại Compact duy nhất, không chiếm diện tích sub-tab */}
-      <AnimationCompactTransportBar
-        rig={rig}
-        activeClip={activeClip}
-        frameNumber={frameNumber}
-        totalFrames={totalFrames}
-        time={time}
-        playback={playback}
-        autoKey={assist.autoKey}
-        onToggleAutoKey={() => setAnimAssist({ autoKey: !assist.autoKey })}
-        run={run}
-      />
+      {/* Thanh phát Phát / Dừng hành động nằm chung ở WorkshopTabPlayBar (dưới dải tab con) */}
 
       {/* 2. Thanh 3 Sub-Tabs gọn gàng (ẩn khi dùng dải tab dọc bên ngoài) */}
       {!controlledSubTab && <SegmentedTabs<AnimInspectorSubTab>
@@ -658,93 +646,6 @@ export function WorkshopAnimationPanel({
           <WorkshopAnimAssistCard />
         </>
       )}
-    </div>
-  )
-}
-
-function AnimationCompactTransportBar({
-  rig,
-  activeClip,
-  frameNumber,
-  totalFrames,
-  time,
-  playback,
-  autoKey,
-  onToggleAutoKey,
-  run
-}: {
-  rig: LayerRig
-  activeClip: AnimationClip
-  frameNumber: number
-  totalFrames: number
-  time: number
-  playback: Props['playback']
-  autoKey: boolean
-  onToggleAutoKey: () => void
-  run: Props['run']
-}) {
-  const isFrameZero = frameNumber === 0
-
-  return (
-    <div className="lw-anim-compact-bar">
-      <button
-        type="button"
-        className="btn xs primary lw-anim-play-btn"
-        onClick={playback.toggle}
-        title={playback.isPlaying ? 'Tạm dừng hoạt ảnh' : 'Phát thử hoạt ảnh'}
-      >
-        {playback.isPlaying ? '⏸ Dừng' : '▶ Phát'}
-      </button>
-
-      <button
-        type="button"
-        className="btn xs lw-anim-f0-btn"
-        onClick={() => {
-          playback.setIsPlaying(false)
-          playback.setTime(0)
-        }}
-        title="Về đầu mốc Frame 0 (0.00s)"
-      >
-        ⏮ F0
-      </button>
-
-      <span
-        className={`lw-frame-mode-badge ${isFrameZero ? 'is-setup' : 'is-animating'}`}
-        title={`Đang sửa clip "${activeClip.name}" · Frame ${frameNumber}/${totalFrames} · ${time.toFixed(2)}s`}
-      >
-        <strong>{isFrameZero ? 'F0' : `F${frameNumber}`}</strong>/{totalFrames}
-        <span className="lw-frame-mode-time"> · {time.toFixed(2)}s</span>
-      </span>
-
-      <button
-        type="button"
-        className={`lw-autokey-pill${autoKey ? ' active' : ''}`}
-        onClick={onToggleAutoKey}
-        aria-pressed={autoKey}
-        title="Auto-Key: Tự động ghi Keyframe khi kéo chỉnh xương trên sân khấu"
-      >
-        <IconAutoKeyRec width={11} height={11} />
-        <span>Auto-Key</span>
-      </button>
-
-      <button
-        type="button"
-        className={`lw-moho-opt-pill lw-speed-pill${playback.speed !== 1 ? ' active' : ''}`}
-        onClick={playback.cycleSpeed}
-        title={`Tốc độ phát: ${playback.speed}x (Bấm để đổi 0.5x, 1x, 1.5x, 2x)`}
-      >
-        <span>{playback.speed}×</span>
-      </button>
-
-      <button
-        type="button"
-        className={`lw-moho-opt-pill lw-loop-pill${rig.loop ? ' active' : ''}`}
-        onClick={() => run({ action: 'settings', loop: !rig.loop })}
-        aria-pressed={rig.loop}
-        title="Bật/tắt tự động phát lặp vòng"
-      >
-        <span>{rig.loop ? '🔁 Lặp' : '↦ 1 lần'}</span>
-      </button>
     </div>
   )
 }
