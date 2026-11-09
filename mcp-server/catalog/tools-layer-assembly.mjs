@@ -417,7 +417,8 @@ export const LAYER_ASSEMBLY_TOOLS = [
       mode: z.enum(['new', 'replace']).optional().describe(d('import-clip-json: "new" to create a new clip or "replace" to overwrite active clip.', 'import-clip-json: "new" để thêm clip mới hoặc "replace" để ghi đè clip đang mở.')),
       auto_fix: z.boolean().optional().describe(d('import-clip-json: automatically normalize 2.5D biomechanics (crossed arms, knock-kneed legs, extreme pelvis Y) and auto-name generic clips (default true).', 'import-clip-json: tự động chuẩn hoá cơ học 2.5D và tự đặt tên mô tả cho clip (mặc định true).')),
       apply_wind: z.boolean().optional().describe(d('import-clip-json: also apply wind.plantSpines and wind.layerMotions from JSON (default true).', 'import-clip-json: áp dụng luôn cấu hình gió wind.plantSpines và wind.layerMotions từ JSON (mặc định true).')),
-      prompt_intent: z.string().optional().describe(d('export-clip-json: motion intent description for the generated AI prompt.', 'export-clip-json: mô tả mục tiêu chuyển động để gắn vào Prompt AI.'))
+      prompt_intent: z.string().optional().describe(d('export-clip-json: motion intent description for the generated AI prompt.', 'export-clip-json: mô tả mục tiêu chuyển động để gắn vào Prompt AI.')),
+      include_ai_guide: z.boolean().optional().describe(d('export-clip-json: attach the aiAuthoringGuide block (bone hierarchy tree, keyframe schema, interpolation/FK model, safe ranges, smooth-motion rules, starter example) so another AI can author new smooth clips from the JSON alone (default true).', 'export-clip-json: đính kèm khối aiAuthoringGuide (cây xương, schema keyframe, mô hình nội suy/FK, biên độ an toàn, quy tắc chuyển động mượt, ví dụ khởi đầu) để AI khác chỉ cần đọc JSON là tạo được động tác mượt (mặc định true).'))
     }),
     example: '{"action":"set-pose","time":0.5,"poses":[{"boneId":"arm_l","rotation":45},{"boneId":"arm_r","rotation":-30}]}'
   },

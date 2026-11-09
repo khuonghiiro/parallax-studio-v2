@@ -70,6 +70,8 @@ interface ExportTabProps {
   setWalkType: (v: 'in-place' | 'root-motion') => void
   includeWind: boolean
   setIncludeWind: (v: boolean) => void
+  includeAiGuide: boolean
+  setIncludeAiGuide: (v: boolean) => void
   exportedJson: string
   onCopyPrompt: () => void
   onCopyJson: () => void
@@ -91,6 +93,8 @@ function ExportTabPanel({
   setWalkType,
   includeWind,
   setIncludeWind,
+  includeAiGuide,
+  setIncludeAiGuide,
   exportedJson,
   onCopyPrompt,
   onCopyJson,
@@ -196,6 +200,20 @@ function ExportTabPanel({
           />
           <span>
             🌿 Đính kèm <strong>Gió ({windCount} dây)</strong> + 🕸️ <strong>Lưới Mesh chịu tác lực tiếp đất (Soft Mesh)</strong>
+          </span>
+        </label>
+        <label
+          className="lw-clip-ai-guide-toggle"
+          title="Thêm khối aiAuthoringGuide: cây xương thật, ý nghĩa từng trường keyframe, mô hình nội suy, biên độ an toàn, quy tắc chuyển động mượt và ví dụ khởi đầu — để AI khác chỉ cần đọc JSON là tạo được động tác mới"
+        >
+          <input
+            type="checkbox"
+            checked={includeAiGuide}
+            onChange={(e) => setIncludeAiGuide(e.target.checked)}
+            aria-label="Đính kèm hướng dẫn cấu trúc cho AI"
+          />
+          <span>
+            🤖 Đính kèm <strong>Hướng dẫn cấu trúc cho AI</strong> (aiAuthoringGuide)
           </span>
         </label>
         <button
@@ -464,6 +482,7 @@ export function WorkshopClipJsonModal({
   const [selectedAngle, setSelectedAngle] = useState<MotionViewAngle>(clip.viewAngle ?? 'front')
   const [walkType, setWalkType] = useState<'in-place' | 'root-motion'>('in-place')
   const [includeWind, setIncludeWind] = useState(true)
+  const [includeAiGuide, setIncludeAiGuide] = useState(true)
   const [importText, setImportText] = useState('')
   const [importClipName, setImportClipName] = useState('')
   const [autoFixBiomechanics, setAutoFixBiomechanics] = useState(true)
@@ -488,11 +507,12 @@ export function WorkshopClipJsonModal({
     return exportAnimationClipToJson(clip, bones, true, {
       composite,
       includeWind,
+      includeAiGuide,
       suggestedName: exportName,
       viewAngle: selectedAngle,
       walkType
     })
-  }, [clip, bones, composite, includeWind, exportName, selectedAngle, walkType])
+  }, [clip, bones, composite, includeWind, includeAiGuide, exportName, selectedAngle, walkType])
 
   const aiPrompt = useMemo(() => {
     return generateAiMotionPrompt(clip, bones, promptIntent, {
@@ -684,6 +704,8 @@ export function WorkshopClipJsonModal({
               setWalkType={setWalkType}
               includeWind={includeWind}
               setIncludeWind={setIncludeWind}
+              includeAiGuide={includeAiGuide}
+              setIncludeAiGuide={setIncludeAiGuide}
               exportedJson={exportedJson}
               onCopyPrompt={handleCopyPrompt}
               onCopyJson={handleCopyJson}

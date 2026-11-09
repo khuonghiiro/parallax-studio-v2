@@ -337,6 +337,10 @@ Khi thực hiện các nhiệm vụ chuyên biệt, AI cần tham chiếu các s
 - Tests: `workshopActions.test.ts`, `workshopHistory.test.ts`, `workshopRig.test.ts`, `mcp/commands/layerAssemblyCommands.test.ts`. Hướng dẫn: `docs/layer-workshop-tools.md`, `mcp-server/README.md`.
 
 
+### JSON động tác cho AI (tab `Anim` › `Hành động` › nút `JSON`)
+- `exportAnimationClipToJson` ([`workshopClipJson.ts`](./src/renderer/src/ui/layerAssembly/workshopClipJson.ts)) xuất `parallax-motion-v1` kèm khối **`aiAuthoringGuide`** (đứng trước `tracks`, tắt bằng `includeAiGuide: false` / MCP `include_ai_guide`): `outputContract` (trường bắt buộc, `allowedBoneIds`), `keyframeSchema` (đơn vị & ý nghĩa x/y/rotation/scale/zOrder/easing/bezier), `evaluationModel` (Hermite theo giây, FK cộng dồn cha → con, quy tắc loop), `boneHierarchy` (cây xương lồng nhau + `suggestedPhaseDelaySec`, `typicalRotationDeg`, `rotationLimitDeg`), `smoothMotionRules`, `qualityChecklist` và `starterExample` sinh từ id xương thật — logic ở [`workshopClipAiGuide.ts`](./src/renderer/src/ui/layerAssembly/workshopClipAiGuide.ts) + [`workshopClipAiStarter.ts`](./src/renderer/src/ui/layerAssembly/workshopClipAiStarter.ts).
+- Nhập ngược (`parseAnimationClipFromJson`) đi qua [`workshopClipSmoothing.ts`](./src/renderer/src/ui/layerAssembly/workshopClipSmoothing.ts): đọc `bezier`, kẹp thời lượng, gộp key trùng, khép kín vòng lặp và cảnh báo cú giật vận tốc. Khi đổi mô hình nội suy (`engine/boneInterpolation.ts`) hoặc FK (`engine/layerRig.ts`) phải cập nhật `evaluationModel` tương ứng.
+
 ### Layer workshop pixel editor
 - Cọ tẩy chỉ hoạt động trong khung chỉnh pixel góc dưới trái; bố cục lớn dùng để xem và chọn layer. Thanh dọc gồm cọ mềm, tẩy nét cứng, bàn tay, vừa khung và khôi phục ảnh gốc. Cuộn để zoom quanh con trỏ; Space + kéo hoặc chuột giữa để dời ảnh. Escape hủy nét, mỗi nét hoàn tất là một bước hoàn tác.
 - Hình ảnh và tọa độ cọ dùng chung `isolatedBrushGeometry.ts`; kiểm thử tại `isolatedBrushGeometry.test.ts`. MCP tiếp tục dùng `update_layer_assembly_layer` với `patch.imageUrl` qua lịch sử bản nháp, không thêm tool hay schema cho thay đổi bố trí UI.

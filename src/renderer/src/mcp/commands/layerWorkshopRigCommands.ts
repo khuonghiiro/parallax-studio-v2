@@ -352,7 +352,11 @@ export const layerWorkshopRigCommands: Record<string, Handler> = {
       const targetClipId = str(p, 'clip_id')
       const clip = (targetClipId ? rig.clips?.find((c) => c.id === targetClipId) : activeClip) ?? activeClip
       const intent = str(p, 'prompt_intent') ?? 'Nhân vật thực hiện động tác tự nhiên, chuẩn cơ học 2.5D'
-      const json = exportAnimationClipToJson(clip, rig.bones, true, { composite: current, includeWind: true })
+      const json = exportAnimationClipToJson(clip, rig.bones, true, {
+        composite: current,
+        includeWind: true,
+        includeAiGuide: bool(p, 'include_ai_guide') ?? true
+      })
       const prompt = generateAiMotionPrompt(clip, rig.bones, intent, { composite: current, includeWind: true })
       return { ok: true, clipId: clip.id, clipName: clip.name, json, prompt }
     }

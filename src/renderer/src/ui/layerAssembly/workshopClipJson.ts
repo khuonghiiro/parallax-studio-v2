@@ -1,4 +1,4 @@
-import type { AnimationClip, BoneEasing, BoneKeyframe, LayerBone, MotionViewAngle } from '@shared/layerRig'
+import type { AnimationClip, BoneKeyframe, LayerBone, MotionViewAngle } from '@shared/layerRig'
 import type { PlantSpine, PlantSpinePoint } from '@shared/plantSpine'
 import type { LayerComposite, MotionAnchor, MotionType } from './types'
 import {
@@ -33,6 +33,8 @@ import {
   type CharacterPostureSummary
 } from './workshopClothScanner'
 import { analyzeCutoutParts, extractLayerDimensions } from './workshopCutoutRig'
+import { buildMotionAuthoringGuide, type MotionAuthoringGuide } from './workshopClipAiGuide'
+import { finalizeTracksForPlayback, parseRawKeyframe } from './workshopClipSmoothing'
 
 export {
   isGenericClipName,
@@ -101,6 +103,11 @@ export interface MotionJsonExportFormat {
   /** Tổng hợp tư thế gốc của khung xương, hướng từng chi và cấu trúc trang phục (áo dài che chân hay quần rời) */
   characterPostureAndGarment?: CharacterPostureSummary
   description?: string
+  /**
+   * Hợp đồng cấu trúc cho AI khác: hệ toạ độ, ý nghĩa trường keyframe, mô hình nội suy & FK cha → con,
+   * cây xương thật, biên độ an toàn, quy tắc chuyển động mượt và ví dụ khởi đầu (`workshopClipAiGuide.ts`).
+   */
+  aiAuthoringGuide?: MotionAuthoringGuide
   rigConventions?: {
     coordinateSystem: string
     namingConvention?: {
@@ -181,16 +188,6 @@ export interface MotionJsonExportFormat {
   wind?: MotionWindExportSection
 }
 
-const VALID_EASINGS = new Set<BoneEasing>([
-  'smooth',
-  'linear',
-  'hold',
-  'ease-in',
-  'ease-out',
-  'ease-in-out',
-  'bezier'
-])
-
 const VALID_MOTION_TYPES = new Set<MotionType>(['none', 'sway', 'breathe', 'float', 'wave', 'rocking'])
 const VALID_ANCHORS = new Set<MotionAnchor>(['bottom', 'center', 'top', 'left', 'right'])
 
@@ -213,6 +210,8 @@ export interface ExportClipJsonOptions {
   suggestedName?: string
   viewAngle?: MotionViewAngle
   walkType?: 'in-place' | 'root-motion'
+  /** Đính kèm `aiAuthoringGuide` để AI khác hiểu cấu trúc & tạo động tác mượt (mặc định: true) */
+  includeAiGuide?: boolean
 }
 
 export function exportAnimationClipToJson(
@@ -323,6 +322,9 @@ export function exportAnimationClipToJson(
     fps: clip.fps ?? 30,
     viewAngle,
     description: clip.description || undefined,
+    ...(opts.includeAiGuide !== false
+      ? { aiAuthoringGuide: buildMotionAuthoringGuide(clip, bones, composite, viewAngle) }
+      : {}),
     characterOrientation: buildOrientationGuide(viewAngle, walkType),
     characterPostureAndGarment: postureAndGarment,
     rigConventions: {
@@ -723,46 +725,10 @@ export function parseAnimationClipFromJson(
 
       const keyframes: BoneKeyframe[] = []
       for (const item of val) {
-        if (typeof item !== 'object' || item === null) continue
-        const kf = item as Record<string, unknown>
-
-        const rawTime = kf.time ?? kf.t
-        const time = typeof rawTime === 'number' && !isNaN(rawTime) ? Math.max(0, rawTime) : 0
-        const rawRot = kf.rotation ?? kf.rot ?? kf.angle ?? 0
-        const generalScale = typeof kf.scale === 'number' && !isNaN(kf.scale) ? kf.scale : 1
-        const rawSx = kf.scaleX ?? kf.sx ?? generalScale
-        const rawSy = kf.scaleY ?? kf.sy ?? generalScale
-        const rawZ = kf.zOrder ?? kf.zIndex ?? kf.z ?? kf.layerZ ?? kf.order
-        const parsedZ = rawZ !== undefined && Number.isFinite(Number(rawZ)) ? Number(rawZ) : undefined
-        const rotation =
-          typeof rawRot === 'number' && !isNaN(rawRot) ? Number(rawRot.toFixed(3)) : 0
-        const x = typeof kf.x === 'number' && !isNaN(kf.x) ? Number(kf.x.toFixed(2)) : 0
-        const y = typeof kf.y === 'number' && !isNaN(kf.y) ? Number(kf.y.toFixed(2)) : 0
-        const scaleX =
-          typeof rawSx === 'number' && !isNaN(rawSx) ? Number(rawSx.toFixed(3)) : 1
-        const scaleY =
-          typeof rawSy === 'number' && !isNaN(rawSy) ? Number(rawSy.toFixed(3)) : 1
-
-        let easing: BoneEasing = 'smooth'
-        const rawEase = kf.easing ?? kf.ease
-        if (typeof rawEase === 'string' && VALID_EASINGS.has(rawEase as BoneEasing)) {
-          easing = rawEase as BoneEasing
-        }
-
-        if (time > maxKeyframeTime) {
-          maxKeyframeTime = time
-        }
-
-        keyframes.push({
-          time: Number(time.toFixed(4)),
-          rotation,
-          x,
-          y,
-          scaleX,
-          scaleY,
-          easing,
-          ...(parsedZ !== undefined ? { zOrder: parsedZ } : {})
-        })
+        const parsedKey = parseRawKeyframe(item)
+        if (!parsedKey) continue
+        if (parsedKey.time > maxKeyframeTime) maxKeyframeTime = parsedKey.time
+        keyframes.push(parsedKey)
       }
 
       keyframes.sort((a, b) => a.time - b.time)
@@ -867,6 +833,12 @@ export function parseAnimationClipFromJson(
 
   const loop = typeof data.loop === 'boolean' ? data.loop : true
   const fps = typeof data.fps === 'number' && [12, 24, 30, 60].includes(data.fps) ? data.fps : 30
+
+  // Bắt khung, gộp key trùng, kẹp thời lượng, khép kín vòng lặp & cảnh báo cú giật → phát lại mượt
+  const finalized = finalizeTracksForPlayback(normalizedTracks, { duration, loop, fps })
+  normalizedTracks = finalized.tracks
+  fixesApplied.push(...finalized.fixesApplied)
+  warnings.push(...finalized.warnings)
 
   const clip: AnimationClip = {
     id: `clip-imported-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
