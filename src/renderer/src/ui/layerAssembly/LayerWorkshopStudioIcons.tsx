@@ -542,3 +542,44 @@ export const IconWindSpineStroke = (p: P) => (
     <path d="M11 17c3-1.6 6.5-1.4 9.5.5" />
   </svg>
 )
+
+/** Timeline: nhảy về Keyframe trước (◀◆) */
+export const IconKeyPrev = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M10 6l-6 6 6 6" />
+    <path d="M16.5 7.5 21 12l-4.5 4.5L12 12z" fill="currentColor" />
+  </svg>
+)
+
+/** Timeline: nhảy tới Keyframe sau (◆▶) */
+export const IconKeyNext = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M14 6l6 6-6 6" />
+    <path d="M7.5 7.5 12 12l-4.5 4.5L3 12z" fill="currentColor" />
+  </svg>
+)
+
+/** Timeline: chèn Keyframe (F6) */
+export const IconKeyframeAdd = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M10 4.5 15.5 10 10 15.5 4.5 10z" fill="currentColor" />
+    <path d="M18 14v6M15 17h6" />
+  </svg>
+)
+
+/** Timeline: chèn Frame giữ dáng (F5) */
+export const IconFrameHold = (p: P) => (
+  <svg {...base(p)}>
+    <rect x="3" y="7" width="5" height="10" rx="1" />
+    <rect x="10" y="7" width="5" height="10" rx="1" />
+    <path d="M18 9v6M17 12h4" />
+  </svg>
+)
+
+/** Timeline: xoá Keyframe (F7) */
+export const IconKeyframeDelete = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M10 4.5 15.5 10 10 15.5 4.5 10z" />
+    <path d="M16 16l5 5M21 16l-5 5" />
+  </svg>
+)
