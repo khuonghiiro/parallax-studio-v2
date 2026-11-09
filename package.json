@@ -22,6 +22,7 @@
     "pxs:review": "node mcp-server/cli.mjs review",
     "pxs:status": "node mcp-server/cli.mjs status",
     "assets:prune": "node scripts/prune-assets-manifest.mjs",
+    "ffmpeg:install": "node scripts/ensure-ffmpeg.mjs",
     "prepare": "node scripts/agent-guard.mjs install"
   },
   "dependencies": {

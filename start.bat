@@ -3,6 +3,7 @@ chcp 65001 >nul
 title Parallax Studio
 cd /d "%~dp0"
 set ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/
+set FFMPEG_BINARIES_URL=https://registry.npmmirror.com/-/binary/ffmpeg-static
 
 REM Bo sung cac duong dan chua binary vao PATH (dam bao chay tot ca khi mo tu Windows Explorer)
 set "PATH=%USERPROFILE%\.local\bin;%APPDATA%\npm;%ProgramFiles%\nodejs;%PATH%"
@@ -34,25 +35,30 @@ if %errorlevel% equ 0 (
 echo [Goi quan ly]: %PKG_MGR%
 echo.
 
-REM 3. Tu dong kiem tra va cai dat neu chua co node_modules
-if not exist "%~dp0node_modules\" (
-    echo [THONG BAO] Phat hien chua cai dat thu vien ung dung.
-    echo Dang tu dong tien hanh cai dat lan dau...
+REM 3. Tu dong cai dat khi chua co node_modules HOAC node_modules cai do dang / bi hong.
+REM    Chi kiem tra thu muc node_modules la chua du: lan cai truoc that bai giua chung se de lai
+REM    node_modules thieu .bin\electron-vite -> loi "'electron-vite' is not recognized".
+set NEED_SETUP=0
+if not exist "%~dp0node_modules\" set NEED_SETUP=1
+if not exist "%~dp0node_modules\.bin\electron-vite.cmd" set NEED_SETUP=1
+if "%NEED_SETUP%"=="1" (
+    echo [THONG BAO] Thu vien ung dung chua cai dat hoac cai dat chua hoan tat.
+    echo Dang tu dong tien hanh cai dat...
     echo.
     call "%~dp0setup.bat" --no-pause
-    if %errorlevel% neq 0 (
-        echo [LOI] Cai dat tu dong that bai!
-        echo Nhan phim bat ky de thoat...
-        pause >nul
-        exit /b 1
-    )
-    echo.
+)
+if not exist "%~dp0node_modules\.bin\electron-vite.cmd" (
+    echo [LOI] Cai dat tu dong that bai - thieu node_modules\.bin\electron-vite!
+    echo Hay chay setup.bat de xem chi tiet loi.
+    echo Nhan phim bat ky de thoat...
+    pause >nul
+    exit /b 1
 )
 
 if not exist "%~dp0mcp-server\node_modules\" (
     echo [THONG BAO] Dang cai dat bo sung thu vien MCP Server...
     if "%PKG_MGR%"=="pnpm" (
-        call pnpm --prefix mcp-server install
+        call pnpm install
     ) else (
         call npm run mcp:install
     )
