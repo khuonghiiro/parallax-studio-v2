@@ -366,3 +366,14 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* Cột thanh tra hẹp: ẩn badge số của tab cha chưa chọn để nhãn "Lớp / Xương / Anim & Gió" không bị cắt "L…" */
+@container (max-width: 420px) {
+  .lw-right-column > .lw-right-segmented-tabs .pxs-tab:not(.active) .pxs-tab-badge {
+    display: none;
+  }
+
+  .lw-right-column > .lw-right-segmented-tabs .pxs-tab {
+    padding: 0 5px;
+  }
+}

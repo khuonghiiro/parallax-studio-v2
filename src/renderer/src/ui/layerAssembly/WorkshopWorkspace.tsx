@@ -17,6 +17,7 @@ import { spinesForLayer } from '../../engine/plantSpine'
 import { usePlantClockOffset, usePlantLiveClock } from './usePlantClock'
 import { usePlantSpineEditor } from './plantSpineEditorStore'
 import { useWorkshopSubTab } from './workshopSubTabStore'
+import { useWorkshopLoopActions } from './useWorkshopLoopActions'
 import { grabbedSpine } from './plantSpineEdit'
 import { toggleMotionSketchArmed } from './motionSketchStore'
 import { buildManipulateTestRig, type BoneOverlayProps } from './WorkshopBoneOverlay'
@@ -347,6 +348,8 @@ export function WorkshopWorkspace({
     restPose: isLayersOrBonesTab && !isManipulatingRigTest
   }
 
+  const loopActions = useWorkshopLoopActions(state, playback, onSelectTab ?? (() => {}))
+
   const props = {
     composite,
     selectedLayerId: state.selectedLayerId,
@@ -355,6 +358,7 @@ export function WorkshopWorkspace({
     onUpdateLayer: state.update,
     onAddLayerFromAsset: state.add,
     onAppendPresetLayers: state.append,
+    onAddLoopTemplateAt: loopActions.addLoopTemplateById,
     time: evalTime,
     tab,
     onSelectTab
