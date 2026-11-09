@@ -12,4 +12,4 @@ Thực hiện commit trực tiếp trên nhánh session hiện tại:
 5. Commit bằng định dạng tiếng Việt:
    `git commit -m "[loại] (phạm vi): mô tả chi tiết bằng tiếng Việt có dấu"`
    (Ví dụ: `git commit -m "[sửa lỗi] (layer): sửa lỗi vị trí @import trong photoStudio.css"`, `[tính năng] (photoStudio): thêm thanh công cụ rail Photoshop`).
-6. Tiếp tục làm việc trên nhánh session này cho các yêu cầu tiếp theo trong session. TUYỆT ĐỐI KHÔNG tự động chuyển về `main` và merge sau mỗi logic đơn lẻ. Chỉ khi chuyển sang session mới (hoặc có yêu cầu từ user) mới hợp nhất nhánh vào `main` bằng `--no-ff`.
+6. Tiếp tục làm việc trên nhánh session này cho các yêu cầu tiếp theo trong session. TUYỆT ĐỐI KHÔNG tự động chuyển về `master` và merge sau mỗi logic đơn lẻ. Chỉ khi chuyển sang session mới (hoặc có yêu cầu từ user) mới hợp nhất nhánh vào `master` bằng `--no-ff`.

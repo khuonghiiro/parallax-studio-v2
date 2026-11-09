@@ -1,6 +1,6 @@
 ---
 name: ak:git
-description: "Git operations with Vietnamese commit format and session-driven branch lifecycle. Auto-splits commits, creates session branches, merges --no-ff to main on new session, security scans for secrets."
+description: "Git operations with Vietnamese commit format and session-driven branch lifecycle. Auto-splits commits, creates session branches, merges --no-ff to master on new session, security scans for secrets."
 user-invocable: true
 when_to_use: "Invoke for commits, PRs, stacked PRs, branch hygiene, or release git steps."
 category: workflow
@@ -40,10 +40,10 @@ only for an actual context/budget problem.
 - `cm`: Stage files & create commits
 - `cp`: Stage files, create commits and push
 - `pr`: Create Pull Request [to-branch] [from-branch]
-  - `to-branch`: Target branch (default: main)
+  - `to-branch`: Target branch (default: master)
   - `from-branch`: Source branch (default: current branch)
 - `merge`: Merge [to-branch] [from-branch]
-  - `to-branch`: Target branch (default: main)
+  - `to-branch`: Target branch (default: master)
   - `from-branch`: Source branch (default: current branch)
 - `merge-pr`: Merge PR [pr-ref] via `gh`, then watch post-merge CI until green and verify
   - `pr-ref`: PR number or URL (required)

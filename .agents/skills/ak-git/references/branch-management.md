@@ -2,9 +2,9 @@
 
 ## 1. Nguyên Tắc Cốt Lõi: Nhánh Theo Session Hội Thoại
 - Vòng đời tạo nhánh và hợp nhất nhánh **gắn liền với từng Session cuộc hội thoại (hoặc phiên làm việc)**.
-- **TUYỆT ĐỐI TRÁNH:** Vừa xử lý xong 1 logic con/tác vụ nhỏ đã vội vàng tạo nhánh mới rồi hợp nhất ngay vào `main`, gây rối loạn và rác lịch sử git bằng hàng loạt nhánh và merge commit vụn vặt không cần thiết trong cùng một phiên trao đổi.
+- **TUYỆT ĐỐI TRÁNH:** Vừa xử lý xong 1 logic con/tác vụ nhỏ đã vội vàng tạo nhánh mới rồi hợp nhất ngay vào `master`, gây rối loạn và rác lịch sử git bằng hàng loạt nhánh và merge commit vụn vặt không cần thiết trong cùng một phiên trao đổi.
 - **Trong 1 session cuộc hội thoại:** Mọi xử lý code, sửa lỗi, thêm tính năng đều làm việc trên **duy nhất 1 nhánh của session đó**. Trong quá trình trao đổi khi có xử lý gì đó, các commit đã được phân loại rõ ràng qua định dạng tiếng Việt chuẩn (`[tính năng]`, `[sửa lỗi]`, `[chỉnh sửa]`, `[giao diện]`, `[tái cấu trúc]`, `[hiệu năng]`, `[kiểm thử]`, `[dọn dẹp]`...).
-- **CHỈ KHI chuyển sang session cuộc hội thoại mới:** AI mới tiến hành hợp nhất nhánh của session trước đó vào `main` (hoặc `master`) bằng cờ `--no-ff`, kéo code mới nhất, và tạo một nhánh mới từ `main` cho session mới đó.
+- **CHỈ KHI chuyển sang session cuộc hội thoại mới:** AI mới tiến hành hợp nhất nhánh của session trước đó vào `master` (hoặc `master`) bằng cờ `--no-ff`, kéo code mới nhất, và tạo một nhánh mới từ `master` cho session mới đó.
 
 ## 2. Quy Tắc Đặt Tên Nhánh Theo Chủ Đề Session
 Mỗi nhánh mới bắt buộc thể hiện rõ loại hành động và chủ đề chính của session:
@@ -21,19 +21,19 @@ Mỗi nhánh mới bắt buộc thể hiện rõ loại hành động và chủ 
 
 ## 3. Vòng Đời Nhánh & Chu Trình Hợp Nhất (Session Lifecycle & Clean Merge)
 
-Mục đích: Đóng gói toàn bộ thành quả của từng session hội thoại vào một merge commit `--no-ff` duy nhất trên `main`. Nếu toàn bộ session đó sau này phát sinh lỗi hoặc không dùng, người dùng hoặc AI có thể dễ dàng loại bỏ hoàn toàn sạch sẽ session đó ra khỏi `main` (bằng `git revert -m 1 <merge-commit>`) mà không ảnh hưởng tới các session khác.
+Mục đích: Đóng gói toàn bộ thành quả của từng session hội thoại vào một merge commit `--no-ff` duy nhất trên `master`. Nếu toàn bộ session đó sau này phát sinh lỗi hoặc không dùng, người dùng hoặc AI có thể dễ dàng loại bỏ hoàn toàn sạch sẽ session đó ra khỏi `master` (bằng `git revert -m 1 <merge-commit>`) mà không ảnh hưởng tới các session khác.
 
 ### Bước 1: Khởi Tạo Nhánh Khi Bắt Đầu Session Mới
 Khi người dùng mở một phiên làm việc mới:
 1. Kiểm tra trạng thái git hiện tại: Nếu đang ở nhánh session cũ và có commit chưa hợp nhất:
-   - Chuyển về `main` (`git checkout main`)
-   - Kéo mới nhất (`git pull origin main`)
-   - Hợp nhất nhánh session cũ: `git merge <nhánh-session-cũ> --no-ff -m "[hợp nhất] nhánh '<nhánh-session-cũ>' vào main"`
-   - Đẩy lên remote: `git push origin main`
-2. Tạo nhánh mới cho session hiện tại từ `main` sạch sẽ:
+   - Chuyển về `main` (`git checkout master`)
+   - Kéo mới nhất (`git pull origin master`)
+   - Hợp nhất nhánh session cũ: `git merge <nhánh-session-cũ> --no-ff -m "[hợp nhất] nhánh '<nhánh-session-cũ>' vào master"`
+   - Đẩy lên remote: `git push origin master`
+2. Tạo nhánh mới cho session hiện tại từ `master` sạch sẽ:
 ```bash
-git checkout main
-git pull origin main
+git checkout master
+git pull origin master
 git checkout -b <hành-động>/<tên-chủ-đề-session>
 # Ví dụ: git checkout -b edit/responsive-workflow
 ```
@@ -50,29 +50,29 @@ git commit -m "[loại] (phạm vi): mô tả chi tiết bằng tiếng Việt c
 # Ví dụ: git commit -m "[tính năng] (ui): thêm nút chia nhỏ timeline"
 ```
 - Có thể đẩy nhánh session lên remote (`git push origin <tên-nhánh>`) để lưu vết an toàn.
-- **CẤM:** Không tự ý merge vào `main` hay nhảy sang nhánh mới sau mỗi logic đơn lẻ khi vẫn đang trong cùng một session!
+- **CẤM:** Không tự ý merge vào `master` hay nhảy sang nhánh mới sau mỗi logic đơn lẻ khi vẫn đang trong cùng một session!
 
 ### Bước 3: Hợp Nhất Vào Main Khi Chuyển Sang Session Mới
-Chỉ khi người dùng chuyển sang session cuộc hội thoại mới (hoặc có yêu cầu rõ ràng "merge nhánh vào main"):
+Chỉ khi người dùng chuyển sang session cuộc hội thoại mới (hoặc có yêu cầu rõ ràng "merge nhánh vào master"):
 ```bash
 # 1. Chuyển về main
-git checkout main
-git pull origin main
+git checkout master
+git pull origin master
 
 # 2. Hợp nhất nhánh session với merge commit tường minh (--no-ff)
-git merge <hành-động>/<tên-chủ-đề-session> --no-ff -m "[hợp nhất] nhánh '<hành-động>/<tên-chủ-đề-session>' vào main"
+git merge <hành-động>/<tên-chủ-đề-session> --no-ff -m "[hợp nhất] nhánh '<hành-động>/<tên-chủ-đề-session>' vào master"
 
 # 3. Đẩy nhánh main lên remote
-git push origin main
+git push origin master
 
 # 4. Đẩy nhánh session lên remote (nếu cần lưu vết)
 git push origin <hành-động>/<tên-chủ-đề-session>
 ```
 
 ### Bước 4: Tạo Nhánh Mới Cho Session Tiếp Theo
-Từ `main` vừa hợp nhất và sạch sẽ, tạo nhánh mới cho session tiếp theo:
+Từ `master` vừa hợp nhất và sạch sẽ, tạo nhánh mới cho session tiếp theo:
 ```bash
-git checkout main
+git checkout master
 git checkout -b <hành-động-mới>/<chủ-đề-session-mới>
 ```
 
@@ -80,10 +80,10 @@ git checkout -b <hành-động-mới>/<chủ-đề-session-mới>
 Nhờ có merge commit `--no-ff`, nếu toàn bộ session bị lỗi hoặc không dùng nữa:
 ```bash
 # Hoàn tác toàn bộ session chỉ bằng 1 lệnh revert merge commit:
-git revert -m 1 <merge-commit-hash> -m "[hoàn tác] loại bỏ nhánh <tên-nhánh> khỏi main"
-git push origin main
+git revert -m 1 <merge-commit-hash> -m "[hoàn tác] loại bỏ nhánh <tên-nhánh> khỏi master"
+git push origin master
 ```
-Toàn bộ code của session đó sẽ được loại bỏ sạch sẽ khỏi `main` mà không làm hỏng lịch sử của các session khác!
+Toàn bộ code của session đó sẽ được loại bỏ sạch sẽ khỏi `master` mà không làm hỏng lịch sử của các session khác!
 
 ## 5. Các Lệnh Tiện Ích
 | Tác vụ | Lệnh Git |

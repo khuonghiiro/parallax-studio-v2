@@ -17,7 +17,7 @@
 - `[giao diện]`: Tinh chỉnh CSS, màu sắc, bố cục giao diện, theme (thay thế `style`)
 - `[tài liệu]`: Cập nhật tài liệu, hướng dẫn, README, AGENTS.md (thay thế `docs`)
 - `[kiểm thử]`: Bổ sung hoặc sửa unit tests, E2E tests (thay thế `test`)
-- `[hợp nhất]`: Merge commit từ nhánh logic vào main
+- `[hợp nhất]`: Merge commit từ nhánh session vào master
 
 ## Quy Tắc Bắt Buộc
 - **Viết bằng tiếng Việt CÓ DẤU** rõ ràng, chuẩn xác.
@@ -37,7 +37,7 @@
 - `[tái cấu trúc] (engine): tách module SceneRenderer khỏi viewer chính`
 - `[hiệu năng] (viewer): tối ưu texture LRU pool và khử giật lag canvas`
 - `[dọn dẹp]: cập nhật gitignore và cấu hình agent-guard`
-- `[hợp nhất] nhánh 'edit/ai-ui' vào main`
+- `[hợp nhất] nhánh 'edit/ai-ui' vào master`
 
 ## Ví Dụ Không Đúng Chuẩn
 - ❌ `Updated files` (không đúng định dạng và không mô tả rõ)
