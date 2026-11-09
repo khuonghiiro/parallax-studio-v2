@@ -1,75 +1,91 @@
-# Quản Lý Nhánh Git Theo Logic (Logic-Driven Branch Management)
+# Quản Lý Nhánh Git Theo Phiên Hội Thoại (Session-Driven Branch Management)
 
-## 1. Quy Tắc Đặt Tên Nhánh Theo Phân Loại Hành Động
-Mỗi nhánh mới bắt buộc thể hiện rõ loại hành động và logic cụ thể cần thực hiện:
+## 1. Nguyên Tắc Cốt Lõi: Nhánh Theo Session Hội Thoại
+- Vòng đời tạo nhánh và hợp nhất nhánh **gắn liền với từng Session cuộc hội thoại (hoặc phiên làm việc)**.
+- **TUYỆT ĐỐI TRÁNH:** Vừa xử lý xong 1 logic con/tác vụ nhỏ đã vội vàng tạo nhánh mới rồi hợp nhất ngay vào `main`, gây rối loạn và rác lịch sử git bằng hàng loạt nhánh và merge commit vụn vặt không cần thiết trong cùng một phiên trao đổi.
+- **Trong 1 session cuộc hội thoại:** Mọi xử lý code, sửa lỗi, thêm tính năng đều làm việc trên **duy nhất 1 nhánh của session đó**. Trong quá trình trao đổi khi có xử lý gì đó, các commit đã được phân loại rõ ràng qua định dạng tiếng Việt chuẩn (`[tính năng]`, `[sửa lỗi]`, `[chỉnh sửa]`, `[giao diện]`, `[tái cấu trúc]`, `[hiệu năng]`, `[kiểm thử]`, `[dọn dẹp]`...).
+- **CHỈ KHI chuyển sang session cuộc hội thoại mới:** AI mới tiến hành hợp nhất nhánh của session trước đó vào `main` (hoặc `master`) bằng cờ `--no-ff`, kéo code mới nhất, và tạo một nhánh mới từ `main` cho session mới đó.
 
-**Định dạng:** `<hành-động>/<tên-logic-kebab-case>`
+## 2. Quy Tắc Đặt Tên Nhánh Theo Chủ Đề Session
+Mỗi nhánh mới bắt buộc thể hiện rõ loại hành động và chủ đề chính của session:
+
+**Định dạng:** `<hành-động>/<tên-chủ-đề-session-kebab-case>`
 
 | Tiền tố hành động | Mục đích | Ví dụ |
 |-------------------|----------|-------|
-| `fix/` | Sửa lỗi, khắc phục bug | `fix/photo-studio-import-css` |
-| `add/` (hoặc `feat/`) | Thêm mới tính năng, công cụ, module | `add/ai-ui`, `add/loop-animator-presets` |
-| `edit/` (hoặc `refactor/`) | Chỉnh sửa, điều chỉnh, tái cấu trúc logic | `edit/ai-ui`, `edit/layer-assembly-rig` |
-| `remove/` (hoặc `delete/`) | Xoá bỏ code rác, file thừa, tài nguyên cũ | `remove/unused-assets` |
-| `perf/` | Tối ưu hóa hiệu năng, FPS, bộ nhớ | `perf/viewer-canvas-60fps` |
+| `fix/` | Session tập trung sửa lỗi, khắc phục bug | `fix/photo-studio-import-css`, `fix/timeline-audio-sync` |
+| `add/` (hoặc `feat/`) | Session tập trung thêm tính năng, công cụ, module mới | `feat/mixamo-dopesheet`, `add/loop-animator-presets` |
+| `edit/` (hoặc `refactor/`) | Session chỉnh sửa, điều chỉnh, tái cấu trúc logic | `edit/responsive-workflow`, `edit/ai-ui`, `refactor/layer-assembly-rig` |
+| `remove/` (hoặc `delete/`) | Session dọn dẹp, xoá bỏ code rác, file thừa | `remove/unused-assets` |
+| `perf/` | Session tối ưu hóa hiệu năng, 60fps, bộ nhớ | `perf/viewer-canvas-60fps` |
 
-## 2. Vòng Đời Nhánh & Chu Trình Hợp Nhất Vào Main (Branch Lifecycle & Clean Merge)
+## 3. Vòng Đời Nhánh & Chu Trình Hợp Nhất (Session Lifecycle & Clean Merge)
 
-Mục đích: Phân loại rành mạch từng logic công việc. Khi nhánh hoàn tất sẽ merge vào `main` bằng `--no-ff`. Nếu nhánh đó sau này phát sinh lỗi hoặc không dùng, người dùng hoặc AI có thể dễ dàng loại bỏ hoàn toàn sạch sẽ nhánh đó ra khỏi `main` (bằng `git revert -m 1 <merge-commit>`) mà không ảnh hưởng tới các nhánh logic khác.
+Mục đích: Đóng gói toàn bộ thành quả của từng session hội thoại vào một merge commit `--no-ff` duy nhất trên `main`. Nếu toàn bộ session đó sau này phát sinh lỗi hoặc không dùng, người dùng hoặc AI có thể dễ dàng loại bỏ hoàn toàn sạch sẽ session đó ra khỏi `main` (bằng `git revert -m 1 <merge-commit>`) mà không ảnh hưởng tới các session khác.
 
-### Bước 1: Khởi Tạo Nhánh Từ Main Sạch Sẽ
-Luôn bắt đầu từ nhánh chính (`main` hoặc `master`) đã cập nhật mới nhất:
+### Bước 1: Khởi Tạo Nhánh Khi Bắt Đầu Session Mới
+Khi người dùng mở một phiên làm việc mới:
+1. Kiểm tra trạng thái git hiện tại: Nếu đang ở nhánh session cũ và có commit chưa hợp nhất:
+   - Chuyển về `main` (`git checkout main`)
+   - Kéo mới nhất (`git pull origin main`)
+   - Hợp nhất nhánh session cũ: `git merge <nhánh-session-cũ> --no-ff -m "[hợp nhất] nhánh '<nhánh-session-cũ>' vào main"`
+   - Đẩy lên remote: `git push origin main`
+2. Tạo nhánh mới cho session hiện tại từ `main` sạch sẽ:
 ```bash
 git checkout main
 git pull origin main
-git checkout -b <hành-động>/<tên-logic>
-# Ví dụ: git checkout -b edit/ai-ui
+git checkout -b <hành-động>/<tên-chủ-đề-session>
+# Ví dụ: git checkout -b edit/responsive-workflow
 ```
 
-### Bước 2: Phát Triển & Kiểm Tra Chất Lượng (Quality Gates)
-Chỉ thực hiện các thay đổi thuộc đúng logic của nhánh đó. Sau khi sửa:
+### Bước 2: Phát Triển & Commit Trong Suốt Session (Quality Gates)
+Mọi trao đổi, yêu cầu sửa đổi, thêm tính năng TRONG CÙNG SESSION đều được thực hiện trên nhánh session này.
+Sau mỗi lần giải quyết xong một yêu cầu / logic nhỏ:
 - Chạy `pnpm verify` (esbuild + typecheck).
 - Chạy unit test liên quan (`pnpm test`).
-- Chụp ảnh toàn màn hình Visual QA (`pnpm pxs review --view app`).
-- Commit trên nhánh logic bằng format tiếng Việt:
+- Chụp ảnh toàn màn hình Visual QA (`pnpm pxs review --view app`) nếu app đang mở.
+- Commit trực tiếp trên nhánh session bằng format tiếng Việt:
 ```bash
-git commit -m "[sửa lỗi] (layer): sửa lỗi vị trí @import trong photoStudio.css"
+git commit -m "[loại] (phạm vi): mô tả chi tiết bằng tiếng Việt có dấu"
+# Ví dụ: git commit -m "[tính năng] (ui): thêm nút chia nhỏ timeline"
 ```
+- Có thể đẩy nhánh session lên remote (`git push origin <tên-nhánh>`) để lưu vết an toàn.
+- **CẤM:** Không tự ý merge vào `main` hay nhảy sang nhánh mới sau mỗi logic đơn lẻ khi vẫn đang trong cùng một session!
 
-### Bước 3: Hợp Nhất Vào Main Bằng `--no-ff` (No Fast-Forward)
-Khi hoàn tất logic đó (hoặc chuẩn bị chuyển sang một logic khác):
+### Bước 3: Hợp Nhất Vào Main Khi Chuyển Sang Session Mới
+Chỉ khi người dùng chuyển sang session cuộc hội thoại mới (hoặc có yêu cầu rõ ràng "merge nhánh vào main"):
 ```bash
 # 1. Chuyển về main
 git checkout main
 git pull origin main
 
-# 2. Hợp nhất nhánh logic với merge commit tường minh (--no-ff)
-git merge <hành-động>/<tên-logic> --no-ff -m "[hợp nhất] nhánh '<hành-động>/<tên-logic>' vào main"
+# 2. Hợp nhất nhánh session với merge commit tường minh (--no-ff)
+git merge <hành-động>/<tên-chủ-đề-session> --no-ff -m "[hợp nhất] nhánh '<hành-động>/<tên-chủ-đề-session>' vào main"
 
 # 3. Đẩy nhánh main lên remote
 git push origin main
 
-# 4. Đẩy nhánh logic lên remote (nếu cần lưu vết)
-git push origin <hành-động>/<tên-logic>
+# 4. Đẩy nhánh session lên remote (nếu cần lưu vết)
+git push origin <hành-động>/<tên-chủ-đề-session>
 ```
 
-### Bước 4: Tạo Nhánh Mới Cho Logic Tiếp Theo
-Từ `main` vừa hợp nhất và sạch sẽ, tạo nhánh mới cho logic mới:
+### Bước 4: Tạo Nhánh Mới Cho Session Tiếp Theo
+Từ `main` vừa hợp nhất và sạch sẽ, tạo nhánh mới cho session tiếp theo:
 ```bash
 git checkout main
-git checkout -b <hành-động-mới>/<logic-mới>
+git checkout -b <hành-động-mới>/<chủ-đề-session-mới>
 ```
 
-## 3. Cách Loại Bỏ Nhánh Bị Lỗi Ra Khỏi Main (Rollback / Drop Branch)
-Nhờ có merge commit `--no-ff`, nếu nhánh logic bị lỗi hoặc không dùng nữa:
+## 4. Cách Loại Bỏ Session Bị Lỗi Ra Khỏi Main (Rollback / Drop Session)
+Nhờ có merge commit `--no-ff`, nếu toàn bộ session bị lỗi hoặc không dùng nữa:
 ```bash
-# Hoàn tác toàn bộ nhánh chỉ bằng 1 lệnh revert merge commit:
+# Hoàn tác toàn bộ session chỉ bằng 1 lệnh revert merge commit:
 git revert -m 1 <merge-commit-hash> -m "[hoàn tác] loại bỏ nhánh <tên-nhánh> khỏi main"
 git push origin main
 ```
-Toàn bộ code của nhánh đó sẽ được loại bỏ sạch sẽ khỏi `main` mà không làm hỏng lịch sử của các logic khác!
+Toàn bộ code của session đó sẽ được loại bỏ sạch sẽ khỏi `main` mà không làm hỏng lịch sử của các session khác!
 
-## 4. Các Lệnh Tiện Ích
+## 5. Các Lệnh Tiện Ích
 | Tác vụ | Lệnh Git |
 |--------|----------|
 | Xem tất cả nhánh | `git branch -a` |

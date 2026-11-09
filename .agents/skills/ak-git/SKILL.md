@@ -1,6 +1,6 @@
 ---
 name: ak:git
-description: "Git operations with Vietnamese commit format and logic-driven branch lifecycle. Auto-splits commits, creates logic branches, merges --no-ff to main, security scans for secrets."
+description: "Git operations with Vietnamese commit format and session-driven branch lifecycle. Auto-splits commits, creates session branches, merges --no-ff to main on new session, security scans for secrets."
 user-invocable: true
 when_to_use: "Invoke for commits, PRs, stacked PRs, branch hygiene, or release git steps."
 category: workflow
