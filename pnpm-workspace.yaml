@@ -2,7 +2,9 @@ packages:
   - '.'
   - 'mcp-server'
 
+# ffmpeg-static: KHÔNG chạy postinstall trong `pnpm install` (tải từ GitHub dễ timeout sau proxy/mạng nội bộ
+# làm hỏng toàn bộ quá trình cài đặt và không tạo được node_modules/.bin → lỗi 'electron-vite' is not recognized).
+# Binary ffmpeg được tải tuỳ chọn, không chặn cài đặt, qua `pnpm ffmpeg:install` (scripts/ensure-ffmpeg.mjs, có mirror).
 allowBuilds:
   esbuild: true
-  ffmpeg-static: true
-
+  ffmpeg-static: false

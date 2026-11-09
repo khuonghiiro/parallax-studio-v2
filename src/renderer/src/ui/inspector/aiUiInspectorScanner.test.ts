@@ -545,7 +545,7 @@ describe('aiUiInspectorScanner', () => {
     const mockButton = {
       tagName: 'BUTTON',
       classList: { contains: () => false },
-      closest: () => mockButton,
+      closest: (sel: string) => (sel.includes('.ai-') ? null : mockButton),
       matches: () => false
     } as unknown as Element
 
@@ -553,7 +553,7 @@ describe('aiUiInspectorScanner', () => {
       tagName: 'DIV',
       style: { pointerEvents: 'auto' },
       classList: { contains: () => false },
-      closest: (sel: string) => (sel === '.ai-ui-inspector-barrier' ? mockBarrier : null)
+      closest: (sel: string) => (sel.includes('.ai-ui-inspector-barrier') ? mockBarrier : null)
     } as unknown as Element
 
     let callCount = 0
@@ -565,6 +565,9 @@ describe('aiUiInspectorScanner', () => {
     const found = findElementsInBox({ left: 10, top: 10, width: 2, height: 2 })
     expect(found.length).toBe(1)
     expect(found[0]).toBe(mockButton)
+
+    // Marquee: hit-test không xác định (null) → không loại phần tử nào vì che khuất
+    ;(globalThis as any).document.elementFromPoint = vi.fn().mockReturnValue(null)
 
     const popupMenuItem = {
       tagName: 'BUTTON',

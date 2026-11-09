@@ -1,0 +1,450 @@
+/* ==========================================================================
+   AI UI Inspector — HUD chế độ quét: lớp chắn, viền neon, badge, marquee, tâm ngắm, toast kết quả
+   Dùng Design Tokens (variables.css), hỗ trợ Dark & Light.
+   ========================================================================== */
+
+body.ai-ui-inspector-active {
+  cursor: crosshair !important;
+  user-select: none !important;
+}
+
+/* 1. Lớp chắn khoá toàn bộ UI để tránh thao tác nhầm vào app */
+.ai-ui-inspector-barrier {
+  position: fixed;
+  inset: 0;
+  z-index: 999980;
+  pointer-events: auto !important;
+  cursor: crosshair !important;
+  background:
+    radial-gradient(ellipse at center, transparent 55%, rgba(2, 6, 23, 0.22) 100%),
+    rgba(15, 23, 42, 0.1);
+  user-select: none;
+}
+
+/* 2. Viền neon + góc ngắm + vạch quét toàn màn hình */
+.ai-ui-inspector-screen-frame {
+  --hud-c: var(--accent-cyan, #38bdf8);
+  position: fixed;
+  inset: 0;
+  z-index: 999985;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 1.5px var(--hud-c), inset 0 0 36px color-mix(in srgb, var(--hud-c) 28%, transparent);
+  animation: aiHudFramePulse 2.4s infinite ease-in-out;
+}
+
+.ai-ui-inspector-screen-glow {
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(0deg, color-mix(in srgb, var(--hud-c) 4%, transparent) 0 1px, transparent 1px 4px);
+  opacity: 0.55;
+}
+
+.ai-ui-inspector-screen-scanline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 120px;
+  top: -120px;
+  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--hud-c) 9%, transparent) 85%, color-mix(in srgb, var(--hud-c) 40%, transparent));
+  animation: aiHudScanline 3.2s linear infinite;
+}
+
+.ai-ui-inspector-screen-corner {
+  position: absolute;
+  width: 34px;
+  height: 34px;
+  border: 0 solid var(--hud-c);
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--hud-c) 70%, transparent));
+}
+
+.ai-ui-inspector-screen-corner.corner-tl { top: 6px; left: 6px; border-width: 3px 0 0 3px; }
+.ai-ui-inspector-screen-corner.corner-tr { top: 6px; right: 6px; border-width: 3px 3px 0 0; }
+.ai-ui-inspector-screen-corner.corner-bl { bottom: 6px; left: 6px; border-width: 0 0 3px 3px; }
+.ai-ui-inspector-screen-corner.corner-br { bottom: 6px; right: 6px; border-width: 0 3px 3px 0; }
+
+/* 3. Badge chế độ quét — tự né chuột top/bottom */
+.ai-ui-inspector-arm-hud {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px 7px 14px;
+  background: color-mix(in srgb, var(--bg-1, #111827) 88%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-cyan, #38bdf8) 55%, var(--line, #334155));
+  border-radius: var(--radius-md, 6px);
+  box-shadow: 0 10px 30px rgba(2, 6, 23, 0.45), 0 0 18px color-mix(in srgb, var(--accent-cyan, #38bdf8) 30%, transparent);
+  backdrop-filter: blur(10px) saturate(1.2);
+  color: var(--text, #f8fafc);
+  font-size: 12px;
+  font-weight: 600;
+  pointer-events: none;
+  z-index: 999996;
+  white-space: nowrap;
+  transition: top 0.22s cubic-bezier(0.16, 1, 0.3, 1), bottom 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: aiHudSlideDown 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ai-ui-inspector-arm-hud.is-bottom {
+  top: auto;
+  bottom: 22px;
+}
+
+.ai-ui-inspector-arm-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent-cyan, #38bdf8);
+  box-shadow: 0 0 8px var(--accent-cyan, #38bdf8);
+  animation: aiHudDotPulse 1.2s infinite ease-in-out;
+}
+
+.ai-ui-inspector-arm-icon {
+  color: var(--accent-cyan, #38bdf8);
+}
+
+.ai-ui-inspector-arm-title {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: var(--accent-cyan, #38bdf8);
+}
+
+.ai-ui-inspector-arm-desc {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-dim, #94a3b8);
+}
+
+.ai-ui-inspector-arm-hud kbd {
+  display: inline-block;
+  padding: 2px 6px;
+  background: var(--bg-3, #0f172a);
+  border: 1px solid var(--line-soft, rgba(255, 255, 255, 0.15));
+  border-radius: var(--radius-sm, 4px);
+  font-family: var(--font-mono, monospace);
+  font-size: 10.5px;
+  color: var(--text, #e2e8f0);
+}
+
+.ai-ui-inspector-arm-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  background: transparent;
+  border: 1px solid var(--line-soft, transparent);
+  color: var(--text-dim, #94a3b8);
+  font-size: 13px;
+  cursor: pointer;
+  pointer-events: auto;
+  border-radius: var(--radius-sm, 4px);
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
+}
+
+.ai-ui-inspector-arm-close:hover {
+  background: color-mix(in srgb, var(--accent) 14%, var(--bg-3));
+  border-color: var(--line-soft);
+  color: var(--text);
+}
+
+/* 4. Marquee khung quét + thước kích thước */
+.ai-ui-inspector-marquee {
+  --mq-c: var(--accent-cyan, #38bdf8);
+  position: fixed;
+  border: 1px dashed color-mix(in srgb, var(--mq-c) 85%, transparent);
+  background:
+    repeating-linear-gradient(0deg, color-mix(in srgb, var(--mq-c) 8%, transparent) 0 1px, transparent 1px 12px),
+    repeating-linear-gradient(90deg, color-mix(in srgb, var(--mq-c) 8%, transparent) 0 1px, transparent 1px 12px),
+    color-mix(in srgb, var(--mq-c) 10%, transparent);
+  box-shadow: 0 0 22px color-mix(in srgb, var(--mq-c) 35%, transparent), inset 0 0 18px color-mix(in srgb, var(--mq-c) 16%, transparent);
+  pointer-events: none;
+  z-index: 999995;
+}
+
+.ai-ui-inspector-marquee .mq-corner {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border: 0 solid var(--mq-c);
+  filter: drop-shadow(0 0 4px var(--mq-c));
+}
+
+.ai-ui-inspector-marquee .mq-corner.tl { top: -2px; left: -2px; border-width: 2.5px 0 0 2.5px; }
+.ai-ui-inspector-marquee .mq-corner.tr { top: -2px; right: -2px; border-width: 2.5px 2.5px 0 0; }
+.ai-ui-inspector-marquee .mq-corner.bl { bottom: -2px; left: -2px; border-width: 0 0 2.5px 2.5px; }
+.ai-ui-inspector-marquee .mq-corner.br { bottom: -2px; right: -2px; border-width: 0 2.5px 2.5px 0; }
+
+.ai-ui-inspector-badge {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: -2px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  background: color-mix(in srgb, var(--bg-1, #0f172a) 90%, transparent);
+  border: 1px solid color-mix(in srgb, var(--mq-c) 55%, var(--line, #334155));
+  border-radius: var(--radius-sm, 4px);
+  color: var(--text, #e2e8f0);
+  font-family: var(--font-mono, monospace);
+  font-size: 10.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(2, 6, 23, 0.4);
+}
+
+.ai-ui-inspector-badge span {
+  color: var(--mq-c);
+}
+
+.ai-ui-inspector-badge .ai-ui-inspector-badge-pos {
+  color: var(--text-dim, #94a3b8);
+  font-weight: 500;
+}
+
+/* 4b. Tâm ngắm theo chuột (cập nhật qua CSS var --x / --y) */
+.ai-ui-inspector-crosshair {
+  --x: -100px;
+  --y: -100px;
+  --ch-c: color-mix(in srgb, var(--accent-cyan, #38bdf8) 55%, transparent);
+  position: fixed;
+  inset: 0;
+  z-index: 999984;
+  pointer-events: none;
+}
+
+.ai-ui-inspector-crosshair-h,
+.ai-ui-inspector-crosshair-v {
+  position: absolute;
+  background-image: linear-gradient(90deg, var(--ch-c) 50%, transparent 50%);
+}
+
+.ai-ui-inspector-crosshair-h {
+  left: 0;
+  right: 0;
+  top: var(--y);
+  height: 1px;
+  background-size: 8px 1px;
+}
+
+.ai-ui-inspector-crosshair-v {
+  top: 0;
+  bottom: 0;
+  left: var(--x);
+  width: 1px;
+  background-image: linear-gradient(180deg, var(--ch-c) 50%, transparent 50%);
+  background-size: 1px 8px;
+}
+
+.ai-ui-inspector-crosshair-reticle {
+  position: absolute;
+  left: calc(var(--x) - 9px);
+  top: calc(var(--y) - 9px);
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid var(--accent-cyan, #38bdf8);
+  border-radius: 50%;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--accent-cyan, #38bdf8) 60%, transparent);
+}
+
+.ai-ui-inspector-crosshair-coords {
+  position: absolute;
+  left: calc(var(--x) + 14px);
+  top: calc(var(--y) + 14px);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm, 4px);
+  background: color-mix(in srgb, var(--bg-1, #0f172a) 88%, transparent);
+  border: 1px solid var(--line-soft, rgba(255, 255, 255, 0.12));
+  color: var(--accent-cyan, #38bdf8);
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+/* 5. Toast kết quả — cố định trên cùng giữa màn hình (nhãn quét tự né vùng này) */
+.ai-ui-inspector-toast {
+  --t-c: var(--accent-cyan, #38bdf8);
+  position: fixed;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  max-width: min(640px, calc(100vw - 32px));
+  padding: 9px 10px 11px 14px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--bg-1, #111827) 90%, transparent);
+  border: 1px solid color-mix(in srgb, var(--t-c) 55%, var(--line, #334155));
+  border-radius: var(--radius-md, 6px);
+  box-shadow: 0 12px 32px rgba(2, 6, 23, 0.5), 0 0 22px color-mix(in srgb, var(--t-c) 26%, transparent);
+  backdrop-filter: blur(12px) saturate(1.25);
+  color: var(--text, #f8fafc);
+  font-size: 13px;
+  pointer-events: auto;
+  z-index: 999999;
+  animation: aiHudToastIn 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ai-ui-inspector-toast-icon {
+  flex: 0 0 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm, 4px);
+  color: var(--t-c);
+  background: color-mix(in srgb, var(--t-c) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--t-c) 40%, transparent);
+}
+
+.ai-ui-inspector-toast-msg {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ai-ui-inspector-toast-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 650;
+  color: var(--text, #f8fafc);
+}
+
+.ai-ui-inspector-toast-count {
+  padding: 1px 6px;
+  border-radius: var(--radius-sm, 4px);
+  background: color-mix(in srgb, var(--t-c) 16%, transparent);
+  color: var(--t-c);
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.ai-ui-inspector-toast-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 11px;
+  color: var(--text-dim, #94a3b8);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ai-ui-inspector-toast-hint b {
+  padding: 0 4px;
+  border-radius: var(--radius-sm, 4px);
+  background: var(--key, #f59e0b);
+  color: var(--on-key, #0f172a);
+  font-family: var(--font-mono, monospace);
+  font-size: 8.5px;
+  letter-spacing: 0.08em;
+}
+
+.ai-ui-inspector-toast-hint code {
+  font-family: var(--font-mono, monospace);
+  font-size: 10.5px;
+  color: var(--t-c);
+}
+
+.ai-ui-inspector-toast-btn {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 30px;
+  padding: 5px 12px;
+  background: color-mix(in srgb, var(--t-c) 16%, var(--bg-2));
+  border: 1px solid color-mix(in srgb, var(--t-c) 45%, var(--line));
+  border-radius: var(--radius-sm, 4px);
+  color: var(--t-c);
+  font-size: 11.5px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ai-ui-inspector-toast-btn:hover {
+  background: color-mix(in srgb, var(--t-c) 78%, #0f172a);
+  color: #ffffff;
+}
+
+.ai-ui-inspector-toast-progress {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 2px;
+  width: 100%;
+  background: linear-gradient(90deg, var(--t-c), var(--key, #f59e0b));
+  transform-origin: left center;
+  animation: aiHudToastProgress 6.5s linear forwards;
+}
+
+.ai-ui-inspector-toast:hover .ai-ui-inspector-toast-progress {
+  animation-play-state: paused;
+}
+
+[data-theme='light'] .ai-ui-inspector-arm-hud,
+[data-theme='light'] .ai-ui-inspector-toast {
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.18);
+}
+
+[data-theme='light'] .ai-ui-inspector-barrier {
+  background: radial-gradient(ellipse at center, transparent 55%, rgba(15, 23, 42, 0.12) 100%), rgba(15, 23, 42, 0.05);
+}
+
+@media (max-width: 768px) {
+  .ai-ui-inspector-arm-desc,
+  .ai-ui-inspector-arm-hud kbd:first-of-type,
+  .ai-ui-inspector-toast-paste {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-ui-inspector-screen-frame,
+  .ai-ui-inspector-screen-scanline,
+  .ai-ui-inspector-arm-dot {
+    animation: none !important;
+  }
+}
+
+@keyframes aiHudFramePulse {
+  0%, 100% { box-shadow: inset 0 0 0 1.5px var(--hud-c), inset 0 0 30px color-mix(in srgb, var(--hud-c) 22%, transparent); }
+  50% { box-shadow: inset 0 0 0 1.5px var(--hud-c), inset 0 0 52px color-mix(in srgb, var(--hud-c) 40%, transparent); }
+}
+
+@keyframes aiHudScanline {
+  from { top: -120px; }
+  to { top: 100%; }
+}
+
+@keyframes aiHudDotPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.8); }
+}
+
+@keyframes aiHudSlideDown {
+  from { opacity: 0; transform: translate(-50%, -10px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+@keyframes aiHudToastIn {
+  from { opacity: 0; transform: translate(-50%, -12px) scale(0.98); }
+  to { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
+
+@keyframes aiHudToastProgress {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}

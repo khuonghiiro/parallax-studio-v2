@@ -1,318 +1,106 @@
-import {
-  formatFriendlyDialogLabel,
-  formatFriendlyRegionLabel
-} from './aiUiInspectorWorkshopContext'
+import { formatFriendlyDialogLabel, formatFriendlyRegionLabel } from './aiUiInspectorWorkshopContext'
 import type { AiInspectorSnapshot, ScannedElementContext } from './aiUiInspectorScanner'
+import { formatElementsSection, formatFocusSection, formatWorkshopSection } from './aiUiInspectorMarkdownSections'
 
-function shortFileRef(fileInfo: string | null | undefined): string | null {
-  if (!fileInfo) return null
-  const parts = fileInfo.replace(/\\/g, '/').split('/')
-  return parts[parts.length - 1] || fileInfo
+export { formatControlSpecsLine } from './aiUiInspectorMarkdownSections'
+
+/**
+ * Báo cáo Markdown của AI UI Inspector (copy vào Clipboard, dán cho AI).
+ * Thứ tự ưu tiên token: hướng dẫn AI → bảng "Mở ngay" (file:dòng chính xác) → tâm điểm → xưởng → chi tiết → trạng thái.
+ */
+
+function escapeCell(text: string): string {
+  return text.replace(/\|/g, '\\|').replace(/\s+/g, ' ').trim()
 }
 
-function formatControlSpecsLine(item: ScannedElementContext): string | null {
-  const cd = item.controlDetails
-  if (!cd) return null
-  const parts: string[] = []
-  if (cd.fieldLabel) {
-    parts.push(`Nhãn: "${cd.fieldLabel}${cd.axis ? ` (${cd.axis})` : ''}"`)
-  } else if (cd.axis) {
-    parts.push(`Trục: ${cd.axis}`)
-  }
-  if (cd.currentValue) {
-    parts.push(`Giá trị: \`${cd.currentValue}\``)
-  }
-  if (cd.rangeSpec) {
-    parts.push(`Phạm vi: \`${cd.rangeSpec}\``)
-  }
-  if (cd.propBinding) {
-    parts.push(`Store PropRef: \`${cd.propBinding}\``)
-  }
-  if (cd.optionsSummary) {
-    parts.push(`Tuỳ chọn: [${cd.optionsSummary}]`)
-  }
-  if (cd.primitiveName) {
-    const pFile = cd.primitiveFile ? ` (\`${cd.primitiveFile}\`)` : ''
-    parts.push(`UI Control gốc: \`<${cd.primitiveName}>\`${pFile}`)
-  }
-  return parts.length > 0 ? parts.join(' · ') : null
+function elementHeading(item: ScannedElementContext): string {
+  const raw = item.text || item.controlDetails?.fieldLabel || item.title || `<${item.tagName}>`
+  return raw.length > 42 ? `${raw.slice(0, 40)}…` : raw
+}
+
+/** Component sở hữu + file:dòng ước lượng từ Fiber (khi khác dòng JSX chính xác). */
+function ownerCell(item: ScannedElementContext): string {
+  const owner = item.ownerComponentName ? `\`<${item.ownerComponentName}>\`` : ''
+  const file = item.primaryFile && item.primaryFile !== item.sourceLocation ? ` \`${item.primaryFile}\`` : ''
+  return `${owner}${file}`.trim() || '—'
+}
+
+/**
+ * Bảng "Mở ngay": mỗi dòng = 1 phần tử với file:dòng JSX chính xác, component sở hữu và CSS — AI mở thẳng,
+ * không cần grep / đọc luồng xử lý.
+ */
+export function formatJumpTable(elements: ScannedElementContext[]): string[] {
+  if (elements.length === 0) return []
+  const lines = [
+    '#### ⚡ Mở ngay (Jump-to-code):',
+    '| # | Thành phần | JSX render (file:dòng) | Component / Call-site | CSS |',
+    '|---|---|---|---|---|'
+  ]
+  elements.slice(0, 8).forEach((item, idx) => {
+    const jsx = item.sourceLocation
+      ? `\`${item.sourceLocation}\``
+      : item.primaryFile
+        ? `≈ \`${item.primaryFile}\``
+        : '—'
+    const css = item.cssSources?.length ? item.cssSources.slice(0, 2).map((c) => `\`${c}\``).join('<br>') : '—'
+    const name = `"${escapeCell(elementHeading(item))}" (${escapeCell(item.kindLabel)})`
+    lines.push(`| ${idx + 1}${idx === 0 ? ' 🎯' : ''} | ${name} | ${jsx} | ${escapeCell(ownerCell(item))} | ${css} |`)
+  })
+  lines.push('')
+  return lines
+}
+
+function formatSurfaceLine(item: ScannedElementContext | undefined): string | null {
+  const s = item?.surface
+  if (!s || s.kind === 'main') return null
+  const src = s.source ? ` · Gốc JSX: \`${s.source}\`` : ''
+  return `${s.chain.join(' › ')} — Selector: \`${s.selector}\`${src}`
+}
+
+function formatHeader(snapshot: AiInspectorSnapshot): string[] {
+  const { rect, elements, primaryRegion, appState } = snapshot
+  const now = new Date()
+  const pad = (n: number): string => n.toString().padStart(2, '0')
+  const timeStr = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`
+  const lines = [
+    '### 🎯 NGỮ CẢNH GIAO DIỆN (AI UI INSPECTOR)',
+    '> 🤖 **AI:** mở thẳng các `file:dòng` trong bảng "Mở ngay" bên dưới — KHÔNG cần grep / đọc luồng xử lý để dò vị trí. `JSX render` là dòng chính xác đã vẽ phần tử; `≈` là ước lượng từ React Fiber.',
+    `> 📍 **Vùng quét:** ${rect.width} × ${rect.height}px tại (${rect.left}, ${rect.top}) | Khu vực MCP: \`${primaryRegion}\` (${formatFriendlyRegionLabel(primaryRegion)})`
+  ]
+  const surfaceLine = formatSurfaceLine(elements[0])
+  if (surfaceLine) lines.push(`> 🪟 **Bề mặt đang quét:** ${surfaceLine}`)
+  lines.push(`> 🕒 **Thời điểm:** ${timeStr} | Giao diện: \`${appState.theme}\``)
+  lines.push('')
+  return lines
+}
+
+function formatStudioState(appState: AiInspectorSnapshot['appState']): string[] {
+  const layers = appState.selectedLayerNames.length > 0 ? appState.selectedLayerNames.join(', ') : 'Chưa chọn layer nào'
+  const dialog = appState.activeDialog
+    ? `\`${appState.activeDialog}\` (${formatFriendlyDialogLabel(appState.activeDialog)})`
+    : 'Không có (Màn hình chính)'
+  return [
+    '#### ⚙️ Trạng thái Studio lúc quét:',
+    `- 🎬 **Cảnh:** ${appState.shotName} (Cảnh ${appState.shotIndex}) | ⏱️ **Playhead:** ${appState.currentTime}s / ${appState.duration}s (${appState.fps}fps) | ${appState.isPlaying ? '▶️ Đang phát' : '⏸️ Đang dừng'}`,
+    `- 📌 **Layer đang chọn:** ${layers}`,
+    `- 💬 **Hộp thoại / Xưởng:** ${dialog}`,
+    '',
+    '---',
+    '*(Gửi đoạn này cho AI để AI nhảy thẳng vào đúng file và hàm xử lý!)*'
+  ]
 }
 
 /**
  * Biên soạn báo cáo Markdown chuyên biệt để lưu vào Clipboard gửi cho AI đọc code tức thì.
  */
 export function formatAiInspectorMarkdown(snapshot: AiInspectorSnapshot): string {
-  const { rect, elements, primaryRegion, workshopContext, appState } = snapshot
-  const now = new Date()
-  const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now
-    .getMinutes()
-    .toString()
-    .padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`
-
-  const lines: string[] = []
-  lines.push('### 🎯 NGỮ CẢNH GIAO DIỆN (AI UI INSPECTOR)')
-  lines.push(
-    `> 📍 **Vùng quét:** ${rect.width} × ${rect.height}px tại (${rect.left}, ${rect.top}) | Khu vực MCP: \`${primaryRegion}\` (${formatFriendlyRegionLabel(primaryRegion)})`
-  )
-  lines.push(`> 🕒 **Thời điểm:** ${timeStr} | Giao diện: \`${appState.theme}\``)
-  lines.push('')
-
-  // 1. Khối Tâm điểm sửa code (AI Focus Target) — giúp AI nhảy thẳng vào đúng file và logic cần sửa
-  const focusItem = elements[0]
-  if (focusItem || workshopContext?.relatedFiles?.length) {
-    lines.push('#### 🎯 Tâm điểm cần sửa (AI Focus Target):')
-    if (focusItem) {
-      const isV2Card =
-        focusItem.classes.includes('wf-v2-card') ||
-        (Boolean(focusItem.workflowNode) && focusItem.tagName === 'div')
-      const focusTitle = focusItem.text
-        ? `"${focusItem.text}"`
-        : focusItem.controlDetails?.fieldLabel
-          ? `"${focusItem.controlDetails.fieldLabel}"`
-          : focusItem.title
-            ? `[${focusItem.title}]`
-            : `<${focusItem.tagName}>`
-      const sel =
-        focusItem.controlDetails?.targetSelector ||
-        (focusItem.id ? `#${focusItem.id}` : focusItem.tagName)
-      if (isV2Card && focusItem.workflowNode) {
-        lines.push(
-          `- **Thẻ Node trọng tâm:** **"${focusItem.workflowNode.title}"** (${focusItem.workflowNode.levelLabel} · \`id="${focusItem.workflowNode.nodeId}"\`) — Selector: \`${sel}\``
-        )
-      } else {
-        lines.push(
-          `- **Control trọng tâm:** **${focusTitle}** (${focusItem.kindLabel}) — Selector: \`${sel}\``
-        )
-      }
-      if (focusItem.primaryFile) {
-        const ownerSuffix = focusItem.ownerComponentName
-          ? ` (trong component \`<${focusItem.ownerComponentName}>\`)`
-          : ''
-        lines.push(`- **File & dòng logic cần sửa:** \`${focusItem.primaryFile}\`${ownerSuffix}`)
-      }
-      if (focusItem.sceneEntity) {
-        const se = focusItem.sceneEntity
-        lines.push(
-          `- **Đối tượng Cảnh / Khung BBox đang chọn:** **${se.displayName}** (\`id="${se.layerId}"\` · ${se.bboxRoleLabel} · ${se.isFocused ? '🎯 Đang Focus BBox' : 'Trong vùng quét'})`
-        )
-        lines.push(`- **Tọa độ & Biến đổi 3D/2.5D:** ${se.coordsSummary}`)
-        if (se.clusterSummary) {
-          const cs = se.clusterSummary
-          lines.push(
-            `- **Thông tin Cụm 2.5D:** Cụm "${cs.clusterName}" (\`instanceId="${cs.instanceId}"\`, ${cs.memberCount} mảnh · Phạm vi BBox: ${se.bboxScope === 'cluster' ? 'Toàn bộ cụm 2.5D' : `Riêng mảnh "${cs.partShortName}"`})`
-          )
-        }
-        if (se.connectedLogicSummaries && se.connectedLogicSummaries.length > 0) {
-          lines.push(
-            `- **Các Node Logic Workflow V2 đang gắn:** ${se.connectedLogicSummaries.join(', ')}`
-          )
-        }
-        if (se.relatedFiles.length > 0) {
-          lines.push(
-            `- **File xử lý Khung nhìn / BBox liên quan:** ${se.relatedFiles.map((f) => `\`${f}\``).join(', ')}`
-          )
-        }
-      }
-      if (focusItem.workflowNode) {
-        const wn = focusItem.workflowNode
-        lines.push(
-          `- **Node Workflow V2 đang thao tác:** **"${wn.title}"** (\`id="${wn.nodeId}"\` · ${wn.levelLabel} · Thời gian: \`${wn.timeRange}\`)`
-        )
-        lines.push(`- **Đối tượng đích của Node:** ${wn.targetSummary} · Tóm tắt: ${wn.summaryText}`)
-        lines.push(
-          `- **File Inspector & Engine của Node:** UI: \`${wn.inspectorSourceFile}\` · Engine: \`${wn.engineSourceFile}\``
-        )
-      }
-      const specsLine = formatControlSpecsLine(focusItem)
-      if (specsLine) {
-        lines.push(`- **Thông số & trạng thái Control:** ${specsLine}`)
-      }
-      if (focusItem.primaryHandler) {
-        lines.push(`- **Hàm xử lý chính:** \`${focusItem.primaryHandler}\``)
-      }
-      if (focusItem.linkedTarget) {
-        const lt = focusItem.linkedTarget
-        const subStr = lt.subFiles?.length
-          ? ` · File con: ${lt.subFiles.map((f) => `\`${f}\``).join(', ')}`
-          : ''
-        lines.push(
-          `- **Hộp thoại / Module đích liên kết:** \`<${lt.name}>\` tại \`${lt.file}\` (${lt.description})${subStr}`
-        )
-      }
-    }
-    if (workshopContext?.relatedFiles?.length) {
-      lines.push(
-        `- **Các file của Hộp thoại / Xưởng đang mở:** ${workshopContext.relatedFiles.map((f) => `\`${f}\``).join(', ')}`
-      )
-    }
-    lines.push('')
-  }
-
-  // 2. Ngữ cảnh Xưởng / Hộp thoại đang mở
-  if (workshopContext) {
-    lines.push(`#### 🛠️ Ngữ cảnh ${workshopContext.workshopTitle}:`)
-    lines.push(
-      `- **Mẫu / Đối tượng đang mở:** "${workshopContext.modelName}" (\`${workshopContext.modelId}\`)${workshopContext.canvasSize ? ` · Khung: ${workshopContext.canvasSize}` : ''}`
-    )
-    if (workshopContext.primaryModeLabel || workshopContext.activeTabLabel) {
-      const countsStr =
-        typeof workshopContext.totalLayers === 'number'
-          ? ` (${workshopContext.totalLayers} bộ phận, ${workshopContext.totalBones ?? 0} xương)`
-          : ''
-      lines.push(
-        `- **Chế độ / Tab:** ${workshopContext.primaryModeLabel || ''}${workshopContext.activeTabLabel ? ` · Tab: **${workshopContext.activeTabLabel}**` : ''}${countsStr}`
-      )
-    }
-    if (workshopContext.relatedFiles?.length) {
-      lines.push(
-        `- **File mã nguồn Hộp thoại / Xưởng:** ${workshopContext.relatedFiles.map((f) => `\`${f}\``).join(', ')}`
-      )
-    }
-    if (workshopContext.scannedParts.length > 0) {
-      lines.push(
-        `- **Các bộ phận 2.5D trong vùng quét (${workshopContext.scannedParts.length}):**`
-      )
-      for (const p of workshopContext.scannedParts) {
-        const boneStr = p.boneName
-          ? `Gắn xương "${p.boneName}" (\`${p.boneId}\`, ${p.bindingMode === 'soft' ? 'Uốn mềm Mesh' : 'Khớp cứng'})`
-          : 'Chưa gắn xương'
-        lines.push(
-          `  * ${p.roleIcon} **#${p.orderIndex} "${p.name}"** (\`${p.id}\` · ${p.roleLabel}) — Tọa độ: \`(${p.x}, ${p.y})\`, Độ sâu \`Z: ${p.z}px\`, Scale: \`${p.scale}\`, Xoay: \`${p.rotation}°\` | ${boneStr}`
-        )
-      }
-    }
-    if (workshopContext.scannedBones.length > 0) {
-      lines.push(`- **Khớp xương 2.5D liên quan (${workshopContext.scannedBones.length}):**`)
-      for (const b of workshopContext.scannedBones) {
-        lines.push(
-          `  * 🦴 **"${b.name}"** (\`${b.id}\`) — Gốc \`(${b.x}, ${b.y})\`, Dài \`${b.length}px\`, Góc \`${b.angle}°\`, Cha: \`${b.parentName || 'Gốc'}\` | Bộ phận gắn: ${b.boundLayerNames.join(', ') || 'Chưa gắn'}`
-        )
-      }
-    }
-    if (workshopContext.extraSummaryLines?.length) {
-      for (const l of workshopContext.extraSummaryLines) {
-        lines.push(`- ${l}`)
-      }
-    }
-    lines.push('')
-  }
-
-  // 3. Danh sách thành phần giao diện được chọn
-  if (elements.length === 0) {
-    lines.push('*Không phát hiện phần tử tương tác nào trong vùng quét này.*')
-  } else {
-    lines.push(`#### 🧩 Thành phần giao diện được chọn (${elements.length}):`)
-    elements.forEach((item, idx) => {
-      const rawHeading = item.text || item.controlDetails?.fieldLabel || item.title || 'Phần tử'
-      const label = item.text ? `"${item.text}"` : `[${rawHeading}]`
-      let tagDesc = `<${item.tagName}${item.id ? ` id="${item.id}"` : ''}>`
-      if (!item.id && item.classes.length > 0) {
-        const keyClass =
-          item.classes.find(
-            (c) =>
-              c.startsWith('wf-v2-') ||
-              c.startsWith('lw-') ||
-              c.startsWith('btn-') ||
-              c.startsWith('tb-') ||
-              c.startsWith('custom-select-')
-          ) || item.classes[0]
-        if (keyClass) {
-          tagDesc = `<${item.tagName} class="${keyClass}">`
-        }
-      }
-      const focusBadge = idx === 0 && elements.length > 1 ? ' · 🎯 **Tâm điểm**' : ''
-      lines.push(
-        `${idx + 1}. **${label}** (${item.kindLabel || 'Thành phần'}) — \`${tagDesc}\`${focusBadge}`
-      )
-
-      if (item.sceneEntity) {
-        const se = item.sceneEntity
-        lines.push(
-          `   - 🎬 **Chi tiết Layer / Cụm 2.5D:** \`id="${se.layerId}"\` · ${se.bboxRoleLabel} · ${se.isFocused ? '🎯 Đang Focus BBox' : 'Trong vùng quét'} · ${se.coordsSummary}`
-        )
-        if (se.clusterSummary) {
-          lines.push(
-            `   - 🧩 **Thuộc Cụm 2.5D:** "${se.clusterSummary.clusterName}" (\`instanceId="${se.clusterSummary.instanceId}"\`, ${se.clusterSummary.memberCount} mảnh · Chế độ BBox: ${se.bboxScope === 'cluster' ? 'Toàn cụm' : `Mảnh "${se.clusterSummary.partShortName}"`})`
-          )
-        }
-      }
-      if (item.workflowNode) {
-        const wn = item.workflowNode
-        lines.push(
-          `   - 🔗 **Node Workflow V2:** "${wn.title}" (\`id="${wn.nodeId}"\` · ${wn.levelLabel}) · Đích: ${wn.targetSummary} · UI: \`${wn.inspectorSourceFile}\` · Engine: \`${wn.engineSourceFile}\``
-        )
-      }
-      if (item.part25D) {
-        const p = item.part25D
-        lines.push(
-          `   - 🧩 **Chi tiết Bộ phận 2.5D:** \`id="${p.id}"\` · Vai trò: ${p.roleLabel} · Vị trí: \`(${p.x}, ${p.y}, Z:${p.z})\` · Scale: \`${p.scale}\` · ${p.boneName ? `Xương: "${p.boneName}" (${p.bindingMode})` : 'Chưa gắn xương'}`
-        )
-      }
-      if (item.bone25D) {
-        const b = item.bone25D
-        lines.push(
-          `   - 🦴 **Chi tiết Xương 2.5D:** \`id="${b.id}"\` · Dài: \`${b.length}px\` · Góc: \`${b.angle}°\` · Cha: \`${b.parentName || 'Gốc'}\``
-        )
-      }
-      if (item.primaryFile) {
-        const ownerNote = item.ownerComponentName ? ` (trong \`<${item.ownerComponentName}>\`)` : ''
-        lines.push(`   - 📂 **File nguồn:** \`${item.primaryFile}\`${ownerNote}`)
-      }
-      const specsLine = formatControlSpecsLine(item)
-      if (specsLine) {
-        lines.push(`   - 🎛️ **Thông số Control:** ${specsLine}`)
-      }
-      if (item.primaryHandler) {
-        lines.push(`   - ⚡ **Hàm xử lý:** \`${item.primaryHandler}\``)
-      }
-      if (item.linkedTarget) {
-        const lt = item.linkedTarget
-        lines.push(
-          `   - 🪟 **Hộp thoại / Module đích:** \`<${lt.name}>\` (\`${lt.file}\`) — ${lt.description}`
-        )
-      }
-      if (item.componentChain.length > 0) {
-        const chainStr = item.componentChain
-          .slice(0, 5)
-          .map((c) => {
-            const sf = shortFileRef(c.fileInfo)
-            return sf ? `<${c.componentName}> (\`${sf}\`)` : `<${c.componentName}>`
-          })
-          .join(' ➔ ')
-        lines.push(`   - 🧱 **Cây Component:** ${chainStr}`)
-      }
-      if (item.title && item.title !== rawHeading) {
-        lines.push(`   - 💡 **Tooltip / Title:** "${item.title}"`)
-      }
-      if (item.classes.length > 0 || item.controlDetails?.targetSelector) {
-        const selPart = item.controlDetails?.targetSelector
-          ? `Selector: \`${item.controlDetails.targetSelector}\` · `
-          : ''
-        const clsPart =
-          item.classes.length > 0 ? `Classes: \`${item.classes.slice(0, 5).join(' ')}\`` : ''
-        lines.push(`   - 🎨 **CSS / Định danh:** ${selPart}${clsPart}`)
-      }
-      lines.push('')
-    })
-  }
-
-  lines.push('#### ⚙️ Trạng thái Studio lúc quét:')
-  lines.push(
-    `- 🎬 **Cảnh:** ${appState.shotName} (Cảnh ${appState.shotIndex}) | ⏱️ **Playhead:** ${appState.currentTime}s / ${appState.duration}s (${appState.fps}fps) | ${appState.isPlaying ? '▶️ Đang phát' : '⏸️ Đang dừng'}`
-  )
-  lines.push(
-    `- 📌 **Layer đang chọn:** ${
-      appState.selectedLayerNames.length > 0
-        ? appState.selectedLayerNames.join(', ')
-        : 'Chưa chọn layer nào'
-    }`
-  )
-  lines.push(
-    `- 💬 **Hộp thoại / Xưởng:** ${appState.activeDialog ? `\`${appState.activeDialog}\` (${formatFriendlyDialogLabel(appState.activeDialog)})` : 'Không có (Màn hình chính)'}`
-  )
-  lines.push('')
-  lines.push('---')
-  lines.push('*(Gửi đoạn này cho AI để AI nhảy thẳng vào đúng file và hàm xử lý!)*')
-
-  return lines.join('\n')
+  const { elements, workshopContext, appState } = snapshot
+  return [
+    ...formatHeader(snapshot),
+    ...formatJumpTable(elements),
+    ...formatFocusSection(elements[0], workshopContext),
+    ...formatWorkshopSection(workshopContext),
+    ...formatElementsSection(elements),
+    ...formatStudioState(appState)
+  ].join('\n')
 }

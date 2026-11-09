@@ -352,6 +352,13 @@ export function AiUiInspectorPreviewModal({
                             </div>
                           )}
 
+                          {item.sourceLocation && (
+                            <div className="ai-ui-element-row highlight">
+                              <span className="ai-ui-row-label">JSX render:</span>
+                              <span className="ai-ui-row-code">{item.sourceLocation}</span>
+                            </div>
+                          )}
+
                           {item.primaryFile && (
                             <div className="ai-ui-element-row highlight">
                               <span className="ai-ui-row-label">Vị trí sửa logic:</span>
@@ -359,6 +366,20 @@ export function AiUiInspectorPreviewModal({
                                 {item.primaryFile}
                                 {item.ownerComponentName ? ` (<${item.ownerComponentName}>)` : ''}
                               </span>
+                            </div>
+                          )}
+
+                          {item.cssSources && item.cssSources.length > 0 && (
+                            <div className="ai-ui-element-row">
+                              <span className="ai-ui-row-label">File CSS:</span>
+                              <span className="ai-ui-row-code">{item.cssSources.join(' · ')}</span>
+                            </div>
+                          )}
+
+                          {item.surface && item.surface.kind !== 'main' && (
+                            <div className="ai-ui-element-row">
+                              <span className="ai-ui-row-label">Bề mặt:</span>
+                              <span className="ai-ui-row-val">{item.surface.chain.join(' › ')}</span>
                             </div>
                           )}
 

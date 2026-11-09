@@ -1,4 +1,5 @@
 import type { ElementFiberInfo } from './aiUiInspectorScanner'
+import { readFiberPropsSource } from './aiUiInspectorSourceLocator'
 
 export interface LinkedTargetModule {
   name: string
@@ -158,6 +159,9 @@ export function summarizeHandlerFunction(key: string, fn: Function): string {
 
 function extractDebugSourceFile(fiber: any): string | null {
   if (!fiber) return null
+  // Chính xác nhất: `data-ai-src` do Babel plugin dev chèn vào JSX (host = nơi viết thẻ, component = call-site)
+  const exact = readFiberPropsSource(fiber.memoizedProps || fiber.pendingProps)
+  if (exact) return exact
   if (fiber._debugSource && fiber._debugSource.fileName) {
     const fn = String(fiber._debugSource.fileName).replace(/\\/g, '/')
     const norm = fn.includes('src/') ? fn.slice(fn.indexOf('src/')) : fn
