@@ -1,0 +1,356 @@
+/* ==========================================================================
+   AI UI Inspector — Hiệu ứng HUD sau khi quét (vùng quét, khung mục tiêu, nhãn + đường dẫn vuông góc)
+   Dùng Design Tokens (variables.css), chạy tốt cả Dark & Light. Toàn bộ lớp này pointer-events: none.
+   ========================================================================== */
+
+.ai-ui-scan-fx-layer {
+  --scan-c: var(--accent-cyan, #38bdf8);
+  --scan-k: var(--key, #f59e0b);
+  --scan-glass: color-mix(in srgb, var(--bg-1, #111827) 86%, transparent);
+  --scan-line: color-mix(in srgb, var(--scan-c) 42%, var(--line, #334155));
+  position: fixed;
+  inset: 0;
+  z-index: 999990;
+  pointer-events: none !important;
+  font-family: var(--font-ui, Inter, system-ui, sans-serif);
+  animation: aiScanLayerOut 6.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.ai-ui-scan-fx-layer * {
+  pointer-events: none !important;
+}
+
+/* Người dùng rê chuột vào toast → giữ nguyên hiệu ứng để đọc nhãn */
+.ai-ui-scan-fx-layer.is-held {
+  animation-play-state: paused;
+}
+
+/* ---------- Góc ngắm dùng chung (vùng quét + mục tiêu) ---------- */
+.ai-ui-scan-corner {
+  --cs: 10px;
+  --cw: 2px;
+  --cc: var(--scan-c);
+  position: absolute;
+  width: var(--cs);
+  height: var(--cs);
+  border: 0 solid var(--cc);
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--cc) 70%, transparent));
+}
+
+.ai-ui-scan-corner.tl { top: -1px; left: -1px; border-width: var(--cw) 0 0 var(--cw); }
+.ai-ui-scan-corner.tr { top: -1px; right: -1px; border-width: var(--cw) var(--cw) 0 0; }
+.ai-ui-scan-corner.bl { bottom: -1px; left: -1px; border-width: 0 0 var(--cw) var(--cw); }
+.ai-ui-scan-corner.br { bottom: -1px; right: -1px; border-width: 0 var(--cw) var(--cw) 0; }
+
+/* ---------- Vùng quét ---------- */
+.ai-ui-scan-region {
+  position: fixed;
+  border: 1px solid color-mix(in srgb, var(--scan-c) 30%, transparent);
+  background:
+    repeating-linear-gradient(0deg, color-mix(in srgb, var(--scan-c) 9%, transparent) 0 1px, transparent 1px 16px),
+    repeating-linear-gradient(90deg, color-mix(in srgb, var(--scan-c) 9%, transparent) 0 1px, transparent 1px 16px),
+    color-mix(in srgb, var(--scan-c) 5%, transparent);
+  overflow: visible;
+  animation: aiScanRegionIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) both, aiScanRegionFade 2.4s ease-out 0.4s forwards;
+}
+
+.ai-ui-scan-region > .ai-ui-scan-corner {
+  --cs: 18px;
+  --cw: 2.5px;
+}
+
+.ai-ui-scan-beam {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--scan-c) 18%, #ffffff 50%, var(--scan-c) 82%, transparent);
+  box-shadow: 0 0 14px 3px color-mix(in srgb, var(--scan-c) 55%, transparent);
+  animation: aiScanBeam 1.05s cubic-bezier(0.65, 0, 0.35, 1) 0.08s both;
+}
+
+.ai-ui-scan-region-chip {
+  position: absolute;
+  left: -1px;
+  bottom: calc(100% + 6px);
+  padding: 3px 8px;
+  border-radius: var(--radius-sm, 4px);
+  background: var(--scan-glass);
+  border: 1px solid var(--scan-line);
+  color: var(--scan-c);
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  backdrop-filter: blur(6px);
+  animation: aiScanFadeIn 0.3s ease-out 0.15s both;
+}
+
+/* ---------- Khung mục tiêu ---------- */
+.ai-ui-scan-target {
+  position: fixed;
+  box-sizing: border-box;
+  border: 1px dashed color-mix(in srgb, var(--scan-c) 55%, transparent);
+  background: color-mix(in srgb, var(--scan-c) 8%, transparent);
+  border-radius: 2px;
+  animation: aiScanTargetLock 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--i, 0) * 70ms + 0.22s);
+}
+
+.ai-ui-scan-target.is-primary {
+  border-color: color-mix(in srgb, var(--scan-k) 70%, transparent);
+  background: color-mix(in srgb, var(--scan-k) 10%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--scan-k) 22%, transparent), 0 0 18px color-mix(in srgb, var(--scan-k) 30%, transparent);
+}
+
+.ai-ui-scan-target.is-primary > .ai-ui-scan-corner {
+  --cc: var(--scan-k);
+  --cs: 12px;
+}
+
+/* ---------- Đường dẫn vuông góc nét đứt ---------- */
+.ai-ui-scan-leaders {
+  position: fixed;
+  inset: 0;
+  overflow: visible;
+}
+
+.ai-ui-scan-leader-group {
+  --lc: var(--scan-c);
+}
+
+.ai-ui-scan-leader-group.is-primary {
+  --lc: var(--scan-k);
+}
+
+.ai-ui-scan-leader-trace,
+.ai-ui-scan-leader {
+  fill: none;
+  stroke: var(--lc);
+  stroke-linejoin: miter;
+  stroke-linecap: square;
+}
+
+.ai-ui-scan-leader-trace {
+  stroke-width: 1.6;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  filter: drop-shadow(0 0 3px var(--lc));
+  animation: aiScanTrace 0.5s cubic-bezier(0.65, 0, 0.35, 1) forwards, aiScanTraceFade 0.4s ease-out forwards;
+  animation-delay: calc(var(--i, 0) * 70ms + 0.3s), calc(var(--i, 0) * 70ms + 0.85s);
+}
+
+.ai-ui-scan-leader {
+  stroke-width: 1.15;
+  stroke-dasharray: 5 4;
+  opacity: 0;
+  animation: aiScanFadeIn 0.3s ease-out forwards, aiScanDashFlow 0.9s linear infinite;
+  animation-delay: calc(var(--i, 0) * 70ms + 0.75s), 0s;
+}
+
+.ai-ui-scan-leader-anchor,
+.ai-ui-scan-leader-end {
+  fill: var(--lc);
+  opacity: 0;
+  filter: drop-shadow(0 0 4px var(--lc));
+  animation: aiScanFadeIn 0.2s ease-out forwards;
+  animation-delay: calc(var(--i, 0) * 70ms + 0.3s);
+}
+
+.ai-ui-scan-leader-end {
+  animation-delay: calc(var(--i, 0) * 70ms + 0.75s);
+}
+
+/* ---------- Nhãn thông tin ---------- */
+.ai-ui-scan-label {
+  position: fixed;
+  box-sizing: border-box;
+  display: flex;
+  align-items: stretch;
+  overflow: hidden;
+  border-radius: var(--radius-md, 6px);
+  background: var(--scan-glass);
+  border: 1px solid var(--scan-line);
+  box-shadow: 0 10px 28px rgba(2, 6, 23, 0.45), inset 0 1px 0 color-mix(in srgb, #ffffff 6%, transparent);
+  backdrop-filter: blur(10px) saturate(1.2);
+  color: var(--text, #e2e8f0);
+  opacity: 0;
+  animation: aiScanLabelInRight 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-delay: calc(var(--i, 0) * 70ms + 0.72s);
+}
+
+.ai-ui-scan-label.side-left {
+  animation-name: aiScanLabelInLeft;
+}
+
+.ai-ui-scan-label::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 30%, color-mix(in srgb, var(--scan-c) 16%, transparent) 50%, transparent 70%);
+  transform: translateX(-100%);
+  animation: aiScanSheen 0.9s ease-out forwards;
+  animation-delay: calc(var(--i, 0) * 70ms + 0.95s);
+}
+
+.ai-ui-scan-label.is-primary {
+  border-color: color-mix(in srgb, var(--scan-k) 60%, var(--line, #334155));
+  box-shadow: 0 10px 28px rgba(2, 6, 23, 0.45), 0 0 16px color-mix(in srgb, var(--scan-k) 22%, transparent);
+}
+
+.ai-ui-scan-label-idx {
+  flex: 0 0 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--scan-c);
+  background: color-mix(in srgb, var(--scan-c) 12%, transparent);
+  border-right: 1px solid var(--scan-line);
+}
+
+.ai-ui-scan-label.is-primary .ai-ui-scan-label-idx {
+  color: var(--scan-k);
+  background: color-mix(in srgb, var(--scan-k) 14%, transparent);
+}
+
+.ai-ui-scan-label-body {
+  min-width: 0;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  padding: 4px 10px;
+}
+
+.ai-ui-scan-label-title,
+.ai-ui-scan-label-sub {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ai-ui-scan-label-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+.ai-ui-scan-label-focus {
+  flex: 0 0 auto;
+  padding: 1px 5px;
+  border-radius: var(--radius-sm, 4px);
+  background: var(--scan-k);
+  color: var(--on-key, #0f172a);
+  font-family: var(--font-mono, monospace);
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.ai-ui-scan-label-sub {
+  font-size: 10.5px;
+  color: var(--text-dim, #94a3b8);
+}
+
+.ai-ui-scan-label-sub em {
+  font-style: normal;
+  font-family: var(--font-mono, monospace);
+  color: var(--scan-c);
+}
+
+.ai-ui-scan-label.is-compact .ai-ui-scan-label-body {
+  padding: 2px 8px;
+}
+
+.ai-ui-scan-label.is-compact .ai-ui-scan-label-title {
+  font-size: 11px;
+}
+
+[data-theme='light'] .ai-ui-scan-fx-layer {
+  --scan-glass: color-mix(in srgb, var(--bg-1, #ffffff) 90%, transparent);
+}
+
+[data-theme='light'] .ai-ui-scan-label {
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.16);
+}
+
+[data-theme='light'] .ai-ui-scan-beam {
+  background: linear-gradient(90deg, transparent, var(--scan-c) 20%, var(--accent, #2563eb) 50%, var(--scan-c) 80%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-ui-scan-fx-layer *,
+  .ai-ui-scan-fx-layer {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0s !important;
+  }
+}
+
+/* ---------- Keyframes ---------- */
+@keyframes aiScanLayerOut {
+  0%, 86% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes aiScanFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes aiScanRegionIn {
+  from { opacity: 0; transform: scale(1.03); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes aiScanRegionFade {
+  0% { background-color: color-mix(in srgb, var(--scan-c) 5%, transparent); }
+  100% { background-color: transparent; border-color: color-mix(in srgb, var(--scan-c) 18%, transparent); }
+}
+
+@keyframes aiScanBeam {
+  0% { top: 0; opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+
+@keyframes aiScanTargetLock {
+  0% { opacity: 0; transform: scale(1.18); }
+  60% { opacity: 1; }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes aiScanTrace {
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes aiScanTraceFade {
+  to { opacity: 0; }
+}
+
+@keyframes aiScanDashFlow {
+  to { stroke-dashoffset: -18; }
+}
+
+@keyframes aiScanLabelInRight {
+  from { opacity: 0; transform: translateX(-10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes aiScanLabelInLeft {
+  from { opacity: 0; transform: translateX(10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes aiScanSheen {
+  to { transform: translateX(100%); }
+}

@@ -358,7 +358,10 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
 
   // AI Neon HUD
   ai_hud: ['.ai-neon-hud-badge'],
-  ai_inspector_preview: region('ai_inspector_preview', '.ai-ui-inspector-preview-modal')
+  ai_inspector_preview: region('ai_inspector_preview', '.ai-ui-inspector-preview-modal'),
+  ai_inspector_toast: region('ai_inspector_toast', '.ai-ui-inspector-toast'),
+  ai_inspector_scan_fx: region('ai_inspector_scan_fx', '.ai-ui-scan-fx-layer'),
+  ai_inspector_arm_hud: region('ai_inspector_arm_hud', '.ai-ui-inspector-arm-hud')
 }
 
 export function isVisible(el: HTMLElement): boolean {
