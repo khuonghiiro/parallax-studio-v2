@@ -1,4 +1,4 @@
-import type { ExportEncoderPreference, ExportStartOptions } from '@shared/ipc'
+import type { ExportEncoderPreference, ExportPixelFormat, ExportStartOptions } from '@shared/ipc'
 import type { Project } from '@shared/types'
 import { SceneRenderer } from '../engine/SceneRenderer'
 import type { AsyncFrameReadback } from '../engine/asyncReadback'
@@ -6,6 +6,7 @@ import { assetStore } from '../project/assets'
 import { getProjectAudioTracks, mixAudioTracksToWav } from '../project/audioTracks'
 import { extForMime } from '../project/serialize'
 import { FrameBufferPool, FrameSendQueue } from './frameSendQueue'
+import { ExportFrameOutput } from './exportFrameOutput'
 
 export interface ExportOptions {
   outPath: string
@@ -18,6 +19,7 @@ export interface ExportOptions {
   encoder?: ExportEncoderPreference
   /** Cách đọc pixel: `async` (mặc định, PBO + fence) hoặc `sync` (readPixels đồng bộ — để đối chiếu hiệu năng). */
   readback?: 'async' | 'sync'
+  pixelFormat?: 'auto' | ExportPixelFormat
   withAudio?: boolean
   /** Export only [start, end) seconds. */
   start?: number
@@ -56,6 +58,7 @@ export interface ExportOutcome {
   seconds: number
   /** Encoder thực tế ffmpeg đã dùng (ví dụ `h264_qsv`, `libx264`). */
   encoder?: string
+  pixelFormat?: ExportPixelFormat
   timings?: ExportTimings
 }
 
@@ -98,6 +101,7 @@ async function resolveExportAudio(
 }
 
 interface FrameLoop {
+  output: ExportFrameOutput
   r: SceneRenderer
   project: Project
   canvas: HTMLCanvasElement
@@ -120,7 +124,8 @@ async function renderFrame(loop: FrameLoop, i: number): Promise<void> {
   await loop.r.waitForContext()
   await loop.r.prepare(loop.project, t, loop.height)
   const s1 = performance.now()
-  loop.r.render(loop.project, t, { frame: i, prefetch: true })
+  loop.r.render(loop.project, t, { frame: i, prefetch: true, target: loop.output.target })
+  loop.output.pack()
   loop.timings.prepareMs += s1 - s0
   loop.timings.renderMs += performance.now() - s1
 }
@@ -128,6 +133,7 @@ async function renderFrame(loop: FrameLoop, i: number): Promise<void> {
 function drawPreview(loop: FrameLoop, i: number): void {
   const pv = loop.preview
   if (!pv || i % PREVIEW_EVERY !== 0) return
+  loop.output.present()
   pv.getContext('2d')?.drawImage(loop.canvas, 0, 0, pv.width, pv.height)
 }
 
@@ -142,11 +148,13 @@ function reportProgress(loop: FrameLoop, done: number): void {
  * bất đồng bộ qua PBO và gửi sang ffmpeg trong nền theo đúng thứ tự. Nếu GL context bị mất, dựng lại
  * từ frame đầu tiên chưa gửi. Trả về số frame đã gửi, `cancelled` nếu người dùng dừng.
  */
-async function encodeFrames(loop: FrameLoop, width: number): Promise<{ frames: number; cancelled: boolean }> {
+async function encodeFrames(loop: FrameLoop): Promise<{ frames: number; cancelled: boolean }> {
   const { r } = loop
-  const pool = new FrameBufferPool(width * loop.height * 4)
+  const pool = new FrameBufferPool(loop.output.byteLength)
   const queue = new FrameSendQueue((f) => window.api.exportFrame(f), MAX_QUEUED_FRAMES, (f) => pool.release(f))
-  let readback: AsyncFrameReadback | null = loop.useAsyncReadback ? r.createFrameReadback(READBACK_SLOTS) : null
+  const createReadback = (): AsyncFrameReadback | null => loop.useAsyncReadback
+    ? r.createFrameReadback(READBACK_SLOTS, loop.output.readWidth, loop.output.readHeight) : null
+  let readback = createReadback()
   loop.timings.asyncReadback = !!readback
   let next = 0
   let done = 0
@@ -156,7 +164,8 @@ async function encodeFrames(loop: FrameLoop, width: number): Promise<{ frames: n
     if (++retries > 3) throw new Error('GPU liên tục mất context khi xuất video')
     readback?.dispose()
     await r.waitForContext()
-    readback = loop.useAsyncReadback ? r.createFrameReadback(READBACK_SLOTS) : null
+    loop.output.recover()
+    readback = createReadback()
     next = done
   }
   const deliver = async (buf: Uint8Array): Promise<void> => {
@@ -171,7 +180,7 @@ async function encodeFrames(loop: FrameLoop, width: number): Promise<{ frames: n
       if (loop.isCancelled()) return { frames: done, cancelled: true }
       if (next < loop.total && (!readback || readback.hasFreeSlot)) {
         await renderFrame(loop, next)
-        if (r.isContextLost()) {
+        if (r.isContextLost() || readback?.invalid) {
           await recover()
           continue
         }
@@ -183,7 +192,7 @@ async function encodeFrames(loop: FrameLoop, width: number): Promise<{ frames: n
           continue
         }
         const s = performance.now()
-        const buf = r.readPixels(pool.acquire())
+        const buf = loop.output.read(pool.acquire())
         loop.timings.readbackMs += performance.now() - s
         if (r.isContextLost()) {
           pool.release(buf)
@@ -196,10 +205,11 @@ async function encodeFrames(loop: FrameLoop, width: number): Promise<{ frames: n
       }
       const buf = pool.acquire()
       const s = performance.now()
-      const tag = readback ? await readback.takeOldest(buf) : null
+      const tag = readback ? await readback.takeOldest(buf, loop.isCancelled) : null
       loop.timings.readbackMs += performance.now() - s
       if (tag === null || r.isContextLost()) {
         pool.release(buf)
+        if (loop.isCancelled()) return { frames: done, cancelled: true }
         await recover()
         continue
       }
@@ -208,8 +218,9 @@ async function encodeFrames(loop: FrameLoop, width: number): Promise<{ frames: n
     await queue.drain()
     return { frames: done, cancelled: false }
   } finally {
-    loop.timings.sendWaitMs += queue.blockedMs
     readback?.dispose()
+    // Không để frame cũ còn chạy qua IPC sau khi phiên xuất đã kết thúc hoặc bị huỷ.
+    try { await queue.drain() } finally { loop.timings.sendWaitMs += queue.blockedMs }
   }
 }
 
@@ -227,6 +238,18 @@ export async function runExport(
 ): Promise<ExportOutcome> {
   if (running) throw new Error('Đang có một tiến trình xuất video khác')
   running = true
+  const began = performance.now()
+  try {
+    return await runExportSession(project, opts, onProgress, isCancelled, preview)
+  } catch (err) {
+    return { ok: false, error: String(err instanceof Error ? err.message : err), outPath: opts.outPath,
+      frames: 0, seconds: (performance.now() - began) / 1000 }
+  } finally {
+    running = false
+  }
+}
+
+function createExportSetup(project: Project, opts: ExportOptions) {
   const fps = opts.fps ?? project.comp.fps
   const { width, height } = exportSize(project, opts.height)
   const start = Math.max(0, opts.start ?? 0)
@@ -237,7 +260,7 @@ export async function runExport(
   canvas.width = width
   canvas.height = height
   const r = new SceneRenderer(canvas, { preserveDrawingBuffer: true })
-  r.setSize(width, height)
+  try { r.setSize(width, height) } catch (err) { r.dispose(); throw err }
   const t0 = performance.now()
   const timings: ExportTimings = {
     prepareMs: 0,
@@ -247,7 +270,16 @@ export async function runExport(
     sendWaitMs: 0,
     asyncReadback: false
   }
+  return { fps, width, height, start, total, canvas, r, t0, timings }
+}
+
+async function runExportSession(
+  project: Project, opts: ExportOptions, onProgress: (p: ExportProgress) => void,
+  isCancelled: () => boolean, preview?: HTMLCanvasElement | null
+): Promise<ExportOutcome> {
+  const { fps, width, height, start, total, canvas, r, t0, timings } = createExportSetup(project, opts)
   const elapsed = (): number => (performance.now() - t0) / 1000
+  let output: ExportFrameOutput | undefined
 
   try {
     const audio = (opts.withAudio ?? true) ? await resolveExportAudio(project, total / fps, start) : undefined
@@ -257,6 +289,7 @@ export async function runExport(
     await document.fonts.ready
     await r.prepare(project, start, height)
     r.render(project, start, { frame: 0 })
+    output = new ExportFrameOutput(r, width, height, opts.pixelFormat)
 
     const started = await window.api.exportStart({
       width,
@@ -265,24 +298,31 @@ export async function runExport(
       crf: opts.crf ?? 18,
       preset: opts.preset ?? 'medium',
       encoder: opts.encoder ?? 'auto',
+      pixelFormat: output.pixelFormat,
       outPath: opts.outPath,
       audio
     })
     if (!started.ok) throw new Error(started.error)
     const encoder = started.encoder
+    // Main cũ/remote cũ có thể chỉ nhận RGBA: dùng đúng định dạng mà bên nhận xác nhận.
+    if (output.pixelFormat !== (started.pixelFormat ?? 'rgba')) {
+      output.dispose()
+      output = new ExportFrameOutput(r, width, height, 'rgba')
+    }
+    const pixelFormat = output.pixelFormat
 
     const loop: FrameLoop = {
-      r, project, canvas, start, fps, total, height, t0, preview, onProgress, isCancelled, timings,
+      r, output, project, canvas, start, fps, total, height, t0, preview, onProgress, isCancelled, timings,
       useAsyncReadback: opts.readback !== 'sync'
     }
-    const { frames, cancelled } = await encodeFrames(loop, width)
+    const { frames, cancelled } = await encodeFrames(loop)
     if (cancelled) {
       await window.api.exportCancel()
-      return { ok: false, cancelled: true, outPath: opts.outPath, frames, seconds: elapsed(), encoder, timings }
+      return { ok: false, cancelled: true, outPath: opts.outPath, frames, seconds: elapsed(), encoder, pixelFormat, timings }
     }
     const res = await window.api.exportFinish()
     if (!res.ok) throw new Error(res.error)
-    return { ok: true, outPath: opts.outPath, frames: total, seconds: elapsed(), encoder, timings }
+    return { ok: true, outPath: opts.outPath, frames: total, seconds: elapsed(), encoder, pixelFormat, timings }
   } catch (err) {
     await window.api.exportCancel()
     return {
@@ -294,7 +334,7 @@ export async function runExport(
       timings
     }
   } finally {
+    output?.dispose()
     r.dispose()
-    running = false
   }
 }

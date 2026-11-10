@@ -540,10 +540,14 @@ export const FX_TOOLS = [
         'Video encoder. auto (default) = first working GPU encoder (NVENC → Quick Sync → AMF), else CPU libx264; cpu = always libx264. The result reports the encoder actually used plus per-stage timings.',
         'Bộ mã hoá video. auto (mặc định) = encoder GPU đầu tiên chạy được (NVENC → Quick Sync → AMF), không có thì CPU libx264; cpu = luôn libx264. Kết quả trả về encoder thực tế và thời gian từng bước.'
       )),
-      readback: z.enum(['async', 'sync']).optional().describe(d(
+        readback: z.enum(['async', 'sync']).optional().describe(d(
         'Diagnostics: pixel readback mode. async (default) = WebGL2 PBO + fence pipelining; sync = blocking readPixels (for A/B performance comparison).',
         'Chẩn đoán: cách đọc pixel. async (mặc định) = PBO + fence WebGL2 chạy song song; sync = readPixels đồng bộ (để so sánh hiệu năng A/B).'
-      )),
+        )),
+        pixel_format: z.enum(['auto', 'rgba', 'yuv420p']).optional().describe(d(
+          'Raw frame format. auto (default) or yuv420p uses GPU YUV packing after validation; unsupported sizes or GPU failures fall back to RGBA before encoding. rgba forces the reference path. The result reports the actual pixelFormat.',
+          'Định dạng frame thô. auto (mặc định) hoặc yuv420p dùng GPU đóng gói YUV sau kiểm tra; kích thước không hỗ trợ hoặc lỗi GPU sẽ lùi về RGBA trước khi mã hoá. rgba ép dùng đường tham chiếu. Kết quả trả về pixelFormat thực tế.'
+        )),
       with_audio: z.boolean().optional(),
       start: z.number().optional(),
       end: z.number().optional()

@@ -32,6 +32,8 @@ export class AsyncFrameReadback {
   private readonly pending: ReadbackSlot[] = []
   private readonly byteLength: number
   private disposed = false
+  private invalidated = false
+  private readonly onContextLost = (): void => { this.invalidated = true }
 
   constructor(
     private readonly gl: WebGL2RenderingContext,
@@ -48,7 +50,10 @@ export class AsyncFrameReadback {
       this.free.push({ pbo, sync: null, tag: -1 })
     }
     gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null)
+    gl.canvas.addEventListener('webglcontextlost', this.onContextLost)
   }
+
+  get invalid(): boolean { return this.invalidated || this.gl.isContextLost() || this.disposed }
 
   get pendingCount(): number {
     return this.pending.length
@@ -75,22 +80,27 @@ export class AsyncFrameReadback {
   private isSignaled(sync: WebGLSync): boolean {
     const gl = this.gl
     const status = gl.clientWaitSync(sync, 0, 0)
-    return status === gl.ALREADY_SIGNALED || status === gl.CONDITION_SATISFIED || status === gl.WAIT_FAILED
+    if (status === gl.WAIT_FAILED && !this.invalid) throw new Error('GPU không thể chờ fence đọc pixel')
+    return status === gl.ALREADY_SIGNALED || status === gl.CONDITION_SATISFIED
   }
 
   /**
    * Lấy frame cũ nhất đã xếp hàng vào `out` (RGBA, hàng từ dưới lên). Trả về `tag` của frame,
    * hoặc `null` nếu GL context bị mất trong lúc chờ (người gọi cần dựng lại frame).
    */
-  async takeOldest(out: Uint8Array): Promise<number | null> {
+  async takeOldest(out: Uint8Array, isCancelled: () => boolean = () => false): Promise<number | null> {
     const slot = this.pending[0]
     if (!slot) throw new Error('AsyncFrameReadback: không có frame nào đang chờ')
     const gl = this.gl
+    if (this.invalid || isCancelled()) return null
+    if (!slot.sync) throw new Error('GPU không tạo được fence đọc pixel')
+    const started = performance.now()
     while (slot.sync && !this.isSignaled(slot.sync)) {
-      if (gl.isContextLost()) return null
+      if (this.invalid || isCancelled()) return null
+      if (performance.now() - started > 30000) throw new Error('GPU quá hạn trả frame (30 giây)')
       await yieldMacrotask()
     }
-    if (gl.isContextLost() || this.disposed) return null
+    if (this.invalid || isCancelled()) return null
     if (out.byteLength !== this.byteLength) throw new Error('AsyncFrameReadback: sai kích thước buffer đích')
     gl.bindBuffer(gl.PIXEL_PACK_BUFFER, slot.pbo)
     gl.getBufferSubData(gl.PIXEL_PACK_BUFFER, 0, out)
@@ -106,8 +116,8 @@ export class AsyncFrameReadback {
     if (this.disposed) return
     this.disposed = true
     const gl = this.gl
-    if (gl.isContextLost()) return
-    for (const slot of [...this.free, ...this.pending]) {
+    gl.canvas.removeEventListener('webglcontextlost', this.onContextLost)
+    if (!this.invalidated && !gl.isContextLost()) for (const slot of [...this.free, ...this.pending]) {
       if (slot.sync) gl.deleteSync(slot.sync)
       gl.deleteBuffer(slot.pbo)
     }

@@ -260,9 +260,12 @@ Khi kiểm tra và tương tác với Parallax Studio, AI Agent **BẮT BUỘC**
 - `set_playing`: Phát hoặc tạm dừng phát hoạt ảnh.
 - `export_video`: Xuất toàn bộ hoặc 1 shot ra file video MP4 hoàn chỉnh bằng FFmpeg.
   - `encoder: "auto"` (mặc định) thử NVENC → Quick Sync → AMF rồi lùi về CPU; `"cpu"` luôn dùng libx264. Kết quả báo encoder thực tế và thời gian từng bước. Mức chất lượng giữa các encoder không hoàn toàn tương đương.
-  - `readback: "async"` dùng PBO/fence WebGL2 và hàng gửi frame có giới hạn; `"sync"` dùng để so sánh A/B. Module đóng gói YUV đang chuẩn bị, chưa được bật trong vòng xuất video.
+  - `readback: "async"` dùng PBO/fence WebGL2 và hàng gửi frame có giới hạn; `"sync"` dùng để so sánh A/B.
+  - `pixel_format: "auto"` (mặc định) hoặc `"yuv420p"` đóng gói YUV420p BT.601 dải TV trên GPU, giảm dữ liệu frame từ 4 xuống 1,5 byte/pixel. Rộng phải chia hết 8, cao chia hết 4 và GPU phải qua kiểm tra; nếu không, dùng RGBA trước khi bắt đầu mã hoá. `"rgba"` ép đường tham chiếu. Kết quả báo `pixelFormat` thực tế. Không đổi định dạng giữa một phiên xuất; nếu không khôi phục được YUV sau mất context thì phiên xuất báo lỗi để người dùng xuất lại bằng RGBA.
+  - Kiểm tra GPU thật, chiều ảnh, huỷ/xuất lại, preview và fallback: `node scripts/check-yuv-gpu.mjs` (cần app đang mở). Script tạo video kiểm thử trong thư mục tạm, không sửa project hiện tại.
   - PowerShell: `pnpm pxs call export_video '{"out_path":"D:/out/video.mp4","encoder":"auto","readback":"async"}'`
   - CMD: `pnpm pxs call export_video "{\"out_path\":\"D:/out/video.mp4\",\"encoder\":\"auto\",\"readback\":\"async\"}"`
+  - So sánh YUV/RGBA (Flags, PowerShell hoặc CMD): `pnpm pxs call export_video --out_path D:/out/yuv.mp4 --pixel_format yuv420p --encoder cpu`; đổi thành `--pixel_format rgba` và file đầu ra khác để đối chiếu.
   - CLI chờ `export_video` tối đa 2 giờ; biến môi trường `PXS_TIMEOUT_MS` cho phép thay đổi thời hạn chờ.
 - `execute_script`: Thực thi khối lệnh kịch bản hàng loạt.
 

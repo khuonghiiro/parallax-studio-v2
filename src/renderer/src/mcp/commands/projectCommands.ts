@@ -1,5 +1,5 @@
 import type { LookSettings, Project } from '@shared/types'
-import type { ExportEncoderPreference } from '@shared/ipc'
+import type { ExportEncoderPreference, ExportPixelFormat } from '@shared/ipc'
 import { referenceDistance } from '../../animation/math'
 import { setCompDuration, isInternalSourcePath } from '../../actions'
 import { isExporting, runExport } from '../../export/runExport'
@@ -270,7 +270,8 @@ export const projectCommands: Record<string, Handler> = {
       crf: num(p, 'crf'),
       preset,
       encoder: str(p, 'encoder') as ExportEncoderPreference | undefined,
-      readback: str(p, 'readback') === 'sync' ? 'sync' : 'async',
+        readback: str(p, 'readback') === 'sync' ? 'sync' : 'async',
+        pixelFormat: str(p, 'pixel_format') as 'auto' | ExportPixelFormat | undefined,
       withAudio: bool(p, 'with_audio'),
       start: num(p, 'start'),
       end: num(p, 'end')

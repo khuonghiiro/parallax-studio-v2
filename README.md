@@ -130,6 +130,8 @@ Claude Desktop, Cursor và các client MCP khác dùng cùng cấu hình `comman
 
 Xuất MP4 hỗ trợ tự dò encoder phần cứng (NVENC → Quick Sync → AMF), tự lùi về CPU libx264 khi không dùng được, đọc pixel bất đồng bộ WebGL2 và hàng gửi frame giới hạn bộ nhớ. Có thể chọn CPU trong hộp thoại xuất hoặc qua `export_video`. Xem [tham số và ví dụ PowerShell/CMD](mcp-server/README.md). Phần main/IPC mới cần khởi động lại app từ terminal để có hiệu lực; HMR chỉ cập nhật renderer. Chưa có mức tăng tốc cố định cho mọi máy; hãy so sánh cùng dự án và cùng chất lượng đầu ra.
 
+Pipeline xuất tự dùng YUV420p trên GPU sau kiểm tra shader và kích thước, giảm 62,5% dữ liệu frame truyền đi; tự dùng RGBA nếu không hỗ trợ. Có thể ép `pixel_format: "rgba"` qua MCP/CLI để đối chiếu. Hai đường có cách lấy mẫu chroma khác nhau nên không đảm bảo video trùng từng byte. Chạy `node scripts/check-yuv-gpu.mjs` để kiểm tra trên app đang mở. Cảnh báo Babel “deoptimised the styling … exceeds … 500KB” ở `effectAssets.ts` được xử lý bằng cách chỉ gắn source locator vào `.tsx`/`.jsx`, không đưa module dữ liệu ảnh nhúng qua Babel.
+
 **Loop Animate:** nút `Tạo Loop Animate` mở Xưởng Tách Hoạt Ảnh Loop trống (kéo thả sprite sheet → cắt lưới / tự dò vùng → tách nền → chỉnh FPS, kiểu lặp, nhịp nháy → `Lưu vào kho` / `Đưa vào cảnh`). Mẫu trong kho dùng lại được ở tab tài nguyên **Loop** của Xưởng Layer 2.5D. Xoá mẫu sẽ liệt kê các layer / mảnh đang dùng để gỡ trước (`get_loop_template_usages`, `delete_loop_template`).
 
 Ví dụ prompt cho AI: *"Tạo 3 cảnh: rừng đêm, biển lúc bình minh, thành phố neon. Mỗi cảnh có 4–5 layer ở các độ sâu khác nhau và một tiêu đề. Camera bay vòng cung giữa các cảnh, mỗi cảnh dừng 3 giây. Chụp 3D view cho tôi xem, rồi xuất MP4 1080p ra D:/Videos/demo.mp4."*

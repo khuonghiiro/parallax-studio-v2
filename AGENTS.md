@@ -150,6 +150,8 @@ Tuân thủ nghiêm ngặt kỹ năng `code-modularization`:
 - Chi tiết, kiến trúc module & checklist: skill [`.agents/skills/ai-ui-inspector/SKILL.md`](./.agents/skills/ai-ui-inspector/SKILL.md). Vùng chụp MCP: `ai_inspector_scan_fx`, `ai_inspector_toast`, `ai_inspector_arm_hud`, `ai_inspector_preview`.
 
 ### 2.5. Nguyên Tắc Đồng Bộ Tính Năng & AI MCP Controller (Feature & MCP Parity Principle - Bắt Buộc)
+
+- **Xuất YUV trên GPU:** `export_video` nhận `pixel_format: auto | rgba | yuv420p`; `auto` kiểm tra shader/FBO và kích thước (rộng chia hết 8, cao chia hết 4) trước khi chọn YUV, còn lại dùng RGBA. Kết quả trả `pixelFormat` thực tế. Chạy `node scripts/check-yuv-gpu.mjs` trên app đang mở để kiểm tra màu, chiều ảnh, PBO, context loss, huỷ/xuất lại và fallback. Cú pháp Flags dùng được cả PowerShell và CMD: `pnpm pxs call export_video --out_path D:/out/yuv.mp4 --pixel_format yuv420p --encoder cpu`; thay `yuv420p` bằng `rgba` cùng đường dẫn đầu ra khác để đo A/B. Không suy diễn mức tăng tốc từ mức giảm byte; phải đo cùng cảnh và encoder.
 - **Đồng bộ song hành 100%:** Khi bổ sung hoặc sửa đổi bất kỳ logic nghiệp vụ, tính năng xử lý nào trong ứng dụng (ví dụ: quản lý âm thanh đa luồng `audioTracks`, hiệu ứng FX, layer, camera, shot, render...):
   1. **Renderer Commands (`src/renderer/src/mcp/commands/`):** Bắt buộc tạo/cập nhật handler tương ứng nhận lệnh và mutate state qua `useEditor.update()` để hỗ trợ hoàn tác Undo/Redo (Ctrl+Z) và hiển thị realtime trên UI.
   2. **MCP Catalog (`mcp-server/catalog/tools-*.mjs`):** Khai báo tool một lần với Zod schema, mô tả **song ngữ** cạnh nhau (`doc: L(en, vi)`, tham số `d(en, vi)`) và ví dụ mẫu `example` chuẩn; cập nhật `toolCount` trong `catalog/guide.json`. `mcp-server/index.mjs` tự đăng ký tool từ catalog.

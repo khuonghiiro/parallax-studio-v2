@@ -21,6 +21,7 @@ precision highp int;
 uniform sampler2D tSrc;
 uniform int uW;
 uniform int uH;
+out vec4 outColor;
 
 vec3 rgbAt(int x, int yTop) {
   return texelFetch(tSrc, ivec2(x, uH - 1 - yTop), 0).rgb;
@@ -59,7 +60,7 @@ void main() {
         : 128.0 - 37.797 * c.r - 74.203 * c.g + 112.0 * c.b;
     }
   }
-  gl_FragColor = clamp(floor(o + 0.5), 0.0, 255.0) / 255.0;
+  outColor = clamp(floor(o + 0.5), 0.0, 255.0) / 255.0;
 }
 `
 
@@ -91,6 +92,8 @@ export class YuvPacker {
       fragmentShader: YUV_FRAG,
       depthTest: false,
       depthWrite: false,
+      blending: THREE.NoBlending,
+      toneMapped: false,
       uniforms: {
         tSrc: { value: this.frameTarget.texture },
         uW: { value: width },
@@ -113,6 +116,36 @@ export class YuvPacker {
     renderer.setScissorTest(false)
     renderer.setViewport(0, 0, this.packedWidth, this.packedHeight)
     renderer.render(this.scene, this.camera)
+  }
+
+  /** Kiểm tra shader/FBO trên GPU thật trước khi cam kết định dạng với encoder. */
+  validate(renderer: THREE.WebGLRenderer): boolean {
+    const previous = renderer.getRenderTarget()
+    const color = renderer.getClearColor(new THREE.Color())
+    const alpha = renderer.getClearAlpha()
+    const viewport = renderer.getViewport(new THREE.Vector4())
+    const scissor = renderer.getScissorTest()
+    const sample = new Uint8Array(4)
+    try {
+      if (Math.max(this.width, this.height, this.packedHeight) > renderer.capabilities.maxTextureSize) return false
+      renderer.setRenderTarget(this.frameTarget)
+      renderer.setScissorTest(false)
+      renderer.setClearColor(0, 1)
+      renderer.clear()
+      this.pack(renderer)
+      for (const [row, value] of [[0, 16], [this.height, 128], [this.height * 5 / 4, 128]]) {
+        renderer.readRenderTargetPixels(this.packedTarget, 0, row, 1, 1, sample)
+        if (!sample.every((v) => v === value)) return false
+      }
+      return !renderer.getContext().isContextLost()
+    } catch {
+      return false
+    } finally {
+      renderer.setRenderTarget(previous)
+      renderer.setClearColor(color, alpha)
+      renderer.setViewport(viewport)
+      renderer.setScissorTest(scissor)
+    }
   }
 
   dispose(): void {

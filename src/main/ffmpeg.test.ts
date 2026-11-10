@@ -51,6 +51,30 @@ function silentWav(seconds: number): Uint8Array {
 }
 
 describe('FfmpegEncoder', () => {
+  it('encodes planar YUV without flipping rows or swapping chroma planes', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'pxs-yuv-test-'))
+    const out = join(dir, 'yuv.mp4')
+    try {
+      const pixels = new Uint8Array(W * H * 3 / 2)
+      pixels.fill(50, 0, W * H / 2)
+      pixels.fill(180, W * H / 2, W * H)
+      pixels.fill(100, W * H, W * H * 5 / 4)
+      pixels.fill(150, W * H * 5 / 4)
+      const enc = new FfmpegEncoder({ width: W, height: H, fps: FPS, crf: 1,
+        preset: 'ultrafast', outPath: out, pixelFormat: 'yuv420p' })
+      await enc.writeFrame(pixels)
+      await enc.writeFrame(pixels)
+      const result = await enc.finish()
+      expect(result.ok, result.error).toBe(true)
+      const decoded = spawnSync(ffmpegPath(), ['-v', 'error', '-i', out, '-f', 'rawvideo', '-pix_fmt', 'yuv420p', 'pipe:1'])
+      expect(decoded.status).toBe(0)
+      expect(decoded.stdout.length).toBe(pixels.length * 2)
+      for (let i = 0; i < decoded.stdout.length; i++) {
+        expect(Math.abs(decoded.stdout[i] - pixels[i % pixels.length])).toBeLessThanOrEqual(2)
+      }
+    } finally { rmSync(dir, { recursive: true, force: true }) }
+  }, 30000)
+
   it('encodes raw RGBA frames into an H.264 MP4', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'pxs-test-'))
     const out = join(dir, 'out.mp4')
