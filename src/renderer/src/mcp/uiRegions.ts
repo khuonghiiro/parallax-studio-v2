@@ -293,6 +293,7 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   export: ['.export-modal', '.modal:has(#export-start)', '.modal[aria-labelledby="export-title"]'],
   export_dialog: ['.export-modal', '.modal:has(#export-start)', '.modal[aria-labelledby="export-title"]'],
   export_preview: ['.export-preview'],
+  export_encoder: ['[data-mcp-region="export_encoder"]', '.export-encoder-row'],
 
   // 6. Hộp thoại Vẽ đường bay Camera (Camera Sketch Dialog)
   camera_sketch: ['.camera-sketch-modal'],

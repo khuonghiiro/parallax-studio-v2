@@ -132,14 +132,16 @@ export class RemoteStudioRpcService {
             fps: Number(params.fps) || 30,
             crf: Number(params.crf) || 18,
             preset: (params.preset as ExportStartOptions['preset']) || 'medium',
+            encoder: (params.encoder as ExportStartOptions['encoder']) || 'auto',
+            pixelFormat: params.pixelFormat === 'yuv420p' ? 'yuv420p' : 'rgba',
             outPath: String(params.outPath || join(tmpdir(), `pxs-remote-${Date.now()}.mp4`)),
             audio: audioOpt
           }
-          this.remoteEncoder = new FfmpegEncoder(opts, audioPath)
+          this.remoteEncoder = await FfmpegEncoder.create(opts, audioPath)
           this.remoteEncoder.onDone(() => {
             if (audioPath) unlink(audioPath).catch(() => undefined)
           })
-          return { ok: true }
+          return { ok: true, encoder: this.remoteEncoder.videoEncoder, pixelFormat: opts.pixelFormat ?? 'rgba' }
         } catch (err) {
           return { ok: false, error: err instanceof Error ? err.message : String(err) }
         }

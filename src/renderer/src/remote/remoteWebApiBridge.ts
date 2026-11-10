@@ -159,13 +159,15 @@ export function createRemoteParallaxApi(): ParallaxApi {
       return res.ok && res.outPath ? res.outPath : null
     },
 
-    async exportStart(opts: ExportStartOptions): Promise<{ ok: boolean; error?: string }> {
+    async exportStart(opts: ExportStartOptions): ReturnType<ParallaxApi['exportStart']> {
       const payload: Record<string, unknown> = {
         width: opts.width,
         height: opts.height,
         fps: opts.fps,
         crf: opts.crf,
         preset: opts.preset,
+        encoder: opts.encoder,
+        pixelFormat: opts.pixelFormat,
         outPath: opts.outPath
       }
       if (opts.audio) {
@@ -177,7 +179,7 @@ export function createRemoteParallaxApi(): ParallaxApi {
           duration: opts.audio.duration
         }
       }
-      return remoteRpc<{ ok: boolean; error?: string }>('exportStart', payload)
+      return remoteRpc<Awaited<ReturnType<ParallaxApi['exportStart']>>>('exportStart', payload)
     },
 
     async exportFrame(frame: Uint8Array): Promise<void> {

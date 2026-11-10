@@ -9,179 +9,37 @@ import {
   type ChromaAlphaAnalysis
 } from './chromaShadowExtractor'
 import { computeChromaZone } from './chromaOuterIsolation'
+import { runChromaGpuAnalysis } from './chromaGpuKernel'
 import { applyEdgeSmoothAndStroke } from './chromaContourStroke'
 
-export function parseHexRgb(hex: string): { r: number; g: number; b: number } {
-  const clean = (hex || '#ffffff').replace('#', '').trim()
-  if (clean.length === 3) {
-    return {
-      r: parseInt(clean[0] + clean[0], 16) || 0,
-      g: parseInt(clean[1] + clean[1], 16) || 0,
-      b: parseInt(clean[2] + clean[2], 16) || 0
-    }
-  }
-  const num = parseInt(clean, 16)
-  if (Number.isNaN(num)) return { r: 255, g: 255, b: 255 }
-  return {
-    r: (num >> 16) & 255,
-    g: (num >> 8) & 255,
-    b: num & 255
-  }
-}
+import {
+  buildChromaMatteParams,
+  computeChromaMatteAlpha,
+  evalChromaMatte,
+  parseHexRgb,
+  resolveEffectiveKeyRgb,
+  rgbToHex
+} from './chromaMatte'
 
-export function rgbToHex(r: number, g: number, b: number): string {
-  const clamp = (v: number) => Math.max(0, Math.min(255, Math.round(v)))
-  return (
-    '#' +
-    [clamp(r), clamp(g), clamp(b)]
-      .map((v) => v.toString(16).padStart(2, '0'))
-      .join('')
-      .toUpperCase()
-  )
-}
-
-function resolveEffectiveKeyRgb(settings: ChromaKeySettings): { r: number; g: number; b: number } {
-  const keyType = settings.keyColorType || 'custom'
-  const parsed = parseHexRgb(settings.keyColorHex || settings.keyColor || '#00DB4E')
-  if (keyType === 'chroma_green') {
-    if (parsed.g > parsed.r + 25 && parsed.g > parsed.b + 15) {
-      return parsed
-    }
-    return { r: 0, g: 219, b: 78 }
-  }
-  if (keyType === 'chroma_blue') {
-    if (parsed.b > parsed.r + 25 && parsed.b > parsed.g + 15) return parsed
-    return { r: 0, g: 92, b: 230 }
-  }
-  if (keyType === 'pure_white') {
-    if (parsed.r > 240 && parsed.g > 240 && parsed.b > 240) return parsed
-    return { r: 255, g: 255, b: 255 }
-  }
-  if (keyType === 'pure_black') {
-    if (parsed.r < 35 && parsed.g < 35 && parsed.b < 35) return parsed
-    return { r: 0, g: 0, b: 0 }
-  }
-  return parsed
-}
-
-function smoothstep(value: number): number {
-  const t = Math.max(0, Math.min(1, value))
-  return t * t * (3 - 2 * t)
-}
+// Giữ các export cũ để những module đang import từ đây không phải đổi
+export { computeChromaMatteAlpha, parseHexRgb, rgbToHex }
+export { getChromaGpuStatus, isChromaGpuAvailable, setChromaGpuEnabled } from './chromaGpuKernel'
 
 /**
- * Tạo matte alpha liên tục thay vì quyết định nhị phân. Khoảng chuyển tiếp mềm giúp giữ
- * tóc, lông và pixel anti-alias trong khi ngưỡng cứng vẫn xoá sạch phông đồng màu.
+ * Đánh dấu pixel nền và alpha matte tương ứng. `precomputedMatte` (từ kernel GPU) nếu có sẽ được
+ * dùng thay cho việc tính matte trên CPU ở từng pixel.
  */
-export function computeChromaMatteAlpha(
-  r: number,
-  g: number,
-  b: number,
-  sourceAlpha: number,
-  settings: ChromaKeySettings,
-  overrideKeyRgb?: { r: number; g: number; b: number }
-): number {
-  if (sourceAlpha <= 0) return 0
-  const keyType = settings.keyColorType || 'custom'
-  const key = overrideKeyRgb || resolveEffectiveKeyRgb(settings)
-  const tolerance = Math.max(0, Math.min(100, settings.tolerance))
-  const feather = Math.max(0, Math.min(30, settings.smoothness ?? 0))
-  let distance: number
-
-  if (keyType === 'chroma_green' || keyType === 'chroma_blue') {
-    const keyed = keyType === 'chroma_green' ? g : b
-    const keyChannel = keyType === 'chroma_green' ? key.g : key.b
-    const otherA = r
-    const otherB = keyType === 'chroma_green' ? b : g
-    const keyOtherA = key.r
-    const keyOtherB = keyType === 'chroma_green' ? key.b : key.g
-    const channelDelta = keyed - keyChannel
-    const otherDeltaA = otherA - keyOtherA
-    const otherDeltaB = otherB - keyOtherB
-    const rawDistance = Math.sqrt(
-      channelDelta * channelDelta * 0.48 +
-        otherDeltaA * otherDeltaA * 0.28 +
-        otherDeltaB * otherDeltaB * 0.24
-    )
-    const dominance = keyed - Math.max(otherA, otherB)
-    const keyDominance = keyChannel - Math.max(keyOtherA, keyOtherB)
-    const dominanceMatch = Math.max(0, Math.min(dominance, keyDominance) - 8)
-    distance = Math.max(0, rawDistance - dominanceMatch * 0.22)
-  } else {
-    const dr = r - key.r
-    const dg = g - key.g
-    const db = b - key.b
-    distance = Math.sqrt(dr * dr + dg * dg + db * db)
-  }
-
-  // Đối với màu phông có độ bão hoà cao (xanh, lam, hồng magenta, đỏ, vàng, cyan...),
-  // chiếu vector sắc độ để nhận diện chính xác các pixel viền tối bị pha màu nền (anti-aliased dark fringe).
-  const kMean = (key.r + key.g + key.b) / 3
-  const kcr = key.r - kMean
-  const kcg = key.g - kMean
-  const kcb = key.b - kMean
-  const kcLenSq = kcr * kcr + kcg * kcg + kcb * kcb
-  if (kcLenSq > 600) {
-    const cMean = (r + g + b) / 3
-    const pChroma = Math.max(
-      0,
-      Math.min(1, ((r - cMean) * kcr + (g - cMean) * kcg + (b - cMean) * kcb) / kcLenSq)
-    )
-    if (pChroma > 0.08) {
-      const tolFactor = tolerance > 45 ? 1.0 + (tolerance - 45) * 0.016 : 1.0
-      const chromaDistance = Math.max(0, (1 - pChroma * tolFactor) * 200)
-      if (chromaDistance < distance) {
-        distance = chromaDistance
-      }
-    }
-  } else {
-    // Trên phông nền trung tính / ít bão hoà (xám #8A8A8A, #E4E4E4, trắng kem #FEF9F3, đen):
-    // Bảo vệ các chi tiết có sắc độ màu (da mặt, áo nâu xám, áo xanh xám, lá cây) hoặc đạt biên trắng/đen
-    // ngay cả khi độ sáng (luminance) của chi tiết rất gần với độ sáng của nền.
-    const detailProtection = Math.max(0, Math.min(100, settings.detailProtection ?? 75)) / 100
-    if (detailProtection > 0) {
-      const dr = r - key.r
-      const dg = g - key.g
-      const db = b - key.b
-      const meanD = (dr + dg + db) / 3
-      const cdR = dr - meanD
-      const cdG = dg - meanD
-      const cdB = db - meanD
-      const chromaVec = Math.sqrt(cdR * cdR + cdG * cdG + cdB * cdB)
-      const effChroma = Math.max(0, chromaVec - 2.2)
-      const maxPos = Math.max(0, dr, dg, db)
-      const maxNeg = Math.max(0, -dr, -dg, -db)
-      const oppPol = maxPos > 1.5 && maxNeg > 1.5 ? Math.min(maxPos, maxNeg) : 0
-      let headroomBoost = 0
-      if (kMean >= 185 && kMean <= 238 && meanD > 5) {
-        headroomBoost = ((meanD - 5) / Math.max(18, 255 - kMean)) * 45
-      } else if (kMean >= 17 && kMean <= 70 && -meanD > 5) {
-        headroomBoost = ((-meanD - 5) / Math.max(18, kMean)) * 45
-      }
-      distance += (effChroma * 4.2 + oppPol * 2.8 + headroomBoost) * detailProtection
-    }
-  }
-
-  const cb = Math.max(0, Math.min(100, settings.contourBarrier ?? 70)) / 100
-  const barrierScale = kcLenSq <= 600 ? Math.max(0.65, Math.min(1.25, 1 - (cb - 0.5) * 0.4)) : 1
-  const highTolBoost = tolerance > 45 ? (tolerance - 45) * 1.25 : 0
-  const hardThreshold = (5 + tolerance * 1.12 + highTolBoost) * barrierScale
-  const effectiveFeather = Math.min(10, feather)
-  const transitionWidth = 8 + effectiveFeather * 1.6 + tolerance * 0.18
-  if (distance <= hardThreshold) return 0
-  if (distance >= hardThreshold + transitionWidth) return sourceAlpha
-  return Math.round(sourceAlpha * smoothstep((distance - hardThreshold) / transitionWidth))
-}
-
 function classifyBackgroundPixels(
   data: Uint8ClampedArray,
   totalPixels: number,
   settings: ChromaKeySettings,
-  effectiveKeyRgb: { r: number; g: number; b: number }
+  effectiveKeyRgb: { r: number; g: number; b: number },
+  precomputedMatte?: Uint8Array | null
 ): { isBg: Uint8Array; shadowAlpha: Uint8Array } {
   const isBg = new Uint8Array(totalPixels)
   const shadowAlpha = new Uint8Array(totalPixels)
   shadowAlpha.fill(255)
+  const params = buildChromaMatteParams(settings, effectiveKeyRgb)
 
   for (let p = 0; p < totalPixels; p++) {
     const idx = p * 4
@@ -192,11 +50,9 @@ function classifyBackgroundPixels(
       continue
     }
 
-    const r = data[idx]
-    const g = data[idx + 1]
-    const b = data[idx + 2]
-
-    const matteAlpha = computeChromaMatteAlpha(r, g, b, a, settings, effectiveKeyRgb)
+    const matteAlpha = precomputedMatte
+      ? precomputedMatte[p]
+      : evalChromaMatte(params, data[idx], data[idx + 1], data[idx + 2], a)
     if (matteAlpha < a) {
       isBg[p] = 1
       shadowAlpha[p] = matteAlpha
@@ -570,15 +426,18 @@ export function processAdvancedChromaPixelData(
   const baseKeyRgb = resolveEffectiveKeyRgb(settings)
   const effectiveKeyRgb = resolveImageEffectiveKeyRgb(data, w, h, settings, baseKeyRgb)
 
-  // Giải pha màu một lần cho cả ảnh: dùng chung cho phân vùng nền ngoài / trong, tách bóng và xoá quầng
-  const analysis = analyzeChromaAlpha(data, w, h, settings, effectiveKeyRgb)
+  // Giải pha màu một lần cho cả ảnh: dùng chung cho phân vùng nền ngoài / trong, tách bóng và xoá quầng.
+  // Ảnh lớn chạy bước từng-pixel này trên GPU (kèm matte); không có GPU thì chạy CPU như cũ.
+  const gpu = runChromaGpuAnalysis(data, w, h, settings, effectiveKeyRgb)
+  const analysis = gpu ? gpu.analysis : analyzeChromaAlpha(data, w, h, settings, effectiveKeyRgb)
   const zone = computeChromaZone(analysis, data, w, h, settings)
 
   const { isBg: activeBg, shadowAlpha } = classifyBackgroundPixels(
     data,
     totalPixels,
     settings,
-    effectiveKeyRgb
+    effectiveKeyRgb,
+    gpu?.matte
   )
   // "Chỉ nền ngoài": chỉ khoá màu trong vùng nền liên thông với mép ảnh, phần ruột giữ nguyên
   for (let p = 0; p < totalPixels; p++) {

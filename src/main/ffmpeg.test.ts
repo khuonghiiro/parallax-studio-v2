@@ -101,6 +101,26 @@ describe('FfmpegEncoder', () => {
     }
   }, 30000)
 
+  it('encoder auto chọn GPU nếu có (không thì libx264) và vẫn ra MP4 H.264 hợp lệ', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'pxs-test-'))
+    const out = join(dir, 'auto.mp4')
+    try {
+      const enc = await FfmpegEncoder.create({
+        width: 256, height: 144, fps: FPS, crf: 23, preset: 'veryfast', encoder: 'auto', outPath: out
+      })
+      expect(['libx264', 'h264_nvenc', 'h264_qsv', 'h264_amf']).toContain(enc.videoEncoder)
+      const px = new Uint8Array(256 * 144 * 4).fill(128)
+      for (let i = 0; i < 30; i++) await enc.writeFrame(px)
+      const res = await enc.finish()
+      expect(res.ok, res.error).toBe(true)
+      const info = probe(out)
+      expect(info).toMatch(/Video: h264/)
+      expect(info).toMatch(/256x144/)
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  }, 60000)
+
   it('rejects frames with the wrong size', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'pxs-test-'))
     try {

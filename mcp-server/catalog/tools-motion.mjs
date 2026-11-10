@@ -536,11 +536,19 @@ export const FX_TOOLS = [
       fps: z.number().optional(),
       crf: z.number().optional().describe(d('Quality, lower = better (default 18).', 'Chất lượng, càng thấp càng đẹp (mặc định 18).')),
       preset: z.enum(['ultrafast', 'veryfast', 'medium', 'slow']).optional(),
+      encoder: z.enum(['auto', 'cpu', 'libx264', 'h264_nvenc', 'h264_qsv', 'h264_amf']).optional().describe(d(
+        'Video encoder. auto (default) = first working GPU encoder (NVENC → Quick Sync → AMF), else CPU libx264; cpu = always libx264. The result reports the encoder actually used plus per-stage timings.',
+        'Bộ mã hoá video. auto (mặc định) = encoder GPU đầu tiên chạy được (NVENC → Quick Sync → AMF), không có thì CPU libx264; cpu = luôn libx264. Kết quả trả về encoder thực tế và thời gian từng bước.'
+      )),
+      readback: z.enum(['async', 'sync']).optional().describe(d(
+        'Diagnostics: pixel readback mode. async (default) = WebGL2 PBO + fence pipelining; sync = blocking readPixels (for A/B performance comparison).',
+        'Chẩn đoán: cách đọc pixel. async (mặc định) = PBO + fence WebGL2 chạy song song; sync = readPixels đồng bộ (để so sánh hiệu năng A/B).'
+      )),
       with_audio: z.boolean().optional(),
       start: z.number().optional(),
       end: z.number().optional()
     }),
-    example: '{"out_path":"D:/out/video.mp4","height":1080}'
+    example: '{"out_path":"D:/out/video.mp4","height":1080,"encoder":"auto"}'
   },
   {
     name: 'execute_script', cat: 'export',

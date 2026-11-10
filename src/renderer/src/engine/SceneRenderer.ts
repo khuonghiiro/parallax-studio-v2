@@ -26,6 +26,7 @@ import {
 import { buildParticles, buildPlaneNode, disposeNode, type LayerNode } from './layerNodes'
 import { TexturePool } from './TexturePool'
 import { evaluateLayerGlow } from './layerGlow'
+import { AsyncFrameReadback } from './asyncReadback'
 
 
 export type { Rect, RenderOptions, EditorRenderOptions, ResidencyStats }
@@ -563,7 +564,7 @@ export class SceneRenderer {
     r.render(this.scene, this.camera)
 
     this.applyLook(look, opts.frame ?? Math.round(t * comp.fps), ev.camera.fade)
-    r.setRenderTarget(null)
+    r.setRenderTarget(opts.target ?? null)
     this.setViewport(vp)
     this.postQuad.material = this.postMat
     r.render(this.postScene, this.postCamera)
@@ -715,11 +716,40 @@ export class SceneRenderer {
   }
 
   /** Read back the current frame (RGBA, bottom-up rows). Call right after render(). */
-  readPixels(): Uint8Array {
+  readPixels(target?: Uint8Array): Uint8Array {
     const gl = this.renderer.getContext()
-    const out = new Uint8Array(this.width * this.height * 4)
+    const bytes = this.width * this.height * 4
+    const out = target && target.byteLength === bytes ? target : new Uint8Array(bytes)
     gl.readPixels(0, 0, this.width, this.height, gl.RGBA, gl.UNSIGNED_BYTE, out)
     return out
+  }
+
+  /**
+   * Bộ đọc pixel bất đồng bộ (PBO + fence) cho xuất video; `null` nếu context không phải WebGL2
+   * (khi đó dùng `readPixels()` đồng bộ). Tạo lại sau khi GL context được khôi phục.
+   */
+  createFrameReadback(slots = 3, width = this.width, height = this.height): AsyncFrameReadback | null {
+    const gl = this.renderer.getContext()
+    if (typeof WebGL2RenderingContext === 'undefined' || !(gl instanceof WebGL2RenderingContext)) return null
+    return new AsyncFrameReadback(gl, width, height, slots)
+  }
+
+  /** Truy cập WebGLRenderer cho các pass phụ khi xuất video (ví dụ đóng gói YUV trên GPU). */
+  get webglRenderer(): THREE.WebGLRenderer {
+    return this.renderer
+  }
+
+  /** Vẽ nội dung một render target lên toàn canvas (xem trước khi frame xuất được render vào target). */
+  presentTarget(target: THREE.WebGLRenderTarget): void {
+    const r = this.renderer
+    this.copyMat.uniforms.tScene.value = target.texture
+    r.setRenderTarget(null)
+    r.setScissorTest(false)
+    r.setViewport(0, 0, this.width, this.height)
+    this.postQuad.material = this.copyMat
+    r.render(this.postScene, this.postCamera)
+    this.postQuad.material = this.postMat
+    this.copyMat.uniforms.tScene.value = this.editorRt.texture
   }
 
   // ---------------------------------------------------------------- picking

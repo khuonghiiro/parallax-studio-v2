@@ -91,7 +91,7 @@ export const SCENE_TOOLS = [
         'audio_studio', 'audio_studio_sidebar', 'audio_studio_editor', 'audio_studio_waveform', 'audio_studio_tone', 'audio_studio_mixer', 'audio_studio_console',
         'perf_dialog', 'perf_hardware', 'perf_meter', 'perf_settings',
         'manifest_dialog', 'manifest_sidebar', 'manifest_categories', 'manifest_assets', 'manifest_trash', 'manifest_json_editor',
-        'export', 'export_dialog', 'export_preview',
+        'export', 'export_dialog', 'export_preview', 'export_encoder',
         'camera_sketch', 'camera_sketch_canvas', 'camera_sketch_sidebar', 'camera_sketch_waypoints',
         'camera_path', 'camera_path_presets', 'camera_path_steps',
         'mcp_dialog', 'mcp_status', 'mcp_config', 'mcp_guide',

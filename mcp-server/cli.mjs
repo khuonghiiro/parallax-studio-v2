@@ -43,7 +43,7 @@ const args = langIdx >= 0 ? rawArgs.filter((_, i) => i !== langIdx && i !== lang
 const MSG = {
   notRunning: { en: 'Parallax Studio is not running (or has never been started): config file not found at', vi: 'Parallax Studio chưa được bật (hoặc chưa từng khởi chạy): không tìm thấy file cấu hình tại' },
   startApp: { en: 'Open the app or run "npm run dev" first.', vi: 'Hãy mở ứng dụng hoặc chạy "npm run dev" trước.' },
-  timeout: { en: 'Timed out waiting for the app (15s) on', vi: 'Quá thời gian chờ phản hồi từ app (15s) cho lệnh' },
+  timeout: { en: 'Timed out waiting for the app (set PXS_TIMEOUT_MS to wait longer) on', vi: 'Quá thời gian chờ phản hồi từ app (đặt PXS_TIMEOUT_MS để chờ lâu hơn) cho lệnh' },
   connectFail: { en: 'Cannot connect to Parallax Studio at', vi: 'Không thể kết nối tới Parallax Studio tại' },
   unknownErr: { en: 'Unknown error from Parallax Studio.', vi: 'Lỗi không xác định từ Parallax Studio.' },
   tool: { en: 'MCP TOOL', vi: 'CÔNG CỤ MCP' },
@@ -99,6 +99,14 @@ function readConfig() {
   return { host: '127.0.0.1', port: Number(process.env.PARALLAX_MCP_PORT) || cfg.port || 9877, token: process.env.PARALLAX_MCP_TOKEN || cfg.token }
 }
 
+/** Lệnh chạy lâu (xuất video) được chờ tới 2 giờ; có thể ghi đè bằng biến môi trường PXS_TIMEOUT_MS. */
+const LONG_RUNNING_METHODS = new Set(['export_video'])
+function callTimeoutMs(method) {
+  const env = Number(process.env.PXS_TIMEOUT_MS)
+  if (Number.isFinite(env) && env > 0) return env
+  return LONG_RUNNING_METHODS.has(method) ? 2 * 60 * 60 * 1000 : 15000
+}
+
 function sendCommand(method, params = {}) {
   const cfg = readConfig()
   const wireMethod = method === 'get_app_screenshot' ? 'capture_app_silent' : method
@@ -110,7 +118,7 @@ function sendCommand(method, params = {}) {
     const timeout = setTimeout(() => {
       sock.destroy()
       rejectPromise(new Error(`[PXS CLI] ${t('timeout')} "${method}".`))
-    }, 15000)
+    }, callTimeoutMs(method))
     sock.once('connect', () => sock.write(JSON.stringify({ id: reqId, token: cfg.token, method: wireMethod, params }) + '\n'))
     sock.on('data', (chunk) => {
       buffer += chunk

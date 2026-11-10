@@ -236,11 +236,11 @@ function registerIpc(): void {
         audioPath = join(tmpdir(), `pxs-audio-${Date.now()}.${opts.audio.ext}`)
         await writeFile(audioPath, Buffer.from(opts.audio.data))
       }
-      encoder = new FfmpegEncoder(opts, audioPath)
+      encoder = await FfmpegEncoder.create(opts, audioPath)
       encoder.onDone(() => {
         if (audioPath) unlink(audioPath).catch(() => undefined)
       })
-      return { ok: true }
+      return { ok: true, encoder: encoder.videoEncoder, pixelFormat: opts.pixelFormat ?? 'rgba' }
     } catch (err) {
       return { ok: false, error: String(err) }
     }

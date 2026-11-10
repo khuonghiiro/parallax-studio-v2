@@ -1,10 +1,25 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ExportStartOptions } from '@shared/ipc'
-import { exportSize, runExport } from '../export/runExport'
+import { exportSize, runExport, type ExportOutcome } from '../export/runExport'
 import { getProjectAudioTracks } from '../project/audioTracks'
 import { useEditor } from '../store/editor'
 import { IconExport, IconFolder, IconX } from './icons'
 import { Row, Select, Switch } from './controls'
+import { SegmentedTabs, type SegmentedTabItem } from './primitives'
+
+type EncoderChoice = 'auto' | 'cpu'
+
+const ENCODER_ITEMS: SegmentedTabItem<EncoderChoice>[] = [
+  { id: 'auto', label: 'Tự động (GPU)', title: 'Dùng GPU (NVIDIA NVENC / Intel Quick Sync / AMD AMF) nếu máy hỗ trợ, nhanh và nhẹ CPU' },
+  { id: 'cpu', label: 'CPU (x264)', title: 'Luôn mã hoá bằng CPU libx264 — file nhỏ nhất ở cùng chất lượng nhưng chậm hơn' }
+]
+
+const ENCODER_LABELS: Record<string, string> = {
+  libx264: 'CPU libx264',
+  h264_nvenc: 'GPU NVIDIA NVENC',
+  h264_qsv: 'GPU Intel Quick Sync',
+  h264_amf: 'GPU AMD AMF'
+}
 
 type Phase = 'setup' | 'rendering' | 'done' | 'error'
 
@@ -33,6 +48,8 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
   const [fps, setFps] = useState(comp.fps)
   const [crf, setCrf] = useState(18)
   const [speed, setSpeed] = useState<ExportStartOptions['preset']>('medium')
+  const [encoder, setEncoder] = useState<EncoderChoice>('auto')
+  const [outcome, setOutcome] = useState<ExportOutcome | null>(null)
   const [withAudio, setWithAudio] = useState(hasAudio)
   const [phase, setPhase] = useState<Phase>('setup')
   const [progress, setProgress] = useState({ frame: 0, total: 1, eta: 0, fps: 0 })
@@ -67,11 +84,12 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
     const snapshot = useEditor.getState().project
     const res = await runExport(
       snapshot,
-      { outPath: path, height: outH, fps, crf, preset: speed, withAudio: withAudio && hasAudio },
+      { outPath: path, height: outH, fps, crf, preset: speed, encoder, withAudio: withAudio && hasAudio },
       setProgress,
       () => cancelRef.current,
       previewRef.current
     )
+    setOutcome(res)
     if (res.cancelled) setPhase('setup')
     else if (res.ok) setPhase('done')
     else {
@@ -146,6 +164,21 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
                   onChange={(val) => setSpeed(val as ExportStartOptions['preset'])}
                 />
               </Row>
+              <Row label="Bộ mã hoá">
+                <div className="export-encoder-row" data-mcp-region="export_encoder">
+                  <SegmentedTabs<EncoderChoice>
+                    items={ENCODER_ITEMS}
+                    value={encoder}
+                    onChange={setEncoder}
+                    variant="segmented"
+                    size="sm"
+                    ariaLabel="Chọn bộ mã hoá video"
+                  />
+                  <span className="hint-text">
+                    {encoder === 'auto' ? 'Tự lùi về CPU nếu máy không có GPU hỗ trợ' : 'Chậm hơn, file nhỏ nhất'}
+                  </span>
+                </div>
+              </Row>
               <Row label="Kèm âm thanh">
                 <Switch on={withAudio && hasAudio} onChange={(v) => hasAudio && setWithAudio(v)} />
                 <span className="hint-text">
@@ -174,6 +207,11 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
                 </span>
               </div>
               {phase === 'done' && <div className="export-done-banner">✓ Đã xuất xong: {outPath}</div>}
+              {phase === 'done' && outcome?.encoder && (
+                <div className="export-encoder-used">
+                  Bộ mã hoá: {ENCODER_LABELS[outcome.encoder] ?? outcome.encoder} · {outcome.seconds.toFixed(1)}s
+                </div>
+              )}
             </>
           )}
 

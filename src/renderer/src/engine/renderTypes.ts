@@ -44,6 +44,8 @@ export interface RenderOptions {
   viewport?: Rect
   /** Request textures that will be needed in the next ~1.5 s of the camera path. */
   prefetch?: boolean
+  /** Ghi frame cuối (sau post) vào render target này thay vì canvas — dùng khi xuất video đóng gói YUV. */
+  target?: THREE.WebGLRenderTarget
   /** Whether the timeline is actively playing. */
   playing?: boolean
 }

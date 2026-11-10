@@ -2,7 +2,8 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'child_process'
 import { existsSync } from 'fs'
 import { join } from 'path'
 import ffmpegStatic from 'ffmpeg-static'
-import type { ExportResult, ExportStartOptions } from '@shared/ipc'
+import type { ExportResult, ExportStartOptions, ExportVideoEncoder } from '@shared/ipc'
+import { resolveVideoEncoder, videoCodecArgs } from './ffmpegEncoders'
 
 /** Resolve the ffmpeg binary from env, local project bin, ffmpeg-static, or system PATH. */
 export function ffmpegPath(): string {
@@ -24,9 +25,16 @@ export function ffmpegPath(): string {
   return 'ffmpeg'
 }
 
+/** Số byte mỗi frame thô theo định dạng điểm ảnh gửi sang ffmpeg. */
+export function frameByteLength(opts: Pick<ExportStartOptions, 'width' | 'height' | 'pixelFormat'>): number {
+  const px = opts.width * opts.height
+  return opts.pixelFormat === 'yuv420p' ? (px * 3) / 2 : px * 4
+}
+
 /**
  * Streams raw RGBA frames (bottom-up, as returned by WebGL readPixels) into ffmpeg
  * and encodes an H.264 MP4, optionally muxing an audio track.
+ * `vflip` của ffmpeg chỉ đảo con trỏ dòng (zero-copy) nên không tốn thêm CPU.
  */
 export class FfmpegEncoder {
   private proc: ChildProcessWithoutNullStreams
@@ -35,15 +43,23 @@ export class FfmpegEncoder {
   private doneCallbacks: Array<() => void> = []
   private cancelled = false
 
+  /** Chọn encoder theo `opts.encoder` (GPU nếu chạy được, không thì libx264) rồi khởi động ffmpeg. */
+  static async create(opts: ExportStartOptions, audioPath?: string): Promise<FfmpegEncoder> {
+    const videoEncoder = await resolveVideoEncoder(ffmpegPath(), opts.encoder, opts.width, opts.height)
+    return new FfmpegEncoder(opts, audioPath, videoEncoder)
+  }
+
   constructor(
     private opts: ExportStartOptions,
-    audioPath?: string
+    audioPath?: string,
+    readonly videoEncoder: ExportVideoEncoder = 'libx264'
   ) {
     const { width, height, fps, crf, preset, outPath, audio } = opts
+    const yuv = opts.pixelFormat === 'yuv420p'
     const args = [
       '-y',
       '-f', 'rawvideo',
-      '-pix_fmt', 'rgba',
+      '-pix_fmt', yuv ? 'yuv420p' : 'rgba',
       '-s', `${width}x${height}`,
       '-r', String(fps),
       '-i', 'pipe:0'
@@ -52,14 +68,9 @@ export class FfmpegEncoder {
       if (audio.offset < 0) args.push('-ss', String(-audio.offset))
       args.push('-i', audioPath)
     }
-    args.push(
-      '-vf', 'vflip',
-      '-c:v', 'libx264',
-      '-preset', preset,
-      '-crf', String(crf),
-      '-pix_fmt', 'yuv420p',
-      '-movflags', '+faststart'
-    )
+    // Frame RGBA đọc từ WebGL là hàng từ dưới lên → cần vflip; YUV420p đã được GPU sắp xếp từ trên xuống.
+    if (!yuv) args.push('-vf', 'vflip')
+    args.push(...videoCodecArgs(videoEncoder, preset, crf), '-movflags', '+faststart')
     if (audioPath && audio) {
       const filters: string[] = []
       if (audio.offset > 0) filters.push(`adelay=${Math.round(audio.offset * 1000)}:all=1`)
@@ -92,15 +103,35 @@ export class FfmpegEncoder {
   }
 
   async writeFrame(frame: Uint8Array): Promise<void> {
-    const expected = this.opts.width * this.opts.height * 4
+    const expected = frameByteLength(this.opts)
     if (frame.byteLength !== expected) {
       throw new Error(`Frame size mismatch: got ${frame.byteLength}, expected ${expected}`)
     }
     if (this.proc.exitCode !== null) throw new Error(`ffmpeg exited early:\n${this.stderrTail}`)
     const ok = this.proc.stdin.write(Buffer.from(frame.buffer, frame.byteOffset, frame.byteLength))
-    if (!ok) {
-      await new Promise<void>((resolve) => this.proc.stdin.once('drain', () => resolve()))
-    }
+    if (!ok) await this.waitDrain()
+  }
+
+  /** Chờ pipe stdin rút hết dữ liệu; báo lỗi (thay vì treo vĩnh viễn) nếu ffmpeg thoát giữa chừng. */
+  private waitDrain(): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      const cleanup = (): void => {
+        this.proc.stdin.off('drain', onDrain)
+        this.proc.stdin.off('error', onFail)
+        this.proc.off('close', onFail)
+      }
+      const onDrain = (): void => {
+        cleanup()
+        resolve()
+      }
+      const onFail = (): void => {
+        cleanup()
+        reject(new Error(`ffmpeg exited early:\n${this.stderrTail}`))
+      }
+      this.proc.stdin.once('drain', onDrain)
+      this.proc.stdin.once('error', onFail)
+      this.proc.once('close', onFail)
+    })
   }
 
   async finish(): Promise<ExportResult> {
@@ -108,7 +139,7 @@ export class FfmpegEncoder {
     const code = await this.exited
     if (this.cancelled) return { ok: false, error: 'Cancelled' }
     if (code === 0) return { ok: true, outPath: this.opts.outPath }
-    return { ok: false, error: `ffmpeg exited with code ${code}\n${this.stderrTail}` }
+    return { ok: false, error: `ffmpeg (${this.videoEncoder}) exited with code ${code}\n${this.stderrTail}` }
   }
 
   cancel(): void {

@@ -1,4 +1,5 @@
 import type { LookSettings, Project } from '@shared/types'
+import type { ExportEncoderPreference } from '@shared/ipc'
 import { referenceDistance } from '../../animation/math'
 import { setCompDuration, isInternalSourcePath } from '../../actions'
 import { isExporting, runExport } from '../../export/runExport'
@@ -268,6 +269,8 @@ export const projectCommands: Record<string, Handler> = {
       fps: num(p, 'fps'),
       crf: num(p, 'crf'),
       preset,
+      encoder: str(p, 'encoder') as ExportEncoderPreference | undefined,
+      readback: str(p, 'readback') === 'sync' ? 'sync' : 'async',
       withAudio: bool(p, 'with_audio'),
       start: num(p, 'start'),
       end: num(p, 'end')

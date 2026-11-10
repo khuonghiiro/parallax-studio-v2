@@ -8,12 +8,29 @@ export interface PickedFile {
   data: Uint8Array
 }
 
+/** Encoder H.264 thực tế ffmpeg dùng khi xuất video. */
+export type ExportVideoEncoder = 'libx264' | 'h264_nvenc' | 'h264_qsv' | 'h264_amf'
+
+/**
+ * Lựa chọn encoder: `auto` = GPU đầu tiên chạy được (NVENC → Quick Sync → AMF) rồi mới tới CPU x264,
+ * `cpu` = luôn dùng libx264, hoặc chỉ định một encoder cụ thể (tự lùi về libx264 nếu không chạy được).
+ */
+export type ExportEncoderPreference = 'auto' | 'cpu' | ExportVideoEncoder
+
+export type ExportPixelFormat = 'rgba' | 'yuv420p'
+
 export interface ExportStartOptions {
   width: number
   height: number
   fps: number
   crf: number
   preset: 'ultrafast' | 'veryfast' | 'medium' | 'slow'
+  encoder?: ExportEncoderPreference
+  /**
+   * Định dạng frame thô gửi sang ffmpeg: `rgba` (mặc định, hàng từ dưới lên như readPixels) hoặc
+   * `yuv420p` (đã chuyển màu BT.601 + lật trên GPU, 1,5 byte/pixel; cần rộng chia hết 8, cao chia hết 4).
+   */
+  pixelFormat?: ExportPixelFormat
   outPath: string
   audio?: { data: Uint8Array; ext: string; offset: number; volume: number; duration: number }
 }
@@ -180,7 +197,9 @@ export interface ParallaxApi {
   saveJson(content: string, defaultName?: string): Promise<string | null>
   openJson(): Promise<{ path: string; content: string } | null>
   chooseExportPath(defaultName: string): Promise<string | null>
-  exportStart(opts: ExportStartOptions): Promise<{ ok: boolean; error?: string }>
+  exportStart(
+    opts: ExportStartOptions
+  ): Promise<{ ok: boolean; error?: string; encoder?: ExportVideoEncoder; pixelFormat?: ExportPixelFormat }>
   exportFrame(frame: Uint8Array): Promise<void>
   exportFinish(): Promise<ExportResult>
   exportCancel(): Promise<void>

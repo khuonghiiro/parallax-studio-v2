@@ -220,102 +220,69 @@ export interface ChromaAlphaAnalysis {
   isMagentaKey: boolean
 }
 
-/** Phân tích độ phủ thật của mọi pixel — dùng chung cho tách bóng, xoá quầng và phân vùng nền ngoài / trong */
-export function analyzeChromaAlpha(
+/** Hằng số giải pha màu đã tính sẵn — dùng chung cho vòng lặp CPU và uniform của kernel GPU */
+export interface ChromaAnalysisParams {
+  kr: number
+  kg: number
+  kb: number
+  invPosR: number
+  invPosG: number
+  invPosB: number
+  invNegR: number
+  invNegG: number
+  invNegB: number
+  kcr: number
+  kcg: number
+  kcb: number
+  kcLenSq: number
+  isChromaticKey: boolean
+  /** 0..1 */
+  detailProtection: number
+  /** 0 = auto, 1 = light (mây / hào quang sáng), 2 = dark (bóng đổ) */
+  shadowType: 0 | 1 | 2
+}
+
+export function buildChromaAnalysisParams(
+  settings: ChromaKeySettings,
+  keyRgb: { r: number; g: number; b: number }
+): ChromaAnalysisParams {
+  const shadowType = settings.shadowType || 'auto'
+  const kMean = (keyRgb.r + keyRgb.g + keyRgb.b) / 3
+  const kcr = keyRgb.r - kMean
+  const kcg = keyRgb.g - kMean
+  const kcb = keyRgb.b - kMean
+  const kcLenSq = kcr * kcr + kcg * kcg + kcb * kcb
+  return {
+    kr: keyRgb.r,
+    kg: keyRgb.g,
+    kb: keyRgb.b,
+    invPosR: keyRgb.r <= 238 ? 1 / Math.max(20, 255 - keyRgb.r) : 1 / 255,
+    invPosG: keyRgb.g <= 238 ? 1 / Math.max(20, 255 - keyRgb.g) : 1 / 255,
+    invPosB: keyRgb.b <= 238 ? 1 / Math.max(20, 255 - keyRgb.b) : 1 / 255,
+    invNegR: keyRgb.r >= 17 ? 1 / Math.max(20, keyRgb.r) : 1 / 255,
+    invNegG: keyRgb.g >= 17 ? 1 / Math.max(20, keyRgb.g) : 1 / 255,
+    invNegB: keyRgb.b >= 17 ? 1 / Math.max(20, keyRgb.b) : 1 / 255,
+    kcr,
+    kcg,
+    kcb,
+    kcLenSq,
+    isChromaticKey: kcLenSq > 600,
+    detailProtection: Math.max(0, Math.min(100, settings.detailProtection ?? 75)) / 100,
+    shadowType: shadowType === 'light' ? 1 : shadowType === 'dark' ? 2 : 0
+  }
+}
+
+/** Gắn nhiễu nền đo quanh mép ảnh và cờ loại phông vào kết quả giải pha màu (CPU hoặc GPU). */
+export function finalizeChromaAnalysis(
+  rawAlpha: Float32Array,
+  dirAlpha: Float32Array,
+  isLight: Uint8Array,
   data: Uint8ClampedArray,
   w: number,
   h: number,
   settings: ChromaKeySettings,
   keyRgb: { r: number; g: number; b: number }
 ): ChromaAlphaAnalysis {
-  const totalPixels = w * h
-  const shadowType = settings.shadowType || 'auto'
-  const detailProtection = Math.max(0, Math.min(100, settings.detailProtection ?? 75)) / 100
-  const invPosR = keyRgb.r <= 238 ? 1 / Math.max(20, 255 - keyRgb.r) : 1 / 255
-  const invPosG = keyRgb.g <= 238 ? 1 / Math.max(20, 255 - keyRgb.g) : 1 / 255
-  const invPosB = keyRgb.b <= 238 ? 1 / Math.max(20, 255 - keyRgb.b) : 1 / 255
-  const invNegR = keyRgb.r >= 17 ? 1 / Math.max(20, keyRgb.r) : 1 / 255
-  const invNegG = keyRgb.g >= 17 ? 1 / Math.max(20, keyRgb.g) : 1 / 255
-  const invNegB = keyRgb.b >= 17 ? 1 / Math.max(20, keyRgb.b) : 1 / 255
-
-  const kMean = (keyRgb.r + keyRgb.g + keyRgb.b) / 3
-  const kcr = keyRgb.r - kMean
-  const kcg = keyRgb.g - kMean
-  const kcb = keyRgb.b - kMean
-  const kcLenSq = kcr * kcr + kcg * kcg + kcb * kcb
-  const isChromaticKey = kcLenSq > 600
-
-  const dirAlpha = new Float32Array(totalPixels)
-  const rawAlpha = new Float32Array(totalPixels)
-  const isLight = new Uint8Array(totalPixels)
-
-  for (let p = 0; p < totalPixels; p++) {
-    const idx = p * 4
-    if (data[idx + 3] < 15) continue
-    const r = data[idx]
-    const g = data[idx + 1]
-    const b = data[idx + 2]
-    const alphaLight = Math.max(
-      Math.max(0, r - keyRgb.r) * invPosR,
-      Math.max(0, g - keyRgb.g) * invPosG,
-      Math.max(0, b - keyRgb.b) * invPosB
-    )
-    const alphaDark = Math.max(
-      Math.max(0, keyRgb.r - r) * invNegR,
-      Math.max(0, keyRgb.g - g) * invNegG,
-      Math.max(0, keyRgb.b - b) * invNegB
-    )
-    const maxAD = Math.max(alphaLight, alphaDark)
-    const minAD = Math.min(alphaLight, alphaDark)
-    let alphaAll = Math.min(1, maxAD + minAD * 0.5)
-
-    if (isChromaticKey) {
-      const cMean = (r + g + b) / 3
-      const pChroma = Math.max(
-        0,
-        Math.min(1, ((r - cMean) * kcr + (g - cMean) * kcg + (b - cMean) * kcb) / kcLenSq)
-      )
-      const alphaChroma = 1 - pChroma
-      if (alphaChroma > alphaAll) {
-        alphaAll = alphaChroma
-      }
-      // Nếu một kênh sáng hơn nền rõ rệt trong khi kênh khác tối hơn nền rõ rệt (đối chiều màu, ví dụ tóc nâu / da trên nền hồng),
-      // pixel không phải bóng tối hay mây trắng mà là màu vật thể đặc.
-      if (alphaLight > 0.12 && alphaDark > 0.18 && pChroma < 0.25) {
-        alphaAll = Math.max(alphaAll, Math.min(1, 1 - pChroma * 0.35))
-      }
-    } else if (detailProtection > 0) {
-      // Trên nền trung tính / ít bão hoà (xám, trắng, kem, đen):
-      // Bóng đổ và mây mờ thật chỉ dịch chuyển độ sáng đồng hướng (dr ≈ dg ≈ db, sắc độ lệch rất thấp).
-      // Ngược lại, da mặt, mũ áo nâu/xám xanh, lá cây có vector sắc độ (chromaVec) hoặc đối cực kênh màu rõ rệt → bảo vệ làm vật thể đặc!
-      const dr = r - keyRgb.r
-      const dg = g - keyRgb.g
-      const db = b - keyRgb.b
-      const meanD = (dr + dg + db) / 3
-      const cdR = dr - meanD
-      const cdG = dg - meanD
-      const cdB = db - meanD
-      const chromaVec = Math.sqrt(cdR * cdR + cdG * cdG + cdB * cdB)
-      const effChroma = Math.max(0, chromaVec - 2.2)
-      const maxPos = Math.max(0, dr, dg, db)
-      const maxNeg = Math.max(0, -dr, -dg, -db)
-      const oppPol = maxPos > 1.5 && maxNeg > 1.5 ? Math.min(maxPos, maxNeg) : 0
-      if (effChroma > 0 || oppPol > 0) {
-        const boost = (effChroma / 12 + oppPol / 9) * detailProtection
-        alphaAll = Math.min(1, alphaAll + boost)
-      }
-    }
-
-    rawAlpha[p] = alphaAll
-    isLight[p] = alphaLight >= alphaDark ? 1 : 0
-    dirAlpha[p] =
-      shadowType === 'light'
-        ? alphaLight >= alphaDark * 0.5 ? alphaLight : 0
-        : shadowType === 'dark'
-          ? alphaDark > alphaLight ? alphaDark : 0
-          : alphaAll
-  }
-
   return {
     rawAlpha,
     dirAlpha,
@@ -327,6 +294,103 @@ export function analyzeChromaAlpha(
       settings.keyColorType === 'chroma_blue' || (keyRgb.b > keyRgb.r + 25 && keyRgb.b > keyRgb.g + 15),
     isMagentaKey: keyRgb.r > keyRgb.g + 35 && keyRgb.b > keyRgb.g + 35
   }
+}
+
+/** Phân tích độ phủ thật của mọi pixel — dùng chung cho tách bóng, xoá quầng và phân vùng nền ngoài / trong */
+export function analyzeChromaAlpha(
+  data: Uint8ClampedArray,
+  w: number,
+  h: number,
+  settings: ChromaKeySettings,
+  keyRgb: { r: number; g: number; b: number }
+): ChromaAlphaAnalysis {
+  const totalPixels = w * h
+  const P = buildChromaAnalysisParams(settings, keyRgb)
+  const dirAlpha = new Float32Array(totalPixels)
+  const rawAlpha = new Float32Array(totalPixels)
+  const isLight = new Uint8Array(totalPixels)
+
+  for (let p = 0; p < totalPixels; p++) {
+    const idx = p * 4
+    if (data[idx + 3] < 15) continue
+    const r = data[idx]
+    const g = data[idx + 1]
+    const b = data[idx + 2]
+    const alphaLight = Math.max(
+      Math.max(0, r - P.kr) * P.invPosR,
+      Math.max(0, g - P.kg) * P.invPosG,
+      Math.max(0, b - P.kb) * P.invPosB
+    )
+    const alphaDark = Math.max(
+      Math.max(0, P.kr - r) * P.invNegR,
+      Math.max(0, P.kg - g) * P.invNegG,
+      Math.max(0, P.kb - b) * P.invNegB
+    )
+    const alphaAll = pixelCoverage(P, r, g, b, alphaLight, alphaDark)
+
+    rawAlpha[p] = alphaAll
+    isLight[p] = alphaLight >= alphaDark ? 1 : 0
+    dirAlpha[p] =
+      P.shadowType === 1
+        ? alphaLight >= alphaDark * 0.5 ? alphaLight : 0
+        : P.shadowType === 2
+          ? alphaDark > alphaLight ? alphaDark : 0
+          : alphaAll
+  }
+
+  return finalizeChromaAnalysis(rawAlpha, dirAlpha, isLight, data, w, h, settings, keyRgb)
+}
+
+/** Độ phủ tổng của 1 pixel từ độ lệch sáng / tối so với nền và vector sắc độ. */
+function pixelCoverage(
+  P: ChromaAnalysisParams,
+  r: number,
+  g: number,
+  b: number,
+  alphaLight: number,
+  alphaDark: number
+): number {
+  const maxAD = Math.max(alphaLight, alphaDark)
+  const minAD = Math.min(alphaLight, alphaDark)
+  let alphaAll = Math.min(1, maxAD + minAD * 0.5)
+
+  if (P.isChromaticKey) {
+    const cMean = (r + g + b) / 3
+    const pChroma = Math.max(
+      0,
+      Math.min(1, ((r - cMean) * P.kcr + (g - cMean) * P.kcg + (b - cMean) * P.kcb) / P.kcLenSq)
+    )
+    const alphaChroma = 1 - pChroma
+    if (alphaChroma > alphaAll) {
+      alphaAll = alphaChroma
+    }
+    // Nếu một kênh sáng hơn nền rõ rệt trong khi kênh khác tối hơn nền rõ rệt (đối chiều màu, ví dụ tóc nâu / da trên nền hồng),
+    // pixel không phải bóng tối hay mây trắng mà là màu vật thể đặc.
+    if (alphaLight > 0.12 && alphaDark > 0.18 && pChroma < 0.25) {
+      alphaAll = Math.max(alphaAll, Math.min(1, 1 - pChroma * 0.35))
+    }
+  } else if (P.detailProtection > 0) {
+    // Trên nền trung tính / ít bão hoà (xám, trắng, kem, đen):
+    // Bóng đổ và mây mờ thật chỉ dịch chuyển độ sáng đồng hướng (dr ≈ dg ≈ db, sắc độ lệch rất thấp).
+    // Ngược lại, da mặt, mũ áo nâu/xám xanh, lá cây có vector sắc độ (chromaVec) hoặc đối cực kênh màu rõ rệt → bảo vệ làm vật thể đặc!
+    const dr = r - P.kr
+    const dg = g - P.kg
+    const db = b - P.kb
+    const meanD = (dr + dg + db) / 3
+    const cdR = dr - meanD
+    const cdG = dg - meanD
+    const cdB = db - meanD
+    const chromaVec = Math.sqrt(cdR * cdR + cdG * cdG + cdB * cdB)
+    const effChroma = Math.max(0, chromaVec - 2.2)
+    const maxPos = Math.max(0, dr, dg, db)
+    const maxNeg = Math.max(0, -dr, -dg, -db)
+    const oppPol = maxPos > 1.5 && maxNeg > 1.5 ? Math.min(maxPos, maxNeg) : 0
+    if (effChroma > 0 || oppPol > 0) {
+      const boost = (effChroma / 12 + oppPol / 9) * P.detailProtection
+      alphaAll = Math.min(1, alphaAll + boost)
+    }
+  }
+  return alphaAll
 }
 
 /**

@@ -1,9 +1,11 @@
-import type { ExportStartOptions } from '@shared/ipc'
+import type { ExportEncoderPreference, ExportStartOptions } from '@shared/ipc'
 import type { Project } from '@shared/types'
 import { SceneRenderer } from '../engine/SceneRenderer'
+import type { AsyncFrameReadback } from '../engine/asyncReadback'
 import { assetStore } from '../project/assets'
 import { getProjectAudioTracks, mixAudioTracksToWav } from '../project/audioTracks'
 import { extForMime } from '../project/serialize'
+import { FrameBufferPool, FrameSendQueue } from './frameSendQueue'
 
 export interface ExportOptions {
   outPath: string
@@ -12,6 +14,10 @@ export interface ExportOptions {
   fps?: number
   crf?: number
   preset?: ExportStartOptions['preset']
+  /** Bộ mã hoá: `auto` = GPU (NVENC / Quick Sync / AMF) nếu có, không thì CPU x264. */
+  encoder?: ExportEncoderPreference
+  /** Cách đọc pixel: `async` (mặc định, PBO + fence) hoặc `sync` (readPixels đồng bộ — để đối chiếu hiệu năng). */
+  readback?: 'async' | 'sync'
   withAudio?: boolean
   /** Export only [start, end) seconds. */
   start?: number
@@ -25,6 +31,22 @@ export interface ExportProgress {
   eta: number
 }
 
+/** Tổng thời gian (ms) renderer dành cho từng bước — dùng để tìm nút thắt khi xuất video. */
+export interface ExportTimings {
+  /** Chờ giải mã / nạp texture cho frame. */
+  prepareMs: number
+  /** Dựng cảnh và gửi lệnh vẽ lên GPU. */
+  renderMs: number
+  /** Chờ GPU trả pixel về CPU. */
+  readbackMs: number
+  /** Xếp lệnh copy framebuffer vào PBO (chế độ bất đồng bộ). */
+  captureMs: number
+  /** Đứng chờ vì encoder (ffmpeg) chưa nhận kịp frame. */
+  sendWaitMs: number
+  /** `true` khi dùng PBO bất đồng bộ (WebGL2), `false` khi phải đọc pixel đồng bộ. */
+  asyncReadback: boolean
+}
+
 export interface ExportOutcome {
   ok: boolean
   cancelled?: boolean
@@ -32,7 +54,17 @@ export interface ExportOutcome {
   outPath: string
   frames: number
   seconds: number
+  /** Encoder thực tế ffmpeg đã dùng (ví dụ `h264_qsv`, `libx264`). */
+  encoder?: string
+  timings?: ExportTimings
 }
+
+/** Số frame GPU được phép dựng trước khi CPU lấy pixel ra (độ sâu pipeline PBO). */
+const READBACK_SLOTS = 3
+/** Số frame tối đa nằm chờ gửi sang encoder. */
+const MAX_QUEUED_FRAMES = 3
+/** Cập nhật ảnh xem trước mỗi N frame (drawImage từ canvas WebGL cũng tốn băng thông GPU). */
+const PREVIEW_EVERY = 8
 
 const even = (n: number): number => Math.max(2, Math.round(n / 2) * 2)
 
@@ -43,6 +75,143 @@ export function exportSize(project: Project, height?: number): { width: number; 
 
 let running = false
 export const isExporting = (): boolean => running
+
+async function resolveExportAudio(
+  project: Project,
+  duration: number,
+  start: number
+): Promise<ExportStartOptions['audio']> {
+  const tracks = getProjectAudioTracks(project)
+  if (tracks.length > 1) {
+    const wavData = await mixAudioTracksToWav(tracks, duration, start)
+    return wavData ? { data: wavData, ext: 'wav', offset: 0, volume: 1, duration } : undefined
+  }
+  if (tracks.length === 1) {
+    const tr = tracks[0]
+    const a = assetStore.get(tr.assetId)
+    const data = await assetStore.getBytes(tr.assetId)
+    if (a && data) {
+      return { data, ext: extForMime(a.meta.mime), offset: tr.offset - start, volume: tr.volume, duration }
+    }
+  }
+  return undefined
+}
+
+interface FrameLoop {
+  r: SceneRenderer
+  project: Project
+  canvas: HTMLCanvasElement
+  start: number
+  fps: number
+  total: number
+  height: number
+  t0: number
+  preview?: HTMLCanvasElement | null
+  onProgress: (p: ExportProgress) => void
+  isCancelled: () => boolean
+  timings: ExportTimings
+  useAsyncReadback: boolean
+}
+
+/** Nạp texture rồi vẽ frame `i` lên canvas (chưa đọc pixel). */
+async function renderFrame(loop: FrameLoop, i: number): Promise<void> {
+  const t = loop.start + i / loop.fps
+  const s0 = performance.now()
+  await loop.r.waitForContext()
+  await loop.r.prepare(loop.project, t, loop.height)
+  const s1 = performance.now()
+  loop.r.render(loop.project, t, { frame: i, prefetch: true })
+  loop.timings.prepareMs += s1 - s0
+  loop.timings.renderMs += performance.now() - s1
+}
+
+function drawPreview(loop: FrameLoop, i: number): void {
+  const pv = loop.preview
+  if (!pv || i % PREVIEW_EVERY !== 0) return
+  pv.getContext('2d')?.drawImage(loop.canvas, 0, 0, pv.width, pv.height)
+}
+
+function reportProgress(loop: FrameLoop, done: number): void {
+  const elapsed = (performance.now() - loop.t0) / 1000
+  const rate = done / Math.max(1e-3, elapsed)
+  loop.onProgress({ frame: done, total: loop.total, fps: rate, eta: (loop.total - done) / rate })
+}
+
+/**
+ * Vòng lặp xuất frame dạng pipeline: GPU dựng trước tối đa `READBACK_SLOTS` frame, pixel được đọc
+ * bất đồng bộ qua PBO và gửi sang ffmpeg trong nền theo đúng thứ tự. Nếu GL context bị mất, dựng lại
+ * từ frame đầu tiên chưa gửi. Trả về số frame đã gửi, `cancelled` nếu người dùng dừng.
+ */
+async function encodeFrames(loop: FrameLoop, width: number): Promise<{ frames: number; cancelled: boolean }> {
+  const { r } = loop
+  const pool = new FrameBufferPool(width * loop.height * 4)
+  const queue = new FrameSendQueue((f) => window.api.exportFrame(f), MAX_QUEUED_FRAMES, (f) => pool.release(f))
+  let readback: AsyncFrameReadback | null = loop.useAsyncReadback ? r.createFrameReadback(READBACK_SLOTS) : null
+  loop.timings.asyncReadback = !!readback
+  let next = 0
+  let done = 0
+  let retries = 0
+
+  const recover = async (): Promise<void> => {
+    if (++retries > 3) throw new Error('GPU liên tục mất context khi xuất video')
+    readback?.dispose()
+    await r.waitForContext()
+    readback = loop.useAsyncReadback ? r.createFrameReadback(READBACK_SLOTS) : null
+    next = done
+  }
+  const deliver = async (buf: Uint8Array): Promise<void> => {
+    retries = 0
+    await queue.push(buf)
+    done++
+    reportProgress(loop, done)
+  }
+
+  try {
+    while (done < loop.total) {
+      if (loop.isCancelled()) return { frames: done, cancelled: true }
+      if (next < loop.total && (!readback || readback.hasFreeSlot)) {
+        await renderFrame(loop, next)
+        if (r.isContextLost()) {
+          await recover()
+          continue
+        }
+        if (readback) {
+          const c0 = performance.now()
+          readback.capture(next)
+          loop.timings.captureMs += performance.now() - c0
+          drawPreview(loop, next++)
+          continue
+        }
+        const s = performance.now()
+        const buf = r.readPixels(pool.acquire())
+        loop.timings.readbackMs += performance.now() - s
+        if (r.isContextLost()) {
+          pool.release(buf)
+          await recover()
+          continue
+        }
+        drawPreview(loop, next++)
+        await deliver(buf)
+        continue
+      }
+      const buf = pool.acquire()
+      const s = performance.now()
+      const tag = readback ? await readback.takeOldest(buf) : null
+      loop.timings.readbackMs += performance.now() - s
+      if (tag === null || r.isContextLost()) {
+        pool.release(buf)
+        await recover()
+        continue
+      }
+      await deliver(buf)
+    }
+    await queue.drain()
+    return { frames: done, cancelled: false }
+  } finally {
+    loop.timings.sendWaitMs += queue.blockedMs
+    readback?.dispose()
+  }
+}
 
 /**
  * Render a project frame-by-frame into an MP4 through the main-process FFmpeg pipe.
@@ -70,37 +239,18 @@ export async function runExport(
   const r = new SceneRenderer(canvas, { preserveDrawingBuffer: true })
   r.setSize(width, height)
   const t0 = performance.now()
+  const timings: ExportTimings = {
+    prepareMs: 0,
+    renderMs: 0,
+    readbackMs: 0,
+    captureMs: 0,
+    sendWaitMs: 0,
+    asyncReadback: false
+  }
+  const elapsed = (): number => (performance.now() - t0) / 1000
 
   try {
-    let audio: ExportStartOptions['audio']
-    if (opts.withAudio ?? true) {
-      const tracks = getProjectAudioTracks(project)
-      if (tracks.length > 1) {
-        const wavData = await mixAudioTracksToWav(tracks, total / fps, start)
-        if (wavData) {
-          audio = {
-            data: wavData,
-            ext: 'wav',
-            offset: 0,
-            volume: 1,
-            duration: total / fps
-          }
-        }
-      } else if (tracks.length === 1) {
-        const tr = tracks[0]
-        const a = assetStore.get(tr.assetId)
-        const data = await assetStore.getBytes(tr.assetId)
-        if (a && data) {
-          audio = {
-            data,
-            ext: extForMime(a.meta.mime),
-            offset: tr.offset - start,
-            volume: tr.volume,
-            duration: total / fps
-          }
-        }
-      }
-    }
+    const audio = (opts.withAudio ?? true) ? await resolveExportAudio(project, total / fps, start) : undefined
 
     // Warm-up so fonts and first-frame textures are ready.
     await r.waitForContext()
@@ -114,38 +264,25 @@ export async function runExport(
       fps,
       crf: opts.crf ?? 18,
       preset: opts.preset ?? 'medium',
+      encoder: opts.encoder ?? 'auto',
       outPath: opts.outPath,
       audio
     })
     if (!started.ok) throw new Error(started.error)
+    const encoder = started.encoder
 
-    const pctx = preview?.getContext('2d')
-    for (let i = 0; i < total; i++) {
-      if (isCancelled()) {
-        await window.api.exportCancel()
-        return { ok: false, cancelled: true, outPath: opts.outPath, frames: i, seconds: (performance.now() - t0) / 1000 }
-      }
-      const t = start + i / fps
-      // If the GPU context drops mid-export, wait for it to come back and redo this frame.
-      let px: Uint8Array
-      let attempts = 0
-      for (;;) {
-        await r.waitForContext()
-        await r.prepare(project, t, height)
-        r.render(project, t, { frame: i, prefetch: true })
-        px = r.readPixels()
-        if (!r.isContextLost()) break
-        if (++attempts >= 3) throw new Error('GPU liên tục mất context khi xuất video')
-      }
-      if (pctx && preview && i % 4 === 0) pctx.drawImage(canvas, 0, 0, preview.width, preview.height)
-      await window.api.exportFrame(px)
-      const elapsed = (performance.now() - t0) / 1000
-      const rate = (i + 1) / elapsed
-      onProgress({ frame: i + 1, total, fps: rate, eta: (total - i - 1) / rate })
+    const loop: FrameLoop = {
+      r, project, canvas, start, fps, total, height, t0, preview, onProgress, isCancelled, timings,
+      useAsyncReadback: opts.readback !== 'sync'
+    }
+    const { frames, cancelled } = await encodeFrames(loop, width)
+    if (cancelled) {
+      await window.api.exportCancel()
+      return { ok: false, cancelled: true, outPath: opts.outPath, frames, seconds: elapsed(), encoder, timings }
     }
     const res = await window.api.exportFinish()
     if (!res.ok) throw new Error(res.error)
-    return { ok: true, outPath: opts.outPath, frames: total, seconds: (performance.now() - t0) / 1000 }
+    return { ok: true, outPath: opts.outPath, frames: total, seconds: elapsed(), encoder, timings }
   } catch (err) {
     await window.api.exportCancel()
     return {
@@ -153,7 +290,8 @@ export async function runExport(
       error: String(err instanceof Error ? err.message : err),
       outPath: opts.outPath,
       frames: 0,
-      seconds: (performance.now() - t0) / 1000
+      seconds: elapsed(),
+      timings
     }
   } finally {
     r.dispose()
