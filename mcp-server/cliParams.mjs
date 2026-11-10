@@ -264,6 +264,13 @@ export function parseCliCallParams(rawInput, tool = null) {
     return parseCliCallParams([content], tool)
   }
 
+  // JSON hợp lệ có thể chứa dấu nháy được escape bên trong code/path: giữ nguyên trước.
+  try {
+    return JSON.parse(joined)
+  } catch {
+    /* Only recover shell escaping when the original input is not valid JSON. */
+  }
+
   // 4. Unescape `\"` if passed as a literal escaped JSON string
   if (joined.includes('\\"')) {
     const unescaped = joined.replace(/\\"/g, '"')
