@@ -168,7 +168,7 @@ Khi kiểm tra và tương tác với Parallax Studio, AI Agent **BẮT BUỘC**
   - Studio Mixamo (modal lồng trong Xưởng Layer): `layer_assembly_mixamo_card`, `layer_assembly_mixamo_studio`, `layer_assembly_mixamo_stage`, `layer_assembly_mixamo_sidebar`.
   - Audio Studio & từng cột: `audio_studio` (toàn bộ), `audio_studio_sidebar` (cột trái danh sách luồng âm), `audio_studio_editor` (cột phải trình biên tập), `audio_studio_waveform` (biểu đồ sóng âm), `audio_studio_tone` (âm điệu & EQ), `audio_studio_mixer` (bộ trộn âm lượng), `audio_studio_console` (bàn trộn đa luồng).
   - Hiệu năng & bộ nhớ: `perf_dialog` (toàn bộ), `perf_hardware` (khối CPU/GPU/RAM), `perf_meter` (thước đo VRAM thời gian thực), `perf_settings` (cấu hình VRAM).
-  - Xuất video MP4: `export` / `export_dialog`, `export_preview` (khung hình render).
+  - Xuất video MP4: `export` / `export_dialog`, `export_preview` (khung hình render), `export_encoder` (lựa chọn bộ mã hoá).
   - Lộ trình & đường vẽ Camera: `camera_path`, `camera_path_presets`, `camera_path_steps`, `camera_sketch`, `camera_sketch_canvas`, `camera_sketch_sidebar`, `camera_sketch_waypoints`.
   - Bảng điều khiển MCP & QR Remote Đa thiết bị Wi-Fi LAN: `mcp_dialog`, `mcp_status`, `mcp_config`, `mcp_guide`, `remote_dialog` (hộp thoại điều khiển đa thiết bị qua QR & LAN), `remote_qr_card` (cột mã QR & IPv4 LAN), `remote_mode_picker` (bộ chọn chế độ màn hình QR Tự động / Điện thoại / iPad · Tablet / Laptop · PC / Touchpad 3D), `remote_touchpad_card` (cột quản lý thiết bị & Touchpad 3D), `remote_devices_list` (danh sách thiết bị Điện thoại/iPad/Tablet/Laptop/PC đang kết nối), `remote_client_hud` (thanh nổi chuyển chế độ giao diện trên thiết bị remote).
   - Hỗ trợ `selector` CSS tuỳ chỉnh và `padding` đệm viền. Dùng CLI: `pnpm pxs review --view app --region <name>`. Quy trình gợi ý: `active` ngay sau khi mở dialog → sub-region chính xác khi soi một control.
@@ -259,6 +259,11 @@ Khi kiểm tra và tương tác với Parallax Studio, AI Agent **BẮT BUỘC**
 - `set_time`: Di chuyển con trỏ thời gian (playhead) tới giây `time`.
 - `set_playing`: Phát hoặc tạm dừng phát hoạt ảnh.
 - `export_video`: Xuất toàn bộ hoặc 1 shot ra file video MP4 hoàn chỉnh bằng FFmpeg.
+  - `encoder: "auto"` (mặc định) thử NVENC → Quick Sync → AMF rồi lùi về CPU; `"cpu"` luôn dùng libx264. Kết quả báo encoder thực tế và thời gian từng bước. Mức chất lượng giữa các encoder không hoàn toàn tương đương.
+  - `readback: "async"` dùng PBO/fence WebGL2 và hàng gửi frame có giới hạn; `"sync"` dùng để so sánh A/B. Module đóng gói YUV đang chuẩn bị, chưa được bật trong vòng xuất video.
+  - PowerShell: `pnpm pxs call export_video '{"out_path":"D:/out/video.mp4","encoder":"auto","readback":"async"}'`
+  - CMD: `pnpm pxs call export_video "{\"out_path\":\"D:/out/video.mp4\",\"encoder\":\"auto\",\"readback\":\"async\"}"`
+  - CLI chờ `export_video` tối đa 2 giờ; biến môi trường `PXS_TIMEOUT_MS` cho phép thay đổi thời hạn chờ.
 - `execute_script`: Thực thi khối lệnh kịch bản hàng loạt.
 
 ---
