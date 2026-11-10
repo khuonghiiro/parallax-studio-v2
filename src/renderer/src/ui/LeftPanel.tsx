@@ -185,6 +185,7 @@ export function LeftPanel() {
           value={tab}
           onChange={setTab}
           variant="underline"
+          adaptiveCompact
           ariaLabel="Chế độ cột bên trái"
           mcpRegion="left_tabs"
           trailing={
