@@ -6,18 +6,16 @@ import { applyDrawnCameraPath } from './animation/cameraSketch'
 import { assetStore } from './project/assets'
 import { buildThreeSceneDemoProject } from './project/demo'
 import {
-  createGroundLayer,
   createImageLayer,
   createParticleLayer,
   createProject,
   createShot,
-  createSolidLayer,
   createTextLayer,
   duplicateLayer,
   resolveNewLayerPlacement,
   shotSpacing
 } from './project/factory'
-import { exportProjectToJson, importProjectFromJson, parseDataUrl } from './project/jsonFormat'
+import { exportProjectToJson, importProjectFromJson } from './project/jsonFormat'
 import { deserializeProject, serializeProject } from './project/serialize'
 import {
   addAudioTrackToProject,
@@ -28,7 +26,6 @@ import {
   splitAudioTrackInProject,
   syncProjectAudio
 } from './project/audioTracks'
-import { EFFECT_ASSETS } from './project/effectAssets'
 import { PARTICLE_PRESETS } from './animation/presets'
 import { referenceDistance } from './animation/math'
 import { evaluate, setValueAt } from './animation/keyframes'
@@ -530,24 +527,6 @@ export function addTextLayer(): void {
   editor().selectLayer(layer.id)
 }
 
-export function addSolidLayer(): void {
-  const layer = createSolidLayer(editor().project.comp)
-  layer.shotId = activeShotId()
-  editor().update((d) => {
-    insertLayerBottom(d as Project, layer)
-  })
-  editor().selectLayer(layer.id)
-}
-
-export function addGroundLayer(): void {
-  const layer = createGroundLayer(editor().project.comp)
-  layer.shotId = activeShotId()
-  editor().update((d) => {
-    insertLayerBottom(d as Project, layer)
-  })
-  editor().selectLayer(layer.id)
-}
-
 export function addParticleLayer(): void {
   const layer = createParticleLayer(editor().project.comp)
   layer.shotId = activeShotId()
@@ -555,53 +534,6 @@ export function addParticleLayer(): void {
     insertLayerTop(d as Project, layer)
   })
   editor().selectLayer(layer.id)
-}
-
-export async function addMistLayer(): Promise<void> {
-  const { mime, data } = parseDataUrl(EFFECT_ASSETS.mist)
-  const asset = await assetStore.add('Sương mù thực (Mist).webp', mime, data, 'image')
-  const comp = editor().project.comp
-  const layer = createImageLayer(asset.meta, comp, 600)
-  layer.name = 'Sương mù thực (Realistic Mist)'
-  layer.blendMode = 'screen'
-  layer.transform.opacity.value = 0.65
-  layer.transform.scale.value = [2.2, 1.35, 1]
-  layer.motion = {
-    type: 'sway',
-    speed: 0.22,
-    amplitude: [160, 14, 0.3]
-  }
-  layer.shotId = activeShotId()
-  editor().update((d) => {
-    d.assets.push(asset.meta)
-    insertLayerTop(d as Project, layer)
-  })
-  editor().selectLayer(layer.id)
-  toast('Đã thêm layer Ảnh Sương mù thực (PNG/WebP)')
-}
-
-export async function addRainLayer(): Promise<void> {
-  const { mime, data } = parseDataUrl(EFFECT_ASSETS.rain)
-  const asset = await assetStore.add('Mưa rào thực (Rain).webp', mime, data, 'image')
-  const comp = editor().project.comp
-  const layer = createImageLayer(asset.meta, comp, 100)
-  layer.name = 'Mưa rào thực (Realistic Rain Sheet)'
-  layer.blendMode = 'screen'
-  layer.transform.opacity.value = 0.75
-  layer.transform.scale.value = [2.0, 1.3, 1]
-  layer.motion = {
-    type: 'drift',
-    speed: 360,
-    direction: 225,
-    loopMode: 'uv'
-  }
-  layer.shotId = activeShotId()
-  editor().update((d) => {
-    d.assets.push(asset.meta)
-    insertLayerTop(d as Project, layer)
-  })
-  editor().selectLayer(layer.id)
-  toast('Đã thêm layer Ảnh Mưa rơi thực (PNG/WebP)')
 }
 
 export function deleteSelectedLayer(): void {

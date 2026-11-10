@@ -1,10 +1,6 @@
 import { useEffect, useState } from 'react'
 import {
-  addGroundLayer,
-  addMistLayer,
   addParticleLayer,
-  addRainLayer,
-  addSolidLayer,
   addTextLayer,
   importAudio,
   importImages,
@@ -24,7 +20,6 @@ import {
   IconExport,
   IconFile,
   IconFolder,
-  IconGround,
   IconImage,
   IconCube,
   IconLayerAssembly,
@@ -38,7 +33,6 @@ import {
   IconSave,
   IconSettings,
   IconSparkles,
-  IconSquare,
   IconSun,
   IconText,
   IconUndo,
@@ -255,18 +249,6 @@ export function Toolbar({ onExport }: { onExport: () => void }) {
           </button>
           <button id="add-text" className="menu-item" onClick={addTextLayer}>
             <IconText width={15} /> Chữ (Text Layer) <span className="hint">Ctrl+T</span>
-          </button>
-          <button id="add-solid" className="menu-item" onClick={addSolidLayer}>
-            <IconSquare width={15} /> Solid / Gradient nền
-          </button>
-          <button id="add-ground" className="menu-item" onClick={addGroundLayer}>
-            <IconGround width={15} /> Mặt đất 3D / Sàn (Ground Plane)
-          </button>
-          <button id="add-mist" className="menu-item" onClick={addMistLayer}>
-            <IconSparkles width={15} /> Sương mù thực (Ảnh PNG/WebP)
-          </button>
-          <button id="add-rain" className="menu-item" onClick={addRainLayer}>
-            <IconSparkles width={15} /> Mưa rào thực (Ảnh PNG/WebP)
           </button>
           <button id="add-particles" className="menu-item" onClick={addParticleLayer}>
             <IconSparkles width={15} /> Hạt môi trường (Bụi, Đom đóm, Tuyết)

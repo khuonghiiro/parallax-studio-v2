@@ -13,11 +13,10 @@ export interface DeclarativeKeyframe<T = unknown> {
 export interface DeclarativeLayerSpec {
   name: string
   type?: 'image' | 'text' | 'solid' | 'ground' | 'particles' | 'generator'
-  effect?: 'mist' | 'fog' | 'rain' | 'twilight_mist' | 'twilightMist'
   generator?: string
   /** Resource path, data URL, or alias reference in assets table (e.g. '@hero_head' or 'hero_head') */
   asset?: string
-  src?: string // data:image/... or url or effect:mist or @alias
+  src?: string // data:image/... or url or @alias
   assetName?: string
   z?: number
   position?: Vec3

@@ -694,3 +694,5 @@ pnpm pxs call update_assets_manifest "{\"module_id\":\"loop_animator\",\"action\
 pnpm pxs call restore_deleted_asset "{\"relative_path\":\"characters/chibi_boy_jump.png\",\"action\":\"restore\"}"
 pnpm pxs call prune_assets_manifest "{}"
 ```
+
+Preset ảnh hiệu ứng nhúng đã được loại bỏ: khi nhập JSON khai báo, thay thuộc tính `effect` hoặc tham chiếu `effect:*` bằng `asset`/`src` trỏ tới ảnh PNG/WebP của bạn. Dự án đã lưu layer và tài nguyên ảnh vẫn đọc được.

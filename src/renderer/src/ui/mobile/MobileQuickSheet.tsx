@@ -1,10 +1,7 @@
 import React from 'react'
 import type { EaseName, Vec3 } from '@shared/types'
 import {
-  addGroundLayer,
-  addMistLayer,
   addParticleLayer,
-  addSolidLayer,
   addTextLayer,
   flyToShot,
   importAudio,
@@ -19,7 +16,6 @@ import {
   IconCamera,
   IconCube,
   IconFolder,
-  IconGround,
   IconImage,
   IconKeyframeDiamond,
   IconLayerAssembly,
@@ -177,6 +173,8 @@ export const MobileQuickSheet: React.FC<MobileQuickSheetProps> = ({ mode, onClos
       className="cc-quick-sheet"
       data-mcp-region="mobile_quick_sheet"
       data-mcp-dialog
+      data-ai-surface="dialog"
+      data-ai-surface-label={title}
       role="dialog"
       aria-label={title}
     >
@@ -462,17 +460,7 @@ export const MobileQuickSheet: React.FC<MobileQuickSheetProps> = ({ mode, onClos
               <IconSparkles width={18} height={18} />
               <span>Hạt / Đom đóm</span>
             </button>
-            <button
-              type="button"
-              className="cc-add-card"
-              onClick={() => {
-                addMistLayer()
-                onClose()
-              }}
-            >
-              <IconGround width={18} height={18} />
-              <span>Sương / Mưa</span>
-            </button>
+
             <button
               type="button"
               className="cc-add-card"
@@ -484,40 +472,11 @@ export const MobileQuickSheet: React.FC<MobileQuickSheetProps> = ({ mode, onClos
               <IconMusic width={18} height={18} />
               <span>Nhạc & Thoại</span>
             </button>
-            <button
-              type="button"
-              className="cc-add-card"
-              onClick={() => {
-                addGroundLayer()
-                onClose()
-              }}
-            >
-              <IconSquare width={18} height={18} />
-              <span>Mặt đất 3D</span>
-            </button>
-            <button
-              type="button"
-              className="cc-add-card"
-              onClick={() => {
-                addSolidLayer()
-                onClose()
-              }}
-            >
-              <IconRainOrSolidFallback />
-              <span>Nền Gradient</span>
-            </button>
+
+
           </div>
         )}
       </div>
     </section>
-  )
-}
-
-function IconRainOrSolidFallback() {
-  return (
-    <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
-      <rect x="3" y="4" width="18" height="16" rx="3" />
-      <path d="M3 14l18-6" />
-    </svg>
   )
 }

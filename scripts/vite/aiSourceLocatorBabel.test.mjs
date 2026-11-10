@@ -16,7 +16,7 @@ function run(code, filename = FILE) {
 
 describe('aiSourceLocatorBabel', () => {
   it('skips data modules while retaining JSX source locations', () => {
-    expect(aiSourceBabelOptions('src/renderer/src/project/effectAssets.ts').plugins).toEqual([])
+    expect(aiSourceBabelOptions('src/renderer/src/project/largeData.ts').plugins).toEqual([])
     for (const file of ['Demo.tsx', 'Demo.jsx', 'Demo.tsx?import']) {
       expect(aiSourceBabelOptions(file).plugins).toEqual([aiSourceLocatorBabelPlugin])
     }

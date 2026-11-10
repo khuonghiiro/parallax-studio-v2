@@ -11,7 +11,6 @@ import {
   createTextLayer
 } from '../factory'
 import { PLATE_GENERATORS } from '../plateGenerators'
-import { EFFECT_ASSETS } from '../effectAssets'
 import { parseDataUrl } from './base64'
 import { loadAssetBytesFromDiskOrBuiltIn } from './assetLoader'
 import type { DeclarativeLayerSpec, DeclarativeShotSpec } from './schema'
@@ -131,44 +130,9 @@ export async function buildSingleLayer(
   const rawRef = lSpec.asset || lSpec.src || (lSpec as any).assetPath || (lSpec as any).path
   const resolvedRef = resolveAssetAlias(rawRef, assetTable)
 
-  // 0. Realistic effect image layer (mist, rain, twilight mist)
-  const effectKey =
-    lSpec.effect ??
-    (resolvedRef?.startsWith('effect:')
-      ? resolvedRef.slice(7)
-      : lSpec.src?.startsWith('effect:')
-        ? lSpec.src.slice(7)
-        : undefined)
-
-  if (effectKey) {
-    const assetUrl =
-      effectKey === 'mist' || effectKey === 'fog'
-        ? EFFECT_ASSETS.mist
-        : effectKey === 'rain'
-          ? EFFECT_ASSETS.rain
-          : effectKey === 'twilight_mist' || effectKey === 'twilightMist'
-            ? EFFECT_ASSETS.twilightMist
-            : effectKey === 'magic_portal' || effectKey === 'magicPortal' || effectKey === 'portal'
-              ? (EFFECT_ASSETS as any).magicPortal
-              : undefined
-
-    if (assetUrl) {
-      const { mime, data } = parseDataUrl(assetUrl)
-      const ext = mime === 'image/gif' ? 'gif' : 'webp'
-      const asset = await assetStore.add(`${lSpec.name}.${ext}`, mime, data, 'image')
-      project.assets.push(asset.meta)
-      const layer = createImageLayer(asset.meta, comp, z)
-      layer.blendMode = lSpec.blendMode ?? (ext === 'gif' ? 'normal' : 'screen')
-      if (lSpec.opacity !== undefined) layer.transform.opacity.value = lSpec.opacity
-      else if (ext !== 'gif') layer.transform.opacity.value = effectKey === 'rain' ? 0.75 : 0.6
-      if (lSpec.scale) {
-        layer.transform.scale.value = lSpec.scale
-      } else if (ext !== 'gif') {
-        layer.transform.scale.value = effectKey === 'rain' ? [2.0, 1.3, 1] : [2.2, 1.35, 1]
-      }
-      applyCommonLayerProps(layer, lSpec, comp)
-      return layer
-    }
+  // Không âm thầm đổi preset ảnh đã bỏ thành một layer khác khi nhập JSON cũ.
+  if ('effect' in lSpec || resolvedRef?.startsWith('effect:') || lSpec.src?.startsWith('effect:')) {
+    throw new Error('Preset ảnh hiệu ứng nhúng đã được loại bỏ. Hãy dùng asset/src trỏ tới ảnh PNG/WebP của bạn.')
   }
 
   // 1. Procedural generator plate (or image with generator)
