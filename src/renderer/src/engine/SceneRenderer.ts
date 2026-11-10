@@ -606,6 +606,9 @@ export class SceneRenderer {
     const editorBg = opts.theme === 'light' ? '#e2e5eb' : '#0c0e14'
     r.setClearColor(new THREE.Color(editorBg), 1)
     r.clear(true, true, true)
+    // Image layers blend without depth writes; draw the floor before them so
+    // it remains visible only through transparent pixels, not over opaque art.
+    r.render(this.helpers.backgroundScene, cam)
     r.render(this.scene, cam)
     r.render(this.helpers.scene, cam)
     if (this.outline.visible) r.render(this.helperScene, cam)

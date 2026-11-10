@@ -185,6 +185,7 @@ function appendLayerLightAndPortalGizmos(
  */
 export class EditorHelpers {
   readonly scene = new THREE.Scene()
+  readonly backgroundScene = new THREE.Scene()
   private layerLines: THREE.LineSegments
   private shotLines: THREE.LineSegments
   private camLines: THREE.LineSegments
@@ -363,7 +364,7 @@ export class EditorHelpers {
       const key = `${extent}:${isLight ? 'light' : 'dark'}`
       if (key !== this.gridKey) {
         if (this.grid) {
-          this.scene.remove(this.grid)
+          this.backgroundScene.remove(this.grid)
           this.grid.geometry.dispose()
           ;(this.grid.material as THREE.Material).dispose()
         }
@@ -376,7 +377,7 @@ export class EditorHelpers {
         m.opacity = isLight ? 0.75 : 0.9
         m.depthWrite = false
         this.grid.renderOrder = -1
-        this.scene.add(this.grid)
+        this.backgroundScene.add(this.grid)
         this.gridKey = key
       }
       this.grid!.position.set(Math.round(center.x / step) * step, y, Math.round(center.z / step) * step)
