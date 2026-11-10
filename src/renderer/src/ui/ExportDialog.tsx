@@ -105,7 +105,9 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
       className="modal-backdrop"
       onPointerDown={(e) => e.target === e.currentTarget && phase !== 'rendering' && onClose()}
     >
-      <div className="modal export-modal" role="dialog" aria-labelledby="export-title">
+      <div className="modal export-modal" role="dialog" aria-labelledby="export-title"
+        aria-modal="true" data-mcp-region="export" data-mcp-dialog
+        data-ai-surface="dialog" data-ai-surface-label="Xuất video MP4">
         <div className="modal-head modal-head-row">
           <div className="modal-head-title-group">
             <span className="modal-head-badge">
@@ -119,7 +121,7 @@ export function ExportDialog({ onClose }: { onClose: () => void }) {
             </div>
           </div>
           {phase !== 'rendering' && (
-            <button type="button" className="btn icon ghost sm modal-close-btn" onClick={onClose} title="Đóng (Esc)">
+            <button type="button" className="btn icon ghost sm modal-close-btn" onClick={onClose} title="Đóng (Esc)" aria-label="Đóng hộp thoại xuất video">
               <IconX width={14} height={14} />
             </button>
           )}

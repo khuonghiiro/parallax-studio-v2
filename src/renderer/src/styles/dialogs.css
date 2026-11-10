@@ -269,7 +269,18 @@
   min-width: 0;
 }
 .export-encoder-row .pxs-tab {
-  min-height: 32px;
+  min-height: 36px;
+  height: auto;
+  flex: 1 1 auto;
+  padding-block: 6px;
+}
+.export-encoder-row .pxs-tabs {
+  width: 100%;
+  box-sizing: border-box;
+}
+.export-encoder-row .pxs-tab-label {
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 .export-encoder-used {
   font-size: 11.5px;
