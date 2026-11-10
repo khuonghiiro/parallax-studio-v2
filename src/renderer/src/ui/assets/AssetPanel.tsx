@@ -275,7 +275,6 @@ export function AssetPanel() {
         onChange={setSubTab}
         variant="segmented"
         size="sm"
-        adaptiveCompact
         ariaLabel="Phân mục thư viện tài nguyên"
         mcpRegion="asset_subtabs"
       />

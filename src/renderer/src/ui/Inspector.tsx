@@ -223,7 +223,6 @@ export function Inspector() {
         value={activeTop}
         onChange={(next) => setTab(next)}
         variant="underline"
-        adaptiveCompact
         ariaLabel="Chế độ thanh tra thuộc tính"
         mcpRegion="inspector_tabs"
         trailing={
