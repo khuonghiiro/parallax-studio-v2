@@ -17,6 +17,8 @@ import { spinesForLayer } from '../../engine/plantSpine'
 import { usePlantClockOffset, usePlantLiveClock } from './usePlantClock'
 import { usePlantSpineEditor } from './plantSpineEditorStore'
 import { useWorkshopSubTab } from './workshopSubTabStore'
+import { useWorkshopLoopActions } from './useWorkshopLoopActions'
+import { useWorkshopPlayLink } from './workshopPlayLinkStore'
 import { grabbedSpine } from './plantSpineEdit'
 import { toggleMotionSketchArmed } from './motionSketchStore'
 import { buildManipulateTestRig, type BoneOverlayProps } from './WorkshopBoneOverlay'
@@ -76,6 +78,7 @@ export function WorkshopWorkspace({
   const splitContainerRef = useRef<HTMLDivElement | null>(null)
   const prevTabRef = useRef(tab)
   const rigTool = useRigToolStore()
+  const playLink = useWorkshopPlayLink()
   const { width: viewportWidth } = useResponsiveViewport()
   const isStackedSplit = view === 'split' && viewportWidth <= 820
 
@@ -240,8 +243,11 @@ export function WorkshopWorkspace({
 
   const evalTime = isLayersOrBonesTab ? 0 : isManipulatingRigTest ? 0 : playback.time
   const isErasing = brushEditing && tab === 'layers' && !playback.isPlaying
+  // Tab Anim & Gió / Gió luôn diễn hành động; tab Loop diễn theo công tắc "Kèm hành động xương"
+  // để khung xương và layer gắn xương luôn chạy CÙNG NHAU (trước đây chỉ khung xương chạy, layer đứng yên).
+  const isActionTab = tab === 'animation' || tab === 'plant' || (tab === 'loop' && playLink.loopRigAction)
   const animated =
-    tab === 'animation'
+    isActionTab
       ? (!isErasing ? rig : undefined)
       : tab === 'bones'
         ? (isManipulatingRigTest ? rig : undefined)
@@ -328,7 +334,7 @@ export function WorkshopWorkspace({
   const boneOverlay: BoneOverlayProps = {
     composite: {
       ...state.composite,
-      rig: (isLayersOrBonesTab && !isManipulatingRigTest ? effectiveRig : normalizedRig) ?? state.composite.rig
+      rig: ((isLayersOrBonesTab && !isManipulatingRigTest) || (tab === 'loop' && !playLink.loopRigAction) ? effectiveRig : normalizedRig) ?? state.composite.rig
     },
     boneId,
     selectBone,
@@ -347,6 +353,8 @@ export function WorkshopWorkspace({
     restPose: isLayersOrBonesTab && !isManipulatingRigTest
   }
 
+  const loopActions = useWorkshopLoopActions(state, playback, onSelectTab ?? (() => {}))
+
   const props = {
     composite,
     selectedLayerId: state.selectedLayerId,
@@ -355,6 +363,7 @@ export function WorkshopWorkspace({
     onUpdateLayer: state.update,
     onAddLayerFromAsset: state.add,
     onAppendPresetLayers: state.append,
+    onAddLoopTemplateAt: loopActions.addLoopTemplateById,
     time: evalTime,
     tab,
     onSelectTab

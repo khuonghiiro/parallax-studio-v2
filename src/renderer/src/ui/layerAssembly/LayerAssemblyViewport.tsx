@@ -1,3 +1,4 @@
+import { LOOP_TEMPLATE_DRAG_TYPE } from './loopTemplateDnd'
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import type { LayerComposite, AssembledLayerItem } from './types'
 import { WorkshopBoneOverlay, type BoneOverlayProps } from './WorkshopBoneOverlay'
@@ -50,6 +51,8 @@ export interface LayerAssemblyViewportProps {
   onChangeComposite?: (update: LayerComposite | ((prev: LayerComposite) => LayerComposite)) => void
   onAddLayerFromAsset?: (name: string, path: string, url?: string, pos?: { x: number; y: number }) => void
   onAppendPresetLayers?: (layers: AssembledLayerItem[], offset?: { x: number; y: number }) => void
+  /** Thả mẫu Loop từ tab Loop của sidebar: thêm mảnh hoạt ảnh lặp đúng vị trí chuột */
+  onAddLoopTemplateAt?: (templateId: string, pos: { x: number; y: number }) => void
   duration?: number
   isPlaying: boolean
   onTogglePlay: () => void
@@ -81,6 +84,7 @@ export function LayerAssemblyViewport({
   onChangeComposite,
   onAddLayerFromAsset,
   onAppendPresetLayers,
+  onAddLoopTemplateAt,
   duration,
   isPlaying,
   onTogglePlay,
@@ -547,6 +551,8 @@ export function LayerAssemblyViewport({
               onAddLayerFromAsset(data.name, data.path, data.url, { x: dropX, y: dropY })
             } else if (data.type === 'composite' && onAppendPresetLayers && data.composite?.layers) {
               onAppendPresetLayers(data.composite.layers, { x: dropX, y: dropY })
+            } else if (data.type === LOOP_TEMPLATE_DRAG_TYPE && data.templateId && onAddLoopTemplateAt) {
+              onAddLoopTemplateAt(data.templateId, { x: dropX, y: dropY })
             } else if (data.type === 'layer' && data.layer) {
               onUpdateLayer(data.layer.id, { x: dropX, y: dropY })
             }

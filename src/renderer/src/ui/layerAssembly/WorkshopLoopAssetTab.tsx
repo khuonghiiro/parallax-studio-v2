@@ -8,6 +8,7 @@ import { openLoopAnimatorInPlace } from '../loopAnimator/loopAnimatorLauncher'
 import { LOOP_STORAGE_UPDATED_EVENT, getAllLoopTemplates } from '../loopAnimator/loopAnimatorStorage'
 import type { LoopAnimationTemplate } from '../loopAnimator/types'
 import type { AssembledLayerItem } from './types'
+import { LOOP_TEMPLATE_DRAG_TYPE } from './loopTemplateDnd'
 
 interface Props {
   searchTerm: string
@@ -137,7 +138,16 @@ export function WorkshopLoopAssetTab({ searchTerm, layers, selectedLayer, onAddL
             const isBound = selectedLayer?.loopConfig?.templateId === t.id
             const isPlaying = playingId === t.id
             return (
-              <article key={t.id} className={`lw-loop-asset${isBound ? ' is-bound' : ''}`}>
+              <article
+                key={t.id}
+                className={`lw-loop-asset${isBound ? ' is-bound' : ''}`}
+                draggable
+                onDragStart={(e) => {
+                  e.dataTransfer.setData('application/json', JSON.stringify({ type: LOOP_TEMPLATE_DRAG_TYPE, templateId: t.id, name: t.name }))
+                  e.dataTransfer.effectAllowed = 'copy'
+                }}
+                title={`Kéo "${t.name}" thả vào Sân khấu để thêm đúng vị trí chuột`}
+              >
                 <button type="button" className="lw-loop-asset-thumb" onClick={() => setPlayingId(isPlaying ? null : t.id)} title={isPlaying ? 'Tạm dừng' : 'Chạy thử'}>
                   <LoopCardPreviewCanvas template={t} isPlaying={isPlaying} width={112} height={84} />
                   <span className="lw-loop-asset-play">{isPlaying ? <IconPause width={10} height={10} /> : <IconPlay width={10} height={10} />}</span>

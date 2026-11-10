@@ -192,12 +192,12 @@ export function WorkshopParallax25DCard({
 
             {/* Thông số & Điều khiển nhanh */}
             <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <div style={{ fontSize: '10.5px', color: 'var(--text-dim)', display: 'flex', justifyContent: 'space-between' }}>
+              <div style={{ fontSize: '10.5px', color: 'var(--text-dim)', display: 'flex', justifyContent: 'space-between', gap: '6px', whiteSpace: 'nowrap' }}>
                 <span>Ngang (Yaw): <strong>{Math.round(yawX * 100)}%</strong></span>
                 <span>Dọc (Pitch): <strong>{Math.round(-pitchY * 100)}%</strong></span>
               </div>
               <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10.5px', color: 'var(--text-dim)' }}>
-                <span>Biên độ:</span>
+                <span style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>Biên độ</span>
                 <input
                   type="range"
                   min={0.4}
@@ -205,7 +205,8 @@ export function WorkshopParallax25DCard({
                   step={0.1}
                   value={intensity}
                   onChange={(e) => setIntensity(Number(e.target.value))}
-                  style={{ flex: 1 }}
+                  style={{ flex: 1, minWidth: 0 }}
+                  aria-label="Biên độ xoay 2.5D"
                 />
                 <span style={{ minWidth: '28px', textAlign: 'right' }}>{intensity}x</span>
               </label>

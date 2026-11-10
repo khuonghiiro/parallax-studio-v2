@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type PointerEvent } from 'react'
+import { useEffect, useMemo, useState, type CSSProperties, type PointerEvent } from 'react'
 import type { BoneEasing, LayerRig } from '@shared/layerRig'
 import type { useLayerWorkshop } from './useLayerWorkshop'
 import type { useWorkshopPlayback } from './useWorkshopPlayback'
@@ -12,25 +12,16 @@ import {
   type TimelineKey
 } from './useWorkshopKeyDrag'
 import { useEditor } from '../../store/editor'
-import { setAnimAssist, useAnimAssist, type DopeSheetTrackFilter } from './animAssistStore'
+import { setAnimAssist, useAnimAssist } from './animAssistStore'
 import {
   classifyBoneSide,
   collectMasterPoseTimes,
   computeBoneDepthMap,
   computeTweenSpans
 } from './mohoRigHelpers'
-import { IconAutoKeyRec } from './LayerWorkshopStudioIcons'
-import {
-  IconEaseSmooth,
-  IconEaseLinear,
-  IconEaseOut,
-  IconEaseIn,
-  IconEaseHold,
-  IconFilterAll,
-  IconFilterKeyed,
-  IconFilterSelected
-} from '../icons'
+import { WorkshopTimelineToolbar } from './WorkshopTimelineToolbar'
 import '../../styles/layerWorkshopTimeline.css'
+import '../../styles/layerWorkshopTimelineAnimate.css'
 
 interface Props {
   state: ReturnType<typeof useLayerWorkshop>
@@ -39,19 +30,12 @@ interface Props {
   selectBone: (id: string | null) => void
 }
 
-const QUICK_EASINGS = [
-  { id: 'smooth' as const, label: 'Mượt', title: 'Motion Tween mượt tự nhiên (Smooth Spline)', Icon: IconEaseSmooth },
-  { id: 'linear' as const, label: 'Đều', title: 'Chuyển động tốc độ đều (Linear Tween)', Icon: IconEaseLinear },
-  { id: 'ease-out' as const, label: 'Giảm tốc', title: 'Nhanh đầu, chậm dần cuối (Ease Out)', Icon: IconEaseOut },
-  { id: 'ease-in' as const, label: 'Tăng tốc', title: 'Chậm đầu, nhanh dần cuối (Ease In)', Icon: IconEaseIn },
-  { id: 'hold' as const, label: 'Giữ bậc', title: 'Giữ nguyên tư thế đến mốc kế tiếp (Step / Hold Frame)', Icon: IconEaseHold }
-]
-
-const FILTER_OPTIONS = [
-  { id: 'all' as const, label: 'Tất cả', title: 'Hiện toàn bộ xương trên Dope Sheet', Icon: IconFilterAll },
-  { id: 'keyed' as const, label: 'Có Key', title: 'Chỉ hiện các xương đã có Keyframe', Icon: IconFilterKeyed },
-  { id: 'selected' as const, label: 'Đang chọn', title: 'Chỉ hiện xương đang chọn', Icon: IconFilterSelected }
-]
+/** Chọn bước nhãn thước Frame kiểu Adobe Animate (1, 2, 5, 10…) sao cho ~12 nhãn trên mỗi bề rộng zoom. */
+function pickFrameStep(totalFrames: number, zoom: number): number {
+  const target = 12 * zoom
+  for (const s of [1, 2, 5, 10, 15, 20, 30, 60, 120]) if (totalFrames / s <= target) return s
+  return 240
+}
 
 function collectPoseKeysAtTime(rig: LayerRig, time: number): TimelineKey[] {
   const out: TimelineKey[] = []
@@ -339,7 +323,14 @@ function AnimationTimeline({ state, playback, boneId, selectBone, rig }: Props &
 
   const playheadPct = Math.max(0, Math.min(100, (playback.time / rig.duration) * 100))
   const totalFrames = Math.max(2, Math.round(rig.duration * fps))
-  const rulerTicks = 8
+  const currentFrame = Math.round(playback.time * fps)
+  const frameStep = pickFrameStep(totalFrames, zoom)
+  const isDenseGrid = totalFrames / zoom > 160
+  const gridStyle = {
+    width: `${zoom * 100}%`,
+    '--tl-frames': totalFrames,
+    '--tl-major': frameStep >= 5 ? frameStep : 5
+  } as CSSProperties
 
   return (
     <section
@@ -362,6 +353,14 @@ function AnimationTimeline({ state, playback, boneId, selectBone, rig }: Props &
           e.preventDefault()
           e.stopPropagation()
           addKey()
+        } else if (e.key === ',' || e.key === '.') {
+          e.preventDefault()
+          e.stopPropagation()
+          stepFrame(e.key === ',' ? -1 : 1)
+        } else if (e.key === 'Home' || e.key === 'End') {
+          e.preventDefault()
+          e.stopPropagation()
+          seek(e.key === 'Home' ? 0 : rig.duration)
         } else if (e.key === 'F5') {
           e.preventDefault()
           e.stopPropagation()
@@ -369,167 +368,44 @@ function AnimationTimeline({ state, playback, boneId, selectBone, rig }: Props &
         }
       }}
     >
-      {/* Thanh công cụ Dope Sheet chuẩn Moho Pro & Adobe Animate */}
-      <div className="lw-animation-timeline-toolbar">
-        <div className="lw-dope-cluster">
-          <button type="button" className="btn xs" onClick={rewind} title="Về Frame 0 (0.00s)" aria-label="Về đầu">
-            ⏮
-          </button>
-          <button type="button" className="btn xs" onClick={() => stepFrame(-1)} title="Lùi 1 Frame" aria-label="Lùi 1 Frame">
-            ◀F
-          </button>
-          <button
-            type="button"
-            className={`btn xs lw-dope-play-btn${playback.isPlaying ? ' is-playing' : ''}`}
-            onClick={playback.toggle}
-            title={playback.isPlaying ? 'Tạm dừng hoạt ảnh' : 'Phát hoạt ảnh'}
-            aria-label={playback.isPlaying ? 'Tạm dừng' : 'Phát'}
-          >
-            {playback.isPlaying ? '⏸' : '▶'}
-          </button>
-          <button type="button" className="btn xs" onClick={() => stepFrame(1)} title="Tiến 1 Frame" aria-label="Tiến 1 Frame">
-            F▶
-          </button>
-          <button type="button" className="btn xs" onClick={() => jump(-1)} title="Nhảy tới Key trước" aria-label="Key trước">
-            ◀◆
-          </button>
-          <button type="button" className="btn xs" onClick={() => jump(1)} title="Nhảy tới Key sau" aria-label="Key sau">
-            ◆▶
-          </button>
-          <span className="lw-animation-timecode">
-            {drag.ghost
-              ? `Kéo ${drag.ghost.group.length} key → F${Math.round(drag.ghost.targetAnchorTime * fps)} · ${drag.ghost.targetAnchorTime.toFixed(2)}s (${drag.ghost.delta >= 0 ? '+' : ''}${drag.ghost.delta.toFixed(2)}s)`
-              : `F${Math.round(playback.time * fps)}/${totalFrames} · ${playback.time.toFixed(2)}s`}
-          </span>
-        </div>
-
-        <div className="lw-dope-cluster lw-dope-center-cluster">
-          <button
-            type="button"
-            className="btn xs primary"
-            onClick={addKey}
-            title="Đặt Keyframe tại đầu phát hiện tại (Adobe Animate F6)"
-          >
-            + Key
-          </button>
-          <button
-            type="button"
-            className="btn xs"
-            onClick={holdThreeFrames}
-            title="Giữ nguyên tư thế thêm +3 Frame và đẩy các key sau lùi lại (Adobe Animate F5)"
-          >
-            +3F
-          </button>
-          <button
-            type="button"
-            className={`btn xs${effectiveDeleteTargets.length > 0 ? ' lw-dope-del-active' : ''}`}
-            disabled={effectiveDeleteTargets.length === 0}
-            onClick={remove}
-            title="Xóa 1 hoặc nhiều Keyframe đang chọn (Ctrl/Shift+Click chọn nhiều · Delete / F7)"
-          >
-            {effectiveDeleteTargets.length > 1 ? `Xóa (${effectiveDeleteTargets.length})` : 'Xóa'}
-          </button>
-
-          {commonSelectedTime !== null && (
-            <label
-              className="lw-dope-keytime-box"
-              title="Nhập trực tiếp mốc giây mới cho Key / Tư thế đang chọn (VD đổi từ 1.00s về 0.50s mà vẫn giữ nguyên các key khác)"
-            >
-              <span>Mốc</span>
-              <input
-                type="number"
-                min={0}
-                max={rig.duration}
-                step={0.05}
-                value={editTimeDraft}
-                onChange={(e) => setEditTimeDraft(e.target.value)}
-                onBlur={commitSelectedTimeInput}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    commitSelectedTimeInput()
-                  }
-                }}
-              />
-              <small>s</small>
-            </label>
-          )}
-
-          <button
-            type="button"
-            className={`lw-autokey-pill compact${assist.autoKey ? ' active' : ''}`}
-            onClick={() => setAnimAssist({ autoKey: !assist.autoKey })}
-            title="Bật/tắt Auto-Key khi kéo xương"
-          >
-            <IconAutoKeyRec width={10} height={10} />
-            <span>Auto</span>
-          </button>
-
-          <div className="lw-dope-seg" role="group" aria-label="Kiểu nội suy Tween">
-            {QUICK_EASINGS.map((item) => {
-              const active = selectedKey?.easing === item.id
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  disabled={!boneId && validSelectedKeys.length === 0}
-                  className={`lw-dope-seg-btn${active ? ' active' : ''}`}
-                  onClick={() => applyQuickEasing(item.id)}
-                  title={item.title}
-                >
-                  <span className="lw-seg-icon"><item.Icon width={12} height={12} /></span><span className="lw-seg-label">{item.label}</span>
-                </button>
-              )
-            })}
-          </div>
-        </div>
-
-        <div className="lw-dope-cluster lw-dope-right-cluster">
-          <div className="lw-dope-seg" role="group" aria-label="Lọc hàng xương">
-            {FILTER_OPTIONS.map((f) => (
-              <button
-                key={f.id}
-                type="button"
-                className={`lw-dope-seg-btn${assist.dopeFilter === f.id ? ' active' : ''}`}
-                onClick={() => setAnimAssist({ dopeFilter: f.id })}
-                title={f.title}
-              >
-                <span className="lw-seg-icon"><f.Icon width={11} height={11} /></span><span className="lw-seg-label">{f.label}</span>
-              </button>
-            ))}
-          </div>
-          <div className="lw-dope-zoom">
-            <button
-              type="button"
-              className="btn xs"
-              disabled={zoom === 1}
-              onClick={() => setZoom(Math.max(1, zoom / 2))}
-              aria-label="Thu timeline"
-            >
-              −
-            </button>
-            <span>{zoom}×</span>
-            <button
-              type="button"
-              className="btn xs"
-              disabled={zoom === 8}
-              onClick={() => setZoom(Math.min(8, zoom * 2))}
-              aria-label="Phóng timeline"
-            >
-              +
-            </button>
-          </div>
-          <button
-            type="button"
-            className="btn xs"
-            onClick={() => setCollapsed((v) => !v)}
-            title={collapsed ? 'Mở rộng bảng rãnh Dope Sheet' : 'Thu gọn bảng rãnh Dope Sheet để nhường không gian sân khấu'}
-          >
-            {collapsed ? '▴ Rãnh' : '▾ Gọn'}
-          </button>
-        </div>
-      </div>
+      <WorkshopTimelineToolbar
+        isPlaying={playback.isPlaying}
+        loop={Boolean(rig.loop)}
+        frame={Math.round(playback.time * fps)}
+        totalFrames={totalFrames}
+        time={playback.time}
+        fps={fps}
+        dragLabel={
+          drag.ghost
+            ? `Kéo ${drag.ghost.group.length} key → F${Math.round(drag.ghost.targetAnchorTime * fps)} (${drag.ghost.delta >= 0 ? '+' : ''}${drag.ghost.delta.toFixed(2)}s)`
+            : undefined
+        }
+        deleteCount={effectiveDeleteTargets.length}
+        keyTime={
+          commonSelectedTime !== null
+            ? { draft: editTimeDraft, setDraft: setEditTimeDraft, commit: commitSelectedTimeInput, max: rig.duration }
+            : null
+        }
+        autoKey={assist.autoKey}
+        activeEasing={selectedKey?.easing}
+        easingDisabled={!boneId && validSelectedKeys.length === 0}
+        filter={assist.dopeFilter}
+        zoom={zoom}
+        collapsed={collapsed}
+        onTogglePlay={playback.toggle}
+        onToggleLoop={() => run({ action: 'settings', loop: !rig.loop })}
+        onSeekFrame={(f) => seek(f / Math.max(1, fps))}
+        onStep={stepFrame}
+        onJump={jump}
+        onAddKey={addKey}
+        onHold={holdThreeFrames}
+        onRemove={remove}
+        onToggleAutoKey={() => setAnimAssist({ autoKey: !assist.autoKey })}
+        onEasing={applyQuickEasing}
+        onFilter={(dopeFilter) => setAnimAssist({ dopeFilter })}
+        onZoom={setZoom}
+        onToggleCollapsed={() => setCollapsed((v) => !v)}
+      />
 
       {error && (
         <div className="lw-error" role="alert">
@@ -539,24 +415,30 @@ function AnimationTimeline({ state, playback, boneId, selectBone, rig }: Props &
 
       {!collapsed && (
         <div className="lw-animation-track-scroll">
-          <div className="lw-animation-track-content" style={{ width: `${zoom * 100}%` }}>
+          <div className={`lw-animation-track-content${isDenseGrid ? ' is-dense' : ''}`} style={gridStyle}>
             {/* Thước Frame + Giây */}
             <div className="lw-animation-track-row lw-animation-ruler-row">
               <span className="lw-animation-track-name lw-ruler-corner">
                 KHỚP ({bones.length}/{rig.bones.length}) · {fps}fps
               </span>
               <div className="lw-animation-track-lane lw-animation-ruler" onPointerDown={scrub} onPointerMove={scrub}>
-                {Array.from({ length: rulerTicks + 1 }, (_, i) => {
-                  const t = (rig.duration * i) / rulerTicks
-                  const f = Math.round(t * fps)
+                {Array.from({ length: Math.floor(totalFrames / frameStep) + 1 }, (_, i) => {
+                  const f = i * frameStep
+                  const isSecond = f > 0 && f % fps === 0
                   return (
-                    <span key={i} className="lw-ruler-tick" style={{ left: `${(i / rulerTicks) * 100}%` }}>
-                      <b>F{f}</b>
-                      <small>{t.toFixed(1)}s</small>
+                    <span
+                      key={f}
+                      className={`lw-ruler-tick${isSecond ? ' is-second' : ''}${f === 0 ? ' is-first' : ''}${f >= totalFrames ? ' is-last' : ''}`}
+                      style={{ left: `${(f / totalFrames) * 100}%` }}
+                    >
+                      <b>{f}</b>
+                      {isSecond && <small>{Math.round(f / fps)}s</small>}
                     </span>
                   )
                 })}
-                <span className="lw-animation-playhead-cap" style={{ left: `${playheadPct}%` }} />
+                <span className="lw-animation-playhead-cap" style={{ left: `${playheadPct}%` }}>
+                  <b>{currentFrame}</b>
+                </span>
               </div>
             </div>
 

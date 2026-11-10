@@ -41,6 +41,9 @@ import {
 import type { useLayerWorkshop } from './useLayerWorkshop'
 import type { useWorkshopPlayback } from './useWorkshopPlayback'
 import { applyRigAction, ensureRigClips, type RigAction } from './workshopRig'
+import { WorkshopTabPlayBar } from './WorkshopTabPlayBar'
+import { useEditor } from '../../store/editor'
+import '../../styles/layerWorkshopInspectorPolish.css'
 
 export type WorkshopTab = 'layers' | 'bones' | 'animation' | 'plant' | 'loop'
 
@@ -85,6 +88,7 @@ export function WorkshopRightPanel({
   }
 
   const loopActions = useWorkshopLoopActions(state, playback, setTab)
+  const projectFps = useEditor((s) => s.project.comp.fps) || 30
 
   const rigInfo = state.composite.rig ? ensureRigClips(state.composite.rig).rig : undefined
   const boneCount = rigInfo?.bones.length ?? 0
@@ -137,7 +141,7 @@ export function WorkshopRightPanel({
           },
           {
             id: 'cloth' as const,
-            label: 'Xương & Vải',
+            label: 'Xương/Vải',
             icon: <IconSubTabCloth width={16} height={16} />,
             badge: selectedLayer?.isCloth ? 'Vải' : (selectedLayer?.boneId ? 'Xương' : undefined),
             title: 'Khung xương & Nhãn vải (Gắn layer vào xương, Uốn mềm Mesh 2D, Nhãn vải đung đưa theo chân/tay)'
@@ -189,14 +193,14 @@ export function WorkshopRightPanel({
           },
           {
             id: 'plant' as const,
-            label: 'Gió (Tóc/Áo)',
+            label: 'Gió tóc/áo',
             icon: <IconTabWindMotion width={16} height={16} />,
             badge: spineCount || undefined,
             title: `Chuyển động gió & Uốn tóc/vải/cây (${spineCount} trục sống uốn: tóc, tà áo, ruy băng, cành lá)`
           },
           {
             id: 'physics' as const,
-            label: 'Vật lý & Rung',
+            label: 'Vật lý',
             icon: <IconSubTabAnimPhysics width={16} height={16} />,
             title: 'Vật lý & Rung lắc (Secondary Motion lò xo đàn hồi, nhịp đập, Parallax 2.5D, chiều sâu xương)'
           }
@@ -219,7 +223,7 @@ export function WorkshopRightPanel({
           },
           {
             id: 'rhythm' as const,
-            label: 'Nhịp & Đèn',
+            label: 'Nhịp & đèn',
             icon: <IconSubTabLoopRhythm width={16} height={16} />,
             title: 'Nhịp điệu & Ánh sáng ảo (Nháy mờ, nhịp scale, chớp beat, đèn chiếu ảo Virtual Light)'
           }
@@ -329,19 +333,33 @@ export function WorkshopRightPanel({
               aria-label={st.label}
               data-mcp-subtab={st.id}
             >
-              <span className="lw-htab-icon">{st.icon}</span>
+              <span className="lw-htab-icon">
+                {st.icon}
+                {st.badge !== undefined && (
+                  <span
+                    className={`lw-htab-badge${typeof st.badge === 'string' ? ' tone-accent' : ''}`}
+                  >
+                    {st.badge}
+                  </span>
+                )}
+              </span>
               <span className="lw-htab-label">{st.label}</span>
-              {st.badge !== undefined && (
-                <span
-                  className={`lw-htab-badge${typeof st.badge === 'string' ? ' tone-accent' : ''}`}
-                >
-                  {st.badge}
-                </span>
-              )}
             </button>
           )
         })}
       </nav>
+
+      {/* Thanh phát riêng cho tab Anim & Gió / Loop: bật tắt hành động tương ứng ở mọi phân khu */}
+      {(effectiveTab === 'animation' || effectiveTab === 'loop') && (
+        <WorkshopTabPlayBar
+          mode={effectiveTab}
+          playback={playback}
+          rig={rigInfo}
+          fps={rigInfo?.fps || projectFps}
+          loopCount={loopCount}
+          onToggleRigLoop={() => run({ action: 'settings', loop: !rigInfo?.loop })}
+        />
+      )}
 
       {/* Nội dung tương ứng của phân khu đang chọn */}
       <div

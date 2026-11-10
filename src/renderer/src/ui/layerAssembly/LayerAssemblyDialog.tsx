@@ -84,8 +84,9 @@ export function LayerAssemblyDialog({
   const state = useLayerWorkshop(initialComposite)
   const { composite, setComposite, history, undo, redo, createNew } = state
   const activeRig = composite.rig ? ensureRigClips(composite.rig).rig : undefined
-  const playback = useWorkshopPlayback(activeRig?.duration, activeRig?.loop)
   const [tab, setTab] = useState<WorkshopTab>(() => initialTab ?? 'layers')
+  // Tab Loop luôn phát lặp vòng để hoạt ảnh Loop không dừng khi clip xương đặt "phát 1 lần"
+  const playback = useWorkshopPlayback(activeRig?.duration, tab === 'loop' ? true : activeRig?.loop)
 
   useEffect(() => {
     // Tự động ngắt chế độ Bộ phận 2D (cutoutStageMode) khi đổi tab

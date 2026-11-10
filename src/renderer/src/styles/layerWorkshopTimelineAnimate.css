@@ -1,0 +1,641 @@
+/* ==========================================================================
+   Dope Sheet Xưởng Layer · Giao diện kiểu Adobe Animate
+   - Thanh công cụ tự xuống dòng theo bề rộng (container query), không cắt chữ.
+   - Lưới ô Frame (mỗi Frame 1 vạch mảnh, mỗi 5 Frame 1 vạch đậm) căn đúng vị trí key.
+   - Đầu phát đỏ có nhãn số Frame, Tween span dạng dải màu + mũi tên như Classic Tween.
+   ========================================================================== */
+
+/* ── 1. Thanh công cụ ─────────────────────────────────────────────────── */
+.lw-animation-timeline-toolbar.lw-tl-toolbar {
+  height: auto;
+  min-height: 38px;
+  max-height: none;
+  flex-wrap: wrap;
+  row-gap: 5px;
+  column-gap: 10px;
+  padding: 5px 10px;
+  overflow: visible;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.lw-tl-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+  flex-wrap: nowrap;
+}
+
+.lw-tl-keys {
+  flex: 1 1 auto;
+  justify-content: center;
+}
+
+.lw-tl-view {
+  margin-left: auto;
+  gap: 6px;
+}
+
+.lw-tl-sep {
+  width: 1px;
+  height: 18px;
+  margin: 0 3px;
+  background: var(--line-soft);
+  flex-shrink: 0;
+}
+
+.lw-tl-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  flex-shrink: 0;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  background: var(--bg-2);
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+
+.lw-tl-icon-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-3));
+  border-color: var(--line-focus);
+  color: var(--text);
+}
+
+.lw-tl-icon-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.lw-tl-icon-btn.is-on {
+  background: color-mix(in srgb, var(--accent) 16%, var(--bg-2));
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--line-soft));
+  color: var(--accent);
+}
+
+[data-theme='dark'] .lw-tl-icon-btn.is-on {
+  color: var(--accent-cyan);
+}
+
+.lw-tl-icon-btn.is-play {
+  width: 34px;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+
+.lw-tl-icon-btn.is-play:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 78%, #0f172a);
+  color: var(--on-accent);
+}
+
+.lw-tl-icon-btn.is-play.is-playing {
+  background: var(--key);
+  border-color: color-mix(in srgb, var(--key) 75%, #0f172a);
+  color: var(--on-key);
+}
+
+/* Ô đọc/nhập số Frame kiểu Animate */
+.lw-tl-readout {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  margin-left: 4px;
+  padding: 0 8px 0 3px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  background: var(--bg-0);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.lw-tl-readout input {
+  width: 42px;
+  height: 22px;
+  padding: 0 4px;
+  border: 1px solid color-mix(in srgb, var(--danger) 40%, var(--line-soft));
+  border-radius: var(--radius-sm);
+  background: var(--bg-1);
+  color: var(--danger);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  text-align: center;
+  outline: none;
+  -moz-appearance: textfield;
+}
+
+.lw-tl-readout input::-webkit-inner-spin-button,
+.lw-tl-readout input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.lw-tl-readout input:focus {
+  border-color: var(--danger);
+}
+
+.lw-tl-readout-meta {
+  color: var(--text-dim);
+  font-size: 10.5px;
+  font-weight: 600;
+}
+
+.lw-tl-readout-meta em {
+  margin-left: 4px;
+  color: var(--text-faint);
+  font-style: normal;
+  font-weight: 500;
+}
+
+/* Nút chữ (Key F6 / +3F F5 / Xoá F7 / Gọn) */
+.lw-tl-text-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 28px;
+  padding: 0 8px;
+  flex-shrink: 0;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  background: var(--bg-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 10.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+
+.lw-tl-text-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-3));
+  border-color: var(--line-focus);
+}
+
+.lw-tl-text-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.lw-tl-text-btn kbd {
+  padding: 0 3px;
+  border: 1px solid var(--line-soft);
+  border-radius: 3px;
+  background: var(--bg-0);
+  color: var(--text-faint);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 8.5px;
+  line-height: 13px;
+}
+
+.lw-tl-text-btn.is-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+
+.lw-tl-text-btn.is-primary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 78%, #0f172a);
+}
+
+.lw-tl-text-btn.is-primary kbd {
+  background: rgba(15, 23, 42, 0.35);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+}
+
+.lw-tl-text-btn.is-danger {
+  border-color: color-mix(in srgb, var(--danger) 48%, var(--line));
+  color: var(--danger);
+}
+
+.lw-tl-text-btn.is-danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--danger) 78%, #0f172a);
+  border-color: var(--danger);
+  color: #ffffff;
+}
+
+.lw-tl-toolbar .lw-dope-keytime-box,
+.lw-tl-toolbar .lw-autokey-pill {
+  height: 28px;
+}
+
+.lw-tl-toolbar .lw-dope-seg-btn {
+  height: 22px;
+}
+
+.lw-tl-toolbar .lw-dope-zoom {
+  gap: 3px;
+}
+
+.lw-tl-toolbar .lw-dope-zoom .lw-tl-icon-btn {
+  width: 24px;
+  height: 24px;
+}
+
+/* Nhãn seg chỉ ẩn khi thật sự chật — dựa trên bề rộng thanh, không theo màn hình */
+@media (max-width: 1340px) {
+  .lw-tl-toolbar .lw-dope-seg-btn .lw-seg-label {
+    display: inline;
+  }
+}
+
+@container timeline-toolbar (max-width: 1180px) {
+  .lw-tl-toolbar .lw-dope-seg-btn .lw-seg-label {
+    display: none;
+  }
+}
+
+@container timeline-toolbar (max-width: 860px) {
+  .lw-tl-keys {
+    justify-content: flex-start;
+  }
+
+  .lw-tl-text-btn kbd,
+  .lw-tl-readout-meta em {
+    display: none;
+  }
+}
+
+@container timeline-toolbar (max-width: 560px) {
+  .lw-tl-transport .lw-tl-sep,
+  .lw-tl-transport .lw-tl-icon-btn[title^='Về Frame'],
+  .lw-tl-transport .lw-tl-icon-btn[title^='Tới Frame'] {
+    display: none;
+  }
+
+  .lw-tl-view {
+    margin-left: 0;
+  }
+}
+
+/* ── 2. Lưới Frame kiểu Animate ───────────────────────────────────────── */
+.lw-animation-track-content {
+  --tl-minor-line: color-mix(in srgb, var(--line) 55%, transparent);
+  --tl-major-line: var(--line);
+}
+
+.lw-animation-track-content.is-dense {
+  --tl-minor-line: transparent;
+}
+
+.lw-animation-track-content .lw-animation-track-lane {
+  background-image:
+    linear-gradient(to right, var(--tl-major-line) 1px, transparent 1px),
+    linear-gradient(to right, var(--tl-minor-line) 1px, transparent 1px);
+  background-size:
+    calc(100% / var(--tl-frames, 48) * var(--tl-major, 5)) 100%,
+    calc(100% / var(--tl-frames, 48)) 100%;
+  background-repeat: repeat-x;
+}
+
+.lw-animation-track-row {
+  transition: background 0.1s ease;
+}
+
+.lw-animation-track-content > .lw-animation-track-row:not(.lw-animation-ruler-row):not(.lw-master-pose-row):nth-child(even) {
+  background: color-mix(in srgb, var(--bg-1) 45%, var(--bg-0));
+}
+
+.lw-animation-track-content > .lw-animation-track-row:not(.lw-animation-ruler-row):hover {
+  background: color-mix(in srgb, var(--accent) 6%, var(--bg-0));
+}
+
+.lw-animation-track-content > .lw-animation-track-row.selected {
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg-0));
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+/* ── 3. Thước Frame ───────────────────────────────────────────────────── */
+.lw-animation-ruler-row {
+  height: 24px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--line);
+}
+
+.lw-animation-ruler-row .lw-animation-ruler {
+  background-image:
+    linear-gradient(to right, var(--line) 1px, transparent 1px),
+    linear-gradient(to right, var(--tl-minor-line) 1px, transparent 1px);
+  background-size:
+    calc(100% / var(--tl-frames, 48) * var(--tl-major, 5)) 9px,
+    calc(100% / var(--tl-frames, 48)) 5px;
+  background-position: left bottom, left bottom;
+}
+
+.lw-animation-ruler .lw-ruler-tick {
+  top: 3px;
+  transform: translateX(3px);
+  gap: 3px;
+  font-size: 9.5px;
+}
+
+.lw-animation-ruler .lw-ruler-tick.is-first {
+  padding-left: 0;
+  transform: translateX(3px);
+}
+
+.lw-animation-ruler .lw-ruler-tick.is-last {
+  transform: translateX(calc(-100% - 3px));
+}
+
+.lw-animation-ruler .lw-ruler-tick b {
+  color: var(--text-dim);
+  font-weight: 600;
+}
+
+.lw-animation-ruler .lw-ruler-tick.is-second b {
+  color: var(--text);
+  font-weight: 800;
+}
+
+.lw-animation-ruler .lw-ruler-tick small {
+  padding: 0 3px;
+  border-radius: 3px;
+  background: var(--bg-0);
+  color: var(--text-faint);
+  font-size: 8.5px;
+}
+
+/* ── 4. Đầu phát đỏ kiểu Animate ──────────────────────────────────────── */
+.lw-animation-track-content .lw-animation-playhead {
+  width: 1px;
+  margin-left: -0.5px;
+  background: var(--danger);
+  box-shadow: none;
+}
+
+.lw-animation-ruler .lw-animation-playhead-cap {
+  top: 2px;
+  width: auto;
+  min-width: 20px;
+  height: 18px;
+  padding: 0 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  background: var(--danger);
+  clip-path: none;
+  filter: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  box-sizing: border-box;
+}
+
+.lw-animation-ruler .lw-animation-playhead-cap::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -4px;
+  width: 1px;
+  height: 4px;
+  background: var(--danger);
+}
+
+.lw-animation-ruler .lw-animation-playhead-cap b {
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── 5. Tween span kiểu Classic Tween (dải màu + mũi tên) ─────────────── */
+.lw-animation-track-content .lw-tween-span {
+  top: 4px;
+  bottom: 4px;
+  border-radius: 2px;
+  border-width: 0;
+  border-left: 0;
+}
+
+.lw-animation-track-content .lw-tween-span::after {
+  left: 6px;
+  right: 7px;
+  opacity: 0.85;
+}
+
+.lw-animation-track-content .lw-tween-span::before {
+  content: '';
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  width: 0;
+  height: 0;
+  transform: translateY(-50%);
+  border-top: 3px solid transparent;
+  border-bottom: 3px solid transparent;
+  border-left: 5px solid currentColor;
+  opacity: 0.85;
+}
+
+.lw-animation-track-content .lw-tween-span.kind-motion {
+  background: color-mix(in srgb, #8b5cf6 15%, transparent);
+  color: #8b5cf6;
+}
+
+.lw-animation-track-content .lw-tween-span.kind-motion::after {
+  background: #8b5cf6;
+}
+
+.lw-animation-track-content .lw-tween-span.kind-linear {
+  background: color-mix(in srgb, #06b6d4 18%, transparent);
+  color: #06b6d4;
+}
+
+.lw-animation-track-content .lw-tween-span.kind-hold {
+  background: color-mix(in srgb, var(--key) 12%, transparent);
+  color: transparent;
+}
+
+[data-theme='light'] .lw-animation-track-content .lw-tween-span.kind-motion {
+  background: color-mix(in srgb, #7c3aed 16%, transparent);
+  color: #6d28d9;
+}
+
+/* ── 6. Keyframe: chấm tròn đặc như Animate, Hold = ô vuông, Master = kim cương ── */
+.lw-animation-track-content .lw-animation-track-row:not(.lw-master-pose-row) .lw-animation-key {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  border: 1.5px solid var(--bg-0);
+  background: var(--text);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--text) 35%, transparent);
+}
+
+.lw-animation-track-content .lw-animation-track-row:not(.lw-master-pose-row) .lw-animation-key.ease-motion {
+  background: #a78bfa;
+}
+
+.lw-animation-track-content .lw-animation-track-row:not(.lw-master-pose-row) .lw-animation-key.ease-linear {
+  background: #22d3ee;
+}
+
+.lw-animation-track-content .lw-animation-track-row:not(.lw-master-pose-row) .lw-animation-key.ease-hold {
+  border-radius: 2px;
+  background: #f97316;
+}
+
+[data-theme='light'] .lw-animation-track-content .lw-animation-track-row:not(.lw-master-pose-row) .lw-animation-key.ease-motion {
+  background: #7c3aed;
+}
+
+[data-theme='light'] .lw-animation-track-content .lw-animation-track-row:not(.lw-master-pose-row) .lw-animation-key.ease-linear {
+  background: #0891b2;
+}
+
+.lw-animation-track-content .lw-animation-key:hover {
+  transform: translate(-50%, -50%) scale(1.25);
+}
+
+.lw-animation-track-content .lw-master-pose-row .lw-animation-key:hover {
+  transform: translate(-50%, -50%) rotate(45deg) scale(1.2);
+}
+
+.lw-animation-track-content .lw-animation-track-row .lw-animation-key.active,
+.lw-animation-track-content .lw-animation-track-row .lw-animation-key.multi-selected {
+  background: var(--accent);
+  outline: 2px solid var(--accent-cyan);
+  outline-offset: 1px;
+}
+
+/* ── 7. Cột tên xương ─────────────────────────────────────────────────── */
+.lw-animation-track-content .lw-animation-track-name {
+  font-size: 11px;
+}
+
+.lw-animation-track-content .lw-animation-track-name small {
+  min-width: 18px;
+  padding: 0 4px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-2);
+  text-align: center;
+  line-height: 15px;
+}
+
+.lw-animation-track-scroll {
+  max-height: 232px;
+  scrollbar-width: thin;
+}
+
+@media (max-width: 900px) {
+  .lw-animation-track-scroll {
+    max-height: 176px;
+  }
+}
+
+@media (max-width: 640px) {
+  .lw-animation-track-scroll {
+    max-height: 148px;
+  }
+
+  .lw-tl-icon-btn,
+  .lw-tl-text-btn,
+  .lw-tl-readout {
+    height: 32px;
+  }
+
+  .lw-tl-icon-btn {
+    width: 32px;
+  }
+}
+
+/* ── 8. Gom thanh công cụ về 1 dòng duy nhất ─────────────────────────────
+   Mặc định: icon-only cho kiểu Tween / bộ lọc, ẩn badge phím tắt (vẫn có trong tooltip).
+   Chỉ hiện thêm nhãn khi thanh đủ rộng; chỉ cho xuống dòng khi màn hình rất hẹp. */
+.lw-animation-timeline-toolbar.lw-tl-toolbar {
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  column-gap: 8px;
+  min-height: 40px;
+  padding: 5px 10px;
+}
+
+.lw-tl-toolbar .lw-tl-group {
+  flex: 0 0 auto;
+}
+
+.lw-tl-toolbar .lw-tl-keys {
+  justify-content: flex-start;
+  padding-left: 8px;
+  border-left: 1px solid var(--line-soft);
+}
+
+.lw-tl-toolbar .lw-tl-view {
+  margin-left: auto;
+}
+
+.lw-tl-toolbar .lw-tl-icon-btn {
+  width: 26px;
+  height: 26px;
+}
+
+.lw-tl-toolbar .lw-tl-icon-btn.is-play {
+  width: 32px;
+}
+
+.lw-tl-toolbar .lw-tl-text-btn,
+.lw-tl-toolbar .lw-tl-readout,
+.lw-tl-toolbar .lw-dope-keytime-box,
+.lw-tl-toolbar .lw-autokey-pill {
+  height: 26px;
+}
+
+.lw-tl-toolbar .lw-tl-text-btn {
+  padding: 0 7px;
+}
+
+.lw-tl-toolbar .lw-tl-text-btn kbd,
+.lw-tl-toolbar .lw-tl-readout-meta em,
+.lw-tl-toolbar .lw-dope-seg-btn .lw-seg-label {
+  display: none;
+}
+
+.lw-tl-toolbar .lw-dope-seg-btn {
+  min-width: 24px;
+  padding: 0 5px;
+}
+
+@container timeline-toolbar (min-width: 1380px) {
+  .lw-tl-toolbar .lw-tl-readout-meta em {
+    display: inline;
+  }
+}
+
+@container timeline-toolbar (min-width: 1560px) {
+  .lw-tl-toolbar .lw-tl-text-btn kbd {
+    display: inline;
+  }
+}
+
+@container timeline-toolbar (min-width: 1720px) {
+  .lw-tl-toolbar .lw-dope-seg-btn .lw-seg-label {
+    display: inline;
+  }
+
+  .lw-tl-toolbar .lw-dope-seg-btn {
+    padding: 0 6px;
+  }
+}
+
+/* Màn hình hẹp (tablet dọc / phone): cho phép xuống dòng, vùng bấm lớn */
+@container timeline-toolbar (max-width: 900px) {
+  .lw-animation-timeline-toolbar.lw-tl-toolbar {
+    flex-wrap: wrap;
+    row-gap: 5px;
+  }
+
+  .lw-tl-toolbar .lw-tl-keys {
+    padding-left: 0;
+    border-left: 0;
+  }
+}

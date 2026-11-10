@@ -92,17 +92,29 @@ function LayerStack({
           <IconLayersStack width={14} height={14} /> Xếp chồng layer{' '}
           <span className="lw-count">{composite.layers.length}</span>
         </div>
-        <button
-          type="button"
-          className="lw-btn sm primary"
-          onClick={onAddLayer}
-          title="Thêm một layer trống vào cụm"
-        >
-          <IconPlus width={12} height={12} /> Thêm
-        </button>
+        <div className="lw-pane-head-actions">
+          <button
+            type="button"
+            className="lw-btn sm ghost lw-ai-name-btn"
+            onClick={handleAutoSemanticNames}
+            disabled={composite.layers.length === 0}
+            title="Tự động điền tên bộ phận gợi ý (Thân áo dài, Chân trái, Cánh tay...) cho các mảnh để AI hiểu rõ giải phẫu nhân vật"
+            aria-label="Đặt tên gợi ý AI cho các mảnh"
+          >
+            🏷️ Tên AI
+          </button>
+          <button
+            type="button"
+            className="lw-btn sm primary"
+            onClick={onAddLayer}
+            title="Thêm một layer trống vào cụm"
+          >
+            <IconPlus width={12} height={12} /> Thêm
+          </button>
+        </div>
       </div>
-      <div className="lw-ztools">
-        <span className="lw-ztools-label">Tách Z:</span>
+      <div className="lw-ztools" role="group" aria-label="Tách chiều sâu Z nhanh">
+        <span className="lw-ztools-label">Tách Z</span>
         <button
           type="button"
           className="lw-chip"
@@ -126,14 +138,6 @@ function LayerStack({
           title="Đưa toàn bộ layer về cùng mặt phẳng Z = 0"
         >
           Gom về 0
-        </button>
-        <button
-          type="button"
-          className="lw-chip"
-          onClick={handleAutoSemanticNames}
-          title="Tự động điền tên bộ phận gợi ý (Thân áo dài, Chân trái, Cánh tay...) cho các mảnh để AI hiểu rõ giải phẫu nhân vật"
-        >
-          🏷️ Tên gợi ý AI
         </button>
       </div>
       <div
@@ -161,8 +165,14 @@ function LayerStack({
           />
         ))}
         {composite.layers.length === 0 && (
-          <div className="lw-empty">
-            Chưa có layer nào. Chọn ảnh ở cột Tài nguyên bên trái để bắt đầu lắp ráp.
+          <div className="lw-subtab-empty">
+            <div className="lw-subtab-empty-icon">
+              <IconSubTabLayerStack width={24} height={24} />
+            </div>
+            <div className="lw-subtab-empty-title">Chưa có layer nào</div>
+            <div className="lw-subtab-empty-desc">
+              Chọn ảnh ở cột Tài nguyên bên trái hoặc bấm <strong>Thêm</strong> để bắt đầu lắp ráp.
+            </div>
           </div>
         )}
       </div>

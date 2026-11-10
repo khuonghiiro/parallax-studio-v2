@@ -163,7 +163,7 @@ function DepthSection({ layer, onUpdateLayer }: Pick<WorkshopLayerPropsProps, 'l
           title="Z dương (+): Tiến lên trên (đè lên lớp dưới) · Z âm (-): Lùi xuống dưới (bị lớp trên đè)" />
         <span className="lw-range-value">{layer.z}px</span>
       </span>
-      <div className="lw-chip-row">
+      <div className="lw-chip-row lw-depth-presets">
         {DEPTH_PRESETS.map(([z, label, title]) => (
           <button key={z} type="button" className={`lw-chip${layer.z === z ? ' active' : ''}`} title={title} onClick={() => onUpdateLayer(layer.id, { z })}>{label}</button>
         ))}
@@ -303,10 +303,13 @@ function RigSection({
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
-                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text)' }}>
-                  👗 Vùng Vải Uốn Theo Chân/Tay (Cloth Physics)
+                <span
+                  style={{ minWidth: 0, fontSize: 11, fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+                  title="Vùng vải uốn theo chân/tay (Cloth Physics)"
+                >
+                  👗 Vải uốn theo chân/tay
                 </span>
-                <label className="lw-rig-check" style={{ margin: 0, cursor: 'pointer' }}>
+                <label className="lw-rig-check" style={{ margin: 0, cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap' }}>
                   <input
                     type="checkbox"
                     checked={Boolean(layer.isCloth || isRobeCoveringLegs)}
