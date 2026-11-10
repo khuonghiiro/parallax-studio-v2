@@ -15,6 +15,11 @@
 
 export const AI_SRC_ATTR = 'data-ai-src'
 
+/** File dữ liệu .ts không có JSX: để Vite/esbuild xử lý, tránh Babel in lại base64 nhiều MB. */
+export function aiSourceBabelOptions(id) {
+  return { plugins: /\.[jt]sx(?:\?|$)/i.test(id) ? [aiSourceLocatorBabelPlugin] : [] }
+}
+
 const SKIP_COMPONENTS = new Set(['Fragment', 'StrictMode', 'Suspense', 'Profiler', 'Activity'])
 
 const SKIP_HOST_TAGS = new Set([
