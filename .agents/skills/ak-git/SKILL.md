@@ -1,6 +1,6 @@
 ---
 name: ak:git
-description: "Git operations with Vietnamese commit format and session-driven branch lifecycle. Auto-splits commits, creates session branches, merges --no-ff to master on new session, security scans for secrets."
+description: "Git operations with Vietnamese commit format and session-driven branch lifecycle. Commits each completed logic immediately, pushes once per completed prompt, verifies chat identity, and reuses the previous branch only on explicit continuation."
 user-invocable: true
 when_to_use: "Invoke for commits, PRs, stacked PRs, branch hygiene, or release git steps."
 category: workflow
@@ -8,7 +8,7 @@ keywords: [git, commits, staging, PR, merge, merge-pr, stack, stacked-prs, ci]
 argument-hint: "cm|cp|pr|merge|merge-pr|stack [args]"
 metadata:
   author: agentkit
-  version: "1.2.2"
+  version: "1.2.3"
 ---
 
 # Git Operations
@@ -68,6 +68,12 @@ only for an actual context/budget problem.
 | Branches | `references/branch-management.md` |
 | GitHub CLI | `references/gh-cli-guide.md` |
 
+## Mandatory Session Workflow
+
+Read `references/branch-management.md` before branch, commit, or push decisions.
+
+Mỗi session dùng một nhánh; mỗi logic trong một prompt phải hoàn tất, kiểm tra và commit riêng ngay trước khi làm logic kế tiếp; chỉ push một lần khi hoàn tất toàn bộ prompt. Xác minh ID/lịch sử chat trước khi đổi nhánh: prompt mới, đổi ngày hoặc nén ngữ cảnh không tạo session mới. Chat mới: merge nhánh session cũ vào `master` bằng `--no-ff`, kiểm tra và push `master`, rồi tạo nhánh mới; ngoại lệ người dùng yêu cầu “xử lý tiếp/làm tiếp/continue” thì giữ đúng nhánh cũ. Không đoán nhánh khi thiếu bằng chứng, không tự merge cuối prompt; bảo toàn thay đổi ngoài phạm vi. Tuân thủ quality gates và định dạng commit tiếng Việt tại `AGENTS.md` mục 2.2 và `.agents/skills/ak-git/references/branch-management.md`.
+
 ## Core Workflow
 
 ### Step 1: Stage + Analyze
@@ -92,14 +98,7 @@ git diff --cached | grep -iE "(api[_-]?key|token|password|secret|credential)"
 - Search for related issues on GitHub and add to body.
 - Choose commit type/scope from repository policy and actual change, including skill/docs edits. Preserve unrelated staged changes; verify staged scope before committing.
 
-**Split commits if:**
-- Different types mixed (feat + fix, code + docs)
-- Multiple scopes (auth + payments)
-- Config/deps + code mixed
-- FILES > 10 unrelated
-
-**Single commit if:**
-- Same type/scope, FILES ≤ 3, LINES ≤ 50
+Commit boundaries follow complete user logic, not file count or type. Commit each verified logic before starting the next; include its supporting tests/docs. Do not defer all commits until the prompt ends.
 
 ### Step 4: Commit
 ```bash
