@@ -86,3 +86,23 @@ Chụp vùng hiệu ứng: `get_app_screenshot({ region: "ai_inspector_scan_fx" 
 | [`aiUiInspectorSourceLocator.ts`](../../../src/renderer/src/ui/inspector/aiUiInspectorSourceLocator.ts) | `data-ai-src`, CSS từ `<style data-vite-dev-id>`, DOM path |
 | [`aiUiInspectorMarkdown.ts`](../../../src/renderer/src/ui/inspector/aiUiInspectorMarkdown.ts) + `…Sections.ts` | Báo cáo gửi AI (bảng Mở ngay đứng đầu) |
 | [`aiUiCalloutLayout.ts`](../../../src/renderer/src/ui/inspector/aiUiCalloutLayout.ts) + `AiUiScanCallouts.tsx` | Nhãn xếp cột ngoài vùng quét + đường nét đứt vuông góc, không đè nhau |
+
+
+### AI UI Code Handoff — Win + Ctrl
+
+- **Win + Ctrl** xuất gói sửa UI gọn: rule CSS khớp class vùng quét (kèm hover/active, theme/media tìm được), khoảng 21 dòng JSX/JS hai phía vị trí render/call-site, số dòng và hướng dẫn UI rút gọn. **Win + Shift** giữ báo cáo ngữ cảnh cũ.
+- Không lần theo import JS/store/engine, không gửi toàn bộ file hoặc toàn bộ AGENTS/skill. Chỉ dò CSS @import để tìm rule gốc; CSS ngoài vùng không được đưa vào gói. Giới hạn 18.000 ký tự nguồn, 10 file (tối đa 7 CSS), 28.000 ký tự Markdown. Gói ghi rõ số đoạn bỏ qua; quét nhỏ hơn khi thiếu. Ước lượng token là ký tự/3, không phải bộ đếm tokenizer chính xác.
+- AI trả JSON `{version:2,bundleId,files:[{path,baseHash,edits:[{id,content}]}]}`. `content` chỉ là toàn bộ ĐOẠN đã sửa, không có số dòng. Giữ ID đoạn; không trả cả file, không bọc lại điều kiện CSS được ghi là ngữ cảnh ngoài đoạn.
+- Trong hộp thoại `ai_code_handoff`, dán/chọn JSON → **Kiểm tra bản sửa** → **Áp dụng bản sửa**. App ghép đoạn vào bản gốc, giữ nguyên phần ngoài đoạn, kiểm tra SHA-256 toàn file và cú pháp file sau ghép, lưu backup trước ghi. Bản gốc ở `ai-code-handoffs/backup-*` trong userData; phục hồi từ backup, không dùng Undo editor. Vẫn đọc được gói toàn file version 1 đã xuất trước đây, nhưng không cho dùng version 1 để ghi đè gói đoạn version 2.
+- Chỉ dùng trên bản phát triển có repository; sửa main/preload cần người dùng mở lại app. Sau nhập chạy `pnpm verify`, test liên quan và QA Dark/Light. Không tự chạy lệnh shell hoặc commit bản nhập. JSX có thể cắt giữa hàm; phụ thuộc ngoài đoạn không được bao phủ.
+- MCP: `export_ui_code` (left/top/width/height, show tùy chọn), `import_ui_code` (reply chuỗi JSON, apply mặc định false). Cú pháp xuất:
+  - PowerShell: `pnpm pxs call export_ui_code '{"left":0,"top":0,"width":320,"height":150}'`
+  - CMD: `pnpm pxs call export_ui_code "{\"left\":0,\"top\":0,\"width\":320,\"height\":150}"`
+  - Flags cả hai shell: `pnpm pxs call export_ui_code --left 0 --top 0 --width 320 --height 150`
+
+### Phân biệt chế độ quét
+
+- `Win + Shift`: cyan, nhãn “Ngữ cảnh UI · Vị trí code”, báo cáo vị trí giao diện.
+- `Win + Ctrl`: cam, tâm ngắm hình thoi, khung nét liền, nhãn “Gói sửa UI · CSS/JSX/JS”; xuất đoạn mã và quy tắc UI đã nhúng trong Markdown để gửi AI kể cả khi AI không truy cập repo. Chỉ trích quy tắc liên quan, không gửi toàn bộ skill/AGENTS.md.
+
+Sau Win + Ctrl, giữ khung mục tiêu và nhãn file:dòng màu cam trên UI; gói mã được tạo/copy nền. Nút “Mở gói / Import” mở hộp thoại; đóng hộp thoại quay lại nhãn quét. MCP export_ui_code với show=true hiển thị cùng kết quả quét.

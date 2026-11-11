@@ -14,6 +14,9 @@ import {
   AiUiScreenFrame
 } from './inspector/AiUiInspectorHud'
 import { useAiInspectorCapture } from './inspector/useAiInspectorCapture'
+import { AiCodeHandoffModal } from './inspector/AiCodeHandoffModal'
+import { exportSnapshotCode } from './inspector/aiCodeHandoffClient'
+import type { AiCaptureMode } from './inspector/useAiInspectorCapture'
 import type { ScanBox } from './inspector/aiUiInspectorGeometry'
 import type { CalloutBox } from './inspector/aiUiCalloutLayout'
 import '../styles/aiUiInspector.css'
@@ -66,9 +69,13 @@ function useToastReservedArea(): CalloutBox[] {
  * AI UI Inspector — Win + Shift + kéo khung để quét vùng giao diện và copy ngữ cảnh code cho AI.
  */
 export function AiUiInspectorOverlay() {
-  const [lastCaptured, setLastCaptured] = useState<{ snapshot: AiInspectorSnapshot; report: string } | null>(
+  const [lastCaptured, setLastCaptured] = useState<{ snapshot: AiInspectorSnapshot; report: string; mode: AiCaptureMode } | null>(
     null
   )
+  const [codeOpen, setCodeOpen] = useState(false)
+  const [codeReport, setCodeReport] = useState('')
+  const [codeStatus, setCodeStatus] = useState('')
+  const exportSequence = useRef(0)
   const [copied, setCopied] = useState(true)
   const [resultVisible, setResultVisible] = useState(false)
   const [waveId, setWaveId] = useState(0)
@@ -79,6 +86,20 @@ export function AiUiInspectorOverlay() {
   const hideTimerRef = useRef<number | null>(null)
   const crosshairRef = useRef<HTMLDivElement | null>(null)
   const reserved = useToastReservedArea()
+  useEffect(() => {
+    const onBundle = (event: Event) => {
+      const bundle = (event as CustomEvent<{ markdown: string; files: unknown[]; snapshot: AiInspectorSnapshot }>).detail
+      setCodeReport(bundle.markdown)
+      setCodeStatus(`${bundle.files.length} file · Gói được xuất qua MCP`)
+      setCodeOpen(false)
+      setLastCaptured({ snapshot: bundle.snapshot, report: '', mode: 'code' })
+      setShowPreview(false)
+      setResultVisible(true)
+      setWaveId((prev) => prev + 1)
+    }
+    window.addEventListener('pxs:ai-code-bundle', onBundle)
+    return () => window.removeEventListener('pxs:ai-code-bundle', onBundle)
+  }, [])
 
   const clearHideTimer = useCallback(() => {
     if (hideTimerRef.current) window.clearTimeout(hideTimerRef.current)
@@ -96,18 +117,39 @@ export function AiUiInspectorOverlay() {
   useEffect(() => clearHideTimer, [clearHideTimer])
 
   const handleFinish = useCallback(
-    (box: ScanBox) => {
+    (box: ScanBox, mode: AiCaptureMode) => {
       // Quét DOM & trạng thái đồng bộ ngay khi nhả chuột, trước mọi thao tác bất đồng bộ
-      const snapshot = captureAiInspectorSnapshot(box)
+      const snapshot = captureAiInspectorSnapshot(box, mode === 'code' ? Infinity : undefined)
+      if (mode === 'code') {
+        const sequence = ++exportSequence.current
+        clearHideTimer()
+        setCodeOpen(false)
+        setLastCaptured({ snapshot, report: '', mode })
+        setResultVisible(true)
+        setHeld(false)
+        setWaveId((prev) => prev + 1)
+        setShowPreview(false)
+        setCodeReport('')
+        setCodeStatus('Đang thu thập mã nguồn và quy tắc…')
+        void exportSnapshotCode(snapshot).then(async (bundle) => {
+          if (sequence !== exportSequence.current) return
+          setCodeReport(bundle.markdown)
+          const ok = await copyToClipboard(bundle.markdown)
+          setCodeStatus(`${bundle.files.length} file · ${bundle.warnings.length} lưu ý · ${ok ? 'Đã sao chép Markdown' : 'Chưa sao chép được, hãy dùng nút Sao chép hoặc Lưu Markdown'}`)
+        }).catch((error) => {
+          if (sequence === exportSequence.current) setCodeStatus(`${String(error)} (${snapshot.elements.length} phần tử trong vùng ${Math.round(box.width)} × ${Math.round(box.height)}). Hãy kéo quanh một nút hoặc panel có nội dung.`)
+        })
+        return
+      }
       const report = formatAiInspectorMarkdown(snapshot)
-      setLastCaptured({ snapshot, report })
+      setLastCaptured({ snapshot, report, mode })
       setResultVisible(true)
       setHeld(false)
       setWaveId((prev) => prev + 1)
       scheduleHide(RESULT_VISIBLE_MS)
       void copyToClipboard(report).then(setCopied)
     },
-    [scheduleHide]
+    [scheduleHide, clearHideTimer]
   )
 
   const capture = useAiInspectorCapture({
@@ -126,15 +168,17 @@ export function AiUiInspectorOverlay() {
 
   const { isArmed, isDragging, startPos, currentPos } = capture
   const isModeActive = isArmed || isDragging
-  const showResult = resultVisible && lastCaptured && !isDragging && !showPreview
+  const showResult = resultVisible && lastCaptured && !isDragging && !showPreview && !codeOpen
 
   return (
     <>
-      {isModeActive && <AiUiScreenFrame />}
-      {isModeActive && <AiUiCrosshair ref={crosshairRef} />}
-      {isArmed && !isDragging && <AiUiArmHud placement={capture.armHudPlacement} onClose={capture.disarm} />}
+      {codeOpen && <AiCodeHandoffModal report={codeReport} status={codeStatus}
+        onClose={() => { exportSequence.current++; setCodeOpen(false) }} onCopy={copyToClipboard} />}
+      {isModeActive && <AiUiScreenFrame mode={capture.mode} />}
+      {isModeActive && <AiUiCrosshair mode={capture.mode} ref={crosshairRef} />}
+      {isArmed && !isDragging && <AiUiArmHud mode={capture.mode} placement={capture.armHudPlacement} onClose={capture.disarm} />}
       {isDragging && (
-        <AiUiMarquee
+        <AiUiMarquee mode={capture.mode}
           left={Math.min(startPos.x, currentPos.x)}
           top={Math.min(startPos.y, currentPos.y)}
           width={Math.abs(currentPos.x - startPos.x)}
@@ -143,7 +187,7 @@ export function AiUiInspectorOverlay() {
       )}
 
       {showResult && (
-        <AiUiScanCallouts snapshot={lastCaptured.snapshot} waveId={waveId} reserved={reserved} held={held} />
+        <AiUiScanCallouts snapshot={lastCaptured.snapshot} waveId={waveId} reserved={reserved} mode={lastCaptured.mode} held={held || lastCaptured.mode === 'code'} />
       )}
 
       {showResult && (
@@ -151,13 +195,17 @@ export function AiUiInspectorOverlay() {
           key={`toast-${waveId}`}
           snapshot={lastCaptured.snapshot}
           copied={copied}
+          mode={lastCaptured.mode}
+          status={codeStatus}
           onHoverChange={(hovering) => {
+            if (lastCaptured.mode === 'code') return
             setHeld(hovering)
             if (hovering) clearHideTimer()
             else scheduleHide(4000)
           }}
           onPreview={() => {
             clearHideTimer()
+            if (lastCaptured.mode === 'code') { setCodeOpen(true); return }
             setResultVisible(false)
             setShowPreview(true)
           }}

@@ -11,6 +11,7 @@ import { windowState } from './windowState'
 import { getSystemHardwareInfo } from './systemInfo'
 import { registerBuiltInAssetsIpc } from './builtInAssets'
 import { registerAsset3DsIpc } from './asset3ds'
+import { registerAiCodeHandoffIpc } from './aiCodeHandoffIpc'
 import type { ExportStartOptions, PickedFile } from '@shared/ipc'
 
 if (process.platform === 'win32' && !app.commandLine.hasSwitch('use-angle')) {
@@ -135,6 +136,7 @@ function createWindow(): void {
 }
 
 function registerIpc(): void {
+  registerAiCodeHandoffIpc()
   ipcMain.handle('files:open', async (_e, kind: 'image' | 'audio'): Promise<PickedFile[]> => {
     const exts = kind === 'image' ? IMAGE_EXT : AUDIO_EXT
     const res = await dialog.showOpenDialog(mainWindow!, {

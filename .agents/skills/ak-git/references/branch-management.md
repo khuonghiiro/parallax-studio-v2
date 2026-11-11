@@ -1,96 +1,10 @@
-# Quản Lý Nhánh Git Theo Phiên Hội Thoại (Session-Driven Branch Management)
+# Quản lý nhánh theo session
 
-## 1. Nguyên Tắc Cốt Lõi: Nhánh Theo Session Hội Thoại
-- Vòng đời tạo nhánh và hợp nhất nhánh **gắn liền với từng Session cuộc hội thoại (hoặc phiên làm việc)**.
-- **TUYỆT ĐỐI TRÁNH:** Vừa xử lý xong 1 logic con/tác vụ nhỏ đã vội vàng tạo nhánh mới rồi hợp nhất ngay vào `master`, gây rối loạn và rác lịch sử git bằng hàng loạt nhánh và merge commit vụn vặt không cần thiết trong cùng một phiên trao đổi.
-- **Trong 1 session cuộc hội thoại:** Mọi xử lý code, sửa lỗi, thêm tính năng đều làm việc trên **duy nhất 1 nhánh của session đó**. Trong quá trình trao đổi khi có xử lý gì đó, các commit đã được phân loại rõ ràng qua định dạng tiếng Việt chuẩn (`[tính năng]`, `[sửa lỗi]`, `[chỉnh sửa]`, `[giao diện]`, `[tái cấu trúc]`, `[hiệu năng]`, `[kiểm thử]`, `[dọn dẹp]`...).
-- **CHỈ KHI chuyển sang session cuộc hội thoại mới:** AI mới tiến hành hợp nhất nhánh của session trước đó vào `master` (hoặc `master`) bằng cờ `--no-ff`, kéo code mới nhất, và tạo một nhánh mới từ `master` cho session mới đó.
+- **Nhận diện session trước khi đổi nhánh:** Dùng ID cuộc hội thoại do môi trường cung cấp hoặc lịch sử hội thoại và thông tin bàn giao nhánh để xác định session hiện tại. Prompt mới, đổi ngày, resume hoặc nén ngữ cảnh trong cùng chat KHÔNG phải session mới. Không suy đoán session chỉ từ tên nhánh hoặc thời gian commit. Nếu chưa xác định được nhánh thuộc session nào, giữ nguyên trạng thái và xác minh trước khi merge.
+- **Ngoại lệ xử lý tiếp:** Nếu người dùng nói “xử lý tiếp”, “làm tiếp”, “continue” hoặc yêu cầu tiếp tục công việc của session trước, dùng lại đúng nhánh cũ, kể cả đang ở chat mới; không tự merge hay tạo nhánh khác. Nếu nhánh cũ đã được hợp nhất/xoá hoặc không xác định được, kiểm tra lịch sử/bàn giao và báo rõ trước khi chọn nhánh thay thế; không đoán một nhánh không liên quan.
+- **Một session, một nhánh:** Giữ nguyên nhánh cho mọi prompt trong cùng chat. Khi đã xác nhận chat mới và không có yêu cầu xử lý tiếp: kiểm tra working tree/index, đồng bộ `master` bằng `git pull --ff-only origin master`, merge nhánh session cũ chưa hợp nhất bằng `--no-ff` với message tiếng Việt, kiểm tra chất lượng theo quy định, push `master`, rồi tạo nhánh `<action>/<session-topic>` cho chat mới. Nếu nhánh cũ đã hợp nhất thì bỏ qua merge. Không tự gộp nhánh của session khác đang chạy; không stash/reset hoặc đưa thay đổi chưa rõ chủ sở hữu vào commit.
+- **Commit ngay theo từng logic trong prompt:** Trước khi sửa, chia yêu cầu dài thành các logic hoàn chỉnh. Làm xong logic nào thì chạy kiểm tra bắt buộc cho logic đó và commit riêng ngay trước khi bắt đầu logic tiếp theo. Không đợi làm hết prompt rồi mới chia commit, không gộp các logic độc lập thành một commit. Code, test và tài liệu phục vụ cùng một logic nằm chung commit; nếu các phần phụ thuộc không thể kiểm tra độc lập, gom thành một logic hoàn chỉnh và giải thích phạm vi. Chỉ stage file/hunk thuộc logic hiện tại, bảo toàn thay đổi khác. Dùng `[loại] (phạm vi): mô tả tiếng Việt có dấu`.
+- **Push một lần sau toàn bộ prompt:** Sau khi tất cả logic trong prompt đã hoàn tất, kiểm tra diff, các commit và quality gates rồi push nhánh session một lần (`git push -u origin HEAD` khi chưa có upstream; nếu có thì `git push origin HEAD`). Không push sau mỗi logic, không tự merge khi kết thúc prompt. Việc push `master` lúc chuyển session là bước riêng. Nếu còn logic bị chặn hoặc kiểm tra thất bại, giữ các commit đã hoàn tất ở local và báo phần còn thiếu; không tự push một phần, trừ khi người dùng yêu cầu. Yêu cầu rõ ràng “chỉ commit/không push” được ưu tiên.
+- **Quality gates giữ nguyên:** Khi sửa code, chạy `pnpm verify`, unit test liên quan (`pnpm test`); nếu app đang mở, kiểm tra `pnpm pxs call ping '{}'` trả `rendererReady: true` và xem ảnh toàn màn hình trước commit/push. Không bỏ qua lỗi hoặc hook; không tắt app hay mở dev process trùng lặp. Với sửa rule/skill thuần tài liệu, kiểm tra nội dung, tham chiếu và `git diff --check`; tuân thủ các hook hiện có.
 
-## 2. Quy Tắc Đặt Tên Nhánh Theo Chủ Đề Session
-Mỗi nhánh mới bắt buộc thể hiện rõ loại hành động và chủ đề chính của session:
-
-**Định dạng:** `<hành-động>/<tên-chủ-đề-session-kebab-case>`
-
-| Tiền tố hành động | Mục đích | Ví dụ |
-|-------------------|----------|-------|
-| `fix/` | Session tập trung sửa lỗi, khắc phục bug | `fix/photo-studio-import-css`, `fix/timeline-audio-sync` |
-| `add/` (hoặc `feat/`) | Session tập trung thêm tính năng, công cụ, module mới | `feat/mixamo-dopesheet`, `add/loop-animator-presets` |
-| `edit/` (hoặc `refactor/`) | Session chỉnh sửa, điều chỉnh, tái cấu trúc logic | `edit/responsive-workflow`, `edit/ai-ui`, `refactor/layer-assembly-rig` |
-| `remove/` (hoặc `delete/`) | Session dọn dẹp, xoá bỏ code rác, file thừa | `remove/unused-assets` |
-| `perf/` | Session tối ưu hóa hiệu năng, 60fps, bộ nhớ | `perf/viewer-canvas-60fps` |
-
-## 3. Vòng Đời Nhánh & Chu Trình Hợp Nhất (Session Lifecycle & Clean Merge)
-
-Mục đích: Đóng gói toàn bộ thành quả của từng session hội thoại vào một merge commit `--no-ff` duy nhất trên `master`. Nếu toàn bộ session đó sau này phát sinh lỗi hoặc không dùng, người dùng hoặc AI có thể dễ dàng loại bỏ hoàn toàn sạch sẽ session đó ra khỏi `master` (bằng `git revert -m 1 <merge-commit>`) mà không ảnh hưởng tới các session khác.
-
-### Bước 1: Khởi Tạo Nhánh Khi Bắt Đầu Session Mới
-Khi người dùng mở một phiên làm việc mới:
-1. Kiểm tra trạng thái git hiện tại: Nếu đang ở nhánh session cũ và có commit chưa hợp nhất:
-   - Chuyển về `main` (`git checkout master`)
-   - Kéo mới nhất (`git pull origin master`)
-   - Hợp nhất nhánh session cũ: `git merge <nhánh-session-cũ> --no-ff -m "[hợp nhất] nhánh '<nhánh-session-cũ>' vào master"`
-   - Đẩy lên remote: `git push origin master`
-2. Tạo nhánh mới cho session hiện tại từ `master` sạch sẽ:
-```bash
-git checkout master
-git pull origin master
-git checkout -b <hành-động>/<tên-chủ-đề-session>
-# Ví dụ: git checkout -b edit/responsive-workflow
-```
-
-### Bước 2: Phát Triển & Commit Trong Suốt Session (Quality Gates)
-Mọi trao đổi, yêu cầu sửa đổi, thêm tính năng TRONG CÙNG SESSION đều được thực hiện trên nhánh session này.
-Sau mỗi lần giải quyết xong một yêu cầu / logic nhỏ:
-- Chạy `pnpm verify` (esbuild + typecheck).
-- Chạy unit test liên quan (`pnpm test`).
-- Chụp ảnh toàn màn hình Visual QA (`pnpm pxs review --view app`) nếu app đang mở.
-- Commit trực tiếp trên nhánh session bằng format tiếng Việt:
-```bash
-git commit -m "[loại] (phạm vi): mô tả chi tiết bằng tiếng Việt có dấu"
-# Ví dụ: git commit -m "[tính năng] (ui): thêm nút chia nhỏ timeline"
-```
-- Có thể đẩy nhánh session lên remote (`git push origin <tên-nhánh>`) để lưu vết an toàn.
-- **CẤM:** Không tự ý merge vào `master` hay nhảy sang nhánh mới sau mỗi logic đơn lẻ khi vẫn đang trong cùng một session!
-
-### Bước 3: Hợp Nhất Vào Main Khi Chuyển Sang Session Mới
-Chỉ khi người dùng chuyển sang session cuộc hội thoại mới (hoặc có yêu cầu rõ ràng "merge nhánh vào master"):
-```bash
-# 1. Chuyển về main
-git checkout master
-git pull origin master
-
-# 2. Hợp nhất nhánh session với merge commit tường minh (--no-ff)
-git merge <hành-động>/<tên-chủ-đề-session> --no-ff -m "[hợp nhất] nhánh '<hành-động>/<tên-chủ-đề-session>' vào master"
-
-# 3. Đẩy nhánh main lên remote
-git push origin master
-
-# 4. Đẩy nhánh session lên remote (nếu cần lưu vết)
-git push origin <hành-động>/<tên-chủ-đề-session>
-```
-
-### Bước 4: Tạo Nhánh Mới Cho Session Tiếp Theo
-Từ `master` vừa hợp nhất và sạch sẽ, tạo nhánh mới cho session tiếp theo:
-```bash
-git checkout master
-git checkout -b <hành-động-mới>/<chủ-đề-session-mới>
-```
-
-## 4. Cách Loại Bỏ Session Bị Lỗi Ra Khỏi Main (Rollback / Drop Session)
-Nhờ có merge commit `--no-ff`, nếu toàn bộ session bị lỗi hoặc không dùng nữa:
-```bash
-# Hoàn tác toàn bộ session chỉ bằng 1 lệnh revert merge commit:
-git revert -m 1 <merge-commit-hash> -m "[hoàn tác] loại bỏ nhánh <tên-nhánh> khỏi master"
-git push origin master
-```
-Toàn bộ code của session đó sẽ được loại bỏ sạch sẽ khỏi `master` mà không làm hỏng lịch sử của các session khác!
-
-## 5. Các Lệnh Tiện Ích
-| Tác vụ | Lệnh Git |
-|--------|----------|
-| Xem tất cả nhánh | `git branch -a` |
-| Nhánh hiện tại | `git rev-parse --abbrev-ref HEAD` |
-| Chuyển nhánh | `git checkout <branch>` |
-| Tạo và chuyển nhánh | `git checkout -b <branch>` |
-| Xoá nhánh local | `git branch -d <branch>` |
-| Xoá nhánh remote | `git push origin --delete <branch>` |
+Ví dụ: một prompt gồm A, B, C → hoàn tất và kiểm tra A → commit A → hoàn tất và kiểm tra B → commit B → hoàn tất và kiểm tra C → commit C → push một lần. Prompt tiếp theo trong chat vẫn dùng nhánh này. Chat mới chỉ dùng lại nhánh cũ khi người dùng yêu cầu xử lý tiếp.

@@ -1,11 +1,11 @@
 # Push Workflow
 
-Execute via `git-manager` subagent.
+Push một lần sau khi tất cả logic của prompt đã được kiểm tra và commit riêng. Không push giữa các logic. Nếu còn logic bị chặn, giữ commit local và báo rõ, trừ khi user yêu cầu push phần đã xong. Tôn trọng yêu cầu chỉ commit/không push. Xem `branch-management.md` trước mọi quyết định đổi nhánh.
 
 ## Pre-Push Checklist
 1. All changes committed
 2. Secrets scanned (see `safety-protocols.md`)
-3. Branch pushed to remote
+3. All requested logic completed and quality gates passed; inspect commits before pushing
 
 ## Tool 1: Verify State
 ```bash

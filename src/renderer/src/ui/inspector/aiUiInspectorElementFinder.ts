@@ -315,7 +315,7 @@ function compareCandidates(a: Element, b: Element, box: ScanBox, topSurface: Ele
 /**
  * Tìm các phần tử giao diện nằm bên trong hoặc cắt ngang khung quét hình chữ nhật.
  */
-export function findElementsInBox(box: ScanBox): Element[] {
+export function findElementsInBox(box: ScanBox, maxElements = MAX_SCANNED_ELEMENTS): Element[] {
   if (box.width < 8 && box.height < 8) return findElementAtPoint(box)
 
   const matched = collectCandidates(box)
@@ -328,5 +328,5 @@ export function findElementsInBox(box: ScanBox): Element[] {
 
   const topSurface = findTopSurfaceRootAt(box)
   filtered.sort((a, b) => compareCandidates(a, b, box, topSurface))
-  return filtered.slice(0, MAX_SCANNED_ELEMENTS)
+  return filtered.slice(0, maxElements)
 }
