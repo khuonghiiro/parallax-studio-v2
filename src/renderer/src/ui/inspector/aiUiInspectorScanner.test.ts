@@ -610,7 +610,7 @@ describe('aiUiInspectorScanner', () => {
     expect(popupFound).toEqual([popupMenuItem])
   })
 
-  it('preserves Workflow V2 Node Card as primary focus target and provides descriptive labels for inner controls', () => {
+  it('focuses scanned inner controls, preserves whole-card selection and descriptive labels', () => {
     useEditor.setState({
       project: {
         comp: { duration: 15 },
@@ -716,8 +716,9 @@ describe('aiUiInspectorScanner', () => {
     })
 
     const found = findElementsInBox({ left: 679, top: 803, width: 188, height: 74 })
-    // Thẻ Node không bị loại bỏ và được xếp làm phần tử số 1 (Tâm điểm)
-    expect(found[0]).toBe(nodeCard)
+    // A partial scan targets its controls; scanning the whole card still targets the card.
+    expect(found[0]).toBe(toggleBtn)
+    expect(findElementsInBox({ left: 600, top: 780, width: 220, height: 90 })[0]).toBe(nodeCard)
     expect(found).toContain(collapseBtn)
     expect(found).toContain(toggleBtn)
     expect(found).toContain(timeBtn)

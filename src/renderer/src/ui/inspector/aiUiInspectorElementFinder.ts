@@ -189,11 +189,13 @@ function collectCandidates(box: ScanBox): Element[] {
 }
 
 /** Khung chỉnh BBox: luôn đưa BBox đang focus trong `workflow_preview` vào kết quả. */
-function includeFocusedBboxes(matched: Element[]): void {
+function includeFocusedBboxes(matched: Element[], box: ScanBox): void {
   const stage = matched.find((el) => el.matches?.('[data-mcp-region="workflow_preview"]'))
   if (!stage || typeof stage.querySelectorAll !== 'function') return
   for (const fb of Array.from(stage.querySelectorAll('[data-bbox-focused="true"]'))) {
-    if (!matched.includes(fb)) matched.push(fb)
+    const rect = getVisibleElementRect(fb)
+    if (!matched.includes(fb) && rectIntersectsBox(rect, box) &&
+      withInspectorOverlaysHidden(() => isElementUnobstructed(fb, rect, box))) matched.push(fb)
   }
 }
 
@@ -271,7 +273,6 @@ function applyDominanceFilter(filtered: Element[], box: ScanBox): Element[] {
     const elOverlap = computeOverlapRatio(r, box)
     const boxCover = computeBoxCoverageRatio(r, box)
     const isStrong =
-      el.getAttribute?.('data-bbox-focused') === 'true' ||
       (centerIn && elOverlap >= 0.42) ||
       elOverlap >= 0.62 ||
       (boxCover >= 0.55 && elOverlap >= 0.25)
@@ -285,17 +286,14 @@ function applyDominanceFilter(filtered: Element[], box: ScanBox): Element[] {
 }
 
 function compareCandidates(a: Element, b: Element, box: ScanBox, topSurface: Element | null): number {
-  const aFocus = a.getAttribute?.('data-bbox-focused') === 'true'
-  const bFocus = b.getAttribute?.('data-bbox-focused') === 'true'
-  if (aFocus !== bFocus) return aFocus ? -1 : 1
   if (topSurface) {
     const aTop = isInsideSurface(a, topSurface)
     const bTop = isInsideSurface(b, topSurface)
     if (aTop !== bTop) return aTop ? -1 : 1
   }
   if (box.width >= 36 && box.height >= 24) {
-    if (a.matches?.('.wf-v2-card') && a.contains?.(b)) return -1
-    if (b.matches?.('.wf-v2-card') && b.contains?.(a)) return 1
+    if (a.matches?.('.wf-v2-card') && a.contains?.(b) && computeOverlapRatio(getVisibleElementRect(a), box) >= 0.62) return -1
+    if (b.matches?.('.wf-v2-card') && b.contains?.(a) && computeOverlapRatio(getVisibleElementRect(b), box) >= 0.62) return 1
   }
   const ra = getVisibleElementRect(a)
   const rb = getVisibleElementRect(b)
@@ -319,7 +317,7 @@ export function findElementsInBox(box: ScanBox, maxElements = MAX_SCANNED_ELEMEN
   if (box.width < 8 && box.height < 8) return findElementAtPoint(box)
 
   const matched = collectCandidates(box)
-  includeFocusedBboxes(matched)
+  includeFocusedBboxes(matched, box)
 
   let filtered = dedupeParentChild(matched, box)
   filtered = dropInspectorTrigger(filtered, box)
