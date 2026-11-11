@@ -45,12 +45,12 @@ async function cssFiles(root: string, seeds: string[], warnings: string[]) {
 export async function collectCompactSources(root: string, targets: AiCodeTarget[]) {
   const warnings: string[] = []
   const files: AiCodeFile[] = []
-  let remaining = 18000, serial = 0, omitted = 0
+  let remaining = 200000, serial = 0, omitted = 0
   const include = (path: string, content: string, candidates: AiCodeSnippet[]) => {
     const snippets = candidates.filter((s) => {
       // Reserve room for direct JSX/JS when collecting CSS first.
-      const limit = path.endsWith('.css') ? Math.max(0, remaining - 6000) : remaining
-      const maxFiles = path.endsWith('.css') ? 7 : 10
+      const limit = path.endsWith('.css') ? Math.max(0, remaining - 60000) : remaining
+      const maxFiles = path.endsWith('.css') ? 70 : 100
       if (s.content.length > limit || files.length >= maxFiles) { omitted++; return false }
       remaining -= s.content.length; s.id = `s${++serial}`; return true
     })
@@ -74,7 +74,7 @@ export async function collectCompactSources(root: string, targets: AiCodeTarget[
     const content = await readFile(await safeSourcePath(root, path), 'utf8')
     include(path, content, jsSnippets(content, targets.filter((t) => t.path === path)))
   }
-  if (omitted) warnings.push(`${omitted} đoạn chưa đưa vào do giới hạn 18.000 ký tự nguồn / 10 file. Quét vùng nhỏ hơn để lấy đoạn đó.`)
+  if (omitted) warnings.push(`${omitted} đoạn chưa đưa vào do giới hạn 200.000 ký tự nguồn / 100 file. Quét vùng nhỏ hơn để lấy đoạn đó.`)
   if (!files.length) throw new Error('Không có đoạn UI phù hợp trong giới hạn. Hãy quét một control nhỏ hơn.')
   return { files, warnings }
 }

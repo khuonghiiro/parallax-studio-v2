@@ -27,7 +27,7 @@ export class AiCodeHandoffService {
     const { files, warnings } = await collectCompactSources(this.root, paths)
     const id = randomUUID()
     const markdown = await handoffMarkdown(id, files, report, warnings)
-    if (markdown.length > 28000) throw new Error('Gói UI vượt 28.000 ký tự. Hãy quét vùng nhỏ hơn.')
+    if (markdown.length > 300000) throw new Error('Gói UI vượt 300.000 ký tự. Hãy quét vùng nhỏ hơn.')
     await mkdir(this.storage, { recursive: true })
     await writeFile(join(this.storage, `${id}.json`), JSON.stringify({ root: this.root, files }), { flag: 'wx' })
     return { version: 2, id, files: files.map(({ content: _content, ...file }) => file), markdown, warnings }
