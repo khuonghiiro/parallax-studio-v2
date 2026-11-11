@@ -200,9 +200,9 @@ function buildAppState(activeDialog: string | null): AiInspectorSnapshot['appSta
 /**
  * Chụp toàn bộ trạng thái app + Xưởng 2.5D/3D/Dialogs/Scene Layers và tạo snapshot cho AI & giao diện Xem trước.
  */
-export function captureAiInspectorSnapshot(box: ScanBox): AiInspectorSnapshot {
+export function captureAiInspectorSnapshot(box: ScanBox, maxElements?: number): AiInspectorSnapshot {
   const editor = useEditor.getState()
-  const elements = findElementsInBox(box)
+  const elements = findElementsInBox(box, maxElements)
   let scanned = elements.map((el) => scanElementContext(el))
   const workshopContext = extractActiveWorkshopContext(box, elements)
 

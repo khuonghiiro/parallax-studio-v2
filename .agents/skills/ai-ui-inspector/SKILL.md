@@ -86,3 +86,16 @@ Chụp vùng hiệu ứng: `get_app_screenshot({ region: "ai_inspector_scan_fx" 
 | [`aiUiInspectorSourceLocator.ts`](../../../src/renderer/src/ui/inspector/aiUiInspectorSourceLocator.ts) | `data-ai-src`, CSS từ `<style data-vite-dev-id>`, DOM path |
 | [`aiUiInspectorMarkdown.ts`](../../../src/renderer/src/ui/inspector/aiUiInspectorMarkdown.ts) + `…Sections.ts` | Báo cáo gửi AI (bảng Mở ngay đứng đầu) |
 | [`aiUiCalloutLayout.ts`](../../../src/renderer/src/ui/inspector/aiUiCalloutLayout.ts) + `AiUiScanCallouts.tsx` | Nhãn xếp cột ngoài vùng quét + đường nét đứt vuông góc, không đè nhau |
+
+
+### AI UI Code Handoff — Win + Ctrl
+
+- Giữ **Win + Ctrl**, kéo vùng UI: xuất Markdown gồm báo cáo, toàn bộ nội dung file có số dòng, SHA-256, import nội bộ tĩnh, AGENTS.md và các skill AI UI Inspector / MCP UI Region cùng quy tắc responsive. **Win + Shift** giữ báo cáo ngữ cảnh ngắn.
+- Chỉ dùng trong bản phát triển có repository; sau khi cập nhật main/preload cần mở lại app. Không đóng gói node_modules, tài nguyên nhị phân hoặc file ngoài src. Import động/IPC không được đảm bảo bao phủ; gói ghi rõ cảnh báo, không âm thầm cắt nội dung. Giới hạn 600 file / 12 MB nguồn; chọn vùng nhỏ hơn nếu vượt giới hạn.
+- Dán gói cho AI cùng yêu cầu sửa. AI trả JSON `{version:1,bundleId,files:[{path,baseHash,content}]}`; `content` là toàn bộ file đã sửa, KHÔNG có số dòng. Có thể bọc trong một khối ```json.
+- Trong hộp thoại bàn giao (`ai_code_handoff`), dán/chọn file trả lời → **Kiểm tra bản sửa** → **Áp dụng bản sửa**. Kiểm tra thành viên gói, phiên bản gốc, cú pháp và giới hạn 1000 dòng trước ghi. Bản gốc lưu tại thư mục `ai-code-handoffs/backup-*` trong userData, đường dẫn hiển thị sau áp dụng. Khôi phục file từ đó để hoàn tác; đây là sửa mã nguồn trên đĩa, không phải state dự án và không dùng Ctrl+Z của editor.
+- Kiểm tra import không thay thế typecheck/test: chạy `pnpm verify`, test liên quan và QA Dark/Light sau áp dụng. Không tự chạy lệnh do AI đính kèm, không tự commit/push bản nhập.
+- MCP tương ứng: `export_ui_code` (left/top/width/height), `import_ui_code` (reply là JSON dạng chuỗi, apply mặc định false). CLI dùng chung catalog; ví dụ xuất:
+  - PowerShell: `pnpm pxs call export_ui_code '{"left":0,"top":0,"width":320,"height":150}'`
+  - CMD: `pnpm pxs call export_ui_code "{\"left\":0,\"top\":0,\"width\":320,\"height\":150}"`
+  - Flags (cả hai shell): `pnpm pxs call export_ui_code --left 0 --top 0 --width 320 --height 150`

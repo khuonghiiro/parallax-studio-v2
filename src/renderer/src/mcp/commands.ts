@@ -1,4 +1,5 @@
 import { workflowPartCommands } from './commands/workflowPartCommands'
+import { aiCodeCommands } from './commands/aiCodeCommands'
 import { effectStackCommands } from './commands/effectStackCommands'
 import { proceduralMotionCommands } from './commands/proceduralMotionCommands'
 import type { McpCommand } from '@shared/ipc'
@@ -29,6 +30,7 @@ import { manifestCommands } from './commands/manifestCommands'
  * (MCP convention); coordinates use the project convention (x right, y up, z depth).
  */
 const commands: Record<string, Handler> = {
+  ...aiCodeCommands,
   list_commands: () => Object.keys(commands).sort(),
   ...projectCommands,
   ...shotCommands,

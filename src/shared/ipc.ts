@@ -191,6 +191,7 @@ export interface Asset3DsCatalogResult {
 }
 
 export interface ParallaxApi {
+  aiCode?: import('./aiCodeHandoff').AiCodeHandoffApi
   openFiles(kind: 'image' | 'audio'): Promise<PickedFile[]>
   saveProject(data: Uint8Array, suggestedPath?: string): Promise<string | null>
   openProject(): Promise<{ path: string; data: Uint8Array } | null>

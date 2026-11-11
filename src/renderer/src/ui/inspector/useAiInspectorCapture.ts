@@ -11,8 +11,11 @@ import type { ScanBox } from './aiUiInspectorGeometry'
 
 type Point = { x: number; y: number }
 type Placement = 'top' | 'bottom'
+export type AiCaptureMode = 'context' | 'code'
 
 interface CaptureCtx {
+  mode: { current: AiCaptureMode }
+  setMode: (mode: AiCaptureMode) => void
   armed: { current: boolean }
   dragging: { current: boolean }
   placement: { current: Placement }
@@ -24,7 +27,7 @@ interface CaptureCtx {
   setPlacement: (v: Placement) => void
   setStart: (p: Point) => void
   setCurrent: (p: Point) => void
-  finish: (box: ScanBox) => void
+  finish: (box: ScanBox, mode: AiCaptureMode) => void
   closePreview: () => boolean
   onArm: () => void
 }
@@ -38,6 +41,7 @@ function closestMatch(target: EventTarget | null, selector: string): boolean {
 
 const isOwnControl = (t: EventTarget | null) => closestMatch(t, OWN_CONTROL_SELECTOR)
 const isTriggerBtn = (t: EventTarget | null) => closestMatch(t, '#ai-ui-inspector-btn')
+const isWinCtrl = (e: MouseEvent | KeyboardEvent) => e.ctrlKey && e.metaKey && !e.altKey && !e.shiftKey
 const isWinShift = (e: MouseEvent | KeyboardEvent) => e.shiftKey && e.metaKey && !e.altKey && !e.ctrlKey
 
 function swallow(e: Event, prevent = true): void {
@@ -69,7 +73,9 @@ function autoDodgeHud(ctx: CaptureCtx, x: number, y: number): void {
   }
 }
 
-function arm(ctx: CaptureCtx, next: boolean): void {
+function arm(ctx: CaptureCtx, next: boolean, mode: AiCaptureMode = ctx.mode.current): void {
+  ctx.mode.current = mode
+  ctx.setMode(mode)
   ctx.armed.current = next
   ctx.setArmed(next)
   if (next) {
@@ -100,7 +106,7 @@ function finishDrag(ctx: CaptureCtx, x: number, y: number): void {
   }, 80)
   ctx.setDragging(false)
   const { x: x0, y: y0 } = ctx.start.current
-  ctx.finish({ left: Math.min(x0, x), top: Math.min(y0, y), width: Math.abs(x - x0), height: Math.abs(y - y0) })
+  ctx.finish({ left: Math.min(x0, x), top: Math.min(y0, y), width: Math.abs(x - x0), height: Math.abs(y - y0) }, ctx.mode.current)
 }
 
 function createHandlers(ctx: CaptureCtx) {
@@ -108,8 +114,12 @@ function createHandlers(ctx: CaptureCtx) {
     if (isTriggerBtn(e.target)) return swallow(e, false)
     if (isOwnControl(e.target)) return
     if (e.type === 'mousedown' && ctx.dragging.current) return swallow(e)
-    if ((isWinShift(e) || ctx.armed.current) && e.button === 0) {
+    if ((isWinShift(e) || isWinCtrl(e) || ctx.armed.current) && e.button === 0) {
       swallow(e)
+      if (!ctx.dragging.current && (isWinShift(e) || isWinCtrl(e))) {
+        ctx.mode.current = isWinCtrl(e) ? 'code' : 'context'
+        ctx.setMode(ctx.mode.current)
+      }
       if (!ctx.dragging.current) startDrag(ctx, e.clientX, e.clientY)
     }
   }
@@ -132,7 +142,7 @@ function createHandlers(ctx: CaptureCtx) {
   const onClick = (e: MouseEvent) => {
     if (isTriggerBtn(e.target)) {
       swallow(e)
-      return arm(ctx, !ctx.armed.current)
+      return arm(ctx, !ctx.armed.current, 'context')
     }
     if (isOwnControl(e.target)) return
     if (ctx.suppressClick.current) {
@@ -141,7 +151,11 @@ function createHandlers(ctx: CaptureCtx) {
     }
   }
   const onKey = (e: KeyboardEvent) => {
-    if (isWinShift(e) && !ctx.armed.current && !ctx.dragging.current) arm(ctx, true)
+    if (document.querySelector('.ai-code-handoff-modal')) return
+    if ((isWinShift(e) || isWinCtrl(e)) && !ctx.dragging.current) {
+      swallow(e)
+      arm(ctx, true, isWinCtrl(e) ? 'code' : 'context')
+    }
     if (e.key !== 'Escape') return
     if (ctx.dragging.current || ctx.armed.current) {
       swallow(e)
@@ -157,11 +171,12 @@ function createHandlers(ctx: CaptureCtx) {
 }
 
 export function useAiInspectorCapture(options: {
-  onFinish: (box: ScanBox) => void
+  onFinish: (box: ScanBox, mode: AiCaptureMode) => void
   onArm: () => void
   closePreview: () => boolean
   crosshairRef: RefObject<HTMLDivElement | null>
 }) {
+  const [mode, setMode] = useState<AiCaptureMode>('context')
   const [isArmed, setIsArmed] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const [armHudPlacement, setArmHudPlacement] = useState<Placement>('top')
@@ -173,6 +188,8 @@ export function useAiInspectorCapture(options: {
   const ctxRef = useRef<CaptureCtx | null>(null)
   if (!ctxRef.current) {
     ctxRef.current = {
+      mode: { current: 'context' },
+      setMode,
       armed: { current: false },
       dragging: { current: false },
       placement: { current: 'top' },
@@ -184,7 +201,7 @@ export function useAiInspectorCapture(options: {
       setPlacement: setArmHudPlacement,
       setStart: setStartPos,
       setCurrent: setCurrentPos,
-      finish: (box) => optsRef.current.onFinish(box),
+      finish: (box, mode) => optsRef.current.onFinish(box, mode),
       closePreview: () => optsRef.current.closePreview(),
       onArm: () => optsRef.current.onArm()
     }
@@ -215,5 +232,5 @@ export function useAiInspectorCapture(options: {
   }, [isArmed, isDragging])
 
   const disarm = () => arm(ctxRef.current as CaptureCtx, false)
-  return { isArmed, isDragging, armHudPlacement, startPos, currentPos, disarm }
+  return { mode, isArmed, isDragging, armHudPlacement, startPos, currentPos, disarm }
 }

@@ -27,7 +27,7 @@ export function AiUiScreenFrame() {
   )
 }
 
-export function AiUiArmHud({ placement, onClose }: { placement: 'top' | 'bottom'; onClose: () => void }) {
+export function AiUiArmHud({ placement, onClose, mode = 'context' }: { placement: 'top' | 'bottom'; onClose: () => void; mode?: 'context' | 'code' }) {
   return (
     <div
       className={`ai-ui-inspector-arm-hud${placement === 'bottom' ? ' is-bottom' : ''}`}
@@ -36,9 +36,9 @@ export function AiUiArmHud({ placement, onClose }: { placement: 'top' | 'bottom'
     >
       <div className="ai-ui-inspector-arm-dot" />
       <IconAiScan width={15} height={15} className="ai-ui-inspector-arm-icon" />
-      <span className="ai-ui-inspector-arm-title">SOI GIAO DIỆN AI</span>
+      <span className="ai-ui-inspector-arm-title">{mode === 'code' ? 'QUÉT MÃ NGUỒN AI' : 'SOI GIAO DIỆN AI'}</span>
       <span className="ai-ui-inspector-arm-desc">Giữ chuột trái &amp; kéo khung quanh vùng cần soi</span>
-      <kbd>Win+Shift</kbd>
+      <kbd>{mode === 'code' ? 'Win+Ctrl' : 'Win+Shift'}</kbd>
       <kbd>Esc</kbd>
       <button
         type="button"
@@ -46,7 +46,7 @@ export function AiUiArmHud({ placement, onClose }: { placement: 'top' | 'bottom'
         onPointerDown={(e) => e.stopPropagation()}
         onMouseDown={(e) => e.stopPropagation()}
         onClick={onClose}
-        title="Đóng chế độ soi (Esc)"
+        title="Đóng chế độ soi (Esc)" aria-label="Đóng chế độ soi"
       >
         ✕
       </button>

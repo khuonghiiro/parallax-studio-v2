@@ -11,6 +11,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describer, pick, z } from './shared.mjs'
 import { SCENE_TOOLS } from './tools-scene.mjs'
+import { AI_CODE_TOOLS } from './tools-ai-code.mjs'
 import { FX_TOOLS } from './tools-motion.mjs'
 import { ASSEMBLY_TOOLS } from './tools-assembly.mjs'
 import { LAYER_ASSEMBLY_TOOLS } from './tools-layer-assembly.mjs'
@@ -22,7 +23,7 @@ import { LOOP_LIBRARY_TOOLS } from './tools-loop-library.mjs'
 const here = dirname(fileURLToPath(import.meta.url))
 
 export const GUIDE = JSON.parse(readFileSync(join(here, 'guide.json'), 'utf8'))
-export const TOOLS = [...SCENE_TOOLS, ...FX_TOOLS, ...ASSEMBLY_TOOLS, ...LAYER_ASSEMBLY_TOOLS, ...LAYER_ANIM_TOOLS, ...LAYER_PARTS_TOOLS, ...LOOP_ANIMATOR_TOOLS, ...LOOP_LIBRARY_TOOLS]
+export const TOOLS = [...SCENE_TOOLS, ...AI_CODE_TOOLS, ...FX_TOOLS, ...ASSEMBLY_TOOLS, ...LAYER_ASSEMBLY_TOOLS, ...LAYER_ANIM_TOOLS, ...LAYER_PARTS_TOOLS, ...LOOP_ANIMATOR_TOOLS, ...LOOP_LIBRARY_TOOLS]
 export const LANGS = ['en', 'vi']
 export const GUIDE_TOPICS = ['all', ...GUIDE.sections.map((s) => s.id)]
 

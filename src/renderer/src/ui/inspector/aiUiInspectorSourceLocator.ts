@@ -84,8 +84,8 @@ export function pickIdentityClasses(classes: string[], max = 3): string[] {
  * Tìm file CSS + dòng đầu tiên định nghĩa selector chứa class của phần tử (chỉ khả dụng khi dev).
  * Trả về dạng `src/renderer/src/styles/toolbar.css:42 (.tb-btn)`.
  */
-export function findCssSourcesForClasses(classes: string[], max = 3): string[] {
-  const identity = pickIdentityClasses(classes, 4)
+export function findCssSourcesForClasses(classes: string[], max = 3, all = false): string[] {
+  const identity = all ? classes.filter((c) => c && !c.startsWith('ai-ui-')) : pickIdentityClasses(classes, 4)
   if (identity.length === 0) return []
   const sheets = collectDevStyleSources()
   if (sheets.length === 0) return []
@@ -101,9 +101,9 @@ export function findCssSourcesForClasses(classes: string[], max = 3): string[] {
       if (seen.has(key)) continue
       seen.add(key)
       results.push(`${sheet.file}:${line} (.${cls})`)
-      break
+      if (!all) break
     }
-    if (results.length >= max) break
+    if (!all && results.length >= max) break
   }
   return results
 }
