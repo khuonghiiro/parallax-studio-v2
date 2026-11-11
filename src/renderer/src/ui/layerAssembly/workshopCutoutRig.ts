@@ -68,8 +68,10 @@ export function extractLayerDimensions(l: AssembledLayerItem): { w: number; h: n
  * dựa vào toạ độ thực tế (x, y), kích thước (w, h), độ sâu Z và tỷ lệ không gian của nhân vật.
  */
 export function analyzeCutoutParts(layers: AssembledLayerItem[]): CutoutPartInfo[] {
-  const visible = layers.filter((l) => !l.hidden)
-  const pool = visible.length > 0 ? visible : layers
+  // Mảnh hoạt ảnh Loop là hiệu ứng (lửa, cổng dịch chuyển...), không phải bộ phận cơ thể → không nhận diện vai trò
+  const bodyLayers = layers.filter((l) => !l.loopConfig?.enabled)
+  const visible = bodyLayers.filter((l) => !l.hidden)
+  const pool = visible.length > 0 ? visible : bodyLayers
   if (pool.length === 0) return []
 
   let minX = Infinity

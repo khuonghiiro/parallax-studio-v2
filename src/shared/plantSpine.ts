@@ -15,6 +15,8 @@ export interface PlantSpine {
   points: PlantSpinePoint[]
   /** Các layer uốn theo xương này. */
   layerIds: string[]
+  /** Bảng Hoạt động: tắt chuyển động gió của trục này (vẫn giữ dữ liệu). */
+  muted?: boolean
   /** Góc uốn tối đa tại ngọn (độ). */
   amplitude: number
   /** Số chu kỳ đung đưa mỗi giây. */

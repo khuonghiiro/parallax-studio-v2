@@ -24,6 +24,8 @@ export interface LoopWorkshopFrameRect {
 
 export interface LoopWorkshopLayerConfig {
   enabled: boolean
+  /** Bảng Hoạt động: tạm dừng hoạt ảnh Loop (đứng ở frame đầu), vẫn giữ cấu hình. */
+  muted?: boolean
   /** ID of the LoopAnimationTemplate or SampleLoopPreset */
   templateId?: string
   /** Source sprite sheet URL or data URL */

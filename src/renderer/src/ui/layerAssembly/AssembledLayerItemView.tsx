@@ -194,7 +194,7 @@ export function AssembledLayerItemView({
   } = computeLayerMotion(layer.motion, time)
 
   const loopRhythm = useMemo(() => {
-    if (!layer.loopConfig?.enabled || !layer.loopConfig.rhythmMode || layer.loopConfig.rhythmMode === 'none' || time <= 0.001) {
+    if (!layer.loopConfig?.enabled || layer.loopConfig.muted || !layer.loopConfig.rhythmMode || layer.loopConfig.rhythmMode === 'none' || time <= 0.001) {
       return { opacityMultiplier: 1, scaleMultiplier: 1 }
     }
     return evaluateLoopLayerRhythm(
@@ -317,7 +317,7 @@ export function AssembledLayerItemView({
         {hasSpriteLoop && layer.loopConfig ? (
           <WorkshopLoopSpriteCanvas
             loopConfig={layer.loopConfig}
-            time={time}
+            time={layer.loopConfig.muted ? 0 : time}
             filter={lightingResult.combinedFilter}
             meshWidth={layer.meshWidth}
             meshHeight={layer.meshHeight}
