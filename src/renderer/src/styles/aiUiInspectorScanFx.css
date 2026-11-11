@@ -13,7 +13,7 @@
   z-index: 999990;
   pointer-events: none !important;
   font-family: var(--font-ui, Inter, system-ui, sans-serif);
-  animation: aiScanLayerOut 6.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: aiScanLayerOut 4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .ai-ui-scan-fx-layer * {

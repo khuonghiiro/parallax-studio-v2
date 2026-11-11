@@ -153,7 +153,7 @@ export function AiUiScanToast({ snapshot, copied, onHoverChange, onPreview, onCl
       <button type="button" className="ai-ui-inspector-arm-close" onClick={onClose} title="Đóng thông báo">
         ✕
       </button>
-      {mode !== 'code' && <div className="ai-ui-inspector-toast-progress" />}
+      <div className="ai-ui-inspector-toast-progress" />
     </div>
   )
 }

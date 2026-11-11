@@ -387,7 +387,7 @@ body.ai-ui-inspector-active {
   width: 100%;
   background: linear-gradient(90deg, var(--t-c), var(--key, #f59e0b));
   transform-origin: left center;
-  animation: aiHudToastProgress 6.5s linear forwards;
+  animation: aiHudToastProgress 4s linear forwards;
 }
 
 .ai-ui-inspector-toast:hover .ai-ui-inspector-toast-progress {

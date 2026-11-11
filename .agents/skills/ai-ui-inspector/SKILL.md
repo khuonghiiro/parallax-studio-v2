@@ -105,4 +105,4 @@ Chụp vùng hiệu ứng: `get_app_screenshot({ region: "ai_inspector_scan_fx" 
 - `Win + Shift`: cyan, nhãn “Ngữ cảnh UI · Vị trí code”, báo cáo vị trí giao diện.
 - `Win + Ctrl`: cam, tâm ngắm hình thoi, khung nét liền, nhãn “Gói sửa UI · CSS/JSX/JS”; xuất đoạn mã và quy tắc UI đã nhúng trong Markdown để gửi AI kể cả khi AI không truy cập repo. Chỉ trích quy tắc liên quan, không gửi toàn bộ skill/AGENTS.md.
 
-Sau Win + Ctrl, giữ khung mục tiêu và nhãn file:dòng màu cam trên UI; gói mã được tạo/copy nền. Nút “Mở gói / Import” mở hộp thoại; đóng hộp thoại quay lại nhãn quét. MCP export_ui_code với show=true hiển thị cùng kết quả quét.
+Sau Win + Ctrl, khung mục tiêu và nhãn file:dòng màu cam xuất hiện trên UI; gói mã được tạo/copy nền. Thông báo chứa nút “Mở gói / Import” tự ẩn sau 4 giây khi xuất xong (rê chuột để giữ). Nút mở hộp thoại nhập; hộp thoại không tự đóng khi đang sử dụng. MCP export_ui_code với show=true hiển thị cùng kết quả quét.
