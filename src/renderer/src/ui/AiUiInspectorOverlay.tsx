@@ -165,11 +165,11 @@ export function AiUiInspectorOverlay() {
     <>
       {codeOpen && <AiCodeHandoffModal report={codeReport} status={codeStatus}
         onClose={() => { exportSequence.current++; setCodeOpen(false) }} onCopy={copyToClipboard} />}
-      {isModeActive && <AiUiScreenFrame />}
-      {isModeActive && <AiUiCrosshair ref={crosshairRef} />}
+      {isModeActive && <AiUiScreenFrame mode={capture.mode} />}
+      {isModeActive && <AiUiCrosshair mode={capture.mode} ref={crosshairRef} />}
       {isArmed && !isDragging && <AiUiArmHud mode={capture.mode} placement={capture.armHudPlacement} onClose={capture.disarm} />}
       {isDragging && (
-        <AiUiMarquee
+        <AiUiMarquee mode={capture.mode}
           left={Math.min(startPos.x, currentPos.x)}
           top={Math.min(startPos.y, currentPos.y)}
           width={Math.abs(currentPos.x - startPos.x)}

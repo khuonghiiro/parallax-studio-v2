@@ -33,8 +33,9 @@ export function AiCodeHandoffModal({ report, status, onClose, onCopy }: {
     <section className="ai-code-handoff-modal" data-mcp-region="ai_code_handoff" data-mcp-dialog
       role="dialog" aria-modal="true" aria-label="Gói sửa UI gọn" data-ai-surface="dialog"
       data-ai-surface-label="Gói sửa UI gọn">
-      <header><h2>Gói sửa UI gọn</h2><button className="btn ghost" disabled={busy} onClick={onClose}
+      <header><h2>〈/〉 Gói sửa UI · CSS/JSX/JS</h2><button className="btn ghost" disabled={busy} onClick={onClose}
         title="Đóng bàn giao mã nguồn" aria-label="Đóng bàn giao mã nguồn">✕</button></header>
+      <p className="ai-code-handoff-guide">Markdown chứa mã, số dòng và quy tắc sửa UI. Dán cho AI trên web hoặc AI đang làm dự án; nhập JSON AI trả về để áp dụng.</p>
       <p role="status">{status}</p>
       <div className="ai-code-handoff-actions">
         <button className="btn ghost" disabled={!report || busy} onClick={() => {

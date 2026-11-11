@@ -33,6 +33,7 @@
   /* AE Royal Blue (Selection, Primary Actions) */
   --accent-hover: #3d8ff5;
   --accent-cyan: #38bdf8;
+  --ai-code-accent: #a78bfa;
   /* AE Electric Cyan (Scrub numbers, CTI laser line, Timecode) */
   --accent-2: #38bdf8;
   --accent-grad: linear-gradient(135deg, #1473e6 0%, #2680eb 60%, #38bdf8 100%);
@@ -138,6 +139,7 @@
   /* AE Light Royal Blue */
   --accent-hover: #0c62c7;
   --accent-cyan: #0284c7;
+  --ai-code-accent: #7c3aed;
   /* High-contrast cyan/sky blue for scrub numbers */
   --accent-2: #0284c7;
   --accent-grad: linear-gradient(135deg, #0c62c7 0%, #1473e6 60%, #0284c7 100%);

@@ -23,7 +23,7 @@ body.ai-ui-inspector-active {
 
 /* 2. Viền neon + góc ngắm + vạch quét toàn màn hình */
 .ai-ui-inspector-screen-frame {
-  --hud-c: var(--accent-cyan, #38bdf8);
+  --hud-c: var(--ai-scan-accent, var(--accent-cyan));
   position: fixed;
   inset: 0;
   z-index: 999985;
@@ -74,9 +74,9 @@ body.ai-ui-inspector-active {
   gap: 10px;
   padding: 7px 10px 7px 14px;
   background: color-mix(in srgb, var(--bg-1, #111827) 88%, transparent);
-  border: 1px solid color-mix(in srgb, var(--accent-cyan, #38bdf8) 55%, var(--line, #334155));
+  border: 1px solid color-mix(in srgb, var(--ai-scan-accent, var(--accent-cyan)) 55%, var(--line, #334155));
   border-radius: var(--radius-md, 6px);
-  box-shadow: 0 10px 30px rgba(2, 6, 23, 0.45), 0 0 18px color-mix(in srgb, var(--accent-cyan, #38bdf8) 30%, transparent);
+  box-shadow: 0 10px 30px rgba(2, 6, 23, 0.45), 0 0 18px color-mix(in srgb, var(--ai-scan-accent, var(--accent-cyan)) 30%, transparent);
   backdrop-filter: blur(10px) saturate(1.2);
   color: var(--text, #f8fafc);
   font-size: 12px;
@@ -97,13 +97,13 @@ body.ai-ui-inspector-active {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--accent-cyan, #38bdf8);
-  box-shadow: 0 0 8px var(--accent-cyan, #38bdf8);
+  background: var(--ai-scan-accent, var(--accent-cyan));
+  box-shadow: 0 0 8px var(--ai-scan-accent, var(--accent-cyan));
   animation: aiHudDotPulse 1.2s infinite ease-in-out;
 }
 
 .ai-ui-inspector-arm-icon {
-  color: var(--accent-cyan, #38bdf8);
+  color: var(--ai-scan-accent, var(--accent-cyan));
 }
 
 .ai-ui-inspector-arm-title {
@@ -111,7 +111,7 @@ body.ai-ui-inspector-active {
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.1em;
-  color: var(--accent-cyan, #38bdf8);
+  color: var(--ai-scan-accent, var(--accent-cyan));
 }
 
 .ai-ui-inspector-arm-desc {
@@ -155,7 +155,7 @@ body.ai-ui-inspector-active {
 
 /* 4. Marquee khung quét + thước kích thước */
 .ai-ui-inspector-marquee {
-  --mq-c: var(--accent-cyan, #38bdf8);
+  --mq-c: var(--ai-scan-accent, var(--accent-cyan));
   position: fixed;
   border: 1px dashed color-mix(in srgb, var(--mq-c) 85%, transparent);
   background:
@@ -212,7 +212,7 @@ body.ai-ui-inspector-active {
 .ai-ui-inspector-crosshair {
   --x: -100px;
   --y: -100px;
-  --ch-c: color-mix(in srgb, var(--accent-cyan, #38bdf8) 55%, transparent);
+  --ch-c: color-mix(in srgb, var(--ai-scan-accent, var(--accent-cyan)) 55%, transparent);
   position: fixed;
   inset: 0;
   z-index: 999984;
@@ -248,9 +248,9 @@ body.ai-ui-inspector-active {
   top: calc(var(--y) - 9px);
   width: 18px;
   height: 18px;
-  border: 1.5px solid var(--accent-cyan, #38bdf8);
+  border: 1.5px solid var(--ai-scan-accent, var(--accent-cyan));
   border-radius: 50%;
-  box-shadow: 0 0 10px color-mix(in srgb, var(--accent-cyan, #38bdf8) 60%, transparent);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--ai-scan-accent, var(--accent-cyan)) 60%, transparent);
 }
 
 .ai-ui-inspector-crosshair-coords {
@@ -261,7 +261,7 @@ body.ai-ui-inspector-active {
   border-radius: var(--radius-sm, 4px);
   background: color-mix(in srgb, var(--bg-1, #0f172a) 88%, transparent);
   border: 1px solid var(--line-soft, rgba(255, 255, 255, 0.12));
-  color: var(--accent-cyan, #38bdf8);
+  color: var(--ai-scan-accent, var(--accent-cyan));
   font-family: var(--font-mono, monospace);
   font-size: 10px;
   white-space: nowrap;
@@ -269,7 +269,7 @@ body.ai-ui-inspector-active {
 
 /* 5. Toast kết quả — cố định trên cùng giữa màn hình (nhãn quét tự né vùng này) */
 .ai-ui-inspector-toast {
-  --t-c: var(--accent-cyan, #38bdf8);
+  --t-c: var(--ai-scan-accent, var(--accent-cyan));
   position: fixed;
   top: 18px;
   left: 50%;
@@ -448,3 +448,9 @@ body.ai-ui-inspector-active {
   from { transform: scaleX(1); }
   to { transform: scaleX(0); }
 }
+
+/* Code export has a distinct color and square targeting reticle. */
+[data-ai-scan-mode="code"] { --ai-scan-accent: var(--ai-code-accent); }
+[data-ai-scan-mode="code"] .ai-ui-inspector-crosshair-reticle { border-radius: 3px; transform: rotate(45deg); }
+[data-ai-scan-mode="code"].ai-ui-inspector-marquee { border-style: solid; }
+[data-ai-scan-mode="code"] .ai-ui-inspector-screen-scanline { animation-duration: 4.5s; }

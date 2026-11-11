@@ -99,3 +99,8 @@ Chụp vùng hiệu ứng: `get_app_screenshot({ region: "ai_inspector_scan_fx" 
   - PowerShell: `pnpm pxs call export_ui_code '{"left":0,"top":0,"width":320,"height":150}'`
   - CMD: `pnpm pxs call export_ui_code "{\"left\":0,\"top\":0,\"width\":320,\"height\":150}"`
   - Flags cả hai shell: `pnpm pxs call export_ui_code --left 0 --top 0 --width 320 --height 150`
+
+### Phân biệt chế độ quét
+
+- `Win + Shift`: cyan, nhãn “Ngữ cảnh UI · Vị trí code”, báo cáo vị trí giao diện.
+- `Win + Ctrl`: tím, tâm ngắm hình thoi, khung nét liền, nhãn “Gói sửa UI · CSS/JSX/JS”; xuất đoạn mã và quy tắc UI đã nhúng trong Markdown để gửi AI kể cả khi AI không truy cập repo. Chỉ trích quy tắc liên quan, không gửi toàn bộ skill/AGENTS.md.

@@ -9,7 +9,7 @@
   gap: 12px;
   background: var(--bg-1);
   color: var(--text);
-  border: 1px solid var(--line-focus);
+  border: 1px solid var(--ai-code-accent);
   border-radius: var(--radius-md);
 }
 .ai-code-handoff-modal header, .ai-code-handoff-modal footer, .ai-code-handoff-actions {
@@ -20,7 +20,8 @@
 }
 .ai-code-handoff-modal header { justify-content: space-between; }
 .ai-code-handoff-modal h2, .ai-code-handoff-modal p { margin: 0; overflow-wrap: anywhere; }
-.ai-code-handoff-modal h2 { font-size: 18px; }
+.ai-code-handoff-modal h2 { font-size: 18px; color: var(--ai-code-accent); }
+.ai-code-handoff-guide { color: var(--text-dim); font-size: 13px; line-height: 1.5; }
 .ai-code-handoff-modal button { min-height: 40px; min-width: 40px; }
 .ai-code-handoff-modal .btn.ghost { border-color: var(--line-soft); color: var(--text); background: var(--bg-2); }
 .ai-code-handoff-modal .btn.primary { color: var(--on-accent); background: var(--accent); }

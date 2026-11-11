@@ -8,14 +8,16 @@ import '../../styles/aiUiInspectorHud.css'
  * tâm ngắm theo chuột, toast kết quả. Logic sự kiện nằm ở `AiUiInspectorOverlay.tsx`.
  */
 
-export function AiUiScreenFrame() {
+type ScanModeProps = { mode?: 'context' | 'code' }
+
+export function AiUiScreenFrame({ mode = 'context' }: ScanModeProps) {
   return (
     <>
       <div
-        className="ai-ui-inspector-barrier"
+        className="ai-ui-inspector-barrier" data-ai-scan-mode={mode}
         title="Chế độ soi UI đang bật: Giữ chuột trái và kéo khung để quét vị trí code, hoặc nhấn Esc để thoát."
       />
-      <div className="ai-ui-inspector-screen-frame" aria-hidden="true">
+      <div className="ai-ui-inspector-screen-frame" data-ai-scan-mode={mode} aria-hidden="true">
         <div className="ai-ui-inspector-screen-glow" />
         <div className="ai-ui-inspector-screen-scanline" />
         <div className="ai-ui-inspector-screen-corner corner-tl" />
@@ -32,12 +34,13 @@ export function AiUiArmHud({ placement, onClose, mode = 'context' }: { placement
     <div
       className={`ai-ui-inspector-arm-hud${placement === 'bottom' ? ' is-bottom' : ''}`}
       data-mcp-region="ai_inspector_arm_hud"
+      data-ai-scan-mode={mode}
       role="status"
     >
       <div className="ai-ui-inspector-arm-dot" />
       <IconAiScan width={15} height={15} className="ai-ui-inspector-arm-icon" />
-      <span className="ai-ui-inspector-arm-title">{mode === 'code' ? 'QUÉT CSS + JSX/JS' : 'SOI GIAO DIỆN AI'}</span>
-      <span className="ai-ui-inspector-arm-desc">Giữ chuột trái &amp; kéo khung quanh vùng cần soi</span>
+      <span className="ai-ui-inspector-arm-title">{mode === 'code' ? 'GÓI SỬA UI · CSS/JSX/JS' : 'NGỮ CẢNH UI · VỊ TRÍ CODE'}</span>
+      <span className="ai-ui-inspector-arm-desc">{mode === 'code' ? 'Kéo vùng → mã + quy tắc để gửi AI' : 'Kéo vùng → thông tin UI cho AI'}</span>
       <kbd>{mode === 'code' ? 'Win+Ctrl' : 'Win+Shift'}</kbd>
       <kbd>Esc</kbd>
       <button
@@ -54,16 +57,16 @@ export function AiUiArmHud({ placement, onClose, mode = 'context' }: { placement
   )
 }
 
-export function AiUiMarquee(props: { left: number; top: number; width: number; height: number }) {
-  const { left, top, width, height } = props
+export function AiUiMarquee(props: ScanModeProps & { left: number; top: number; width: number; height: number }) {
+  const { left, top, width, height, mode = 'context' } = props
   return (
-    <div className="ai-ui-inspector-marquee" style={{ left, top, width, height }}>
+    <div className="ai-ui-inspector-marquee" data-ai-scan-mode={mode} style={{ left, top, width, height }}>
       <i className="mq-corner tl" />
       <i className="mq-corner tr" />
       <i className="mq-corner bl" />
       <i className="mq-corner br" />
       <div className="ai-ui-inspector-badge">
-        <span>W</span> {Math.round(width)} <span>H</span> {Math.round(height)}
+        <b>{mode === 'code' ? '</> CODE' : 'UI'}</b> <span>W</span> {Math.round(width)} <span>H</span> {Math.round(height)}
         <span className="ai-ui-inspector-badge-pos">
           · {Math.round(left)},{Math.round(top)}
         </span>
@@ -73,9 +76,9 @@ export function AiUiMarquee(props: { left: number; top: number; width: number; h
 }
 
 /** Tâm ngắm theo chuột — cập nhật trực tiếp qua ref (không re-render React mỗi lần di chuột). */
-export const AiUiCrosshair = forwardRef<HTMLDivElement>(function AiUiCrosshair(_props, ref) {
+export const AiUiCrosshair = forwardRef<HTMLDivElement, ScanModeProps>(function AiUiCrosshair({ mode = 'context' }, ref) {
   return (
-    <div ref={ref} className="ai-ui-inspector-crosshair" aria-hidden="true">
+    <div ref={ref} className="ai-ui-inspector-crosshair" data-ai-scan-mode={mode} aria-hidden="true">
       <div className="ai-ui-inspector-crosshair-h" />
       <div className="ai-ui-inspector-crosshair-v" />
       <div className="ai-ui-inspector-crosshair-reticle" />
