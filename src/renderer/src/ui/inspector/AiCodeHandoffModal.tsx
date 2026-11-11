@@ -31,22 +31,22 @@ export function AiCodeHandoffModal({ report, status, onClose, onCopy }: {
   }
   return <div className="ai-ui-inspector-preview-backdrop">
     <section className="ai-code-handoff-modal" data-mcp-region="ai_code_handoff" data-mcp-dialog
-      role="dialog" aria-modal="true" aria-label="Bàn giao mã nguồn AI" data-ai-surface="dialog"
-      data-ai-surface-label="Bàn giao mã nguồn AI">
-      <header><h2>Bàn giao mã nguồn AI</h2><button className="btn ghost" disabled={busy} onClick={onClose}
+      role="dialog" aria-modal="true" aria-label="Gói sửa UI gọn" data-ai-surface="dialog"
+      data-ai-surface-label="Gói sửa UI gọn">
+      <header><h2>Gói sửa UI gọn</h2><button className="btn ghost" disabled={busy} onClick={onClose}
         title="Đóng bàn giao mã nguồn" aria-label="Đóng bàn giao mã nguồn">✕</button></header>
       <p role="status">{status}</p>
       <div className="ai-code-handoff-actions">
         <button className="btn ghost" disabled={!report || busy} onClick={() => {
           void onCopy(report).then((ok) => setMessage(ok ? 'Đã sao chép gói Markdown.' : 'Không thể sao chép. Hãy lưu gói Markdown.'))
-        }}>Sao chép code + quy tắc</button>
+        }}>Sao chép CSS + JSX/JS</button>
         <button className="btn ghost" disabled={!report || busy} onClick={() => {
           const url = URL.createObjectURL(new Blob([report], { type: 'text/markdown;charset=utf-8' }))
           const a = document.createElement('a'); a.href = url; a.download = 'ai-ui-code-handoff.md'; a.click()
           setTimeout(() => URL.revokeObjectURL(url), 1000)
         }}>Lưu Markdown</button>
       </div>
-      {report && <details onToggle={(e) => setPreview(e.currentTarget.open)}><summary>Xem gói gửi AI ({report.length.toLocaleString()} ký tự)</summary>{preview && <pre>{report}</pre>}</details>}
+      {report && <details onToggle={(e) => setPreview(e.currentTarget.open)}><summary>Xem gói gửi AI ({report.length.toLocaleString()} ký tự · ~{Math.ceil(report.length / 3).toLocaleString()} token, ước lượng)</summary>{preview && <pre>{report}</pre>}</details>}
       <label htmlFor="ai-code-reply">Dán JSON bản sửa AI trả về hoặc chọn file JSON</label>
       <input type="file" accept=".json,.md,.txt" disabled={busy} aria-label="Chọn file bản sửa AI" onChange={(e) => {
         const file = e.target.files?.[0]
@@ -55,7 +55,7 @@ export function AiCodeHandoffModal({ report, status, onClose, onCopy }: {
         void file.text().then(updateText).catch((error) => setMessage(String(error)))
       }} />
       <textarea id="ai-code-reply" value={text} disabled={busy} onChange={(e) => updateText(e.target.value)}
-        placeholder="JSON có version, bundleId và files…" spellCheck={false} />
+        placeholder="JSON version 2, bundleId, files và edits theo ID đoạn…" spellCheck={false} />
       {checked && <ul>{checked.files.map((file) => <li key={file}>{file}</li>)}</ul>}
       <p role="status" aria-live="polite">{message}</p>
       <footer><button className="btn ghost" disabled={busy || !text.trim()} onClick={() => void run(false)}>Kiểm tra bản sửa</button>

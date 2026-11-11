@@ -1,3 +1,4 @@
+import type { AiCodeTarget } from '../shared/aiCodeHandoff'
 import { app, ipcMain } from 'electron'
 import { join, resolve } from 'path'
 import { existsSync } from 'fs'
@@ -16,7 +17,7 @@ export function registerAiCodeHandoffIpc(): void {
       throw new Error('Nguồn yêu cầu không hợp lệ.')
     }
   }
-  ipcMain.handle('aiCode:export', (event, paths: string[], report: string) => {
+  ipcMain.handle('aiCode:export', (event, paths: AiCodeTarget[], report: string) => {
     check(event)
     return service.export(paths, report)
   })

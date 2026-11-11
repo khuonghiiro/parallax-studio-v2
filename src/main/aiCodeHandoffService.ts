@@ -2,44 +2,35 @@ import { mkdir, readFile, writeFile, rename, unlink } from 'fs/promises'
 import { join, dirname } from 'path'
 import { randomUUID } from 'crypto'
 import { transform } from 'esbuild'
-import { collectSourceFiles, hashSource, safeSourcePath } from './aiCodeHandoffFiles'
+import { hashSource, safeSourcePath } from './aiCodeHandoffFiles'
 import { handoffMarkdown } from './aiCodeHandoffMarkdown'
-import type { AiCodeBundle, AiCodeFile, AiCodeImportResult } from '../shared/aiCodeHandoff'
+import type { AiCodeBundle, AiCodeFile, AiCodeImportResult, AiCodeTarget } from '../shared/aiCodeHandoff'
 
-interface Reply { version: 1; bundleId: string; files: { path: string; baseHash: string; content: string }[] }
-
-export function parseCodeReply(text: string): Reply {
-  if (typeof text !== 'string' || text.length > 16_000_000) throw new Error('Bản sửa vượt giới hạn 16 MB.')
-  const raw = text.trim().replace(/^```json\s*\n([\s\S]*)\n```$/, '$1')
-  const reply = JSON.parse(raw) as Reply
-  if (reply?.version !== 1 || !/^[0-9a-f-]{36}$/.test(reply.bundleId) || !Array.isArray(reply.files)
-    || !reply.files.length || reply.files.length > 600) throw new Error('Định dạng gói sửa không hợp lệ.')
-  const paths = new Set<string>()
-  for (const file of reply.files) {
-    if (!file || typeof file.path !== 'string' || typeof file.content !== 'string'
-      || !/^[0-9a-f]{64}$/.test(file.baseHash) || paths.has(file.path)) {
-      throw new Error('File sửa thiếu dữ liệu hoặc trùng đường dẫn.')
-    }
-    paths.add(file.path)
-  }
-  return reply
-}
+import { collectCompactSources } from './aiCodeCompactCollector'
+import { parseCodeReply, reconstructSource } from './aiCodeHandoffReply'
+export { parseCodeReply } from './aiCodeHandoffReply'
 
 export class AiCodeHandoffService {
   private busy = false
   constructor(private root: string, private storage: string) {}
 
-  async export(paths: string[], report: string): Promise<AiCodeBundle> {
-    if (!Array.isArray(paths) || !paths.length || paths.length > 150 || paths.some((p) => typeof p !== 'string')) {
+  async export(paths: AiCodeTarget[], report: string): Promise<AiCodeBundle> {
+    if (!Array.isArray(paths) || !paths.length || paths.length > 150 || paths.some((p) => !p || typeof p.path !== 'string' || !p.path.startsWith('src/renderer/src/') || !Number.isInteger(p.line) || p.line < 1
+      || (p.classes !== undefined && (!Array.isArray(p.classes) || p.classes.length > 200 || p.classes.some((c) => typeof c !== 'string' || c.length > 150))))) {
       throw new Error('Không có file nguồn hợp lệ. Hãy dùng pnpm dev và quét vùng nhỏ hơn.')
     }
     if (typeof report !== 'string' || report.length > 2_000_000) throw new Error('Báo cáo quá lớn.')
-    const { files, warnings } = await collectSourceFiles(this.root, paths)
+    if (paths.some((p) => p.selectors !== undefined && (!Array.isArray(p.selectors)
+      || p.selectors.length > 2000 || p.selectors.some((s) => typeof s !== 'string' || s.length > 4000)))) {
+      throw new Error('Danh sách selector không hợp lệ hoặc quá lớn.')
+    }
+    const { files, warnings } = await collectCompactSources(this.root, paths)
     const id = randomUUID()
-    const markdown = await handoffMarkdown(this.root, id, files, report, warnings)
+    const markdown = await handoffMarkdown(id, files, report, warnings)
+    if (markdown.length > 28000) throw new Error('Gói UI vượt 28.000 ký tự. Hãy quét vùng nhỏ hơn.')
     await mkdir(this.storage, { recursive: true })
     await writeFile(join(this.storage, `${id}.json`), JSON.stringify({ root: this.root, files }), { flag: 'wx' })
-    return { version: 1, id, files, markdown, warnings }
+    return { version: 2, id, files: files.map(({ content: _content, ...file }) => file), markdown, warnings }
   }
 
   async import(text: string, apply: boolean): Promise<AiCodeImportResult> {
@@ -61,11 +52,12 @@ export class AiCodeHandoffService {
       const full = await safeSourcePath(this.root, file.path)
       const before = await readFile(full, 'utf8')
       if (hashSource(before) !== original.hash) throw new Error(`File đã thay đổi sau khi xuất: ${file.path}. Hãy quét lại.`)
-      if (file.content.split('\n').length > 1000) throw new Error(`File vượt 1000 dòng: ${file.path}`)
+      const after = reconstructSource(original, file, reply.version)
+      if (after.split('\n').length > 1000) throw new Error(`File vượt 1000 dòng: ${file.path}`)
       const extension = file.path.split('.').pop()!
       const loader = extension === 'mjs' ? 'js' : extension as 'ts' | 'tsx' | 'js' | 'jsx' | 'css'
-      await transform(file.content, { loader, sourcefile: file.path, logLevel: 'silent' })
-      if (before !== file.content) changes.push({ path: file.path, full, before, after: file.content })
+      await transform(after, { loader, sourcefile: file.path, logLevel: 'silent' })
+      if (before !== after) changes.push({ path: file.path, full, before, after })
     }
     if (!changes.length) throw new Error('Không có nội dung thay đổi.')
     if (!apply) return { files: changes.map((f) => f.path), backupPath: '', applied: false }

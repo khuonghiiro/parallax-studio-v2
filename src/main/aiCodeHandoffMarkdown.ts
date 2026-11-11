@@ -1,5 +1,3 @@
-import { readFile } from 'fs/promises'
-import { join } from 'path'
 import type { AiCodeFile } from '../shared/aiCodeHandoff'
 
 function fenced(content: string, language = ''): string {
@@ -8,26 +6,31 @@ function fenced(content: string, language = ''): string {
   return `${fence}${language}\n${content}\n${fence}`
 }
 
-export async function handoffMarkdown(root: string, id: string, files: AiCodeFile[], report: string, warnings: string[]) {
+export function handoffMarkdown(id: string, files: AiCodeFile[], report: string, warnings: string[]) {
+  const first = files[0]
   const sections = [
-    '# Gói bàn giao AI UI — mã nguồn và quy tắc',
-    `Mã gói: ${id}. Các file bên dưới là toàn bộ nội dung; số dòng bắt đầu từ 1.`,
-    'Phạm vi: các file được định vị trong vùng quét và chuỗi import nội bộ tĩnh. Không khẳng định bao phủ phụ thuộc runtime, IPC hay mã tạo động. Không có thư viện node_modules.',
-    report,
-    '## Hướng dẫn trả bản sửa',
-    'Đọc quy tắc bên dưới. Chỉ sửa theo yêu cầu người dùng. Trả một khối JSON duy nhất theo mẫu, chỉ liệt kê file thay đổi. content là TOÀN BỘ nội dung file đã sửa, không thêm số dòng hoặc dấu …; giữ nguyên path, baseHash và bundleId. Không trả lệnh shell. Không sửa file ngoài gói. Không tự áp dụng quy tắc Git trên máy không có repository.',
-    fenced(JSON.stringify({ version: 1, bundleId: id, files: [{ path: files[0]?.path, baseHash: files[0]?.hash, content: '<toàn bộ nội dung file đã sửa>' }] }, null, 2), 'json'),
-    'Import kiểm tra phiên bản gốc, cú pháp và lưu bản sao. Cần chạy pnpm verify, unit test liên quan và QA giao diện cả hai theme trước commit. Sửa main/preload cần người dùng khởi động lại app.',
-    '## Giới hạn và tham chiếu chưa đóng gói',
-    ...(warnings.length ? warnings : ['Không phát hiện tham chiếu nội bộ bị thiếu bằng bộ phân tích import tĩnh.'])
+    '# Gói sửa UI gọn — CSS + JSX/JS trực tiếp',
+    `Mã gói: ${id}. Đây là các ĐOẠN mã, không phải toàn bộ file.`,
+    'CSS khớp class của vùng quét, gồm rule hover/active và điều kiện theme/media khi tìm được. JSX/JS lấy khoảng 21 dòng quanh vị trí render/call-site. Không lần theo import JS, store, engine hoặc module khác. Đoạn có thể cắt giữa hàm/JSX; chỉ sửa trong phạm vi đã gửi. Nếu thiếu ngữ cảnh hãy yêu cầu quét thêm.',
+    report.slice(0, 1500),
+    '## Quy tắc sửa UI (rút gọn từ AGENTS.md, skill ai-ui-inspector và mcp-ui-region)',
+    '- Dùng token --bg-0…4, --text/--text-dim, --line, --accent; chữ trên accent dùng --on-accent, trên --key dùng --on-key. Giữ tương phản Dark/Light và hover/active.',
+    '- Giữ layout responsive: phone ≤768, tablet ≤1120, laptop ≤1366, desktop >1366. Vùng bấm ≥36px, khoảng cách ≥6px; không cắt chữ/chồng nút.',
+    '- Giữ data-mcp-region, role, aria-label, data-ai-surface và ID nghiệp vụ. Không tự thêm data-ai-src. Không đổi logic nghiệp vụ không liên quan. Không thêm bề mặt UI mới cần registry ngoài gói.',
+    '- Sau nhập cần pnpm verify, test liên quan và xem UI Dark/Light. Import có sao lưu và kiểm tra cú pháp file ghép lại; không thay thế kiểm thử. Không chạy lệnh shell hoặc commit trong câu trả lời.',
+    '## Trả bản sửa',
+    'Trả duy nhất JSON theo mẫu. Chỉ gửi file/đoạn đã sửa; giữ bundleId, path, baseHash, id. content là TOÀN BỘ đoạn thay thế, không có số dòng hoặc dấu …; giữ xuống dòng đầu/cuối. KHÔNG trả toàn bộ file. Các phần ngoài đoạn được giữ nguyên. Điều kiện CSS ở mục Ngữ cảnh nằm ngoài đoạn và được giữ nguyên, không bọc thêm vào content.',
+    fenced(JSON.stringify({ version: 2, bundleId: id, files: [{ path: first.path, baseHash: first.hash,
+      edits: [{ id: first.snippets![0].id, content: '<đoạn đã sửa>' }] }] }, null, 2), 'json'),
+    '## Phạm vi còn thiếu', ...warnings.slice(0, 12)
   ]
-  const rules = ['AGENTS.md', '.agents/skills/ai-ui-inspector/SKILL.md', '.agents/skills/mcp-ui-region/SKILL.md', '.agents/rules/responsive-standard.md']
-  for (const path of rules) {
-    sections.push(`## Quy tắc: ${path}`, fenced(await readFile(join(root, path), 'utf8'), 'markdown'))
-  }
   for (const file of files) {
-    sections.push(`## File: ${file.path}\nSHA-256: ${file.hash}\nDòng 1–${file.content.split('\n').length}`,
-      fenced(file.content.split('\n').map((line, index) => `${index + 1} | ${line}`).join('\n'), 'text'))
+    sections.push(`## ${file.path}\nbaseHash: ${file.hash}`)
+    for (const snippet of file.snippets || []) {
+      sections.push(`### Đoạn ${snippet.id} · dòng ${snippet.startLine}–${snippet.startLine + snippet.content.split('\n').length - 1}`,
+        snippet.context ? `Ngữ cảnh (không nằm trong đoạn): ${snippet.context}` : '',
+        fenced(snippet.content.split('\n').map((line, i) => `${snippet.startLine + i} | ${line}`).join('\n'), 'text'))
+    }
   }
   return sections.join('\n\n')
 }

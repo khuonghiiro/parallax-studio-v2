@@ -1,13 +1,23 @@
+export interface AiCodeTarget { path: string; line: number; classes?: string[]; selectors?: string[] }
+export interface AiCodeSnippet {
+  id: string
+  start: number
+  end: number
+  startLine: number
+  content: string
+  context?: string
+}
 export interface AiCodeFile {
   path: string
   hash: string
   content: string
+  snippets?: AiCodeSnippet[]
 }
 
 export interface AiCodeBundle {
-  version: 1
+  version: 1 | 2
   id: string
-  files: AiCodeFile[]
+  files: Omit<AiCodeFile, 'content'>[]
   markdown: string
   warnings: string[]
 }
@@ -19,6 +29,6 @@ export interface AiCodeImportResult {
 }
 
 export interface AiCodeHandoffApi {
-  export: (paths: string[], report: string) => Promise<AiCodeBundle>
+  export: (targets: AiCodeTarget[], report: string) => Promise<AiCodeBundle>
   import: (text: string, apply: boolean) => Promise<AiCodeImportResult>
 }

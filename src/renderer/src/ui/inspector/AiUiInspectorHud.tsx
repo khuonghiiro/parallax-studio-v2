@@ -36,7 +36,7 @@ export function AiUiArmHud({ placement, onClose, mode = 'context' }: { placement
     >
       <div className="ai-ui-inspector-arm-dot" />
       <IconAiScan width={15} height={15} className="ai-ui-inspector-arm-icon" />
-      <span className="ai-ui-inspector-arm-title">{mode === 'code' ? 'QUÉT MÃ NGUỒN AI' : 'SOI GIAO DIỆN AI'}</span>
+      <span className="ai-ui-inspector-arm-title">{mode === 'code' ? 'QUÉT CSS + JSX/JS' : 'SOI GIAO DIỆN AI'}</span>
       <span className="ai-ui-inspector-arm-desc">Giữ chuột trái &amp; kéo khung quanh vùng cần soi</span>
       <kbd>{mode === 'code' ? 'Win+Ctrl' : 'Win+Shift'}</kbd>
       <kbd>Esc</kbd>

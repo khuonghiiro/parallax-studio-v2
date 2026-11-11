@@ -700,12 +700,12 @@ Preset ảnh hiệu ứng nhúng đã được loại bỏ: khi nhập JSON khai
 
 ### AI UI Code Handoff — Win + Ctrl
 
-- Giữ **Win + Ctrl**, kéo vùng UI: xuất Markdown gồm báo cáo, toàn bộ nội dung file có số dòng, SHA-256, import nội bộ tĩnh, AGENTS.md và các skill AI UI Inspector / MCP UI Region cùng quy tắc responsive. **Win + Shift** giữ báo cáo ngữ cảnh ngắn.
-- Chỉ dùng trong bản phát triển có repository; sau khi cập nhật main/preload cần mở lại app. Không đóng gói node_modules, tài nguyên nhị phân hoặc file ngoài src. Import động/IPC không được đảm bảo bao phủ; gói ghi rõ cảnh báo, không âm thầm cắt nội dung. Giới hạn 600 file / 12 MB nguồn; chọn vùng nhỏ hơn nếu vượt giới hạn.
-- Dán gói cho AI cùng yêu cầu sửa. AI trả JSON `{version:1,bundleId,files:[{path,baseHash,content}]}`; `content` là toàn bộ file đã sửa, KHÔNG có số dòng. Có thể bọc trong một khối ```json.
-- Trong hộp thoại bàn giao (`ai_code_handoff`), dán/chọn file trả lời → **Kiểm tra bản sửa** → **Áp dụng bản sửa**. Kiểm tra thành viên gói, phiên bản gốc, cú pháp và giới hạn 1000 dòng trước ghi. Bản gốc lưu tại thư mục `ai-code-handoffs/backup-*` trong userData, đường dẫn hiển thị sau áp dụng. Khôi phục file từ đó để hoàn tác; đây là sửa mã nguồn trên đĩa, không phải state dự án và không dùng Ctrl+Z của editor.
-- Kiểm tra import không thay thế typecheck/test: chạy `pnpm verify`, test liên quan và QA Dark/Light sau áp dụng. Không tự chạy lệnh do AI đính kèm, không tự commit/push bản nhập.
-- MCP tương ứng: `export_ui_code` (left/top/width/height), `import_ui_code` (reply là JSON dạng chuỗi, apply mặc định false). CLI dùng chung catalog; ví dụ xuất:
+- **Win + Ctrl** xuất gói sửa UI gọn: rule CSS khớp class vùng quét (kèm hover/active, theme/media tìm được), khoảng 21 dòng JSX/JS hai phía vị trí render/call-site, số dòng và hướng dẫn UI rút gọn. **Win + Shift** giữ báo cáo ngữ cảnh cũ.
+- Không lần theo import JS/store/engine, không gửi toàn bộ file hoặc toàn bộ AGENTS/skill. Chỉ dò CSS @import để tìm rule gốc; CSS ngoài vùng không được đưa vào gói. Giới hạn 18.000 ký tự nguồn, 10 file (tối đa 7 CSS), 28.000 ký tự Markdown. Gói ghi rõ số đoạn bỏ qua; quét nhỏ hơn khi thiếu. Ước lượng token là ký tự/3, không phải bộ đếm tokenizer chính xác.
+- AI trả JSON `{version:2,bundleId,files:[{path,baseHash,edits:[{id,content}]}]}`. `content` chỉ là toàn bộ ĐOẠN đã sửa, không có số dòng. Giữ ID đoạn; không trả cả file, không bọc lại điều kiện CSS được ghi là ngữ cảnh ngoài đoạn.
+- Trong hộp thoại `ai_code_handoff`, dán/chọn JSON → **Kiểm tra bản sửa** → **Áp dụng bản sửa**. App ghép đoạn vào bản gốc, giữ nguyên phần ngoài đoạn, kiểm tra SHA-256 toàn file và cú pháp file sau ghép, lưu backup trước ghi. Bản gốc ở `ai-code-handoffs/backup-*` trong userData; phục hồi từ backup, không dùng Undo editor. Vẫn đọc được gói toàn file version 1 đã xuất trước đây, nhưng không cho dùng version 1 để ghi đè gói đoạn version 2.
+- Chỉ dùng trên bản phát triển có repository; sửa main/preload cần người dùng mở lại app. Sau nhập chạy `pnpm verify`, test liên quan và QA Dark/Light. Không tự chạy lệnh shell hoặc commit bản nhập. JSX có thể cắt giữa hàm; phụ thuộc ngoài đoạn không được bao phủ.
+- MCP: `export_ui_code` (left/top/width/height, show tùy chọn), `import_ui_code` (reply chuỗi JSON, apply mặc định false). Cú pháp xuất:
   - PowerShell: `pnpm pxs call export_ui_code '{"left":0,"top":0,"width":320,"height":150}'`
   - CMD: `pnpm pxs call export_ui_code "{\"left\":0,\"top\":0,\"width\":320,\"height\":150}"`
-  - Flags (cả hai shell): `pnpm pxs call export_ui_code --left 0 --top 0 --width 320 --height 150`
+  - Flags cả hai shell: `pnpm pxs call export_ui_code --left 0 --top 0 --width 320 --height 150`
