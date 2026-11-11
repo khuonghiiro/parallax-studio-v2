@@ -60,38 +60,13 @@ Tuân thủ nghiêm ngặt kỹ năng `code-modularization`:
     - Không có thông báo lỗi nổi lên (error toast, crash overlay, banner lỗi hoặc unhandled rejection dialog).
     - Toàn bộ giao diện render bình thường, đầy đủ các panel, viewer và timeline.
     - **Chỉ khi ảnh chụp toàn màn hình xác nhận an toàn tuyệt đối thì mới tiến hành commit và push code.**
-- **Quy Trình Quản Lý Nhánh Git Theo Phiên Hội Thoại (Session-Driven Branching & Merging Workflow - BẮT BUỘC):**
-  - **Mục tiêu & Nguyên tắc cốt lõi:**
-    - Vòng đời tạo nhánh và hợp nhất nhánh **gắn liền với từng Session cuộc hội thoại (hoặc phiên làm việc)**.
-    - **TUYỆT ĐỐI TRÁNH:** Vừa mới xử lý 1 logic/tác vụ nhỏ đã vội vàng tạo nhánh mới rồi hợp nhất ngay vào `master`, gây rác lịch sử git bằng hàng loạt nhánh và merge commit vụn vặt không cần thiết trong cùng một phiên trao đổi.
-    - **Trong 1 session cuộc hội thoại:** Mọi xử lý code, sửa lỗi, thêm tính năng đều làm việc trên **duy nhất 1 nhánh của session đó**. Trong quá trình trao đổi khi có xử lý gì đó, các commit đã được phân loại rõ ràng qua định dạng tiếng Việt chuẩn (`[tính năng]`, `[sửa lỗi]`, `[chỉnh sửa]`, `[giao diện]`, `[tái cấu trúc]`, `[hiệu năng]`, `[kiểm thử]`, `[dọn dẹp]`...).
-    - **CHỈ KHI chuyển sang session cuộc hội thoại mới:** AI mới tiến hành hợp nhất nhánh của session trước đó vào `master` bằng cờ `--no-ff`, kéo code mới nhất, và tạo một nhánh mới từ `master` cho session mới đó.
-  - **Quy tắc đặt tên nhánh cho Session (Tiếng Anh ngắn gọn theo hành động & chủ đề chính của session):** `<action>/<session-topic-kebab-case>` dùng tiền tố tiếng Anh (không dùng tiếng Việt không dấu như `chinh/`, `them/`, `sua/`, `xoa/`):
-    - `feat/<topic>` hoặc `add/<topic>`: Session tập trung phát triển tính năng/module mới (ví dụ `feat/mixamo-dopesheet`, `add/loop-animator-presets`).
-    - `edit/<topic>` hoặc `refactor/<topic>`: Session chỉnh sửa, nâng cấp, tối ưu cấu trúc (ví dụ `edit/responsive-workflow`, `edit/ai-ui`, `refactor/layer-assembly-rig`).
-    - `fix/<topic>`: Session tập trung sửa lỗi, khắc phục sự cố (ví dụ `fix/timeline-audio-sync`, `fix/photo-studio-import-css`).
-    - `perf/<topic>`: Session tối ưu hiệu năng, 60fps, bộ nhớ (ví dụ `perf/viewer-canvas-60fps`).
-  - **Vòng đời chu trình làm việc chuẩn của AI (Session-Driven Mandatory Lifecycle):**
-    1. **Bắt đầu một session mới (Khi người dùng mở phiên hội thoại mới):**
-       - AI tự động kiểm tra trạng thái Git hiện tại: Nếu đang ở nhánh session cũ (khác `master`) và có commit chưa hợp nhất:
-         - Chuyển về nhánh chính: `git checkout master`.
-         - Kéo code mới nhất: `git pull origin master`.
-         - Hợp nhất nhánh của session trước vào `master` bằng cờ `--no-ff`:
-           `git merge <tên-nhánh-session-cũ> --no-ff -m "[hợp nhất] nhánh '<tên-nhánh-session-cũ>' vào master"`
-           *Lý do dùng `--no-ff` (No Fast-Forward):* Tạo một merge commit rõ ràng bao bọc toàn bộ thành quả của session đó. Khi cần rollback, chỉ cần 1 lệnh `git revert -m 1 <merge-commit-hash>` là rút sạch toàn bộ session ra khỏi `master` an toàn tuyệt đối.
-         - Đẩy code lên remote: `git push origin master`.
-       - Từ `master` sạch sẽ và mới nhất, tạo nhánh mới đại diện cho session hiện tại:
-         `git checkout master && git pull origin master`
-         `git checkout -b <action>/<tên-chủ-đề-session>`
-    2. **Trong suốt session làm việc (Inside the Session):**
-       - Mọi công việc, thảo luận và chỉnh sửa code theo yêu cầu của người dùng ĐỀU ĐƯỢC THỰC HIỆN TRÊN DUY NHẤT NHÁNH SESSION HIỆN TẠI.
-       - Sau mỗi lần sửa code / hoàn thành một logic nhỏ: chạy `pnpm verify` (esbuild + typecheck), unit test (`pnpm test`), kiểm tra realtime trên app, và chụp ảnh Fullscreen Visual QA nếu app đang mở.
-       - Commit trực tiếp trên nhánh session bằng format tiếng Việt:
-         `git commit -m "[loại] (phạm vi): mô tả chi tiết bằng tiếng Việt có dấu"`
-       - Có thể đẩy nhánh session lên remote (`git push origin <tên-nhánh>`) để lưu vết và tránh mất code.
-       - **CẤM:** Tuyệt đối KHÔNG tự ý merge vào `master` rồi tạo nhánh mới sau mỗi logic đơn lẻ khi người dùng vẫn đang trao đổi trong cùng một session!
-    3. **Hợp nhất khi sang session mới:**
-       - Chỉ khi người dùng bắt đầu một cuộc hội thoại mới (hoặc có yêu cầu rõ ràng "merge nhánh vào master"), AI mới hợp nhất nhánh đó vào `master` với cờ `--no-ff` và chuẩn bị nhánh mới cho session tiếp theo.
+- **Quy Trình Git Theo Session Và Từng Logic (BẮT BUỘC):**
+  - **Nhận diện session trước khi đổi nhánh:** Dùng ID cuộc hội thoại do môi trường cung cấp hoặc lịch sử hội thoại và thông tin bàn giao nhánh để xác định session hiện tại. Prompt mới, đổi ngày, resume hoặc nén ngữ cảnh trong cùng chat KHÔNG phải session mới. Không suy đoán session chỉ từ tên nhánh hoặc thời gian commit. Nếu chưa xác định được nhánh thuộc session nào, giữ nguyên trạng thái và xác minh trước khi merge.
+  - **Ngoại lệ xử lý tiếp:** Nếu người dùng nói “xử lý tiếp”, “làm tiếp”, “continue” hoặc yêu cầu tiếp tục công việc của session trước, dùng lại đúng nhánh cũ, kể cả đang ở chat mới; không tự merge hay tạo nhánh khác. Nếu nhánh cũ đã được hợp nhất/xoá hoặc không xác định được, kiểm tra lịch sử/bàn giao và báo rõ trước khi chọn nhánh thay thế; không đoán một nhánh không liên quan.
+  - **Một session, một nhánh:** Giữ nguyên nhánh cho mọi prompt trong cùng chat. Khi đã xác nhận chat mới và không có yêu cầu xử lý tiếp: kiểm tra working tree/index, đồng bộ `master` bằng `git pull --ff-only origin master`, merge nhánh session cũ chưa hợp nhất bằng `--no-ff` với message tiếng Việt, kiểm tra chất lượng theo quy định, push `master`, rồi tạo nhánh `<action>/<session-topic>` cho chat mới. Nếu nhánh cũ đã hợp nhất thì bỏ qua merge. Không tự gộp nhánh của session khác đang chạy; không stash/reset hoặc đưa thay đổi chưa rõ chủ sở hữu vào commit.
+  - **Commit ngay theo từng logic trong prompt:** Trước khi sửa, chia yêu cầu dài thành các logic hoàn chỉnh. Làm xong logic nào thì chạy kiểm tra bắt buộc cho logic đó và commit riêng ngay trước khi bắt đầu logic tiếp theo. Không đợi làm hết prompt rồi mới chia commit, không gộp các logic độc lập thành một commit. Code, test và tài liệu phục vụ cùng một logic nằm chung commit; nếu các phần phụ thuộc không thể kiểm tra độc lập, gom thành một logic hoàn chỉnh và giải thích phạm vi. Chỉ stage file/hunk thuộc logic hiện tại, bảo toàn thay đổi khác. Dùng `[loại] (phạm vi): mô tả tiếng Việt có dấu`.
+  - **Push một lần sau toàn bộ prompt:** Sau khi tất cả logic trong prompt đã hoàn tất, kiểm tra diff, các commit và quality gates rồi push nhánh session một lần (`git push -u origin HEAD` khi chưa có upstream; nếu có thì `git push origin HEAD`). Không push sau mỗi logic, không tự merge khi kết thúc prompt. Việc push `master` lúc chuyển session là bước riêng. Nếu còn logic bị chặn hoặc kiểm tra thất bại, giữ các commit đã hoàn tất ở local và báo phần còn thiếu; không tự push một phần, trừ khi người dùng yêu cầu. Yêu cầu rõ ràng “chỉ commit/không push” được ưu tiên.
+  - **Quality gates giữ nguyên:** Khi sửa code, chạy `pnpm verify`, unit test liên quan (`pnpm test`); nếu app đang mở, kiểm tra `pnpm pxs call ping '{}'` trả `rendererReady: true` và xem ảnh toàn màn hình trước commit/push. Không bỏ qua lỗi hoặc hook; không tắt app hay mở dev process trùng lặp. Với sửa rule/skill thuần tài liệu, kiểm tra nội dung, tham chiếu và `git diff --check`; tuân thủ các hook hiện có.
 - **Cưỡng chế cho mọi AI (không chỉ Antigravity):**
   - Cầu nối tự nạp quy chuẩn: `CLAUDE.md` (Claude Code, `@AGENTS.md`), `.cursor/rules/parallax-studio.mdc` (Cursor, `alwaysApply`), `.github/copilot-instructions.md` (Copilot), `.windsurfrules` (Windsurf), `.clinerules` (Cline). Codex/Gemini CLI đọc trực tiếp `AGENTS.md`/`GEMINI.md`. Khi đổi quy chuẩn, cập nhật đồng bộ các file này.
   - Git hooks `.githooks/` (bật qua `prepare` khi `pnpm install` hoặc `node scripts/agent-guard.mjs install`): `commit-msg` chặn message không phải Conventional Commits / thiếu dấu tiếng Việt / nhắc tên AI; `pre-commit` kiểm tra cú pháp `esbuild`/JSX của mọi file code staged, chặn file code > 1000 dòng và secret; `pre-push` tự động chạy `verify` (quét cú pháp `esbuild` toàn dự án + `typecheck`) để chặn tuyệt đối việc push code lỗi lên Git.
