@@ -354,3 +354,5 @@
 @keyframes aiScanSheen {
   to { transform: translateX(100%); }
 }
+
+.ai-ui-scan-fx-layer[data-ai-scan-mode="code"] { --scan-c: var(--ai-code-accent); --scan-k: var(--ai-code-accent); animation: none; }

@@ -9,6 +9,7 @@ import '../../styles/aiUiInspectorScanFx.css'
  */
 
 interface Props {
+  mode?: 'context' | 'code'
   snapshot: AiInspectorSnapshot
   waveId: number
   /** Vùng cấm đặt nhãn (toast) */
@@ -148,7 +149,7 @@ function ScanLabel({ placement: p, item }: { placement: CalloutPlacement; item: 
   )
 }
 
-export function AiUiScanCallouts({ snapshot, waveId, reserved, held = false }: Props) {
+export function AiUiScanCallouts({ snapshot, waveId, reserved, held = false, mode = 'context' }: Props) {
   const viewport = useViewportSize()
   const items = snapshot.elements
   const placements = useMemo(
@@ -167,6 +168,7 @@ export function AiUiScanCallouts({ snapshot, waveId, reserved, held = false }: P
       key={`scan-fx-${waveId}`}
       className={`ai-ui-scan-fx-layer${held ? ' is-held' : ''}`}
       data-mcp-region="ai_inspector_scan_fx"
+      data-ai-scan-mode={mode}
       aria-hidden="true"
     >
       <ScanRegion rect={snapshot.rect} count={items.length} />

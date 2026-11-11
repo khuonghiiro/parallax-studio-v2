@@ -454,3 +454,6 @@ body.ai-ui-inspector-active {
 [data-ai-scan-mode="code"] .ai-ui-inspector-crosshair-reticle { border-radius: 3px; transform: rotate(45deg); }
 [data-ai-scan-mode="code"].ai-ui-inspector-marquee { border-style: solid; }
 [data-ai-scan-mode="code"] .ai-ui-inspector-screen-scanline { animation-duration: 4.5s; }
+
+.ai-ui-inspector-toast[data-ai-scan-mode="code"] { max-width: calc(100vw - 24px); }
+.ai-ui-inspector-toast[data-ai-scan-mode="code"] .ai-ui-inspector-toast-hint { white-space: normal; overflow-wrap: anywhere; }

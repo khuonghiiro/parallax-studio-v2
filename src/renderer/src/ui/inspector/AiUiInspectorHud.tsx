@@ -98,6 +98,8 @@ function primarySummary(snapshot: AiInspectorSnapshot): { title: string; ref: st
 }
 
 interface ToastProps {
+  mode?: 'context' | 'code'
+  status?: string
   snapshot: AiInspectorSnapshot
   copied: boolean
   onHoverChange: (hovering: boolean) => void
@@ -105,13 +107,14 @@ interface ToastProps {
   onClose: () => void
 }
 
-export function AiUiScanToast({ snapshot, copied, onHoverChange, onPreview, onClose }: ToastProps) {
+export function AiUiScanToast({ snapshot, copied, onHoverChange, onPreview, onClose, mode = 'context', status }: ToastProps) {
   const { title, ref } = primarySummary(snapshot)
   const count = snapshot.elements.length
   return (
     <div
       className="ai-ui-inspector-toast"
       data-mcp-region="ai_inspector_toast"
+      data-ai-scan-mode={mode}
       role="status"
       aria-live="polite"
       onMouseEnter={() => onHoverChange(true)}
@@ -124,11 +127,11 @@ export function AiUiScanToast({ snapshot, copied, onHoverChange, onPreview, onCl
       </div>
       <div className="ai-ui-inspector-toast-msg">
         <div className="ai-ui-inspector-toast-title">
-          {copied ? 'Đã sao chép ngữ cảnh AI' : 'Đã quét xong (chưa sao chép được Clipboard)'}
+          {mode === 'code' ? 'Gói sửa UI · CSS/JSX/JS' : copied ? 'Đã sao chép ngữ cảnh AI' : 'Đã quét xong (chưa sao chép được Clipboard)'}
           <span className="ai-ui-inspector-toast-count">{count} mục tiêu</span>
         </div>
         <div className="ai-ui-inspector-toast-hint">
-          {count > 0 ? (
+          {mode === 'code' ? status : count > 0 ? (
             <>
               <b>FOCUS</b> {title}
               {ref ? <code>{ref}</code> : null}
@@ -145,12 +148,12 @@ export function AiUiScanToast({ snapshot, copied, onHoverChange, onPreview, onCl
         onClick={onPreview}
         title="Mở hộp thoại xem chi tiết trực quan nội dung vừa quét"
       >
-        Xem trước
+        {mode === 'code' ? 'Mở gói / Import' : 'Xem trước'}
       </button>
       <button type="button" className="ai-ui-inspector-arm-close" onClick={onClose} title="Đóng thông báo">
         ✕
       </button>
-      <div className="ai-ui-inspector-toast-progress" />
+      {mode !== 'code' && <div className="ai-ui-inspector-toast-progress" />}
     </div>
   )
 }

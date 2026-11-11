@@ -7,8 +7,9 @@ export const aiCodeCommands: Record<string, Handler> = {
   export_ui_code: async (p) => {
     const rect = { left: num(p, 'left') ?? 0, top: num(p, 'top') ?? 0, width: num(p, 'width') ?? 0, height: num(p, 'height') ?? 0 }
     if (rect.width <= 0 || rect.height <= 0) throw new ParamError('Vùng quét phải có kích thước dương.')
-    const bundle = await exportSnapshotCode(captureAiInspectorSnapshot(rect, Infinity))
-    if (bool(p, 'show') === true) window.dispatchEvent(new CustomEvent('pxs:ai-code-bundle', { detail: bundle }))
+    const snapshot = captureAiInspectorSnapshot(rect, Infinity)
+    const bundle = await exportSnapshotCode(snapshot)
+    if (bool(p, 'show') === true) window.dispatchEvent(new CustomEvent('pxs:ai-code-bundle', { detail: { ...bundle, snapshot } }))
     return { bundleId: bundle.id, files: bundle.files.map((f) => f.path), warnings: bundle.warnings, markdown: bundle.markdown }
   },
   import_ui_code: async (p) => {
