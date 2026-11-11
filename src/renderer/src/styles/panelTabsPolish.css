@@ -1,0 +1,54 @@
+/* Match the workshop's recessed tab track without changing tab layout. */
+.pxs-tabs:is([data-mcp-region='left_tabs'], [data-mcp-region='inspector_tabs'], [data-mcp-region='asset_subtabs'], .lw-sidebar-source-tabs) {
+  background: var(--bg-1);
+  border-bottom-color: var(--line-soft);
+}
+
+.pxs-tabs:is([data-mcp-region='left_tabs'], [data-mcp-region='inspector_tabs']) {
+  padding-top: 1px;
+  padding-bottom: 1px;
+}
+
+.pxs-tabs:is([data-mcp-region='left_tabs'], [data-mcp-region='inspector_tabs']) .pxs-tabs-track {
+  padding: 2px;
+  gap: 3px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-md);
+  background: var(--bg-2);
+}
+
+.pxs-tabs:is([data-mcp-region='asset_subtabs'], .lw-sidebar-source-tabs) .pxs-tabs-track {
+  gap: 3px;
+  background: var(--bg-2);
+  border-color: var(--line-soft);
+  border-radius: var(--radius-md);
+}
+
+.pxs-tabs:is([data-mcp-region='left_tabs'], [data-mcp-region='inspector_tabs']) .pxs-tab.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+  box-shadow: none;
+}
+
+.pxs-tabs:is([data-mcp-region='left_tabs'], [data-mcp-region='inspector_tabs']) .pxs-tab.active .pxs-tab-icon {
+  color: inherit;
+}
+
+.pxs-tabs:is([data-mcp-region='left_tabs'], [data-mcp-region='inspector_tabs']) .pxs-tab.active .pxs-tab-badge {
+  background: color-mix(in srgb, var(--on-accent) 18%, var(--accent));
+  color: var(--on-accent);
+}
+
+.pxs-tabs:is([data-mcp-region='asset_subtabs'], .lw-sidebar-source-tabs) .pxs-tab.active {
+  box-shadow: none;
+}
+
+.pxs-tabs.lw-sidebar-source-tabs {
+  padding: 6px;
+}
+
+.pxs-tabs.lw-sidebar-source-tabs .pxs-tabs-track {
+  padding: 2px;
+  gap: 2px;
+}
