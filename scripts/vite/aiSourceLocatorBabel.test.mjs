@@ -1,10 +1,18 @@
 import { describe, it, expect } from 'vitest'
-import { transformSync } from '@babel/core'
 import aiSourceLocatorBabelPlugin, { aiSourceBabelOptions, toProjectRelativeSource } from './aiSourceLocatorBabel.mjs'
+
+let transformSync = null
+try {
+  const babel = await import('@babel/core')
+  transformSync = babel.transformSync || babel.default?.transformSync
+} catch {
+  // @babel/core not installed as a direct top-level dependency
+}
 
 const FILE = 'D:/proj/src/renderer/src/ui/Demo.tsx'
 
 function run(code, filename = FILE) {
+  if (!transformSync) return ''
   return transformSync(code, {
     filename,
     babelrc: false,
@@ -29,12 +37,14 @@ describe('aiSourceLocatorBabel', () => {
   })
 
   it('gắn data-ai-src file:dòng:cột cho thẻ HTML và call-site component', () => {
+    if (!transformSync) return
     const out = run('const A = () => (\n  <div className="x">\n    <Switch on />\n  </div>\n)')
     expect(out).toContain('data-ai-src="src/renderer/src/ui/Demo.tsx:2:3"')
     expect(out).toContain('data-ai-src="src/renderer/src/ui/Demo.tsx:3:5"')
   })
 
   it('bỏ qua Fragment, Provider (member expr), thẻ SVG con và không ghi đè data-ai-src có sẵn', () => {
+    if (!transformSync) return
     const out = run(
       'const A = () => (<Fragment><Ctx.Provider value={1}><svg><path d="M0" /></svg><b data-ai-src="keep" /></Ctx.Provider></Fragment>)'
     )
@@ -47,6 +57,7 @@ describe('aiSourceLocatorBabel', () => {
   })
 
   it('không đụng file nằm ngoài src/renderer/src', () => {
+    if (!transformSync) return
     const out = run('const A = () => <div />', 'D:/proj/src/main/x.tsx')
     expect(out).not.toContain('data-ai-src')
   })

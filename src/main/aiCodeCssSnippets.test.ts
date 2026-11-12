@@ -9,6 +9,13 @@ it('excludes same-class CSS from unrelated ancestors using the DOM selector allo
   expect(snippets[0].content).not.toContain('workshop')
 })
 
+it('matches comma-separated selectors when only one branch is in the DOM allowlist', () => {
+  const css = '.route-wp-card:hover .wp-card-inline-btns,\n.route-wp-card.active .wp-card-inline-btns {\n  opacity: 1;\n}'
+  const snippets = cssSnippets(css, ['wp-card-inline-btns'], new Set([normalizeUiSelector('.route-wp-card:hover .wp-card-inline-btns')]))
+  expect(snippets).toHaveLength(1)
+  expect(snippets[0].content).toContain('opacity: 1')
+})
+
 it('matches alternate theme, interaction states and pseudo-elements without invalid :not()', () => {
   expect(uiSelectorForMatching('[data-theme="light"] .btn:not(:disabled):hover::before')).toBe('.btn')
   expect(uiSelectorForMatching('.btn.active')).toBe('.btn')

@@ -241,4 +241,42 @@ describe('AI code handoff', () => {
     expect(afterRes.mode).toBe('after')
     expect(await readFile(join(root, source), 'utf8')).toBe(modifiedContent)
   })
+  it('accepts needMore reply without changes and returns requested classes/files cleanly', async () => {
+    const { bundle } = await response()
+    const needMoreReply = {
+      version: 2,
+      bundleId: bundle.id,
+      needMore: {
+        classes: ['.route-waypoints-stack', '.route-wp-card'],
+        files: ['src/renderer/src/styles/cameraRouteInspector.css'],
+        reason: 'Thiếu rule CSS cho .route-wp-card'
+      }
+    }
+    const checkRes = await service.import(JSON.stringify(needMoreReply), false)
+    expect(checkRes.applied).toBe(false)
+    expect(checkRes.files).toHaveLength(0)
+    expect(checkRes.needMore?.reason).toBe('Thiếu rule CSS cho .route-wp-card')
+    expect(checkRes.needMore?.classes).toContain('.route-wp-card')
+
+    const applyRes = await service.import(JSON.stringify(needMoreReply), true)
+    expect(applyRes.applied).toBe(false)
+    expect(applyRes.files).toHaveLength(0)
+    expect(applyRes.needMore?.classes).toContain('.route-waypoints-stack')
+  })
+  it('rejects malformed needMore payloads', async () => {
+    const { bundle } = await response()
+    const invalidClasses = {
+      version: 2,
+      bundleId: bundle.id,
+      needMore: { classes: 'not-an-array' }
+    }
+    expect(() => parseCodeReply(JSON.stringify(invalidClasses))).toThrow('danh sách chuỗi')
+
+    const invalidFiles = {
+      version: 2,
+      bundleId: bundle.id,
+      needMore: { files: [123] }
+    }
+    expect(() => parseCodeReply(JSON.stringify(invalidFiles))).toThrow('danh sách chuỗi')
+  })
 })
