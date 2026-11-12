@@ -29,7 +29,12 @@ export function cssSnippets(text: string, classes: string[], selectors?: Set<str
       if (/^@(media|supports|layer|container|scope)\b/.test(head)) {
         walk(block.open + 1, block.end - 1, [...context, head]); continue
       }
-      if (selectors ? !selectors.has(normalizeUiSelector(head)) : !matches.some((re) => re.test(head))) continue
+      const headNormalized = normalizeUiSelector(head)
+      const headParts = head.split(',').map((p) => normalizeUiSelector(p)).filter(Boolean)
+      const isMatched = selectors
+        ? selectors.has(headNormalized) || headParts.some((p) => selectors.has(p))
+        : matches.some((re) => re.test(head))
+      if (!isMatched) continue
       const offset = block.start + (text.slice(block.start, block.open).match(/^\s*/)?.[0].length || 0)
       found.push({ id: '', start: offset, end: block.end, startLine: text.slice(0, offset).split('\n').length,
         content: text.slice(offset, block.end), context: context.join(' → ') })

@@ -9,11 +9,23 @@ export function matchedUiSelectors(elements: Element[]): string[] | undefined {
     for (const rule of Array.from(rules)) {
       if ('selectorText' in rule) {
         const selector = String(rule.selectorText)
-        const match = uiSelectorForMatching(selector)
-        if (!match) continue
-        try {
-          if (elements.some((el) => el.matches(match))) selectors.add(normalizeUiSelector(selector))
-        } catch { /* Unsupported selectors do not authorize unrelated rules. */ }
+        const parts = selector.split(',').map((p) => p.trim()).filter(Boolean)
+        let anyMatched = false
+        for (const part of parts) {
+          const match = uiSelectorForMatching(part)
+          if (!match) continue
+          try {
+            if (elements.some((el) => el.matches(match))) {
+              anyMatched = true
+              selectors.add(normalizeUiSelector(part))
+            }
+          } catch {
+            /* Unsupported selectors do not authorize unrelated rules. */
+          }
+        }
+        if (anyMatched) {
+          selectors.add(normalizeUiSelector(selector))
+        }
       }
       if ('cssRules' in rule) walk((rule as CSSGroupingRule).cssRules)
     }
