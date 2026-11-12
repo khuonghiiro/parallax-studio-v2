@@ -146,14 +146,20 @@ export function AiUiScanToast({ snapshot, copied, onHoverChange, onPreview, onCl
         type="button"
         className="ai-ui-inspector-toast-btn"
         onClick={onPreview}
-        title="Mở hộp thoại xem chi tiết trực quan nội dung vừa quét"
+        title={mode === 'code' ? 'Mở hộp thoại xem gói mã nguồn hoặc nhập bản sửa JSON' : 'Mở hộp thoại xem chi tiết trực quan nội dung vừa quét'}
       >
         {mode === 'code' ? 'Mở gói / Import' : 'Xem trước'}
       </button>
-      <button type="button" className="ai-ui-inspector-arm-close" onClick={onClose} title="Đóng thông báo">
+      <button
+        type="button"
+        className="ai-ui-inspector-arm-close"
+        onClick={onClose}
+        title="Đóng thông báo (Esc)"
+        aria-label="Đóng thông báo (Esc)"
+      >
         ✕
       </button>
-      <div className="ai-ui-inspector-toast-progress" />
+      {mode !== 'code' && <div className="ai-ui-inspector-toast-progress" />}
     </div>
   )
 }

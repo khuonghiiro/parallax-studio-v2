@@ -17,6 +17,7 @@ import { useView } from '../store/view'
 import {
   IconAiScan,
   IconAssetManifest,
+  IconCode,
   IconExport,
   IconFile,
   IconFolder,
@@ -344,6 +345,16 @@ export function Toolbar({ onExport }: { onExport: () => void }) {
             title="Soi vùng giao diện cho AI (Phím tắt: Win + Shift để khoá & hiện viền, kéo chuột trái để quét khung, hoặc click vào đây)"
           >
             <IconAiScan width={14} height={14} style={{ color: 'var(--accent-cyan)' }} />
+          </button>
+          <button
+            id="ai-code-handoff-btn"
+            type="button"
+            className="tb-btn-icon ai-code-handoff-chip"
+            aria-label="Gói sửa UI (CSS/JSX/JS)"
+            onClick={() => window.dispatchEvent(new CustomEvent('pxs:open-ai-code-handoff'))}
+            title="Gói sửa UI & Nhập bản sửa AI (Phím tắt: Win + Ctrl để quét xuất gói, hoặc click vào đây để mở hộp thoại nhập/áp dụng bản sửa JSON)"
+          >
+            <IconCode width={14} height={14} style={{ color: 'var(--key, #f59e0b)' }} />
           </button>
           <button
             id="remote-qr-btn"

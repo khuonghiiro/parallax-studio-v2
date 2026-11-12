@@ -104,7 +104,6 @@ export function AiUiInspectorOverlay() {
       const bundle = (event as CustomEvent<{ markdown: string; files: unknown[]; snapshot: AiInspectorSnapshot }>).detail
       exportSequence.current++
       clearHideTimer()
-      scheduleHide(RESULT_VISIBLE_MS)
       setHeld(false)
       setCodeReport(bundle.markdown)
       setCodeStatus(`${bundle.files.length} file · Gói được xuất qua MCP`)
@@ -114,9 +113,31 @@ export function AiUiInspectorOverlay() {
       setResultVisible(true)
       setWaveId((prev) => prev + 1)
     }
+    const onOpenCodeHandoff = () => {
+      clearHideTimer()
+      setResultVisible(false)
+      setShowPreview(false)
+      setCodeOpen(true)
+    }
     window.addEventListener('pxs:ai-code-bundle', onBundle)
-    return () => window.removeEventListener('pxs:ai-code-bundle', onBundle)
-  }, [clearHideTimer, scheduleHide])
+    window.addEventListener('pxs:open-ai-code-handoff', onOpenCodeHandoff)
+    return () => {
+      window.removeEventListener('pxs:ai-code-bundle', onBundle)
+      window.removeEventListener('pxs:open-ai-code-handoff', onOpenCodeHandoff)
+    }
+  }, [clearHideTimer])
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && resultVisible && !showPreview && !codeOpen) {
+        e.stopPropagation()
+        clearHideTimer()
+        setResultVisible(false)
+      }
+    }
+    window.addEventListener('keydown', onKeyDown, true)
+    return () => window.removeEventListener('keydown', onKeyDown, true)
+  }, [resultVisible, showPreview, codeOpen, clearHideTimer])
 
   useEffect(() => clearHideTimer, [clearHideTimer])
 
@@ -140,11 +161,11 @@ export function AiUiInspectorOverlay() {
           setCodeReport(bundle.markdown)
           const ok = await copyToClipboard(bundle.markdown)
           if (sequence !== exportSequence.current) return
-          scheduleHide(RESULT_VISIBLE_MS)
+          clearHideTimer()
           setCodeStatus(`${bundle.files.length} file · ${bundle.warnings.length} lưu ý · ${ok ? 'Đã sao chép Markdown' : 'Chưa sao chép được, hãy dùng nút Sao chép hoặc Lưu Markdown'}`)
         }).catch((error) => {
           if (sequence !== exportSequence.current) return
-          scheduleHide(RESULT_VISIBLE_MS)
+          clearHideTimer()
           setCodeStatus(`${String(error)} (${snapshot.elements.length} phần tử trong vùng ${Math.round(box.width)} × ${Math.round(box.height)}). Hãy kéo quanh một nút hoặc panel có nội dung.`)
         })
         return
@@ -209,8 +230,11 @@ export function AiUiInspectorOverlay() {
           status={codeStatus}
           onHoverChange={(hovering) => {
             setHeld(hovering)
-            if (hovering) clearHideTimer()
-            else scheduleHide(4000)
+            if (hovering) {
+              clearHideTimer()
+            } else if (lastCaptured.mode !== 'code') {
+              scheduleHide(4000)
+            }
           }}
           onPreview={() => {
             clearHideTimer()

@@ -36,7 +36,7 @@ export function AiCodeHandoffModal({ report, status, onClose, onCopy }: {
       <header><h2>〈/〉 Gói sửa UI · CSS/JSX/JS</h2><button className="btn ghost" disabled={busy} onClick={onClose}
         title="Đóng bàn giao mã nguồn" aria-label="Đóng bàn giao mã nguồn">✕</button></header>
       <p className="ai-code-handoff-guide">Markdown chứa mã, số dòng và quy tắc sửa UI. Dán cho AI trên web hoặc AI đang làm dự án; nhập JSON AI trả về để áp dụng.</p>
-      <p role="status">{status}</p>
+      <p role="status">{status || 'Sẵn sàng nhập bản sửa JSON (hoặc nhấn Win + Ctrl để quét xuất gói mã UI).'}</p>
       <div className="ai-code-handoff-actions">
         <button className="btn ghost" disabled={!report || busy} onClick={() => {
           void onCopy(report).then((ok) => setMessage(ok ? 'Đã sao chép gói Markdown.' : 'Không thể sao chép. Hãy lưu gói Markdown.'))
