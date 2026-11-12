@@ -15,10 +15,11 @@ không đọc dò luồng xử lý tốn token. Quy chuẩn gốc: [`AGENTS.md` 
    `data-ai-src` do Babel plugin dev chèn). Mở bằng `read_file` với `StartLine/EndLine` quanh dòng đó (±30 dòng).
 2. `Component / Call-site` = component nghiệp vụ sở hữu control (đã vượt qua primitive `ui/controls/*`). Sửa logic ở đây.
 3. Cột `CSS` = file + dòng định nghĩa class → sửa giao diện tại đó (giữ quy chuẩn Dual-Theme).
-4. `📏 Kích thước & Typography thực tế` và `📐 Giới hạn an toàn & Responsive`: đọc kỹ kích thước computed và container cha để chọn font-size và width phù hợp; TUYỆT ĐỐI không phóng to font-size >20px hay đặt width fixed lớn gây thô hoặc vỡ bố cục.
-5. `🪟 Bề mặt` cho biết phần tử nằm trong Dialog / Popup nào (chuỗi lồng nhau + file JSX gốc của dialog).
-6. Chỉ khi cột JSX là `≈` (ước lượng từ React Fiber, app chạy bản build) mới cần grep theo `DOM path` / class.
-7. Không cần đọc lại toàn bộ file 500+ dòng; không grep tên component nếu đã có `file:dòng`.
+4. Nhận diện `🎯 [FOCUS]` và `⭐ [ACTIVE]`: Scanner tự động phát hiện phần tử đang focus (`document.activeElement`, direct BBox) hoặc đang active (tab/tool/layer/shot đang kích hoạt `.active`, `aria-selected="true"`) và ưu tiên đưa lên vị trí đầu tiên (Tâm điểm #1). Bảng "Mở ngay" và tóm tắt gói code đều gắn cờ `[FOCUS]` / `[ACTIVE]` để AI sửa đúng control người dùng đang thao tác.
+5. `📏 Kích thước & Typography thực tế` và `📐 Giới hạn an toàn & Responsive`: đọc kỹ kích thước computed và container cha để chọn font-size và width phù hợp; TUYỆT ĐỐI không phóng to font-size >20px hay đặt width fixed lớn gây thô hoặc vỡ bố cục.
+6. `🪟 Bề mặt` cho biết phần tử nằm trong Dialog / Popup nào (chuỗi lồng nhau + file JSX gốc của dialog).
+7. Chỉ khi cột JSX là `≈` (ước lượng từ React Fiber, app chạy bản build) mới cần grep theo `DOM path` / class.
+8. Không cần đọc lại toàn bộ file 500+ dòng; không grep tên component nếu đã có `file:dòng`.
 
 ## B. Checklist bắt buộc khi tạo / sửa UI
 

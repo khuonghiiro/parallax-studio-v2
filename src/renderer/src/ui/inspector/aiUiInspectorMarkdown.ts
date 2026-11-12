@@ -43,8 +43,10 @@ export function formatJumpTable(elements: ScannedElementContext[]): string[] {
         ? `≈ \`${item.primaryFile}\``
         : '—'
     const css = item.cssSources?.length ? item.cssSources.slice(0, 2).map((c) => `\`${c}\``).join('<br>') : '—'
-    const name = `"${escapeCell(elementHeading(item))}" (${escapeCell(item.kindLabel)})`
-    lines.push(`| ${idx + 1}${idx === 0 ? ' 🎯' : ''} | ${name} | ${jsx} | ${escapeCell(ownerCell(item))} | ${css} |`)
+    const isPrimary = item.isPrimaryFocus ?? (idx === 0 && !elements.some((e) => e.isPrimaryFocus))
+    const stateTag = item.isFocused ? ' 🎯 [FOCUS]' : item.isActive ? ' ⭐ [ACTIVE]' : ''
+    const name = `"${escapeCell(elementHeading(item))}" (${escapeCell(item.kindLabel)})${stateTag}`
+    lines.push(`| ${idx + 1}${isPrimary ? ' 🎯' : ''} | ${name} | ${jsx} | ${escapeCell(ownerCell(item))} | ${css} |`)
   })
   lines.push('')
   return lines

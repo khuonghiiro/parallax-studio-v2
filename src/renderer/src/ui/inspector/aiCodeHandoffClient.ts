@@ -44,6 +44,9 @@ export function sourceTargetsForSnapshot(snapshot: AiInspectorSnapshot): AiCodeT
 export async function exportSnapshotCode(snapshot: AiInspectorSnapshot) {
   if (!window.api?.aiCode) throw new Error('Hãy khởi động lại app để nạp tính năng xuất/nhập mã nguồn.')
   const summary = `Vùng: ${snapshot.primaryRegion}; theme: ${snapshot.appState.theme}.\n` + snapshot.elements.slice(0, 8)
-    .map((e) => `${(e.text || e.tagName).slice(0, 80)} · ${e.sourceLocation || e.primaryFile || ''} · ${e.primaryHandler || ''}`).join('\n')
+    .map((e) => {
+      const stateBadge = e.isFocused ? '[FOCUS] ' : e.isActive ? '[ACTIVE] ' : e.isPrimaryFocus ? '[TARGET] ' : ''
+      return `${stateBadge}${(e.text || e.tagName).slice(0, 80)} · ${e.sourceLocation || e.primaryFile || ''} · ${e.primaryHandler || ''}`
+    }).join('\n')
   return window.api.aiCode.export(sourceTargetsForSnapshot(snapshot), summary.slice(0, 1500))
 }

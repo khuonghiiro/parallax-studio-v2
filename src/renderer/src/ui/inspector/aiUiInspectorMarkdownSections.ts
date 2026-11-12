@@ -74,6 +74,11 @@ function formatFocusSceneEntity(focusItem: ScannedElementContext, lines: string[
 
 function formatFocusDetails(focusItem: ScannedElementContext, lines: string[]): void {
   lines.push(formatFocusHeadline(focusItem))
+  if (focusItem.activeStateLabel) {
+    const focusDetail = focusItem.isFocused ? ' (đang nhận focus trực tiếp)' : ''
+    const activeDetail = focusItem.isActive ? ' (đang kích hoạt)' : ''
+    lines.push(`- **Trạng thái phần tử:** **${focusItem.activeStateLabel}**${focusDetail}${activeDetail}`)
+  }
   if (focusItem.sourceLocation) lines.push(`- **📍 Dòng JSX render chính xác:** ${code(focusItem.sourceLocation)}`)
   if (focusItem.primaryFile) {
     const owner = focusItem.ownerComponentName ? ` (trong component ${code(`<${focusItem.ownerComponentName}>`)})` : ''
@@ -270,9 +275,14 @@ export function formatElementsSection(elements: ScannedElementContext[]): string
   elements.forEach((item, idx) => {
     const rawHeading = item.text || item.controlDetails?.fieldLabel || item.title || 'Phần tử'
     const label = item.text ? `"${item.text}"` : `[${rawHeading}]`
-    const focusBadge = idx === 0 && elements.length > 1 ? ' · 🎯 **Tâm điểm**' : ''
+    const isPrimary = item.isPrimaryFocus ?? (idx === 0 && !elements.some((e) => e.isPrimaryFocus))
+    const badges: string[] = []
+    if (isPrimary && elements.length > 1) badges.push('🎯 **Tâm điểm**')
+    if (item.isFocused) badges.push('🔍 **Đang Focus**')
+    if (item.isActive) badges.push('⭐ **Đang Active**')
+    const badgeStr = badges.length > 0 ? ` · ${badges.join(' · ')}` : ''
     lines.push(
-      `${idx + 1}. **${label}** (${item.kindLabel || 'Thành phần'}) — ${code(elementTagDescriptor(item))}${focusBadge}`
+      `${idx + 1}. **${label}** (${item.kindLabel || 'Thành phần'}) — ${code(elementTagDescriptor(item))}${badgeStr}`
     )
     formatElementEntityLines(item, lines)
     formatElementSourceLines(item, idx, lines)

@@ -40,6 +40,8 @@ export type { LinkedTargetModule, ScannedControlDetails } from './aiUiInspectorC
 export type { ScannedSceneEntityInfo, ScannedWorkflowNodeInfo } from './aiUiInspectorSceneAndWorkflowContext'
 export type { ScannedSurfaceInfo } from './aiUiInspectorSurfaces'
 export type { ScannedComputedSizing, InspectorViewportInfo } from './aiUiInspectorSizing'
+export type { ElementActiveFocusState } from './aiUiInspectorActiveFocus'
+import { rankAndDesignatePrimaryFocus } from './aiUiInspectorActiveFocus'
 import { getCurrentInspectorViewport } from './aiUiInspectorSizing'
 
 export interface ElementFiberInfo {
@@ -71,6 +73,11 @@ export interface ScannedElementContext {
   controlDetails?: ScannedControlDetails | null
   linkedTarget?: LinkedTargetModule | null
   isPrimaryFocus?: boolean
+  isFocused?: boolean
+  isActive?: boolean
+  focusReason?: string | null
+  activeReason?: string | null
+  activeStateLabel?: string | null
   /** file:dòng JSX CHÍNH XÁC đã render phần tử (thuộc tính `data-ai-src`, chỉ có khi dev) */
   sourceLocation?: string | null
   /** File CSS + dòng định nghĩa class của phần tử, ví dụ `src/renderer/src/styles/toolbar.css:42 (.tb-btn)` */
@@ -213,9 +220,7 @@ export function captureAiInspectorSnapshot(box: ScanBox, maxElements?: number): 
   // Layer / Cụm 2.5D trong Khung nhìn 3D (#viewer-canvas) qua cầu nối WebGL Raycast & 3D Projection
   scanned = enrichScannedWithViewerSceneHits(editor.project, box, scanned, Boolean(findActiveDialog(document)))
   mergeWorkshopParts(scanned, workshopContext, box)
-  scanned.forEach((item, idx) => {
-    item.isPrimaryFocus = idx === 0
-  })
+  scanned = rankAndDesignatePrimaryFocus(scanned)
 
   return {
     rect: roundBox(box),

@@ -87,10 +87,14 @@ function ScanTargets({ items }: { items: ScannedElementContext[] }) {
       {items.map((item, idx) => {
         const b = item.bounds
         if (b.width <= 0 || b.height <= 0) return null
+        const isPrimary = item.isPrimaryFocus
+        const isFocused = item.isFocused
+        const isActive = item.isActive
+        const targetCls = `ai-ui-scan-target${isPrimary ? ' is-primary' : ''}${isFocused ? ' is-focused' : ''}${isActive ? ' is-active' : ''}`
         return (
           <div
             key={`scan-target-${idx}`}
-            className={`ai-ui-scan-target${idx === 0 ? ' is-primary' : ''}`}
+            className={targetCls}
             style={{ left: b.left, top: b.top, width: Math.max(14, b.width), height: Math.max(14, b.height), ...indexVar(idx) }}
           >
             <Corners />
@@ -101,16 +105,21 @@ function ScanTargets({ items }: { items: ScannedElementContext[] }) {
   )
 }
 
-function ScanLeaders({ placements, viewport }: { placements: CalloutPlacement[]; viewport: Viewport }) {
+function ScanLeaders({ placements, items, viewport }: { placements: CalloutPlacement[]; items: ScannedElementContext[]; viewport: Viewport }) {
   return (
     <svg className="ai-ui-scan-leaders" width={viewport.width} height={viewport.height}>
       {placements.map((p) => {
+        const item = items[p.idx]
+        const isPrimary = item?.isPrimaryFocus
+        const isFocused = item?.isFocused
+        const isActive = item?.isActive
+        const leaderCls = `ai-ui-scan-leader-group${isPrimary ? ' is-primary' : ''}${isFocused ? ' is-focused' : ''}${isActive ? ' is-active' : ''}`
         const pts = p.points.map(([x, y]) => `${x},${y}`).join(' ')
         const end = p.points[p.points.length - 1]
         return (
           <g
             key={`leader-${p.idx}`}
-            className={`ai-ui-scan-leader-group${p.idx === 0 ? ' is-primary' : ''}`}
+            className={leaderCls}
             style={indexVar(p.idx)}
           >
             <polyline className="ai-ui-scan-leader-trace" points={pts} pathLength={1} />
@@ -126,7 +135,8 @@ function ScanLeaders({ placements, viewport }: { placements: CalloutPlacement[];
 
 function ScanLabel({ placement: p, item }: { placement: CalloutPlacement; item: ScannedElementContext }) {
   const ref = fileRef(item)
-  const cls = `ai-ui-scan-label side-${p.side}${p.idx === 0 ? ' is-primary' : ''}${p.compact ? ' is-compact' : ''}`
+  const isPrimary = item.isPrimaryFocus
+  const cls = `ai-ui-scan-label side-${p.side}${isPrimary ? ' is-primary' : ''}${item.isFocused ? ' is-focused' : ''}${item.isActive ? ' is-active' : ''}${p.compact ? ' is-compact' : ''}`
   return (
     <div
       className={cls}
@@ -135,13 +145,17 @@ function ScanLabel({ placement: p, item }: { placement: CalloutPlacement; item: 
       <span className="ai-ui-scan-label-idx">{String(p.idx + 1).padStart(2, '0')}</span>
       <span className="ai-ui-scan-label-body">
         <span className="ai-ui-scan-label-title">
-          {p.idx === 0 && <b className="ai-ui-scan-label-focus">FOCUS</b>}
+          {item.isFocused && <b className="ai-ui-scan-label-focus" title="Phần tử đang Focus">FOCUS</b>}
+          {item.isActive && <b className="ai-ui-scan-label-active" title="Phần tử đang Active">ACTIVE</b>}
+          {!item.isFocused && !item.isActive && isPrimary && (
+            <b className="ai-ui-scan-label-focus" title="Tâm điểm chọn">TARGET</b>
+          )}
           {labelTitle(item)}
         </span>
         {!p.compact && (
           <span className="ai-ui-scan-label-sub">
             {item.kindLabel}
-            {ref ? <em> · {ref}</em> : null}
+            {item.activeStateLabel ? <em> · {item.activeStateLabel}</em> : ref ? <em> · {ref}</em> : null}
           </span>
         )}
       </span>
@@ -173,7 +187,7 @@ export function AiUiScanCallouts({ snapshot, waveId, reserved, held = false, mod
     >
       <ScanRegion rect={snapshot.rect} count={items.length} />
       <ScanTargets items={items} />
-      <ScanLeaders placements={placements} viewport={viewport} />
+      <ScanLeaders placements={placements} items={items} viewport={viewport} />
       {placements.map((p) =>
         items[p.idx] ? <ScanLabel key={`label-${p.idx}`} placement={p} item={items[p.idx]} /> : null
       )}

@@ -17,6 +17,7 @@ import {
   probeTopmostAt,
   withInspectorOverlaysHidden
 } from './aiUiInspectorSurfaces'
+import { getElementInteractionScore } from './aiUiInspectorActiveFocus'
 
 /**
  * Tìm phần tử giao diện trong khung quét của AI UI Inspector.
@@ -291,6 +292,14 @@ function compareCandidates(a: Element, b: Element, box: ScanBox, topSurface: Ele
     const bTop = isInsideSurface(b, topSurface)
     if (aTop !== bTop) return aTop ? -1 : 1
   }
+
+  // Ưu tiên phần tử đang Focus hoặc Active (ví dụ: tab/nút đang chọn, input đang focus)
+  const scoreA = getElementInteractionScore(a)
+  const scoreB = getElementInteractionScore(b)
+  if (Math.abs(scoreA - scoreB) >= 20) {
+    return scoreB - scoreA
+  }
+
   if (box.width >= 36 && box.height >= 24) {
     if (a.matches?.('.wf-v2-card') && a.contains?.(b) && computeOverlapRatio(getVisibleElementRect(a), box) >= 0.62) return -1
     if (b.matches?.('.wf-v2-card') && b.contains?.(a) && computeOverlapRatio(getVisibleElementRect(b), box) >= 0.62) return 1
