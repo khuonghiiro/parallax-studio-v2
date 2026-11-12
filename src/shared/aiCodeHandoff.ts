@@ -22,10 +22,17 @@ export interface AiCodeBundle {
   warnings: string[]
 }
 
+export interface AiCodeNeedMoreRequest {
+  classes?: string[]
+  files?: string[]
+  reason?: string
+}
+
 export interface AiCodeImportResult {
   files: string[]
   backupPath: string
   applied: boolean
+  needMore?: AiCodeNeedMoreRequest
 }
 
 export interface AiCodeRevertResult {

@@ -25,6 +25,16 @@ export function AiCodeHandoffModal({ report, status, onClose, onCopy, onPreviewA
     try {
       if (!window.api?.aiCode) throw new Error('Cần khởi động lại app để nạp tính năng.')
       const result = await window.api.aiCode.import(text, apply)
+      if (result.needMore) {
+        setChecked(null)
+        const req = result.needMore
+        const details: string[] = []
+        if (req.reason) details.push(`Lý do: "${req.reason}"`)
+        if (req.classes?.length) details.push(`Classes: ${req.classes.join(', ')}`)
+        if (req.files?.length) details.push(`Files: ${req.files.join(', ')}`)
+        setMessage(`⚠️ AI yêu cầu thêm ngữ cảnh (chưa áp dụng): ${details.join(' · ')}`)
+        return
+      }
       setChecked(apply ? null : result)
       setMessage(apply ? `Đã áp dụng ${result.files.length} file. Bản gốc: ${result.backupPath}. Cần chạy verify, test và kiểm tra giao diện; main/preload cần khởi động lại.`
         : `Đã kiểm tra cú pháp và phiên bản gốc: ${result.files.length} file. Xem danh sách trước khi áp dụng.`)
@@ -36,6 +46,15 @@ export function AiCodeHandoffModal({ report, status, onClose, onCopy, onPreviewA
     try {
       if (!window.api?.aiCode) throw new Error('Cần khởi động lại app để nạp tính năng.')
       const result = await window.api.aiCode.import(text, true)
+      if (result.needMore) {
+        const req = result.needMore
+        const details: string[] = []
+        if (req.reason) details.push(`Lý do: "${req.reason}"`)
+        if (req.classes?.length) details.push(`Classes: ${req.classes.join(', ')}`)
+        if (req.files?.length) details.push(`Files: ${req.files.join(', ')}`)
+        setMessage(`⚠️ AI yêu cầu thêm ngữ cảnh: ${details.join(' · ')}`)
+        return
+      }
       if (result.applied && onPreviewApply) {
         onPreviewApply({ backupPath: result.backupPath, files: result.files })
       } else {

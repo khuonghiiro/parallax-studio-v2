@@ -6,14 +6,44 @@ export interface CodeReplyFile {
   content?: string
   edits?: { id: string; content: string }[]
 }
-interface Reply { version: 1 | 2; bundleId: string; files: CodeReplyFile[] }
+export interface Reply {
+  version: 1 | 2
+  bundleId: string
+  files?: CodeReplyFile[]
+  needMore?: {
+    classes?: string[]
+    files?: string[]
+    reason?: string
+  }
+}
 
 export function parseCodeReply(text: string): Reply {
   if (typeof text !== 'string' || text.length > 16_000_000) throw new Error('Bản sửa vượt giới hạn 16 MB.')
   const raw = text.trim().replace(/^```json\s*\n([\s\S]*)\n```$/, '$1')
   const reply = JSON.parse(raw) as Reply
-  if (![1, 2].includes(reply?.version) || !/^[0-9a-f-]{36}$/.test(reply.bundleId) || !Array.isArray(reply.files)
-    || !reply.files.length || reply.files.length > 600) throw new Error('Định dạng gói sửa không hợp lệ.')
+  if (![1, 2].includes(reply?.version) || !/^[0-9a-f-]{36}$/.test(reply.bundleId)) {
+    throw new Error('Định dạng gói sửa không hợp lệ.')
+  }
+  if (reply.needMore) {
+    if (typeof reply.needMore !== 'object' || reply.needMore === null) {
+      throw new Error('Trường needMore không hợp lệ.')
+    }
+    if (reply.needMore.classes !== undefined && (!Array.isArray(reply.needMore.classes) || reply.needMore.classes.some((c) => typeof c !== 'string'))) {
+      throw new Error('needMore.classes phải là danh sách chuỗi.')
+    }
+    if (reply.needMore.files !== undefined && (!Array.isArray(reply.needMore.files) || reply.needMore.files.some((f) => typeof f !== 'string'))) {
+      throw new Error('needMore.files phải là danh sách chuỗi.')
+    }
+    if (reply.needMore.reason !== undefined && typeof reply.needMore.reason !== 'string') {
+      throw new Error('needMore.reason phải là chuỗi.')
+    }
+    if (!Array.isArray(reply.files) || reply.files.length === 0) {
+      return reply
+    }
+  }
+  if (!Array.isArray(reply.files) || !reply.files.length || reply.files.length > 600) {
+    throw new Error('Định dạng gói sửa không hợp lệ.')
+  }
   const paths = new Set<string>()
   for (const file of reply.files) {
     if (!file || typeof file.path !== 'string' || !/^[0-9a-f]{64}$/.test(file.baseHash) || paths.has(file.path)) {

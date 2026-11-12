@@ -42,12 +42,15 @@ export class AiCodeHandoffService {
 
   private async importUnlocked(text: string, apply: boolean): Promise<AiCodeImportResult> {
     const reply = parseCodeReply(text)
+    if (reply.needMore && (!reply.files || !reply.files.length)) {
+      return { files: [], backupPath: '', applied: false, needMore: reply.needMore }
+    }
     const saved = JSON.parse(await readFile(join(this.storage, `${reply.bundleId}.json`), 'utf8')) as {
       root: string; files: AiCodeFile[]
     }
     if (saved.root !== this.root) throw new Error('Gói thuộc repository khác.')
     const changes: { path: string; full: string; before: string; after: string }[] = []
-    for (const file of reply.files) {
+    for (const file of reply.files || []) {
       const original = saved.files.find((f) => f.path === file.path)
       if (!original || original.hash !== file.baseHash) throw new Error(`File không thuộc gói gốc: ${file.path}`)
       const full = await safeSourcePath(this.root, file.path)
@@ -80,11 +83,14 @@ export class AiCodeHandoffService {
         if (before !== after) changes.push({ path: file.path, full, before, after })
       }
     }
-    if (!changes.length) throw new Error('Không có nội dung thay đổi.')
-    if (!apply) return { files: changes.map((f) => f.path), backupPath: '', applied: false }
+    if (!changes.length) {
+      if (reply.needMore) return { files: [], backupPath: '', applied: false, needMore: reply.needMore }
+      throw new Error('Không có nội dung thay đổi.')
+    }
+    if (!apply) return { files: changes.map((f) => f.path), backupPath: '', applied: false, needMore: reply.needMore }
     const backupPath = join(this.storage, `backup-${reply.bundleId}-${randomUUID()}`)
     await this.writeChanges(changes, backupPath)
-    return { files: changes.map((f) => f.path), backupPath, applied: true }
+    return { files: changes.map((f) => f.path), backupPath, applied: true, needMore: reply.needMore }
   }
 
   private async writeChanges(changes: { path: string; full: string; before: string; after: string }[], backup: string) {
