@@ -284,6 +284,16 @@
   flex-shrink: 0;
 }
 
+.ai-ui-status-pill.focus {
+  background: var(--key);
+  color: var(--on-key);
+}
+
+.ai-ui-status-pill.active {
+  background: var(--accent-cyan);
+  color: #04101e;
+}
+
 .ai-ui-part-specs {
   display: grid;
   grid-template-columns: 1fr 1fr;

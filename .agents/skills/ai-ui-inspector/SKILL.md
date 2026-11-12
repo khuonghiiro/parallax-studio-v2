@@ -1,11 +1,11 @@
 ---
 name: ai-ui-inspector
-description: Make every new or edited UI in Parallax Studio precisely scannable by the AI UI Inspector (Win + Shift + drag) so pasted reports point AI straight to file:line without grepping — data-ai-src source locator, data-ai-surface / data-mcp-dialog for dialogs and popups, data-ai-id / role / aria-label for controls, surface & overlay registries, and how to consume an AI-UI report. Use whenever creating or modifying UI, dialogs, popups, menus or overlays, and whenever the user pastes an "AI UI INSPECTOR" report.
+description: Make every new or edited UI in Parallax Studio precisely scannable by the AI UI Inspector (Win + Alt + drag) so pasted reports point AI straight to file:line without grepping — data-ai-src source locator, data-ai-surface / data-mcp-dialog for dialogs and popups, data-ai-id / role / aria-label for controls, surface & overlay registries, and how to consume an AI-UI report. Use whenever creating or modifying UI, dialogs, popups, menus or overlays, and whenever the user pastes an "AI UI INSPECTOR" report.
 ---
 
 # AI UI Inspector — viết UI để AI quét chính xác & sửa nhanh
 
-Người dùng giữ **Win + Shift** (hoặc nút `#ai-ui-inspector-btn` trên toolbar), kéo khung quanh vùng lỗi → app copy báo cáo
+Người dùng giữ **Win + Alt** (hoặc nút `#ai-ui-inspector-btn` trên toolbar), kéo khung quanh vùng lỗi → app copy báo cáo
 Markdown `### 🎯 NGỮ CẢNH GIAO DIỆN (AI UI INSPECTOR)` vào Clipboard → dán cho AI. Mục tiêu: AI **mở thẳng `file:dòng`**,
 không đọc dò luồng xử lý tốn token. Quy chuẩn gốc: [`AGENTS.md` mục 2.4b](../../../AGENTS.md).
 
@@ -15,9 +15,11 @@ không đọc dò luồng xử lý tốn token. Quy chuẩn gốc: [`AGENTS.md` 
    `data-ai-src` do Babel plugin dev chèn). Mở bằng `read_file` với `StartLine/EndLine` quanh dòng đó (±30 dòng).
 2. `Component / Call-site` = component nghiệp vụ sở hữu control (đã vượt qua primitive `ui/controls/*`). Sửa logic ở đây.
 3. Cột `CSS` = file + dòng định nghĩa class → sửa giao diện tại đó (giữ quy chuẩn Dual-Theme).
-4. `🪟 Bề mặt` cho biết phần tử nằm trong Dialog / Popup nào (chuỗi lồng nhau + file JSX gốc của dialog).
-5. Chỉ khi cột JSX là `≈` (ước lượng từ React Fiber, app chạy bản build) mới cần grep theo `DOM path` / class.
-6. Không cần đọc lại toàn bộ file 500+ dòng; không grep tên component nếu đã có `file:dòng`.
+4. Nhận diện `🎯 [FOCUS]` và `⭐ [ACTIVE]`: Scanner tự động phát hiện phần tử đang focus (`document.activeElement`, direct BBox) hoặc đang active (tab/tool/layer/shot đang kích hoạt `.active`, `aria-selected="true"`) và ưu tiên đưa lên vị trí đầu tiên (Tâm điểm #1). Bảng "Mở ngay" và tóm tắt gói code đều gắn cờ `[FOCUS]` / `[ACTIVE]` để AI sửa đúng control người dùng đang thao tác.
+5. `📏 Kích thước & Typography thực tế` và `📐 Giới hạn an toàn & Responsive`: đọc kỹ kích thước computed và container cha để chọn font-size và width phù hợp; TUYỆT ĐỐI không phóng to font-size >20px hay đặt width fixed lớn gây thô hoặc vỡ bố cục.
+6. `🪟 Bề mặt` cho biết phần tử nằm trong Dialog / Popup nào (chuỗi lồng nhau + file JSX gốc của dialog).
+7. Chỉ khi cột JSX là `≈` (ước lượng từ React Fiber, app chạy bản build) mới cần grep theo `DOM path` / class.
+8. Không cần đọc lại toàn bộ file 500+ dòng; không grep tên component nếu đã có `file:dòng`.
 
 ## B. Checklist bắt buộc khi tạo / sửa UI
 
@@ -62,6 +64,19 @@ Gắn trên **phần tử gốc thực sự hiển thị** (không phải backdr
   (`aiUiInspectorSurfaces.ts`) để hit-test xuyên qua, nếu không phần tử bên dưới bị coi là "bị che khuất".
 - Toàn bộ lớp hiệu ứng của inspector dùng `pointer-events: none`.
 
+### 4b. Kích thước, Typography & Responsive an toàn (Anti-Oversized UI Standard)
+
+- **Cỡ chữ (Typography Limits):** TUYỆT ĐỐI CẤM gán `font-size > 20px` cho controls, buttons, cards, list items hoặc inputs.
+  - Badges / Tag / Pills / Subtab: `10px – 11px` (line-height 1.2–1.3, bo góc `var(--radius-sm)` `4px`).
+  - Label phụ / Ghi chú / Subtext: `11px – 12px`.
+  - Nút bấm / Input / Dropdown / Thân văn bản: `12px – 14px` (line-height 1.4–1.5).
+  - Tiêu đề mục / Thẻ Card: `14px – 16px` (font-weight 600).
+  - Tiêu đề Hộp thoại / Trang: `16px – 18px` (tối đa 20px).
+- **Chiều rộng & Bố cục (Layout Sizing):** TUYỆT ĐỐI CẤM gán pixel fixed lớn (`width: 800px`, `width: 100vw`, `height: 100vh`) trên controls hoặc cards con. Luôn dùng kích thước tương đối (`width: 100%`, `max-width`, `minmax()`, `clamp()`).
+- **Triệt tiêu "sa mạc trống trải":** Danh sách Card trên Desktop/Laptop phải dùng lưới co giãn `display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 8px–10px;`. CẤM để 1 dòng đơn lẻ dàn ngang 100% trên màn hình desktop rộng.
+- **Vùng bấm cảm ứng & Công thái học:** Nút bấm / controls interactive tối thiểu `36px × 36px` (khuyến nghị `40px–44px` cho nút chính trên mobile/tablet), khoảng cách an toàn giữa 2 nút `gap >= 6px–8px`.
+- **Responsive 4 Breakpoints:** Mọi thay đổi CSS phải co giãn trơn tru trên cả 4 ngưỡng: Phone (`<= 768px` - 1 cột), Tablet (`769–1120px` - 2 cột), Laptop (`1121–1366px` - 2-3 cột), Desktop (`> 1366px` - 3-4 cột max-width 1600px).
+
 ### 5. Kiểm thử
 
 ```powershell
@@ -70,7 +85,7 @@ pnpm test -- src/renderer/src/ui/inspector scripts/vite
 pnpm pxs call ping '{}'
 ```
 
-App đang mở → giữ Win + Shift, kéo khung quanh UI vừa làm, `Ctrl+V` báo cáo vào chat: bảng **Mở ngay** phải có
+App đang mở → giữ Win + Alt, kéo khung quanh UI vừa làm, `Ctrl+V` báo cáo vào chat: bảng **Mở ngay** phải có
 `JSX render` đúng file:dòng, `🪟 Bề mặt` đúng dialog/popup, nhãn hiển thị tên dễ hiểu (không phải `<div>`).
 Chụp vùng hiệu ứng: `get_app_screenshot({ region: "ai_inspector_scan_fx" })`, toast: `ai_inspector_toast`.
 
@@ -79,7 +94,7 @@ Chụp vùng hiệu ứng: `get_app_screenshot({ region: "ai_inspector_scan_fx" 
 | Module | Vai trò |
 | --- | --- |
 | [`AiUiInspectorOverlay.tsx`](../../../src/renderer/src/ui/AiUiInspectorOverlay.tsx) | Điều phối: chụp snapshot, copy Clipboard, hiển thị HUD/hiệu ứng/toast/xem trước |
-| [`useAiInspectorCapture.ts`](../../../src/renderer/src/ui/inspector/useAiInspectorCapture.ts) | Sự kiện Win+Shift / kéo khung / Esc (pha capture) |
+| [`useAiInspectorCapture.ts`](../../../src/renderer/src/ui/inspector/useAiInspectorCapture.ts) | Sự kiện Win+Alt / kéo khung / Esc (pha capture) |
 | [`aiUiInspectorElementFinder.ts`](../../../src/renderer/src/ui/inspector/aiUiInspectorElementFinder.ts) | Tìm phần tử: phạm vi popup → modal → dialog, lấy mẫu lưới hit-test, loại phần tử bị che |
 | [`aiUiInspectorSurfaces.ts`](../../../src/renderer/src/ui/inspector/aiUiInspectorSurfaces.ts) | Nhận diện Dialog/Popup, hit-test xuyên lớp phủ |
 | [`aiUiInspectorElementContext.ts`](../../../src/renderer/src/ui/inspector/aiUiInspectorElementContext.ts) | Ngữ cảnh từng phần tử (Fiber, JSX, CSS, 2.5D, Workflow) |
@@ -90,7 +105,7 @@ Chụp vùng hiệu ứng: `get_app_screenshot({ region: "ai_inspector_scan_fx" 
 
 ### AI UI Code Handoff — Win + Ctrl
 
-- **Win + Ctrl** xuất gói sửa UI gọn: rule CSS khớp class vùng quét (kèm hover/active, theme/media tìm được), khoảng 21 dòng JSX/JS hai phía vị trí render/call-site, số dòng và hướng dẫn UI rút gọn. **Win + Shift** giữ báo cáo ngữ cảnh cũ.
+- **Win + Ctrl** xuất gói sửa UI gọn: rule CSS khớp class vùng quét (kèm hover/active, theme/media tìm được), khoảng 21 dòng JSX/JS hai phía vị trí render/call-site, số dòng và hướng dẫn UI rút gọn. **Win + Alt** giữ báo cáo ngữ cảnh cũ.
 - Không lần theo import JS/store/engine, không gửi toàn bộ file hoặc toàn bộ AGENTS/skill. Chỉ dò CSS @import để tìm rule gốc; CSS ngoài vùng không được đưa vào gói. Giới hạn 200.000 ký tự nguồn, 100 file (tối đa 70 CSS), 300.000 ký tự Markdown (ngân sách gói xuất, không phải giới hạn ngữ cảnh của model). Gói ghi rõ số đoạn bỏ qua; quét nhỏ hơn khi thiếu. Ước lượng token là ký tự/3, không phải bộ đếm tokenizer chính xác.
 - AI trả JSON `{version:2,bundleId,files:[{path,baseHash,edits:[{id,content}]}]}`. `content` chỉ là toàn bộ ĐOẠN đã sửa, không có số dòng. Giữ ID đoạn; không trả cả file, không bọc lại điều kiện CSS được ghi là ngữ cảnh ngoài đoạn.
 - Trong hộp thoại `ai_code_handoff`, dán/chọn JSON → **Kiểm tra bản sửa** → **Áp dụng bản sửa**. App ghép đoạn vào bản gốc, giữ nguyên phần ngoài đoạn, kiểm tra SHA-256 toàn file và cú pháp file sau ghép, lưu backup trước ghi. Bản gốc ở `ai-code-handoffs/backup-*` trong userData; phục hồi từ backup, không dùng Undo editor. Vẫn đọc được gói toàn file version 1 đã xuất trước đây, nhưng không cho dùng version 1 để ghi đè gói đoạn version 2.
@@ -102,7 +117,7 @@ Chụp vùng hiệu ứng: `get_app_screenshot({ region: "ai_inspector_scan_fx" 
 
 ### Phân biệt chế độ quét
 
-- `Win + Shift`: cyan, nhãn “Ngữ cảnh UI · Vị trí code”, báo cáo vị trí giao diện.
+- `Win + Alt`: cyan, nhãn “Ngữ cảnh UI · Vị trí code”, báo cáo vị trí giao diện.
 - `Win + Ctrl`: cam, tâm ngắm hình thoi, khung nét liền, nhãn “Gói sửa UI · CSS/JSX/JS”; xuất đoạn mã và quy tắc UI đã nhúng trong Markdown để gửi AI kể cả khi AI không truy cập repo. Chỉ trích quy tắc liên quan, không gửi toàn bộ skill/AGENTS.md.
 
 Sau Win + Ctrl, khung mục tiêu và nhãn file:dòng màu cam xuất hiện trên UI; gói mã được tạo/copy nền. Thông báo chứa nút “Mở gói / Import” tự ẩn sau 4 giây khi xuất xong (rê chuột để giữ). Nút mở hộp thoại nhập; hộp thoại không tự đóng khi đang sử dụng. MCP export_ui_code với show=true hiển thị cùng kết quả quét.

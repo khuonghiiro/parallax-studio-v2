@@ -74,6 +74,11 @@ function formatFocusSceneEntity(focusItem: ScannedElementContext, lines: string[
 
 function formatFocusDetails(focusItem: ScannedElementContext, lines: string[]): void {
   lines.push(formatFocusHeadline(focusItem))
+  if (focusItem.activeStateLabel) {
+    const focusDetail = focusItem.isFocused ? ' (đang nhận focus trực tiếp)' : ''
+    const activeDetail = focusItem.isActive ? ' (đang kích hoạt)' : ''
+    lines.push(`- **Trạng thái phần tử:** **${focusItem.activeStateLabel}**${focusDetail}${activeDetail}`)
+  }
   if (focusItem.sourceLocation) lines.push(`- **📍 Dòng JSX render chính xác:** ${code(focusItem.sourceLocation)}`)
   if (focusItem.primaryFile) {
     const owner = focusItem.ownerComponentName ? ` (trong component ${code(`<${focusItem.ownerComponentName}>`)})` : ''
@@ -93,6 +98,18 @@ function formatFocusDetails(focusItem: ScannedElementContext, lines: string[]): 
   }
   const specsLine = formatControlSpecsLine(focusItem)
   if (specsLine) lines.push(`- **Thông số & trạng thái Control:** ${specsLine}`)
+  if (focusItem.computedSizing) {
+    const cs = focusItem.computedSizing
+    const parentInfo = cs.parentWidth ? ` · Container: ${code(`${cs.parentWidth}px`)} (${cs.widthPercentOfParent}% cha)` : ''
+    lines.push(
+      `- 📏 **Kích thước & Typography thực tế:** Font: ${code(cs.fontSize)} (${code(cs.fontWeight)}, line-height: ${code(cs.lineHeight)}) · Kích thước: ${code(`${cs.width} × ${cs.height}px`)}${parentInfo} · Display: ${code(cs.display)}`
+    )
+    for (const w of cs.warnings) lines.push(`  * ${w}`)
+    if (cs.recommendations.length > 0) {
+      lines.push(`- 📐 **Quy chuẩn kích thước & Responsive an toàn:**`)
+      for (const r of cs.recommendations) lines.push(`  * ${r}`)
+    }
+  }
   if (focusItem.primaryHandler) lines.push(`- **Hàm xử lý chính:** ${code(focusItem.primaryHandler)}`)
   if (focusItem.linkedTarget) {
     const lt = focusItem.linkedTarget
@@ -240,6 +257,13 @@ function formatElementStyleLines(item: ScannedElementContext, rawHeading: string
     const clsPart = item.classes.length > 0 ? `Classes: ${code(item.classes.slice(0, 5).join(' '))}` : ''
     lines.push(`   - 🎨 **CSS / Định danh:** ${selPart}${clsPart}`)
   }
+  if (item.computedSizing) {
+    const cs = item.computedSizing
+    const pStr = cs.widthPercentOfParent ? ` (${cs.widthPercentOfParent}% cha)` : ''
+    const touchNote = cs.isTouchCompliant ? '' : ' · ⚠️ Vùng bấm <36px'
+    lines.push(`   - 📏 **Kích thước:** Font: ${code(cs.fontSize)} · Box: ${code(`${cs.width}×${cs.height}px`)}${pStr}${touchNote}`)
+    for (const w of cs.warnings) lines.push(`     * ${w}`)
+  }
   if (item.cssSources?.length) lines.push(`   - 🖌️ **File CSS:** ${codeList(item.cssSources)}`)
   if (item.domPath) lines.push(`   - 🧭 **DOM path:** ${code(item.domPath)}`)
 }
@@ -251,9 +275,14 @@ export function formatElementsSection(elements: ScannedElementContext[]): string
   elements.forEach((item, idx) => {
     const rawHeading = item.text || item.controlDetails?.fieldLabel || item.title || 'Phần tử'
     const label = item.text ? `"${item.text}"` : `[${rawHeading}]`
-    const focusBadge = idx === 0 && elements.length > 1 ? ' · 🎯 **Tâm điểm**' : ''
+    const isPrimary = item.isPrimaryFocus ?? (idx === 0 && !elements.some((e) => e.isPrimaryFocus))
+    const badges: string[] = []
+    if (isPrimary && elements.length > 1) badges.push('🎯 **Tâm điểm**')
+    if (item.isFocused) badges.push('🔍 **Đang Focus**')
+    if (item.isActive) badges.push('⭐ **Đang Active**')
+    const badgeStr = badges.length > 0 ? ` · ${badges.join(' · ')}` : ''
     lines.push(
-      `${idx + 1}. **${label}** (${item.kindLabel || 'Thành phần'}) — ${code(elementTagDescriptor(item))}${focusBadge}`
+      `${idx + 1}. **${label}** (${item.kindLabel || 'Thành phần'}) — ${code(elementTagDescriptor(item))}${badgeStr}`
     )
     formatElementEntityLines(item, lines)
     formatElementSourceLines(item, idx, lines)

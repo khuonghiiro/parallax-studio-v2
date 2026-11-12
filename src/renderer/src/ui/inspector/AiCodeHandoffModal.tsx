@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import type { AiCodeImportResult } from '@shared/aiCodeHandoff'
+import type { AiCodePreviewState } from './AiCodePreviewBar'
 import '../../styles/aiCodeHandoff.css'
 
-export function AiCodeHandoffModal({ report, status, onClose, onCopy }: {
+export function AiCodeHandoffModal({ report, status, onClose, onCopy, onPreviewApply }: {
   report: string; status: string; onClose: () => void; onCopy: (text: string) => Promise<boolean>
+  onPreviewApply?: (state: AiCodePreviewState) => void
 }) {
   const [text, setText] = useState('')
   const [message, setMessage] = useState('')
@@ -29,6 +31,19 @@ export function AiCodeHandoffModal({ report, status, onClose, onCopy }: {
     } catch (error) { setChecked(null); setMessage(String(error)) }
     finally { setBusy(false) }
   }
+  const runPreview = async () => {
+    setBusy(true)
+    try {
+      if (!window.api?.aiCode) throw new Error('Cần khởi động lại app để nạp tính năng.')
+      const result = await window.api.aiCode.import(text, true)
+      if (result.applied && onPreviewApply) {
+        onPreviewApply({ backupPath: result.backupPath, files: result.files })
+      } else {
+        setMessage(`Đã áp dụng ${result.files.length} file. Bản gốc: ${result.backupPath}.`)
+      }
+    } catch (error) { setMessage(String(error)) }
+    finally { setBusy(false) }
+  }
   return <div className="ai-ui-inspector-preview-backdrop">
     <section className="ai-code-handoff-modal" data-mcp-region="ai_code_handoff" data-mcp-dialog
       role="dialog" aria-modal="true" aria-label="Gói sửa UI gọn" data-ai-surface="dialog"
@@ -36,7 +51,7 @@ export function AiCodeHandoffModal({ report, status, onClose, onCopy }: {
       <header><h2>〈/〉 Gói sửa UI · CSS/JSX/JS</h2><button className="btn ghost" disabled={busy} onClick={onClose}
         title="Đóng bàn giao mã nguồn" aria-label="Đóng bàn giao mã nguồn">✕</button></header>
       <p className="ai-code-handoff-guide">Markdown chứa mã, số dòng và quy tắc sửa UI. Dán cho AI trên web hoặc AI đang làm dự án; nhập JSON AI trả về để áp dụng.</p>
-      <p role="status">{status}</p>
+      <p role="status">{status || 'Sẵn sàng nhập bản sửa JSON (hoặc nhấn Win + Ctrl để quét xuất gói mã UI).'}</p>
       <div className="ai-code-handoff-actions">
         <button className="btn ghost" disabled={!report || busy} onClick={() => {
           void onCopy(report).then((ok) => setMessage(ok ? 'Đã sao chép gói Markdown.' : 'Không thể sao chép. Hãy lưu gói Markdown.'))
@@ -59,8 +74,14 @@ export function AiCodeHandoffModal({ report, status, onClose, onCopy }: {
         placeholder="JSON version 2, bundleId, files và edits theo ID đoạn…" spellCheck={false} />
       {checked && <ul>{checked.files.map((file) => <li key={file}>{file}</li>)}</ul>}
       <p role="status" aria-live="polite">{message}</p>
-      <footer><button className="btn ghost" disabled={busy || !text.trim()} onClick={() => void run(false)}>Kiểm tra bản sửa</button>
-        <button className="btn primary" disabled={busy || !checked} onClick={() => void run(true)}>Áp dụng bản sửa</button></footer>
+      <footer>
+        <button className="btn ghost" disabled={busy || !text.trim()} onClick={() => void run(false)}>Kiểm tra bản sửa</button>
+        <button className="btn ghost ai-code-preview-trigger" disabled={busy || !checked}
+          onClick={() => void runPreview()}
+          title="Áp dụng bản sửa để xem thử trực tiếp trên giao diện (Vite HMR). Có thể Hoàn tác 100% nếu không ưng ý."
+        >👁️ Áp dụng thử</button>
+        <button className="btn primary" disabled={busy || !checked} onClick={() => void run(true)}>Áp dụng bản sửa</button>
+      </footer>
     </section>
   </div>
 }

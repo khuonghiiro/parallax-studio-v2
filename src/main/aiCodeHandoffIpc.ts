@@ -2,11 +2,19 @@ import type { AiCodeTarget } from '../shared/aiCodeHandoff'
 import { app, ipcMain } from 'electron'
 import { join, resolve } from 'path'
 import { existsSync } from 'fs'
-import { AiCodeHandoffService } from './aiCodeHandoffService'
+
+let handoffService: import('./aiCodeHandoffService').AiCodeHandoffService | null = null
+
+async function getHandoffService(root: string) {
+  if (!handoffService) {
+    const { AiCodeHandoffService } = await import('./aiCodeHandoffService')
+    handoffService = new AiCodeHandoffService(root, join(app.getPath('userData'), 'ai-code-handoffs'))
+  }
+  return handoffService
+}
 
 export function registerAiCodeHandoffIpc(): void {
   const root = resolve(app.getAppPath())
-  const service = new AiCodeHandoffService(root, join(app.getPath('userData'), 'ai-code-handoffs'))
   const check = (event: Electron.IpcMainInvokeEvent) => {
     if (app.isPackaged || !existsSync(join(root, 'AGENTS.md'))) {
       throw new Error('Xuất/nhập mã nguồn chỉ dùng trong bản phát triển có repository.')
@@ -17,13 +25,28 @@ export function registerAiCodeHandoffIpc(): void {
       throw new Error('Nguồn yêu cầu không hợp lệ.')
     }
   }
-  ipcMain.handle('aiCode:export', (event, paths: AiCodeTarget[], report: string) => {
+  ipcMain.handle('aiCode:export', async (event, paths: AiCodeTarget[], report: string) => {
     check(event)
+    const service = await getHandoffService(root)
     return service.export(paths, report)
   })
-  ipcMain.handle('aiCode:import', (event, text: string, apply: boolean) => {
+  ipcMain.handle('aiCode:import', async (event, text: string, apply: boolean) => {
     check(event)
     if (typeof apply !== 'boolean') throw new Error('Thiếu chế độ kiểm tra/áp dụng.')
+    const service = await getHandoffService(root)
     return service.import(text, apply)
+  })
+  ipcMain.handle('aiCode:revert', async (event, backupPath: string) => {
+    check(event)
+    if (typeof backupPath !== 'string' || !backupPath.trim()) throw new Error('Thiếu đường dẫn sao lưu để hoàn tác.')
+    const service = await getHandoffService(root)
+    return service.revert(backupPath)
+  })
+  ipcMain.handle('aiCode:togglePreview', async (event, backupPath: string, mode: 'before' | 'after') => {
+    check(event)
+    if (typeof backupPath !== 'string' || !backupPath.trim()) throw new Error('Thiếu đường dẫn sao lưu.')
+    if (mode !== 'before' && mode !== 'after') throw new Error('Chế độ xem trước không hợp lệ.')
+    const service = await getHandoffService(root)
+    return service.togglePreview(backupPath, mode)
   })
 }

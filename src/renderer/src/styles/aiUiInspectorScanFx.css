@@ -105,6 +105,16 @@
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--scan-k) 22%, transparent), 0 0 18px color-mix(in srgb, var(--scan-k) 30%, transparent);
 }
 
+.ai-ui-scan-target.is-active:not(.is-primary) {
+  border-color: color-mix(in srgb, var(--scan-c) 80%, transparent);
+  background: color-mix(in srgb, var(--scan-c) 8%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--scan-c) 25%, transparent), 0 0 14px color-mix(in srgb, var(--scan-c) 25%, transparent);
+}
+
+.ai-ui-scan-target.is-active > .ai-ui-scan-corner {
+  --cc: var(--scan-c);
+}
+
 .ai-ui-scan-target.is-primary > .ai-ui-scan-corner {
   --cc: var(--scan-k);
   --cs: 12px;
@@ -250,6 +260,18 @@
   border-radius: var(--radius-sm, 4px);
   background: var(--scan-k);
   color: var(--on-key, #0f172a);
+  font-family: var(--font-mono, monospace);
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.ai-ui-scan-label-active {
+  flex: 0 0 auto;
+  padding: 1px 5px;
+  border-radius: var(--radius-sm, 4px);
+  background: var(--scan-c, var(--accent-cyan));
+  color: #04101e;
   font-family: var(--font-mono, monospace);
   font-size: 8.5px;
   font-weight: 800;

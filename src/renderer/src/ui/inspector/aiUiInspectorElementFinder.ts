@@ -17,6 +17,7 @@ import {
   probeTopmostAt,
   withInspectorOverlaysHidden
 } from './aiUiInspectorSurfaces'
+import { getElementInteractionScore } from './aiUiInspectorActiveFocus'
 
 /**
  * Tìm phần tử giao diện trong khung quét của AI UI Inspector.
@@ -236,18 +237,18 @@ function dedupeParentChild(matched: Element[], box: ScanBox): Element[] {
   })
 }
 
-/** Bỏ nút kích hoạt AI UI Inspector nếu khung quét đã có control mục tiêu rõ hơn. */
+/** Bỏ nút kích hoạt AI UI Inspector / Gói sửa UI nếu khung quét đã có control mục tiêu rõ hơn. */
 function dropInspectorTrigger(filtered: Element[], box: ScanBox): Element[] {
   if (filtered.length <= 1) return filtered
-  const trigger = filtered.find((el) => el.id === 'ai-ui-inspector-btn')
-  if (!trigger) return filtered
-  const aiOverlap = computeOverlapRatio(getVisibleElementRect(trigger), box)
+  const isTrigger = (el: Element) => el.id === 'ai-ui-inspector-btn' || el.id === 'ai-code-handoff-btn'
+  const triggers = filtered.filter(isTrigger)
+  if (triggers.length === 0) return filtered
   const hasBetter = filtered.some((o) => {
-    if (o === trigger) return false
+    if (isTrigger(o)) return false
     const or = getVisibleElementRect(o)
-    return isRectCenterInBox(or, box) || computeOverlapRatio(or, box) >= aiOverlap
+    return isRectCenterInBox(or, box) || triggers.some((t) => computeOverlapRatio(or, box) >= computeOverlapRatio(getVisibleElementRect(t), box))
   })
-  return hasBetter ? filtered.filter((el) => el !== trigger) : filtered
+  return hasBetter ? filtered.filter((el) => !isTrigger(el)) : filtered
 }
 
 /** Bộ phận sân khấu 2.5D: bỏ các mảnh nền khổng lồ chỉ sượt qua góc khung. */
@@ -291,6 +292,14 @@ function compareCandidates(a: Element, b: Element, box: ScanBox, topSurface: Ele
     const bTop = isInsideSurface(b, topSurface)
     if (aTop !== bTop) return aTop ? -1 : 1
   }
+
+  // Ưu tiên phần tử đang Focus hoặc Active (ví dụ: tab/nút đang chọn, input đang focus)
+  const scoreA = getElementInteractionScore(a)
+  const scoreB = getElementInteractionScore(b)
+  if (Math.abs(scoreA - scoreB) >= 20) {
+    return scoreB - scoreA
+  }
+
   if (box.width >= 36 && box.height >= 24) {
     if (a.matches?.('.wf-v2-card') && a.contains?.(b) && computeOverlapRatio(getVisibleElementRect(a), box) >= 0.62) return -1
     if (b.matches?.('.wf-v2-card') && b.contains?.(a) && computeOverlapRatio(getVisibleElementRect(b), box) >= 0.62) return 1

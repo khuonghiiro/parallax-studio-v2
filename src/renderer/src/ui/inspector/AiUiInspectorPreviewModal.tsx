@@ -310,6 +310,15 @@ export function AiUiInspectorPreviewModal({
                           <div className="ai-ui-element-main-title">
                             <strong>{displayTitle}</strong>
                             <span className="ai-ui-element-kind">{item.kindLabel}</span>
+                            {item.isPrimaryFocus && (
+                              <span className="ai-ui-status-pill selected" title="Tâm điểm chọn">Tâm điểm</span>
+                            )}
+                            {item.isFocused && (
+                              <span className="ai-ui-status-pill focus" title="Phần tử đang nhận Focus">Focus</span>
+                            )}
+                            {item.isActive && (
+                              <span className="ai-ui-status-pill active" title="Phần tử đang Active">Active</span>
+                            )}
                           </div>
                         </div>
 

@@ -1,0 +1,623 @@
+/* ==========================================================================
+   Camera Route Inspector - Waypoints Detail Panel & Controls
+   ========================================================================== */
+
+/* ------------------------------------------------------------------ Per-Waypoint Detail Panel */
+
+.active-wp-section {
+  background: var(--bg-1);
+  border: 1.5px solid color-mix(in srgb, var(--accent-cyan) 60%, var(--line));
+  border-radius: 6px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.wp-detail-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+}
+
+.wp-banner-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.wp-banner-time {
+  font-size: 11.5px;
+  font-weight: 800;
+  font-family: var(--mono);
+  color: var(--text);
+}
+
+.wp-active-shot {
+  font-size: 9.5px;
+  color: var(--text);
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: var(--bg-2);
+  border-left: 2.5px solid var(--accent-cyan);
+  max-width: 115px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wp-step-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* Priority Section 1: Timing & Duration Box */
+.priority-timing-box {
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg-2));
+  border: 1px solid color-mix(in srgb, var(--accent-cyan) 40%, var(--line));
+  border-radius: 5px;
+  padding: 7px !important;
+}
+
+.timing-hint-tag {
+  font-size: 8.5px;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: var(--bg-3);
+  color: var(--accent-cyan);
+}
+
+.timing-main-row {
+  margin-top: 2px;
+}
+
+.timing-field-card label {
+  font-size: 9.5px !important;
+  font-weight: 600;
+  color: var(--text) !important;
+  margin-bottom: 3px !important;
+}
+
+.input-prefix-box.highlight {
+  height: 26px;
+  background: var(--bg-1);
+  border-color: color-mix(in srgb, var(--accent-cyan) 50%, var(--line));
+}
+
+.input-prefix-box.highlight input {
+  font-weight: 700;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--accent-cyan);
+}
+
+.input-prefix-box .suffix {
+  font-size: 9.5px;
+  font-weight: 600;
+  color: var(--text-dim);
+  margin-left: 3px;
+}
+
+.quick-duration-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 3px;
+}
+
+.quick-dur-lbl {
+  font-size: 9px;
+  color: var(--text-dim);
+  margin-right: 2px;
+}
+
+.dur-chip {
+  flex: 1;
+  height: 19px;
+  padding: 0 4px;
+  border-radius: 3px;
+  border: 1px solid var(--line);
+  background: var(--bg-1);
+  color: var(--text-dim);
+  font-size: 9.5px;
+  font-family: var(--mono);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.dur-chip:hover {
+  border-color: var(--accent-cyan);
+  color: var(--text);
+}
+
+.dur-chip.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.wp-mode-current {
+  font-size: 9.5px;
+  color: var(--accent-cyan);
+  font-weight: 600;
+}
+
+/* Category Filter Tabs for 20 Professional Camera Action Modes */
+.cam-action-cat-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 3px;
+  padding: 2px;
+  border-radius: 5px;
+  background: var(--bg-0);
+  border: 1px solid var(--line);
+  margin-top: 2px;
+}
+
+.cam-action-cat-btn {
+  height: 22px;
+  padding: 0 3px;
+  border-radius: 3px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 8.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  transition: all 0.14s ease;
+}
+
+.cam-action-cat-btn:hover:not(.active) {
+  background: var(--bg-2);
+  color: var(--text);
+}
+
+.cam-action-cat-btn.active {
+  background: var(--accent);
+  border-color: var(--accent-cyan);
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+/* 20-Button Camera Action Mode Grid */
+.cam-action-mode-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  margin-top: 3px;
+}
+
+.cam-mode-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 5px 2px;
+  border-radius: 4px;
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.cam-mode-btn:hover:not(.active) {
+  background: var(--bg-3);
+  border-color: var(--line-focus);
+  color: var(--text);
+}
+
+.cam-mode-btn.active {
+  background: color-mix(in srgb, var(--accent) 32%, var(--bg-2));
+  border-color: var(--accent-cyan);
+  color: var(--text);
+  box-shadow:
+    0 0 8px color-mix(in srgb, var(--accent-cyan) 28%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--accent-cyan) 40%, transparent);
+}
+
+[data-theme='light'] .cam-mode-btn.active {
+  background: color-mix(in srgb, var(--accent) 18%, var(--bg-1));
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.cam-mode-btn .mode-ico {
+  font-size: 11px;
+  line-height: 1;
+}
+
+.cam-mode-btn .mode-lbl {
+  font-size: 9px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.row-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-bottom: 7px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.row-group:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.field-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.field-header label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.quick-align-strip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.mini-chip-btn {
+  height: 18px;
+  padding: 0 5px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+  color: var(--text-dim);
+  font-size: 9px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.mini-chip-btn:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+
+.target-selects-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.zoom-val {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  font-family: var(--mono);
+}
+
+.zoom-val-box {
+  display: inline-flex;
+  align-items: center;
+  background: var(--bg-0);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 1px 4px;
+  height: 20px;
+  transition: border-color 0.12s ease;
+}
+
+.zoom-val-box:focus-within {
+  border-color: var(--accent-cyan);
+}
+
+.zoom-number-input {
+  width: 48px;
+  height: 18px;
+  border: none;
+  background: transparent;
+  color: var(--accent-cyan);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  text-align: right;
+  padding: 0;
+  outline: none;
+  -moz-appearance: textfield;
+}
+
+.zoom-number-input::-webkit-outer-spin-button,
+.zoom-number-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.zoom-val-box .suffix {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  margin-left: 1px;
+}
+
+.angle-neutral-tag {
+  font-size: 9.5px;
+  color: var(--text-faint);
+  font-family: var(--mono);
+}
+
+/* 3D Angle Sliders Stack */
+.angle-sliders-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 2px 0;
+}
+
+.angle-slider-row {
+  display: grid;
+  grid-template-columns: 86px 1fr 34px;
+  align-items: center;
+  gap: 6px;
+}
+
+.angle-lbl {
+  font-size: 9.5px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.angle-num {
+  font-size: 9.5px;
+  font-family: var(--mono);
+  font-weight: 600;
+  color: var(--accent-cyan);
+  text-align: right;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.field-row label {
+  font-size: 9.5px;
+  color: var(--text-faint);
+  margin-bottom: 2px;
+  display: block;
+}
+
+.field-row input {
+  width: 100%;
+  height: 23px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 0 6px;
+  color: var(--text);
+  font-size: 10.5px;
+  box-sizing: border-box;
+}
+
+.field-row input:focus {
+  border-color: var(--accent-cyan);
+  outline: none;
+}
+
+.input-prefix-box {
+  display: flex;
+  align-items: center;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  height: 23px;
+  padding: 0 5px;
+}
+
+.input-prefix-box:focus-within {
+  border-color: var(--accent-cyan);
+}
+
+.input-prefix-box .prefix {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: var(--text-faint);
+  margin-right: 4px;
+}
+
+.input-prefix-box input {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 10.5px;
+  text-align: right;
+  height: 21px;
+  padding: 0;
+}
+
+.field-select-mt {
+  margin-top: 3px;
+}
+
+.field-slider {
+  display: flex;
+  align-items: center;
+  margin: 2px 0;
+}
+
+.zoom-range {
+  width: 100%;
+  height: 4px;
+  accent-color: var(--accent-cyan);
+  cursor: pointer;
+}
+
+.preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-top: 2px;
+}
+
+.preset-row.zoom-presets-6 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+}
+
+.preset-row.zoom-presets-6 .btn {
+  padding: 4px 6px;
+  font-size: 9.5px;
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.preset-row.zoom-presets-5 {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 3px;
+}
+
+.preset-row.zoom-presets-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+
+.preset-row .btn {
+  min-width: 0;
+  padding: 2px 3px;
+  font-size: 9px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+  justify-content: center;
+}
+
+.preset-row .btn.active {
+  background: color-mix(in srgb, var(--accent) 30%, var(--bg-2));
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+  font-weight: 600;
+}
+
+.route-insp-actions {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  margin-top: 2px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--line-soft);
+}
+
+.route-insp-actions .btn {
+  padding: 3px 4px;
+  font-size: 9.5px;
+  justify-content: center;
+}
+
+/* Starting Frame Info Card for Mốc #1 */
+.wp-start-frame-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--key) 10%, var(--bg-1));
+  border: 1px solid color-mix(in srgb, var(--key) 35%, var(--line));
+  margin-top: 2px;
+}
+
+.start-frame-badge {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--key);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.start-frame-desc {
+  font-size: 9.5px;
+  color: var(--text-dim);
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* Transition to next waypoint card */
+.next-wp-transition-card {
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg-1));
+  border: 1px solid color-mix(in srgb, var(--accent-cyan) 40%, var(--line));
+  margin-top: 6px;
+}
+
+.next-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.next-card-head .next-icon {
+  font-size: 16px;
+}
+
+.next-card-head .next-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.next-card-head .next-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.next-card-head .next-time {
+  font-size: 9.5px;
+  color: var(--accent-cyan);
+  font-family: var(--mono);
+}
+
+.next-wp-create-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--bg-1);
+  border: 1px dashed var(--line);
+  margin-top: 6px;
+}
+
+.create-prompt-head {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+

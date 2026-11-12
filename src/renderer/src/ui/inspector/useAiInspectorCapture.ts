@@ -3,7 +3,7 @@ import type { ScanBox } from './aiUiInspectorGeometry'
 
 /**
  * Bắt sự kiện chuột/phím cho AI UI Inspector:
- *  - Win + Shift (giữ) hoặc nút toolbar `#ai-ui-inspector-btn` → bật chế độ quét (armed).
+ *  - Win + Alt (giữ) hoặc nút toolbar `#ai-ui-inspector-btn` → bật chế độ quét (armed).
  *  - Giữ chuột trái + kéo → marquee; nhả chuột → `onFinish(box)`.
  *  - Esc → thoát chế độ quét / đóng xem trước.
  * Mọi listener gắn ở pha capture để chặn sự kiện lọt xuống app (tránh thao tác nhầm).
@@ -42,7 +42,7 @@ function closestMatch(target: EventTarget | null, selector: string): boolean {
 const isOwnControl = (t: EventTarget | null) => closestMatch(t, OWN_CONTROL_SELECTOR)
 const isTriggerBtn = (t: EventTarget | null) => closestMatch(t, '#ai-ui-inspector-btn')
 const isWinCtrl = (e: MouseEvent | KeyboardEvent) => e.ctrlKey && e.metaKey && !e.altKey && !e.shiftKey
-const isWinShift = (e: MouseEvent | KeyboardEvent) => e.shiftKey && e.metaKey && !e.altKey && !e.ctrlKey
+const isWinAlt = (e: MouseEvent | KeyboardEvent) => e.altKey && e.metaKey && !e.shiftKey && !e.ctrlKey
 
 function swallow(e: Event, prevent = true): void {
   if (prevent) e.preventDefault()
@@ -114,9 +114,9 @@ function createHandlers(ctx: CaptureCtx) {
     if (isTriggerBtn(e.target)) return swallow(e, false)
     if (isOwnControl(e.target)) return
     if (e.type === 'mousedown' && ctx.dragging.current) return swallow(e)
-    if ((isWinShift(e) || isWinCtrl(e) || ctx.armed.current) && e.button === 0) {
+    if ((isWinAlt(e) || isWinCtrl(e) || ctx.armed.current) && e.button === 0) {
       swallow(e)
-      if (!ctx.dragging.current && (isWinShift(e) || isWinCtrl(e))) {
+      if (!ctx.dragging.current && (isWinAlt(e) || isWinCtrl(e))) {
         ctx.mode.current = isWinCtrl(e) ? 'code' : 'context'
         ctx.setMode(ctx.mode.current)
       }
@@ -152,7 +152,7 @@ function createHandlers(ctx: CaptureCtx) {
   }
   const onKey = (e: KeyboardEvent) => {
     if (document.querySelector('.ai-code-handoff-modal')) return
-    if ((isWinShift(e) || isWinCtrl(e)) && !ctx.dragging.current) {
+    if ((isWinAlt(e) || isWinCtrl(e)) && !ctx.dragging.current) {
       swallow(e)
       arm(ctx, true, isWinCtrl(e) ? 'code' : 'context')
     }

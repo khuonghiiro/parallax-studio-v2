@@ -15,6 +15,7 @@ import {
 } from './inspector/AiUiInspectorHud'
 import { useAiInspectorCapture } from './inspector/useAiInspectorCapture'
 import { AiCodeHandoffModal } from './inspector/AiCodeHandoffModal'
+import { AiCodePreviewBar, type AiCodePreviewState } from './inspector/AiCodePreviewBar'
 import { exportSnapshotCode } from './inspector/aiCodeHandoffClient'
 import type { AiCaptureMode } from './inspector/useAiInspectorCapture'
 import type { ScanBox } from './inspector/aiUiInspectorGeometry'
@@ -66,7 +67,7 @@ function useToastReservedArea(): CalloutBox[] {
 }
 
 /**
- * AI UI Inspector — Win + Shift + kéo khung để quét vùng giao diện và copy ngữ cảnh code cho AI.
+ * AI UI Inspector — Win + Alt + kéo khung để quét vùng giao diện và copy ngữ cảnh code cho AI.
  */
 export function AiUiInspectorOverlay() {
   const [lastCaptured, setLastCaptured] = useState<{ snapshot: AiInspectorSnapshot; report: string; mode: AiCaptureMode } | null>(
@@ -81,6 +82,7 @@ export function AiUiInspectorOverlay() {
   const [waveId, setWaveId] = useState(0)
   const [showPreview, setShowPreview] = useState(false)
   const [held, setHeld] = useState(false)
+  const [previewApplied, setPreviewApplied] = useState<AiCodePreviewState | null>(null)
   const showPreviewRef = useRef(false)
   showPreviewRef.current = showPreview
   const hideTimerRef = useRef<number | null>(null)
@@ -104,7 +106,6 @@ export function AiUiInspectorOverlay() {
       const bundle = (event as CustomEvent<{ markdown: string; files: unknown[]; snapshot: AiInspectorSnapshot }>).detail
       exportSequence.current++
       clearHideTimer()
-      scheduleHide(RESULT_VISIBLE_MS)
       setHeld(false)
       setCodeReport(bundle.markdown)
       setCodeStatus(`${bundle.files.length} file · Gói được xuất qua MCP`)
@@ -114,9 +115,31 @@ export function AiUiInspectorOverlay() {
       setResultVisible(true)
       setWaveId((prev) => prev + 1)
     }
+    const onOpenCodeHandoff = () => {
+      clearHideTimer()
+      setResultVisible(false)
+      setShowPreview(false)
+      setCodeOpen(true)
+    }
     window.addEventListener('pxs:ai-code-bundle', onBundle)
-    return () => window.removeEventListener('pxs:ai-code-bundle', onBundle)
-  }, [clearHideTimer, scheduleHide])
+    window.addEventListener('pxs:open-ai-code-handoff', onOpenCodeHandoff)
+    return () => {
+      window.removeEventListener('pxs:ai-code-bundle', onBundle)
+      window.removeEventListener('pxs:open-ai-code-handoff', onOpenCodeHandoff)
+    }
+  }, [clearHideTimer])
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && resultVisible && !showPreview && !codeOpen) {
+        e.stopPropagation()
+        clearHideTimer()
+        setResultVisible(false)
+      }
+    }
+    window.addEventListener('keydown', onKeyDown, true)
+    return () => window.removeEventListener('keydown', onKeyDown, true)
+  }, [resultVisible, showPreview, codeOpen, clearHideTimer])
 
   useEffect(() => clearHideTimer, [clearHideTimer])
 
@@ -140,11 +163,11 @@ export function AiUiInspectorOverlay() {
           setCodeReport(bundle.markdown)
           const ok = await copyToClipboard(bundle.markdown)
           if (sequence !== exportSequence.current) return
-          scheduleHide(RESULT_VISIBLE_MS)
+          clearHideTimer()
           setCodeStatus(`${bundle.files.length} file · ${bundle.warnings.length} lưu ý · ${ok ? 'Đã sao chép Markdown' : 'Chưa sao chép được, hãy dùng nút Sao chép hoặc Lưu Markdown'}`)
         }).catch((error) => {
           if (sequence !== exportSequence.current) return
-          scheduleHide(RESULT_VISIBLE_MS)
+          clearHideTimer()
           setCodeStatus(`${String(error)} (${snapshot.elements.length} phần tử trong vùng ${Math.round(box.width)} × ${Math.round(box.height)}). Hãy kéo quanh một nút hoặc panel có nội dung.`)
         })
         return
@@ -183,7 +206,8 @@ export function AiUiInspectorOverlay() {
   return (
     <>
       {codeOpen && <AiCodeHandoffModal report={codeReport} status={codeStatus}
-        onClose={() => { setCodeOpen(false); setResultVisible(false) }} onCopy={copyToClipboard} />}
+        onClose={() => { setCodeOpen(false); setResultVisible(false) }} onCopy={copyToClipboard}
+        onPreviewApply={(state) => { setPreviewApplied(state); setCodeOpen(false); setResultVisible(false) }} />}
       {isModeActive && <AiUiScreenFrame mode={capture.mode} />}
       {isModeActive && <AiUiCrosshair mode={capture.mode} ref={crosshairRef} />}
       {isArmed && !isDragging && <AiUiArmHud mode={capture.mode} placement={capture.armHudPlacement} onClose={capture.disarm} />}
@@ -209,8 +233,11 @@ export function AiUiInspectorOverlay() {
           status={codeStatus}
           onHoverChange={(hovering) => {
             setHeld(hovering)
-            if (hovering) clearHideTimer()
-            else scheduleHide(4000)
+            if (hovering) {
+              clearHideTimer()
+            } else if (lastCaptured.mode !== 'code') {
+              scheduleHide(4000)
+            }
           }}
           onPreview={() => {
             clearHideTimer()
@@ -231,6 +258,15 @@ export function AiUiInspectorOverlay() {
           report={lastCaptured.report}
           onClose={() => setShowPreview(false)}
           onCopyMarkdown={copyToClipboard}
+        />
+      )}
+
+      {previewApplied && (
+        <AiCodePreviewBar
+          preview={previewApplied}
+          onAccept={() => setPreviewApplied(null)}
+          onRevert={() => setPreviewApplied(null)}
+          onOpenModal={() => setCodeOpen(true)}
         />
       )}
     </>

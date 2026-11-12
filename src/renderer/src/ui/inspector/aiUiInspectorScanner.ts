@@ -24,7 +24,7 @@ import type { ScanBox } from './aiUiInspectorGeometry'
 import type { ScannedSurfaceInfo } from './aiUiInspectorSurfaces'
 
 /**
- * AI UI Inspector — điểm vào quét vùng giao diện (Win + Shift + kéo khung).
+ * AI UI Inspector — điểm vào quét vùng giao diện (Win + Alt + kéo khung).
  * Module con:
  *  - `aiUiInspectorElementFinder.ts`  : tìm phần tử trong khung (phạm vi dialog/popup, hit-test che khuất).
  *  - `aiUiInspectorElementContext.ts` : ngữ cảnh từng phần tử (Fiber, JSX `data-ai-src`, CSS, bề mặt).
@@ -39,6 +39,10 @@ export { scanElementContext } from './aiUiInspectorElementContext'
 export type { LinkedTargetModule, ScannedControlDetails } from './aiUiInspectorControlMeta'
 export type { ScannedSceneEntityInfo, ScannedWorkflowNodeInfo } from './aiUiInspectorSceneAndWorkflowContext'
 export type { ScannedSurfaceInfo } from './aiUiInspectorSurfaces'
+export type { ScannedComputedSizing, InspectorViewportInfo } from './aiUiInspectorSizing'
+export type { ElementActiveFocusState } from './aiUiInspectorActiveFocus'
+import { rankAndDesignatePrimaryFocus } from './aiUiInspectorActiveFocus'
+import { getCurrentInspectorViewport } from './aiUiInspectorSizing'
 
 export interface ElementFiberInfo {
   componentName: string
@@ -60,6 +64,7 @@ export interface ScannedElementContext {
   mcpRegion: string | null
   mcpDialog: string | null
   bounds: { left: number; top: number; width: number; height: number }
+  computedSizing?: import('./aiUiInspectorSizing').ScannedComputedSizing | null
   part25D?: Scanned25DPartInfo | null
   bone25D?: Scanned25DBoneInfo | null
   sceneEntity?: ScannedSceneEntityInfo | null
@@ -68,6 +73,11 @@ export interface ScannedElementContext {
   controlDetails?: ScannedControlDetails | null
   linkedTarget?: LinkedTargetModule | null
   isPrimaryFocus?: boolean
+  isFocused?: boolean
+  isActive?: boolean
+  focusReason?: string | null
+  activeReason?: string | null
+  activeStateLabel?: string | null
   /** file:dòng JSX CHÍNH XÁC đã render phần tử (thuộc tính `data-ai-src`, chỉ có khi dev) */
   sourceLocation?: string | null
   /** File CSS + dòng định nghĩa class của phần tử, ví dụ `src/renderer/src/styles/toolbar.css:42 (.tb-btn)` */
@@ -94,6 +104,7 @@ export interface AiInspectorSnapshot {
     activeDialog: string | null
     theme: string
   }
+  viewport?: import('./aiUiInspectorSizing').InspectorViewportInfo
 }
 
 /**
@@ -209,15 +220,14 @@ export function captureAiInspectorSnapshot(box: ScanBox, maxElements?: number): 
   // Layer / Cụm 2.5D trong Khung nhìn 3D (#viewer-canvas) qua cầu nối WebGL Raycast & 3D Projection
   scanned = enrichScannedWithViewerSceneHits(editor.project, box, scanned, Boolean(findActiveDialog(document)))
   mergeWorkshopParts(scanned, workshopContext, box)
-  scanned.forEach((item, idx) => {
-    item.isPrimaryFocus = idx === 0
-  })
+  scanned = rankAndDesignatePrimaryFocus(scanned)
 
   return {
     rect: roundBox(box),
     elements: scanned,
     primaryRegion: resolvePrimaryRegion(scanned, workshopContext),
     workshopContext,
-    appState: buildAppState(resolveActiveDialogIdentifier(workshopContext?.workshopType, elements))
+    appState: buildAppState(resolveActiveDialogIdentifier(workshopContext?.workshopType, elements)),
+    viewport: getCurrentInspectorViewport()
   }
 }

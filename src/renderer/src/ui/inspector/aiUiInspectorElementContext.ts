@@ -18,6 +18,8 @@ import {
 } from './aiUiInspectorSceneAndWorkflowContext'
 import { getVisibleElementRect } from './aiUiInspectorGeometry'
 import { resolveElementSurface } from './aiUiInspectorSurfaces'
+import { extractComputedSizing } from './aiUiInspectorSizing'
+import { detectElementActiveFocus } from './aiUiInspectorActiveFocus'
 import {
   buildShortDomPath,
   findCssSourcesForClasses,
@@ -229,6 +231,7 @@ export function scanElementContext(el: Element): ScannedElementContext {
   const effectiveId =
     el.id || sceneEntity?.layerId || (isV2Card ? workflowNode?.nodeId : null) || layerAttrId || boneAttrId || ''
   const linkedTarget = resolveLinkedTargetModule(effectiveId, classes, primaryHandler, mcpRegion)
+  const activeFocus = detectElementActiveFocus(el, { sceneEntity, part25D, bone25D })
 
   return {
     element: el,
@@ -249,6 +252,10 @@ export function scanElementContext(el: Element): ScannedElementContext {
       width: Math.round(rawRect.width),
       height: Math.round(rawRect.height)
     },
+    computedSizing: extractComputedSizing(el, {
+      width: Math.round(rawRect.width),
+      height: Math.round(rawRect.height)
+    }),
     part25D,
     bone25D,
     sceneEntity,
@@ -256,6 +263,11 @@ export function scanElementContext(el: Element): ScannedElementContext {
     ownerComponentName,
     controlDetails,
     linkedTarget,
+    isFocused: activeFocus.isFocused,
+    isActive: activeFocus.isActive,
+    focusReason: activeFocus.focusReason,
+    activeReason: activeFocus.activeReason,
+    activeStateLabel: activeFocus.activeStateLabel,
     sourceLocation: readDomSourceLocation(el)?.ref || null,
     cssSources: findCssSourcesForClasses(classes),
     surface: resolveElementSurface(el),

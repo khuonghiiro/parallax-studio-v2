@@ -16,16 +16,16 @@ describe('aiUiInspectorScanner', () => {
 
   beforeEach(() => {
     originalDocument = (globalThis as any).document
-    ;(globalThis as any).document = {
-      elementFromPoint: vi.fn(),
-      getElementById: vi.fn().mockReturnValue(null),
-      querySelector: vi.fn().mockReturnValue(null),
-      querySelectorAll: vi.fn().mockReturnValue([])
-    }
+      ; (globalThis as any).document = {
+        elementFromPoint: vi.fn(),
+        getElementById: vi.fn().mockReturnValue(null),
+        querySelector: vi.fn().mockReturnValue(null),
+        querySelectorAll: vi.fn().mockReturnValue([])
+      }
   })
 
   afterEach(() => {
-    ;(globalThis as any).document = originalDocument
+    ; (globalThis as any).document = originalDocument
     useView.setState({ dialog: null })
   })
 
@@ -42,7 +42,7 @@ describe('aiUiInspectorScanner', () => {
     const elWithFiber = {
       tagName: 'BUTTON',
       __reactFiber$xyz: {
-        type: function MenuItem() {},
+        type: function MenuItem() { },
         _debugSource: { fileName: 'src/renderer/src/ui/Toolbar.tsx', lineNumber: 120 },
         memoizedProps: {
           onClick: () => setDialog('layer_assembly')
@@ -69,21 +69,21 @@ describe('aiUiInspectorScanner', () => {
     }
 
     const exportDialogFiber = {
-      type: function ExportDialog() {},
+      type: function ExportDialog() { },
       _debugSource: { fileName: 'src/renderer/src/ui/App.tsx', lineNumber: 247 },
       memoizedProps: {},
       return: null
     }
 
     const rowFiber = {
-      type: function Row() {},
+      type: function Row() { },
       _debugSource: { fileName: 'src/renderer/src/ui/ExportDialog.tsx', lineNumber: 134 },
       memoizedProps: { label: 'Độ phân giải' },
       return: exportDialogFiber
     }
 
     const customSelectFiber = {
-      type: function CustomSelect() {},
+      type: function CustomSelect() { },
       _debugSource: { fileName: 'src/renderer/src/ui/ExportDialog.tsx', lineNumber: 135 },
       memoizedProps: {
         value: 1080,
@@ -202,10 +202,10 @@ describe('aiUiInspectorScanner', () => {
       })
     } as unknown as Element
 
-    ;(globalThis as any).document.querySelectorAll = vi.fn().mockImplementation((sel: string) => {
-      if (sel.includes('button')) return [aiInspectorBtn, remoteQrBtn]
-      return []
-    })
+      ; (globalThis as any).document.querySelectorAll = vi.fn().mockImplementation((sel: string) => {
+        if (sel.includes('button')) return [aiInspectorBtn, remoteQrBtn]
+        return []
+      })
 
     const found = findElementsInBox({ left: 1572, top: 3, width: 34, height: 36 })
     expect(found).toEqual([remoteQrBtn])
@@ -265,10 +265,10 @@ describe('aiUiInspectorScanner', () => {
       })
     } as unknown as Element
 
-    ;(globalThis as any).document.querySelectorAll = vi.fn().mockImplementation((sel: string) => {
-      if (sel.includes('button')) return [scrolledMemberBtn, tabNodePropsBtn]
-      return []
-    })
+      ; (globalThis as any).document.querySelectorAll = vi.fn().mockImplementation((sel: string) => {
+        if (sel.includes('button')) return [scrolledMemberBtn, tabNodePropsBtn]
+        return []
+      })
 
     const found = findElementsInBox({ left: 1532, top: 916, width: 382, height: 41 })
     expect(found).toEqual([tabNodePropsBtn])
@@ -333,12 +333,12 @@ describe('aiUiInspectorScanner', () => {
       })
     } as unknown as Element
 
-    ;(globalThis as any).document.querySelectorAll = vi.fn().mockImplementation((sel: string) => {
-      if (sel.includes('.wf-v2-direct-layer-bbox')) {
-        return [outerSectionEl, backgroundStageLayerEl, focusedBboxEl]
-      }
-      return []
-    })
+      ; (globalThis as any).document.querySelectorAll = vi.fn().mockImplementation((sel: string) => {
+        if (sel.includes('.wf-v2-direct-layer-bbox')) {
+          return [outerSectionEl, backgroundStageLayerEl, focusedBboxEl]
+        }
+        return []
+      })
 
     const found = findElementsInBox({ left: 1205, top: 344, width: 712, height: 369 })
     expect(found).toEqual([focusedBboxEl])
@@ -422,14 +422,14 @@ describe('aiUiInspectorScanner', () => {
       })
     } as unknown as Element
 
-    ;(globalThis as any).document.getElementById = vi.fn().mockImplementation((id: string) => {
-      if (id === 'viewer-canvas') return viewerCanvas
-      return null
-    })
-    ;(globalThis as any).document.querySelectorAll = vi.fn().mockImplementation((sel: string) => {
-      if (sel.includes('canvas')) return [viewerCanvas, peripheralToolBtn]
-      return []
-    })
+      ; (globalThis as any).document.getElementById = vi.fn().mockImplementation((id: string) => {
+        if (id === 'viewer-canvas') return viewerCanvas
+        return null
+      })
+      ; (globalThis as any).document.querySelectorAll = vi.fn().mockImplementation((sel: string) => {
+        if (sel.includes('canvas')) return [viewerCanvas, peripheralToolBtn]
+        return []
+      })
 
     const snap = captureAiInspectorSnapshot({ left: 342, top: 31, width: 1157, height: 749 })
     expect(snap.primaryRegion).toBe('viewer_canvas')
@@ -557,17 +557,17 @@ describe('aiUiInspectorScanner', () => {
     } as unknown as Element
 
     let callCount = 0
-    ;(globalThis as any).document.elementFromPoint = vi.fn().mockImplementation(() => {
-      callCount++
-      return callCount === 1 ? mockBarrier : mockButton
-    })
+      ; (globalThis as any).document.elementFromPoint = vi.fn().mockImplementation(() => {
+        callCount++
+        return callCount === 1 ? mockBarrier : mockButton
+      })
 
     const found = findElementsInBox({ left: 10, top: 10, width: 2, height: 2 })
     expect(found.length).toBe(1)
     expect(found[0]).toBe(mockButton)
 
-    // Marquee: hit-test không xác định (null) → không loại phần tử nào vì che khuất
-    ;(globalThis as any).document.elementFromPoint = vi.fn().mockReturnValue(null)
+      // Marquee: hit-test không xác định (null) → không loại phần tử nào vì che khuất
+      ; (globalThis as any).document.elementFromPoint = vi.fn().mockReturnValue(null)
 
     const popupMenuItem = {
       tagName: 'BUTTON',
@@ -601,10 +601,10 @@ describe('aiUiInspectorScanner', () => {
       querySelectorAll: vi.fn().mockReturnValue([popupMenuItem])
     } as unknown as Element
 
-    ;(globalThis as any).document.querySelectorAll = vi.fn().mockImplementation((sel: string) => {
-      if (sel.includes('.menu[role="menu"]')) return [openPopupMenu]
-      return []
-    })
+      ; (globalThis as any).document.querySelectorAll = vi.fn().mockImplementation((sel: string) => {
+        if (sel.includes('.menu[role="menu"]')) return [openPopupMenu]
+        return []
+      })
 
     const popupFound = findElementsInBox({ left: 105, top: 55, width: 180, height: 60 })
     expect(popupFound).toEqual([popupMenuItem])
@@ -708,12 +708,12 @@ describe('aiUiInspectorScanner', () => {
       getBoundingClientRect: () => ({ left: 600, top: 780, right: 820, bottom: 870, width: 220, height: 90 })
     } as unknown as Element
 
-    ;(globalThis as any).document.querySelectorAll = vi.fn().mockImplementation((sel: string) => {
-      if (sel.includes('.wf-v2-card') || sel.includes('button')) {
-        return [nodeCard, collapseBtn, toggleBtn, timeBtn]
-      }
-      return []
-    })
+      ; (globalThis as any).document.querySelectorAll = vi.fn().mockImplementation((sel: string) => {
+        if (sel.includes('.wf-v2-card') || sel.includes('button')) {
+          return [nodeCard, collapseBtn, toggleBtn, timeBtn]
+        }
+        return []
+      })
 
     const found = findElementsInBox({ left: 679, top: 803, width: 188, height: 74 })
     // A partial scan targets its controls; scanning the whole card still targets the card.
@@ -764,5 +764,130 @@ describe('aiUiInspectorScanner', () => {
     expect(md).toContain('**"Nút Thu gọn mảnh phụ (−)"** (Nút bấm thao tác) — `<button class="wf-v2-icon-btn">`')
     expect(md).toContain('"Thời lượng Node (0.0–15.0s)"')
     expect(md).toContain('"Công tắc Khóa Cụm 2.5D (🔒 Đang Khóa)"')
+  })
+
+  it('renders computed sizing and viewport responsive details in markdown', () => {
+    const el = {
+      tagName: 'BUTTON',
+      classList: ['btn', 'btn-primary'],
+      getBoundingClientRect: () => ({ left: 100, top: 100, width: 200, height: 40 }),
+      getAttribute: vi.fn().mockReturnValue(null)
+    } as unknown as Element
+
+    const ctx = scanElementContext(el)
+    ctx.computedSizing = {
+      fontSize: '22px',
+      fontSizePx: 22,
+      lineHeight: '28px',
+      fontWeight: '600',
+      width: 200,
+      height: 40,
+      boxSizing: 'border-box',
+      display: 'inline-flex',
+      padding: '8px 16px',
+      gap: '8px',
+      parentTagName: 'div',
+      parentWidth: 600,
+      parentHeight: 300,
+      widthPercentOfParent: 33,
+      isTouchCompliant: true,
+      warnings: ['⚠️ Cỡ chữ 22px quá lớn đối với control/nội dung giao diện (dễ gây thô và phá vỡ bố cục).'],
+      recommendations: [
+        'Nút / Control: font-size 12–14px, min-height ≥36px (khuyến nghị 40px), padding 6px 12px, gap ≥6px',
+        'Responsive: dùng % / auto / minmax(320px, 1fr) / clamp() thay vì gán width cứng px lớn; tuân thủ 4 breakpoints'
+      ]
+    }
+
+    const md = formatAiInspectorMarkdown({
+      rect: { left: 100, top: 100, width: 200, height: 40 },
+      primaryRegion: 'toolbar',
+      elements: [ctx],
+      workshopContext: null,
+      appState: {
+        shotName: 'Shot 1',
+        shotIndex: 1,
+        currentTime: 0,
+        duration: 10,
+        fps: 30,
+        isPlaying: false,
+        selectedLayerNames: [],
+        activeDialog: null,
+        theme: 'dark'
+      },
+      viewport: {
+        width: 1920,
+        height: 1080,
+        breakpoint: 'desktop',
+        breakpointLabel: '🖥️ Desktop (>1366px)'
+      }
+    })
+
+    expect(md).toContain('📱 **Thiết bị & Khung nhìn:** 1920 × 1080px | 🖥️ Desktop (>1366px)')
+    expect(md).toContain('Kích thước & Typography thực tế:')
+    expect(md).toContain('`22px`')
+    expect(md).toContain('Cỡ chữ 22px quá lớn')
+    expect(md).toContain('Quy chuẩn kích thước & Responsive an toàn:')
+    expect(md).toContain('Nút / Control: font-size 12–14px')
+  })
+
+  it('correctly distinguishes and highlights active vs focused elements in jump table and elements list', () => {
+    const defaultRect = () => ({ left: 0, top: 0, width: 80, height: 36 })
+
+    const elInactive = {
+      tagName: 'BUTTON',
+      classList: ['btn'],
+      getAttribute: vi.fn().mockReturnValue(null),
+      getBoundingClientRect: defaultRect
+    } as unknown as Element
+
+    const elActive = {
+      tagName: 'BUTTON',
+      classList: ['btn', 'active'],
+      getAttribute: vi.fn().mockImplementation((a) => (a === 'aria-selected' ? 'true' : null)),
+      getBoundingClientRect: defaultRect
+    } as unknown as Element
+
+    const elFocused = {
+      tagName: 'INPUT',
+      classList: ['input-field'],
+      getAttribute: vi.fn().mockReturnValue(null),
+      getBoundingClientRect: defaultRect
+    } as unknown as Element
+
+    const ctxInactive = scanElementContext(elInactive)
+    ctxInactive.text = 'Tab Thư Viện'
+
+    const ctxActive = scanElementContext(elActive)
+    ctxActive.text = 'Tab Lắp Ráp'
+
+    const ctxFocused = scanElementContext(elFocused)
+    ctxFocused.text = 'Ô Tìm Kiếm'
+    ctxFocused.isFocused = true
+    ctxFocused.activeStateLabel = '🎯 Đang Focus'
+
+    const md = formatAiInspectorMarkdown({
+      rect: { left: 0, top: 0, width: 300, height: 100 },
+      primaryRegion: 'left_tabs',
+      elements: [ctxActive, ctxFocused, ctxInactive],
+      workshopContext: null,
+      appState: {
+        shotName: 'Shot 1',
+        shotIndex: 1,
+        currentTime: 0,
+        duration: 10,
+        fps: 30,
+        isPlaying: false,
+        selectedLayerNames: [],
+        activeDialog: null,
+        theme: 'dark'
+      }
+    })
+
+    // Jump table should show badges
+    expect(md).toContain('[ACTIVE]')
+    expect(md).toContain('[FOCUS]')
+    // Focus section or element list
+    expect(md).toContain('⭐ **Đang Active**')
+    expect(md).toContain('🔍 **Đang Focus**')
   })
 })
