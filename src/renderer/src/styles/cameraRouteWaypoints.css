@@ -524,18 +524,29 @@
 
 .route-insp-actions {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 4px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
   margin-top: 2px;
   padding-top: 6px;
   border-top: 1px dashed var(--line-soft);
 }
 
+
 .route-insp-actions .btn {
-  padding: 3px 4px;
-  font-size: 9.5px;
+  height: 36px;
+  min-height: 36px;
+  padding: 0 8px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
   justify-content: center;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
+
 
 /* Starting Frame Info Card for Mốc #1 */
 .wp-start-frame-card {
