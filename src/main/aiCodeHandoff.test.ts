@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { existsSync } from 'fs'
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'fs/promises'
 import { tmpdir } from 'os'
 import { join } from 'path'
@@ -172,5 +173,53 @@ describe('AI code handoff', () => {
       }]
     }
     await expect(service.import(JSON.stringify(reply), true)).rejects.toThrow('File vượt 1000 dòng')
+  })
+  it('reverts applied changes back to exact original content', async () => {
+    const initialContent = 'export const Value = 42\n'
+    await put(source, initialContent)
+    const { reply } = await response()
+    const importRes = await service.import(reply, true)
+    expect(importRes.applied).toBe(true)
+    expect(importRes.backupPath).toBeTruthy()
+    expect(await readFile(join(root, source), 'utf8')).not.toBe(initialContent)
+
+    const revertRes = await service.revert(importRes.backupPath)
+    expect(revertRes.reverted).toBe(true)
+    expect(revertRes.files).toContain(source)
+    expect(await readFile(join(root, source), 'utf8')).toBe(initialContent)
+  })
+  it('reverting split CSS removes newly created part files', async () => {
+    const cssPath = 'src/renderer/src/styles/oversized2.css'
+    const initialCss = '.initial-two { color: green; }'
+    await put(cssPath, initialCss)
+    const bundle = await service.export([{ path: cssPath, line: 1, classes: ['initial-two'] }], '')
+    const file = bundle.files.find((f) => f.path === cssPath)!
+
+    const bigCssLines: string[] = []
+    for (let i = 0; i < 300; i++) {
+      bigCssLines.push(`.rule-${i} { color: red; }`)
+      bigCssLines.push(`.rule-${i}-hover { opacity: 0.8; }`)
+      bigCssLines.push(`.rule-${i}-active { transform: scale(1.1); }`)
+      bigCssLines.push('')
+    }
+    const reply = {
+      version: 2,
+      bundleId: bundle.id,
+      files: [{
+        path: cssPath,
+        baseHash: file.hash,
+        edits: [{ id: file.snippets![0].id, content: bigCssLines.join('\n') }]
+      }]
+    }
+
+    const importRes = await service.import(JSON.stringify(reply), true)
+    expect(importRes.applied).toBe(true)
+    const partPath = importRes.files.find((p) => p.includes('oversized2-part'))!
+    expect(existsSync(join(root, partPath))).toBe(true)
+
+    const revertRes = await service.revert(importRes.backupPath)
+    expect(revertRes.reverted).toBe(true)
+    expect(await readFile(join(root, cssPath), 'utf8')).toBe(initialCss)
+    expect(existsSync(join(root, partPath))).toBe(false)
   })
 })

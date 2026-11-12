@@ -36,4 +36,10 @@ export function registerAiCodeHandoffIpc(): void {
     const service = await getHandoffService(root)
     return service.import(text, apply)
   })
+  ipcMain.handle('aiCode:revert', async (event, backupPath: string) => {
+    check(event)
+    if (typeof backupPath !== 'string' || !backupPath.trim()) throw new Error('Thiếu đường dẫn sao lưu để hoàn tác.')
+    const service = await getHandoffService(root)
+    return service.revert(backupPath)
+  })
 }

@@ -27,7 +27,8 @@ g.addEventListener?.('load', enforceZoom100)
 const api: ParallaxApi = {
   aiCode: {
     export: (paths, report) => ipcRenderer.invoke('aiCode:export', paths, report),
-    import: (text, apply) => ipcRenderer.invoke('aiCode:import', text, apply)
+    import: (text, apply) => ipcRenderer.invoke('aiCode:import', text, apply),
+    revert: (backupPath) => ipcRenderer.invoke('aiCode:revert', backupPath)
   },
   openFiles: (kind) => ipcRenderer.invoke('files:open', kind),
   saveProject: (data, suggestedPath) => ipcRenderer.invoke('project:save', data, suggestedPath),

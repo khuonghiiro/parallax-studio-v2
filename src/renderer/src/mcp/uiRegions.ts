@@ -43,6 +43,7 @@ const region = (name: string, ...classes: string[]): string[] => [`[data-mcp-reg
 
 export const UI_REGION_SELECTORS: Record<string, string[]> = {
   ai_code_handoff: ['.ai-code-handoff-modal'],
+  ai_code_preview_bar: ['.ai-code-preview-bar'],
   timeline_batch_timing: ['.tl-batch-timing'],
   viewer_stage2d_tools: ['.anim2d-toolbar'],
   viewer_route: ['#anim2d-filmstrip', '.filmstrip-collapsed-toggle'],

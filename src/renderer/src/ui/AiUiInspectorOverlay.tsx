@@ -15,6 +15,7 @@ import {
 } from './inspector/AiUiInspectorHud'
 import { useAiInspectorCapture } from './inspector/useAiInspectorCapture'
 import { AiCodeHandoffModal } from './inspector/AiCodeHandoffModal'
+import { AiCodePreviewBar, type AiCodePreviewState } from './inspector/AiCodePreviewBar'
 import { exportSnapshotCode } from './inspector/aiCodeHandoffClient'
 import type { AiCaptureMode } from './inspector/useAiInspectorCapture'
 import type { ScanBox } from './inspector/aiUiInspectorGeometry'
@@ -81,6 +82,7 @@ export function AiUiInspectorOverlay() {
   const [waveId, setWaveId] = useState(0)
   const [showPreview, setShowPreview] = useState(false)
   const [held, setHeld] = useState(false)
+  const [previewApplied, setPreviewApplied] = useState<AiCodePreviewState | null>(null)
   const showPreviewRef = useRef(false)
   showPreviewRef.current = showPreview
   const hideTimerRef = useRef<number | null>(null)
@@ -204,7 +206,8 @@ export function AiUiInspectorOverlay() {
   return (
     <>
       {codeOpen && <AiCodeHandoffModal report={codeReport} status={codeStatus}
-        onClose={() => { setCodeOpen(false); setResultVisible(false) }} onCopy={copyToClipboard} />}
+        onClose={() => { setCodeOpen(false); setResultVisible(false) }} onCopy={copyToClipboard}
+        onPreviewApply={(state) => { setPreviewApplied(state); setCodeOpen(false); setResultVisible(false) }} />}
       {isModeActive && <AiUiScreenFrame mode={capture.mode} />}
       {isModeActive && <AiUiCrosshair mode={capture.mode} ref={crosshairRef} />}
       {isArmed && !isDragging && <AiUiArmHud mode={capture.mode} placement={capture.armHudPlacement} onClose={capture.disarm} />}
@@ -255,6 +258,14 @@ export function AiUiInspectorOverlay() {
           report={lastCaptured.report}
           onClose={() => setShowPreview(false)}
           onCopyMarkdown={copyToClipboard}
+        />
+      )}
+
+      {previewApplied && (
+        <AiCodePreviewBar
+          preview={previewApplied}
+          onAccept={() => setPreviewApplied(null)}
+          onRevert={() => setPreviewApplied(null)}
         />
       )}
     </>

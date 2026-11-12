@@ -28,7 +28,13 @@ export interface AiCodeImportResult {
   applied: boolean
 }
 
+export interface AiCodeRevertResult {
+  files: string[]
+  reverted: boolean
+}
+
 export interface AiCodeHandoffApi {
   export: (targets: AiCodeTarget[], report: string) => Promise<AiCodeBundle>
   import: (text: string, apply: boolean) => Promise<AiCodeImportResult>
+  revert: (backupPath: string) => Promise<AiCodeRevertResult>
 }
