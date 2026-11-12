@@ -33,8 +33,16 @@ export interface AiCodeRevertResult {
   reverted: boolean
 }
 
+export type AiCodePreviewMode = 'before' | 'after'
+
+export interface AiCodeTogglePreviewResult {
+  mode: AiCodePreviewMode
+  files: string[]
+}
+
 export interface AiCodeHandoffApi {
   export: (targets: AiCodeTarget[], report: string) => Promise<AiCodeBundle>
   import: (text: string, apply: boolean) => Promise<AiCodeImportResult>
   revert: (backupPath: string) => Promise<AiCodeRevertResult>
+  togglePreview: (backupPath: string, mode: AiCodePreviewMode) => Promise<AiCodeTogglePreviewResult>
 }

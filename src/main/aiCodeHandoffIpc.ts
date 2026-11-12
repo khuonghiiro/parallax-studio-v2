@@ -42,4 +42,11 @@ export function registerAiCodeHandoffIpc(): void {
     const service = await getHandoffService(root)
     return service.revert(backupPath)
   })
+  ipcMain.handle('aiCode:togglePreview', async (event, backupPath: string, mode: 'before' | 'after') => {
+    check(event)
+    if (typeof backupPath !== 'string' || !backupPath.trim()) throw new Error('Thiếu đường dẫn sao lưu.')
+    if (mode !== 'before' && mode !== 'after') throw new Error('Chế độ xem trước không hợp lệ.')
+    const service = await getHandoffService(root)
+    return service.togglePreview(backupPath, mode)
+  })
 }

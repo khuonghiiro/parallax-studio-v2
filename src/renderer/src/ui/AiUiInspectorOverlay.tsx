@@ -67,7 +67,7 @@ function useToastReservedArea(): CalloutBox[] {
 }
 
 /**
- * AI UI Inspector — Win + Shift + kéo khung để quét vùng giao diện và copy ngữ cảnh code cho AI.
+ * AI UI Inspector — Win + Alt + kéo khung để quét vùng giao diện và copy ngữ cảnh code cho AI.
  */
 export function AiUiInspectorOverlay() {
   const [lastCaptured, setLastCaptured] = useState<{ snapshot: AiInspectorSnapshot; report: string; mode: AiCaptureMode } | null>(
@@ -266,6 +266,7 @@ export function AiUiInspectorOverlay() {
           preview={previewApplied}
           onAccept={() => setPreviewApplied(null)}
           onRevert={() => setPreviewApplied(null)}
+          onOpenModal={() => setCodeOpen(true)}
         />
       )}
     </>

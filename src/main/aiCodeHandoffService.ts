@@ -4,7 +4,7 @@ import { randomUUID } from 'crypto'
 import { transform } from 'esbuild'
 import { hashSource, safeSourcePath, safeNewSourcePath } from './aiCodeHandoffFiles'
 import { handoffMarkdown } from './aiCodeHandoffMarkdown'
-import type { AiCodeBundle, AiCodeFile, AiCodeImportResult, AiCodeRevertResult, AiCodeTarget } from '../shared/aiCodeHandoff'
+import type { AiCodeBundle, AiCodeFile, AiCodeImportResult, AiCodePreviewMode, AiCodeRevertResult, AiCodeTarget, AiCodeTogglePreviewResult } from '../shared/aiCodeHandoff'
 
 import { collectCompactSources } from './aiCodeCompactCollector'
 import { parseCodeReply, reconstructSource } from './aiCodeHandoffReply'
@@ -90,12 +90,22 @@ export class AiCodeHandoffService {
   private async writeChanges(changes: { path: string; full: string; before: string; after: string }[], backup: string) {
     // Back up the entire batch before touching any source file.
     await mkdir(backup, { recursive: true })
+    const beforeDir = join(backup, 'before')
+    const afterDir = join(backup, 'after')
+    await mkdir(beforeDir, { recursive: true })
+    await mkdir(afterDir, { recursive: true })
     for (const file of changes) {
       if (file.before) {
         const dest = join(backup, file.path)
+        const destBefore = join(beforeDir, file.path)
         await mkdir(dirname(dest), { recursive: true })
+        await mkdir(dirname(destBefore), { recursive: true })
         await writeFile(dest, file.before, 'utf8')
+        await writeFile(destBefore, file.before, 'utf8')
       }
+      const destAfter = join(afterDir, file.path)
+      await mkdir(dirname(destAfter), { recursive: true })
+      await writeFile(destAfter, file.after, 'utf8')
     }
     const manifest = {
       version: 1,
@@ -138,6 +148,62 @@ export class AiCodeHandoffService {
       }
       throw new Error(`${String(error)}. Bản sao: ${backup}${failures.length ? `. Khôi phục thủ công: ${failures.join(', ')}` : '. Đã hoàn tác các file đã ghi.'}`)
     }
+  }
+
+  async togglePreview(backupPath: string, mode: AiCodePreviewMode): Promise<AiCodeTogglePreviewResult> {
+    if (this.busy) throw new Error('Đang thực hiện một thao tác khác.')
+    this.busy = true
+    try { return await this.togglePreviewUnlocked(backupPath, mode) } finally { this.busy = false }
+  }
+
+  private async togglePreviewUnlocked(backupPath: string, mode: AiCodePreviewMode): Promise<AiCodeTogglePreviewResult> {
+    if (typeof backupPath !== 'string' || !backupPath.trim()) throw new Error('Đường dẫn sao lưu không hợp lệ.')
+    const resolvedBackup = resolve(backupPath)
+    const resolvedStorage = resolve(this.storage)
+    if (!resolvedBackup.startsWith(resolvedStorage) || resolvedBackup === resolvedStorage) {
+      throw new Error('Đường dẫn sao lưu không an toàn.')
+    }
+    const manifestPath = join(resolvedBackup, 'manifest.json')
+    const manifest = JSON.parse(await readFile(manifestPath, 'utf8')) as {
+      root: string
+      files: { path: string; isNew: boolean }[]
+    }
+    if (manifest.root !== this.root) throw new Error('Bản sao lưu thuộc repository khác.')
+    const appliedFiles: string[] = []
+    for (const file of manifest.files) {
+      if (mode === 'before') {
+        if (file.isNew) {
+          const full = await safeNewSourcePath(this.root, file.path)
+          await unlink(full).catch(() => undefined)
+          appliedFiles.push(file.path)
+        } else {
+          const full = await safeSourcePath(this.root, file.path)
+          let originalContent = ''
+          try {
+            originalContent = await readFile(join(resolvedBackup, 'before', file.path), 'utf8')
+          } catch {
+            originalContent = await readFile(join(resolvedBackup, file.path), 'utf8')
+          }
+          const temp = `${full}.${randomUUID()}.tmp`
+          try {
+            await writeFile(temp, originalContent, { flag: 'wx' })
+            await rename(temp, full)
+            appliedFiles.push(file.path)
+          } finally { await unlink(temp).catch(() => undefined) }
+        }
+      } else {
+        const full = file.isNew ? await safeNewSourcePath(this.root, file.path) : await safeSourcePath(this.root, file.path)
+        await mkdir(dirname(full), { recursive: true })
+        const modifiedContent = await readFile(join(resolvedBackup, 'after', file.path), 'utf8')
+        const temp = `${full}.${randomUUID()}.tmp`
+        try {
+          await writeFile(temp, modifiedContent, { flag: 'wx' })
+          await rename(temp, full)
+          appliedFiles.push(file.path)
+        } finally { await unlink(temp).catch(() => undefined) }
+      }
+    }
+    return { mode, files: appliedFiles }
   }
 
   async revert(backupPath: string): Promise<AiCodeRevertResult> {

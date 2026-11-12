@@ -41,7 +41,7 @@ export function AiUiArmHud({ placement, onClose, mode = 'context' }: { placement
       <IconAiScan width={15} height={15} className="ai-ui-inspector-arm-icon" />
       <span className="ai-ui-inspector-arm-title">{mode === 'code' ? 'GÓI SỬA UI · CSS/JSX/JS' : 'NGỮ CẢNH UI · VỊ TRÍ CODE'}</span>
       <span className="ai-ui-inspector-arm-desc">{mode === 'code' ? 'Kéo vùng → mã + quy tắc để gửi AI' : 'Kéo vùng → thông tin UI cho AI'}</span>
-      <kbd>{mode === 'code' ? 'Win+Ctrl' : 'Win+Shift'}</kbd>
+      <kbd>{mode === 'code' ? 'Win+Ctrl' : 'Win+Alt'}</kbd>
       <kbd>Esc</kbd>
       <button
         type="button"

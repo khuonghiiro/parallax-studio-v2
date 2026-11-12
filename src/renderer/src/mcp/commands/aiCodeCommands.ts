@@ -23,5 +23,13 @@ export const aiCodeCommands: Record<string, Handler> = {
     const backupPath = str(p, 'backupPath')
     if (!backupPath) throw new ParamError('Thiếu backupPath để hoàn tác.')
     return window.api.aiCode.revert(backupPath)
+  },
+  toggle_ui_preview: async (p) => {
+    if (!window.api?.aiCode) throw new ParamError('Xuất/nhập code chỉ dùng trên app phát triển cục bộ.')
+    const backupPath = str(p, 'backupPath')
+    const mode = str(p, 'mode') as 'before' | 'after'
+    if (!backupPath) throw new ParamError('Thiếu backupPath.')
+    if (mode !== 'before' && mode !== 'after') throw new ParamError('Chế độ xem trước phải là "before" hoặc "after".')
+    return window.api.aiCode.togglePreview(backupPath, mode)
   }
 }

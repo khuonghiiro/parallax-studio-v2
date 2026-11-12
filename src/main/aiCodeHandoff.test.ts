@@ -222,4 +222,23 @@ describe('AI code handoff', () => {
     expect(await readFile(join(root, cssPath), 'utf8')).toBe(initialCss)
     expect(existsSync(join(root, partPath))).toBe(false)
   })
+  it('toggles preview live back and forth between before (original) and after (modified)', async () => {
+    const initialContent = 'export const Step = 1\n'
+    await put(source, initialContent)
+    const { reply } = await response()
+    const importRes = await service.import(reply, true)
+    expect(importRes.applied).toBe(true)
+    const modifiedContent = await readFile(join(root, source), 'utf8')
+    expect(modifiedContent).not.toBe(initialContent)
+
+    // Chuyển sang "Trước (gốc)"
+    const beforeRes = await service.togglePreview(importRes.backupPath, 'before')
+    expect(beforeRes.mode).toBe('before')
+    expect(await readFile(join(root, source), 'utf8')).toBe(initialContent)
+
+    // Chuyển lại sang "Sau (sửa)"
+    const afterRes = await service.togglePreview(importRes.backupPath, 'after')
+    expect(afterRes.mode).toBe('after')
+    expect(await readFile(join(root, source), 'utf8')).toBe(modifiedContent)
+  })
 })

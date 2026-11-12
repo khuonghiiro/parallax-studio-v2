@@ -28,7 +28,8 @@ const api: ParallaxApi = {
   aiCode: {
     export: (paths, report) => ipcRenderer.invoke('aiCode:export', paths, report),
     import: (text, apply) => ipcRenderer.invoke('aiCode:import', text, apply),
-    revert: (backupPath) => ipcRenderer.invoke('aiCode:revert', backupPath)
+    revert: (backupPath) => ipcRenderer.invoke('aiCode:revert', backupPath),
+    togglePreview: (backupPath, mode) => ipcRenderer.invoke('aiCode:togglePreview', backupPath, mode)
   },
   openFiles: (kind) => ipcRenderer.invoke('files:open', kind),
   saveProject: (data, suggestedPath) => ipcRenderer.invoke('project:save', data, suggestedPath),

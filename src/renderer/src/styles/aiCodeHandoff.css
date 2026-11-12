@@ -107,6 +107,43 @@
   text-overflow: ellipsis;
 }
 
+/* Cụm nút chuyển đổi Trước / Sau */
+.ai-code-preview-toggle-group {
+  display: inline-flex;
+  align-items: center;
+  background: var(--bg-0, #090d16);
+  border: 1px solid var(--line, #334155);
+  border-radius: var(--radius-sm, 4px);
+  padding: 2px;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.ai-code-preview-toggle-btn {
+  min-height: 32px;
+  padding: 4px 12px;
+  font-size: 11.5px;
+  font-weight: 650;
+  border: none;
+  border-radius: var(--radius-sm, 4px);
+  background: transparent;
+  color: var(--text-dim, #94a3b8);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.ai-code-preview-toggle-btn:hover:not(:disabled) {
+  color: var(--text, #ffffff);
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg-2));
+}
+
+.ai-code-preview-toggle-btn.active {
+  background: var(--accent);
+  color: var(--on-accent, #ffffff);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
 .ai-code-preview-bar-btn {
   flex: 0 0 auto;
   min-height: 36px !important;

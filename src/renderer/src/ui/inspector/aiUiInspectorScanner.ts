@@ -24,7 +24,7 @@ import type { ScanBox } from './aiUiInspectorGeometry'
 import type { ScannedSurfaceInfo } from './aiUiInspectorSurfaces'
 
 /**
- * AI UI Inspector — điểm vào quét vùng giao diện (Win + Shift + kéo khung).
+ * AI UI Inspector — điểm vào quét vùng giao diện (Win + Alt + kéo khung).
  * Module con:
  *  - `aiUiInspectorElementFinder.ts`  : tìm phần tử trong khung (phạm vi dialog/popup, hit-test che khuất).
  *  - `aiUiInspectorElementContext.ts` : ngữ cảnh từng phần tử (Fiber, JSX `data-ai-src`, CSS, bề mặt).
