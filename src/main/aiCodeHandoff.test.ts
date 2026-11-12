@@ -119,4 +119,58 @@ describe('AI code handoff', () => {
     expect(bundle.warnings.join(' ')).toContain('chưa đưa vào')
     expect(bundle.files.some((f) => f.path === source)).toBe(true)
   })
+  it('automatically splits oversized CSS files into main and part files upon import', async () => {
+    const cssPath = 'src/renderer/src/styles/oversized.css'
+    await put(cssPath, '.initial { color: blue; }')
+    const bundle = await service.export([{ path: cssPath, line: 1, classes: ['initial'] }], '')
+    const file = bundle.files.find((f) => f.path === cssPath)!
+
+    const bigCssLines: string[] = []
+    for (let i = 0; i < 300; i++) {
+      bigCssLines.push(`.rule-${i} { color: red; }`)
+      bigCssLines.push(`.rule-${i}-hover { opacity: 0.8; }`)
+      bigCssLines.push(`.rule-${i}-active { transform: scale(1.1); }`)
+      bigCssLines.push('')
+    }
+    const bigCss = bigCssLines.join('\n')
+    const reply = {
+      version: 2,
+      bundleId: bundle.id,
+      files: [{
+        path: cssPath,
+        baseHash: file.hash,
+        edits: [{ id: file.snippets![0].id, content: bigCss }]
+      }]
+    }
+
+    const result = await service.import(JSON.stringify(reply), true)
+    expect(result.applied).toBe(true)
+    expect(result.files).toContain(cssPath)
+    expect(result.files.some((p) => p.includes('oversized-part'))).toBe(true)
+
+    const mainContent = await readFile(join(root, cssPath), 'utf8')
+    expect(mainContent.split('\n').length).toBeLessThanOrEqual(1000)
+    expect(mainContent).toContain('@import')
+
+    const partPath = result.files.find((p) => p.includes('oversized-part'))!
+    const partContent = await readFile(join(root, partPath), 'utf8')
+    expect(partContent.length).toBeGreaterThan(0)
+  })
+  it('still rejects non-CSS files exceeding 1000 lines', async () => {
+    const tsxPath = 'src/renderer/src/BigComponent.tsx'
+    await put(tsxPath, 'export const Big = () => <div>Big</div>\n')
+    const bundle = await service.export([{ path: tsxPath, line: 1 }], '')
+    const file = bundle.files.find((f) => f.path === tsxPath)!
+    const hugeTsx = Array.from({ length: 1050 }, (_, i) => `// comment ${i}`).join('\n') + '\nexport const Big = () => <div>Big</div>\n'
+    const reply = {
+      version: 2,
+      bundleId: bundle.id,
+      files: [{
+        path: tsxPath,
+        baseHash: file.hash,
+        edits: [{ id: file.snippets![0].id, content: hugeTsx }]
+      }]
+    }
+    await expect(service.import(JSON.stringify(reply), true)).rejects.toThrow('File vượt 1000 dòng')
+  })
 })

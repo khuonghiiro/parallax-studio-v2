@@ -2,12 +2,13 @@ import { mkdir, readFile, writeFile, rename, unlink } from 'fs/promises'
 import { join, dirname } from 'path'
 import { randomUUID } from 'crypto'
 import { transform } from 'esbuild'
-import { hashSource, safeSourcePath } from './aiCodeHandoffFiles'
+import { hashSource, safeSourcePath, safeNewSourcePath } from './aiCodeHandoffFiles'
 import { handoffMarkdown } from './aiCodeHandoffMarkdown'
 import type { AiCodeBundle, AiCodeFile, AiCodeImportResult, AiCodeTarget } from '../shared/aiCodeHandoff'
 
 import { collectCompactSources } from './aiCodeCompactCollector'
 import { parseCodeReply, reconstructSource } from './aiCodeHandoffReply'
+import { splitOversizedCss } from './aiCodeCssSplitter'
 export { parseCodeReply } from './aiCodeHandoffReply'
 
 export class AiCodeHandoffService {
@@ -53,11 +54,31 @@ export class AiCodeHandoffService {
       const before = await readFile(full, 'utf8')
       if (hashSource(before) !== original.hash) throw new Error(`File đã thay đổi sau khi xuất: ${file.path}. Hãy quét lại.`)
       const after = reconstructSource(original, file, reply.version)
-      if (after.split('\n').length > 1000) throw new Error(`File vượt 1000 dòng: ${file.path}`)
+      const lineCount = after.split('\n').length
       const extension = file.path.split('.').pop()!
+      const isCss = extension === 'css'
+      if (lineCount > 1000 && !isCss) throw new Error(`File vượt 1000 dòng: ${file.path}`)
       const loader = extension === 'mjs' ? 'js' : extension as 'ts' | 'tsx' | 'js' | 'jsx' | 'css'
-      await transform(after, { loader, sourcefile: file.path, logLevel: 'silent' })
-      if (before !== after) changes.push({ path: file.path, full, before, after })
+      // Tự động tách CSS vượt 1000 dòng thành file gốc + file(s) phụ
+      if (lineCount > 1000 && isCss) {
+        const splitResult = splitOversizedCss(file.path, after)
+        if (!splitResult) throw new Error(`File vượt 1000 dòng: ${file.path}`)
+        await transform(splitResult.main, { loader: 'css', sourcefile: file.path, logLevel: 'silent' })
+        if (before !== splitResult.main) changes.push({ path: file.path, full, before, after: splitResult.main })
+        for (const part of splitResult.parts) {
+          const partFull = await safeNewSourcePath(this.root, part.path)
+          await transform(part.content, { loader: 'css', sourcefile: part.path, logLevel: 'silent' })
+          // File phụ mới — đọc before nếu đã tồn tại, hoặc '' nếu chưa
+          let partBefore = ''
+          try { partBefore = await readFile(partFull, 'utf8') } catch { /* file mới */ }
+          if (partBefore !== part.content) {
+            changes.push({ path: part.path, full: partFull, before: partBefore, after: part.content })
+          }
+        }
+      } else {
+        await transform(after, { loader, sourcefile: file.path, logLevel: 'silent' })
+        if (before !== after) changes.push({ path: file.path, full, before, after })
+      }
     }
     if (!changes.length) throw new Error('Không có nội dung thay đổi.')
     if (!apply) return { files: changes.map((f) => f.path), backupPath: '', applied: false }
@@ -69,15 +90,24 @@ export class AiCodeHandoffService {
   private async writeChanges(changes: { path: string; full: string; before: string; after: string }[], backup: string) {
     // Back up the entire batch before touching any source file.
     for (const file of changes) {
-      const dest = join(backup, file.path)
-      await mkdir(dirname(dest), { recursive: true })
-      await writeFile(dest, file.before, 'utf8')
+      if (file.before) {
+        const dest = join(backup, file.path)
+        await mkdir(dirname(dest), { recursive: true })
+        await writeFile(dest, file.before, 'utf8')
+      }
     }
     const written: typeof changes = []
     try {
       for (const file of changes) {
-        await safeSourcePath(this.root, file.path)
-        if (await readFile(file.full, 'utf8') !== file.before) throw new Error(`File vừa thay đổi: ${file.path}`)
+        const isNewFile = file.before === ''
+        if (!isNewFile) {
+          await safeSourcePath(this.root, file.path)
+          if (await readFile(file.full, 'utf8') !== file.before) throw new Error(`File vừa thay đổi: ${file.path}`)
+        } else {
+          // File phụ mới — kiểm tra đường dẫn an toàn và tạo thư mục cha nếu cần
+          await safeNewSourcePath(this.root, file.path)
+          await mkdir(dirname(file.full), { recursive: true })
+        }
         const temp = `${file.full}.${randomUUID()}.tmp`
         try {
           await writeFile(temp, file.after, { flag: 'wx' })
@@ -90,7 +120,12 @@ export class AiCodeHandoffService {
       for (const file of written.reverse()) {
         try {
           if (await readFile(file.full, 'utf8') !== file.after) throw new Error('Có thay đổi đồng thời')
-          await writeFile(file.full, file.before, 'utf8')
+          if (file.before === '') {
+            // File phụ mới — xóa khi rollback
+            await unlink(file.full)
+          } else {
+            await writeFile(file.full, file.before, 'utf8')
+          }
         } catch { failures.push(file.path) }
       }
       throw new Error(`${String(error)}. Bản sao: ${backup}${failures.length ? `. Khôi phục thủ công: ${failures.join(', ')}` : '. Đã hoàn tác các file đã ghi.'}`)
