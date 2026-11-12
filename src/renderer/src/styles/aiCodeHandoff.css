@@ -60,18 +60,21 @@
   bottom: 18px;
   left: 50%;
   transform: translateX(-50%);
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 12px;
-  max-width: min(720px, calc(100vw - 32px));
-  padding: 10px 16px;
-  background: color-mix(in srgb, var(--bg-1, #111827) 92%, transparent);
-  border: 1.5px solid var(--accent-cyan, #22d3ee);
+  justify-content: space-between;
+  gap: 16px;
+  width: max-content;
+  min-width: min(740px, calc(100vw - 32px));
+  max-width: min(1120px, calc(100vw - 32px));
+  padding: 8px 16px;
+  background: color-mix(in srgb, var(--bg-1, #111827) 94%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--accent-cyan, #22d3ee) 60%, var(--line));
   border-radius: var(--radius-md, 6px);
   box-shadow:
-    0 -4px 24px rgba(2, 6, 23, 0.45),
-    0 0 28px color-mix(in srgb, var(--accent-cyan, #22d3ee) 22%, transparent);
-  backdrop-filter: blur(14px) saturate(1.3);
+    0 8px 32px rgba(2, 6, 23, 0.55),
+    0 0 24px color-mix(in srgb, var(--accent-cyan, #22d3ee) 20%, transparent);
+  backdrop-filter: blur(16px) saturate(1.4);
   color: var(--text, #f8fafc);
   font-size: 13px;
   pointer-events: auto;
@@ -83,6 +86,9 @@
   font-size: 20px;
   line-height: 1;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .ai-code-preview-bar-info {
@@ -90,21 +96,31 @@
   flex-direction: column;
   gap: 2px;
   min-width: 0;
-  flex: 1;
+  flex: 1 1 auto;
 }
 
 .ai-code-preview-bar-info strong {
-  font-size: 13px;
+  font-size: 13.5px;
   color: var(--accent-cyan, #22d3ee);
   font-weight: 700;
+  white-space: nowrap;
+  letter-spacing: -0.01em;
 }
 
 .ai-code-preview-bar-files {
-  font-size: 11px;
+  font-size: 11.5px;
   color: var(--text-dim, #94a3b8);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.ai-code-preview-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  margin-left: auto;
 }
 
 /* Cụm nút chuyển đổi Trước / Sau */
@@ -120,7 +136,7 @@
 }
 
 .ai-code-preview-toggle-btn {
-  min-height: 32px;
+  min-height: 30px;
   padding: 4px 12px;
   font-size: 11.5px;
   font-weight: 650;
@@ -146,8 +162,8 @@
 
 .ai-code-preview-bar-btn {
   flex: 0 0 auto;
-  min-height: 36px !important;
-  padding: 6px 14px !important;
+  min-height: 32px !important;
+  padding: 4px 14px !important;
   font-size: 12px !important;
   font-weight: 650;
   border-radius: var(--radius-sm, 4px) !important;
@@ -156,7 +172,7 @@
 }
 
 .ai-code-preview-bar-btn.revert {
-  border-color: var(--key, #f59e0b) !important;
+  border-color: color-mix(in srgb, var(--key, #f59e0b) 60%, var(--line)) !important;
   color: var(--key, #f59e0b) !important;
   background: color-mix(in srgb, var(--key, #f59e0b) 10%, var(--bg-2)) !important;
 }
@@ -166,11 +182,11 @@
 }
 
 .ai-code-preview-bar-btn.accept {
-  min-height: 36px !important;
+  min-height: 32px !important;
 }
 
 [data-theme='light'] .ai-code-preview-bar {
-  box-shadow: 0 -4px 20px rgba(15, 23, 42, 0.14),
+  box-shadow: 0 6px 24px rgba(15, 23, 42, 0.14),
     0 0 18px color-mix(in srgb, var(--accent-cyan, #22d3ee) 15%, transparent);
 }
 
@@ -182,11 +198,38 @@
 @media (max-width: 768px) {
   .ai-code-preview-bar {
     bottom: 8px;
-    flex-wrap: wrap;
+    flex-direction: column;
+    align-items: stretch;
+    width: calc(100vw - 16px);
+    min-width: 0;
     max-width: calc(100vw - 16px);
-    padding: 8px 12px;
+    padding: 10px 12px;
     gap: 8px;
   }
-  .ai-code-preview-bar-info { flex-basis: 100%; }
-  .ai-code-preview-bar-btn { flex: 1; }
+  .ai-code-preview-bar-info {
+    width: 100%;
+  }
+  .ai-code-preview-bar-info strong {
+    white-space: normal;
+  }
+  .ai-code-preview-bar-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    width: 100%;
+    margin-left: 0;
+  }
+  .ai-code-preview-toggle-group {
+    grid-column: span 2;
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .ai-code-preview-toggle-btn {
+    text-align: center;
+    justify-content: center;
+  }
+  .ai-code-preview-bar-btn {
+    flex: 1;
+  }
 }

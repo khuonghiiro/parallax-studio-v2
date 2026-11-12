@@ -85,62 +85,64 @@ export function AiCodePreviewBar({ preview, onAccept, onRevert, onOpenModal }: {
         </span>
       </div>
 
-      {/* Cụm nút chuyển đổi Trước / Sau */}
-      <div className="ai-code-preview-toggle-group" role="group" aria-label="Chuyển đổi giao diện Trước và Sau">
+      <div className="ai-code-preview-bar-actions">
+        {/* Cụm nút chuyển đổi Trước / Sau */}
+        <div className="ai-code-preview-toggle-group" role="group" aria-label="Chuyển đổi giao diện Trước và Sau">
+          <button
+            type="button"
+            className={`ai-code-preview-toggle-btn${mode === 'before' ? ' active' : ''}`}
+            disabled={busy}
+            onClick={() => void handleToggle('before')}
+            title="Chuyển giao diện về Bản gốc (Trước khi sửa)"
+            aria-pressed={mode === 'before'}
+          >
+            ◀ Trước (Gốc)
+          </button>
+          <button
+            type="button"
+            className={`ai-code-preview-toggle-btn${mode === 'after' ? ' active' : ''}`}
+            disabled={busy}
+            onClick={() => void handleToggle('after')}
+            title="Chuyển giao diện sang Bản sửa (Sau khi sửa)"
+            aria-pressed={mode === 'after'}
+          >
+            ▶ Sau (Sửa)
+          </button>
+        </div>
+
+        {onOpenModal && (
+          <button
+            type="button"
+            className="btn ghost ai-code-preview-bar-btn"
+            disabled={busy}
+            onClick={onOpenModal}
+            title="Mở lại hộp thoại gói sửa UI"
+          >
+            〈/〉 Gói mã
+          </button>
+        )}
+
         <button
           type="button"
-          className={`ai-code-preview-toggle-btn${mode === 'before' ? ' active' : ''}`}
+          className="btn ghost ai-code-preview-bar-btn revert"
           disabled={busy}
-          onClick={() => void handleToggle('before')}
-          title="Chuyển giao diện về Bản gốc (Trước khi sửa)"
-          aria-pressed={mode === 'before'}
+          onClick={() => void handleRevert()}
+          title="Hoàn tác tất cả thay đổi về bản gốc (Esc)"
+          aria-label="Hoàn tác về bản gốc"
         >
-          ◀ Trước (Gốc)
+          ↩ Hoàn tác
         </button>
         <button
           type="button"
-          className={`ai-code-preview-toggle-btn${mode === 'after' ? ' active' : ''}`}
+          className="btn primary ai-code-preview-bar-btn accept"
           disabled={busy}
-          onClick={() => void handleToggle('after')}
-          title="Chuyển giao diện sang Bản sửa (Sau khi sửa)"
-          aria-pressed={mode === 'after'}
+          onClick={onAccept}
+          title="Giữ lại bản sửa UI này"
+          aria-label="Giữ bản sửa này"
         >
-          ▶ Sau (Sửa)
+          ✅ Giữ bản sửa
         </button>
       </div>
-
-      {onOpenModal && (
-        <button
-          type="button"
-          className="btn ghost ai-code-preview-bar-btn"
-          disabled={busy}
-          onClick={onOpenModal}
-          title="Mở lại hộp thoại gói sửa UI"
-        >
-          〈/〉 Gói mã
-        </button>
-      )}
-
-      <button
-        type="button"
-        className="btn ghost ai-code-preview-bar-btn revert"
-        disabled={busy}
-        onClick={() => void handleRevert()}
-        title="Hoàn tác tất cả thay đổi về bản gốc (Esc)"
-        aria-label="Hoàn tác về bản gốc"
-      >
-        ↩ Hoàn tác
-      </button>
-      <button
-        type="button"
-        className="btn primary ai-code-preview-bar-btn accept"
-        disabled={busy}
-        onClick={onAccept}
-        title="Giữ lại bản sửa UI này"
-        aria-label="Giữ bản sửa này"
-      >
-        ✅ Giữ bản sửa
-      </button>
     </div>
   )
 }
