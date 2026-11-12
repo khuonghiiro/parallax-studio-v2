@@ -1,5 +1,5 @@
 import { resolve } from 'path'
-import { defineConfig } from 'electron-vite'
+import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
 import react from '@vitejs/plugin-react'
 import { aiSourceBabelOptions } from './scripts/vite/aiSourceLocatorBabel.mjs'
 
@@ -14,9 +14,11 @@ function rendererReactPlugin(command: 'build' | 'serve') {
 
 export default defineConfig(({ command }) => ({
   main: {
+    plugins: [externalizeDepsPlugin({ include: ['esbuild'] })],
     resolve: { alias: { '@shared': resolve('src/shared') } }
   },
   preload: {
+    plugins: [externalizeDepsPlugin()],
     resolve: { alias: { '@shared': resolve('src/shared') } }
   },
   renderer: {
