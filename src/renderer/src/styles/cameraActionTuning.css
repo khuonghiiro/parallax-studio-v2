@@ -10,8 +10,9 @@
 }
 
 .route-waypoints-stack {
-  max-height: 116px !important;
+  max-height: clamp(138px, 25vh, 238px);
 }
+
 
 .cam-action-mode-grid {
   max-height: 106px;
