@@ -93,6 +93,18 @@ function formatFocusDetails(focusItem: ScannedElementContext, lines: string[]): 
   }
   const specsLine = formatControlSpecsLine(focusItem)
   if (specsLine) lines.push(`- **Thông số & trạng thái Control:** ${specsLine}`)
+  if (focusItem.computedSizing) {
+    const cs = focusItem.computedSizing
+    const parentInfo = cs.parentWidth ? ` · Container: ${code(`${cs.parentWidth}px`)} (${cs.widthPercentOfParent}% cha)` : ''
+    lines.push(
+      `- 📏 **Kích thước & Typography thực tế:** Font: ${code(cs.fontSize)} (${code(cs.fontWeight)}, line-height: ${code(cs.lineHeight)}) · Kích thước: ${code(`${cs.width} × ${cs.height}px`)}${parentInfo} · Display: ${code(cs.display)}`
+    )
+    for (const w of cs.warnings) lines.push(`  * ${w}`)
+    if (cs.recommendations.length > 0) {
+      lines.push(`- 📐 **Quy chuẩn kích thước & Responsive an toàn:**`)
+      for (const r of cs.recommendations) lines.push(`  * ${r}`)
+    }
+  }
   if (focusItem.primaryHandler) lines.push(`- **Hàm xử lý chính:** ${code(focusItem.primaryHandler)}`)
   if (focusItem.linkedTarget) {
     const lt = focusItem.linkedTarget
@@ -239,6 +251,13 @@ function formatElementStyleLines(item: ScannedElementContext, rawHeading: string
     const selPart = item.controlDetails?.targetSelector ? `Selector: ${code(item.controlDetails.targetSelector)} · ` : ''
     const clsPart = item.classes.length > 0 ? `Classes: ${code(item.classes.slice(0, 5).join(' '))}` : ''
     lines.push(`   - 🎨 **CSS / Định danh:** ${selPart}${clsPart}`)
+  }
+  if (item.computedSizing) {
+    const cs = item.computedSizing
+    const pStr = cs.widthPercentOfParent ? ` (${cs.widthPercentOfParent}% cha)` : ''
+    const touchNote = cs.isTouchCompliant ? '' : ' · ⚠️ Vùng bấm <36px'
+    lines.push(`   - 📏 **Kích thước:** Font: ${code(cs.fontSize)} · Box: ${code(`${cs.width}×${cs.height}px`)}${pStr}${touchNote}`)
+    for (const w of cs.warnings) lines.push(`     * ${w}`)
   }
   if (item.cssSources?.length) lines.push(`   - 🖌️ **File CSS:** ${codeList(item.cssSources)}`)
   if (item.domPath) lines.push(`   - 🧭 **DOM path:** ${code(item.domPath)}`)

@@ -765,4 +765,68 @@ describe('aiUiInspectorScanner', () => {
     expect(md).toContain('"Thời lượng Node (0.0–15.0s)"')
     expect(md).toContain('"Công tắc Khóa Cụm 2.5D (🔒 Đang Khóa)"')
   })
+
+  it('renders computed sizing and viewport responsive details in markdown', () => {
+    const el = {
+      tagName: 'BUTTON',
+      classList: ['btn', 'btn-primary'],
+      getBoundingClientRect: () => ({ left: 100, top: 100, width: 200, height: 40 }),
+      getAttribute: vi.fn().mockReturnValue(null)
+    } as unknown as Element
+
+    const ctx = scanElementContext(el)
+    ctx.computedSizing = {
+      fontSize: '22px',
+      fontSizePx: 22,
+      lineHeight: '28px',
+      fontWeight: '600',
+      width: 200,
+      height: 40,
+      boxSizing: 'border-box',
+      display: 'inline-flex',
+      padding: '8px 16px',
+      gap: '8px',
+      parentTagName: 'div',
+      parentWidth: 600,
+      parentHeight: 300,
+      widthPercentOfParent: 33,
+      isTouchCompliant: true,
+      warnings: ['⚠️ Cỡ chữ 22px quá lớn đối với control/nội dung giao diện (dễ gây thô và phá vỡ bố cục).'],
+      recommendations: [
+        'Nút / Control: font-size 12–14px, min-height ≥36px (khuyến nghị 40px), padding 6px 12px, gap ≥6px',
+        'Responsive: dùng % / auto / minmax(320px, 1fr) / clamp() thay vì gán width cứng px lớn; tuân thủ 4 breakpoints'
+      ]
+    }
+
+    const md = formatAiInspectorMarkdown({
+      rect: { left: 100, top: 100, width: 200, height: 40 },
+      primaryRegion: 'toolbar',
+      elements: [ctx],
+      workshopContext: null,
+      appState: {
+        shotName: 'Shot 1',
+        shotIndex: 1,
+        currentTime: 0,
+        duration: 10,
+        fps: 30,
+        isPlaying: false,
+        selectedLayerNames: [],
+        activeDialog: null,
+        theme: 'dark'
+      },
+      viewport: {
+        width: 1920,
+        height: 1080,
+        breakpoint: 'desktop',
+        breakpointLabel: '🖥️ Desktop (>1366px)'
+      }
+    })
+
+    expect(md).toContain('📱 **Thiết bị & Khung nhìn:** 1920 × 1080px | 🖥️ Desktop (>1366px)')
+    expect(md).toContain('Kích thước & Typography thực tế:')
+    expect(md).toContain('`22px`')
+    expect(md).toContain('Cỡ chữ 22px quá lớn')
+    expect(md).toContain('Quy chuẩn kích thước & Responsive an toàn:')
+    expect(md).toContain('Nút / Control: font-size 12–14px')
+  })
 })

@@ -18,6 +18,7 @@ import {
 } from './aiUiInspectorSceneAndWorkflowContext'
 import { getVisibleElementRect } from './aiUiInspectorGeometry'
 import { resolveElementSurface } from './aiUiInspectorSurfaces'
+import { extractComputedSizing } from './aiUiInspectorSizing'
 import {
   buildShortDomPath,
   findCssSourcesForClasses,
@@ -249,6 +250,10 @@ export function scanElementContext(el: Element): ScannedElementContext {
       width: Math.round(rawRect.width),
       height: Math.round(rawRect.height)
     },
+    computedSizing: extractComputedSizing(el, {
+      width: Math.round(rawRect.width),
+      height: Math.round(rawRect.height)
+    }),
     part25D,
     bone25D,
     sceneEntity,

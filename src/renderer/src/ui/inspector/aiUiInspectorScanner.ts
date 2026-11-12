@@ -39,6 +39,8 @@ export { scanElementContext } from './aiUiInspectorElementContext'
 export type { LinkedTargetModule, ScannedControlDetails } from './aiUiInspectorControlMeta'
 export type { ScannedSceneEntityInfo, ScannedWorkflowNodeInfo } from './aiUiInspectorSceneAndWorkflowContext'
 export type { ScannedSurfaceInfo } from './aiUiInspectorSurfaces'
+export type { ScannedComputedSizing, InspectorViewportInfo } from './aiUiInspectorSizing'
+import { getCurrentInspectorViewport } from './aiUiInspectorSizing'
 
 export interface ElementFiberInfo {
   componentName: string
@@ -60,6 +62,7 @@ export interface ScannedElementContext {
   mcpRegion: string | null
   mcpDialog: string | null
   bounds: { left: number; top: number; width: number; height: number }
+  computedSizing?: import('./aiUiInspectorSizing').ScannedComputedSizing | null
   part25D?: Scanned25DPartInfo | null
   bone25D?: Scanned25DBoneInfo | null
   sceneEntity?: ScannedSceneEntityInfo | null
@@ -94,6 +97,7 @@ export interface AiInspectorSnapshot {
     activeDialog: string | null
     theme: string
   }
+  viewport?: import('./aiUiInspectorSizing').InspectorViewportInfo
 }
 
 /**
@@ -218,6 +222,7 @@ export function captureAiInspectorSnapshot(box: ScanBox, maxElements?: number): 
     elements: scanned,
     primaryRegion: resolvePrimaryRegion(scanned, workshopContext),
     workshopContext,
-    appState: buildAppState(resolveActiveDialogIdentifier(workshopContext?.workshopType, elements))
+    appState: buildAppState(resolveActiveDialogIdentifier(workshopContext?.workshopType, elements)),
+    viewport: getCurrentInspectorViewport()
   }
 }

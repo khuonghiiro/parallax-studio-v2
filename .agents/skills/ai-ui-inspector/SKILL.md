@@ -15,9 +15,10 @@ không đọc dò luồng xử lý tốn token. Quy chuẩn gốc: [`AGENTS.md` 
    `data-ai-src` do Babel plugin dev chèn). Mở bằng `read_file` với `StartLine/EndLine` quanh dòng đó (±30 dòng).
 2. `Component / Call-site` = component nghiệp vụ sở hữu control (đã vượt qua primitive `ui/controls/*`). Sửa logic ở đây.
 3. Cột `CSS` = file + dòng định nghĩa class → sửa giao diện tại đó (giữ quy chuẩn Dual-Theme).
-4. `🪟 Bề mặt` cho biết phần tử nằm trong Dialog / Popup nào (chuỗi lồng nhau + file JSX gốc của dialog).
-5. Chỉ khi cột JSX là `≈` (ước lượng từ React Fiber, app chạy bản build) mới cần grep theo `DOM path` / class.
-6. Không cần đọc lại toàn bộ file 500+ dòng; không grep tên component nếu đã có `file:dòng`.
+4. `📏 Kích thước & Typography thực tế` và `📐 Giới hạn an toàn & Responsive`: đọc kỹ kích thước computed và container cha để chọn font-size và width phù hợp; TUYỆT ĐỐI không phóng to font-size >20px hay đặt width fixed lớn gây thô hoặc vỡ bố cục.
+5. `🪟 Bề mặt` cho biết phần tử nằm trong Dialog / Popup nào (chuỗi lồng nhau + file JSX gốc của dialog).
+6. Chỉ khi cột JSX là `≈` (ước lượng từ React Fiber, app chạy bản build) mới cần grep theo `DOM path` / class.
+7. Không cần đọc lại toàn bộ file 500+ dòng; không grep tên component nếu đã có `file:dòng`.
 
 ## B. Checklist bắt buộc khi tạo / sửa UI
 
@@ -61,6 +62,19 @@ Gắn trên **phần tử gốc thực sự hiển thị** (không phải backdr
 - Lớp phủ toàn màn hình mới (HUD, safety barrier, neon frame…) phải thêm selector vào `INSPECTOR_OVERLAY_SELECTOR`
   (`aiUiInspectorSurfaces.ts`) để hit-test xuyên qua, nếu không phần tử bên dưới bị coi là "bị che khuất".
 - Toàn bộ lớp hiệu ứng của inspector dùng `pointer-events: none`.
+
+### 4b. Kích thước, Typography & Responsive an toàn (Anti-Oversized UI Standard)
+
+- **Cỡ chữ (Typography Limits):** TUYỆT ĐỐI CẤM gán `font-size > 20px` cho controls, buttons, cards, list items hoặc inputs.
+  - Badges / Tag / Pills / Subtab: `10px – 11px` (line-height 1.2–1.3, bo góc `var(--radius-sm)` `4px`).
+  - Label phụ / Ghi chú / Subtext: `11px – 12px`.
+  - Nút bấm / Input / Dropdown / Thân văn bản: `12px – 14px` (line-height 1.4–1.5).
+  - Tiêu đề mục / Thẻ Card: `14px – 16px` (font-weight 600).
+  - Tiêu đề Hộp thoại / Trang: `16px – 18px` (tối đa 20px).
+- **Chiều rộng & Bố cục (Layout Sizing):** TUYỆT ĐỐI CẤM gán pixel fixed lớn (`width: 800px`, `width: 100vw`, `height: 100vh`) trên controls hoặc cards con. Luôn dùng kích thước tương đối (`width: 100%`, `max-width`, `minmax()`, `clamp()`).
+- **Triệt tiêu "sa mạc trống trải":** Danh sách Card trên Desktop/Laptop phải dùng lưới co giãn `display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 8px–10px;`. CẤM để 1 dòng đơn lẻ dàn ngang 100% trên màn hình desktop rộng.
+- **Vùng bấm cảm ứng & Công thái học:** Nút bấm / controls interactive tối thiểu `36px × 36px` (khuyến nghị `40px–44px` cho nút chính trên mobile/tablet), khoảng cách an toàn giữa 2 nút `gap >= 6px–8px`.
+- **Responsive 4 Breakpoints:** Mọi thay đổi CSS phải co giãn trơn tru trên cả 4 ngưỡng: Phone (`<= 768px` - 1 cột), Tablet (`769–1120px` - 2 cột), Laptop (`1121–1366px` - 2-3 cột), Desktop (`> 1366px` - 3-4 cột max-width 1600px).
 
 ### 5. Kiểm thử
 
