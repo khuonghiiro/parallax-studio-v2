@@ -4,6 +4,7 @@ import { nanoid } from 'nanoid'
 import { buildCameraPath, flyCameraToShot, type PathOptions, type PathStep } from './animation/cameraPath'
 import { applyDrawnCameraPath } from './animation/cameraSketch'
 import { assetStore } from './project/assets'
+import { ensureArtFontsLoaded } from './ui/fonts/lazyArtFonts'
 import {
   createImageLayer,
   createParticleLayer,
@@ -519,6 +520,7 @@ export function removeAsset(assetId: string): void {
 }
 
 export function addTextLayer(): void {
+  ensureArtFontsLoaded()
   const layer = createTextLayer(editor().project.comp)
   layer.shotId = activeShotId()
   editor().update((d) => {
