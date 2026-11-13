@@ -3,15 +3,12 @@ import { join, extname, basename } from 'path'
 import { existsSync, readFileSync, writeFileSync } from 'fs'
 import { readFile, writeFile, unlink } from 'fs/promises'
 import { tmpdir } from 'os'
-import { FfmpegEncoder } from './ffmpeg'
-import { McpBridge } from './mcpBridge'
-import { RemoteControlServer } from './remoteServer'
+import type { FfmpegEncoder } from './ffmpeg'
+import type { McpBridge } from './mcpBridge'
+import type { RemoteControlServer } from './remoteServer'
 import { recentPaths } from './recentPaths'
 import { windowState } from './windowState'
 import { getSystemHardwareInfo } from './systemInfo'
-import { registerBuiltInAssetsIpc } from './builtInAssets'
-import { registerAsset3DsIpc } from './asset3ds'
-import { registerAiCodeHandoffIpc } from './aiCodeHandoffIpc'
 import type { ExportStartOptions, PickedFile } from '@shared/ipc'
 
 if (process.platform === 'win32' && !app.commandLine.hasSwitch('use-angle')) {
@@ -136,7 +133,8 @@ function createWindow(): void {
 }
 
 function registerIpc(): void {
-  registerAiCodeHandoffIpc()
+  // Đăng ký các kênh IPC hỗ trợ xưởng và chuyển giao mã nguồn (lazy loaded)
+  import('./aiCodeHandoffIpc').then((m) => m.registerAiCodeHandoffIpc()).catch((err) => console.error(err))
   ipcMain.handle('files:open', async (_e, kind: 'image' | 'audio'): Promise<PickedFile[]> => {
     const exts = kind === 'image' ? IMAGE_EXT : AUDIO_EXT
     const res = await dialog.showOpenDialog(mainWindow!, {
@@ -238,6 +236,7 @@ function registerIpc(): void {
         audioPath = join(tmpdir(), `pxs-audio-${Date.now()}.${opts.audio.ext}`)
         await writeFile(audioPath, Buffer.from(opts.audio.data))
       }
+      const { FfmpegEncoder } = await import('./ffmpeg')
       encoder = await FfmpegEncoder.create(opts, audioPath)
       encoder.onDone(() => {
         if (audioPath) unlink(audioPath).catch(() => undefined)
@@ -271,8 +270,8 @@ function registerIpc(): void {
 
   ipcMain.on('window:title', (_e, title: string) => mainWindow?.setTitle(title))
 
-  registerBuiltInAssetsIpc()
-  registerAsset3DsIpc()
+  import('./builtInAssets').then((m) => m.registerBuiltInAssetsIpc()).catch((err) => console.error(err))
+  import('./asset3ds').then((m) => m.registerAsset3DsIpc()).catch((err) => console.error(err))
 }
 
 const gotTheLock = app.requestSingleInstanceLock()
@@ -287,13 +286,19 @@ if (!gotTheLock) {
     }
   })
 
-  app.whenReady().then(() => {
+  app.whenReady().then(async () => {
     registerIpc()
+    createWindow()
+
+    // Khởi tạo MCP Bridge và RemoteControlServer sau khi tạo cửa sổ để ưu tiên tốc độ hiển thị UI
+    const { McpBridge } = await import('./mcpBridge')
     mcp = new McpBridge(() => mainWindow)
     mcp.start()
+
+    const { RemoteControlServer } = await import('./remoteServer')
     remoteServer = new RemoteControlServer(() => mainWindow, mcp)
     remoteServer.start()
-    createWindow()
+
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow()
     })

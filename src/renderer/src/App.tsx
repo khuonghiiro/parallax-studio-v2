@@ -1,25 +1,12 @@
-import { useCallback, useEffect, useState } from 'react'
-import { importDroppedFiles, loadDemo, addLayerFromAsset, useToast } from './actions'
+import React, { useCallback, useEffect, useState, Suspense } from 'react'
+import { importDroppedFiles, addLayerFromAsset, useToast } from './actions'
 import { usePlayback } from './hooks/usePlayback'
 import { useShortcuts } from './hooks/useShortcuts'
 import { initMcp } from './mcp/commands'
 import { initAssetManifestLiveSync } from './store/assetManifest'
 import { useEditor } from './store/editor'
 import { applyTheme, useView } from './store/view'
-import { CameraPathDialog } from './ui/CameraPathDialog'
-import { CameraSketchDialog } from './ui/CameraSketchDialog'
-import { ExportDialog } from './ui/ExportDialog'
-import { PerformanceDialog } from './ui/PerformanceDialog'
-import { AssetManifestDialog } from './ui/manifest/AssetManifestDialog'
-import { McpDialog } from './ui/McpDialog'
-import { MobileRemoteDialog } from './ui/MobileRemoteDialog'
-import { AudioStudioDialog } from './ui/AudioStudioDialog'
-import { LoopAnimatorDialog } from './ui/loopAnimator/LoopAnimatorDialog'
-import { Assembly3DDialog } from './ui/assets/models3d/Assembly3DDialog'
 import { getStoredModels3D, DEFAULT_MODELS_3D } from './ui/assets/models3d/models3dStorage'
-import { Create3DModal } from './ui/assets/models3d/Create3DModal'
-import { PhotoStudioDialog } from './ui/photoStudio/PhotoStudioDialog'
-import { GlobalLayerAssemblyHost } from './ui/layerAssembly/GlobalLayerAssemblyHost'
 import { AiControlOverlay } from './ui/AiControlOverlay'
 import { AiUiInspectorOverlay } from './ui/AiUiInspectorOverlay'
 import { RemoteClientHud } from './ui/remote/RemoteClientHud'
@@ -34,6 +21,20 @@ import { Viewer } from './ui/Viewer'
 import { usePerformance } from './store/performance'
 import './styles/responsiveTouchStudio.css'
 import './styles/mobileCapCutTimeline.css'
+
+// ---------- Lazy-loaded Dialogs & Workshops (tách chunk riêng, chỉ nạp khi mở) ----------
+const CameraPathDialog = React.lazy(() => import('./ui/CameraPathDialog').then(m => ({ default: m.CameraPathDialog })))
+const CameraSketchDialog = React.lazy(() => import('./ui/CameraSketchDialog').then(m => ({ default: m.CameraSketchDialog })))
+const ExportDialog = React.lazy(() => import('./ui/ExportDialog').then(m => ({ default: m.ExportDialog })))
+const PerformanceDialog = React.lazy(() => import('./ui/PerformanceDialog').then(m => ({ default: m.PerformanceDialog })))
+const AssetManifestDialog = React.lazy(() => import('./ui/manifest/AssetManifestDialog').then(m => ({ default: m.AssetManifestDialog })))
+const McpDialog = React.lazy(() => import('./ui/McpDialog').then(m => ({ default: m.McpDialog })))
+const MobileRemoteDialog = React.lazy(() => import('./ui/MobileRemoteDialog').then(m => ({ default: m.MobileRemoteDialog })))
+const AudioStudioDialog = React.lazy(() => import('./ui/AudioStudioDialog').then(m => ({ default: m.AudioStudioDialog })))
+const LoopAnimatorDialog = React.lazy(() => import('./ui/loopAnimator/LoopAnimatorDialog').then(m => ({ default: m.LoopAnimatorDialog })))
+const Assembly3DDialog = React.lazy(() => import('./ui/assets/models3d/Assembly3DDialog').then(m => ({ default: m.Assembly3DDialog })))
+const PhotoStudioDialog = React.lazy(() => import('./ui/photoStudio/PhotoStudioDialog').then(m => ({ default: m.PhotoStudioDialog })))
+const GlobalLayerAssemblyHost = React.lazy(() => import('./ui/layerAssembly/GlobalLayerAssemblyHost').then(m => ({ default: m.GlobalLayerAssemblyHost })))
 
 export default function App() {
   const [ready, setReady] = useState(false)
@@ -58,7 +59,7 @@ export default function App() {
   usePlayback()
   useShortcuts(openExport)
 
-  // Open the demo scene on first launch (or bootstrap live project when running as a Remote QR client).
+  // Khởi động với cảnh trống rỗng (hoặc đồng bộ dự án trực tiếp khi là Remote QR client).
   useEffect(() => {
     let cleanupRemote: (() => void) | null = null
     let cancelled = false
@@ -72,8 +73,7 @@ export default function App() {
           else cleanupRemote = cleanup
         })
         .catch((err) => {
-          console.error('[RemoteClient] Bootstrap failed, falling back to demo:', err)
-          return loadDemo(true)
+          console.error('[RemoteClient] Bootstrap failed, fallback to empty project:', err)
         })
         .finally(() => {
           if (!cancelled) {
@@ -83,14 +83,10 @@ export default function App() {
         })
     } else {
       cleanupRemote = initHostRemoteBridge()
-      loadDemo(true)
-        .catch((err) => console.error(err))
-        .finally(() => {
-          if (!cancelled) {
-            setReady(true)
-            usePerformance.getState().init().catch(() => undefined)
-          }
-        })
+      if (!cancelled) {
+        setReady(true)
+        usePerformance.getState().init().catch(() => undefined)
+      }
     }
 
     return () => {
@@ -244,50 +240,52 @@ export default function App() {
       <AiControlOverlay />
       <RemoteClientHud />
 
-      {dialog === 'export' && <ExportDialog onClose={() => useView.getState().openDialog(null)} />}
-      {dialog === 'path' && <CameraPathDialog />}
-      {dialog === 'sketch' && <CameraSketchDialog />}
-      {dialog === 'performance' && <PerformanceDialog />}
-      {dialog === 'manifest' && <AssetManifestDialog onClose={() => useView.getState().openDialog(null)} />}
-      {dialog === 'mcp' && <McpDialog />}
-      {dialog === 'remote' && <MobileRemoteDialog />}
-      {dialog === 'audio' && <AudioStudioDialog />}
-      {dialog === 'loop_animator' && (
-        <LoopAnimatorDialog
-          onClose={() => useView.getState().openDialog(null)}
-          initialImageUrl={useView.getState().loopAnimatorInitialImage}
-        />
-      )}
-      {dialog === 'photo_editor' && (
-        <PhotoStudioDialog
-          onClose={() => useView.getState().openDialog(null)}
-          initialImageUrl={useView.getState().photoEditorInitialImage}
-        />
-      )}
-      {dialog === 'create_3d' && (
-        <Assembly3DDialog
-          key="direct-create-3d-workshop"
-          isOpen={true}
-          initialModel={getStoredModels3D()[0] || DEFAULT_MODELS_3D[0]}
-          onClose={() => useView.getState().openDialog(null)}
-        />
-      )}
-      {assemblyModalModel && (
-        <Assembly3DDialog
-          key={assemblyModalModel.id}
-          isOpen={true}
-          initialModel={assemblyModalModel}
-          onClose={closeAssemblyWorkshop}
-        />
-      )}
-      <GlobalLayerAssemblyHost />
+      <Suspense fallback={null}>
+        {dialog === 'export' && <ExportDialog onClose={() => useView.getState().openDialog(null)} />}
+        {dialog === 'path' && <CameraPathDialog />}
+        {dialog === 'sketch' && <CameraSketchDialog />}
+        {dialog === 'performance' && <PerformanceDialog />}
+        {dialog === 'manifest' && <AssetManifestDialog onClose={() => useView.getState().openDialog(null)} />}
+        {dialog === 'mcp' && <McpDialog />}
+        {dialog === 'remote' && <MobileRemoteDialog />}
+        {dialog === 'audio' && <AudioStudioDialog />}
+        {dialog === 'loop_animator' && (
+          <LoopAnimatorDialog
+            onClose={() => useView.getState().openDialog(null)}
+            initialImageUrl={useView.getState().loopAnimatorInitialImage}
+          />
+        )}
+        {dialog === 'photo_editor' && (
+          <PhotoStudioDialog
+            onClose={() => useView.getState().openDialog(null)}
+            initialImageUrl={useView.getState().photoEditorInitialImage}
+          />
+        )}
+        {dialog === 'create_3d' && (
+          <Assembly3DDialog
+            key="direct-create-3d-workshop"
+            isOpen={true}
+            initialModel={getStoredModels3D()[0] || DEFAULT_MODELS_3D[0]}
+            onClose={() => useView.getState().openDialog(null)}
+          />
+        )}
+        {assemblyModalModel && (
+          <Assembly3DDialog
+            key={assemblyModalModel.id}
+            isOpen={true}
+            initialModel={assemblyModalModel}
+            onClose={closeAssemblyWorkshop}
+          />
+        )}
+        <GlobalLayerAssemblyHost />
+      </Suspense>
       <AiUiInspectorOverlay />
       {toast && <div className="toast">{toast}</div>}
       {!ready && (
         <div className="loading-screen">
           <div style={{ textAlign: 'center' }}>
             <div className="brand-logo" />
-            {isRemoteWebClient() ? 'Đang đồng bộ Studio từ máy chủ…' : 'Đang dựng cảnh mẫu…'}
+            {isRemoteWebClient() ? 'Đang đồng bộ Studio từ máy chủ…' : 'Đang khởi động…'}
           </div>
         </div>
       )}
