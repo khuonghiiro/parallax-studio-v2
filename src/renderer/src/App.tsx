@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { importDroppedFiles, loadDemo, addLayerFromAsset, useToast } from './actions'
+import { importDroppedFiles, addLayerFromAsset, useToast } from './actions'
 import { usePlayback } from './hooks/usePlayback'
 import { useShortcuts } from './hooks/useShortcuts'
 import { initMcp } from './mcp/commands'
@@ -58,7 +58,7 @@ export default function App() {
   usePlayback()
   useShortcuts(openExport)
 
-  // Open the demo scene on first launch (or bootstrap live project when running as a Remote QR client).
+  // Khởi động với cảnh trống rỗng (hoặc đồng bộ dự án trực tiếp khi là Remote QR client).
   useEffect(() => {
     let cleanupRemote: (() => void) | null = null
     let cancelled = false
@@ -72,8 +72,7 @@ export default function App() {
           else cleanupRemote = cleanup
         })
         .catch((err) => {
-          console.error('[RemoteClient] Bootstrap failed, falling back to demo:', err)
-          return loadDemo(true)
+          console.error('[RemoteClient] Bootstrap failed, fallback to empty project:', err)
         })
         .finally(() => {
           if (!cancelled) {
@@ -83,14 +82,10 @@ export default function App() {
         })
     } else {
       cleanupRemote = initHostRemoteBridge()
-      loadDemo(true)
-        .catch((err) => console.error(err))
-        .finally(() => {
-          if (!cancelled) {
-            setReady(true)
-            usePerformance.getState().init().catch(() => undefined)
-          }
-        })
+      if (!cancelled) {
+        setReady(true)
+        usePerformance.getState().init().catch(() => undefined)
+      }
     }
 
     return () => {
