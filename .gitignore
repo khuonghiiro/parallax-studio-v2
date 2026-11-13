@@ -61,6 +61,10 @@ __pycache__/
 # Binaries
 bin/*.exe
 
+# Rust target directories
+target/
+crates/**/target/
+
 # AI Agent runtime artifacts
 .claude/
 
