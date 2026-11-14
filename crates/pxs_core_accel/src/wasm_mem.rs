@@ -21,6 +21,14 @@ impl ScratchArena {
         self.buf.len() * std::mem::size_of::<u128>()
     }
 
+    fn reserve_bytes(&mut self, total_bytes: usize) {
+        if total_bytes > self.capacity_bytes() {
+            let needed_blocks = total_bytes.div_ceil(std::mem::size_of::<u128>());
+            let next_blocks = needed_blocks.max(self.buf.len().saturating_mul(2)).max(256);
+            self.buf.resize(next_blocks, 0);
+        }
+    }
+
     fn alloc(&mut self, byte_len: usize, align: usize) -> *mut u8 {
         let eff_align = if align == 0 {
             16
@@ -54,6 +62,12 @@ pub extern "C" fn wasm_scratch_reset() {
     SCRATCH.with(|cell| cell.borrow_mut().reset());
 }
 
+/// Dự trữ đủ tổng dung lượng scratch trước khi cấp phát hàng loạt slot (ngăn di dời địa chỉ `Vec` giữa batch).
+#[unsafe(no_mangle)]
+pub extern "C" fn wasm_scratch_reserve(total_bytes: usize) {
+    SCRATCH.with(|cell| cell.borrow_mut().reserve_bytes(total_bytes));
+}
+
 /// Cấp phát vùng nhớ đệm căn chỉnh bội số 16 byte cho SIMD128 từ linear memory.
 #[unsafe(no_mangle)]
 pub extern "C" fn wasm_scratch_alloc(byte_len: usize, align: usize) -> *mut u8 {
@@ -73,16 +87,17 @@ mod tests {
     #[test]
     fn test_scratch_alloc_alignment_and_reuse() {
         wasm_scratch_reset();
+        wasm_scratch_reserve(32 + 12 + 32 + 9600);
         let p1 = wasm_scratch_alloc(12, 4);
         assert!(!p1.is_null());
         assert_eq!((p1 as usize) % 16, 0);
 
-        let p2 = wasm_scratch_alloc(64, 16);
+        let cap_before = wasm_scratch_capacity();
+        let p2 = wasm_scratch_alloc(9600, 16);
         assert_eq!((p2 as usize) % 16, 0);
         assert!(p2 as usize >= p1 as usize + 12);
-
-        let cap_before = wasm_scratch_capacity();
-        assert!(cap_before >= 4096);
+        // Sau reserve trước batch, cấp phát slot lớn không làm di dời hay resize lại Vec
+        assert_eq!(wasm_scratch_capacity(), cap_before);
 
         wasm_scratch_reset();
         let p3 = wasm_scratch_alloc(12, 4);

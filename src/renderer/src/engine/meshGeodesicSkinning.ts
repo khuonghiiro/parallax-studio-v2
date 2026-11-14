@@ -10,9 +10,16 @@ import {
   computeBoneField,
   pointToSegProjection
 } from './meshGeodesicGraph'
+import {
+  type PackedSkinWeights,
+  unpackSkinWeights,
+  wasmBuildPackedGeodesicSkinWeights,
+  wasmComputeDominantBonePerTriangle
+} from './wasm/wasmGeodesicBridge'
+import { isWasmAccelReady } from './wasm/wasmRuntime'
 
 export { buildAnatomicalBoneChains, buildWeldedMeshGraph }
-export type { BoneChainInfo }
+export type { BoneChainInfo, PackedSkinWeights }
 
 interface VertexBoneScore {
   boneIdx: number
@@ -227,13 +234,34 @@ function blendSiblingCrotchContinuity(
   return scaled
 }
 
-/**
- * Tính trọng số uốn Mesh dựa trên Khoảng cách Trắc địa (Geodesic Distance) đi bên trong lưới tam giác:
- * - Bám sát 100% theo hình dạng thực tế của các nếp gấp quần áo, ống quần, đế giày, mũi giày.
- * - Tự động cô lập tuyệt đối các nhánh anh em chữ V (chân trái vs chân phải) qua khe hở trong suốt của Mesh.
- * - Bảo toàn liên tục C0 tại vùng chạc hông/đũng quần khi 2 chân nối vào xương thân cha.
- */
-export function buildGeodesicSkinWeights(
+export function packSkinInfluences(
+  influences: SkinInfluence[][],
+  bones: LayerRig['bones']
+): PackedSkinWeights {
+  const vCount = influences.length
+  const boneIds = bones.map((b) => b.id)
+  const boneToIdx = new Map<string, number>()
+  for (let i = 0; i < boneIds.length; i++) boneToIdx.set(boneIds[i], i)
+
+  const packedIndices = new Int32Array(vCount * 4).fill(-1)
+  const packedWeights = new Float32Array(vCount * 4)
+  for (let v = 0; v < vCount; v++) {
+    const list = influences[v]
+    if (!list) continue
+    const base = v * 4
+    let written = 0
+    for (let s = 0; s < list.length && written < 4; s++) {
+      const bi = boneToIdx.get(list[s].id)
+      if (bi === undefined) continue
+      packedIndices[base + written] = bi
+      packedWeights[base + written] = list[s].weight
+      written++
+    }
+  }
+  return { indices: packedIndices, weights: packedWeights, boneIds }
+}
+
+export function buildGeodesicSkinWeightsJs(
   world: Float32Array,
   bones: LayerRig['bones'],
   indices: ArrayLike<number>
@@ -343,16 +371,53 @@ export function buildGeodesicSkinWeights(
 }
 
 /**
- * Xác định xương chủ quản (dominant bone) cho từng tam giác của lưới Mesh.
- * Phục vụ hiển thị trực quan vùng uốn "Bám sát Mesh" (theo đúng nếp gấp quần áo, giày, thân) trên Sân khấu 2D.
+ * Tính trọng số trắc địa dạng phẳng đóng gói (4 xương/đỉnh), ưu tiên Rust WASM SIMD.
  */
-export function computeDominantBonePerTriangle(
+export function buildPackedGeodesicSkinWeights(
+  world: Float32Array,
+  bones: LayerRig['bones'],
+  indices: ArrayLike<number>
+): PackedSkinWeights | null {
+  const vCount = world.length >> 1
+  if (vCount === 0 || bones.length === 0 || indices.length < 3) return null
+  if (isWasmAccelReady()) {
+    const packed = wasmBuildPackedGeodesicSkinWeights(world, bones, indices)
+    if (packed) return packed
+  }
+  const js = buildGeodesicSkinWeightsJs(world, bones, indices)
+  return js ? packSkinInfluences(js, bones) : null
+}
+
+/**
+ * Tính trọng số uốn Mesh dựa trên Khoảng cách Trắc địa (Geodesic Distance) đi bên trong lưới tam giác:
+ * - Bám sát 100% theo hình dạng thực tế của các nếp gấp quần áo, ống quần, đế giày, mũi giày.
+ * - Tự động cô lập tuyệt đối các nhánh anh em chữ V (chân trái vs chân phải) qua khe hở trong suốt của Mesh.
+ * - Bảo toàn liên tục C0 tại vùng chạc hông/đũng quần khi 2 chân nối vào xương thân cha.
+ */
+export function buildGeodesicSkinWeights(
+  world: Float32Array,
+  bones: LayerRig['bones'],
+  indices: ArrayLike<number>
+): SkinInfluence[][] | null {
+  const vCount = world.length >> 1
+  if (vCount === 0 || bones.length === 0 || indices.length < 3) return null
+  if (isWasmAccelReady()) {
+    const packed = wasmBuildPackedGeodesicSkinWeights(world, bones, indices)
+    if (packed) return unpackSkinWeights(packed)
+  }
+  return buildGeodesicSkinWeightsJs(world, bones, indices)
+}
+
+/**
+ * Xác định xương chủ quản (dominant bone) cho từng tam giác của lưới Mesh (bản TypeScript thuần).
+ */
+export function computeDominantBonePerTriangleJs(
   world: Float32Array,
   bones: LayerRig['bones'],
   indices: ArrayLike<number>,
   precomputedWeights?: SkinInfluence[][]
 ): string[] {
-  const weights = precomputedWeights ?? buildGeodesicSkinWeights(world, bones, indices)
+  const weights = precomputedWeights ?? buildGeodesicSkinWeightsJs(world, bones, indices)
   const triCount = Math.floor(indices.length / 3)
   const result: string[] = new Array(triCount)
   if (!weights || bones.length === 0) {
@@ -383,4 +448,25 @@ export function computeDominantBonePerTriangle(
     result[t] = bestId
   }
   return result
+}
+
+/**
+ * Xác định xương chủ quản (dominant bone) cho từng tam giác của lưới Mesh.
+ * Phục vụ hiển thị trực quan vùng uốn "Bám sát Mesh" (theo đúng nếp gấp quần áo, giày, thân) trên Sân khấu 2D.
+ */
+export function computeDominantBonePerTriangle(
+  world: Float32Array,
+  bones: LayerRig['bones'],
+  indices: ArrayLike<number>,
+  precomputedWeights?: SkinInfluence[][]
+): string[] {
+  const triCount = Math.floor(indices.length / 3)
+  if (!precomputedWeights && isWasmAccelReady() && bones.length > 0 && triCount > 0) {
+    const packed = wasmBuildPackedGeodesicSkinWeights(world, bones, indices)
+    if (packed) {
+      const wasmRes = wasmComputeDominantBonePerTriangle(indices, packed)
+      if (wasmRes) return wasmRes
+    }
+  }
+  return computeDominantBonePerTriangleJs(world, bones, indices, precomputedWeights)
 }

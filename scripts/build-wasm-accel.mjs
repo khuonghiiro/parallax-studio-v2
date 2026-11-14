@@ -14,7 +14,7 @@ const WASM_OUT = resolve(
   'crates/pxs_core_accel/target/wasm32-unknown-unknown/release/pxs_core_accel.wasm'
 )
 const TS_OUT = resolve(ROOT, 'src/renderer/src/engine/wasm/wasmBytes.ts')
-const LINE_WIDTH = 260
+const LINE_WIDTH = 1024
 
 function ensureWasmTarget() {
   const installed = execFileSync('rustup', ['target', 'list', '--installed'], {

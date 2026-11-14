@@ -1,8 +1,17 @@
 // Crate Rust: pxs_core_accel
 // Cung cấp các hàm xử lý tính toán số học điểm ảnh và lưới 2.5D hiệu năng cực cao (SIMD / Zero-alloc).
 
+pub mod geom2d;
+pub mod geodesic_chains;
+pub mod geodesic_graph;
+pub mod geodesic_skinning;
+pub mod mesh_corridor;
 pub mod wasm_mem;
-pub use wasm_mem::{wasm_scratch_alloc, wasm_scratch_capacity, wasm_scratch_reset};
+pub use geodesic_skinning::{rust_build_geodesic_skin_weights, rust_dominant_bone_per_triangle};
+pub use mesh_corridor::rust_compute_mesh_corridor;
+pub use wasm_mem::{
+    wasm_scratch_alloc, wasm_scratch_capacity, wasm_scratch_reserve, wasm_scratch_reset,
+};
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

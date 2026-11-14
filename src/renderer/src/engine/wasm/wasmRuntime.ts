@@ -3,6 +3,7 @@ import { PXS_CORE_ACCEL_WASM_HEX } from './wasmBytes'
 export interface PxsWasmExports {
   memory: WebAssembly.Memory
   wasm_scratch_reset: () => void
+  wasm_scratch_reserve: (totalBytes: number) => void
   wasm_scratch_alloc: (byteLen: number, align: number) => number
   wasm_scratch_capacity: () => number
   rust_find_opaque_bbox?: (
@@ -19,6 +20,38 @@ export interface PxsWasmExports {
     width: number,
     height: number,
     greenFactor: number
+  ) => number
+  rust_build_geodesic_skin_weights?: (
+    worldPtr: number,
+    vCount: number,
+    bonesMetaPtr: number,
+    boneCount: number,
+    indicesPtr: number,
+    indexCount: number,
+    outIndicesPtr: number,
+    outWeightsPtr: number
+  ) => number
+  rust_dominant_bone_per_triangle?: (
+    indicesPtr: number,
+    indexCount: number,
+    vertBoneIndicesPtr: number,
+    vertBoneWeightsPtr: number,
+    vCount: number,
+    outTriBonePtr: number
+  ) => number
+  rust_compute_mesh_corridor?: (
+    worldPtr: number,
+    vCount: number,
+    indicesPtr: number,
+    indexCount: number,
+    polyPtsPtr: number,
+    polyCount: number,
+    reach: number,
+    outWeightsPtr: number,
+    outGeoDistPtr: number,
+    outSegMinPtr: number,
+    outSegMaxPtr: number,
+    outAvgCoreEdgePtr: number
   ) => number
 }
 
@@ -71,6 +104,7 @@ function validateExports(raw: WebAssembly.Exports): PxsWasmExports | null {
   if (
     !(exp.memory instanceof WebAssembly.Memory) ||
     typeof exp.wasm_scratch_reset !== 'function' ||
+    typeof exp.wasm_scratch_reserve !== 'function' ||
     typeof exp.wasm_scratch_alloc !== 'function' ||
     typeof exp.wasm_scratch_capacity !== 'function'
   ) {
@@ -146,9 +180,15 @@ function buildTypedView(
   }
 }
 
+function nextPowerOfTwoAlign(align: number): number {
+  let a = 16
+  while (a < align && a < 1024) a <<= 1
+  return a
+}
+
 /**
  * Cấp phát toàn bộ slot bộ nhớ scratch trong 1 lượt TRƯỚC khi tạo TypedArray view
- * nhằm tránh hoàn toàn lỗi detached ArrayBuffer khi WASM memory.grow() kích hoạt.
+ * nhằm tránh hoàn toàn lỗi detached ArrayBuffer hoặc dời Vec heap khi dung lượng tăng.
  */
 export function allocScratchViews<T extends Record<string, ScratchSpec>>(
   exports: PxsWasmExports,
@@ -156,8 +196,16 @@ export function allocScratchViews<T extends Record<string, ScratchSpec>>(
 ): { [K in keyof T]: ScratchSlot<ScratchView<T[K]['kind']>> } {
   exports.wasm_scratch_reset()
   const entries = Object.entries(specs) as Array<[keyof T, ScratchSpec]>
-  const ptrs = new Array<number>(entries.length)
+  let totalReserve = 0
+  for (let i = 0; i < entries.length; i++) {
+    const spec = entries[i][1]
+    const align = nextPowerOfTwoAlign(spec.align ?? 16)
+    const byteLen = Math.max(1, Math.max(0, spec.length) * elemByteSize(spec.kind))
+    totalReserve += align + byteLen
+  }
+  exports.wasm_scratch_reserve(totalReserve)
 
+  const ptrs = new Array<number>(entries.length)
   for (let i = 0; i < entries.length; i++) {
     const spec = entries[i][1]
     const byteLen = Math.max(0, spec.length) * elemByteSize(spec.kind)
@@ -176,4 +224,19 @@ export function allocScratchViews<T extends Record<string, ScratchSpec>>(
     }
   }
   return result
+}
+
+/**
+ * Lấy lại TypedArray view an toàn sau lời gọi hàm WASM:
+ * nếu Rust cấp phát heap và kích hoạt `memory.grow()` trong lúc chạy, buffer cũ sẽ bị detached.
+ */
+export function resolveSlotView<K extends ScratchKind>(
+  exports: PxsWasmExports,
+  slot: ScratchSlot<ScratchView<K>>,
+  kind: K,
+  length: number
+): ScratchView<K> {
+  const currentBuf = exports.memory.buffer
+  if (slot.view.buffer === currentBuf) return slot.view
+  return buildTypedView(currentBuf, slot.ptr, kind, Math.max(0, length)) as ScratchView<K>
 }
