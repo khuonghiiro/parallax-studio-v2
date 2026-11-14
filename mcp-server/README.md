@@ -212,7 +212,7 @@ Khi kiểm tra và tương tác với Parallax Studio, AI Agent **BẮT BUỘC**
 ### 4.5. Nhóm Camera, Đường Bay 3D & Quy Trình Tạo Video (Camera Path & Workflow Studio)
 - `set_camera`: Đặt vị trí camera (`position`), điểm ngắm (`target`), góc nhìn (`fov`).
 - `apply_camera_preset`: Áp dụng chuyển động mẫu (`dollyIn`, `dollyOut`, `truckLeft`, `truckRight`, `craneUp`, `craneDown`, `orbitLeft`, `orbitRight`, `zoomIn`, `dollyZoom`, `comicPunchIn`, `suspenseDrift`, `whipPan`, `impactZoomPunch`, `corridorFollow`, `reset`).
-- `choreograph_camera_route`: Dàn dựng lộ trình camera điện ảnh đa nhịp qua các phân cảnh (`establish_corridor`, `track_subject` lia bám đối tượng, `whip_pan`, `punch_zoom` phóng to thu nhỏ kèm hitstop & rung chấn, `match_cut` nhảy tiếp hướng, `orbit_parallax`).
+- `choreograph_camera_route`: Dàn dựng lộ trình camera hoạt ảnh 2.5D đa nhịp qua các phân cảnh (`crane_descent`, `crane_rise`, `hero_low_ascent`, `orbit_parallax`, `aerial_dive`, `corkscrew_reveal`, `establish_corridor`, `track_subject`, `whip_pan`, `punch_zoom`, `match_cut`) kèm chuyển cảnh mượt liên hoàn (`silk_fade`, `whip_glide`, `flash_dissolve`).
 - `camera_fly_to_shot`: Hướng camera bay trực tiếp tới bao quát phân cảnh chỉ định.
 - `build_camera_path`: Tự động sinh đường bay Bezier mượt mà kết nối liên tục tất cả các shot.
 - `list_workflow_presets`: Liệt kê 5 mẫu quy trình tạo video chuyên nghiệp, 7 khối tác nhân chức năng và 6 cổng kết nối.

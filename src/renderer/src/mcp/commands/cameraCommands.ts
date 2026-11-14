@@ -3,7 +3,8 @@ import { buildCameraPath, flyCameraToShot, TRANSITIONS, type PathStep, type Tran
 import {
   choreographCinematicCameraRoute,
   type CinematicBeatKind,
-  type CinematicCameraBeat
+  type CinematicCameraBeat,
+  type ShotTransitionStyle
 } from '../../animation/cinematicCameraRoute'
 import { anim } from '../../animation/keyframes'
 import { applyCameraPreset, CAMERA_PRESETS, type CameraPreset } from '../../animation/presets'
@@ -55,12 +56,22 @@ export const cameraCommands: Record<string, Handler> = {
       'whip_pan',
       'punch_zoom',
       'match_cut',
-      'orbit_parallax'
+      'orbit_parallax',
+      'crane_descent',
+      'crane_rise',
+      'hero_low_ascent',
+      'aerial_dive',
+      'corkscrew_reveal'
     ]
+    const validTransitions: ShotTransitionStyle[] = ['none', 'cut', 'silk_fade', 'whip_glide', 'flash_dissolve']
     const beats: CinematicCameraBeat[] = (p.beats as Params[]).map((b, idx) => {
       const kind = (str(b, 'kind') ?? 'track_subject') as CinematicBeatKind
       if (!validKinds.includes(kind)) {
         throw new ParamError(`beats[${idx}].kind must be one of ${validKinds.join(', ')}`)
+      }
+      const transRaw = str(b, 'transition_at_end') as ShotTransitionStyle | undefined
+      if (transRaw && !validTransitions.includes(transRaw)) {
+        throw new ParamError(`beats[${idx}].transition_at_end must be one of ${validTransitions.join(', ')}`)
       }
       const offStart = Array.isArray(b.offset_start) && b.offset_start.length >= 2
         ? ([Number(b.offset_start[0]), Number(b.offset_start[1])] as [number, number])
@@ -94,11 +105,13 @@ export const cameraCommands: Record<string, Handler> = {
         offsetStart: offStart,
         offsetEnd: offEnd,
         continuityDirX: num(b, 'continuity_dir_x'),
-        cutAtEnd: bool(b, 'cut_at_end')
+        cutAtEnd: bool(b, 'cut_at_end'),
+        transitionAtEnd: transRaw,
+        transitionDuration: num(b, 'transition_duration')
       }
     })
     const clearExisting = bool(p, 'clear_existing') ?? true
-    let summary = { keyframeCount: 0, beatsApplied: 0, endTime: 0 }
+    let summary = { keyframeCount: 0, beatsApplied: 0, endTime: 0, transitionsApplied: 0 }
     ed().update((d) => {
       summary = choreographCinematicCameraRoute(d as Project, beats, { clearExisting })
     })

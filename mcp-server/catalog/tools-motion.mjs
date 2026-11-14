@@ -183,15 +183,27 @@ export const FX_TOOLS = [
   {
     name: 'choreograph_camera_route', cat: 'camera',
     doc: L(
-      'Choreograph a professional multi-beat cinematic camera route across shots: subject tracking (panning with lead room), whip-pan, impact punch-in/out zoom with hitstop & shake, directional match-cut continuity, and 3D parallax orbit.',
-      'Dàn dựng lộ trình camera điện ảnh đa nhịp chuyên nghiệp qua các phân cảnh: lia bám đối tượng có khoảng dẫn hướng, lia máy nhanh (whip-pan), phóng to thu nhỏ điểm va chạm kèm hitstop, cắt nhảy tiếp hướng (match-cut) và xoay vòm tôn chiều sâu 2.5D.'
+      'Choreograph a professional multi-beat Donghua / anime 2.5D camera route across shots: crane descent/rise, heroic low angle, 3D parallax orbit, aerial dive, corkscrew reveal, subject tracking with lead room, whip-pan, impact closeup zoom with hitstop, and silky optical transitions (`silk_fade`, `whip_glide`, `flash_dissolve`).',
+      'Dàn dựng lộ trình camera hoạt ảnh 2.5D đa nhịp chuyên nghiệp qua các phân cảnh: cần cẩu hạ/nâng, góc hùng vĩ (hero low), quỹ đạo 3D tôn chiều sâu, lao từ trên cao, xoáy cận 3D, lia bám đối tượng, lia vút nhanh (whip-pan), đặc tả điểm va chạm kèm hitstop và chuyển cảnh mượt liên hoàn (`silk_fade`, `whip_glide`, `flash_dissolve`).'
     ),
     shape: (d) => ({
       beats: z
         .array(
           z.object({
             shot_id: z.string(),
-            kind: z.enum(['establish_corridor', 'track_subject', 'whip_pan', 'punch_zoom', 'match_cut', 'orbit_parallax']),
+            kind: z.enum([
+              'establish_corridor',
+              'track_subject',
+              'whip_pan',
+              'punch_zoom',
+              'match_cut',
+              'orbit_parallax',
+              'crane_descent',
+              'crane_rise',
+              'hero_low_ascent',
+              'aerial_dive',
+              'corkscrew_reveal'
+            ]),
             start: z.number(),
             end: z.number(),
             subject_id: z.string().optional().describe(d('Layer ID or 2.5D composite instanceId to track.', 'ID layer hoặc instanceId cụm 2.5D cần lia bám.')),
@@ -215,13 +227,15 @@ export const FX_TOOLS = [
             offset_start: z.tuple([z.number(), z.number()]).optional(),
             offset_end: z.tuple([z.number(), z.number()]).optional(),
             continuity_dir_x: z.number().optional(),
-            cut_at_end: z.boolean().optional()
+            cut_at_end: z.boolean().optional(),
+            transition_at_end: z.enum(['none', 'cut', 'silk_fade', 'whip_glide', 'flash_dissolve']).optional().describe(d('Smooth shot-to-shot transition style.', 'Kiểu chuyển cảnh mượt sang phân cảnh kế tiếp.')),
+            transition_duration: z.number().optional().describe(d('Transition envelope duration in seconds (default 0.56).', 'Thời lượng chuyển cảnh tính bằng giây (mặc định 0.56).'))
           })
         )
         .min(1),
       clear_existing: z.boolean().optional()
     }),
-    example: '{"beats":[{"shot_id":"shot-1","kind":"track_subject","start":0,"end":5,"subject_id":"act-hero-1"}]}'
+    example: '{"beats":[{"shot_id":"shot-1","kind":"crane_descent","start":0,"end":4.5,"transition_at_end":"silk_fade"}]}'
   },
   {
     name: 'camera_fly_to_shot', cat: 'camera',
