@@ -416,6 +416,43 @@ export function updateLayerInstanceTexture(
   onRequestRender()
 }
 
+function ensureSkinWorkBuf(ud: Record<string, any>, key: 'skinWorkA' | 'skinWorkB', len: number): Float32Array {
+  const cur = ud[key] as Float32Array | undefined
+  return cur && cur.length === len ? cur : (ud[key] = new Float32Array(len))
+}
+
+function updateLayer3DSkinGeometry(
+  geometry: THREE.BufferGeometry,
+  layer: AssembledLayerItem,
+  time: number
+): void {
+  const rest = geometry.userData.basePositions as Float32Array | undefined
+  if (!rest) return
+  const hasSkin = Boolean(layer.previewRig && layer.bindingMode === 'soft' && (layer.boneId || layer.extraBoneIds?.length))
+  const hasSpines = Boolean(layer.previewPlantSpines?.length)
+  if (!hasSkin && !hasSpines && !geometry.userData.wasDeformed) return
+
+  const ud = geometry.userData
+  const indices = geometry.getIndex()?.array
+  const skinned = hasSkin
+    ? deformSkin(rest, layer, layer.previewRig!, time, indices, ensureSkinWorkBuf(ud, 'skinWorkA', rest.length))
+    : rest
+  const positions = hasSpines
+    ? deformPlantSpines(skinned, layer, layer.previewPlantSpines!, time, indices, rest, ensureSkinWorkBuf(ud, 'skinWorkB', rest.length))
+    : skinned
+  const attribute = geometry.getAttribute('position') as THREE.BufferAttribute
+  attribute.copyArray(positions)
+  attribute.needsUpdate = true
+  ud.wasDeformed = hasSkin || hasSpines
+  const normalAttr = geometry.getAttribute('normal') as THREE.BufferAttribute | undefined
+  if (!normalAttr) return
+  const normals = normalAttr.array as Float32Array
+  for (let ni = 0; ni < normals.length; ni += 3) {
+    normals[ni] = 0; normals[ni + 1] = 0; normals[ni + 2] = 1
+  }
+  normalAttr.needsUpdate = true
+}
+
 /**
  * Cập nhật vị trí, góc xoay, scale và hoạt ảnh cho 3D layer instance
  */
@@ -454,33 +491,7 @@ export function updateLayer3DInstance(
     }
   }
 
-  const geometry = mesh.geometry
-  const rest = geometry.userData.basePositions as Float32Array | undefined
-  if (rest) {
-    const hasSkin = Boolean(layer.previewRig && layer.bindingMode === 'soft' && (layer.boneId || layer.extraBoneIds?.length))
-    const hasSpines = Boolean(layer.previewPlantSpines?.length)
-    if (hasSkin || hasSpines || geometry.userData.wasDeformed) {
-      const indices = geometry.getIndex()?.array
-      const skinned = hasSkin
-        ? deformSkin(rest, layer, layer.previewRig!, time, indices) : rest
-      const positions = hasSpines
-        ? deformPlantSpines(skinned, layer, layer.previewPlantSpines!, time, indices) : skinned
-      const attribute = geometry.getAttribute('position') as THREE.BufferAttribute
-      attribute.copyArray(positions)
-      attribute.needsUpdate = true
-      geometry.userData.wasDeformed = hasSkin || hasSpines
-      const normalAttr = geometry.getAttribute('normal') as THREE.BufferAttribute | undefined
-      if (normalAttr) {
-        const normals = normalAttr.array as Float32Array
-        for (let ni = 0; ni < normals.length; ni += 3) {
-          normals[ni] = 0
-          normals[ni + 1] = 0
-          normals[ni + 2] = 1
-        }
-        normalAttr.needsUpdate = true
-      }
-    }
-  }
+  updateLayer3DSkinGeometry(mesh.geometry, layer, time)
   // 1. Tính toán chuyển động hoạt ảnh
   const motion = computeLayer3DMotion(layer.motion, time)
 

@@ -6,9 +6,16 @@ pub mod geodesic_chains;
 pub mod geodesic_graph;
 pub mod geodesic_skinning;
 pub mod mesh_corridor;
+pub mod mesh_modifiers;
+pub mod skin_deform;
 pub mod wasm_mem;
 pub use geodesic_skinning::{rust_build_geodesic_skin_weights, rust_dominant_bone_per_triangle};
 pub use mesh_corridor::rust_compute_mesh_corridor;
+pub use mesh_modifiers::{
+    rust_apply_bend, rust_apply_brush, rust_apply_curve, rust_apply_depth_profile,
+    rust_apply_lattice, rust_apply_timeline_motion, rust_apply_twist,
+};
+pub use skin_deform::{rust_deform_plant_spines, rust_deform_skin, rust_scale_unit_space};
 pub use wasm_mem::{
     wasm_scratch_alloc, wasm_scratch_capacity, wasm_scratch_reserve, wasm_scratch_reset,
 };

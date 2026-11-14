@@ -53,6 +53,98 @@ export interface PxsWasmExports {
     outSegMaxPtr: number,
     outAvgCoreEdgePtr: number
   ) => number
+  rust_deform_skin?: (
+    positionsPtr: number,
+    outPtr: number,
+    vCount: number,
+    packedIndicesPtr: number,
+    packedWeightsPtr: number,
+    bonesTfPtr: number,
+    boneCount: number,
+    bindingMetaPtr: number,
+    primaryBoneIdx: number,
+    clothFactor: number
+  ) => number
+  rust_deform_plant_spines?: (
+    positionsPtr: number,
+    outPtr: number,
+    vCount: number,
+    worldPtr: number,
+    useCachedWorld: number,
+    projPtr: number,
+    framesPtr: number,
+    frameOffsetsPtr: number,
+    spineCount: number,
+    bindingMetaPtr: number
+  ) => number
+  rust_scale_unit_space?: (
+    posInPtr: number,
+    posOutPtr: number,
+    vCount: number,
+    invW: number,
+    invH: number
+  ) => number
+  rust_apply_bend?: (
+    posPtr: number,
+    uvsPtr: number,
+    count: number,
+    width: number,
+    height: number,
+    axisCode: number,
+    intensity: number,
+    arcAngle: number,
+    taperRatio: number,
+    lateral: number,
+    regionCode: number
+  ) => number
+  rust_apply_twist?: (
+    posPtr: number,
+    uvsPtr: number,
+    count: number,
+    angleDeg: number,
+    center: number,
+    falloff: number
+  ) => number
+  rust_apply_depth_profile?: (
+    posPtr: number,
+    uvsPtr: number,
+    count: number,
+    profileCode: number,
+    intensity: number,
+    invert: number
+  ) => number
+  rust_apply_curve?: (
+    posPtr: number,
+    uvsPtr: number,
+    count: number,
+    localPtsPtr: number,
+    ptCount: number
+  ) => number
+  rust_apply_lattice?: (
+    posPtr: number,
+    uvsPtr: number,
+    count: number,
+    offsetsPtr: number
+  ) => number
+  rust_apply_brush?: (
+    posPtr: number,
+    uvsPtr: number,
+    count: number,
+    strokesPtr: number,
+    strokeCount: number,
+    width: number,
+    height: number
+  ) => number
+  rust_apply_timeline_motion?: (
+    posPtr: number,
+    uvsPtr: number,
+    count: number,
+    motionCode: number,
+    dirCode: number,
+    speed: number,
+    amplitude: number,
+    time: number
+  ) => number
 }
 
 export type ScratchKind = 'f32' | 'i32' | 'u32' | 'i16' | 'u8'

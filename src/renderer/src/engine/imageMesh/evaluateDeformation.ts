@@ -8,7 +8,13 @@
 import * as THREE from 'three'
 import { deformSkin } from '../layerSkinning'
 import { deformPlantSpines } from '../plantSpine'
-import type { ImageMeshDefinition } from '@shared/imageMeshDefinition'
+import { wasmEvaluateMeshModifiers } from '../wasm/wasmDeformBridge'
+import type {
+  BaseSurface,
+  ImageMeshDefinition,
+  ImageMeshModifier,
+  MeshMotionConfig
+} from '@shared/imageMeshDefinition'
 import { buildBaseGridMesh } from './buildBaseMesh'
 import {
   applyBendPrimitive,
@@ -70,6 +76,54 @@ function applyTimelineMotion(
 }
 
 /**
+ * Evaluates modifiers, procedural timeline motion, and optional unit-space scaling in pure JS
+ * (serves as fallback when WASM is unavailable and reference for parity testing).
+ */
+export function evaluateMeshModifiersInPlaceJs(
+  pos: Float32Array,
+  uvs: Float32Array,
+  count: number,
+  modifiers: ImageMeshModifier[],
+  surface: BaseSurface,
+  motion: MeshMotionConfig | undefined,
+  time: number,
+  unitSpace: boolean
+): void {
+  for (const mod of modifiers) {
+    if (!mod.enabled) continue
+
+    if (mod.type === 'bend') {
+      applyBendPrimitive(pos, uvs, count, mod, surface)
+    } else if (mod.type === 'twist') {
+      applyTwistPrimitive(pos, uvs, count, mod, surface)
+    } else if (mod.type === 'curve') {
+      applyCurvePrimitive(pos, uvs, count, mod, surface)
+    } else if (mod.type === 'lattice') {
+      applyLatticePrimitive(pos, uvs, count, mod, surface)
+    } else if (mod.type === 'sculpt') {
+      applyBrushPrimitive(pos, uvs, count, mod, surface)
+    } else if (mod.type === 'depthProfile') {
+      applyDepthProfilePrimitive(pos, uvs, count, mod, surface)
+    }
+  }
+
+  if (motion && motion.type !== 'none') {
+    applyTimelineMotion(pos, uvs, count, motion, time)
+  }
+
+  if (unitSpace) {
+    const invW = 1.0 / Math.max(1, surface.width)
+    const invH = 1.0 / Math.max(1, surface.height)
+    for (let i = 0; i < count; i++) {
+      const idx = i * 3
+      pos[idx] *= invW
+      pos[idx + 1] *= invH
+      pos[idx + 2] *= invW // Depth scaled uniformly with width
+    }
+  }
+}
+
+/**
  * Main evaluation entry point: transforms base mesh into final deformed THREE.BufferGeometry.
  */
 export function evaluateMeshGeometry(
@@ -90,40 +144,9 @@ export function evaluateMeshGeometry(
   const uvs = base.uvs
   const count = base.vertexCount
 
-  // 2. Evaluate ordered modifiers
-  for (const mod of modifiers) {
-    if (!mod.enabled) continue
-
-    if (mod.type === 'bend') {
-      applyBendPrimitive(pos, uvs, count, mod, surface)
-    } else if (mod.type === 'twist') {
-      applyTwistPrimitive(pos, uvs, count, mod, surface)
-    } else if (mod.type === 'curve') {
-      applyCurvePrimitive(pos, uvs, count, mod, surface)
-    } else if (mod.type === 'lattice') {
-      applyLatticePrimitive(pos, uvs, count, mod, surface)
-    } else if (mod.type === 'sculpt') {
-      applyBrushPrimitive(pos, uvs, count, mod, surface)
-    } else if (mod.type === 'depthProfile') {
-      applyDepthProfilePrimitive(pos, uvs, count, mod, surface)
-    }
-  }
-
-  // 3. Evaluate timeline procedural motion
-  if (motion && motion.type !== 'none') {
-    applyTimelineMotion(pos, uvs, count, motion, time)
-  }
-
-  // 4. Optionally normalize coordinates to unit space [-0.5, 0.5]
-  if (unitSpace) {
-    const invW = 1.0 / Math.max(1, surface.width)
-    const invH = 1.0 / Math.max(1, surface.height)
-    for (let i = 0; i < count; i++) {
-      const idx = i * 3
-      pos[idx] *= invW
-      pos[idx + 1] *= invH
-      pos[idx + 2] *= invW // Depth scaled uniformly with width
-    }
+  // 2-4. Evaluate ordered modifiers, timeline motion, and optional unit-space scaling via Rust WASM
+  if (!wasmEvaluateMeshModifiers(pos, uvs, count, modifiers, surface, motion, time, unitSpace)) {
+    evaluateMeshModifiersInPlaceJs(pos, uvs, count, modifiers, surface, motion, time, unitSpace)
   }
 
   // 5. Construct BufferGeometry

@@ -138,12 +138,27 @@ export function SoftLayerImage({ url, layer, time, showMesh, filter }: Props) {
   useEffect(() => {
     const canvas = ref.current, ctx = canvas?.getContext('2d')
     if (!canvas || !ctx || !data) return
-    const rest = data.geometry.userData.basePositions as Float32Array
+    const ud = data.geometry.userData
+    const rest = ud.basePositions as Float32Array
     const indices = data.geometry.getIndex()?.array
-    const skinned = layer.previewRig && layer.bindingMode === 'soft' && (layer.boneId || layer.extraBoneIds?.length)
-      ? deformSkin(rest, layer, layer.previewRig, time, indices) : rest
-    const positions = layer.previewPlantSpines?.length
-      ? deformPlantSpines(skinned, layer, layer.previewPlantSpines, time, indices) : skinned
+    const hasSkin = Boolean(layer.previewRig && layer.bindingMode === 'soft' && (layer.boneId || layer.extraBoneIds?.length))
+    const hasSpines = Boolean(layer.previewPlantSpines?.length)
+    let skinned: Float32Array = rest
+    if (hasSkin) {
+      const workA: Float32Array =
+        ud.skinWorkA && ud.skinWorkA.length === rest.length
+          ? ud.skinWorkA
+          : (ud.skinWorkA = new Float32Array(rest.length))
+      skinned = deformSkin(rest, layer, layer.previewRig!, time, indices, workA)
+    }
+    let positions: Float32Array = skinned
+    if (hasSpines) {
+      const workB: Float32Array =
+        ud.skinWorkB && ud.skinWorkB.length === rest.length
+          ? ud.skinWorkB
+          : (ud.skinWorkB = new Float32Array(rest.length))
+      positions = deformPlantSpines(skinned, layer, layer.previewPlantSpines!, time, indices, rest, workB)
+    }
     let minX = -data.width / 2, minY = -data.height / 2, maxX = data.width / 2, maxY = data.height / 2
     for (let i = 0; i < positions.length; i += 3) {
       minX = Math.min(minX, positions[i]); maxX = Math.max(maxX, positions[i])

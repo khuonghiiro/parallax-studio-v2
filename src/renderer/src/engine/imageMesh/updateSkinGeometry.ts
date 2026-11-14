@@ -4,6 +4,7 @@ import type { Layer, Project } from '@shared/types'
 import { deformSkin } from '../layerSkinning'
 import { deformPlantSpines } from '../plantSpine'
 import { deformVerticesByPhysics } from '../layerPhysics'
+import { wasmScaleUnitSpace } from '../wasm/wasmDeformBridge'
 
 /** Update the existing buffers; no GPU or typed-array allocations during playback/export. */
 export function updateSkinGeometry(
@@ -47,11 +48,13 @@ export function updateSkinGeometry(
   const invW = 1 / def.surface.width
   const invH = 1 / def.surface.height
   const count = attribute.count
-  for (let i = 0; i < count; i++) {
-    const i3 = i * 3
-    arr[i3] = positions[i3] * invW
-    arr[i3 + 1] = positions[i3 + 1] * invH
-    arr[i3 + 2] = positions[i3 + 2] * invW
+  if (!wasmScaleUnitSpace(positions, arr, count, invW, invH)) {
+    for (let i = 0; i < count; i++) {
+      const i3 = i * 3
+      arr[i3] = positions[i3] * invW
+      arr[i3 + 1] = positions[i3 + 1] * invH
+      arr[i3 + 2] = positions[i3 + 2] * invW
+    }
   }
   attribute.needsUpdate = true
 }
