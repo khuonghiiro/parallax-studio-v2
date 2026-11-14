@@ -70,7 +70,8 @@ const DEMO_LOADING_TITLES: Record<string, string> = {
   donghua_guofeng: 'Đang mở Mẫu 2: Vân Sơn Kiếm Khúc — Quốc Phong 2.5D…',
   hanbeta_quaidam: 'Đang mở Mẫu 3: Hàn Bối Tháp — Đại Chiến Linh Thú 2.5D…',
   action_combat_25d: 'Đang mở Mẫu 3: Hàn Bối Tháp — Đại Chiến Linh Thú 2.5D…',
-  immortal_sword_25d: 'Đang mở Mẫu 4: Thương Lan Kiếm Cảnh — Tiên Hiệp Điện Ảnh 2.5D…'
+  immortal_sword_25d: 'Đang mở Mẫu 4: Thương Lan Kiếm Cảnh — Tiên Hiệp Điện Ảnh 2.5D…',
+  story_west_skeleton: 'Đang mở Mẫu 5: Tiểu Khô Lâu Tây Du — Hoạt Ảnh Kể Chuyện Hài 2.5D…'
 }
 
 export async function loadDemo(
@@ -80,7 +81,8 @@ export async function loadDemo(
     | 'donghua_guofeng'
     | 'hanbeta_quaidam'
     | 'action_combat_25d'
-    | 'immortal_sword_25d' = 'three_scenes'
+    | 'immortal_sword_25d'
+    | 'story_west_skeleton' = 'three_scenes'
 ): Promise<void> {
   if (!force && !confirmDiscard()) return
   editor().setPlaying(false)
@@ -88,8 +90,10 @@ export async function loadDemo(
   await runWithProjectLoading(title, async (report) => {
     const demoMod = await import('./project/demo')
     const p =
-      variant === 'immortal_sword_25d' && 'buildImmortalSwordDemoProject' in demoMod
-        ? await (demoMod as { buildImmortalSwordDemoProject: () => Promise<Project> }).buildImmortalSwordDemoProject()
+      variant === 'story_west_skeleton' && 'buildStoryWestDemoProject' in demoMod
+        ? await demoMod.buildStoryWestDemoProject()
+        : variant === 'immortal_sword_25d' && 'buildImmortalSwordDemoProject' in demoMod
+          ? await (demoMod as { buildImmortalSwordDemoProject: () => Promise<Project> }).buildImmortalSwordDemoProject()
         : variant === 'action_combat_25d' || variant === 'hanbeta_quaidam'
           ? await demoMod.buildHanbetaDemoProject()
           : variant === 'donghua_guofeng'

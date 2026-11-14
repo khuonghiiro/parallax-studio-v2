@@ -28,6 +28,7 @@ import {
   IconLoopAnimate,
   IconMoon,
   IconMusic,
+  IconPlay,
   IconPlug,
   IconPlus,
   IconQrCode,
@@ -252,6 +253,9 @@ export function Toolbar({ onExport }: { onExport: () => void }) {
           </button>
           <button className="menu-item" onClick={() => loadDemo(false, 'immortal_sword_25d')}>
             <IconRoute width={15} /> Mẫu 4: Thương Lan Kiếm Cảnh — Tiên Hiệp Điện Ảnh 2.5D
+          </button>
+          <button className="menu-item" onClick={() => loadDemo(false, 'story_west_skeleton')}>
+            <IconPlay width={15} /> Mẫu 5: Tiểu Khô Lâu Tây Du — Hoạt Ảnh Kể Chuyện Hài 2.5D
           </button>
         </Menu>
 

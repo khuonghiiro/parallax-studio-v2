@@ -74,14 +74,17 @@ export const projectCommands: Record<string, Handler> = {
       demo === 'donghua_guofeng' ||
       demo === 'hanbeta_quaidam' ||
       demo === 'action_combat_25d' ||
-      demo === 'immortal_sword_25d'
+      demo === 'immortal_sword_25d' ||
+      demo === 'story_west_skeleton'
     ) {
       ed().setPlaying(false)
       const loaded = await runWithProjectLoading(`Đang tải mẫu (${demo})…`, async (report) => {
         const demoMod = await import('../../project/demo')
         const built =
-          demo === 'immortal_sword_25d' && 'buildImmortalSwordDemoProject' in demoMod
-            ? await (demoMod as { buildImmortalSwordDemoProject: () => Promise<Project> }).buildImmortalSwordDemoProject()
+          demo === 'story_west_skeleton' && 'buildStoryWestDemoProject' in demoMod
+            ? await demoMod.buildStoryWestDemoProject()
+            : demo === 'immortal_sword_25d' && 'buildImmortalSwordDemoProject' in demoMod
+              ? await (demoMod as { buildImmortalSwordDemoProject: () => Promise<Project> }).buildImmortalSwordDemoProject()
             : demo === 'action_combat_25d' || demo === 'hanbeta_quaidam'
               ? await demoMod.buildHanbetaDemoProject()
               : demo === 'donghua_guofeng'

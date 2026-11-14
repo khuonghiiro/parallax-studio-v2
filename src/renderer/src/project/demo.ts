@@ -1,6 +1,7 @@
 import { repairDonghuaTiming } from './donghuaDemoBuilder'
 import { repairHanbetaTiming } from './hanbetaDemoBuilder'
 import { repairImmortalSwordTiming } from './immortalSwordDemoBuilder'
+import { repairStoryWestTiming } from './storyWestDemoBuilder'
 import { repairThreeSceneTiming } from './demoTiming'
 import type { Project } from '@shared/types'
 import demoJson from './demoProject.json'
@@ -8,6 +9,7 @@ import threeSceneJson from '../../../../projects/ba-canh-mau-workflow-v2.json'
 import donghuaJson from '../../../../projects/demo-2-son-thuy-kiem-hiep.json'
 import hanbetaJson from '../../../../projects/demo-3-han-boi-thap-quai-dam.json'
 import immortalSwordJson from '../../../../projects/demo-4-thuong-lan-kiem-canh.json'
+import storyWestJson from '../../../../projects/demo-5-tieu-kho-lau-tay-du.json'
 import { importProjectFromJson } from './jsonFormat'
 
 /**
@@ -53,6 +55,15 @@ export const buildActionCombat25dDemoProject = buildHanbetaDemoProject
  */
 export async function buildImmortalSwordDemoProject(): Promise<Project> {
   return repairImmortalSwordTiming(await importProjectFromJson(JSON.stringify(immortalSwordJson)))
+}
+
+/**
+ * Builds Demo #5: "Tiểu Khô Lâu Tây Du — Hoạt Ảnh Kể Chuyện Hài 2.5D"
+ * featuring 11 fast-paced story beats (34s), dual world-vs-emotion backdrops,
+ * holographic System Quest UI, 3-plane Z escape, foreground Kim Cô Bổng slam, and outlined subtitles.
+ */
+export async function buildStoryWestDemoProject(): Promise<Project> {
+  return repairStoryWestTiming(await importProjectFromJson(JSON.stringify(storyWestJson)))
 }
 
 export * from './plateGenerators'

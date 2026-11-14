@@ -184,7 +184,7 @@ Khi kiểm tra và tương tác với Parallax Studio, AI Agent **BẮT BUỘC**
 - `get_ai_guide`: Đọc hướng dẫn AI theo ngôn ngữ tài liệu đang chọn (`topic`: overview, coordinates, workflow, assembly, tips). Trả lời tại chỗ, không cần app.
 
 ### 4.2. Nhóm Dự Án & Phân Cảnh (Project & Shots)
-- `new_project`: Khởi tạo dự án mới trống hoặc nạp mẫu dựng sẵn (`three_scenes`, `donghua_guofeng`, `action_combat_25d`, `immortal_sword_25d`).
+- `new_project`: Khởi tạo dự án mới trống hoặc nạp mẫu dựng sẵn (`three_scenes`, `donghua_guofeng`, `action_combat_25d`, `immortal_sword_25d`, `story_west_skeleton`).
 - `set_composition`: Thay đổi độ phân giải (width, height, fps, duration).
 - `save_project` / `open_project`: Lưu hoặc mở file `.pxs`.
 - `import_project_json` / `export_project_json`: Xuất / nhập dự án dạng JSON phi cấu trúc.

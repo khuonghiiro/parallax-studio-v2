@@ -319,7 +319,7 @@ function samplePunchZoomBeat(project: Project, shot: Shot, beat: CinematicCamera
       scale: Number((sImpact * 1.02).toFixed(3)),
       yaw: beat.yawEnd ?? -3.0,
       pitch: -2.0,
-      roll: Math.abs(rollImp) >= 8 ? rollImp : -8.5,
+      roll: beat.rollImpact !== undefined ? Number((rollImp * 0.55).toFixed(2)) : -8.5,
       fov: (beat.fovImpact ?? 35) + 0.8,
       ease: 'easeInOut',
       actionMode: 'dutch-tilt'

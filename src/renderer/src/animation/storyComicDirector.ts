@@ -5,6 +5,7 @@ import {
   type CinematicCameraBeat,
   type ShotTransitionStyle
 } from './cinematicCameraRoute'
+import { autoScaleFactor } from './math'
 import { generatePresetSpatialTracks } from './motionPresets'
 
 export type StoryMoodBackdrop =
@@ -241,23 +242,23 @@ export function toCinematicBeatFromStoryGrammar(spec: StoryComicBeatSpec): Cinem
   }
   switch (g) {
     case 'cold_open_shock':
-      return { ...base, kind: 'punch_zoom', startScale: 1.02, impactScale: 0.78, endScale: 0.94, impactRatio: 0.28, hitstopSec: 0.1, impactShakePx: 14, rollImpact: -2.2 } as CinematicCameraBeat
+      return { ...base, kind: 'punch_zoom', startScale: 1.0, impactScale: 0.84, endScale: 0.94, impactRatio: 0.28, hitstopSec: 0.1, impactShakePx: 12, rollImpact: 0 } as CinematicCameraBeat
     case 'over_shoulder_system':
-      return { ...base, kind: 'establish_corridor', startScale: 1.0, endScale: 0.92, yawStart: -3, yawEnd: 2 } as CinematicCameraBeat
+      return { ...base, kind: 'establish_corridor', startScale: 1.0, endScale: 0.92, yawStart: -2.5, yawEnd: 2 } as CinematicCameraBeat
     case 'snap_reaction_zoom':
-      return { ...base, kind: 'punch_zoom', startScale: 0.98, impactScale: 0.74, endScale: 0.76, impactRatio: 0.2, hitstopSec: 0.14, impactShakePx: 9, rollImpact: 1.5 } as CinematicCameraBeat
+      return { ...base, kind: 'punch_zoom', startScale: 0.98, impactScale: 0.78, endScale: 0.80, impactRatio: 0.22, hitstopSec: 0.14, impactShakePx: 8, rollImpact: 0 } as CinematicCameraBeat
     case 'low_angle_menace':
-      return { ...base, kind: 'hero_low_ascent', startScale: 0.96, endScale: 0.84, pitchStart: -12, pitchEnd: -6, yawStart: -2, yawEnd: 2 } as CinematicCameraBeat
+      return { ...base, kind: 'hero_low_ascent', startScale: 0.96, endScale: 0.86, pitchStart: -9, pitchEnd: -4, yawStart: -2, yawEnd: 2 } as CinematicCameraBeat
     case 'spotlight_pity_pull':
-      return { ...base, kind: 'crane_rise', startScale: 0.82, endScale: 0.98, pitchStart: 4, pitchEnd: 10, yawStart: 0, yawEnd: 0 } as CinematicCameraBeat
+      return { ...base, kind: 'crane_rise', startScale: 0.84, endScale: 0.98, pitchStart: 3, pitchEnd: 8, yawStart: 0, yawEnd: 0 } as CinematicCameraBeat
     case 'rage_punch_shake':
-      return { ...base, kind: 'punch_zoom', startScale: 0.94, impactScale: 0.68, endScale: 0.74, impactRatio: 0.24, hitstopSec: 0.16, impactShakePx: 18, rollImpact: -3.2 } as CinematicCameraBeat
+      return { ...base, kind: 'punch_zoom', startScale: 0.96, impactScale: 0.78, endScale: 0.82, impactRatio: 0.24, hitstopSec: 0.16, impactShakePx: 16, rollImpact: -1.4 } as CinematicCameraBeat
     case 'confrontation_push':
-      return { ...base, kind: 'establish_corridor', startScale: 0.98, endScale: 0.78, yawStart: -2, yawEnd: 3, pitchStart: -2, pitchEnd: 0 } as CinematicCameraBeat
+      return { ...base, kind: 'establish_corridor', startScale: 0.98, endScale: 0.82, yawStart: -2, yawEnd: 2.5, pitchStart: -1, pitchEnd: 0 } as CinematicCameraBeat
     case 'three_plane_escape':
-      return { ...base, kind: 'orbit_parallax', startScale: 0.96, endScale: 1.02, yawStart: -6, yawEnd: 7, pitchStart: 3, pitchEnd: -2 } as CinematicCameraBeat
+      return { ...base, kind: 'orbit_parallax', startScale: 0.98, endScale: 1.02, yawStart: -5, yawEnd: 6, pitchStart: 2, pitchEnd: -2 } as CinematicCameraBeat
     case 'foreground_weapon_slam':
-      return { ...base, kind: 'punch_zoom', startScale: 0.96, impactScale: 0.72, endScale: 0.88, impactRatio: 0.25, hitstopSec: 0.18, impactShakePx: 22, rollImpact: -4 } as CinematicCameraBeat
+      return { ...base, kind: 'punch_zoom', startScale: 0.98, impactScale: 0.82, endScale: 0.92, impactRatio: 0.25, hitstopSec: 0.18, impactShakePx: 20, rollImpact: -2.0 } as CinematicCameraBeat
     case 'confused_push':
     default:
       return { ...base, kind: 'establish_corridor', startScale: 0.98, endScale: 0.88, yawStart: 2, yawEnd: -2, pitchStart: 0, pitchEnd: 0 } as CinematicCameraBeat
@@ -293,10 +294,14 @@ export function stageStoryComicBeat(project: Project, spec: StoryComicBeatSpec):
     sub.outPoint = Number(Math.max(sub.inPoint + 0.2, spec.end - 0.03).toFixed(3))
     sub.fadeIn = 0.06
     sub.fadeOut = 0.06
-    sub.autoScale = false
-    const fx = spec.focusOffset?.[0] ?? 0
-    const fy = spec.focusOffset?.[1] ?? 0
-    sub.transform.position.value = [fx, Math.round(fy - 390 * safeScale), -35]
+    sub.autoScale = true
+    const subZ = -320
+    const perspK = autoScaleFactor(subZ, project.comp)
+    const subjectLayer = spec.subjectId ? project.layers.find((l) => l.id === spec.subjectId) : undefined
+    const subPos = subjectLayer?.transform.position.value
+    const cx = spec.focusOffset?.[0] ?? (subPos ? Math.round(subPos[0] * 0.45) : 0)
+    const cy = spec.focusOffset?.[1] ?? 0
+    sub.transform.position.value = [cx, Math.round(cy - 385 * safeScale * perspK), subZ]
     sub.transform.scale.value = [safeScale, safeScale, 1]
     sub.props = {
       text: subText,
