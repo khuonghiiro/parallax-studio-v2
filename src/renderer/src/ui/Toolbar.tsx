@@ -32,6 +32,7 @@ import {
   IconPlus,
   IconQrCode,
   IconRedo,
+  IconRoute,
   IconSave,
   IconSettings,
   IconSparkles,
@@ -248,6 +249,9 @@ export function Toolbar({ onExport }: { onExport: () => void }) {
           </button>
           <button className="menu-item" onClick={() => loadDemo(false, 'action_combat_25d')}>
             <IconEye width={15} /> Mẫu 3: Hàn Bối Tháp — Đại Chiến Linh Thú 2.5D
+          </button>
+          <button className="menu-item" onClick={() => loadDemo(false, 'immortal_sword_25d')}>
+            <IconRoute width={15} /> Mẫu 4: Thương Lan Kiếm Cảnh — Tiên Hiệp Điện Ảnh 2.5D
           </button>
         </Menu>
 

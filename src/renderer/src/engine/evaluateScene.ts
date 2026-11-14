@@ -207,14 +207,13 @@ export function evaluateScene(project: Project, rawT: number): EvaluatedScene {
   const partCues = partTimelineCues(project)
   const layers = project.layers.map((sourceLayer, index): EvaluatedLayer => {
     const shot = sourceLayer.shotId ? (shotById.get(sourceLayer.shotId) ?? null) : null
-    const isActiveAtT =
-      sourceLayer.visible &&
-      (shot ? shot.shot.visible : true) &&
-      t >= sourceLayer.inPoint &&
-      t <= sourceLayer.outPoint
-
-    const part = isActiveAtT ? evaluatePartTimeline(sourceLayer, partCues, t) : null
+    const part = partCues.length > 0 ? evaluatePartTimeline(sourceLayer, partCues, t) : null
     const layer = part ? part.layer : sourceLayer
+    const isActiveAtT =
+      layer.visible &&
+      (shot ? shot.shot.visible : true) &&
+      t >= layer.inPoint &&
+      t <= layer.outPoint
     const tr = layer.transform
     const pos = [...evaluate(tr.position, t)] as Vec3
     const rot = [...evaluate(tr.rotation, t)] as Vec3
