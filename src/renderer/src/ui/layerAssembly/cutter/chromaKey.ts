@@ -1,6 +1,7 @@
 import type { ChromaKeySettings, CutPoint, DetectedIsland, EyedropperSample } from './types'
 import { processAdvancedChromaPixelData, rgbToHex } from './chromaAdvancedProcessor'
 import { disambiguateCanvasOverlap } from './islandDisambiguation'
+import { wasmScanRawIslandsFromData } from '../../../engine/wasm/wasmIsolationBridge'
 
 export function hexToRgb(hex: string): { r: number; g: number; b: number } {
   const clean = (hex || '#ffffff').replace('#', '').trim()
@@ -163,6 +164,17 @@ export function sampleEyedropperAtPoint(
  * hỗ trợ quy đổi hệ số tỷ lệ `coordScale` khi quét trên canvas proxy của ảnh 4K/8K.
  */
 export function scanRawIslandsFromData(
+  data: Uint8ClampedArray,
+  width: number,
+  height: number,
+  coordScale = 1
+): DetectedIsland[] {
+  const wasmRes = wasmScanRawIslandsFromData(data, width, height, coordScale)
+  if (wasmRes) return wasmRes
+  return scanRawIslandsFromDataJs(data, width, height, coordScale)
+}
+
+export function scanRawIslandsFromDataJs(
   data: Uint8ClampedArray,
   width: number,
   height: number,

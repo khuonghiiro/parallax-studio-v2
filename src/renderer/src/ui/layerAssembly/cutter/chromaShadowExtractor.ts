@@ -1,5 +1,10 @@
 import type { ChromaKeySettings, ChromaShadowMode } from './types'
 import { resolveOuterWallAlpha } from './chromaOuterIsolation'
+import { wasmDilateMaskBox } from '../../../engine/wasm/wasmIsolationBridge'
+import {
+  wasmAnalyzeChromaAlpha,
+  wasmApplySmoothEdgeFeather
+} from '../../../engine/wasm/wasmChromaBridge'
 
 /**
  * Lấy mẫu tự động màu nền thực tế quanh viền ảnh để tinh chỉnh chính xác màu khóa (Key Color).
@@ -100,10 +105,7 @@ export function resolveImageEffectiveKeyRgb(
   }
 }
 
-/**
- * Giãn nở mặt nạ nhị phân (Separable Box Dilation O(N) 2 lượt ngang-dọc) không cấp phát mảng con.
- */
-export function dilateMaskBox(
+export function dilateMaskBoxJs(
   mask: Uint8Array,
   w: number,
   h: number,
@@ -148,6 +150,18 @@ export function dilateMaskBox(
   }
 
   return out
+}
+
+/**
+ * Giãn nở mặt nạ nhị phân (Separable Box Dilation O(N) 2 lượt ngang-dọc) không cấp phát mảng con.
+ */
+export function dilateMaskBox(
+  mask: Uint8Array,
+  w: number,
+  h: number,
+  radius: number
+): Uint8Array {
+  return wasmDilateMaskBox(mask, w, h, radius) ?? dilateMaskBoxJs(mask, w, h, radius)
 }
 
 export function resolveEffectiveShadowMode(settings: ChromaKeySettings): ChromaShadowMode {
@@ -298,6 +312,16 @@ export function finalizeChromaAnalysis(
 
 /** Phân tích độ phủ thật của mọi pixel — dùng chung cho tách bóng, xoá quầng và phân vùng nền ngoài / trong */
 export function analyzeChromaAlpha(
+  data: Uint8ClampedArray,
+  w: number,
+  h: number,
+  settings: ChromaKeySettings,
+  keyRgb: { r: number; g: number; b: number }
+): ChromaAlphaAnalysis {
+  return wasmAnalyzeChromaAlpha(data, w, h, settings, keyRgb) ?? analyzeChromaAlphaJs(data, w, h, settings, keyRgb)
+}
+
+export function analyzeChromaAlphaJs(
   data: Uint8ClampedArray,
   w: number,
   h: number,
@@ -652,6 +676,19 @@ export function removeSoftHaloPixels(
  * kết hợp lọc mịn đường đồng mức Gaussian 3×3 trên dải biên.
  */
 export function applySmoothEdgeFeather(
+  data: Uint8ClampedArray,
+  w: number,
+  h: number,
+  feather: number,
+  alphaSnap: Uint8Array,
+  excludeShadowMask?: Uint8Array | null
+): void {
+  if (feather <= 0 || w < 3 || h < 3) return
+  if (wasmApplySmoothEdgeFeather(data, w, h, feather, alphaSnap, excludeShadowMask)) return
+  applySmoothEdgeFeatherJs(data, w, h, feather, alphaSnap, excludeShadowMask)
+}
+
+export function applySmoothEdgeFeatherJs(
   data: Uint8ClampedArray,
   w: number,
   h: number,

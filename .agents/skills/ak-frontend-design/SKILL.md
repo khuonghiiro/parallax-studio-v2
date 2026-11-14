@@ -14,6 +14,9 @@ metadata:
 
 # Frontend design
 
+> **Lưu ý bắt buộc trong Parallax Studio V2:**
+> - **Phân định vai trò:** Dùng `ak:frontend-design` cho định hướng bố cục thị giác (art direction) và phân cấp thông tin; khi viết CSS/JSX thực tế bắt buộc tuân theo [`ak:ui-styling`](../ak-ui-styling/SKILL.md) (chỉ dùng Vanilla CSS + Design Tokens tại `src/renderer/src/styles/variables.css`, cấm dùng Tailwind CSS, cấm `<select>` native, bắt buộc đăng ký `data-mcp-region` và kiểm tra cả 2 theme Dark & Light).
+
 Deliver working interfaces that look deliberately designed: one clear art direction,
 disciplined tokens, strong hierarchy, generous rhythm, complete interaction states and
 responsive layouts. Taste here is a procedure, not a mood: write the brief, build from

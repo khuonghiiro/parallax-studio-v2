@@ -70,4 +70,33 @@ describe('bone interpolation velocity', () => {
     // Midpoint t=0.5: 0.5 -> x = 50
     expect(x(rInOut, 0.5)).toBeCloseTo(50, 1)
   })
+
+  it('clamps smooth spline tangents at action reversal peaks without overshoot whip-back', () => {
+    const slash: LayerRig = {
+      bones: [],
+      duration: 1.5,
+      loop: true,
+      tracks: {
+        root: [
+          { time: 0, x: 0, y: 0, rotation: 0, easing: 'smooth' },
+          { time: 0.48, x: 0, y: 0, rotation: -124, easing: 'smooth' },
+          { time: 0.81, x: 0, y: 0, rotation: 48, easing: 'smooth' },
+          { time: 1.14, x: 0, y: 0, rotation: 32, easing: 'smooth' },
+          { time: 1.5, x: 0, y: 0, rotation: 0, easing: 'smooth' }
+        ]
+      }
+    }
+    for (let t = 0; t <= 1.5; t += 0.01) {
+      const rot = sampleBonePose(slash, 'root', t).rotation
+      expect(rot).toBeGreaterThanOrEqual(-124.001)
+      expect(rot).toBeLessThanOrEqual(48.001)
+    }
+    // Settle segment 0.81s (48°) -> 1.14s (32°) must decrease monotonically without whipping past +48°
+    let prev = sampleBonePose(slash, 'root', 0.81).rotation
+    for (let t = 0.83; t <= 1.14; t += 0.02) {
+      const cur = sampleBonePose(slash, 'root', t).rotation
+      expect(cur).toBeLessThanOrEqual(prev + 1e-5)
+      prev = cur
+    }
+  })
 })

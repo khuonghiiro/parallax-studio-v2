@@ -1,10 +1,15 @@
 import type { AudioTrackItem, Layer, Project, Vec3 } from '@shared/types'
+import { wasmEvalLipSyncFrames } from '../engine/wasm/wasmAudioBridge'
 import { assetStore } from './assets'
 import { getAudioPeaks } from './audioPeaks'
 
 /** Cache đồng bộ bộ đệm sóng âm đã nạp trong runtime để tra cứu 60fps */
 const syncPeakCache = new Map<string, Float32Array>()
 const pendingPreloadPeaks = new Map<string, Promise<Float32Array>>()
+
+export function seedAudioPeaksCache(assetId: string, peaks: Float32Array): void {
+  syncPeakCache.set(assetId, peaks)
+}
 
 /** Nạp trước đệm sóng âm vào RAM */
 export async function preloadAudioPeaks(assetId: string): Promise<Float32Array> {
@@ -195,89 +200,101 @@ export function evaluateCharacterLipSync(
   }
 }
 
-/**
- * Nướng keyframe khẩu hình miệng trực tiếp vào Timeline của layer miệng nhân vật (đồng bộ).
- */
-export function bakeLipSyncToCharacterLayerSync(
-  project: Project,
-  trackId: string,
-  options?: {
-    fps?: number
-    intensity?: number
-    openThreshold?: number
-  }
-): { success: boolean; layerId?: string; bakedKeyframeCount: number } {
-  const tracks = project.audioTracks || []
-  const track = tracks.find((t) => t.id === trackId)
-  if (!track) return { success: false, bakedKeyframeCount: 0 }
-
-  const charId = track.targetId
-  if (!charId && track.targetType !== 'layer') {
-    return { success: false, bakedKeyframeCount: 0 }
-  }
-
-  // Tìm layer miệng mục tiêu
-  let mouthLayer: Layer | undefined
-  if (track.targetType === 'layer') {
-    mouthLayer = project.layers.find((l) => l.id === track.targetId)
-  } else {
-    mouthLayer = findMouthLayerForCharacter(project.layers, charId!, track.lipSyncLayerId)
-  }
-
-  if (!mouthLayer) return { success: false, bakedKeyframeCount: 0 }
-
-  const meta = assetStore.get(track.assetId)?.meta
-  const assetDur = meta?.duration ?? 0
-
-  const fps = options?.fps || project.comp.fps || 30
-  const intensity = options?.intensity || track.lipSyncIntensity || 1.0
-  const threshold = options?.openThreshold ?? 0.04
-
+function appendBakedLipSyncKeyframes(
+  mouthLayer: Layer,
+  track: AudioTrackItem,
+  assetDur: number,
+  fps: number,
+  intensity: number,
+  threshold: number,
+  useWasm: boolean
+): number {
   const rate = track.playbackRate || 1
   const trimIn = track.trimIn || 0
   const trackDur = track.duration ?? (assetDur > 0 ? (assetDur - trimIn) / rate : 5)
   const startTime = track.offset
   const endTime = track.offset + trackDur
-
   const baseScale = [...mouthLayer.transform.scale.value] as Vec3
   const basePos = [...mouthLayer.transform.position.value] as Vec3
-
-  const scaleKeys = mouthLayer.transform.scale.keyframes
-  const posKeys = mouthLayer.transform.position.keyframes
-
-  // Xóa các keyframe lip-sync cũ của track này trên layer
   const prefix = `lipsync-${track.id}-`
-  mouthLayer.transform.scale.keyframes = scaleKeys.filter((k) => !k.id.startsWith(prefix))
-  mouthLayer.transform.position.keyframes = posKeys.filter((k) => !k.id.startsWith(prefix))
+  mouthLayer.transform.scale.keyframes = mouthLayer.transform.scale.keyframes.filter(
+    (k) => !k.id.startsWith(prefix)
+  )
+  mouthLayer.transform.position.keyframes = mouthLayer.transform.position.keyframes.filter(
+    (k) => !k.id.startsWith(prefix)
+  )
+
+  const step = 1 / fps
+  let frameCount = 0
+  for (let t = startTime; t <= endTime; t += step) frameCount++
+
+  const peaks = useWasm ? syncPeakCache.get(track.assetId) : undefined
+  const wasmEval =
+    useWasm && peaks && peaks.length > 0 && frameCount > 0
+      ? wasmEvalLipSyncFrames(
+          peaks,
+          new Float64Array([
+            startTime,
+            track.offset,
+            rate,
+            trimIn,
+            assetDur,
+            assetDur > 0 ? assetDur : 10,
+            trackDur,
+            Math.min(1.5, track.volume),
+            threshold,
+            intensity,
+            fps,
+            baseScale[0],
+            baseScale[1],
+            baseScale[2],
+            basePos[0],
+            basePos[1],
+            basePos[2]
+          ]),
+          frameCount
+        )
+      : null
 
   let keyCount = 0
-  const step = 1 / fps
-
-  for (let t = startTime; t <= endTime; t += step) {
-    const amp = sampleAudioPeakAtTime(track, t, assetDur)
-    const effectiveAmp = amp < threshold ? 0 : amp
-
-    const scY = baseScale[1] * (1.0 + effectiveAmp * 0.7 * intensity)
-    const scX = baseScale[0] * (1.0 + effectiveAmp * 0.18 * intensity)
-    const posY = basePos[1] - effectiveAmp * 8.0 * intensity
+  let i = 0
+  for (let t = startTime; t <= endTime; t += step, i++) {
+    const scaleVal: Vec3 = wasmEval
+      ? [wasmEval.scales[i * 3], wasmEval.scales[i * 3 + 1], wasmEval.scales[i * 3 + 2]]
+      : (() => {
+          const amp = sampleAudioPeakAtTime(track, t, assetDur)
+          const eff = amp < threshold ? 0 : amp
+          return [
+            baseScale[0] * (1.0 + eff * 0.18 * intensity),
+            baseScale[1] * (1.0 + eff * 0.7 * intensity),
+            baseScale[2]
+          ]
+        })()
+    const posVal: Vec3 = wasmEval
+      ? [wasmEval.positions[i * 3], wasmEval.positions[i * 3 + 1], wasmEval.positions[i * 3 + 2]]
+      : (() => {
+          const amp = sampleAudioPeakAtTime(track, t, assetDur)
+          const eff = amp < threshold ? 0 : amp
+          return [basePos[0], basePos[1] - eff * 8.0 * intensity, basePos[2]]
+        })()
 
     const frameIdx = Math.round((t - startTime) * fps)
+    const roundedT = Math.round(t * 1000) / 1000
     mouthLayer.transform.scale.keyframes.push({
       id: `${prefix}s-${frameIdx}`,
-      t: Math.round(t * 1000) / 1000,
-      value: [scX, scY, baseScale[2]],
+      t: roundedT,
+      value: scaleVal,
       ease: 'easeOut'
     })
     mouthLayer.transform.position.keyframes.push({
       id: `${prefix}p-${frameIdx}`,
-      t: Math.round(t * 1000) / 1000,
-      value: [basePos[0], posY, basePos[2]],
+      t: roundedT,
+      value: posVal,
       ease: 'easeOut'
     })
     keyCount += 2
   }
 
-  // Khôi phục trạng thái miệng đóng ở cuối track
   const closeTime = Math.round((endTime + step) * 1000) / 1000
   mouthLayer.transform.scale.keyframes.push({
     id: `${prefix}s-close`,
@@ -293,15 +310,79 @@ export function bakeLipSyncToCharacterLayerSync(
   })
   keyCount += 2
 
-  // Sắp xếp keyframes theo thời gian t tăng dần
   mouthLayer.transform.scale.keyframes.sort((a, b) => a.t - b.t)
   mouthLayer.transform.position.keyframes.sort((a, b) => a.t - b.t)
+  return keyCount
+}
 
-  return {
-    success: true,
-    layerId: mouthLayer.id,
-    bakedKeyframeCount: keyCount
+function runBakeLipSync(
+  project: Project,
+  trackId: string,
+  options: { fps?: number; intensity?: number; openThreshold?: number } | undefined,
+  useWasm: boolean
+): { success: boolean; layerId?: string; bakedKeyframeCount: number } {
+  const tracks = project.audioTracks || []
+  const track = tracks.find((t) => t.id === trackId)
+  if (!track) return { success: false, bakedKeyframeCount: 0 }
+
+  const charId = track.targetId
+  if (!charId && track.targetType !== 'layer') {
+    return { success: false, bakedKeyframeCount: 0 }
   }
+
+  const mouthLayer =
+    track.targetType === 'layer'
+      ? project.layers.find((l) => l.id === track.targetId)
+      : findMouthLayerForCharacter(project.layers, charId!, track.lipSyncLayerId)
+
+  if (!mouthLayer) return { success: false, bakedKeyframeCount: 0 }
+
+  const meta = assetStore.get(track.assetId)?.meta
+  const assetDur = meta?.duration ?? 0
+  const fps = options?.fps || project.comp.fps || 30
+  const intensity = options?.intensity || track.lipSyncIntensity || 1.0
+  const threshold = options?.openThreshold ?? 0.04
+
+  const bakedKeyframeCount = appendBakedLipSyncKeyframes(
+    mouthLayer,
+    track,
+    assetDur,
+    fps,
+    intensity,
+    threshold,
+    useWasm
+  )
+  return { success: true, layerId: mouthLayer.id, bakedKeyframeCount }
+}
+
+/**
+ * Nướng keyframe khẩu hình miệng trực tiếp vào Timeline của layer miệng nhân vật (đồng bộ, JS thuần).
+ */
+export function bakeLipSyncToCharacterLayerSyncJs(
+  project: Project,
+  trackId: string,
+  options?: {
+    fps?: number
+    intensity?: number
+    openThreshold?: number
+  }
+): { success: boolean; layerId?: string; bakedKeyframeCount: number } {
+  return runBakeLipSync(project, trackId, options, false)
+}
+
+/**
+ * Nướng keyframe khẩu hình miệng trực tiếp vào Timeline của layer miệng nhân vật (đồng bộ).
+ */
+export function bakeLipSyncToCharacterLayerSync(
+  project: Project,
+  trackId: string,
+  options?: {
+    fps?: number
+    intensity?: number
+    openThreshold?: number
+  }
+): { success: boolean; layerId?: string; bakedKeyframeCount: number } {
+  return runBakeLipSync(project, trackId, options, true)
 }
 
 /**

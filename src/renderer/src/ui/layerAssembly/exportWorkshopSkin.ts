@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import type { ImageLayer } from '@shared/types'
 import type { AssembledLayerItem, LayerComposite } from './types'
 import { spinesForLayer } from '../../engine/plantSpine'
-import { ensureRigClips, extraSoftBoneIdsForLayer } from './workshopRig'
+import { ensureRigClips, extraSoftBoneIdsForLayer, resolveAutoSoftExtraBoneIds } from './workshopRig'
 import { inferFallbackBoneForStackedLayer } from './mohoRigHelpers'
 import { detectGarmentCoversLegs } from './workshopClothScanner'
 
@@ -27,10 +27,16 @@ export async function exportWorkshopSkin(
       ? inferFallbackBoneForStackedLayer(item, composite.layers, normalizedRig.bones)
       : undefined
   const boneId = item.boneId ?? fallbackBoneId ?? (implicitSingleSoft ? normalizedRig!.bones[0]?.id : undefined)
-  const baseExtraBones =
+  const rawExtraBones =
     boneId && normalizedRig
       ? (item.extraBoneIds?.length ? item.extraBoneIds : extraSoftBoneIdsForLayer(composite.layers, normalizedRig, item.id, boneId))
       : []
+  const baseExtraBones = resolveAutoSoftExtraBoneIds(
+    item,
+    normalizedRig,
+    rawExtraBones,
+    composite.layers.length === 1 && Boolean(normalizedRig?.bones.length)
+  )
   const candidateExtraBoneIds =
     robeMatch && robeMatch.coveredBoneIds.length > 0
       ? Array.from(new Set([...baseExtraBones, ...robeMatch.coveredBoneIds]))

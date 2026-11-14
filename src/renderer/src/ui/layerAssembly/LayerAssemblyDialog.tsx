@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { LayerComposite } from './types'
 import { registerLayerAssemblySession } from './layerAssemblyBridge'
 import { LayerAssemblyInspector } from './LayerAssemblyInspector'
@@ -229,16 +229,20 @@ export function LayerAssemblyDialog({
     setShowNewConfirm(false)
   }
 
+  // Tránh ghi JSON.stringify 200KB–400KB vào localStorage trên từng khung hình 60fps khi đang phát hoạt ảnh
   useEffect(() => {
-    if (composite && composite.id) {
+    if (playback.isPlaying) return
+    if (!composite || !composite.id) return
+    const timer = window.setTimeout(() => {
       updateActiveWorkshopDraft(composite, {
         tab,
         primaryMode,
         selectedBoneId: boneId,
         time: playback.time
       })
-    }
-  }, [composite, tab, primaryMode, boneId, playback.time])
+    }, 280)
+    return () => window.clearTimeout(timer)
+  }, [composite, tab, primaryMode, boneId, playback.time, playback.isPlaying])
 
   useWorkshopShortcuts(state, playback.toggle, close, {
     primaryMode,
@@ -250,48 +254,74 @@ export function LayerAssemblyDialog({
     isErasing: isBrushActive && tab === 'layers'
   })
 
+  const sessionLiveRef = useRef({
+    primaryMode,
+    setPrimaryMode,
+    history,
+    setComposite,
+    state,
+    playback,
+    tab,
+    setTab,
+    isDrawerMode,
+    setMobilePane,
+    boneId,
+    selectBone,
+    undo,
+    redo,
+    saving,
+    close
+  })
+  sessionLiveRef.current = {
+    primaryMode,
+    setPrimaryMode,
+    history,
+    setComposite,
+    state,
+    playback,
+    tab,
+    setTab,
+    isDrawerMode,
+    setMobilePane,
+    boneId,
+    selectBone,
+    undo,
+    redo,
+    saving,
+    close
+  }
+
   useEffect(
     () =>
       registerLayerAssemblySession({
-        getPrimaryMode: () => primaryMode,
-        setPrimaryMode,
-        getComposite: () => history.current,
-        setComposite,
-        getSelectedLayerId: () => state.selectedLayerId,
-        setSelectedLayerId: state.select,
-        getSelectedLayerIds: () => state.selection,
-        setSelectedLayerIds: state.setIds,
-        getIsPlaying: () => playback.isPlaying,
-        setIsPlaying: playback.setIsPlaying,
-        getTime: () => playback.time,
-        setTime: playback.setTime,
-        getTab: () => tab,
+        getPrimaryMode: () => sessionLiveRef.current.primaryMode,
+        setPrimaryMode: (m) => sessionLiveRef.current.setPrimaryMode(m),
+        getComposite: () => sessionLiveRef.current.history.current,
+        setComposite: (u) => sessionLiveRef.current.setComposite(u),
+        getSelectedLayerId: () => sessionLiveRef.current.state.selectedLayerId,
+        setSelectedLayerId: (id) => sessionLiveRef.current.state.select(id),
+        getSelectedLayerIds: () => sessionLiveRef.current.state.selection,
+        setSelectedLayerIds: (ids) => sessionLiveRef.current.state.setIds(ids),
+        getIsPlaying: () => sessionLiveRef.current.playback.isPlaying,
+        setIsPlaying: (p) => sessionLiveRef.current.playback.setIsPlaying(p),
+        getTime: () => sessionLiveRef.current.playback.time,
+        setTime: (t) => sessionLiveRef.current.playback.setTime(t),
+        getTab: () => sessionLiveRef.current.tab,
         setTab: (nextTab) => {
-          setTab(nextTab)
-          if (isDrawerMode) setMobilePane('inspector')
+          sessionLiveRef.current.setTab(nextTab)
+          if (sessionLiveRef.current.isDrawerMode) sessionLiveRef.current.setMobilePane('inspector')
         },
-        getSelectedBoneId: () => boneId,
-        setSelectedBoneId: selectBone,
-        undo,
-        redo,
-        canUndo: () => history.canUndo,
-        canRedo: () => history.canRedo,
-        save: saving.save,
-        insertToScene: saving.insert,
-        close
+        getSelectedBoneId: () => sessionLiveRef.current.boneId,
+        setSelectedBoneId: (id) => sessionLiveRef.current.selectBone(id),
+        undo: () => sessionLiveRef.current.undo(),
+        redo: () => sessionLiveRef.current.redo(),
+        canUndo: () => sessionLiveRef.current.history.canUndo,
+        canRedo: () => sessionLiveRef.current.history.canRedo,
+        save: () => sessionLiveRef.current.saving.save(),
+        insertToScene: () => sessionLiveRef.current.saving.insert(),
+        close: () => sessionLiveRef.current.close()
       }),
-    [
-      composite,
-      state.selection.join(','),
-      playback.isPlaying,
-      playback.time,
-      saving.busy,
-      onClose,
-      tab,
-      boneId,
-      primaryMode,
-      isDrawerMode
-    ]
+    []
   )
 
   const showLeftSidebar = isDrawerMode ? mobilePane === 'assets' : leftSidebarOpen

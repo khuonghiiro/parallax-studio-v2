@@ -1,3 +1,5 @@
+import { wasmDisambiguateRegionPixels } from '../../../engine/wasm/wasmIsolationBridge'
+
 export interface BoundingBox {
   x: number
   y: number
@@ -42,6 +44,30 @@ export function boxesIntersect(
  *      phần viền nếu lấn quá sâu vào tâm sibling box.
  */
 export function disambiguateRegionPixels(
+  imageData: ImageData,
+  box: { x: number; y: number; width: number; height: number },
+  siblingBoxes?: Array<{ x: number; y: number; width: number; height: number }>,
+  options?: OverlapDisambiguationOptions
+): boolean {
+  if (!siblingBoxes || siblingBoxes.length === 0) return false
+  const overlappingSiblings = siblingBoxes.filter(
+    (sib) => sib.width > 0 && sib.height > 0 && boxesIntersect(box, sib)
+  )
+  if (overlappingSiblings.length === 0) return false
+  const wasmRes = wasmDisambiguateRegionPixels(
+    imageData.data,
+    imageData.width,
+    imageData.height,
+    box,
+    overlappingSiblings,
+    options?.alphaThreshold ?? 12,
+    options?.targetPreferenceRatio ?? 0.95
+  )
+  if (wasmRes !== null) return wasmRes
+  return disambiguateRegionPixelsJs(imageData, box, overlappingSiblings, options)
+}
+
+export function disambiguateRegionPixelsJs(
   imageData: ImageData,
   box: { x: number; y: number; width: number; height: number },
   siblingBoxes?: Array<{ x: number; y: number; width: number; height: number }>,

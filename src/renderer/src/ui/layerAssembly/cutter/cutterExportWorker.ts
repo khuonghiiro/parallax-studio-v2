@@ -1,7 +1,10 @@
 /// <reference lib="webworker" />
 
 import type { ChromaKeySettings, CutPoint } from './types'
+import { preloadWasmAccel } from '../../../engine/wasmAccel'
 import { processAdvancedChromaPixelData } from './chromaAdvancedProcessor'
+
+void preloadWasmAccel()
 
 export interface CutterExportWorkerRequest {
   rawBitmap: ImageBitmap

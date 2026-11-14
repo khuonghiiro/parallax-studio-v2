@@ -235,7 +235,7 @@ export function LayerAssemblyCalloutOverlay({
   }, [layers])
 
   const computedBubbles = useMemo<ComputedLayerBubble[]>(() => {
-    if (visibleEntries.length === 0) return []
+    if (!enabled || visibleEntries.length === 0) return []
 
     const vw = viewportSize.w
     const vh = viewportSize.h

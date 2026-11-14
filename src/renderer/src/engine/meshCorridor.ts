@@ -1,3 +1,6 @@
+import { wasmComputeMeshCorridor } from './wasm/wasmGeodesicBridge'
+import { isWasmAccelReady } from './wasm/wasmRuntime'
+
 export interface Point2D {
   x: number
   y: number
@@ -318,12 +321,7 @@ function findSubtreeSeeds(
   return { activeVerts, barrierVerts, strokeVerts, segMin, segMax, avgCoreEdge }
 }
 
-/**
- * Tính vùng hành lang & nhánh con (Subtree Mesh Corridor) dọc theo nét vẽ / xương trên lưới tam giác:
- * - Cành được vẽ (nét đỏ) và toàn bộ các cành nhánh con (nét xanh) mọc ra từ cành đó đều nhận trọng số chuyển động để đi theo cành.
- * - Thân cây phía dưới điểm bắt đầu và các cành lớn khác tách từ chạc gốc hoặc các đường kẻ rời hoàn toàn đứng yên (weight = 0).
- */
-export function computeMeshCorridor(
+export function computeMeshCorridorJs(
   world: Float32Array,
   indices: ArrayLike<number>,
   polyline: ReadonlyArray<Point2D>,
@@ -474,4 +472,23 @@ export function computeMeshCorridor(
   }
 
   return { weights, geoDist, segMin, segMax, avgCoreEdge }
+}
+
+/**
+ * Tính vùng hành lang & nhánh con (Subtree Mesh Corridor) dọc theo nét vẽ / xương trên lưới tam giác:
+ * - Cành được vẽ (nét đỏ) và toàn bộ các cành nhánh con (nét xanh) mọc ra từ cành đó đều nhận trọng số chuyển động để đi theo cành.
+ * - Thân cây phía dưới điểm bắt đầu và các cành lớn khác tách từ chạc gốc hoặc các đường kẻ rời hoàn toàn đứng yên (weight = 0).
+ */
+export function computeMeshCorridor(
+  world: Float32Array,
+  indices: ArrayLike<number>,
+  polyline: ReadonlyArray<Point2D>,
+  reach?: number
+): MeshCorridorResult | null {
+  const vCount = world.length >> 1
+  if (vCount === 0 || indices.length < 3 || polyline.length < 2) return null
+  if (isWasmAccelReady()) {
+    return wasmComputeMeshCorridor(world, indices, polyline, reach)
+  }
+  return computeMeshCorridorJs(world, indices, polyline, reach)
 }

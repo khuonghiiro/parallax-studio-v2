@@ -135,6 +135,7 @@ function createWindow(): void {
 function registerIpc(): void {
   // Đăng ký các kênh IPC hỗ trợ xưởng và chuyển giao mã nguồn (lazy loaded)
   import('./aiCodeHandoffIpc').then((m) => m.registerAiCodeHandoffIpc()).catch((err) => console.error(err))
+  import('./pxsAccelIpc').then((m) => m.registerPxsAccelIpc()).catch((err) => console.error(err))
   ipcMain.handle('files:open', async (_e, kind: 'image' | 'audio'): Promise<PickedFile[]> => {
     const exts = kind === 'image' ? IMAGE_EXT : AUDIO_EXT
     const res = await dialog.showOpenDialog(mainWindow!, {

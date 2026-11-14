@@ -1,5 +1,11 @@
 import type { ChromaKeySettings } from './types'
 import type { ChromaAlphaAnalysis } from './chromaShadowExtractor'
+import {
+  wasmBoxBlur3,
+  wasmComputeChromaZone,
+  wasmFloodFromBorder,
+  wasmGrowMaskWithin
+} from '../../../engine/wasm/wasmIsolationBridge'
 
 /**
  * Tiện ích phân vùng "nền ngoài" (Outer Isolation) dùng chung cho Xưởng lắp ráp 2.5D (Sprite Cutter)
@@ -7,11 +13,7 @@ import type { ChromaAlphaAnalysis } from './chromaShadowExtractor'
  * để phần nằm bên trong đường viền (ruột vòng tròn, quầng sáng bao quanh lõi...) được giữ nguyên.
  */
 
-/**
- * Loang BFS 4 hướng từ 4 cạnh ảnh qua các pixel `passable`.
- * `extraSeed` (tuỳ chọn) gieo thêm hạt giống ở bên trong ảnh (ví dụ vùng đã trong suốt sẵn).
- */
-export function floodFromBorder(
+export function floodFromBorderJs(
   passable: Uint8Array,
   w: number,
   h: number,
@@ -80,11 +82,16 @@ export function floodFromBorder(
   return out
 }
 
-/**
- * Nới rộng mặt nạ `mask` thêm `steps` pixel (4 hướng) nhưng chỉ vào những pixel được phép `allowed`.
- * Dùng để vùng nền ngoài ôm trọn dải viền anti-alias / mềm biên sát vật thể.
- */
-export function growMaskWithin(
+export function floodFromBorder(
+  passable: Uint8Array,
+  w: number,
+  h: number,
+  extraSeed?: (p: number) => boolean
+): Uint8Array {
+  return wasmFloodFromBorder(passable, w, h, extraSeed) ?? floodFromBorderJs(passable, w, h, extraSeed)
+}
+
+export function growMaskWithinJs(
   mask: Uint8Array,
   allowed: Uint8Array,
   w: number,
@@ -107,6 +114,21 @@ export function growMaskWithin(
       }
     }
   }
+}
+
+/**
+ * Nới rộng mặt nạ `mask` thêm `steps` pixel (4 hướng) nhưng chỉ vào những pixel được phép `allowed`.
+ * Dùng để vùng nền ngoài ôm trọn dải viền anti-alias / mềm biên sát vật thể.
+ */
+export function growMaskWithin(
+  mask: Uint8Array,
+  allowed: Uint8Array,
+  w: number,
+  h: number,
+  steps: number
+): void {
+  if (wasmGrowMaskWithin(mask, allowed, w, h, steps)) return
+  growMaskWithinJs(mask, allowed, w, h, steps)
 }
 
 /** Gieo hạt giống tại các pixel đã trong suốt sẵn (vạch lưới đã xoá, ảnh PNG có alpha) */
@@ -140,7 +162,7 @@ export function resolveOuterWallAlpha(settings: ChromaKeySettings, analysis: Chr
 }
 
 /** Làm mịn hộp 3×3 tách 2 lượt ngang–dọc (O(N)) */
-function boxBlur3(src: Float32Array, w: number, h: number): Float32Array {
+export function boxBlur3Js(src: Float32Array, w: number, h: number): Float32Array {
   const tmp = new Float32Array(src.length)
   const out = new Float32Array(src.length)
   for (let y = 0; y < h; y++) {
@@ -158,6 +180,10 @@ function boxBlur3(src: Float32Array, w: number, h: number): Float32Array {
     for (let x = 0; x < w; x++) out[row + x] = (tmp[up + x] + tmp[row + x] + tmp[dn + x]) / 3
   }
   return out
+}
+
+export function boxBlur3(src: Float32Array, w: number, h: number): Float32Array {
+  return wasmBoxBlur3(src, w, h) ?? boxBlur3Js(src, w, h)
 }
 
 function legacyChromaGapSeed(
@@ -188,7 +214,7 @@ function legacyChromaGapSeed(
  *   cộng dải mềm biên 1–4px; phần ruột nằm trong đường viền giữ nguyên 100%.
  *   `strictOuterIsolation !== true` bật lại kiểu tự gieo hạt ở khe phông xanh/lam/hồng thuần khiết (kẽ tóc, hốc mắt).
  */
-export function computeChromaZone(
+export function computeChromaZoneJs(
   analysis: ChromaAlphaAnalysis,
   data: Uint8ClampedArray,
   w: number,
@@ -203,7 +229,7 @@ export function computeChromaZone(
   }
   const wall = resolveOuterWallAlpha(settings, analysis)
   // Ngưỡng viền thấp (Xoá bóng) dễ bị nhiễu JPEG làm răng cưa đường viền → so trên bản làm mịn 3×3
-  const rawAlpha = wall < 0.3 ? boxBlur3(analysis.rawAlpha, w, h) : analysis.rawAlpha
+  const rawAlpha = wall < 0.3 ? boxBlur3Js(analysis.rawAlpha, w, h) : analysis.rawAlpha
   const passable = new Uint8Array(total)
   const soft = new Uint8Array(total)
   const solidCut = Math.max(wall, Math.max(0.3, Math.min(0.92, (settings.shadowSolidThreshold ?? 62) / 100)))
@@ -224,14 +250,45 @@ export function computeChromaZone(
         analysis.isMagentaKey
       )
     : transparentSeed(data)
-  const outer = floodFromBorder(passable, w, h, seed)
+  const outer = floodFromBorderJs(passable, w, h, seed)
   // Dải mềm biên: ôm thêm vài px viền chuyển tiếp để mép ngoài mịn mà không ăn sâu vào trong
   const baseBand = legacy ? 3 : 1
   const band = baseBand + Math.round(Math.max(0, Math.min(30, settings.smoothness ?? 0)) / 10)
-  growMaskWithin(outer, soft, w, h, band)
+  growMaskWithinJs(outer, soft, w, h, band)
   // Nét vật thể ĐẶC luôn được xử lý (khử ám màu mép); chỉ phần mềm / nền bị bao kín bên trong mới giữ nguyên
   for (let p = 0; p < total; p++) {
     if (!soft[p]) outer[p] = 1
   }
   return outer
+}
+
+export function computeChromaZone(
+  analysis: ChromaAlphaAnalysis,
+  data: Uint8ClampedArray,
+  w: number,
+  h: number,
+  settings: ChromaKeySettings
+): Uint8Array {
+  const total = w * h
+  if (settings.isolationMode !== 'outer_only') {
+    const zone = new Uint8Array(total)
+    zone.fill(1)
+    return zone
+  }
+  const wall = resolveOuterWallAlpha(settings, analysis)
+  const solidCut = Math.max(wall, Math.max(0.3, Math.min(0.92, (settings.shadowSolidThreshold ?? 62) / 100)))
+  const legacy =
+    settings.strictOuterIsolation !== true &&
+    (analysis.isGreenKey || analysis.isBlueKey || analysis.isMagentaKey)
+  const baseBand = legacy ? 3 : 1
+  const band = baseBand + Math.round(Math.max(0, Math.min(30, settings.smoothness ?? 0)) / 10)
+  const keyFlags =
+    (legacy ? 1 : 0) |
+    (analysis.isGreenKey ? 2 : 0) |
+    (analysis.isBlueKey ? 4 : 0) |
+    (analysis.isMagentaKey ? 8 : 0)
+
+  const wasmZone = wasmComputeChromaZone(data, analysis.rawAlpha, w, h, keyFlags, wall, solidCut, band)
+  if (wasmZone) return wasmZone
+  return computeChromaZoneJs(analysis, data, w, h, settings)
 }

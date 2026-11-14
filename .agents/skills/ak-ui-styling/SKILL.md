@@ -1,328 +1,90 @@
 ---
 name: ak:ui-styling
-description: Style UIs with shadcn/ui components (Radix UI + Tailwind CSS). Use for accessible components, themes, dark mode, responsive layouts, design systems, color customization.
+description: Style UIs in Parallax Studio V2 using Vanilla CSS Modules, Design Tokens (variables.css), Dual-Theme (Dark/Light) contrast rules, 60fps Custom Controls (<Menu>, <Select>, Segmented Pills), Unified Geometry, and 4-Breakpoint Responsive Card Grids.
 user-invocable: true
-when_to_use: "Invoke for shadcn, Tailwind, themes, or component styling."
+when_to_use: "Invoke when writing or editing CSS, styling components, fixing Dark/Light theme contrast, replacing native selects, or aligning control geometry in Parallax Studio V2."
 category: frontend
-keywords: [shadcn, radix, tailwind, themes]
+keywords: [css, tokens, variables.css, dark-mode, light-mode, custom-controls, responsive, parallax-studio]
 license: MIT
-argument-hint: "[component or layout]"
+argument-hint: "[component or stylesheet]"
 metadata:
-  author: agentkit
-  version: "1.0.0"
+  author: parallax-studio
+  version: "2.0.0"
 ---
 
-# UI Styling Skill
-
-Comprehensive skill for creating beautiful, accessible user interfaces combining shadcn/ui components, Tailwind CSS utility styling, and canvas-based visual design systems.
-
-## Reference
-
-- shadcn/ui: https://ui.shadcn.com/llms.txt
-- Tailwind CSS: https://tailwindcss.com/docs
-
-## When to Use This Skill
-
-Use when:
-- Building UI with React-based frameworks (Next.js, Vite, Remix, Astro)
-- Implementing accessible components (dialogs, forms, tables, navigation)
-- Styling with utility-first CSS approach
-- Creating responsive, mobile-first layouts
-- Implementing dark mode and theme customization
-- Building design systems with consistent tokens
-- Generating visual designs, posters, or brand materials
-- Rapid prototyping with immediate visual feedback
-- Adding complex UI patterns (data tables, charts, command palettes)
-
-## Core Stack
-
-### Component Layer: shadcn/ui
-- Pre-built accessible components via Radix UI primitives
-- Copy-paste distribution model (components live in your codebase)
-- TypeScript-first with full type safety
-- Composable primitives for complex UIs
-- CLI-based installation and management
-
-### Styling Layer: Tailwind CSS
-- Utility-first CSS framework
-- Build-time processing with zero runtime overhead
-- Mobile-first responsive design
-- Consistent design tokens (colors, spacing, typography)
-- Automatic dead code elimination
-
-### Visual Design Layer: Canvas
-- Museum-quality visual compositions
-- Philosophy-driven design approach
-- Sophisticated visual communication
-- Minimal text, maximum visual impact
-- Systematic patterns and refined aesthetics
-
-## Quick Start
-
-### Component + Styling Setup
-
-**Install shadcn/ui with Tailwind:**
-```bash
-npx shadcn@latest init
-```
-
-CLI prompts for framework, TypeScript, paths, and theme preferences. This configures both shadcn/ui and Tailwind CSS.
-
-**Add components:**
-```bash
-npx shadcn@latest add button card dialog form
-```
-
-**Use components with utility styling:**
-```tsx
-import { Button } from "@/components/ui/button"
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-
-export function Dashboard() {
-  return (
-    <div className="container mx-auto p-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-      <Card className="hover:shadow-lg transition-shadow">
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold">Analytics</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-muted-foreground">View your metrics</p>
-          <Button variant="default" className="w-full">
-            View Details
-          </Button>
-        </CardContent>
-      </Card>
-    </div>
-  )
-}
-```
-
-### Alternative: Tailwind-Only Setup
-
-**Vite projects:**
-```bash
-npm install -D tailwindcss @tailwindcss/vite
-```
+# UI Styling Skill (Parallax Studio V2 Standard)
 
-```javascript
-// vite.config.ts
-import tailwindcss from '@tailwindcss/vite'
-export default { plugins: [tailwindcss()] }
-```
-
-```css
-/* src/index.css */
-@import "tailwindcss";
-```
+Chuyên trách viết và chỉnh sửa CSS, Design Tokens, độ tương phản 2 Theme (Dark & Light), bộ điều khiển 60fps và lưới Responsive đa thiết bị trong **Parallax Studio V2**.
 
-## Component Library Guide
+> **Phân định vai trò giữa 3 Skill UI/UX trong dự án:**
+> - **`ak:ui-styling` (Skill này):** Thực thi code CSS/JSX trực tiếp theo chuẩn `variables.css`, tương phản Dark/Light, Custom Controls (`<Menu>`, `<Select>`, Segmented Pills), đồng bộ bo góc và chống cắt chữ.
+> - **`ak:frontend-design`:** Định hướng bố cục thị giác (art direction), phân cấp thông tin khi thiết kế màn hình/xưởng mới.
+> - **`ak:ui-ux-pro-max`:** Kiểm toán (audit) UI/UX, công thái học vùng bấm và kiểm tra tương thích đa thiết bị.
 
-**Comprehensive component catalog with usage patterns, installation, and composition examples.**
+---
 
-See: `references/shadcn-components.md`
+## 1. Quy Tắc Cốt Lõi (BẮT BUỘC)
 
-Covers:
-- Form & input components (Button, Input, Select, Checkbox, Date Picker, Form validation)
-- Layout & navigation (Card, Tabs, Accordion, Navigation Menu)
-- Overlays & dialogs (Dialog, Drawer, Popover, Toast, Command)
-- Feedback & status (Alert, Progress, Skeleton)
-- Display components (Table, Data Table, Avatar, Badge)
+1. **TUYỆT ĐỐI KHÔNG dùng Tailwind CSS hay shadcn/ui:** Dự án sử dụng **Vanilla CSS module hóa** trong `src/renderer/src/styles/*.css` kết hợp biến CSS tại [`src/renderer/src/styles/variables.css`](../../../src/renderer/src/styles/variables.css). Không chèn class utility kiểu `flex items-center p-4 bg-slate-900` vào JSX.
+2. **TUYỆT ĐỐI KHÔNG sửa bằng inline style (`style={{...}}`)** để lách việc thiếu rule CSS (đặc biệt trong luồng AI UI Code Handoff `Win + Ctrl`). Chỉ dùng inline style cho toạ độ động tính theo frame/con trỏ (`left`, `top`, `transform`).
+3. **Giới hạn độ dài file CSS:** Tối đa **≤ 1000 dòng** (chủ động tách file con `@import` khi đạt 500–600 dòng).
 
-## Theme & Customization
+---
 
-**Theme configuration, CSS variables, dark mode implementation, and component customization.**
+## 2. Hệ Thống Design Tokens (`variables.css`) & Chuẩn 2 Theme (Dark / Light)
 
-See: `references/shadcn-theming.md`
+Ứng dụng luôn chạy song song trên `[data-theme='dark']` và `[data-theme='light']`:
 
-Covers:
-- Dark mode setup with next-themes
-- CSS variable system
-- Color customization and palettes
-- Component variant customization
-- Theme toggle implementation
+- **Mặt phẳng & Nền:** `var(--bg-0)` (nền sâu nhất), `var(--bg-1)` (panel), `var(--bg-2)` (card/input), `var(--bg-3)` (button/chip), `var(--bg-4)` (hover/elevated).
+- **Văn bản:** `var(--text)` (chính), `var(--text-dim)` (phụ), `var(--text-faint)` (mờ/placeholder).
+- **Đường viền:** `var(--line)`, `var(--line-soft)`, `var(--line-focus)`.
+- **Màu nhấn:** `var(--accent)` (Royal Blue), `var(--accent-cyan)` (Electric Cyan), `var(--key)` (Gold).
 
-## Accessibility Patterns
+### Quy tắc tương phản khi `:hover` / `.active` / `.selected` (BẮT BUỘC)
+- **Cấm hardcode** `#ffffff`, `#000000`, `#141414` cho `color`, `background`, `fill` mà không có ngữ cảnh nền đậm cố định.
+- **Cấm dùng `color: var(--bg-0)` trên nền `--accent` hoặc `--key`:** Trong Light Theme, `--bg-0` là xám sáng (`#f5f6f8`) khiến chữ trên nền vàng `--key` bị mù màu. Bắt buộc dùng:
+  - `color: var(--on-accent)` (`#ffffff`) trên nền `var(--accent)`
+  - `color: var(--on-key)` (`#0f172a`) trên nền `var(--key)`
+- **Cấm đặt chữ `#ffffff` trực tiếp lên nền màu nhấn động sáng (`--logic-accent`, `--badge-accent`, `--item-c` như vàng cam `#f59e0b` hoặc cyan `#38bdf8`):** Bắt buộc làm đậm nền trước:
+  ```css
+  background: color-mix(in srgb, var(--logic-accent, var(--accent)) 78%, #0f172a);
+  color: #ffffff;
+  ```
+- **Nút `.btn.ghost` / `.tl-action-btn`:** Phải có viền nhẹ `border-color: var(--line-soft)` và nền `:hover` pha `color-mix(in srgb, var(--accent) 10%, var(--bg-3))` để nhận diện rõ ở cả 2 theme.
 
-**ARIA patterns, keyboard navigation, screen reader support, and accessible component usage.**
+---
 
-See: `references/shadcn-accessibility.md`
+## 3. Đồng Bộ Bo Góc, Typography & Chống Cắt Khuất (Unified Geometry & Anti-Clipping)
 
-Covers:
-- Radix UI accessibility features
-- Keyboard navigation patterns
-- Focus management
-- Screen reader announcements
-- Form validation accessibility
+- **Bo góc chữ nhật thống nhất:** Mọi button, chip, segmented control, badge đếm số (`.tab-count`, `.asset-subtab-badge`, `.tl-mode-tab-badge`), mốc lộ trình trong cùng cụm bắt buộc dùng `var(--radius-sm)` (`4px`), `var(--radius)` (`5px`) hoặc `var(--radius-md)` (`6px`). **Cấm trộn lẫn** nút vuông (`0–2px`), nút bo góc (`4–6px`) và viên thuốc tròn (`999px`) cạnh nhau.
+- **Typography an toàn:**
+  - Badges / Pills / Tags: `10–11px` (`line-height: 1.2–1.3`)
+  - Labels phụ / Subtext: `11–12px`
+  - Controls / Inputs / Buttons / Body: `12–14px` (`line-height: 1.4–1.5`)
+  - Tiêu đề mục / Thẻ: `14–16px` (`font-weight: 600`)
+  - Tiêu đề hộp thoại: `16–18px` (tối đa `20px`)
+  - **TUYỆT ĐỐI CẤM `font-size > 20px`** cho controls/cards.
+- **Chống khuất nút bên phải thanh công cụ ngang:**
+  - Cụm giữa đặt `flex: 1 1 auto; min-width: 0; overflow: hidden;`
+  - Cụm CTA bên phải (`.deploy-ops`, `⚡ Áp dụng`) đặt `flex-shrink: 0; margin-left: auto;`
+- **Chống cắt popup menu trên Toolbar:** Thanh công cụ chứa menu con phải giữ `overflow: visible; position: relative; z-index: 5000;` (không đặt `overflow-x: auto` trực tiếp lên toolbar vì CSS spec sẽ ép `overflow-y: auto` làm cắt cụt menu con).
 
-## Tailwind Utilities
+---
 
-**Core utility classes for layout, spacing, typography, colors, borders, and shadows.**
+## 4. Bộ Điều Khiển 60fps & Cấm Combobox Trên Canvas
 
-See: `references/tailwind-utilities.md`
+- **Cấm dùng `<select>` native và `<input type="color">`:** Bắt buộc dùng:
+  - `<Menu>` (`src/renderer/src/ui/controls/Menu.tsx`) cho menu thao tác.
+  - `<Select>` (`src/renderer/src/ui/controls/CustomSelect.tsx`, portal `z-index: 50000`, prop `size="sm"`) cho bảng thuộc tính.
+  - `<ColorPickerCustom>` (`src/renderer/src/ui/controls/ColorPickerCustom.tsx`) cho bộ chọn màu.
+- **Cấm dùng Combobox (`<Select>`) trên Canvas có CSS `zoom` / kéo thả hoặc tập lựa chọn nhỏ (`<= 5` mục):** Bắt buộc dùng **1-Click Segmented Pills** (`.wf-preset-pill`), **Option Cards** hoặc **Icon Chip Grid**.
+- **Dock Inspector thấp (`240px–350px`):** Chia theo **Segmented Sub-Tabs** gọn gàng thay vì xếp chồng dài.
 
-Covers:
-- Layout utilities (Flexbox, Grid, positioning)
-- Spacing system (padding, margin, gap)
-- Typography (font sizes, weights, alignment, line height)
-- Colors and backgrounds
-- Borders and shadows
-- Arbitrary values for custom styling
+---
 
-## Responsive Design
+## 5. Responsive 4 Breakpoints & Chống "Sa Mạc Trống Trải"
 
-**Mobile-first breakpoints, responsive utilities, and adaptive layouts.**
-
-See: `references/tailwind-responsive.md`
-
-Covers:
-- Mobile-first approach
-- Breakpoint system (sm, md, lg, xl, 2xl)
-- Responsive utility patterns
-- Container queries
-- Max-width queries
-- Custom breakpoints
-
-## Tailwind Customization
-
-**Config file structure, custom utilities, plugins, and theme extensions.**
-
-See: `references/tailwind-customization.md`
-
-Covers:
-- @theme directive for custom tokens
-- Custom colors and fonts
-- Spacing and breakpoint extensions
-- Custom utility creation
-- Custom variants
-- Layer organization (@layer base, components, utilities)
-- Apply directive for component extraction
-
-## Visual Design System
-
-**Canvas-based design philosophy, visual communication principles, and sophisticated compositions.**
-
-See: `references/canvas-design-system.md`
-
-Covers:
-- Design philosophy approach
-- Visual communication over text
-- Systematic patterns and composition
-- Color, form, and spatial design
-- Minimal text integration
-- Museum-quality execution
-- Multi-page design systems
-
-## Utility Scripts
-
-**Python automation for component installation and configuration generation.**
-
-### shadcn_add.py
-Add shadcn/ui components with dependency handling:
-```bash
-python scripts/shadcn_add.py button card dialog
-```
-
-### tailwind_config_gen.py
-Generate tailwind.config.js with custom theme:
-```bash
-python scripts/tailwind_config_gen.py --colors brand:blue --fonts display:Inter
-```
-
-## Best Practices
-
-1. **Component Composition**: Build complex UIs from simple, composable primitives
-2. **Utility-First Styling**: Use Tailwind classes directly; extract components only for true repetition
-3. **Mobile-First Responsive**: Start with mobile styles, layer responsive variants
-4. **Accessibility-First**: Leverage Radix UI primitives, add focus states, use semantic HTML
-5. **Design Tokens**: Use consistent spacing scale, color palettes, typography system
-6. **Dark Mode Consistency**: Apply dark variants to all themed elements
-7. **Performance**: Leverage automatic CSS purging, avoid dynamic class names
-8. **TypeScript**: Use full type safety for better DX
-9. **Visual Hierarchy**: Let composition guide attention, use spacing and color intentionally
-10. **Expert Craftsmanship**: Every detail matters - treat UI as a craft
-
-## Reference Navigation
-
-**Component Library**
-- `references/shadcn-components.md` - Complete component catalog
-- `references/shadcn-theming.md` - Theming and customization
-- `references/shadcn-accessibility.md` - Accessibility patterns
-
-**Styling System**
-- `references/tailwind-utilities.md` - Core utility classes
-- `references/tailwind-responsive.md` - Responsive design
-- `references/tailwind-customization.md` - Configuration and extensions
-
-**Visual Design**
-- `references/canvas-design-system.md` - Design philosophy and canvas workflows
-
-**Automation**
-- `scripts/shadcn_add.py` - Component installation
-- `scripts/tailwind_config_gen.py` - Config generation
-
-## Common Patterns
-
-**Form with validation:**
-```tsx
-import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import * as z from "zod"
-import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-
-const schema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8)
-})
-
-export function LoginForm() {
-  const form = useForm({
-    resolver: zodResolver(schema),
-    defaultValues: { email: "", password: "" }
-  })
-
-  return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(console.log)} className="space-y-6">
-        <FormField control={form.control} name="email" render={({ field }) => (
-          <FormItem>
-            <FormLabel>Email</FormLabel>
-            <FormControl>
-              <Input type="email" {...field} />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )} />
-        <Button type="submit" className="w-full">Sign In</Button>
-      </form>
-    </Form>
-  )
-}
-```
-
-**Responsive layout with dark mode:**
-```tsx
-<div className="min-h-screen bg-white dark:bg-gray-900">
-  <div className="container mx-auto px-4 py-8">
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-        <CardContent className="p-6">
-          <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
-            Content
-          </h3>
-        </CardContent>
-      </Card>
-    </div>
-  </div>
-</div>
-```
-
-## Resources
-
-- shadcn/ui Docs: https://ui.shadcn.com
-- Tailwind CSS Docs: https://tailwindcss.com
-- Radix UI: https://radix-ui.com
-- Tailwind UI: https://tailwindui.com
-- Headless UI: https://headlessui.com
-- v0 (AI UI Generator): https://v0.dev
+Chi tiết tại [`.agents/rules/responsive-standard.md`](../../rules/responsive-standard.md):
+- **4 Breakpoints:** Phone (`<= 768px`, 1 cột), Tablet (`769–1120px`, 2 cột), Laptop (`1121–1366px`, 2–3 cột), Desktop (`> 1366px`, 3–4 cột, `max-width: 1400px–1680px`).
+- **Lưới Card đa cột:** Cấm để danh sách dòng đơn trải dài 100% trên màn hình rộng 1920px; bắt buộc dùng `display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 8px–10px;`.
+- **Đăng ký vùng chụp MCP & AI Inspector:** Mọi bề mặt UI mới/sửa phải gắn class ngữ nghĩa + `data-mcp-region` (theo skill [`mcp-ui-region`](../mcp-ui-region/SKILL.md)) và thuộc tính `data-ai-surface` / `aria-label` (theo skill [`ai-ui-inspector`](../ai-ui-inspector/SKILL.md)), sau đó chụp kiểm tra trên cả Dark & Light theme.

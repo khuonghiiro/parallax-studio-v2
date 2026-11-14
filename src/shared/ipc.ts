@@ -31,6 +31,8 @@ export interface ExportStartOptions {
    * `yuv420p` (đã chuyển màu BT.601 + lật trên GPU, 1,5 byte/pixel; cần rộng chia hết 8, cao chia hết 4).
    */
   pixelFormat?: ExportPixelFormat
+  /** Chuyển đổi RGBA (từ readPixels bottom-up) sang planar YUV420p trên CPU bằng Rust WASM trong Main trước khi ghi pipe ffmpeg. */
+  cpuYuvFallback?: boolean
   outPath: string
   audio?: { data: Uint8Array; ext: string; offset: number; volume: number; duration: number }
 }
@@ -190,8 +192,21 @@ export interface Asset3DsCatalogResult {
   models: any[]
 }
 
+export interface PxsZipEntry {
+  name: string
+  data: Uint8Array
+}
+
+export interface PxsAccelApi {
+  sha256Hex(input: string | Uint8Array): Promise<string>
+  hashFiles(paths: string[]): Promise<Record<string, string>>
+  packArchive(entries: PxsZipEntry[]): Promise<Uint8Array>
+  unpackArchive(zipBytes: Uint8Array): Promise<PxsZipEntry[]>
+}
+
 export interface ParallaxApi {
   aiCode?: import('./aiCodeHandoff').AiCodeHandoffApi
+  pxsAccel?: PxsAccelApi
   openFiles(kind: 'image' | 'audio'): Promise<PickedFile[]>
   saveProject(data: Uint8Array, suggestedPath?: string): Promise<string | null>
   openProject(): Promise<{ path: string; data: Uint8Array } | null>

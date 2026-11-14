@@ -4,6 +4,7 @@ import { join } from 'path'
 import ffmpegStatic from 'ffmpeg-static'
 import type { ExportResult, ExportStartOptions, ExportVideoEncoder } from '@shared/ipc'
 import { resolveVideoEncoder, videoCodecArgs } from './ffmpegEncoders'
+import { rgbaToYuv420pRust } from './pxsNativeAccel'
 
 /** Resolve the ffmpeg binary from env, local project bin, ffmpeg-static, or system PATH. */
 export function ffmpegPath(): string {
@@ -42,6 +43,7 @@ export class FfmpegEncoder {
   private exited: Promise<number | null>
   private doneCallbacks: Array<() => void> = []
   private cancelled = false
+  private readonly cpuYuvFallback: boolean
 
   /** Chọn encoder theo `opts.encoder` (GPU nếu chạy được, không thì libx264) rồi khởi động ffmpeg. */
   static async create(opts: ExportStartOptions, audioPath?: string): Promise<FfmpegEncoder> {
@@ -55,7 +57,13 @@ export class FfmpegEncoder {
     readonly videoEncoder: ExportVideoEncoder = 'libx264'
   ) {
     const { width, height, fps, crf, preset, outPath, audio } = opts
-    const yuv = opts.pixelFormat === 'yuv420p'
+    this.cpuYuvFallback = Boolean(
+      opts.cpuYuvFallback &&
+        opts.pixelFormat !== 'yuv420p' &&
+        width % 2 === 0 &&
+        height % 2 === 0
+    )
+    const yuv = opts.pixelFormat === 'yuv420p' || this.cpuYuvFallback
     const args = [
       '-y',
       '-f', 'rawvideo',
@@ -108,7 +116,10 @@ export class FfmpegEncoder {
       throw new Error(`Frame size mismatch: got ${frame.byteLength}, expected ${expected}`)
     }
     if (this.proc.exitCode !== null) throw new Error(`ffmpeg exited early:\n${this.stderrTail}`)
-    const ok = this.proc.stdin.write(Buffer.from(frame.buffer, frame.byteOffset, frame.byteLength))
+    const out = this.cpuYuvFallback
+      ? rgbaToYuv420pRust(frame, this.opts.width, this.opts.height, true)
+      : frame
+    const ok = this.proc.stdin.write(Buffer.from(out.buffer, out.byteOffset, out.byteLength))
     if (!ok) await this.waitDrain()
   }
 

@@ -278,6 +278,13 @@ export const layerAssemblyCommands: Record<string, Handler> = {
   open_layer_assembly: async (p) => {
     const compId = str(p, 'composite_id') || str(p, 'id') || undefined
     requestOpenLayerAssembly(compId)
+    if (typeof document !== 'undefined' && document.getElementById('root')) {
+      for (let i = 0; i < 10; i++) {
+        const s = getActiveLayerAssemblySession()
+        if (s && (!compId || s.getComposite().id === compId)) break
+        await new Promise((r) => setTimeout(r, 16))
+      }
+    }
     return { ok: true, message: 'Layer assembly workshop opened', compositeId: compId || null }
   },
 

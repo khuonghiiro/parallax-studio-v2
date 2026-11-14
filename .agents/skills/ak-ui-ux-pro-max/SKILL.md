@@ -13,6 +13,9 @@ metadata:
 
 # UI/UX Pro Max - Design Intelligence
 
+> **Lưu ý bắt buộc trong Parallax Studio V2:**
+> - **Phân định vai trò:** Dùng `ak:ui-ux-pro-max` để kiểm toán (audit) UI/UX, công thái học vùng bấm (`>= 36–44px`) và tương thích 4 breakpoints ([responsive-standard.md](../../rules/responsive-standard.md)). Khi sửa CSS/JSX thực tế bắt buộc tuân theo [`ak:ui-styling`](../ak-ui-styling/SKILL.md) (chỉ dùng Vanilla CSS + Design Tokens tại `src/renderer/src/styles/variables.css`, cấm dùng Tailwind CSS/shadcn, cấm `<select>` native).
+
 Comprehensive design guide for web and mobile applications. Contains 50+ styles, 161 color palettes, 57 font pairings, 161 product types with reasoning rules, 99 UX guidelines, and 25 chart types across 10 technology stacks. Searchable database with priority-based recommendations.
 
 ## When to Apply

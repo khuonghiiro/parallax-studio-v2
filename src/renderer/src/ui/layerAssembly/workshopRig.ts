@@ -58,8 +58,34 @@ export const emptyRig = (): LayerRig => ({
   activeClipId: 'clip-default'
 })
 
+interface CachedNormalizedRig {
+  bonesRef: LayerRig['bones']
+  clipsRef: LayerRig['clips']
+  tracksRef: LayerRig['tracks']
+  activeClipId: LayerRig['activeClipId']
+  duration: number
+  loop: boolean
+  fps: number | undefined
+  value: { rig: LayerRig; activeClip: AnimationClip }
+}
+
+const normalizedRigCache = new WeakMap<LayerRig, CachedNormalizedRig>()
+
 /** Đảm bảo rig luôn có danh sách clips hợp lệ và đồng bộ với activeClip */
 export function ensureRigClips(rig: LayerRig): { rig: LayerRig; activeClip: AnimationClip } {
+  const cached = normalizedRigCache.get(rig)
+  if (
+    cached &&
+    cached.bonesRef === rig.bones &&
+    cached.clipsRef === rig.clips &&
+    cached.tracksRef === rig.tracks &&
+    cached.activeClipId === rig.activeClipId &&
+    cached.duration === rig.duration &&
+    cached.loop === rig.loop &&
+    cached.fps === rig.fps
+  ) {
+    return cached.value
+  }
   const clips =
     Array.isArray(rig.clips) && rig.clips.length > 0
       ? [...rig.clips]
@@ -93,7 +119,18 @@ export function ensureRigClips(rig: LayerRig): { rig: LayerRig; activeClip: Anim
     tracks: activeClip.tracks
   }
 
-  return { rig: nextRig, activeClip }
+  const value = { rig: nextRig, activeClip }
+  normalizedRigCache.set(rig, {
+    bonesRef: rig.bones,
+    clipsRef: rig.clips,
+    tracksRef: rig.tracks,
+    activeClipId: rig.activeClipId,
+    duration: rig.duration,
+    loop: rig.loop,
+    fps: rig.fps,
+    value
+  })
+  return value
 }
 
 /**
@@ -139,6 +176,36 @@ export function extraSoftBoneIdsForLayer(
   return rig.bones
     .filter((b) => b.id !== primaryBoneId && owned.has(b.id))
     .map((b) => b.id)
+}
+
+const TERMINAL_TIP_BONE_RE =
+  /(?:^|[-_.\s])(hand|foot|wrist|ankle|toe|finger)(?:[-_.\s]|$)|bàn tay|bàn chân|cổ tay|cổ chân|ngón/i
+
+/**
+ * Khi layer đặt `bindingMode: 'rigid'` và không tự khai báo `extraBoneIds`, bỏ qua các xương mút cuối
+ * (`hand` / `foot`) chưa gán riêng layer để cẳng tay / ống quần tách mảnh giữ khớp cứng đồng bộ 60fps.
+ */
+export function resolveAutoSoftExtraBoneIds(
+  layer: Pick<LayerComposite['layers'][number], 'bindingMode' | 'extraBoneIds'>,
+  rig: LayerRig | undefined,
+  inferredExtraIds: string[] | undefined,
+  isSingleLayerChar: boolean
+): string[] {
+  if (!inferredExtraIds?.length) return []
+  if (isSingleLayerChar || layer.bindingMode === 'soft' || layer.extraBoneIds?.length) {
+    return inferredExtraIds
+  }
+  if (layer.bindingMode === 'rigid' && rig?.bones.length) {
+    const byId = new Map(rig.bones.map((b) => [b.id, b]))
+    const hasChild = new Set(rig.bones.map((b) => b.parentId).filter(Boolean))
+    return inferredExtraIds.filter((id) => {
+      const bone = byId.get(id)
+      if (!bone) return false
+      const isLeafTip = !hasChild.has(bone.id) && TERMINAL_TIP_BONE_RE.test(`${bone.id} ${bone.name}`)
+      return !isLeafTip
+    })
+  }
+  return inferredExtraIds
 }
 
 export type RigAction =

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { applyRigAction, emptyRig, extraSoftBoneIdsForLayer, findMirrorBoneId, validateRig } from './workshopRig'
+import { applyRigAction, emptyRig, extraSoftBoneIdsForLayer, findMirrorBoneId, resolveAutoSoftExtraBoneIds, validateRig } from './workshopRig'
 import type { LayerComposite } from './types'
 import { evaluateRig, sampleBonePose, transformRigLayer } from '../../engine/layerRig'
 import { deformSkin, skinBones } from '../../engine/layerSkinning'
@@ -653,5 +653,14 @@ describe('workshopRig & layerRig engine', () => {
 
     // 3. skinBones với isolateToBoundBones = true không lấy xương Thân (b-torso) vào biến dạng mesh của cánh tay
     expect(skinBones(posed.rig!, 'b-arm-l', ['b-forearm-l'], true).map((b) => b.id)).toEqual(['b-arm-l', 'b-forearm-l'])
+
+    // 4. Nhân vật tách 13 mảnh khớp cứng: xương ngọn bàn tay / bàn chân chưa gán layer không ép cẳng tay / cẳng chân sang Soft Mesh
+    const cutoutHero = BUILTIN_COMPOSITES.find((c) => c.id === 'comp-character-cutout-demo-20261011')!
+    const forearmLayer = cutoutHero.layers.find((l) => l.id === 'demo-forearm-left')!
+    const rawForearmExtras = extraSoftBoneIdsForLayer(cutoutHero.layers, cutoutHero.rig, forearmLayer.id, forearmLayer.boneId)
+    expect(rawForearmExtras).toEqual(['bone-hand-l'])
+    expect(resolveAutoSoftExtraBoneIds(forearmLayer, cutoutHero.rig, rawForearmExtras, false)).toEqual([])
+    // Trong khi nhân vật 4 mảnh nguyên cánh tay vẫn giữ được khớp khuỷu b-forearm-l
+    expect(resolveAutoSoftExtraBoneIds(posed.layers[2], posed.rig, ['b-forearm-l'], false)).toEqual(['b-forearm-l'])
   })
 })

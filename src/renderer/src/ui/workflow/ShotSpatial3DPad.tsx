@@ -36,8 +36,6 @@ export function ShotSpatial3DPad({
     [project]
   )
 
-  if (!activeShot) return null
-
   const compW = Math.max(640, project.comp.width || 1920)
   const compH = Math.max(360, project.comp.height || 1080)
   const boxW = compW * 1.35
@@ -64,6 +62,8 @@ export function ShotSpatial3DPad({
     const vh = Math.max(compH * 3.2, maxSvgY - minSvgY + padY * 2)
     return { vx, vy, vw, vh }
   }, [shotCenters, boxW, boxH, compW, compH])
+
+  if (!activeShot) return null
 
   const activePos = shotCenters[activeShotIdx]?.pos ?? [0, 0, 0]
   const anchorShot = activeShotIdx > 0 ? project.shots[activeShotIdx - 1] : project.shots[1]

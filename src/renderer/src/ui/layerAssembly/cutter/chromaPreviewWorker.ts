@@ -1,8 +1,11 @@
 /// <reference lib="webworker" />
 
 import type { ChromaKeySettings } from './types'
+import { preloadWasmAccel } from '../../../engine/wasmAccel'
 import { processAdvancedChromaPixelData } from './chromaAdvancedProcessor'
 import { scanRawIslandsFromData } from './chromaKey'
+
+void preloadWasmAccel()
 
 export interface ChromaPreviewWorkerRequest {
   revision: number

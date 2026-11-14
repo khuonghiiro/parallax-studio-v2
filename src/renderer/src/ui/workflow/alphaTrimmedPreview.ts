@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { findOpaqueBoundingBox } from '../layerAssembly/imageAutoTrim'
 
 export interface AlphaTrimmedInfo {
   /** URL ảnh đã cắt bỏ toàn bộ viền pixel trong suốt (chỉ giữ BBox có pixel) */
@@ -81,28 +82,10 @@ export function computeAlphaTrimmedImage(url: string): Promise<AlphaTrimmedInfo 
 
         sctx.drawImage(img, 0, 0, sw, sh)
         const { data } = sctx.getImageData(0, 0, sw, sh)
-
-        let minX = sw
-        let minY = sh
-        let maxX = -1
-        let maxY = -1
-        const alphaThreshold = 12
-
-        for (let y = 0; y < sh; y++) {
-          const rowOffset = y * sw * 4
-          for (let x = 0; x < sw; x++) {
-            const a = data[rowOffset + x * 4 + 3]
-            if (a > alphaThreshold) {
-              if (x < minX) minX = x
-              if (x > maxX) maxX = x
-              if (y < minY) minY = y
-              if (y > maxY) maxY = y
-            }
-          }
-        }
+        const { minX, minY, maxX, maxY, found } = findOpaqueBoundingBox(data, sw, sh, 12)
 
         // Nếu ảnh hoàn toàn trong suốt hoặc đã kín > 92% khung thì giữ nguyên
-        if (maxX < minX || maxY < minY) {
+        if (!found || maxX < minX || maxY < minY) {
           const fallback: AlphaTrimmedInfo = {
             croppedUrl: url,
             trimW: origW,

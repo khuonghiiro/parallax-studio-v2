@@ -9,7 +9,7 @@ import { useResponsiveViewport } from '../primitives'
 import { IconCube, IconImage } from '../icons'
 import { IconFlexiMeshBind } from './LayerWorkshopStudioIcons'
 import { evaluateRig, transformRigLayer } from '../../engine/layerRig'
-import { ensureRigClips, extraSoftBoneIdsForLayer } from './workshopRig'
+import { ensureRigClips, extraSoftBoneIdsForLayer, resolveAutoSoftExtraBoneIds } from './workshopRig'
 import type { WorkshopTab } from './WorkshopRightPanel'
 import { loadLayerWorkshopViewPrefs, saveLayerWorkshopViewPrefs } from './layerAssemblyViewPrefs'
 import type { BrushPreview } from './useLayerBrushEraser'
@@ -221,13 +221,17 @@ export function WorkshopWorkspace({
   const plantLive = usePlantLiveClock(liveEnabled, !plantEditor.dragging && !plantEditor.grab)
   const isLayersOrBonesTab = tab === 'layers' || tab === 'bones'
   const plantTime = isLayersOrBonesTab ? 0 : plantOffset + plantLive
-  const shiftedSpines = (state.composite.plantSpines ?? []).map((s) => {
-    const grabbed =
-      plantEditor.grab?.spineId === s.id
-        ? grabbedSpine(s, plantEditor.grab.angle, plantEditor.grab.stretch ?? 0)
-        : s
-    return plantTime ? { ...grabbed, phaseOffset: (grabbed.phaseOffset ?? 0) + plantTime } : grabbed
-  })
+  const shiftedSpines = useMemo(() => {
+    const raw = state.composite.plantSpines
+    if (!raw?.length) return undefined
+    return raw.map((s) => {
+      const grabbed =
+        plantEditor.grab?.spineId === s.id
+          ? grabbedSpine(s, plantEditor.grab.angle, plantEditor.grab.stretch ?? 0)
+          : s
+      return plantTime ? { ...grabbed, phaseOffset: (grabbed.phaseOffset ?? 0) + plantTime } : grabbed
+    })
+  }, [state.composite.plantSpines, plantEditor.grab, plantTime])
 
   const isManipulatingRigTest =
     tab === 'bones' &&
@@ -235,11 +239,12 @@ export function WorkshopWorkspace({
     Boolean(normalizedRig?.bones.length) &&
     Object.keys(rigTool.testPoses).length > 0
 
-  const rig = normalizedRig
-    ? isManipulatingRigTest
-      ? buildManipulateTestRig(normalizedRig, rigTool.testPoses)
-      : { ...normalizedRig, loop: playback.isPlaying && normalizedRig.loop }
-    : undefined
+  const rig = useMemo(() => {
+    if (!normalizedRig) return undefined
+    if (isManipulatingRigTest) return buildManipulateTestRig(normalizedRig, rigTool.testPoses)
+    const wantLoop = playback.isPlaying && normalizedRig.loop
+    return wantLoop === normalizedRig.loop ? normalizedRig : { ...normalizedRig, loop: wantLoop }
+  }, [normalizedRig, isManipulatingRigTest, rigTool.testPoses, playback.isPlaying])
 
   const evalTime = isLayersOrBonesTab ? 0 : isManipulatingRigTest ? 0 : playback.time
   const isErasing = brushEditing && tab === 'layers' && !playback.isPlaying
@@ -279,13 +284,14 @@ export function WorkshopWorkspace({
         const robeMatch = garmentOcclusion.robeLayers.find((r) => r.id === l.id)
         const isCoveredLegLayer =
           garmentOcclusion.hasLongGarmentCoveringLegs && garmentOcclusion.legLayers.some((leg) => leg.id === l.id)
-        const baseExtraBones =
+        const rawExtraBones =
           effectiveRig && effectiveBoneId
             ? (l.extraBoneIds?.length ? l.extraBoneIds : extraSoftBoneIdsForLayer(state.composite.layers, effectiveRig, l.id, effectiveBoneId))
             : undefined
+        const baseExtraBones = resolveAutoSoftExtraBoneIds(l, effectiveRig, rawExtraBones, isSingleLayerChar)
         const candidateExtraBones =
           robeMatch && robeMatch.coveredBoneIds.length > 0
-            ? Array.from(new Set([...(baseExtraBones ?? []), ...robeMatch.coveredBoneIds]))
+            ? Array.from(new Set([...baseExtraBones, ...robeMatch.coveredBoneIds]))
             : baseExtraBones
         const hasMultiLimbBones = Boolean(candidateExtraBones && candidateExtraBones.length > 0)
         const effectiveSoft = l.bindingMode === 'soft' || isSingleLayerChar || hasMultiLimbBones || Boolean(robeMatch)

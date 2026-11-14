@@ -9,8 +9,9 @@
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build",
-    "cargo:build": "cargo build --release --manifest-path crates/pxs_core_accel/Cargo.toml",
+    "cargo:build": "cargo build --release --manifest-path crates/pxs_core_accel/Cargo.toml && node scripts/build-wasm-accel.mjs",
     "cargo:test": "cargo test --manifest-path crates/pxs_core_accel/Cargo.toml",
+    "wasm:build": "node scripts/build-wasm-accel.mjs",
     "preview": "electron-vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
     "verify": "node scripts/agent-guard.mjs verify",
