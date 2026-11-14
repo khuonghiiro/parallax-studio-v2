@@ -31,6 +31,12 @@ const api: ParallaxApi = {
     revert: (backupPath) => ipcRenderer.invoke('aiCode:revert', backupPath),
     togglePreview: (backupPath, mode) => ipcRenderer.invoke('aiCode:togglePreview', backupPath, mode)
   },
+  pxsAccel: {
+    sha256Hex: (input) => ipcRenderer.invoke('pxsAccel:sha256Hex', input),
+    hashFiles: (paths) => ipcRenderer.invoke('pxsAccel:hashFiles', paths),
+    packArchive: (entries) => ipcRenderer.invoke('pxsAccel:packArchive', entries),
+    unpackArchive: (zipBytes) => ipcRenderer.invoke('pxsAccel:unpackArchive', zipBytes)
+  },
   openFiles: (kind) => ipcRenderer.invoke('files:open', kind),
   saveProject: (data, suggestedPath) => ipcRenderer.invoke('project:save', data, suggestedPath),
   openProject: () => ipcRenderer.invoke('project:open'),

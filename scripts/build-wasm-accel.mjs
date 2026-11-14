@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Biên dịch crate `crates/pxs_core_accel` sang target `wasm32-unknown-unknown` (SIMD128)
- * và xuất chuỗi hex an toàn vào `src/renderer/src/engine/wasm/wasmBytes.ts`.
+ * và xuất chuỗi hex dùng chung vào `src/shared/wasmBytes.ts` kèm re-export cho Renderer.
  */
 import { execFileSync } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
@@ -13,7 +13,8 @@ const WASM_OUT = resolve(
   ROOT,
   'crates/pxs_core_accel/target/wasm32-unknown-unknown/release/pxs_core_accel.wasm'
 )
-const TS_OUT = resolve(ROOT, 'src/renderer/src/engine/wasm/wasmBytes.ts')
+const SHARED_TS_OUT = resolve(ROOT, 'src/shared/wasmBytes.ts')
+const RENDERER_REEXPORT_OUT = resolve(ROOT, 'src/renderer/src/engine/wasm/wasmBytes.ts')
 const LINE_WIDTH = 1024
 
 function ensureWasmTarget() {
@@ -50,7 +51,7 @@ function emitTsHexModule() {
     chunks.push(`  '${hex.slice(i, i + LINE_WIDTH)}'`)
   }
 
-  const content = [
+  const sharedContent = [
     '// Tệp tự động sinh bởi scripts/build-wasm-accel.mjs — không sửa tay.',
     `// Kích thước WASM: ${bytes.length} bytes`,
     'export const PXS_CORE_ACCEL_WASM_HEX = [',
@@ -59,11 +60,20 @@ function emitTsHexModule() {
     ''
   ].join('\n')
 
-  mkdirSync(dirname(TS_OUT), { recursive: true })
-  writeFileSync(TS_OUT, content, 'utf8')
-  const lineCount = content.split('\n').length
+  mkdirSync(dirname(SHARED_TS_OUT), { recursive: true })
+  writeFileSync(SHARED_TS_OUT, sharedContent, 'utf8')
+
+  const reexportContent = [
+    '// Tệp tự động sinh bởi scripts/build-wasm-accel.mjs — không sửa tay.',
+    "export { PXS_CORE_ACCEL_WASM_HEX } from '@shared/wasmBytes'",
+    ''
+  ].join('\n')
+  mkdirSync(dirname(RENDERER_REEXPORT_OUT), { recursive: true })
+  writeFileSync(RENDERER_REEXPORT_OUT, reexportContent, 'utf8')
+
+  const lineCount = sharedContent.split('\n').length
   console.log(
-    `[wasm:build] Đã ghi ${TS_OUT} (${bytes.length} bytes, ${lineCount} dòng).`
+    `[wasm:build] Đã ghi ${SHARED_TS_OUT} (${bytes.length} bytes, ${lineCount} dòng) & re-export renderer.`
   )
 }
 

@@ -1,8 +1,15 @@
 import { readFile, realpath, stat } from 'fs/promises'
 import { resolve, relative } from 'path'
 import { createHash } from 'crypto'
+import { sha256HexRust } from './pxsNativeAccel'
 
-export const hashSource = (text: string): string => createHash('sha256').update(text).digest('hex')
+export const hashSource = (text: string): string => {
+  try {
+    return sha256HexRust(text)
+  } catch {
+    return createHash('sha256').update(text).digest('hex')
+  }
+}
 const SOURCE = /^src\/(renderer\/src|shared|main|preload)\/.+\.(tsx?|jsx?|mjs|css)$/
 
 export async function safeSourcePath(root: string, path: string): Promise<string> {

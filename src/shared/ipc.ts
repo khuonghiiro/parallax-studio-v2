@@ -190,8 +190,21 @@ export interface Asset3DsCatalogResult {
   models: any[]
 }
 
+export interface PxsZipEntry {
+  name: string
+  data: Uint8Array
+}
+
+export interface PxsAccelApi {
+  sha256Hex(input: string | Uint8Array): Promise<string>
+  hashFiles(paths: string[]): Promise<Record<string, string>>
+  packArchive(entries: PxsZipEntry[]): Promise<Uint8Array>
+  unpackArchive(zipBytes: Uint8Array): Promise<PxsZipEntry[]>
+}
+
 export interface ParallaxApi {
   aiCode?: import('./aiCodeHandoff').AiCodeHandoffApi
+  pxsAccel?: PxsAccelApi
   openFiles(kind: 'image' | 'audio'): Promise<PickedFile[]>
   saveProject(data: Uint8Array, suggestedPath?: string): Promise<string | null>
   openProject(): Promise<{ path: string; data: Uint8Array } | null>

@@ -11,8 +11,10 @@ pub mod island_contour;
 pub mod mesh_corridor;
 pub mod mesh_modifiers;
 pub mod pixel_isolation;
+pub mod sha256_crc32;
 pub mod skin_deform;
 pub mod wasm_mem;
+pub mod zip_pxs;
 pub use chroma_edge_ops::{
     rust_apply_defringe_and_despill, rust_apply_despeckle_and_crumbs,
     rust_apply_feather_and_choke, rust_apply_smooth_edge_feather, rust_collect_boundary_indices,
@@ -33,9 +35,14 @@ pub use pixel_isolation::{
     rust_box_blur3, rust_compute_chroma_zone, rust_dilate_mask_box, rust_flood_from_border,
     rust_grow_mask_within,
 };
+pub use sha256_crc32::{rust_crc32, rust_sha256};
 pub use skin_deform::{rust_deform_plant_spines, rust_deform_skin, rust_scale_unit_space};
 pub use wasm_mem::{
     wasm_scratch_alloc, wasm_scratch_capacity, wasm_scratch_reserve, wasm_scratch_reset,
+};
+pub use zip_pxs::{
+    rust_calc_pxs_store_zip_size, rust_pack_pxs_store_zip, rust_probe_pxs_zip,
+    rust_read_pxs_zip_index,
 };
 
 #[repr(C)]
