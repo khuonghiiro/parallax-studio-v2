@@ -22,7 +22,7 @@ function findClusterPart(project: Awaited<ReturnType<typeof buildHanbetaDemoProj
 }
 
 describe('hanbetaDemoBuilder — Phim Mẫu 3 Đại Chiến Linh Thú 2.5D', () => {
-  it('nạp đủ 51 ảnh sprite atlas và dựng 3 cảnh 16.5s chuẩn Workflow V2 nguyên tử', async () => {
+  it('nạp đủ 55 ảnh đa tầng chiều sâu và dựng 3 cảnh 16.5s chuẩn Workflow V2 nguyên tử', async () => {
     const project = await buildHanbetaDemoProject()
 
     expect(project.comp.name).toBe('Hàn Bối Tháp — Đại Chiến Linh Thú 2.5D')
@@ -31,12 +31,23 @@ describe('hanbetaDemoBuilder — Phim Mẫu 3 Đại Chiến Linh Thú 2.5D', ()
     expect(project.comp.fps).toBe(30)
     expect(project.comp.duration).toBe(16.5)
     expect(project.shots).toHaveLength(3)
-    expect(project.assets).toHaveLength(51)
+    expect(project.assets).toHaveLength(55)
 
     for (const asset of project.assets) {
       expect(asset.assetPath).toMatch(/^scenes-action-25d\//)
       expect(assetStore.get(asset.id)).toBeDefined()
     }
+
+    const portalLayers = project.layers.filter((l) => l.physics?.depthPortal?.enabled)
+    expect(portalLayers.length).toBe(3)
+    const litLayers = project.layers.filter((l) => l.virtualLight?.enabled)
+    expect(litLayers.length).toBeGreaterThanOrEqual(4)
+
+    expect(project.camera.position.keyframes.length).toBeGreaterThanOrEqual(20)
+    const fovs = project.camera.fov.keyframes.map((k) => k.value)
+    expect(Math.min(...fovs)).toBeLessThan(36)
+    const rolls = (project.camera.roll?.keyframes ?? []).map((k) => Math.abs(k.value))
+    expect(Math.max(...rolls)).toBeGreaterThan(2)
 
     const wfNodes = project.workflow?.nodes ?? []
     expect(wfNodes.length).toBeGreaterThanOrEqual(50)
@@ -88,12 +99,15 @@ describe('hanbetaDemoBuilder — Phim Mẫu 3 Đại Chiến Linh Thú 2.5D', ()
     expect(evaluate(h1Shout.transform.opacity, 4.2)).toBeGreaterThan(0.9)
     expect(evaluate(h1Calm.transform.opacity, 4.2)).toBeLessThan(0.1)
 
-    // 2. Kiểm tra đa mốc thời gian: Kiếm Khách vừa tịnh tiến X > 200px vừa không rớt tay cầm kiếm
+    // 2. Kiểm tra hành lang chiều sâu Z thật trên Cảnh 1: Kiếm Khách đi từ sâu sau sương (Z > 950) ra tiền cảnh (Z < 160)
     const h1Torso = findClusterPart(project, 'act-hero-1', 'hero-torso')
     const h1Forearm = findClusterPart(project, 'act-hero-1', 'hero-forearm-l')
     const h1TorsoStart = evaluate(h1Torso.transform.position, 0.2)
-    const h1TorsoEnd = evaluate(h1Torso.transform.position, 5.0)
+    const h1TorsoEnd = evaluate(h1Torso.transform.position, 5.35)
     expect(h1TorsoEnd[0] - h1TorsoStart[0]).toBeGreaterThan(200)
+    expect(h1TorsoStart[2]).toBeGreaterThan(1800)
+    expect(h1TorsoEnd[2]).toBeLessThan(150)
+    expect(h1TorsoStart[2] - h1TorsoEnd[2]).toBeGreaterThan(1600)
 
     const armRots: number[] = []
     for (const t of [1.0, 2.5, 4.0]) {

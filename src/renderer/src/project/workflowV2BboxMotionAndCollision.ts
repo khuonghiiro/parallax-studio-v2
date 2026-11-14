@@ -369,8 +369,7 @@ export function bakeBboxTargetMotionToScene(
 
     const useCorridorCurve =
       depthMode === 'depth_corridor' ||
-      Boolean(params.corridorWaypoints && params.corridorWaypoints.length >= 2) ||
-      (depthMode === 'depth_z' && Math.abs(entityTargetZ - entityStartZ) > 120)
+      Boolean(params.corridorWaypoints && params.corridorWaypoints.length >= 2)
 
     let entityUSteps: number[]
     if (entityPathType === 'shortest' && !useCorridorCurve) {

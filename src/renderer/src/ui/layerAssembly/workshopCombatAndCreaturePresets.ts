@@ -179,18 +179,18 @@ function buildCombatLimbTracks(
   }
   if (ids.armR) {
     tracks[ids.armR] = [
-      kf(0, 16 * f),
-      kf(d * 0.27, -36 * f),
-      kf(d * 0.35, 48 * f),
-      kf(d * 0.46, 46 * f),
-      kf(d * 0.58, -28 * f),
-      kf(d * 0.66, 44 * f),
-      kf(d * 0.78, 42 * f),
-      kf(d, 16 * f)
+      kf(0, -8 * f),
+      kf(d * 0.27, -42 * f),
+      kf(d * 0.35, 14 * f),
+      kf(d * 0.46, 12 * f),
+      kf(d * 0.58, -36 * f),
+      kf(d * 0.66, 15 * f),
+      kf(d * 0.78, 12 * f),
+      kf(d, -8 * f)
     ]
   }
   if (ids.forearmR) {
-    tracks[ids.forearmR] = [kf(0, -18 * f), kf(d * 0.35, 28 * f), kf(d * 0.46, 28 * f), kf(d * 0.66, 24 * f), kf(d, -18 * f)]
+    tracks[ids.forearmR] = [kf(0, -18 * f), kf(d * 0.35, -8 * f), kf(d * 0.46, -8 * f), kf(d * 0.66, -12 * f), kf(d, -18 * f)]
   }
   if (ids.thighL) {
     tracks[ids.thighL] = [
@@ -498,25 +498,25 @@ export function generateQuadrupedGallopClip(bones: LayerBone[], duration = 0.85)
       ]
     }
   }
-  // Hai chân sau co rạp dưới bụng khi vồ rồi đạp bung mạnh ra sau
+  // Hai chân sau co vừa phải dưới bụng khi vồ rồi đạp bung ra sau (tránh gập lố khớp hông)
   for (const [thId, shId, phase] of [
     ['bone-leg-bl-thigh', 'bone-leg-bl-shin', 0],
     ['bone-leg-br-thigh', 'bone-leg-br-shin', 0.08]
   ] as const) {
     if (bones.some((b) => b.id === thId)) {
       tracks[thId] = [
-        kf(0, 38 * legFwd),
-        kf(d * (0.28 + phase), -40 * legFwd),
-        kf(d * (0.62 + phase), 28 * legFwd),
-        kf(d, 38 * legFwd)
+        kf(0, 20 * legFwd),
+        kf(d * (0.28 + phase), -22 * legFwd),
+        kf(d * (0.62 + phase), 18 * legFwd),
+        kf(d, 20 * legFwd)
       ]
     }
     if (bones.some((b) => b.id === shId)) {
       tracks[shId] = [
-        kf(0, -18 * f),
-        kf(d * (0.28 + phase), 24 * f),
-        kf(d * (0.62 + phase), -22 * f),
-        kf(d, -18 * f)
+        kf(0, -10 * f),
+        kf(d * (0.28 + phase), 14 * f),
+        kf(d * (0.62 + phase), -12 * f),
+        kf(d, -10 * f)
       ]
     }
   }
