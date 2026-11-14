@@ -11,7 +11,13 @@ function unwrap(ref: number, angle: number): number {
   return ref + ((angle - ref + 180) % 360 + 360) % 360 - 180
 }
 
-/** Hermite tangents use seconds, so unequal key spacing cannot introduce speed jumps. */
+function clampMonotoneSlope(secantA: number, secantB: number, rawSlope: number): number {
+  if (secantA * secantB <= 0) return 0
+  const maxMag = 3 * Math.min(Math.abs(secantA), Math.abs(secantB))
+  return Math.max(-maxMag, Math.min(maxMag, rawSlope))
+}
+
+/** Hermite tangents use seconds with Fritsch-Carlson monotone clamping to prevent overshoot whip-back. */
 function interpolate(keys: BoneKeyframe[], time: number): BonePose {
   const [a, b, c, d] = keys
   if (b.easing === 'hold') return b
@@ -19,6 +25,10 @@ function interpolate(keys: BoneKeyframe[], time: number): BonePose {
   const t = span <= 0 ? 0 : Math.max(0, Math.min(1, (time - b.time) / span))
   const result = { ...REST }
   const easing = b.easing
+  const dtPrev = b.time - a.time
+  const dtNext = d.time - c.time
+  const spanLeft = c.time - a.time
+  const spanRight = d.time - b.time
   for (const field of fields) {
     let [v0, v1, v2, v3] = keys.map((k) => value(k, field))
     if (field === 'rotation') {
@@ -41,9 +51,14 @@ function interpolate(keys: BoneKeyframe[], time: number): BonePose {
     } else if (Math.abs(v2 - v1) < 1e-6) {
       result[field] = v1
     } else {
-      // 'smooth': Hermite spline with continuous first derivative (auto-clamped on flat neighbors)
-      const m1 = Math.abs(v1 - v0) < 1e-6 ? 0 : (v2 - v0) / (c.time - a.time) * span
-      const m2 = Math.abs(v3 - v2) < 1e-6 ? 0 : (v3 - v1) / (d.time - b.time) * span
+      // 'smooth': Monotone-clamped cubic Hermite spline (continuous C1 velocity, zero extremum overshoot)
+      const s0 = dtPrev > 1e-6 ? (v1 - v0) / dtPrev : 0
+      const s1 = span > 1e-6 ? (v2 - v1) / span : 0
+      const s2 = dtNext > 1e-6 ? (v3 - v2) / dtNext : 0
+      const rawSlope1 = spanLeft > 1e-6 ? (v2 - v0) / spanLeft : 0
+      const rawSlope2 = spanRight > 1e-6 ? (v3 - v1) / spanRight : 0
+      const m1 = clampMonotoneSlope(s0, s1, rawSlope1) * span
+      const m2 = clampMonotoneSlope(s1, s2, rawSlope2) * span
       const t2 = t * t, t3 = t2 * t
       result[field] = (2 * t3 - 3 * t2 + 1) * v1 + (t3 - 2 * t2 + t) * m1
         + (-2 * t3 + 3 * t2) * v2 + (t3 - t2) * m2
@@ -53,6 +68,22 @@ function interpolate(keys: BoneKeyframe[], time: number): BonePose {
     delete result.zOrder
   }
   return result
+}
+
+function mirrorEndpoint(anchor: BoneKeyframe, neighbor: BoneKeyframe): BoneKeyframe {
+  const dt = neighbor.time - anchor.time
+  return {
+    ...anchor,
+    time: anchor.time - dt,
+    x: 2 * anchor.x - neighbor.x,
+    y: 2 * anchor.y - neighbor.y,
+    rotation: 2 * anchor.rotation - unwrap(anchor.rotation, neighbor.rotation),
+    scaleX: 2 * (anchor.scaleX ?? 1) - (neighbor.scaleX ?? 1),
+    scaleY: 2 * (anchor.scaleY ?? 1) - (neighbor.scaleY ?? 1),
+    ...(anchor.zOrder !== undefined || neighbor.zOrder !== undefined
+      ? { zOrder: 2 * (anchor.zOrder ?? 0) - (neighbor.zOrder ?? 0) }
+      : {})
+  }
 }
 
 export function sampleBonePose(rig: LayerRig, id: string, time: number): BonePose {
@@ -74,8 +105,8 @@ export function sampleBonePose(rig: LayerRig, id: string, time: number): BonePos
   const i = next < 0 ? n - 1 : next - 1
   const at = (index: number): BoneKeyframe => {
     if (rig.loop) return shifted(keys[((index % n) + n) % n], Math.floor(index / n) * duration)
-    if (index < 0) return { ...keys[0], time: 2 * keys[0].time - keys[1].time }
-    if (index >= n) return { ...keys[n - 1], time: 2 * keys[n - 1].time - keys[n - 2].time }
+    if (index < 0) return mirrorEndpoint(keys[0], keys[1])
+    if (index >= n) return mirrorEndpoint(keys[n - 1], keys[n - 2])
     return keys[index]
   }
   return interpolate([at(i - 1), at(i), at(i + 1), at(i + 2)], t)

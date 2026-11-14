@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { AssembledLayerItem } from './types'
 import { createLayerAlphaTrimmedGeometry, LayerAssembly2DMeshOverlay } from './layerAssemblyAlphaMesh'
 import { deformSkin } from '../../engine/layerSkinning'
@@ -135,7 +135,7 @@ export function SoftLayerImage({ url, layer, time, showMesh, filter }: Props) {
     return () => { active = false; geometry?.dispose() }
   }, [url, layer.meshWidth, layer.meshHeight, MESH_BUILD_REV])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const canvas = ref.current, ctx = canvas?.getContext('2d')
     if (!canvas || !ctx || !data) return
     const ud = data.geometry.userData

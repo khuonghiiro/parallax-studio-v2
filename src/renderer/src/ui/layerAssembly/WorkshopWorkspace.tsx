@@ -9,7 +9,7 @@ import { useResponsiveViewport } from '../primitives'
 import { IconCube, IconImage } from '../icons'
 import { IconFlexiMeshBind } from './LayerWorkshopStudioIcons'
 import { evaluateRig, transformRigLayer } from '../../engine/layerRig'
-import { ensureRigClips, extraSoftBoneIdsForLayer } from './workshopRig'
+import { ensureRigClips, extraSoftBoneIdsForLayer, resolveAutoSoftExtraBoneIds } from './workshopRig'
 import type { WorkshopTab } from './WorkshopRightPanel'
 import { loadLayerWorkshopViewPrefs, saveLayerWorkshopViewPrefs } from './layerAssemblyViewPrefs'
 import type { BrushPreview } from './useLayerBrushEraser'
@@ -279,13 +279,14 @@ export function WorkshopWorkspace({
         const robeMatch = garmentOcclusion.robeLayers.find((r) => r.id === l.id)
         const isCoveredLegLayer =
           garmentOcclusion.hasLongGarmentCoveringLegs && garmentOcclusion.legLayers.some((leg) => leg.id === l.id)
-        const baseExtraBones =
+        const rawExtraBones =
           effectiveRig && effectiveBoneId
             ? (l.extraBoneIds?.length ? l.extraBoneIds : extraSoftBoneIdsForLayer(state.composite.layers, effectiveRig, l.id, effectiveBoneId))
             : undefined
+        const baseExtraBones = resolveAutoSoftExtraBoneIds(l, effectiveRig, rawExtraBones, isSingleLayerChar)
         const candidateExtraBones =
           robeMatch && robeMatch.coveredBoneIds.length > 0
-            ? Array.from(new Set([...(baseExtraBones ?? []), ...robeMatch.coveredBoneIds]))
+            ? Array.from(new Set([...baseExtraBones, ...robeMatch.coveredBoneIds]))
             : baseExtraBones
         const hasMultiLimbBones = Boolean(candidateExtraBones && candidateExtraBones.length > 0)
         const effectiveSoft = l.bindingMode === 'soft' || isSingleLayerChar || hasMultiLimbBones || Boolean(robeMatch)

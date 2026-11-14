@@ -323,16 +323,25 @@ export function detectGarmentCoversLegs(
     const matches = scanClothFollowerRegionsForLayer(robe, visible, bones).filter(
       (m) => m.role.startsWith('thigh') || m.role.startsWith('shin')
     )
+    const robeToken = `${robe.id} ${robe.name} ${robe.assetPath ?? ''}`
+    const isLongGarmentCandidate =
+      Boolean(robe.isCloth) ||
+      robe.bindingMode !== 'rigid' ||
+      /áo dài|váy|trường bào|cổ trang|robe|dress|skirt|coat|tunic|cape|choàng/i.test(robeToken)
+    const minOverlapRatio = isLongGarmentCandidate ? 0.22 : 0.55
 
     const overlapsLegsVertically =
       legLayers.length > 0 &&
       legLayers.some((leg) => {
         const legH = Math.max(20, leg.bottomY - leg.topY)
         const overlapY = robeBottom - leg.topY
-        return robeZ > leg.z && overlapY >= legH * 0.22
+        return robeZ > leg.z && overlapY >= legH * minOverlapRatio
       })
 
-    if (overlapsLegsVertically || (matches.length > 0 && legLayers.some((leg) => robeZ > leg.z))) {
+    if (
+      overlapsLegsVertically ||
+      (isLongGarmentCandidate && matches.length > 0 && legLayers.some((leg) => robeZ > leg.z))
+    ) {
       robeLayers.push({
         id: robe.id,
         name: robe.name,

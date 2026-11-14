@@ -201,77 +201,77 @@ export function generateWalkCycle(
 
     const armLKeys = [
       { time: 0.0, rotation: 14, scaleY: 1.04, zOrder: -40, easing: 'smooth' as const },
-      { time: 0.38, rotation: 4, scaleY: 0.98, zOrder: -40, easing: 'smooth' as const },
-      { time: 0.42, rotation: 4, scaleY: 0.98, zOrder: 50, easing: 'smooth' as const },
+      { time: 0.38, rotation: 4.5, scaleY: 0.983, zOrder: -40, easing: 'smooth' as const },
+      { time: 0.42, rotation: 3.5, scaleY: 0.977, zOrder: 50, easing: 'smooth' as const },
       { time: 0.8, rotation: -6, scaleY: 0.92, zOrder: 50, easing: 'smooth' as const },
-      { time: 1.18, rotation: 4, scaleY: 0.98, zOrder: 50, easing: 'smooth' as const },
-      { time: 1.22, rotation: 4, scaleY: 0.98, zOrder: -40, easing: 'smooth' as const },
+      { time: 1.18, rotation: 3.5, scaleY: 0.977, zOrder: 50, easing: 'smooth' as const },
+      { time: 1.22, rotation: 4.5, scaleY: 0.983, zOrder: -40, easing: 'smooth' as const },
       { time: 1.6, rotation: 14, scaleY: 1.04, zOrder: -40, easing: 'smooth' as const }
     ]
 
     const forearmLKeys = [
       { time: 0.0, rotation: 10, scaleY: 1.02, zOrder: -45, easing: 'smooth' as const },
-      { time: 0.38, rotation: 1, scaleY: 0.96, zOrder: -45, easing: 'smooth' as const },
-      { time: 0.42, rotation: 1, scaleY: 0.96, zOrder: 52, easing: 'smooth' as const },
+      { time: 0.38, rotation: 1.45, scaleY: 0.963, zOrder: -45, easing: 'smooth' as const },
+      { time: 0.42, rotation: 0.55, scaleY: 0.957, zOrder: 52, easing: 'smooth' as const },
       { time: 0.8, rotation: -8, scaleY: 0.9, zOrder: 52, easing: 'smooth' as const },
-      { time: 1.18, rotation: 1, scaleY: 0.96, zOrder: 52, easing: 'smooth' as const },
-      { time: 1.22, rotation: 1, scaleY: 0.96, zOrder: -45, easing: 'smooth' as const },
+      { time: 1.18, rotation: 0.55, scaleY: 0.957, zOrder: 52, easing: 'smooth' as const },
+      { time: 1.22, rotation: 1.45, scaleY: 0.963, zOrder: -45, easing: 'smooth' as const },
       { time: 1.6, rotation: 10, scaleY: 1.02, zOrder: -45, easing: 'smooth' as const }
     ]
 
     const handLKeys = [
       { time: 0.0, rotation: 8, easing: 'smooth' as const },
-      { time: 0.4, rotation: 2, easing: 'smooth' as const },
+      { time: 0.4, rotation: -1, easing: 'smooth' as const },
       { time: 0.8, rotation: -10, easing: 'smooth' as const },
-      { time: 1.2, rotation: 2, easing: 'smooth' as const },
+      { time: 1.2, rotation: -1, easing: 'smooth' as const },
       { time: 1.6, rotation: 8, easing: 'smooth' as const }
     ]
 
     const armRKeys = [
       { time: 0.0, rotation: 6, scaleY: 0.92, zOrder: 50, easing: 'smooth' as const },
-      { time: 0.38, rotation: -4, scaleY: 0.98, zOrder: 50, easing: 'smooth' as const },
-      { time: 0.42, rotation: -4, scaleY: 0.98, zOrder: -40, easing: 'smooth' as const },
+      { time: 0.38, rotation: -3.5, scaleY: 0.977, zOrder: 50, easing: 'smooth' as const },
+      { time: 0.42, rotation: -4.5, scaleY: 0.983, zOrder: -40, easing: 'smooth' as const },
       { time: 0.8, rotation: -14, scaleY: 1.04, zOrder: -40, easing: 'smooth' as const },
-      { time: 1.18, rotation: -4, scaleY: 0.98, zOrder: -40, easing: 'smooth' as const },
-      { time: 1.22, rotation: -4, scaleY: 0.98, zOrder: 50, easing: 'smooth' as const },
+      { time: 1.18, rotation: -4.5, scaleY: 0.983, zOrder: -40, easing: 'smooth' as const },
+      { time: 1.22, rotation: -3.5, scaleY: 0.977, zOrder: 50, easing: 'smooth' as const },
       { time: 1.6, rotation: 6, scaleY: 0.92, zOrder: 50, easing: 'smooth' as const }
     ]
 
     const forearmRKeys = [
       { time: 0.0, rotation: 8, scaleY: 0.9, zOrder: 52, easing: 'smooth' as const },
-      { time: 0.38, rotation: -1, scaleY: 0.96, zOrder: 52, easing: 'smooth' as const },
-      { time: 0.42, rotation: -1, scaleY: 0.96, zOrder: -45, easing: 'smooth' as const },
+      { time: 0.38, rotation: -0.55, scaleY: 0.957, zOrder: 52, easing: 'smooth' as const },
+      { time: 0.42, rotation: -1.45, scaleY: 0.963, zOrder: -45, easing: 'smooth' as const },
       { time: 0.8, rotation: -10, scaleY: 1.02, zOrder: -45, easing: 'smooth' as const },
-      { time: 1.18, rotation: -1, scaleY: 0.96, zOrder: -45, easing: 'smooth' as const },
-      { time: 1.22, rotation: -1, scaleY: 0.96, zOrder: 52, easing: 'smooth' as const },
+      { time: 1.18, rotation: -1.45, scaleY: 0.963, zOrder: -45, easing: 'smooth' as const },
+      { time: 1.22, rotation: -0.55, scaleY: 0.957, zOrder: 52, easing: 'smooth' as const },
       { time: 1.6, rotation: 8, scaleY: 0.9, zOrder: 52, easing: 'smooth' as const }
     ]
 
     const handRKeys = [
       { time: 0.0, rotation: 10, easing: 'smooth' as const },
-      { time: 0.4, rotation: -2, easing: 'smooth' as const },
+      { time: 0.4, rotation: 1, easing: 'smooth' as const },
       { time: 0.8, rotation: -8, easing: 'smooth' as const },
-      { time: 1.2, rotation: -2, easing: 'smooth' as const },
+      { time: 1.2, rotation: 1, easing: 'smooth' as const },
       { time: 1.6, rotation: 10, easing: 'smooth' as const }
     ]
 
     const thighLKeys = [
       { time: 0.0, rotation: 8, scaleX: 1.06, scaleY: 1.04, zOrder: 16, easing: 'smooth' as const },
-      { time: 0.38, rotation: 4, scaleX: 1.02, scaleY: 1.0, zOrder: 16, easing: 'smooth' as const },
-      { time: 0.42, rotation: 4, scaleX: 1.02, scaleY: 1.0, zOrder: -16, easing: 'smooth' as const },
+      { time: 0.38, rotation: 5.6, scaleX: 1.017, scaleY: 1.007, zOrder: 16, easing: 'smooth' as const },
+      { time: 0.42, rotation: 5.4, scaleX: 1.013, scaleY: 1.003, zOrder: -16, easing: 'smooth' as const },
       { time: 0.8, rotation: 3, scaleX: 0.97, scaleY: 0.97, zOrder: -16, easing: 'smooth' as const },
-      { time: 1.18, rotation: 6, scaleX: 0.95, scaleY: 0.93, zOrder: -16, easing: 'smooth' as const },
-      { time: 1.22, rotation: 6, scaleX: 0.95, scaleY: 0.93, zOrder: 16, easing: 'smooth' as const },
+      { time: 1.18, rotation: 5.4, scaleX: 0.953, scaleY: 0.933, zOrder: -16, easing: 'smooth' as const },
+      { time: 1.22, rotation: 5.6, scaleX: 0.951, scaleY: 0.931, zOrder: 16, easing: 'smooth' as const },
       { time: 1.6, rotation: 8, scaleX: 1.06, scaleY: 1.04, zOrder: 16, easing: 'smooth' as const }
     ]
 
     const shinLKeys = [
       { time: 0.0, rotation: -4, y: -5, scaleX: 1.08, scaleY: 1.05, zOrder: 15, easing: 'smooth' as const },
-      { time: 0.38, rotation: -3, y: 0, scaleX: 1.02, scaleY: 1.0, zOrder: 15, easing: 'smooth' as const },
-      { time: 0.42, rotation: -3, y: 0, scaleX: 1.02, scaleY: 1.0, zOrder: -17, easing: 'smooth' as const },
+      { time: 0.38, rotation: -3.05, y: -2.6, scaleX: 1.028, scaleY: 1.012, zOrder: 15, easing: 'smooth' as const },
+      { time: 0.42, rotation: -2.95, y: -2.4, scaleX: 1.022, scaleY: 1.008, zOrder: -17, easing: 'smooth' as const },
       { time: 0.8, rotation: -2, y: 0, scaleX: 0.97, scaleY: 0.97, zOrder: -17, easing: 'smooth' as const },
-      { time: 1.18, rotation: -12, y: 0, scaleX: 0.95, scaleY: 0.88, zOrder: -17, easing: 'smooth' as const },
-      { time: 1.22, rotation: -12, y: 0, scaleX: 0.95, scaleY: 0.88, zOrder: 15, easing: 'smooth' as const },
+      { time: 1.18, rotation: -11.6, y: -0.4, scaleX: 0.953, scaleY: 0.883, zOrder: -17, easing: 'smooth' as const },
+      { time: 1.22, rotation: -12.0, y: -0.6, scaleX: 0.951, scaleY: 0.881, zOrder: 15, easing: 'smooth' as const },
       { time: 1.6, rotation: -4, y: -5, scaleX: 1.08, scaleY: 1.05, zOrder: 15, easing: 'smooth' as const }
     ]
 
@@ -285,21 +285,21 @@ export function generateWalkCycle(
 
     const thighRKeys = [
       { time: 0.0, rotation: -3, scaleX: 0.97, scaleY: 0.97, zOrder: -16, easing: 'smooth' as const },
-      { time: 0.38, rotation: -6, scaleX: 0.95, scaleY: 0.93, zOrder: -16, easing: 'smooth' as const },
-      { time: 0.42, rotation: -6, scaleX: 0.95, scaleY: 0.93, zOrder: 16, easing: 'smooth' as const },
+      { time: 0.38, rotation: -5.4, scaleX: 0.953, scaleY: 0.933, zOrder: -16, easing: 'smooth' as const },
+      { time: 0.42, rotation: -5.6, scaleX: 0.951, scaleY: 0.931, zOrder: 16, easing: 'smooth' as const },
       { time: 0.8, rotation: -8, scaleX: 1.06, scaleY: 1.04, zOrder: 16, easing: 'smooth' as const },
-      { time: 1.18, rotation: -4, scaleX: 1.02, scaleY: 1.0, zOrder: 16, easing: 'smooth' as const },
-      { time: 1.22, rotation: -4, scaleX: 1.02, scaleY: 1.0, zOrder: -16, easing: 'smooth' as const },
+      { time: 1.18, rotation: -5.6, scaleX: 1.017, scaleY: 1.007, zOrder: 16, easing: 'smooth' as const },
+      { time: 1.22, rotation: -5.4, scaleX: 1.013, scaleY: 1.003, zOrder: -16, easing: 'smooth' as const },
       { time: 1.6, rotation: -3, scaleX: 0.97, scaleY: 0.97, zOrder: -16, easing: 'smooth' as const }
     ]
 
     const shinRKeys = [
       { time: 0.0, rotation: 2, y: 0, scaleX: 0.97, scaleY: 0.97, zOrder: -17, easing: 'smooth' as const },
-      { time: 0.38, rotation: 12, y: 0, scaleX: 0.95, scaleY: 0.88, zOrder: -17, easing: 'smooth' as const },
-      { time: 0.42, rotation: 12, y: 0, scaleX: 0.95, scaleY: 0.88, zOrder: 15, easing: 'smooth' as const },
+      { time: 0.38, rotation: 11.6, y: -0.4, scaleX: 0.953, scaleY: 0.883, zOrder: -17, easing: 'smooth' as const },
+      { time: 0.42, rotation: 12.0, y: -0.6, scaleX: 0.951, scaleY: 0.881, zOrder: 15, easing: 'smooth' as const },
       { time: 0.8, rotation: 4, y: -5, scaleX: 1.08, scaleY: 1.05, zOrder: 15, easing: 'smooth' as const },
-      { time: 1.18, rotation: 3, y: 0, scaleX: 1.02, scaleY: 1.0, zOrder: 15, easing: 'smooth' as const },
-      { time: 1.22, rotation: 3, y: 0, scaleX: 1.02, scaleY: 1.0, zOrder: -17, easing: 'smooth' as const },
+      { time: 1.18, rotation: 3.05, y: -2.6, scaleX: 1.028, scaleY: 1.012, zOrder: 15, easing: 'smooth' as const },
+      { time: 1.22, rotation: 2.95, y: -2.4, scaleX: 1.022, scaleY: 1.008, zOrder: -17, easing: 'smooth' as const },
       { time: 1.6, rotation: 2, y: 0, scaleX: 0.97, scaleY: 0.97, zOrder: -17, easing: 'smooth' as const }
     ]
 

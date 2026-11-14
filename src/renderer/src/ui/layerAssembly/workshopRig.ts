@@ -141,6 +141,36 @@ export function extraSoftBoneIdsForLayer(
     .map((b) => b.id)
 }
 
+const TERMINAL_TIP_BONE_RE =
+  /(?:^|[-_.\s])(hand|foot|wrist|ankle|toe|finger)(?:[-_.\s]|$)|bàn tay|bàn chân|cổ tay|cổ chân|ngón/i
+
+/**
+ * Khi layer đặt `bindingMode: 'rigid'` và không tự khai báo `extraBoneIds`, bỏ qua các xương mút cuối
+ * (`hand` / `foot`) chưa gán riêng layer để cẳng tay / ống quần tách mảnh giữ khớp cứng đồng bộ 60fps.
+ */
+export function resolveAutoSoftExtraBoneIds(
+  layer: Pick<LayerComposite['layers'][number], 'bindingMode' | 'extraBoneIds'>,
+  rig: LayerRig | undefined,
+  inferredExtraIds: string[] | undefined,
+  isSingleLayerChar: boolean
+): string[] {
+  if (!inferredExtraIds?.length) return []
+  if (isSingleLayerChar || layer.bindingMode === 'soft' || layer.extraBoneIds?.length) {
+    return inferredExtraIds
+  }
+  if (layer.bindingMode === 'rigid' && rig?.bones.length) {
+    const byId = new Map(rig.bones.map((b) => [b.id, b]))
+    const hasChild = new Set(rig.bones.map((b) => b.parentId).filter(Boolean))
+    return inferredExtraIds.filter((id) => {
+      const bone = byId.get(id)
+      if (!bone) return false
+      const isLeafTip = !hasChild.has(bone.id) && TERMINAL_TIP_BONE_RE.test(`${bone.id} ${bone.name}`)
+      return !isLeafTip
+    })
+  }
+  return inferredExtraIds
+}
+
 export type RigAction =
   | AnimationAction
   | AnimationBatch
