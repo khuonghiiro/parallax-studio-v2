@@ -157,13 +157,6 @@ export function WorkshopBoneOverlay({
     }
   }, [rig.bones, rigTool.pendingDashedLink])
 
-  if (!rig.bones.length && !isAddBoneTool && !(editing && rigTool.mirrorDraw)) return null
-
-  const activeRigForEval = isManipulateTool ? buildManipulateTestRig(rig, rigTool.testPoses) : { ...rig, loop: false }
-  const isRestPose = Boolean(restPose ?? editing) && !isManipulateTool
-  const transforms = evaluateRig(activeRigForEval, isManipulateTool ? 0 : time, isRestPose)
-  const mixamoLandmarks = editing && rigTool.tool === 'select' ? extractLandmarksFromBones(rig.bones) : null
-
   const sortedBones = useMemo(() => {
     return [...rig.bones].sort((a, b) => {
       const aFocus = a.id === boneId || activeDrag === a.id
@@ -177,6 +170,13 @@ export function WorkshopBoneOverlay({
       return 0
     })
   }, [rig.bones, boneId, activeDrag, hoveredBoneId])
+
+  if (!rig.bones.length && !isAddBoneTool && !(editing && rigTool.mirrorDraw)) return null
+
+  const activeRigForEval = isManipulateTool ? buildManipulateTestRig(rig, rigTool.testPoses) : { ...rig, loop: false }
+  const isRestPose = Boolean(restPose ?? editing) && !isManipulateTool
+  const transforms = evaluateRig(activeRigForEval, isManipulateTool ? 0 : time, isRestPose)
+  const mixamoLandmarks = editing && rigTool.tool === 'select' ? extractLandmarksFromBones(rig.bones) : null
 
   const toLocalPoint = (event: PointerEvent) => {
     const rect = svgRef.current?.getBoundingClientRect()
