@@ -33,13 +33,16 @@ export async function buildDonghuaDemoProject(): Promise<Project> {
 }
 
 /**
- * Builds Demo #3: "Hàn Bối Tháp — Quái Đàm Quy Tắc 2.5D"
- * with soft-skinned anatomical limbs, asymmetric lagged breathing,
- * instant expression part-swaps, and S-wave coat/hair wind physics.
+ * Builds Demo #3: "Hàn Bối Tháp — Đại Chiến Linh Thú 2.5D"
+ * featuring multi-part anatomical sprite-atlas characters & creatures (Hero, Spirit Wolf,
+ * Shadow Monster, Spirit Eagle), atomic Workflow V2 combat/locomotion choreography,
+ * expression swaps, and VFX collision impacts.
  */
 export async function buildHanbetaDemoProject(): Promise<Project> {
   return repairHanbetaTiming(await importProjectFromJson(JSON.stringify(hanbetaJson)))
 }
+
+export const buildActionCombat25dDemoProject = buildHanbetaDemoProject
 
 export * from './plateGenerators'
 export * from './jsonFormat'

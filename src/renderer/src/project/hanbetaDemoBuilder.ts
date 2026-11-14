@@ -3,6 +3,7 @@ import { createProject, createShot, shotSpacing } from './factory'
 import { createTimeGroup } from './workflowTimeGroups'
 import {
   attachLogicNodeToLayerV2,
+  recomputeSharedLogicTargets,
   syncWorkflowV2Graph,
   syncWorkflowV2NodeToProject,
   v2ClusterLockId,
@@ -12,18 +13,9 @@ import {
   DEFAULT_HANBETA_ASSETS,
   populateHanbetaStage,
   setupHanbetaCameraRoute,
-  type HanbetaStageHandles,
-  type HeroClusterHandles
+  type CompositeClusterHandles,
+  type HanbetaStageHandles
 } from './hanbetaDemoScenes'
-import {
-  applyCautionForegroundSpines,
-  applyCoatBackWindSpines,
-  applyCorridorLampSpine,
-  applyMistDriftMotion,
-  applyShadowEntitySpines,
-  choreographRuleBreakSeal
-} from './hanbetaPuppetRigs'
-import { applyHeroClusterSoftRigs } from './hanbetaHeroSoftRig'
 
 export interface HanbetaAssetInput {
   id: string
@@ -33,27 +25,47 @@ export interface HanbetaAssetInput {
   height?: number
 }
 
+interface MotionSpec {
+  targetX: number
+  targetY: number
+  scalePct: number
+  timeStart: number
+  timeEnd: number
+  title: string
+}
+
+interface RigSpec {
+  preset: string
+  intensity: number
+  timeStart: number
+  timeEnd: number
+  title: string
+}
+
+const rootY = (cluster: CompositeClusterHandles): number => Math.round(cluster.root.transform.position.value[1])
+
 function buildAssetMap(assetInputs: HanbetaAssetInput[]): { assets: AssetMeta[]; byId: Map<string, AssetMeta> } {
   const inputById = new Map(assetInputs.map((a) => [a.id, a]))
   const assets: AssetMeta[] = DEFAULT_HANBETA_ASSETS.map((def) => {
     const ov = inputById.get(def.id)
     if (!ov) return { ...def }
     const file = ov.file ?? def.assetPath?.split('/').pop() ?? ''
+    const folder = def.assetPath?.split('/').slice(0, -1).join('/') ?? 'scenes-action-25d/env'
     return {
       ...def,
       name: ov.name ?? def.name,
       width: ov.width ?? def.width,
       height: ov.height ?? def.height,
-      path: `assets/scenes-hanbeta-v2/${file}`,
-      assetPath: `scenes-hanbeta-v2/${file}`
+      path: `assets/${folder}/${file}`,
+      assetPath: `${folder}/${file}`
     }
   })
   return { assets, byId: new Map(assets.map((a) => [a.id, a])) }
 }
 
-/** Giữ đường cắt cảnh dứt khoát giữa 3 hồi (0..5s, 5..10s, 10..15s) sau khi đồng bộ Workflow V2. */
+/** Giữ đường cắt cảnh dứt khoát giữa 3 hồi (0..5.5s, 5.5..11.0s, 11.0..16.5s) sau khi đồng bộ Workflow V2. */
 export function repairHanbetaTiming(project: Project): Project {
-  project.comp.duration = 15
+  project.comp.duration = 16.5
   project.comp.fps = 30
   const tracks = [
     project.camera.position,
@@ -62,7 +74,7 @@ export function repairHanbetaTiming(project: Project): Project {
     ...(project.camera.roll ? [project.camera.roll] : [])
   ]
   for (const track of tracks) {
-    for (const [from, nextCut] of [[4.35, 5.0], [9.2, 10.0]]) {
+    for (const [from, nextCut] of [[4.85, 5.5], [10.35, 11.0]]) {
       const pose = track.keyframes.find((k) => Math.abs(k.t - from) < 0.02)
       if (!pose) continue
       const hasCutAfter = track.keyframes.some((k) => Math.abs(k.t - nextCut) < 0.02)
@@ -92,12 +104,14 @@ function chainNode(
 
 function wireExpressionSwap(
   project: Project,
-  hero: HeroClusterHandles,
-  targetLayer: ImageLayer,
+  hero: CompositeClusterHandles,
+  sourceId: string,
   title: string,
   timeStart: number,
   timeEnd: number
 ): WorkflowNode | undefined {
+  const targetLayer: ImageLayer | undefined = hero.bySourceId.get(sourceId)
+  if (!targetLayer) return undefined
   const heroLockId = v2ClusterLockId(hero.instanceId)
   const hubRes = attachLogicNodeToLayerV2(project.workflow!, heroLockId, 'part_swap', 'v2:part_swap:part_group')
   project.workflow = syncWorkflowV2Graph(project, hubRes.workflow)
@@ -105,7 +119,7 @@ function wireExpressionSwap(
     (n) =>
       n.params?.isPartChild &&
       n.params?.instanceId === hero.instanceId &&
-      (n.params?.partGroupId === 'slot:expression' || n.params?.partGroupId === 'part-expression')
+      (n.params?.partGroupId === 'slot:expression' || n.params?.partGroupId === 'pg-hero-expr')
   )
   if (exprChild) {
     exprChild.title = title
@@ -122,256 +136,288 @@ function wireExpressionSwap(
   return exprChild
 }
 
-function applyAllHanbetaRigs(h: HanbetaStageHandles): void {
-  // Cảnh 1
-  applyHeroClusterSoftRigs(h.hero1, 0.2)
-  applyCoatBackWindSpines(h.hero1.coatBack, 0.2)
-  applyCorridorLampSpine(h.s1Lamp, 0.1)
-  applyShadowEntitySpines(h.s1Shadow, 0.3)
-  applyCautionForegroundSpines(h.s1Caution, 0.4)
-  applyMistDriftMotion(h.s1Mist, 0, 5.0, 1)
-
-  // Cảnh 2
-  applyHeroClusterSoftRigs(h.hero2, 1.1)
-  applyCoatBackWindSpines(h.hero2.coatBack, 1.1)
-  applyCorridorLampSpine(h.s2Lamp, 0.8)
-  applyShadowEntitySpines(h.s2Shadow, 1.2)
-  applyCautionForegroundSpines(h.s2Caution, 1.4)
-  applyMistDriftMotion(h.s2Mist, 5.0, 10.0, 2)
-
-  // Cảnh 3
-  applyHeroClusterSoftRigs(h.hero3, 2.0)
-  applyCoatBackWindSpines(h.hero3.coatBack, 2.0)
-  applyShadowEntitySpines(h.s3Shadow, 2.1)
-  applyCautionForegroundSpines(h.s3Caution, 2.3)
-  applyMistDriftMotion(h.s3Mist, 10.0, 15.0, 3)
-  choreographRuleBreakSeal(h.s3Seal, 10.0, 15.0)
+function wireClusterChain(
+  project: Project,
+  cluster: CompositeClusterHandles,
+  motions: MotionSpec[],
+  rigs: RigSpec[]
+): { lastMotion?: WorkflowNode; lastRig?: WorkflowNode } {
+  let upstream = v2ClusterLockId(cluster.instanceId)
+  let lastMotion: WorkflowNode | undefined
+  for (const m of motions) {
+    lastMotion = chainNode(
+      project,
+      upstream,
+      'action',
+      'v2:action:bbox_target',
+      {
+        motionMode: 'bbox',
+        actionPreset: 'bbox_target',
+        bboxPathType: 'shortest',
+        bboxTargetX: m.targetX,
+        bboxTargetY: m.targetY,
+        bboxTargetScalePct: m.scalePct,
+        depthMode: 'keep',
+        timeStart: m.timeStart,
+        timeEnd: m.timeEnd
+      },
+      m.title
+    )
+    upstream = lastMotion.id
+  }
+  let lastRig: WorkflowNode | undefined
+  for (const r of rigs) {
+    lastRig = chainNode(
+      project,
+      upstream,
+      'anim_fx',
+      `v2:anim_fx:rig_${r.preset}`,
+      { animMode: 'rig_clip', rigActionPreset: r.preset, intensity: r.intensity, timeStart: r.timeStart, timeEnd: r.timeEnd },
+      r.title
+    )
+    upstream = lastRig.id
+  }
+  return { lastMotion, lastRig }
 }
 
 function wireShot1Logic(project: Project, h: HanbetaStageHandles): void {
-  const heroLockId = v2ClusterLockId(h.hero1.instanceId)
-  const swapNode = wireExpressionSwap(
+  wireExpressionSwap(
     project,
     h.hero1,
-    h.hero1.headSmirk,
-    'Bộ phận: Ánh Mắt Thấu Thị Quy Tắc',
-    2.4,
-    4.95
+    'hero-head-shout',
+    'Biểu cảm: Hét Xung Phong Đèo Sương',
+    3.6,
+    5.45
   )
-  chainNode(
+  const hero = wireClusterChain(
     project,
-    heroLockId,
-    'anim_fx',
-    'v2:anim_fx:rig_scheming',
-    { animMode: 'rig_clip', rigActionPreset: 'scheming', intensity: 1.0, timeStart: 0.05, timeEnd: 4.95 },
-    'Hành động: Ngẫm Đọc Tờ Quy Tắc'
+    h.hero1,
+    [{ targetX: 15, targetY: rootY(h.hero1), scalePct: 104, timeStart: 0.15, timeEnd: 5.35, title: 'Motion: Kiếm Khách Vượt Đèo' }],
+    [{ preset: 'walk', intensity: 1.05, timeStart: 0.05, timeEnd: 5.45, title: 'Hành động: Bước Đi Chiến Đấu' }]
   )
-  chainNode(
+  const wolf = wireClusterChain(
     project,
-    v2LayerNodeId(h.s1Lamp.id),
-    'light',
-    'v2:light:candle',
-    { lightMode: 'candle', lightColor: '#ff453a', intensity: 0.55, timeStart: 0, timeEnd: 5.0 },
-    'Ánh sáng: Đèn Trần Đỏ Hành Lang'
+    h.wolf1,
+    [{ targetX: 290, targetY: rootY(h.wolf1), scalePct: 104, timeStart: 0.15, timeEnd: 5.35, title: 'Motion: Linh Lang Săn Mồi' }],
+    [{ preset: 'quadruped_walk', intensity: 1.05, timeStart: 0.05, timeEnd: 5.45, title: 'Linh Lang: Bước Đi 4 Chân' }]
   )
-  const shadowMot = chainNode(
+  const eagle = wireClusterChain(
     project,
-    v2LayerNodeId(h.s1Shadow.id),
-    'action',
-    'v2:action:bbox_target',
-    {
-      motionMode: 'bbox',
-      actionPreset: 'bbox_target',
-      bboxPathType: 'shortest',
-      bboxTargetX: 265,
-      bboxTargetY: -15,
-      bboxTargetScalePct: 112,
-      depthMode: 'keep',
-      bboxStartZ: 1450,
-      bboxTargetZ: 1120,
-      timeStart: 2.2,
-      timeEnd: 4.95
-    },
-    'Motion: Bóng Đen Rình Rập Tiến Lại'
+    h.eagle1,
+    [{ targetX: 440, targetY: 285, scalePct: 106, timeStart: 0.1, timeEnd: 5.4, title: 'Motion: Linh Ưng Lướt Gió' }],
+    [{ preset: 'wing_flap', intensity: 1.05, timeStart: 0.05, timeEnd: 5.45, title: 'Linh Ưng: Vỗ Cánh Tuần Tra' }]
   )
-  chainNode(
-    project,
-    shadowMot.id,
-    'fx',
-    'v2:fx:pulse',
-    { animFxPreset: 'pulse', intensity: 0.55, animFxSpeed: 0.8, timeStart: 0.5, timeEnd: 4.95 },
-    'FX: Nhịp Đập Ẩn Hiện Rình Rập'
-  )
-
-  const targets = swapNode ? [swapNode, shadowMot] : [shadowMot]
+  const targets = [hero.lastRig, wolf.lastRig, eagle.lastRig].filter((n): n is WorkflowNode => Boolean(n))
   createTimeGroup(project, targets, {
-    title: 'Nhịp 1: Đọc Thấu Kẽ Hở Quy Tắc',
-    color: '#f59e0b',
-    start: 2.2,
-    end: 4.95
+    title: 'Nhịp 1: Hiệp Hành Vượt Đèo Sương',
+    color: '#38bdf8',
+    start: 0.05,
+    end: 5.45
   })
 }
 
 function wireShot2Logic(project: Project, h: HanbetaStageHandles): void {
-  const heroLockId = v2ClusterLockId(h.hero2.instanceId)
-  const swapNode = wireExpressionSwap(
+  const heroSwap = wireExpressionSwap(
     project,
     h.hero2,
-    h.hero2.headShock,
-    'Bộ phận: Giật Mình Kinh Ngạc 404',
-    5.35,
-    9.95
+    'hero-head-shout',
+    'Biểu cảm: Quát Chiến Trước Ma Thú',
+    7.65,
+    10.9
   )
-  chainNode(
+  wireClusterChain(
     project,
-    heroLockId,
-    'anim_fx',
-    'v2:anim_fx:rig_shock',
-    { animMode: 'rig_clip', rigActionPreset: 'shock', intensity: 1.1, timeStart: 5.05, timeEnd: 9.95 },
-    'Hành động: Giật Lùi Khi Thực Thể Áp Sát'
+    h.hero2,
+    [{ targetX: -140, targetY: rootY(h.hero2), scalePct: 104, timeStart: 5.65, timeEnd: 8.0, title: 'Motion: Kiếm Khách Xung Phong' }],
+    [
+      { preset: 'run', intensity: 1.08, timeStart: 5.55, timeEnd: 8.0, title: 'Hành động: Chạy Bứt Tốc' },
+      { preset: 'dodge_counter', intensity: 1.12, timeStart: 8.05, timeEnd: 10.95, title: 'Hành động: Né Đòn & Phản Kích' }
+    ]
   )
-  chainNode(
+  wireClusterChain(
     project,
-    v2LayerNodeId(h.s2Lamp.id),
-    'light',
-    'v2:light:candle',
-    { lightMode: 'candle', lightColor: '#ff9f43', intensity: 0.48, timeStart: 5.0, timeEnd: 10.0 },
-    'Ánh sáng: Đèn Chập Chờn Phòng 404'
+    h.wolf2,
+    [{ targetX: -395, targetY: rootY(h.wolf2), scalePct: 105, timeStart: 5.7, timeEnd: 9.8, title: 'Motion: Linh Lang Phi Nước Đại' }],
+    [{ preset: 'quadruped_gallop', intensity: 1.12, timeStart: 5.6, timeEnd: 10.9, title: 'Linh Lang: Phi Nước Đại' }]
   )
-  const shadowLunge = chainNode(
+  const monster = wireClusterChain(
     project,
-    v2LayerNodeId(h.s2Shadow.id),
+    h.monster2,
+    [{ targetX: 235, targetY: rootY(h.monster2), scalePct: 106, timeStart: 5.65, timeEnd: 7.6, title: 'Motion: Ma Thú Rình Mồi' }],
+    [
+      { preset: 'monster_prowl', intensity: 1.05, timeStart: 5.55, timeEnd: 7.6, title: 'Ma Thú: Rình Mồi Áp Đảo' },
+      { preset: 'monster_roar', intensity: 1.15, timeStart: 7.65, timeEnd: 10.9, title: 'Ma Thú: Gầm Vang Rung Sân' }
+    ]
+  )
+  const shockPop = chainNode(project, v2LayerNodeId(h.s2Shockwave.id), 'fx', 'v2:fx:popIn', { animFxPreset: 'popIn', intensity: 0.72, timeStart: 7.65, timeEnd: 10.9 }, 'Hiện/Ẩn: Bùng Sóng Gầm')
+  const shockGlow = chainNode(project, shockPop.id, 'fx', 'v2:fx:glow', { animFxPreset: 'neonBreathe', animFxColor: '#c084fc', intensity: 0.78, animFxThickness: 9, animFxSpeed: 1.6, timeStart: 7.65, timeEnd: 10.9 }, 'Phát sáng: Tử Quang Sóng Âm')
+  chainNode(project, shockGlow.id, 'fx', 'v2:fx:fadeOut', { animFxPreset: 'fadeOut', loopFadeInSec: 0, loopFadeOutSec: 0.9, timeStart: 9.9, timeEnd: 10.9 }, 'Hiện/Ẩn: Tan Sóng Âm')
+
+  const targets = [monster.lastRig, shockPop, shockGlow, heroSwap].filter((n): n is WorkflowNode => Boolean(n))
+  createTimeGroup(project, targets, {
+    title: 'Nhịp 2: Ma Thú Gầm Vang & Phản Kích',
+    color: '#c084fc',
+    start: 7.65,
+    end: 10.9
+  })
+}
+
+function wireShot3CollisionAndVfx(project: Project, h: HanbetaStageHandles): void {
+  const crescentMot = chainNode(
+    project,
+    v2LayerNodeId(h.s3SwordCrescent.id),
     'action',
     'v2:action:bbox_target',
     {
       motionMode: 'bbox',
       actionPreset: 'bbox_target',
       bboxPathType: 'shortest',
-      bboxTargetX: 165,
-      bboxTargetY: 25,
-      bboxTargetScalePct: 122,
+      bboxTargetX: 215,
+      bboxTargetY: -5,
+      bboxTargetScalePct: 124,
       depthMode: 'keep',
-      bboxStartZ: 950,
-      bboxTargetZ: 460,
-      timeStart: 5.35,
-      timeEnd: 8.8
+      timeStart: 12.25,
+      timeEnd: 13.7
     },
-    'Motion: Thực Thể Lao Xuyên Cửa 404'
+    'Motion: Kiếm Khí Phóng Xuyên Ma Thú'
   )
-  const shadowGlow = chainNode(
+  const crescentGlow = chainNode(
     project,
-    shadowLunge.id,
+    crescentMot.id,
     'fx',
     'v2:fx:glow',
-    { animFxPreset: 'neonBreathe', animFxColor: '#ff2b4a', intensity: 0.65, animFxThickness: 8, animFxSpeed: 1.6, timeStart: 5.35, timeEnd: 9.9 },
-    'FX: Hắc Quang Đỏ Thực Thể'
+    { animFxPreset: 'neonBreathe', animFxColor: '#38bdf8', intensity: 0.85, animFxThickness: 10, animFxSpeed: 1.8, timeStart: 12.25, timeEnd: 15.8 },
+    'Phát sáng: Thanh Quang Nguyệt Trảm'
   )
+  chainNode(project, crescentGlow.id, 'fx', 'v2:fx:fadeOut', { animFxPreset: 'fadeOut', loopFadeInSec: 0, loopFadeOutSec: 1.0, timeStart: 14.6, timeEnd: 15.8 }, 'Hiện/Ẩn: Kiếm Khí Tan Biến')
 
-  const targets = swapNode ? [swapNode, shadowLunge, shadowGlow] : [shadowLunge, shadowGlow]
+  const colRes = attachLogicNodeToLayerV2(
+    project.workflow!,
+    crescentMot.id,
+    'collision',
+    'v2:collision:elastic_bounce',
+    {
+      strikerLayerId: h.s3SwordCrescent.id,
+      targetColliderLayerId: h.monster3.root.id,
+      targetLayerIds: [h.s3SwordCrescent.id, h.monster3.root.id],
+      collisionMode: 'heavy_punch',
+      collisionForce: 1.3,
+      deformIntensity: 0.65,
+      depthMode: 'flat_2d',
+      timeStart: 13.2,
+      timeEnd: 15.6
+    },
+    'Va chạm: Kiếm Khí 💥 Ma Thú'
+  )
+  project.workflow = colRes.workflow
+  const monLockId = v2ClusterLockId(h.monster3.instanceId)
+  if (colRes.createdNodeId && !project.workflow.edges.some((e) => e.fromNode === monLockId && e.toNode === colRes.createdNodeId)) {
+    project.workflow.edges.push({ id: `e-${monLockId}-${colRes.createdNodeId}`, fromNode: monLockId, fromPort: 'layers_tree', toNode: colRes.createdNodeId, toPort: 'layers_tree' })
+    project.workflow = { ...project.workflow, nodes: recomputeSharedLogicTargets(project.workflow.nodes, project.workflow.edges) }
+    const colNode = project.workflow.nodes.find((n) => n.id === colRes.createdNodeId)
+    if (colNode) syncWorkflowV2NodeToProject(project, colNode)
+  }
+
+  const impactPop = chainNode(project, v2LayerNodeId(h.s3ImpactBurst.id), 'fx', 'v2:fx:popIn', { animFxPreset: 'popIn', intensity: 0.8, timeStart: 13.2, timeEnd: 15.6 }, 'Hiện/Ẩn: Bùng Nổ Giao Kiếm')
+  const impactPulse = chainNode(project, impactPop.id, 'fx', 'v2:fx:pulse', { animFxPreset: 'pulse', intensity: 0.7, animFxSpeed: 2.0, timeStart: 13.2, timeEnd: 15.6 }, 'Nhịp/Rung: Chấn Động Va Chạm')
+  chainNode(project, impactPulse.id, 'fx', 'v2:fx:fadeOut', { animFxPreset: 'fadeOut', loopFadeInSec: 0, loopFadeOutSec: 0.9, timeStart: 14.6, timeEnd: 15.6 }, 'Hiện/Ẩn: Tàn Tia Lửa')
+
+  const colNode = project.workflow.nodes.find((n) => n.id === colRes.createdNodeId)
+  const targets = [colNode, impactPop, impactPulse].filter((n): n is WorkflowNode => Boolean(n))
   createTimeGroup(project, targets, {
-    title: 'Nhịp 2: Thực Thể Áp Sát Phòng 404',
+    title: 'Nhịp 3: Kiếm Khí Trảm Kích & Va Chạm Đỉnh Cao',
     color: '#ef4444',
-    start: 5.35,
-    end: 9.9
+    start: 13.2,
+    end: 15.6
   })
 }
 
 function wireShot3Logic(project: Project, h: HanbetaStageHandles): void {
-  const heroLockId = v2ClusterLockId(h.hero3.instanceId)
-  const swapNode = wireExpressionSwap(
+  wireExpressionSwap(
     project,
     h.hero3,
-    h.hero3.headSmirk,
-    'Bộ phận: Tự Tin Nắm Chắc Quy Tắc',
-    10.35,
-    15.0
+    'hero-head-shout',
+    'Biểu cảm: Xuất Chiêu Quyết Chiến',
+    11.25,
+    16.45
   )
-  chainNode(
+  wireClusterChain(
     project,
-    heroLockId,
-    'anim_fx',
-    'v2:anim_fx:rig_point',
-    { animMode: 'rig_clip', rigActionPreset: 'point', intensity: 1.08, timeStart: 10.05, timeEnd: 14.95 },
-    'Hành động: Chỉ Tay Khai Ấn Phá Cục'
+    h.hero3,
+    [{ targetX: -75, targetY: rootY(h.hero3), scalePct: 105, timeStart: 11.15, timeEnd: 13.3, title: 'Motion: Lướt Tới Xuất Kiếm' }],
+    [
+      { preset: 'combat', intensity: 1.15, timeStart: 11.1, timeEnd: 14.4, title: 'Hành động: Liên Hoàn Kiếm Chiêu' },
+      { preset: 'martial_kick', intensity: 1.1, timeStart: 14.45, timeEnd: 16.45, title: 'Hành động: Đá Xoáy Kết Liễu' }
+    ]
   )
-  const sealGlow = chainNode(
+  wireClusterChain(
     project,
-    v2LayerNodeId(h.s3Seal.id),
-    'fx',
-    'v2:fx:glow',
-    { animFxPreset: 'neonBreathe', animFxColor: '#ffd166', intensity: 0.85, animFxThickness: 10, animFxSpeed: 1.4, timeStart: 10.1, timeEnd: 15.0 },
-    'FX: Kim Quang Ấn Triện'
+    h.monster3,
+    [
+      { targetX: 150, targetY: rootY(h.monster3), scalePct: 104, timeStart: 11.15, timeEnd: 13.2, title: 'Motion: Ma Thú Lao Vồ Trực Diện' },
+      { targetX: 335, targetY: rootY(h.monster3), scalePct: 98, timeStart: 13.35, timeEnd: 15.6, title: 'Motion: Ma Thú Bật Lùi Sau Kiếm Khí' }
+    ],
+    [
+      { preset: 'monster_pounce', intensity: 1.12, timeStart: 11.1, timeEnd: 13.25, title: 'Ma Thú: Vồ Trảo Tấn Công' },
+      { preset: 'hit_recoil', intensity: 1.18, timeStart: 13.3, timeEnd: 16.4, title: 'Ma Thú: Trúng Kiếm Bật Lùi' }
+    ]
   )
-  const shadowGlow = chainNode(
+  wireClusterChain(
     project,
-    v2LayerNodeId(h.s3Shadow.id),
-    'fx',
-    'v2:fx:glow',
-    { animFxPreset: 'neonBreathe', animFxColor: '#ff2b4a', intensity: 0.55, animFxThickness: 7, animFxSpeed: 2.0, timeStart: 10.0, timeEnd: 13.0 },
-    'FX: Hắc Khí Phản Kháng'
+    h.wolf3,
+    [{ targetX: -380, targetY: rootY(h.wolf3), scalePct: 104, timeStart: 11.15, timeEnd: 14.2, title: 'Motion: Linh Lang Tấn Công Sườn' }],
+    [{ preset: 'quadruped_gallop', intensity: 1.1, timeStart: 11.05, timeEnd: 16.4, title: 'Linh Lang: Xung Phong Hợp Kích' }]
   )
-  const shadowBanish = chainNode(
+  wireClusterChain(
     project,
-    shadowGlow.id,
-    'fx',
-    'v2:fx:fadeOut',
-    { animFxPreset: 'fadeOut', loopFadeOutSec: 1.4, loopEndAction: 'fade_out', timeStart: 12.6, timeEnd: 14.5 },
-    'FX: Thực Thể Tan Biến'
+    h.eagle3,
+    [{ targetX: 300, targetY: 315, scalePct: 106, timeStart: 11.1, timeEnd: 16.3, title: 'Motion: Linh Ưng Quần Thảo' }],
+    [{ preset: 'wing_flap', intensity: 1.05, timeStart: 11.05, timeEnd: 16.4, title: 'Linh Ưng: Vỗ Cánh Áp Chế' }]
   )
-
-  const targets = swapNode ? [swapNode, sealGlow, shadowBanish] : [sealGlow, shadowBanish]
-  createTimeGroup(project, targets, {
-    title: 'Nhịp 3: Khai Ấn Phá Cục',
-    color: '#eab308',
-    start: 10.35,
-    end: 14.5
-  })
+  wireShot3CollisionAndVfx(project, h)
 }
 
 /**
- * Dựng Dự Án Phim Mẫu 3 ("Hàn Bối Tháp — Quái Đàm Quy Tắc 2.5D"):
- * 3 cảnh 15s (5s/cảnh), nhân vật cắt lớp nhiều biểu cảm `part_swap`,
- * xương soft-skin giải phẫu chuẩn nhịp thở bất đối xứng & sóng lụa S-wave.
+ * Dựng Dự Án Phim Mẫu 3 ("Hàn Bối Tháp — Đại Chiến Linh Thú 2.5D"):
+ * 3 cảnh hành động 16.5s (5.5s/cảnh), Kiếm Khách, Linh Lang, Kim Sí Linh Ưng và Hắc Ám Ma Thú
+ * tách khớp giải phẫu chuẩn từ sprite atlas, chạy đồng bộ trên Workflow V2 nguyên tử.
  */
 export function buildHanbetaWorkflowV2Project(assetInputs: HanbetaAssetInput[] = DEFAULT_HANBETA_ASSETS): Project {
   const { assets, byId } = buildAssetMap(assetInputs)
   const project = createProject({
-    name: 'Hàn Bối Tháp — Quái Đàm Quy Tắc 2.5D',
+    name: 'Hàn Bối Tháp — Đại Chiến Linh Thú 2.5D',
     width: 1920,
     height: 1080,
     fps: 30,
-    duration: 15,
-    background: '#07040a'
+    duration: 16.5,
+    background: '#070a12'
   })
   project.assets = assets
   project.look = {
     fogEnabled: true,
-    fogColor: '#180c14',
-    fogNear: 1900,
-    fogFar: 6200,
-    vignette: 0.34,
-    grain: 0.05,
+    fogColor: '#11162a',
+    fogNear: 2000,
+    fogFar: 6400,
+    vignette: 0.3,
+    grain: 0.04,
     exposure: 0.04,
-    contrast: 1.08,
-    saturation: 1.06
+    contrast: 1.07,
+    saturation: 1.08
   }
 
   const spacing = shotSpacing(project.comp)
-  const s1 = createShot('Cảnh 1: Hành Lang Đèn Đỏ', [0, 0, 0], 0)
-  const s2 = createShot('Cảnh 2: Cửa Phòng 404 Kính Mờ', [spacing, 0, 0], 1)
-  const s3 = createShot('Cảnh 3: Sân Thượng Trăng Máu Phá Cục', [spacing * 2, 0, 0], 2)
+  const s1 = createShot('Cảnh 1: Hiệp Hành Qua Đèo Sương Mù', [0, 0, 0], 0)
+  const s2 = createShot('Cảnh 2: Hắc Thú Phá Ấn — Giao Chiến Sân Cổ', [spacing, 0, 0], 1)
+  const s3 = createShot('Cảnh 3: Tuyệt Kỹ Thanh Đao — Trảm Phá Ma Thú', [spacing * 2, 0, 0], 2)
   project.shots = [s1, s2, s3]
 
   const handles = populateHanbetaStage(project, project.shots, byId, project.comp)
   setupHanbetaCameraRoute(project, project.shots)
-  applyAllHanbetaRigs(handles)
 
   project.workflow = syncWorkflowV2Graph(project, project.workflow)
   wireShot1Logic(project, handles)
   wireShot2Logic(project, handles)
   wireShot3Logic(project, handles)
 
-  // Giữ nguyên nhịp xoay & bùng mở của Ấn Triện sau khi sync node FX
-  choreographRuleBreakSeal(handles.s3Seal, 10.0, 15.0)
   return repairHanbetaTiming(project)
 }

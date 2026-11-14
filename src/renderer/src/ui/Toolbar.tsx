@@ -246,8 +246,8 @@ export function Toolbar({ onExport }: { onExport: () => void }) {
           <button className="menu-item" onClick={() => loadDemo(false, 'donghua_guofeng')}>
             <IconSparkles width={15} /> Mẫu 2: Vân Sơn Kiếm Khúc — Quốc Phong 2.5D
           </button>
-          <button className="menu-item" onClick={() => loadDemo(false, 'hanbeta_quaidam')}>
-            <IconEye width={15} /> Mẫu 3: Hàn Bối Tháp — Quái Đàm 2.5D
+          <button className="menu-item" onClick={() => loadDemo(false, 'action_combat_25d')}>
+            <IconEye width={15} /> Mẫu 3: Hàn Bối Tháp — Đại Chiến Linh Thú 2.5D
           </button>
         </Menu>
 

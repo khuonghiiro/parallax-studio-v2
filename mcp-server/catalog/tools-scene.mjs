@@ -291,11 +291,11 @@ export const SCENE_TOOLS = [
   {
     name: 'new_project', cat: 'project',
     doc: L(
-      'Start an empty project or load a built-in demo (`three_scenes`, `donghua_guofeng`, or `hanbeta_quaidam`), discarding unsaved changes without asking.',
-      'Tạo dự án trống hoặc mở cảnh mẫu dựng sẵn (`three_scenes`, `donghua_guofeng` hoặc `hanbeta_quaidam`), bỏ thay đổi chưa lưu mà không hỏi.'
+      'Start an empty project or load a built-in demo (`three_scenes`, `donghua_guofeng`, `action_combat_25d`, or alias `hanbeta_quaidam`), discarding unsaved changes without asking.',
+      'Tạo dự án trống hoặc mở cảnh mẫu dựng sẵn (`three_scenes`, `donghua_guofeng`, `action_combat_25d` hoặc alias `hanbeta_quaidam`), bỏ thay đổi chưa lưu mà không hỏi.'
     ),
     shape: () => ({
-      demo: z.enum(['three_scenes', 'donghua_guofeng', 'hanbeta_quaidam']).optional(),
+      demo: z.enum(['three_scenes', 'donghua_guofeng', 'hanbeta_quaidam', 'action_combat_25d']).optional(),
       name: z.string().optional(),
       width: z.number().int().optional(),
       height: z.number().int().optional(),

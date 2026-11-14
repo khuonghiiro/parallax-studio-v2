@@ -68,10 +68,10 @@ export const projectCommands: Record<string, Handler> = {
 
   new_project: async (p) => {
     const demo = str(p, 'demo')
-    if (demo === 'three_scenes' || demo === 'donghua_guofeng' || demo === 'hanbeta_quaidam') {
+    if (demo === 'three_scenes' || demo === 'donghua_guofeng' || demo === 'hanbeta_quaidam' || demo === 'action_combat_25d') {
       const demoMod = await import('../../project/demo')
       const loaded =
-        demo === 'hanbeta_quaidam'
+        demo === 'action_combat_25d' || demo === 'hanbeta_quaidam'
           ? await demoMod.buildHanbetaDemoProject()
           : demo === 'donghua_guofeng'
             ? await demoMod.buildDonghuaDemoProject()
