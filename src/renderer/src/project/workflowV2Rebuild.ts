@@ -1,6 +1,12 @@
 import { isTimeNode } from './workflowTiming'
 import { layoutWorkflowV2Tree } from './workflowV2Layout'
-import { recomputeSharedLogicTargets } from './workflowV2PhysicsAndValidation'
+import { recomputeSharedLogicTargets, validateWorkflowV2Connection } from './workflowV2PhysicsAndValidation'
+import { detachAtomicFxNodeFromLayer } from './workflowV2AtomicFxApply'
+import {
+  bridgeRemovedPipelineNodeEdges,
+  propagatePipelineTargetsAndSteps,
+  sortLogicNodesByPipelineOrder
+} from './workflowV2Pipeline'
 import { isDraft } from 'immer'
 import type { Project, WorkflowGraph, WorkflowNode } from '@shared/types'
 import { getProjectAudioTracks } from './audioTracks'
@@ -36,11 +42,12 @@ export function applyWorkflowV2PhysicsNodes(project: Project, workflow: Workflow
   for (const n of workflow.nodes) if (n.params?.logicCategory === 'collision') syncWorkflowV2NodeToProject(project, n)
 }
 
-/** Áp dụng toàn bộ Node Logic xuống Project theo đúng thứ tự phụ thuộc (Va chạm sau cùng vì đọc chất liệu) */
+/** Áp dụng toàn bộ Node Logic xuống Project theo đúng thứ tự DAG (thượng nguồn -> hạ nguồn, Va chạm đọc chất liệu) */
 export function applyWorkflowV2ToProject(project: Project, workflow: WorkflowGraph): void {
-  const logic = workflow.nodes.filter((n) => logicCategoryOf(n) || n.params?.logicCategory === 'cluster_lock' || n.type === 'camera_director')
-  for (const n of logic) if (n.params?.logicCategory !== 'collision') syncWorkflowV2NodeToProject(project, n)
-  for (const n of logic) if (n.params?.logicCategory === 'collision') syncWorkflowV2NodeToProject(project, n)
+  const syncedNodes = propagatePipelineTargetsAndSteps(workflow.nodes, workflow.edges)
+  const logic = syncedNodes.filter((n) => logicCategoryOf(n) || n.params?.logicCategory === 'cluster_lock' || n.type === 'camera_director')
+  const ordered = sortLogicNodesByPipelineOrder(logic, workflow.edges)
+  for (const n of ordered) syncWorkflowV2NodeToProject(project, n)
 }
 
 /**
@@ -116,19 +123,7 @@ export function detachWorkflowV2NodeFromProject(project: Project, node: Workflow
     return
   }
   if (cat === 'fx') {
-    for (const l of layers) {
-      const fxIds = (l.appliedEffects ?? []).filter((f) => f.category !== 'motion').map((f) => f.id)
-      for (const fxId of fxIds) deleteLayerEffect(l, fxId)
-      l.fadeIn = 0
-      l.fadeOut = 0
-      if (l.type === 'image') {
-        l.props.loopFadeInSec = 0
-        l.props.loopFadeOutSec = 0
-        l.props.loopRhythmMode = 'none'
-        if (l.props.loopEndAction === 'fade_out') l.props.loopEndAction = 'hold'
-      }
-      if (!l.virtualLight?.enabled) delete l.glow
-    }
+    for (const l of layers) detachAtomicFxNodeFromLayer(l, node)
     return
   }
   if (cat === 'audio') {
@@ -156,7 +151,6 @@ export function detachWorkflowV2NodeFromProject(project: Project, node: Workflow
       delete layer.physics.depthPortal
       if (layer.physics.colliderZone === 'cave_portal') delete layer.physics.colliderZone
     }
-    if (cat === 'fx' && node.params?.fxKind && node.params.fxKind !== 'wind_physics') delete layer.glow
   }
 }
 
@@ -179,8 +173,15 @@ export function deleteWorkflowV2Node(project: Project, nodeId: string): void {
     }
   } else detachWorkflowV2NodeFromProject(project, target)
   const after = project.workflow!
-  const edges = after.edges.filter(e => e.fromNode !== nodeId && e.toNode !== nodeId)
-  const nodes = recomputeSharedLogicTargets(after.nodes.filter(n => n.id !== nodeId), edges)
+  const remainingNodes = after.nodes.filter((n) => n.id !== nodeId)
+  const rawFilteredEdges = after.edges.filter((e) => e.fromNode !== nodeId && e.toNode !== nodeId)
+  const tempGraph: WorkflowGraph = { ...after, nodes: remainingNodes, edges: rawFilteredEdges }
+  const edges = bridgeRemovedPipelineNodeEdges(
+    after.edges,
+    nodeId,
+    (fromId, toId) => validateWorkflowV2Connection(tempGraph, fromId, toId).valid
+  )
+  const nodes = recomputeSharedLogicTargets(remainingNodes, edges)
   project.workflow = { ...after, nodes: layoutWorkflowV2Tree(nodes, edges), edges }
   if (logicCategoryOf(target) === 'material') applyWorkflowV2PhysicsNodes(project, project.workflow)
   if (['action', 'collision'].includes(logicCategoryOf(target) ?? '')) applyWorkflowV2ToProject(project, project.workflow)

@@ -2,6 +2,11 @@ import { writeWorkflowCollisionResponse } from './workflowCollisionResponse'
 import { workflowSourceOwners } from './workflowStepGraph'
 import { resolveWorkflowCollisionContact } from './workflowCollisionApproach'
 import { acceptsSharedTime } from './workflowTiming'
+import {
+  areAtomicNodesConflicting,
+  isComposableLogicNode,
+  propagatePipelineTargetsAndSteps
+} from './workflowV2Pipeline'
 import type {
   Layer,
   LayerPhysicsMaterial,
@@ -355,7 +360,7 @@ export function validateWorkflowV2Connection(
       .filter((n): n is WorkflowNode => Boolean(n))
 
     const duplicateSameCat = existingLogicNodesOfLayer.find((n) => {
-      if (n.id === dst.id || getNodeLogicCategory(n) !== dstCat) return false
+      if (n.id === dst.id || !areAtomicNodesConflicting(n, dst)) return false
       if (dstCat === 'part_swap' && n.params?.partGroupId && dst.params?.partGroupId) {
         return n.params.partGroupId === dst.params.partGroupId
       }
@@ -380,7 +385,7 @@ export function validateWorkflowV2Connection(
         .map((e) => workflow.nodes.find((n) => n.id === e.toNode))
         .filter((n): n is WorkflowNode => Boolean(n))
       const dup = existingOfCluster.find((n) => {
-        if (n.id === dst.id || getNodeLogicCategory(n) !== dstCat) return false
+        if (n.id === dst.id || !areAtomicNodesConflicting(n, dst)) return false
         if (dstCat === 'part_swap' && n.params?.partGroupId && dst.params?.partGroupId) {
           return n.params.partGroupId === dst.params.partGroupId
         }
@@ -433,6 +438,17 @@ export function validateWorkflowV2Connection(
         valid: false,
         reason: '⚠️ Bộ phận con này đã gắn với một lộ trình Motion BBox khác — hãy gỡ dây Motion cũ trước.'
       }
+    }
+    return { valid: true }
+  }
+
+  // 6. Nối chuỗi Pipeline đơn nhiệm (Logic Node -> Logic Node kế tiếp trong cùng Cảnh, không tạo vòng lặp)
+  if (isComposableLogicNode(src) && isComposableLogicNode(dst)) {
+    if (dst.params?.isPartChild && srcCat !== 'action') {
+      return { valid: false, reason: '❌ Node con Bộ phận chỉ nhận kích hoạt từ Bộ phận chính hoặc Motion.' }
+    }
+    if (!sameShot) {
+      return { valid: false, reason: '❌ Hai Node Logic phải thuộc cùng một Cảnh để nối chuỗi.' }
     }
     return { valid: true }
   }
@@ -491,7 +507,7 @@ export function recomputeSharedLogicTargets(
 
   const byId = new Map(nodesWithUpdatedClusters.map((n) => [n.id, n]))
 
-  return nodesWithUpdatedClusters.map((node) => {
+  const mappedNodes = nodesWithUpdatedClusters.map((node): WorkflowNode => {
     const cat = getNodeLogicCategory(node)
     if (!cat || cat === 'time' || cat === 'camera' || cat === 'cluster_lock') return node
 
@@ -541,7 +557,7 @@ export function recomputeSharedLogicTargets(
           incomingClusterNodes.push(fromN)
         }
       } else if (
-        ['material', 'action', 'collision'].includes(getNodeLogicCategory(fromN) ?? '') &&
+        isComposableLogicNode(fromN) &&
         !(cat === 'part_swap' && getNodeLogicCategory(fromN) === 'action')
       ) {
         for (const ownerId of workflowSourceOwners(fromN.id, byId, edges)) {
@@ -644,6 +660,7 @@ export function recomputeSharedLogicTargets(
       params: nextParams
     }
   })
+  return propagatePipelineTargetsAndSteps(mappedNodes, edges)
 }
 
 /** Tìm chất liệu vật lý đã gắn cho một Layer từ Node Vật liệu trong cây (hoặc từ layer.physics hiện tại) */

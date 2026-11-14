@@ -465,6 +465,12 @@ export interface WorkflowNodeParams {
   /** [Workflow V2] Loại hiệu ứng của Node Hiệu ứng */
   fxKind?: 'wind_physics' | 'bloom' | 'blur' | 'chromatic' | 'vignette' | 'particles'
   fxSubTab?: 'opacity' | 'pulse' | 'glow'
+  /** [Workflow V2] Vai trò nguyên tử duy nhất của Node Hiệu ứng: mỗi node chỉ đảm nhiệm 1 miền logic */
+  fxAtomicRole?: 'fade' | 'pulse' | 'glow'
+  /** [Workflow V2] Thứ tự bước (B1, B2, B3...) suy ra tự động trong chuỗi logic nối tiếp */
+  pipelineStepIndex?: number
+  /** [Workflow V2] ID Node logic đứng ngay trước trong chuỗi pipeline (nếu được nối từ Logic -> Logic) */
+  upstreamLogicNodeId?: string
   /** [Workflow V2] Node đã được người dùng kéo đặt tay — giữ nguyên vị trí khi tự xếp lại cây (nút "Sắp xếp" sẽ bỏ ghim) */
   pinned?: boolean
   /** [Workflow V2] Đánh dấu Node con lộ trình quay / cảnh con thuộc Node Camera của một Cảnh */

@@ -7,13 +7,18 @@ import {
   WORKFLOW_V2_ACTION_OPTIONS,
   WORKFLOW_V2_ANIM_FX_OPTIONS,
   WORKFLOW_V2_CAVE_OPTIONS,
-  WORKFLOW_V2_FX_OPTIONS,
   WORKFLOW_V2_LIGHT_OPTIONS
 } from './workflowV2Options'
 import { isAnimatedLoopLayer } from './workflowV2LogicPresets'
 import { WF_V2_COL_X } from './workflowV2Layout'
 import { resolveLayerNodeTimeRange } from './workflowV2Scope'
 import { isLoopComboFxId } from './workflowV2LoopCombo'
+import {
+  collectDownstreamLogicNodes,
+  deriveAtomicFxByRole,
+  findDownstreamFxNodeByRole
+} from './workflowV2AtomicDerive'
+import { resolveFxAtomicRole } from './workflowV2Pipeline'
 
 /**
  * MỘT LOGIC CHUNG cho Timeline và Workflow:
@@ -189,86 +194,19 @@ function deriveAnimFx(layer: Layer, compDur: number, current?: WorkflowNode): De
   }
 }
 
-function deriveFx(layer: Layer, compDur: number, current?: WorkflowNode): Derived {
-  const range = resolveLayerNodeTimeRange(layer, compDur)
-  const fxList = (layer.appliedEffects ?? []).filter((f) => f.category !== 'motion' && !isLoopComboFxId(f.id))
-  const primary = fxList[fxList.length - 1]
-  const fadeInSec = Math.max(layer.fadeIn ?? 0, layer.type === 'image' ? (layer.props.loopFadeInSec ?? 0) : 0)
-  const fadeOutSec = Math.max(layer.fadeOut ?? 0, layer.type === 'image' ? (layer.props.loopFadeOutSec ?? 0) : 0)
-  const endAction =
-    layer.type === 'image' && layer.props.loopEndAction === 'fade_out'
-      ? 'fade_out'
-      : (current?.params?.loopEndAction ?? (fadeOutSec > 0 ? 'fade_out' : 'hold'))
-  const hasAppearFade = fadeInSec > 0.01 || fadeOutSec > 0.01 || (layer.type === 'image' && layer.props.loopEndAction === 'fade_out')
-  const rhythmMode =
-    layer.type === 'image' && layer.props.loopRhythmMode && layer.props.loopRhythmMode !== 'none'
-      ? layer.props.loopRhythmMode
-      : (current?.params?.loopRhythmMode ?? 'none')
-  const hasRhythm = layer.type === 'image' && Boolean(layer.props.loopRhythmMode && layer.props.loopRhythmMode !== 'none')
-  const hasOpticalFx = Boolean(current?.params?.fxKind && current.params.fxKind !== 'wind_physics' && layer.glow?.enabled)
-  const present = Boolean(primary) || hasAppearFade || hasRhythm || hasOpticalFx
+const ATOMIC_FX_ROLES = ['fade', 'pulse', 'glow'] as const
 
-  const opt =
-    WORKFLOW_V2_ANIM_FX_OPTIONS.find((o) => o.id === (primary?.presetId ?? current?.params?.animFxPreset)) ??
-    WORKFLOW_V2_ANIM_FX_OPTIONS[0]
-  const start =
-    typeof primary?.startTime === 'number'
-      ? primary.startTime
-      : (current?.params?.timeStart ?? (layer.type === 'image' ? layer.props.loopStartTime : undefined) ?? range.start)
-  const end =
-    primary?.duration && primary.duration > 0
-      ? start + primary.duration
-      : (current?.params?.timeEnd ?? (layer.type === 'image' ? layer.props.loopEndTime : undefined) ?? range.end)
-  const extraCount = fxList.length > 1 ? ` (+${fxList.length - 1})` : ''
-
-  let title = `Hiệu ứng: ${opt.label}${extraCount}`
-  if (!primary && hasAppearFade && hasRhythm) {
-    title = `Hiệu ứng: Mờ dần & Nhịp Beat`
-  } else if (!primary && hasAppearFade) {
-    title = `Hiệu ứng: Hiện ${fadeInSec.toFixed(1)}s · Ẩn mờ ${fadeOutSec.toFixed(1)}s`
-  } else if (!primary && hasRhythm) {
-    title = `Hiệu ứng: Nhịp Beat (${rhythmMode === 'flicker_opacity' ? 'Nháy mờ' : rhythmMode === 'pulse_scale' ? 'Nhịp Scale' : 'Nhịp & Nháy'})`
-  } else if (!primary && hasOpticalFx) {
-    const fxOpt = WORKFLOW_V2_FX_OPTIONS.find((o) => o.id === current?.params?.fxKind)
-    title = `Hiệu ứng: ${fxOpt?.label ?? 'Quang học'}`
-  }
-
-  return {
-    present,
-    enabled:
-      present &&
-      (primary
-        ? fxList.some((f) => f.enabled !== false)
-        : current
-          ? current.enabled
-          : true),
-    params: {
-      animMode: 'keyframe_fx',
-      fxSubTab:
-        current?.params?.fxSubTab ??
-        (hasAppearFade && !primary ? 'opacity' : hasRhythm && !primary ? 'pulse' : opt.fxCategory === 'glow' || hasOpticalFx ? 'glow' : 'opacity'),
-      animFxPreset: primary?.presetId ?? current?.params?.animFxPreset ?? opt.id,
-      animFxCount: primary?.count ?? current?.params?.animFxCount ?? opt.defaultCount,
-      intensity: primary?.intensity ?? current?.params?.intensity ?? opt.defaultIntensity,
-      animFxColor: primary?.glow?.color ?? current?.params?.animFxColor ?? opt.defaultColor,
-      animFxThickness: primary?.glow?.thickness ?? current?.params?.animFxThickness,
-      animFxSide: primary?.glow?.side ?? current?.params?.animFxSide,
-      animFxSpeed: primary?.glow?.speed ?? current?.params?.animFxSpeed,
-      animFxMinIntensity: primary?.glow?.minIntensity ?? current?.params?.animFxMinIntensity,
-      loopFadeInSec: fadeInSec > 0 ? r2(fadeInSec) : (current?.params?.loopFadeInSec ?? 0),
-      loopFadeOutSec: fadeOutSec > 0 ? r2(fadeOutSec) : (current?.params?.loopFadeOutSec ?? 0),
-      loopEndAction: endAction,
-      loopRhythmMode: rhythmMode,
-      loopRhythmRateHz: layer.type === 'image' ? (layer.props.loopRhythmRateHz ?? current?.params?.loopRhythmRateHz ?? 2.5) : 2.5,
-      loopRhythmIntensity: layer.type === 'image' ? (layer.props.loopRhythmIntensity ?? current?.params?.loopRhythmIntensity ?? 0.45) : 0.45,
-      loopMinOpacity: layer.type === 'image' ? (layer.props.loopMinOpacity ?? current?.params?.loopMinOpacity ?? 0.55) : 0.55,
-      loopScaleBeatPct: layer.type === 'image' ? (layer.props.loopScaleBeatPct ?? current?.params?.loopScaleBeatPct ?? 12) : 12,
-      ...(current?.params?.fxKind ? { fxKind: current.params.fxKind } : {}),
-      timeStart: r2(start),
-      timeEnd: r2(end)
-    },
-    title
-  }
+function uniqueAtomicFxId(
+  ownerSuffix: string,
+  role: 'fade' | 'pulse' | 'glow',
+  hasAnyFxOnOwner: boolean,
+  byId: Map<string, WorkflowNode>,
+  added: WorkflowNode[]
+): string {
+  const base = !hasAnyFxOnOwner ? `v2-fx-${ownerSuffix}` : `v2-fx_${role}-${ownerSuffix}`
+  let id = base
+  while (byId.has(id) || added.some((n) => n.id === id)) id += '-b'
+  return id
 }
 
 function lightModeOf(layer: Layer, current?: string): WorkflowNodeParams['lightMode'] {
@@ -425,20 +363,19 @@ export function deriveLogicFromLayers(
     const rootLayer = (clusterNode.params?.rootLayerId ? layersById.get(clusterNode.params.rootLayerId) : undefined) ?? memberLayers[0]
     if (!instId || !rootLayer) continue
 
-    const attachedToCluster = edges
-      .filter((e) => e.fromNode === clusterNode.id)
-      .map((e) => replaced.get(e.toNode) ?? byId.get(e.toNode))
-      .filter((n): n is WorkflowNode => Boolean(n))
+    const mergedLookup = new Map<string, WorkflowNode>()
+    for (const n of nodes) mergedLookup.set(n.id, replaced.get(n.id) ?? n)
+    const downstreamCluster = collectDownstreamLogicNodes(clusterNode.id, edges, mergedLookup)
+    const animFxOwnedCluster = new Set(downstreamCluster.filter((n) => n.params?.logicCategory === 'anim_fx').map((n) => `fx-wf-${n.id}`))
     const fxGlowCluster =
-      attachedToCluster.some((n) => n.params?.logicCategory === 'fx' && n.params?.fxKind !== 'wind_physics' && n.enabled) ||
+      downstreamCluster.some((n) => n.params?.logicCategory === 'fx' && resolveFxAtomicRole(n) === 'glow' && n.enabled) ||
       memberLayers.some((l) => (l.appliedEffects ?? []).some((f) => f.category === 'glow' && f.enabled !== false))
 
-    for (const cat of ['action', 'anim_fx', 'fx', 'light', 'cave', 'audio'] as DerivedCategory[]) {
-      const current = attachedToCluster.find((n) => n.params?.logicCategory === cat)
+    for (const cat of ['action', 'anim_fx', 'light', 'cave', 'audio'] as DerivedCategory[]) {
+      const current = downstreamCluster.find((n) => n.params?.logicCategory === cat)
       const presentMembers = memberLayers.filter((ml) => {
         if (cat === 'action') return deriveAction(ml, compDur).present
         if (cat === 'anim_fx') return deriveAnimFx(ml, compDur, current).present
-        if (cat === 'fx') return deriveFx(ml, compDur, current).present
         if (cat === 'light') return deriveLight(ml, compDur, fxGlowCluster, current).present
         if (cat === 'cave') return deriveCave(ml, compDur).present
         return false
@@ -457,13 +394,11 @@ export function deriveLogicFromLayers(
           ? deriveAction(refLayer, compDur, current)
           : cat === 'anim_fx'
             ? deriveAnimFx(refLayer, compDur, current)
-            : cat === 'fx'
-              ? deriveFx(refLayer, compDur, current)
-              : cat === 'light'
-                ? deriveLight(refLayer, compDur, fxGlowCluster, current)
-                : cat === 'cave'
-                  ? deriveCave(refLayer, compDur)
-                  : deriveAudio(clusterAudioTrack ?? findLayerAudioTrack(project, rootLayer, memberIds, true), rootLayer, compDur)
+            : cat === 'light'
+              ? deriveLight(refLayer, compDur, fxGlowCluster, current)
+              : cat === 'cave'
+                ? deriveCave(refLayer, compDur)
+                : deriveAudio(clusterAudioTrack ?? findLayerAudioTrack(project, rootLayer, memberIds, true), rootLayer, compDur)
 
       clusterOwnedCats.add(`${instId}:${cat}`)
       if (!current) {
@@ -471,6 +406,31 @@ export function deriveLogicFromLayers(
         let id = `v2-${cat}-${instId}`
         while (byId.has(id) || added.some((n) => n.id === id)) id += '-b'
         added.push(createDerivedNode(id, cat, clusterNode, d))
+        addedEdges.push({ id: `e-${clusterNode.id}-${id}`, fromNode: clusterNode.id, fromPort: 'layers_tree', toNode: id, toPort: 'layers_tree' })
+        continue
+      }
+      const params = d.present ? mergeDerivedParams(current.params ?? {}, d.params) : current.params ?? {}
+      const enabled = d.present ? d.enabled : current.enabled
+      const title = d.present ? d.title : current.title
+      if (enabled !== current.enabled || title !== current.title || JSON.stringify(params) !== JSON.stringify(current.params ?? {})) {
+        replaced.set(current.id, { ...current, enabled, title, params })
+      }
+    }
+
+    for (const role of ATOMIC_FX_ROLES) {
+      const current = findDownstreamFxNodeByRole(downstreamCluster, role)
+      const presentMembers = memberLayers.filter((ml) => deriveAtomicFxByRole(ml, role, compDur, current, animFxOwnedCluster).present)
+      if (!current && presentMembers.length < 2) continue
+      const refLayer = presentMembers[0] ?? rootLayer
+      const d = deriveAtomicFxByRole(refLayer, role, compDur, current, animFxOwnedCluster)
+      clusterOwnedCats.add(`${instId}:fx:${role}`)
+      if (!current) {
+        if (!d.present) continue
+        const hasAnyFx =
+          downstreamCluster.some((n) => n.params?.logicCategory === 'fx') ||
+          added.some((n) => n.params?.logicCategory === 'fx' && n.params?.hierarchyParentNodeId === clusterNode.id)
+        const id = uniqueAtomicFxId(instId, role, hasAnyFx, byId, added)
+        added.push(createDerivedNode(id, 'fx', clusterNode, d))
         addedEdges.push({ id: `e-${clusterNode.id}-${id}`, fromNode: clusterNode.id, fromPort: 'layers_tree', toNode: id, toPort: 'layers_tree' })
         continue
       }
@@ -489,29 +449,51 @@ export function deriveLogicFromLayers(
     if (!layer) continue
     const instId = layer.composite?.instanceId || layer.model3d?.instanceId
     const memberIds = layerNode.params?.targetLayerIds ?? [layer.id]
-    const attached = edges
-      .filter((e) => e.fromNode === layerNode.id && byId.get(e.toNode)?.params?.logicCategory !== 'cluster_lock')
-      .map((e) => replaced.get(e.toNode) ?? byId.get(e.toNode))
-      .filter((n): n is WorkflowNode => Boolean(n))
+    const mergedLookup = new Map<string, WorkflowNode>()
+    for (const n of nodes) mergedLookup.set(n.id, replaced.get(n.id) ?? n)
+    const downstream = collectDownstreamLogicNodes(layerNode.id, edges, mergedLookup)
+    const animFxOwned = new Set(downstream.filter((n) => n.params?.logicCategory === 'anim_fx').map((n) => `fx-wf-${n.id}`))
     const fxGlow =
-      attached.some((n) => n.params?.logicCategory === 'fx' && n.params?.fxKind !== 'wind_physics' && n.enabled) ||
+      downstream.some((n) => n.params?.logicCategory === 'fx' && resolveFxAtomicRole(n) === 'glow' && n.enabled) ||
       (layer.appliedEffects ?? []).some((f) => f.category === 'glow' && f.enabled !== false)
-    for (const cat of ['loop_anim', 'action', 'anim_fx', 'fx', 'light', 'cave', 'audio'] as DerivedCategory[]) {
-      const current = attached.find((n) => n.params?.logicCategory === cat)
+    for (const cat of ['loop_anim', 'action', 'anim_fx', 'light', 'cave', 'audio'] as DerivedCategory[]) {
+      const current = downstream.find((n) => n.params?.logicCategory === cat)
       if (!current && instId && clusterOwnedCats.has(`${instId}:${cat}`)) continue
       const d =
         cat === 'loop_anim' ? deriveLoopAnim(layer, project, compDur, current)
           : cat === 'action' ? deriveAction(layer, compDur, current)
             : cat === 'anim_fx' ? deriveAnimFx(layer, compDur, current)
-              : cat === 'fx' ? deriveFx(layer, compDur, current)
-                : cat === 'light' ? deriveLight(layer, compDur, fxGlow, current)
-                  : cat === 'cave' ? deriveCave(layer, compDur)
-                    : deriveAudio(findLayerAudioTrack(project, layer, memberIds, !instId), layer, compDur)
+              : cat === 'light' ? deriveLight(layer, compDur, fxGlow, current)
+                : cat === 'cave' ? deriveCave(layer, compDur)
+                  : deriveAudio(findLayerAudioTrack(project, layer, memberIds, !instId), layer, compDur)
       if (!current) {
         if (!d.present) continue
         let id = `v2-${cat}-${layer.id}`
         while (byId.has(id) || added.some((n) => n.id === id)) id += '-b'
         added.push(createDerivedNode(id, cat, layerNode, d))
+        addedEdges.push({ id: `e-${layerNode.id}-${id}`, fromNode: layerNode.id, fromPort: 'layers_tree', toNode: id, toPort: 'layers_tree' })
+        continue
+      }
+      const shared = (current.params?.sharedLayerNodeIds?.length ?? 1) > 1
+      const params = d.present && !shared ? mergeDerivedParams(current.params ?? {}, d.params) : current.params ?? {}
+      const enabled = shared ? current.enabled : d.enabled
+      const title = d.present && !shared ? d.title : current.title
+      if (enabled !== current.enabled || title !== current.title || JSON.stringify(params) !== JSON.stringify(current.params ?? {})) {
+        replaced.set(current.id, { ...current, enabled, title, params })
+      }
+    }
+
+    for (const role of ATOMIC_FX_ROLES) {
+      const current = findDownstreamFxNodeByRole(downstream, role)
+      if (!current && instId && clusterOwnedCats.has(`${instId}:fx:${role}`)) continue
+      const d = deriveAtomicFxByRole(layer, role, compDur, current, animFxOwned)
+      if (!current) {
+        if (!d.present) continue
+        const hasAnyFx =
+          downstream.some((n) => n.params?.logicCategory === 'fx') ||
+          added.some((n) => n.params?.logicCategory === 'fx' && n.params?.hierarchyParentNodeId === layerNode.id)
+        const id = uniqueAtomicFxId(layer.id, role, hasAnyFx, byId, added)
+        added.push(createDerivedNode(id, 'fx', layerNode, d))
         addedEdges.push({ id: `e-${layerNode.id}-${id}`, fromNode: layerNode.id, fromPort: 'layers_tree', toNode: id, toPort: 'layers_tree' })
         continue
       }

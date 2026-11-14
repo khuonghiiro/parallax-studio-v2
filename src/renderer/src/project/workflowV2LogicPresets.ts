@@ -275,39 +275,63 @@ export const WORKFLOW_V2_LOGIC_PRESETS: WorkflowV2LogicPreset[] = [
     preset('cave', o.id, o.label, { caveArchShape: o.id, caveDarkness: o.defaultDarkness, caveMinScale: o.defaultMinScale, intensity: o.defaultDarkness })
   ),
 
-  // 7. Node Hiệu ứng (fx) — hội tụ đầy đủ Hiện/Ẩn mờ dần, Nhịp biến đổi Keyframe FX, Nhịp Beat và Quang học/Neon
-  ...WORKFLOW_V2_ANIM_FX_OPTIONS.filter((o) => o.id !== 'loop_rhythm' && o.id !== 'loop_flicker').map((o) =>
-    preset('fx', o.id, o.label, {
-      fxSubTab: o.fxCategory === 'opacity' ? 'opacity' : o.fxCategory === 'transform' ? 'pulse' : 'glow',
-      animFxPreset: o.id,
-      intensity: o.defaultIntensity,
-      animFxCount: o.defaultCount,
-      animFxColor: o.defaultColor,
-      ...(o.id === 'fadeIn' ? { loopFadeInSec: 0.6 } : {}),
-      ...(o.id === 'fadeOut' ? { loopEndAction: 'fade_out', loopFadeOutSec: 0.6 } : {})
-    })
-  ),
-  preset('fx', 'fadeInOut', '🌗 Hiện mờ → nét & Ẩn mờ dần', {
-    fxSubTab: 'opacity',
-    animFxPreset: 'fadeIn',
-    loopFadeInSec: 0.5,
-    loopEndAction: 'fade_out',
-    loopFadeOutSec: 0.5,
-    intensity: 1
+  // 7. Node Hiệu ứng nguyên tử (`fx`) — tách bạch 3 vai trò đơn nhiệm: Hiện/Ẩn (`fade`), Nhịp/Rung (`pulse`), Phát sáng (`glow`)
+  ...WORKFLOW_V2_ANIM_FX_OPTIONS.filter((o) => o.id !== 'loop_rhythm' && o.id !== 'loop_flicker').map((o) => {
+    const role = o.fxCategory === 'opacity' ? 'fade' : o.fxCategory === 'transform' ? 'pulse' : 'glow'
+    const roleTitlePrefix = role === 'fade' ? 'Hiện/Ẩn' : role === 'pulse' ? 'Nhịp/Rung' : 'Phát sáng'
+    return {
+      ...preset('fx', o.id, o.label, {
+        fxAtomicRole: role,
+        fxSubTab: role === 'fade' ? 'opacity' : role,
+        animFxPreset: o.id,
+        intensity: o.defaultIntensity,
+        animFxCount: o.defaultCount,
+        animFxColor: o.defaultColor,
+        ...(o.id === 'fadeIn' ? { loopFadeInSec: 0.6 } : {}),
+        ...(o.id === 'fadeOut' ? { loopEndAction: 'fade_out', loopFadeOutSec: 0.6 } : {})
+      }),
+      title: `${roleTitlePrefix}: ${o.label}`
+    }
   }),
-  preset('fx', 'rhythm_beat', '🔥 Nhịp đập & Nháy sáng liên tục (Rhythm Beat)', {
-    fxSubTab: 'pulse',
-    animFxPreset: 'loop_rhythm',
-    loopRhythmMode: 'sync_both',
-    loopRhythmRateHz: 2.5,
-    loopRhythmIntensity: 0.45,
-    loopMinOpacity: 0.55,
-    loopScaleBeatPct: 12,
-    intensity: 0.45
+  {
+    ...preset('fx', 'fadeInOut', '🌗 Hiện mờ → nét & Ẩn mờ dần', {
+      fxAtomicRole: 'fade',
+      fxSubTab: 'opacity',
+      animFxPreset: 'fadeIn',
+      loopFadeInSec: 0.5,
+      loopEndAction: 'fade_out',
+      loopFadeOutSec: 0.5,
+      intensity: 1
+    }),
+    title: 'Hiện/Ẩn: Hiện mờ → nét & Ẩn mờ dần'
+  },
+  {
+    ...preset('fx', 'rhythm_beat', '🔥 Nhịp đập & Nháy sáng liên tục (Rhythm Beat)', {
+      fxAtomicRole: 'pulse',
+      fxSubTab: 'pulse',
+      animFxPreset: 'loop_rhythm',
+      loopRhythmMode: 'sync_both',
+      loopRhythmRateHz: 2.5,
+      loopRhythmIntensity: 0.45,
+      loopMinOpacity: 0.55,
+      loopScaleBeatPct: 12,
+      intensity: 0.45
+    }),
+    title: 'Nhịp/Rung: Nhịp đập & Nháy sáng liên tục'
+  },
+  ...WORKFLOW_V2_FX_OPTIONS.map((o) => {
+    const role = o.id === 'wind_physics' || o.id === 'particles' ? 'pulse' : 'glow'
+    const roleTitlePrefix = role === 'pulse' ? 'Nhịp/Hạt' : 'Phát sáng'
+    return {
+      ...preset('fx', o.id, o.label, {
+        fxAtomicRole: role,
+        fxSubTab: role,
+        fxKind: o.id,
+        intensity: o.defaultIntensity
+      }),
+      title: `${roleTitlePrefix}: ${o.label}`
+    }
   }),
-  ...WORKFLOW_V2_FX_OPTIONS.map((o) =>
-    preset('fx', o.id, o.label, { fxSubTab: 'glow', fxKind: o.id, intensity: o.defaultIntensity })
-  ),
 
   // 8. Node Âm thanh
   preset('audio', 'voice', 'Thoại & nhép môi', { intensity: 1, autoLipSync: true })

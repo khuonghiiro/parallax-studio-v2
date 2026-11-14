@@ -106,34 +106,28 @@ export function resolveHiddenV2NodeIds(nodes: WorkflowNode[], edges: WorkflowEdg
 function childrenOf(id: string, edges: WorkflowEdge[], byId: Map<string, WorkflowNode>, pick: (n: WorkflowNode) => boolean): WorkflowNode[] {
   const out: WorkflowNode[] = []
   for (const e of edges) {
+    if (e.fromPort === 'time_range') continue
     const c = byId.get(e.toNode)
     if (e.fromNode === id && c && pick(c) && !out.includes(c)) out.push(c)
   }
   return out
 }
 
-/** Gán mỗi Node Logic cho đúng 1 Layer "chủ" hiển thị đầu tiên để xếp hàng không trùng lặp */
+/** Gán mỗi Node Logic cho đúng 1 Layer "chủ" hiển thị đầu tiên (hỗ trợ chuỗi nối tiếp B1 -> B2 -> B3... không giới hạn độ sâu) */
 function assignLogicOwners(layers: WorkflowNode[], edges: WorkflowEdge[], byId: Map<string, WorkflowNode>, hidden: Set<string>): Map<string, WorkflowNode[]> {
   const owned = new Map<string, WorkflowNode[]>()
   const taken = new Set<string>()
   for (const layer of layers) {
     if (hidden.has(layer.id)) continue
-    const direct = childrenOf(layer.id, edges, byId, isLogic).filter((c) => !taken.has(c.id))
     const list: WorkflowNode[] = []
-    for (const c of direct) {
+    const queue = childrenOf(layer.id, edges, byId, isLogic).filter((c) => !taken.has(c.id))
+    while (queue.length > 0) {
+      const c = queue.shift()!
+      if (taken.has(c.id)) continue
       taken.add(c.id)
       list.push(c)
-      for (const downstream of childrenOf(c.id, edges, byId, isLogic)) {
-        if (!taken.has(downstream.id)) {
-          taken.add(downstream.id)
-          list.push(downstream)
-        }
-        for (const subChild of childrenOf(downstream.id, edges, byId, isLogic)) {
-          if (!taken.has(subChild.id)) {
-            taken.add(subChild.id)
-            list.push(subChild)
-          }
-        }
+      for (const nxt of childrenOf(c.id, edges, byId, isLogic)) {
+        if (!taken.has(nxt.id)) queue.push(nxt)
       }
     }
     owned.set(layer.id, list)
@@ -148,7 +142,7 @@ function buildLogicChildrenMap(logics: WorkflowNode[], edges: WorkflowEdge[]): M
   const visited = new Set<string>()
 
   for (const e of edges) {
-    if (!byId.has(e.fromNode) || !byId.has(e.toNode)) continue
+    if (e.fromPort === 'time_range' || !byId.has(e.fromNode) || !byId.has(e.toNode)) continue
     const child = byId.get(e.toNode)!
     const list = childMap.get(e.fromNode) ?? []
     if (!list.includes(child)) {
