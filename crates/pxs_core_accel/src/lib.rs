@@ -1,5 +1,8 @@
 // Crate Rust: pxs_core_accel
-// Cung cấp các hàm xử lý tính toán số học điểm ảnh hiệu năng cực cao (SIMD / Zero-alloc).
+// Cung cấp các hàm xử lý tính toán số học điểm ảnh và lưới 2.5D hiệu năng cực cao (SIMD / Zero-alloc).
+
+pub mod wasm_mem;
+pub use wasm_mem::{wasm_scratch_alloc, wasm_scratch_capacity, wasm_scratch_reset};
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
