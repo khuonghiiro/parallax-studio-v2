@@ -104,6 +104,7 @@ export async function loadDemo(
     })
     editor().loadProject(p, null)
     editor().setPlaying(false)
+    useView.getState().set({ split: false, primary: 'camera', activeViews: ['camera'] })
   })
   toast('Đã tải xong cảnh mẫu')
 }

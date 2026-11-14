@@ -5,6 +5,7 @@ import { referenceDistance } from '../../animation/math'
 import { shotAtTime } from '../../animation/cameraPath'
 import { CAMERA_PRESETS, applyCameraPreset } from '../../animation/presets'
 import { evaluateScene, shotFramingPose, shotLocalToWorld } from '../../engine/evaluateScene'
+import { usePlaybackUiTime } from '../../hooks/usePlaybackUiTime'
 import { findLayer, findShot, frameTolerance, useEditor } from '../../store/editor'
 import { AnimRow, Row, Slider, Switch } from '../controls'
 import { CameraControls } from '../CameraControls'
@@ -14,7 +15,7 @@ import { KeyEaseSection } from './KeyEaseSection'
 export function CameraInspector() {
   const project = useEditor((s) => s.project)
   const update = useEditor((s) => s.update)
-  const time = useEditor((s) => s.time)
+  const time = usePlaybackUiTime(8)
   const selectedLayer = useEditor((s) => findLayer(s.project, s.selectedLayerId))
   const selectedShotId = useEditor((s) => s.selectedShotId)
   const [intensity, setIntensity] = useState(1)

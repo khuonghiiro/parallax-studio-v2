@@ -10,7 +10,7 @@ import { evaluateLoopLayerRhythm } from '../project/gifHelper'
 import { evaluateLoopLifecycle, hasLoopLifecycle } from '../project/loopLifecycle'
 import { assetStore } from '../project/assets'
 import { evaluateLayerPhysicsTransform } from './layerPhysics'
-import { evaluateVirtualLightAtTime } from './virtualLight'
+import { buildVirtualLightFrameCache, evaluateVirtualLightAtTime } from './virtualLight'
 
 export interface EvaluatedCamera {
   position: Vec3
@@ -197,78 +197,93 @@ export function evaluateScene(project: Project, rawT: number): EvaluatedScene {
   const hasPortalOrLight = project.layers.some(
     (l) =>
       l.visible &&
+      t >= l.inPoint &&
+      t <= l.outPoint &&
       (Boolean(l.physics?.depthPortal?.enabled) ||
         Boolean(l.virtualLight?.enabled && l.virtualLight.kind !== 'none'))
   )
+  const lightCache = hasPortalOrLight ? buildVirtualLightFrameCache(project, t) : undefined
 
   const partCues = partTimelineCues(project)
   const layers = project.layers.map((sourceLayer, index): EvaluatedLayer => {
-    const part = evaluatePartTimeline(sourceLayer, partCues, t)
-    const layer = part.layer
+    const shot = sourceLayer.shotId ? (shotById.get(sourceLayer.shotId) ?? null) : null
+    const isActiveAtT =
+      sourceLayer.visible &&
+      (shot ? shot.shot.visible : true) &&
+      t >= sourceLayer.inPoint &&
+      t <= sourceLayer.outPoint
+
+    const part = isActiveAtT ? evaluatePartTimeline(sourceLayer, partCues, t) : null
+    const layer = part ? part.layer : sourceLayer
     const tr = layer.transform
     const pos = [...evaluate(tr.position, t)] as Vec3
     const rot = [...evaluate(tr.rotation, t)] as Vec3
     const sc = [...evaluate(tr.scale, t)] as Vec3
 
-    pos[0] += part.offset[0]
-    pos[1] += part.offset[1]
-    rot[2] += part.rotation
-    sc[0] *= part.scale
-    sc[1] *= part.scale
+    if (part) {
+      pos[0] += part.offset[0]
+      pos[1] += part.offset[1]
+      rot[2] += part.rotation
+      sc[0] *= part.scale
+      sc[1] *= part.scale
+    }
 
     const size = layerNominalSize(layer)
-    const motion = sampleMotionEffects(layer, t, size)
-    const uvOffset = motion.uvOffset
-    for (let axis = 0; axis < 3; axis++) {
-      pos[axis] += motion.position[axis]
-      rot[axis] += motion.rotation[axis]
-      sc[axis] *= motion.scale[axis]
-    }
-
-    // Đánh giá chuyển động miệng / Lip-sync từ audio giọng nói nhân vật theo thời gian thực
-    const lipSync = evaluateCharacterLipSync(project, layer, t)
-    if (lipSync.active) {
-      sc[0] *= lipSync.scaleX
-      sc[1] *= lipSync.scaleY
-      pos[1] += lipSync.offsetY
-    }
-
+    let uvOffset: [number, number] | undefined
     let caveDarkness: number | undefined
     let lightIllumination: number | undefined
     let lightTintRgb: [number, number, number] | undefined
     let shadowTintRgb: [number, number, number] | undefined
+    let loopRhythm: ReturnType<typeof evaluateLoopLayerRhythm> | null = null
 
-    // Đánh giá Vật lý 2.5D, Trọng lực, Vùng Độ Sâu Hang Động & Nguồn sáng ảo
-    const hasLayerPhys = Boolean(layer.physics?.enabled && layer.physics.material !== 'none')
-    if (hasLayerPhys || hasPortalOrLight) {
-      const phys = evaluateLayerPhysicsTransform(project, layer, t, size)
-      pos[0] += phys.positionDelta[0]
-      pos[1] += phys.positionDelta[1]
-      pos[2] += phys.positionDelta[2]
-      rot[0] += phys.rotationDelta[0]
-      rot[1] += phys.rotationDelta[1]
-      rot[2] += phys.rotationDelta[2]
-      sc[0] *= phys.scaleMultiplier[0]
-      sc[1] *= phys.scaleMultiplier[1]
-      sc[2] *= phys.scaleMultiplier[2]
-      caveDarkness = phys.caveDarkness
-      lightIllumination = phys.lightIllumination
-      lightTintRgb = phys.lightTintRgb
-      shadowTintRgb = phys.shadowTintRgb
-    }
+    if (isActiveAtT) {
+      const motion = sampleMotionEffects(layer, t, size)
+      uvOffset = motion.uvOffset
+      for (let axis = 0; axis < 3; axis++) {
+        pos[axis] += motion.position[axis]
+        rot[axis] += motion.rotation[axis]
+        sc[axis] *= motion.scale[axis]
+      }
 
-    const loopRhythm =
-      layer.type === 'image' && layer.props.loopRhythmMode && layer.props.loopRhythmMode !== 'none'
-        ? evaluateLoopLayerRhythm(layer.props, t, layer.inPoint)
-        : null
-    if (loopRhythm) {
-      sc[0] *= loopRhythm.scaleMultiplier
-      sc[1] *= loopRhythm.scaleMultiplier
+      // Đánh giá chuyển động miệng / Lip-sync từ audio giọng nói nhân vật theo thời gian thực
+      const lipSync = evaluateCharacterLipSync(project, layer, t)
+      if (lipSync.active) {
+        sc[0] *= lipSync.scaleX
+        sc[1] *= lipSync.scaleY
+        pos[1] += lipSync.offsetY
+      }
+
+      // Đánh giá Vật lý 2.5D, Trọng lực, Vùng Độ Sâu Hang Động & Nguồn sáng ảo
+      const hasLayerPhys = Boolean(layer.physics?.enabled && layer.physics.material !== 'none')
+      if (hasLayerPhys || hasPortalOrLight) {
+        const phys = evaluateLayerPhysicsTransform(project, layer, t, size, lightCache)
+        pos[0] += phys.positionDelta[0]
+        pos[1] += phys.positionDelta[1]
+        pos[2] += phys.positionDelta[2]
+        rot[0] += phys.rotationDelta[0]
+        rot[1] += phys.rotationDelta[1]
+        rot[2] += phys.rotationDelta[2]
+        sc[0] *= phys.scaleMultiplier[0]
+        sc[1] *= phys.scaleMultiplier[1]
+        sc[2] *= phys.scaleMultiplier[2]
+        caveDarkness = phys.caveDarkness
+        lightIllumination = phys.lightIllumination
+        lightTintRgb = phys.lightTintRgb
+        shadowTintRgb = phys.shadowTintRgb
+      }
+
+      loopRhythm =
+        layer.type === 'image' && layer.props.loopRhythmMode && layer.props.loopRhythmMode !== 'none'
+          ? evaluateLoopLayerRhythm(layer.props, t, layer.inPoint)
+          : null
+      if (loopRhythm) {
+        sc[0] *= loopRhythm.scaleMultiplier
+        sc[1] *= loopRhythm.scaleMultiplier
+      }
     }
 
     const k = layer.autoScale ? autoScaleFactor(pos[2], comp) : 1
     const scale: Vec3 = [sc[0] * k, sc[1] * k, sc[2]]
-    const shot = layer.shotId ? (shotById.get(layer.shotId) ?? null) : null
     const anchorVal = tr.anchor ? evaluate(tr.anchor, t) : [0, 0, 0]
     const anchor: Vec3 = [anchorVal[0] ?? 0, anchorVal[1] ?? 0, anchorVal[2] ?? 0]
 
@@ -332,7 +347,7 @@ export function evaluateScene(project: Project, rawT: number): EvaluatedScene {
 
     let vlightEnabled: boolean | undefined
     let vlightOffsetUV: [number, number] | undefined
-    if (layer.virtualLight?.enabled && layer.virtualLight.kind !== 'none') {
+    if (isActiveAtT && layer.virtualLight?.enabled && layer.virtualLight.kind !== 'none') {
       const evLight = evaluateVirtualLightAtTime(layer, t, pos, size, sc)
       if (evLight) {
         vlightEnabled = true
@@ -345,7 +360,7 @@ export function evaluateScene(project: Project, rawT: number): EvaluatedScene {
     return {
       layer,
       index,
-      active: layer.visible && (shot ? shot.shot.visible : true) && t >= layer.inPoint && t <= layer.outPoint,
+      active: isActiveAtT,
       position: pos,
       rotation: rot,
       scale,
