@@ -287,12 +287,18 @@ export interface WorkflowNodeParams {
   bboxTargetY?: number
   /** [Workflow V2] Tỉ lệ kích thước % của BBox #2 so với BBox #1 (ví dụ: 160 = to dần lên 160%, 55 = nhỏ dần về 55%) */
   bboxTargetScalePct?: number
-  /** [Workflow V2] Chế độ chiều sâu khi di chuyển BBox ('flat_2d' = Không đi theo chiều sâu / giữ nguyên Z, 'depth_z' = Đi theo chiều sâu Z / vượt trước hoặc bị cây che) */
-  depthMode?: 'flat_2d' | 'depth_z'
+  /** [Workflow V2] Chế độ chiều sâu khi di chuyển BBox ('flat_2d' | 'keep' = giữ phẳng, 'depth_z' = đi theo chiều sâu Z, 'depth_corridor' = đi theo hành lang phối cảnh điểm tụ 1/Z) */
+  depthMode?: 'flat_2d' | 'depth_z' | 'depth_corridor' | 'keep'
   /** [Workflow V2] Tọa độ chiều sâu Z tại điểm xuất phát BBox #1 */
   bboxStartZ?: number
   /** [Workflow V2] Tọa độ chiều sâu Z tại điểm đích BBox #2 */
   bboxTargetZ?: number
+  /** [Workflow V2] Đường trục mặt đất hành lang phối cảnh [screenX, screenY][] nối từ sâu ra gần hoặc gần vào sâu */
+  corridorWaypoints?: [number, number][]
+  /** [Workflow V2] Khoảng cách từ tâm gốc (root) xuống lòng bàn chân (px chưa nhân scale) để ghim chân bám sát bậc thang/mặt ngõ khi thu phóng 1/Z */
+  corridorFootOffsetY?: number
+  /** [Workflow V2] Góc nhìn diễn hoạt khung xương ưu tiên ('front' | 'diagonal' | 'side' | 'back') cho Node Hành động 2.5D */
+  rigViewAngle?: 'front' | 'diagonal' | 'side' | 'back'
   /** [Workflow V2] ID Layer vật cản tham chiếu chiều sâu (ví dụ: cái cây, tảng đá) để vượt lên trước (z > z_cây) hoặc đi sau bị che (z < z_cây) */
   depthRefLayerId?: string
   /** [Workflow V2] Quan hệ chiều sâu so với Layer vật cản ('in_front' = z lớn hơn xuất hiện qua cây, 'behind' = z nhỏ hơn bị cây che) */

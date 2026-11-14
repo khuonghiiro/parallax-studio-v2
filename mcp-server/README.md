@@ -153,6 +153,7 @@ Khi kiểm tra và tương tác với Parallax Studio, AI Agent **BẮT BUỘC**
 ### 4.1. Nhóm Truy Vấn & Thống Kê (Inspection)
 - `get_project_info`: Lấy thông tin tổng thể dự án (composition, danh sách shots, layer, camera, look, asset).
 - `get_shot_info`: Xem chi tiết 1 cảnh và tất cả layer thuộc cảnh đó.
+- `analyze_scene_depth`: Phân tích chiều sâu phối cảnh 2.5D của ảnh nền phân cảnh (đường chân trời, điểm tụ, trục hành lang/ngõ thu hẹp từ gần vào sâu, tầng Z đa lớp và toạ độ thế giới bám mặt đất).
 - `get_layer_info`: Đọc toàn bộ thuộc tính, keyframes và transform của 1 layer.
 - `get_camera_info`: Đọc trạng thái vị trí, mục tiêu, FOV của camera tại thời điểm `time`.
 - `get_memory_stats`: Kiểm tra dung lượng VRAM GPU, texture pool và RAM tiến trình.
@@ -210,7 +211,8 @@ Khi kiểm tra và tương tác với Parallax Studio, AI Agent **BẮT BUỘC**
 
 ### 4.5. Nhóm Camera, Đường Bay 3D & Quy Trình Tạo Video (Camera Path & Workflow Studio)
 - `set_camera`: Đặt vị trí camera (`position`), điểm ngắm (`target`), góc nhìn (`fov`).
-- `apply_camera_preset`: Áp dụng chuyển động mẫu (`dollyIn`, `dollyOut`, `truckLeft`, `truckRight`, `craneUp`, `craneDown`, `orbitLeft`, `orbitRight`, `zoomIn`, `dollyZoom`, `reset`).
+- `apply_camera_preset`: Áp dụng chuyển động mẫu (`dollyIn`, `dollyOut`, `truckLeft`, `truckRight`, `craneUp`, `craneDown`, `orbitLeft`, `orbitRight`, `zoomIn`, `dollyZoom`, `comicPunchIn`, `suspenseDrift`, `whipPan`, `impactZoomPunch`, `corridorFollow`, `reset`).
+- `choreograph_camera_route`: Dàn dựng lộ trình camera điện ảnh đa nhịp qua các phân cảnh (`establish_corridor`, `track_subject` lia bám đối tượng, `whip_pan`, `punch_zoom` phóng to thu nhỏ kèm hitstop & rung chấn, `match_cut` nhảy tiếp hướng, `orbit_parallax`).
 - `camera_fly_to_shot`: Hướng camera bay trực tiếp tới bao quát phân cảnh chỉ định.
 - `build_camera_path`: Tự động sinh đường bay Bezier mượt mà kết nối liên tục tất cả các shot.
 - `list_workflow_presets`: Liệt kê 5 mẫu quy trình tạo video chuyên nghiệp, 7 khối tác nhân chức năng và 6 cổng kết nối.

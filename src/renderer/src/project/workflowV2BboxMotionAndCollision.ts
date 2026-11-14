@@ -1,4 +1,5 @@
 import { findWorkflowContact } from './workflowBboxContact'
+import { evaluatePerspectiveCorridorAt } from './sceneDepthCorridor'
 import { bboxStartPosition, bboxStartScale } from './workflowMotionStart'
 import { layerNominalSize } from '../engine/spatial'
 import type { Layer, PhysicsImpactPulse, Project, Vec3, WorkflowNodeParams } from '@shared/types'
@@ -287,10 +288,11 @@ export function bakeBboxTargetMotionToScene(
   const targetScaleRatio = Math.max(0.15, Math.min(4.0, (params.bboxTargetScalePct ?? 135) / 100))
 
   const depthMode = params.depthMode ?? 'flat_2d'
+  const isDepthAware = depthMode === 'depth_z' || depthMode === 'depth_corridor'
   const startZ = params.bboxStartZ ?? rootBasePos[2]
   let targetZ = startZ
 
-  if (depthMode === 'depth_z') {
+  if (isDepthAware) {
     const refLayer = params.depthRefLayerId ? project.layers.find((l) => l.id === params.depthRefLayerId) : undefined
     if (refLayer) {
       const refZ = evaluateCleanLayerPos(refLayer, tStart)[2]
@@ -365,8 +367,13 @@ export function bakeBboxTargetMotionToScene(
       ? entityTargetConfig.customMotionPath
       : (isRoot ? params.customMotionPath : undefined)
 
+    const useCorridorCurve =
+      depthMode === 'depth_corridor' ||
+      Boolean(params.corridorWaypoints && params.corridorWaypoints.length >= 2) ||
+      (depthMode === 'depth_z' && Math.abs(entityTargetZ - entityStartZ) > 120)
+
     let entityUSteps: number[]
-    if (entityPathType === 'shortest') {
+    if (entityPathType === 'shortest' && !useCorridorCurve) {
       if (hitRatio === null) {
         entityUSteps = [0, 1]
       } else if (colResponse === 'stop' || colResponse === 'bounce' || colResponse === 'push') {
@@ -440,17 +447,31 @@ export function bakeBboxTargetMotionToScene(
           }
         }
 
-        const pt = evaluateBboxTrajectoryAt(
-          entityStartPos,
-          entityTargetX,
-          entityTargetY,
-          entityStartZ,
-          entityTargetZ,
-          entityTargetScaleRatio,
-          effU,
-          entityPathType,
-          entityCustomPath
-        )
+        const pt = useCorridorCurve
+          ? evaluatePerspectiveCorridorAt({
+              comp: project.comp,
+              startPos: entityStartPos,
+              targetX: entityTargetX,
+              targetY: entityTargetY,
+              startZ: entityStartZ,
+              targetZ: entityTargetZ,
+              baseWorldScale: Math.abs(mBaseScale[0] || 1),
+              targetScaleRatio: entityTargetScaleRatio,
+              u: effU,
+              corridorWaypoints: isRoot ? params.corridorWaypoints : undefined,
+              footOffsetY: params.corridorFootOffsetY
+            })
+          : evaluateBboxTrajectoryAt(
+              entityStartPos,
+              entityTargetX,
+              entityTargetY,
+              entityStartZ,
+              entityTargetZ,
+              entityTargetScaleRatio,
+              effU,
+              entityPathType,
+              entityCustomPath
+            )
 
         let shakeX = 0
         let shakeY = 0
@@ -460,12 +481,13 @@ export function bakeBboxTargetMotionToScene(
           shakeY = (s % 2 === 0 ? -1 : 1) * 14 * decay
         }
 
+        const zSubScale = useCorridorCurve ? pt.scaleRatio : 1
         const mx = Math.round((pt.x + relX * pt.scaleRatio + shakeX) * 100) / 100
         const my = Math.round((pt.y + relY * pt.scaleRatio + shakeY) * 100) / 100
-        const mz = Math.round((pt.z + relZ) * 100) / 100
+        const mz = Math.round((pt.z + relZ * zSubScale) * 100) / 100
 
         const segEase =
-          pathType === 'shortest' && hitRatio === null
+          pathType === 'shortest' && !useCorridorCurve && hitRatio === null
             ? 'easeInOut'
             : hitRatio !== null && Math.abs(rawU - hitRatio) < 0.02
               ? 'easeOut'

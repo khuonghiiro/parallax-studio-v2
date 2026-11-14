@@ -161,6 +161,7 @@ export const FX_TOOLS = [
       aperture: z.number().optional().describe(d('Depth-of-field blur strength (0–1).', 'Độ nhòe trường ảnh (0–1).')),
       fade: z.number().min(0).max(1).optional().describe(d('Fade to black.', 'Mờ dần sang đen.')),
       dof_enabled: z.boolean().optional(),
+      roll: z.number().optional().describe(d('Camera Dutch roll angle in degrees.', 'Góc nghiêng trục máy (Dutch roll) tính bằng độ.')),
       shake_amount: z.number().optional(),
       shake_speed: z.number().optional(),
       at_time: atTime(d),
@@ -171,13 +172,56 @@ export const FX_TOOLS = [
     name: 'apply_camera_preset', cat: 'camera',
     doc: L('Replace the camera move with a classic preset, framed on a shot.', 'Thay chuyển động camera bằng một preset kinh điển, đóng khung vào một shot.'),
     shape: (d) => ({
-      preset: z.enum(['dollyIn', 'dollyOut', 'truckLeft', 'truckRight', 'craneUp', 'craneDown', 'orbitLeft', 'orbitRight', 'zoomIn', 'dollyZoom', 'comicPunchIn', 'suspenseDrift', 'reset']),
+      preset: z.enum(['dollyIn', 'dollyOut', 'truckLeft', 'truckRight', 'craneUp', 'craneDown', 'orbitLeft', 'orbitRight', 'zoomIn', 'dollyZoom', 'comicPunchIn', 'suspenseDrift', 'whipPan', 'impactZoomPunch', 'corridorFollow', 'reset']),
       shot_id: z.string().optional(),
       start: z.number().optional(),
       end: z.number().optional(),
       intensity: z.number().optional().describe(d('1 = default amount.', '1 = mức mặc định.'))
     }),
     example: '{"preset":"dollyIn","shot_id":"shot-1","start":0,"end":4}'
+  },
+  {
+    name: 'choreograph_camera_route', cat: 'camera',
+    doc: L(
+      'Choreograph a professional multi-beat cinematic camera route across shots: subject tracking (panning with lead room), whip-pan, impact punch-in/out zoom with hitstop & shake, directional match-cut continuity, and 3D parallax orbit.',
+      'Dàn dựng lộ trình camera điện ảnh đa nhịp chuyên nghiệp qua các phân cảnh: lia bám đối tượng có khoảng dẫn hướng, lia máy nhanh (whip-pan), phóng to thu nhỏ điểm va chạm kèm hitstop, cắt nhảy tiếp hướng (match-cut) và xoay vòm tôn chiều sâu 2.5D.'
+    ),
+    shape: (d) => ({
+      beats: z
+        .array(
+          z.object({
+            shot_id: z.string(),
+            kind: z.enum(['establish_corridor', 'track_subject', 'whip_pan', 'punch_zoom', 'match_cut', 'orbit_parallax']),
+            start: z.number(),
+            end: z.number(),
+            subject_id: z.string().optional().describe(d('Layer ID or 2.5D composite instanceId to track.', 'ID layer hoặc instanceId cụm 2.5D cần lia bám.')),
+            secondary_subject_id: z.string().optional().describe(d('Opponent or pan destination ID.', 'ID đối thủ va chạm hoặc đích lia máy.')),
+            start_scale: z.number().optional(),
+            end_scale: z.number().optional(),
+            impact_scale: z.number().optional(),
+            impact_ratio: z.number().optional(),
+            hitstop_sec: z.number().optional(),
+            impact_shake_px: z.number().optional(),
+            yaw_start: z.number().optional(),
+            yaw_end: z.number().optional(),
+            pitch_start: z.number().optional(),
+            pitch_end: z.number().optional(),
+            roll_start: z.number().optional(),
+            roll_end: z.number().optional(),
+            roll_impact: z.number().optional(),
+            fov_start: z.number().optional(),
+            fov_end: z.number().optional(),
+            fov_impact: z.number().optional(),
+            offset_start: z.tuple([z.number(), z.number()]).optional(),
+            offset_end: z.tuple([z.number(), z.number()]).optional(),
+            continuity_dir_x: z.number().optional(),
+            cut_at_end: z.boolean().optional()
+          })
+        )
+        .min(1),
+      clear_existing: z.boolean().optional()
+    }),
+    example: '{"beats":[{"shot_id":"shot-1","kind":"track_subject","start":0,"end":5,"subject_id":"act-hero-1"}]}'
   },
   {
     name: 'camera_fly_to_shot', cat: 'camera',

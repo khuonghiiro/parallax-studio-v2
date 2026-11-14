@@ -277,6 +277,7 @@ export function bakeClusterRigPresetToScene(
     intensity?: number
     nodeId?: string
     rigBonePreset?: string
+    rigViewAngle?: 'front' | 'diagonal' | 'side' | 'back'
     trajSnapshot?: TrajectorySnapshot
   }
 ): number {
@@ -296,7 +297,7 @@ export function bakeClusterRigPresetToScene(
   const savedComp = findCompositeTemplate(root.composite?.compositeId)
   const bones: LayerBone[] = resolveClusterRigBones(members, savedComp, preset, options?.rigBonePreset)
 
-  const preferredAngle = savedComp?.rig?.clips?.[0]?.viewAngle
+  const preferredAngle = options?.rigViewAngle ?? savedComp?.rig?.clips?.[0]?.viewAngle
   const clip = createClipFromPreset(preset, bones, undefined, preferredAngle)
   const rig: LayerRig = {
     bones,

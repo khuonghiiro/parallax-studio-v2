@@ -25,6 +25,19 @@ export const SCENE_TOOLS = [
     example: '{"shot_id":"shot-1"}'
   },
   {
+    name: 'analyze_scene_depth', cat: 'inspect',
+    doc: L(
+      'Analyze 2.5D perspective depth of a shot background image: horizon line, vanishing point, walkable perspective corridor (receding alley/stairway/courtyard), multi-plane Z tiers and world-space foot poses.',
+      'Phân tích chiều sâu phối cảnh 2.5D của ảnh nền phân cảnh: đường chân trời, điểm tụ, trục hành lang/ngõ thu hẹp từ gần vào sâu, các tầng Z đa lớp và toạ độ thế giới bám mặt đất.'
+    ),
+    shape: (d) => ({
+      shot_id: z.string().optional().describe(d('Target shot ID (defaults to selected shot).', 'ID shot cần phân tích (mặc định là shot đang chọn).')),
+      layer_id: z.string().optional().describe(d('Specific background image layer ID.', 'ID layer ảnh nền cụ thể.')),
+      foot_offset_y: z.number().optional().describe(d('Nominal pixels from character root down to feet (default 160).', 'Khoảng cách pixel gốc từ tâm nhân vật xuống bàn chân (mặc định 160).'))
+    }),
+    example: '{"shot_id":"shot-1","foot_offset_y":160}'
+  },
+  {
     name: 'get_layer_info', cat: 'inspect',
     doc: L('Full JSON of one layer, including all keyframes and props.', 'JSON đầy đủ của một layer, gồm mọi keyframe và thuộc tính.'),
     shape: () => ({ layer_id: z.string() })

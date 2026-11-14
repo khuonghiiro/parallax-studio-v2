@@ -134,6 +134,7 @@ export function recomposeClusterTrajectoriesAndRigs(project: Project, compInstId
         intensity: ep.intensity,
         nodeId: rNode.id,
         rigBonePreset,
+        rigViewAngle: ep.rigViewAngle,
         trajSnapshot
       })
     }

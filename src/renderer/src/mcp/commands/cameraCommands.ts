@@ -1,5 +1,11 @@
 import type { Project } from '@shared/types'
 import { buildCameraPath, flyCameraToShot, TRANSITIONS, type PathStep, type TransitionType } from '../../animation/cameraPath'
+import {
+  choreographCinematicCameraRoute,
+  type CinematicBeatKind,
+  type CinematicCameraBeat
+} from '../../animation/cinematicCameraRoute'
+import { anim } from '../../animation/keyframes'
 import { applyCameraPreset, CAMERA_PRESETS, type CameraPreset } from '../../animation/presets'
 import { setCompDuration } from '../../actions'
 import { shotLocalToWorld } from '../../engine/evaluateScene'
@@ -27,11 +33,76 @@ export const cameraCommands: Record<string, Handler> = {
         const v = num(p, param)
         if (v !== undefined) setAnim(c[prop], v, p, project)
       }
+      if (has(p, 'roll')) {
+        c.roll ??= anim(0)
+        setAnim(c.roll, num(p, 'roll')!, p, project)
+      }
       if (has(p, 'dof_enabled')) c.dofEnabled = bool(p, 'dof_enabled')!
       if (has(p, 'shake_amount')) c.shakeAmount = num(p, 'shake_amount')!
       if (has(p, 'shake_speed')) c.shakeSpeed = num(p, 'shake_speed')!
     })
     return cameraSummary(proj(), ed().time)
+  },
+
+  choreograph_camera_route: (p) => {
+    if (!Array.isArray(p.beats) || p.beats.length === 0) {
+      throw new ParamError('"beats" must be a non-empty array of cinematic camera beats')
+    }
+    const project = proj()
+    const validKinds: CinematicBeatKind[] = [
+      'establish_corridor',
+      'track_subject',
+      'whip_pan',
+      'punch_zoom',
+      'match_cut',
+      'orbit_parallax'
+    ]
+    const beats: CinematicCameraBeat[] = (p.beats as Params[]).map((b, idx) => {
+      const kind = (str(b, 'kind') ?? 'track_subject') as CinematicBeatKind
+      if (!validKinds.includes(kind)) {
+        throw new ParamError(`beats[${idx}].kind must be one of ${validKinds.join(', ')}`)
+      }
+      const offStart = Array.isArray(b.offset_start) && b.offset_start.length >= 2
+        ? ([Number(b.offset_start[0]), Number(b.offset_start[1])] as [number, number])
+        : undefined
+      const offEnd = Array.isArray(b.offset_end) && b.offset_end.length >= 2
+        ? ([Number(b.offset_end[0]), Number(b.offset_end[1])] as [number, number])
+        : undefined
+      return {
+        shotId: requireShot(project, str(b, 'shot_id', true)).id,
+        kind,
+        start: num(b, 'start') ?? 0,
+        end: num(b, 'end') ?? 3,
+        subjectId: str(b, 'subject_id'),
+        secondarySubjectId: str(b, 'secondary_subject_id'),
+        startScale: num(b, 'start_scale'),
+        endScale: num(b, 'end_scale'),
+        impactScale: num(b, 'impact_scale'),
+        impactRatio: num(b, 'impact_ratio'),
+        hitstopSec: num(b, 'hitstop_sec'),
+        impactShakePx: num(b, 'impact_shake_px'),
+        yawStart: num(b, 'yaw_start'),
+        yawEnd: num(b, 'yaw_end'),
+        pitchStart: num(b, 'pitch_start'),
+        pitchEnd: num(b, 'pitch_end'),
+        rollStart: num(b, 'roll_start'),
+        rollEnd: num(b, 'roll_end'),
+        rollImpact: num(b, 'roll_impact'),
+        fovStart: num(b, 'fov_start'),
+        fovEnd: num(b, 'fov_end'),
+        fovImpact: num(b, 'fov_impact'),
+        offsetStart: offStart,
+        offsetEnd: offEnd,
+        continuityDirX: num(b, 'continuity_dir_x'),
+        cutAtEnd: bool(b, 'cut_at_end')
+      }
+    })
+    const clearExisting = bool(p, 'clear_existing') ?? true
+    let summary = { keyframeCount: 0, beatsApplied: 0, endTime: 0 }
+    ed().update((d) => {
+      summary = choreographCinematicCameraRoute(d as Project, beats, { clearExisting })
+    })
+    return summary
   },
 
   apply_camera_preset: (p) => {

@@ -391,11 +391,11 @@ export function sampleTrajectoryAwareRigKeyframes(args: SampleTrajectoryRigArgs)
     const scaleRatio = baseRootScale > 1e-4 ? Math.abs(rootScaleT[0]) / baseRootScale : 1
     const trajCenterX = rootPosT[0] - rootOff[0] * scaleRatio
     const trajCenterY = rootPosT[1] - rootOff[1] * scaleRatio
-    const trajCenterZ = rootPosT[2] - rootOff[2]
+    const trajCenterZ = rootPosT[2] - rootOff[2] * scaleRatio
 
     const dx = isSoftSkinned ? 0 : (posed.x - itemX) * baseScale * scaleRatio * intensity
     const dy = isSoftSkinned ? 0 : -(posed.y - itemY) * baseScale * scaleRatio * intensity
-    const dz = -((posed.z ?? itemZ) - itemZ) * COMPOSITE_Z_FACTOR * baseScale
+    const dz = -((posed.z ?? itemZ) - itemZ) * COMPOSITE_Z_FACTOR * baseScale * scaleRatio
     const rawFkRot = (posed.rotation - baseRotZ) * intensity
     const rotZ = isSoftSkinned ? 0 : (rootRotT[2] ?? 0) + baseRotZ + rawFkRot
 
@@ -404,7 +404,7 @@ export function sampleTrajectoryAwareRigKeyframes(args: SampleTrajectoryRigArgs)
       pos: [
         Math.round((trajCenterX + off[0] * scaleRatio + dx) * 100) / 100,
         Math.round((trajCenterY + off[1] * scaleRatio + dy) * 100) / 100,
-        Math.round((trajCenterZ + off[2] + dz) * 100) / 100
+        Math.round((trajCenterZ + off[2] * scaleRatio + dz) * 100) / 100
       ],
       rot: [0, 0, Math.round(rotZ * 100) / 100],
       dz

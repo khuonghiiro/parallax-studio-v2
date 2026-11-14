@@ -152,6 +152,7 @@ const SILENT_MCP_COMMANDS = new Set([
   'get_assembly_screenshot',
   'get_project_info',
   'get_shot_info',
+  'analyze_scene_depth',
   'get_layer_info',
   'get_layer_motion',
   'list_layer_fx',
