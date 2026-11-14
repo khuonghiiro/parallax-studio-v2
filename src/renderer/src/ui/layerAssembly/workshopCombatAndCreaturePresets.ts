@@ -314,7 +314,7 @@ export function generateHitRecoil(
     tracks[ids.head] = [kf(0, 0), kf(d * 0.16, -22 * f), kf(d * 0.52, -8 * f), kf(d, 0)]
   }
   if (jawId) {
-    tracks[jawId] = [kf(0, 0), kf(d * 0.16, -24 * f), kf(d * 0.52, -10 * f), kf(d, 0)]
+    tracks[jawId] = [kf(0, 0), kf(d * 0.16, 24 * f), kf(d * 0.52, 10 * f), kf(d, 0)]
   }
   if (ids.armL) tracks[ids.armL] = [kf(0, 0), kf(d * 0.16, 48 * f), kf(d * 0.52, 22 * f), kf(d, 0)]
   if (ids.armR) tracks[ids.armR] = [kf(0, 0), kf(d * 0.16, 56 * f), kf(d * 0.52, 18 * f), kf(d, 0)]
@@ -419,9 +419,36 @@ export function generateQuadrupedGallopClip(bones: LayerBone[], duration = 0.85)
   return fillRestTracks(bones, tracks, d)
 }
 
-/** Linh Cầm / Chim 2.5D vỗ cánh bay lượn mượt mà (hỗ trợ cả xương chim lẫn humanoid). */
+/** Linh Cầm / Chim 2.5D vỗ cánh bay lượn mượt mà (hỗ trợ cả chim chính diện, nghiêng 3/4 lẫn humanoid). */
 export function generateWingFlapClip(bones: LayerBone[], duration = 1.1): Record<string, BoneKeyframe[]> {
   if (bones.some((b) => b.id === 'bone-bird-wing-l')) {
+    const body = bones.find((b) => b.id === 'bone-bird-body')
+    const head = bones.find((b) => b.id === 'bone-bird-head')
+    if (body && head && Math.abs(head.x - body.x) > 55) {
+      const d = duration
+      const f = head.x >= body.x ? 1 : -1
+      const tracks: Record<string, BoneKeyframe[]> = {
+        'bone-bird-body': [
+          kf(0, 0, 0, 0),
+          kf(d * 0.28, -3 * f, 0, -8),
+          kf(d * 0.62, 4 * f, 0, 6),
+          kf(d, 0, 0, 0)
+        ],
+        'bone-bird-wing-l': [
+          kf(0, 0),
+          kf(d * 0.28, -36 * f),
+          kf(d * 0.62, 32 * f),
+          kf(d, 0)
+        ],
+        'bone-bird-wing-r': [
+          kf(0, 0),
+          kf(d * 0.28, -28 * f),
+          kf(d * 0.62, 26 * f),
+          kf(d, 0)
+        ]
+      }
+      return fillRestTracks(bones, tracks, d)
+    }
     return fillRestTracks(bones, generateBirdWingFlap(bones, duration), duration)
   }
   const d = duration
@@ -459,7 +486,7 @@ export function generateMonsterProwl(bones: LayerBone[], duration = 1.8): Record
   }
   if (ids.torso) tracks[ids.torso] = [kf(0, 8 * f), kf(d * 0.25, 14 * f), kf(d * 0.5, 6 * f), kf(d * 0.75, 14 * f), kf(d, 8 * f)]
   if (ids.head) tracks[ids.head] = [kf(0, -8 * f), kf(d * 0.25, -4 * f), kf(d * 0.5, -10 * f), kf(d, -8 * f)]
-  if (jawId) tracks[jawId] = [kf(0, -4 * f), kf(d * 0.3, -12 * f), kf(d * 0.65, -3 * f), kf(d, -4 * f)]
+  if (jawId) tracks[jawId] = [kf(0, 4 * f), kf(d * 0.3, 12 * f), kf(d * 0.65, 3 * f), kf(d, 4 * f)]
   if (ids.thighL) tracks[ids.thighL] = [kf(0, 22 * legFwd), kf(d * 0.5, -24 * legFwd), kf(d, 22 * legFwd)]
   if (ids.shinL) tracks[ids.shinL] = [kf(0, -10 * f), kf(d * 0.25, 22 * f), kf(d * 0.5, 8 * f), kf(d, -10 * f)]
   if (ids.thighR) tracks[ids.thighR] = [kf(0, -24 * legFwd), kf(d * 0.5, 22 * legFwd), kf(d, -24 * legFwd)]
@@ -507,10 +534,10 @@ export function generateMonsterRoar(bones: LayerBone[], duration = 1.6): Record<
   if (jawId) {
     tracks[jawId] = [
       kf(0, 0),
-      kf(d * 0.24, 2 * f),
-      kf(d * 0.45, -30 * f, 0, 0, 1, 1, undefined, 'ease-out'),
-      kf(d * 0.62, -24 * f),
-      kf(d * 0.78, -32 * f),
+      kf(d * 0.24, -2 * f),
+      kf(d * 0.45, 28 * f, 0, 0, 1, 1, undefined, 'ease-out'),
+      kf(d * 0.62, 22 * f),
+      kf(d * 0.78, 30 * f),
       kf(d, 0)
     ]
   }
@@ -545,7 +572,7 @@ export function generateMonsterPounce(bones: LayerBone[], duration = 1.3): Recor
     tracks[ids.torso] = [kf(0, 6 * f), kf(d * 0.25, -14 * f), kf(d * 0.52, -4 * f), kf(d * 0.76, 28 * f), kf(d, 6 * f)]
   }
   if (ids.head) tracks[ids.head] = [kf(0, 0), kf(d * 0.25, 10 * f), kf(d * 0.52, -16 * f), kf(d * 0.76, -8 * f), kf(d, 0)]
-  if (jawId) tracks[jawId] = [kf(0, 0), kf(d * 0.52, -26 * f), kf(d * 0.76, -12 * f), kf(d, 0)]
+  if (jawId) tracks[jawId] = [kf(0, 0), kf(d * 0.52, 26 * f), kf(d * 0.76, 12 * f), kf(d, 0)]
   if (ids.armR) {
     tracks[ids.armR] = [kf(0, 0), kf(d * 0.25, 36 * f), kf(d * 0.52, -98 * f, 0, 0, 1, 1, 36), kf(d * 0.76, -18 * f, 0, 0, 1, 1, 28), kf(d, 0)]
   }

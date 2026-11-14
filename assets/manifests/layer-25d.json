@@ -8,6 +8,7 @@
     "nature_modular",
     "demo_transparent",
     "scenes-v2",
+    "scenes-action-25d",
     "uploads"
   ],
   "categories": [
@@ -253,6 +254,91 @@
     "nature_modular/rock_crystal_glow.png": {
       "name": "Tinh thể phát sáng trên đá",
       "category": "nature",
+      "status": "active"
+    },
+    "scenes-action-25d/env/bg_s1_misty_pass.png": {
+      "name": "Bối cảnh Đèo Sương Cổ Mộ 2.5D",
+      "category": "scene",
+      "status": "active"
+    },
+    "scenes-action-25d/env/bg_s2_sealed_courtyard.png": {
+      "name": "Bối cảnh Sân Cổ Phong Ấn 2.5D",
+      "category": "scene",
+      "status": "active"
+    },
+    "scenes-action-25d/env/bg_s3_crimson_arena.png": {
+      "name": "Bối cảnh Đài Quyết Chiến Trăng Đỏ 2.5D",
+      "category": "scene",
+      "status": "active"
+    },
+    "scenes-action-25d/env/fg-ruin-pillar.png": {
+      "name": "Cột Đá Cổ Tích Tiền Cảnh",
+      "category": "prop",
+      "status": "active"
+    },
+    "scenes-action-25d/env/vfx-sword-crescent.png": {
+      "name": "Kiếm Khí Nguyệt Trảm VFX",
+      "category": "prop",
+      "status": "active"
+    },
+    "scenes-action-25d/env/vfx-roar-shockwave.png": {
+      "name": "Sóng Gầm Ma Thú VFX",
+      "category": "prop",
+      "status": "active"
+    },
+    "scenes-action-25d/env/vfx-impact-burst.png": {
+      "name": "Tia Lửa Giao Kiếm VFX",
+      "category": "prop",
+      "status": "active"
+    },
+    "scenes-action-25d/hero/torso.png": {
+      "name": "Kiếm Khách — Thân Chiến Giáp",
+      "category": "character",
+      "status": "active"
+    },
+    "scenes-action-25d/hero/head-calm.png": {
+      "name": "Kiếm Khách — Đầu Điềm Tĩnh",
+      "category": "character",
+      "status": "active"
+    },
+    "scenes-action-25d/hero/head-shout.png": {
+      "name": "Kiếm Khách — Đầu Hét Xung Phong",
+      "category": "character",
+      "status": "active"
+    },
+    "scenes-action-25d/hero/forearm-l.png": {
+      "name": "Kiếm Khách — Tay Cầm Trường Kiếm",
+      "category": "character",
+      "status": "active"
+    },
+    "scenes-action-25d/wolf/torso.png": {
+      "name": "Linh Lang — Thân & Bờm Cổ",
+      "category": "animal",
+      "status": "active"
+    },
+    "scenes-action-25d/wolf/head.png": {
+      "name": "Linh Lang — Đầu Sói Bạc",
+      "category": "animal",
+      "status": "active"
+    },
+    "scenes-action-25d/monster/torso.png": {
+      "name": "Ma Thú — Ngực Giáp Hắc Ám",
+      "category": "character",
+      "status": "active"
+    },
+    "scenes-action-25d/monster/head.png": {
+      "name": "Ma Thú — Đầu Sừng Quái Vật",
+      "category": "character",
+      "status": "active"
+    },
+    "scenes-action-25d/eagle/bird-body.png": {
+      "name": "Kim Sí Linh Ưng — Thân & Móng",
+      "category": "animal",
+      "status": "active"
+    },
+    "scenes-action-25d/eagle/wing-l.png": {
+      "name": "Kim Sí Linh Ưng — Cánh Trước",
+      "category": "animal",
       "status": "active"
     }
   }

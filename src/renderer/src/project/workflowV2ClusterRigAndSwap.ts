@@ -296,7 +296,8 @@ export function bakeClusterRigPresetToScene(
   const savedComp = findCompositeTemplate(root.composite?.compositeId)
   const bones: LayerBone[] = resolveClusterRigBones(members, savedComp, preset, options?.rigBonePreset)
 
-  const clip = createClipFromPreset(preset, bones)
+  const preferredAngle = savedComp?.rig?.clips?.[0]?.viewAngle
+  const clip = createClipFromPreset(preset, bones, undefined, preferredAngle)
   const rig: LayerRig = {
     bones,
     duration: clip.duration,
