@@ -309,7 +309,7 @@ export interface WorkflowNodeParams {
   partGroupTitle?: string
   targetSlotId?: string
   /** [Workflow V2] Chế độ khung xương của Node Gắn xương ('humanoid_15' | 'chain_3' | 'mixamo_12' | 'custom') */
-  rigBonePreset?: 'humanoid_15' | 'chain_3' | 'mixamo_12' | 'custom'
+  rigBonePreset?: 'humanoid_15' | 'chain_3' | 'mixamo_12' | 'quadruped_12' | 'bird_8' | 'monster_14' | 'custom'
   /** [Workflow V2] Chế độ ràng buộc mềm đàn hồi (Soft Skinning) cho các mảnh gắn xương */
   rigSoftBinding?: boolean
   /** [Workflow V2] Quỹ đạo chuyển động 2D vẽ trực tiếp trong khung chỉnh sửa của Node Motion */

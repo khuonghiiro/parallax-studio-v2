@@ -114,13 +114,16 @@ function rigAction(p: Params, composite?: LayerComposite, currentTime = 0): RigA
   }
   if (action === 'apply-template') {
     const template = (str(p, 'template') ?? 'humanoid') as any
-    const validTemplates = ['humanoid', 'humanoid-full', 'hand-detailed', 'foot-detailed', 'simple-chain']
+    const validTemplates = ['humanoid', 'humanoid-full', 'hand-detailed', 'foot-detailed', 'simple-chain', 'quadruped', 'bird', 'monster']
     if (!validTemplates.includes(template)) throw new ParamError(`template must be one of: ${validTemplates.join(', ')}`)
     return { action, template }
   }
   if (action === 'apply-preset-animation') {
     const preset = (str(p, 'preset') ?? 'walk') as any
-    const validPresets = ['walk', 'idle', 'talk', 'scheming', 'shock', 'point', 'wave', 'bow', 'run', 'jump', 'fall', 'land', 'action', 'sway', 'hand-clench', 'foot-roll']
+    const validPresets = [
+      'walk', 'idle', 'talk', 'scheming', 'shock', 'point', 'wave', 'bow', 'run', 'jump', 'fall', 'land', 'action', 'sway', 'hand-clench', 'foot-roll',
+      'combat', 'martial_kick', 'dodge_counter', 'hit_recoil', 'quadruped_walk', 'quadruped_gallop', 'wing_flap', 'monster_prowl', 'monster_roar', 'monster_pounce'
+    ]
     if (!validPresets.includes(preset)) throw new ParamError(`preset must be one of: ${validPresets.join(', ')}`)
     const viewAngleRaw = str(p, 'view_angle')
     if (viewAngleRaw !== undefined && !['front', 'diagonal', 'side', 'back'].includes(viewAngleRaw)) {

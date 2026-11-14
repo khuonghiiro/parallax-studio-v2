@@ -33,7 +33,6 @@ import {
 } from './workflowV2Options'
 import {
   bakeClusterCustomActionToScene,
-  bakeClusterRigPresetToScene,
   bakeCustomMotionPathToScene,
   clearClusterCustomActionKeys,
   clearClusterRigKeysFromScene,
@@ -46,10 +45,13 @@ import {
   translateClusterToRootPos
 } from './workflowV2ClusterRigAndSwap'
 import {
+  collectClusterInstanceIds,
+  recomposeClusterTrajectoriesAndRigs
+} from './workflowV2ClusterRecompose'
+import {
   bakeBboxTargetMotionToScene,
   clearBboxMotionKeysFromScene
 } from './workflowV2BboxMotionAndCollision'
-import type { ProceduralMotionPreset } from '../ui/layerAssembly/workshopRigPresets'
 import {
   applyCollisionNodeToProject,
   applyMaterialNodeToProject,
@@ -559,7 +561,7 @@ function syncSingleWorkflowV2NodeToProject(
       project.workflow = {
         ...project.workflow,
         nodes: project.workflow.nodes.map((n, i) =>
-          i === idx ? { ...wfNode, params: { ...(wfNode.params ?? {}), ...patch } } : n
+          i === idx ? { ...wfNode, enabled: node.enabled, params: { ...(wfNode.params ?? {}), ...patch } } : n
         )
       }
     }
@@ -621,28 +623,8 @@ function syncSingleWorkflowV2NodeToProject(
 
   // 1d. Node Gắn Xương (`rig_bone`) — đồng bộ cấu hình gắn xương 2.5D và tư thế khớp cơ bản
   if (params.logicCategory === 'rig_bone') {
-    const compInstIds = Array.from(
-      new Set(
-        project.layers
-          .filter((l) => targetIds.has(l.id) && l.composite?.instanceId)
-          .map((l) => l.composite!.instanceId!)
-      )
-    )
-    if (params.instanceId && !compInstIds.includes(params.instanceId)) {
-      compInstIds.push(params.instanceId)
-    }
-    for (const instId of compInstIds) {
-      const members = getLockedClusterMemberLayers(project, instId)
-      if (!node.enabled) {
-        clearClusterRigKeysFromScene(members)
-      } else if (patch && 'rigActionPreset' in patch && params.rigActionPreset && params.rigActionPreset !== 'none') {
-        bakeClusterRigPresetToScene(project, instId, params.rigActionPreset as ProceduralMotionPreset, {
-          timeStart: tStart,
-          timeEnd: tEnd,
-          intensity: params.intensity
-        })
-      }
-    }
+    const compInstIds = collectClusterInstanceIds(project, targetIds, params.instanceId)
+    recomposeClusterTrajectoriesAndRigs(project, compInstIds)
     return
   }
 
@@ -694,45 +676,23 @@ function syncSingleWorkflowV2NodeToProject(
         params.animMode !== 'keyframe_fx' &&
         !(patch && 'animFxPreset' in patch))
     if (isRigClipMode && params.rigActionPreset && params.rigActionPreset !== 'none') {
-      const compInstIds = Array.from(
-        new Set(
-          project.layers
-            .filter((l) => targetIds.has(l.id) && l.composite?.instanceId)
-            .map((l) => l.composite!.instanceId!)
-        )
-      )
-      if (params.instanceId && !compInstIds.includes(params.instanceId)) {
-        compInstIds.push(params.instanceId)
-      }
+      const compInstIds = collectClusterInstanceIds(project, targetIds, params.instanceId)
       for (const l of project.layers) {
         if (!targetIds.has(l.id) || !l.appliedEffects) continue
         const staleFx = l.appliedEffects.find((f) => f.id === `fx-wf-${node.id}`)
         if (staleFx) deleteLayerEffect(l, staleFx.id)
       }
-      for (const instId of compInstIds) {
-        const members = getLockedClusterMemberLayers(project, instId)
-        if (!node.enabled) {
-          clearClusterRigKeysFromScene(members, node.id)
-        } else {
-          bakeClusterRigPresetToScene(project, instId, params.rigActionPreset as ProceduralMotionPreset, {
-            timeStart: tStart,
-            timeEnd: tEnd,
-            intensity: params.intensity,
-            nodeId: node.id
-          })
-        }
+      if (compInstIds.length > 0) {
+        recomposeClusterTrajectoriesAndRigs(project, compInstIds)
       }
       return
     } else if (patch && ('rigActionPreset' in patch || 'animMode' in patch) && (params.rigActionPreset === 'none' || params.animMode === 'keyframe_fx')) {
-      const compInstIds = Array.from(
-        new Set(
-          project.layers
-            .filter((l) => targetIds.has(l.id) && l.composite?.instanceId)
-            .map((l) => l.composite!.instanceId!)
-        )
-      )
+      const compInstIds = collectClusterInstanceIds(project, targetIds, params.instanceId)
       for (const instId of compInstIds) {
         clearClusterRigKeysFromScene(getClusterMemberLayers(project, instId), node.id)
+      }
+      if (compInstIds.length > 0) {
+        recomposeClusterTrajectoriesAndRigs(project, compInstIds)
       }
       if (!params.animFxPreset && params.animMode !== 'keyframe_fx') return
     }
@@ -743,6 +703,7 @@ function syncSingleWorkflowV2NodeToProject(
   // 4. Node Motion (`action`) — hỗ trợ Đặt BBox Đích (`bbox`), Vẽ quỹ đạo chuyển động (`path`) và Chuyển động chu kỳ (`cycle`)
   if (node.type === 'motion_choreography' || params.logicCategory === 'action') {
     const mode = resolveMotionMode(params)
+    const compInstIds = collectClusterInstanceIds(project, targetIds, params.instanceId)
     if (mode !== 'path') {
       for (const layer of project.layers) {
         layer.transform.position.keyframes = layer.transform.position.keyframes.filter(
@@ -761,6 +722,9 @@ function syncSingleWorkflowV2NodeToProject(
         if (targetIds.has(l.id) && l.motion) {
           l.motion.enabled = false
         }
+      }
+      if (compInstIds.length > 0) {
+        recomposeClusterTrajectoriesAndRigs(project, compInstIds)
       }
       return
     }
@@ -784,31 +748,17 @@ function syncSingleWorkflowV2NodeToProject(
           l.motion.enabled = false
         }
       }
+      if (compInstIds.length > 0) {
+        recomposeClusterTrajectoriesAndRigs(project, compInstIds)
+      }
       return
     }
     const rigPreset =
       params.rigActionPreset ||
       (params.actionPreset?.startsWith('rig_') ? params.actionPreset.replace(/^rig_/, '') : undefined)
     if (rigPreset) {
-      const compInstIds = Array.from(
-        new Set(
-          project.layers
-            .filter((l) => targetIds.has(l.id) && l.composite?.instanceId)
-            .map((l) => l.composite!.instanceId!)
-        )
-      )
-      for (const instId of compInstIds) {
-        const members = getLockedClusterMemberLayers(project, instId)
-        if (!node.enabled || rigPreset === 'none') {
-          clearClusterRigKeysFromScene(members, node.id)
-        } else {
-          bakeClusterRigPresetToScene(project, instId, rigPreset as ProceduralMotionPreset, {
-            timeStart: tStart,
-            timeEnd: tEnd,
-            intensity: params.intensity,
-            nodeId: node.id
-          })
-        }
+      if (compInstIds.length > 0) {
+        recomposeClusterTrajectoriesAndRigs(project, compInstIds)
       }
       if (params.actionPreset?.startsWith('rig_')) {
         return

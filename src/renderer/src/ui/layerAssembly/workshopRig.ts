@@ -6,6 +6,9 @@ import {
   createFullHumanoidBones,
   createHandDetailedBones,
   createFootDetailedBones,
+  createMonsterBones,
+  createQuadrupedRigBones,
+  createWingedRigBones,
   createSimpleChainBones,
   applyMotionPresetToRig,
   createClipFromPreset,
@@ -39,7 +42,15 @@ import {
   type ParameterizedCycle25DConfig
 } from './workshopParallax25D'
 
-export type RigTemplateType = 'humanoid' | 'humanoid-full' | 'hand-detailed' | 'foot-detailed' | 'simple-chain'
+export type RigTemplateType =
+  | 'humanoid'
+  | 'humanoid-full'
+  | 'hand-detailed'
+  | 'foot-detailed'
+  | 'simple-chain'
+  | 'quadruped'
+  | 'bird'
+  | 'monster'
 
 export const emptyRig = (): LayerRig => ({
   bones: [],
@@ -528,6 +539,18 @@ export function applyRigAction(composite: LayerComposite, action: RigAction): La
       case 'simple-chain':
         templateBones = createSimpleChainBones()
         defaultPreset = 'sway'
+        break
+      case 'quadruped':
+        templateBones = createQuadrupedRigBones()
+        defaultPreset = 'quadruped_walk'
+        break
+      case 'bird':
+        templateBones = createWingedRigBones()
+        defaultPreset = 'wing_flap'
+        break
+      case 'monster':
+        templateBones = createMonsterBones()
+        defaultPreset = 'monster_prowl'
         break
       case 'humanoid':
       default:

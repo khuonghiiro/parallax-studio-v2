@@ -1,19 +1,27 @@
 import { scaleClusterFromSnapshot } from './clusterTransform'
 import type { Layer, Project, Vec3 } from '@shared/types'
 import type { LayerBone, LayerRig } from '@shared/layerRig'
-import { evaluateRig, transformRigLayer } from '../engine/layerRig'
-import { COMPOSITE_Z_FACTOR } from '../ui/layerAssembly/insertLayerComposite'
 import { findCompositeTemplate } from '../ui/layerAssembly/scenePartSwap'
-import { CUTOUT_FRONT_BONES } from '../ui/layerAssembly/templates/humanoidTemplates'
 import {
   MOTION_PRESETS,
   createClipFromPreset,
-  createSimpleChainBones,
+  type MotionPresetArchetype,
   type ProceduralMotionPreset
 } from '../ui/layerAssembly/workshopRigPresets'
+import {
+  buildCleanTrajectoryTrack,
+  captureTrajectorySnapshot,
+  inferClusterBoneId,
+  resolveClusterRigBones,
+  sampleTrajectoryAwareRigKeyframes,
+  type TrajectorySnapshot
+} from './workflowV2RigSampling'
+
+export { captureTrajectorySnapshot, type TrajectorySnapshot }
 
 export interface ClusterRigPresetOption {
   id: ProceduralMotionPreset
+  archetype: MotionPresetArchetype
   label: string
   shortLabel: string
   icon: string
@@ -23,6 +31,7 @@ export interface ClusterRigPresetOption {
 
 export const WORKFLOW_V2_RIG_PRESET_OPTIONS: ClusterRigPresetOption[] = MOTION_PRESETS.map((p) => ({
   id: p.id,
+  archetype: p.archetype,
   label: `${p.icon} ${p.name}`,
   shortLabel: `${p.icon} ${p.name.replace(/\s*\([^)]*\)/, '')}`,
   icon: p.icon,
@@ -169,64 +178,6 @@ export function detectClusterAccessories(members: Layer[]): ClusterAccessoryEntr
   return out
 }
 
-/** Suy luận ID xương (`boneId`) của từng mảnh bộ phận trong Cụm Nhân vật Anime 2.5D / Sinh vật / Cây cối */
-function inferBoneIdForClusterLayer(layer: Layer, bones: LayerBone[], savedBoneId?: string): string | undefined {
-  if (savedBoneId && bones.some((b) => b.id === savedBoneId)) return savedBoneId
-  const key = `${layer.composite?.sourceLayerId ?? ''} ${layer.composite?.slot ?? ''} ${layer.name ?? ''}`.toLowerCase()
-
-  const hasBone = (id: string): string | undefined => (bones.some((b) => b.id === id) ? id : undefined)
-
-  if (key.includes('forearm-l') || key.includes('forearm_l') || key.includes('cẳng tay trái') || key.includes('bàn tay trái')) {
-    return hasBone('bone-forearm-l') ?? hasBone('bone-arm-l')
-  }
-  if (key.includes('forearm-r') || key.includes('forearm_r') || key.includes('cẳng tay phải') || key.includes('bàn tay phải') || key.includes('đồng hồ')) {
-    return hasBone('bone-forearm-r') ?? hasBone('bone-arm-r')
-  }
-  if (key.includes('arm-l') || key.includes('arm_l') || key.includes('bắp tay áo trái') || key.includes('bắp tay trái') || key.includes('tay áo sơ mi trái')) {
-    return hasBone('bone-arm-l')
-  }
-  if (key.includes('arm-r') || key.includes('arm_r') || key.includes('bắp tay áo phải') || key.includes('bắp tay phải') || key.includes('tay áo sơ mi phải')) {
-    return hasBone('bone-arm-r')
-  }
-  if (key.includes('shin-l') || key.includes('shin_l') || key.includes('ống quần & giày trái') || key.includes('giày sneaker trái') || key.includes('cẳng chân trái')) {
-    return hasBone('bone-shin-l') ?? hasBone('bone-thigh-l')
-  }
-  if (key.includes('shin-r') || key.includes('shin_r') || key.includes('ống quần & giày phải') || key.includes('giày sneaker phải') || key.includes('cẳng chân phải')) {
-    return hasBone('bone-shin-r') ?? hasBone('bone-thigh-r')
-  }
-  if (key.includes('thigh-l') || key.includes('thigh_l') || key.includes('đùi quần trái') || key.includes('đùi trái')) {
-    return hasBone('bone-thigh-l')
-  }
-  if (key.includes('thigh-r') || key.includes('thigh_r') || key.includes('đùi quần phải') || key.includes('đùi phải')) {
-    return hasBone('bone-thigh-r')
-  }
-  if (
-    key.includes('head') ||
-    key.includes('face') ||
-    key.includes('glass') ||
-    key.includes('đầu') ||
-    key.includes('mái tóc') ||
-    key.includes('biểu cảm') ||
-    key.includes('mắt kính') ||
-    key.includes('gọng kính')
-  ) {
-    return hasBone('bone-head') ?? hasBone('bone-chain-tip')
-  }
-  if (key.includes('torso') || key.includes('thân áo') || key.includes('áo gile') || key.includes('ngực')) {
-    return hasBone('bone-torso') ?? hasBone('bone-chain-mid')
-  }
-  if (key.includes('pelvis') || key.includes('hông')) {
-    return hasBone('bone-pelvis') ?? hasBone('bone-chain-root')
-  }
-  // Với cây cối / cành lá 3 khớp
-  if (bones.some((b) => b.id === 'bone-chain-root')) {
-    if (key.includes('gốc') || key.includes('thân') || key.includes('root') || key.includes('trunk')) return 'bone-chain-root'
-    if (key.includes('ngọn') || key.includes('tán') || key.includes('hoa') || key.includes('tip') || key.includes('canopy')) return 'bone-chain-tip'
-    return 'bone-chain-mid'
-  }
-  return undefined
-}
-
 const isRigKeyId = (id: string, nodeId?: string): boolean => {
   if (nodeId) return id.includes(`-rig-p-${nodeId}-`) || id.includes(`-rig-r-${nodeId}-`)
   return id.includes('-rig-p-') || id.includes('-rig-r-')
@@ -255,9 +206,11 @@ export function clearClusterRigKeysFromScene(
     if (!nodeId && !timeRange) return true
     if (nodeId && isRigKeyId(k.id, nodeId)) return true
     if (!k.id.includes('-rig-p-v2-') && !k.id.includes('-rig-r-v2-')) return true
-    if (timeRange && k.t >= timeRange[0] - 0.01 && k.t <= timeRange[1] + 0.01) return true
+    if (timeRange && k.t > timeRange[0] + 0.015 && k.t < timeRange[1] - 0.015) return true
     return false
   }
+
+  const savedComp = findCompositeTemplate(root.composite?.compositeId)
 
   for (const l of members) {
     l.transform.position.keyframes = l.transform.position.keyframes.filter((k) => !matchDrop(k))
@@ -266,114 +219,21 @@ export function clearClusterRigKeysFromScene(
       l.transform.position.keyframes.some((k) => isRigKeyId(k.id)) ||
       l.transform.rotation.keyframes.some((k) => isRigKeyId(k.id))
     if (!hasRemainingRig) {
-      const off: Vec3 = l.composite?.rootOffset ?? [0, 0, 0]
-      l.transform.position.value = [
-        Math.round((centerOrigin[0] + off[0]) * 100) / 100,
-        Math.round((centerOrigin[1] + off[1]) * 100) / 100,
-        Math.round((centerOrigin[2] + off[2]) * 100) / 100
-      ]
-      l.transform.rotation.value = [0, 0, 0]
-    }
-  }
-}
-
-function sampleRigLayerKeyframes(
-  l: Layer,
-  boneId: string,
-  rig: LayerRig,
-  centerOrigin: Vec3,
-  scale: number,
-  tStart: number,
-  span: number,
-  totalSteps: number,
-  intensity: number,
-  nodeTag: string
-): boolean {
-  const off: Vec3 = l.composite?.rootOffset ?? [0, 0, 0]
-  const itemX = off[0] / scale
-  const itemY = -off[1] / scale
-  const itemZ = COMPOSITE_Z_FACTOR > 0 ? -off[2] / (scale * COMPOSITE_Z_FACTOR) : 0
-  const virtItem = { x: itemX, y: itemY, z: itemZ, rotation: 0, boneId, scale: 1 }
-  const isSoftSkinned = Boolean(l.mesh?.skin?.binding?.boneId)
-  if (isSoftSkinned && l.mesh?.skin) {
-    l.mesh.skin.rig = structuredClone(rig)
-  }
-
-  const samples: { t: number; pos: Vec3; rot: Vec3 }[] = []
-  for (let step = 0; step <= totalSteps; step++) {
-    const tScene = Number((tStart + (span * step) / totalSteps).toFixed(3))
-    const tClip = ((tScene - tStart) % rig.duration + rig.duration) % rig.duration
-    const posed = transformRigLayer(virtItem, evaluateRig(rig, tClip))
-    const dx = isSoftSkinned ? 0 : (posed.x - itemX) * scale * intensity
-    const dy = isSoftSkinned ? 0 : -(posed.y - itemY) * scale * intensity
-    const dz = -((posed.z ?? itemZ) - itemZ) * COMPOSITE_Z_FACTOR * scale
-    const rotZ = isSoftSkinned ? 0 : posed.rotation * intensity
-    samples.push({
-      t: tScene,
-      pos: [
-        Math.round((centerOrigin[0] + off[0] + dx) * 100) / 100,
-        Math.round((centerOrigin[1] + off[1] + dy) * 100) / 100,
-        Math.round((centerOrigin[2] + off[2] + dz) * 100) / 100
-      ],
-      rot: [0, 0, Math.round(rotZ * 100) / 100]
-    })
-  }
-
-  const first = samples[0]
-  const hasTrajectoryPosKeys = l.transform.position.keyframes.some(
-    (k) => k.id.includes('-bboxmot-') || k.id.includes('-motpath-p-')
-  )
-  if (!hasTrajectoryPosKeys) {
-    l.transform.position.value = first.pos
-  }
-  l.transform.rotation.value = first.rot
-
-  const isStaticPos = samples.every(
-    (s) => Math.hypot(s.pos[0] - first.pos[0], s.pos[1] - first.pos[1], s.pos[2] - first.pos[2]) < 0.05
-  )
-  const isStaticRot = samples.every((s) => Math.abs(s.rot[2] - first.rot[2]) < 0.05)
-  if (isStaticPos && isStaticRot) return false
-
-  if (!isStaticPos && !hasTrajectoryPosKeys) {
-    let lastP: Vec3 | null = null
-    let lastPIdx = -1
-    for (let i = 0; i < samples.length; i++) {
-      const s = samples[i]
-      if (
-        i === 0 ||
-        i === samples.length - 1 ||
-        !lastP ||
-        Math.hypot(s.pos[0] - lastP[0], s.pos[1] - lastP[1], s.pos[2] - lastP[2]) >= 0.08
-      ) {
-        if (i - 1 > lastPIdx && lastPIdx >= 0) {
-          const prev = samples[i - 1]
-          l.transform.position.keyframes.push({ id: `${l.id}-rig-p-${nodeTag}${i - 1}`, t: prev.t, value: prev.pos, ease: 'linear' })
-        }
-        l.transform.position.keyframes.push({ id: `${l.id}-rig-p-${nodeTag}${i}`, t: s.t, value: s.pos, ease: 'linear' })
-        lastP = s.pos
-        lastPIdx = i
+      const hasTraj =
+        l.transform.position.keyframes.some((k) => k.id.includes('-bboxmot-') || k.id.includes('-motpath-p-')) ||
+        l.transform.rotation.keyframes.some((k) => k.id.includes('-bboxmot-') || k.id.includes('-motpath-p-'))
+      if (!hasTraj) {
+        const off: Vec3 = l.composite?.rootOffset ?? [0, 0, 0]
+        l.transform.position.value = [
+          Math.round((centerOrigin[0] + off[0]) * 100) / 100,
+          Math.round((centerOrigin[1] + off[1]) * 100) / 100,
+          Math.round((centerOrigin[2] + off[2]) * 100) / 100
+        ]
       }
+      const savedItem = savedComp?.layers.find((it) => it.id === l.composite?.sourceLayerId)
+      l.transform.rotation.value = [0, 0, savedItem?.rotation ?? 0]
     }
-    l.transform.position.keyframes.sort((a, b) => a.t - b.t)
   }
-  if (!isStaticRot) {
-    let lastR: Vec3 | null = null
-    let lastRIdx = -1
-    for (let i = 0; i < samples.length; i++) {
-      const s = samples[i]
-      if (i === 0 || i === samples.length - 1 || !lastR || Math.abs(s.rot[2] - lastR[2]) >= 0.08) {
-        if (i - 1 > lastRIdx && lastRIdx >= 0) {
-          const prev = samples[i - 1]
-          l.transform.rotation.keyframes.push({ id: `${l.id}-rig-r-${nodeTag}${i - 1}`, t: prev.t, value: prev.rot, ease: 'linear' })
-        }
-        l.transform.rotation.keyframes.push({ id: `${l.id}-rig-r-${nodeTag}${i}`, t: s.t, value: s.rot, ease: 'linear' })
-        lastR = s.rot
-        lastRIdx = i
-      }
-    }
-    l.transform.rotation.keyframes.sort((a, b) => a.t - b.t)
-  }
-  return true
 }
 
 function applyPresetToCustomSoftRig(
@@ -383,10 +243,7 @@ function applyPresetToCustomSoftRig(
 ): boolean {
   const rig = layer.mesh?.skin?.rig
   if (!layer.mesh?.skin?.binding?.boneId || !rig?.bones?.length || !rig.clips?.length) return false
-  const clip =
-    rig.clips.find((c) => c.presetKey === preset || c.id === preset) ??
-    rig.clips.find((c) => c.id === rig.activeClipId) ??
-    rig.clips[0]
+  const clip = rig.clips.find((c) => c.presetKey === preset || c.id === preset)
   if (!clip) return false
   const scaledTracks: LayerRig['tracks'] = {}
   for (const [boneId, keys] of Object.entries(clip.tracks)) {
@@ -419,6 +276,8 @@ export function bakeClusterRigPresetToScene(
     timeEnd?: number
     intensity?: number
     nodeId?: string
+    rigBonePreset?: string
+    trajSnapshot?: TrajectorySnapshot
   }
 ): number {
   const members = getClusterMemberLayers(project, instanceId)
@@ -433,19 +292,9 @@ export function bakeClusterRigPresetToScene(
   // 1. Dọn sạch keyframe rig cũ của cùng Node hoặc trùng miền thời gian (idempotent 100%)
   clearClusterRigKeysFromScene(members, options?.nodeId, options?.nodeId ? [tStart, tEnd] : undefined)
 
-  // 2. Xác định bộ xương của cụm
-  const compositeId = root.composite?.compositeId
-  const savedComp = findCompositeTemplate(compositeId)
-  const isHumanoid = members.some((l) => {
-    const k = `${l.composite?.sourceLayerId ?? ''} ${l.composite?.slot ?? ''} ${l.name}`.toLowerCase()
-    return k.includes('torso') || k.includes('head') || k.includes('arm') || k.includes('thigh') || k.includes('shin') || k.includes('thân áo') || k.includes('đầu')
-  })
-  const bones: LayerBone[] =
-    savedComp?.rig?.bones && savedComp.rig.bones.length > 0
-      ? savedComp.rig.bones
-      : isHumanoid
-        ? CUTOUT_FRONT_BONES
-        : createSimpleChainBones()
+  // 2. Xác định bộ xương chuẩn theo hình thái (Người, Thú 4 chân, Chim, Quái vật, Chuỗi uốn)
+  const savedComp = findCompositeTemplate(root.composite?.compositeId)
+  const bones: LayerBone[] = resolveClusterRigBones(members, savedComp, preset, options?.rigBonePreset)
 
   const clip = createClipFromPreset(preset, bones)
   const rig: LayerRig = {
@@ -459,11 +308,24 @@ export function bakeClusterRigPresetToScene(
 
   const span = tEnd - tStart
   const intensity = Math.max(0.15, Math.min(2.2, options?.intensity ?? 1.0))
-  const totalSteps = Math.max(4, Math.ceil(span * 15))
-  const rootPos: Vec3 = [...(root.transform.position.value ?? [0, 0, 0])] as Vec3
+  const savedRoot = savedComp?.layers.find((it) => it.id === root.composite?.sourceLayerId)
+  const rootItemScale = Math.max(0.08, Math.abs((savedRoot?.scale ?? 1) * (savedRoot?.scaleX ?? 1)))
+  const baseRootScale = Math.max(0.08, Math.abs(root.transform.scale.value?.[0] ?? 0.72))
+  const baseScale = baseRootScale / rootItemScale
   const rootOff: Vec3 = [...(root.composite?.rootOffset ?? [0, 0, 0])] as Vec3
-  const centerOrigin: Vec3 = [rootPos[0] - rootOff[0], rootPos[1] - rootOff[1], rootPos[2] - rootOff[2]]
-  const scale = Math.max(0.1, Math.abs(root.transform.scale.value?.[0] ?? 0.72))
+  const rootSnap = options?.trajSnapshot?.get(root.id)
+  const rootTrajTrack = rootSnap
+    ? { value: [...root.transform.position.value] as Vec3, keyframes: rootSnap.pos }
+    : buildCleanTrajectoryTrack(root.transform.position.keyframes, root.transform.position.value)
+  const rootScaleTrack = rootSnap
+    ? { value: [...root.transform.scale.value] as Vec3, keyframes: rootSnap.scale }
+    : {
+        value: [...root.transform.scale.value] as Vec3,
+        keyframes: root.transform.scale.keyframes.map((k) => ({ ...k, value: [...k.value] as Vec3 }))
+      }
+  const rootRotTrack = rootSnap
+    ? { value: [...root.transform.rotation.value] as Vec3, keyframes: rootSnap.rot }
+    : buildCleanTrajectoryTrack(root.transform.rotation.keyframes, root.transform.rotation.value)
   const nodeTag = options?.nodeId ? `${options.nodeId}-` : ''
 
   let animatedCount = 0
@@ -473,9 +335,27 @@ export function bakeClusterRigPresetToScene(
       continue
     }
     const savedLayer = savedComp?.layers.find((it) => it.id === l.composite?.sourceLayerId)
-    const boneId = inferBoneIdForClusterLayer(l, bones, savedLayer?.boneId)
+    const boneId = inferClusterBoneId(l, bones, savedLayer?.boneId)
     if (!boneId) continue
-    if (sampleRigLayerKeyframes(l, boneId, rig, centerOrigin, scale, tStart, span, totalSteps, intensity, nodeTag)) {
+    if (
+      sampleTrajectoryAwareRigKeyframes({
+        layer: l,
+        root,
+        boneId,
+        rig,
+        baseScale,
+        baseRotZ: savedLayer?.rotation ?? 0,
+        baseRootScale,
+        rootOff,
+        rootTrajTrack,
+        rootScaleTrack,
+        rootRotTrack,
+        tStart,
+        span,
+        intensity,
+        nodeTag
+      })
+    ) {
       animatedCount++
     }
   }

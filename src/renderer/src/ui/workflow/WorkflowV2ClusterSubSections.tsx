@@ -1,7 +1,6 @@
 import React from 'react'
 import type { Layer, LayerMotionType, Vec3, WorkflowNodeParams } from '@shared/types'
 import {
-  WORKFLOW_V2_RIG_PRESET_OPTIONS,
   attachExternalLayerToClusterV2,
   getClusterPartShortName,
   updateClusterMemberOffsetV2,
@@ -12,6 +11,7 @@ import { rescaleModel3DInstance } from '../assets/models3d/insertModel3D'
 import { CompositePartSwapSection } from '../inspector/sections/CompositePartSwapSection'
 import { batchClearCompositeMotion, batchKeyframeCompositeTransform } from '../layerAssembly/compositeOps'
 import { OptionPills, ParamSlider } from './WorkflowV2NodeParams'
+import { WorkflowV2RigPresetPicker } from './WorkflowV2RigPresetPicker'
 import { getCheckerboardPalette, usePreviewCheckerTheme } from './alphaTrimmedPreview'
 
 const CLUSTER_MOTION_PILLS: { id: LayerMotionType; label: string }[] = [
@@ -183,30 +183,14 @@ export function ClusterRigAndMotionSection({
   return (
     <>
       <div className="wf-v2-insp-subhead">🦴 Hoạt ảnh Xương Nhân vật 2.5D (Rig Animation)</div>
-      <div className="wf-v2-pill-grid" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
-        {WORKFLOW_V2_RIG_PRESET_OPTIONS.map((opt) => {
-          const active = rigActionPreset === opt.id
-          return (
-            <button
-              key={opt.id}
-              type="button"
-              className={`wf-v2-opt-pill${active ? ' active' : ''}`}
-              title={opt.description}
-              onClick={() => onUpdate({ rigActionPreset: opt.id })}
-            >
-              {opt.shortLabel}
-            </button>
-          )
-        })}
-        <button
-          type="button"
-          className={`wf-v2-opt-pill${!rigActionPreset || rigActionPreset === 'none' ? ' active' : ''}`}
-          title="Gỡ keyframe hành động xương và trả cụm về tư thế đứng chuẩn"
-          onClick={() => onUpdate({ rigActionPreset: 'none' })}
-        >
-          ⏹ Tắt Rig xương
-        </button>
-      </div>
+      <WorkflowV2RigPresetPicker
+        value={rigActionPreset}
+        variant="compact"
+        cols={3}
+        showDisableButton
+        onPick={(opt) => onUpdate({ rigActionPreset: opt.id })}
+        onDisable={() => onUpdate({ rigActionPreset: 'none' })}
+      />
 
       <div className="wf-v2-insp-subhead">🌊 Motion Chu kỳ Đồng bộ Cả Cụm</div>
       <div className="wf-v2-pill-grid" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>

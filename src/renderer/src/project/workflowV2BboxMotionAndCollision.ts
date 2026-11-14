@@ -17,7 +17,7 @@ const isBboxColKeyId = (id: string, nodeId?: string): boolean =>
   nodeId ? id.includes(`-bboxcol-${nodeId}-`) : id.includes('-bboxcol-')
 
 const isGeneratedMotionKeyId = (id: string): boolean =>
-  id.includes('-bboxmot-') || id.includes('-bboxcol-') || id.includes('-motpath-p-') || id.includes('-col-')
+  id.includes('-bboxmot-') || id.includes('-bboxcol-') || id.includes('-motpath-p-') || id.includes('-col-') || id.includes('-rig-p-') || id.includes('-rig-r-')
 
 /**
  * Chuyển đổi qua lại giữa Độ sâu 3D (`position[2]`: càng nhỏ càng gần Camera)

@@ -33,6 +33,36 @@ export {
   generateShockRecoil,
   generateDramaticPoint
 } from './workshopMotionComicPresets'
+import {
+  createMonsterBones,
+  createQuadrupedRigBones,
+  createWingedRigBones,
+  generateCombatCombo,
+  generateDodgeCounter,
+  generateHitRecoil,
+  generateMartialKick,
+  generateMonsterPounce,
+  generateMonsterProwl,
+  generateMonsterRoar,
+  generateQuadrupedGallopClip,
+  generateQuadrupedWalkClip,
+  generateWingFlapClip
+} from './workshopCombatAndCreaturePresets'
+export {
+  createMonsterBones,
+  createQuadrupedRigBones,
+  createWingedRigBones,
+  generateCombatCombo,
+  generateDodgeCounter,
+  generateHitRecoil,
+  generateMartialKick,
+  generateMonsterPounce,
+  generateMonsterProwl,
+  generateMonsterRoar,
+  generateQuadrupedGallopClip,
+  generateQuadrupedWalkClip,
+  generateWingFlapClip
+} from './workshopCombatAndCreaturePresets'
 
 /** Preset humanoid 2D armature in workshop coordinates (origin 0,0 at center), with welded parent-child joints. */
 export function createHumanoidBones(): LayerBone[] {
@@ -64,6 +94,8 @@ export function createSimpleChainBones(): LayerBone[] {
   ])
 }
 
+export type MotionPresetArchetype = 'humanoid' | 'combat' | 'animal' | 'monster'
+
 export type ProceduralMotionPreset =
   | 'walk'
   | 'idle'
@@ -78,12 +110,23 @@ export type ProceduralMotionPreset =
   | 'fall'
   | 'land'
   | 'action'
+  | 'combat'
+  | 'martial_kick'
+  | 'dodge_counter'
+  | 'hit_recoil'
+  | 'quadruped_walk'
+  | 'quadruped_gallop'
+  | 'wing_flap'
+  | 'monster_prowl'
+  | 'monster_roar'
+  | 'monster_pounce'
   | 'sway'
   | 'hand-clench'
   | 'foot-roll'
 
 export interface MotionPresetInfo {
   id: ProceduralMotionPreset
+  archetype: MotionPresetArchetype
   name: string
   icon: string
   duration: number
@@ -91,22 +134,32 @@ export interface MotionPresetInfo {
 }
 
 export const MOTION_PRESETS: MotionPresetInfo[] = [
-  { id: 'walk', name: 'Bước đi (Walk)', icon: '🚶', duration: 1.6, description: 'Chân trụ tiếp đất, nhịp chuyển trọng tâm, đánh tay tự nhiên theo góc nhìn' },
-  { id: 'idle', name: 'Đứng thở (Idle)', icon: '🌬️', duration: 2.4, description: 'Nhịp thở lồng ngực phồng nhẹ có trễ pha vai → cẳng tay → đầu chuẩn Spine/AE' },
-  { id: 'talk', name: 'Thuyết thoại (Talk)', icon: '💬', duration: 2.2, description: 'Diễn xuất đàm đạo 2D Motion-Comic (Hàn Bối Tháp): gật đầu nhấn ý & vung tay giải thích mượt' },
-  { id: 'scheming', name: 'Mưu tính chống cằm (Scheming)', icon: '🧠', duration: 2.6, description: 'Động tác suy luận Quy Tắc đặc trưng Hàn Bối Tháp: chống cằm nghiêng đầu giữ dáng tinh quái' },
-  { id: 'shock', name: 'Giật mình Quái Đàm (Shock)', icon: '😱', duration: 1.5, description: 'Phản xạ co vai giật lùi dứt khoát (ease-out) kèm nhịp tim rung rồi bình tĩnh lại' },
-  { id: 'point', name: 'Chỉ tay phá cục (Point)', icon: '👉', duration: 1.7, description: 'Lấy đà vai rồi vung tay chỉ thẳng dứt khoát kiểu cao trào hoạt ảnh 2D' },
-  { id: 'wave', name: 'Vẫy tay chào (Wave)', icon: '👋', duration: 1.8, description: 'Đưa tay lên ngang vai vẫy chào thân thiện, đầu nghiêng mỉm cười' },
-  { id: 'bow', name: 'Cúi chào (Bow)', icon: '🙇', duration: 2.0, description: 'Gập thân & gật đầu cúi chào trang trọng (phối cảnh 2.5D chuẩn góc nhìn)' },
-  { id: 'run', name: 'Chạy nhanh (Run)', icon: '🏃', duration: 1.0, description: 'Sải chân dứt khoát, tay vung nhịp nhanh giàu năng lượng' },
-  { id: 'jump', name: 'Nhún nhảy (Jump)', icon: '🦘', duration: 1.4, description: 'Chùng hai gối đối xứng lấy đà bật nhảy vươn tay rồi tiếp đất êm ái' },
-  { id: 'fall', name: 'Vấp ngã (Trip & Fall)', icon: '💥', duration: 1.8, description: 'Khựng chân mất thăng bằng, vung hai tay và khuỵu xuống chống sàn' },
-  { id: 'land', name: 'Tiếp đất (Land)', icon: '🧘', duration: 1.2, description: 'Rơi tiếp đất giảm chấn, chùng hai gối hạ trọng tâm rồi đứng thẳng dậy' },
-  { id: 'action', name: 'Vung đòn (Action)', icon: '⚔️', duration: 1.5, description: 'Xoay vai lấy đà vung chém chéo qua thân uy lực, dứt khoát' },
-  { id: 'sway', name: 'Uốn lượn (Sway)', icon: '🌊', duration: 2.0, description: 'Lượn sóng dẻo dai cho cành lá, cây cối, tóc hoặc đuôi' },
-  { id: 'hand-clench', name: 'Nắm & Xòe bàn tay (Hand Clench)', icon: '✊', duration: 2.0, description: 'Diễn hoạt bàn tay: uốn cong các ngón thành nắm đấm rồi thả lỏng' },
-  { id: 'foot-roll', name: 'Nhón chân & Chạm gót (Heel-Toe Roll)', icon: '🩰', duration: 2.0, description: 'Diễn hoạt cổ chân & bàn chân: chạm gót, đặt phẳng và nhón mũi chân' }
+  { id: 'walk', archetype: 'humanoid', name: 'Bước đi (Walk)', icon: '🚶', duration: 1.6, description: 'Chân trụ tiếp đất, nhịp chuyển trọng tâm, đánh tay tự nhiên theo góc nhìn' },
+  { id: 'idle', archetype: 'humanoid', name: 'Đứng thở (Idle)', icon: '🌬️', duration: 2.4, description: 'Nhịp thở lồng ngực phồng nhẹ có trễ pha vai → cẳng tay → đầu chuẩn Spine/AE' },
+  { id: 'talk', archetype: 'humanoid', name: 'Thuyết thoại (Talk)', icon: '💬', duration: 2.2, description: 'Diễn xuất đàm đạo 2D Motion-Comic (Hàn Bối Tháp): gật đầu nhấn ý & vung tay giải thích mượt' },
+  { id: 'scheming', archetype: 'humanoid', name: 'Mưu tính chống cằm (Scheming)', icon: '🧠', duration: 2.6, description: 'Động tác suy luận Quy Tắc đặc trưng Hàn Bối Tháp: chống cằm nghiêng đầu giữ dáng tinh quái' },
+  { id: 'shock', archetype: 'humanoid', name: 'Giật mình Quái Đàm (Shock)', icon: '😱', duration: 1.5, description: 'Phản xạ co vai giật lùi dứt khoát (ease-out) kèm nhịp tim rung rồi bình tĩnh lại' },
+  { id: 'point', archetype: 'humanoid', name: 'Chỉ tay phá cục (Point)', icon: '👉', duration: 1.7, description: 'Lấy đà vai rồi vung tay chỉ thẳng dứt khoát kiểu cao trào hoạt ảnh 2D' },
+  { id: 'wave', archetype: 'humanoid', name: 'Vẫy tay chào (Wave)', icon: '👋', duration: 1.8, description: 'Đưa tay lên ngang vai vẫy chào thân thiện, đầu nghiêng mỉm cười' },
+  { id: 'bow', archetype: 'humanoid', name: 'Cúi chào (Bow)', icon: '🙇', duration: 2.0, description: 'Gập thân & gật đầu cúi chào trang trọng (phối cảnh 2.5D chuẩn góc nhìn)' },
+  { id: 'run', archetype: 'humanoid', name: 'Chạy nhanh (Run)', icon: '🏃', duration: 1.0, description: 'Sải chân dứt khoát, tay vung nhịp nhanh giàu năng lượng' },
+  { id: 'jump', archetype: 'humanoid', name: 'Nhún nhảy (Jump)', icon: '🦘', duration: 1.4, description: 'Chùng hai gối đối xứng lấy đà bật nhảy vươn tay rồi tiếp đất êm ái' },
+  { id: 'fall', archetype: 'humanoid', name: 'Vấp ngã (Trip & Fall)', icon: '💥', duration: 1.8, description: 'Khựng chân mất thăng bằng, vung hai tay và khuỵu xuống chống sàn' },
+  { id: 'land', archetype: 'humanoid', name: 'Tiếp đất (Land)', icon: '🧘', duration: 1.2, description: 'Rơi tiếp đất giảm chấn, chùng hai gối hạ trọng tâm rồi đứng thẳng dậy' },
+  { id: 'action', archetype: 'combat', name: 'Vung đòn (Action)', icon: '⚔️', duration: 1.5, description: 'Xoay vai lấy đà vung chém chéo qua thân uy lực, dứt khoát' },
+  { id: 'combat', archetype: 'combat', name: 'Liên hoàn trảm (Combat)', icon: '🗡️', duration: 1.5, description: 'Thủ thế lao chém liên hoàn 2 nhát chuẩn kiếm hiệp & hành động 2.5D' },
+  { id: 'martial_kick', archetype: 'combat', name: 'Tung cước (Martial Kick)', icon: '🥋', duration: 1.2, description: 'Nhún lấy đà co gối tung cước tống thẳng rồi tiếp đất thăng bằng' },
+  { id: 'dodge_counter', archetype: 'combat', name: 'Né đòn phản kích (Dodge)', icon: '⚡', duration: 1.25, description: 'Ngả người né đòn hiểm rồi bật lò xo đâm kiếm phản công dứt khoát' },
+  { id: 'hit_recoil', archetype: 'combat', name: 'Trúng đòn bật lùi (Hit Recoil)', icon: '💢', duration: 1.0, description: 'Khựng giật nảy về sau khi trúng chiêu, dùng được cho cả Người, Thú và Quái vật' },
+  { id: 'quadruped_walk', archetype: 'animal', name: 'Thú 4 chân đi bước (Walk)', icon: '🐺', duration: 1.4, description: 'Nhịp bước chéo 4 chân tự nhiên kèm gật đầu và đuôi lượn sóng cho Sói / Chó / Ngựa' },
+  { id: 'quadruped_gallop', archetype: 'animal', name: 'Thú phi nước đại (Gallop)', icon: '🐎', duration: 0.85, description: 'Bật phóng tốc độ cao: vươn 2 chân trước đón đất, đạp mạnh 2 chân sau lao tới' },
+  { id: 'wing_flap', archetype: 'animal', name: 'Linh cầm vỗ cánh (Wing Flap)', icon: '🕊️', duration: 1.1, description: 'Sải cánh vỗ nhịp mạnh nâng thân bay bổng tự nhiên cho Chim / Hạc / Linh cầm' },
+  { id: 'monster_prowl', archetype: 'monster', name: 'Quái vật rình bước (Prowl)', icon: '🐾', duration: 1.8, description: 'Bước chân nặng nề áp đảo, gù vai lắc song trảo & quất đuôi gai chuẩn bị vồ mồi' },
+  { id: 'monster_roar', archetype: 'monster', name: 'Quái vật gầm rống (Roar)', icon: '👹', duration: 1.6, description: 'Ưỡn ngực ngửa đầu há to hàm nanh gầm rống uy áp, giương rộng hai cự trảo' },
+  { id: 'monster_pounce', archetype: 'monster', name: 'Quái vật vồ song trảo (Pounce)', icon: '🦁', duration: 1.3, description: 'Co người dồn lực nhảy vồ lên cao bổ tát song trảo chéo xuống cực mạnh' },
+  { id: 'sway', archetype: 'humanoid', name: 'Uốn lượn (Sway)', icon: '🌊', duration: 2.0, description: 'Lượn sóng dẻo dai cho cành lá, cây cối, tóc hoặc đuôi' },
+  { id: 'hand-clench', archetype: 'humanoid', name: 'Nắm & Xòe bàn tay (Hand Clench)', icon: '✊', duration: 2.0, description: 'Diễn hoạt bàn tay: uốn cong các ngón thành nắm đấm rồi thả lỏng' },
+  { id: 'foot-roll', archetype: 'humanoid', name: 'Nhón chân & Chạm gót (Heel-Toe Roll)', icon: '🩰', duration: 2.0, description: 'Diễn hoạt cổ chân & bàn chân: chạm gót, đặt phẳng và nhón mũi chân' }
 ]
 
 /** 1. Đứng thở tự nhiên (Idle Breathe) — hít thở bất đối xứng & trễ pha truyền khớp cha → con chuẩn Spine/AE. */
@@ -657,6 +710,36 @@ export function createClipFromPreset(
     case 'action':
       tracks = generateActionSlash(bones, duration, viewAngle)
       break
+    case 'combat':
+      tracks = generateCombatCombo(bones, duration, viewAngle)
+      break
+    case 'martial_kick':
+      tracks = generateMartialKick(bones, duration, viewAngle)
+      break
+    case 'dodge_counter':
+      tracks = generateDodgeCounter(bones, duration, viewAngle)
+      break
+    case 'hit_recoil':
+      tracks = generateHitRecoil(bones, duration, viewAngle)
+      break
+    case 'quadruped_walk':
+      tracks = generateQuadrupedWalkClip(bones, duration)
+      break
+    case 'quadruped_gallop':
+      tracks = generateQuadrupedGallopClip(bones, duration)
+      break
+    case 'wing_flap':
+      tracks = generateWingFlapClip(bones, duration)
+      break
+    case 'monster_prowl':
+      tracks = generateMonsterProwl(bones, duration)
+      break
+    case 'monster_roar':
+      tracks = generateMonsterRoar(bones, duration)
+      break
+    case 'monster_pounce':
+      tracks = generateMonsterPounce(bones, duration)
+      break
     case 'sway':
       tracks = generateSway(bones, duration)
       break
@@ -689,7 +772,7 @@ export function createClipFromPreset(
   const angleSuffix =
     viewAngle === 'side' ? ' (90°)' : viewAngle === 'diagonal' ? ' (45°)' : viewAngle === 'back' ? ' (180°)' : ''
   const name = customName || `${meta?.name || `Động tác ${preset}`}${angleSuffix}`
-  const isOneShot = preset === 'bow' || preset === 'fall' || preset === 'land'
+  const isOneShot = preset === 'bow' || preset === 'fall' || preset === 'land' || preset === 'hit_recoil'
   return {
     id: `clip-${preset}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
     name,

@@ -400,13 +400,13 @@ export const LAYER_ASSEMBLY_TOOLS = [
       hold_frames: z.number().min(1).max(300).optional().describe(d('hold-frames (Adobe Animate F5): number of frames to insert/hold at time, shifting subsequent keys forward.', 'hold-frames (Adobe Animate F5): số khung giữ dáng chèn thêm tại time, tự đẩy các keyframe phía sau lùi lại.')),
       hold_seconds: z.number().min(0.01).max(30).optional().describe(d('hold-frames: hold duration in seconds (alternative to hold_frames).', 'hold-frames: thời gian giữ dáng tính bằng giây (thay cho hold_frames).')),
       template: z
-        .enum(['humanoid', 'humanoid-full', 'hand-detailed', 'foot-detailed', 'simple-chain'])
+        .enum(['humanoid', 'humanoid-full', 'hand-detailed', 'foot-detailed', 'simple-chain', 'quadruped', 'bird', 'monster'])
         .optional()
-        .describe(d('Skeleton template to apply (humanoid, humanoid-full, hand-detailed, foot-detailed, simple-chain).', 'Mẫu khung xương áp dụng (humanoid, humanoid-full, hand-detailed, foot-detailed, simple-chain).')),
+        .describe(d('Skeleton template to apply (humanoid, humanoid-full, hand-detailed, foot-detailed, simple-chain, quadruped, bird, monster).', 'Mẫu khung xương áp dụng (humanoid, humanoid-full, hand-detailed, foot-detailed, simple-chain, quadruped, bird, monster).')),
       preset: z
-        .enum(['walk', 'idle', 'talk', 'scheming', 'shock', 'point', 'wave', 'bow', 'run', 'jump', 'fall', 'land', 'action', 'sway', 'hand-clench', 'foot-roll'])
+        .enum(['walk', 'idle', 'talk', 'scheming', 'shock', 'point', 'wave', 'bow', 'run', 'jump', 'fall', 'land', 'action', 'sway', 'hand-clench', 'foot-roll', 'combat', 'martial_kick', 'dodge_counter', 'hit_recoil', 'quadruped_walk', 'quadruped_gallop', 'wing_flap', 'monster_prowl', 'monster_roar', 'monster_pounce'])
         .optional()
-        .describe(d('Procedural motion preset to generate (talk, scheming, shock, point = 2D Donghua / Motion-Comic acting).', 'Chuyển động mẫu tự động sinh (talk, scheming, shock, point = diễn xuất Hoạt ảnh 2D / Motion-Comic).')),
+        .describe(d('Procedural motion preset to generate (includes combat, quadruped, bird wing_flap, and monster clips).', 'Chuyển động mẫu tự động sinh (gồm chiến đấu, thú 4 chân, cánh chim và quái vật).')),
       view_angle: z.enum(['front', 'diagonal', 'side', 'back']).optional().describe(d('Character facing view angle for procedural motion presets ("front" = 0° front-facing default, "diagonal" = 45° 3/4 view, "side" = 90° profile).', 'Góc nhìn nhân vật khi sinh chuyển động mẫu ("front" = 0° chính diện mặc định, "diagonal" = 45° chéo 3/4, "side" = 90° ngang).')),
       clip_id: z.string().optional().describe(d('Animation clip ID to switch, duplicate, rename or delete.', 'ID clip động tác cần chuyển, nhân bản, đổi tên hoặc xóa.')),
       clip_name: z.string().optional().describe(d('New clip name when adding, duplicating or inheriting.', 'Tên clip mới khi thêm, nhân bản hoặc kế thừa.')),
