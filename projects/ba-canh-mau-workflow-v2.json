@@ -17,7 +17,7 @@
       ],
       "keyframes": [
         {
-          "id": "qqB98Oa1",
+          "id": "NY17BnjX",
           "t": 0,
           "value": [
             0,
@@ -27,7 +27,7 @@
           "ease": "easeInOut"
         },
         {
-          "id": "YeWbVOsS",
+          "id": "azXdNanm",
           "t": 2.2,
           "value": [
             60,
@@ -37,7 +37,7 @@
           "ease": "hold"
         },
         {
-          "id": "demo-hold-YeWbVOsS",
+          "id": "demo-hold-azXdNanm",
           "t": 4,
           "value": [
             60,
@@ -47,7 +47,7 @@
           "ease": "easeInOut"
         },
         {
-          "id": "6Z5c6wPo",
+          "id": "yu9_gZqA",
           "t": 5,
           "value": [
             10560,
@@ -57,7 +57,7 @@
           "ease": "easeInOut"
         },
         {
-          "id": "pkeWp3Kn",
+          "id": "I8BxmN2Q",
           "t": 7.2,
           "value": [
             10635,
@@ -67,7 +67,7 @@
           "ease": "hold"
         },
         {
-          "id": "demo-hold-pkeWp3Kn",
+          "id": "demo-hold-I8BxmN2Q",
           "t": 9,
           "value": [
             10635,
@@ -77,7 +77,7 @@
           "ease": "easeInOut"
         },
         {
-          "id": "oY5oz2ys",
+          "id": "RER7ppvL",
           "t": 10,
           "value": [
             21120,
@@ -87,7 +87,7 @@
           "ease": "easeInOut"
         },
         {
-          "id": "tncSv5gv",
+          "id": "2kruoLkv",
           "t": 12.4,
           "value": [
             21175,
@@ -97,7 +97,7 @@
           "ease": "easeInOut"
         },
         {
-          "id": "Yq_zY0xL",
+          "id": "eYw6_ryg",
           "t": 15,
           "value": [
             21215,
@@ -116,7 +116,7 @@
       ],
       "keyframes": [
         {
-          "id": "YgU0pDVl",
+          "id": "kXKd_I8Q",
           "t": 0,
           "value": [
             0,
@@ -126,7 +126,7 @@
           "ease": "easeInOut"
         },
         {
-          "id": "cZa5b2SS",
+          "id": "wP9kbqvm",
           "t": 2.2,
           "value": [
             60,
@@ -136,7 +136,7 @@
           "ease": "hold"
         },
         {
-          "id": "demo-hold-cZa5b2SS",
+          "id": "demo-hold-wP9kbqvm",
           "t": 4,
           "value": [
             60,
@@ -146,7 +146,7 @@
           "ease": "easeInOut"
         },
         {
-          "id": "9vpFlDF6",
+          "id": "1CfAn69_",
           "t": 5,
           "value": [
             10560,
@@ -156,7 +156,7 @@
           "ease": "easeInOut"
         },
         {
-          "id": "DTwiD3r7",
+          "id": "75G6pr5_",
           "t": 7.2,
           "value": [
             10635,
@@ -166,7 +166,7 @@
           "ease": "hold"
         },
         {
-          "id": "demo-hold-DTwiD3r7",
+          "id": "demo-hold-75G6pr5_",
           "t": 9,
           "value": [
             10635,
@@ -176,7 +176,7 @@
           "ease": "easeInOut"
         },
         {
-          "id": "hWJe57Fy",
+          "id": "TtCZcaeH",
           "t": 10,
           "value": [
             21120,
@@ -186,7 +186,7 @@
           "ease": "easeInOut"
         },
         {
-          "id": "wdwBnGZr",
+          "id": "ZeK1QyAQ",
           "t": 12.4,
           "value": [
             21175,
@@ -196,7 +196,7 @@
           "ease": "easeInOut"
         },
         {
-          "id": "yEbfvU7B",
+          "id": "ROMC_Kl2",
           "t": 15,
           "value": [
             21215,
@@ -568,8 +568,8 @@
       "locked": false,
       "inPoint": 0,
       "outPoint": 5,
-      "fadeIn": 0,
-      "fadeOut": 0,
+      "fadeIn": 0.35,
+      "fadeOut": 0.35,
       "blendMode": "normal",
       "autoScale": true,
       "autoOrient": "none",
@@ -623,7 +623,7 @@
           ],
           "keyframes": [
             {
-              "id": "layer-s1-boy-body-dynact-v2-anim_fx-cluster-boy-s1-rot-0",
+              "id": "layer-s1-boy-body-dynact-v2-anim_fx-layer-s1-boy-body-rot-0",
               "t": 0.2,
               "value": [
                 0,
@@ -633,7 +633,7 @@
               "ease": "easeInOut"
             },
             {
-              "id": "layer-s1-boy-body-dynact-v2-anim_fx-cluster-boy-s1-rot-1",
+              "id": "layer-s1-boy-body-dynact-v2-anim_fx-layer-s1-boy-body-rot-1",
               "t": 0.567,
               "value": [
                 0,
@@ -643,7 +643,7 @@
               "ease": "easeInOut"
             },
             {
-              "id": "layer-s1-boy-body-dynact-v2-anim_fx-cluster-boy-s1-rot-2",
+              "id": "layer-s1-boy-body-dynact-v2-anim_fx-layer-s1-boy-body-rot-2",
               "t": 0.933,
               "value": [
                 0,
@@ -653,7 +653,7 @@
               "ease": "easeInOut"
             },
             {
-              "id": "layer-s1-boy-body-dynact-v2-anim_fx-cluster-boy-s1-rot-3",
+              "id": "layer-s1-boy-body-dynact-v2-anim_fx-layer-s1-boy-body-rot-3",
               "t": 1.3,
               "value": [
                 0,
@@ -663,7 +663,7 @@
               "ease": "easeInOut"
             },
             {
-              "id": "layer-s1-boy-body-dynact-v2-anim_fx-cluster-boy-s1-rot-4",
+              "id": "layer-s1-boy-body-dynact-v2-anim_fx-layer-s1-boy-body-rot-4",
               "t": 1.667,
               "value": [
                 0,
@@ -673,7 +673,7 @@
               "ease": "easeInOut"
             },
             {
-              "id": "layer-s1-boy-body-dynact-v2-anim_fx-cluster-boy-s1-rot-5",
+              "id": "layer-s1-boy-body-dynact-v2-anim_fx-layer-s1-boy-body-rot-5",
               "t": 2.033,
               "value": [
                 0,
@@ -683,7 +683,7 @@
               "ease": "easeInOut"
             },
             {
-              "id": "layer-s1-boy-body-dynact-v2-anim_fx-cluster-boy-s1-rot-6",
+              "id": "layer-s1-boy-body-dynact-v2-anim_fx-layer-s1-boy-body-rot-6",
               "t": 2.4,
               "value": [
                 0,
@@ -693,7 +693,7 @@
               "ease": "easeInOut"
             },
             {
-              "id": "layer-s1-boy-body-dynact-v2-anim_fx-cluster-boy-s1-rot-7",
+              "id": "layer-s1-boy-body-dynact-v2-anim_fx-layer-s1-boy-body-rot-7",
               "t": 2.767,
               "value": [
                 0,
@@ -703,7 +703,7 @@
               "ease": "easeInOut"
             },
             {
-              "id": "layer-s1-boy-body-dynact-v2-anim_fx-cluster-boy-s1-rot-8",
+              "id": "layer-s1-boy-body-dynact-v2-anim_fx-layer-s1-boy-body-rot-8",
               "t": 3.133,
               "value": [
                 0,
@@ -713,7 +713,7 @@
               "ease": "easeInOut"
             },
             {
-              "id": "layer-s1-boy-body-dynact-v2-anim_fx-cluster-boy-s1-rot-9",
+              "id": "layer-s1-boy-body-dynact-v2-anim_fx-layer-s1-boy-body-rot-9",
               "t": 3.5,
               "value": [
                 0,
@@ -723,7 +723,7 @@
               "ease": "easeInOut"
             },
             {
-              "id": "layer-s1-boy-body-dynact-v2-anim_fx-cluster-boy-s1-rot-10",
+              "id": "layer-s1-boy-body-dynact-v2-anim_fx-layer-s1-boy-body-rot-10",
               "t": 3.867,
               "value": [
                 0,
@@ -733,7 +733,7 @@
               "ease": "easeInOut"
             },
             {
-              "id": "layer-s1-boy-body-dynact-v2-anim_fx-cluster-boy-s1-rot-11",
+              "id": "layer-s1-boy-body-dynact-v2-anim_fx-layer-s1-boy-body-rot-11",
               "t": 4.233,
               "value": [
                 0,
@@ -743,7 +743,7 @@
               "ease": "easeInOut"
             },
             {
-              "id": "layer-s1-boy-body-dynact-v2-anim_fx-cluster-boy-s1-rot-12",
+              "id": "layer-s1-boy-body-dynact-v2-anim_fx-layer-s1-boy-body-rot-12",
               "t": 4.6,
               "value": [
                 0,
@@ -810,7 +810,12 @@
       "props": {
         "assetId": "asset-s1-boy-body",
         "width": 240,
-        "height": 340
+        "height": 340,
+        "loopFadeInSec": 0.35,
+        "loopFadeOutSec": 0.35,
+        "loopEndAction": "fade_out",
+        "loopStartTime": 0,
+        "loopEndTime": 5
       },
       "composite": {
         "compositeId": "comp-boy-s1",
@@ -851,8 +856,8 @@
       "locked": false,
       "inPoint": 0,
       "outPoint": 5,
-      "fadeIn": 0,
-      "fadeOut": 0,
+      "fadeIn": 0.35,
+      "fadeOut": 0.35,
       "blendMode": "normal",
       "autoScale": true,
       "autoOrient": "none",
@@ -993,7 +998,12 @@
       "props": {
         "assetId": "asset-s1-boy-face-smile",
         "width": 160,
-        "height": 160
+        "height": 160,
+        "loopFadeInSec": 0.35,
+        "loopFadeOutSec": 0.35,
+        "loopEndAction": "fade_out",
+        "loopStartTime": 0,
+        "loopEndTime": 5
       },
       "composite": {
         "compositeId": "comp-boy-s1",
@@ -1017,8 +1027,8 @@
       "locked": false,
       "inPoint": 0,
       "outPoint": 5,
-      "fadeIn": 0,
-      "fadeOut": 0,
+      "fadeIn": 0.35,
+      "fadeOut": 0.35,
       "blendMode": "normal",
       "autoScale": true,
       "autoOrient": "none",
@@ -1072,7 +1082,7 @@
           ],
           "keyframes": [
             {
-              "id": "layer-s1-boy-face-wow-dynact-v2-anim_fx-cluster-boy-s1-rot-0",
+              "id": "layer-s1-boy-face-wow-dynact-v2-anim_fx-layer-s1-boy-body-rot-0",
               "t": 0.2,
               "value": [
                 0,
@@ -1082,7 +1092,7 @@
               "ease": "easeInOut"
             },
             {
-              "id": "layer-s1-boy-face-wow-dynact-v2-anim_fx-cluster-boy-s1-rot-1",
+              "id": "layer-s1-boy-face-wow-dynact-v2-anim_fx-layer-s1-boy-body-rot-1",
               "t": 0.567,
               "value": [
                 0,
@@ -1092,7 +1102,7 @@
               "ease": "easeInOut"
             },
             {
-              "id": "layer-s1-boy-face-wow-dynact-v2-anim_fx-cluster-boy-s1-rot-2",
+              "id": "layer-s1-boy-face-wow-dynact-v2-anim_fx-layer-s1-boy-body-rot-2",
               "t": 0.933,
               "value": [
                 0,
@@ -1102,7 +1112,7 @@
               "ease": "easeInOut"
             },
             {
-              "id": "layer-s1-boy-face-wow-dynact-v2-anim_fx-cluster-boy-s1-rot-3",
+              "id": "layer-s1-boy-face-wow-dynact-v2-anim_fx-layer-s1-boy-body-rot-3",
               "t": 1.3,
               "value": [
                 0,
@@ -1112,7 +1122,7 @@
               "ease": "easeInOut"
             },
             {
-              "id": "layer-s1-boy-face-wow-dynact-v2-anim_fx-cluster-boy-s1-rot-4",
+              "id": "layer-s1-boy-face-wow-dynact-v2-anim_fx-layer-s1-boy-body-rot-4",
               "t": 1.667,
               "value": [
                 0,
@@ -1122,7 +1132,7 @@
               "ease": "easeInOut"
             },
             {
-              "id": "layer-s1-boy-face-wow-dynact-v2-anim_fx-cluster-boy-s1-rot-5",
+              "id": "layer-s1-boy-face-wow-dynact-v2-anim_fx-layer-s1-boy-body-rot-5",
               "t": 2.033,
               "value": [
                 0,
@@ -1132,7 +1142,7 @@
               "ease": "easeInOut"
             },
             {
-              "id": "layer-s1-boy-face-wow-dynact-v2-anim_fx-cluster-boy-s1-rot-6",
+              "id": "layer-s1-boy-face-wow-dynact-v2-anim_fx-layer-s1-boy-body-rot-6",
               "t": 2.4,
               "value": [
                 0,
@@ -1142,7 +1152,7 @@
               "ease": "easeInOut"
             },
             {
-              "id": "layer-s1-boy-face-wow-dynact-v2-anim_fx-cluster-boy-s1-rot-7",
+              "id": "layer-s1-boy-face-wow-dynact-v2-anim_fx-layer-s1-boy-body-rot-7",
               "t": 2.767,
               "value": [
                 0,
@@ -1152,7 +1162,7 @@
               "ease": "easeInOut"
             },
             {
-              "id": "layer-s1-boy-face-wow-dynact-v2-anim_fx-cluster-boy-s1-rot-8",
+              "id": "layer-s1-boy-face-wow-dynact-v2-anim_fx-layer-s1-boy-body-rot-8",
               "t": 3.133,
               "value": [
                 0,
@@ -1162,7 +1172,7 @@
               "ease": "easeInOut"
             },
             {
-              "id": "layer-s1-boy-face-wow-dynact-v2-anim_fx-cluster-boy-s1-rot-9",
+              "id": "layer-s1-boy-face-wow-dynact-v2-anim_fx-layer-s1-boy-body-rot-9",
               "t": 3.5,
               "value": [
                 0,
@@ -1172,7 +1182,7 @@
               "ease": "easeInOut"
             },
             {
-              "id": "layer-s1-boy-face-wow-dynact-v2-anim_fx-cluster-boy-s1-rot-10",
+              "id": "layer-s1-boy-face-wow-dynact-v2-anim_fx-layer-s1-boy-body-rot-10",
               "t": 3.867,
               "value": [
                 0,
@@ -1182,7 +1192,7 @@
               "ease": "easeInOut"
             },
             {
-              "id": "layer-s1-boy-face-wow-dynact-v2-anim_fx-cluster-boy-s1-rot-11",
+              "id": "layer-s1-boy-face-wow-dynact-v2-anim_fx-layer-s1-boy-body-rot-11",
               "t": 4.233,
               "value": [
                 0,
@@ -1192,7 +1202,7 @@
               "ease": "easeInOut"
             },
             {
-              "id": "layer-s1-boy-face-wow-dynact-v2-anim_fx-cluster-boy-s1-rot-12",
+              "id": "layer-s1-boy-face-wow-dynact-v2-anim_fx-layer-s1-boy-body-rot-12",
               "t": 4.6,
               "value": [
                 0,
@@ -1290,7 +1300,12 @@
       "props": {
         "assetId": "asset-s1-boy-face-wow",
         "width": 160,
-        "height": 160
+        "height": 160,
+        "loopFadeInSec": 0.35,
+        "loopFadeOutSec": 0.35,
+        "loopEndAction": "fade_out",
+        "loopStartTime": 0,
+        "loopEndTime": 5
       },
       "composite": {
         "compositeId": "comp-boy-s1",
@@ -1314,8 +1329,8 @@
       "locked": false,
       "inPoint": 0,
       "outPoint": 5,
-      "fadeIn": 0,
-      "fadeOut": 0,
+      "fadeIn": 0.35,
+      "fadeOut": 0.35,
       "blendMode": "normal",
       "autoScale": true,
       "autoOrient": "none",
@@ -1456,7 +1471,12 @@
       "props": {
         "assetId": "asset-s1-boy-arm-wave",
         "width": 150,
-        "height": 180
+        "height": 180,
+        "loopFadeInSec": 0.35,
+        "loopFadeOutSec": 0.35,
+        "loopEndAction": "fade_out",
+        "loopStartTime": 0,
+        "loopEndTime": 5
       },
       "composite": {
         "compositeId": "comp-boy-s1",
@@ -1480,8 +1500,8 @@
       "locked": false,
       "inPoint": 0,
       "outPoint": 5,
-      "fadeIn": 0,
-      "fadeOut": 0,
+      "fadeIn": 0.35,
+      "fadeOut": 0.35,
       "blendMode": "normal",
       "autoScale": true,
       "autoOrient": "none",
@@ -1535,7 +1555,7 @@
           ],
           "keyframes": [
             {
-              "id": "layer-s1-boy-arm-point-dynact-v2-anim_fx-cluster-boy-s1-rot-0",
+              "id": "layer-s1-boy-arm-point-dynact-v2-anim_fx-layer-s1-boy-body-rot-0",
               "t": 0.2,
               "value": [
                 0,
@@ -1545,7 +1565,7 @@
               "ease": "easeInOut"
             },
             {
-              "id": "layer-s1-boy-arm-point-dynact-v2-anim_fx-cluster-boy-s1-rot-1",
+              "id": "layer-s1-boy-arm-point-dynact-v2-anim_fx-layer-s1-boy-body-rot-1",
               "t": 0.567,
               "value": [
                 0,
@@ -1555,7 +1575,7 @@
               "ease": "easeInOut"
             },
             {
-              "id": "layer-s1-boy-arm-point-dynact-v2-anim_fx-cluster-boy-s1-rot-2",
+              "id": "layer-s1-boy-arm-point-dynact-v2-anim_fx-layer-s1-boy-body-rot-2",
               "t": 0.933,
               "value": [
                 0,
@@ -1565,7 +1585,7 @@
               "ease": "easeInOut"
             },
             {
-              "id": "layer-s1-boy-arm-point-dynact-v2-anim_fx-cluster-boy-s1-rot-3",
+              "id": "layer-s1-boy-arm-point-dynact-v2-anim_fx-layer-s1-boy-body-rot-3",
               "t": 1.3,
               "value": [
                 0,
@@ -1575,7 +1595,7 @@
               "ease": "easeInOut"
             },
             {
-              "id": "layer-s1-boy-arm-point-dynact-v2-anim_fx-cluster-boy-s1-rot-4",
+              "id": "layer-s1-boy-arm-point-dynact-v2-anim_fx-layer-s1-boy-body-rot-4",
               "t": 1.667,
               "value": [
                 0,
@@ -1585,7 +1605,7 @@
               "ease": "easeInOut"
             },
             {
-              "id": "layer-s1-boy-arm-point-dynact-v2-anim_fx-cluster-boy-s1-rot-5",
+              "id": "layer-s1-boy-arm-point-dynact-v2-anim_fx-layer-s1-boy-body-rot-5",
               "t": 2.033,
               "value": [
                 0,
@@ -1595,7 +1615,7 @@
               "ease": "easeInOut"
             },
             {
-              "id": "layer-s1-boy-arm-point-dynact-v2-anim_fx-cluster-boy-s1-rot-6",
+              "id": "layer-s1-boy-arm-point-dynact-v2-anim_fx-layer-s1-boy-body-rot-6",
               "t": 2.4,
               "value": [
                 0,
@@ -1605,7 +1625,7 @@
               "ease": "easeInOut"
             },
             {
-              "id": "layer-s1-boy-arm-point-dynact-v2-anim_fx-cluster-boy-s1-rot-7",
+              "id": "layer-s1-boy-arm-point-dynact-v2-anim_fx-layer-s1-boy-body-rot-7",
               "t": 2.767,
               "value": [
                 0,
@@ -1615,7 +1635,7 @@
               "ease": "easeInOut"
             },
             {
-              "id": "layer-s1-boy-arm-point-dynact-v2-anim_fx-cluster-boy-s1-rot-8",
+              "id": "layer-s1-boy-arm-point-dynact-v2-anim_fx-layer-s1-boy-body-rot-8",
               "t": 3.133,
               "value": [
                 0,
@@ -1625,7 +1645,7 @@
               "ease": "easeInOut"
             },
             {
-              "id": "layer-s1-boy-arm-point-dynact-v2-anim_fx-cluster-boy-s1-rot-9",
+              "id": "layer-s1-boy-arm-point-dynact-v2-anim_fx-layer-s1-boy-body-rot-9",
               "t": 3.5,
               "value": [
                 0,
@@ -1635,7 +1655,7 @@
               "ease": "easeInOut"
             },
             {
-              "id": "layer-s1-boy-arm-point-dynact-v2-anim_fx-cluster-boy-s1-rot-10",
+              "id": "layer-s1-boy-arm-point-dynact-v2-anim_fx-layer-s1-boy-body-rot-10",
               "t": 3.867,
               "value": [
                 0,
@@ -1645,7 +1665,7 @@
               "ease": "easeInOut"
             },
             {
-              "id": "layer-s1-boy-arm-point-dynact-v2-anim_fx-cluster-boy-s1-rot-11",
+              "id": "layer-s1-boy-arm-point-dynact-v2-anim_fx-layer-s1-boy-body-rot-11",
               "t": 4.233,
               "value": [
                 0,
@@ -1655,7 +1675,7 @@
               "ease": "easeInOut"
             },
             {
-              "id": "layer-s1-boy-arm-point-dynact-v2-anim_fx-cluster-boy-s1-rot-12",
+              "id": "layer-s1-boy-arm-point-dynact-v2-anim_fx-layer-s1-boy-body-rot-12",
               "t": 4.6,
               "value": [
                 0,
@@ -1753,7 +1773,12 @@
       "props": {
         "assetId": "asset-s1-boy-arm-point",
         "width": 150,
-        "height": 180
+        "height": 180,
+        "loopFadeInSec": 0.35,
+        "loopFadeOutSec": 0.35,
+        "loopEndAction": "fade_out",
+        "loopStartTime": 0,
+        "loopEndTime": 5
       },
       "composite": {
         "compositeId": "comp-boy-s1",
@@ -1777,8 +1802,8 @@
       "locked": false,
       "inPoint": 0,
       "outPoint": 5,
-      "fadeIn": 0,
-      "fadeOut": 0,
+      "fadeIn": 0.5,
+      "fadeOut": 0.5,
       "blendMode": "normal",
       "autoScale": true,
       "autoOrient": "none",
@@ -1826,7 +1851,12 @@
       "props": {
         "assetId": "asset-s1-fg-flowers",
         "width": 1920,
-        "height": 320
+        "height": 320,
+        "loopFadeInSec": 0.5,
+        "loopFadeOutSec": 0.5,
+        "loopEndAction": "fade_out",
+        "loopStartTime": 0.2,
+        "loopEndTime": 4.8
       },
       "physics": {
         "enabled": true,
@@ -1968,8 +1998,8 @@
       "locked": false,
       "inPoint": 4,
       "outPoint": 10,
-      "fadeIn": 0,
-      "fadeOut": 0,
+      "fadeIn": 0.5,
+      "fadeOut": 0.5,
       "blendMode": "normal",
       "autoScale": true,
       "autoOrient": "none",
@@ -2017,7 +2047,12 @@
       "props": {
         "assetId": "asset-s2-lamp-table",
         "width": 520,
-        "height": 460
+        "height": 460,
+        "loopFadeInSec": 0.5,
+        "loopFadeOutSec": 0.5,
+        "loopEndAction": "fade_out",
+        "loopStartTime": 5.2,
+        "loopEndTime": 9.8
       },
       "virtualLight": {
         "enabled": true,
@@ -2060,8 +2095,8 @@
       "locked": false,
       "inPoint": 4,
       "outPoint": 10,
-      "fadeIn": 0,
-      "fadeOut": 0,
+      "fadeIn": 0.5,
+      "fadeOut": 0.5,
       "blendMode": "normal",
       "autoScale": true,
       "autoOrient": "none",
@@ -2431,7 +2466,12 @@
       "props": {
         "assetId": "asset-s2-robo-body",
         "width": 240,
-        "height": 320
+        "height": 320,
+        "loopFadeInSec": 0.5,
+        "loopFadeOutSec": 0.5,
+        "loopEndAction": "fade_out",
+        "loopStartTime": 5.2,
+        "loopEndTime": 9.8
       },
       "composite": {
         "compositeId": "comp-robo-s2",
@@ -2456,8 +2496,8 @@
       "locked": false,
       "inPoint": 4,
       "outPoint": 10,
-      "fadeIn": 0,
-      "fadeOut": 0,
+      "fadeIn": 0.5,
+      "fadeOut": 0.5,
       "blendMode": "normal",
       "autoScale": true,
       "autoOrient": "none",
@@ -2858,7 +2898,12 @@
       "props": {
         "assetId": "asset-s2-robo-face-happy",
         "width": 160,
-        "height": 150
+        "height": 150,
+        "loopFadeInSec": 0.5,
+        "loopFadeOutSec": 0.5,
+        "loopEndAction": "fade_out",
+        "loopStartTime": 5.2,
+        "loopEndTime": 9.8
       },
       "composite": {
         "compositeId": "comp-robo-s2",
@@ -2882,8 +2927,8 @@
       "locked": false,
       "inPoint": 4,
       "outPoint": 10,
-      "fadeIn": 0,
-      "fadeOut": 0,
+      "fadeIn": 0.5,
+      "fadeOut": 0.5,
       "blendMode": "normal",
       "autoScale": true,
       "autoOrient": "none",
@@ -3284,7 +3329,12 @@
       "props": {
         "assetId": "asset-s2-robo-face-talk",
         "width": 160,
-        "height": 150
+        "height": 150,
+        "loopFadeInSec": 0.5,
+        "loopFadeOutSec": 0.5,
+        "loopEndAction": "fade_out",
+        "loopStartTime": 5.2,
+        "loopEndTime": 9.8
       },
       "composite": {
         "compositeId": "comp-robo-s2",
@@ -3308,8 +3358,8 @@
       "locked": false,
       "inPoint": 4,
       "outPoint": 10,
-      "fadeIn": 0,
-      "fadeOut": 0,
+      "fadeIn": 0.5,
+      "fadeOut": 0.5,
       "blendMode": "normal",
       "autoScale": true,
       "autoOrient": "none",
@@ -3679,7 +3729,12 @@
       "props": {
         "assetId": "asset-s2-tea-tray",
         "width": 160,
-        "height": 120
+        "height": 120,
+        "loopFadeInSec": 0.5,
+        "loopFadeOutSec": 0.5,
+        "loopEndAction": "fade_out",
+        "loopStartTime": 5.2,
+        "loopEndTime": 9.8
       },
       "composite": {
         "instanceId": "cluster-robo-s2",
@@ -3932,38 +3987,7 @@
             -145,
             170
           ],
-          "keyframes": [
-            {
-              "id": "layer-s3-crate-bboxcol-v2-action-layer-s3-scooter-op-pre",
-              "t": 10.2,
-              "value": [
-                110,
-                -145,
-                170
-              ],
-              "ease": "linear"
-            },
-            {
-              "id": "layer-s3-crate-bboxcol-v2-action-layer-s3-scooter-op0",
-              "t": 13.167874783210335,
-              "value": [
-                110,
-                -145,
-                170
-              ],
-              "ease": "easeOut"
-            },
-            {
-              "id": "layer-s3-crate-bboxcol-v2-action-layer-s3-scooter-op1",
-              "t": 13.718,
-              "value": [
-                430,
-                -145,
-                170
-              ],
-              "ease": "easeOut"
-            }
-          ]
+          "keyframes": []
         },
         "rotation": {
           "value": [
@@ -3979,38 +4003,7 @@
             0.92,
             1
           ],
-          "keyframes": [
-            {
-              "id": "layer-s3-crate-bboxcol-v2-action-layer-s3-scooter-os0",
-              "t": 13.167874783210335,
-              "value": [
-                0.92,
-                0.92,
-                1
-              ],
-              "ease": "linear"
-            },
-            {
-              "id": "layer-s3-crate-bboxcol-v2-action-layer-s3-scooter-os1",
-              "t": 13.248,
-              "value": [
-                1.067,
-                0.791,
-                1
-              ],
-              "ease": "easeOut"
-            },
-            {
-              "id": "layer-s3-crate-bboxcol-v2-action-layer-s3-scooter-os2",
-              "t": 13.718,
-              "value": [
-                0.92,
-                0.92,
-                1
-              ],
-              "ease": "easeOut"
-            }
-          ]
+          "keyframes": []
         },
         "opacity": {
           "value": 1,
@@ -4036,21 +4029,21 @@
         "material": "wood_tree",
         "role": "prop_target",
         "colliderZone": "trunk_center",
-        "zTolerance": 55,
+        "zTolerance": 24,
         "mass": 4,
         "gravityScale": 0,
         "stiffness": 1.25,
         "damping": 0.28,
-        "bounciness": 0.85,
-        "hitSensitivity": 1,
+        "bounciness": 0.61,
+        "hitSensitivity": 0.9,
         "impacts": [
           {
-            "id": "wf-bboxcol-v2-action-layer-s3-scooter",
-            "time": 13.167874783210335,
+            "id": "wf-col-v2-collision-layer-s3-scooter",
+            "time": 13.6,
             "type": "punch",
             "velocity": [
-              680,
-              180,
+              -1200,
+              106.25,
               0
             ],
             "contactUV": [
@@ -4058,7 +4051,7 @@
               0.55
             ],
             "sourceLayerId": "layer-s3-scooter",
-            "duration": 0.85
+            "duration": 1
           }
         ]
       }
@@ -4070,8 +4063,8 @@
       "locked": false,
       "inPoint": 9,
       "outPoint": 15,
-      "fadeIn": 0,
-      "fadeOut": 0,
+      "fadeIn": 0.5,
+      "fadeOut": 0.5,
       "blendMode": "normal",
       "autoScale": true,
       "autoOrient": "none",
@@ -4103,27 +4096,17 @@
                 -135,
                 310
               ],
-              "ease": "linear"
+              "ease": "easeInOut"
             },
             {
               "id": "layer-s3-scooter-bboxmot-v2-action-layer-s3-scooter-p-1",
-              "t": 13.168,
-              "value": [
-                75.53,
-                -135,
-                209.92
-              ],
-              "ease": "easeOut"
-            },
-            {
-              "id": "layer-s3-scooter-bboxmot-v2-action-layer-s3-scooter-p-2",
               "t": 14.5,
               "value": [
                 280,
                 -135,
                 165
               ],
-              "ease": "linear"
+              "ease": "easeInOut"
             }
           ]
         },
@@ -4160,27 +4143,17 @@
                 0.9,
                 1
               ],
-              "ease": "linear"
+              "ease": "easeInOut"
             },
             {
               "id": "layer-s3-scooter-bboxmot-v2-action-layer-s3-scooter-s-1",
-              "t": 13.168,
-              "value": [
-                1.117,
-                1.117,
-                1
-              ],
-              "ease": "easeOut"
-            },
-            {
-              "id": "layer-s3-scooter-bboxmot-v2-action-layer-s3-scooter-s-2",
               "t": 14.5,
               "value": [
                 1.215,
                 1.215,
                 1
               ],
-              "ease": "linear"
+              "ease": "easeInOut"
             }
           ]
         },
@@ -4201,7 +4174,44 @@
       "props": {
         "assetId": "asset-s3-scooter",
         "width": 300,
-        "height": 320
+        "height": 320,
+        "loopFadeInSec": 0.5,
+        "loopFadeOutSec": 0.5,
+        "loopEndAction": "fade_out",
+        "loopStartTime": 10.4,
+        "loopEndTime": 14.8
+      },
+      "physics": {
+        "enabled": true,
+        "material": "flesh_body",
+        "role": "striker",
+        "colliderZone": "fist_hand",
+        "zTolerance": 24,
+        "mass": 2.5,
+        "gravityScale": 0,
+        "stiffness": 1,
+        "damping": 0.38,
+        "bounciness": 0.54,
+        "hitSensitivity": 1.25,
+        "impacts": [
+          {
+            "id": "wf-col-a-v2-collision-layer-s3-scooter",
+            "time": 13.6,
+            "type": "punch",
+            "velocity": [
+              525,
+              150,
+              0
+            ],
+            "contactUV": [
+              0.5,
+              0.5
+            ],
+            "sourceLayerId": "layer-s3-crate",
+            "duration": 1
+          }
+        ],
+        "stickOnHit": false
       }
     }
   ],
@@ -4617,8 +4627,8 @@
         "title": "Nhóm 3D & Lắp ráp",
         "enabled": true,
         "position": {
-          "x": 464,
-          "y": 517
+          "x": 472,
+          "y": 206
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -4647,8 +4657,8 @@
         "title": "Cậu Bé Du Hành — Thân & Áo Choàng",
         "enabled": true,
         "position": {
-          "x": 880,
-          "y": 250
+          "x": 896,
+          "y": 206
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -4680,8 +4690,8 @@
         "title": "Khuôn Mặt — Tươi Cười",
         "enabled": true,
         "position": {
-          "x": 880,
-          "y": 466
+          "x": 896,
+          "y": 378
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -4712,8 +4722,8 @@
         "title": "Khuôn Mặt — Hào Hứng",
         "enabled": true,
         "position": {
-          "x": 880,
-          "y": 572
+          "x": 896,
+          "y": 378
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -4744,8 +4754,8 @@
         "title": "Tay Phải — Vẫy Chào",
         "enabled": true,
         "position": {
-          "x": 880,
-          "y": 678
+          "x": 896,
+          "y": 378
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -4776,8 +4786,8 @@
         "title": "Tay Phải — Cầm Chong Chóng",
         "enabled": true,
         "position": {
-          "x": 880,
-          "y": 784
+          "x": 896,
+          "y": 378
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -4808,8 +4818,8 @@
         "title": "Khoá cụm: Cậu Bé Du Hành",
         "enabled": true,
         "position": {
-          "x": 1296,
-          "y": 250
+          "x": 1320,
+          "y": 206
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "LayerTransformAgent",
@@ -4822,6 +4832,7 @@
           "compositeId": "comp-boy-s1",
           "lockedGroup": true,
           "rootLayerId": "layer-s1-boy-body",
+          "collapsedSubLayers": true,
           "childLayerCount": 5,
           "targetMode": "custom",
           "targetLayerIds": [
@@ -4854,8 +4865,8 @@
         "title": "Nhóm Layer 2.5D",
         "enabled": true,
         "position": {
-          "x": 464,
-          "y": 1112
+          "x": 472,
+          "y": 600
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -4884,8 +4895,8 @@
         "title": "Hoa Bồ Công Anh Tiền Cảnh",
         "enabled": true,
         "position": {
-          "x": 880,
-          "y": 900
+          "x": 896,
+          "y": 388
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -4912,8 +4923,8 @@
         "title": "Cây Sồi Cổ Thụ",
         "enabled": true,
         "position": {
-          "x": 880,
-          "y": 1006
+          "x": 896,
+          "y": 494
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -4940,8 +4951,8 @@
         "title": "Cánh Đồng Lúa Vàng",
         "enabled": true,
         "position": {
-          "x": 880,
-          "y": 1112
+          "x": 896,
+          "y": 600
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -4968,8 +4979,8 @@
         "title": "Đồi Xa & Cối Xay Gió",
         "enabled": true,
         "position": {
-          "x": 880,
-          "y": 1218
+          "x": 896,
+          "y": 706
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -4996,8 +5007,8 @@
         "title": "Bầu Trời Hoàng Hôn",
         "enabled": true,
         "position": {
-          "x": 880,
-          "y": 1324
+          "x": 896,
+          "y": 812
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -5025,7 +5036,7 @@
         "enabled": true,
         "position": {
           "x": 48,
-          "y": 1506
+          "y": 994
         },
         "preset": "deep_parallax_stage",
         "aiAgentRole": "SceneLayoutAgent",
@@ -5044,7 +5055,7 @@
         "enabled": true,
         "position": {
           "x": 48,
-          "y": 1612
+          "y": 1100
         },
         "preset": "cinematic_fly_push",
         "aiAgentRole": "CameraDirectorAgent",
@@ -5067,7 +5078,7 @@
         "enabled": true,
         "position": {
           "x": 48,
-          "y": 1744
+          "y": 1232
         },
         "preset": "cinematic_fly_push",
         "aiAgentRole": "CameraDirectorAgent",
@@ -5104,7 +5115,7 @@
         "enabled": true,
         "position": {
           "x": 48,
-          "y": 1876
+          "y": 1364
         },
         "preset": "cinematic_fly_push",
         "aiAgentRole": "CameraDirectorAgent",
@@ -5141,7 +5152,7 @@
         "enabled": true,
         "position": {
           "x": 48,
-          "y": 2008
+          "y": 1496
         },
         "preset": "cinematic_fly_push",
         "aiAgentRole": "CameraDirectorAgent",
@@ -5177,8 +5188,8 @@
         "title": "Nhóm 3D & Lắp ráp",
         "enabled": true,
         "position": {
-          "x": 464,
-          "y": 1731
+          "x": 472,
+          "y": 1038
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -5206,8 +5217,8 @@
         "title": "Mèo Máy Quản Gia — Thân Máy",
         "enabled": true,
         "position": {
-          "x": 880,
-          "y": 1550
+          "x": 896,
+          "y": 1038
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -5239,8 +5250,8 @@
         "title": "Màn Hình Mặt — Mắt Cười",
         "enabled": true,
         "position": {
-          "x": 880,
-          "y": 1700
+          "x": 896,
+          "y": 1188
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -5271,8 +5282,8 @@
         "title": "Màn Hình Mặt — Đang Nói",
         "enabled": true,
         "position": {
-          "x": 880,
-          "y": 1806
+          "x": 896,
+          "y": 1188
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -5303,8 +5314,8 @@
         "title": "Khay Trà Nóng (Đạo Cụ)",
         "enabled": true,
         "position": {
-          "x": 880,
-          "y": 1912
+          "x": 896,
+          "y": 1188
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -5335,8 +5346,8 @@
         "title": "Khoá cụm: Mèo Máy Quản Gia",
         "enabled": true,
         "position": {
-          "x": 1296,
-          "y": 1550
+          "x": 1320,
+          "y": 1038
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "LayerTransformAgent",
@@ -5349,6 +5360,7 @@
           "compositeId": "comp-robo-s2",
           "lockedGroup": true,
           "rootLayerId": "layer-s2-robo-body",
+          "collapsedSubLayers": true,
           "childLayerCount": 4,
           "targetMode": "custom",
           "targetLayerIds": [
@@ -5379,8 +5391,8 @@
         "title": "Nhóm Layer 2.5D",
         "enabled": true,
         "position": {
-          "x": 464,
-          "y": 2134
+          "x": 472,
+          "y": 1304
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -5407,8 +5419,8 @@
         "title": "Bàn Trà & Đèn Bàn Ấm Áp",
         "enabled": true,
         "position": {
-          "x": 880,
-          "y": 2028
+          "x": 896,
+          "y": 1198
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -5435,8 +5447,8 @@
         "title": "Kệ Sách Gỗ & Ghế Sofa",
         "enabled": true,
         "position": {
-          "x": 880,
-          "y": 2134
+          "x": 896,
+          "y": 1304
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -5463,8 +5475,8 @@
         "title": "Tường Gỗ & Cửa Sổ Đêm Trăng",
         "enabled": true,
         "position": {
-          "x": 880,
-          "y": 2240
+          "x": 896,
+          "y": 1410
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -5492,7 +5504,7 @@
         "enabled": true,
         "position": {
           "x": 48,
-          "y": 2422
+          "y": 1678
         },
         "preset": "deep_parallax_stage",
         "aiAgentRole": "SceneLayoutAgent",
@@ -5511,7 +5523,7 @@
         "enabled": true,
         "position": {
           "x": 48,
-          "y": 2528
+          "y": 1784
         },
         "preset": "cinematic_fly_push",
         "aiAgentRole": "CameraDirectorAgent",
@@ -5534,7 +5546,7 @@
         "enabled": true,
         "position": {
           "x": 48,
-          "y": 2660
+          "y": 1916
         },
         "preset": "cinematic_fly_push",
         "aiAgentRole": "CameraDirectorAgent",
@@ -5571,7 +5583,7 @@
         "enabled": true,
         "position": {
           "x": 48,
-          "y": 2792
+          "y": 2048
         },
         "preset": "cinematic_fly_push",
         "aiAgentRole": "CameraDirectorAgent",
@@ -5608,7 +5620,7 @@
         "enabled": true,
         "position": {
           "x": 48,
-          "y": 2924
+          "y": 2180
         },
         "preset": "cinematic_fly_push",
         "aiAgentRole": "CameraDirectorAgent",
@@ -5644,8 +5656,8 @@
         "title": "Nhóm Layer 2.5D",
         "enabled": true,
         "position": {
-          "x": 464,
-          "y": 2700
+          "x": 472,
+          "y": 1934
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -5674,8 +5686,8 @@
         "title": "Thùng Hàng & Biển Báo Vỉa Hè",
         "enabled": true,
         "position": {
-          "x": 880,
-          "y": 2466
+          "x": 896,
+          "y": 1678
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -5702,8 +5714,8 @@
         "title": "Cột Đèn Đường Neon & Cây Vỉa Hè",
         "enabled": true,
         "position": {
-          "x": 880,
-          "y": 2616
+          "x": 896,
+          "y": 1784
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -5730,8 +5742,8 @@
         "title": "Tay Đua Scooter Điện",
         "enabled": true,
         "position": {
-          "x": 880,
-          "y": 2722
+          "x": 896,
+          "y": 1934
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -5758,8 +5770,8 @@
         "title": "Mặt Đường Nhựa & Vỉa Hè",
         "enabled": true,
         "position": {
-          "x": 880,
-          "y": 2828
+          "x": 896,
+          "y": 2084
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -5786,8 +5798,8 @@
         "title": "Bầu Trời Phố Đêm & Tòa Nhà Xa",
         "enabled": true,
         "position": {
-          "x": 880,
-          "y": 2934
+          "x": 896,
+          "y": 2190
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -5814,7 +5826,7 @@
         "title": "Bộ phận: Cụm 2.5D",
         "enabled": true,
         "position": {
-          "x": 1712,
+          "x": 1744,
           "y": 140
         },
         "preset": "rim_glow_particles",
@@ -5841,6 +5853,8 @@
           "instanceId": "cluster-boy-s1",
           "swapMode": "part_variant",
           "intensity": 1,
+          "rootLayerId": "layer-s1-boy-body",
+          "pipelineStepIndex": 1,
           "isPartHub": true,
           "childLayerCount": 2,
           "compositeId": "comp-boy-s1"
@@ -5852,7 +5866,7 @@
         "title": "Bộ phận: Khuôn mặt (2) — Đổi Hào hứng",
         "enabled": true,
         "position": {
-          "x": 2128,
+          "x": 2168,
           "y": 96
         },
         "preset": "composite_part_swap",
@@ -5892,7 +5906,7 @@
         "title": "Bộ phận: Tay phải (2) — Cầm Chong Chóng",
         "enabled": true,
         "position": {
-          "x": 2128,
+          "x": 2168,
           "y": 184
         },
         "preset": "composite_part_swap",
@@ -5932,7 +5946,7 @@
         "title": "Motion: BBox #1 → #2 (To dần 145% · Qua trước Cây Sồi)",
         "enabled": true,
         "position": {
-          "x": 1712,
+          "x": 1744,
           "y": 272
         },
         "preset": "organic_wind_breathe",
@@ -5968,21 +5982,23 @@
           "depthRefLayerId": "layer-s1-oaktree",
           "depthRelation": "in_front",
           "bboxStartZ": 320,
-          "bboxTargetZ": 180
+          "bboxTargetZ": 180,
+          "rootLayerId": "layer-s1-boy-body",
+          "pipelineStepIndex": 1
         }
       },
       {
-        "id": "v2-anim_fx-cluster-boy-s1",
+        "id": "v2-anim_fx-layer-s1-boy-body",
         "type": "motion_choreography",
         "title": "Hành động Nhân vật: Bước đi",
         "enabled": true,
         "position": {
-          "x": 1712,
-          "y": 360
+          "x": 2168,
+          "y": 272
         },
         "preset": "organic_wind_breathe",
         "aiAgentRole": "MotionChoreographyAgent",
-        "aiDirective": "Animation: Bước Đi Hào Hứng Trên Đồng cho \"Khoá cụm: Cậu Bé Du Hành\".",
+        "aiDirective": "Hành động: Bước Đi Hào Hứng Trên Đồng (bước B2 sau \"Motion: BBox #1 → #2 (To dần 145% · Qua trước Cây Sồi)\").",
         "params": {
           "shotId": "shot-1",
           "logicCategory": "anim_fx",
@@ -6001,15 +6017,61 @@
           "timeStart": 0.2,
           "timeEnd": 4.6,
           "hierarchyParentNodeId": "v2-cluster-cluster-boy-s1",
+          "upstreamLogicNodeId": "v2-action-cluster-boy-s1",
+          "pipelineStepIndex": 2,
           "instanceId": "cluster-boy-s1",
+          "rootLayerId": "layer-s1-boy-body",
           "animMode": "rig_clip",
           "rigActionPreset": "walk",
           "intensity": 1,
           "customActionId": "act-boy-happy-walk",
           "customActionName": "Bước Đi Hào Hứng Trên Đồng",
-          "animFxPreset": "pulse",
-          "animFxSpeed": 1.3,
           "customActionSpeedHz": 1.4
+        }
+      },
+      {
+        "id": "v2-fx_fade-layer-s1-boy-body",
+        "type": "physics_fx",
+        "title": "Hiện/Ẩn: Hiện 0.3s · Ẩn 0.3s",
+        "enabled": true,
+        "position": {
+          "x": 2592,
+          "y": 272
+        },
+        "preset": "rim_glow_particles",
+        "aiAgentRole": "PhysicsLightFxAgent",
+        "aiDirective": "FX: Hiện/Ẩn Mờ Dần Êm (bước B3 sau \"Hành động: Bước Đi Hào Hứng Trên Đồng\").",
+        "params": {
+          "shotId": "shot-1",
+          "logicCategory": "fx",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-s1-boy-body",
+            "layer-s1-boy-face-smile",
+            "layer-s1-boy-face-wow",
+            "layer-s1-boy-arm-wave",
+            "layer-s1-boy-arm-point"
+          ],
+          "sharedLayerNodeIds": [
+            "v2-cluster-cluster-boy-s1"
+          ],
+          "requireLayerConnection": true,
+          "timeStart": 0,
+          "timeEnd": 5,
+          "hierarchyParentNodeId": "v2-cluster-cluster-boy-s1",
+          "upstreamLogicNodeId": "v2-anim_fx-layer-s1-boy-body",
+          "pipelineStepIndex": 3,
+          "instanceId": "cluster-boy-s1",
+          "rootLayerId": "layer-s1-boy-body",
+          "fxAtomicRole": "fade",
+          "fxSubTab": "opacity",
+          "animFxPreset": "fadeInOut",
+          "loopFadeInSec": 0.35,
+          "loopEndAction": "fade_out",
+          "loopFadeOutSec": 0.35,
+          "intensity": 1,
+          "animMode": "keyframe_fx",
+          "animFxCount": 2
         }
       },
       {
@@ -6018,8 +6080,8 @@
         "title": "Vật liệu: 🌳 Gỗ / Thân cây đàn hồi",
         "enabled": true,
         "position": {
-          "x": 1296,
-          "y": 1006
+          "x": 1320,
+          "y": 494
         },
         "preset": "rim_glow_particles",
         "aiAgentRole": "PhysicsLightFxAgent",
@@ -6042,7 +6104,8 @@
           "materialStiffness": 1.25,
           "materialBounciness": 0.85,
           "materialGravity": 0,
-          "intensity": 0.85
+          "intensity": 0.85,
+          "pipelineStepIndex": 1
         }
       },
       {
@@ -6051,8 +6114,8 @@
         "title": "Vật liệu: 🍃 Lá cây / Cỏ mềm",
         "enabled": true,
         "position": {
-          "x": 1296,
-          "y": 900
+          "x": 1320,
+          "y": 388
         },
         "preset": "rim_glow_particles",
         "aiAgentRole": "PhysicsLightFxAgent",
@@ -6075,7 +6138,47 @@
           "materialStiffness": 0.75,
           "materialBounciness": 1.1,
           "materialGravity": 0,
-          "intensity": 1.1
+          "intensity": 1.1,
+          "pipelineStepIndex": 1
+        }
+      },
+      {
+        "id": "v2-fx_fade-layer-s1-fg-flowers",
+        "type": "physics_fx",
+        "title": "Hiện/Ẩn: Hiện 0.5s · Ẩn 0.5s",
+        "enabled": true,
+        "position": {
+          "x": 1744,
+          "y": 388
+        },
+        "preset": "rim_glow_particles",
+        "aiAgentRole": "PhysicsLightFxAgent",
+        "aiDirective": "FX: Nhịp Gió Mùa Nhẹ (bước B2 sau \"Vật liệu: 🍃 Lá cây / Cỏ mềm\").",
+        "params": {
+          "shotId": "shot-1",
+          "logicCategory": "fx",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-s1-fg-flowers"
+          ],
+          "sharedLayerNodeIds": [
+            "v2-layer-layer-s1-fg-flowers"
+          ],
+          "requireLayerConnection": true,
+          "timeStart": 0.2,
+          "timeEnd": 4.8,
+          "hierarchyParentNodeId": "v2-layer-layer-s1-fg-flowers",
+          "upstreamLogicNodeId": "v2-material-layer-s1-fg-flowers",
+          "pipelineStepIndex": 2,
+          "fxAtomicRole": "fade",
+          "fxSubTab": "opacity",
+          "animFxPreset": "pulse",
+          "loopFadeInSec": 0.5,
+          "loopEndAction": "fade_out",
+          "loopFadeOutSec": 0.5,
+          "intensity": 1.05,
+          "animFxCount": 4,
+          "animMode": "keyframe_fx"
         }
       },
       {
@@ -6084,8 +6187,8 @@
         "title": "Bộ phận: Cụm 2.5D",
         "enabled": true,
         "position": {
-          "x": 1712,
-          "y": 1506
+          "x": 1744,
+          "y": 994
         },
         "preset": "rim_glow_particles",
         "aiAgentRole": "LayerTransformAgent",
@@ -6110,6 +6213,8 @@
           "instanceId": "cluster-robo-s2",
           "swapMode": "part_variant",
           "intensity": 1,
+          "rootLayerId": "layer-s2-robo-body",
+          "pipelineStepIndex": 1,
           "isPartHub": true,
           "childLayerCount": 1,
           "compositeId": "comp-robo-s2"
@@ -6121,8 +6226,8 @@
         "title": "Bộ phận: Khuôn mặt (2) — Đổi Đang nói",
         "enabled": true,
         "position": {
-          "x": 2128,
-          "y": 1506
+          "x": 2168,
+          "y": 994
         },
         "preset": "composite_part_swap",
         "aiAgentRole": "AssemblyRigAgent",
@@ -6161,8 +6266,8 @@
         "title": "Motion: BBox #1 ↝ #2 (Vẽ đường đi tới Bàn Trà)",
         "enabled": true,
         "position": {
-          "x": 1712,
-          "y": 1594
+          "x": 1744,
+          "y": 1082
         },
         "preset": "organic_wind_breathe",
         "aiAgentRole": "MotionChoreographyAgent",
@@ -6212,7 +6317,55 @@
           "bboxTargetX": 25,
           "bboxTargetY": -98,
           "bboxStartZ": 160,
-          "bboxTargetZ": 160
+          "bboxTargetZ": 160,
+          "rootLayerId": "layer-s2-robo-body",
+          "pipelineStepIndex": 1
+        }
+      },
+      {
+        "id": "v2-fx_fade-layer-s2-robo-body",
+        "type": "physics_fx",
+        "title": "Hiện/Ẩn: Hiện 0.5s · Ẩn 0.5s",
+        "enabled": true,
+        "position": {
+          "x": 2168,
+          "y": 1082
+        },
+        "preset": "rim_glow_particles",
+        "aiAgentRole": "PhysicsLightFxAgent",
+        "aiDirective": "FX: Phát Sáng Màn Hình (bước B2 sau \"Motion: BBox #1 ↝ #2 (Vẽ đường đi tới Bàn Trà)\").",
+        "params": {
+          "shotId": "shot-2",
+          "logicCategory": "fx",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-s2-robo-body",
+            "layer-s2-robo-face-happy",
+            "layer-s2-robo-face-talk",
+            "layer-s2-tea-tray"
+          ],
+          "sharedLayerNodeIds": [
+            "v2-cluster-cluster-robo-s2"
+          ],
+          "requireLayerConnection": true,
+          "timeStart": 5.2,
+          "timeEnd": 9.8,
+          "hierarchyParentNodeId": "v2-cluster-cluster-robo-s2",
+          "upstreamLogicNodeId": "v2-action-cluster-robo-s2",
+          "pipelineStepIndex": 2,
+          "instanceId": "cluster-robo-s2",
+          "rootLayerId": "layer-s2-robo-body",
+          "fxAtomicRole": "fade",
+          "fxSubTab": "opacity",
+          "animFxPreset": "neonBreathe",
+          "loopFadeInSec": 0.5,
+          "loopEndAction": "fade_out",
+          "loopFadeOutSec": 0.5,
+          "intensity": 0.55,
+          "animFxColor": "#38bdf8",
+          "animFxThickness": 8,
+          "animFxSpeed": 1.4,
+          "animMode": "keyframe_fx"
         }
       },
       {
@@ -6221,8 +6374,8 @@
         "title": "Ánh sáng: Ngọn nến (Gió)",
         "enabled": true,
         "position": {
-          "x": 1296,
-          "y": 2028
+          "x": 1320,
+          "y": 1198
         },
         "preset": "rim_glow_particles",
         "aiAgentRole": "PhysicsLightFxAgent",
@@ -6244,6 +6397,7 @@
           "lightMode": "candle",
           "lightColor": "#fbbf24",
           "intensity": 1.35,
+          "pipelineStepIndex": 1,
           "lightBehavior": "wind_reactive",
           "lightWindPreset": "gentle",
           "lightRayIntensity": 0.24,
@@ -6254,13 +6408,52 @@
         }
       },
       {
+        "id": "v2-fx_fade-layer-s2-lamp-table",
+        "type": "physics_fx",
+        "title": "Hiện/Ẩn: Hiện 0.5s · Ẩn 0.5s",
+        "enabled": true,
+        "position": {
+          "x": 1744,
+          "y": 1198
+        },
+        "preset": "rim_glow_particles",
+        "aiAgentRole": "PhysicsLightFxAgent",
+        "aiDirective": "FX: Nhịp Ấm Đèn Bàn (bước B2 sau \"Ánh sáng: Đèn Bàn Toả Sáng Ấm\").",
+        "params": {
+          "shotId": "shot-2",
+          "logicCategory": "fx",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-s2-lamp-table"
+          ],
+          "sharedLayerNodeIds": [
+            "v2-layer-layer-s2-lamp-table"
+          ],
+          "requireLayerConnection": true,
+          "timeStart": 5.2,
+          "timeEnd": 9.8,
+          "hierarchyParentNodeId": "v2-layer-layer-s2-lamp-table",
+          "upstreamLogicNodeId": "v2-light-layer-s2-lamp-table",
+          "pipelineStepIndex": 2,
+          "fxAtomicRole": "fade",
+          "fxSubTab": "opacity",
+          "animFxPreset": "pulse",
+          "loopFadeInSec": 0.5,
+          "loopEndAction": "fade_out",
+          "loopFadeOutSec": 0.5,
+          "intensity": 1.04,
+          "animFxCount": 3,
+          "animMode": "keyframe_fx"
+        }
+      },
+      {
         "id": "v2-light-layer-s3-lamp-tree",
         "type": "physics_fx",
         "title": "Ánh sáng: Đèn pin (Chùm nón)",
         "enabled": true,
         "position": {
-          "x": 1296,
-          "y": 2616
+          "x": 1320,
+          "y": 1784
         },
         "preset": "rim_glow_particles",
         "aiAgentRole": "PhysicsLightFxAgent",
@@ -6282,6 +6475,7 @@
           "lightMode": "spot",
           "lightColor": "#38bdf8",
           "intensity": 1.4,
+          "pipelineStepIndex": 1,
           "lightBehavior": "steady",
           "lightWindPreset": "none",
           "lightRayIntensity": 0.52,
@@ -6297,8 +6491,8 @@
         "title": "Vật liệu: 🌳 Gỗ / Thân cây đàn hồi",
         "enabled": true,
         "position": {
-          "x": 1296,
-          "y": 2422
+          "x": 1320,
+          "y": 1678
         },
         "preset": "rim_glow_particles",
         "aiAgentRole": "PhysicsLightFxAgent",
@@ -6321,21 +6515,22 @@
           "materialStiffness": 1.25,
           "materialBounciness": 0.85,
           "materialGravity": 0,
-          "intensity": 0.85
+          "intensity": 0.85,
+          "pipelineStepIndex": 1
         }
       },
       {
         "id": "v2-action-layer-s3-scooter",
         "type": "motion_choreography",
-        "title": "Motion: BBox #1 → #2 (To dần 135% · Đụng Thùng Hàng)",
+        "title": "Motion: BBox #1 → #2 (Lao Phố Đêm)",
         "enabled": true,
         "position": {
-          "x": 1296,
-          "y": 2722
+          "x": 1320,
+          "y": 1890
         },
         "preset": "organic_wind_breathe",
         "aiAgentRole": "MotionChoreographyAgent",
-        "aiDirective": "Motion: BBox #1 → #2 (To dần 135% · Đụng Thùng Hàng) cho \"Tay Đua Scooter Điện\".",
+        "aiDirective": "Motion: BBox #1 → #2 (Lao Phố Đêm) cho \"Tay Đua Scooter Điện\".",
         "params": {
           "shotId": "shot-3",
           "logicCategory": "action",
@@ -6362,9 +6557,7 @@
           "depthRelation": "in_front",
           "bboxStartZ": 310,
           "bboxTargetZ": 165,
-          "collisionOnPathEnabled": true,
-          "collisionTargetLayerId": "layer-s3-crate",
-          "collisionResponse": "push"
+          "pipelineStepIndex": 1
         }
       },
       {
@@ -6373,12 +6566,12 @@
         "title": "Va chạm: Scooter 💥 Thùng Hàng Vỉa Hè",
         "enabled": true,
         "position": {
-          "x": 1296,
-          "y": 2510
+          "x": 1744,
+          "y": 1678
         },
         "preset": "rim_glow_particles",
         "aiAgentRole": "PhysicsLightFxAgent",
-        "aiDirective": "Va chạm: Scooter 💥 Thùng Hàng Vỉa Hè cho \"Tay Đua Scooter Điện\".",
+        "aiDirective": "Va chạm: Scooter 💥 Thùng Hàng Vỉa Hè (bước B2 sau \"Motion: BBox #1 → #2 (Lao Phố Đêm)\").",
         "params": {
           "shotId": "shot-3",
           "logicCategory": "collision",
@@ -6395,12 +6588,87 @@
           "timeStart": 13.6,
           "timeEnd": 14.6,
           "hierarchyParentNodeId": "v2-layer-layer-s3-scooter",
+          "upstreamLogicNodeId": "v2-action-layer-s3-scooter",
+          "pipelineStepIndex": 2,
           "strikerLayerId": "layer-s3-scooter",
           "collisionMode": "heavy_punch",
           "collisionForce": 1.25,
           "deformIntensity": 0.72,
           "intensity": 1.15,
           "targetColliderLayerId": "layer-s3-crate"
+        }
+      },
+      {
+        "id": "v2-fx_fade-layer-s3-scooter",
+        "type": "physics_fx",
+        "title": "FX: Đèn Neon Xe Scooter",
+        "enabled": true,
+        "position": {
+          "x": 2168,
+          "y": 1678
+        },
+        "preset": "rim_glow_particles",
+        "aiAgentRole": "PhysicsLightFxAgent",
+        "aiDirective": "FX: Đèn Neon Xe Scooter (bước B3 sau \"Va chạm: Scooter 💥 Thùng Hàng Vỉa Hè\").",
+        "params": {
+          "shotId": "shot-3",
+          "logicCategory": "fx",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-s3-scooter"
+          ],
+          "sharedLayerNodeIds": [
+            "v2-layer-layer-s3-scooter",
+            "v2-layer-layer-s3-crate"
+          ],
+          "requireLayerConnection": true,
+          "timeStart": 10.4,
+          "timeEnd": 14.8,
+          "hierarchyParentNodeId": "v2-layer-layer-s3-crate",
+          "upstreamLogicNodeId": "v2-collision-layer-s3-scooter",
+          "pipelineStepIndex": 3,
+          "fxAtomicRole": "fade",
+          "fxSubTab": "opacity",
+          "animFxPreset": "neonSolid",
+          "loopFadeInSec": 0.5,
+          "loopEndAction": "fade_out",
+          "loopFadeOutSec": 0.5,
+          "intensity": 0.78,
+          "animFxColor": "#22d3ee",
+          "animFxThickness": 9
+        }
+      },
+      {
+        "id": "v2-material-layer-s3-scooter",
+        "type": "physics_fx",
+        "title": "Vật liệu: 🥊 Chủ thể / Cơ thể sống",
+        "enabled": true,
+        "position": {
+          "x": 1320,
+          "y": 1978
+        },
+        "preset": "rim_glow_particles",
+        "aiAgentRole": "PhysicsLightFxAgent",
+        "aiDirective": "Nhãn vật liệu \"🥊 Chủ thể / Cơ thể sống\" của \"Tay Đua Scooter Điện\".",
+        "params": {
+          "shotId": "shot-3",
+          "logicCategory": "material",
+          "materialTag": "flesh_body",
+          "materialStiffness": 1,
+          "materialBounciness": 0.54,
+          "materialGravity": 0,
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-s3-scooter"
+          ],
+          "sharedLayerNodeIds": [
+            "v2-layer-layer-s3-scooter"
+          ],
+          "requireLayerConnection": true,
+          "timeStart": 10,
+          "timeEnd": 15,
+          "hierarchyParentNodeId": "v2-layer-layer-s3-scooter",
+          "pipelineStepIndex": 1
         }
       }
     ],
@@ -6784,10 +7052,17 @@
         "toPort": "layers_tree"
       },
       {
-        "id": "e-v2-cluster-cluster-boy-s1-v2-anim_fx-cluster-boy-s1",
-        "fromNode": "v2-cluster-cluster-boy-s1",
+        "id": "e-v2-action-cluster-boy-s1-v2-anim_fx-layer-s1-boy-body",
+        "fromNode": "v2-action-cluster-boy-s1",
         "fromPort": "layers_tree",
-        "toNode": "v2-anim_fx-cluster-boy-s1",
+        "toNode": "v2-anim_fx-layer-s1-boy-body",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-anim_fx-layer-s1-boy-body-v2-fx_fade-layer-s1-boy-body",
+        "fromNode": "v2-anim_fx-layer-s1-boy-body",
+        "fromPort": "layers_tree",
+        "toNode": "v2-fx_fade-layer-s1-boy-body",
         "toPort": "layers_tree"
       },
       {
@@ -6802,6 +7077,13 @@
         "fromNode": "v2-layer-layer-s1-fg-flowers",
         "fromPort": "layers_tree",
         "toNode": "v2-material-layer-s1-fg-flowers",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-material-layer-s1-fg-flowers-v2-fx_fade-layer-s1-fg-flowers",
+        "fromNode": "v2-material-layer-s1-fg-flowers",
+        "fromPort": "layers_tree",
+        "toNode": "v2-fx_fade-layer-s1-fg-flowers",
         "toPort": "layers_tree"
       },
       {
@@ -6826,10 +7108,24 @@
         "toPort": "layers_tree"
       },
       {
+        "id": "e-v2-action-cluster-robo-s2-v2-fx_fade-layer-s2-robo-body",
+        "fromNode": "v2-action-cluster-robo-s2",
+        "fromPort": "layers_tree",
+        "toNode": "v2-fx_fade-layer-s2-robo-body",
+        "toPort": "layers_tree"
+      },
+      {
         "id": "e-v2-layer-layer-s2-lamp-table-v2-light-layer-s2-lamp-table",
         "fromNode": "v2-layer-layer-s2-lamp-table",
         "fromPort": "layers_tree",
         "toNode": "v2-light-layer-s2-lamp-table",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-light-layer-s2-lamp-table-v2-fx_fade-layer-s2-lamp-table",
+        "fromNode": "v2-light-layer-s2-lamp-table",
+        "fromPort": "layers_tree",
+        "toNode": "v2-fx_fade-layer-s2-lamp-table",
         "toPort": "layers_tree"
       },
       {
@@ -6854,17 +7150,31 @@
         "toPort": "layers_tree"
       },
       {
-        "id": "e-v2-layer-layer-s3-scooter-v2-collision-layer-s3-scooter",
-        "fromNode": "v2-layer-layer-s3-scooter",
+        "id": "e-v2-action-layer-s3-scooter-v2-collision-layer-s3-scooter",
+        "fromNode": "v2-action-layer-s3-scooter",
         "fromPort": "layers_tree",
         "toNode": "v2-collision-layer-s3-scooter",
         "toPort": "layers_tree"
       },
       {
-        "id": "e-v2-layer-layer-s3-crate-v2-collision-layer-s3-scooter",
-        "fromNode": "v2-layer-layer-s3-crate",
+        "id": "e-v2-material-layer-s3-crate-v2-collision-layer-s3-scooter",
+        "fromNode": "v2-material-layer-s3-crate",
         "fromPort": "layers_tree",
         "toNode": "v2-collision-layer-s3-scooter",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-collision-layer-s3-scooter-v2-fx_fade-layer-s3-scooter",
+        "fromNode": "v2-collision-layer-s3-scooter",
+        "fromPort": "layers_tree",
+        "toNode": "v2-fx_fade-layer-s3-scooter",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-layer-layer-s3-scooter-v2-material-layer-s3-scooter",
+        "fromNode": "v2-layer-layer-s3-scooter",
+        "fromPort": "layers_tree",
+        "toNode": "v2-material-layer-s3-scooter",
         "toPort": "layers_tree"
       }
     ]

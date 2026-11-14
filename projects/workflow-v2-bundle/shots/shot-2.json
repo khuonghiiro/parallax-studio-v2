@@ -345,6 +345,31 @@
       }
     },
     {
+      "id": "v2-fx_fade-layer-s2-robo-body",
+      "category": "fx",
+      "presetId": "v2:fx:neonBreathe",
+      "title": "Hiện/Ẩn: Hiện 0.5s · Ẩn 0.5s",
+      "enabled": true,
+      "timeStart": 5.2,
+      "timeEnd": 9.8,
+      "targetLayerIds": [
+        "layer-s2-robo-body",
+        "layer-s2-robo-face-happy",
+        "layer-s2-robo-face-talk",
+        "layer-s2-tea-tray"
+      ],
+      "targetLayerNames": [
+        "Mèo Máy Quản Gia — Thân Máy",
+        "Màn Hình Mặt — Mắt Cười",
+        "Màn Hình Mặt — Đang Nói",
+        "Khay Trà Nóng (Đạo Cụ)"
+      ],
+      "params": {
+        "fxKind": "wind_physics",
+        "intensity": 0.55
+      }
+    },
+    {
       "id": "v2-light-layer-s2-lamp-table",
       "category": "light",
       "presetId": "v2:light:candle",
@@ -363,6 +388,25 @@
         "lightColor": "#fbbf24",
         "intensity": 1.35
       }
+    },
+    {
+      "id": "v2-fx_fade-layer-s2-lamp-table",
+      "category": "fx",
+      "presetId": "v2:fx:pulse",
+      "title": "Hiện/Ẩn: Hiện 0.5s · Ẩn 0.5s",
+      "enabled": true,
+      "timeStart": 5.2,
+      "timeEnd": 9.8,
+      "targetLayerIds": [
+        "layer-s2-lamp-table"
+      ],
+      "targetLayerNames": [
+        "Bàn Trà & Đèn Bàn Ấm Áp"
+      ],
+      "params": {
+        "fxKind": "wind_physics",
+        "intensity": 1.04
+      }
     }
   ],
   "graph": {
@@ -374,7 +418,7 @@
         "enabled": true,
         "position": {
           "x": 48,
-          "y": 1506
+          "y": 994
         },
         "preset": "deep_parallax_stage",
         "aiAgentRole": "SceneLayoutAgent",
@@ -393,7 +437,7 @@
         "enabled": true,
         "position": {
           "x": 48,
-          "y": 1612
+          "y": 1100
         },
         "preset": "cinematic_fly_push",
         "aiAgentRole": "CameraDirectorAgent",
@@ -416,7 +460,7 @@
         "enabled": true,
         "position": {
           "x": 48,
-          "y": 1744
+          "y": 1232
         },
         "preset": "cinematic_fly_push",
         "aiAgentRole": "CameraDirectorAgent",
@@ -453,7 +497,7 @@
         "enabled": true,
         "position": {
           "x": 48,
-          "y": 1876
+          "y": 1364
         },
         "preset": "cinematic_fly_push",
         "aiAgentRole": "CameraDirectorAgent",
@@ -490,7 +534,7 @@
         "enabled": true,
         "position": {
           "x": 48,
-          "y": 2008
+          "y": 1496
         },
         "preset": "cinematic_fly_push",
         "aiAgentRole": "CameraDirectorAgent",
@@ -526,8 +570,8 @@
         "title": "Nhóm 3D & Lắp ráp",
         "enabled": true,
         "position": {
-          "x": 464,
-          "y": 1731
+          "x": 472,
+          "y": 1038
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -555,8 +599,8 @@
         "title": "Mèo Máy Quản Gia — Thân Máy",
         "enabled": true,
         "position": {
-          "x": 880,
-          "y": 1550
+          "x": 896,
+          "y": 1038
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -588,8 +632,8 @@
         "title": "Màn Hình Mặt — Mắt Cười",
         "enabled": true,
         "position": {
-          "x": 880,
-          "y": 1700
+          "x": 896,
+          "y": 1188
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -620,8 +664,8 @@
         "title": "Màn Hình Mặt — Đang Nói",
         "enabled": true,
         "position": {
-          "x": 880,
-          "y": 1806
+          "x": 896,
+          "y": 1188
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -652,8 +696,8 @@
         "title": "Khay Trà Nóng (Đạo Cụ)",
         "enabled": true,
         "position": {
-          "x": 880,
-          "y": 1912
+          "x": 896,
+          "y": 1188
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -684,8 +728,8 @@
         "title": "Khoá cụm: Mèo Máy Quản Gia",
         "enabled": true,
         "position": {
-          "x": 1296,
-          "y": 1550
+          "x": 1320,
+          "y": 1038
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "LayerTransformAgent",
@@ -698,6 +742,7 @@
           "compositeId": "comp-robo-s2",
           "lockedGroup": true,
           "rootLayerId": "layer-s2-robo-body",
+          "collapsedSubLayers": true,
           "childLayerCount": 4,
           "targetMode": "custom",
           "targetLayerIds": [
@@ -728,8 +773,8 @@
         "title": "Nhóm Layer 2.5D",
         "enabled": true,
         "position": {
-          "x": 464,
-          "y": 2134
+          "x": 472,
+          "y": 1304
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -756,8 +801,8 @@
         "title": "Bàn Trà & Đèn Bàn Ấm Áp",
         "enabled": true,
         "position": {
-          "x": 880,
-          "y": 2028
+          "x": 896,
+          "y": 1198
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -784,8 +829,8 @@
         "title": "Kệ Sách Gỗ & Ghế Sofa",
         "enabled": true,
         "position": {
-          "x": 880,
-          "y": 2134
+          "x": 896,
+          "y": 1304
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -812,8 +857,8 @@
         "title": "Tường Gỗ & Cửa Sổ Đêm Trăng",
         "enabled": true,
         "position": {
-          "x": 880,
-          "y": 2240
+          "x": 896,
+          "y": 1410
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -840,8 +885,8 @@
         "title": "Bộ phận: Cụm 2.5D",
         "enabled": true,
         "position": {
-          "x": 1712,
-          "y": 1506
+          "x": 1744,
+          "y": 994
         },
         "preset": "rim_glow_particles",
         "aiAgentRole": "LayerTransformAgent",
@@ -866,6 +911,8 @@
           "instanceId": "cluster-robo-s2",
           "swapMode": "part_variant",
           "intensity": 1,
+          "rootLayerId": "layer-s2-robo-body",
+          "pipelineStepIndex": 1,
           "isPartHub": true,
           "childLayerCount": 1,
           "compositeId": "comp-robo-s2"
@@ -877,8 +924,8 @@
         "title": "Bộ phận: Khuôn mặt (2) — Đổi Đang nói",
         "enabled": true,
         "position": {
-          "x": 2128,
-          "y": 1506
+          "x": 2168,
+          "y": 994
         },
         "preset": "composite_part_swap",
         "aiAgentRole": "AssemblyRigAgent",
@@ -917,8 +964,8 @@
         "title": "Motion: BBox #1 ↝ #2 (Vẽ đường đi tới Bàn Trà)",
         "enabled": true,
         "position": {
-          "x": 1712,
-          "y": 1594
+          "x": 1744,
+          "y": 1082
         },
         "preset": "organic_wind_breathe",
         "aiAgentRole": "MotionChoreographyAgent",
@@ -968,7 +1015,55 @@
           "bboxTargetX": 25,
           "bboxTargetY": -98,
           "bboxStartZ": 160,
-          "bboxTargetZ": 160
+          "bboxTargetZ": 160,
+          "rootLayerId": "layer-s2-robo-body",
+          "pipelineStepIndex": 1
+        }
+      },
+      {
+        "id": "v2-fx_fade-layer-s2-robo-body",
+        "type": "physics_fx",
+        "title": "Hiện/Ẩn: Hiện 0.5s · Ẩn 0.5s",
+        "enabled": true,
+        "position": {
+          "x": 2168,
+          "y": 1082
+        },
+        "preset": "rim_glow_particles",
+        "aiAgentRole": "PhysicsLightFxAgent",
+        "aiDirective": "FX: Phát Sáng Màn Hình (bước B2 sau \"Motion: BBox #1 ↝ #2 (Vẽ đường đi tới Bàn Trà)\").",
+        "params": {
+          "shotId": "shot-2",
+          "logicCategory": "fx",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-s2-robo-body",
+            "layer-s2-robo-face-happy",
+            "layer-s2-robo-face-talk",
+            "layer-s2-tea-tray"
+          ],
+          "sharedLayerNodeIds": [
+            "v2-cluster-cluster-robo-s2"
+          ],
+          "requireLayerConnection": true,
+          "timeStart": 5.2,
+          "timeEnd": 9.8,
+          "hierarchyParentNodeId": "v2-cluster-cluster-robo-s2",
+          "upstreamLogicNodeId": "v2-action-cluster-robo-s2",
+          "pipelineStepIndex": 2,
+          "instanceId": "cluster-robo-s2",
+          "rootLayerId": "layer-s2-robo-body",
+          "fxAtomicRole": "fade",
+          "fxSubTab": "opacity",
+          "animFxPreset": "neonBreathe",
+          "loopFadeInSec": 0.5,
+          "loopEndAction": "fade_out",
+          "loopFadeOutSec": 0.5,
+          "intensity": 0.55,
+          "animFxColor": "#38bdf8",
+          "animFxThickness": 8,
+          "animFxSpeed": 1.4,
+          "animMode": "keyframe_fx"
         }
       },
       {
@@ -977,8 +1072,8 @@
         "title": "Ánh sáng: Ngọn nến (Gió)",
         "enabled": true,
         "position": {
-          "x": 1296,
-          "y": 2028
+          "x": 1320,
+          "y": 1198
         },
         "preset": "rim_glow_particles",
         "aiAgentRole": "PhysicsLightFxAgent",
@@ -1000,6 +1095,7 @@
           "lightMode": "candle",
           "lightColor": "#fbbf24",
           "intensity": 1.35,
+          "pipelineStepIndex": 1,
           "lightBehavior": "wind_reactive",
           "lightWindPreset": "gentle",
           "lightRayIntensity": 0.24,
@@ -1007,6 +1103,45 @@
           "lightEnvBounce": 0.9,
           "lightZReachFront": 1500,
           "lightZReachBack": 1500
+        }
+      },
+      {
+        "id": "v2-fx_fade-layer-s2-lamp-table",
+        "type": "physics_fx",
+        "title": "Hiện/Ẩn: Hiện 0.5s · Ẩn 0.5s",
+        "enabled": true,
+        "position": {
+          "x": 1744,
+          "y": 1198
+        },
+        "preset": "rim_glow_particles",
+        "aiAgentRole": "PhysicsLightFxAgent",
+        "aiDirective": "FX: Nhịp Ấm Đèn Bàn (bước B2 sau \"Ánh sáng: Đèn Bàn Toả Sáng Ấm\").",
+        "params": {
+          "shotId": "shot-2",
+          "logicCategory": "fx",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-s2-lamp-table"
+          ],
+          "sharedLayerNodeIds": [
+            "v2-layer-layer-s2-lamp-table"
+          ],
+          "requireLayerConnection": true,
+          "timeStart": 5.2,
+          "timeEnd": 9.8,
+          "hierarchyParentNodeId": "v2-layer-layer-s2-lamp-table",
+          "upstreamLogicNodeId": "v2-light-layer-s2-lamp-table",
+          "pipelineStepIndex": 2,
+          "fxAtomicRole": "fade",
+          "fxSubTab": "opacity",
+          "animFxPreset": "pulse",
+          "loopFadeInSec": 0.5,
+          "loopEndAction": "fade_out",
+          "loopFadeOutSec": 0.5,
+          "intensity": 1.04,
+          "animFxCount": 3,
+          "animMode": "keyframe_fx"
         }
       }
     ],
@@ -1152,10 +1287,24 @@
         "toPort": "layers_tree"
       },
       {
+        "id": "e-v2-action-cluster-robo-s2-v2-fx_fade-layer-s2-robo-body",
+        "fromNode": "v2-action-cluster-robo-s2",
+        "fromPort": "layers_tree",
+        "toNode": "v2-fx_fade-layer-s2-robo-body",
+        "toPort": "layers_tree"
+      },
+      {
         "id": "e-v2-layer-layer-s2-lamp-table-v2-light-layer-s2-lamp-table",
         "fromNode": "v2-layer-layer-s2-lamp-table",
         "fromPort": "layers_tree",
         "toNode": "v2-light-layer-s2-lamp-table",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-light-layer-s2-lamp-table-v2-fx_fade-layer-s2-lamp-table",
+        "fromNode": "v2-light-layer-s2-lamp-table",
+        "fromPort": "layers_tree",
+        "toNode": "v2-fx_fade-layer-s2-lamp-table",
         "toPort": "layers_tree"
       }
     ]

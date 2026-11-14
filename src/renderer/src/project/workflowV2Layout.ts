@@ -1,23 +1,23 @@
 import type { WorkflowEdge, WorkflowGraph, WorkflowNode } from '@shared/types'
 
-/** Khoảng cách tiêu chuẩn giữa các cột (thẻ 236px + hành lang dây nối 180px = 416px, rộng rãi và thoáng đãng) */
-export const WF_V2_COL_STEP = 416
+/** Khoảng cách tiêu chuẩn giữa các cột (thẻ 252px + hành lang dây nối 172px = 424px, rộng rãi và thoáng đãng) */
+export const WF_V2_COL_STEP = 424
 
-/** Trục X của 4 cột phân cấp: Root/Camera → Nhóm → Layer → Logic (khoảng hở 180px để dây nối thông thoáng) */
+/** Trục X của 4 cột phân cấp: Root/Camera → Nhóm → Layer → Logic (khoảng hở 172px để dây nối thông thoáng) */
 export const WF_V2_COL_X = {
   ROOT: 48,
-  GROUP: 48 + WF_V2_COL_STEP, // 464
-  LAYER: 48 + WF_V2_COL_STEP * 2, // 880
-  LOGIC: 48 + WF_V2_COL_STEP * 3 // 1296
+  GROUP: 48 + WF_V2_COL_STEP, // 472
+  LAYER: 48 + WF_V2_COL_STEP * 2, // 896
+  LOGIC: 48 + WF_V2_COL_STEP * 3 // 1320
 } as const
 
 /** Làn dọc bên trái cột Root dành riêng cho dây Camera chuyển cảnh */
 export const WF_V2_CAMERA_LANE_X = -18
 /** Cột riêng cho các Node Time chung độc lập (chia hết cho 8px) */
-export const WF_V2_TIME_COL_X = -336
+export const WF_V2_TIME_COL_X = -352
 
 /** Kích thước thẻ Node cố định (CSS `.wf-v2-card` dùng đúng các giá trị này) */
-export const WF_V2_NODE_W = 236
+export const WF_V2_NODE_W = 252
 export const WF_V2_NODE_H = 64
 /** Khoảng đệm tối thiểu giữa 2 thẻ (dùng cho tự xếp & chống đè khi kéo thả) */
 export const WF_V2_NODE_GAP = 16

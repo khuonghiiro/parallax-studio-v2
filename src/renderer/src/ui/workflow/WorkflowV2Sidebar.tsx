@@ -144,19 +144,19 @@ export const WorkflowV2Sidebar: React.FC<WorkflowV2SidebarProps> = (props) => {
                   Đích: <strong title={spawnTarget.title}>{cleanV2NodeTitle(spawnTarget.title)}</strong>
                 </>
               ) : (
-                'Chọn một Layer trên sơ đồ để gắn logic'
+                'Chọn Layer, Khoá Cụm hoặc Node Logic để nối tiếp'
               )}
             </div>
             <div className="wf-v2-add-grid">
               {compat.categories.map((item) => (
                 <button
-                  key={item.id}
+                  key={item.presetId ?? item.id}
                   type="button"
                   className="wf-v2-add-card"
                   disabled={!spawnTarget}
                   style={{ ['--wf-v2-accent' as string]: item.accent }}
-                  title={spawnTarget ? `Gắn ${item.label} cho "${cleanV2NodeTitle(spawnTarget.title)}"` : 'Chọn một Layer hoặc Khoá Cụm trước'}
-                  onClick={() => props.onSpawn(item.id)}
+                  title={spawnTarget ? `Gắn ${item.label} cho "${cleanV2NodeTitle(spawnTarget.title)}"` : 'Chọn một Layer, Khoá Cụm hoặc Node Logic trước'}
+                  onClick={() => props.onSpawn(item.id, item.presetId)}
                 >
                   <span className="wf-v2-add-icon" aria-hidden="true">{item.icon}</span>
                   <span className="wf-v2-add-info">

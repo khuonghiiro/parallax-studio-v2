@@ -49,7 +49,7 @@
       "cameraPreset": "dollyIn",
       "waypointCount": 3,
       "layerCount": 10,
-      "logicCount": 7
+      "logicCount": 9
     },
     {
       "shotId": "shot-2",
@@ -68,7 +68,7 @@
       "cameraPreset": "dollyIn",
       "waypointCount": 3,
       "layerCount": 7,
-      "logicCount": 4
+      "logicCount": 6
     },
     {
       "shotId": "shot-3",
@@ -87,7 +87,7 @@
       "cameraPreset": "dollyIn",
       "waypointCount": 3,
       "layerCount": 5,
-      "logicCount": 4
+      "logicCount": 6
     }
   ],
   "connections": [

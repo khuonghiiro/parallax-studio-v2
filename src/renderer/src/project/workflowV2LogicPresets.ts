@@ -28,11 +28,18 @@ export type WorkflowV2SpawnCategory =
 
 export interface WorkflowV2LogicCategoryItem {
   id: WorkflowV2SpawnCategory
+  presetId?: string
   icon: string
   label: string
   hint: string
   accent: string
 }
+
+const ATOMIC_FX_ITEMS: WorkflowV2LogicCategoryItem[] = [
+  { id: 'fx', presetId: 'v2:fx:fade_in_out', icon: '🌓', label: 'Hiện / Ẩn mờ dần', hint: 'Fade In / Out độ mờ Opacity độc lập', accent: '#a855f7' },
+  { id: 'fx', presetId: 'v2:fx:pulse_beat', icon: '💓', label: 'Nhịp thở / Rung', hint: 'Nhịp co giãn Scale hoặc rung nhẹ', accent: '#c084fc' },
+  { id: 'fx', presetId: 'v2:fx:glow', icon: '✨', label: 'Phát sáng Neon', hint: 'Hào quang viền sáng tách biệt hoàn toàn', accent: '#e879f9' }
+]
 
 /**
  * Nhóm logic gắn vào Layer / Cụm — tuân thủ Nguyên Tắc Đơn Trách Nhiệm Của Node:
@@ -111,7 +118,7 @@ export function getCompatibleLogicCatalogForNode(
     }
     categories.push(
       { id: 'action', icon: '🔄', label: 'Motion 3D', hint: 'Xoay 3D & vẽ quỹ đạo chuyển động', accent: '#10b981' },
-      { id: 'fx', icon: '✨', label: 'Hiệu ứng 3D', hint: 'Hiện/ẩn mờ dần, nhịp đập, rung chấn & phát sáng', accent: '#a855f7' },
+      ...ATOMIC_FX_ITEMS,
       { id: 'material', icon: '🏷️', label: 'Vật liệu 3D', hint: 'Đá cứng, kim loại, gỗ, đàn hồi', accent: '#f97316' },
       { id: 'collision', icon: '💥', label: 'Va chạm 3D', hint: 'Tương tác va đập vật lý 3D', accent: '#f43f5e' },
       { id: 'light', icon: '💡', label: 'Ánh sáng 3D', hint: 'Chiếu sáng khối 3D, Rim & Point', accent: '#eab308' },
@@ -134,7 +141,7 @@ export function getCompatibleLogicCatalogForNode(
     categories.push(
       { id: 'anim_fx', icon: '🎞️', label: 'Hành động Nhân vật', hint: 'Động tác nhép miệng, nháy mắt & Clip xương 2.5D', accent: '#6366f1' },
       { id: 'action', icon: '🏃', label: 'Motion', hint: 'Đặt BBox Đích & vẽ quỹ đạo chuyển động', accent: '#10b981' },
-      { id: 'fx', icon: '✨', label: 'Hiệu ứng', hint: 'Hiện/ẩn mờ dần, nhịp đập, rung chấn & Neon', accent: '#a855f7' },
+      ...ATOMIC_FX_ITEMS,
       { id: 'material', icon: '🏷️', label: 'Vật liệu', hint: 'Đàn hồi chất liệu cho cụm 2.5D', accent: '#f97316' },
       { id: 'collision', icon: '💥', label: 'Va chạm', hint: 'Nối 2 Cụm / Layer va đập vật lý', accent: '#f43f5e' },
       { id: 'light', icon: '💡', label: 'Ánh sáng', hint: 'Đèn viền, glow, nguồn sáng cụm', accent: '#eab308' },
@@ -156,7 +163,7 @@ export function getCompatibleLogicCatalogForNode(
   }
   singleCategories.push(
     { id: 'action', icon: '🏃', label: 'Motion', hint: 'Đặt BBox Đích & vẽ quỹ đạo di chuyển Layer', accent: '#10b981' },
-    { id: 'fx', icon: '✨', label: 'Hiệu ứng', hint: 'Hiện/ẩn mờ dần, nhịp đập, rung chấn, phát sáng Neon & quang học', accent: '#a855f7' },
+    ...ATOMIC_FX_ITEMS,
     { id: 'rig_bone', icon: '🦴', label: 'Gắn xương', hint: 'Chuỗi xương uốn dẻo cho Layer', accent: '#f59e0b' },
     { id: 'material', icon: '🏷️', label: 'Vật liệu', hint: 'Cao su, gỗ, đá, lá, kim loại & đàn hồi Mesh', accent: '#f97316' },
     { id: 'collision', icon: '💥', label: 'Va chạm', hint: 'Nối 2 Layer va đập vật lý', accent: '#f43f5e' },

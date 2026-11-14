@@ -4,7 +4,9 @@ import React, { memo, useSyncExternalStore } from 'react'
 import type { ImageProps, Project, WorkflowNode, WorkflowNodeParams, WorkflowPortKind } from '@shared/types'
 import {
   WORKFLOW_V2_COLLISION_OPTIONS,
-  WORKFLOW_V2_MATERIAL_OPTIONS
+  WORKFLOW_V2_MATERIAL_OPTIONS,
+  isComposableLogicNode,
+  resolveFxAtomicRole
 } from '../../project/workflowV2Engine'
 import { WorkflowTimeRangeBar } from './WorkflowTimeRangeBar'
 import {
@@ -127,8 +129,19 @@ export function summarizeV2Node(node: WorkflowNode, childCount: number): string 
       return `Độ tối ${pct(p.caveDarkness, 0.82)}`
     case 'light':
       return `Cường độ ${pct(p.intensity, 1.3)}`
-    case 'fx':
-      return `Cường độ ${pct(p.intensity, 1)}`
+    case 'fx': {
+      const role = resolveFxAtomicRole(node)
+      if (role === 'fade') {
+        const fi = p.loopFadeInSec ?? 0.35
+        const fo = p.loopFadeOutSec ?? 0.35
+        return `Hiện ${fi.toFixed(1)}s · Ẩn ${fo.toFixed(1)}s`
+      }
+      if (role === 'pulse') {
+        const mode = p.animFxPreset === 'shake' ? 'Rung' : p.animFxPreset === 'popIn' ? 'Nảy Pop' : 'Nhịp'
+        return `${mode} · Cường độ ${pct(p.intensity, 1.0)}`
+      }
+      return `Hào quang · ${pct(p.intensity, 0.9)}`
+    }
     case 'camera':
       if (p.isCameraWaypoint) {
         const localIdx = p.waypointLocalIndex ?? 0
@@ -205,15 +218,29 @@ export const WorkflowNodeCardV2 = memo(function WorkflowNodeCardV2({
   const collapsedSubs = Boolean(node.params?.collapsedSubLayers)
   useSyncExternalStore(cb => assetStore.subscribe(cb), () => assetStore.version)
   const thumb = resolveThumb(node, project)
-  const hasOutput = isTimeNode(node) || level !== 'logic' || cat === 'action' || cat === 'collision' || cat === 'material' || cat === 'cluster_lock' || Boolean(node.params?.isPartHub)
+  const composable = isComposableLogicNode(node)
+  const fxRole = cat === 'fx' ? resolveFxAtomicRole(node) : null
+  const badgeText =
+    fxRole === 'fade' ? 'MỜ DẦN' : fxRole === 'pulse' ? 'NHỊP RUNG' : fxRole === 'glow' ? 'HÀO QUANG' : theme.badge
+  const pipelineStep = composable ? node.params?.pipelineStepIndex : undefined
+  const hasOutput =
+    isTimeNode(node) ||
+    level !== 'logic' ||
+    composable ||
+    cat === 'cluster_lock' ||
+    Boolean(node.params?.isPartHub)
 
   const socket = (kind: 'in' | 'out'): React.ReactElement => {
     const isOut = kind === 'out'
     const port = isOut ? theme.portOut : theme.portIn
+    const outTitle = composable
+      ? 'Kéo dây nối tiếp sang Node Logic kế tiếp trong chuỗi (hoặc thả ra khoảng trống để gắn nhanh)'
+      : 'Kéo dây sang Node khác (thả ra khoảng trống để gắn nhanh Node Logic)'
     return (
       <div
         className={`wf-v2-socket ${kind}`}
-        title={isOut ? (cat === 'action' || cat === 'collision' ? 'Nối chặng tiếp — kéo vào Node tiếp theo hoặc thả ra khoảng trống để tạo chặng mới' : 'Kéo dây sang Node khác (thả ra khoảng trống để gắn nhanh Node Logic)') : 'Cổng nhận kết nối'}
+        title={isOut ? outTitle : 'Cổng nhận kết nối'}
+        aria-label={isOut ? outTitle : 'Cổng nhận kết nối'}
         onPointerDown={(e) => {
           e.stopPropagation()
           onStartWireDrag(e, node.id, port, isOut)
@@ -328,8 +355,16 @@ export const WorkflowNodeCardV2 = memo(function WorkflowNodeCardV2({
         )}
         <div className="wf-v2-card-titles">
           <div className="wf-v2-card-meta-row">
+            {pipelineStep && pipelineStep >= 1 && (
+              <span
+                className={`wf-v2-step-chip${pipelineStep >= 2 ? ' is-chain' : ''}`}
+                title={`Bước ${pipelineStep} trong chuỗi Node Logic`}
+              >
+                B{pipelineStep}
+              </span>
+            )}
             <span className="wf-v2-card-badge">
-              {theme.badge}
+              {badgeText}
             </span>
             {node.params?.isCameraWaypoint && isActiveAtCurrentTime && node.enabled && (
               <span className="wf-v2-cam-live-pill" title="Camera đang quay tại bước này">● QUAY</span>
@@ -420,7 +455,7 @@ export const WorkflowNodeCardV2 = memo(function WorkflowNodeCardV2({
               type="button"
               role="switch"
               aria-checked={node.enabled}
-              className={`wf-v2-toggle-pill ${node.enabled ? 'on' : 'off'}`}
+              className={`wf-v2-toggle-pill is-compact ${node.enabled ? 'on' : 'off'}`}
               title={
                 cat === 'cluster_lock'
                   ? node.enabled
@@ -430,13 +465,24 @@ export const WorkflowNodeCardV2 = memo(function WorkflowNodeCardV2({
                     ? 'Node đang BẬT — nhấn để TẮT tạm thời'
                     : 'Node đang TẮT — nhấn để BẬT lại'
               }
-              aria-label={node.enabled ? 'Tắt node' : 'Bật node'}
+              aria-label={
+                cat === 'cluster_lock'
+                  ? node.enabled
+                    ? 'Mở khoá cụm'
+                    : 'Khoá cụm'
+                  : node.enabled
+                    ? 'Tắt tạm Node'
+                    : 'Bật lại Node'
+              }
               onClick={() => onToggleEnable(node.id)}
             >
-              <span className="wf-v2-toggle-thumb" aria-hidden="true" />
-              <span className="wf-v2-toggle-txt">
-                {cat === 'cluster_lock' ? (node.enabled ? '🔒' : '🔓') : node.enabled ? 'BẬT' : 'TẮT'}
-              </span>
+              {cat === 'cluster_lock' ? (
+                <span className="wf-v2-toggle-lock" aria-hidden="true">
+                  {node.enabled ? '🔒' : '🔓'}
+                </span>
+              ) : (
+                <span className="wf-v2-toggle-thumb" aria-hidden="true" />
+              )}
             </button>
           )}
           {isDeletableV2Node(node) && (

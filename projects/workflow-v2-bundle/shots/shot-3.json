@@ -266,7 +266,7 @@
       "id": "v2-action-layer-s3-scooter",
       "category": "action",
       "presetId": "v2:action:bbox_target",
-      "title": "Motion: BBox #1 → #2 (To dần 135% · Đụng Thùng Hàng)",
+      "title": "Motion: BBox #1 → #2 (Lao Phố Đêm)",
       "enabled": true,
       "timeStart": 10.2,
       "timeEnd": 14.5,
@@ -303,6 +303,46 @@
         "deformIntensity": 0.72,
         "strikerLayerId": "layer-s3-scooter"
       }
+    },
+    {
+      "id": "v2-fx_fade-layer-s3-scooter",
+      "category": "fx",
+      "presetId": "v2:fx:neonSolid",
+      "title": "FX: Đèn Neon Xe Scooter",
+      "enabled": true,
+      "timeStart": 10.4,
+      "timeEnd": 14.8,
+      "targetLayerIds": [
+        "layer-s3-scooter"
+      ],
+      "targetLayerNames": [
+        "Tay Đua Scooter Điện"
+      ],
+      "params": {
+        "fxKind": "wind_physics",
+        "intensity": 0.78
+      }
+    },
+    {
+      "id": "v2-material-layer-s3-scooter",
+      "category": "material",
+      "presetId": "v2:material:flesh_body",
+      "title": "Vật liệu: 🥊 Chủ thể / Cơ thể sống",
+      "enabled": true,
+      "timeStart": 10,
+      "timeEnd": 15,
+      "targetLayerIds": [
+        "layer-s3-scooter"
+      ],
+      "targetLayerNames": [
+        "Tay Đua Scooter Điện"
+      ],
+      "params": {
+        "materialTag": "flesh_body",
+        "materialStiffness": 1,
+        "materialBounciness": 0.54,
+        "materialGravity": 0
+      }
     }
   ],
   "graph": {
@@ -314,7 +354,7 @@
         "enabled": true,
         "position": {
           "x": 48,
-          "y": 2422
+          "y": 1678
         },
         "preset": "deep_parallax_stage",
         "aiAgentRole": "SceneLayoutAgent",
@@ -333,7 +373,7 @@
         "enabled": true,
         "position": {
           "x": 48,
-          "y": 2528
+          "y": 1784
         },
         "preset": "cinematic_fly_push",
         "aiAgentRole": "CameraDirectorAgent",
@@ -356,7 +396,7 @@
         "enabled": true,
         "position": {
           "x": 48,
-          "y": 2660
+          "y": 1916
         },
         "preset": "cinematic_fly_push",
         "aiAgentRole": "CameraDirectorAgent",
@@ -393,7 +433,7 @@
         "enabled": true,
         "position": {
           "x": 48,
-          "y": 2792
+          "y": 2048
         },
         "preset": "cinematic_fly_push",
         "aiAgentRole": "CameraDirectorAgent",
@@ -430,7 +470,7 @@
         "enabled": true,
         "position": {
           "x": 48,
-          "y": 2924
+          "y": 2180
         },
         "preset": "cinematic_fly_push",
         "aiAgentRole": "CameraDirectorAgent",
@@ -466,8 +506,8 @@
         "title": "Nhóm Layer 2.5D",
         "enabled": true,
         "position": {
-          "x": 464,
-          "y": 2700
+          "x": 472,
+          "y": 1934
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -496,8 +536,8 @@
         "title": "Thùng Hàng & Biển Báo Vỉa Hè",
         "enabled": true,
         "position": {
-          "x": 880,
-          "y": 2466
+          "x": 896,
+          "y": 1678
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -524,8 +564,8 @@
         "title": "Cột Đèn Đường Neon & Cây Vỉa Hè",
         "enabled": true,
         "position": {
-          "x": 880,
-          "y": 2616
+          "x": 896,
+          "y": 1784
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -552,8 +592,8 @@
         "title": "Tay Đua Scooter Điện",
         "enabled": true,
         "position": {
-          "x": 880,
-          "y": 2722
+          "x": 896,
+          "y": 1934
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -580,8 +620,8 @@
         "title": "Mặt Đường Nhựa & Vỉa Hè",
         "enabled": true,
         "position": {
-          "x": 880,
-          "y": 2828
+          "x": 896,
+          "y": 2084
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -608,8 +648,8 @@
         "title": "Bầu Trời Phố Đêm & Tòa Nhà Xa",
         "enabled": true,
         "position": {
-          "x": 880,
-          "y": 2934
+          "x": 896,
+          "y": 2190
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -636,8 +676,8 @@
         "title": "Ánh sáng: Đèn pin (Chùm nón)",
         "enabled": true,
         "position": {
-          "x": 1296,
-          "y": 2616
+          "x": 1320,
+          "y": 1784
         },
         "preset": "rim_glow_particles",
         "aiAgentRole": "PhysicsLightFxAgent",
@@ -659,6 +699,7 @@
           "lightMode": "spot",
           "lightColor": "#38bdf8",
           "intensity": 1.4,
+          "pipelineStepIndex": 1,
           "lightBehavior": "steady",
           "lightWindPreset": "none",
           "lightRayIntensity": 0.52,
@@ -674,8 +715,8 @@
         "title": "Vật liệu: 🌳 Gỗ / Thân cây đàn hồi",
         "enabled": true,
         "position": {
-          "x": 1296,
-          "y": 2422
+          "x": 1320,
+          "y": 1678
         },
         "preset": "rim_glow_particles",
         "aiAgentRole": "PhysicsLightFxAgent",
@@ -698,21 +739,22 @@
           "materialStiffness": 1.25,
           "materialBounciness": 0.85,
           "materialGravity": 0,
-          "intensity": 0.85
+          "intensity": 0.85,
+          "pipelineStepIndex": 1
         }
       },
       {
         "id": "v2-action-layer-s3-scooter",
         "type": "motion_choreography",
-        "title": "Motion: BBox #1 → #2 (To dần 135% · Đụng Thùng Hàng)",
+        "title": "Motion: BBox #1 → #2 (Lao Phố Đêm)",
         "enabled": true,
         "position": {
-          "x": 1296,
-          "y": 2722
+          "x": 1320,
+          "y": 1890
         },
         "preset": "organic_wind_breathe",
         "aiAgentRole": "MotionChoreographyAgent",
-        "aiDirective": "Motion: BBox #1 → #2 (To dần 135% · Đụng Thùng Hàng) cho \"Tay Đua Scooter Điện\".",
+        "aiDirective": "Motion: BBox #1 → #2 (Lao Phố Đêm) cho \"Tay Đua Scooter Điện\".",
         "params": {
           "shotId": "shot-3",
           "logicCategory": "action",
@@ -739,9 +781,7 @@
           "depthRelation": "in_front",
           "bboxStartZ": 310,
           "bboxTargetZ": 165,
-          "collisionOnPathEnabled": true,
-          "collisionTargetLayerId": "layer-s3-crate",
-          "collisionResponse": "push"
+          "pipelineStepIndex": 1
         }
       },
       {
@@ -750,12 +790,12 @@
         "title": "Va chạm: Scooter 💥 Thùng Hàng Vỉa Hè",
         "enabled": true,
         "position": {
-          "x": 1296,
-          "y": 2510
+          "x": 1744,
+          "y": 1678
         },
         "preset": "rim_glow_particles",
         "aiAgentRole": "PhysicsLightFxAgent",
-        "aiDirective": "Va chạm: Scooter 💥 Thùng Hàng Vỉa Hè cho \"Tay Đua Scooter Điện\".",
+        "aiDirective": "Va chạm: Scooter 💥 Thùng Hàng Vỉa Hè (bước B2 sau \"Motion: BBox #1 → #2 (Lao Phố Đêm)\").",
         "params": {
           "shotId": "shot-3",
           "logicCategory": "collision",
@@ -772,12 +812,87 @@
           "timeStart": 13.6,
           "timeEnd": 14.6,
           "hierarchyParentNodeId": "v2-layer-layer-s3-scooter",
+          "upstreamLogicNodeId": "v2-action-layer-s3-scooter",
+          "pipelineStepIndex": 2,
           "strikerLayerId": "layer-s3-scooter",
           "collisionMode": "heavy_punch",
           "collisionForce": 1.25,
           "deformIntensity": 0.72,
           "intensity": 1.15,
           "targetColliderLayerId": "layer-s3-crate"
+        }
+      },
+      {
+        "id": "v2-fx_fade-layer-s3-scooter",
+        "type": "physics_fx",
+        "title": "FX: Đèn Neon Xe Scooter",
+        "enabled": true,
+        "position": {
+          "x": 2168,
+          "y": 1678
+        },
+        "preset": "rim_glow_particles",
+        "aiAgentRole": "PhysicsLightFxAgent",
+        "aiDirective": "FX: Đèn Neon Xe Scooter (bước B3 sau \"Va chạm: Scooter 💥 Thùng Hàng Vỉa Hè\").",
+        "params": {
+          "shotId": "shot-3",
+          "logicCategory": "fx",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-s3-scooter"
+          ],
+          "sharedLayerNodeIds": [
+            "v2-layer-layer-s3-scooter",
+            "v2-layer-layer-s3-crate"
+          ],
+          "requireLayerConnection": true,
+          "timeStart": 10.4,
+          "timeEnd": 14.8,
+          "hierarchyParentNodeId": "v2-layer-layer-s3-crate",
+          "upstreamLogicNodeId": "v2-collision-layer-s3-scooter",
+          "pipelineStepIndex": 3,
+          "fxAtomicRole": "fade",
+          "fxSubTab": "opacity",
+          "animFxPreset": "neonSolid",
+          "loopFadeInSec": 0.5,
+          "loopEndAction": "fade_out",
+          "loopFadeOutSec": 0.5,
+          "intensity": 0.78,
+          "animFxColor": "#22d3ee",
+          "animFxThickness": 9
+        }
+      },
+      {
+        "id": "v2-material-layer-s3-scooter",
+        "type": "physics_fx",
+        "title": "Vật liệu: 🥊 Chủ thể / Cơ thể sống",
+        "enabled": true,
+        "position": {
+          "x": 1320,
+          "y": 1978
+        },
+        "preset": "rim_glow_particles",
+        "aiAgentRole": "PhysicsLightFxAgent",
+        "aiDirective": "Nhãn vật liệu \"🥊 Chủ thể / Cơ thể sống\" của \"Tay Đua Scooter Điện\".",
+        "params": {
+          "shotId": "shot-3",
+          "logicCategory": "material",
+          "materialTag": "flesh_body",
+          "materialStiffness": 1,
+          "materialBounciness": 0.54,
+          "materialGravity": 0,
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-s3-scooter"
+          ],
+          "sharedLayerNodeIds": [
+            "v2-layer-layer-s3-scooter"
+          ],
+          "requireLayerConnection": true,
+          "timeStart": 10,
+          "timeEnd": 15,
+          "hierarchyParentNodeId": "v2-layer-layer-s3-scooter",
+          "pipelineStepIndex": 1
         }
       }
     ],
@@ -874,17 +989,31 @@
         "toPort": "layers_tree"
       },
       {
-        "id": "e-v2-layer-layer-s3-scooter-v2-collision-layer-s3-scooter",
-        "fromNode": "v2-layer-layer-s3-scooter",
+        "id": "e-v2-action-layer-s3-scooter-v2-collision-layer-s3-scooter",
+        "fromNode": "v2-action-layer-s3-scooter",
         "fromPort": "layers_tree",
         "toNode": "v2-collision-layer-s3-scooter",
         "toPort": "layers_tree"
       },
       {
-        "id": "e-v2-layer-layer-s3-crate-v2-collision-layer-s3-scooter",
-        "fromNode": "v2-layer-layer-s3-crate",
+        "id": "e-v2-material-layer-s3-crate-v2-collision-layer-s3-scooter",
+        "fromNode": "v2-material-layer-s3-crate",
         "fromPort": "layers_tree",
         "toNode": "v2-collision-layer-s3-scooter",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-collision-layer-s3-scooter-v2-fx_fade-layer-s3-scooter",
+        "fromNode": "v2-collision-layer-s3-scooter",
+        "fromPort": "layers_tree",
+        "toNode": "v2-fx_fade-layer-s3-scooter",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-layer-layer-s3-scooter-v2-material-layer-s3-scooter",
+        "fromNode": "v2-layer-layer-s3-scooter",
+        "fromPort": "layers_tree",
+        "toNode": "v2-material-layer-s3-scooter",
         "toPort": "layers_tree"
       }
     ]

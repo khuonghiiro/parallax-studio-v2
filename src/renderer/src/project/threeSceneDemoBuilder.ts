@@ -5,6 +5,7 @@ import { createImageLayer, createProject, createShot, shotSpacing } from './fact
 import {
   attachExternalLayerToClusterV2,
   attachLogicNodeToLayerV2,
+  recomputeSharedLogicTargets,
   saveClusterCustomAction,
   syncWorkflowV2Graph,
   syncWorkflowV2NodeToProject,
@@ -538,7 +539,7 @@ export function buildThreeSceneWorkflowV2Project(assetInputs: DemoSceneAssetInpu
     syncWorkflowV2NodeToProject(project, s1MotionNode)
   }
 
-  // 1.4. Node Animation cho Cụm Cậu Bé Du Hành: Bước đi hào hứng
+  // 1.4. Chuỗi Logic B2: Node Hành động Xương 2.5D nối sau Motion (chỉ làm Rig Clip, không gộp FX)
   saveClusterCustomAction(project, instBoy, {
     id: 'act-boy-happy-walk',
     name: 'Bước Đi Hào Hứng Trên Đồng',
@@ -551,29 +552,45 @@ export function buildThreeSceneWorkflowV2Project(assetInputs: DemoSceneAssetInpu
   })
   const s1AnimRes = attachLogicNodeToLayerV2(
     project.workflow,
-    boyClusterLockId,
+    s1MotionRes.createdNodeId!,
     'anim_fx',
     'v2:anim_fx:rig_walk',
     {
+      animMode: 'rig_clip',
       customActionId: 'act-boy-happy-walk',
       customActionName: 'Bước Đi Hào Hứng Trên Đồng',
       rigActionPreset: 'walk',
-      animFxPreset: 'pulse',
-      intensity: 1.0,
-      animFxSpeed: 1.3,
       customActionSpeedHz: 1.4,
       timeStart: 0.2,
       timeEnd: 4.6
     },
-    'Animation: Bước Đi Hào Hứng Trên Đồng'
+    'Hành động: Bước Đi Hào Hứng Trên Đồng'
   )
   project.workflow = s1AnimRes.workflow
   const s1AnimNode = project.workflow.nodes.find((n) => n.id === s1AnimRes.createdNodeId)
-  if (s1AnimNode) {
-    syncWorkflowV2NodeToProject(project, s1AnimNode)
-  }
+  if (s1AnimNode) syncWorkflowV2NodeToProject(project, s1AnimNode)
 
-  // 1.5. Node Vật liệu cho Cây Sồi Cổ Thụ & Hoa Tiền Cảnh
+  // 1.4b. Chuỗi Logic B3: Node FX Hiện/Ẩn Mờ Dần độc lập nối sau Hành động
+  const s1BoyFadeRes = attachLogicNodeToLayerV2(
+    project.workflow,
+    s1AnimRes.createdNodeId!,
+    'fx',
+    'v2:fx:fade_in_out',
+    {
+      animFxPreset: 'fadeInOut',
+      loopFadeInSec: 0.35,
+      loopFadeOutSec: 0.35,
+      loopEndAction: 'fade_out',
+      timeStart: 0.0,
+      timeEnd: 5.0
+    },
+    'FX: Hiện/Ẩn Mờ Dần Êm'
+  )
+  project.workflow = s1BoyFadeRes.workflow
+  const s1BoyFadeNode = project.workflow.nodes.find((n) => n.id === s1BoyFadeRes.createdNodeId)
+  if (s1BoyFadeNode) syncWorkflowV2NodeToProject(project, s1BoyFadeNode)
+
+  // 1.5. Node Vật liệu cho Cây Sồi Cổ Thụ & Chuỗi Vật liệu -> FX Nhịp Gió cho Hoa Tiền Cảnh
   const s1TreeMatRes = attachLogicNodeToLayerV2(
     project.workflow,
     v2LayerNodeId(oakTree.id),
@@ -593,6 +610,24 @@ export function buildThreeSceneWorkflowV2Project(assetInputs: DemoSceneAssetInpu
   project.workflow = s1FlowerMatRes.workflow
   const s1FlowerMatNode = project.workflow.nodes.find((n) => n.id === s1FlowerMatRes.createdNodeId)
   if (s1FlowerMatNode) syncWorkflowV2NodeToProject(project, s1FlowerMatNode)
+
+  const s1FlowerPulseRes = attachLogicNodeToLayerV2(
+    project.workflow,
+    s1FlowerMatRes.createdNodeId!,
+    'fx',
+    'v2:fx:pulse_beat',
+    {
+      animFxPreset: 'pulse',
+      intensity: 1.05,
+      animFxCount: 4,
+      timeStart: 0.2,
+      timeEnd: 4.8
+    },
+    'FX: Nhịp Gió Mùa Nhẹ'
+  )
+  project.workflow = s1FlowerPulseRes.workflow
+  const s1FlowerPulseNode = project.workflow.nodes.find((n) => n.id === s1FlowerPulseRes.createdNodeId)
+  if (s1FlowerPulseNode) syncWorkflowV2NodeToProject(project, s1FlowerPulseNode)
 
   // --- CẢNH 2 LOGIC ---
   const roboClusterLockId = v2ClusterLockId(instRobo)
@@ -637,7 +672,7 @@ export function buildThreeSceneWorkflowV2Project(assetInputs: DemoSceneAssetInpu
     })
   }
 
-  // 2.3. Node Motion BBox #1 -> #2 (Dạng 2: Đặt BBox #2 rồi Vẽ đường cong di chuyển)
+  // 2.3. Chuỗi Motion BBox #1 -> #2 -> FX Phát sáng viền màn hình Mèo Máy
   const s2MotionRes = attachLogicNodeToLayerV2(
     project.workflow,
     roboClusterLockId,
@@ -668,7 +703,27 @@ export function buildThreeSceneWorkflowV2Project(assetInputs: DemoSceneAssetInpu
   const s2MotionNode = project.workflow.nodes.find((n) => n.id === s2MotionRes.createdNodeId)
   if (s2MotionNode) syncWorkflowV2NodeToProject(project, s2MotionNode)
 
-  // 2.4. Node Ánh sáng 2.5D cho Bàn Trà & Đèn Bàn Ấm Áp
+  const s2RoboGlowRes = attachLogicNodeToLayerV2(
+    project.workflow,
+    s2MotionRes.createdNodeId!,
+    'fx',
+    'v2:fx:glow',
+    {
+      animFxPreset: 'neonBreathe',
+      animFxColor: '#38bdf8',
+      intensity: 0.55,
+      animFxThickness: 8,
+      animFxSpeed: 1.4,
+      timeStart: 5.2,
+      timeEnd: 9.8
+    },
+    'FX: Phát Sáng Màn Hình'
+  )
+  project.workflow = s2RoboGlowRes.workflow
+  const s2RoboGlowNode = project.workflow.nodes.find((n) => n.id === s2RoboGlowRes.createdNodeId)
+  if (s2RoboGlowNode) syncWorkflowV2NodeToProject(project, s2RoboGlowNode)
+
+  // 2.4. Chuỗi Ánh sáng 2.5D -> FX Nhịp sáng êm cho Bàn Trà & Đèn Bàn Ấm Áp
   const s2LightRes = attachLogicNodeToLayerV2(
     project.workflow,
     v2LayerNodeId(teaLampTable.id),
@@ -687,6 +742,24 @@ export function buildThreeSceneWorkflowV2Project(assetInputs: DemoSceneAssetInpu
   const s2LightNode = project.workflow.nodes.find((n) => n.id === s2LightRes.createdNodeId)
   if (s2LightNode) syncWorkflowV2NodeToProject(project, s2LightNode)
   if (teaLampTable.virtualLight) teaLampTable.virtualLight.originUV = [0.5, 0.71]
+
+  const s2LampPulseRes = attachLogicNodeToLayerV2(
+    project.workflow,
+    s2LightRes.createdNodeId!,
+    'fx',
+    'v2:fx:pulse_beat',
+    {
+      animFxPreset: 'pulse',
+      intensity: 1.04,
+      animFxCount: 3,
+      timeStart: 5.2,
+      timeEnd: 9.8
+    },
+    'FX: Nhịp Ấm Đèn Bàn'
+  )
+  project.workflow = s2LampPulseRes.workflow
+  const s2LampPulseNode = project.workflow.nodes.find((n) => n.id === s2LampPulseRes.createdNodeId)
+  if (s2LampPulseNode) syncWorkflowV2NodeToProject(project, s2LampPulseNode)
 
   // --- CẢNH 3 LOGIC ---
   // 3.1. Node Ánh sáng 2.5D cho Cột Đèn Đường Neon
@@ -724,10 +797,8 @@ export function buildThreeSceneWorkflowV2Project(assetInputs: DemoSceneAssetInpu
   const s3CrateMatNode = project.workflow.nodes.find((n) => n.id === s3CrateMatRes.createdNodeId)
   if (s3CrateMatNode) syncWorkflowV2NodeToProject(project, s3CrateMatNode)
 
-  // 3.3. Node Motion BBox #1 -> #2 cho Tay Đua Scooter Điện:
-  //      Đi từ (-420, -135) tới (245, -140), phóng to dần 100% -> 135%,
-  //      đi theo chiều sâu Z-Index vượt qua trước Cột Đèn & Cây Vỉa Hè,
-  //      và va chạm đẩy lùi Thùng Hàng Vỉa Hè!
+  // 3.3. Chuỗi đơn nhiệm Tay Đua Scooter Điện:
+  //      B1 Motion (chỉ lo quỹ đạo BBox & chiều sâu Z) -> B2 Va chạm (nhận thêm Vật liệu Gỗ của Thùng Hàng) -> B3 FX Phát sáng Neon
   const s3MotionRes = attachLogicNodeToLayerV2(
     project.workflow,
     v2LayerNodeId(scooterRider.id),
@@ -745,22 +816,19 @@ export function buildThreeSceneWorkflowV2Project(assetInputs: DemoSceneAssetInpu
       depthRelation: 'in_front',
       bboxStartZ: 310,
       bboxTargetZ: 165,
-      collisionOnPathEnabled: true,
-      collisionTargetLayerId: streetCrate.id,
-      collisionResponse: 'push',
       timeStart: 10.2,
       timeEnd: 14.5
     },
-    'Motion: BBox #1 → #2 (To dần 135% · Đụng Thùng Hàng)'
+    'Motion: BBox #1 → #2 (Lao Phố Đêm)'
   )
   project.workflow = s3MotionRes.workflow
   const s3MotionNode = project.workflow.nodes.find((n) => n.id === s3MotionRes.createdNodeId)
   if (s3MotionNode) syncWorkflowV2NodeToProject(project, s3MotionNode)
 
-  // 3.4. Node Va chạm Vật lý chuyên biệt nối Tay Đua Scooter 💥 Thùng Hàng Vỉa Hè
+  // 3.4. Chuỗi B2: Node Va chạm Vật lý nối từ B1 Motion của Scooter & Vật liệu Gỗ của Thùng Hàng
   const s3ColRes = attachLogicNodeToLayerV2(
     project.workflow,
-    v2LayerNodeId(scooterRider.id),
+    s3MotionRes.createdNodeId!,
     'collision',
     'v2:collision:elastic_bounce',
     {
@@ -776,18 +844,42 @@ export function buildThreeSceneWorkflowV2Project(assetInputs: DemoSceneAssetInpu
     'Va chạm: Scooter 💥 Thùng Hàng Vỉa Hè'
   )
   project.workflow = s3ColRes.workflow
-  const crateLayerNodeId = v2LayerNodeId(streetCrate.id)
-  if (!project.workflow.edges.some((e) => e.fromNode === crateLayerNodeId && e.toNode === s3ColRes.createdNodeId)) {
+  const crateMatId = s3CrateMatRes.createdNodeId!
+  if (!project.workflow.edges.some((e) => e.fromNode === crateMatId && e.toNode === s3ColRes.createdNodeId)) {
     project.workflow.edges.push({
-      id: `e-${crateLayerNodeId}-${s3ColRes.createdNodeId}`,
-      fromNode: crateLayerNodeId,
+      id: `e-${crateMatId}-${s3ColRes.createdNodeId}`,
+      fromNode: crateMatId,
       fromPort: 'layers_tree',
-      toNode: s3ColRes.createdNodeId,
+      toNode: s3ColRes.createdNodeId!,
       toPort: 'layers_tree'
     })
   }
+  project.workflow = {
+    ...project.workflow,
+    nodes: recomputeSharedLogicTargets(project.workflow.nodes, project.workflow.edges)
+  }
   const s3ColNode = project.workflow.nodes.find((n) => n.id === s3ColRes.createdNodeId)
   if (s3ColNode) syncWorkflowV2NodeToProject(project, s3ColNode)
+
+  // 3.5. Chuỗi B3: FX Phát sáng Neon cho riêng Scooter sau va chạm
+  const s3ScooterGlowRes = attachLogicNodeToLayerV2(
+    project.workflow,
+    s3ColRes.createdNodeId!,
+    'fx',
+    'v2:fx:glow',
+    {
+      animFxPreset: 'neonSolid',
+      animFxColor: '#22d3ee',
+      intensity: 0.78,
+      animFxThickness: 9,
+      timeStart: 10.4,
+      timeEnd: 14.8
+    },
+    'FX: Đèn Neon Xe Scooter'
+  )
+  project.workflow = s3ScooterGlowRes.workflow
+  const s3ScooterGlowNode = project.workflow.nodes.find((n) => n.id === s3ScooterGlowRes.createdNodeId)
+  if (s3ScooterGlowNode) syncWorkflowV2NodeToProject(project, s3ScooterGlowNode)
 
   // Đồng bộ bố cục sơ đồ lần cuối
   project.workflow = syncWorkflowV2Graph(project, project.workflow)

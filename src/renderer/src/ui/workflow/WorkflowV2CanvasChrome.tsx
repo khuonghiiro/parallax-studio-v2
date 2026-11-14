@@ -1,6 +1,6 @@
 import React from 'react'
 import type { WorkflowEdge, WorkflowNode } from '@shared/types'
-import { WF_V2_CAMERA_LANE_X, type V2Cluster } from '../../project/workflowV2Engine'
+import { WF_V2_CAMERA_LANE_X, WF_V2_NODE_W, type V2Cluster } from '../../project/workflowV2Engine'
 import { IconFit, IconZoomIn, IconZoomOut } from '../icons'
 import { resolveCameraActionName } from './workflowV2Theme'
 import { WF_V2_PORT_Y, buildEdgePath, computeSmartTimeEdgeRoute, type V2EdgeKind } from './workflowV2Edges'
@@ -60,7 +60,7 @@ function computeEdgeControlPoint(
   if (kind === 'time' || from.params?.logicCategory === 'time' || to.params?.logicCategory === 'time') {
     return computeSmartTimeEdgeRoute(from, to, lane).controlPoint
   }
-  const x1 = from.position.x + 236 + 6
+  const x1 = from.position.x + WF_V2_NODE_W + 6
   const y1 = from.position.y + WF_V2_PORT_Y
   const x2 = to.position.x - 8
   const y2 = to.position.y + WF_V2_PORT_Y
@@ -74,7 +74,7 @@ function computeEdgeControlPoint(
     return [Math.round(bx), Math.round(by)]
   }
   if (gap >= 76) {
-    if (isToClusterLock) return [Math.round(from.position.x + 236 + 31), Math.round(y1)]
+    if (isToClusterLock) return [Math.round(from.position.x + WF_V2_NODE_W + 31), Math.round(y1)]
     return [Math.round(to.position.x - 34), Math.round(y2)]
   }
   return [Math.round((x1 + x2) / 2), Math.round((y1 + y2) / 2 + lane * 7)]
@@ -93,7 +93,7 @@ export const WorkflowV2EdgeLayer: React.FC<{
   onToggleEdgeDisable?: (edgeId: string) => void
 }> = ({ items, zoom = 1, wireStyle, lineageActive, wireDrag, nodeMap, onSelectNode, onDisconnectEdge, onToggleEdgeDisable }) => {
   const hover = wireDrag?.hoverNodeId && wireDrag.hoverValid ? nodeMap.get(wireDrag.hoverNodeId) : undefined
-  const endX = hover ? (wireDrag!.isOutput ? hover.position.x - 8 : hover.position.x + 242) : wireDrag?.curX ?? 0
+  const endX = hover ? (wireDrag!.isOutput ? hover.position.x - 8 : hover.position.x + WF_V2_NODE_W + 6) : wireDrag?.curX ?? 0
   const endY = hover ? hover.position.y + WF_V2_PORT_Y : wireDrag?.curY ?? 0
   const dragPath = wireDrag
     ? `M ${wireDrag.startX} ${wireDrag.startY} C ${wireDrag.startX + (wireDrag.isOutput ? 64 : -64)} ${wireDrag.startY}, ${endX + (wireDrag.isOutput ? -64 : 64)} ${endY}, ${endX} ${endY}`
@@ -265,7 +265,7 @@ export const WorkflowV2EdgeLayer: React.FC<{
               </g>
             )}
             {stepBadgeText && (
-              <g transform={`translate(${Math.round(from.position.x + 118)} ${Math.round((from.position.y + 64 + to.position.y) / 2)})`}>
+              <g transform={`translate(${Math.round(from.position.x + Math.round(WF_V2_NODE_W / 2))} ${Math.round((from.position.y + 64 + to.position.y) / 2)})`}>
                 <rect
                   className="wf-v2-step-label-bg"
                   x={-stepBadgeW / 2}
