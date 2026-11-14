@@ -167,6 +167,68 @@ export interface PxsWasmExports {
     amplitude: number,
     time: number
   ) => number
+  rust_box_blur3?: (srcPtr: number, dstPtr: number, w: number, h: number) => number
+  rust_flood_from_border?: (
+    passablePtr: number,
+    seedPtr: number,
+    outPtr: number,
+    w: number,
+    h: number
+  ) => number
+  rust_grow_mask_within?: (
+    maskPtr: number,
+    allowedPtr: number,
+    w: number,
+    h: number,
+    steps: number
+  ) => number
+  rust_dilate_mask_box?: (
+    maskPtr: number,
+    outPtr: number,
+    w: number,
+    h: number,
+    radius: number
+  ) => number
+  rust_compute_chroma_zone?: (
+    rgbaPtr: number,
+    rawAlphaPtr: number,
+    w: number,
+    h: number,
+    keyFlags: number,
+    wall: number,
+    solidCut: number,
+    band: number,
+    zoneOutPtr: number
+  ) => number
+  rust_disambiguate_region_pixels?: (
+    rgbaPtr: number,
+    w: number,
+    h: number,
+    boxX: number,
+    boxY: number,
+    boxW: number,
+    boxH: number,
+    sibsPtr: number,
+    sibCount: number,
+    alphaThreshold: number,
+    targetPref: number
+  ) => number
+  rust_scan_contour_flood_boxes?: (
+    rgbaPtr: number,
+    w: number,
+    h: number,
+    alphaThresh: number,
+    outBoxesPtr: number,
+    maxBoxes: number
+  ) => number
+  rust_scan_raw_islands?: (
+    rgbaPtr: number,
+    w: number,
+    h: number,
+    coordScale: number,
+    outI32Ptr: number,
+    maxIslands: number
+  ) => number
 }
 
 export type ScratchKind = 'f32' | 'i32' | 'u32' | 'i16' | 'u8'

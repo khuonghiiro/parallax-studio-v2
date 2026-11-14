@@ -1,5 +1,6 @@
 import type { ChromaKeySettings, ChromaShadowMode } from './types'
 import { resolveOuterWallAlpha } from './chromaOuterIsolation'
+import { wasmDilateMaskBox } from '../../../engine/wasm/wasmIsolationBridge'
 
 /**
  * Lấy mẫu tự động màu nền thực tế quanh viền ảnh để tinh chỉnh chính xác màu khóa (Key Color).
@@ -100,10 +101,7 @@ export function resolveImageEffectiveKeyRgb(
   }
 }
 
-/**
- * Giãn nở mặt nạ nhị phân (Separable Box Dilation O(N) 2 lượt ngang-dọc) không cấp phát mảng con.
- */
-export function dilateMaskBox(
+export function dilateMaskBoxJs(
   mask: Uint8Array,
   w: number,
   h: number,
@@ -148,6 +146,18 @@ export function dilateMaskBox(
   }
 
   return out
+}
+
+/**
+ * Giãn nở mặt nạ nhị phân (Separable Box Dilation O(N) 2 lượt ngang-dọc) không cấp phát mảng con.
+ */
+export function dilateMaskBox(
+  mask: Uint8Array,
+  w: number,
+  h: number,
+  radius: number
+): Uint8Array {
+  return wasmDilateMaskBox(mask, w, h, radius) ?? dilateMaskBoxJs(mask, w, h, radius)
 }
 
 export function resolveEffectiveShadowMode(settings: ChromaKeySettings): ChromaShadowMode {

@@ -1,4 +1,5 @@
 import { wasmFindOpaqueBbox } from '../../engine/wasmAccel'
+import { wasmScanContourFloodBoxes } from '../../engine/wasm/wasmIsolationBridge'
 import { prepareDownsampledScanContext } from './loopSourceProxy'
 import type { ContourSlicerConfig, LoopFrameBox } from './types'
 
@@ -9,7 +10,7 @@ export interface RawBoundingBox {
   maxY: number
 }
 
-function scanContourFloodBoxes(
+export function scanContourFloodBoxesJs(
   imgData: Uint8ClampedArray,
   w: number,
   h: number,
@@ -84,6 +85,15 @@ function scanContourFloodBoxes(
   }
 
   return boxes
+}
+
+function scanContourFloodBoxes(
+  imgData: Uint8ClampedArray,
+  w: number,
+  h: number,
+  alphaThresh: number
+): RawBoundingBox[] {
+  return wasmScanContourFloodBoxes(imgData, w, h, alphaThresh) ?? scanContourFloodBoxesJs(imgData, w, h, alphaThresh)
 }
 
 function mergeContourBoxesByGap(boxes: RawBoundingBox[], mergeGap: number): void {

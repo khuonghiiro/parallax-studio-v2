@@ -5,15 +5,24 @@ pub mod geom2d;
 pub mod geodesic_chains;
 pub mod geodesic_graph;
 pub mod geodesic_skinning;
+pub mod island_contour;
 pub mod mesh_corridor;
 pub mod mesh_modifiers;
+pub mod pixel_isolation;
 pub mod skin_deform;
 pub mod wasm_mem;
 pub use geodesic_skinning::{rust_build_geodesic_skin_weights, rust_dominant_bone_per_triangle};
+pub use island_contour::{
+    rust_disambiguate_region_pixels, rust_scan_contour_flood_boxes, rust_scan_raw_islands,
+};
 pub use mesh_corridor::rust_compute_mesh_corridor;
 pub use mesh_modifiers::{
     rust_apply_bend, rust_apply_brush, rust_apply_curve, rust_apply_depth_profile,
     rust_apply_lattice, rust_apply_timeline_motion, rust_apply_twist,
+};
+pub use pixel_isolation::{
+    rust_box_blur3, rust_compute_chroma_zone, rust_dilate_mask_box, rust_flood_from_border,
+    rust_grow_mask_within,
 };
 pub use skin_deform::{rust_deform_plant_spines, rust_deform_skin, rust_scale_unit_space};
 pub use wasm_mem::{
