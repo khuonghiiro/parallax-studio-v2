@@ -482,7 +482,7 @@ export const SCENE_TOOLS = [
   },
   {
     name: 'add_text_layer', cat: 'layers',
-    doc: L('Add a text layer (titles, captions).', 'Thêm layer chữ (tiêu đề, phụ đề).'),
+    doc: L('Add a text layer (titles, outlined comic subtitles, SFX, or HUD panels).', 'Thêm layer chữ (tiêu đề, phụ đề hoạt ảnh viền đôi, chữ SFX hoặc khung HUD).'),
     shape: (d) => ({
       text: z.string(),
       font_family: z.string().optional().describe(d('e.g. Montserrat, Inter, Playfair Display, Bebas Neue, JetBrains Mono', 'VD: Montserrat, Inter, Playfair Display, Bebas Neue, JetBrains Mono')),
@@ -491,25 +491,43 @@ export const SCENE_TOOLS = [
       color: z.string().optional(),
       letter_spacing: z.number().optional(),
       shadow: z.boolean().optional(),
+      stroke_color: z.string().optional().describe(d('Outline stroke color for comic subtitles/SFX (e.g. "#0a3d6e").', 'Màu viền chữ cho phụ đề hoạt ảnh/SFX (vd "#0a3d6e").')),
+      stroke_width: z.number().min(0).optional().describe(d('Outline stroke thickness in pixels (e.g. 5..8).', 'Độ dày viền chữ tính bằng pixel (vd 5..8).')),
+      glow_color: z.string().optional().describe(d('Outer neon halo color (e.g. "#38bdf8").', 'Màu quầng sáng neon ngoài viền (vd "#38bdf8").')),
+      box_color: z.string().optional().describe(d('Background box fill color for HUD/speech panels.', 'Màu nền hộp khung chữ HUD/thoại.')),
+      box_border_color: z.string().optional().describe(d('Rounded box border color.', 'Màu đường viền hộp chữ.')),
       ...layerCommon(d)
-    })
+    }),
+    example: '{"text":"ĐI CHẶN ĐƯỜNG ĐOÀN ĐỘI ĐƯỜNG TĂNG?","font_size":36,"font_weight":900,"color":"#ffffff","stroke_color":"#0a3d6e","stroke_width":6,"glow_color":"#38bdf8"}'
   },
   {
     name: 'add_solid_layer', cat: 'layers',
     doc: L(
-      'Add a solid color or vertical gradient plane (backgrounds, color washes). Added at the bottom of the shot stack.',
-      'Thêm mặt phẳng màu đặc hoặc gradient dọc (nền, phủ màu). Được thêm ở đáy chồng layer của shot.'
+      'Add a solid color, vertical gradient, or procedural comic mood backdrop (`speedlines_radial`, `spotlight_stage`, `question_sky`, `anger_veins`, `comic_burst`, `hologram_panel`). Added at the bottom of the shot stack.',
+      'Thêm mặt phẳng màu đặc, gradient dọc hoặc nền tâm lý hoạt ảnh (`speedlines_radial`, `spotlight_stage`, `question_sky`, `anger_veins`, `comic_burst`, `hologram_panel`). Được đặt ở đáy chồng layer của shot.'
     ),
     shape: (d) => ({
       color: z.string().optional(),
       color2: z.string().optional(),
       gradient: z.boolean().optional(),
-      pattern: z.enum(['none', 'grid', 'stripes', 'dots']).optional(),
+      pattern: z.enum([
+        'none',
+        'grid',
+        'stripes',
+        'dots',
+        'speedlines_radial',
+        'spotlight_stage',
+        'comic_burst',
+        'question_sky',
+        'anger_veins',
+        'hologram_panel'
+      ]).optional(),
       grid_size: z.number().optional(),
       width: z.number().optional(),
       height: z.number().optional(),
       ...layerCommon(d)
-    })
+    }),
+    example: '{"pattern":"speedlines_radial","color":"#2b0938","color2":"#7a0e52","gradient":true}'
   },
   {
     name: 'add_ground_layer', cat: 'layers',
@@ -628,7 +646,12 @@ export const SCENE_TOOLS = [
         'cross_screen',
         'floating_hover',
         'dramatic_zoom_in',
-        'retreat_disappear'
+        'retreat_disappear',
+        'comic_shiver',
+        'system_pop_bounce',
+        'comedic_tumble_out',
+        'soul_escape_ascend',
+        'foreground_weapon_slam'
       ]).describe(d('Motion preset ID.', 'Mã mẫu chuyển động.')),
       time: z.number().optional().describe(d('Start time in seconds (default: current playhead time).', 'Thời điểm bắt đầu tính bằng giây (mặc định: vị trí playhead).')),
       duration: z.number().positive().optional().describe(d('Duration of the motion in seconds.', 'Thời lượng chuyển động tính bằng giây.')),
@@ -661,7 +684,12 @@ export const SCENE_TOOLS = [
           'cross_screen',
           'floating_hover',
           'dramatic_zoom_in',
-          'retreat_disappear'
+          'retreat_disappear',
+          'comic_shiver',
+          'system_pop_bounce',
+          'comedic_tumble_out',
+          'soul_escape_ascend',
+          'foreground_weapon_slam'
         ]).optional().describe(d('After Effects spatial motion trajectory preset.', 'Mẫu quỹ đạo chuyển động không gian After Effects.')),
         action_clip: z.string().optional().describe(d('Skeletal clip name from get_character_actions (e.g. "walk", "jump", "fall", "idle", "action").', 'Tên clip hành động xương từ get_character_actions (vd: "walk", "jump", "fall", "idle", "action").')),
         delta_x: z.number().optional().describe(d('Horizontal displacement in pixels.', 'Độ dời ngang tính bằng pixel.')),
@@ -673,5 +701,42 @@ export const SCENE_TOOLS = [
       })).describe(d('Sequential action and motion steps list.', 'Danh sách các bước hành động và chuyển động nối tiếp nhau.'))
     }),
     example: '{"target_id":"layer-hero","steps":[{"motion_preset":"walk_into_depth","action_clip":"walk","duration":3.0,"depth_z":2000},{"motion_preset":"jump_arc","action_clip":"jump","duration":1.4,"jump_height":150},{"motion_preset":"trip_and_fall","action_clip":"fall","duration":1.8}]}'
+  },
+  {
+    name: 'stage_story_beat', cat: 'shots',
+    doc: L(
+      'Stage one sentence-beat of a 2.5D Story-Driven Comic Animation (Shadiao / Manhua Video): swaps or preserves world/emotion mood backdrop (`question_sky`, `speedlines_radial`, `spotlight_stage`, `anger_veins`, `comic_burst`), spawns optional System Quest Hologram UI or comic emote badge (`?`, `💢`, `💧`, `red_eye_flare`), creates burned-in outlined narrator subtitle synced to `[start_time, end_time]`, and choreographs snappy beat camera (`snap_reaction_zoom`, `low_angle_menace`, `spotlight_pity_pull`, `rage_punch_shake`, `three_plane_escape`, `foreground_weapon_slam`).',
+      'Dàn dựng trọn gói 1 nhịp câu thoại hoạt ảnh cốt truyện 2.5D (Shadiao / Truyện tranh động): giữ bối cảnh thế giới hoặc bật nền tâm lý (`question_sky`, `speedlines_radial`, `spotlight_stage`, `anger_veins`, `comic_burst`), tạo bảng Nhiệm Vụ Hệ Thống Hologram hoặc biểu cảm comic (`?`, `💢`, `💧`, `red_eye_flare`), gắn phụ đề viền đôi phát sáng khớp `[start_time, end_time]` và điều phối máy quay nhịp thoại (`snap_reaction_zoom`, `low_angle_menace`, `spotlight_pity_pull`, `rage_punch_shake`, `three_plane_escape`, `foreground_weapon_slam`).'
+    ),
+    shape: (d) => ({
+      shot_id: z.string().describe(d('Target shot ID.', 'ID cảnh cần dàn dựng nhịp thoại.')),
+      start_time: z.number().min(0).describe(d('Beat start time in seconds.', 'Thời điểm bắt đầu nhịp (giây).')),
+      end_time: z.number().positive().optional().describe(d('Beat end time in seconds (overrides duration).', 'Thời điểm kết thúc nhịp (giây).')),
+      duration: z.number().positive().optional().describe(d('Beat duration in seconds (default 2.8s).', 'Thời lượng nhịp thoại (mặc định 2.8s).')),
+      narration: z.string().optional().describe(d('Narrator / dialogue sentence rendered as outlined comic subtitle.', 'Câu dẫn truyện / thoại hiển thị thành phụ đề hoạt ảnh viền đôi.')),
+      mood: z.enum(['world', 'question_sky', 'speedlines_radial', 'spotlight_stage', 'anger_veins', 'comic_burst']).optional().describe(d('Keep world plate ("world") or inject psychological comic mood backdrop.', 'Giữ bối cảnh thế giới ("world") hoặc bật nền tâm lý truyện tranh.')),
+      camera_grammar: z.enum([
+        'cold_open_shock',
+        'confused_push',
+        'over_shoulder_system',
+        'snap_reaction_zoom',
+        'low_angle_menace',
+        'spotlight_pity_pull',
+        'rage_punch_shake',
+        'confrontation_push',
+        'three_plane_escape',
+        'foreground_weapon_slam'
+      ]).optional().describe(d('Snappy story-beat camera move.', 'Kiểu máy quay theo nhịp cốt truyện.')),
+      subject_id: z.string().optional().describe(d('Primary character layer/instance ID to frame.', 'ID layer hoặc nhân vật chính cần lấy nét.')),
+      secondary_subject_id: z.string().optional().describe(d('Secondary character/prop ID.', 'ID nhân vật hoặc đạo cụ phụ.')),
+      emote_badge: z.enum(['none', 'question_giant', 'anger_cross', 'sweat_drop', 'red_eye_flare']).optional().describe(d('Optional comic reaction symbol.', 'Biểu tượng cảm xúc comic đi kèm.')),
+      emote_position: vec3.optional().describe(d('Local [x, y, z] position for emote_badge.', 'Toạ độ cục bộ [x, y, z] cho biểu cảm comic.')),
+      system_quest_title: z.string().optional().describe(d('Title of holographic System Quest popup.', 'Tiêu đề bảng Nhiệm Vụ Hệ Thống xuyên không.')),
+      system_quest_body: z.string().optional().describe(d('Description inside System Quest popup.', 'Nội dung nhiệm vụ trên bảng Hệ Thống.')),
+      transition_at_end: z.enum(['none', 'cut', 'silk_fade', 'whip_glide', 'flash_dissolve']).optional().describe(d('Shot transition at beat end (default "cut").', 'Kiểu chuyển cảnh cuối nhịp (mặc định "cut").')),
+      apply_camera: z.boolean().optional().describe(d('Apply camera keyframes immediately (default true).', 'Ghi luôn keyframe camera (mặc định true).')),
+      clear_existing_camera: z.boolean().optional().describe(d('Clear prior camera keyframes before applying.', 'Xoá keyframe camera cũ trước khi áp.'))
+    }),
+    example: '{"shot_id":"shot-1","start_time":9.5,"end_time":12.5,"narration":"Đi chặn đường đoàn đội Đường Tăng?","mood":"speedlines_radial","camera_grammar":"low_angle_menace","emote_badge":"red_eye_flare"}'
   }
 ]

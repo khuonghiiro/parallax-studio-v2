@@ -1,4 +1,5 @@
 import type { SolidProps, TextProps } from '@shared/types'
+import { isComicMoodPattern, renderComicMoodCanvas } from './comicMoodCanvases'
 
 /** Supersampling factor for text so it stays crisp when the camera pushes in. */
 export const TEXT_SUPERSAMPLE = 2
@@ -17,36 +18,93 @@ export function renderTextCanvas(p: TextProps): CanvasResult {
   const measure = document.createElement('canvas').getContext('2d')!
   measure.font = font
   measure.letterSpacing = `${p.letterSpacing * ss}px`
-  const lineHeight = p.fontSize * 1.2 * ss
-  const pad = p.fontSize * 0.5 * ss
+  const strokePx = Math.max(0, (p.strokeWidth ?? 0) * ss)
+  const lineHeight = p.fontSize * 1.24 * ss
+  const padX = (p.fontSize * 0.65 + (p.boxColor || p.boxBorderColor ? 18 : 0)) * ss + strokePx
+  const padY = (p.fontSize * 0.45 + (p.boxColor || p.boxBorderColor ? 10 : 0)) * ss + strokePx * 0.6
   const widths = lines.map((l) => measure.measureText(l).width)
-  const w = Math.ceil(Math.max(...widths, 1) + pad * 2)
-  const h = Math.ceil(lineHeight * lines.length + pad * 2)
+  const w = Math.ceil(Math.max(...widths, 1) + padX * 2)
+  const h = Math.ceil(lineHeight * lines.length + padY * 2)
 
   const canvas = document.createElement('canvas')
   canvas.width = w
   canvas.height = h
   const ctx = canvas.getContext('2d')!
+
+  if (p.boxColor || p.boxBorderColor) {
+    const inset = 6 * ss
+    const r = Math.min(14 * ss, (h - inset * 2) * 0.45)
+    ctx.save()
+    ctx.beginPath()
+    ctx.roundRect(inset, inset, w - inset * 2, h - inset * 2, r)
+    if (p.boxColor) {
+      ctx.fillStyle = p.boxColor
+      ctx.fill()
+    }
+    if (p.boxBorderColor) {
+      ctx.lineWidth = 3 * ss
+      ctx.strokeStyle = p.boxBorderColor
+      ctx.shadowColor = p.boxBorderColor
+      ctx.shadowBlur = 10 * ss
+      ctx.stroke()
+    }
+    ctx.restore()
+  }
+
   ctx.font = font
   ctx.letterSpacing = `${p.letterSpacing * ss}px`
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
-  ctx.fillStyle = p.color
-  if (p.shadow) {
-    ctx.shadowColor = 'rgba(0,0,0,0.55)'
-    ctx.shadowBlur = p.fontSize * 0.25 * ss
-    ctx.shadowOffsetY = p.fontSize * 0.05 * ss
-  }
+  ctx.lineJoin = 'round'
+  ctx.miterLimit = 2
+
   lines.forEach((line, i) => {
-    ctx.fillText(line, w / 2, pad + lineHeight * (i + 0.5))
+    const y = padY + lineHeight * (i + 0.5)
+    if (p.glowColor) {
+      ctx.save()
+      ctx.shadowColor = p.glowColor
+      ctx.shadowBlur = p.fontSize * 0.34 * ss
+      ctx.shadowOffsetY = 0
+      if (p.strokeColor && strokePx > 0) {
+        ctx.lineWidth = strokePx * 1.15
+        ctx.strokeStyle = p.strokeColor
+        ctx.strokeText(line, w / 2, y)
+      } else {
+        ctx.fillStyle = p.glowColor
+        ctx.fillText(line, w / 2, y)
+      }
+      ctx.restore()
+    } else if (p.shadow) {
+      ctx.shadowColor = 'rgba(0,0,0,0.62)'
+      ctx.shadowBlur = p.fontSize * 0.25 * ss
+      ctx.shadowOffsetY = p.fontSize * 0.06 * ss
+    }
+
+    if (p.strokeColor && strokePx > 0) {
+      ctx.lineWidth = strokePx
+      ctx.strokeStyle = p.strokeColor
+      ctx.strokeText(line, w / 2, y)
+      ctx.shadowBlur = 0
+      ctx.shadowOffsetY = 0
+    }
+    ctx.fillStyle = p.color
+    ctx.fillText(line, w / 2, y)
   })
   return { canvas, width: w / ss, height: h / ss }
 }
 
 export function renderSolidCanvas(p: SolidProps): CanvasResult {
+  if (isComicMoodPattern(p.pattern)) {
+    return {
+      canvas: renderComicMoodCanvas(p),
+      width: p.width,
+      height: p.height
+    }
+  }
+
   const hasPattern = p.pattern && p.pattern !== 'none'
   const canvas = document.createElement('canvas')
-  const sz = hasPattern ? 512 : (p.gradient ? 512 : 4)
+  const sz = hasPattern ? 512 : p.gradient ? 512 : 4
   canvas.width = hasPattern ? 512 : 4
   canvas.height = sz
   const ctx = canvas.getContext('2d')!

@@ -92,7 +92,12 @@ const TEXT_MAP = {
   font_weight: 'fontWeight',
   color: 'color',
   letter_spacing: 'letterSpacing',
-  shadow: 'shadow'
+  shadow: 'shadow',
+  stroke_color: 'strokeColor',
+  stroke_width: 'strokeWidth',
+  glow_color: 'glowColor',
+  box_color: 'boxColor',
+  box_border_color: 'boxBorderColor'
 }
 const SOLID_MAP = {
   color: 'color',

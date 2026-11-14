@@ -1,4 +1,5 @@
 import { workflowPartCommands } from './commands/workflowPartCommands'
+import { storyComicCommands } from './commands/storyComicCommands'
 import { aiCodeCommands } from './commands/aiCodeCommands'
 import { effectStackCommands } from './commands/effectStackCommands'
 import { proceduralMotionCommands } from './commands/proceduralMotionCommands'
@@ -46,6 +47,7 @@ const commands: Record<string, Handler> = {
   ...workflowCommands,
   ...timeGroupCommands,
   ...workflowPartCommands,
+  ...storyComicCommands,
   ...systemCommands,
   ...uiCommands,
   ...remoteCommands,
@@ -66,6 +68,7 @@ function getHandler(canonical: string): Handler | undefined {
           ...Object.keys(workflowCommands),
           ...Object.keys(timeGroupCommands),
           ...Object.keys(workflowPartCommands),
+          ...Object.keys(storyComicCommands),
           ...Object.keys(layerAssemblyCommands),
           ...Object.keys(layerAssemblyTemplateCommands),
           ...Object.keys(assemblyCommands),
@@ -89,6 +92,7 @@ function getHandler(canonical: string): Handler | undefined {
     workflowCommands[canonical] ??
     timeGroupCommands[canonical] ??
     workflowPartCommands[canonical] ??
+    storyComicCommands[canonical] ??
     layerAssemblyCommands[canonical] ??
     layerAssemblyTemplateCommands[canonical] ??
     assemblyCommands[canonical] ??

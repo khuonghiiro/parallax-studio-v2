@@ -255,6 +255,18 @@ export interface ImageProps {
   loopColor?: LoopColorConfig
 }
 
+export type SolidPattern =
+  | 'none'
+  | 'grid'
+  | 'stripes'
+  | 'dots'
+  | 'speedlines_radial'
+  | 'spotlight_stage'
+  | 'comic_burst'
+  | 'question_sky'
+  | 'anger_veins'
+  | 'hologram_panel'
+
 export interface TextProps {
   text: string
   fontFamily: string
@@ -263,6 +275,16 @@ export interface TextProps {
   color: string
   letterSpacing: number
   shadow: boolean
+  /** Màu viền chữ kiểu hoạt ảnh / phụ đề truyện tranh (ví dụ '#0b4f8a'). */
+  strokeColor?: string
+  /** Độ dày viền chữ tính bằng pixel (ví dụ 4..8). */
+  strokeWidth?: number
+  /** Màu quầng sáng neon bên ngoài viền chữ (ví dụ '#38bdf8'). */
+  glowColor?: string
+  /** Màu nền khung chữ / bảng Hệ Thống (ví dụ 'rgba(8, 34, 62, 0.86)'). */
+  boxColor?: string
+  /** Màu viền khung HUD / bảng Hệ Thống (ví dụ '#38bdf8'). */
+  boxBorderColor?: string
 }
 
 export interface SolidProps {
@@ -271,7 +293,7 @@ export interface SolidProps {
   gradient: boolean
   width: number
   height: number
-  pattern?: 'none' | 'grid' | 'stripes' | 'dots'
+  pattern?: SolidPattern
   gridSize?: number
 }
 

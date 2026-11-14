@@ -189,13 +189,14 @@ Khi kiểm tra và tương tác với Parallax Studio, AI Agent **BẮT BUỘC**
 - `save_project` / `open_project`: Lưu hoặc mở file `.pxs`.
 - `import_project_json` / `export_project_json`: Xuất / nhập dự án dạng JSON phi cấu trúc.
 - `add_shot`: Thêm một phân cảnh mới (cung cấp `name`, `duration`, `position`).
+- `stage_story_beat`: Dàn dựng trọn gói 1 nhịp câu thoại hoạt ảnh cốt truyện 2.5D (`Shadiao` / Truyện tranh động): chuyển đổi bối cảnh thế giới ⇄ nền tâm lý (`question_sky`, `speedlines_radial`, `spotlight_stage`, `anger_veins`, `comic_burst`), tạo bảng Nhiệm Vụ Hệ Thống Hologram, biểu cảm comic (`?`, `💢`, `💧`, `red_eye_flare`), phụ đề viền đôi phát sáng và máy quay nhịp thoại.
 - `update_shot`: Đổi tên, thời lượng, màu sắc, vị trí của shot.
 - `delete_shot`: Xóa shot khỏi dự án.
 
 ### 4.3. Nhóm Thêm & Chỉnh Sửa Layer (Layers & Parallax Depth)
 - `add_image_layer`: Đặt ảnh vào không gian 3D. Nhận `file_path`, `z`, `position` `[x, y, z]`, `scale`, `opacity`.
-- `add_text_layer`: Thêm layer chữ (hỗ trợ font Google Fonts, size, color, tracking).
-- `add_solid_layer`: Thêm màu nền hoặc dải gradient 3D.
+- `add_text_layer`: Thêm layer chữ (hỗ trợ font Google Fonts, size, color, tracking, viền đôi `stroke_color` / `stroke_width`, quầng sáng `glow_color` và khung HUD `box_color` / `box_border_color`).
+- `add_solid_layer`: Thêm màu nền, dải gradient 3D hoặc nền tâm lý hoạt ảnh (`speedlines_radial`, `spotlight_stage`, `question_sky`, `anger_veins`, `comic_burst`, `hologram_panel`).
 - `add_ground_layer`: Tạo mặt sàn / nền đất nằm ngang 3D (`orientation: "ground"`).
 - `add_particles`: Thêm hiệu ứng hạt tự động (bụi lấp lánh, đom đóm, tuyết rơi).
 - `update_layer`: Cập nhật vị trí, góc xoay, độ trong suốt, chế độ hòa trộn (`blend_mode`).
