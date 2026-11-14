@@ -221,13 +221,17 @@ export function WorkshopWorkspace({
   const plantLive = usePlantLiveClock(liveEnabled, !plantEditor.dragging && !plantEditor.grab)
   const isLayersOrBonesTab = tab === 'layers' || tab === 'bones'
   const plantTime = isLayersOrBonesTab ? 0 : plantOffset + plantLive
-  const shiftedSpines = (state.composite.plantSpines ?? []).map((s) => {
-    const grabbed =
-      plantEditor.grab?.spineId === s.id
-        ? grabbedSpine(s, plantEditor.grab.angle, plantEditor.grab.stretch ?? 0)
-        : s
-    return plantTime ? { ...grabbed, phaseOffset: (grabbed.phaseOffset ?? 0) + plantTime } : grabbed
-  })
+  const shiftedSpines = useMemo(() => {
+    const raw = state.composite.plantSpines
+    if (!raw?.length) return undefined
+    return raw.map((s) => {
+      const grabbed =
+        plantEditor.grab?.spineId === s.id
+          ? grabbedSpine(s, plantEditor.grab.angle, plantEditor.grab.stretch ?? 0)
+          : s
+      return plantTime ? { ...grabbed, phaseOffset: (grabbed.phaseOffset ?? 0) + plantTime } : grabbed
+    })
+  }, [state.composite.plantSpines, plantEditor.grab, plantTime])
 
   const isManipulatingRigTest =
     tab === 'bones' &&
@@ -235,11 +239,12 @@ export function WorkshopWorkspace({
     Boolean(normalizedRig?.bones.length) &&
     Object.keys(rigTool.testPoses).length > 0
 
-  const rig = normalizedRig
-    ? isManipulatingRigTest
-      ? buildManipulateTestRig(normalizedRig, rigTool.testPoses)
-      : { ...normalizedRig, loop: playback.isPlaying && normalizedRig.loop }
-    : undefined
+  const rig = useMemo(() => {
+    if (!normalizedRig) return undefined
+    if (isManipulatingRigTest) return buildManipulateTestRig(normalizedRig, rigTool.testPoses)
+    const wantLoop = playback.isPlaying && normalizedRig.loop
+    return wantLoop === normalizedRig.loop ? normalizedRig : { ...normalizedRig, loop: wantLoop }
+  }, [normalizedRig, isManipulatingRigTest, rigTool.testPoses, playback.isPlaying])
 
   const evalTime = isLayersOrBonesTab ? 0 : isManipulatingRigTest ? 0 : playback.time
   const isErasing = brushEditing && tab === 'layers' && !playback.isPlaying

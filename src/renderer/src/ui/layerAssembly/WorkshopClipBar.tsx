@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { memo, useState } from 'react'
 import type { AnimationClip, LayerRig, MotionViewAngle } from '@shared/layerRig'
 import type { LayerComposite } from './types'
 import type { RigAction } from './workshopRig'
@@ -21,7 +21,7 @@ export interface WorkshopClipBarProps {
   onOpenRetarget: () => void
 }
 
-export function WorkshopClipBar({
+export const WorkshopClipBar = memo(function WorkshopClipBar({
   rig,
   activeClip,
   composite,
@@ -341,4 +341,4 @@ export function WorkshopClipBar({
       </div>
     </div>
   )
-}
+})

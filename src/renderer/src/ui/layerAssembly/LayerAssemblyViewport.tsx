@@ -371,10 +371,8 @@ export function LayerAssemblyViewport({
     }
   }, [handleFitView])
 
-  // Sắp xếp các layer: Z càng thấp ở sau (render trước trong DOM), Z càng cao ở trước (render sau đè lên)
-  const sortedLayers = useMemo(() => {
-    return [...composite.layers].sort((a, b) => (a.z ?? 0) - (b.z ?? 0))
-  }, [composite.layers])
+  // Giữ thứ tự DOM ổn định theo mảng composite.layers; thứ tự đè Z được quyết định qua CSS zIndex để không tráo node DOM giữa chừng
+  const sortedLayers = composite.layers
 
   const handlePointerDownViewport = (e: React.PointerEvent) => {
     const target = e.target as HTMLElement | null
@@ -629,7 +627,7 @@ export function LayerAssemblyViewport({
             overflow: clipToCamera ? 'hidden' : 'visible',
             perspective: 'none',
             perspectiveOrigin: '50% 50%',
-            transformStyle: 'preserve-3d'
+            transformStyle: 'flat'
           }}
         >
           {/* Canvas Center Reference Crosshairs */}
@@ -718,8 +716,8 @@ export function LayerAssemblyViewport({
           )}
         </div>
 
-        {/* Bóng tròn chọn nhanh Layer nằm ngoài khung caro (kèm dây nối Cung tròn / Vuông bo giống Cam 2D) */}
-        {brush.activeTool !== 'eraser' && (
+        {/* Bóng tròn chọn nhanh Layer nằm ngoài khung caro (tạm ẩn khi đang phát hoạt ảnh để giữ sân khấu thoáng & 60fps) */}
+        {brush.activeTool !== 'eraser' && !isPlaying && (
           <LayerAssemblyCalloutOverlay
             layers={composite.layers}
             selectedLayerId={selectedLayerId}

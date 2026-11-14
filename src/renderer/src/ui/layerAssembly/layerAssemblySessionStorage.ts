@@ -13,6 +13,8 @@ export interface LayerAssemblyActiveSession {
   timestamp: number
 }
 
+let cachedActiveSession: LayerAssemblyActiveSession | null = null
+
 function isValidComposite(obj: unknown): obj is LayerComposite {
   if (!obj || typeof obj !== 'object') return false
   const c = obj as Partial<LayerComposite>
@@ -27,12 +29,16 @@ export function loadActiveWorkshopSession(): LayerAssemblyActiveSession | null {
   try {
     if (typeof localStorage === 'undefined') return null
     const raw = localStorage.getItem(ACTIVE_SESSION_STORAGE_KEY)
-    if (!raw) return null
+    if (!raw) {
+      cachedActiveSession = null
+      return null
+    }
     const parsed = JSON.parse(raw) as LayerAssemblyActiveSession
     if (!parsed || typeof parsed !== 'object') return null
     if (!parsed.isOpen || !parsed.compositeId || !isValidComposite(parsed.draftComposite)) {
       return null
     }
+    cachedActiveSession = parsed
     return parsed
   } catch (err) {
     console.warn('[LayerAssemblySession] Failed to load active session:', err)
@@ -47,13 +53,12 @@ export function saveActiveWorkshopSession(session: LayerAssemblyActiveSession): 
   try {
     if (typeof localStorage === 'undefined') return
     if (!isValidComposite(session.draftComposite)) return
-    localStorage.setItem(
-      ACTIVE_SESSION_STORAGE_KEY,
-      JSON.stringify({
-        ...session,
-        timestamp: Date.now()
-      })
-    )
+    const stamped: LayerAssemblyActiveSession = {
+      ...session,
+      timestamp: Date.now()
+    }
+    cachedActiveSession = stamped
+    localStorage.setItem(ACTIVE_SESSION_STORAGE_KEY, JSON.stringify(stamped))
   } catch (err) {
     console.warn('[LayerAssemblySession] Failed to save active session:', err)
   }
@@ -69,7 +74,7 @@ export function updateActiveWorkshopDraft(
   try {
     if (typeof localStorage === 'undefined') return
     if (!isValidComposite(composite)) return
-    const prev = loadActiveWorkshopSession()
+    const prev = cachedActiveSession ?? loadActiveWorkshopSession()
     const nextSession: LayerAssemblyActiveSession = {
       isOpen: true,
       compositeId: composite.id,
@@ -80,6 +85,7 @@ export function updateActiveWorkshopDraft(
       time: extra?.time !== undefined ? extra.time : (prev?.time ?? 0),
       timestamp: Date.now()
     }
+    cachedActiveSession = nextSession
     localStorage.setItem(ACTIVE_SESSION_STORAGE_KEY, JSON.stringify(nextSession))
   } catch (err) {
     console.warn('[LayerAssemblySession] Failed to update draft:', err)
@@ -90,6 +96,7 @@ export function updateActiveWorkshopDraft(
  * Xóa sạch phiên làm việc khi người dùng chủ động đóng xưởng lắp ráp hoặc hoàn tất lưu.
  */
 export function clearActiveWorkshopSession(): void {
+  cachedActiveSession = null
   try {
     if (typeof localStorage === 'undefined') return
     localStorage.removeItem(ACTIVE_SESSION_STORAGE_KEY)

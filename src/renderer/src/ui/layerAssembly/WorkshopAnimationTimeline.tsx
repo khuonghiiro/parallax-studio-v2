@@ -112,6 +112,23 @@ function AnimationTimeline({ state, playback, boneId, selectBone, rig }: Props &
 
   const depthMap = useMemo(() => computeBoneDepthMap(rig.bones), [rig.bones])
   const masterPoseTimes = useMemo(() => collectMasterPoseTimes(rig), [rig])
+  const masterPoseKeysMap = useMemo(() => {
+    const map = new Map<number, TimelineKey[]>()
+    for (const t of masterPoseTimes) {
+      map.set(t, collectPoseKeysAtTime(rig, t))
+    }
+    return map
+  }, [rig, masterPoseTimes])
+  const boneMetaMap = useMemo(() => {
+    const map = new Map<string, { side: ReturnType<typeof classifyBoneSide>; spans: ReturnType<typeof computeTweenSpans> }>()
+    for (const bone of rig.bones) {
+      map.set(bone.id, {
+        side: classifyBoneSide(bone),
+        spans: computeTweenSpans(rig.tracks[bone.id] ?? [], rig.duration)
+      })
+    }
+    return map
+  }, [rig.bones, rig.tracks, rig.duration])
 
   const bones = useMemo(() => {
     if (assist.dopeFilter === 'selected') {
@@ -454,7 +471,7 @@ function AnimationTimeline({ state, playback, boneId, selectBone, rig }: Props &
               <div className="lw-animation-track-lane lw-master-track-lane" onPointerDown={scrub} onPointerMove={scrub}>
                 <span className="lw-animation-playhead" style={{ left: `${playheadPct}%` }} />
                 {masterPoseTimes.map((t) => {
-                  const colKeys = collectPoseKeysAtTime(rig, t)
+                  const colKeys = masterPoseKeysMap.get(t) ?? []
                   const isColSelected =
                     colKeys.length > 0 &&
                     colKeys.every((ck) => validSelectedKeys.some((sk) => sameTimelineKey(sk, ck)))
@@ -484,9 +501,10 @@ function AnimationTimeline({ state, playback, boneId, selectBone, rig }: Props &
             {/* Từng hàng xương kèm thanh khoảng nội suy Tween Span */}
             {bones.map((bone) => {
               const track = rig.tracks[bone.id] ?? []
-              const side = classifyBoneSide(bone)
+              const meta = boneMetaMap.get(bone.id)
+              const side = meta?.side ?? classifyBoneSide(bone)
               const depth = Math.min(5, depthMap.get(bone.id) ?? 0)
-              const spans = computeTweenSpans(track, rig.duration)
+              const spans = meta?.spans ?? computeTweenSpans(track, rig.duration)
 
               return (
                 <div

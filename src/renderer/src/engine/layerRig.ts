@@ -23,6 +23,18 @@ export function rotatePoint(x: number, y: number, angle: number) {
   return { x: x * c - y * s, y: x * s + y * c }
 }
 
+interface CachedRigEval {
+  time: number
+  rest: boolean
+  bonesRef: LayerRig['bones']
+  tracksRef: LayerRig['tracks']
+  duration: number
+  loop: boolean
+  result: Map<string, BoneTransform>
+}
+
+const evalRigCache = new WeakMap<LayerRig, CachedRigEval>()
+
 /**
  * World delta from the bind pose. Layers never jump when attached to a resting bone.
  * adjust (tuỳ chọn): chỉnh tạm tư thế từng xương trước khi tính (IK, vật lý thứ cấp) mà không sửa track.
@@ -33,6 +45,20 @@ export function evaluateRig(
   rest = false,
   adjust?: (boneId: string, pose: BonePose) => BonePose
 ): Map<string, BoneTransform> {
+  if (!adjust) {
+    const cached = evalRigCache.get(rig)
+    if (
+      cached &&
+      cached.time === time &&
+      cached.rest === rest &&
+      cached.bonesRef === rig.bones &&
+      cached.tracksRef === rig.tracks &&
+      cached.duration === rig.duration &&
+      cached.loop === rig.loop
+    ) {
+      return cached.result
+    }
+  }
   const result = new Map<string, BoneTransform>()
   const bones = new Map(rig.bones.map((b) => [b.id, b]))
   const visiting = new Set<string>()
@@ -81,6 +107,17 @@ export function evaluateRig(
     return value
   }
   rig.bones.forEach((bone) => visit(bone.id))
+  if (!adjust) {
+    evalRigCache.set(rig, {
+      time,
+      rest,
+      bonesRef: rig.bones,
+      tracksRef: rig.tracks,
+      duration: rig.duration,
+      loop: rig.loop,
+      result
+    })
+  }
   return result
 }
 

@@ -282,7 +282,7 @@ export function AssembledLayerItemView({
         transformStyle: 'preserve-3d',
         pointerEvents: 'none',
         willChange: 'transform',
-        zIndex: isFocused ? 3500 : Math.round(1000 + (layer.z ?? 0))
+        zIndex: isFocused ? 4800 : Math.max(10, Math.min(4750, Math.round(2400 + (layer.z ?? 0) * 2)))
       }}
     >
       <div

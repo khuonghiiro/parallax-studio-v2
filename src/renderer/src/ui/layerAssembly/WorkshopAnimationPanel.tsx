@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { AnimationClip, BoneKeyframe, LayerBone, LayerRig } from '@shared/layerRig'
 import { sampleBonePose } from '../../engine/layerRig'
 import { RigNumber } from './RigNumber'
@@ -192,6 +192,26 @@ export function WorkshopAnimationPanel({
     setComposite(() => res.composite)
     playback.setTime(res.nextTime)
   }
+
+  const clipActionLiveRef = useRef({ run, playback })
+  clipActionLiveRef.current = { run, playback }
+  const handleClipBarAction = useCallback((action: Parameters<typeof run>[0]) => {
+    const { run: latestRun, playback: latestPlayback } = clipActionLiveRef.current
+    if (action.action === 'apply-mixamo-rig-motion') {
+      latestPlayback.setTime(0)
+      latestRun(action)
+      latestPlayback.setIsPlaying(true)
+      return
+    }
+    latestPlayback.setIsPlaying(false)
+    if (
+      ['switch-clip', 'add-clip', 'duplicate-clip', 'delete-clip', 'delete-all-clips'].includes(action.action)
+    ) {
+      latestPlayback.setTime(0)
+    }
+    latestRun(action)
+  }, [])
+  const handleOpenRetarget = useCallback(() => setIsRetargetOpen(true), [])
 
   useEffect(() => {
     if (!boneId && rig.bones.length > 0) {
@@ -581,22 +601,8 @@ export function WorkshopAnimationPanel({
                 rig={rig}
                 activeClip={activeClip}
                 composite={composite}
-                run={(action) => {
-                  if (action.action === 'apply-mixamo-rig-motion') {
-                    playback.setTime(0)
-                    run(action)
-                    playback.setIsPlaying(true)
-                    return
-                  }
-                  playback.setIsPlaying(false)
-                  if (
-                    ['switch-clip', 'add-clip', 'duplicate-clip', 'delete-clip', 'delete-all-clips'].includes(action.action)
-                  ) {
-                    playback.setTime(0)
-                  }
-                  run(action)
-                }}
-                onOpenRetarget={() => setIsRetargetOpen(true)}
+                run={handleClipBarAction}
+                onOpenRetarget={handleOpenRetarget}
               />
               <ClipTimingSettingsCard
                 rig={rig}
