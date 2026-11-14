@@ -1,6 +1,7 @@
 // Crate Rust: pxs_core_accel
 // Cung cấp các hàm xử lý tính toán số học điểm ảnh và lưới 2.5D hiệu năng cực cao (SIMD / Zero-alloc).
 
+pub mod audio_dsp;
 pub mod chroma_edge_ops;
 pub mod chroma_matte_unmix;
 pub mod geom2d;
@@ -15,6 +16,10 @@ pub mod sha256_crc32;
 pub mod skin_deform;
 pub mod wasm_mem;
 pub mod zip_pxs;
+pub use audio_dsp::{
+    rust_apply_tone_biquad_in_place, rust_encode_pcm16_wav, rust_eval_lipsync_frames,
+    rust_extract_audio_peaks, rust_mix_audio_clip_f32,
+};
 pub use chroma_edge_ops::{
     rust_apply_defringe_and_despill, rust_apply_despeckle_and_crumbs,
     rust_apply_feather_and_choke, rust_apply_smooth_edge_feather, rust_collect_boundary_indices,

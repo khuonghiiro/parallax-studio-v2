@@ -31,6 +31,8 @@ export interface ExportStartOptions {
    * `yuv420p` (đã chuyển màu BT.601 + lật trên GPU, 1,5 byte/pixel; cần rộng chia hết 8, cao chia hết 4).
    */
   pixelFormat?: ExportPixelFormat
+  /** Chuyển đổi RGBA (từ readPixels bottom-up) sang planar YUV420p trên CPU bằng Rust WASM trong Main trước khi ghi pipe ffmpeg. */
+  cpuYuvFallback?: boolean
   outPath: string
   audio?: { data: Uint8Array; ext: string; offset: number; volume: number; duration: number }
 }

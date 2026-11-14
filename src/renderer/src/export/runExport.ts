@@ -2,6 +2,7 @@ import type { ExportEncoderPreference, ExportPixelFormat, ExportStartOptions } f
 import type { Project } from '@shared/types'
 import { SceneRenderer } from '../engine/SceneRenderer'
 import type { AsyncFrameReadback } from '../engine/asyncReadback'
+import { isWasmAccelReady, wasmRgbaToYuv420p } from '../engine/wasmAccel'
 import { assetStore } from '../project/assets'
 import { getProjectAudioTracks, mixAudioTracksToWav } from '../project/audioTracks'
 import { extForMime } from '../project/serialize'
@@ -115,6 +116,7 @@ interface FrameLoop {
   isCancelled: () => boolean
   timings: ExportTimings
   useAsyncReadback: boolean
+  cpuYuvPack: boolean
 }
 
 /** Nạp texture rồi vẽ frame `i` lên canvas (chưa đọc pixel). */
@@ -151,7 +153,15 @@ function reportProgress(loop: FrameLoop, done: number): void {
 async function encodeFrames(loop: FrameLoop): Promise<{ frames: number; cancelled: boolean }> {
   const { r } = loop
   const pool = new FrameBufferPool(loop.output.byteLength)
-  const queue = new FrameSendQueue((f) => window.api.exportFrame(f), MAX_QUEUED_FRAMES, (f) => pool.release(f))
+  const yuvPool = loop.cpuYuvPack
+    ? new FrameBufferPool((loop.output.width * loop.output.height * 3) / 2)
+    : null
+  const releasePool = yuvPool ?? pool
+  const queue = new FrameSendQueue(
+    (f) => window.api.exportFrame(f),
+    MAX_QUEUED_FRAMES,
+    (f) => releasePool.release(f)
+  )
   const createReadback = (): AsyncFrameReadback | null => loop.useAsyncReadback
     ? r.createFrameReadback(READBACK_SLOTS, loop.output.readWidth, loop.output.readHeight) : null
   let readback = createReadback()
@@ -170,7 +180,18 @@ async function encodeFrames(loop: FrameLoop): Promise<{ frames: number; cancelle
   }
   const deliver = async (buf: Uint8Array): Promise<void> => {
     retries = 0
-    await queue.push(buf)
+    if (loop.cpuYuvPack && yuvPool) {
+      const yuvOut = yuvPool.acquire()
+      const packed = wasmRgbaToYuv420p(buf, loop.output.width, loop.output.height, yuvOut, true)
+      pool.release(buf)
+      if (!packed) {
+        yuvPool.release(yuvOut)
+        throw new Error('Không thể đóng gói frame YUV420p bằng WASM')
+      }
+      await queue.push(packed)
+    } else {
+      await queue.push(buf)
+    }
     done++
     reportProgress(loop, done)
   }
@@ -290,6 +311,12 @@ async function runExportSession(
     await r.prepare(project, start, height)
     r.render(project, start, { frame: 0 })
     output = new ExportFrameOutput(r, width, height, opts.pixelFormat)
+    const useCpuYuvFallback =
+      output.pixelFormat === 'rgba' &&
+      (opts.pixelFormat ?? 'auto') !== 'rgba' &&
+      width % 2 === 0 &&
+      height % 2 === 0 &&
+      isWasmAccelReady()
 
     const started = await window.api.exportStart({
       width,
@@ -298,22 +325,25 @@ async function runExportSession(
       crf: opts.crf ?? 18,
       preset: opts.preset ?? 'medium',
       encoder: opts.encoder ?? 'auto',
-      pixelFormat: output.pixelFormat,
+      pixelFormat: useCpuYuvFallback ? 'yuv420p' : output.pixelFormat,
       outPath: opts.outPath,
       audio
     })
     if (!started.ok) throw new Error(started.error)
     const encoder = started.encoder
     // Main cũ/remote cũ có thể chỉ nhận RGBA: dùng đúng định dạng mà bên nhận xác nhận.
-    if (output.pixelFormat !== (started.pixelFormat ?? 'rgba')) {
+    const negotiatedPixelFormat = started.pixelFormat ?? 'rgba'
+    if (!useCpuYuvFallback && output.pixelFormat !== negotiatedPixelFormat) {
       output.dispose()
       output = new ExportFrameOutput(r, width, height, 'rgba')
     }
-    const pixelFormat = output.pixelFormat
+    const cpuYuvPack = useCpuYuvFallback && negotiatedPixelFormat === 'yuv420p'
+    const pixelFormat = cpuYuvPack ? 'yuv420p' : output.pixelFormat
 
     const loop: FrameLoop = {
       r, output, project, canvas, start, fps, total, height, t0, preview, onProgress, isCancelled, timings,
-      useAsyncReadback: opts.readback !== 'sync'
+      useAsyncReadback: opts.readback !== 'sync',
+      cpuYuvPack
     }
     const { frames, cancelled } = await encodeFrames(loop)
     if (cancelled) {

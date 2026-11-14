@@ -383,7 +383,7 @@ export interface PxsWasmExports {
   ) => number
 }
 
-export type ScratchKind = 'f32' | 'i32' | 'u32' | 'i16' | 'u8'
+export type ScratchKind = 'f64' | 'f32' | 'i32' | 'u32' | 'i16' | 'u8'
 
 export interface ScratchSpec {
   kind: ScratchKind
@@ -391,15 +391,17 @@ export interface ScratchSpec {
   align?: number
 }
 
-export type ScratchView<K extends ScratchKind> = K extends 'f32'
-  ? Float32Array
-  : K extends 'i32'
-    ? Int32Array
-    : K extends 'u32'
-      ? Uint32Array
-      : K extends 'i16'
-        ? Int16Array
-        : Uint8Array
+export type ScratchView<K extends ScratchKind> = K extends 'f64'
+  ? Float64Array
+  : K extends 'f32'
+    ? Float32Array
+    : K extends 'i32'
+      ? Int32Array
+      : K extends 'u32'
+        ? Uint32Array
+        : K extends 'i16'
+          ? Int16Array
+          : Uint8Array
 
 export interface ScratchSlot<T extends ArrayBufferView> {
   ptr: number
@@ -442,6 +444,7 @@ export function validatePxsWasmExports(raw: unknown): PxsWasmExports | null {
 }
 
 function elemByteSize(kind: ScratchKind): number {
+  if (kind === 'f64') return 8
   if (kind === 'i16') return 2
   if (kind === 'u8') return 1
   return 4
@@ -454,6 +457,8 @@ function buildTypedView(
   length: number
 ): ArrayBufferView {
   switch (kind) {
+    case 'f64':
+      return new Float64Array(buffer, ptr, length)
     case 'f32':
       return new Float32Array(buffer, ptr, length)
     case 'i32':
