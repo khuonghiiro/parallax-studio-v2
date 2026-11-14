@@ -376,6 +376,36 @@ function sampleRigLayerKeyframes(
   return true
 }
 
+function applyPresetToCustomSoftRig(
+  layer: Layer,
+  preset: ProceduralMotionPreset,
+  intensity: number
+): boolean {
+  const rig = layer.mesh?.skin?.rig
+  if (!layer.mesh?.skin?.binding?.boneId || !rig?.bones?.length || !rig.clips?.length) return false
+  const clip =
+    rig.clips.find((c) => c.presetKey === preset || c.id === preset) ??
+    rig.clips.find((c) => c.id === rig.activeClipId) ??
+    rig.clips[0]
+  if (!clip) return false
+  const scaledTracks: LayerRig['tracks'] = {}
+  for (const [boneId, keys] of Object.entries(clip.tracks)) {
+    scaledTracks[boneId] = keys.map((k) => ({
+      ...k,
+      x: Math.round(k.x * intensity * 100) / 100,
+      y: Math.round(k.y * intensity * 100) / 100,
+      rotation: Math.round(k.rotation * intensity * 100) / 100,
+      ...(k.scaleX !== undefined ? { scaleX: Math.round((1 + (k.scaleX - 1) * intensity) * 1000) / 1000 } : {}),
+      ...(k.scaleY !== undefined ? { scaleY: Math.round((1 + (k.scaleY - 1) * intensity) * 1000) / 1000 } : {})
+    }))
+  }
+  rig.tracks = scaledTracks
+  rig.duration = clip.duration
+  rig.loop = clip.loop
+  rig.activeClipId = clip.id
+  return true
+}
+
 /**
  * Bake trực tiếp một Hành động Xương Nhân vật 2.5D (`idle`, `walk`, `wave`, `bow`, `run`, `jump`, `action`, `sway`...)
  * lên toàn bộ các mảnh bộ phận của Cụm 2.5D trong khoảng `[timeStart, timeEnd]`.
@@ -438,6 +468,10 @@ export function bakeClusterRigPresetToScene(
 
   let animatedCount = 0
   for (const l of members) {
+    if (applyPresetToCustomSoftRig(l, preset, intensity)) {
+      animatedCount++
+      continue
+    }
     const savedLayer = savedComp?.layers.find((it) => it.id === l.composite?.sourceLayerId)
     const boneId = inferBoneIdForClusterLayer(l, bones, savedLayer?.boneId)
     if (!boneId) continue

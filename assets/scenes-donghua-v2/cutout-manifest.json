@@ -66,25 +66,67 @@
     "coverageRatio": 0.234
   },
   {
-    "id": "asset-dg-s1-crane",
-    "file": "s1-white-crane.png",
-    "name": "Tiên Hạc Ngự Vân",
+    "id": "asset-dg-crane-body",
+    "file": "crane-body-core.png",
+    "name": "Tiên Hạc — Thân & Cổ Ngự Vân",
     "kind": "cutout",
-    "width": 979,
-    "height": 568,
+    "width": 1185,
+    "height": 342,
     "keyColor": {
-      "r": 11,
-      "g": 246,
-      "b": 6,
+      "r": 14,
+      "g": 245,
+      "b": 5,
       "kind": "green"
     },
     "cropBox": {
-      "x": 201,
-      "y": 64,
-      "width": 979,
-      "height": 568
+      "x": 95,
+      "y": 246,
+      "width": 1185,
+      "height": 342
     },
-    "coverageRatio": 0.27
+    "coverageRatio": 0.242
+  },
+  {
+    "id": "asset-dg-crane-wing-near",
+    "file": "crane-wing-near.png",
+    "name": "Tiên Hạc — Cánh Gần Tiền Cảnh",
+    "kind": "cutout",
+    "width": 1004,
+    "height": 828,
+    "keyColor": {
+      "r": 18,
+      "g": 244,
+      "b": 8,
+      "kind": "green"
+    },
+    "cropBox": {
+      "x": 114,
+      "y": 36,
+      "width": 1004,
+      "height": 828
+    },
+    "coverageRatio": 0.353
+  },
+  {
+    "id": "asset-dg-crane-wing-far",
+    "file": "crane-wing-far.png",
+    "name": "Tiên Hạc — Cánh Xa Hậu Cảnh",
+    "kind": "cutout",
+    "width": 1004,
+    "height": 827,
+    "keyColor": {
+      "r": 21,
+      "g": 241,
+      "b": 9,
+      "kind": "green"
+    },
+    "cropBox": {
+      "x": 82,
+      "y": 37,
+      "width": 1004,
+      "height": 827
+    },
+    "coverageRatio": 0.353
   },
   {
     "id": "asset-dg-hero-cloak",
@@ -213,25 +255,46 @@
     "coverageRatio": 0.473
   },
   {
-    "id": "asset-dg-s3-maiden",
-    "file": "s3-lotus-boat-maiden.png",
-    "name": "Thiếu Nữ Thuyền Sen Giang Nam",
+    "id": "asset-dg-s3-boat",
+    "file": "s3-gondola-boat.png",
+    "name": "Thuyền Gỗ Ô Bồng Giang Nam",
     "kind": "cutout",
-    "width": 1122,
-    "height": 704,
+    "width": 1272,
+    "height": 488,
     "keyColor": {
-      "r": 13,
-      "g": 248,
-      "b": 3,
+      "r": 23,
+      "g": 194,
+      "b": 29,
       "kind": "green"
     },
     "cropBox": {
-      "x": 70,
-      "y": 74,
-      "width": 1122,
-      "height": 704
+      "x": 52,
+      "y": 140,
+      "width": 1272,
+      "height": 488
     },
-    "coverageRatio": 0.387
+    "coverageRatio": 0.466
+  },
+  {
+    "id": "asset-dg-s3-maiden",
+    "file": "s3-maiden-puppet.png",
+    "name": "Thiếu Nữ Hán Phục Đèn Hoa Sen",
+    "kind": "cutout",
+    "width": 831,
+    "height": 1076,
+    "keyColor": {
+      "r": 10,
+      "g": 246,
+      "b": 4,
+      "kind": "green"
+    },
+    "cropBox": {
+      "x": 51,
+      "y": 58,
+      "width": 831,
+      "height": 1076
+    },
+    "coverageRatio": 0.38
   },
   {
     "id": "asset-dg-s3-lanterns",
@@ -253,5 +316,29 @@
       "height": 622
     },
     "coverageRatio": 0.3
+  },
+  {
+    "id": "asset-dg-fx-sword-qi",
+    "file": "fx-sword-qi-slash.png",
+    "name": "Kiếm Khí Trảm Thanh Ngọc",
+    "kind": "cutout",
+    "width": 1091,
+    "height": 647
+  },
+  {
+    "id": "asset-dg-fx-mist",
+    "file": "fx-cloud-mist.png",
+    "name": "Dải Mây Sương Vân Hải",
+    "kind": "cutout",
+    "width": 960,
+    "height": 320
+  },
+  {
+    "id": "asset-dg-fx-shimmer",
+    "file": "fx-water-shimmer.png",
+    "name": "Gợn Sóng Phản Chiếu Ánh Trăng",
+    "kind": "cutout",
+    "width": 760,
+    "height": 180
   }
 ]

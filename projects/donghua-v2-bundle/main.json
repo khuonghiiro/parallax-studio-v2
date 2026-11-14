@@ -3,13 +3,13 @@
   "sharedTiming": {
     "nodes": [
       {
-        "id": "time-yXQOzLys",
+        "id": "time-e30NwKza",
         "type": "motion_choreography",
         "title": "Cao Trào Kiếm Khí Trúc Lâm",
         "enabled": true,
         "position": {
-          "x": 1320,
-          "y": 888
+          "x": 1744,
+          "y": 1424
         },
         "preset": "shared_time",
         "aiAgentRole": "MotionChoreographyAgent",
@@ -25,33 +25,33 @@
     ],
     "edges": [
       {
-        "id": "time-time-yXQOzLys-v2-action-cluster-dg-hero-s2",
-        "fromNode": "time-yXQOzLys",
+        "id": "time-time-e30NwKza-v2-action-layer-dg-s2-cloak",
+        "fromNode": "time-e30NwKza",
         "fromPort": "time_range",
-        "toNode": "v2-action-cluster-dg-hero-s2",
+        "toNode": "v2-action-layer-dg-s2-cloak",
         "toPort": "time_range"
       },
       {
-        "id": "time-time-yXQOzLys-v2-fx_fade-layer-dg-s2-bamboo",
-        "fromNode": "time-yXQOzLys",
+        "id": "time-time-e30NwKza-v2-fx_fade-layer-dg-s2-cloak",
+        "fromNode": "time-e30NwKza",
         "fromPort": "time_range",
-        "toNode": "v2-fx_fade-layer-dg-s2-bamboo",
+        "toNode": "v2-fx_fade-layer-dg-s2-cloak",
         "toPort": "time_range"
       }
     ],
     "consumers": [
       {
-        "id": "v2-action-cluster-dg-hero-s2",
+        "id": "v2-action-layer-dg-s2-cloak",
         "type": "motion_choreography",
         "title": "Motion: Phi Thân Cầu Đá",
         "enabled": true,
         "position": {
-          "x": 1744,
-          "y": 1022
+          "x": 2168,
+          "y": 1340
         },
         "preset": "organic_wind_breathe",
         "aiAgentRole": "MotionChoreographyAgent",
-        "aiDirective": "Motion: Phi Thân Cầu Đá cho \"Khoá cụm: Kiếm Khách Xuất Chiêu\".",
+        "aiDirective": "Motion: Phi Thân Cầu Đá (bước B2 sau \"Hành động: Võ Thế & Tà Áo Khai Phong\").",
         "params": {
           "shotId": "shot-dg-2",
           "logicCategory": "action",
@@ -59,76 +59,82 @@
           "targetLayerIds": [
             "layer-dg-s2-cloak",
             "layer-dg-s2-calm",
-            "layer-dg-s2-fierce",
-            "layer-dg-s2-sword"
+            "layer-dg-s2-fierce"
           ],
           "sharedLayerNodeIds": [
             "v2-cluster-cluster-dg-hero-s2"
           ],
           "requireLayerConnection": true,
           "timeStart": 6.3,
-          "timeEnd": 11.6,
+          "timeEnd": 11.5,
           "hierarchyParentNodeId": "v2-cluster-cluster-dg-hero-s2",
+          "upstreamLogicNodeId": "v2-anim_fx-cluster-dg-hero-s2",
+          "pipelineStepIndex": 2,
           "instanceId": "cluster-dg-hero-s2",
+          "rootLayerId": "layer-dg-s2-cloak",
           "actionPreset": "bbox_target",
           "motionMode": "bbox",
           "bboxPathType": "shortest",
-          "bboxTargetScalePct": 114,
+          "bboxTargetScalePct": 110,
           "depthMode": "depth_z",
           "intensity": 1,
-          "bboxTargetX": 165,
-          "bboxTargetY": -18,
+          "bboxTargetX": 115,
+          "bboxTargetY": 14,
           "depthRefLayerId": "layer-dg-s2-bridge",
           "depthRelation": "in_front",
-          "bboxStartZ": 220,
-          "bboxTargetZ": 130,
-          "rootLayerId": "layer-dg-s2-cloak",
-          "pipelineStepIndex": 1,
+          "bboxStartZ": 226,
+          "bboxTargetZ": 135,
           "localTimeRange": {
             "start": 6.3,
-            "end": 11.6
+            "end": 11.5
           }
         }
       },
       {
-        "id": "v2-fx_fade-layer-dg-s2-bamboo",
+        "id": "v2-fx_fade-layer-dg-s2-cloak",
         "type": "physics_fx",
         "title": "Hiện/Ẩn: Hiện 0.5s · Ẩn 0.5s",
         "enabled": true,
         "position": {
-          "x": 1744,
-          "y": 1138
+          "x": 2592,
+          "y": 1340
         },
         "preset": "rim_glow_particles",
         "aiAgentRole": "PhysicsLightFxAgent",
-        "aiDirective": "FX: Rừng Trúc Rung Chuyển (bước B2 sau \"Vật liệu: 🍃 Lá cây / Cỏ mềm\").",
+        "aiDirective": "FX: Kiếm Khí Thanh Ngọc (bước B3 sau \"Motion: Phi Thân Cầu Đá\").",
         "params": {
           "shotId": "shot-dg-2",
           "logicCategory": "fx",
           "targetMode": "custom",
           "targetLayerIds": [
-            "layer-dg-s2-bamboo"
+            "layer-dg-s2-cloak",
+            "layer-dg-s2-calm",
+            "layer-dg-s2-fierce"
           ],
           "sharedLayerNodeIds": [
-            "v2-layer-layer-dg-s2-bamboo"
+            "v2-cluster-cluster-dg-hero-s2"
           ],
           "requireLayerConnection": true,
-          "timeStart": 6.4,
-          "timeEnd": 11.6,
-          "hierarchyParentNodeId": "v2-layer-layer-dg-s2-bamboo",
-          "upstreamLogicNodeId": "v2-material-layer-dg-s2-bamboo",
-          "pipelineStepIndex": 2,
+          "timeStart": 7.6,
+          "timeEnd": 11.8,
+          "hierarchyParentNodeId": "v2-cluster-cluster-dg-hero-s2",
+          "upstreamLogicNodeId": "v2-action-layer-dg-s2-cloak",
+          "pipelineStepIndex": 3,
+          "instanceId": "cluster-dg-hero-s2",
+          "rootLayerId": "layer-dg-s2-cloak",
           "fxAtomicRole": "fade",
           "fxSubTab": "opacity",
-          "animFxPreset": "pulse",
+          "animFxPreset": "neonBreathe",
           "loopFadeInSec": 0.5,
           "loopEndAction": "fade_out",
           "loopFadeOutSec": 0.5,
-          "intensity": 1.05,
-          "animFxCount": 5,
+          "intensity": 0.42,
+          "animFxColor": "#2dd4bf",
+          "animFxThickness": 6,
+          "animFxSpeed": 1.5,
           "localTimeRange": {
-            "start": 6.4,
-            "end": 11.6
+            "start": 7.6,
+            "end": 11.8
           },
           "animMode": "keyframe_fx"
         }
@@ -178,8 +184,8 @@
       "timeEnd": 5.3,
       "cameraPreset": "dollyIn",
       "waypointCount": 3,
-      "layerCount": 9,
-      "logicCount": 7
+      "layerCount": 16,
+      "logicCount": 11
     },
     {
       "shotId": "shot-dg-2",
@@ -197,8 +203,8 @@
       "timeEnd": 11.3,
       "cameraPreset": "dollyIn",
       "waypointCount": 3,
-      "layerCount": 9,
-      "logicCount": 7
+      "layerCount": 12,
+      "logicCount": 9
     },
     {
       "shotId": "shot-dg-3",
@@ -216,8 +222,8 @@
       "timeEnd": 18,
       "cameraPreset": "dollyIn",
       "waypointCount": 3,
-      "layerCount": 5,
-      "logicCount": 7
+      "layerCount": 8,
+      "logicCount": 9
     }
   ],
   "connections": [
@@ -248,14 +254,20 @@
     "c_nh_3_giang_nam_c_tr_n_tinh_h": "scenes-donghua-v2/bg-s3-jiangnan-starry-river.png",
     "nh_c_v_ch_n_i_t_ng_b_ch": "scenes-donghua-v2/s1-cliff-pavilion.png",
     "c_nh_o_c_th_ti_n_c_nh": "scenes-donghua-v2/s1-peach-branch-fg.png",
-    "ti_n_h_c_ng_v_n": "scenes-donghua-v2/s1-white-crane.png",
+    "ti_n_h_c_th_n_c_ng_v_n": "scenes-donghua-v2/crane-body-core.png",
+    "ti_n_h_c_c_nh_g_n_ti_n_c_nh": "scenes-donghua-v2/crane-wing-near.png",
+    "ti_n_h_c_c_nh_xa_h_u_c_nh": "scenes-donghua-v2/crane-wing-far.png",
     "ki_m_kh_ch_o_cho_ng_l_a": "scenes-donghua-v2/hero-cloak-back.png",
     "ki_m_kh_ch_th_n_th_i_i_m_t_nh": "scenes-donghua-v2/hero-swordsman-calm.png",
     "ki_m_kh_ch_khai_phong_ki_m": "scenes-donghua-v2/hero-swordsman-fierce.png",
     "linh_ki_m_c_phong": "scenes-donghua-v2/hero-spirit-sword.png",
     "c_u_c_r_ng_tr_c": "scenes-donghua-v2/s2-stone-bridge.png",
     "tr_c_xanh_th_i_h_ti_n_c_nh": "scenes-donghua-v2/s2-bamboo-rock-fg.png",
-    "thi_u_n_thuy_n_sen_giang_nam": "scenes-donghua-v2/s3-lotus-boat-maiden.png",
-    "n_tr_i_hoa_ng": "scenes-donghua-v2/s3-sky-lanterns.png"
+    "thuy_n_g_b_ng_giang_nam": "scenes-donghua-v2/s3-gondola-boat.png",
+    "thi_u_n_h_n_ph_c_n_hoa_sen": "scenes-donghua-v2/s3-maiden-puppet.png",
+    "n_tr_i_hoa_ng": "scenes-donghua-v2/s3-sky-lanterns.png",
+    "ki_m_kh_tr_m_thanh_ng_c": "scenes-donghua-v2/fx-sword-qi-slash.png",
+    "d_i_m_y_s_ng_v_n_h_i": "scenes-donghua-v2/fx-cloud-mist.png",
+    "g_n_s_ng_ph_n_chi_u_nh_tr_ng": "scenes-donghua-v2/fx-water-shimmer.png"
   }
 }

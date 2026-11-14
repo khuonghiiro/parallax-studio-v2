@@ -99,6 +99,15 @@
   },
   "groups": [
     {
+      "id": "v2-group-3d-shot-dg-3",
+      "kind": "group_3d",
+      "title": "Nhóm 3D & Lắp ráp",
+      "enabled": true,
+      "timeStart": 11,
+      "timeEnd": 18,
+      "layerCount": 3
+    },
+    {
       "id": "v2-group-25d-shot-dg-3",
       "kind": "group_25d",
       "title": "Nhóm Layer 2.5D",
@@ -141,6 +150,28 @@
       "timeEnd": 18
     },
     {
+      "id": "layer-dg-s3-mist",
+      "nodeId": "v2-layer-layer-dg-s3-mist",
+      "name": "Khói Sương Mặt Sông Đêm",
+      "type": "image",
+      "groupKind": "group_25d",
+      "asset": "@d_i_m_y_s_ng_v_n_h_i",
+      "visible": true,
+      "position": [
+        -260,
+        -115,
+        620
+      ],
+      "scale": [
+        1.25,
+        1.25,
+        1
+      ],
+      "opacity": 0.48,
+      "timeStart": 11,
+      "timeEnd": 18
+    },
+    {
       "id": "layer-dg-s3-lanterns-far",
       "nodeId": "v2-layer-layer-dg-s3-lanterns-far",
       "name": "Đèn Trời Khổng Minh Xa",
@@ -163,21 +194,65 @@
       "timeEnd": 18
     },
     {
-      "id": "layer-dg-s3-maiden",
-      "nodeId": "v2-layer-layer-dg-s3-maiden",
-      "name": "Thiếu Nữ Thuyền Đèn Hoa Sen",
+      "id": "layer-dg-s3-shimmer",
+      "nodeId": "v2-layer-layer-dg-s3-shimmer",
+      "name": "Gợn Nước Hoa Đăng Dưới Thuyền",
       "type": "image",
-      "groupKind": "group_25d",
-      "asset": "@thi_u_n_thuy_n_sen_giang_nam",
+      "groupKind": "group_3d",
+      "asset": "@g_n_s_ng_ph_n_chi_u_nh_tr_ng",
       "visible": true,
       "position": [
         -165,
-        -195,
-        190
+        -308,
+        198
       ],
       "scale": [
-        0.58,
-        0.58,
+        0.92,
+        0.92,
+        1
+      ],
+      "opacity": 0.92,
+      "timeStart": 11,
+      "timeEnd": 18
+    },
+    {
+      "id": "layer-dg-s3-boat",
+      "nodeId": "v2-layer-layer-dg-s3-boat",
+      "name": "Thuyền Gỗ Ô Bồng",
+      "type": "image",
+      "groupKind": "group_3d",
+      "asset": "@thuy_n_g_b_ng_giang_nam",
+      "visible": true,
+      "position": [
+        -165,
+        -235,
+        194
+      ],
+      "scale": [
+        0.56,
+        0.56,
+        1
+      ],
+      "opacity": 1,
+      "timeStart": 11,
+      "timeEnd": 18
+    },
+    {
+      "id": "layer-dg-s3-maiden",
+      "nodeId": "v2-layer-layer-dg-s3-maiden",
+      "name": "Thiếu Nữ Hán Phục — Đèn Sen",
+      "type": "image",
+      "groupKind": "group_3d",
+      "asset": "@thi_u_n_h_n_ph_c_n_hoa_sen",
+      "visible": true,
+      "position": [
+        -195,
+        -84,
+        186
+      ],
+      "scale": [
+        0.37,
+        0.37,
         1
       ],
       "opacity": 1,
@@ -193,13 +268,13 @@
       "asset": "@n_tr_i_hoa_ng",
       "visible": true,
       "position": [
-        -495,
-        95,
+        -515,
+        145,
         -170
       ],
       "scale": [
-        0.5,
-        0.5,
+        0.48,
+        0.48,
         1
       ],
       "opacity": 1,
@@ -230,7 +305,30 @@
   ],
   "logic": [
     {
-      "id": "v2-action-layer-dg-s3-maiden",
+      "id": "v2-anim_fx-cluster-dg-maiden-s3",
+      "category": "anim_fx",
+      "presetId": "v2:anim_fx:rig_wave",
+      "title": "Hành động Nhân vật: Vẫy tay chào",
+      "enabled": true,
+      "timeStart": 12,
+      "timeEnd": 18,
+      "targetLayerIds": [
+        "layer-dg-s3-shimmer",
+        "layer-dg-s3-boat",
+        "layer-dg-s3-maiden"
+      ],
+      "targetLayerNames": [
+        "Gợn Nước Hoa Đăng Dưới Thuyền",
+        "Thuyền Gỗ Ô Bồng",
+        "Thiếu Nữ Hán Phục — Đèn Sen"
+      ],
+      "params": {
+        "animFxPreset": "popIn",
+        "intensity": 1
+      }
+    },
+    {
+      "id": "v2-action-layer-dg-s3-shimmer",
       "category": "action",
       "presetId": "v2:action:bbox_target",
       "title": "Motion: Thuyền Sen Lướt Sông Sao",
@@ -238,10 +336,14 @@
       "timeStart": 12.1,
       "timeEnd": 17.8,
       "targetLayerIds": [
+        "layer-dg-s3-shimmer",
+        "layer-dg-s3-boat",
         "layer-dg-s3-maiden"
       ],
       "targetLayerNames": [
-        "Thiếu Nữ Thuyền Đèn Hoa Sen"
+        "Gợn Nước Hoa Đăng Dưới Thuyền",
+        "Thuyền Gỗ Ô Bồng",
+        "Thiếu Nữ Hán Phục — Đèn Sen"
       ],
       "params": {
         "actionPreset": "bbox_target",
@@ -249,7 +351,7 @@
       }
     },
     {
-      "id": "v2-light-layer-dg-s3-maiden",
+      "id": "v2-light-layer-dg-s3-shimmer",
       "category": "light",
       "presetId": "v2:light:candle",
       "title": "Ánh sáng: Ngọn nến (Gió)",
@@ -257,19 +359,23 @@
       "timeStart": 12,
       "timeEnd": 18,
       "targetLayerIds": [
+        "layer-dg-s3-shimmer",
+        "layer-dg-s3-boat",
         "layer-dg-s3-maiden"
       ],
       "targetLayerNames": [
-        "Thiếu Nữ Thuyền Đèn Hoa Sen"
+        "Gợn Nước Hoa Đăng Dưới Thuyền",
+        "Thuyền Gỗ Ô Bồng",
+        "Thiếu Nữ Hán Phục — Đèn Sen"
       ],
       "params": {
         "lightMode": "candle",
-        "lightColor": "#fbbf24",
-        "intensity": 0.55
+        "lightColor": "#f59e0b",
+        "intensity": 0.22
       }
     },
     {
-      "id": "v2-fx_fade-layer-dg-s3-maiden",
+      "id": "v2-fx_fade-layer-dg-s3-shimmer",
       "category": "fx",
       "presetId": "v2:fx:fadeInOut",
       "title": "Hiện/Ẩn: Hiện 0.5s · Ẩn 0.6s",
@@ -277,10 +383,14 @@
       "timeStart": 12,
       "timeEnd": 18,
       "targetLayerIds": [
+        "layer-dg-s3-shimmer",
+        "layer-dg-s3-boat",
         "layer-dg-s3-maiden"
       ],
       "targetLayerNames": [
-        "Thiếu Nữ Thuyền Đèn Hoa Sen"
+        "Gợn Nước Hoa Đăng Dưới Thuyền",
+        "Thuyền Gỗ Ô Bồng",
+        "Thiếu Nữ Hán Phục — Đèn Sen"
       ],
       "params": {
         "fxKind": "wind_physics",
@@ -347,7 +457,7 @@
     {
       "id": "v2-fx_fade-layer-dg-s3-lanterns-fg",
       "category": "fx",
-      "presetId": "v2:fx:pulse",
+      "presetId": "v2:fx:neonBreathe",
       "title": "Hiện/Ẩn: Hiện 0.5s · Ẩn 0.5s",
       "enabled": true,
       "timeStart": 12.1,
@@ -360,7 +470,26 @@
       ],
       "params": {
         "fxKind": "wind_physics",
-        "intensity": 1.04
+        "intensity": 0.52
+      }
+    },
+    {
+      "id": "v2-action-layer-dg-s3-mist",
+      "category": "action",
+      "presetId": "v2:action:bbox_target",
+      "title": "Motion: Khói Sương Sông Đêm",
+      "enabled": true,
+      "timeStart": 12,
+      "timeEnd": 18,
+      "targetLayerIds": [
+        "layer-dg-s3-mist"
+      ],
+      "targetLayerNames": [
+        "Khói Sương Mặt Sông Đêm"
+      ],
+      "params": {
+        "actionPreset": "bbox_target",
+        "intensity": 1
       }
     }
   ],
@@ -373,7 +502,7 @@
         "enabled": true,
         "position": {
           "x": 48,
-          "y": 1754
+          "y": 2496
         },
         "preset": "deep_parallax_stage",
         "aiAgentRole": "SceneLayoutAgent",
@@ -382,7 +511,7 @@
           "shotId": "shot-dg-3",
           "timeStart": 11.7,
           "timeEnd": 18,
-          "childLayerCount": 5
+          "childLayerCount": 8
         }
       },
       {
@@ -392,7 +521,7 @@
         "enabled": true,
         "position": {
           "x": 48,
-          "y": 1860
+          "y": 2602
         },
         "preset": "cinematic_fly_push",
         "aiAgentRole": "CameraDirectorAgent",
@@ -415,7 +544,7 @@
         "enabled": true,
         "position": {
           "x": 48,
-          "y": 1992
+          "y": 2734
         },
         "preset": "cinematic_fly_push",
         "aiAgentRole": "CameraDirectorAgent",
@@ -452,7 +581,7 @@
         "enabled": true,
         "position": {
           "x": 48,
-          "y": 2124
+          "y": 2866
         },
         "preset": "cinematic_fly_push",
         "aiAgentRole": "CameraDirectorAgent",
@@ -489,7 +618,7 @@
         "enabled": true,
         "position": {
           "x": 48,
-          "y": 2256
+          "y": 2998
         },
         "preset": "cinematic_fly_push",
         "aiAgentRole": "CameraDirectorAgent",
@@ -520,13 +649,181 @@
         }
       },
       {
+        "id": "v2-group-3d-shot-dg-3",
+        "type": "layer_assembly",
+        "title": "Nhóm 3D & Lắp ráp",
+        "enabled": true,
+        "position": {
+          "x": 472,
+          "y": 2496
+        },
+        "preset": "character_prop_cluster",
+        "aiAgentRole": "AssemblyRigAgent",
+        "aiDirective": "Nhóm 3D & Lắp ráp gồm 3 đối tượng.",
+        "params": {
+          "shotId": "shot-dg-3",
+          "groupKind": "group_3d",
+          "isAssemblyRoot": true,
+          "childLayerCount": 3,
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-dg-s3-shimmer",
+            "layer-dg-s3-boat",
+            "layer-dg-s3-maiden"
+          ],
+          "timeStart": 11,
+          "timeEnd": 18,
+          "hierarchyParentNodeId": "v2-root-shot-dg-3"
+        }
+      },
+      {
+        "id": "v2-layer-layer-dg-s3-shimmer",
+        "type": "layer_assembly",
+        "title": "Gợn Nước Hoa Đăng Dưới Thuyền",
+        "enabled": true,
+        "position": {
+          "x": 896,
+          "y": 2496
+        },
+        "preset": "character_prop_cluster",
+        "aiAgentRole": "AssemblyRigAgent",
+        "aiDirective": "Layer \"Gợn Nước Hoa Đăng Dưới Thuyền\" hoạt động từ 11s đến 18s.",
+        "params": {
+          "shotId": "shot-dg-3",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-dg-s3-shimmer"
+          ],
+          "requireLayerConnection": true,
+          "assemblyKind": "composite",
+          "instanceId": "cluster-dg-maiden-s3",
+          "compositeId": "comp-dg-maiden",
+          "lockedGroup": true,
+          "childLayerCount": 1,
+          "transformX": -165,
+          "transformY": -308,
+          "transformZ": 198,
+          "timeStart": 11,
+          "timeEnd": 18,
+          "hierarchyParentNodeId": "v2-group-3d-shot-dg-3"
+        }
+      },
+      {
+        "id": "v2-layer-layer-dg-s3-boat",
+        "type": "layer_assembly",
+        "title": "Thuyền Gỗ Ô Bồng",
+        "enabled": true,
+        "position": {
+          "x": 896,
+          "y": 2496
+        },
+        "preset": "character_prop_cluster",
+        "aiAgentRole": "AssemblyRigAgent",
+        "aiDirective": "Layer \"Thuyền Gỗ Ô Bồng\" hoạt động từ 11s đến 18s.",
+        "params": {
+          "shotId": "shot-dg-3",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-dg-s3-boat"
+          ],
+          "requireLayerConnection": true,
+          "assemblyKind": "composite",
+          "instanceId": "cluster-dg-maiden-s3",
+          "compositeId": "comp-dg-maiden",
+          "lockedGroup": true,
+          "rootLayerId": "layer-dg-s3-boat",
+          "childLayerCount": 1,
+          "transformX": -165,
+          "transformY": -235,
+          "transformZ": 194,
+          "timeStart": 11,
+          "timeEnd": 18,
+          "hierarchyParentNodeId": "v2-group-3d-shot-dg-3"
+        }
+      },
+      {
+        "id": "v2-layer-layer-dg-s3-maiden",
+        "type": "layer_assembly",
+        "title": "Thiếu Nữ Hán Phục — Đèn Sen",
+        "enabled": true,
+        "position": {
+          "x": 896,
+          "y": 2602
+        },
+        "preset": "character_prop_cluster",
+        "aiAgentRole": "AssemblyRigAgent",
+        "aiDirective": "Layer \"Thiếu Nữ Hán Phục — Đèn Sen\" hoạt động từ 11s đến 18s.",
+        "params": {
+          "shotId": "shot-dg-3",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-dg-s3-maiden"
+          ],
+          "requireLayerConnection": true,
+          "assemblyKind": "composite",
+          "instanceId": "cluster-dg-maiden-s3",
+          "compositeId": "comp-dg-maiden",
+          "lockedGroup": true,
+          "childLayerCount": 1,
+          "transformX": -195,
+          "transformY": -84,
+          "transformZ": 186,
+          "timeStart": 11,
+          "timeEnd": 18,
+          "hierarchyParentNodeId": "v2-group-3d-shot-dg-3"
+        }
+      },
+      {
+        "id": "v2-cluster-cluster-dg-maiden-s3",
+        "type": "layer_transform",
+        "title": "Khoá cụm: Thiếu Nữ Thuyền Sen",
+        "enabled": true,
+        "position": {
+          "x": 1320,
+          "y": 2496
+        },
+        "preset": "character_prop_cluster",
+        "aiAgentRole": "LayerTransformAgent",
+        "aiDirective": "Node Khoá Cụm \"Thiếu Nữ Thuyền Sen\" (3/3 lớp đang khoá theo cụm).",
+        "params": {
+          "shotId": "shot-dg-3",
+          "logicCategory": "cluster_lock",
+          "assemblyKind": "composite",
+          "instanceId": "cluster-dg-maiden-s3",
+          "compositeId": "comp-dg-maiden",
+          "lockedGroup": true,
+          "rootLayerId": "layer-dg-s3-boat",
+          "collapsedSubLayers": true,
+          "childLayerCount": 3,
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-dg-s3-shimmer",
+            "layer-dg-s3-boat",
+            "layer-dg-s3-maiden"
+          ],
+          "sharedLayerNodeIds": [
+            "v2-layer-layer-dg-s3-shimmer",
+            "v2-layer-layer-dg-s3-boat",
+            "v2-layer-layer-dg-s3-maiden"
+          ],
+          "requireLayerConnection": true,
+          "transformX": -165,
+          "transformY": -235,
+          "transformZ": 194,
+          "clusterScalePct": 56,
+          "timeStart": 11,
+          "timeEnd": 18,
+          "hierarchyParentNodeId": "v2-layer-layer-dg-s3-boat"
+        }
+      },
+      {
         "id": "v2-group-25d-shot-dg-3",
         "type": "layer_assembly",
         "title": "Nhóm Layer 2.5D",
         "enabled": true,
         "position": {
           "x": 472,
-          "y": 1913
+          "y": 2771
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -539,8 +836,8 @@
           "targetMode": "custom",
           "targetLayerIds": [
             "layer-dg-s3-lanterns-fg",
-            "layer-dg-s3-maiden",
             "layer-dg-s3-lanterns-far",
+            "layer-dg-s3-mist",
             "layer-dg-s3-bg"
           ],
           "timeStart": 11,
@@ -555,7 +852,7 @@
         "enabled": true,
         "position": {
           "x": 896,
-          "y": 1754
+          "y": 2612
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -568,37 +865,9 @@
           ],
           "requireLayerConnection": true,
           "childLayerCount": 1,
-          "transformX": -495,
-          "transformY": 95,
+          "transformX": -515,
+          "transformY": 145,
           "transformZ": -170,
-          "timeStart": 11,
-          "timeEnd": 18,
-          "hierarchyParentNodeId": "v2-group-25d-shot-dg-3"
-        }
-      },
-      {
-        "id": "v2-layer-layer-dg-s3-maiden",
-        "type": "layer_assembly",
-        "title": "Thiếu Nữ Thuyền Đèn Hoa Sen",
-        "enabled": true,
-        "position": {
-          "x": 896,
-          "y": 1860
-        },
-        "preset": "character_prop_cluster",
-        "aiAgentRole": "AssemblyRigAgent",
-        "aiDirective": "Layer \"Thiếu Nữ Thuyền Đèn Hoa Sen\" hoạt động từ 11s đến 18s.",
-        "params": {
-          "shotId": "shot-dg-3",
-          "targetMode": "custom",
-          "targetLayerIds": [
-            "layer-dg-s3-maiden"
-          ],
-          "requireLayerConnection": true,
-          "childLayerCount": 1,
-          "transformX": -165,
-          "transformY": -195,
-          "transformZ": 190,
           "timeStart": 11,
           "timeEnd": 18,
           "hierarchyParentNodeId": "v2-group-25d-shot-dg-3"
@@ -611,7 +880,7 @@
         "enabled": true,
         "position": {
           "x": 896,
-          "y": 1966
+          "y": 2718
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -633,13 +902,41 @@
         }
       },
       {
+        "id": "v2-layer-layer-dg-s3-mist",
+        "type": "layer_assembly",
+        "title": "Khói Sương Mặt Sông Đêm",
+        "enabled": true,
+        "position": {
+          "x": 896,
+          "y": 2824
+        },
+        "preset": "character_prop_cluster",
+        "aiAgentRole": "AssemblyRigAgent",
+        "aiDirective": "Layer \"Khói Sương Mặt Sông Đêm\" hoạt động từ 11s đến 18s.",
+        "params": {
+          "shotId": "shot-dg-3",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-dg-s3-mist"
+          ],
+          "requireLayerConnection": true,
+          "childLayerCount": 1,
+          "transformX": -260,
+          "transformY": -115,
+          "transformZ": 620,
+          "timeStart": 11,
+          "timeEnd": 18,
+          "hierarchyParentNodeId": "v2-group-25d-shot-dg-3"
+        }
+      },
+      {
         "id": "v2-layer-layer-dg-s3-bg",
         "type": "layer_assembly",
         "title": "Nền Giang Nam Tinh Hà",
         "enabled": true,
         "position": {
           "x": 896,
-          "y": 2072
+          "y": 2930
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -667,7 +964,7 @@
         "enabled": true,
         "position": {
           "x": 472,
-          "y": 2188
+          "y": 3046
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -693,7 +990,7 @@
         "enabled": true,
         "position": {
           "x": 896,
-          "y": 2188
+          "y": 3046
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -715,75 +1012,120 @@
         }
       },
       {
-        "id": "v2-action-layer-dg-s3-maiden",
+        "id": "v2-anim_fx-cluster-dg-maiden-s3",
+        "type": "motion_choreography",
+        "title": "Hành động Nhân vật: Vẫy tay chào",
+        "enabled": true,
+        "position": {
+          "x": 1744,
+          "y": 2496
+        },
+        "preset": "organic_wind_breathe",
+        "aiAgentRole": "MotionChoreographyAgent",
+        "aiDirective": "Hành động: Dâng Đèn & Lụa Pibo cho \"Khoá cụm: Thiếu Nữ Thuyền Sen\".",
+        "params": {
+          "shotId": "shot-dg-3",
+          "logicCategory": "anim_fx",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-dg-s3-shimmer",
+            "layer-dg-s3-boat",
+            "layer-dg-s3-maiden"
+          ],
+          "sharedLayerNodeIds": [
+            "v2-cluster-cluster-dg-maiden-s3"
+          ],
+          "requireLayerConnection": true,
+          "timeStart": 12,
+          "timeEnd": 18,
+          "hierarchyParentNodeId": "v2-cluster-cluster-dg-maiden-s3",
+          "instanceId": "cluster-dg-maiden-s3",
+          "animMode": "rig_clip",
+          "rigActionPreset": "wave",
+          "intensity": 1,
+          "rootLayerId": "layer-dg-s3-boat",
+          "pipelineStepIndex": 1
+        }
+      },
+      {
+        "id": "v2-action-layer-dg-s3-shimmer",
         "type": "motion_choreography",
         "title": "Motion: Thuyền Sen Lướt Sông Sao",
         "enabled": true,
         "position": {
-          "x": 1320,
-          "y": 1860
+          "x": 2168,
+          "y": 2496
         },
         "preset": "organic_wind_breathe",
         "aiAgentRole": "MotionChoreographyAgent",
-        "aiDirective": "Motion: Thuyền Sen Lướt Sông Sao cho \"Thiếu Nữ Thuyền Đèn Hoa Sen\".",
+        "aiDirective": "Motion: Thuyền Sen Lướt Sông Sao (bước B2 sau \"Hành động: Dâng Đèn & Lụa Pibo\").",
         "params": {
           "shotId": "shot-dg-3",
           "logicCategory": "action",
           "targetMode": "custom",
           "targetLayerIds": [
+            "layer-dg-s3-shimmer",
+            "layer-dg-s3-boat",
             "layer-dg-s3-maiden"
           ],
           "sharedLayerNodeIds": [
-            "v2-layer-layer-dg-s3-maiden"
+            "v2-cluster-cluster-dg-maiden-s3"
           ],
           "requireLayerConnection": true,
           "timeStart": 12.1,
           "timeEnd": 17.8,
-          "hierarchyParentNodeId": "v2-layer-layer-dg-s3-maiden",
+          "hierarchyParentNodeId": "v2-cluster-cluster-dg-maiden-s3",
+          "upstreamLogicNodeId": "v2-anim_fx-cluster-dg-maiden-s3",
+          "pipelineStepIndex": 2,
+          "instanceId": "cluster-dg-maiden-s3",
+          "rootLayerId": "layer-dg-s3-boat",
           "actionPreset": "bbox_target",
           "motionMode": "bbox",
           "bboxPathType": "shortest",
           "bboxTargetScalePct": 108,
           "depthMode": "keep",
           "intensity": 1,
-          "bboxTargetX": 125,
-          "bboxTargetY": -175,
-          "bboxStartZ": 190,
-          "bboxTargetZ": 145,
-          "pipelineStepIndex": 1
+          "bboxTargetX": -38,
+          "bboxTargetY": -225,
+          "bboxStartZ": 194,
+          "bboxTargetZ": 150
         }
       },
       {
-        "id": "v2-light-layer-dg-s3-maiden",
+        "id": "v2-light-layer-dg-s3-shimmer",
         "type": "physics_fx",
         "title": "Ánh sáng: Ngọn nến (Gió)",
         "enabled": true,
         "position": {
-          "x": 1744,
-          "y": 1860
+          "x": 2592,
+          "y": 2496
         },
         "preset": "rim_glow_particles",
         "aiAgentRole": "PhysicsLightFxAgent",
-        "aiDirective": "Ánh sáng: Đèn Hoa Sen Ấm (bước B2 sau \"Motion: Thuyền Sen Lướt Sông Sao\").",
+        "aiDirective": "Ánh sáng: Đèn Hoa Sen Ấm (bước B3 sau \"Motion: Thuyền Sen Lướt Sông Sao\").",
         "params": {
           "shotId": "shot-dg-3",
           "logicCategory": "light",
           "targetMode": "custom",
           "targetLayerIds": [
+            "layer-dg-s3-shimmer",
+            "layer-dg-s3-boat",
             "layer-dg-s3-maiden"
           ],
           "sharedLayerNodeIds": [
-            "v2-layer-layer-dg-s3-maiden"
+            "v2-cluster-cluster-dg-maiden-s3"
           ],
           "requireLayerConnection": true,
           "timeStart": 12,
           "timeEnd": 18,
-          "hierarchyParentNodeId": "v2-layer-layer-dg-s3-maiden",
-          "upstreamLogicNodeId": "v2-action-layer-dg-s3-maiden",
-          "pipelineStepIndex": 2,
+          "hierarchyParentNodeId": "v2-cluster-cluster-dg-maiden-s3",
+          "upstreamLogicNodeId": "v2-action-layer-dg-s3-shimmer",
+          "pipelineStepIndex": 3,
+          "instanceId": "cluster-dg-maiden-s3",
+          "rootLayerId": "layer-dg-s3-boat",
           "lightMode": "candle",
-          "lightColor": "#fbbf24",
-          "intensity": 0.55,
+          "lightColor": "#f59e0b",
+          "intensity": 0.22,
           "lightBehavior": "wind_reactive",
           "lightWindPreset": "gentle",
           "lightRayIntensity": 0.24,
@@ -794,33 +1136,37 @@
         }
       },
       {
-        "id": "v2-fx_fade-layer-dg-s3-maiden",
+        "id": "v2-fx_fade-layer-dg-s3-shimmer",
         "type": "physics_fx",
         "title": "Hiện/Ẩn: Hiện 0.5s · Ẩn 0.6s",
         "enabled": true,
         "position": {
-          "x": 2168,
-          "y": 1860
+          "x": 3016,
+          "y": 2496
         },
         "preset": "rim_glow_particles",
         "aiAgentRole": "PhysicsLightFxAgent",
-        "aiDirective": "FX: Lắng Đọng Kết Phim (bước B3 sau \"Ánh sáng: Đèn Hoa Sen Ấm\").",
+        "aiDirective": "FX: Lắng Đọng Kết Phim (bước B4 sau \"Ánh sáng: Đèn Hoa Sen Ấm\").",
         "params": {
           "shotId": "shot-dg-3",
           "logicCategory": "fx",
           "targetMode": "custom",
           "targetLayerIds": [
+            "layer-dg-s3-shimmer",
+            "layer-dg-s3-boat",
             "layer-dg-s3-maiden"
           ],
           "sharedLayerNodeIds": [
-            "v2-layer-layer-dg-s3-maiden"
+            "v2-cluster-cluster-dg-maiden-s3"
           ],
           "requireLayerConnection": true,
           "timeStart": 12,
           "timeEnd": 18,
-          "hierarchyParentNodeId": "v2-layer-layer-dg-s3-maiden",
-          "upstreamLogicNodeId": "v2-light-layer-dg-s3-maiden",
-          "pipelineStepIndex": 3,
+          "hierarchyParentNodeId": "v2-cluster-cluster-dg-maiden-s3",
+          "upstreamLogicNodeId": "v2-light-layer-dg-s3-shimmer",
+          "pipelineStepIndex": 4,
+          "instanceId": "cluster-dg-maiden-s3",
+          "rootLayerId": "layer-dg-s3-boat",
           "fxAtomicRole": "fade",
           "fxSubTab": "opacity",
           "animFxPreset": "fadeInOut",
@@ -839,7 +1185,7 @@
         "enabled": true,
         "position": {
           "x": 1320,
-          "y": 1966
+          "y": 2718
         },
         "preset": "organic_wind_breathe",
         "aiAgentRole": "MotionChoreographyAgent",
@@ -878,7 +1224,7 @@
         "enabled": true,
         "position": {
           "x": 1744,
-          "y": 1966
+          "y": 2718
         },
         "preset": "rim_glow_particles",
         "aiAgentRole": "PhysicsLightFxAgent",
@@ -919,7 +1265,7 @@
         "enabled": true,
         "position": {
           "x": 1320,
-          "y": 1754
+          "y": 2612
         },
         "preset": "organic_wind_breathe",
         "aiAgentRole": "MotionChoreographyAgent",
@@ -944,8 +1290,8 @@
           "bboxTargetScalePct": 104,
           "depthMode": "keep",
           "intensity": 1,
-          "bboxTargetX": -395,
-          "bboxTargetY": 195,
+          "bboxTargetX": -415,
+          "bboxTargetY": 235,
           "bboxStartZ": -170,
           "bboxTargetZ": -195,
           "pipelineStepIndex": 1
@@ -958,11 +1304,11 @@
         "enabled": true,
         "position": {
           "x": 1744,
-          "y": 1754
+          "y": 2612
         },
         "preset": "rim_glow_particles",
         "aiAgentRole": "PhysicsLightFxAgent",
-        "aiDirective": "FX: Nhịp Lửa Đèn Trời (bước B2 sau \"Motion: Đèn Hoa Đăng Tiền Cảnh\").",
+        "aiDirective": "FX: Ánh Lửa Hoa Đăng Ấm (bước B2 sau \"Motion: Đèn Hoa Đăng Tiền Cảnh\").",
         "params": {
           "shotId": "shot-dg-3",
           "logicCategory": "fx",
@@ -981,13 +1327,54 @@
           "pipelineStepIndex": 2,
           "fxAtomicRole": "fade",
           "fxSubTab": "opacity",
-          "animFxPreset": "pulse",
+          "animFxPreset": "neonBreathe",
           "loopFadeInSec": 0.5,
           "loopEndAction": "fade_out",
           "loopFadeOutSec": 0.5,
-          "intensity": 1.04,
-          "animFxCount": 4,
+          "intensity": 0.52,
+          "animFxColor": "#fb923c",
+          "animFxThickness": 6,
+          "animFxSpeed": 1.4,
           "animMode": "keyframe_fx"
+        }
+      },
+      {
+        "id": "v2-action-layer-dg-s3-mist",
+        "type": "motion_choreography",
+        "title": "Motion: Khói Sương Sông Đêm",
+        "enabled": true,
+        "position": {
+          "x": 1320,
+          "y": 2824
+        },
+        "preset": "organic_wind_breathe",
+        "aiAgentRole": "MotionChoreographyAgent",
+        "aiDirective": "Motion: Khói Sương Sông Đêm cho \"Khói Sương Mặt Sông Đêm\".",
+        "params": {
+          "shotId": "shot-dg-3",
+          "logicCategory": "action",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-dg-s3-mist"
+          ],
+          "sharedLayerNodeIds": [
+            "v2-layer-layer-dg-s3-mist"
+          ],
+          "requireLayerConnection": true,
+          "timeStart": 12,
+          "timeEnd": 18,
+          "hierarchyParentNodeId": "v2-layer-layer-dg-s3-mist",
+          "actionPreset": "bbox_target",
+          "motionMode": "bbox",
+          "bboxPathType": "shortest",
+          "bboxTargetScalePct": 105,
+          "depthMode": "keep",
+          "intensity": 1,
+          "bboxTargetX": 195,
+          "bboxTargetY": -102,
+          "bboxStartZ": 620,
+          "bboxTargetZ": 620,
+          "pipelineStepIndex": 1
         }
       }
     ],
@@ -1021,6 +1408,55 @@
         "toPort": "camera_cut"
       },
       {
+        "id": "e-v2-root-shot-dg-3-v2-group-3d-shot-dg-3",
+        "fromNode": "v2-root-shot-dg-3",
+        "fromPort": "scene_ctx",
+        "toNode": "v2-group-3d-shot-dg-3",
+        "toPort": "scene_ctx"
+      },
+      {
+        "id": "e-v2-group-3d-shot-dg-3-v2-layer-layer-dg-s3-shimmer",
+        "fromNode": "v2-group-3d-shot-dg-3",
+        "fromPort": "layers_tree",
+        "toNode": "v2-layer-layer-dg-s3-shimmer",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-group-3d-shot-dg-3-v2-layer-layer-dg-s3-boat",
+        "fromNode": "v2-group-3d-shot-dg-3",
+        "fromPort": "layers_tree",
+        "toNode": "v2-layer-layer-dg-s3-boat",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-group-3d-shot-dg-3-v2-layer-layer-dg-s3-maiden",
+        "fromNode": "v2-group-3d-shot-dg-3",
+        "fromPort": "layers_tree",
+        "toNode": "v2-layer-layer-dg-s3-maiden",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-layer-layer-dg-s3-shimmer-v2-cluster-cluster-dg-maiden-s3",
+        "fromNode": "v2-layer-layer-dg-s3-shimmer",
+        "fromPort": "layers_tree",
+        "toNode": "v2-cluster-cluster-dg-maiden-s3",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-layer-layer-dg-s3-boat-v2-cluster-cluster-dg-maiden-s3",
+        "fromNode": "v2-layer-layer-dg-s3-boat",
+        "fromPort": "layers_tree",
+        "toNode": "v2-cluster-cluster-dg-maiden-s3",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-layer-layer-dg-s3-maiden-v2-cluster-cluster-dg-maiden-s3",
+        "fromNode": "v2-layer-layer-dg-s3-maiden",
+        "fromPort": "layers_tree",
+        "toNode": "v2-cluster-cluster-dg-maiden-s3",
+        "toPort": "layers_tree"
+      },
+      {
         "id": "e-v2-root-shot-dg-3-v2-group-25d-shot-dg-3",
         "fromNode": "v2-root-shot-dg-3",
         "fromPort": "scene_ctx",
@@ -1035,17 +1471,17 @@
         "toPort": "layers_tree"
       },
       {
-        "id": "e-v2-group-25d-shot-dg-3-v2-layer-layer-dg-s3-maiden",
-        "fromNode": "v2-group-25d-shot-dg-3",
-        "fromPort": "layers_tree",
-        "toNode": "v2-layer-layer-dg-s3-maiden",
-        "toPort": "layers_tree"
-      },
-      {
         "id": "e-v2-group-25d-shot-dg-3-v2-layer-layer-dg-s3-lanterns-far",
         "fromNode": "v2-group-25d-shot-dg-3",
         "fromPort": "layers_tree",
         "toNode": "v2-layer-layer-dg-s3-lanterns-far",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-group-25d-shot-dg-3-v2-layer-layer-dg-s3-mist",
+        "fromNode": "v2-group-25d-shot-dg-3",
+        "fromPort": "layers_tree",
+        "toNode": "v2-layer-layer-dg-s3-mist",
         "toPort": "layers_tree"
       },
       {
@@ -1070,24 +1506,31 @@
         "toPort": "layers_tree"
       },
       {
-        "id": "e-v2-layer-layer-dg-s3-maiden-v2-action-layer-dg-s3-maiden",
-        "fromNode": "v2-layer-layer-dg-s3-maiden",
+        "id": "e-v2-cluster-cluster-dg-maiden-s3-v2-anim_fx-cluster-dg-maiden-s3",
+        "fromNode": "v2-cluster-cluster-dg-maiden-s3",
         "fromPort": "layers_tree",
-        "toNode": "v2-action-layer-dg-s3-maiden",
+        "toNode": "v2-anim_fx-cluster-dg-maiden-s3",
         "toPort": "layers_tree"
       },
       {
-        "id": "e-v2-action-layer-dg-s3-maiden-v2-light-layer-dg-s3-maiden",
-        "fromNode": "v2-action-layer-dg-s3-maiden",
+        "id": "e-v2-anim_fx-cluster-dg-maiden-s3-v2-action-layer-dg-s3-shimmer",
+        "fromNode": "v2-anim_fx-cluster-dg-maiden-s3",
         "fromPort": "layers_tree",
-        "toNode": "v2-light-layer-dg-s3-maiden",
+        "toNode": "v2-action-layer-dg-s3-shimmer",
         "toPort": "layers_tree"
       },
       {
-        "id": "e-v2-light-layer-dg-s3-maiden-v2-fx_fade-layer-dg-s3-maiden",
-        "fromNode": "v2-light-layer-dg-s3-maiden",
+        "id": "e-v2-action-layer-dg-s3-shimmer-v2-light-layer-dg-s3-shimmer",
+        "fromNode": "v2-action-layer-dg-s3-shimmer",
         "fromPort": "layers_tree",
-        "toNode": "v2-fx_fade-layer-dg-s3-maiden",
+        "toNode": "v2-light-layer-dg-s3-shimmer",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-light-layer-dg-s3-shimmer-v2-fx_fade-layer-dg-s3-shimmer",
+        "fromNode": "v2-light-layer-dg-s3-shimmer",
+        "fromPort": "layers_tree",
+        "toNode": "v2-fx_fade-layer-dg-s3-shimmer",
         "toPort": "layers_tree"
       },
       {
@@ -1116,6 +1559,13 @@
         "fromNode": "v2-action-layer-dg-s3-lanterns-fg",
         "fromPort": "layers_tree",
         "toNode": "v2-fx_fade-layer-dg-s3-lanterns-fg",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-layer-layer-dg-s3-mist-v2-action-layer-dg-s3-mist",
+        "fromNode": "v2-layer-layer-dg-s3-mist",
+        "fromPort": "layers_tree",
+        "toNode": "v2-action-layer-dg-s3-mist",
         "toPort": "layers_tree"
       }
     ]

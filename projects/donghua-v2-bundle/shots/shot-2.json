@@ -105,7 +105,7 @@
       "enabled": true,
       "timeStart": 5,
       "timeEnd": 12,
-      "layerCount": 4
+      "layerCount": 3
     },
     {
       "id": "v2-group-25d-shot-dg-2",
@@ -114,7 +114,7 @@
       "enabled": true,
       "timeStart": 5,
       "timeEnd": 12,
-      "layerCount": 3
+      "layerCount": 7
     },
     {
       "id": "v2-group-env-shot-dg-2",
@@ -150,6 +150,28 @@
       "timeEnd": 12
     },
     {
+      "id": "layer-dg-s2-mist-band",
+      "nodeId": "v2-layer-layer-dg-s2-mist-band",
+      "name": "Sương Trăng Trôi Rừng Trúc",
+      "type": "image",
+      "groupKind": "group_25d",
+      "asset": "@d_i_m_y_s_ng_v_n_h_i",
+      "visible": true,
+      "position": [
+        240,
+        80,
+        540
+      ],
+      "scale": [
+        1.32,
+        1.32,
+        1
+      ],
+      "opacity": 0.56,
+      "timeStart": 5,
+      "timeEnd": 12
+    },
+    {
       "id": "layer-dg-s2-mist",
       "nodeId": "v2-layer-layer-dg-s2-mist",
       "name": "Sương Bạc Đêm Trăng",
@@ -167,6 +189,28 @@
         1
       ],
       "opacity": 1,
+      "timeStart": 5,
+      "timeEnd": 12
+    },
+    {
+      "id": "layer-dg-s2-stream-shimmer",
+      "nodeId": "v2-layer-layer-dg-s2-stream-shimmer",
+      "name": "Ánh Nước Suối Đêm Trăng",
+      "type": "image",
+      "groupKind": "group_25d",
+      "asset": "@g_n_s_ng_ph_n_chi_u_nh_tr_ng",
+      "visible": true,
+      "position": [
+        35,
+        -335,
+        365
+      ],
+      "scale": [
+        0.92,
+        0.92,
+        1
+      ],
+      "opacity": 0.75,
       "timeStart": 5,
       "timeEnd": 12
     },
@@ -201,13 +245,13 @@
       "asset": "@ki_m_kh_ch_o_cho_ng_l_a",
       "visible": true,
       "position": [
-        -258,
-        -82,
+        -162,
+        -14,
         226
       ],
       "scale": [
-        0.43,
-        0.43,
+        0.44,
+        0.44,
         1
       ],
       "opacity": 1,
@@ -223,8 +267,8 @@
       "asset": "@ki_m_kh_ch_th_n_th_i_i_m_t_nh",
       "visible": true,
       "position": [
-        -226,
-        -62,
+        -130,
+        6,
         220
       ],
       "scale": [
@@ -245,8 +289,8 @@
       "asset": "@ki_m_kh_ch_khai_phong_ki_m",
       "visible": true,
       "position": [
-        -226,
-        -62,
+        -130,
+        6,
         220
       ],
       "scale": [
@@ -261,22 +305,44 @@
     {
       "id": "layer-dg-s2-sword",
       "nodeId": "v2-layer-layer-dg-s2-sword",
-      "name": "Linh Kiếm Khai Phong (Đạo Cụ)",
+      "name": "Linh Kiếm Khai Phong",
       "type": "image",
-      "groupKind": "group_3d",
+      "groupKind": "group_25d",
       "asset": "@linh_ki_m_c_phong",
       "visible": true,
       "position": [
-        -63,
-        -14,
-        238
+        45,
+        12,
+        196
       ],
       "scale": [
-        0.44,
-        0.44,
+        0.165,
+        0.165,
         1
       ],
       "opacity": 1,
+      "timeStart": 5,
+      "timeEnd": 12
+    },
+    {
+      "id": "layer-dg-s2-sword-qi",
+      "nodeId": "v2-layer-layer-dg-s2-sword-qi",
+      "name": "Kiếm Khí Trảm Thanh Ngọc",
+      "type": "image",
+      "groupKind": "group_25d",
+      "asset": "@ki_m_kh_tr_m_thanh_ng_c",
+      "visible": true,
+      "position": [
+        115,
+        -18,
+        145
+      ],
+      "scale": [
+        0.34,
+        0.34,
+        1
+      ],
+      "opacity": 0,
       "timeStart": 5,
       "timeEnd": 12
     },
@@ -289,13 +355,13 @@
       "asset": "@tr_c_xanh_th_i_h_ti_n_c_nh",
       "visible": true,
       "position": [
-        -760,
-        -5,
+        -845,
+        -20,
         -200
       ],
       "scale": [
-        1.48,
-        1.48,
+        1.35,
+        1.35,
         1
       ],
       "opacity": 1,
@@ -335,14 +401,12 @@
       "targetLayerIds": [
         "layer-dg-s2-cloak",
         "layer-dg-s2-calm",
-        "layer-dg-s2-fierce",
-        "layer-dg-s2-sword"
+        "layer-dg-s2-fierce"
       ],
       "targetLayerNames": [
         "Kiếm Khách — Áo Choàng Xuất Chiêu",
         "Dáng Đứng — Tụ Lực",
-        "Dáng Đứng — Khai Phong Kiếm Ý",
-        "Linh Kiếm Khai Phong (Đạo Cụ)"
+        "Dáng Đứng — Khai Phong Kiếm Ý"
       ],
       "params": {
         "swapMode": "part_variant"
@@ -371,24 +435,45 @@
       }
     },
     {
-      "id": "v2-action-cluster-dg-hero-s2",
+      "id": "v2-anim_fx-cluster-dg-hero-s2",
+      "category": "anim_fx",
+      "presetId": "v2:anim_fx:rig_action",
+      "title": "Hành động Nhân vật: Vung đòn",
+      "enabled": true,
+      "timeStart": 6,
+      "timeEnd": 11.8,
+      "targetLayerIds": [
+        "layer-dg-s2-cloak",
+        "layer-dg-s2-calm",
+        "layer-dg-s2-fierce"
+      ],
+      "targetLayerNames": [
+        "Kiếm Khách — Áo Choàng Xuất Chiêu",
+        "Dáng Đứng — Tụ Lực",
+        "Dáng Đứng — Khai Phong Kiếm Ý"
+      ],
+      "params": {
+        "animFxPreset": "popIn",
+        "intensity": 1.05
+      }
+    },
+    {
+      "id": "v2-action-layer-dg-s2-cloak",
       "category": "action",
       "presetId": "v2:action:bbox_target",
       "title": "Motion: Phi Thân Cầu Đá",
       "enabled": true,
       "timeStart": 6.3,
-      "timeEnd": 11.6,
+      "timeEnd": 11.5,
       "targetLayerIds": [
         "layer-dg-s2-cloak",
         "layer-dg-s2-calm",
-        "layer-dg-s2-fierce",
-        "layer-dg-s2-sword"
+        "layer-dg-s2-fierce"
       ],
       "targetLayerNames": [
         "Kiếm Khách — Áo Choàng Xuất Chiêu",
         "Dáng Đứng — Tụ Lực",
-        "Dáng Đứng — Khai Phong Kiếm Ý",
-        "Linh Kiếm Khai Phong (Đạo Cụ)"
+        "Dáng Đứng — Khai Phong Kiếm Ý"
       ],
       "params": {
         "actionPreset": "bbox_target",
@@ -406,43 +491,73 @@
       "targetLayerIds": [
         "layer-dg-s2-cloak",
         "layer-dg-s2-calm",
-        "layer-dg-s2-fierce",
-        "layer-dg-s2-sword"
+        "layer-dg-s2-fierce"
       ],
       "targetLayerNames": [
         "Kiếm Khách — Áo Choàng Xuất Chiêu",
         "Dáng Đứng — Tụ Lực",
-        "Dáng Đứng — Khai Phong Kiếm Ý",
-        "Linh Kiếm Khai Phong (Đạo Cụ)"
+        "Dáng Đứng — Khai Phong Kiếm Ý"
       ],
       "params": {
         "fxKind": "wind_physics",
-        "intensity": 0.58
+        "intensity": 0.42
       }
     },
     {
-      "id": "v2-fx_fade-layer-dg-s2-cloak-2",
+      "id": "v2-fx-layer-dg-s2-sword",
       "category": "fx",
-      "presetId": "v2:fx:pulse",
-      "title": "FX: Chấn Động Kiếm Phong",
+      "presetId": "v2:fx:neonBreathe",
+      "title": "Hiện/Ẩn: Hiện 0.5s · Ẩn 0.5s",
       "enabled": true,
-      "timeStart": 7.8,
-      "timeEnd": 11.7,
+      "timeStart": 7.5,
+      "timeEnd": 11.4,
       "targetLayerIds": [
-        "layer-dg-s2-cloak",
-        "layer-dg-s2-calm",
-        "layer-dg-s2-fierce",
         "layer-dg-s2-sword"
       ],
       "targetLayerNames": [
-        "Kiếm Khách — Áo Choàng Xuất Chiêu",
-        "Dáng Đứng — Tụ Lực",
-        "Dáng Đứng — Khai Phong Kiếm Ý",
-        "Linh Kiếm Khai Phong (Đạo Cụ)"
+        "Linh Kiếm Khai Phong"
       ],
       "params": {
         "fxKind": "wind_physics",
-        "intensity": 1.05
+        "intensity": 0.48
+      }
+    },
+    {
+      "id": "v2-fx-layer-dg-s2-sword-qi",
+      "category": "fx",
+      "presetId": "v2:fx:neonBreathe",
+      "title": "Hiện/Ẩn: Hiện 0.5s · Ẩn 0.5s",
+      "enabled": true,
+      "timeStart": 7.75,
+      "timeEnd": 10.3,
+      "targetLayerIds": [
+        "layer-dg-s2-sword-qi"
+      ],
+      "targetLayerNames": [
+        "Kiếm Khí Trảm Thanh Ngọc"
+      ],
+      "params": {
+        "fxKind": "wind_physics",
+        "intensity": 0.36
+      }
+    },
+    {
+      "id": "v2-action-layer-dg-s2-mist-band",
+      "category": "action",
+      "presetId": "v2:action:bbox_target",
+      "title": "Motion: Sương Bạc Trôi Trúc Lâm",
+      "enabled": true,
+      "timeStart": 6,
+      "timeEnd": 12,
+      "targetLayerIds": [
+        "layer-dg-s2-mist-band"
+      ],
+      "targetLayerNames": [
+        "Sương Trăng Trôi Rừng Trúc"
+      ],
+      "params": {
+        "actionPreset": "bbox_target",
+        "intensity": 1
       }
     },
     {
@@ -465,25 +580,6 @@
         "materialBounciness": 1.1,
         "materialGravity": 0
       }
-    },
-    {
-      "id": "v2-fx_fade-layer-dg-s2-bamboo",
-      "category": "fx",
-      "presetId": "v2:fx:pulse",
-      "title": "Hiện/Ẩn: Hiện 0.5s · Ẩn 0.5s",
-      "enabled": true,
-      "timeStart": 6.4,
-      "timeEnd": 11.6,
-      "targetLayerIds": [
-        "layer-dg-s2-bamboo"
-      ],
-      "targetLayerNames": [
-        "Khóm Trúc & Đá Thái Hồ Tiền Cảnh"
-      ],
-      "params": {
-        "fxKind": "wind_physics",
-        "intensity": 1.05
-      }
     }
   ],
   "graph": {
@@ -495,7 +591,7 @@
         "enabled": true,
         "position": {
           "x": 48,
-          "y": 934
+          "y": 1252
         },
         "preset": "deep_parallax_stage",
         "aiAgentRole": "SceneLayoutAgent",
@@ -504,7 +600,7 @@
           "shotId": "shot-dg-2",
           "timeStart": 5.7,
           "timeEnd": 11.3,
-          "childLayerCount": 9
+          "childLayerCount": 12
         }
       },
       {
@@ -514,7 +610,7 @@
         "enabled": true,
         "position": {
           "x": 48,
-          "y": 1040
+          "y": 1358
         },
         "preset": "cinematic_fly_push",
         "aiAgentRole": "CameraDirectorAgent",
@@ -537,7 +633,7 @@
         "enabled": true,
         "position": {
           "x": 48,
-          "y": 1172
+          "y": 1490
         },
         "preset": "cinematic_fly_push",
         "aiAgentRole": "CameraDirectorAgent",
@@ -574,7 +670,7 @@
         "enabled": true,
         "position": {
           "x": 48,
-          "y": 1304
+          "y": 1622
         },
         "preset": "cinematic_fly_push",
         "aiAgentRole": "CameraDirectorAgent",
@@ -611,7 +707,7 @@
         "enabled": true,
         "position": {
           "x": 48,
-          "y": 1436
+          "y": 1754
         },
         "preset": "cinematic_fly_push",
         "aiAgentRole": "CameraDirectorAgent",
@@ -648,22 +744,21 @@
         "enabled": true,
         "position": {
           "x": 472,
-          "y": 978
+          "y": 1296
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
-        "aiDirective": "Nhóm 3D & Lắp ráp gồm 4 đối tượng.",
+        "aiDirective": "Nhóm 3D & Lắp ráp gồm 3 đối tượng.",
         "params": {
           "shotId": "shot-dg-2",
           "groupKind": "group_3d",
           "isAssemblyRoot": true,
-          "childLayerCount": 4,
+          "childLayerCount": 3,
           "targetMode": "custom",
           "targetLayerIds": [
             "layer-dg-s2-cloak",
             "layer-dg-s2-calm",
-            "layer-dg-s2-fierce",
-            "layer-dg-s2-sword"
+            "layer-dg-s2-fierce"
           ],
           "timeStart": 5,
           "timeEnd": 12,
@@ -677,7 +772,7 @@
         "enabled": true,
         "position": {
           "x": 896,
-          "y": 978
+          "y": 1296
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -695,8 +790,8 @@
           "lockedGroup": true,
           "rootLayerId": "layer-dg-s2-cloak",
           "childLayerCount": 1,
-          "transformX": -258,
-          "transformY": -82,
+          "transformX": -162,
+          "transformY": -14,
           "transformZ": 226,
           "timeStart": 5,
           "timeEnd": 12,
@@ -710,7 +805,7 @@
         "enabled": true,
         "position": {
           "x": 896,
-          "y": 1128
+          "y": 1446
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -727,8 +822,8 @@
           "compositeId": "comp-dg-hero-s2",
           "lockedGroup": true,
           "childLayerCount": 1,
-          "transformX": -226,
-          "transformY": -62,
+          "transformX": -130,
+          "transformY": 6,
           "transformZ": 220,
           "timeStart": 5,
           "timeEnd": 12,
@@ -742,7 +837,7 @@
         "enabled": true,
         "position": {
           "x": 896,
-          "y": 1128
+          "y": 1446
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -759,41 +854,9 @@
           "compositeId": "comp-dg-hero-s2",
           "lockedGroup": true,
           "childLayerCount": 1,
-          "transformX": -226,
-          "transformY": -62,
+          "transformX": -130,
+          "transformY": 6,
           "transformZ": 220,
-          "timeStart": 5,
-          "timeEnd": 12,
-          "hierarchyParentNodeId": "v2-group-3d-shot-dg-2"
-        }
-      },
-      {
-        "id": "v2-layer-layer-dg-s2-sword",
-        "type": "layer_assembly",
-        "title": "Linh Kiếm Khai Phong (Đạo Cụ)",
-        "enabled": true,
-        "position": {
-          "x": 896,
-          "y": 1128
-        },
-        "preset": "character_prop_cluster",
-        "aiAgentRole": "AssemblyRigAgent",
-        "aiDirective": "Layer \"Linh Kiếm Khai Phong (Đạo Cụ)\" hoạt động từ 5s đến 12s.",
-        "params": {
-          "shotId": "shot-dg-2",
-          "targetMode": "custom",
-          "targetLayerIds": [
-            "layer-dg-s2-sword"
-          ],
-          "requireLayerConnection": true,
-          "assemblyKind": "composite",
-          "instanceId": "cluster-dg-hero-s2",
-          "compositeId": "comp-dg-hero-s2",
-          "lockedGroup": true,
-          "childLayerCount": 1,
-          "transformX": -63,
-          "transformY": -14,
-          "transformZ": 238,
           "timeStart": 5,
           "timeEnd": 12,
           "hierarchyParentNodeId": "v2-group-3d-shot-dg-2"
@@ -806,11 +869,11 @@
         "enabled": true,
         "position": {
           "x": 1320,
-          "y": 978
+          "y": 1296
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "LayerTransformAgent",
-        "aiDirective": "Node Khoá Cụm \"Kiếm Khách Xuất Chiêu\" (4/4 lớp đang khoá theo cụm).",
+        "aiDirective": "Node Khoá Cụm \"Kiếm Khách Xuất Chiêu\" (3/3 lớp đang khoá theo cụm).",
         "params": {
           "shotId": "shot-dg-2",
           "logicCategory": "cluster_lock",
@@ -820,25 +883,23 @@
           "lockedGroup": true,
           "rootLayerId": "layer-dg-s2-cloak",
           "collapsedSubLayers": true,
-          "childLayerCount": 4,
+          "childLayerCount": 3,
           "targetMode": "custom",
           "targetLayerIds": [
             "layer-dg-s2-cloak",
             "layer-dg-s2-calm",
-            "layer-dg-s2-fierce",
-            "layer-dg-s2-sword"
+            "layer-dg-s2-fierce"
           ],
           "sharedLayerNodeIds": [
             "v2-layer-layer-dg-s2-cloak",
             "v2-layer-layer-dg-s2-calm",
-            "v2-layer-layer-dg-s2-fierce",
-            "v2-layer-layer-dg-s2-sword"
+            "v2-layer-layer-dg-s2-fierce"
           ],
           "requireLayerConnection": true,
-          "transformX": -258,
-          "transformY": -82,
+          "transformX": -162,
+          "transformY": -14,
           "transformZ": 226,
-          "clusterScalePct": 43,
+          "clusterScalePct": 44,
           "timeStart": 5,
           "timeEnd": 12,
           "hierarchyParentNodeId": "v2-layer-layer-dg-s2-cloak"
@@ -851,20 +912,24 @@
         "enabled": true,
         "position": {
           "x": 472,
-          "y": 1244
+          "y": 1774
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
-        "aiDirective": "Nhóm Layer 2.5D gồm 3 đối tượng.",
+        "aiDirective": "Nhóm Layer 2.5D gồm 7 đối tượng.",
         "params": {
           "shotId": "shot-dg-2",
           "groupKind": "group_25d",
           "isAssemblyRoot": true,
-          "childLayerCount": 3,
+          "childLayerCount": 7,
           "targetMode": "custom",
           "targetLayerIds": [
             "layer-dg-s2-bamboo",
+            "layer-dg-s2-sword-qi",
+            "layer-dg-s2-sword",
             "layer-dg-s2-bridge",
+            "layer-dg-s2-stream-shimmer",
+            "layer-dg-s2-mist-band",
             "layer-dg-s2-bg"
           ],
           "timeStart": 5,
@@ -879,7 +944,7 @@
         "enabled": true,
         "position": {
           "x": 896,
-          "y": 1138
+          "y": 1456
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -892,9 +957,65 @@
           ],
           "requireLayerConnection": true,
           "childLayerCount": 1,
-          "transformX": -760,
-          "transformY": -5,
+          "transformX": -845,
+          "transformY": -20,
           "transformZ": -200,
+          "timeStart": 5,
+          "timeEnd": 12,
+          "hierarchyParentNodeId": "v2-group-25d-shot-dg-2"
+        }
+      },
+      {
+        "id": "v2-layer-layer-dg-s2-sword-qi",
+        "type": "layer_assembly",
+        "title": "Kiếm Khí Trảm Thanh Ngọc",
+        "enabled": true,
+        "position": {
+          "x": 896,
+          "y": 1562
+        },
+        "preset": "character_prop_cluster",
+        "aiAgentRole": "AssemblyRigAgent",
+        "aiDirective": "Layer \"Kiếm Khí Trảm Thanh Ngọc\" hoạt động từ 5s đến 12s.",
+        "params": {
+          "shotId": "shot-dg-2",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-dg-s2-sword-qi"
+          ],
+          "requireLayerConnection": true,
+          "childLayerCount": 1,
+          "transformX": 115,
+          "transformY": -18,
+          "transformZ": 145,
+          "timeStart": 5,
+          "timeEnd": 12,
+          "hierarchyParentNodeId": "v2-group-25d-shot-dg-2"
+        }
+      },
+      {
+        "id": "v2-layer-layer-dg-s2-sword",
+        "type": "layer_assembly",
+        "title": "Linh Kiếm Khai Phong",
+        "enabled": true,
+        "position": {
+          "x": 896,
+          "y": 1668
+        },
+        "preset": "character_prop_cluster",
+        "aiAgentRole": "AssemblyRigAgent",
+        "aiDirective": "Layer \"Linh Kiếm Khai Phong\" hoạt động từ 5s đến 12s.",
+        "params": {
+          "shotId": "shot-dg-2",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-dg-s2-sword"
+          ],
+          "requireLayerConnection": true,
+          "childLayerCount": 1,
+          "transformX": 45,
+          "transformY": 12,
+          "transformZ": 196,
           "timeStart": 5,
           "timeEnd": 12,
           "hierarchyParentNodeId": "v2-group-25d-shot-dg-2"
@@ -907,7 +1028,7 @@
         "enabled": true,
         "position": {
           "x": 896,
-          "y": 1244
+          "y": 1774
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -929,13 +1050,69 @@
         }
       },
       {
+        "id": "v2-layer-layer-dg-s2-stream-shimmer",
+        "type": "layer_assembly",
+        "title": "Ánh Nước Suối Đêm Trăng",
+        "enabled": true,
+        "position": {
+          "x": 896,
+          "y": 1880
+        },
+        "preset": "character_prop_cluster",
+        "aiAgentRole": "AssemblyRigAgent",
+        "aiDirective": "Layer \"Ánh Nước Suối Đêm Trăng\" hoạt động từ 5s đến 12s.",
+        "params": {
+          "shotId": "shot-dg-2",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-dg-s2-stream-shimmer"
+          ],
+          "requireLayerConnection": true,
+          "childLayerCount": 1,
+          "transformX": 35,
+          "transformY": -335,
+          "transformZ": 365,
+          "timeStart": 5,
+          "timeEnd": 12,
+          "hierarchyParentNodeId": "v2-group-25d-shot-dg-2"
+        }
+      },
+      {
+        "id": "v2-layer-layer-dg-s2-mist-band",
+        "type": "layer_assembly",
+        "title": "Sương Trăng Trôi Rừng Trúc",
+        "enabled": true,
+        "position": {
+          "x": 896,
+          "y": 1986
+        },
+        "preset": "character_prop_cluster",
+        "aiAgentRole": "AssemblyRigAgent",
+        "aiDirective": "Layer \"Sương Trăng Trôi Rừng Trúc\" hoạt động từ 5s đến 12s.",
+        "params": {
+          "shotId": "shot-dg-2",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-dg-s2-mist-band"
+          ],
+          "requireLayerConnection": true,
+          "childLayerCount": 1,
+          "transformX": 240,
+          "transformY": 80,
+          "transformZ": 540,
+          "timeStart": 5,
+          "timeEnd": 12,
+          "hierarchyParentNodeId": "v2-group-25d-shot-dg-2"
+        }
+      },
+      {
         "id": "v2-layer-layer-dg-s2-bg",
         "type": "layer_assembly",
         "title": "Nền Trúc Lâm Đêm Trăng",
         "enabled": true,
         "position": {
           "x": 896,
-          "y": 1350
+          "y": 2092
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -963,7 +1140,7 @@
         "enabled": true,
         "position": {
           "x": 472,
-          "y": 1519
+          "y": 2261
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -990,7 +1167,7 @@
         "enabled": true,
         "position": {
           "x": 896,
-          "y": 1466
+          "y": 2208
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -1018,7 +1195,7 @@
         "enabled": true,
         "position": {
           "x": 896,
-          "y": 1572
+          "y": 2314
         },
         "preset": "character_prop_cluster",
         "aiAgentRole": "AssemblyRigAgent",
@@ -1046,7 +1223,7 @@
         "enabled": true,
         "position": {
           "x": 1744,
-          "y": 934
+          "y": 1252
         },
         "preset": "rim_glow_particles",
         "aiAgentRole": "LayerTransformAgent",
@@ -1058,8 +1235,7 @@
           "targetLayerIds": [
             "layer-dg-s2-cloak",
             "layer-dg-s2-calm",
-            "layer-dg-s2-fierce",
-            "layer-dg-s2-sword"
+            "layer-dg-s2-fierce"
           ],
           "sharedLayerNodeIds": [
             "v2-cluster-cluster-dg-hero-s2"
@@ -1085,7 +1261,7 @@
         "enabled": true,
         "position": {
           "x": 2168,
-          "y": 934
+          "y": 1252
         },
         "preset": "composite_part_swap",
         "aiAgentRole": "AssemblyRigAgent",
@@ -1119,17 +1295,53 @@
         }
       },
       {
-        "id": "v2-action-cluster-dg-hero-s2",
+        "id": "v2-anim_fx-cluster-dg-hero-s2",
+        "type": "motion_choreography",
+        "title": "Hành động Nhân vật: Vung đòn",
+        "enabled": true,
+        "position": {
+          "x": 1744,
+          "y": 1340
+        },
+        "preset": "organic_wind_breathe",
+        "aiAgentRole": "MotionChoreographyAgent",
+        "aiDirective": "Hành động: Võ Thế & Tà Áo Khai Phong cho \"Khoá cụm: Kiếm Khách Xuất Chiêu\".",
+        "params": {
+          "shotId": "shot-dg-2",
+          "logicCategory": "anim_fx",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-dg-s2-cloak",
+            "layer-dg-s2-calm",
+            "layer-dg-s2-fierce"
+          ],
+          "sharedLayerNodeIds": [
+            "v2-cluster-cluster-dg-hero-s2"
+          ],
+          "requireLayerConnection": true,
+          "timeStart": 6,
+          "timeEnd": 11.8,
+          "hierarchyParentNodeId": "v2-cluster-cluster-dg-hero-s2",
+          "instanceId": "cluster-dg-hero-s2",
+          "animMode": "rig_clip",
+          "rigActionPreset": "action",
+          "intensity": 1.05,
+          "rootLayerId": "layer-dg-s2-cloak",
+          "pipelineStepIndex": 1
+        }
+      },
+      {
+        "id": "v2-action-layer-dg-s2-cloak",
         "type": "motion_choreography",
         "title": "Motion: Phi Thân Cầu Đá",
         "enabled": true,
         "position": {
-          "x": 1744,
-          "y": 1022
+          "x": 2168,
+          "y": 1340
         },
         "preset": "organic_wind_breathe",
         "aiAgentRole": "MotionChoreographyAgent",
-        "aiDirective": "Motion: Phi Thân Cầu Đá cho \"Khoá cụm: Kiếm Khách Xuất Chiêu\".",
+        "aiDirective": "Motion: Phi Thân Cầu Đá (bước B2 sau \"Hành động: Võ Thế & Tà Áo Khai Phong\").",
         "params": {
           "shotId": "shot-dg-2",
           "logicCategory": "action",
@@ -1137,34 +1349,34 @@
           "targetLayerIds": [
             "layer-dg-s2-cloak",
             "layer-dg-s2-calm",
-            "layer-dg-s2-fierce",
-            "layer-dg-s2-sword"
+            "layer-dg-s2-fierce"
           ],
           "sharedLayerNodeIds": [
             "v2-cluster-cluster-dg-hero-s2"
           ],
           "requireLayerConnection": true,
           "timeStart": 6.3,
-          "timeEnd": 11.6,
+          "timeEnd": 11.5,
           "hierarchyParentNodeId": "v2-cluster-cluster-dg-hero-s2",
+          "upstreamLogicNodeId": "v2-anim_fx-cluster-dg-hero-s2",
+          "pipelineStepIndex": 2,
           "instanceId": "cluster-dg-hero-s2",
+          "rootLayerId": "layer-dg-s2-cloak",
           "actionPreset": "bbox_target",
           "motionMode": "bbox",
           "bboxPathType": "shortest",
-          "bboxTargetScalePct": 114,
+          "bboxTargetScalePct": 110,
           "depthMode": "depth_z",
           "intensity": 1,
-          "bboxTargetX": 165,
-          "bboxTargetY": -18,
+          "bboxTargetX": 115,
+          "bboxTargetY": 14,
           "depthRefLayerId": "layer-dg-s2-bridge",
           "depthRelation": "in_front",
-          "bboxStartZ": 220,
-          "bboxTargetZ": 130,
-          "rootLayerId": "layer-dg-s2-cloak",
-          "pipelineStepIndex": 1,
+          "bboxStartZ": 226,
+          "bboxTargetZ": 135,
           "localTimeRange": {
             "start": 6.3,
-            "end": 11.6
+            "end": 11.5
           }
         }
       },
@@ -1174,12 +1386,12 @@
         "title": "Hiện/Ẩn: Hiện 0.5s · Ẩn 0.5s",
         "enabled": true,
         "position": {
-          "x": 2168,
-          "y": 1022
+          "x": 2592,
+          "y": 1340
         },
         "preset": "rim_glow_particles",
         "aiAgentRole": "PhysicsLightFxAgent",
-        "aiDirective": "FX: Kiếm Khí Thanh Ngọc (bước B2 sau \"Motion: Phi Thân Cầu Đá\").",
+        "aiDirective": "FX: Kiếm Khí Thanh Ngọc (bước B3 sau \"Motion: Phi Thân Cầu Đá\").",
         "params": {
           "shotId": "shot-dg-2",
           "logicCategory": "fx",
@@ -1187,8 +1399,7 @@
           "targetLayerIds": [
             "layer-dg-s2-cloak",
             "layer-dg-s2-calm",
-            "layer-dg-s2-fierce",
-            "layer-dg-s2-sword"
+            "layer-dg-s2-fierce"
           ],
           "sharedLayerNodeIds": [
             "v2-cluster-cluster-dg-hero-s2"
@@ -1197,8 +1408,8 @@
           "timeStart": 7.6,
           "timeEnd": 11.8,
           "hierarchyParentNodeId": "v2-cluster-cluster-dg-hero-s2",
-          "upstreamLogicNodeId": "v2-action-cluster-dg-hero-s2",
-          "pipelineStepIndex": 2,
+          "upstreamLogicNodeId": "v2-action-layer-dg-s2-cloak",
+          "pipelineStepIndex": 3,
           "instanceId": "cluster-dg-hero-s2",
           "rootLayerId": "layer-dg-s2-cloak",
           "fxAtomicRole": "fade",
@@ -1207,54 +1418,134 @@
           "loopFadeInSec": 0.5,
           "loopEndAction": "fade_out",
           "loopFadeOutSec": 0.5,
-          "intensity": 0.58,
+          "intensity": 0.42,
           "animFxColor": "#2dd4bf",
-          "animFxThickness": 7,
+          "animFxThickness": 6,
           "animFxSpeed": 1.5,
+          "localTimeRange": {
+            "start": 7.6,
+            "end": 11.8
+          },
           "animMode": "keyframe_fx"
         }
       },
       {
-        "id": "v2-fx_fade-layer-dg-s2-cloak-2",
+        "id": "v2-fx-layer-dg-s2-sword",
         "type": "physics_fx",
-        "title": "FX: Chấn Động Kiếm Phong",
+        "title": "Hiện/Ẩn: Hiện 0.5s · Ẩn 0.5s",
         "enabled": true,
         "position": {
-          "x": 2592,
-          "y": 1022
+          "x": 1320,
+          "y": 1668
         },
         "preset": "rim_glow_particles",
         "aiAgentRole": "PhysicsLightFxAgent",
-        "aiDirective": "FX: Chấn Động Kiếm Phong (bước B3 sau \"FX: Kiếm Khí Thanh Ngọc\").",
+        "aiDirective": "FX: Hào Quang Linh Kiếm cho \"Linh Kiếm Khai Phong\".",
         "params": {
           "shotId": "shot-dg-2",
           "logicCategory": "fx",
           "targetMode": "custom",
           "targetLayerIds": [
-            "layer-dg-s2-cloak",
-            "layer-dg-s2-calm",
-            "layer-dg-s2-fierce",
             "layer-dg-s2-sword"
           ],
           "sharedLayerNodeIds": [
-            "v2-cluster-cluster-dg-hero-s2"
+            "v2-layer-layer-dg-s2-sword"
           ],
           "requireLayerConnection": true,
-          "timeStart": 7.8,
-          "timeEnd": 11.7,
-          "hierarchyParentNodeId": "v2-cluster-cluster-dg-hero-s2",
-          "upstreamLogicNodeId": "v2-fx_fade-layer-dg-s2-cloak",
-          "pipelineStepIndex": 3,
-          "instanceId": "cluster-dg-hero-s2",
-          "rootLayerId": "layer-dg-s2-cloak",
+          "timeStart": 7.5,
+          "timeEnd": 11.4,
+          "hierarchyParentNodeId": "v2-layer-layer-dg-s2-sword",
           "fxAtomicRole": "fade",
           "fxSubTab": "opacity",
-          "animFxPreset": "pulse",
+          "animFxPreset": "neonBreathe",
           "loopFadeInSec": 0.5,
           "loopEndAction": "fade_out",
           "loopFadeOutSec": 0.5,
-          "intensity": 1.05,
-          "animFxCount": 4
+          "intensity": 0.48,
+          "animFxColor": "#38bdf8",
+          "animFxThickness": 5,
+          "animFxSpeed": 1.8,
+          "pipelineStepIndex": 1,
+          "animMode": "keyframe_fx"
+        }
+      },
+      {
+        "id": "v2-fx-layer-dg-s2-sword-qi",
+        "type": "physics_fx",
+        "title": "Hiện/Ẩn: Hiện 0.5s · Ẩn 0.5s",
+        "enabled": true,
+        "position": {
+          "x": 1320,
+          "y": 1562
+        },
+        "preset": "rim_glow_particles",
+        "aiAgentRole": "PhysicsLightFxAgent",
+        "aiDirective": "FX: Luồng Kiếm Khí Trảm cho \"Kiếm Khí Trảm Thanh Ngọc\".",
+        "params": {
+          "shotId": "shot-dg-2",
+          "logicCategory": "fx",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-dg-s2-sword-qi"
+          ],
+          "sharedLayerNodeIds": [
+            "v2-layer-layer-dg-s2-sword-qi"
+          ],
+          "requireLayerConnection": true,
+          "timeStart": 7.75,
+          "timeEnd": 10.3,
+          "hierarchyParentNodeId": "v2-layer-layer-dg-s2-sword-qi",
+          "fxAtomicRole": "fade",
+          "fxSubTab": "opacity",
+          "animFxPreset": "neonBreathe",
+          "loopFadeInSec": 0.5,
+          "loopEndAction": "fade_out",
+          "loopFadeOutSec": 0.5,
+          "intensity": 0.36,
+          "animFxColor": "#2dd4bf",
+          "animFxThickness": 5,
+          "animFxSpeed": 2,
+          "pipelineStepIndex": 1,
+          "animMode": "keyframe_fx"
+        }
+      },
+      {
+        "id": "v2-action-layer-dg-s2-mist-band",
+        "type": "motion_choreography",
+        "title": "Motion: Sương Bạc Trôi Trúc Lâm",
+        "enabled": true,
+        "position": {
+          "x": 1320,
+          "y": 1986
+        },
+        "preset": "organic_wind_breathe",
+        "aiAgentRole": "MotionChoreographyAgent",
+        "aiDirective": "Motion: Sương Bạc Trôi Trúc Lâm cho \"Sương Trăng Trôi Rừng Trúc\".",
+        "params": {
+          "shotId": "shot-dg-2",
+          "logicCategory": "action",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-dg-s2-mist-band"
+          ],
+          "sharedLayerNodeIds": [
+            "v2-layer-layer-dg-s2-mist-band"
+          ],
+          "requireLayerConnection": true,
+          "timeStart": 6,
+          "timeEnd": 12,
+          "hierarchyParentNodeId": "v2-layer-layer-dg-s2-mist-band",
+          "actionPreset": "bbox_target",
+          "motionMode": "bbox",
+          "bboxPathType": "shortest",
+          "bboxTargetScalePct": 104,
+          "depthMode": "keep",
+          "intensity": 1,
+          "bboxTargetX": -235,
+          "bboxTargetY": 96,
+          "bboxStartZ": 540,
+          "bboxTargetZ": 540,
+          "pipelineStepIndex": 1
         }
       },
       {
@@ -1264,7 +1555,7 @@
         "enabled": true,
         "position": {
           "x": 1320,
-          "y": 1138
+          "y": 1456
         },
         "preset": "rim_glow_particles",
         "aiAgentRole": "PhysicsLightFxAgent",
@@ -1289,49 +1580,6 @@
           "materialGravity": 0,
           "intensity": 1.1,
           "pipelineStepIndex": 1
-        }
-      },
-      {
-        "id": "v2-fx_fade-layer-dg-s2-bamboo",
-        "type": "physics_fx",
-        "title": "Hiện/Ẩn: Hiện 0.5s · Ẩn 0.5s",
-        "enabled": true,
-        "position": {
-          "x": 1744,
-          "y": 1138
-        },
-        "preset": "rim_glow_particles",
-        "aiAgentRole": "PhysicsLightFxAgent",
-        "aiDirective": "FX: Rừng Trúc Rung Chuyển (bước B2 sau \"Vật liệu: 🍃 Lá cây / Cỏ mềm\").",
-        "params": {
-          "shotId": "shot-dg-2",
-          "logicCategory": "fx",
-          "targetMode": "custom",
-          "targetLayerIds": [
-            "layer-dg-s2-bamboo"
-          ],
-          "sharedLayerNodeIds": [
-            "v2-layer-layer-dg-s2-bamboo"
-          ],
-          "requireLayerConnection": true,
-          "timeStart": 6.4,
-          "timeEnd": 11.6,
-          "hierarchyParentNodeId": "v2-layer-layer-dg-s2-bamboo",
-          "upstreamLogicNodeId": "v2-material-layer-dg-s2-bamboo",
-          "pipelineStepIndex": 2,
-          "fxAtomicRole": "fade",
-          "fxSubTab": "opacity",
-          "animFxPreset": "pulse",
-          "loopFadeInSec": 0.5,
-          "loopEndAction": "fade_out",
-          "loopFadeOutSec": 0.5,
-          "intensity": 1.05,
-          "animFxCount": 5,
-          "localTimeRange": {
-            "start": 6.4,
-            "end": 11.6
-          },
-          "animMode": "keyframe_fx"
         }
       }
     ],
@@ -1393,13 +1641,6 @@
         "toPort": "layers_tree"
       },
       {
-        "id": "e-v2-group-3d-shot-dg-2-v2-layer-layer-dg-s2-sword",
-        "fromNode": "v2-group-3d-shot-dg-2",
-        "fromPort": "layers_tree",
-        "toNode": "v2-layer-layer-dg-s2-sword",
-        "toPort": "layers_tree"
-      },
-      {
         "id": "e-v2-layer-layer-dg-s2-cloak-v2-cluster-cluster-dg-hero-s2",
         "fromNode": "v2-layer-layer-dg-s2-cloak",
         "fromPort": "layers_tree",
@@ -1421,13 +1662,6 @@
         "toPort": "layers_tree"
       },
       {
-        "id": "e-v2-layer-layer-dg-s2-sword-v2-cluster-cluster-dg-hero-s2",
-        "fromNode": "v2-layer-layer-dg-s2-sword",
-        "fromPort": "layers_tree",
-        "toNode": "v2-cluster-cluster-dg-hero-s2",
-        "toPort": "layers_tree"
-      },
-      {
         "id": "e-v2-root-shot-dg-2-v2-group-25d-shot-dg-2",
         "fromNode": "v2-root-shot-dg-2",
         "fromPort": "scene_ctx",
@@ -1442,10 +1676,38 @@
         "toPort": "layers_tree"
       },
       {
+        "id": "e-v2-group-25d-shot-dg-2-v2-layer-layer-dg-s2-sword-qi",
+        "fromNode": "v2-group-25d-shot-dg-2",
+        "fromPort": "layers_tree",
+        "toNode": "v2-layer-layer-dg-s2-sword-qi",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-group-25d-shot-dg-2-v2-layer-layer-dg-s2-sword",
+        "fromNode": "v2-group-25d-shot-dg-2",
+        "fromPort": "layers_tree",
+        "toNode": "v2-layer-layer-dg-s2-sword",
+        "toPort": "layers_tree"
+      },
+      {
         "id": "e-v2-group-25d-shot-dg-2-v2-layer-layer-dg-s2-bridge",
         "fromNode": "v2-group-25d-shot-dg-2",
         "fromPort": "layers_tree",
         "toNode": "v2-layer-layer-dg-s2-bridge",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-group-25d-shot-dg-2-v2-layer-layer-dg-s2-stream-shimmer",
+        "fromNode": "v2-group-25d-shot-dg-2",
+        "fromPort": "layers_tree",
+        "toNode": "v2-layer-layer-dg-s2-stream-shimmer",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-group-25d-shot-dg-2-v2-layer-layer-dg-s2-mist-band",
+        "fromNode": "v2-group-25d-shot-dg-2",
+        "fromPort": "layers_tree",
+        "toNode": "v2-layer-layer-dg-s2-mist-band",
         "toPort": "layers_tree"
       },
       {
@@ -1491,24 +1753,45 @@
         "toPort": "layers_tree"
       },
       {
-        "id": "e-v2-cluster-cluster-dg-hero-s2-v2-action-cluster-dg-hero-s2",
+        "id": "e-v2-cluster-cluster-dg-hero-s2-v2-anim_fx-cluster-dg-hero-s2",
         "fromNode": "v2-cluster-cluster-dg-hero-s2",
         "fromPort": "layers_tree",
-        "toNode": "v2-action-cluster-dg-hero-s2",
+        "toNode": "v2-anim_fx-cluster-dg-hero-s2",
         "toPort": "layers_tree"
       },
       {
-        "id": "e-v2-action-cluster-dg-hero-s2-v2-fx_fade-layer-dg-s2-cloak",
-        "fromNode": "v2-action-cluster-dg-hero-s2",
+        "id": "e-v2-anim_fx-cluster-dg-hero-s2-v2-action-layer-dg-s2-cloak",
+        "fromNode": "v2-anim_fx-cluster-dg-hero-s2",
+        "fromPort": "layers_tree",
+        "toNode": "v2-action-layer-dg-s2-cloak",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-action-layer-dg-s2-cloak-v2-fx_fade-layer-dg-s2-cloak",
+        "fromNode": "v2-action-layer-dg-s2-cloak",
         "fromPort": "layers_tree",
         "toNode": "v2-fx_fade-layer-dg-s2-cloak",
         "toPort": "layers_tree"
       },
       {
-        "id": "e-v2-fx_fade-layer-dg-s2-cloak-v2-fx_fade-layer-dg-s2-cloak-2",
-        "fromNode": "v2-fx_fade-layer-dg-s2-cloak",
+        "id": "e-v2-layer-layer-dg-s2-sword-v2-fx-layer-dg-s2-sword",
+        "fromNode": "v2-layer-layer-dg-s2-sword",
         "fromPort": "layers_tree",
-        "toNode": "v2-fx_fade-layer-dg-s2-cloak-2",
+        "toNode": "v2-fx-layer-dg-s2-sword",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-layer-layer-dg-s2-sword-qi-v2-fx-layer-dg-s2-sword-qi",
+        "fromNode": "v2-layer-layer-dg-s2-sword-qi",
+        "fromPort": "layers_tree",
+        "toNode": "v2-fx-layer-dg-s2-sword-qi",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-layer-layer-dg-s2-mist-band-v2-action-layer-dg-s2-mist-band",
+        "fromNode": "v2-layer-layer-dg-s2-mist-band",
+        "fromPort": "layers_tree",
+        "toNode": "v2-action-layer-dg-s2-mist-band",
         "toPort": "layers_tree"
       },
       {
@@ -1516,13 +1799,6 @@
         "fromNode": "v2-layer-layer-dg-s2-bamboo",
         "fromPort": "layers_tree",
         "toNode": "v2-material-layer-dg-s2-bamboo",
-        "toPort": "layers_tree"
-      },
-      {
-        "id": "e-v2-material-layer-dg-s2-bamboo-v2-fx_fade-layer-dg-s2-bamboo",
-        "fromNode": "v2-material-layer-dg-s2-bamboo",
-        "fromPort": "layers_tree",
-        "toNode": "v2-fx_fade-layer-dg-s2-bamboo",
         "toPort": "layers_tree"
       }
     ]
