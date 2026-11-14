@@ -80,6 +80,7 @@ function makeRig(bones: LayerBone[], presets: PresetKey[], viewAngle: MotionView
 const HERO_BONES: BoneSpec[] = [
   ['bone-pelvis', 'Hông (Root)', 0, 52, 86, -90],
   ['bone-torso', 'Thân & Giáp ngực', 0, -34, 146, -85, 'bone-pelvis'],
+  ['bone-cape', 'Áo choàng bay (Cape)', -18, -138, 180, 108, 'bone-torso'],
   ['bone-head', 'Đầu & Búi tóc', 14, -180, 118, -88, 'bone-torso'],
   ['bone-arm-l', 'Vai & Tay trước (Kiếm)', -39, -130, 128, 86, 'bone-torso'],
   ['bone-forearm-l', 'Cẳng tay & Trường kiếm', -30, -2, 120, 74, 'bone-arm-l'],
@@ -92,7 +93,7 @@ const HERO_BONES: BoneSpec[] = [
 ]
 
 const HERO_PARTS: PartSpec[] = [
-  ['cape', 'Áo choàng sau (Bật/Tắt)', 'bone-torso', 0, 93.7, -34],
+  ['cape', 'Áo choàng sau (Bật/Tắt)', 'bone-cape', 0, 93.7, -34],
   ['arm-r', 'Bắp tay sau', 'bone-arm-r', 44.2, -83.2, -26],
   ['forearm-r', 'Cẳng tay sau', 'bone-forearm-r', 45.2, 53.2, -24],
   ['thigh-r', 'Đùi sau', 'bone-thigh-r', 27.6, 131.9, -20],

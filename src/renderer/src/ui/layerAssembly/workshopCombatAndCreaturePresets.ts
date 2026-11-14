@@ -88,119 +88,155 @@ export function createMonsterBones(): LayerBone[] {
 // 2. Động Tác Chiến Đấu Nhân Vật 2.5D (Combat, Kick, Dodge, Hit Recoil)
 // ---------------------------------------------------------------------------
 
-/** Liên hoàn trảm: thủ thế → thu đà xoay vai → chém chéo thức 1 → vung chém ngang thức 2 → hồi thế. */
-export function generateCombatCombo(
-  bones: LayerBone[],
-  duration = 1.5,
-  viewAngle: MotionViewAngle = 'diagonal'
-): Record<string, BoneKeyframe[]> {
-  const tracks: Record<string, BoneKeyframe[]> = {}
-  const d = duration
-  const ids = resolveBodyIds(bones)
-  const f = detectFacingSign(bones, viewAngle)
-
+function buildCombatUpperTracks(
+  tracks: Record<string, BoneKeyframe[]>,
+  ids: ReturnType<typeof resolveBodyIds>,
+  capeId: string | undefined,
+  d: number,
+  f: 1 | -1
+): void {
   if (ids.pelvis) {
     tracks[ids.pelvis] = [
       kf(0, -2 * f, 0, 2),
-      kf(d * 0.18, -6 * f, -6 * f, 8, 1.02, 0.96, undefined, 'ease-out'),
-      kf(d * 0.42, 7 * f, 12 * f, -3, 0.98, 1.03, undefined, 'ease-out'),
-      kf(d * 0.65, 2 * f, 4 * f, 6, 1.02, 0.97, undefined, 'ease-in-out'),
-      kf(d * 0.84, 9 * f, 14 * f, -2, 1, 1, undefined, 'ease-out'),
+      kf(d * 0.22, -8 * f, -10 * f, 10, 1.03, 0.94, undefined, 'ease-in-out'),
+      kf(d * 0.27, -9 * f, -11 * f, 11, 1.04, 0.93, undefined, 'ease-in'),
+      kf(d * 0.35, 9 * f, 20 * f, -4, 0.97, 1.04, undefined, 'ease-out'),
+      kf(d * 0.46, 8 * f, 19 * f, -3, 0.99, 1.01, undefined, 'linear'),
+      kf(d * 0.58, -3 * f, 6 * f, 8, 1.02, 0.95, undefined, 'ease-in-out'),
+      kf(d * 0.66, 12 * f, 26 * f, -3, 0.97, 1.04, undefined, 'ease-out'),
+      kf(d * 0.78, 11 * f, 24 * f, -2, 1, 1, undefined, 'linear'),
       kf(d, 0, 0, 0, 1, 1, undefined, 'ease-in-out')
     ]
   }
   if (ids.torso) {
     tracks[ids.torso] = [
       kf(0, 6 * f),
-      kf(d * 0.18, -14 * f),
-      kf(d * 0.42, 20 * f),
-      kf(d * 0.65, -8 * f),
-      kf(d * 0.84, 18 * f),
+      kf(d * 0.22, -16 * f),
+      kf(d * 0.27, -18 * f),
+      kf(d * 0.35, 25 * f, 0, 0, 1, 1, undefined, 'ease-out'),
+      kf(d * 0.46, 24 * f),
+      kf(d * 0.58, -11 * f),
+      kf(d * 0.66, 28 * f, 0, 0, 1, 1, undefined, 'ease-out'),
+      kf(d * 0.78, 26 * f),
       kf(d, 4 * f)
     ]
   }
   if (ids.head) {
     tracks[ids.head] = [
       kf(0, -3 * f),
-      kf(d * 0.18, 8 * f),
-      kf(d * 0.42, -10 * f),
-      kf(d * 0.84, -8 * f),
+      kf(d * 0.27, 10 * f),
+      kf(d * 0.35, -14 * f),
+      kf(d * 0.46, -13 * f),
+      kf(d * 0.58, 6 * f),
+      kf(d * 0.66, -15 * f),
+      kf(d * 0.78, -14 * f),
       kf(d, 0)
     ]
   }
-  // Tay gần/chính (vũ khí) vung 2 nhát dứt khoát có Z-order đưa lên trước ngực
+  if (capeId) {
+    tracks[capeId] = [
+      kf(0, 6 * f),
+      kf(d * 0.27, 26 * f),
+      kf(d * 0.38, -32 * f, 0, 0, 1, 1, undefined, 'ease-out'),
+      kf(d * 0.5, -18 * f),
+      kf(d * 0.69, -40 * f, 0, 0, 1, 1, undefined, 'ease-out'),
+      kf(d * 0.84, -22 * f),
+      kf(d, 6 * f)
+    ]
+  }
+}
+
+function buildCombatLimbTracks(
+  tracks: Record<string, BoneKeyframe[]>,
+  ids: ReturnType<typeof resolveBodyIds>,
+  d: number,
+  f: 1 | -1
+): void {
   if (ids.armL) {
     tracks[ids.armL] = [
       kf(0, -24 * f, 0, 0, 1, 1, 16),
-      kf(d * 0.18, 44 * f, 0, 0, 1, 1, 10),
-      kf(d * 0.42, -92 * f, 0, 0, 1, 1, 36, 'ease-out'),
-      kf(d * 0.65, -45 * f, 0, 0, 1, 1, 24),
-      kf(d * 0.84, -108 * f, 0, 0, 1, 1, 38, 'ease-out'),
+      kf(d * 0.22, 50 * f, 0, 0, 1, 1, 10),
+      kf(d * 0.27, 54 * f, 0, 0, 1, 1, 10),
+      kf(d * 0.35, -102 * f, 0, 0, 1, 1, 38, 'ease-out'),
+      kf(d * 0.46, -104 * f, 0, 0, 1, 1, 38),
+      kf(d * 0.58, 26 * f, 0, 0, 1, 1, 20),
+      kf(d * 0.66, -116 * f, 0, 0, 1, 1, 40, 'ease-out'),
+      kf(d * 0.78, -114 * f, 0, 0, 1, 1, 40),
       kf(d, -24 * f, 0, 0, 1, 1, 16)
     ]
   }
   if (ids.forearmL) {
     tracks[ids.forearmL] = [
       kf(0, -28 * f),
-      kf(d * 0.18, 32 * f),
-      kf(d * 0.42, -48 * f),
-      kf(d * 0.65, -18 * f),
-      kf(d * 0.84, -52 * f),
+      kf(d * 0.27, 38 * f),
+      kf(d * 0.35, -56 * f, 0, 0, 1, 1, undefined, 'ease-out'),
+      kf(d * 0.46, -58 * f),
+      kf(d * 0.58, 20 * f),
+      kf(d * 0.66, -62 * f, 0, 0, 1, 1, undefined, 'ease-out'),
+      kf(d * 0.78, -60 * f),
       kf(d, -28 * f)
     ]
   }
   if (ids.armR) {
     tracks[ids.armR] = [
       kf(0, 16 * f),
-      kf(d * 0.18, -32 * f),
-      kf(d * 0.42, 42 * f),
-      kf(d * 0.65, -24 * f),
-      kf(d * 0.84, 38 * f),
+      kf(d * 0.27, -36 * f),
+      kf(d * 0.35, 48 * f),
+      kf(d * 0.46, 46 * f),
+      kf(d * 0.58, -28 * f),
+      kf(d * 0.66, 44 * f),
+      kf(d * 0.78, 42 * f),
       kf(d, 16 * f)
     ]
   }
   if (ids.forearmR) {
-    tracks[ids.forearmR] = [
-      kf(0, -18 * f),
-      kf(d * 0.42, 26 * f),
-      kf(d * 0.84, 22 * f),
-      kf(d, -18 * f)
-    ]
+    tracks[ids.forearmR] = [kf(0, -18 * f), kf(d * 0.35, 28 * f), kf(d * 0.46, 28 * f), kf(d * 0.66, 24 * f), kf(d, -18 * f)]
   }
-  // Tấn chiến: chân trước khuỵu giữ trụ, chân sau đạp căng
   if (ids.thighL) {
     tracks[ids.thighL] = [
       kf(0, -16 * f),
-      kf(d * 0.18, -24 * f),
-      kf(d * 0.42, -34 * f),
-      kf(d * 0.84, -38 * f),
+      kf(d * 0.27, -26 * f),
+      kf(d * 0.35, -40 * f),
+      kf(d * 0.46, -40 * f),
+      kf(d * 0.66, -44 * f),
+      kf(d * 0.78, -42 * f),
       kf(d, -16 * f)
     ]
   }
   if (ids.shinL) {
-    tracks[ids.shinL] = [
-      kf(0, 22 * f),
-      kf(d * 0.18, 36 * f),
-      kf(d * 0.42, 34 * f),
-      kf(d * 0.84, 40 * f),
-      kf(d, 22 * f)
-    ]
+    tracks[ids.shinL] = [kf(0, 22 * f), kf(d * 0.27, 42 * f), kf(d * 0.35, 38 * f), kf(d * 0.66, 42 * f), kf(d, 22 * f)]
   }
   if (ids.thighR) {
     tracks[ids.thighR] = [
       kf(0, 16 * f),
-      kf(d * 0.42, 30 * f),
-      kf(d * 0.84, 34 * f),
+      kf(d * 0.27, 12 * f),
+      kf(d * 0.35, 34 * f),
+      kf(d * 0.66, 38 * f),
+      kf(d * 0.78, 36 * f),
       kf(d, 16 * f)
     ]
   }
   if (ids.shinR) {
-    tracks[ids.shinR] = [kf(0, 8 * f), kf(d * 0.42, 10 * f), kf(d, 8 * f)]
+    tracks[ids.shinR] = [kf(0, 8 * f), kf(d * 0.27, 22 * f), kf(d * 0.35, 6 * f), kf(d, 8 * f)]
   }
-  return fillRestTracks(bones, tracks, d)
 }
 
-/** Tung cước tống thẳng (Martial Kick): lấy đà → co gối → bung cước cao → tiếp đất cân bằng. */
+/** Liên hoàn trảm chuẩn Donghua: tụ lực lấy đà (Anticipation) → vung kiếm chớp nhoáng 3 frame → khựng Hitstop → hoành trảm thức 2 → hồi thế. */
+export function generateCombatCombo(
+  bones: LayerBone[],
+  duration = 1.5,
+  viewAngle: MotionViewAngle = 'diagonal'
+): Record<string, BoneKeyframe[]> {
+  const tracks: Record<string, BoneKeyframe[]> = {}
+  const ids = resolveBodyIds(bones)
+  const capeId = findBoneByTokens(bones, ['cape', 'áo choàng'])
+  const f = detectFacingSign(bones, viewAngle)
+  buildCombatUpperTracks(tracks, ids, capeId, duration, f)
+  buildCombatLimbTracks(tracks, ids, duration, f)
+  return fillRestTracks(bones, tracks, duration)
+}
+
+/** Tung cước tống thẳng (Martial Kick): nhún gối rút chân (Chamber) → bung cước 3 frame → Hitstop trên không → hạ chân bám đất. */
 export function generateMartialKick(
   bones: LayerBone[],
   duration = 1.2,
@@ -209,43 +245,62 @@ export function generateMartialKick(
   const tracks: Record<string, BoneKeyframe[]> = {}
   const d = duration
   const ids = resolveBodyIds(bones)
+  const capeId = findBoneByTokens(bones, ['cape', 'áo choàng'])
   const f = detectFacingSign(bones, viewAngle)
 
   if (ids.pelvis) {
     tracks[ids.pelvis] = [
       kf(0, 0, 0, 0),
-      kf(d * 0.2, 0, -4 * f, 8),
-      kf(d * 0.46, -8 * f, 6 * f, -10, 1, 1, undefined, 'ease-out'),
-      kf(d * 0.72, -4 * f, 4 * f, 4),
+      kf(d * 0.24, 2 * f, -6 * f, 10),
+      kf(d * 0.34, -10 * f, 12 * f, -12, 1, 1, undefined, 'ease-out'),
+      kf(d * 0.48, -10 * f, 12 * f, -11),
+      kf(d * 0.74, -3 * f, 4 * f, 5),
       kf(d, 0, 0, 0)
     ]
   }
   if (ids.torso) {
-    tracks[ids.torso] = [kf(0, 4 * f), kf(d * 0.2, 10 * f), kf(d * 0.46, -22 * f), kf(d, 4 * f)]
+    tracks[ids.torso] = [
+      kf(0, 4 * f),
+      kf(d * 0.24, 12 * f),
+      kf(d * 0.34, -26 * f, 0, 0, 1, 1, undefined, 'ease-out'),
+      kf(d * 0.48, -25 * f),
+      kf(d, 4 * f)
+    ]
   }
   if (ids.head) {
-    tracks[ids.head] = [kf(0, 0), kf(d * 0.2, -4 * f), kf(d * 0.46, 12 * f), kf(d, 0)]
+    tracks[ids.head] = [kf(0, 0), kf(d * 0.24, -6 * f), kf(d * 0.34, 16 * f), kf(d * 0.48, 15 * f), kf(d, 0)]
+  }
+  if (capeId) {
+    tracks[capeId] = [kf(0, 4 * f), kf(d * 0.36, 34 * f), kf(d * 0.52, 28 * f), kf(d, 4 * f)]
   }
   if (ids.thighL) {
     tracks[ids.thighL] = [
       kf(0, -10 * f),
-      kf(d * 0.24, -64 * f),
-      kf(d * 0.46, -82 * f, 0, 0, 1, 1, 24, 'ease-out'),
-      kf(d * 0.74, -40 * f),
+      kf(d * 0.25, -70 * f),
+      kf(d * 0.34, -92 * f, 0, 0, 1, 1, 28, 'ease-out'),
+      kf(d * 0.48, -90 * f, 0, 0, 1, 1, 28),
+      kf(d * 0.72, -42 * f),
       kf(d, -10 * f)
     ]
   }
   if (ids.shinL) {
-    tracks[ids.shinL] = [kf(0, 14 * f), kf(d * 0.24, 72 * f), kf(d * 0.46, 8 * f), kf(d, 14 * f)]
+    tracks[ids.shinL] = [
+      kf(0, 14 * f),
+      kf(d * 0.25, 82 * f),
+      kf(d * 0.34, 4 * f, 0, 0, 1, 1, undefined, 'ease-out'),
+      kf(d * 0.48, 5 * f),
+      kf(d * 0.72, 46 * f),
+      kf(d, 14 * f)
+    ]
   }
-  if (ids.thighR) tracks[ids.thighR] = [kf(0, 10 * f), kf(d * 0.46, 18 * f), kf(d, 10 * f)]
-  if (ids.shinR) tracks[ids.shinR] = [kf(0, 6 * f), kf(d * 0.2, 22 * f), kf(d * 0.46, 8 * f), kf(d, 6 * f)]
-  if (ids.armL) tracks[ids.armL] = [kf(0, -16 * f), kf(d * 0.46, 46 * f), kf(d, -16 * f)]
-  if (ids.armR) tracks[ids.armR] = [kf(0, 12 * f), kf(d * 0.46, -54 * f), kf(d, 12 * f)]
+  if (ids.thighR) tracks[ids.thighR] = [kf(0, 10 * f), kf(d * 0.34, 22 * f), kf(d * 0.48, 22 * f), kf(d, 10 * f)]
+  if (ids.shinR) tracks[ids.shinR] = [kf(0, 6 * f), kf(d * 0.24, 24 * f), kf(d * 0.34, 6 * f), kf(d, 6 * f)]
+  if (ids.armL) tracks[ids.armL] = [kf(0, -16 * f), kf(d * 0.34, 52 * f), kf(d * 0.48, 50 * f), kf(d, -16 * f)]
+  if (ids.armR) tracks[ids.armR] = [kf(0, 12 * f), kf(d * 0.34, -58 * f), kf(d * 0.48, -56 * f), kf(d, 12 * f)]
   return fillRestTracks(bones, tracks, d)
 }
 
-/** Né đòn & Phản kích (Dodge Counter): lách gập người né về sau rồi bật lò xo đâm kiếm tới. */
+/** Né đòn & Phản kích (Dodge Counter): lách gập người né gấp + giữ né → bật lò xo đâm kiếm 3 frame + Hitstop. */
 export function generateDodgeCounter(
   bones: LayerBone[],
   duration = 1.25,
@@ -254,39 +309,83 @@ export function generateDodgeCounter(
   const tracks: Record<string, BoneKeyframe[]> = {}
   const d = duration
   const ids = resolveBodyIds(bones)
+  const capeId = findBoneByTokens(bones, ['cape', 'áo choàng'])
   const f = detectFacingSign(bones, viewAngle)
 
   if (ids.pelvis) {
     tracks[ids.pelvis] = [
       kf(0, 0, 0, 0),
-      kf(d * 0.28, -8 * f, -14 * f, 10, 1.03, 0.94, undefined, 'ease-out'),
-      kf(d * 0.62, 8 * f, 16 * f, -4, 0.98, 1.02, undefined, 'ease-out'),
+      kf(d * 0.16, -10 * f, -18 * f, 12, 1.04, 0.92, undefined, 'ease-out'),
+      kf(d * 0.32, -11 * f, -19 * f, 13, 1.04, 0.92),
+      kf(d * 0.41, 10 * f, 22 * f, -5, 0.97, 1.04, undefined, 'ease-out'),
+      kf(d * 0.56, 9 * f, 21 * f, -4, 0.99, 1.01),
       kf(d, 0, 0, 0)
     ]
   }
   if (ids.torso) {
-    tracks[ids.torso] = [kf(0, 2 * f), kf(d * 0.28, -24 * f), kf(d * 0.62, 22 * f), kf(d, 2 * f)]
+    tracks[ids.torso] = [
+      kf(0, 2 * f),
+      kf(d * 0.16, -28 * f),
+      kf(d * 0.32, -29 * f),
+      kf(d * 0.41, 26 * f, 0, 0, 1, 1, undefined, 'ease-out'),
+      kf(d * 0.56, 25 * f),
+      kf(d, 2 * f)
+    ]
   }
   if (ids.head) {
-    tracks[ids.head] = [kf(0, 0), kf(d * 0.28, 14 * f), kf(d * 0.62, -12 * f), kf(d, 0)]
+    tracks[ids.head] = [
+      kf(0, 0),
+      kf(d * 0.16, 16 * f),
+      kf(d * 0.32, 17 * f),
+      kf(d * 0.41, -14 * f),
+      kf(d * 0.56, -13 * f),
+      kf(d, 0)
+    ]
+  }
+  if (capeId) {
+    tracks[capeId] = [kf(0, 4 * f), kf(d * 0.2, 32 * f), kf(d * 0.44, -36 * f), kf(d * 0.6, -24 * f), kf(d, 4 * f)]
   }
   if (ids.armL) {
     tracks[ids.armL] = [
       kf(0, -12 * f),
-      kf(d * 0.28, 28 * f, 0, 0, 1, 1, 18),
-      kf(d * 0.62, -96 * f, 0, 0, 1, 1, 32),
+      kf(d * 0.16, 36 * f, 0, 0, 1, 1, 18),
+      kf(d * 0.32, 40 * f, 0, 0, 1, 1, 18),
+      kf(d * 0.41, -104 * f, 0, 0, 1, 1, 36, 'ease-out'),
+      kf(d * 0.56, -102 * f, 0, 0, 1, 1, 36),
       kf(d, -12 * f)
     ]
   }
   if (ids.forearmL) {
-    tracks[ids.forearmL] = [kf(0, -24 * f), kf(d * 0.28, 18 * f), kf(d * 0.62, -16 * f), kf(d, -24 * f)]
+    tracks[ids.forearmL] = [
+      kf(0, -24 * f),
+      kf(d * 0.32, 26 * f),
+      kf(d * 0.41, -12 * f, 0, 0, 1, 1, undefined, 'ease-out'),
+      kf(d * 0.56, -12 * f),
+      kf(d, -24 * f)
+    ]
   }
-  if (ids.thighL) tracks[ids.thighL] = [kf(0, -8 * f), kf(d * 0.28, -28 * f), kf(d * 0.62, -32 * f), kf(d, -8 * f)]
-  if (ids.shinL) tracks[ids.shinL] = [kf(0, 12 * f), kf(d * 0.28, 42 * f), kf(d * 0.62, 26 * f), kf(d, 12 * f)]
+  if (ids.thighL) {
+    tracks[ids.thighL] = [
+      kf(0, -8 * f),
+      kf(d * 0.32, -32 * f),
+      kf(d * 0.41, -40 * f),
+      kf(d * 0.56, -38 * f),
+      kf(d, -8 * f)
+    ]
+  }
+  if (ids.shinL) {
+    tracks[ids.shinL] = [
+      kf(0, 12 * f),
+      kf(d * 0.32, 48 * f),
+      kf(d * 0.41, 32 * f),
+      kf(d * 0.56, 32 * f),
+      kf(d, 12 * f)
+    ]
+  }
   return fillRestTracks(bones, tracks, d)
 }
 
-/** Trúng đòn bật lùi (Hit Recoil): đa hình hỗ trợ cả Người, Quái vật và Con vật 4 chân. */
+/** Trúng đòn bật lùi (Hit Recoil): giật sốc 2 frame khi trúng đòn → rung Hitstop → trượt ghìm trụ hồi phục. */
 export function generateHitRecoil(
   bones: LayerBone[],
   duration = 1.0,
@@ -297,27 +396,32 @@ export function generateHitRecoil(
   const ids = resolveBodyIds(bones)
   const jawId = findBoneByTokens(bones, ['jaw', 'hàm dưới'])
   const tailId = findBoneByTokens(bones, ['tail', 'đuôi'])
+  const capeId = findBoneByTokens(bones, ['cape', 'áo choàng'])
   const f = detectFacingSign(bones, viewAngle)
 
   if (ids.pelvis) {
     tracks[ids.pelvis] = [
       kf(0, 0, 0, 0),
-      kf(d * 0.16, -12 * f, -16 * f, -8, 1.04, 0.94, undefined, 'ease-out'),
-      kf(d * 0.52, -5 * f, -8 * f, 6, 1.01, 0.98, undefined, 'ease-in-out'),
+      kf(d * 0.09, -15 * f, -22 * f, -6, 1.06, 0.92, undefined, 'ease-out'),
+      kf(d * 0.22, -13 * f, -20 * f, -4, 1.04, 0.94),
+      kf(d * 0.58, -5 * f, -10 * f, 8, 1.01, 0.98, undefined, 'ease-in-out'),
       kf(d, 0, 0, 0, 1, 1, undefined, 'ease-in-out')
     ]
   }
   if (ids.torso) {
-    tracks[ids.torso] = [kf(0, 0), kf(d * 0.16, -24 * f), kf(d * 0.52, -10 * f), kf(d, 0)]
+    tracks[ids.torso] = [kf(0, 0), kf(d * 0.09, -28 * f), kf(d * 0.22, -26 * f), kf(d * 0.58, -10 * f), kf(d, 0)]
   }
   if (ids.head) {
-    tracks[ids.head] = [kf(0, 0), kf(d * 0.16, -22 * f), kf(d * 0.52, -8 * f), kf(d, 0)]
+    tracks[ids.head] = [kf(0, 0), kf(d * 0.09, -26 * f), kf(d * 0.22, -24 * f), kf(d * 0.58, -8 * f), kf(d, 0)]
   }
   if (jawId) {
-    tracks[jawId] = [kf(0, 0), kf(d * 0.16, 24 * f), kf(d * 0.52, 10 * f), kf(d, 0)]
+    tracks[jawId] = [kf(0, 0), kf(d * 0.09, 30 * f), kf(d * 0.22, 28 * f), kf(d * 0.58, 10 * f), kf(d, 0)]
   }
-  if (ids.armL) tracks[ids.armL] = [kf(0, 0), kf(d * 0.16, 48 * f), kf(d * 0.52, 22 * f), kf(d, 0)]
-  if (ids.armR) tracks[ids.armR] = [kf(0, 0), kf(d * 0.16, 56 * f), kf(d * 0.52, 18 * f), kf(d, 0)]
+  if (capeId) {
+    tracks[capeId] = [kf(0, 0), kf(d * 0.12, 36 * f), kf(d * 0.28, 30 * f), kf(d, 0)]
+  }
+  if (ids.armL) tracks[ids.armL] = [kf(0, 0), kf(d * 0.09, 54 * f), kf(d * 0.22, 50 * f), kf(d * 0.58, 20 * f), kf(d, 0)]
+  if (ids.armR) tracks[ids.armR] = [kf(0, 0), kf(d * 0.09, 62 * f), kf(d * 0.22, 56 * f), kf(d * 0.58, 18 * f), kf(d, 0)]
   if (ids.thighL) tracks[ids.thighL] = [kf(0, 0), kf(d * 0.16, 22 * f), kf(d, 0)]
   if (ids.shinL) tracks[ids.shinL] = [kf(0, 0), kf(d * 0.16, -18 * f), kf(d, 0)]
   if (tailId) tracks[tailId] = [kf(0, 0), kf(d * 0.16, 30 * f), kf(d, 0)]
@@ -549,7 +653,7 @@ export function generateMonsterRoar(bones: LayerBone[], duration = 1.6): Record<
   return fillRestTracks(bones, tracks, d)
 }
 
-/** Quái vật vồ tát song trảo: co người dồn lực → vọt người giương song trảo → bổ chéo tát mạnh → ghìm thế. */
+/** Quái vật vồ tát song trảo: thu gối nén lực → bật vọt giương song trảo → bổ chéo tát sập 3 frame + Hitstop rung đất. */
 export function generateMonsterPounce(bones: LayerBone[], duration = 1.3): Record<string, BoneKeyframe[]> {
   const tracks: Record<string, BoneKeyframe[]> = {}
   const d = duration
@@ -562,27 +666,49 @@ export function generateMonsterPounce(bones: LayerBone[], duration = 1.3): Recor
   if (ids.pelvis) {
     tracks[ids.pelvis] = [
       kf(0, 0, 0, 0),
-      kf(d * 0.25, -8 * f, -12 * f, 12, 1.04, 0.92),
-      kf(d * 0.52, 6 * f, 8 * f, -16, 0.98, 1.04, undefined, 'ease-out'),
-      kf(d * 0.76, 12 * f, 18 * f, 6, 1.04, 0.95, undefined, 'ease-out'),
+      kf(d * 0.26, -10 * f, -14 * f, 15, 1.05, 0.91),
+      kf(d * 0.44, 6 * f, 8 * f, -20, 0.97, 1.05, undefined, 'ease-out'),
+      kf(d * 0.53, 15 * f, 24 * f, 10, 1.06, 0.93, undefined, 'ease-out'),
+      kf(d * 0.68, 14 * f, 22 * f, 8, 1.03, 0.96),
       kf(d, 0, 0, 0)
     ]
   }
   if (ids.torso) {
-    tracks[ids.torso] = [kf(0, 6 * f), kf(d * 0.25, -14 * f), kf(d * 0.52, -4 * f), kf(d * 0.76, 28 * f), kf(d, 6 * f)]
+    tracks[ids.torso] = [
+      kf(0, 6 * f),
+      kf(d * 0.26, -16 * f),
+      kf(d * 0.44, -8 * f),
+      kf(d * 0.53, 32 * f, 0, 0, 1, 1, undefined, 'ease-out'),
+      kf(d * 0.68, 30 * f),
+      kf(d, 6 * f)
+    ]
   }
-  if (ids.head) tracks[ids.head] = [kf(0, 0), kf(d * 0.25, 10 * f), kf(d * 0.52, -16 * f), kf(d * 0.76, -8 * f), kf(d, 0)]
-  if (jawId) tracks[jawId] = [kf(0, 0), kf(d * 0.52, 26 * f), kf(d * 0.76, 12 * f), kf(d, 0)]
+  if (ids.head) tracks[ids.head] = [kf(0, 0), kf(d * 0.26, 12 * f), kf(d * 0.44, -20 * f), kf(d * 0.53, -6 * f), kf(d * 0.68, -6 * f), kf(d, 0)]
+  if (jawId) tracks[jawId] = [kf(0, 0), kf(d * 0.44, 30 * f), kf(d * 0.53, 18 * f), kf(d * 0.68, 16 * f), kf(d, 0)]
   if (ids.armR) {
-    tracks[ids.armR] = [kf(0, 0), kf(d * 0.25, 36 * f), kf(d * 0.52, -98 * f, 0, 0, 1, 1, 36), kf(d * 0.76, -18 * f, 0, 0, 1, 1, 28), kf(d, 0)]
+    tracks[ids.armR] = [
+      kf(0, 0),
+      kf(d * 0.26, 40 * f),
+      kf(d * 0.44, -106 * f, 0, 0, 1, 1, 36),
+      kf(d * 0.53, 18 * f, 0, 0, 1, 1, 32, 'ease-out'),
+      kf(d * 0.68, 16 * f, 0, 0, 1, 1, 32),
+      kf(d, 0)
+    ]
   }
   if (ids.armL) {
-    tracks[ids.armL] = [kf(0, 0), kf(d * 0.25, 28 * f), kf(d * 0.52, -88 * f, 0, 0, 1, 1, -20), kf(d * 0.76, -10 * f), kf(d, 0)]
+    tracks[ids.armL] = [
+      kf(0, 0),
+      kf(d * 0.26, 32 * f),
+      kf(d * 0.44, -96 * f, 0, 0, 1, 1, -20),
+      kf(d * 0.53, 14 * f, 0, 0, 1, 1, -18, 'ease-out'),
+      kf(d * 0.68, 12 * f),
+      kf(d, 0)
+    ]
   }
-  if (ids.forearmR) tracks[ids.forearmR] = [kf(0, 0), kf(d * 0.52, -42 * f), kf(d * 0.76, 24 * f), kf(d, 0)]
-  if (ids.forearmL) tracks[ids.forearmL] = [kf(0, 0), kf(d * 0.52, -36 * f), kf(d * 0.76, 18 * f), kf(d, 0)]
-  if (ids.thighR) tracks[ids.thighR] = [kf(0, 0), kf(d * 0.25, 32 * legFwd), kf(d * 0.52, -36 * legFwd), kf(d * 0.76, 26 * legFwd), kf(d, 0)]
-  if (ids.thighL) tracks[ids.thighL] = [kf(0, 0), kf(d * 0.25, 26 * legFwd), kf(d * 0.52, -22 * legFwd), kf(d * 0.76, -18 * legFwd), kf(d, 0)]
-  if (tailId) tracks[tailId] = [kf(0, 0), kf(d * 0.52, -26), kf(d * 0.76, 32), kf(d, 0)]
+  if (ids.forearmR) tracks[ids.forearmR] = [kf(0, 0), kf(d * 0.44, -46 * f), kf(d * 0.53, 34 * f), kf(d * 0.68, 32 * f), kf(d, 0)]
+  if (ids.forearmL) tracks[ids.forearmL] = [kf(0, 0), kf(d * 0.44, -38 * f), kf(d * 0.53, 28 * f), kf(d * 0.68, 26 * f), kf(d, 0)]
+  if (ids.thighR) tracks[ids.thighR] = [kf(0, 0), kf(d * 0.26, 34 * legFwd), kf(d * 0.44, -38 * legFwd), kf(d * 0.53, 28 * legFwd), kf(d * 0.68, 26 * legFwd), kf(d, 0)]
+  if (ids.thighL) tracks[ids.thighL] = [kf(0, 0), kf(d * 0.26, 28 * legFwd), kf(d * 0.44, -24 * legFwd), kf(d * 0.53, -20 * legFwd), kf(d, 0)]
+  if (tailId) tracks[tailId] = [kf(0, 0), kf(d * 0.44, -28), kf(d * 0.53, 36), kf(d * 0.68, 32), kf(d, 0)]
   return fillRestTracks(bones, tracks, d)
 }

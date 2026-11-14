@@ -184,7 +184,10 @@ export function inferClusterBoneId(layer: Layer, bones: LayerBone[], savedBoneId
   ) {
     return has('bone-head') ?? has('bone-bird-head') ?? has('bone-chain-tip')
   }
-  if (key.includes('coat') || key.includes('cape') || key.includes('áo choàng') || key.includes('torso') || key.includes('thân áo') || key.includes('áo gile') || key.includes('ngực')) {
+  if (key.includes('cape') || key.includes('áo choàng')) {
+    return has('bone-cape') ?? has('bone-torso') ?? has('bone-chain-mid')
+  }
+  if (key.includes('coat') || key.includes('torso') || key.includes('thân áo') || key.includes('áo gile') || key.includes('ngực')) {
     return has('bone-torso') ?? has('bone-bird-body') ?? has('bone-chain-mid')
   }
   if (key.includes('pelvis') || key.includes('belt') || key.includes('hông') || key.includes('đai')) {

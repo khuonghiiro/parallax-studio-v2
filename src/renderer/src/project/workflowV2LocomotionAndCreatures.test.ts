@@ -9,6 +9,15 @@ import {
   syncWorkflowV2NodeToProject,
   v2ClusterLockId
 } from './workflowV2Engine'
+import { SWORD_HUNTER_25D_COMPOSITE } from '../ui/layerAssembly/action25dComposites'
+import { generateRunCycle, generateWalkCycle } from '../ui/layerAssembly/workshopWalkCycle'
+import {
+  createMonsterBones,
+  generateCombatCombo,
+  generateDodgeCounter,
+  generateHitRecoil,
+  generateMonsterPounce
+} from '../ui/layerAssembly/workshopCombatAndCreaturePresets'
 
 function mkPartLayer(
   proj: Project,
@@ -261,5 +270,51 @@ describe('Workflow V2 Locomotion + Creature & Monster Rigs', () => {
     expect(bakeClusterRigPresetToScene(heroProj, heroId, 'combat', { timeStart: 0, timeEnd: 2 })).toBeGreaterThanOrEqual(6)
     expect(byPart['forearm-r'].transform.rotation.keyframes.length).toBeGreaterThan(3)
     expect(bakeClusterRigPresetToScene(heroProj, heroId, 'hit_recoil', { timeStart: 2, timeEnd: 3.5 })).toBeGreaterThanOrEqual(5)
+  })
+
+  it('chu kỳ Walk/Run khử sạch lỗi giật khớp gối (C1 liên tục), có sóng áo choàng và nhịp Hitstop Donghua khi chiến đấu', () => {
+    const heroBones = SWORD_HUNTER_25D_COMPOSITE.rig!.bones
+    for (const angle of ['side', 'diagonal'] as const) {
+      const walk = generateWalkCycle(heroBones, 1.6, angle)
+      for (const shinId of ['bone-shin-l', 'bone-shin-r']) {
+        const keys = walk[shinId]
+        expect(keys.length).toBe(65)
+        for (let i = 1; i < keys.length; i++) {
+          expect(Math.abs(keys[i].rotation - keys[i - 1].rotation)).toBeLessThan(6.5)
+        }
+      }
+      expect(walk['bone-cape']?.some((k) => Math.abs(k.rotation) > 8)).toBe(true)
+    }
+
+    const run = generateRunCycle(heroBones, 1.0, 'side')
+    for (const shinId of ['bone-shin-l', 'bone-shin-r']) {
+      const keys = run[shinId]
+      for (let i = 1; i < keys.length; i++) {
+        expect(Math.abs(keys[i].rotation - keys[i - 1].rotation)).toBeLessThan(9.5)
+      }
+    }
+    expect(run['bone-cape']?.some((k) => Math.abs(k.rotation) > 15)).toBe(true)
+
+    const hasHitstopPlateau = (keys: { time: number; rotation: number }[], minDur: number): boolean => {
+      for (let i = 1; i < keys.length; i++) {
+        const dt = keys[i].time - keys[i - 1].time
+        const dRot = Math.abs(keys[i].rotation - keys[i - 1].rotation)
+        if (dt >= minDur && dRot <= 2.5 && Math.abs(keys[i].rotation) >= 12) return true
+      }
+      return false
+    }
+
+    const combo = generateCombatCombo(heroBones, 1.5, 'diagonal')
+    expect(hasHitstopPlateau(combo['bone-arm-l'], 1.5 * 0.08)).toBe(true)
+    expect(combo['bone-cape'].length).toBeGreaterThanOrEqual(5)
+
+    const dodge = generateDodgeCounter(heroBones, 1.25, 'diagonal')
+    expect(hasHitstopPlateau(dodge['bone-arm-l'], 1.25 * 0.08)).toBe(true)
+
+    const recoil = generateHitRecoil(heroBones, 1.0, 'diagonal')
+    expect(hasHitstopPlateau(recoil['bone-torso'], 1.0 * 0.08)).toBe(true)
+
+    const pounce = generateMonsterPounce(createMonsterBones(), 1.3)
+    expect(hasHitstopPlateau(pounce['bone-arm-r'], 1.3 * 0.08)).toBe(true)
   })
 })
