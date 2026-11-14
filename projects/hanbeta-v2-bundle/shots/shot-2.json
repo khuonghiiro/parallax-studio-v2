@@ -1,0 +1,2100 @@
+{
+  "kind": "parallax-workflow-shot",
+  "version": 2,
+  "file": "shots/shot-2.json",
+  "mainFile": "main.json",
+  "shot": {
+    "id": "wXNOzso_W9",
+    "index": 2,
+    "name": "Cảnh 2: Cửa Phòng 404 Kính Mờ",
+    "color": "#3dd6f5",
+    "visible": true,
+    "position": [
+      10560,
+      0,
+      0
+    ],
+    "rotation": [
+      0,
+      0,
+      0
+    ],
+    "timeStart": 5,
+    "timeEnd": 9.97
+  },
+  "links": {
+    "prevShotId": "pKOb2CgV6_",
+    "prevShotFile": "shots/shot-1.json",
+    "nextShotId": "2yrnNxplrg",
+    "nextShotFile": "shots/shot-3.json",
+    "cameraInEdgeId": "e-camchain-pKOb2CgV6_-wXNOzso_W9",
+    "cameraOutEdgeId": "e-camchain-wXNOzso_W9-2yrnNxplrg"
+  },
+  "camera": {
+    "nodeId": "v2-camera-wXNOzso_W9",
+    "enabled": true,
+    "preset": "dollyIn",
+    "enableDof": false,
+    "timeStart": 5,
+    "timeEnd": 10,
+    "waypoints": [
+      {
+        "nodeId": "v2-cam-wp-wXNOzso_W9-0",
+        "index": 1,
+        "label": "4",
+        "isSubWaypoint": false,
+        "actionMode": "cut",
+        "tagLabel": "Chuyển cảnh (Cắt) · Cảnh 2: Cửa Phòng 404 Kính Mờ",
+        "timeStart": 5,
+        "timeEnd": 5.45,
+        "stepDuration": 0.45,
+        "zoomPct": 104,
+        "stageX": 2458,
+        "stageY": -10,
+        "scale": 0.9598029881390224,
+        "yaw": 0,
+        "pitch": 0,
+        "roll": 0,
+        "ease": "easeOut"
+      },
+      {
+        "nodeId": "v2-cam-wp-wXNOzso_W9-1",
+        "index": 2,
+        "label": "5",
+        "isSubWaypoint": false,
+        "actionMode": "push-in",
+        "tagLabel": "Đẩy cận (135%)",
+        "timeStart": 5.45,
+        "timeEnd": 9.2,
+        "stepDuration": 3.75,
+        "zoomPct": 135,
+        "stageX": 2403,
+        "stageY": -48,
+        "scale": 0.7397231334468085,
+        "yaw": -3,
+        "pitch": 0,
+        "roll": -2.2,
+        "ease": "easeInOut"
+      },
+      {
+        "nodeId": "v2-cam-wp-wXNOzso_W9-2",
+        "index": 3,
+        "label": "6",
+        "isSubWaypoint": false,
+        "actionMode": "hold",
+        "tagLabel": "Dừng ngắm (+0.8s)",
+        "timeStart": 9.2,
+        "timeEnd": 10,
+        "stepDuration": 0.8,
+        "zoomPct": 143,
+        "stageX": 2423,
+        "stageY": -58,
+        "scale": 0.7000523209153562,
+        "yaw": -2,
+        "pitch": 0,
+        "roll": -2.5,
+        "ease": "hold"
+      }
+    ]
+  },
+  "groups": [
+    {
+      "id": "v2-group-3d-wXNOzso_W9",
+      "kind": "group_3d",
+      "title": "Nhóm 3D & Lắp ráp",
+      "enabled": true,
+      "timeStart": 5,
+      "timeEnd": 10,
+      "layerCount": 7
+    },
+    {
+      "id": "v2-group-25d-wXNOzso_W9",
+      "kind": "group_25d",
+      "title": "Nhóm Layer 2.5D",
+      "enabled": true,
+      "timeStart": 5,
+      "timeEnd": 10,
+      "layerCount": 5
+    }
+  ],
+  "layers": [
+    {
+      "id": "Cd8wOg2d_c",
+      "nodeId": "v2-layer-Cd8wOg2d_c",
+      "name": "Tiền Cảnh Bùa Niêm Cửa 404",
+      "type": "image",
+      "groupKind": "group_25d",
+      "asset": "@d_y_c_nh_b_o_b_a_ni_m_ti_n_c_nh",
+      "visible": true,
+      "position": [
+        10,
+        420,
+        -180
+      ],
+      "scale": [
+        1.05,
+        1.05,
+        1
+      ],
+      "opacity": 1,
+      "timeStart": 5,
+      "timeEnd": 10
+    },
+    {
+      "id": "wMBw9UDWVW",
+      "nodeId": "v2-layer-wMBw9UDWVW",
+      "name": "Sương Lạnh Phòng 404",
+      "type": "image",
+      "groupKind": "group_25d",
+      "asset": "@s_ng_l_nh_qu_i_m",
+      "visible": true,
+      "position": [
+        0,
+        -420,
+        -60
+      ],
+      "scale": [
+        2.25,
+        2.25,
+        1
+      ],
+      "opacity": 0.54,
+      "timeStart": 5,
+      "timeEnd": 10
+    },
+    {
+      "id": "lJ3VVALyfa",
+      "nodeId": "v2-layer-lJ3VVALyfa",
+      "name": "Thám Tử Cảnh 2 · Mặt Điềm Tĩnh",
+      "type": "image",
+      "groupKind": "group_3d",
+      "asset": "@bi_u_c_m_i_m_t_nh_ph_n_t_ch",
+      "visible": true,
+      "position": [
+        -290,
+        184,
+        258
+      ],
+      "scale": [
+        0.19,
+        0.19,
+        1
+      ],
+      "opacity": 1,
+      "timeStart": 5,
+      "timeEnd": 10
+    },
+    {
+      "id": "mE4o_s0fPN",
+      "nodeId": "v2-layer-mE4o_s0fPN",
+      "name": "Thám Tử Cảnh 2 · Mặt Cười Nửa Miệng",
+      "type": "image",
+      "groupKind": "group_3d",
+      "asset": "@bi_u_c_m_c_i_n_a_mi_ng_th_u_th",
+      "visible": false,
+      "position": [
+        -290,
+        184,
+        258
+      ],
+      "scale": [
+        0.19,
+        0.19,
+        1
+      ],
+      "opacity": 0,
+      "timeStart": 5,
+      "timeEnd": 10
+    },
+    {
+      "id": "eLOOI25F7m",
+      "nodeId": "v2-layer-eLOOI25F7m",
+      "name": "Thám Tử Cảnh 2 · Mặt Kinh Ngạc",
+      "type": "image",
+      "groupKind": "group_3d",
+      "asset": "@bi_u_c_m_kinh_ng_c_qu_i_m",
+      "visible": true,
+      "position": [
+        -290,
+        184,
+        258
+      ],
+      "scale": [
+        0.19,
+        0.19,
+        1
+      ],
+      "opacity": 0,
+      "timeStart": 5,
+      "timeEnd": 10
+    },
+    {
+      "id": "QrGhGr-UXb",
+      "nodeId": "v2-layer-QrGhGr-UXb",
+      "name": "Thám Tử Cảnh 2 · Tay Cầm Tờ Quy Tắc",
+      "type": "image",
+      "groupKind": "group_3d",
+      "asset": "@nh_n_v_t_tay_ph_i_c_m_t_quy_t_c",
+      "visible": true,
+      "position": [
+        -274,
+        54,
+        256
+      ],
+      "scale": [
+        0.4,
+        0.4,
+        1
+      ],
+      "opacity": 1,
+      "timeStart": 5,
+      "timeEnd": 10
+    },
+    {
+      "id": "CKs0BKAHVf",
+      "nodeId": "v2-layer-CKs0BKAHVf",
+      "name": "Thám Tử Cảnh 2 · Thân & Chân",
+      "type": "image",
+      "groupKind": "group_3d",
+      "asset": "@nh_n_v_t_th_n_ch_n_tr",
+      "visible": true,
+      "position": [
+        -290,
+        -160,
+        260
+      ],
+      "scale": [
+        0.52,
+        0.52,
+        1
+      ],
+      "opacity": 1,
+      "timeStart": 5,
+      "timeEnd": 10
+    },
+    {
+      "id": "aTk3_1Hy75",
+      "nodeId": "v2-layer-aTk3_1Hy75",
+      "name": "Thám Tử Cảnh 2 · Tay Trái",
+      "type": "image",
+      "groupKind": "group_3d",
+      "asset": "@nh_n_v_t_tay_tr_i",
+      "visible": true,
+      "position": [
+        -236,
+        -54,
+        264
+      ],
+      "scale": [
+        0.31,
+        0.31,
+        1
+      ],
+      "opacity": 1,
+      "timeStart": 5,
+      "timeEnd": 10
+    },
+    {
+      "id": "TarHcsx2wj",
+      "nodeId": "v2-layer-TarHcsx2wj",
+      "name": "Thám Tử Cảnh 2 · Vạt Áo Khoác",
+      "type": "image",
+      "groupKind": "group_3d",
+      "asset": "@nh_n_v_t_v_t_o_kho_c_bay_gi",
+      "visible": true,
+      "position": [
+        -400,
+        -285,
+        268
+      ],
+      "scale": [
+        0.38,
+        0.38,
+        1
+      ],
+      "opacity": 1,
+      "timeStart": 5,
+      "timeEnd": 10
+    },
+    {
+      "id": "E439pgiab_",
+      "nodeId": "v2-layer-E439pgiab_",
+      "name": "Đèn Trần Phòng 404",
+      "type": "image",
+      "groupKind": "group_25d",
+      "asset": "@n_tr_n_h_nh_lang_ung_a",
+      "visible": true,
+      "position": [
+        -25,
+        325,
+        620
+      ],
+      "scale": [
+        0.29,
+        0.29,
+        1
+      ],
+      "opacity": 1,
+      "timeStart": 5,
+      "timeEnd": 10
+    },
+    {
+      "id": "YjbSD3O8t-",
+      "nodeId": "v2-layer-YjbSD3O8t-",
+      "name": "Thực Thể Áp Sát Cửa 404",
+      "type": "image",
+      "groupKind": "group_25d",
+      "asset": "@b_ng_en_th_c_th_sau_c_a",
+      "visible": true,
+      "position": [
+        240,
+        0,
+        950
+      ],
+      "scale": [
+        0.72,
+        0.72,
+        1
+      ],
+      "opacity": 0.9,
+      "timeStart": 5,
+      "timeEnd": 10
+    },
+    {
+      "id": "s9_MQuzU0C",
+      "nodeId": "v2-layer-s9_MQuzU0C",
+      "name": "Nền Cửa Kính Phòng 404",
+      "type": "image",
+      "groupKind": "group_25d",
+      "asset": "@c_nh_2_c_a_ph_ng_404_k_nh_m_t_quy_t_c",
+      "visible": true,
+      "position": [
+        0,
+        0,
+        2400
+      ],
+      "scale": [
+        1.52,
+        1.52,
+        1
+      ],
+      "opacity": 1,
+      "timeStart": 5,
+      "timeEnd": 10
+    }
+  ],
+  "logic": [
+    {
+      "id": "v2-fx-hb-hero-2",
+      "category": "fx",
+      "presetId": "v2:fx:fadeInOut",
+      "title": "Hiện/Ẩn: Hiện 0.1s · Ẩn 0.1s",
+      "enabled": true,
+      "timeStart": 5,
+      "timeEnd": 10,
+      "targetLayerIds": [
+        "lJ3VVALyfa",
+        "mE4o_s0fPN",
+        "eLOOI25F7m",
+        "QrGhGr-UXb",
+        "CKs0BKAHVf",
+        "aTk3_1Hy75",
+        "TarHcsx2wj"
+      ],
+      "targetLayerNames": [
+        "Thám Tử Cảnh 2 · Mặt Điềm Tĩnh",
+        "Thám Tử Cảnh 2 · Mặt Cười Nửa Miệng",
+        "Thám Tử Cảnh 2 · Mặt Kinh Ngạc",
+        "Thám Tử Cảnh 2 · Tay Cầm Tờ Quy Tắc",
+        "Thám Tử Cảnh 2 · Thân & Chân",
+        "Thám Tử Cảnh 2 · Tay Trái",
+        "Thám Tử Cảnh 2 · Vạt Áo Khoác"
+      ],
+      "params": {
+        "fxKind": "wind_physics",
+        "intensity": 1
+      }
+    },
+    {
+      "id": "v2-fx-Cd8wOg2d_c",
+      "category": "fx",
+      "presetId": "v2:fx:fadeInOut",
+      "title": "Hiện/Ẩn: Hiện 0.2s · Ẩn 0.2s",
+      "enabled": true,
+      "timeStart": 5,
+      "timeEnd": 10,
+      "targetLayerIds": [
+        "Cd8wOg2d_c"
+      ],
+      "targetLayerNames": [
+        "Tiền Cảnh Bùa Niêm Cửa 404"
+      ],
+      "params": {
+        "fxKind": "wind_physics",
+        "intensity": 1
+      }
+    },
+    {
+      "id": "v2-action-wMBw9UDWVW",
+      "category": "action",
+      "presetId": "v2:action:float",
+      "title": "Hành động: Bay lơ lửng",
+      "enabled": true,
+      "timeStart": 5,
+      "timeEnd": 10,
+      "targetLayerIds": [
+        "wMBw9UDWVW"
+      ],
+      "targetLayerNames": [
+        "Sương Lạnh Phòng 404"
+      ],
+      "params": {
+        "actionPreset": "float",
+        "intensity": 0.6
+      }
+    },
+    {
+      "id": "v2-fx-wMBw9UDWVW",
+      "category": "fx",
+      "presetId": "v2:fx:fadeInOut",
+      "title": "Hiện/Ẩn: Hiện 0.2s · Ẩn 0.2s",
+      "enabled": true,
+      "timeStart": 5,
+      "timeEnd": 10,
+      "targetLayerIds": [
+        "wMBw9UDWVW"
+      ],
+      "targetLayerNames": [
+        "Sương Lạnh Phòng 404"
+      ],
+      "params": {
+        "fxKind": "wind_physics",
+        "intensity": 1
+      }
+    },
+    {
+      "id": "v2-fx-E439pgiab_",
+      "category": "fx",
+      "presetId": "v2:fx:fadeInOut",
+      "title": "Hiện/Ẩn: Hiện 0.2s · Ẩn 0.2s",
+      "enabled": true,
+      "timeStart": 5,
+      "timeEnd": 10,
+      "targetLayerIds": [
+        "E439pgiab_"
+      ],
+      "targetLayerNames": [
+        "Đèn Trần Phòng 404"
+      ],
+      "params": {
+        "fxKind": "wind_physics",
+        "intensity": 1
+      }
+    },
+    {
+      "id": "v2-fx-YjbSD3O8t-",
+      "category": "fx",
+      "presetId": "v2:fx:fadeInOut",
+      "title": "Hiện/Ẩn: Hiện 0.5s · Ẩn 0.5s",
+      "enabled": true,
+      "timeStart": 5,
+      "timeEnd": 10,
+      "targetLayerIds": [
+        "YjbSD3O8t-"
+      ],
+      "targetLayerNames": [
+        "Thực Thể Áp Sát Cửa 404"
+      ],
+      "params": {
+        "fxKind": "wind_physics",
+        "intensity": 1
+      }
+    },
+    {
+      "id": "v2-fx-s9_MQuzU0C",
+      "category": "fx",
+      "presetId": "v2:fx:fadeInOut",
+      "title": "Hiện/Ẩn: Hiện 0.2s · Ẩn 0.2s",
+      "enabled": true,
+      "timeStart": 5,
+      "timeEnd": 10,
+      "targetLayerIds": [
+        "s9_MQuzU0C"
+      ],
+      "targetLayerNames": [
+        "Nền Cửa Kính Phòng 404"
+      ],
+      "params": {
+        "fxKind": "wind_physics",
+        "intensity": 1
+      }
+    },
+    {
+      "id": "v2-part_swap-hb-hero-2",
+      "category": "part_swap",
+      "title": "Bộ phận: Cụm 2.5D",
+      "enabled": true,
+      "timeStart": 5,
+      "timeEnd": 10,
+      "targetLayerIds": [
+        "lJ3VVALyfa",
+        "mE4o_s0fPN",
+        "eLOOI25F7m",
+        "QrGhGr-UXb",
+        "CKs0BKAHVf",
+        "aTk3_1Hy75",
+        "TarHcsx2wj"
+      ],
+      "targetLayerNames": [
+        "Thám Tử Cảnh 2 · Mặt Điềm Tĩnh",
+        "Thám Tử Cảnh 2 · Mặt Cười Nửa Miệng",
+        "Thám Tử Cảnh 2 · Mặt Kinh Ngạc",
+        "Thám Tử Cảnh 2 · Tay Cầm Tờ Quy Tắc",
+        "Thám Tử Cảnh 2 · Thân & Chân",
+        "Thám Tử Cảnh 2 · Tay Trái",
+        "Thám Tử Cảnh 2 · Vạt Áo Khoác"
+      ],
+      "params": {
+        "swapMode": "part_variant"
+      }
+    },
+    {
+      "id": "v2-partchild-hb-hero-2-slot:expression",
+      "category": "part_swap",
+      "title": "Bộ phận: Giật Mình Kinh Ngạc 404",
+      "enabled": true,
+      "timeStart": 5.35,
+      "timeEnd": 9.95,
+      "targetLayerIds": [
+        "lJ3VVALyfa",
+        "mE4o_s0fPN",
+        "eLOOI25F7m"
+      ],
+      "targetLayerNames": [
+        "Thám Tử Cảnh 2 · Mặt Điềm Tĩnh",
+        "Thám Tử Cảnh 2 · Mặt Cười Nửa Miệng",
+        "Thám Tử Cảnh 2 · Mặt Kinh Ngạc"
+      ],
+      "params": {
+        "swapMode": "part_variant",
+        "swapSlot": "expression",
+        "swapVariant": "eLOOI25F7m",
+        "swapTargetLayerId": "eLOOI25F7m"
+      }
+    },
+    {
+      "id": "v2-anim_fx-hb-hero-2",
+      "category": "anim_fx",
+      "presetId": "v2:anim_fx:rig_shock",
+      "title": "Hành động Nhân vật: Giật mình Quái Đàm",
+      "enabled": true,
+      "timeStart": 5.05,
+      "timeEnd": 9.95,
+      "targetLayerIds": [
+        "lJ3VVALyfa",
+        "mE4o_s0fPN",
+        "eLOOI25F7m",
+        "QrGhGr-UXb",
+        "CKs0BKAHVf",
+        "aTk3_1Hy75",
+        "TarHcsx2wj"
+      ],
+      "targetLayerNames": [
+        "Thám Tử Cảnh 2 · Mặt Điềm Tĩnh",
+        "Thám Tử Cảnh 2 · Mặt Cười Nửa Miệng",
+        "Thám Tử Cảnh 2 · Mặt Kinh Ngạc",
+        "Thám Tử Cảnh 2 · Tay Cầm Tờ Quy Tắc",
+        "Thám Tử Cảnh 2 · Thân & Chân",
+        "Thám Tử Cảnh 2 · Tay Trái",
+        "Thám Tử Cảnh 2 · Vạt Áo Khoác"
+      ],
+      "params": {
+        "animFxPreset": "popIn",
+        "intensity": 1.1
+      }
+    },
+    {
+      "id": "v2-light-E439pgiab_",
+      "category": "light",
+      "presetId": "v2:light:candle",
+      "title": "Ánh sáng: Ngọn nến (Gió)",
+      "enabled": true,
+      "timeStart": 5,
+      "timeEnd": 10,
+      "targetLayerIds": [
+        "E439pgiab_"
+      ],
+      "targetLayerNames": [
+        "Đèn Trần Phòng 404"
+      ],
+      "params": {
+        "lightMode": "candle",
+        "lightColor": "#ff9f43",
+        "intensity": 0.48
+      }
+    },
+    {
+      "id": "v2-action-YjbSD3O8t-",
+      "category": "action",
+      "presetId": "v2:action:bbox_target",
+      "title": "Motion: Thực Thể Lao Xuyên Cửa 404",
+      "enabled": true,
+      "timeStart": 5.35,
+      "timeEnd": 8.8,
+      "targetLayerIds": [
+        "YjbSD3O8t-"
+      ],
+      "targetLayerNames": [
+        "Thực Thể Áp Sát Cửa 404"
+      ],
+      "params": {
+        "actionPreset": "bbox_target",
+        "intensity": 1
+      }
+    },
+    {
+      "id": "v2-fx_fade-YjbSD3O8t-",
+      "category": "fx",
+      "presetId": "v2:fx:neonBreathe",
+      "title": "FX: Hắc Quang Đỏ Thực Thể",
+      "enabled": true,
+      "timeStart": 5.35,
+      "timeEnd": 9.9,
+      "targetLayerIds": [
+        "YjbSD3O8t-"
+      ],
+      "targetLayerNames": [
+        "Thực Thể Áp Sát Cửa 404"
+      ],
+      "params": {
+        "fxKind": "wind_physics",
+        "intensity": 0.65
+      }
+    }
+  ],
+  "graph": {
+    "nodes": [
+      {
+        "id": "v2-root-wXNOzso_W9",
+        "type": "scene_shot",
+        "title": "#2 Cảnh 2: Cửa Phòng 404 Kính Mờ",
+        "enabled": true,
+        "position": {
+          "x": 48,
+          "y": 1374
+        },
+        "preset": "deep_parallax_stage",
+        "aiAgentRole": "SceneLayoutAgent",
+        "aiDirective": "Cảnh \"#2 Cảnh 2: Cửa Phòng 404 Kính Mờ\" [5s – 9.97s] điều phối Camera và các nhóm Layer.",
+        "params": {
+          "shotId": "wXNOzso_W9",
+          "timeStart": 5,
+          "timeEnd": 9.97,
+          "childLayerCount": 12
+        }
+      },
+      {
+        "id": "v2-camera-wXNOzso_W9",
+        "type": "camera_director",
+        "title": "Camera · Cảnh 2: Cửa Phòng 404 Kính Mờ",
+        "enabled": true,
+        "position": {
+          "x": 48,
+          "y": 1480
+        },
+        "preset": "cinematic_fly_push",
+        "aiAgentRole": "CameraDirectorAgent",
+        "aiDirective": "Camera quay cảnh \"Cảnh 2: Cửa Phòng 404 Kính Mờ\" gồm 3 mốc lộ trình trong [5s – 10s].",
+        "params": {
+          "shotId": "wXNOzso_W9",
+          "logicCategory": "camera",
+          "camPreset": "dollyIn",
+          "enableDof": false,
+          "childLayerCount": 3,
+          "timeStart": 5,
+          "timeEnd": 10,
+          "hierarchyParentNodeId": "v2-root-wXNOzso_W9"
+        }
+      },
+      {
+        "id": "v2-cam-wp-wXNOzso_W9-0",
+        "type": "camera_director",
+        "title": "#4 · Chuyển cảnh (Cắt) · Cảnh 2: Cửa Phòng 404 Kính Mờ",
+        "enabled": true,
+        "position": {
+          "x": 48,
+          "y": 1612
+        },
+        "preset": "cinematic_fly_push",
+        "aiAgentRole": "CameraDirectorAgent",
+        "aiDirective": "Cảnh con #4 (Chuyển cảnh (Cắt) · Cảnh 2: Cửa Phòng 404 Kính Mờ, Zoom 104%) thuộc \"Cảnh 2: Cửa Phòng 404 Kính Mờ\" [5s – 5.45s].",
+        "params": {
+          "shotId": "wXNOzso_W9",
+          "logicCategory": "camera",
+          "isCameraWaypoint": true,
+          "waypointIndex": 3,
+          "waypointLocalIndex": 0,
+          "waypointLabel": "4",
+          "isSubWaypoint": false,
+          "isFirstOfShot": true,
+          "camActionMode": "cut",
+          "camTagLabel": "Chuyển cảnh (Cắt) · Cảnh 2: Cửa Phòng 404 Kính Mờ",
+          "camZoomPct": 104,
+          "camStageX": 2458,
+          "camStageY": -10,
+          "camScale": 0.9598029881390224,
+          "camYaw": 0,
+          "camPitch": 0,
+          "camRoll": 0,
+          "camEase": "easeOut",
+          "camStepDuration": 0.45,
+          "timeStart": 5,
+          "timeEnd": 5.45,
+          "hierarchyParentNodeId": "v2-camera-wXNOzso_W9"
+        }
+      },
+      {
+        "id": "v2-cam-wp-wXNOzso_W9-1",
+        "type": "camera_director",
+        "title": "#5 · Đẩy cận (135%)",
+        "enabled": true,
+        "position": {
+          "x": 48,
+          "y": 1744
+        },
+        "preset": "cinematic_fly_push",
+        "aiAgentRole": "CameraDirectorAgent",
+        "aiDirective": "Cảnh con #5 (Đẩy cận (135%), Zoom 135%) thuộc \"Cảnh 2: Cửa Phòng 404 Kính Mờ\" [5.45s – 9.2s].",
+        "params": {
+          "shotId": "wXNOzso_W9",
+          "logicCategory": "camera",
+          "isCameraWaypoint": true,
+          "waypointIndex": 4,
+          "waypointLocalIndex": 1,
+          "waypointLabel": "5",
+          "isSubWaypoint": false,
+          "isFirstOfShot": false,
+          "camActionMode": "push-in",
+          "camTagLabel": "Đẩy cận (135%)",
+          "camZoomPct": 135,
+          "camStageX": 2403,
+          "camStageY": -48,
+          "camScale": 0.7397231334468085,
+          "camYaw": -3,
+          "camPitch": 0,
+          "camRoll": -2.2,
+          "camEase": "easeInOut",
+          "camStepDuration": 3.75,
+          "timeStart": 5.45,
+          "timeEnd": 9.2,
+          "hierarchyParentNodeId": "v2-camera-wXNOzso_W9"
+        }
+      },
+      {
+        "id": "v2-cam-wp-wXNOzso_W9-2",
+        "type": "camera_director",
+        "title": "#6 · Dừng ngắm (+0.8s)",
+        "enabled": true,
+        "position": {
+          "x": 48,
+          "y": 1876
+        },
+        "preset": "cinematic_fly_push",
+        "aiAgentRole": "CameraDirectorAgent",
+        "aiDirective": "Cảnh con #6 (Dừng ngắm (+0.8s), Zoom 143%) thuộc \"Cảnh 2: Cửa Phòng 404 Kính Mờ\" [9.2s – 10s].",
+        "params": {
+          "shotId": "wXNOzso_W9",
+          "logicCategory": "camera",
+          "isCameraWaypoint": true,
+          "waypointIndex": 5,
+          "waypointLocalIndex": 2,
+          "waypointLabel": "6",
+          "isSubWaypoint": false,
+          "isFirstOfShot": false,
+          "camActionMode": "hold",
+          "camTagLabel": "Dừng ngắm (+0.8s)",
+          "camZoomPct": 143,
+          "camStageX": 2423,
+          "camStageY": -58,
+          "camScale": 0.7000523209153562,
+          "camYaw": -2,
+          "camPitch": 0,
+          "camRoll": -2.5,
+          "camEase": "hold",
+          "camStepDuration": 0.8,
+          "timeStart": 9.2,
+          "timeEnd": 10,
+          "hierarchyParentNodeId": "v2-camera-wXNOzso_W9"
+        }
+      },
+      {
+        "id": "v2-group-3d-wXNOzso_W9",
+        "type": "layer_assembly",
+        "title": "Nhóm 3D & Lắp ráp",
+        "enabled": true,
+        "position": {
+          "x": 472,
+          "y": 1462
+        },
+        "preset": "character_prop_cluster",
+        "aiAgentRole": "AssemblyRigAgent",
+        "aiDirective": "Nhóm 3D & Lắp ráp gồm 7 đối tượng.",
+        "params": {
+          "shotId": "wXNOzso_W9",
+          "groupKind": "group_3d",
+          "isAssemblyRoot": true,
+          "childLayerCount": 7,
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "lJ3VVALyfa",
+            "mE4o_s0fPN",
+            "eLOOI25F7m",
+            "QrGhGr-UXb",
+            "CKs0BKAHVf",
+            "aTk3_1Hy75",
+            "TarHcsx2wj"
+          ],
+          "timeStart": 5,
+          "timeEnd": 10,
+          "hierarchyParentNodeId": "v2-root-wXNOzso_W9"
+        }
+      },
+      {
+        "id": "v2-layer-lJ3VVALyfa",
+        "type": "layer_assembly",
+        "title": "Thám Tử Cảnh 2 · Mặt Điềm Tĩnh",
+        "enabled": true,
+        "position": {
+          "x": 896,
+          "y": 1374
+        },
+        "preset": "character_prop_cluster",
+        "aiAgentRole": "AssemblyRigAgent",
+        "aiDirective": "Layer \"Thám Tử Cảnh 2 · Mặt Điềm Tĩnh\" hoạt động từ 5s đến 10s.",
+        "params": {
+          "shotId": "wXNOzso_W9",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "lJ3VVALyfa"
+          ],
+          "requireLayerConnection": true,
+          "assemblyKind": "composite",
+          "instanceId": "hb-hero-2",
+          "compositeId": "hanbeta-detective-hero",
+          "lockedGroup": true,
+          "childLayerCount": 1,
+          "transformX": -290,
+          "transformY": 184,
+          "transformZ": 258,
+          "timeStart": 5,
+          "timeEnd": 10,
+          "hierarchyParentNodeId": "v2-group-3d-wXNOzso_W9"
+        }
+      },
+      {
+        "id": "v2-layer-mE4o_s0fPN",
+        "type": "layer_assembly",
+        "title": "Thám Tử Cảnh 2 · Mặt Cười Nửa Miệng",
+        "enabled": false,
+        "position": {
+          "x": 896,
+          "y": 1374
+        },
+        "preset": "character_prop_cluster",
+        "aiAgentRole": "AssemblyRigAgent",
+        "aiDirective": "Layer \"Thám Tử Cảnh 2 · Mặt Cười Nửa Miệng\" hoạt động từ 5s đến 10s.",
+        "params": {
+          "shotId": "wXNOzso_W9",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "mE4o_s0fPN"
+          ],
+          "requireLayerConnection": true,
+          "assemblyKind": "composite",
+          "instanceId": "hb-hero-2",
+          "compositeId": "hanbeta-detective-hero",
+          "lockedGroup": true,
+          "childLayerCount": 1,
+          "transformX": -290,
+          "transformY": 184,
+          "transformZ": 258,
+          "timeStart": 5,
+          "timeEnd": 10,
+          "hierarchyParentNodeId": "v2-group-3d-wXNOzso_W9"
+        }
+      },
+      {
+        "id": "v2-layer-eLOOI25F7m",
+        "type": "layer_assembly",
+        "title": "Thám Tử Cảnh 2 · Mặt Kinh Ngạc",
+        "enabled": true,
+        "position": {
+          "x": 896,
+          "y": 1374
+        },
+        "preset": "character_prop_cluster",
+        "aiAgentRole": "AssemblyRigAgent",
+        "aiDirective": "Layer \"Thám Tử Cảnh 2 · Mặt Kinh Ngạc\" hoạt động từ 5s đến 10s.",
+        "params": {
+          "shotId": "wXNOzso_W9",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "eLOOI25F7m"
+          ],
+          "requireLayerConnection": true,
+          "assemblyKind": "composite",
+          "instanceId": "hb-hero-2",
+          "compositeId": "hanbeta-detective-hero",
+          "lockedGroup": true,
+          "childLayerCount": 1,
+          "transformX": -290,
+          "transformY": 184,
+          "transformZ": 258,
+          "timeStart": 5,
+          "timeEnd": 10,
+          "hierarchyParentNodeId": "v2-group-3d-wXNOzso_W9"
+        }
+      },
+      {
+        "id": "v2-layer-QrGhGr-UXb",
+        "type": "layer_assembly",
+        "title": "Thám Tử Cảnh 2 · Tay Cầm Tờ Quy Tắc",
+        "enabled": true,
+        "position": {
+          "x": 896,
+          "y": 1374
+        },
+        "preset": "character_prop_cluster",
+        "aiAgentRole": "AssemblyRigAgent",
+        "aiDirective": "Layer \"Thám Tử Cảnh 2 · Tay Cầm Tờ Quy Tắc\" hoạt động từ 5s đến 10s.",
+        "params": {
+          "shotId": "wXNOzso_W9",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "QrGhGr-UXb"
+          ],
+          "requireLayerConnection": true,
+          "assemblyKind": "composite",
+          "instanceId": "hb-hero-2",
+          "compositeId": "hanbeta-detective-hero",
+          "lockedGroup": true,
+          "childLayerCount": 1,
+          "transformX": -274,
+          "transformY": 54,
+          "transformZ": 256,
+          "timeStart": 5,
+          "timeEnd": 10,
+          "hierarchyParentNodeId": "v2-group-3d-wXNOzso_W9"
+        }
+      },
+      {
+        "id": "v2-layer-CKs0BKAHVf",
+        "type": "layer_assembly",
+        "title": "Thám Tử Cảnh 2 · Thân & Chân",
+        "enabled": true,
+        "position": {
+          "x": 896,
+          "y": 1462
+        },
+        "preset": "character_prop_cluster",
+        "aiAgentRole": "AssemblyRigAgent",
+        "aiDirective": "Layer \"Thám Tử Cảnh 2 · Thân & Chân\" hoạt động từ 5s đến 10s.",
+        "params": {
+          "shotId": "wXNOzso_W9",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "CKs0BKAHVf"
+          ],
+          "requireLayerConnection": true,
+          "assemblyKind": "composite",
+          "instanceId": "hb-hero-2",
+          "compositeId": "hanbeta-detective-hero",
+          "lockedGroup": true,
+          "rootLayerId": "CKs0BKAHVf",
+          "childLayerCount": 1,
+          "transformX": -290,
+          "transformY": -160,
+          "transformZ": 260,
+          "timeStart": 5,
+          "timeEnd": 10,
+          "hierarchyParentNodeId": "v2-group-3d-wXNOzso_W9"
+        }
+      },
+      {
+        "id": "v2-layer-aTk3_1Hy75",
+        "type": "layer_assembly",
+        "title": "Thám Tử Cảnh 2 · Tay Trái",
+        "enabled": true,
+        "position": {
+          "x": 896,
+          "y": 1656
+        },
+        "preset": "character_prop_cluster",
+        "aiAgentRole": "AssemblyRigAgent",
+        "aiDirective": "Layer \"Thám Tử Cảnh 2 · Tay Trái\" hoạt động từ 5s đến 10s.",
+        "params": {
+          "shotId": "wXNOzso_W9",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "aTk3_1Hy75"
+          ],
+          "requireLayerConnection": true,
+          "assemblyKind": "composite",
+          "instanceId": "hb-hero-2",
+          "compositeId": "hanbeta-detective-hero",
+          "lockedGroup": true,
+          "childLayerCount": 1,
+          "transformX": -236,
+          "transformY": -54,
+          "transformZ": 264,
+          "timeStart": 5,
+          "timeEnd": 10,
+          "hierarchyParentNodeId": "v2-group-3d-wXNOzso_W9"
+        }
+      },
+      {
+        "id": "v2-layer-TarHcsx2wj",
+        "type": "layer_assembly",
+        "title": "Thám Tử Cảnh 2 · Vạt Áo Khoác",
+        "enabled": true,
+        "position": {
+          "x": 896,
+          "y": 1656
+        },
+        "preset": "character_prop_cluster",
+        "aiAgentRole": "AssemblyRigAgent",
+        "aiDirective": "Layer \"Thám Tử Cảnh 2 · Vạt Áo Khoác\" hoạt động từ 5s đến 10s.",
+        "params": {
+          "shotId": "wXNOzso_W9",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "TarHcsx2wj"
+          ],
+          "requireLayerConnection": true,
+          "assemblyKind": "composite",
+          "instanceId": "hb-hero-2",
+          "compositeId": "hanbeta-detective-hero",
+          "lockedGroup": true,
+          "childLayerCount": 1,
+          "transformX": -400,
+          "transformY": -285,
+          "transformZ": 268,
+          "timeStart": 5,
+          "timeEnd": 10,
+          "hierarchyParentNodeId": "v2-group-3d-wXNOzso_W9"
+        }
+      },
+      {
+        "id": "v2-cluster-hb-hero-2",
+        "type": "layer_transform",
+        "title": "Khoá cụm: Thám Tử Quy Tắc (Hàn Bối Tháp)",
+        "enabled": true,
+        "position": {
+          "x": 1320,
+          "y": 1462
+        },
+        "preset": "character_prop_cluster",
+        "aiAgentRole": "LayerTransformAgent",
+        "aiDirective": "Node Khoá Cụm \"Thám Tử Quy Tắc (Hàn Bối Tháp)\" (7/7 lớp đang khoá theo cụm).",
+        "params": {
+          "shotId": "wXNOzso_W9",
+          "logicCategory": "cluster_lock",
+          "assemblyKind": "composite",
+          "instanceId": "hb-hero-2",
+          "compositeId": "hanbeta-detective-hero",
+          "lockedGroup": true,
+          "rootLayerId": "CKs0BKAHVf",
+          "collapsedSubLayers": true,
+          "childLayerCount": 7,
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "lJ3VVALyfa",
+            "mE4o_s0fPN",
+            "eLOOI25F7m",
+            "QrGhGr-UXb",
+            "CKs0BKAHVf",
+            "aTk3_1Hy75",
+            "TarHcsx2wj"
+          ],
+          "sharedLayerNodeIds": [
+            "v2-layer-lJ3VVALyfa",
+            "v2-layer-mE4o_s0fPN",
+            "v2-layer-eLOOI25F7m",
+            "v2-layer-QrGhGr-UXb",
+            "v2-layer-CKs0BKAHVf",
+            "v2-layer-aTk3_1Hy75",
+            "v2-layer-TarHcsx2wj"
+          ],
+          "requireLayerConnection": true,
+          "transformX": -290,
+          "transformY": -160,
+          "transformZ": 260,
+          "clusterScalePct": 52,
+          "timeStart": 5,
+          "timeEnd": 10,
+          "hierarchyParentNodeId": "v2-layer-CKs0BKAHVf"
+        }
+      },
+      {
+        "id": "v2-group-25d-wXNOzso_W9",
+        "type": "layer_assembly",
+        "title": "Nhóm Layer 2.5D",
+        "enabled": true,
+        "position": {
+          "x": 472,
+          "y": 2010
+        },
+        "preset": "character_prop_cluster",
+        "aiAgentRole": "AssemblyRigAgent",
+        "aiDirective": "Nhóm Layer 2.5D gồm 5 đối tượng.",
+        "params": {
+          "shotId": "wXNOzso_W9",
+          "groupKind": "group_25d",
+          "isAssemblyRoot": true,
+          "childLayerCount": 5,
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "Cd8wOg2d_c",
+            "wMBw9UDWVW",
+            "E439pgiab_",
+            "YjbSD3O8t-",
+            "s9_MQuzU0C"
+          ],
+          "timeStart": 5,
+          "timeEnd": 10,
+          "hierarchyParentNodeId": "v2-root-wXNOzso_W9"
+        }
+      },
+      {
+        "id": "v2-layer-Cd8wOg2d_c",
+        "type": "layer_assembly",
+        "title": "Tiền Cảnh Bùa Niêm Cửa 404",
+        "enabled": true,
+        "position": {
+          "x": 896,
+          "y": 1666
+        },
+        "preset": "character_prop_cluster",
+        "aiAgentRole": "AssemblyRigAgent",
+        "aiDirective": "Layer \"Tiền Cảnh Bùa Niêm Cửa 404\" hoạt động từ 5s đến 10s.",
+        "params": {
+          "shotId": "wXNOzso_W9",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "Cd8wOg2d_c"
+          ],
+          "requireLayerConnection": true,
+          "childLayerCount": 1,
+          "transformX": 10,
+          "transformY": 420,
+          "transformZ": -180,
+          "timeStart": 5,
+          "timeEnd": 10,
+          "hierarchyParentNodeId": "v2-group-25d-wXNOzso_W9"
+        }
+      },
+      {
+        "id": "v2-layer-wMBw9UDWVW",
+        "type": "layer_assembly",
+        "title": "Sương Lạnh Phòng 404",
+        "enabled": true,
+        "position": {
+          "x": 896,
+          "y": 1816
+        },
+        "preset": "character_prop_cluster",
+        "aiAgentRole": "AssemblyRigAgent",
+        "aiDirective": "Layer \"Sương Lạnh Phòng 404\" hoạt động từ 5s đến 10s.",
+        "params": {
+          "shotId": "wXNOzso_W9",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "wMBw9UDWVW"
+          ],
+          "requireLayerConnection": true,
+          "childLayerCount": 1,
+          "transformX": 0,
+          "transformY": -420,
+          "transformZ": -60,
+          "timeStart": 5,
+          "timeEnd": 10,
+          "hierarchyParentNodeId": "v2-group-25d-wXNOzso_W9"
+        }
+      },
+      {
+        "id": "v2-layer-E439pgiab_",
+        "type": "layer_assembly",
+        "title": "Đèn Trần Phòng 404",
+        "enabled": true,
+        "position": {
+          "x": 896,
+          "y": 2010
+        },
+        "preset": "character_prop_cluster",
+        "aiAgentRole": "AssemblyRigAgent",
+        "aiDirective": "Layer \"Đèn Trần Phòng 404\" hoạt động từ 5s đến 10s.",
+        "params": {
+          "shotId": "wXNOzso_W9",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "E439pgiab_"
+          ],
+          "requireLayerConnection": true,
+          "childLayerCount": 1,
+          "transformX": -25,
+          "transformY": 325,
+          "transformZ": 620,
+          "timeStart": 5,
+          "timeEnd": 10,
+          "hierarchyParentNodeId": "v2-group-25d-wXNOzso_W9"
+        }
+      },
+      {
+        "id": "v2-layer-YjbSD3O8t-",
+        "type": "layer_assembly",
+        "title": "Thực Thể Áp Sát Cửa 404",
+        "enabled": true,
+        "position": {
+          "x": 896,
+          "y": 2204
+        },
+        "preset": "character_prop_cluster",
+        "aiAgentRole": "AssemblyRigAgent",
+        "aiDirective": "Layer \"Thực Thể Áp Sát Cửa 404\" hoạt động từ 5s đến 10s.",
+        "params": {
+          "shotId": "wXNOzso_W9",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "YjbSD3O8t-"
+          ],
+          "requireLayerConnection": true,
+          "childLayerCount": 1,
+          "transformX": 240,
+          "transformY": 0,
+          "transformZ": 950,
+          "timeStart": 5,
+          "timeEnd": 10,
+          "hierarchyParentNodeId": "v2-group-25d-wXNOzso_W9"
+        }
+      },
+      {
+        "id": "v2-layer-s9_MQuzU0C",
+        "type": "layer_assembly",
+        "title": "Nền Cửa Kính Phòng 404",
+        "enabled": true,
+        "position": {
+          "x": 896,
+          "y": 2354
+        },
+        "preset": "character_prop_cluster",
+        "aiAgentRole": "AssemblyRigAgent",
+        "aiDirective": "Layer \"Nền Cửa Kính Phòng 404\" hoạt động từ 5s đến 10s.",
+        "params": {
+          "shotId": "wXNOzso_W9",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "s9_MQuzU0C"
+          ],
+          "requireLayerConnection": true,
+          "childLayerCount": 1,
+          "transformX": 0,
+          "transformY": 0,
+          "transformZ": 2400,
+          "timeStart": 5,
+          "timeEnd": 10,
+          "hierarchyParentNodeId": "v2-group-25d-wXNOzso_W9"
+        }
+      },
+      {
+        "id": "v2-fx-hb-hero-2",
+        "type": "physics_fx",
+        "preset": "rim_glow_particles",
+        "aiAgentRole": "PhysicsLightFxAgent",
+        "title": "Hiện/Ẩn: Hiện 0.1s · Ẩn 0.1s",
+        "enabled": true,
+        "position": {
+          "x": 1744,
+          "y": 1374
+        },
+        "aiDirective": "Hiện/Ẩn: Hiện 0.1s · Ẩn 0.1s cho \"Khoá cụm: Thám Tử Quy Tắc (Hàn Bối Tháp)\".",
+        "params": {
+          "shotId": "wXNOzso_W9",
+          "logicCategory": "fx",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "lJ3VVALyfa",
+            "mE4o_s0fPN",
+            "eLOOI25F7m",
+            "QrGhGr-UXb",
+            "CKs0BKAHVf",
+            "aTk3_1Hy75",
+            "TarHcsx2wj"
+          ],
+          "sharedLayerNodeIds": [
+            "v2-cluster-hb-hero-2"
+          ],
+          "requireLayerConnection": true,
+          "hierarchyParentNodeId": "v2-cluster-hb-hero-2",
+          "animMode": "keyframe_fx",
+          "fxAtomicRole": "fade",
+          "fxSubTab": "opacity",
+          "animFxPreset": "fadeInOut",
+          "animFxCount": 2,
+          "intensity": 1,
+          "loopFadeInSec": 0.15,
+          "loopFadeOutSec": 0.15,
+          "loopEndAction": "fade_out",
+          "timeStart": 5,
+          "timeEnd": 10,
+          "instanceId": "hb-hero-2",
+          "rootLayerId": "CKs0BKAHVf",
+          "pipelineStepIndex": 1
+        }
+      },
+      {
+        "id": "v2-fx-Cd8wOg2d_c",
+        "type": "physics_fx",
+        "preset": "rim_glow_particles",
+        "aiAgentRole": "PhysicsLightFxAgent",
+        "title": "Hiện/Ẩn: Hiện 0.2s · Ẩn 0.2s",
+        "enabled": true,
+        "position": {
+          "x": 1320,
+          "y": 1666
+        },
+        "aiDirective": "Hiện/Ẩn: Hiện 0.2s · Ẩn 0.2s cho \"Tiền Cảnh Bùa Niêm Cửa 404\".",
+        "params": {
+          "shotId": "wXNOzso_W9",
+          "logicCategory": "fx",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "Cd8wOg2d_c"
+          ],
+          "sharedLayerNodeIds": [
+            "v2-layer-Cd8wOg2d_c"
+          ],
+          "requireLayerConnection": true,
+          "hierarchyParentNodeId": "v2-layer-Cd8wOg2d_c",
+          "animMode": "keyframe_fx",
+          "fxAtomicRole": "fade",
+          "fxSubTab": "opacity",
+          "animFxPreset": "fadeInOut",
+          "animFxCount": 2,
+          "intensity": 1,
+          "loopFadeInSec": 0.2,
+          "loopFadeOutSec": 0.2,
+          "loopEndAction": "fade_out",
+          "timeStart": 5,
+          "timeEnd": 10,
+          "pipelineStepIndex": 1
+        }
+      },
+      {
+        "id": "v2-action-wMBw9UDWVW",
+        "type": "motion_choreography",
+        "preset": "organic_wind_breathe",
+        "aiAgentRole": "MotionChoreographyAgent",
+        "title": "Hành động: Bay lơ lửng",
+        "enabled": true,
+        "position": {
+          "x": 1320,
+          "y": 1772
+        },
+        "aiDirective": "Hành động: Bay lơ lửng cho \"Sương Lạnh Phòng 404\".",
+        "params": {
+          "shotId": "wXNOzso_W9",
+          "logicCategory": "action",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "wMBw9UDWVW"
+          ],
+          "sharedLayerNodeIds": [
+            "v2-layer-wMBw9UDWVW"
+          ],
+          "requireLayerConnection": true,
+          "hierarchyParentNodeId": "v2-layer-wMBw9UDWVW",
+          "actionPreset": "float",
+          "motionMode": "cycle",
+          "intensity": 0.6,
+          "timeStart": 5,
+          "timeEnd": 10,
+          "pipelineStepIndex": 1
+        }
+      },
+      {
+        "id": "v2-fx-wMBw9UDWVW",
+        "type": "physics_fx",
+        "preset": "rim_glow_particles",
+        "aiAgentRole": "PhysicsLightFxAgent",
+        "title": "Hiện/Ẩn: Hiện 0.2s · Ẩn 0.2s",
+        "enabled": true,
+        "position": {
+          "x": 1320,
+          "y": 1860
+        },
+        "aiDirective": "Hiện/Ẩn: Hiện 0.2s · Ẩn 0.2s cho \"Sương Lạnh Phòng 404\".",
+        "params": {
+          "shotId": "wXNOzso_W9",
+          "logicCategory": "fx",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "wMBw9UDWVW"
+          ],
+          "sharedLayerNodeIds": [
+            "v2-layer-wMBw9UDWVW"
+          ],
+          "requireLayerConnection": true,
+          "hierarchyParentNodeId": "v2-layer-wMBw9UDWVW",
+          "animMode": "keyframe_fx",
+          "fxAtomicRole": "fade",
+          "fxSubTab": "opacity",
+          "animFxPreset": "fadeInOut",
+          "animFxCount": 2,
+          "intensity": 1,
+          "loopFadeInSec": 0.2,
+          "loopFadeOutSec": 0.2,
+          "loopEndAction": "fade_out",
+          "timeStart": 5,
+          "timeEnd": 10,
+          "pipelineStepIndex": 1
+        }
+      },
+      {
+        "id": "v2-fx-E439pgiab_",
+        "type": "physics_fx",
+        "preset": "rim_glow_particles",
+        "aiAgentRole": "PhysicsLightFxAgent",
+        "title": "Hiện/Ẩn: Hiện 0.2s · Ẩn 0.2s",
+        "enabled": true,
+        "position": {
+          "x": 1320,
+          "y": 2054
+        },
+        "aiDirective": "Hiện/Ẩn: Hiện 0.2s · Ẩn 0.2s cho \"Đèn Trần Phòng 404\".",
+        "params": {
+          "shotId": "wXNOzso_W9",
+          "logicCategory": "fx",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "E439pgiab_"
+          ],
+          "sharedLayerNodeIds": [
+            "v2-layer-E439pgiab_"
+          ],
+          "requireLayerConnection": true,
+          "hierarchyParentNodeId": "v2-layer-E439pgiab_",
+          "animMode": "keyframe_fx",
+          "fxAtomicRole": "fade",
+          "fxSubTab": "opacity",
+          "animFxPreset": "fadeInOut",
+          "animFxCount": 2,
+          "intensity": 1,
+          "loopFadeInSec": 0.2,
+          "loopFadeOutSec": 0.2,
+          "loopEndAction": "fade_out",
+          "timeStart": 5,
+          "timeEnd": 10,
+          "pipelineStepIndex": 1
+        }
+      },
+      {
+        "id": "v2-fx-YjbSD3O8t-",
+        "type": "physics_fx",
+        "preset": "rim_glow_particles",
+        "aiAgentRole": "PhysicsLightFxAgent",
+        "title": "Hiện/Ẩn: Hiện 0.5s · Ẩn 0.5s",
+        "enabled": true,
+        "position": {
+          "x": 1320,
+          "y": 2248
+        },
+        "aiDirective": "Hiện/Ẩn: Hiện 0.2s · Ẩn 0.2s cho \"Thực Thể Áp Sát Cửa 404\".",
+        "params": {
+          "shotId": "wXNOzso_W9",
+          "logicCategory": "fx",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "YjbSD3O8t-"
+          ],
+          "sharedLayerNodeIds": [
+            "v2-layer-YjbSD3O8t-"
+          ],
+          "requireLayerConnection": true,
+          "hierarchyParentNodeId": "v2-layer-YjbSD3O8t-",
+          "animMode": "keyframe_fx",
+          "fxAtomicRole": "fade",
+          "fxSubTab": "opacity",
+          "animFxPreset": "fadeInOut",
+          "animFxCount": 2,
+          "intensity": 1,
+          "loopFadeInSec": 0.5,
+          "loopFadeOutSec": 0.5,
+          "loopEndAction": "fade_out",
+          "timeStart": 5,
+          "timeEnd": 10,
+          "pipelineStepIndex": 1
+        }
+      },
+      {
+        "id": "v2-fx-s9_MQuzU0C",
+        "type": "physics_fx",
+        "preset": "rim_glow_particles",
+        "aiAgentRole": "PhysicsLightFxAgent",
+        "title": "Hiện/Ẩn: Hiện 0.2s · Ẩn 0.2s",
+        "enabled": true,
+        "position": {
+          "x": 1320,
+          "y": 2354
+        },
+        "aiDirective": "Hiện/Ẩn: Hiện 0.2s · Ẩn 0.2s cho \"Nền Cửa Kính Phòng 404\".",
+        "params": {
+          "shotId": "wXNOzso_W9",
+          "logicCategory": "fx",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "s9_MQuzU0C"
+          ],
+          "sharedLayerNodeIds": [
+            "v2-layer-s9_MQuzU0C"
+          ],
+          "requireLayerConnection": true,
+          "hierarchyParentNodeId": "v2-layer-s9_MQuzU0C",
+          "animMode": "keyframe_fx",
+          "fxAtomicRole": "fade",
+          "fxSubTab": "opacity",
+          "animFxPreset": "fadeInOut",
+          "animFxCount": 2,
+          "intensity": 1,
+          "loopFadeInSec": 0.2,
+          "loopFadeOutSec": 0.2,
+          "loopEndAction": "fade_out",
+          "timeStart": 5,
+          "timeEnd": 10,
+          "pipelineStepIndex": 1
+        }
+      },
+      {
+        "id": "v2-part_swap-hb-hero-2",
+        "type": "layer_transform",
+        "title": "Bộ phận: Cụm 2.5D",
+        "enabled": true,
+        "position": {
+          "x": 1744,
+          "y": 1462
+        },
+        "preset": "rim_glow_particles",
+        "aiAgentRole": "LayerTransformAgent",
+        "aiDirective": "Điều phối 1 Node con Bộ phận của cụm \"Khoá cụm: Thám Tử Quy Tắc (Hàn Bối Tháp)\".",
+        "params": {
+          "shotId": "wXNOzso_W9",
+          "logicCategory": "part_swap",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "lJ3VVALyfa",
+            "mE4o_s0fPN",
+            "eLOOI25F7m",
+            "QrGhGr-UXb",
+            "CKs0BKAHVf",
+            "aTk3_1Hy75",
+            "TarHcsx2wj"
+          ],
+          "sharedLayerNodeIds": [
+            "v2-cluster-hb-hero-2"
+          ],
+          "requireLayerConnection": true,
+          "timeStart": 5,
+          "timeEnd": 10,
+          "hierarchyParentNodeId": "v2-cluster-hb-hero-2",
+          "instanceId": "hb-hero-2",
+          "swapMode": "part_variant",
+          "intensity": 1,
+          "rootLayerId": "CKs0BKAHVf",
+          "pipelineStepIndex": 1,
+          "isPartHub": true,
+          "childLayerCount": 1,
+          "compositeId": "hanbeta-detective-hero"
+        }
+      },
+      {
+        "id": "v2-partchild-hb-hero-2-slot:expression",
+        "type": "layer_assembly",
+        "title": "Bộ phận: Giật Mình Kinh Ngạc 404",
+        "enabled": true,
+        "position": {
+          "x": 2168,
+          "y": 1462
+        },
+        "preset": "composite_part_swap",
+        "aiAgentRole": "AssemblyRigAgent",
+        "aiDirective": "Điều khiển bộ phận \"expression\" (3 mảnh) theo mốc giây.",
+        "params": {
+          "shotId": "wXNOzso_W9",
+          "logicCategory": "part_swap",
+          "isPartChild": true,
+          "partGroupId": "slot:expression",
+          "partGroupTitle": "expression",
+          "partIcon": "🧩",
+          "instanceId": "hb-hero-2",
+          "compositeId": "hanbeta-detective-hero",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "lJ3VVALyfa",
+            "mE4o_s0fPN",
+            "eLOOI25F7m"
+          ],
+          "sharedLayerNodeIds": [
+            "v2-part_swap-hb-hero-2"
+          ],
+          "requireLayerConnection": true,
+          "hierarchyParentNodeId": "v2-part_swap-hb-hero-2",
+          "swapMode": "part_variant",
+          "swapVariant": "eLOOI25F7m",
+          "partActionMode": "variant",
+          "timeStart": 5.35,
+          "timeEnd": 9.95,
+          "swapSlot": "expression",
+          "swapTargetLayerId": "eLOOI25F7m",
+          "partSwapHoldAfterEnd": true,
+          "localTimeRange": {
+            "start": 5.35,
+            "end": 9.95
+          }
+        }
+      },
+      {
+        "id": "v2-anim_fx-hb-hero-2",
+        "type": "motion_choreography",
+        "title": "Hành động Nhân vật: Giật mình Quái Đàm",
+        "enabled": true,
+        "position": {
+          "x": 1744,
+          "y": 1550
+        },
+        "preset": "organic_wind_breathe",
+        "aiAgentRole": "MotionChoreographyAgent",
+        "aiDirective": "Hành động: Giật Lùi Khi Thực Thể Áp Sát cho \"Khoá cụm: Thám Tử Quy Tắc (Hàn Bối Tháp)\".",
+        "params": {
+          "shotId": "wXNOzso_W9",
+          "logicCategory": "anim_fx",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "lJ3VVALyfa",
+            "mE4o_s0fPN",
+            "eLOOI25F7m",
+            "QrGhGr-UXb",
+            "CKs0BKAHVf",
+            "aTk3_1Hy75",
+            "TarHcsx2wj"
+          ],
+          "sharedLayerNodeIds": [
+            "v2-cluster-hb-hero-2"
+          ],
+          "requireLayerConnection": true,
+          "timeStart": 5.05,
+          "timeEnd": 9.95,
+          "hierarchyParentNodeId": "v2-cluster-hb-hero-2",
+          "instanceId": "hb-hero-2",
+          "animMode": "rig_clip",
+          "rigActionPreset": "shock",
+          "intensity": 1.1,
+          "rootLayerId": "CKs0BKAHVf",
+          "pipelineStepIndex": 1
+        }
+      },
+      {
+        "id": "v2-light-E439pgiab_",
+        "type": "physics_fx",
+        "title": "Ánh sáng: Ngọn nến (Gió)",
+        "enabled": true,
+        "position": {
+          "x": 1320,
+          "y": 1966
+        },
+        "preset": "rim_glow_particles",
+        "aiAgentRole": "PhysicsLightFxAgent",
+        "aiDirective": "Ánh sáng: Đèn Chập Chờn Phòng 404 cho \"Đèn Trần Phòng 404\".",
+        "params": {
+          "shotId": "wXNOzso_W9",
+          "logicCategory": "light",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "E439pgiab_"
+          ],
+          "sharedLayerNodeIds": [
+            "v2-layer-E439pgiab_"
+          ],
+          "requireLayerConnection": true,
+          "timeStart": 5,
+          "timeEnd": 10,
+          "hierarchyParentNodeId": "v2-layer-E439pgiab_",
+          "lightMode": "candle",
+          "lightColor": "#ff9f43",
+          "intensity": 0.48,
+          "pipelineStepIndex": 1,
+          "lightBehavior": "wind_reactive",
+          "lightWindPreset": "gentle",
+          "lightRayIntensity": 0.24,
+          "lightRayDynamic": true,
+          "lightEnvBounce": 0.9,
+          "lightZReachFront": 1500,
+          "lightZReachBack": 1500
+        }
+      },
+      {
+        "id": "v2-action-YjbSD3O8t-",
+        "type": "motion_choreography",
+        "title": "Motion: Thực Thể Lao Xuyên Cửa 404",
+        "enabled": true,
+        "position": {
+          "x": 1320,
+          "y": 2160
+        },
+        "preset": "organic_wind_breathe",
+        "aiAgentRole": "MotionChoreographyAgent",
+        "aiDirective": "Motion: Thực Thể Lao Xuyên Cửa 404 cho \"Thực Thể Áp Sát Cửa 404\".",
+        "params": {
+          "shotId": "wXNOzso_W9",
+          "logicCategory": "action",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "YjbSD3O8t-"
+          ],
+          "sharedLayerNodeIds": [
+            "v2-layer-YjbSD3O8t-"
+          ],
+          "requireLayerConnection": true,
+          "timeStart": 5.35,
+          "timeEnd": 8.8,
+          "hierarchyParentNodeId": "v2-layer-YjbSD3O8t-",
+          "actionPreset": "bbox_target",
+          "motionMode": "bbox",
+          "bboxPathType": "shortest",
+          "bboxTargetScalePct": 122,
+          "depthMode": "keep",
+          "intensity": 1,
+          "bboxTargetX": 165,
+          "bboxTargetY": 25,
+          "bboxStartZ": 950,
+          "bboxTargetZ": 460,
+          "pipelineStepIndex": 1,
+          "localTimeRange": {
+            "start": 5.35,
+            "end": 8.8
+          }
+        }
+      },
+      {
+        "id": "v2-fx_fade-YjbSD3O8t-",
+        "type": "physics_fx",
+        "title": "FX: Hắc Quang Đỏ Thực Thể",
+        "enabled": true,
+        "position": {
+          "x": 1744,
+          "y": 2160
+        },
+        "preset": "rim_glow_particles",
+        "aiAgentRole": "PhysicsLightFxAgent",
+        "aiDirective": "FX: Hắc Quang Đỏ Thực Thể (bước B2 sau \"Motion: Thực Thể Lao Xuyên Cửa 404\").",
+        "params": {
+          "shotId": "wXNOzso_W9",
+          "logicCategory": "fx",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "YjbSD3O8t-"
+          ],
+          "sharedLayerNodeIds": [
+            "v2-layer-YjbSD3O8t-"
+          ],
+          "requireLayerConnection": true,
+          "timeStart": 5.35,
+          "timeEnd": 9.9,
+          "hierarchyParentNodeId": "v2-layer-YjbSD3O8t-",
+          "upstreamLogicNodeId": "v2-action-YjbSD3O8t-",
+          "pipelineStepIndex": 2,
+          "fxAtomicRole": "fade",
+          "fxSubTab": "opacity",
+          "animFxPreset": "neonBreathe",
+          "loopFadeInSec": 0.5,
+          "loopEndAction": "fade_out",
+          "loopFadeOutSec": 0.5,
+          "intensity": 0.65,
+          "animFxColor": "#ff2b4a",
+          "animFxThickness": 8,
+          "animFxSpeed": 1.6,
+          "localTimeRange": {
+            "start": 5.35,
+            "end": 9.9
+          }
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-v2-root-wXNOzso_W9-v2-camera-wXNOzso_W9",
+        "fromNode": "v2-root-wXNOzso_W9",
+        "fromPort": "scene_ctx",
+        "toNode": "v2-camera-wXNOzso_W9",
+        "toPort": "scene_ctx"
+      },
+      {
+        "id": "e-v2-camera-wXNOzso_W9-v2-cam-wp-wXNOzso_W9-0",
+        "fromNode": "v2-camera-wXNOzso_W9",
+        "fromPort": "camera_cut",
+        "toNode": "v2-cam-wp-wXNOzso_W9-0",
+        "toPort": "camera_cut"
+      },
+      {
+        "id": "e-v2-cam-wp-wXNOzso_W9-0-v2-cam-wp-wXNOzso_W9-1",
+        "fromNode": "v2-cam-wp-wXNOzso_W9-0",
+        "fromPort": "camera_cut",
+        "toNode": "v2-cam-wp-wXNOzso_W9-1",
+        "toPort": "camera_cut"
+      },
+      {
+        "id": "e-v2-cam-wp-wXNOzso_W9-1-v2-cam-wp-wXNOzso_W9-2",
+        "fromNode": "v2-cam-wp-wXNOzso_W9-1",
+        "fromPort": "camera_cut",
+        "toNode": "v2-cam-wp-wXNOzso_W9-2",
+        "toPort": "camera_cut"
+      },
+      {
+        "id": "e-v2-root-wXNOzso_W9-v2-group-3d-wXNOzso_W9",
+        "fromNode": "v2-root-wXNOzso_W9",
+        "fromPort": "scene_ctx",
+        "toNode": "v2-group-3d-wXNOzso_W9",
+        "toPort": "scene_ctx"
+      },
+      {
+        "id": "e-v2-group-3d-wXNOzso_W9-v2-layer-lJ3VVALyfa",
+        "fromNode": "v2-group-3d-wXNOzso_W9",
+        "fromPort": "layers_tree",
+        "toNode": "v2-layer-lJ3VVALyfa",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-group-3d-wXNOzso_W9-v2-layer-mE4o_s0fPN",
+        "fromNode": "v2-group-3d-wXNOzso_W9",
+        "fromPort": "layers_tree",
+        "toNode": "v2-layer-mE4o_s0fPN",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-group-3d-wXNOzso_W9-v2-layer-eLOOI25F7m",
+        "fromNode": "v2-group-3d-wXNOzso_W9",
+        "fromPort": "layers_tree",
+        "toNode": "v2-layer-eLOOI25F7m",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-group-3d-wXNOzso_W9-v2-layer-QrGhGr-UXb",
+        "fromNode": "v2-group-3d-wXNOzso_W9",
+        "fromPort": "layers_tree",
+        "toNode": "v2-layer-QrGhGr-UXb",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-group-3d-wXNOzso_W9-v2-layer-CKs0BKAHVf",
+        "fromNode": "v2-group-3d-wXNOzso_W9",
+        "fromPort": "layers_tree",
+        "toNode": "v2-layer-CKs0BKAHVf",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-group-3d-wXNOzso_W9-v2-layer-aTk3_1Hy75",
+        "fromNode": "v2-group-3d-wXNOzso_W9",
+        "fromPort": "layers_tree",
+        "toNode": "v2-layer-aTk3_1Hy75",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-group-3d-wXNOzso_W9-v2-layer-TarHcsx2wj",
+        "fromNode": "v2-group-3d-wXNOzso_W9",
+        "fromPort": "layers_tree",
+        "toNode": "v2-layer-TarHcsx2wj",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-layer-lJ3VVALyfa-v2-cluster-hb-hero-2",
+        "fromNode": "v2-layer-lJ3VVALyfa",
+        "fromPort": "layers_tree",
+        "toNode": "v2-cluster-hb-hero-2",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-layer-mE4o_s0fPN-v2-cluster-hb-hero-2",
+        "fromNode": "v2-layer-mE4o_s0fPN",
+        "fromPort": "layers_tree",
+        "toNode": "v2-cluster-hb-hero-2",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-layer-eLOOI25F7m-v2-cluster-hb-hero-2",
+        "fromNode": "v2-layer-eLOOI25F7m",
+        "fromPort": "layers_tree",
+        "toNode": "v2-cluster-hb-hero-2",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-layer-QrGhGr-UXb-v2-cluster-hb-hero-2",
+        "fromNode": "v2-layer-QrGhGr-UXb",
+        "fromPort": "layers_tree",
+        "toNode": "v2-cluster-hb-hero-2",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-layer-CKs0BKAHVf-v2-cluster-hb-hero-2",
+        "fromNode": "v2-layer-CKs0BKAHVf",
+        "fromPort": "layers_tree",
+        "toNode": "v2-cluster-hb-hero-2",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-layer-aTk3_1Hy75-v2-cluster-hb-hero-2",
+        "fromNode": "v2-layer-aTk3_1Hy75",
+        "fromPort": "layers_tree",
+        "toNode": "v2-cluster-hb-hero-2",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-layer-TarHcsx2wj-v2-cluster-hb-hero-2",
+        "fromNode": "v2-layer-TarHcsx2wj",
+        "fromPort": "layers_tree",
+        "toNode": "v2-cluster-hb-hero-2",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-root-wXNOzso_W9-v2-group-25d-wXNOzso_W9",
+        "fromNode": "v2-root-wXNOzso_W9",
+        "fromPort": "scene_ctx",
+        "toNode": "v2-group-25d-wXNOzso_W9",
+        "toPort": "scene_ctx"
+      },
+      {
+        "id": "e-v2-group-25d-wXNOzso_W9-v2-layer-Cd8wOg2d_c",
+        "fromNode": "v2-group-25d-wXNOzso_W9",
+        "fromPort": "layers_tree",
+        "toNode": "v2-layer-Cd8wOg2d_c",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-group-25d-wXNOzso_W9-v2-layer-wMBw9UDWVW",
+        "fromNode": "v2-group-25d-wXNOzso_W9",
+        "fromPort": "layers_tree",
+        "toNode": "v2-layer-wMBw9UDWVW",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-group-25d-wXNOzso_W9-v2-layer-E439pgiab_",
+        "fromNode": "v2-group-25d-wXNOzso_W9",
+        "fromPort": "layers_tree",
+        "toNode": "v2-layer-E439pgiab_",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-group-25d-wXNOzso_W9-v2-layer-YjbSD3O8t-",
+        "fromNode": "v2-group-25d-wXNOzso_W9",
+        "fromPort": "layers_tree",
+        "toNode": "v2-layer-YjbSD3O8t-",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-group-25d-wXNOzso_W9-v2-layer-s9_MQuzU0C",
+        "fromNode": "v2-group-25d-wXNOzso_W9",
+        "fromPort": "layers_tree",
+        "toNode": "v2-layer-s9_MQuzU0C",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-cluster-hb-hero-2-v2-fx-hb-hero-2",
+        "fromNode": "v2-cluster-hb-hero-2",
+        "fromPort": "layers_tree",
+        "toNode": "v2-fx-hb-hero-2",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-layer-Cd8wOg2d_c-v2-fx-Cd8wOg2d_c",
+        "fromNode": "v2-layer-Cd8wOg2d_c",
+        "fromPort": "layers_tree",
+        "toNode": "v2-fx-Cd8wOg2d_c",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-layer-wMBw9UDWVW-v2-action-wMBw9UDWVW",
+        "fromNode": "v2-layer-wMBw9UDWVW",
+        "fromPort": "layers_tree",
+        "toNode": "v2-action-wMBw9UDWVW",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-layer-wMBw9UDWVW-v2-fx-wMBw9UDWVW",
+        "fromNode": "v2-layer-wMBw9UDWVW",
+        "fromPort": "layers_tree",
+        "toNode": "v2-fx-wMBw9UDWVW",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-layer-E439pgiab_-v2-fx-E439pgiab_",
+        "fromNode": "v2-layer-E439pgiab_",
+        "fromPort": "layers_tree",
+        "toNode": "v2-fx-E439pgiab_",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-layer-YjbSD3O8t--v2-fx-YjbSD3O8t-",
+        "fromNode": "v2-layer-YjbSD3O8t-",
+        "fromPort": "layers_tree",
+        "toNode": "v2-fx-YjbSD3O8t-",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-layer-s9_MQuzU0C-v2-fx-s9_MQuzU0C",
+        "fromNode": "v2-layer-s9_MQuzU0C",
+        "fromPort": "layers_tree",
+        "toNode": "v2-fx-s9_MQuzU0C",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-cluster-hb-hero-2-v2-part_swap-hb-hero-2",
+        "fromNode": "v2-cluster-hb-hero-2",
+        "fromPort": "layers_tree",
+        "toNode": "v2-part_swap-hb-hero-2",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-part_swap-hb-hero-2-v2-partchild-hb-hero-2-slot:expression",
+        "fromNode": "v2-part_swap-hb-hero-2",
+        "fromPort": "layers_tree",
+        "toNode": "v2-partchild-hb-hero-2-slot:expression",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-cluster-hb-hero-2-v2-anim_fx-hb-hero-2",
+        "fromNode": "v2-cluster-hb-hero-2",
+        "fromPort": "layers_tree",
+        "toNode": "v2-anim_fx-hb-hero-2",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-layer-E439pgiab_-v2-light-E439pgiab_",
+        "fromNode": "v2-layer-E439pgiab_",
+        "fromPort": "layers_tree",
+        "toNode": "v2-light-E439pgiab_",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-layer-YjbSD3O8t--v2-action-YjbSD3O8t-",
+        "fromNode": "v2-layer-YjbSD3O8t-",
+        "fromPort": "layers_tree",
+        "toNode": "v2-action-YjbSD3O8t-",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-action-YjbSD3O8t--v2-fx_fade-YjbSD3O8t-",
+        "fromNode": "v2-action-YjbSD3O8t-",
+        "fromPort": "layers_tree",
+        "toNode": "v2-fx_fade-YjbSD3O8t-",
+        "toPort": "layers_tree"
+      }
+    ]
+  }
+}

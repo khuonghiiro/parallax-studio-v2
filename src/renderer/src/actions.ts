@@ -66,14 +66,16 @@ export async function newProject(): Promise<void> {
 
 export async function loadDemo(
   force = false,
-  variant: 'three_scenes' | 'donghua_guofeng' = 'three_scenes'
+  variant: 'three_scenes' | 'donghua_guofeng' | 'hanbeta_quaidam' = 'three_scenes'
 ): Promise<void> {
   if (!force && !confirmDiscard()) return
   const demoMod = await import('./project/demo')
   const p =
-    variant === 'donghua_guofeng'
-      ? await demoMod.buildDonghuaDemoProject()
-      : await demoMod.buildThreeSceneDemoProject()
+    variant === 'hanbeta_quaidam'
+      ? await demoMod.buildHanbetaDemoProject()
+      : variant === 'donghua_guofeng'
+        ? await demoMod.buildDonghuaDemoProject()
+        : await demoMod.buildThreeSceneDemoProject()
   editor().loadProject(p, null)
   editor().setPlaying(false)
 }

@@ -4,9 +4,9 @@ import type { AnimationClip, BoneKeyframe, BonePose, LayerBone, LayerRig } from 
 import type { PlantSpine } from '@shared/plantSpine'
 import { buildLayerSkinMesh } from './donghuaSceneryRigs'
 
-type WaveKey = { phase: number; pose: Partial<BonePose> }
+export type WaveKey = { phase: number; pose: Partial<BonePose> }
 
-function makeLoopKeys(duration: number, items: WaveKey[], shiftPhase = 0): BoneKeyframe[] {
+export function makeLoopKeys(duration: number, items: WaveKey[], shiftPhase = 0): BoneKeyframe[] {
   const norm = (p: number): number => ((p + shiftPhase) % 1 + 1) % 1
   const raw = items.map((it) => ({
     phase: norm(it.phase),
@@ -59,7 +59,35 @@ function makeSineKeys(
   return makeLoopKeys(duration, items, shiftPhase)
 }
 
-function makeSpine(id: string, name: string, layerId: string, points: { x: number; y: number }[], amp: number, speed: number, reach: number, phaseOffset = 0): PlantSpine {
+export function makeBreathingCurveKeys(
+  duration: number,
+  phaseLag: number,
+  sample: (breathWave: number, swayWave: number) => Partial<BonePose>
+): BoneKeyframe[] {
+  const controlPts: { p: number; breath: number; sway: number }[] = [
+    { p: 0.0, breath: 0.0, sway: -0.25 },
+    { p: 0.16, breath: 0.44, sway: 0.35 },
+    { p: 0.38, breath: 1.0, sway: 1.0 },
+    { p: 0.62, breath: 0.62, sway: 0.22 },
+    { p: 0.84, breath: 0.14, sway: -0.68 }
+  ]
+  return makeLoopKeys(
+    duration,
+    controlPts.map((pt) => ({ phase: pt.p, pose: sample(pt.breath, pt.sway) })),
+    phaseLag
+  )
+}
+
+function makeSpine(
+  id: string,
+  name: string,
+  layerId: string,
+  points: { x: number; y: number }[],
+  amp: number,
+  speed: number,
+  reach: number,
+  phaseOffset = 0
+): PlantSpine {
   return {
     id,
     name,
@@ -72,7 +100,8 @@ function makeSpine(id: string, name: string, layerId: string, points: { x: numbe
     turbulence: 0.3,
     phaseOffset,
     reach,
-    verticalBob: 0.06,
+    verticalBob: 0,
+    waveLag: 0.78,
     enabled: true
   }
 }
@@ -88,34 +117,31 @@ export function applySwordsmanCalmRig(layer: ImageLayer): void {
     { id: 'bone-sleeve-r', name: 'Tay áo phải', parentId: 'bone-torso', x: 88, y: -342, length: 320, angle: 68, strength: 1.25, meshEnvelope: true }
   ]
 
-  const buildClip = (id: string, name: string, presetKey: string, duration: number, mult: number): AnimationClip => {
-    const tau = Math.PI * 2
-    return {
-      id,
-      name,
-      presetKey,
-      duration,
-      loop: true,
-      tracks: {
-        'bone-pelvis': makeSineKeys(duration, () => ({ rotation: 0 }), 4),
-        'bone-leg-anchor': makeSineKeys(duration, () => ({ rotation: 0 }), 4),
-        'bone-torso': makeSineKeys(duration, (p) => ({
-          y: Number((-2.8 * mult + Math.sin(p * tau) * 3.2 * mult).toFixed(2)),
-          rotation: Number((Math.sin(p * tau) * 2.4 * mult).toFixed(2)),
-          scaleY: Number((1 + Math.sin(p * tau) * 0.018 * mult).toFixed(4))
-        }), 8),
-        'bone-head': makeSineKeys(duration, (p) => ({
-          rotation: Number((Math.sin(p * tau + 0.6) * 3.6 * mult).toFixed(2))
-        }), 8),
-        'bone-sleeve-l': makeSineKeys(duration, (p) => ({
-          rotation: Number((Math.sin(p * tau - 0.4) * 14 * mult).toFixed(2))
-        }), 8),
-        'bone-sleeve-r': makeSineKeys(duration, (p) => ({
-          rotation: Number((-Math.sin(p * tau + 0.3) * 13.5 * mult).toFixed(2))
-        }), 8)
-      }
+  const buildClip = (id: string, name: string, presetKey: string, duration: number, mult: number): AnimationClip => ({
+    id,
+    name,
+    presetKey,
+    duration,
+    loop: true,
+    tracks: {
+      'bone-pelvis': makeSineKeys(duration, () => ({ rotation: 0 }), 4),
+      'bone-leg-anchor': makeSineKeys(duration, () => ({ rotation: 0 }), 4),
+      'bone-torso': makeBreathingCurveKeys(duration, 0, (breath, sway) => ({
+        y: Number((-2.8 * breath * mult).toFixed(2)),
+        rotation: Number((sway * 2.4 * mult).toFixed(2)),
+        scaleY: Number((1 + breath * 0.018 * mult).toFixed(4))
+      })),
+      'bone-head': makeBreathingCurveKeys(duration, 0.08, (breath, sway) => ({
+        rotation: Number((sway * 3.4 * mult + breath * 0.8 * mult).toFixed(2))
+      })),
+      'bone-sleeve-l': makeBreathingCurveKeys(duration, 0.14, (_breath, sway) => ({
+        rotation: Number((sway * 12.5 * mult).toFixed(2))
+      })),
+      'bone-sleeve-r': makeBreathingCurveKeys(duration, 0.18, (_breath, sway) => ({
+        rotation: Number((-sway * 11.8 * mult).toFixed(2))
+      }))
     }
-  }
+  })
 
   const idleClip = buildClip('dg-calm-idle', 'Tụ Khí Định Thần', 'idle', 2.4, 1.0)
   const actionClip = buildClip('dg-calm-action', 'Vận Công Ngự Kiếm', 'action', 1.8, 1.32)
@@ -131,13 +157,13 @@ export function applySwordsmanCalmRig(layer: ImageLayer): void {
   const plantSpines = [
     makeSpine('dg-calm-hair-ribbon', 'Dải lụa đỏ tóc', layer.id, [
       { x: -35, y: -535 }, { x: -120, y: -492 }, { x: -215, y: -455 }
-    ], 18, 1.25, 95, 0),
+    ], 17, 0.68, 95, 0),
     makeSpine('dg-calm-hem-l', 'Tà áo ngoài trái', layer.id, [
       { x: -115, y: 120 }, { x: -175, y: 310 }, { x: -242, y: 488 }
-    ], 11.5, 0.92, 130, 0.15),
+    ], 11.5, 0.58, 130, 0.15),
     makeSpine('dg-calm-hem-r', 'Tà áo ngoài phải', layer.id, [
       { x: 115, y: 110 }, { x: 175, y: 300 }, { x: 235, y: 472 }
-    ], 11.5, 0.92, 130, 0.48)
+    ], 11.5, 0.60, 130, 0.48)
   ]
   layer.mesh = buildLayerSkinMesh(layer, {
     segX: 18,
@@ -159,38 +185,36 @@ export function applySwordsmanFierceRig(layer: ImageLayer): void {
     { id: 'bone-sleeve-r', name: 'Tay áo cuộn phải', parentId: 'bone-torso', x: 95, y: -280, length: 285, angle: 32, strength: 1.35, meshEnvelope: true }
   ]
 
-  const buildClip = (id: string, name: string, presetKey: string, duration: number, mult: number): AnimationClip => {
-    const tau = Math.PI * 2
-    return {
-      id,
-      name,
-      presetKey,
-      duration,
-      loop: true,
-      tracks: {
-        'bone-pelvis': makeSineKeys(duration, (p) => ({
-          y: Number((Math.sin(p * tau) * 4 * mult).toFixed(2))
-        }), 8),
-        'bone-leg-anchor': makeSineKeys(duration, () => ({ rotation: 0 }), 4),
-        'bone-torso': makeSineKeys(duration, (p) => ({
-          rotation: Number((Math.sin(p * tau) * 4.8 * mult).toFixed(2)),
-          y: Number((-3 * mult + Math.sin(p * tau * 2) * 3.5 * mult).toFixed(2))
-        }), 8),
-        'bone-head': makeSineKeys(duration, (p) => ({
-          rotation: Number((-Math.sin(p * tau + 0.5) * 4.5 * mult).toFixed(2))
-        }), 8),
-        'bone-sleeve-l': makeSineKeys(duration, (p) => ({
-          rotation: Number((Math.sin(p * tau - 0.35) * 18.5 * mult).toFixed(2))
-        }), 8),
-        'bone-sleeve-r': makeSineKeys(duration, (p) => ({
-          rotation: Number((-Math.sin(p * tau + 0.25) * 17.5 * mult).toFixed(2))
-        }), 8)
-      }
+  const buildClip = (id: string, name: string, presetKey: string, duration: number, mult: number): AnimationClip => ({
+    id,
+    name,
+    presetKey,
+    duration,
+    loop: true,
+    tracks: {
+      'bone-pelvis': makeBreathingCurveKeys(duration, 0, (breath) => ({
+        y: Number((breath * 2.8 * mult).toFixed(2))
+      })),
+      'bone-leg-anchor': makeSineKeys(duration, () => ({ rotation: 0 }), 4),
+      'bone-torso': makeBreathingCurveKeys(duration, 0.04, (breath, sway) => ({
+        rotation: Number((sway * 4.5 * mult).toFixed(2)),
+        y: Number((-3.2 * breath * mult).toFixed(2)),
+        scaleY: Number((1 + breath * 0.02 * mult).toFixed(4))
+      })),
+      'bone-head': makeBreathingCurveKeys(duration, 0.12, (_breath, sway) => ({
+        rotation: Number((-sway * 4.2 * mult).toFixed(2))
+      })),
+      'bone-sleeve-l': makeBreathingCurveKeys(duration, 0.16, (_breath, sway) => ({
+        rotation: Number((sway * 16.5 * mult).toFixed(2))
+      })),
+      'bone-sleeve-r': makeBreathingCurveKeys(duration, 0.21, (_breath, sway) => ({
+        rotation: Number((-sway * 15.5 * mult).toFixed(2))
+      }))
     }
-  }
+  })
 
-  const actionClip = buildClip('dg-fierce-action', 'Khai Phong Kiếm Ý', 'action', 1.5, 1.0)
-  const idleClip = buildClip('dg-fierce-idle', 'Tụ Khí Gió Trúc', 'idle', 2.0, 0.75)
+  const actionClip = buildClip('dg-fierce-action', 'Khai Phong Kiếm Ý', 'action', 1.6, 1.0)
+  const idleClip = buildClip('dg-fierce-idle', 'Tụ Khí Gió Trúc', 'idle', 2.1, 0.75)
   const rig: LayerRig = {
     bones,
     duration: actionClip.duration,
@@ -203,16 +227,16 @@ export function applySwordsmanFierceRig(layer: ImageLayer): void {
   const plantSpines = [
     makeSpine('dg-fierce-ponytail', 'Đuôi tóc tung bay', layer.id, [
       { x: 0, y: -490 }, { x: -108, y: -562 }, { x: -222, y: -602 }
-    ], 19.5, 1.62, 145, 0),
+    ], 18.5, 0.76, 145, 0),
     makeSpine('dg-fierce-ribbon', 'Dải băng tóc đỏ', layer.id, [
       { x: -15, y: -455 }, { x: -115, y: -405 }, { x: -202, y: -395 }
-    ], 21, 1.75, 108, 0.2),
+    ], 19.5, 0.78, 108, 0.2),
     makeSpine('dg-fierce-hem-l', 'Vạt áo chiến trái', layer.id, [
       { x: -135, y: 120 }, { x: -225, y: 315 }, { x: -322, y: 495 }
-    ], 14, 1.28, 145, 0.1),
+    ], 13.5, 0.64, 145, 0.1),
     makeSpine('dg-fierce-hem-r', 'Vạt áo chiến phải', layer.id, [
       { x: 145, y: 120 }, { x: 235, y: 305 }, { x: 325, y: 485 }
-    ], 14, 1.28, 145, 0.42)
+    ], 13.5, 0.66, 145, 0.42)
   ]
   layer.mesh = buildLayerSkinMesh(layer, {
     segX: 20,
@@ -232,30 +256,27 @@ export function applyMaidenPuppetRig(layer: ImageLayer): void {
     { id: 'bone-lantern-arm', name: 'Tay nâng đèn hoa sen', parentId: 'bone-torso', x: -65, y: -270, length: 258, angle: 176, strength: 1.3, meshEnvelope: true }
   ]
 
-  const buildClip = (id: string, name: string, presetKey: string, duration: number, mult: number): AnimationClip => {
-    const tau = Math.PI * 2
-    return {
-      id,
-      name,
-      presetKey,
-      duration,
-      loop: true,
-      tracks: {
-        'bone-pelvis': makeSineKeys(duration, () => ({ rotation: 0 }), 4),
-        'bone-torso': makeSineKeys(duration, (p) => ({
-          y: Number((-2.5 + Math.sin(p * tau) * 3.2 * mult).toFixed(2)),
-          rotation: Number((Math.sin(p * tau) * 2.2 * mult).toFixed(2)),
-          scaleY: Number((1 + Math.sin(p * tau) * 0.018 * mult).toFixed(4))
-        }), 8),
-        'bone-head': makeSineKeys(duration, (p) => ({
-          rotation: Number((1.2 + Math.sin(p * tau - 0.5) * 6.2 * mult).toFixed(2))
-        }), 8),
-        'bone-lantern-arm': makeSineKeys(duration, (p) => ({
-          rotation: Number((Math.sin(p * tau + 0.4) * 14.5 * mult).toFixed(2))
-        }), 8)
-      }
+  const buildClip = (id: string, name: string, presetKey: string, duration: number, mult: number): AnimationClip => ({
+    id,
+    name,
+    presetKey,
+    duration,
+    loop: true,
+    tracks: {
+      'bone-pelvis': makeSineKeys(duration, () => ({ rotation: 0 }), 4),
+      'bone-torso': makeBreathingCurveKeys(duration, 0, (breath, sway) => ({
+        y: Number((-2.8 * breath * mult).toFixed(2)),
+        rotation: Number((sway * 2.2 * mult).toFixed(2)),
+        scaleY: Number((1 + breath * 0.018 * mult).toFixed(4))
+      })),
+      'bone-head': makeBreathingCurveKeys(duration, 0.09, (breath, sway) => ({
+        rotation: Number((1.2 + sway * 5.8 * mult + breath * 0.6 * mult).toFixed(2))
+      })),
+      'bone-lantern-arm': makeBreathingCurveKeys(duration, 0.16, (_breath, sway) => ({
+        rotation: Number((sway * 13.5 * mult).toFixed(2))
+      }))
     }
-  }
+  })
 
   const waveClip = buildClip('dg-maiden-wave', 'Dâng Đèn Hoa Sen', 'wave', 2.8, 1.0)
   const idleClip = buildClip('dg-maiden-idle', 'Ngắm Trời Sao', 'idle', 3.2, 0.78)
@@ -271,13 +292,13 @@ export function applyMaidenPuppetRig(layer: ImageLayer): void {
   const plantSpines = [
     makeSpine('dg-maiden-pibo', 'Dải lụa Pibo đỏ', layer.id, [
       { x: 45, y: -235 }, { x: 205, y: -145 }, { x: 382, y: -120 }
-    ], 24, 1.15, 132, 0),
+    ], 22, 0.62, 132, 0),
     makeSpine('dg-maiden-sleeve', 'Tay áo lụa kem', layer.id, [
       { x: 55, y: -210 }, { x: 165, y: -115 }, { x: 255, y: -82 }
-    ], 19, 0.95, 125, 0.28),
+    ], 17, 0.56, 125, 0.28),
     makeSpine('dg-maiden-skirt', 'Tà váy gió sông đêm', layer.id, [
       { x: -15, y: 205 }, { x: 165, y: 325 }, { x: 342, y: 412 }
-    ], 18, 0.85, 175, 0.55)
+    ], 16.5, 0.55, 175, 0.55)
   ]
   layer.mesh = buildLayerSkinMesh(layer, {
     segX: 18,

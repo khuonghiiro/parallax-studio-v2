@@ -19,6 +19,7 @@ import {
   IconAssetManifest,
   IconCode,
   IconExport,
+  IconEye,
   IconFile,
   IconFolder,
   IconImage,
@@ -243,7 +244,10 @@ export function Toolbar({ onExport }: { onExport: () => void }) {
             <IconWand width={15} /> Mẫu 1: Hành Trình 3 Khung Cảnh (Workflow V2)
           </button>
           <button className="menu-item" onClick={() => loadDemo(false, 'donghua_guofeng')}>
-            <IconWand width={15} /> Mẫu 2: Vân Sơn Kiếm Khúc — Quốc Phong 2.5D
+            <IconSparkles width={15} /> Mẫu 2: Vân Sơn Kiếm Khúc — Quốc Phong 2.5D
+          </button>
+          <button className="menu-item" onClick={() => loadDemo(false, 'hanbeta_quaidam')}>
+            <IconEye width={15} /> Mẫu 3: Hàn Bối Tháp — Quái Đàm 2.5D
           </button>
         </Menu>
 

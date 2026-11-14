@@ -3,7 +3,7 @@
   "sharedTiming": {
     "nodes": [
       {
-        "id": "time-e30NwKza",
+        "id": "time-LuouELw1",
         "type": "motion_choreography",
         "title": "Cao Trào Kiếm Khí Trúc Lâm",
         "enabled": true,
@@ -25,15 +25,15 @@
     ],
     "edges": [
       {
-        "id": "time-time-e30NwKza-v2-action-layer-dg-s2-cloak",
-        "fromNode": "time-e30NwKza",
+        "id": "time-time-LuouELw1-v2-action-layer-dg-s2-cloak",
+        "fromNode": "time-LuouELw1",
         "fromPort": "time_range",
         "toNode": "v2-action-layer-dg-s2-cloak",
         "toPort": "time_range"
       },
       {
-        "id": "time-time-e30NwKza-v2-fx_fade-layer-dg-s2-cloak",
-        "fromNode": "time-e30NwKza",
+        "id": "time-time-LuouELw1-v2-fx_fade-layer-dg-s2-cloak",
+        "fromNode": "time-LuouELw1",
         "fromPort": "time_range",
         "toNode": "v2-fx_fade-layer-dg-s2-cloak",
         "toPort": "time_range"

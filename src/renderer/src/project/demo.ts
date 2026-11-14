@@ -1,9 +1,11 @@
 import { repairDonghuaTiming } from './donghuaDemoBuilder'
+import { repairHanbetaTiming } from './hanbetaDemoBuilder'
 import { repairThreeSceneTiming } from './demoTiming'
 import type { Project } from '@shared/types'
 import demoJson from './demoProject.json'
 import threeSceneJson from '../../../../projects/ba-canh-mau-workflow-v2.json'
 import donghuaJson from '../../../../projects/demo-2-son-thuy-kiem-hiep.json'
+import hanbetaJson from '../../../../projects/demo-3-han-boi-thap-quai-dam.json'
 import { importProjectFromJson } from './jsonFormat'
 
 /**
@@ -28,6 +30,15 @@ export async function buildThreeSceneDemoProject(): Promise<Project> {
  */
 export async function buildDonghuaDemoProject(): Promise<Project> {
   return repairDonghuaTiming(await importProjectFromJson(JSON.stringify(donghuaJson)))
+}
+
+/**
+ * Builds Demo #3: "Hàn Bối Tháp — Quái Đàm Quy Tắc 2.5D"
+ * with soft-skinned anatomical limbs, asymmetric lagged breathing,
+ * instant expression part-swaps, and S-wave coat/hair wind physics.
+ */
+export async function buildHanbetaDemoProject(): Promise<Project> {
+  return repairHanbetaTiming(await importProjectFromJson(JSON.stringify(hanbetaJson)))
 }
 
 export * from './plateGenerators'
