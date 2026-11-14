@@ -52,6 +52,8 @@ class AssetStore {
   private active = 0
   private queue: (() => void)[] = []
   private pendingGifDecodes = new Map<string, Promise<AnimatedGifData | null>>()
+  private batchDepth = 0
+  private batchDirty = false
   version = 0
   /** Diagnostics. */
   stats = { decodes: 0, decodedBytes: 0 }
@@ -63,7 +65,28 @@ class AssetStore {
 
   private emit(): void {
     this.version++
+    if (this.batchDepth > 0) {
+      this.batchDirty = true
+      return
+    }
     this.listeners.forEach((l) => l())
+  }
+
+  /**
+   * Coalesces asset store change notifications across a bulk project/demo load
+   * so React panels and WebGL renderers invalidate once instead of N times.
+   */
+  async runBatch<T>(fn: () => Promise<T>): Promise<T> {
+    this.batchDepth++
+    try {
+      return await fn()
+    } finally {
+      this.batchDepth = Math.max(0, this.batchDepth - 1)
+      if (this.batchDepth === 0 && this.batchDirty) {
+        this.batchDirty = false
+        this.listeners.forEach((l) => l())
+      }
+    }
   }
 
   get(id: string): RuntimeAsset | undefined {
@@ -281,7 +304,7 @@ class AssetStore {
           const data = new Uint8ClampedArray(tw * th)
           for (let i = 0; i < tw * th; i++) data[i] = src[i * 4 + 3]
           asset.alpha = { w: tw, h: th, data }
-          asset.thumbUrl = isSvg || blob.size <= 512 * 1024 ? url : c.toDataURL('image/webp', 0.82)
+          asset.thumbUrl = isSvg || blob.size <= 4 * 1024 * 1024 ? url : c.toDataURL('image/webp', 0.82)
         } catch {
           asset.thumbUrl = url
         }

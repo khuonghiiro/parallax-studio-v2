@@ -9,6 +9,62 @@ import { loadAssetBytesFromDiskOrBuiltIn } from './assetLoader'
 import type { DeclarativeProjectSpec, DeclarativeShotSpec } from './schema'
 import { buildLayersForShot } from './layerBuilder'
 import { isAssetTable, getAssetPathFromEntry, type AssetTable } from './assetTable'
+import { useProjectLoading, yieldToUiFrame } from '../../store/projectLoading'
+
+const ASSET_CHUNK_SIZE = 6
+
+async function loadRawAssetEntriesChunked(
+  entries: ReadonlyArray<AssetMeta & { dataUrl?: string; assetPath?: string }>,
+  onLoaded?: (assetMeta: AssetMeta, rawEntry: AssetMeta & { dataUrl?: string; assetPath?: string }) => void
+): Promise<void> {
+  const total = entries.length
+  const loading = useProjectLoading.getState()
+  if (total > 0) {
+    loading.report({
+      phase: 'assets',
+      stageLabel: `Đang giải mã hình ảnh & tài nguyên (0/${total})…`,
+      loadedCount: 0,
+      totalCount: total,
+      percent: 16
+    })
+    await yieldToUiFrame()
+  }
+
+  let completed = 0
+  await assetStore.runBatch(async () => {
+    for (let start = 0; start < total; start += ASSET_CHUNK_SIZE) {
+      const slice = entries.slice(start, start + ASSET_CHUNK_SIZE)
+      await Promise.all(
+        slice.map(async (a) => {
+          if (a.dataUrl) {
+            const { mime, data } = parseDataUrl(a.dataUrl)
+            const added = await assetStore.add(a.name, mime, data, a.kind, a)
+            onLoaded?.(added.meta, a)
+          } else if (a.path || a.assetPath) {
+            const p = (a.assetPath || a.path || '').replace(/^assets\//, '')
+            const file = await loadAssetBytesFromDiskOrBuiltIn(p)
+            if (file) {
+              const asset = await assetStore.add(a.name, file.mime || a.mime, file.data, a.kind, a)
+              asset.meta.assetPath = p
+              asset.meta.path = `assets/${p}`
+              onLoaded?.(asset.meta, a)
+            }
+          }
+          completed += 1
+          useProjectLoading.getState().report({
+            phase: 'assets',
+            stageLabel: `Đang giải mã hình ảnh & tài nguyên (${completed}/${total})…`,
+            detailLabel: a.name || a.assetPath || a.path || '',
+            loadedCount: completed,
+            totalCount: total,
+            percent: 16 + (completed / Math.max(1, total)) * 68
+          })
+        })
+      )
+      await yieldToUiFrame()
+    }
+  })
+}
 
 /**
  * Universal JSON Importer:
@@ -18,6 +74,13 @@ import { isAssetTable, getAssetPathFromEntry, type AssetTable } from './assetTab
  * 3. High-level Declarative Scene Specification JSON (human-readable, easy to edit).
  */
 export async function importProjectFromJson(jsonString: string): Promise<Project> {
+  useProjectLoading.getState().report({
+    phase: 'parse',
+    stageLabel: 'Đang phân tích cấu trúc JSON & danh sách cảnh…',
+    percent: 10
+  })
+  await yieldToUiFrame()
+
   let parsed: unknown
   try {
     parsed = JSON.parse(jsonString)
@@ -38,23 +101,19 @@ export async function importProjectFromJson(jsonString: string): Promise<Project
     const project = createProject({ name: typeof rawObj.name === 'string' ? rawObj.name : 'Parallax Journey' })
     if (Array.isArray(rawObj.assets)) {
       assetStore.clear()
-      for (const a of rawObj.assets as (AssetMeta & { dataUrl?: string; assetPath?: string })[]) {
-        if (a.dataUrl) {
-          const { mime, data } = parseDataUrl(a.dataUrl)
-          await assetStore.add(a.name, mime, data, a.kind, a)
-          project.assets.push(a)
-        } else if (a.path || a.assetPath) {
-          const p = (a.assetPath || a.path || '').replace(/^assets\//, '')
-          const file = await loadAssetBytesFromDiskOrBuiltIn(p)
-          if (file) {
-            const asset = await assetStore.add(a.name, file.mime || a.mime, file.data, a.kind, a)
-            asset.meta.assetPath = p
-            asset.meta.path = `assets/${p}`
-            project.assets.push(asset.meta)
-          }
+      await loadRawAssetEntriesChunked(
+        rawObj.assets as (AssetMeta & { dataUrl?: string; assetPath?: string })[],
+        (meta, raw) => {
+          project.assets.push(raw.dataUrl ? raw : meta)
         }
-      }
+      )
     }
+    useProjectLoading.getState().report({
+      phase: 'workflow',
+      stageLabel: 'Đang đồng bộ sơ đồ Workflow V2 & lộ trình Camera…',
+      percent: 88
+    })
+    await yieldToUiFrame()
     applyModularWorkflowJson(project, rawObj)
     return structuredClone(project)
   }
@@ -63,23 +122,23 @@ export async function importProjectFromJson(jsonString: string): Promise<Project
 
   // Case 1: Full raw Project v2 format
   if (spec.version === 2 && Array.isArray(spec.layers) && Array.isArray(spec.shots) && spec.comp && !spec.shots[0]?.layers) {
+    useProjectLoading.getState().report({
+      shotCount: spec.shots.length,
+      layerCount: spec.layers.length,
+      percent: 14
+    })
     assetStore.clear()
     if (Array.isArray(spec.assets)) {
-      for (const a of spec.assets) {
-        if (a.dataUrl) {
-          const { mime, data } = parseDataUrl(a.dataUrl)
-          await assetStore.add(a.name, mime, data, a.kind, a)
-        } else if (a.path || (a as { assetPath?: string }).assetPath) {
-          const p = ((a as { assetPath?: string }).assetPath || a.path || '').replace(/^assets\//, '')
-          const file = await loadAssetBytesFromDiskOrBuiltIn(p)
-          if (file) {
-            const asset = await assetStore.add(a.name, file.mime || a.mime, file.data, a.kind, a)
-            asset.meta.assetPath = p
-            asset.meta.path = `assets/${p}`
-          }
-        }
-      }
+      await loadRawAssetEntriesChunked(spec.assets as (AssetMeta & { dataUrl?: string; assetPath?: string })[])
     }
+    useProjectLoading.getState().report({
+      phase: 'workflow',
+      stageLabel: 'Đang chuẩn hoá dự án & đồng bộ sơ đồ Workflow V2…',
+      shotCount: spec.shots.length,
+      layerCount: spec.layers.length,
+      percent: 88
+    })
+    await yieldToUiFrame()
     return migrateProject(spec as unknown as Project)
   }
 

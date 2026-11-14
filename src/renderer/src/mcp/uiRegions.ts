@@ -15,6 +15,7 @@ export const ACTIVE_REGION = 'active'
 /** Các selector nhận diện dialog/modal nổi (không bao giờ đưa lớp phủ backdrop toàn màn hình vào đây). */
 export const DIALOG_SELECTORS = [
   '[data-mcp-dialog]',
+  '.project-loading-card',
   '.ps-modal-container',
   '.ps-save-modal',
   '.c3d-modal',
@@ -42,6 +43,7 @@ export const DIALOG_SELECTORS = [
 const region = (name: string, ...classes: string[]): string[] => [`[data-mcp-region="${name}"]`, ...classes]
 
 export const UI_REGION_SELECTORS: Record<string, string[]> = {
+  project_loading: ['.project-loading-card'],
   ai_code_handoff: ['.ai-code-handoff-modal'],
   ai_code_preview_bar: ['.ai-code-preview-bar'],
   timeline_batch_timing: ['.tl-batch-timing'],

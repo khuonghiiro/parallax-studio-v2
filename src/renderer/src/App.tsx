@@ -9,6 +9,7 @@ import { applyTheme, useView } from './store/view'
 import { getStoredModels3D, DEFAULT_MODELS_3D } from './ui/assets/models3d/models3dStorage'
 import { AiControlOverlay } from './ui/AiControlOverlay'
 import { AiUiInspectorOverlay } from './ui/AiUiInspectorOverlay'
+import { ProjectLoadingOverlay } from './ui/ProjectLoadingOverlay'
 import { RemoteClientHud } from './ui/remote/RemoteClientHud'
 import { isRemoteWebClient } from './remote/remoteSession'
 import { bootstrapAndSyncRemoteClient, initHostRemoteBridge } from './remote/remoteStudioSync'
@@ -280,6 +281,7 @@ export default function App() {
         <GlobalLayerAssemblyHost />
       </Suspense>
       <AiUiInspectorOverlay />
+      <ProjectLoadingOverlay />
       {toast && <div className="toast">{toast}</div>}
       {!ready && (
         <div className="loading-screen">

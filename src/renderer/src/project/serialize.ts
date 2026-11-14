@@ -1,6 +1,7 @@
 import JSZip from 'jszip'
 import type { Project } from '@shared/types'
 import { wasmPackPxsZip, wasmUnpackPxsZip } from '../engine/wasm/wasmZipBridge'
+import { useProjectLoading, yieldToUiFrame } from '../store/projectLoading'
 import { assetStore } from './assets'
 import { migrateProject } from './factory'
 
@@ -94,19 +95,45 @@ async function unpackProjectZipEntries(data: Uint8Array): Promise<Map<string, Ui
 
 /** Load a .pxs file, registering all assets in the asset store. */
 export async function deserializeProject(data: Uint8Array): Promise<Project> {
+  useProjectLoading.getState().report({
+    phase: 'parse',
+    stageLabel: 'Đang giải nén tệp dự án .pxs…',
+    percent: 10
+  })
+  await yieldToUiFrame()
   const files = await unpackProjectZipEntries(data)
   const projectBytes = files.get('project.json')
   if (!projectBytes) throw new Error('project.json missing — not a Parallax Studio project')
   const project = migrateProject(JSON.parse(textDecoder.decode(projectBytes)))
 
   assetStore.clear()
-  await Promise.all(
-    project.assets.map(async (meta) => {
-      const raw = files.get(`assets/${meta.id}.${extForMime(meta.mime)}`)
-      if (!raw) return
-      const blob = new Blob([raw as BlobPart], { type: meta.mime })
-      await assetStore.add(meta.name, meta.mime, blob, meta.kind, { ...meta })
-    })
-  )
+  const total = project.assets.length
+  let completed = 0
+  await assetStore.runBatch(async () => {
+    for (let start = 0; start < total; start += 6) {
+      const slice = project.assets.slice(start, start + 6)
+      await Promise.all(
+        slice.map(async (meta) => {
+          const raw = files.get(`assets/${meta.id}.${extForMime(meta.mime)}`)
+          if (raw) {
+            const blob = new Blob([raw as BlobPart], { type: meta.mime })
+            await assetStore.add(meta.name, meta.mime, blob, meta.kind, { ...meta })
+          }
+          completed += 1
+          useProjectLoading.getState().report({
+            phase: 'assets',
+            stageLabel: `Đang nạp tài nguyên dự án (${completed}/${total})…`,
+            detailLabel: meta.name,
+            loadedCount: completed,
+            totalCount: total,
+            shotCount: project.shots.length,
+            layerCount: project.layers.length,
+            percent: 16 + (completed / Math.max(1, total)) * 72
+          })
+        })
+      )
+      await yieldToUiFrame()
+    }
+  })
   return project
 }

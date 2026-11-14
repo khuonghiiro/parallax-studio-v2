@@ -1,0 +1,208 @@
+/* ==========================================================================
+   Project / Demo Loading Progress Overlay (Dual-Theme & 4-Breakpoint Compliant)
+   ========================================================================== */
+
+.project-loading-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 46000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: var(--backdrop);
+  backdrop-filter: blur(6px);
+}
+
+.project-loading-card {
+  width: 100%;
+  max-width: 540px;
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-popup);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  color: var(--text);
+}
+
+.project-loading-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.project-loading-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.project-loading-spinner {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--line);
+  border-top-color: var(--accent);
+  border-right-color: var(--accent-cyan);
+  animation: pxsProjectLoadSpin 0.85s linear infinite;
+}
+
+@keyframes pxsProjectLoadSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.project-loading-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.project-loading-percent {
+  flex-shrink: 0;
+  padding: 3px 8px;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.project-loading-bar-track {
+  width: 100%;
+  height: 8px;
+  background: var(--bg-3);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.project-loading-bar-fill {
+  height: 100%;
+  background: var(--accent-grad);
+  border-radius: var(--radius-sm);
+  transition: width 120ms ease-out;
+}
+
+.project-loading-steps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.project-loading-step {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 7px 8px;
+  background: var(--bg-2);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+  min-width: 0;
+}
+
+.project-loading-step.active {
+  background: color-mix(in srgb, var(--accent) 14%, var(--bg-2));
+  border-color: var(--accent);
+}
+
+.project-loading-step.done {
+  border-color: color-mix(in srgb, var(--ok) 55%, var(--line));
+}
+
+.project-loading-step-index {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--text-dim);
+}
+
+.project-loading-step.active .project-loading-step-index {
+  color: var(--accent);
+}
+
+.project-loading-step.done .project-loading-step-index {
+  color: var(--ok);
+}
+
+.project-loading-step-label {
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.project-loading-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 2px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-dim);
+}
+
+.project-loading-stage {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.project-loading-detail {
+  flex-shrink: 0;
+  max-width: 210px;
+  padding: 2px 7px;
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--text);
+  background: var(--bg-2);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .project-loading-card {
+    padding: 14px;
+    gap: 10px;
+  }
+
+  .project-loading-steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .project-loading-meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .project-loading-detail {
+    max-width: 100%;
+  }
+}
