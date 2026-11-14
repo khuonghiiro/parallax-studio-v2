@@ -160,4 +160,20 @@ describe('directional drift & angles', () => {
     expect(el1.uvOffset![0]).toBeLessThan(el0.uvOffset![0])
     expect(el2.uvOffset![0]).toBeLessThan(el1.uvOffset![0])
   })
+
+  it('builds comicPunchIn and suspenseDrift Motion-Comic camera presets cleanly', async () => {
+    const { createProject } = await import('../project/factory')
+    const { applyCameraPreset } = await import('./presets')
+    const proj = createProject()
+
+    applyCameraPreset(proj.camera, 'comicPunchIn', proj.comp, 0, 5, 1)
+    expect(proj.camera.position.keyframes).toHaveLength(3)
+    expect(proj.camera.position.keyframes[1].t).toBeCloseTo(1.4, 2)
+    expect(proj.camera.position.keyframes[1].ease).toBe('easeOut')
+    expect(proj.camera.position.keyframes[2].value[2]).toBeGreaterThan(proj.camera.position.keyframes[0].value[2])
+
+    applyCameraPreset(proj.camera, 'suspenseDrift', proj.comp, 0, 5, 1)
+    expect(proj.camera.position.keyframes.length).toBe(7)
+    expect(proj.camera.position.keyframes[6].value[2]).toBeGreaterThan(proj.camera.position.keyframes[0].value[2])
+  })
 })

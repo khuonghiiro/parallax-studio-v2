@@ -663,4 +663,26 @@ describe('workshopRig & layerRig engine', () => {
     // Trong khi nhân vật 4 mảnh nguyên cánh tay vẫn giữ được khớp khuỷu b-forearm-l
     expect(resolveAutoSoftExtraBoneIds(posed.layers[2], posed.rig, ['b-forearm-l'], false)).toEqual(['b-forearm-l'])
   })
+
+  it('generates smooth 2D Motion-Comic (Hàn Bối Tháp) acting clips and hierarchical phase lag in idle breathe', () => {
+    const bones = createHumanoidBones()
+    const idleTracks = generateIdleBreathe(bones, 2.4, 'front')
+    const torsoKeys = idleTracks['bone-torso']
+    const handRKeys = idleTracks['bone-hand-r']
+    const torsoPeak = torsoKeys.reduce((best, cur) => (Math.abs(cur.y) > Math.abs(best.y) ? cur : best))
+    const handPeak = handRKeys.reduce((best, cur) => (Math.abs(cur.rotation) > Math.abs(best.rotation) ? cur : best))
+    // Tay đạt đỉnh sau lồng ngực (follow-through phase lag)
+    expect(handPeak.time).toBeGreaterThan(torsoPeak.time)
+
+    let comp = applyRigAction(baseComposite, { action: 'apply-template', template: 'humanoid' })
+    for (const preset of ['talk', 'scheming', 'shock', 'point'] as const) {
+      for (const viewAngle of ['front', 'diagonal', 'side'] as const) {
+        comp = applyRigAction(comp, { action: 'apply-preset-animation', preset, viewAngle })
+        expect(comp.rig?.tracks['bone-torso']?.length).toBeGreaterThanOrEqual(4)
+        expect(comp.rig?.tracks['bone-arm-r']?.length).toBeGreaterThanOrEqual(4)
+        // Chân giữ nguyên bám đất 100% trong diễn xuất thoại / mưu tính / giật mình / chỉ tay
+        expect(comp.rig?.tracks['bone-foot-l']?.every((k) => k.rotation === 0)).toBe(true)
+      }
+    }
+  })
 })

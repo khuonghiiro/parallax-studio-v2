@@ -250,6 +250,10 @@ export const WORKFLOW_V2_LOGIC_PRESETS: WorkflowV2LogicPreset[] = [
 
   // 4. Node Hành động Nhân vật (anim_fx) — chỉ phục vụ Clip cử động xương & động tác nhân vật 2.5D
   preset('anim_fx', 'rig_idle', '🌬️ Đứng thở tự nhiên (Idle)', { animMode: 'rig_clip', rigActionPreset: 'idle', intensity: 1 }),
+  preset('anim_fx', 'rig_talk', '💬 Thuyết thoại 2D (Talk)', { animMode: 'rig_clip', rigActionPreset: 'talk', intensity: 1 }),
+  preset('anim_fx', 'rig_scheming', '🧠 Mưu tính chống cằm (Scheming)', { animMode: 'rig_clip', rigActionPreset: 'scheming', intensity: 1 }),
+  preset('anim_fx', 'rig_shock', '😱 Giật mình Quái Đàm (Shock)', { animMode: 'rig_clip', rigActionPreset: 'shock', intensity: 1 }),
+  preset('anim_fx', 'rig_point', '👉 Chỉ tay phá cục (Point)', { animMode: 'rig_clip', rigActionPreset: 'point', intensity: 1 }),
   preset('anim_fx', 'rig_walk', '🚶 Bước đi (Walk)', { animMode: 'rig_clip', rigActionPreset: 'walk', intensity: 1 }),
   preset('anim_fx', 'rig_wave', '👋 Vẫy tay chào (Wave)', { animMode: 'rig_clip', rigActionPreset: 'wave', intensity: 1 }),
   preset('anim_fx', 'rig_bow', '🙇 Cúi chào (Bow)', { animMode: 'rig_clip', rigActionPreset: 'bow', intensity: 1 }),

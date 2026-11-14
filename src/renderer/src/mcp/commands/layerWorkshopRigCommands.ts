@@ -120,7 +120,7 @@ function rigAction(p: Params, composite?: LayerComposite, currentTime = 0): RigA
   }
   if (action === 'apply-preset-animation') {
     const preset = (str(p, 'preset') ?? 'walk') as any
-    const validPresets = ['walk', 'idle', 'wave', 'bow', 'run', 'jump', 'fall', 'land', 'action', 'sway', 'hand-clench', 'foot-roll']
+    const validPresets = ['walk', 'idle', 'talk', 'scheming', 'shock', 'point', 'wave', 'bow', 'run', 'jump', 'fall', 'land', 'action', 'sway', 'hand-clench', 'foot-roll']
     if (!validPresets.includes(preset)) throw new ParamError(`preset must be one of: ${validPresets.join(', ')}`)
     const viewAngleRaw = str(p, 'view_angle')
     if (viewAngleRaw !== undefined && !['front', 'diagonal', 'side', 'back'].includes(viewAngleRaw)) {

@@ -171,7 +171,7 @@ export const FX_TOOLS = [
     name: 'apply_camera_preset', cat: 'camera',
     doc: L('Replace the camera move with a classic preset, framed on a shot.', 'Thay chuyển động camera bằng một preset kinh điển, đóng khung vào một shot.'),
     shape: (d) => ({
-      preset: z.enum(['dollyIn', 'dollyOut', 'truckLeft', 'truckRight', 'craneUp', 'craneDown', 'orbitLeft', 'orbitRight', 'zoomIn', 'dollyZoom', 'reset']),
+      preset: z.enum(['dollyIn', 'dollyOut', 'truckLeft', 'truckRight', 'craneUp', 'craneDown', 'orbitLeft', 'orbitRight', 'zoomIn', 'dollyZoom', 'comicPunchIn', 'suspenseDrift', 'reset']),
       shot_id: z.string().optional(),
       start: z.number().optional(),
       end: z.number().optional(),

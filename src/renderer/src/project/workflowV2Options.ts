@@ -126,6 +126,8 @@ export interface WorkflowV2CameraOption {
 
 export const WORKFLOW_V2_CAMERA_OPTIONS: WorkflowV2CameraOption[] = [
   { id: 'dollyIn', label: 'Đẩy cận (Dolly In)' },
+  { id: 'comicPunchIn', label: 'Đẩy gấp Motion-Comic' },
+  { id: 'suspenseDrift', label: 'Trôi sương Quái Đàm' },
   { id: 'fly', label: 'Bay xuyên cảnh 3D' },
   { id: 'orbitRight', label: 'Xoay quỹ đạo' },
   { id: 'truckRight', label: 'Lia máy ngang' }

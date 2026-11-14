@@ -404,9 +404,9 @@ export const LAYER_ASSEMBLY_TOOLS = [
         .optional()
         .describe(d('Skeleton template to apply (humanoid, humanoid-full, hand-detailed, foot-detailed, simple-chain).', 'Mẫu khung xương áp dụng (humanoid, humanoid-full, hand-detailed, foot-detailed, simple-chain).')),
       preset: z
-        .enum(['walk', 'idle', 'wave', 'bow', 'run', 'jump', 'fall', 'land', 'action', 'sway', 'hand-clench', 'foot-roll'])
+        .enum(['walk', 'idle', 'talk', 'scheming', 'shock', 'point', 'wave', 'bow', 'run', 'jump', 'fall', 'land', 'action', 'sway', 'hand-clench', 'foot-roll'])
         .optional()
-        .describe(d('Procedural motion preset to generate.', 'Chuyển động mẫu tự động sinh.')),
+        .describe(d('Procedural motion preset to generate (talk, scheming, shock, point = 2D Donghua / Motion-Comic acting).', 'Chuyển động mẫu tự động sinh (talk, scheming, shock, point = diễn xuất Hoạt ảnh 2D / Motion-Comic).')),
       view_angle: z.enum(['front', 'diagonal', 'side', 'back']).optional().describe(d('Character facing view angle for procedural motion presets ("front" = 0° front-facing default, "diagonal" = 45° 3/4 view, "side" = 90° profile).', 'Góc nhìn nhân vật khi sinh chuyển động mẫu ("front" = 0° chính diện mặc định, "diagonal" = 45° chéo 3/4, "side" = 90° ngang).')),
       clip_id: z.string().optional().describe(d('Animation clip ID to switch, duplicate, rename or delete.', 'ID clip động tác cần chuyển, nhân bản, đổi tên hoặc xóa.')),
       clip_name: z.string().optional().describe(d('New clip name when adding, duplicating or inheriting.', 'Tên clip mới khi thêm, nhân bản hoặc kế thừa.')),
