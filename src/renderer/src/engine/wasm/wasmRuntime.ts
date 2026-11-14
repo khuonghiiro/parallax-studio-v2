@@ -14,12 +14,34 @@ export interface PxsWasmExports {
     alphaThreshold: number,
     out: number
   ) => number
+  rust_find_opaque_bbox_rect?: (
+    data: number,
+    len: number,
+    width: number,
+    height: number,
+    rectX: number,
+    rectY: number,
+    rectW: number,
+    rectH: number,
+    alphaThreshold: number,
+    inclusive: number,
+    outI32: number
+  ) => number
   rust_chroma_despill?: (
     data: number,
     len: number,
     width: number,
     height: number,
     greenFactor: number
+  ) => number
+  rust_rgba_to_yuv420p_ex?: (
+    rgbaIn: number,
+    rgbaLen: number,
+    width: number,
+    height: number,
+    flipY: number,
+    yuvOut: number,
+    yuvLen: number
   ) => number
   rust_build_geodesic_skin_weights?: (
     worldPtr: number,

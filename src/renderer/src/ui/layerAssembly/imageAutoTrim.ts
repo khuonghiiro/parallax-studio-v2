@@ -26,6 +26,8 @@ export interface TrimOptions {
   minTrimMargin?: number
 }
 
+import { wasmFindOpaqueBbox } from '../../engine/wasmAccel'
+
 export interface BoundingBox {
   minX: number
   minY: number
@@ -34,10 +36,7 @@ export interface BoundingBox {
   found: boolean
 }
 
-/**
- * Tìm bounding box của các pixel đục trong mảng RGBA (4 bytes / pixel).
- */
-export function findOpaqueBoundingBox(
+export function findOpaqueBoundingBoxJs(
   data: Uint8ClampedArray | Uint8Array,
   width: number,
   height: number,
@@ -63,6 +62,20 @@ export function findOpaqueBoundingBox(
 
   const found = maxX >= minX && maxY >= minY
   return { minX: found ? minX : 0, minY: found ? minY : 0, maxX: found ? maxX : -1, maxY: found ? maxY : -1, found }
+}
+
+/**
+ * Tìm bounding box của các pixel đục trong mảng RGBA (4 bytes / pixel).
+ */
+export function findOpaqueBoundingBox(
+  data: Uint8ClampedArray | Uint8Array,
+  width: number,
+  height: number,
+  alphaThreshold = 10
+): BoundingBox {
+  const wasmBox = wasmFindOpaqueBbox(data, width, height, alphaThreshold, false)
+  if (wasmBox) return wasmBox
+  return findOpaqueBoundingBoxJs(data, width, height, alphaThreshold)
 }
 
 function loadImage(src: string): Promise<HTMLImageElement> {

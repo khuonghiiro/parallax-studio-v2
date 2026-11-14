@@ -12,6 +12,8 @@ import { computeChromaZone } from './chromaOuterIsolation'
 import { runChromaGpuAnalysis } from './chromaGpuKernel'
 import { applyEdgeSmoothAndStroke } from './chromaContourStroke'
 
+import { wasmChromaDespill } from '../../../engine/wasmAccel'
+
 import {
   buildChromaMatteParams,
   computeChromaMatteAlpha,
@@ -24,6 +26,39 @@ import {
 // Giữ các export cũ để những module đang import từ đây không phải đổi
 export { computeChromaMatteAlpha, parseHexRgb, rgbToHex }
 export { getChromaGpuStatus, isChromaGpuAvailable, setChromaGpuEnabled } from './chromaGpuKernel'
+
+export function applyFastGreenDespillJs(
+  data: Uint8ClampedArray | Uint8Array,
+  width: number,
+  height: number,
+  greenFactor: number
+): void {
+  const len = width * height * 4
+  const keep = Math.max(0, Math.min(1, 1 - greenFactor))
+  for (let i = 0; i < len; i += 4) {
+    if (data[i + 3] === 0) continue
+    const r = data[i]
+    const g = data[i + 1]
+    const b = data[i + 2]
+    const maxRb = r > b ? r : b
+    if (g > maxRb) {
+      data[i + 1] = Math.round(maxRb + (g - maxRb) * keep)
+    }
+  }
+}
+
+/**
+ * Khử ám xanh lá tốc độ cao toàn ảnh (ưu tiên Rust WASM SIMD, tự động fallback JS).
+ */
+export function applyFastGreenDespill(
+  data: Uint8ClampedArray | Uint8Array,
+  width: number,
+  height: number,
+  greenFactor = 0.75
+): void {
+  if (wasmChromaDespill(data, width, height, greenFactor)) return
+  applyFastGreenDespillJs(data, width, height, greenFactor)
+}
 
 /**
  * Đánh dấu pixel nền và alpha matte tương ứng. `precomputedMatte` (từ kernel GPU) nếu có sẽ được

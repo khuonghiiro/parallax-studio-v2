@@ -14,9 +14,11 @@ import './styles/responsiveDialogs.css'
 import './styles/remoteStudio.css'
 import './styles/responsiveTouchStudio.css'
 import { installRemoteWebApiBridge } from './remote/remoteWebApiBridge'
+import { preloadWasmAccel } from './engine/wasmAccel'
 import { ErrorBoundary } from './ui/ErrorBoundary'
 
 installRemoteWebApiBridge()
+void preloadWasmAccel()
 
 // No StrictMode: double-mounted effects would create two WebGL renderers on one canvas context.
 ReactDOM.createRoot(document.getElementById('root')!).render(
