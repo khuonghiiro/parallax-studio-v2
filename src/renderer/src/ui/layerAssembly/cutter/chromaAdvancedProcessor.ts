@@ -1,8 +1,9 @@
-import type { ChromaKeySettings, DetectedIsland, GridSlicerSettings } from './types'
+import type { ChromaKeySettings } from './types'
 import {
   analyzeChromaAlpha,
   applyShadowAndMistExtraction,
   applySmoothEdgeFeather,
+  applySmoothEdgeFeatherJs,
   removeSoftHaloPixels,
   resolveImageEffectiveKeyRgb,
   unmixPixelRgb,
@@ -11,8 +12,15 @@ import {
 import { computeChromaZone } from './chromaOuterIsolation'
 import { runChromaGpuAnalysis } from './chromaGpuKernel'
 import { applyEdgeSmoothAndStroke } from './chromaContourStroke'
-
 import { wasmChromaDespill } from '../../../engine/wasmAccel'
+import {
+  wasmApplyDefringeAndDespill,
+  wasmApplyDespeckleAndWhiteCrumbs,
+  wasmApplyFeatherAndChoke,
+  wasmBatchUnmixPixels,
+  wasmClassifyBgPixels,
+  wasmCollectBoundaryIndices
+} from '../../../engine/wasm/wasmChromaBridge'
 
 import {
   buildChromaMatteParams,
@@ -26,6 +34,7 @@ import {
 // Giữ các export cũ để những module đang import từ đây không phải đổi
 export { computeChromaMatteAlpha, parseHexRgb, rgbToHex }
 export { getChromaGpuStatus, isChromaGpuAvailable, setChromaGpuEnabled } from './chromaGpuKernel'
+export { applyMagicWandFlood, computeGridIslands } from './chromaWandAndGrid'
 
 export function applyFastGreenDespillJs(
   data: Uint8ClampedArray | Uint8Array,
@@ -64,7 +73,25 @@ export function applyFastGreenDespill(
  * Đánh dấu pixel nền và alpha matte tương ứng. `precomputedMatte` (từ kernel GPU) nếu có sẽ được
  * dùng thay cho việc tính matte trên CPU ở từng pixel.
  */
-function classifyBackgroundPixels(
+export function classifyBackgroundPixels(
+  data: Uint8ClampedArray,
+  totalPixels: number,
+  settings: ChromaKeySettings,
+  effectiveKeyRgb: { r: number; g: number; b: number },
+  precomputedMatte?: Uint8Array | null
+): { isBg: Uint8Array; shadowAlpha: Uint8Array } {
+  const wasmResult = wasmClassifyBgPixels(
+    data,
+    totalPixels,
+    settings,
+    effectiveKeyRgb,
+    precomputedMatte
+  )
+  if (wasmResult) return wasmResult
+  return classifyBackgroundPixelsJs(data, totalPixels, settings, effectiveKeyRgb, precomputedMatte)
+}
+
+export function classifyBackgroundPixelsJs(
   data: Uint8ClampedArray,
   totalPixels: number,
   settings: ChromaKeySettings,
@@ -97,11 +124,60 @@ function classifyBackgroundPixels(
   return { isBg, shadowAlpha }
 }
 
+export function batchUnmixPixels(
+  data: Uint8ClampedArray,
+  analysis: ChromaAlphaAnalysis,
+  zone: Uint8Array,
+  totalPixels: number,
+  effectiveKeyRgb: { r: number; g: number; b: number }
+): void {
+  if (wasmBatchUnmixPixels(data, analysis, zone, totalPixels, effectiveKeyRgb)) return
+  batchUnmixPixelsJs(data, analysis, zone, totalPixels, effectiveKeyRgb)
+}
+
+export function batchUnmixPixelsJs(
+  data: Uint8ClampedArray,
+  analysis: ChromaAlphaAnalysis,
+  zone: Uint8Array,
+  totalPixels: number,
+  effectiveKeyRgb: { r: number; g: number; b: number }
+): void {
+  const isChromaticKey = analysis.isGreenKey || analysis.isBlueKey || analysis.isMagentaKey
+  for (let p = 0; p < totalPixels; p++) {
+    const outA = data[p * 4 + 3]
+    if (zone[p] && analysis.rawAlpha[p] < 0.98 && outA > 0 && (isChromaticKey || outA < 250)) {
+      unmixPixelRgb(
+        data,
+        p * 4,
+        effectiveKeyRgb,
+        analysis.rawAlpha[p],
+        analysis.isLight[p] === 1,
+        analysis.isGreenKey,
+        analysis.isBlueKey,
+        analysis.isMagentaKey,
+        outA / 255
+      )
+    }
+  }
+}
+
 /**
  * Thu thập nhanh danh sách chỉ số các pixel nằm sát biên trong suốt (O(N) 1 lượt),
  * giúp Feather, Choke, Defringe và Smooth chỉ chạy trên ~2% pixel viền thay vì toàn bộ ảnh 4K/8K.
  */
-function collectBoundaryIndices(
+export function collectBoundaryIndices(
+  data: Uint8ClampedArray,
+  w: number,
+  h: number,
+  alphaSnap: Uint8Array,
+  excludeShadowMask?: Uint8Array | null
+): Int32Array {
+  const wasmBoundary = wasmCollectBoundaryIndices(data, w, h, alphaSnap, excludeShadowMask)
+  if (wasmBoundary) return wasmBoundary
+  return collectBoundaryIndicesJs(data, w, h, alphaSnap, excludeShadowMask)
+}
+
+export function collectBoundaryIndicesJs(
   data: Uint8ClampedArray,
   w: number,
   h: number,
@@ -146,7 +222,20 @@ function collectBoundaryIndices(
   return buf.subarray(0, count)
 }
 
-function applyFeatherAndChoke(
+export function applyFeatherAndChoke(
+  data: Uint8ClampedArray,
+  w: number,
+  h: number,
+  feather: number,
+  edgeChoke: number,
+  alphaSnap: Uint8Array,
+  excludeShadowMask?: Uint8Array | null
+): void {
+  if (wasmApplyFeatherAndChoke(data, w, h, feather, edgeChoke, alphaSnap, excludeShadowMask)) return
+  applyFeatherAndChokeJs(data, w, h, feather, edgeChoke, alphaSnap, excludeShadowMask)
+}
+
+export function applyFeatherAndChokeJs(
   data: Uint8ClampedArray,
   w: number,
   h: number,
@@ -158,7 +247,7 @@ function applyFeatherAndChoke(
   if (edgeChoke > 0) {
     const chokeSteps = Math.min(8, Math.round(edgeChoke))
     for (let step = 0; step < chokeSteps; step++) {
-      const boundary = collectBoundaryIndices(data, w, h, alphaSnap, excludeShadowMask)
+      const boundary = collectBoundaryIndicesJs(data, w, h, alphaSnap, excludeShadowMask)
       for (let i = 0; i < boundary.length; i++) {
         const p = boundary[i]
         if (
@@ -181,24 +270,16 @@ function applyFeatherAndChoke(
   }
 
   if (feather > 0) {
-    applySmoothEdgeFeather(data, w, h, feather, alphaSnap, excludeShadowMask)
+    applySmoothEdgeFeatherJs(data, w, h, feather, alphaSnap, excludeShadowMask)
   }
 }
 
-function applyDefringeAndDespill(
-  data: Uint8ClampedArray,
-  w: number,
-  h: number,
+function resolveDefringeOptions(
   settings: ChromaKeySettings,
-  alphaSnap: Uint8Array,
-  excludeShadowMask?: Uint8Array | null,
-  analysis?: ChromaAlphaAnalysis,
-  effectiveKeyRgb?: { r: number; g: number; b: number },
-  zone?: Uint8Array
-): void {
+  effectiveKeyRgb?: { r: number; g: number; b: number }
+) {
   const rawStrength = settings.defringeStrength ?? (settings.despill ? 65 : 55)
   const strength = Math.max(0.1, Math.min(100, rawStrength)) / 100
-
   const fringeType = settings.fringeColorType || settings.keyColorType || 'custom'
   const fringeRgb =
     fringeType === 'chroma_green'
@@ -215,9 +296,138 @@ function applyDefringeAndDespill(
     fringeType === 'chroma_green' || (fringeRgb.g > fringeRgb.r + 25 && fringeRgb.g > fringeRgb.b + 15)
   const isBlueFringe =
     fringeType === 'chroma_blue' || (fringeRgb.b > fringeRgb.r + 25 && fringeRgb.b > fringeRgb.g + 15)
+  return { strength, fringeRgb, isGreenFringe, isBlueFringe }
+}
 
-  const boundary = collectBoundaryIndices(data, w, h, alphaSnap, excludeShadowMask)
+function pullBoundaryNeighborColor(
+  data: Uint8ClampedArray,
+  w: number,
+  h: number,
+  p: number,
+  alphaSnap: Uint8Array,
+  fringeRgb: { r: number; g: number; b: number },
+  strength: number,
+  maxFringeDistSq: number
+): void {
+  const idx = p * 4
+  const r = data[idx]
+  const g = data[idx + 1]
+  const b = data[idx + 2]
+  const a = data[idx + 3]
+  const dr = r - fringeRgb.r
+  const dg = g - fringeRgb.g
+  const db = b - fringeRgb.b
+  const distSq = dr * dr + dg * dg + db * db
+  if (distSq >= maxFringeDistSq) return
+
+  const cx = p % w
+  const cy = (p - cx) / w
+  let bestR = r
+  let bestG = g
+  let bestB = b
+  let bestScore = distSq
+
+  const y0 = Math.max(0, cy - 3)
+  const y1 = Math.min(h - 1, cy + 3)
+  const x0 = Math.max(0, cx - 3)
+  const x1 = Math.min(w - 1, cx + 3)
+  for (let ny = y0; ny <= y1; ny++) {
+    const row = ny * w
+    for (let nx = x0; nx <= x1; nx++) {
+      const np = row + nx
+      if (alphaSnap[np] < 215) continue
+      const nIdx = np * 4
+      const nr = data[nIdx]
+      const ng = data[nIdx + 1]
+      const nb = data[nIdx + 2]
+      const ndSq = (nr - fringeRgb.r) ** 2 + (ng - fringeRgb.g) ** 2 + (nb - fringeRgb.b) ** 2
+      if (ndSq > bestScore) {
+        bestScore = ndSq
+        bestR = nr
+        bestG = ng
+        bestB = nb
+      }
+    }
+  }
+
+  const closeness = 1 - Math.sqrt(distSq / maxFringeDistSq)
+  const pull = Math.min(1, closeness * strength * 1.35)
+  if (bestScore > distSq + 200) {
+    data[idx] = Math.round(r + (bestR - r) * pull)
+    data[idx + 1] = Math.round(g + (bestG - g) * pull)
+    data[idx + 2] = Math.round(b + (bestB - b) * pull)
+  }
+  if (closeness > 0.45) {
+    data[idx + 3] = Math.round(a * Math.max(0, 1 - closeness * strength * 1.15))
+  }
+}
+
+export function applyDefringeAndDespill(
+  data: Uint8ClampedArray,
+  w: number,
+  h: number,
+  settings: ChromaKeySettings,
+  alphaSnap: Uint8Array,
+  excludeShadowMask?: Uint8Array | null,
+  analysis?: ChromaAlphaAnalysis,
+  effectiveKeyRgb?: { r: number; g: number; b: number },
+  zone?: Uint8Array
+): void {
+  const { strength, fringeRgb, isGreenFringe, isBlueFringe } = resolveDefringeOptions(
+    settings,
+    effectiveKeyRgb
+  )
+  if (
+    wasmApplyDefringeAndDespill(
+      data,
+      w,
+      h,
+      strength,
+      fringeRgb,
+      isGreenFringe,
+      isBlueFringe,
+      alphaSnap,
+      excludeShadowMask,
+      analysis,
+      effectiveKeyRgb,
+      zone
+    )
+  ) {
+    return
+  }
+  applyDefringeAndDespillJs(
+    data,
+    w,
+    h,
+    settings,
+    alphaSnap,
+    excludeShadowMask,
+    analysis,
+    effectiveKeyRgb,
+    zone
+  )
+}
+
+export function applyDefringeAndDespillJs(
+  data: Uint8ClampedArray,
+  w: number,
+  h: number,
+  settings: ChromaKeySettings,
+  alphaSnap: Uint8Array,
+  excludeShadowMask?: Uint8Array | null,
+  analysis?: ChromaAlphaAnalysis,
+  effectiveKeyRgb?: { r: number; g: number; b: number },
+  zone?: Uint8Array
+): void {
+  const { strength, fringeRgb, isGreenFringe, isBlueFringe } = resolveDefringeOptions(
+    settings,
+    effectiveKeyRgb
+  )
+  const boundary = collectBoundaryIndicesJs(data, w, h, alphaSnap, excludeShadowMask)
   const maxFringeDistSq = (55 + strength * 175) ** 2
+  const isChromatic = Boolean(
+    analysis && (analysis.isGreenKey || analysis.isBlueKey || analysis.isMagentaKey)
+  )
 
   for (let i = 0; i < boundary.length; i++) {
     const p = boundary[i]
@@ -226,8 +436,6 @@ function applyDefringeAndDespill(
     let a = data[idx + 3]
     if (a === 0) continue
 
-    // 0. Giải pha màu (Color Unmixing) trực tiếp trên pixel mép bị ám màu nền (hồng, xanh, lam, tuỳ chỉnh...)
-    const isChromatic = analysis && (analysis.isGreenKey || analysis.isBlueKey || analysis.isMagentaKey)
     if (analysis && effectiveKeyRgb && analysis.rawAlpha[p] < 0.96 && (isChromatic || a < 250)) {
       unmixPixelRgb(
         data,
@@ -242,11 +450,10 @@ function applyDefringeAndDespill(
       )
     }
 
-    let r = data[idx]
+    const r = data[idx]
     let g = data[idx + 1]
     let b = data[idx + 2]
 
-    // 1. Khử ám xanh lá / xanh dương trực tiếp (Green / Blue Clamp O(1))
     if (isGreenFringe) {
       const rbMax = r > b ? r : b
       const rbAvg = (r + b) * 0.5
@@ -254,7 +461,7 @@ function applyDefringeAndDespill(
         const targetG = rbMax * (1 - strength * 0.45) + rbAvg * (strength * 0.45)
         g = Math.round(g - (g - targetG) * Math.min(1, strength * 1.3))
         data[idx + 1] = g
-        const spill = data[idx + 1] - rbMax
+        const spill = g - rbMax
         if (spill > 10) {
           a = Math.max(0, Math.round(a - spill * strength * 1.6))
           data[idx + 3] = a
@@ -267,7 +474,7 @@ function applyDefringeAndDespill(
         const targetB = rgMax * (1 - strength * 0.45) + rgAvg * (strength * 0.45)
         b = Math.round(b - (b - targetB) * Math.min(1, strength * 1.3))
         data[idx + 2] = b
-        const spill = data[idx + 2] - rgMax
+        const spill = b - rgMax
         if (spill > 10) {
           a = Math.max(0, Math.round(a - spill * strength * 1.6))
           data[idx + 3] = a
@@ -275,96 +482,22 @@ function applyDefringeAndDespill(
       }
     }
 
-    if (a === 0) continue
-
-    // 2. Kéo màu từ pixel đặc bên trong ra viền để xoá halo trắng/đen/xanh/hồng
-    const dr = r - fringeRgb.r
-    const dg = g - fringeRgb.g
-    const db = b - fringeRgb.b
-    const distSq = dr * dr + dg * dg + db * db
-    if (distSq < maxFringeDistSq) {
-      const cx = p % w
-      const cy = (p - cx) / w
-      let bestR = r
-      let bestG = g
-      let bestB = b
-      let bestScore = distSq
-
-      const y0 = Math.max(0, cy - 3)
-      const y1 = Math.min(h - 1, cy + 3)
-      const x0 = Math.max(0, cx - 3)
-      const x1 = Math.min(w - 1, cx + 3)
-      for (let ny = y0; ny <= y1; ny++) {
-        const row = ny * w
-        for (let nx = x0; nx <= x1; nx++) {
-          const np = row + nx
-          if (alphaSnap[np] < 215) continue
-          const nIdx = np * 4
-          const nr = data[nIdx]
-          const ng = data[nIdx + 1]
-          const nb = data[nIdx + 2]
-          const ndSq =
-            (nr - fringeRgb.r) ** 2 + (ng - fringeRgb.g) ** 2 + (nb - fringeRgb.b) ** 2
-          if (ndSq > bestScore) {
-            bestScore = ndSq
-            bestR = nr
-            bestG = ng
-            bestB = nb
-          }
-        }
-      }
-
-      const closeness = 1 - Math.sqrt(distSq / maxFringeDistSq)
-      const pull = Math.min(1, closeness * strength * 1.35)
-      if (bestScore > distSq + 200) {
-        data[idx] = Math.round(r + (bestR - r) * pull)
-        data[idx + 1] = Math.round(g + (bestG - g) * pull)
-        data[idx + 2] = Math.round(b + (bestB - b) * pull)
-      }
-      if (closeness > 0.45) {
-        data[idx + 3] = Math.round(a * Math.max(0, 1 - closeness * strength * 1.15))
-      }
+    if (a > 0) {
+      pullBoundaryNeighborColor(data, w, h, p, alphaSnap, fringeRgb, strength, maxFringeDistSq)
     }
   }
 }
 
-function applyDespeckleAndWhiteCrumbs(
+function filterSmallChromaIslandsJs(
   data: Uint8ClampedArray,
   w: number,
   h: number,
-  settings: ChromaKeySettings,
-  alphaSnap: Uint8Array,
-  excludeShadowMask?: Uint8Array | null
+  despeckleSize: number,
+  keepLargest: boolean,
+  hasShadowMask: boolean
 ): void {
   const totalPixels = w * h
-  const whiteSens = settings.whiteSpeckleSensitivity ?? 0
-  if (whiteSens > 0) {
-    const sens = whiteSens / 100
-    const minLum = Math.max(105, 235 - sens * 115)
-    const maxSpread = 16 + sens * 58
-    const boundary = collectBoundaryIndices(data, w, h, alphaSnap, excludeShadowMask)
-    for (let i = 0; i < boundary.length; i++) {
-      const p = boundary[i]
-      const idx = p * 4
-      const r = data[idx]
-      const g = data[idx + 1]
-      const b = data[idx + 2]
-      const lum = r * 0.299 + g * 0.587 + b * 0.114
-      if (lum < 85) continue
-      const maxC = r > g ? (r > b ? r : b) : g > b ? g : b
-      const minC = r < g ? (r < b ? r : b) : g < b ? g : b
-      if (lum >= minLum && maxC - minC <= maxSpread) {
-        data[idx + 3] = 0
-      }
-    }
-  }
-
-  const despeckleSize = settings.despeckleSize ?? 0
-  const keepLargest = Boolean(settings.keepLargestIslandOnly)
-  if (despeckleSize <= 0 && !keepLargest) return
-
-  const minAlpha = excludeShadowMask ? 10 : 20
-  // Sử dụng mảng phẳng Int32Array không cấp phát Array JS con (nhanh gấp 50 lần trên ảnh 4K)
+  const minAlpha = hasShadowMask ? 10 : 20
   const visited = new Uint8Array(totalPixels)
   const queue = new Int32Array(totalPixels)
   const starts: number[] = []
@@ -389,30 +522,10 @@ function applyDespeckleAndWhiteCrumbs(
       if (lum < 95 && data[ci + 3] > 90) darkCount++
       const cx = curr % w
       const cy = (curr - cx) / w
-      if (cx > 0) {
-        const n = curr - 1
-        if (!visited[n] && data[n * 4 + 3] > minAlpha) {
-          visited[n] = 1
-          queue[globalWrite++] = n
-        }
-      }
-      if (cx < w - 1) {
-        const n = curr + 1
-        if (!visited[n] && data[n * 4 + 3] > minAlpha) {
-          visited[n] = 1
-          queue[globalWrite++] = n
-        }
-      }
-      if (cy > 0) {
-        const n = curr - w
-        if (!visited[n] && data[n * 4 + 3] > minAlpha) {
-          visited[n] = 1
-          queue[globalWrite++] = n
-        }
-      }
-      if (cy < h - 1) {
-        const n = curr + w
-        if (!visited[n] && data[n * 4 + 3] > minAlpha) {
+      const neighbors = [cx > 0 ? curr - 1 : -1, cx < w - 1 ? curr + 1 : -1, cy > 0 ? curr - w : -1, cy < h - 1 ? curr + w : -1]
+      for (let ni = 0; ni < 4; ni++) {
+        const n = neighbors[ni]
+        if (n >= 0 && !visited[n] && data[n * 4 + 3] > minAlpha) {
           visited[n] = 1
           queue[globalWrite++] = n
         }
@@ -432,7 +545,7 @@ function applyDespeckleAndWhiteCrumbs(
   }
 
   const minPixelArea = despeckleSize * 4
-  const allowDespeckleWithShadow = !excludeShadowMask || totalPixels >= 4096
+  const allowDespeckleWithShadow = !hasShadowMask || totalPixels >= 4096
   for (let i = 0; i < starts.length; i++) {
     const s = starts[i]
     const e = ends[i]
@@ -448,6 +561,70 @@ function applyDespeckleAndWhiteCrumbs(
       }
     }
   }
+}
+
+export function applyDespeckleAndWhiteCrumbs(
+  data: Uint8ClampedArray,
+  w: number,
+  h: number,
+  settings: ChromaKeySettings,
+  alphaSnap: Uint8Array,
+  excludeShadowMask?: Uint8Array | null
+): void {
+  const whiteSens = settings.whiteSpeckleSensitivity ?? 0
+  const despeckleSize = settings.despeckleSize ?? 0
+  const keepLargest = Boolean(settings.keepLargestIslandOnly)
+  if (
+    wasmApplyDespeckleAndWhiteCrumbs(
+      data,
+      w,
+      h,
+      whiteSens,
+      despeckleSize,
+      keepLargest,
+      alphaSnap,
+      excludeShadowMask
+    )
+  ) {
+    return
+  }
+  applyDespeckleAndWhiteCrumbsJs(data, w, h, settings, alphaSnap, excludeShadowMask)
+}
+
+export function applyDespeckleAndWhiteCrumbsJs(
+  data: Uint8ClampedArray,
+  w: number,
+  h: number,
+  settings: ChromaKeySettings,
+  alphaSnap: Uint8Array,
+  excludeShadowMask?: Uint8Array | null
+): void {
+  const whiteSens = settings.whiteSpeckleSensitivity ?? 0
+  if (whiteSens > 0) {
+    const sens = whiteSens / 100
+    const minLum = Math.max(105, 235 - sens * 115)
+    const maxSpread = 16 + sens * 58
+    const boundary = collectBoundaryIndicesJs(data, w, h, alphaSnap, excludeShadowMask)
+    for (let i = 0; i < boundary.length; i++) {
+      const p = boundary[i]
+      const idx = p * 4
+      const r = data[idx]
+      const g = data[idx + 1]
+      const b = data[idx + 2]
+      const lum = r * 0.299 + g * 0.587 + b * 0.114
+      if (lum < 85) continue
+      const maxC = r > g ? (r > b ? r : b) : g > b ? g : b
+      const minC = r < g ? (r < b ? r : b) : g < b ? g : b
+      if (lum >= minLum && maxC - minC <= maxSpread) {
+        data[idx + 3] = 0
+      }
+    }
+  }
+
+  const despeckleSize = settings.despeckleSize ?? 0
+  const keepLargest = Boolean(settings.keepLargestIslandOnly)
+  if (despeckleSize <= 0 && !keepLargest) return
+  filterSmallChromaIslandsJs(data, w, h, despeckleSize, keepLargest, Boolean(excludeShadowMask))
 }
 
 export function processAdvancedChromaPixelData(
@@ -501,23 +678,7 @@ export function processAdvancedChromaPixelData(
       removeSoftHaloPixels(data, w, h, settings, effectiveKeyRgb, analysis, zone)
     }
     // Tự động unmix màu nền khỏi các pixel mép biên để khử triệt để viền tím/xanh ám vào tóc
-    const isChromaticKey = analysis.isGreenKey || analysis.isBlueKey || analysis.isMagentaKey
-    for (let p = 0; p < totalPixels; p++) {
-      const outA = data[p * 4 + 3]
-      if (zone[p] && analysis.rawAlpha[p] < 0.98 && outA > 0 && (isChromaticKey || outA < 250)) {
-        unmixPixelRgb(
-          data,
-          p * 4,
-          effectiveKeyRgb,
-          analysis.rawAlpha[p],
-          analysis.isLight[p] === 1,
-          analysis.isGreenKey,
-          analysis.isBlueKey,
-          analysis.isMagentaKey,
-          outA / 255
-        )
-      }
-    }
+    batchUnmixPixels(data, analysis, zone, totalPixels, effectiveKeyRgb)
   }
 
   const alphaSnap = new Uint8Array(totalPixels)
@@ -568,139 +729,3 @@ export function processAdvancedChromaPixelData(
   }
 }
 
-/**
- * Công cụ Đũa thần (Magic Wand): Click 1 điểm để xoá (hoặc khôi phục) vùng màu liên thông đồng nhất.
- */
-function queueWandNeighbor(
-  pixel: number,
-  visited: Uint8Array,
-  queue: Int32Array,
-  tail: number,
-  refData: Uint8ClampedArray,
-  targetData: Uint8ClampedArray,
-  seed: { r: number; g: number; b: number },
-  maxDistSq: number,
-  isRestore: boolean
-): number {
-  if (visited[pixel]) return tail
-  visited[pixel] = 1
-  const i = pixel * 4
-  if (!isRestore && targetData[i + 3] === 0) return tail
-  const dr = refData[i] - seed.r
-  const dg = refData[i + 1] - seed.g
-  const db = refData[i + 2] - seed.b
-  if (dr * dr + dg * dg + db * db <= maxDistSq) queue[tail++] = pixel
-  return tail
-}
-
-export function applyMagicWandFlood(
-  targetData: Uint8ClampedArray,
-  rawData: Uint8ClampedArray | null,
-  w: number,
-  h: number,
-  startX: number,
-  startY: number,
-  tolerance = 32,
-  mode: 'erase' | 'restore' | boolean = false,
-  userAlphaOverride?: Int16Array | null
-): number {
-  const isRestore = mode === 'restore' || mode === true
-  const sx = Math.max(0, Math.min(w - 1, Math.round(startX)))
-  const sy = Math.max(0, Math.min(h - 1, Math.round(startY)))
-  const totalPixels = w * h
-  const seedIdx = (sy * w + sx) * 4
-  const refData = isRestore && rawData ? rawData : targetData
-  const sr = refData[seedIdx]
-  const sg = refData[seedIdx + 1]
-  const sb = refData[seedIdx + 2]
-  const seed = { r: sr, g: sg, b: sb }
-
-  const maxDistSq = Math.max(8, (tolerance / 100) * 255 * 1.45) ** 2
-  const visited = new Uint8Array(totalPixels)
-  const queue = new Int32Array(totalPixels)
-  let head = 0
-  let tail = 0
-  const startP = sy * w + sx
-  visited[startP] = 1
-  queue[tail++] = startP
-
-  let changedCount = 0
-
-  while (head < tail) {
-    const p = queue[head++]
-    const cx = p % w
-    const cy = (p - cx) / w
-    const idx = p * 4
-
-    if (isRestore && rawData) {
-      targetData[idx] = rawData[idx]
-      targetData[idx + 1] = rawData[idx + 1]
-      targetData[idx + 2] = rawData[idx + 2]
-      targetData[idx + 3] = rawData[idx + 3]
-      if (userAlphaOverride) userAlphaOverride[p] = -1
-      changedCount++
-    } else if (targetData[idx + 3] > 0) {
-      targetData[idx + 3] = 0
-      if (userAlphaOverride) userAlphaOverride[p] = 0
-      changedCount++
-    }
-
-    if (cx > 0) {
-      tail = queueWandNeighbor(
-        p - 1, visited, queue, tail, refData, targetData, seed, maxDistSq, isRestore
-      )
-    }
-    if (cx < w - 1) {
-      tail = queueWandNeighbor(
-        p + 1, visited, queue, tail, refData, targetData, seed, maxDistSq, isRestore
-      )
-    }
-    if (cy > 0) {
-      tail = queueWandNeighbor(
-        p - w, visited, queue, tail, refData, targetData, seed, maxDistSq, isRestore
-      )
-    }
-    if (cy < h - 1) {
-      tail = queueWandNeighbor(
-        p + w, visited, queue, tail, refData, targetData, seed, maxDistSq, isRestore
-      )
-    }
-  }
-
-  return changedCount
-}
-
-
-export function computeGridIslands(
-  w: number,
-  h: number,
-  grid: GridSlicerSettings
-): DetectedIsland[] {
-  const rows = Math.max(1, Math.min(12, Math.round(grid.rows || 2)))
-  const cols = Math.max(1, Math.min(12, Math.round(grid.cols || 2)))
-  const pad = Math.max(0, Math.min(40, Math.round(grid.paddingInset || 0)))
-  const cellW = w / cols
-  const cellH = h / rows
-  const result: DetectedIsland[] = []
-
-  let idx = 1
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      const x = Math.round(c * cellW + pad)
-      const y = Math.round(r * cellH + pad)
-      const bw = Math.max(4, Math.round(cellW - pad * 2))
-      const bh = Math.max(4, Math.round(cellH - pad * 2))
-      result.push({
-        id: `grid_${r + 1}_${c + 1}`,
-        x,
-        y,
-        width: bw,
-        height: bh,
-        area: bw * bh,
-        label: `Ô H${r + 1}-C${c + 1} (#${idx})`
-      })
-      idx++
-    }
-  }
-  return result
-}

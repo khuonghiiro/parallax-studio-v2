@@ -229,6 +229,93 @@ export interface PxsWasmExports {
     outI32Ptr: number,
     maxIslands: number
   ) => number
+  rust_analyze_chroma_alpha?: (
+    rgbaPtr: number,
+    w: number,
+    h: number,
+    paramsPtr: number,
+    flags: number,
+    rawAlphaOutPtr: number,
+    dirAlphaOutPtr: number,
+    isLightOutPtr: number,
+    noiseOutPtr: number
+  ) => number
+  rust_classify_bg_pixels?: (
+    rgbaPtr: number,
+    totalPixels: number,
+    mpPtr: number,
+    modeFlags: number,
+    precomputedPtr: number,
+    hasPrecomputed: number,
+    isBgOutPtr: number,
+    shadowAlphaOutPtr: number
+  ) => number
+  rust_batch_unmix_pixels?: (
+    rgbaPtr: number,
+    rawAlphaPtr: number,
+    isLightPtr: number,
+    zonePtr: number,
+    totalPixels: number,
+    kr: number,
+    kg: number,
+    kb: number,
+    keyFlags: number
+  ) => number
+  rust_collect_boundary_indices?: (
+    rgbaPtr: number,
+    w: number,
+    h: number,
+    excludePtr: number,
+    hasExclude: number,
+    alphaSnapOutPtr: number,
+    outIndicesPtr: number,
+    maxOut: number
+  ) => number
+  rust_apply_smooth_edge_feather?: (
+    rgbaPtr: number,
+    w: number,
+    h: number,
+    feather: number,
+    alphaSnapPtr: number,
+    excludePtr: number,
+    hasExclude: number
+  ) => number
+  rust_apply_feather_and_choke?: (
+    rgbaPtr: number,
+    w: number,
+    h: number,
+    feather: number,
+    edgeChoke: number,
+    alphaSnapPtr: number,
+    excludePtr: number,
+    hasExclude: number
+  ) => number
+  rust_apply_defringe_and_despill?: (
+    rgbaPtr: number,
+    w: number,
+    h: number,
+    paramsPtr: number,
+    flags: number,
+    alphaSnapPtr: number,
+    excludePtr: number,
+    hasExclude: number,
+    rawAlphaPtr: number,
+    isLightPtr: number,
+    hasAnalysis: number,
+    zonePtr: number,
+    hasZone: number
+  ) => number
+  rust_apply_despeckle_and_crumbs?: (
+    rgbaPtr: number,
+    w: number,
+    h: number,
+    whiteSens: number,
+    despeckleSize: number,
+    keepLargest: number,
+    alphaSnapPtr: number,
+    excludePtr: number,
+    hasExclude: number
+  ) => number
 }
 
 export type ScratchKind = 'f32' | 'i32' | 'u32' | 'i16' | 'u8'

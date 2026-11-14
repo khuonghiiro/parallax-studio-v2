@@ -1,6 +1,8 @@
 // Crate Rust: pxs_core_accel
 // Cung cấp các hàm xử lý tính toán số học điểm ảnh và lưới 2.5D hiệu năng cực cao (SIMD / Zero-alloc).
 
+pub mod chroma_edge_ops;
+pub mod chroma_matte_unmix;
 pub mod geom2d;
 pub mod geodesic_chains;
 pub mod geodesic_graph;
@@ -11,6 +13,13 @@ pub mod mesh_modifiers;
 pub mod pixel_isolation;
 pub mod skin_deform;
 pub mod wasm_mem;
+pub use chroma_edge_ops::{
+    rust_apply_defringe_and_despill, rust_apply_despeckle_and_crumbs,
+    rust_apply_feather_and_choke, rust_apply_smooth_edge_feather, rust_collect_boundary_indices,
+};
+pub use chroma_matte_unmix::{
+    rust_analyze_chroma_alpha, rust_batch_unmix_pixels, rust_classify_bg_pixels,
+};
 pub use geodesic_skinning::{rust_build_geodesic_skin_weights, rust_dominant_bone_per_triangle};
 pub use island_contour::{
     rust_disambiguate_region_pixels, rust_scan_contour_flood_boxes, rust_scan_raw_islands,
