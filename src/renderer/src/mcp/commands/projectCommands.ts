@@ -66,7 +66,25 @@ export const projectCommands: Record<string, Handler> = {
     }
   },
 
-  new_project: (p) => {
+  new_project: async (p) => {
+    const demo = str(p, 'demo')
+    if (demo === 'three_scenes' || demo === 'donghua_guofeng') {
+      const demoMod = await import('../../project/demo')
+      const loaded =
+        demo === 'donghua_guofeng'
+          ? await demoMod.buildDonghuaDemoProject()
+          : await demoMod.buildThreeSceneDemoProject()
+      ed().loadProject(loaded, null)
+      ed().setPlaying(false)
+      return {
+        ok: true,
+        demo,
+        name: loaded.comp.name,
+        shots: loaded.shots.length,
+        layers: loaded.layers.length,
+        composition: proj().comp
+      }
+    }
     assetStore.clear()
     const comp: Partial<Project['comp']> = {}
     for (const k of ['name', 'background'] as const) if (has(p, k)) comp[k] = str(p, k)!

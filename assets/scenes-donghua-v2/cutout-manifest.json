@@ -1,0 +1,257 @@
+[
+  {
+    "id": "asset-dg-s1-bg",
+    "file": "bg-s1-jade-sea-clouds.png",
+    "name": "Cảnh 1 — Vân Hải Thanh Sơn Bình Minh",
+    "kind": "bg",
+    "width": 1376,
+    "height": 768
+  },
+  {
+    "id": "asset-dg-s2-bg",
+    "file": "bg-s2-moonlit-bamboo-mist.png",
+    "name": "Cảnh 2 — Trúc Lâm Nguyệt Ảnh Sương Bạc",
+    "kind": "bg",
+    "width": 1376,
+    "height": 768
+  },
+  {
+    "id": "asset-dg-s3-bg",
+    "file": "bg-s3-jiangnan-starry-river.png",
+    "name": "Cảnh 3 — Giang Nam Cổ Trấn Tinh Hà",
+    "kind": "bg",
+    "width": 1376,
+    "height": 768
+  },
+  {
+    "id": "asset-dg-s1-cliff",
+    "file": "s1-cliff-pavilion.png",
+    "name": "Đình Cổ Vách Núi Tùng Bách",
+    "kind": "cutout",
+    "width": 872,
+    "height": 728,
+    "keyColor": {
+      "r": 11,
+      "g": 247,
+      "b": 4,
+      "kind": "green"
+    },
+    "cropBox": {
+      "x": 362,
+      "y": 40,
+      "width": 872,
+      "height": 728
+    },
+    "coverageRatio": 0.525
+  },
+  {
+    "id": "asset-dg-s1-peach",
+    "file": "s1-peach-branch-fg.png",
+    "name": "Cành Đào Cổ Thụ Tiền Cảnh",
+    "kind": "cutout",
+    "width": 1140,
+    "height": 733,
+    "keyColor": {
+      "r": 13,
+      "g": 249,
+      "b": 5,
+      "kind": "green"
+    },
+    "cropBox": {
+      "x": 128,
+      "y": 21,
+      "width": 1140,
+      "height": 733
+    },
+    "coverageRatio": 0.234
+  },
+  {
+    "id": "asset-dg-s1-crane",
+    "file": "s1-white-crane.png",
+    "name": "Tiên Hạc Ngự Vân",
+    "kind": "cutout",
+    "width": 979,
+    "height": 568,
+    "keyColor": {
+      "r": 11,
+      "g": 246,
+      "b": 6,
+      "kind": "green"
+    },
+    "cropBox": {
+      "x": 201,
+      "y": 64,
+      "width": 979,
+      "height": 568
+    },
+    "coverageRatio": 0.27
+  },
+  {
+    "id": "asset-dg-hero-cloak",
+    "file": "hero-cloak-back.png",
+    "name": "Kiếm Khách — Áo Choàng Lụa Đỏ",
+    "kind": "cutout",
+    "width": 786,
+    "height": 866,
+    "keyColor": {
+      "r": 10,
+      "g": 248,
+      "b": 4,
+      "kind": "green"
+    },
+    "cropBox": {
+      "x": 34,
+      "y": 194,
+      "width": 786,
+      "height": 866
+    },
+    "coverageRatio": 0.532
+  },
+  {
+    "id": "asset-dg-hero-calm",
+    "file": "hero-swordsman-calm.png",
+    "name": "Kiếm Khách — Thần Thái Điềm Tĩnh",
+    "kind": "cutout",
+    "width": 538,
+    "height": 1218,
+    "keyColor": {
+      "r": 11,
+      "g": 247,
+      "b": 5,
+      "kind": "green"
+    },
+    "cropBox": {
+      "x": 138,
+      "y": 44,
+      "width": 538,
+      "height": 1218
+    },
+    "coverageRatio": 0.551
+  },
+  {
+    "id": "asset-dg-hero-fierce",
+    "file": "hero-swordsman-fierce.png",
+    "name": "Kiếm Khách — Khai Phong Kiếm Ý",
+    "kind": "cutout",
+    "width": 724,
+    "height": 1262,
+    "keyColor": {
+      "r": 13,
+      "g": 245,
+      "b": 6,
+      "kind": "green"
+    },
+    "cropBox": {
+      "x": 64,
+      "y": 0,
+      "width": 724,
+      "height": 1262
+    },
+    "coverageRatio": 0.443
+  },
+  {
+    "id": "asset-dg-hero-sword",
+    "file": "hero-spirit-sword.png",
+    "name": "Linh Kiếm Cổ Phong",
+    "kind": "cutout",
+    "width": 942,
+    "height": 735,
+    "keyColor": {
+      "r": 77,
+      "g": 248,
+      "b": 46,
+      "kind": "green"
+    },
+    "cropBox": {
+      "x": 120,
+      "y": 112,
+      "width": 942,
+      "height": 735
+    },
+    "coverageRatio": 0.11
+  },
+  {
+    "id": "asset-dg-s2-bridge",
+    "file": "s2-stone-bridge.png",
+    "name": "Cầu Đá Cổ Rừng Trúc",
+    "kind": "cutout",
+    "width": 1280,
+    "height": 568,
+    "keyColor": {
+      "r": 11,
+      "g": 248,
+      "b": 5,
+      "kind": "green"
+    },
+    "cropBox": {
+      "x": 48,
+      "y": 100,
+      "width": 1280,
+      "height": 568
+    },
+    "coverageRatio": 0.523
+  },
+  {
+    "id": "asset-dg-s2-bamboo",
+    "file": "s2-bamboo-rock-fg.png",
+    "name": "Trúc Xanh & Đá Thái Hồ Tiền Cảnh",
+    "kind": "cutout",
+    "width": 1172,
+    "height": 768,
+    "keyColor": {
+      "r": 251,
+      "g": 4,
+      "b": 248,
+      "kind": "magenta"
+    },
+    "cropBox": {
+      "x": 0,
+      "y": 0,
+      "width": 1172,
+      "height": 768
+    },
+    "coverageRatio": 0.473
+  },
+  {
+    "id": "asset-dg-s3-maiden",
+    "file": "s3-lotus-boat-maiden.png",
+    "name": "Thiếu Nữ Thuyền Sen Giang Nam",
+    "kind": "cutout",
+    "width": 1122,
+    "height": 704,
+    "keyColor": {
+      "r": 13,
+      "g": 248,
+      "b": 3,
+      "kind": "green"
+    },
+    "cropBox": {
+      "x": 70,
+      "y": 74,
+      "width": 1122,
+      "height": 704
+    },
+    "coverageRatio": 0.387
+  },
+  {
+    "id": "asset-dg-s3-lanterns",
+    "file": "s3-sky-lanterns.png",
+    "name": "Đèn Trời Hoa Đăng",
+    "kind": "cutout",
+    "width": 1044,
+    "height": 622,
+    "keyColor": {
+      "r": 11,
+      "g": 247,
+      "b": 6,
+      "kind": "green"
+    },
+    "cropBox": {
+      "x": 184,
+      "y": 56,
+      "width": 1044,
+      "height": 622
+    },
+    "coverageRatio": 0.3
+  }
+]

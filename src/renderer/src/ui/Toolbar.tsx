@@ -239,8 +239,11 @@ export function Toolbar({ onExport }: { onExport: () => void }) {
             <IconSave width={15} /> Xuất ra JSON…
           </button>
           <div className="menu-label">Mẫu dựng sẵn</div>
-          <button className="menu-item" onClick={() => loadDemo()}>
-            <IconWand width={15} /> Mở cảnh mẫu “Parallax Journey” (4 cảnh)
+          <button className="menu-item" onClick={() => loadDemo(false, 'three_scenes')}>
+            <IconWand width={15} /> Mẫu 1: Hành Trình 3 Khung Cảnh (Workflow V2)
+          </button>
+          <button className="menu-item" onClick={() => loadDemo(false, 'donghua_guofeng')}>
+            <IconWand width={15} /> Mẫu 2: Vân Sơn Kiếm Khúc — Quốc Phong 2.5D
           </button>
         </Menu>
 
