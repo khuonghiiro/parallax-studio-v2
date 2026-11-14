@@ -137,16 +137,17 @@ Khi làm việc sâu với từng phân hệ, AI **chủ động đọc tài li�
 - **Gizmo 3D & Xưởng Lắp Ráp Mô Hình 3D (`models3d/`):** [docs/architecture/gizmo-and-assembly-3d.md](./docs/architecture/gizmo-and-assembly-3d.md) & [docs/image-mesh-templates.md](./docs/image-mesh-templates.md)
 - **Xưởng Lắp Ráp Layer 2.5D, Hệ Thống Xương Blender, Uốn Mềm & Atlas Nhân Vật:** [docs/architecture/layer-assembly-and-rigging.md](./docs/architecture/layer-assembly-and-rigging.md), [docs/layer-workshop-tools.md](./docs/layer-workshop-tools.md) & [docs/design/character-cutout-prompt.md](./docs/design/character-cutout-prompt.md)
 - **Đồng Bộ Timeline ⇄ Workflow V2, Nhóm Time Chung, Chuỗi Motion BBox, Va Chạm & Bộ Phận 2.5D:** [docs/architecture/workflow-v2-and-timeline.md](./docs/architecture/workflow-v2-and-timeline.md), [docs/workflow-node-semantics.md](./docs/workflow-node-semantics.md), [docs/motion-controls.md](./docs/motion-controls.md) & [docs/timing-workflow.md](./docs/timing-workflow.md)
-- **Danh mục 146 MCP Tools & CLI `pnpm pxs`:** [mcp-server/README.md](./mcp-server/README.md)
+- **Danh mục 168 MCP Tools & CLI `pnpm pxs`:** [mcp-server/README.md](./mcp-server/README.md)
 
 ---
 
 ## 4. Danh Mục Skills Trọng Tâm (`.agents/skills/`)
 
 Kích hoạt và đọc `SKILL.md` tương ứng khi thực hiện tác vụ chuyên biệt:
-- **Quét & Định vị giao diện tức thì (`Win + Alt` / `Win + Ctrl`):** `ai-ui-inspector` ([SKILL.md](./.agents/skills/ai-ui-inspector/SKILL.md))
+- **Đạo diễn điện ảnh, chiều sâu hành lang & lộ trình Camera 2.5D:** `cinematic-25d-director` ([SKILL.md](./.agents/skills/cinematic-25d-director/SKILL.md))
+- **Quét & Định vị giao diện (`Win + Alt` / `Win + Ctrl`):** `ai-ui-inspector` ([SKILL.md](./.agents/skills/ai-ui-inspector/SKILL.md))
 - **Đăng ký vùng chụp MCP cho UI mới/sửa:** `mcp-ui-region` ([SKILL.md](./.agents/skills/mcp-ui-region/SKILL.md))
-- **Quản lý Manifest tài nguyên & khôi phục xoá tạm:** `manifest-assets` ([SKILL.md](./.agents/skills/manifest-assets/SKILL.md))
+- **Quản lý Manifest tài nguyên & xoá tạm:** `manifest-assets` ([SKILL.md](./.agents/skills/manifest-assets/SKILL.md))
 - **Quy trình Git theo Session & Commit tiếng Việt:** `ak:git` ([SKILL.md](./.agents/skills/ak-git/SKILL.md))
 - **Đồ họa 3D, WebGL & Shaders:** `ak:threejs`, `ak:shader`
 - **React 19, Frontend & Tối ưu hiệu năng:** `ak:frontend-development`, `ak:react-best-practices`, `code-modularization`

@@ -276,6 +276,26 @@
       "category": "prop",
       "status": "active"
     },
+    "scenes-action-25d/env/mid-pine-lantern.png": {
+      "name": "Cành Tùng Cổ Thụ & Lồng Đèn Trung Cảnh",
+      "category": "nature",
+      "status": "active"
+    },
+    "scenes-action-25d/env/mid-stone-lantern.png": {
+      "name": "Thạch Đăng Rêu Phong Lối Ngõ",
+      "category": "prop",
+      "status": "active"
+    },
+    "scenes-action-25d/env/fg-seal-obelisk.png": {
+      "name": "Trụ Đá Phù Văn Phong Ấn Tiền Cảnh",
+      "category": "prop",
+      "status": "active"
+    },
+    "scenes-action-25d/env/mid-valley-mist.png": {
+      "name": "Mây Sương Hẻm Đèo Bán Trong Suốt",
+      "category": "nature",
+      "status": "active"
+    },
     "scenes-action-25d/env/vfx-sword-crescent.png": {
       "name": "Kiếm Khí Nguyệt Trảm VFX",
       "category": "prop",

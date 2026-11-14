@@ -17,4 +17,5 @@
    - **Gizmo 3D & Xưởng Lắp Ráp 3D (`models3d/`):** [docs/architecture/gizmo-and-assembly-3d.md](./docs/architecture/gizmo-and-assembly-3d.md)
    - **Xưởng Lắp Ráp Layer 2.5D, Xương Blender & Atlas:** [docs/architecture/layer-assembly-and-rigging.md](./docs/architecture/layer-assembly-and-rigging.md)
    - **Timeline ⇄ Workflow V2, Nhóm Time Chung & Motion BBox:** [docs/architecture/workflow-v2-and-timeline.md](./docs/architecture/workflow-v2-and-timeline.md)
+   - **Đạo Diễn Chiều Sâu Hành Lang, Chiến Đấu & Lộ Trình Camera 2.5D:** [SKILL.md](./.agents/skills/cinematic-25d-director/SKILL.md)
    - **Manifest Tài Nguyên Động & Kho Tạm Khôi Phục:** [SKILL.md](./.agents/skills/manifest-assets/SKILL.md)
