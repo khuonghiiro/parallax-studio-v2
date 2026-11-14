@@ -212,13 +212,16 @@ function deformVerticesWithWeightsJs(
       else if (j === 1) { p1x = ptX; p1y = ptY; hasP1 = true }
     }
     if (totalW <= 1e-6) continue
-    if (totalW < 1) {
+    if (totalW < 0.9999) {
       x += wx * (1 - totalW)
       y += wy * (1 - totalW)
-    } else if (hasP0 && hasP1 && influences[1].weight > 1e-4) {
-      ;[x, y] = applySagittaCompensationJs(
-        x, y, wx, wy, p0x, p0y, p1x, p1y, influences, boneById, transforms
-      )
+    } else {
+      if (totalW < 1) { x += wx * (1 - totalW); y += wy * (1 - totalW) }
+      if (hasP0 && hasP1 && influences[1].weight > 1e-4) {
+        ;[x, y] = applySagittaCompensationJs(
+          x, y, wx, wy, p0x, p0y, p1x, p1y, influences, boneById, transforms
+        )
+      }
     }
     const dx = x - m.curBx
     const dy = y - m.curBy
