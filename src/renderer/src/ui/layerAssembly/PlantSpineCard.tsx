@@ -15,6 +15,7 @@ type NumKey =
   | 'speed'
   | 'stiffness'
   | 'flexibility'
+  | 'waveLag'
   | 'turbulence'
   | 'lean'
   | 'phaseOffset'
@@ -27,13 +28,14 @@ const PRIMARY_SLIDERS: SliderDef[] = [
   { key: 'amplitude', label: 'Biên độ uốn', min: 0, max: 40, step: 0.5, unit: '°', hint: 'Góc uốn tối đa tại ngọn khi đung đưa vòng cung' },
   { key: 'speed', label: 'Nhịp gió', min: 0.05, max: 3, step: 0.05, unit: '/s', hint: 'Số nhịp đung đưa mỗi giây' },
   { key: 'lean', label: 'Độ nghiêng gió', min: -30, max: 30, step: 0.5, unit: '°', hint: 'Góc tạt nghiêng cố định theo chiều gió (- trái · + phải)' },
-  { key: 'verticalBob', label: 'Nhún dọc thân', min: 0, max: 0.6, step: 0.02, unit: '', hint: 'Độ co giãn & nhún dọc thân khi gió dập (Squash & Stretch)' },
+  { key: 'verticalBob', label: 'Nhún dọc thân', min: 0, max: 0.6, step: 0.02, unit: '', hint: 'Độ co giãn & nhún dọc thân (0 = giữ nguyên chiều dài cho tóc/lụa/cành gỗ)' },
   { key: 'phaseOffset', label: 'Độ trễ pha', min: 0, max: 3, step: 0.05, unit: 's', hint: 'Lệch nhịp giữa các cành/bụi cây để chuyển động tự nhiên' }
 ]
 
 const SECONDARY_SLIDERS: SliderDef[] = [
   { key: 'stiffness', label: 'Độ cứng gốc', min: 0, max: 1, step: 0.05, hint: '0 = cả thân uốn mềm · 1 = gốc đứng vững, chỉ ngọn cong' },
   { key: 'flexibility', label: 'Độ dẻo ngọn', min: 0, max: 1, step: 0.05, hint: 'Ngọn lá / đuôi tóc phất thêm sóng phụ mềm mại' },
+  { key: 'waveLag', label: 'Trễ sóng S', min: 0, max: 1.2, step: 0.05, hint: '0 = uốn chữ C đồng pha · 0.6–0.9 = sóng truyền chữ S mượt như lụa/tóc hoạt hình 2D' },
   { key: 'turbulence', label: 'Độ giật gió', min: 0, max: 1, step: 0.05, hint: 'Biến thiên ngẫu nhiên lúc gió lặng lúc gió dồn' },
   { key: 'reach', label: 'Bán kính uốn', min: 0, max: 400, step: 5, unit: 'px', hint: '0 = uốn toàn bộ layer · >0 = chỉ uốn vùng quanh trục' }
 ]
@@ -42,7 +44,10 @@ function SliderList({ spine, defs, patch }: { spine: PlantSpine; defs: SliderDef
   return (
     <div className="lw-plant-sliders">
       {defs.map((s) => {
-        const value = (spine[s.key] as number | undefined) ?? 0
+        const value =
+          s.key === 'waveLag'
+            ? (spine.waveLag ?? Number((Math.min(1, Math.max(0, spine.flexibility)) * 0.72).toFixed(2)))
+            : ((spine[s.key] as number | undefined) ?? 0)
         return (
           <label key={s.key} className="lw-plant-slider" title={s.hint}>
             <span className="lw-plant-slider-label">{s.label}</span>

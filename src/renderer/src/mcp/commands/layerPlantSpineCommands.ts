@@ -15,7 +15,7 @@ import {
 } from '../../ui/layerAssembly/workshopPlantSpines'
 import { parsePlantMotionPatch, summarizePlantMotion } from './layerPlantMotionParams'
 
-const PRESETS: PlantSpinePresetId[] = ['grass', 'sapling', 'branch', 'canopy', 'flower', 'seaweed']
+const PRESETS: PlantSpinePresetId[] = ['grass', 'sapling', 'branch', 'canopy', 'flower', 'seaweed', 'silk', 'cloak']
 const DIRECTIONS: PlantSpineDirection[] = ['up', 'horizontal', 'down']
 const WEATHERS: WindWeatherPresetId[] = ['breeze', 'moderate', 'strong', 'storm']
 
@@ -64,6 +64,7 @@ function parsePatch(p: Params): Partial<PlantSpine> {
     ['speed', 'speed'],
     ['stiffness', 'stiffness'],
     ['flexibility', 'flexibility'],
+    ['wave_lag', 'waveLag'],
     ['turbulence', 'turbulence'],
     ['lean', 'lean'],
     ['phase_offset', 'phaseOffset'],
@@ -96,6 +97,7 @@ function summarize(spines: PlantSpine[] | undefined) {
     speed: s.speed,
     stiffness: s.stiffness,
     flexibility: s.flexibility,
+    wave_lag: s.waveLag ?? Number((Math.min(1, Math.max(0, s.flexibility)) * 0.72).toFixed(2)),
     turbulence: s.turbulence,
     lean: s.lean ?? 0,
     phase_offset: s.phaseOffset ?? 0,
@@ -142,9 +144,11 @@ export const layerPlantSpineCommands: Record<string, Handler> = {
             speed: presetParams.speed,
             stiffness: presetParams.stiffness,
             flexibility: presetParams.flexibility,
+            waveLag: presetParams.waveLag,
             turbulence: presetParams.turbulence,
             lean: presetParams.lean,
             reach: presetParams.reach,
+            verticalBob: presetParams.verticalBob,
             ...parsePatch(p)
           }
         : parsePatch(p)

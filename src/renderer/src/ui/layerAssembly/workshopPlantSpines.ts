@@ -21,37 +21,37 @@ export interface WindWeatherPreset {
   label: string
   meta: string
   hint: string
-  params: Pick<PlantSpine, 'amplitude' | 'speed' | 'stiffness' | 'flexibility' | 'turbulence' | 'verticalBob'>
+  params: Pick<PlantSpine, 'amplitude' | 'speed' | 'stiffness' | 'flexibility' | 'waveLag' | 'turbulence' | 'verticalBob'>
 }
 
 export const WIND_WEATHER_PRESETS: WindWeatherPreset[] = [
   {
     id: 'breeze',
     label: 'Hiu hiu',
-    meta: '±6° · 0.55/s',
-    hint: 'Gió thoảng nhẹ nhàng cho lá cây, tóc hoặc tà áo đứng yên',
-    params: { amplitude: 6, speed: 0.55, stiffness: 0.35, flexibility: 0.28, turbulence: 0.1, verticalBob: 0.03 }
+    meta: '±6° · 0.48/s',
+    hint: 'Gió thoảng nhẹ nhàng sóng chữ S cho tóc, tà áo lụa hoặc lá cây đứng yên',
+    params: { amplitude: 6, speed: 0.48, stiffness: 0.35, flexibility: 0.32, waveLag: 0.55, turbulence: 0.12, verticalBob: 0 }
   },
   {
     id: 'moderate',
     label: 'Gió vừa',
-    meta: '±13° · 0.85/s',
-    hint: 'Gió tự nhiên ngoài trời cho tán cây, bụi cỏ, dây leo và vải mềm',
-    params: { amplitude: 13, speed: 0.85, stiffness: 0.28, flexibility: 0.45, turbulence: 0.25, verticalBob: 0.07 }
+    meta: '±12° · 0.68/s',
+    hint: 'Gió tự nhiên truyền sóng chữ S mượt mà cho tán cây, bụi cỏ, tóc và vải mềm',
+    params: { amplitude: 12, speed: 0.68, stiffness: 0.28, flexibility: 0.5, waveLag: 0.65, turbulence: 0.24, verticalBob: 0.02 }
   },
   {
     id: 'strong',
     label: 'Gió mạnh',
-    meta: '±22° · 1.25/s',
-    hint: 'Gió thổi mạnh có độ giật rõ và ngọn phất nhanh',
-    params: { amplitude: 22, speed: 1.25, stiffness: 0.22, flexibility: 0.65, turbulence: 0.52, verticalBob: 0.14 }
+    meta: '±20° · 0.98/s',
+    hint: 'Gió thổi mạnh có độ lượn sóng đuôi rõ rệt cho áo choàng & cành cây',
+    params: { amplitude: 20, speed: 0.98, stiffness: 0.22, flexibility: 0.68, waveLag: 0.72, turbulence: 0.42, verticalBob: 0.05 }
   },
   {
     id: 'storm',
     label: 'Gió lốc',
-    meta: '±32° · 1.85/s',
-    hint: 'Gió bão giật dồn dập, biên độ uốn lớn và nhún thân rõ rệt',
-    params: { amplitude: 32, speed: 1.85, stiffness: 0.18, flexibility: 0.85, turbulence: 0.82, verticalBob: 0.22 }
+    meta: '±28° · 1.38/s',
+    hint: 'Gió bão giật dồn dập, biên độ uốn lớn và đánh sóng đuôi nhanh',
+    params: { amplitude: 28, speed: 1.38, stiffness: 0.18, flexibility: 0.85, waveLag: 0.78, turbulence: 0.68, verticalBob: 0.1 }
   }
 ]
 
@@ -394,7 +394,7 @@ function muteLegacyMotion(composite: LayerComposite, layerIds: string[]): LayerC
   )
 }
 
-const WIND_KEYS = ['amplitude', 'speed', 'stiffness', 'flexibility', 'turbulence', 'lean', 'verticalBob'] as const
+const WIND_KEYS = ['amplitude', 'speed', 'stiffness', 'flexibility', 'waveLag', 'turbulence', 'lean', 'verticalBob'] as const
 const GOLDEN = 0.6180339887
 const round2 = (v: number) => Math.round(v * 100) / 100
 
