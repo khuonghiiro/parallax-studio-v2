@@ -261,6 +261,7 @@ export type SolidPattern =
   | 'stripes'
   | 'dots'
   | 'speedlines_radial'
+  | 'horror_bw_speedlines'
   | 'spotlight_stage'
   | 'comic_burst'
   | 'question_sky'

@@ -516,6 +516,7 @@ export const SCENE_TOOLS = [
         'stripes',
         'dots',
         'speedlines_radial',
+        'horror_bw_speedlines',
         'spotlight_stage',
         'comic_burst',
         'question_sky',
@@ -651,7 +652,11 @@ export const SCENE_TOOLS = [
         'system_pop_bounce',
         'comedic_tumble_out',
         'soul_escape_ascend',
-        'foreground_weapon_slam'
+        'foreground_weapon_slam',
+        'pop_up_bottom',
+        'slide_in_side',
+        'pendulum_question',
+        'anger_vein_throb'
       ]).describe(d('Motion preset ID.', 'Mã mẫu chuyển động.')),
       time: z.number().optional().describe(d('Start time in seconds (default: current playhead time).', 'Thời điểm bắt đầu tính bằng giây (mặc định: vị trí playhead).')),
       duration: z.number().positive().optional().describe(d('Duration of the motion in seconds.', 'Thời lượng chuyển động tính bằng giây.')),
@@ -689,7 +694,11 @@ export const SCENE_TOOLS = [
           'system_pop_bounce',
           'comedic_tumble_out',
           'soul_escape_ascend',
-          'foreground_weapon_slam'
+          'foreground_weapon_slam',
+          'pop_up_bottom',
+          'slide_in_side',
+          'pendulum_question',
+          'anger_vein_throb'
         ]).optional().describe(d('After Effects spatial motion trajectory preset.', 'Mẫu quỹ đạo chuyển động không gian After Effects.')),
         action_clip: z.string().optional().describe(d('Skeletal clip name from get_character_actions (e.g. "walk", "jump", "fall", "idle", "action").', 'Tên clip hành động xương từ get_character_actions (vd: "walk", "jump", "fall", "idle", "action").')),
         delta_x: z.number().optional().describe(d('Horizontal displacement in pixels.', 'Độ dời ngang tính bằng pixel.')),
@@ -714,7 +723,7 @@ export const SCENE_TOOLS = [
       end_time: z.number().positive().optional().describe(d('Beat end time in seconds (overrides duration).', 'Thời điểm kết thúc nhịp (giây).')),
       duration: z.number().positive().optional().describe(d('Beat duration in seconds (default 2.8s).', 'Thời lượng nhịp thoại (mặc định 2.8s).')),
       narration: z.string().optional().describe(d('Narrator / dialogue sentence rendered as outlined comic subtitle.', 'Câu dẫn truyện / thoại hiển thị thành phụ đề hoạt ảnh viền đôi.')),
-      mood: z.enum(['world', 'question_sky', 'speedlines_radial', 'spotlight_stage', 'anger_veins', 'comic_burst']).optional().describe(d('Keep world plate ("world") or inject psychological comic mood backdrop.', 'Giữ bối cảnh thế giới ("world") hoặc bật nền tâm lý truyện tranh.')),
+      mood: z.enum(['world', 'question_sky', 'speedlines_radial', 'horror_bw_speedlines', 'spotlight_stage', 'anger_veins', 'comic_burst']).optional().describe(d('Keep world plate ("world") or inject psychological comic mood backdrop.', 'Giữ bối cảnh thế giới ("world") hoặc bật nền tâm lý truyện tranh.')),
       camera_grammar: z.enum([
         'cold_open_shock',
         'confused_push',

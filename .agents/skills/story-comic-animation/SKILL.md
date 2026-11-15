@@ -59,16 +59,27 @@ Khi nhận cốt truyện từ người dùng, phân rã ngay mở màn thành c
 Tham chiếu mã nguồn tại [`./src/renderer/src/animation/storyComicDirector.ts`](../../../src/renderer/src/animation/storyComicDirector.ts), [`./src/renderer/src/engine/comicMoodCanvases.ts`](../../../src/renderer/src/engine/comicMoodCanvases.ts) và [`./src/renderer/src/animation/comicMotionPresets.ts`](../../../src/renderer/src/animation/comicMotionPresets.ts):
 
 1. **Dàn dựng nhanh từng nhịp cốt truyện (`stage_story_beat` / `stageStoryComicBeat`):**
-   - Tự động chèn nền tâm lý (`question_sky`, `speedlines_radial`, `spotlight_stage`, `anger_veins`, `comic_burst`), bảng Nhiệm Vụ Hệ Thống (`hologram_panel` kèm tiêu đề vàng/cyan bật nảy), huy hiệu biểu cảm (`question_giant`, `anger_cross`, `sweat_drop`, `red_eye_flare`), **phụ đề dẫn truyện viền đôi phát sáng** (`strokeColor: '#0a3d6e'`, `strokeWidth: 6`, `glowColor: '#38bdf8'`) tự động co tỷ lệ `safeScale` theo độ zoom của camera để không bao giờ bị cắt chữ ở mép khung hình!
+   - Tự động chèn nền tâm lý (`question_sky`, `speedlines_radial`, `horror_bw_speedlines`, `spotlight_stage`, `anger_veins`, `comic_burst`), bảng Nhiệm Vụ Hệ Thống (`hologram_panel` hoặc màn hình minh hoạ nhiệm vụ bật nảy), huy hiệu biểu cảm (`question_giant` đặt sau lưng nhân vật lắc quả lắc, `anger_cross`, `sweat_drop`, `red_eye_flare`), **phụ đề dẫn truyện viền đôi phát sáng** (`strokeColor: '#0a3d6e'`, `strokeWidth: 6`, `glowColor: '#38bdf8'`) tự động neo ở mặt phẳng tiền cảnh `z = -320` (`autoScale: true`) để không bao giờ bị nhân vật hay vũ khí đè chữ.
    - Ví dụ CLI:
      ```powershell
-     pnpm pxs call stage_story_beat '{"shot_id":"shot-2","start_time":9.5,"end_time":12.8,"narration":"Đi chặn đường đoàn đội Đường Tăng?","mood":"speedlines_radial","camera_grammar":"low_angle_menace","emote_badge":"red_eye_flare"}'
+     pnpm pxs call stage_story_beat '{"shot_id":"shot-2","start_time":11.6,"end_time":15.6,"narration":"Đi chặn đường đoàn đội Đường Tăng?","mood":"speedlines_radial","camera_grammar":"low_angle_menace","emote_badge":"red_eye_flare"}'
      ```
-2. **5 Preset Diễn Xuất Hoạt Ảnh Hài & Kịch Tính (`apply_motion_preset` / `generatePresetSpatialTracks`):**
-   - `comedic_tumble_out`: Văng xoay nhào ra bất ngờ rồi nảy nhẹ trên mặt đất (Nhịp Hook mở màn).
+2. **Quy Chuẩn Camera 2D Mượt 1 Chiều & Cắt Nhịp Liền Mạch `0ms Gap` (`applyStoryComicCamera` — BẮT BUỘC):**
+   - **Cấm xoay nghiêng 3D (`yaw = 0, pitch = 0, roll = 0` tuyệt đối):** Các lớp nhân vật truyện tranh 2D phải luôn song song với ống kính; tạo chiều sâu bằng dịch chuyển `X / Y / Scale` thay vì nghiêng góc 3D làm méo hình.
+   - **Chuyển động 1 chiều đơn điệu trong mỗi nhịp:** Trong 1 câu thoại (`2.4s–3.4s`), camera chỉ đi **1 chiều duy nhất** (`Push-In` êm, `Pull-Out` chậm, `Pan` theo nhân vật, hoặc `Snap Zoom` trong `0.16s` rồi trượt giữ nhịp) — **TUYỆT ĐỐI CẤM zoom phóng vào rồi lại zoom lùi ra ngay trong cùng 1 câu thoại**.
+   - **Không để khe hở thời gian giữa 2 nhịp (`0ms gap`):** Nhịp sau phải bắt đầu đúng bằng giây kết thúc của nhịp trước (`start_next === end_prev`, keyframe cuối nhịp đặt tại `end - 0.001` với `ease: 'hold'`) để không bao giờ bị chớp đen hay trượt máy quay giữa 2 cảnh.
+3. **Chống Lộ Đường Cắt Nửa Nhân Vật (`anchorBustLayerToFrameBottom` — BẮT BUỘC):**
+   - Mọi nhân vật vẽ bán thân (`waist-up / bust cutout`) bắt buộc gọi `anchorBustLayerToFrameBottom(layer, project.comp, 1.04)` (hoặc che bằng dải mây/cỏ tiền cảnh trải kín đáy màn hình `cloud_bank_wide_fg.png`) để mép cắt ngang bụng luôn nằm sâu dưới `-600px` ngay cả khi nhún nhảy hay rung lắc.
+   - Các nhân vật đứng ở đồi xa (`Z_far`), cự thú mở màn hoặc nhân vật ngã nằm dưới đất bắt buộc dùng **ảnh toàn thân (`full-body`)** có đầy đủ chân/bàn chân, tuyệt đối không lấy ảnh bán thân thu nhỏ đặt lơ lửng giữa nền cỏ hay xoay ngang.
+4. **9 Preset Xuất Hiện & Diễn Xuất Hoạt Ảnh Hài / Kịch Tính (`apply_motion_preset` / `generatePresetSpatialTracks`):**
+   - `comedic_tumble_out`: Văng xoay nhào từ làn khói / mông cự thú ra tiền cảnh rồi nảy nhẹ trên mặt đất (Nhịp Hook mở màn).
+   - `pop_up_bottom`: Nhân vật bán thân trồi nảy đàn hồi từ dưới mép khung hình lên kèm co giãn mượt mà, giữ mép cắt hông luôn khuất dưới đáy màn hình.
+   - `slide_in_side`: Linh vật Robot Hệ Thống hoặc nhân vật phụ lướt ngang từ cạnh màn hình vào với nhịp phanh đàn hồi rồi nhấp nhô nhẹ.
+   - `pendulum_question`: Dấu hỏi `?` khổng lồ bật lên từ **phía sau lưng** nhân vật rồi nghiêng qua lại như quả lắc ngơ ngác.
+   - `anger_vein_throb`: Nhịp đập co giãn dồn dập kèm rung nhẹ khi nhân vật tức giận vò đầu phát điên.
    - `system_pop_bounce`: Bật nảy đàn hồi `8% → 108% → 97% → 100%` cho bảng Hệ Thống và ký hiệu biểu cảm.
    - `comic_shiver`: Run cầm cập `18Hz` biên độ nhỏ kèm co rúm người khi khiếp sợ tột độ.
-   - `soul_escape_ascend`: Giải thi thuật / Hồn phách bay chéo lên mây trắng và mờ dần ở độ cao lớn.
+   - `soul_escape_ascend`: Giải thi thuật / Hồn phách bay vút từ biển mây trắng đáy màn hình lên chín tầng mây.
    - `foreground_weapon_slam`: Binh khí phóng đại phối cảnh bổ chéo vào tiền cảnh, giữ khựng lực **Hitstop (`hold`)** tại điểm va chạm rồi giật nhẹ.
-3. **Đồng bộ Workflow V2 & Kiểm tra Trực quan:**
-   - Gắn thêm các Node đơn trách nhiệm (`v2:fx:shake`, `v2:fx:pulse`, `v2:motion:float`) cho từng đối tượng cần nhấn nhịp, chạy `syncWorkflowV2Graph(project)` và chụp kiểm tra ít nhất 4 mốc đại diện (`Hook`, `Bảng Hệ Thống`, `Áp bức Sát khí`, `Đào thoát 3 tầng Z / Đập binh khí tiền cảnh`) bằng `get_viewport_screenshot` để đảm bảo phụ đề rõ nét, nhân vật không đè chữ và không bị cắt mép.
+5. **Đồng bộ Workflow V2 & Kiểm tra Trực quan:**
+   - Gắn thêm các Node đơn trách nhiệm (`v2:fx:pulse`, `v2:action:sway`, `v2:action:float`) cho từng đối tượng cần nhấn nhịp, chạy `syncWorkflowV2Graph(project)` và chụp kiểm tra toàn bộ các nhịp bằng `get_viewport_screenshot` để đảm bảo: (a) không lộ bất kỳ mép cắt ngang người nào, (b) không chớp đen giữa các nhịp, (c) camera mượt và phụ đề rõ nét.

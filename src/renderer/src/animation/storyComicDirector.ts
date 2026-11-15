@@ -1,17 +1,29 @@
-import type { Layer, Project, SolidLayer, SolidPattern, TextLayer, Vec3 } from '@shared/types'
+import type {
+  Composition,
+  EaseName,
+  ImageLayer,
+  Layer,
+  Project,
+  SolidLayer,
+  SolidPattern,
+  TextLayer,
+  Vec3
+} from '@shared/types'
+import { nanoid } from 'nanoid'
 import * as factory from '../project/factory'
 import {
-  choreographCinematicCameraRoute,
   type CinematicCameraBeat,
   type ShotTransitionStyle
 } from './cinematicCameraRoute'
-import { autoScaleFactor } from './math'
+import { evaluate } from './keyframes'
+import { autoScaleFactor, referenceDistance } from './math'
 import { generatePresetSpatialTracks } from './motionPresets'
 
 export type StoryMoodBackdrop =
   | 'world'
   | 'question_sky'
   | 'speedlines_radial'
+  | 'horror_bw_speedlines'
   | 'spotlight_stage'
   | 'anger_veins'
   | 'comic_burst'
@@ -61,9 +73,46 @@ export interface StagedStoryBeatResult {
 const MOOD_PALETTES: Record<Exclude<StoryMoodBackdrop, 'world'>, { color: string; color2: string; label: string }> = {
   question_sky: { color: '#5ca4ff', color2: '#cbe6ff', label: 'Nền Tâm Lý · Ngơ Ngác (?)' },
   speedlines_radial: { color: '#2b0938', color2: '#7a0e52', label: 'Nền Tâm Lý · Sát Khí Áp Bức' },
+  horror_bw_speedlines: { color: '#eef6f0', color2: '#090d0b', label: 'Nền Tâm Lý · Kinh Hoàng Đen Trắng' },
   spotlight_stage: { color: '#3b3e45', color2: '#1d2026', label: 'Nền Tâm Lý · Đèn Spotlight Bi Kịch' },
   anger_veins: { color: '#be123c', color2: '#fb7185', label: 'Nền Tâm Lý · Nổi Điên (💢)' },
   comic_burst: { color: '#fde047', color2: '#ef4444', label: 'Nền Tâm Lý · Bùng Nổ Cao Trào' }
+}
+
+/**
+ * Neo bán thân (bust/waist-up cutout) xuống dưới đáy khung hình 16:9 để TUYỆT ĐỐI KHÔNG BAO GIỜ
+ * lộ đường cắt ngang bụng/hông khi camera zoom, pan hoặc nhân vật nhún nhảy.
+ */
+export function anchorBustLayerToFrameBottom(
+  layer: ImageLayer,
+  comp: Pick<Composition, 'width' | 'height'>,
+  maxCamScale = 1.04
+): void {
+  const pos = layer.transform.position.value
+  const sc = layer.transform.scale.value
+  const perspK = layer.autoScale ? 1 : autoScaleFactor(pos[2], comp)
+  const minScreenHeight = comp.height * 0.68
+  const curScreenHeight = (layer.props.height * sc[1]) / perspK
+  if (curScreenHeight < minScreenHeight) {
+    const boost = minScreenHeight / Math.max(1, curScreenHeight)
+    const nextSx = Number((sc[0] * boost).toFixed(3))
+    const nextSy = Number((sc[1] * boost).toFixed(3))
+    layer.transform.scale.value = [nextSx, nextSy, sc[2]]
+    for (const kf of layer.transform.scale.keyframes) {
+      kf.value = [Number((kf.value[0] * boost).toFixed(3)), Number((kf.value[1] * boost).toFixed(3)), kf.value[2]]
+    }
+  }
+  const finalScY = layer.transform.scale.value[1]
+  const halfHWorld = (layer.props.height * finalScY) * 0.5
+  const safeBottomWorld = -(comp.height * 0.5 * maxCamScale + 65) * perspK
+  const currentBottomWorld = pos[1] - halfHWorld
+  if (currentBottomWorld > safeBottomWorld) {
+    const dy = Math.round(safeBottomWorld - currentBottomWorld)
+    layer.transform.position.value = [pos[0], pos[1] + dy, pos[2]]
+    for (const kf of layer.transform.position.keyframes) {
+      kf.value = [kf.value[0], kf.value[1] + dy, kf.value[2]]
+    }
+  }
 }
 
 export function wrapStorySubtitle(raw: string, maxCharsPerLine = 42): string {
@@ -92,7 +141,13 @@ function insertBeatLayerTop(project: Project, shotId: string, layer: Layer): voi
   else project.layers.splice(idx, 0, layer)
 }
 
-function insertBeatBackdrop(project: Project, shotId: string, mood: Exclude<StoryMoodBackdrop, 'world'>, start: number, end: number): SolidLayer {
+function insertBeatBackdrop(
+  project: Project,
+  shotId: string,
+  mood: Exclude<StoryMoodBackdrop, 'world'>,
+  start: number,
+  end: number
+): SolidLayer {
   const pal = MOOD_PALETTES[mood]
   const solid = factory.createSolidLayer(project.comp)
   solid.shotId = shotId
@@ -106,8 +161,8 @@ function insertBeatBackdrop(project: Project, shotId: string, mood: Exclude<Stor
     color2: pal.color2,
     gradient: true,
     pattern: mood as SolidPattern,
-    width: Math.round(project.comp.width * 1.28),
-    height: Math.round(project.comp.height * 1.28)
+    width: Math.round(project.comp.width * 1.32),
+    height: Math.round(project.comp.height * 1.32)
   }
   let lastIdx = -1
   project.layers.forEach((l, i) => {
@@ -189,10 +244,10 @@ function createEmoteBadgeLayer(
   end: number
 ): TextLayer {
   const cfg: Record<Exclude<StoryEmoteBadge, 'none'>, { symbol: string; size: number; color: string; stroke: string; glow: string; defaultPos: Vec3 }> = {
-    question_giant: { symbol: '?', size: 280, color: '#facc15', stroke: '#78350f', glow: '#fde047', defaultPos: [95, 50, 260] },
-    anger_cross: { symbol: '💢', size: 130, color: '#ef4444', stroke: '#450a0a', glow: '#fb7185', defaultPos: [185, 165, 60] },
-    sweat_drop: { symbol: '💧', size: 88, color: '#7dd3fc', stroke: '#0c4a6e', glow: '#38bdf8', defaultPos: [110, 140, 40] },
-    red_eye_flare: { symbol: '✦━━', size: 78, color: '#ff1e42', stroke: '#ff0033', glow: '#ff1e42', defaultPos: [-125, 138, 35] }
+    question_giant: { symbol: '?', size: 360, color: '#facc15', stroke: '#451a03', glow: '#fde047', defaultPos: [95, 75, 165] },
+    anger_cross: { symbol: '💢', size: 135, color: '#ef4444', stroke: '#450a0a', glow: '#fb7185', defaultPos: [185, 175, 55] },
+    sweat_drop: { symbol: '💧', size: 92, color: '#7dd3fc', stroke: '#0c4a6e', glow: '#38bdf8', defaultPos: [120, 155, 45] },
+    red_eye_flare: { symbol: '✦━━━✦', size: 84, color: '#ff1e42', stroke: '#ff0033', glow: '#ff1e42', defaultPos: [-155, 165, 45] }
   }
   const c = cfg[badge]
   const targetPos = pos ?? c.defaultPos
@@ -204,7 +259,7 @@ function createEmoteBadgeLayer(
   layer.transform.position.value = [...targetPos]
   if (badge === 'red_eye_flare') {
     layer.blendMode = 'add'
-    layer.transform.rotation.value = [0, 0, -24]
+    layer.transform.rotation.value = [0, 0, -18]
   }
   layer.props = {
     text: c.symbol,
@@ -215,15 +270,17 @@ function createEmoteBadgeLayer(
     letterSpacing: 0,
     shadow: true,
     strokeColor: c.stroke,
-    strokeWidth: 7,
+    strokeWidth: badge === 'question_giant' ? 11 : 7,
     glowColor: c.glow
   }
+  const preset = badge === 'question_giant' ? 'pendulum_question' : 'system_pop_bounce'
   const pop = generatePresetSpatialTracks(
-    'system_pop_bounce',
+    preset,
     { position: targetPos, rotation: layer.transform.rotation.value, scale: [1, 1, 1], opacity: 1 },
     { time: start, duration: Math.max(0.35, end - start) }
   )
   layer.transform.scale.keyframes = pop.scale
+  if (pop.rotation.length > 0) layer.transform.rotation.keyframes = pop.rotation
   insertBeatLayerTop(project, shotId, layer)
   return layer
 }
@@ -242,26 +299,26 @@ export function toCinematicBeatFromStoryGrammar(spec: StoryComicBeatSpec): Cinem
   }
   switch (g) {
     case 'cold_open_shock':
-      return { ...base, kind: 'punch_zoom', startScale: 1.0, impactScale: 0.84, endScale: 0.94, impactRatio: 0.28, hitstopSec: 0.1, impactShakePx: 12, rollImpact: 0 } as CinematicCameraBeat
+      return { ...base, kind: 'punch_zoom', startScale: 1.0, impactScale: 0.88, endScale: 0.85 } as CinematicCameraBeat
     case 'over_shoulder_system':
-      return { ...base, kind: 'establish_corridor', startScale: 1.0, endScale: 0.92, yawStart: -2.5, yawEnd: 2 } as CinematicCameraBeat
+      return { ...base, kind: 'establish_corridor', startScale: 0.98, endScale: 0.90 } as CinematicCameraBeat
     case 'snap_reaction_zoom':
-      return { ...base, kind: 'punch_zoom', startScale: 0.98, impactScale: 0.78, endScale: 0.80, impactRatio: 0.22, hitstopSec: 0.14, impactShakePx: 8, rollImpact: 0 } as CinematicCameraBeat
+      return { ...base, kind: 'punch_zoom', startScale: 1.0, impactScale: 0.86, endScale: 0.82 } as CinematicCameraBeat
     case 'low_angle_menace':
-      return { ...base, kind: 'hero_low_ascent', startScale: 0.96, endScale: 0.86, pitchStart: -9, pitchEnd: -4, yawStart: -2, yawEnd: 2 } as CinematicCameraBeat
+      return { ...base, kind: 'hero_low_ascent', startScale: 0.96, endScale: 0.87 } as CinematicCameraBeat
     case 'spotlight_pity_pull':
-      return { ...base, kind: 'crane_rise', startScale: 0.84, endScale: 0.98, pitchStart: 3, pitchEnd: 8, yawStart: 0, yawEnd: 0 } as CinematicCameraBeat
+      return { ...base, kind: 'crane_rise', startScale: 0.84, endScale: 0.98 } as CinematicCameraBeat
     case 'rage_punch_shake':
-      return { ...base, kind: 'punch_zoom', startScale: 0.96, impactScale: 0.78, endScale: 0.82, impactRatio: 0.24, hitstopSec: 0.16, impactShakePx: 16, rollImpact: -1.4 } as CinematicCameraBeat
+      return { ...base, kind: 'punch_zoom', startScale: 0.98, impactScale: 0.86, endScale: 0.83 } as CinematicCameraBeat
     case 'confrontation_push':
-      return { ...base, kind: 'establish_corridor', startScale: 0.98, endScale: 0.82, yawStart: -2, yawEnd: 2.5, pitchStart: -1, pitchEnd: 0 } as CinematicCameraBeat
+      return { ...base, kind: 'establish_corridor', startScale: 1.0, endScale: 0.84 } as CinematicCameraBeat
     case 'three_plane_escape':
-      return { ...base, kind: 'orbit_parallax', startScale: 0.98, endScale: 1.02, yawStart: -5, yawEnd: 6, pitchStart: 2, pitchEnd: -2 } as CinematicCameraBeat
+      return { ...base, kind: 'orbit_parallax', startScale: 0.98, endScale: 0.91 } as CinematicCameraBeat
     case 'foreground_weapon_slam':
-      return { ...base, kind: 'punch_zoom', startScale: 0.98, impactScale: 0.82, endScale: 0.92, impactRatio: 0.25, hitstopSec: 0.18, impactShakePx: 20, rollImpact: -2.0 } as CinematicCameraBeat
+      return { ...base, kind: 'punch_zoom', startScale: 0.98, impactScale: 0.86, endScale: 0.84 } as CinematicCameraBeat
     case 'confused_push':
     default:
-      return { ...base, kind: 'establish_corridor', startScale: 0.98, endScale: 0.88, yawStart: 2, yawEnd: -2, pitchStart: 0, pitchEnd: 0 } as CinematicCameraBeat
+      return { ...base, kind: 'establish_corridor', startScale: 1.0, endScale: 0.88 } as CinematicCameraBeat
   }
 }
 
@@ -286,22 +343,20 @@ export function stageStoryComicBeat(project: Project, spec: StoryComicBeatSpec):
 
   if (spec.narration && spec.narration.trim()) {
     const minScale = Math.min(cameraBeat.startScale ?? 1, cameraBeat.endScale ?? 1, cameraBeat.impactScale ?? 1)
-    const safeScale = Math.max(0.64, Math.min(0.95, minScale * 0.94))
-    const subText = wrapStorySubtitle(spec.narration.toUpperCase(), 40)
+    const safeScale = Math.max(0.72, Math.min(0.94, minScale * 0.96))
+    const subText = wrapStorySubtitle(spec.narration.toUpperCase(), 42)
     const sub = factory.createTextLayer(project.comp, subText)
     sub.name = `Phụ đề: ${spec.narration.slice(0, 26)}`
-    sub.inPoint = Number((spec.start + 0.03).toFixed(3))
-    sub.outPoint = Number(Math.max(sub.inPoint + 0.2, spec.end - 0.03).toFixed(3))
-    sub.fadeIn = 0.06
-    sub.fadeOut = 0.06
+    sub.inPoint = spec.start
+    sub.outPoint = spec.end
+    sub.fadeIn = 0.04
+    sub.fadeOut = 0.04
     sub.autoScale = true
     const subZ = -320
     const perspK = autoScaleFactor(subZ, project.comp)
-    const subjectLayer = spec.subjectId ? project.layers.find((l) => l.id === spec.subjectId) : undefined
-    const subPos = subjectLayer?.transform.position.value
-    const cx = spec.focusOffset?.[0] ?? (subPos ? Math.round(subPos[0] * 0.45) : 0)
-    const cy = spec.focusOffset?.[1] ?? 0
-    sub.transform.position.value = [cx, Math.round(cy - 385 * safeScale * perspK), subZ]
+    const fx = spec.focusOffset?.[0] ?? 0
+    const fy = spec.focusOffset?.[1] ?? 0
+    sub.transform.position.value = [fx, Math.round(fy - 392 * safeScale * perspK), subZ]
     sub.transform.scale.value = [safeScale, safeScale, 1]
     sub.props = {
       text: subText,
@@ -322,7 +377,139 @@ export function stageStoryComicBeat(project: Project, spec: StoryComicBeatSpec):
   return { shotId: spec.shotId, createdLayerIds, cameraBeat }
 }
 
+/**
+ * Dựng lộ trình Camera 2D/2.5D chuẩn Hoạt Ảnh Kể Chuyện (Lugia Media / Bilibili Manhua):
+ * - Tuyệt đối giữ `yaw = 0, pitch = 0, roll = 0` để các lớp vẽ 2D không bị méo phối cảnh.
+ * - Mỗi nhịp chỉ di chuyển 1 chiều mượt mà (Push-In, Pull-Out, Pan hoặc Snap Zoom + giữ tĩnh), KHÔNG zoom vào rồi lại zoom ngược ra giữa câu.
+ * - Giữa các nhịp cắt phẳng tức thì (`0.001s` `hold`) không bị giật whip hay hở nền đen.
+ */
 export function applyStoryComicCamera(project: Project, specs: StoryComicBeatSpec[]) {
-  const beats = specs.map((s) => toCinematicBeatFromStoryGrammar(s))
-  return choreographCinematicCameraRoute(project, beats, { clearExisting: true })
+  const cam = project.camera
+  cam.position.keyframes = []
+  cam.target.keyframes = []
+  cam.focusDistance.keyframes = []
+  cam.fov.keyframes = []
+  cam.roll ??= { value: 0, keyframes: [] }
+  cam.roll.keyframes = []
+  cam.roll.value = 0
+  cam.fade ??= { value: 0, keyframes: [] }
+  cam.fade.keyframes = []
+  cam.fade.value = 0
+
+  const refDist = referenceDistance(project.comp)
+  const baseHalfTan = Math.tan((20 * Math.PI) / 180)
+
+  const pushPose = (t: number, shotPos: Vec3, dx: number, dy: number, scale: number, ease: EaseName) => {
+    const tt = Number(t.toFixed(3))
+    const tx = Math.round(shotPos[0] + dx)
+    const ty = Math.round(shotPos[1] + dy)
+    const tz = Math.round(shotPos[2])
+    // Giữ khoảng cách chuẩn refDist để autoScaleFactor khớp 100% không làm lệch viền cắt nhân vật,
+    // đồng thời tạo thị sai 2.5D tự nhiên khi dịch máy ngang/dọc và zoom mượt bằng FOV quang học.
+    const px = Math.round(tx + dx * 0.35)
+    const py = Math.round(ty + dy * 0.25)
+    const pz = Math.round(tz - refDist)
+    const fov = Number(((2 * Math.atan(baseHalfTan * scale) * 180) / Math.PI).toFixed(2))
+
+    cam.target.keyframes.push({ id: nanoid(8), t: tt, value: [tx, ty, tz], ease })
+    cam.position.keyframes.push({ id: nanoid(8), t: tt, value: [px, py, pz], ease })
+    cam.focusDistance.keyframes.push({ id: nanoid(8), t: tt, value: Math.round(refDist), ease })
+    cam.fov.keyframes.push({ id: nanoid(8), t: tt, value: fov, ease })
+    cam.roll!.keyframes.push({ id: nanoid(8), t: tt, value: 0, ease })
+  }
+
+  const sorted = [...specs].sort((a, b) => a.start - b.start)
+  for (let i = 0; i < sorted.length; i++) {
+    const spec = sorted[i]
+    const shot = project.shots.find((s) => s.id === spec.shotId) ?? project.shots[0]
+    const t0 = spec.start
+    const sp: Vec3 = shot ? evaluate(shot.position, t0) : [0, 0, 0]
+    const isLast = i === sorted.length - 1
+    const t1 = isLast ? spec.end : Math.max(t0 + 0.1, spec.end - 0.001)
+    const endEase: EaseName = isLast ? 'easeOut' : 'hold'
+    const fx = spec.focusOffset?.[0] ?? 0
+    const fy = spec.focusOffset?.[1] ?? 0
+    const g = spec.cameraGrammar ?? 'confused_push'
+
+    switch (g) {
+      case 'cold_open_shock': {
+        const tSnap = Math.min(t1 - 0.05, t0 + 0.24)
+        pushPose(t0, sp, fx + 24, fy + 4, 0.99, 'easeOut')
+        pushPose(tSnap, sp, fx - 8, fy, 0.91, 'easeInOut')
+        pushPose(t1, sp, fx - 18, fy - 4, 0.87, endEase)
+        break
+      }
+      case 'confused_push': {
+        pushPose(t0, sp, fx, fy - 4, 0.98, 'easeInOut')
+        pushPose(t1, sp, fx + 6, fy + 6, 0.88, endEase)
+        break
+      }
+      case 'over_shoulder_system': {
+        pushPose(t0, sp, fx - 10, fy, 0.98, 'easeInOut')
+        pushPose(t1, sp, fx + 12, fy + 6, 0.91, endEase)
+        break
+      }
+      case 'snap_reaction_zoom': {
+        const tSnap = Math.min(t1 - 0.06, t0 + 0.16)
+        pushPose(t0, sp, fx, fy - 6, 0.99, 'easeOut')
+        pushPose(tSnap, sp, fx, fy + 2, 0.88, 'linear')
+        pushPose(t1, sp, fx, fy + 6, 0.85, endEase)
+        break
+      }
+      case 'low_angle_menace': {
+        pushPose(t0, sp, fx, fy - 20, 0.96, 'easeInOut')
+        pushPose(t1, sp, fx, fy + 14, 0.88, endEase)
+        break
+      }
+      case 'spotlight_pity_pull': {
+        pushPose(t0, sp, fx, fy - 8, 0.86, 'easeInOut')
+        pushPose(t1, sp, fx, fy, 0.98, endEase)
+        break
+      }
+      case 'rage_punch_shake': {
+        const tHit = Math.min(t1 - 0.25, t0 + 0.14)
+        pushPose(t0, sp, fx, fy, 0.98, 'easeOut')
+        pushPose(tHit, sp, fx + 12, fy - 8, 0.87, 'linear')
+        pushPose(tHit + 0.05, sp, fx - 10, fy + 7, 0.87, 'linear')
+        pushPose(tHit + 0.10, sp, fx + 7, fy - 5, 0.87, 'linear')
+        pushPose(tHit + 0.16, sp, fx - 4, fy + 3, 0.87, 'easeOut')
+        pushPose(tHit + 0.22, sp, fx, fy, 0.87, 'linear')
+        pushPose(t1, sp, fx, fy + 4, 0.85, endEase)
+        break
+      }
+      case 'confrontation_push': {
+        pushPose(t0, sp, fx + 8, fy - 4, 0.98, 'easeInOut')
+        pushPose(t1, sp, fx - 38, fy + 10, 0.86, endEase)
+        break
+      }
+      case 'three_plane_escape': {
+        pushPose(t0, sp, fx - 14, fy - 10, 0.98, 'easeInOut')
+        pushPose(t1, sp, fx + 18, fy + 16, 0.91, endEase)
+        break
+      }
+      case 'foreground_weapon_slam': {
+        const tHit = Math.min(t1 - 0.28, t0 + 0.15)
+        pushPose(t0, sp, fx - 12, fy + 8, 0.98, 'easeOut')
+        pushPose(tHit, sp, fx + 16, fy - 12, 0.87, 'linear')
+        pushPose(tHit + 0.05, sp, fx - 13, fy + 9, 0.87, 'linear')
+        pushPose(tHit + 0.10, sp, fx + 9, fy - 6, 0.87, 'linear')
+        pushPose(tHit + 0.16, sp, fx - 5, fy + 4, 0.87, 'easeOut')
+        pushPose(tHit + 0.22, sp, fx, fy, 0.87, 'linear')
+        pushPose(t1, sp, fx + 4, fy - 4, 0.86, endEase)
+        break
+      }
+    }
+  }
+
+  if (cam.position.keyframes.length > 0) {
+    cam.position.value = [...cam.position.keyframes[0].value]
+    cam.target.value = [...cam.target.keyframes[0].value]
+    cam.focusDistance.value = cam.focusDistance.keyframes[0].value
+    cam.fov.value = cam.fov.keyframes[0].value
+  }
+
+  return {
+    beatsApplied: sorted.length,
+    keyframesGenerated: cam.position.keyframes.length
+  }
 }

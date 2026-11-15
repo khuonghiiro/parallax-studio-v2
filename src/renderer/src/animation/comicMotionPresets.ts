@@ -8,6 +8,10 @@ export type ComicMotionPresetId =
   | 'comedic_tumble_out'
   | 'soul_escape_ascend'
   | 'foreground_weapon_slam'
+  | 'pop_up_bottom'
+  | 'slide_in_side'
+  | 'pendulum_question'
+  | 'anger_vein_throb'
 
 export const COMIC_MOTION_PRESETS_CATALOG: MotionPresetDef[] = [
   {
@@ -69,6 +73,54 @@ export const COMIC_MOTION_PRESETS_CATALOG: MotionPresetDef[] = [
     defaultDuration: 1.8,
     recommendedClips: ['action'],
     paramsGuide: { deltaX: 210, deltaY: -180, depthZ: -120, endScale: 1.18 }
+  },
+  {
+    id: 'pop_up_bottom',
+    name: { en: 'Bust Pop-Up from Bottom Edge', vi: 'Nhân vật trồi nảy từ mép dưới' },
+    category: 'action',
+    description: {
+      en: 'Waist-up character springs up from below the bottom border with squash-and-stretch while keeping its bottom waist edge safely below the frame.',
+      vi: 'Nhân vật bán thân trồi nảy đàn hồi từ dưới mép khung hình lên kèm co giãn mượt mà, giữ mép cắt hông luôn khuất dưới đáy màn hình.'
+    },
+    defaultDuration: 2.5,
+    recommendedClips: ['idle'],
+    paramsGuide: { deltaY: 140, endScale: 1.0 }
+  },
+  {
+    id: 'slide_in_side',
+    name: { en: 'Elastic Side Slide-In + Hover', vi: 'Lướt ngang đàn hồi + Nhấp nhô' },
+    category: 'action',
+    description: {
+      en: 'Mascot or secondary character slides in smoothly from the side with elastic overshoot and gentle floating hover.',
+      vi: 'Linh vật Hệ Thống hoặc nhân vật phụ lướt vào từ cạnh màn hình với nhịp phanh đàn hồi rồi lơ lửng nhẹ.'
+    },
+    defaultDuration: 2.8,
+    recommendedClips: ['idle'],
+    paramsGuide: { deltaX: -240, deltaY: 18 }
+  },
+  {
+    id: 'pendulum_question',
+    name: { en: 'Giant Question Pop & Pendulum Tilt', vi: 'Dấu hỏi bật nảy & Lắc quả lắc' },
+    category: 'ambient',
+    description: {
+      en: 'Giant "?" icon pops up from behind the character and rocks left-right like a confused pendulum.',
+      vi: 'Dấu hỏi "?" khổng lồ bật lên từ sau lưng nhân vật rồi nghiêng qua lại như quả lắc ngơ ngác.'
+    },
+    defaultDuration: 2.6,
+    recommendedClips: ['idle'],
+    paramsGuide: { endScale: 1.0 }
+  },
+  {
+    id: 'anger_vein_throb',
+    name: { en: 'Rage Heartbeat Throb', vi: 'Nhịp đập gân máu nổi điên' },
+    category: 'dramatic',
+    description: {
+      en: 'Rhythmic comic rage pulse (scale beat + micro-shake) for furious characters.',
+      vi: 'Nhịp đập co giãn dồn dập kèm rung nhẹ khi nhân vật tức giận phát điên.'
+    },
+    defaultDuration: 2.6,
+    recommendedClips: ['idle'],
+    paramsGuide: { deltaX: 4, endScale: 1.06 }
   }
 ]
 
@@ -212,6 +264,79 @@ export function generateComicPresetSpatialTracks(
         { id: nanoid(8), t: tHold, value: [sc0[0] * scMul, sc0[1] * scMul, sc0[2]], ease: 'easeOut' },
         { id: nanoid(8), t: t1, value: sc0, ease: 'linear' }
       )
+      break
+    }
+
+    case 'pop_up_bottom': {
+      const dropY = Math.min(110, Math.abs(opts.deltaY ?? 95))
+      const tPop = Math.min(t1 - 0.06, t0 + Math.min(0.24, duration * 0.22))
+      const tSettle = Math.min(t1 - 0.02, t0 + Math.min(0.38, duration * 0.36))
+      res.position.push(
+        { id: nanoid(8), t: t0, value: [pos0[0], pos0[1] - dropY, pos0[2]], ease: 'easeOut' },
+        { id: nanoid(8), t: tPop, value: [pos0[0], pos0[1] + 10, pos0[2]], ease: 'easeInOut' },
+        { id: nanoid(8), t: tSettle, value: pos0, ease: 'easeOut' },
+        { id: nanoid(8), t: t1, value: [pos0[0], pos0[1] + 6, pos0[2]], ease: 'easeInOut' }
+      )
+      res.scale.push(
+        { id: nanoid(8), t: t0, value: [sc0[0] * 0.92, sc0[1] * 1.08, sc0[2]], ease: 'easeOut' },
+        { id: nanoid(8), t: tPop, value: [sc0[0] * 1.04, sc0[1] * 0.97, sc0[2]], ease: 'easeInOut' },
+        { id: nanoid(8), t: tSettle, value: sc0, ease: 'easeOut' },
+        { id: nanoid(8), t: t1, value: sc0, ease: 'linear' }
+      )
+      break
+    }
+
+    case 'slide_in_side': {
+      const fromOffsetX = opts.deltaX ?? 260
+      const bobY = opts.deltaY ?? 18
+      const tArrive = Math.min(t1 - 0.1, t0 + Math.min(0.32, duration * 0.25))
+      const tSettle = Math.min(t1 - 0.05, t0 + Math.min(0.46, duration * 0.36))
+      const tMidBob = t0 + duration * 0.68
+      res.position.push(
+        { id: nanoid(8), t: t0, value: [pos0[0] + fromOffsetX, pos0[1] - 12, pos0[2]], ease: 'easeOut' },
+        { id: nanoid(8), t: tArrive, value: [pos0[0] - Math.sign(fromOffsetX) * 16, pos0[1] + 8, pos0[2]], ease: 'easeInOut' },
+        { id: nanoid(8), t: tSettle, value: pos0, ease: 'easeInOut' },
+        { id: nanoid(8), t: tMidBob, value: [pos0[0], pos0[1] + bobY, pos0[2]], ease: 'easeInOut' },
+        { id: nanoid(8), t: t1, value: pos0, ease: 'easeInOut' }
+      )
+      break
+    }
+
+    case 'pendulum_question': {
+      const tPop = Math.min(t1 - 0.1, t0 + 0.22)
+      const tSettle = Math.min(t1 - 0.06, t0 + 0.36)
+      const tSwing1 = t0 + duration * 0.55
+      const tSwing2 = t0 + duration * 0.8
+      res.scale.push(
+        { id: nanoid(8), t: t0, value: [sc0[0] * 0.05, sc0[1] * 0.05, sc0[2]], ease: 'easeOut' },
+        { id: nanoid(8), t: tPop, value: [sc0[0] * 1.15, sc0[1] * 1.15, sc0[2]], ease: 'easeInOut' },
+        { id: nanoid(8), t: tSettle, value: sc0, ease: 'easeOut' },
+        { id: nanoid(8), t: t1, value: sc0, ease: 'linear' }
+      )
+      res.rotation.push(
+        { id: nanoid(8), t: t0, value: [rot0[0], rot0[1], rot0[2] - 14], ease: 'easeOut' },
+        { id: nanoid(8), t: tSettle, value: [rot0[0], rot0[1], rot0[2] + 10], ease: 'easeInOut' },
+        { id: nanoid(8), t: tSwing1, value: [rot0[0], rot0[1], rot0[2] - 9], ease: 'easeInOut' },
+        { id: nanoid(8), t: tSwing2, value: [rot0[0], rot0[1], rot0[2] + 8], ease: 'easeInOut' },
+        { id: nanoid(8), t: t1, value: [rot0[0], rot0[1], rot0[2] - 4], ease: 'easeOut' }
+      )
+      break
+    }
+
+    case 'anger_vein_throb': {
+      const beats = Math.max(3, Math.min(12, Math.floor(duration * 3.2)))
+      res.scale.push({ id: nanoid(8), t: t0, value: sc0, ease: 'easeOut' })
+      res.position.push({ id: nanoid(8), t: t0, value: pos0, ease: 'easeOut' })
+      for (let i = 1; i < beats; i++) {
+        const bt = Number((t0 + (duration * i) / beats).toFixed(3))
+        const isPeak = i % 2 === 1
+        const mul = isPeak ? 1.045 : 0.985
+        const dx = isPeak ? 4 : -4
+        res.scale.push({ id: nanoid(8), t: bt, value: [sc0[0] * mul, sc0[1] * mul, sc0[2]], ease: 'easeInOut' })
+        res.position.push({ id: nanoid(8), t: bt, value: [pos0[0] + dx, pos0[1], pos0[2]], ease: 'easeInOut' })
+      }
+      res.scale.push({ id: nanoid(8), t: t1, value: sc0, ease: 'easeOut' })
+      res.position.push({ id: nanoid(8), t: t1, value: pos0, ease: 'easeOut' })
       break
     }
   }

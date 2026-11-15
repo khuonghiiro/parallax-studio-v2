@@ -30,61 +30,63 @@ function chainStoryLogic(
 function wireStoryWestWorkflowLogic(project: Project, h: StoryWestStageHandles): void {
   project.workflow = syncWorkflowV2Graph(project)
 
-  // Cảnh 1: Cự thú gầm lắc + Robot Hệ Thống nhấp nhô
+  // Cảnh 1: Cự thú gầm lắc + Gãi đầu ngơ ngác
   chainStoryLogic(
     project, v2LayerNodeId(h.s1Beast.id), 'action', 'v2:action:sway',
-    { actionPreset: 'sway', speed: 1.4, amount: 0.35, timeStart: 0, timeEnd: 2.8 },
-    'Motion: Cự Thú Gầm Rống'
+    { actionPreset: 'sway', speed: 1.4, amount: 0.25, timeStart: 0, timeEnd: 2.8 },
+    'Motion: Cự Thú Rùng Mình'
   )
   chainStoryLogic(
     project, v2LayerNodeId(h.s1SkelConfused.id), 'action', 'v2:action:sway',
-    { actionPreset: 'sway', speed: 1.1, amount: 0.25, timeStart: 2.82, timeEnd: 5.52 },
+    { actionPreset: 'sway', speed: 1.1, amount: 0.18, timeStart: 2.8, timeEnd: 5.5 },
     'Motion: Gãi Đầu Ngơ Ngác'
   )
 
   // Cảnh 2: Uy áp sát khí của Đoàn Đường Tăng
   chainStoryLogic(
     project, v2LayerNodeId(h.s2CrewMenace.id), 'fx', 'v2:fx:pulse',
-    { animFxPreset: 'pulse', speed: 1.2, amount: 0.08, timeStart: 11.62, timeEnd: 15.65 },
+    { animFxPreset: 'pulse', speed: 1.2, amount: 0.06, timeStart: 11.6, timeEnd: 15.6 },
     'FX: Nhịp Thở Uy Áp Ác Ma'
   )
 
   // Cảnh 3: Tủi thân dưới đèn Spotlight & Con khỉ phát điên
   chainStoryLogic(
     project, v2LayerNodeId(h.s3SkelSpotlight.id), 'action', 'v2:action:sway',
-    { actionPreset: 'sway', speed: 0.85, amount: 0.2, timeStart: 15.6, timeEnd: 18.72 },
+    { actionPreset: 'sway', speed: 0.85, amount: 0.15, timeStart: 15.6, timeEnd: 18.7 },
     'Motion: Thút Thít Tủi Thân'
   )
   chainStoryLogic(
     project, v2LayerNodeId(h.s3WukongRage.id), 'fx', 'v2:fx:pulse',
-    { animFxPreset: 'pulse', speed: 3.0, amount: 0.14, timeStart: 18.72, timeEnd: 21.85 },
+    { animFxPreset: 'pulse', speed: 2.8, amount: 0.08, timeStart: 18.7, timeEnd: 21.8 },
     'FX: Xung Huyết Giận Điên'
   )
 
   // Cảnh 4: Hầu Vương chỉ bổng quát mắng
   chainStoryLogic(
     project, v2LayerNodeId(h.s4WukongPoint.id), 'action', 'v2:action:sway',
-    { actionPreset: 'sway', speed: 1.3, amount: 0.24, timeStart: 21.8, timeEnd: 24.92 },
+    { actionPreset: 'sway', speed: 1.2, amount: 0.16, timeStart: 21.8, timeEnd: 24.9 },
     'Motion: Chỉ Bổng Quát Tháo'
   )
 
-  // Cảnh 5: Tách 2 Nhóm Time đúng 2 nhịp cốt truyện (Giải Thi Thuật 27.8–31.05s & Đập Kim Cô Bổng 31.05–34.0s)
+  // Cảnh 5: Tách 2 Nhóm Time đúng 2 nhịp cốt truyện (Giải Thi Thuật 27.8–31.0s & Đập Kim Cô Bổng 31.0–34.0s)
   const s5ObserverBob = chainStoryLogic(
     project, v2LayerNodeId(h.s5SkelObserver.id), 'action', 'v2:action:float',
-    { actionPreset: 'float', speed: 1.25, amount: 0.22, timeStart: 27.8, timeEnd: 34.05 },
+    { actionPreset: 'float', speed: 1.2, amount: 0.16, timeStart: 27.8, timeEnd: 31.0 },
     'Motion: Hóng Chuyện Tiền Cảnh'
   )
   const s5EscapeIds = new Set([
     v2LayerNodeId(h.s5SoulEscape.id),
     v2LayerNodeId('s5-s5-mid-cloud'),
-    v2LayerNodeId('s5-s5-far-party')
+    v2LayerNodeId('s5-s5-far-party'),
+    v2LayerNodeId(h.s5SkelObserver.id),
+    s5ObserverBob.id
   ])
   const s5EscapeNodes = project.workflow.nodes.filter((n) => s5EscapeIds.has(n.id))
   createTimeGroup(project, s5EscapeNodes, {
-    title: 'Nhịp 10: Giải Thi Thuật 3 Tầng Z (27.8s–31.05s)',
+    title: 'Nhịp 10: Giải Thi Thuật 3 Tầng Z (27.8s–31.0s)',
     color: '#38bdf8',
     start: 27.8,
-    end: 31.05
+    end: 31.0
   })
 
   const s5SlamIds = new Set([
@@ -94,9 +96,9 @@ function wireStoryWestWorkflowLogic(project: Project, h: StoryWestStageHandles):
   ])
   const s5SlamNodes = project.workflow.nodes.filter((n) => s5SlamIds.has(n.id))
   createTimeGroup(project, s5SlamNodes, {
-    title: 'Nhịp 11: Kim Cô Bổng Đập Tiền Cảnh (31.05s–34s)',
+    title: 'Nhịp 11: Kim Cô Bổng Đập Tiền Cảnh (31.0s–34s)',
     color: '#facc15',
-    start: 31.05,
+    start: 31.0,
     end: 34.0
   })
   void s5ObserverBob

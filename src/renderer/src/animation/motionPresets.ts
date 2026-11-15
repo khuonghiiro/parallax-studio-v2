@@ -398,6 +398,10 @@ export function generatePresetSpatialTracks(
     case 'comedic_tumble_out':
     case 'soul_escape_ascend':
     case 'foreground_weapon_slam':
+    case 'pop_up_bottom':
+    case 'slide_in_side':
+    case 'pendulum_question':
+    case 'anger_vein_throb':
       return generateComicPresetSpatialTracks(
         presetId,
         { position: pos0, rotation: rot0, scale: sc0, opacity: op0 },

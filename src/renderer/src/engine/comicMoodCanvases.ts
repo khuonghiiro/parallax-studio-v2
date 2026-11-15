@@ -3,6 +3,7 @@ import { mulberry32 } from '../animation/math'
 
 const COMIC_MOOD_PATTERNS = new Set<SolidPattern>([
   'speedlines_radial',
+  'horror_bw_speedlines',
   'spotlight_stage',
   'comic_burst',
   'question_sky',
@@ -291,6 +292,40 @@ function drawHologramPanel(ctx: CanvasRenderingContext2D, w: number, h: number, 
   }
 }
 
+function drawHorrorBwSpeedlines(ctx: CanvasRenderingContext2D, w: number, h: number): void {
+  const cx = w * 0.5
+  const cy = h * 0.46
+  const maxR = Math.hypot(w, h) * 0.72
+  const bg = ctx.createRadialGradient(cx, cy, maxR * 0.12, cx, cy, maxR)
+  bg.addColorStop(0, '#eef6f0')
+  bg.addColorStop(0.52, '#c8d6cc')
+  bg.addColorStop(1, '#090d0b')
+  ctx.fillStyle = bg
+  ctx.fillRect(0, 0, w, h)
+
+  // Ánh xanh kinh dị quanh vùng trung tâm như cảnh Bạch Cốt Tinh 0:25
+  const eerie = ctx.createRadialGradient(cx, cy, maxR * 0.08, cx, cy, maxR * 0.48)
+  eerie.addColorStop(0, 'rgba(34, 197, 94, 0.22)')
+  eerie.addColorStop(1, 'rgba(0, 0, 0, 0)')
+  ctx.fillStyle = eerie
+  ctx.fillRect(0, 0, w, h)
+
+  const rand = mulberry32(40491)
+  const spikes = 132
+  for (let i = 0; i < spikes; i++) {
+    const baseAngle = (i / spikes) * Math.PI * 2 + (rand() - 0.5) * 0.025
+    const halfSpan = 0.004 + rand() * 0.022
+    const innerR = maxR * (0.24 + rand() * 0.22)
+    ctx.beginPath()
+    ctx.moveTo(cx + Math.cos(baseAngle) * innerR, cy + Math.sin(baseAngle) * innerR)
+    ctx.lineTo(cx + Math.cos(baseAngle - halfSpan) * maxR, cy + Math.sin(baseAngle - halfSpan) * maxR)
+    ctx.lineTo(cx + Math.cos(baseAngle + halfSpan) * maxR, cy + Math.sin(baseAngle + halfSpan) * maxR)
+    ctx.closePath()
+    ctx.fillStyle = i % 2 === 0 ? 'rgba(8, 10, 12, 0.92)' : 'rgba(255, 255, 255, 0.65)'
+    ctx.fill()
+  }
+}
+
 export function renderComicMoodCanvas(p: SolidProps): HTMLCanvasElement {
   const canvas = document.createElement('canvas')
   canvas.width = 960
@@ -299,6 +334,9 @@ export function renderComicMoodCanvas(p: SolidProps): HTMLCanvasElement {
   switch (p.pattern) {
     case 'speedlines_radial':
       drawRadialSpeedlines(ctx, canvas.width, canvas.height, p)
+      break
+    case 'horror_bw_speedlines':
+      drawHorrorBwSpeedlines(ctx, canvas.width, canvas.height)
       break
     case 'spotlight_stage':
       drawSpotlightStage(ctx, canvas.width, canvas.height, p)
