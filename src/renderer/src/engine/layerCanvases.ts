@@ -11,17 +11,38 @@ export interface CanvasResult {
   height: number
 }
 
+function resolveBoxFill(boxColor: string | undefined, boxOpacity: number | undefined): string | null {
+  if (!boxColor || boxColor === 'transparent' || boxColor === 'none') return null
+  const op = boxOpacity !== undefined ? Math.max(0, Math.min(1, boxOpacity)) : 1
+  if (op <= 0.005) return null
+  const hex = boxColor.trim()
+  if (hex.startsWith('#') && (hex.length === 7 || hex.length === 4)) {
+    const r = hex.length === 4 ? parseInt(hex[1] + hex[1], 16) : parseInt(hex.slice(1, 3), 16)
+    const g = hex.length === 4 ? parseInt(hex[2] + hex[2], 16) : parseInt(hex.slice(3, 5), 16)
+    const b = hex.length === 4 ? parseInt(hex[3] + hex[3], 16) : parseInt(hex.slice(5, 7), 16)
+    return `rgba(${r}, ${g}, ${b}, ${Number((op * 0.88).toFixed(2))})`
+  }
+  return boxColor
+}
+
 export function renderTextCanvas(p: TextProps): CanvasResult {
   const ss = TEXT_SUPERSAMPLE
-  const lines = (p.text || ' ').split('\n')
+  const rawText = p.text || ' '
+  const speakerPrefix =
+    p.speakerName && p.speakerName.trim() && !rawText.startsWith(`[${p.speakerName}`) && !rawText.startsWith(`${p.speakerName}:`)
+      ? `【${p.speakerName.trim()}】 `
+      : ''
+  const lines = (speakerPrefix ? `${speakerPrefix}${rawText}` : rawText).split('\n')
   const font = `${p.fontWeight} ${p.fontSize * ss}px "${p.fontFamily}", "Inter", sans-serif`
   const measure = document.createElement('canvas').getContext('2d')!
   measure.font = font
   measure.letterSpacing = `${p.letterSpacing * ss}px`
   const strokePx = Math.max(0, (p.strokeWidth ?? 0) * ss)
   const lineHeight = p.fontSize * 1.24 * ss
-  const padX = (p.fontSize * 0.65 + (p.boxColor || p.boxBorderColor ? 18 : 0)) * ss + strokePx
-  const padY = (p.fontSize * 0.45 + (p.boxColor || p.boxBorderColor ? 10 : 0)) * ss + strokePx * 0.6
+  const boxFill = resolveBoxFill(p.boxColor, p.boxOpacity)
+  const hasBox = Boolean(boxFill || p.boxBorderColor)
+  const padX = (p.fontSize * 0.65 + (hasBox ? 18 : 0)) * ss + strokePx
+  const padY = (p.fontSize * 0.45 + (hasBox ? 10 : 0)) * ss + strokePx * 0.6
   const widths = lines.map((l) => measure.measureText(l).width)
   const w = Math.ceil(Math.max(...widths, 1) + padX * 2)
   const h = Math.ceil(lineHeight * lines.length + padY * 2)
@@ -31,14 +52,14 @@ export function renderTextCanvas(p: TextProps): CanvasResult {
   canvas.height = h
   const ctx = canvas.getContext('2d')!
 
-  if (p.boxColor || p.boxBorderColor) {
+  if (hasBox) {
     const inset = 6 * ss
     const r = Math.min(14 * ss, (h - inset * 2) * 0.45)
     ctx.save()
     ctx.beginPath()
     ctx.roundRect(inset, inset, w - inset * 2, h - inset * 2, r)
-    if (p.boxColor) {
-      ctx.fillStyle = p.boxColor
+    if (boxFill) {
+      ctx.fillStyle = boxFill
       ctx.fill()
     }
     if (p.boxBorderColor) {
@@ -51,12 +72,14 @@ export function renderTextCanvas(p: TextProps): CanvasResult {
     ctx.restore()
   }
 
+  const align = p.align ?? 'center'
   ctx.font = font
   ctx.letterSpacing = `${p.letterSpacing * ss}px`
-  ctx.textAlign = 'center'
+  ctx.textAlign = align
   ctx.textBaseline = 'middle'
   ctx.lineJoin = 'round'
   ctx.miterLimit = 2
+  const anchorX = align === 'left' ? padX : align === 'right' ? w - padX : w / 2
 
   lines.forEach((line, i) => {
     const y = padY + lineHeight * (i + 0.5)
@@ -68,10 +91,10 @@ export function renderTextCanvas(p: TextProps): CanvasResult {
       if (p.strokeColor && strokePx > 0) {
         ctx.lineWidth = strokePx * 1.15
         ctx.strokeStyle = p.strokeColor
-        ctx.strokeText(line, w / 2, y)
+        ctx.strokeText(line, anchorX, y)
       } else {
         ctx.fillStyle = p.glowColor
-        ctx.fillText(line, w / 2, y)
+        ctx.fillText(line, anchorX, y)
       }
       ctx.restore()
     } else if (p.shadow) {
@@ -83,12 +106,12 @@ export function renderTextCanvas(p: TextProps): CanvasResult {
     if (p.strokeColor && strokePx > 0) {
       ctx.lineWidth = strokePx
       ctx.strokeStyle = p.strokeColor
-      ctx.strokeText(line, w / 2, y)
+      ctx.strokeText(line, anchorX, y)
       ctx.shadowBlur = 0
       ctx.shadowOffsetY = 0
     }
     ctx.fillStyle = p.color
-    ctx.fillText(line, w / 2, y)
+    ctx.fillText(line, anchorX, y)
   })
   return { canvas, width: w / ss, height: h / ss }
 }

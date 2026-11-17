@@ -6,11 +6,22 @@ import type {
   Project,
   SolidLayer,
   SolidPattern,
+  SubtitleEnterEffect,
+  SubtitleExitEffect,
+  SubtitlePositionPreset,
+  SubtitleStylePresetId,
   TextLayer,
   Vec3
 } from '@shared/types'
 import { nanoid } from 'nanoid'
 import * as factory from '../project/factory'
+import {
+  SUBTITLE_STYLE_PRESETS,
+  applySubtitleEnterExitKeyframes,
+  computeSubtitlePlacement,
+  enforceSpeakerAndSceneContinuity,
+  getProjectSubtitleDefaults
+} from '../project/subtitleAndDialogueSync'
 import {
   type CinematicCameraBeat,
   type ShotTransitionStyle
@@ -39,6 +50,8 @@ export type StoryCameraGrammar =
   | 'confrontation_push'
   | 'three_plane_escape'
   | 'foreground_weapon_slam'
+  | 'thought_contemplation'
+  | 'oppressive_low_push'
 
 export type StoryEmoteBadge = 'none' | 'question_giant' | 'anger_cross' | 'sweat_drop' | 'red_eye_flare'
 
@@ -53,6 +66,13 @@ export interface StoryComicBeatSpec {
   start: number
   end: number
   narration?: string
+  speakerName?: string
+  subtitleStylePreset?: SubtitleStylePresetId
+  subtitlePositionPreset?: SubtitlePositionPreset
+  subtitleOffsetY?: number
+  subtitleEnterEffect?: SubtitleEnterEffect
+  subtitleExitEffect?: SubtitleExitEffect
+  preserveSubtitleSettings?: boolean
   mood?: StoryMoodBackdrop
   cameraGrammar?: StoryCameraGrammar
   subjectId?: string
@@ -81,30 +101,19 @@ const MOOD_PALETTES: Record<Exclude<StoryMoodBackdrop, 'world'>, { color: string
 
 /**
  * Neo bán thân (bust/waist-up cutout) xuống dưới đáy khung hình 16:9 để TUYỆT ĐỐI KHÔNG BAO GIỜ
- * lộ đường cắt ngang bụng/hông khi camera zoom, pan hoặc nhân vật nhún nhảy.
+ * lộ đường cắt ngang bụng/hông khi camera zoom, pan hoặc nhân vật nhún nhảy,
+ * đồng thời GIỮ NGUYÊN tỷ lệ kích thước chuẩn (`scale`) của nhân vật (không tự ý phóng to làm lệch tỷ lệ).
  */
 export function anchorBustLayerToFrameBottom(
   layer: ImageLayer,
   comp: Pick<Composition, 'width' | 'height'>,
-  maxCamScale = 1.04
+  maxCamScale = 1.02
 ): void {
   const pos = layer.transform.position.value
-  const sc = layer.transform.scale.value
   const perspK = layer.autoScale ? 1 : autoScaleFactor(pos[2], comp)
-  const minScreenHeight = comp.height * 0.68
-  const curScreenHeight = (layer.props.height * sc[1]) / perspK
-  if (curScreenHeight < minScreenHeight) {
-    const boost = minScreenHeight / Math.max(1, curScreenHeight)
-    const nextSx = Number((sc[0] * boost).toFixed(3))
-    const nextSy = Number((sc[1] * boost).toFixed(3))
-    layer.transform.scale.value = [nextSx, nextSy, sc[2]]
-    for (const kf of layer.transform.scale.keyframes) {
-      kf.value = [Number((kf.value[0] * boost).toFixed(3)), Number((kf.value[1] * boost).toFixed(3)), kf.value[2]]
-    }
-  }
   const finalScY = layer.transform.scale.value[1]
-  const halfHWorld = (layer.props.height * finalScY) * 0.5
-  const safeBottomWorld = -(comp.height * 0.5 * maxCamScale + 65) * perspK
+  const halfHWorld = layer.props.height * finalScY * 0.5
+  const safeBottomWorld = -(comp.height * 0.5 * maxCamScale + 48) * perspK
   const currentBottomWorld = pos[1] - halfHWorld
   if (currentBottomWorld > safeBottomWorld) {
     const dy = Math.round(safeBottomWorld - currentBottomWorld)
@@ -342,33 +351,54 @@ export function stageStoryComicBeat(project: Project, spec: StoryComicBeatSpec):
   }
 
   if (spec.narration && spec.narration.trim()) {
-    const minScale = Math.min(cameraBeat.startScale ?? 1, cameraBeat.endScale ?? 1, cameraBeat.impactScale ?? 1)
-    const safeScale = Math.max(0.72, Math.min(0.94, minScale * 0.96))
+    const defaults = getProjectSubtitleDefaults(project)
+    const presetId = spec.subtitleStylePreset ?? defaults.presetId
+    const presetObj = SUBTITLE_STYLE_PRESETS.find((p) => p.id === presetId)
+    const st = presetObj?.config ?? defaults
+    const posPreset = spec.subtitlePositionPreset ?? st.positionPreset ?? 'bottom_center'
+    const offX = spec.focusOffset?.[0] ?? st.offsetX ?? 0
+    const offY = spec.subtitleOffsetY ?? st.offsetY ?? -390
+    const enterEff = spec.subtitleEnterEffect ?? st.enterEffect ?? 'fade'
+    const exitEff = spec.subtitleExitEffect ?? st.exitEffect ?? 'fade'
+    const preserve = spec.preserveSubtitleSettings ?? Boolean(presetObj?.preserveByDefault)
+
+    const speakerLayer = spec.subjectId ? project.layers.find((l) => l.id === spec.subjectId) : undefined
     const subText = wrapStorySubtitle(spec.narration.toUpperCase(), 42)
     const sub = factory.createTextLayer(project.comp, subText)
     sub.name = `Phụ đề: ${spec.narration.slice(0, 26)}`
     sub.inPoint = spec.start
     sub.outPoint = spec.end
-    sub.fadeIn = 0.04
-    sub.fadeOut = 0.04
     sub.autoScale = true
-    const subZ = -320
-    const perspK = autoScaleFactor(subZ, project.comp)
-    const fx = spec.focusOffset?.[0] ?? 0
-    const fy = spec.focusOffset?.[1] ?? 0
-    sub.transform.position.value = [fx, Math.round(fy - 392 * safeScale * perspK), subZ]
-    sub.transform.scale.value = [safeScale, safeScale, 1]
+    const placement = computeSubtitlePlacement(project, speakerLayer, posPreset, offX, offY, spec.start)
     sub.props = {
       text: subText,
-      fontFamily: 'Montserrat',
-      fontSize: 34,
-      fontWeight: 900,
-      color: '#ffffff',
+      fontFamily: st.fontFamily,
+      fontSize: st.fontSize,
+      fontWeight: st.fontWeight,
+      color: st.color,
       letterSpacing: 1,
       shadow: true,
-      strokeColor: '#0a3d6e',
-      strokeWidth: 6,
-      glowColor: '#38bdf8'
+      strokeColor: st.strokeColor,
+      strokeWidth: st.strokeWidth,
+      glowColor: st.glowColor,
+      boxColor: st.boxColor,
+      boxOpacity: st.boxOpacity,
+      align: st.align,
+      isSubtitleCue: true,
+      speakerLayerId: spec.subjectId,
+      speakerName: spec.speakerName,
+      subtitleStylePreset: presetId,
+      subtitlePositionPreset: posPreset,
+      subtitleOffsetX: offX,
+      subtitleOffsetY: offY,
+      subtitleEnterEffect: enterEff,
+      subtitleExitEffect: exitEff,
+      preserveCustomSettings: preserve,
+      holdSpeakerTiming: true
+    }
+    applySubtitleEnterExitKeyframes(sub, placement.position, placement.scale, enterEff, exitEff, st.fadeInDuration, st.fadeOutDuration)
+    if (speakerLayer) {
+      enforceSpeakerAndSceneContinuity(project, speakerLayer, spec.start, spec.end)
     }
     insertBeatLayerTop(project, spec.shotId, sub)
     createdLayerIds.push(sub.id)
@@ -434,68 +464,74 @@ export function applyStoryComicCamera(project: Project, specs: StoryComicBeatSpe
     switch (g) {
       case 'cold_open_shock': {
         const tSnap = Math.min(t1 - 0.05, t0 + 0.24)
-        pushPose(t0, sp, fx + 24, fy + 4, 0.99, 'easeOut')
-        pushPose(tSnap, sp, fx - 8, fy, 0.91, 'easeInOut')
-        pushPose(t1, sp, fx - 18, fy - 4, 0.87, endEase)
+        pushPose(t0, sp, fx + 20, fy + 4, 0.98, 'easeOut')
+        pushPose(tSnap, sp, fx - 6, fy, 0.94, 'easeInOut')
+        pushPose(t1, sp, fx - 14, fy - 4, 0.91, endEase)
         break
       }
       case 'confused_push': {
-        pushPose(t0, sp, fx, fy - 4, 0.98, 'easeInOut')
-        pushPose(t1, sp, fx + 6, fy + 6, 0.88, endEase)
+        pushPose(t0, sp, fx, fy - 4, 0.97, 'easeInOut')
+        pushPose(t1, sp, fx + 6, fy + 6, 0.91, endEase)
         break
       }
       case 'over_shoulder_system': {
         pushPose(t0, sp, fx - 10, fy, 0.98, 'easeInOut')
-        pushPose(t1, sp, fx + 12, fy + 6, 0.91, endEase)
+        pushPose(t1, sp, fx + 12, fy + 6, 0.92, endEase)
         break
       }
       case 'snap_reaction_zoom': {
         const tSnap = Math.min(t1 - 0.06, t0 + 0.16)
-        pushPose(t0, sp, fx, fy - 6, 0.99, 'easeOut')
-        pushPose(tSnap, sp, fx, fy + 2, 0.88, 'linear')
-        pushPose(t1, sp, fx, fy + 6, 0.85, endEase)
+        pushPose(t0, sp, fx, fy - 4, 0.98, 'easeOut')
+        pushPose(tSnap, sp, fx, fy + 2, 0.92, 'linear')
+        pushPose(t1, sp, fx, fy + 6, 0.90, endEase)
         break
       }
-      case 'low_angle_menace': {
-        pushPose(t0, sp, fx, fy - 20, 0.96, 'easeInOut')
-        pushPose(t1, sp, fx, fy + 14, 0.88, endEase)
+      case 'thought_contemplation': {
+        pushPose(t0, sp, fx, fy - 10, 0.97, 'easeInOut')
+        pushPose(t1, sp, fx, fy + 16, 0.92, endEase)
+        break
+      }
+      case 'low_angle_menace':
+      case 'oppressive_low_push': {
+        pushPose(t0, sp, fx, fy - 18, 0.97, 'easeInOut')
+        pushPose(t1, sp, fx, fy + 16, 0.90, endEase)
         break
       }
       case 'spotlight_pity_pull': {
-        pushPose(t0, sp, fx, fy - 8, 0.86, 'easeInOut')
+        pushPose(t0, sp, fx, fy - 8, 0.91, 'easeInOut')
         pushPose(t1, sp, fx, fy, 0.98, endEase)
         break
       }
       case 'rage_punch_shake': {
         const tHit = Math.min(t1 - 0.25, t0 + 0.14)
-        pushPose(t0, sp, fx, fy, 0.98, 'easeOut')
-        pushPose(tHit, sp, fx + 12, fy - 8, 0.87, 'linear')
-        pushPose(tHit + 0.05, sp, fx - 10, fy + 7, 0.87, 'linear')
-        pushPose(tHit + 0.10, sp, fx + 7, fy - 5, 0.87, 'linear')
-        pushPose(tHit + 0.16, sp, fx - 4, fy + 3, 0.87, 'easeOut')
-        pushPose(tHit + 0.22, sp, fx, fy, 0.87, 'linear')
-        pushPose(t1, sp, fx, fy + 4, 0.85, endEase)
+        pushPose(t0, sp, fx, fy, 0.97, 'easeOut')
+        pushPose(tHit, sp, fx + 10, fy - 6, 0.91, 'linear')
+        pushPose(tHit + 0.05, sp, fx - 8, fy + 5, 0.91, 'linear')
+        pushPose(tHit + 0.10, sp, fx + 6, fy - 4, 0.91, 'linear')
+        pushPose(tHit + 0.16, sp, fx - 3, fy + 2, 0.91, 'easeOut')
+        pushPose(tHit + 0.22, sp, fx, fy, 0.91, 'linear')
+        pushPose(t1, sp, fx, fy + 4, 0.89, endEase)
         break
       }
       case 'confrontation_push': {
-        pushPose(t0, sp, fx + 8, fy - 4, 0.98, 'easeInOut')
-        pushPose(t1, sp, fx - 38, fy + 10, 0.86, endEase)
+        pushPose(t0, sp, fx + 8, fy - 4, 0.97, 'easeInOut')
+        pushPose(t1, sp, fx - 28, fy + 8, 0.90, endEase)
         break
       }
       case 'three_plane_escape': {
         pushPose(t0, sp, fx - 14, fy - 10, 0.98, 'easeInOut')
-        pushPose(t1, sp, fx + 18, fy + 16, 0.91, endEase)
+        pushPose(t1, sp, fx + 18, fy + 16, 0.92, endEase)
         break
       }
       case 'foreground_weapon_slam': {
         const tHit = Math.min(t1 - 0.28, t0 + 0.15)
-        pushPose(t0, sp, fx - 12, fy + 8, 0.98, 'easeOut')
-        pushPose(tHit, sp, fx + 16, fy - 12, 0.87, 'linear')
-        pushPose(tHit + 0.05, sp, fx - 13, fy + 9, 0.87, 'linear')
-        pushPose(tHit + 0.10, sp, fx + 9, fy - 6, 0.87, 'linear')
-        pushPose(tHit + 0.16, sp, fx - 5, fy + 4, 0.87, 'easeOut')
-        pushPose(tHit + 0.22, sp, fx, fy, 0.87, 'linear')
-        pushPose(t1, sp, fx + 4, fy - 4, 0.86, endEase)
+        pushPose(t0, sp, fx - 10, fy + 6, 0.97, 'easeOut')
+        pushPose(tHit, sp, fx + 14, fy - 10, 0.91, 'linear')
+        pushPose(tHit + 0.05, sp, fx - 11, fy + 8, 0.91, 'linear')
+        pushPose(tHit + 0.10, sp, fx + 8, fy - 5, 0.91, 'linear')
+        pushPose(tHit + 0.16, sp, fx - 4, fy + 3, 0.91, 'easeOut')
+        pushPose(tHit + 0.22, sp, fx, fy, 0.91, 'linear')
+        pushPose(t1, sp, fx + 4, fy - 4, 0.90, endEase)
         break
       }
     }

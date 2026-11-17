@@ -126,6 +126,17 @@ export function detachWorkflowV2NodeFromProject(project: Project, node: Workflow
     for (const l of layers) detachAtomicFxNodeFromLayer(l, node)
     return
   }
+  if (cat === 'subtitle') {
+    const subId = node.params?.subtitleLayerId ?? `sub-${node.id}`
+    project.layers = project.layers.filter(
+      (l) =>
+        !(
+          l.type === 'text' &&
+          (l.id === subId || (l.props.speakerLayerId && targets.has(l.props.speakerLayerId) && Math.abs(l.inPoint - (node.params?.timeStart ?? l.inPoint)) < 0.25))
+        )
+    )
+    return
+  }
   if (cat === 'audio') {
     const ids = new Set([...targets, ...layers.flatMap((l) => [l.composite?.instanceId, l.model3d?.instanceId]).filter((v): v is string => Boolean(v))])
     for (const tr of getProjectAudioTracks(project)) {

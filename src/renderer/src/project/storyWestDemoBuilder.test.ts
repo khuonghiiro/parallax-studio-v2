@@ -26,9 +26,13 @@ describe('storyWestDemoBuilder (Demo #5 — Tiểu Khô Lâu Tây Du)', () => {
     expect(solidPatterns.has('spotlight_stage')).toBe(true)
     expect(solidPatterns.has('anger_veins')).toBe(true)
 
-    // Kiểm tra có đủ 11 phụ đề dẫn truyện viền đôi theo nhịp câu thoại, liền mạch 0ms gap
-    const subtitles = project.layers.filter((l) => l.type === 'text' && l.name.startsWith('Phụ đề:'))
+    // Kiểm tra có đủ 11 phụ đề Vietsub gắn cho từng nhân vật, liền mạch 0ms gap
+    const subtitles = project.layers.filter((l) => l.type === 'text' && (l.name.startsWith('Vietsub:') || l.name.startsWith('Phụ đề:')))
     expect(subtitles.length).toBe(11)
+
+    // Kiểm tra các Node Vietsub (`logicCategory === 'subtitle'`) được sinh tự động trên đồ thị Workflow V2
+    const subNodes = project.workflow!.nodes.filter((n) => n.params?.logicCategory === 'subtitle')
+    expect(subNodes.length).toBeGreaterThanOrEqual(8)
 
     // Kiểm tra mọi layer nhân vật bán thân đều được neo đáy sâu dưới mép dưới màn hình (không lộ vết cắt ngang bụng)
     const bustIds = [

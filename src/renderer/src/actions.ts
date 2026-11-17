@@ -71,7 +71,8 @@ const DEMO_LOADING_TITLES: Record<string, string> = {
   hanbeta_quaidam: 'Đang mở Mẫu 3: Hàn Bối Tháp — Đại Chiến Linh Thú 2.5D…',
   action_combat_25d: 'Đang mở Mẫu 3: Hàn Bối Tháp — Đại Chiến Linh Thú 2.5D…',
   immortal_sword_25d: 'Đang mở Mẫu 4: Thương Lan Kiếm Cảnh — Tiên Hiệp Điện Ảnh 2.5D…',
-  story_west_skeleton: 'Đang mở Mẫu 5: Tiểu Khô Lâu Tây Du — Hoạt Ảnh Kể Chuyện Hài 2.5D…'
+  story_west_skeleton: 'Đang mở Mẫu 5: Tiểu Khô Lâu Tây Du — Hoạt Ảnh Kể Chuyện Hài 2.5D…',
+  story_west_drama_v2: 'Đang mở Mẫu 6: Tây Du Phá Cục — Đối Thoại Vietsub & Diễn Xuất Cảm Xúc 2.5D…'
 }
 
 export async function loadDemo(
@@ -82,7 +83,8 @@ export async function loadDemo(
     | 'hanbeta_quaidam'
     | 'action_combat_25d'
     | 'immortal_sword_25d'
-    | 'story_west_skeleton' = 'three_scenes'
+    | 'story_west_skeleton'
+    | 'story_west_drama_v2' = 'three_scenes'
 ): Promise<void> {
   if (!force && !confirmDiscard()) return
   editor().setPlaying(false)
@@ -90,15 +92,17 @@ export async function loadDemo(
   await runWithProjectLoading(title, async (report) => {
     const demoMod = await import('./project/demo')
     const p =
-      variant === 'story_west_skeleton' && 'buildStoryWestDemoProject' in demoMod
-        ? await demoMod.buildStoryWestDemoProject()
-        : variant === 'immortal_sword_25d' && 'buildImmortalSwordDemoProject' in demoMod
-          ? await (demoMod as { buildImmortalSwordDemoProject: () => Promise<Project> }).buildImmortalSwordDemoProject()
-        : variant === 'action_combat_25d' || variant === 'hanbeta_quaidam'
-          ? await demoMod.buildHanbetaDemoProject()
-          : variant === 'donghua_guofeng'
-            ? await demoMod.buildDonghuaDemoProject()
-            : await demoMod.buildThreeSceneDemoProject()
+      variant === 'story_west_drama_v2' && 'buildStoryWestDramaV2DemoProject' in demoMod
+        ? await demoMod.buildStoryWestDramaV2DemoProject()
+        : variant === 'story_west_skeleton' && 'buildStoryWestDemoProject' in demoMod
+          ? await demoMod.buildStoryWestDemoProject()
+          : variant === 'immortal_sword_25d' && 'buildImmortalSwordDemoProject' in demoMod
+            ? await (demoMod as { buildImmortalSwordDemoProject: () => Promise<Project> }).buildImmortalSwordDemoProject()
+          : variant === 'action_combat_25d' || variant === 'hanbeta_quaidam'
+            ? await demoMod.buildHanbetaDemoProject()
+            : variant === 'donghua_guofeng'
+              ? await demoMod.buildDonghuaDemoProject()
+              : await demoMod.buildThreeSceneDemoProject()
     report({
       phase: 'gpu',
       stageLabel: `Đang dựng ${p.shots.length} cảnh · ${p.layers.length} layer lên khung nhìn…`,

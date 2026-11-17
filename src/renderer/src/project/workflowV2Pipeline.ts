@@ -14,7 +14,8 @@ const COMPOSABLE_CATEGORIES = new Set<string>([
   'light',
   'cave',
   'fx',
-  'audio'
+  'audio',
+  'subtitle'
 ])
 
 const GLOW_PRESETS = new Set(['neonBreathe', 'neonBlink', 'neonFlicker', 'neonSolid'])

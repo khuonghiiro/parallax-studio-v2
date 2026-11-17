@@ -25,6 +25,7 @@ export type WorkflowV2SpawnCategory =
   | 'cave'
   | 'fx'
   | 'audio'
+  | 'subtitle'
 
 export interface WorkflowV2LogicCategoryItem {
   id: WorkflowV2SpawnCategory
@@ -56,7 +57,8 @@ export const WORKFLOW_V2_LOGIC_CATEGORIES: WorkflowV2LogicCategoryItem[] = [
   { id: 'collision', icon: '💥', label: 'Va chạm', hint: 'Nối 2 Layer / Cụm va đập vật lý', accent: '#f43f5e' },
   { id: 'light', icon: '💡', label: 'Ánh sáng', hint: 'Đèn viền, nến, glow, nguồn sáng ảo 2.5D', accent: '#eab308' },
   { id: 'cave', icon: '🕳️', label: 'Hang động', hint: 'Vòm cổng độ sâu 2.5D', accent: '#14b8a6' },
-  { id: 'audio', icon: '🔊', label: 'Âm thanh', hint: 'Thoại, nhép môi & SFX', accent: '#ec4899' }
+  { id: 'audio', icon: '🔊', label: 'Âm thanh', hint: 'Thoại, nhép môi & SFX', accent: '#ec4899' },
+  { id: 'subtitle', icon: '💬', label: 'Phụ đề Vietsub', hint: 'Lời thoại Vietsub gắn riêng từng đối tượng & đồng bộ thời gian nói', accent: '#fbbf24' }
 ]
 
 /** Kiểm tra xem Layer có phải tài nguyên Hoạt ảnh Lặp (Animate Loop / GIF) hay không */
@@ -122,7 +124,8 @@ export function getCompatibleLogicCatalogForNode(
       { id: 'material', icon: '🏷️', label: 'Vật liệu 3D', hint: 'Đá cứng, kim loại, gỗ, đàn hồi', accent: '#f97316' },
       { id: 'collision', icon: '💥', label: 'Va chạm 3D', hint: 'Tương tác va đập vật lý 3D', accent: '#f43f5e' },
       { id: 'light', icon: '💡', label: 'Ánh sáng 3D', hint: 'Chiếu sáng khối 3D, Rim & Point', accent: '#eab308' },
-      { id: 'audio', icon: '🔊', label: 'Âm thanh 3D', hint: 'Âm thanh gắn theo khối 3D', accent: '#ec4899' }
+      { id: 'audio', icon: '🔊', label: 'Âm thanh 3D', hint: 'Âm thanh gắn theo khối 3D', accent: '#ec4899' },
+      { id: 'subtitle', icon: '💬', label: 'Phụ đề Vietsub', hint: 'Phụ đề thoại gắn theo đối tượng 3D', accent: '#fbbf24' }
     )
     return { categories, dynamicParts, parentKind: 'model_3d' }
   }
@@ -145,7 +148,8 @@ export function getCompatibleLogicCatalogForNode(
       { id: 'material', icon: '🏷️', label: 'Vật liệu', hint: 'Đàn hồi chất liệu cho cụm 2.5D', accent: '#f97316' },
       { id: 'collision', icon: '💥', label: 'Va chạm', hint: 'Nối 2 Cụm / Layer va đập vật lý', accent: '#f43f5e' },
       { id: 'light', icon: '💡', label: 'Ánh sáng', hint: 'Đèn viền, glow, nguồn sáng cụm', accent: '#eab308' },
-      { id: 'audio', icon: '🔊', label: 'Âm thanh', hint: 'Thoại & nhép môi nhân vật', accent: '#ec4899' }
+      { id: 'audio', icon: '🔊', label: 'Âm thanh', hint: 'Thoại & nhép môi nhân vật', accent: '#ec4899' },
+      { id: 'subtitle', icon: '💬', label: 'Phụ đề Vietsub', hint: 'Lời thoại Vietsub gắn riêng nhân vật & đồng bộ thời gian nói', accent: '#fbbf24' }
     )
     return { categories, dynamicParts, parentKind: 'composite_25d' }
   }
@@ -169,7 +173,8 @@ export function getCompatibleLogicCatalogForNode(
     { id: 'collision', icon: '💥', label: 'Va chạm', hint: 'Nối 2 Layer va đập vật lý', accent: '#f43f5e' },
     { id: 'light', icon: '💡', label: 'Ánh sáng', hint: 'Đèn viền, nến, glow, nguồn sáng', accent: '#eab308' },
     { id: 'cave', icon: '🕳️', label: 'Hang động', hint: 'Vòm cổng độ sâu 2.5D', accent: '#14b8a6' },
-    { id: 'audio', icon: '🔊', label: 'Âm thanh', hint: 'Thoại, nhép môi & SFX', accent: '#ec4899' }
+    { id: 'audio', icon: '🔊', label: 'Âm thanh', hint: 'Thoại, nhép môi & SFX', accent: '#ec4899' },
+    { id: 'subtitle', icon: '💬', label: 'Phụ đề Vietsub', hint: 'Lời thoại Vietsub gắn riêng từng đối tượng & đồng bộ thời gian nói', accent: '#fbbf24' }
   )
   return { categories: singleCategories, dynamicParts: [], parentKind: 'single_25d' }
 }
@@ -194,7 +199,8 @@ const prefix: Record<WorkflowV2SpawnCategory, string> = {
   light: 'Ánh sáng',
   cave: 'Hang động',
   fx: 'Hiệu ứng',
-  audio: 'Âm thanh'
+  audio: 'Âm thanh',
+  subtitle: 'Vietsub'
 }
 
 function preset(category: WorkflowV2SpawnCategory, optionId: string, label: string, params: Partial<WorkflowNodeParams>): WorkflowV2LogicPreset {
@@ -361,7 +367,140 @@ export const WORKFLOW_V2_LOGIC_PRESETS: WorkflowV2LogicPreset[] = [
   }),
 
   // 8. Node Âm thanh
-  preset('audio', 'voice', 'Thoại & nhép môi', { intensity: 1, autoLipSync: true })
+  preset('audio', 'voice', 'Thoại & nhép môi', { intensity: 1, autoLipSync: true }),
+
+  // 9. Node Phụ đề Vietsub gắn từng đối tượng (kèm chế độ bảo vệ cấu hình đặc biệt)
+  preset('subtitle', 'lugia_cyan', '💎 Phụ đề Trắng Viền Xanh (Mặc định)', {
+    subtitleStylePreset: 'lugia_cyan',
+    subtitleFontFamily: 'Montserrat',
+    subtitleFontSize: 36,
+    subtitleFontWeight: 900,
+    subtitleColor: '#ffffff',
+    subtitleStrokeColor: '#0a3d6e',
+    subtitleStrokeWidth: 6,
+    subtitleGlowColor: '#38bdf8',
+    subtitleBoxColor: '',
+    subtitleBoxOpacity: 0,
+    subtitleAlign: 'center',
+    subtitlePositionPreset: 'bottom_center',
+    subtitleOffsetX: 0,
+    subtitleOffsetY: -390,
+    subtitleEnterEffect: 'fade',
+    subtitleExitEffect: 'fade',
+    subtitleFadeIn: 0.14,
+    subtitleFadeOut: 0.14,
+    preserveCustomSettings: false,
+    syncHoldTargetLayer: true
+  }),
+  preset('subtitle', 'cinema_gold', '🌟 Phụ đề Vàng Kim Điện Ảnh', {
+    subtitleStylePreset: 'cinema_gold',
+    subtitleFontFamily: 'Montserrat',
+    subtitleFontSize: 38,
+    subtitleFontWeight: 900,
+    subtitleColor: '#fde047',
+    subtitleStrokeColor: '#1c1917',
+    subtitleStrokeWidth: 7,
+    subtitleGlowColor: '#f59e0b',
+    subtitleBoxColor: '',
+    subtitleBoxOpacity: 0,
+    subtitleAlign: 'center',
+    subtitlePositionPreset: 'bottom_center',
+    subtitleOffsetX: 0,
+    subtitleOffsetY: -390,
+    subtitleEnterEffect: 'fade',
+    subtitleExitEffect: 'fade',
+    subtitleFadeIn: 0.15,
+    subtitleFadeOut: 0.15,
+    preserveCustomSettings: false,
+    syncHoldTargetLayer: true
+  }),
+  preset('subtitle', 'netflix_box', '🎬 Phụ đề Hộp Đen Mờ', {
+    subtitleStylePreset: 'netflix_box',
+    subtitleFontFamily: 'Montserrat',
+    subtitleFontSize: 35,
+    subtitleFontWeight: 800,
+    subtitleColor: '#f8fafc',
+    subtitleStrokeColor: '#020617',
+    subtitleStrokeWidth: 3,
+    subtitleBoxColor: '#090d16',
+    subtitleBoxOpacity: 0.78,
+    subtitleAlign: 'center',
+    subtitlePositionPreset: 'bottom_center',
+    subtitleOffsetX: 0,
+    subtitleOffsetY: -395,
+    subtitleEnterEffect: 'slide_up',
+    subtitleExitEffect: 'fade',
+    subtitleFadeIn: 0.16,
+    subtitleFadeOut: 0.14,
+    preserveCustomSettings: false,
+    syncHoldTargetLayer: true
+  }),
+  preset('subtitle', 'comic_shout', '💢 Thoại Quát Lớn Nổi Giận (Khoá Đặc Biệt 🔒)', {
+    subtitleStylePreset: 'comic_shout',
+    subtitleFontFamily: 'Montserrat',
+    subtitleFontSize: 42,
+    subtitleFontWeight: 900,
+    subtitleColor: '#fef08a',
+    subtitleStrokeColor: '#7f1d1d',
+    subtitleStrokeWidth: 8,
+    subtitleGlowColor: '#ef4444',
+    subtitleBoxColor: '#450a0a',
+    subtitleBoxOpacity: 0.76,
+    subtitleAlign: 'center',
+    subtitlePositionPreset: 'bottom_center',
+    subtitleOffsetX: 0,
+    subtitleOffsetY: -385,
+    subtitleEnterEffect: 'pop_bounce',
+    subtitleExitEffect: 'scale_out',
+    subtitleFadeIn: 0.18,
+    subtitleFadeOut: 0.16,
+    preserveCustomSettings: true,
+    syncHoldTargetLayer: true
+  }),
+  preset('subtitle', 'inner_thought', '💭 Độc Thoại Nội Tâm (Khoá Đặc Biệt 🔒)', {
+    subtitleStylePreset: 'inner_thought',
+    subtitleFontFamily: 'Montserrat',
+    subtitleFontSize: 34,
+    subtitleFontWeight: 700,
+    subtitleColor: '#e9d5ff',
+    subtitleStrokeColor: '#2e1065',
+    subtitleStrokeWidth: 5,
+    subtitleGlowColor: '#a855f7',
+    subtitleBoxColor: '#1e1b4b',
+    subtitleBoxOpacity: 0.74,
+    subtitleAlign: 'center',
+    subtitlePositionPreset: 'top_center',
+    subtitleOffsetX: 0,
+    subtitleOffsetY: 360,
+    subtitleEnterEffect: 'fade',
+    subtitleExitEffect: 'fade',
+    subtitleFadeIn: 0.25,
+    subtitleFadeOut: 0.25,
+    preserveCustomSettings: true,
+    syncHoldTargetLayer: true
+  }),
+  preset('subtitle', 'system_hologram', '🤖 Thông Báo Hệ Thống (Khoá Đặc Biệt 🔒)', {
+    subtitleStylePreset: 'system_hologram',
+    subtitleFontFamily: 'Montserrat',
+    subtitleFontSize: 35,
+    subtitleFontWeight: 900,
+    subtitleColor: '#7dd3fc',
+    subtitleStrokeColor: '#082f49',
+    subtitleStrokeWidth: 6,
+    subtitleGlowColor: '#38bdf8',
+    subtitleBoxColor: '#082f49',
+    subtitleBoxOpacity: 0.85,
+    subtitleAlign: 'center',
+    subtitlePositionPreset: 'bottom_center',
+    subtitleOffsetX: 0,
+    subtitleOffsetY: -385,
+    subtitleEnterEffect: 'pop_bounce',
+    subtitleExitEffect: 'fade',
+    subtitleFadeIn: 0.16,
+    subtitleFadeOut: 0.14,
+    preserveCustomSettings: true,
+    syncHoldTargetLayer: true
+  })
 ]
 
 /** Ánh xạ mã logic cũ (hoặc mã gọi trước khi tách `loop_anim` / `fx`) sang mẫu V2 đơn trách nhiệm */

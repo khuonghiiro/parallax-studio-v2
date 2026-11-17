@@ -2,6 +2,7 @@ import { repairDonghuaTiming } from './donghuaDemoBuilder'
 import { repairHanbetaTiming } from './hanbetaDemoBuilder'
 import { repairImmortalSwordTiming } from './immortalSwordDemoBuilder'
 import { repairStoryWestTiming } from './storyWestDemoBuilder'
+import { createFreshStoryWestDramaV2Project, repairStoryWestDramaV2Timing } from './storyWestDramaV2Builder'
 import { repairThreeSceneTiming } from './demoTiming'
 import type { Project } from '@shared/types'
 import demoJson from './demoProject.json'
@@ -64,6 +65,18 @@ export async function buildImmortalSwordDemoProject(): Promise<Project> {
  */
 export async function buildStoryWestDemoProject(): Promise<Project> {
   return repairStoryWestTiming(await importProjectFromJson(JSON.stringify(storyWestJson)))
+}
+
+/**
+ * Builds Demo #6: "Tây Du Phá Cục — Đối Thoại Vietsub & Diễn Xuất Cảm Xúc 2.5D"
+ * featuring normalized character scales across shots, per-object Vietsub nodes with
+ * protected custom presets, synchronized voice audio + continuity lock, fade in/out
+ * thought visions, and progressive oppression (4 pilgrims grow taller while Skeleton shrinks).
+ */
+export async function buildStoryWestDramaV2DemoProject(): Promise<Project> {
+  const fresh = createFreshStoryWestDramaV2Project()
+  const imported = await importProjectFromJson(JSON.stringify(fresh))
+  return repairStoryWestDramaV2Timing(imported)
 }
 
 export * from './plateGenerators'

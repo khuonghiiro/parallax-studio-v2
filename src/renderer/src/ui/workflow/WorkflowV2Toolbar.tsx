@@ -1,9 +1,17 @@
 import React, { useMemo } from 'react'
-import type { Shot } from '@shared/types'
+import type { Shot, SubtitleStylePresetId } from '@shared/types'
+import { toast } from '../../actions'
+import {
+  SUBTITLE_STYLE_PRESETS,
+  applySubtitleDefaultsToAllNodes,
+  validateAndRepairDialogueContinuity
+} from '../../project/subtitleAndDialogueSync'
 import { computeShotRoute, getShotTimeRange } from '../../project/workflowV2Scope'
+import { syncWorkflowV2Graph } from '../../project/workflowV2Sync'
 import { useEditor } from '../../store/editor'
 import { CustomSelect } from '../controls/CustomSelect'
-import { IconJsonBraces, IconLightning, IconTimeNodePlus, IconTree } from '../icons'
+import { Menu } from '../controls'
+import { IconJsonBraces, IconLightning, IconText, IconTimeNodePlus, IconTree } from '../icons'
 import { TimelineModeTabs } from './TimelineModeTabs'
 import { IconWorkflowCardsList, IconWorkflowGraph } from './workflowIcons'
 
@@ -123,6 +131,36 @@ export const WorkflowV2Toolbar: React.FC<WorkflowV2ToolbarProps> = (props) => {
     if (isolateShotPlayback && (currentTime < customStart || currentTime >= clampedEnd)) {
       setTime(customStart)
     }
+  }
+
+  const handleApplyGlobalSubtitlePreset = (presetId: SubtitleStylePresetId) => {
+    let updated = 0
+    let skipped = 0
+    useEditor.getState().update((d) => {
+      const res = applySubtitleDefaultsToAllNodes(d, { presetId })
+      updated = res.updatedCount
+      skipped = res.skippedProtectedCount
+      d.workflow = syncWorkflowV2Graph(d, d.workflow)
+    }, 'wf-toolbar-sub-preset')
+    toast(
+      skipped > 0
+        ? `💬 Đã áp mẫu cho ${updated} Vietsub (Đã giữ nguyên ${skipped} node khoá đặc biệt 🔒)`
+        : `💬 Đã áp mẫu cho toàn bộ ${updated} node Vietsub!`
+    )
+  }
+
+  const handleSyncAllDialogues = () => {
+    let fixed = 0
+    useEditor.getState().update((d) => {
+      const res = validateAndRepairDialogueContinuity(d, true)
+      fixed = res.repairedCount
+      d.workflow = syncWorkflowV2Graph(d, d.workflow)
+    }, 'wf-toolbar-dialogue-sync')
+    toast(
+      fixed > 0
+        ? `🔗 Đã đồng bộ thời lượng hiển thị cho ${fixed} nhân vật khớp lời thoại & audio!`
+        : '✓ Toàn bộ nhân vật, Vietsub và Audio thoại đã đồng bộ hoàn hảo!'
+    )
   }
 
   const isolateTitle = !isAll && activeShotItem
@@ -253,6 +291,28 @@ export const WorkflowV2Toolbar: React.FC<WorkflowV2ToolbarProps> = (props) => {
           <IconTimeNodePlus width={13} height={13} />
           <span className="wf-v2-btn-txt">Time</span>
         </button>
+
+        <Menu
+          id="wf-v2-subtitle-global-menu"
+          label="Vietsub All"
+          icon={<IconText width={13} height={13} />}
+        >
+          <div className="menu-label">Cấu hình mặc định toàn bộ Vietsub (Bỏ qua node khoá 🔒)</div>
+          {SUBTITLE_STYLE_PRESETS.filter((pr) => !pr.preserveByDefault).map((pr) => (
+            <button
+              key={pr.id}
+              type="button"
+              className="menu-item"
+              onClick={() => handleApplyGlobalSubtitlePreset(pr.id)}
+            >
+              <span>{pr.badge}</span> {pr.label}
+            </button>
+          ))}
+          <div className="menu-label">Kiểm tra &amp; Đồng bộ thời gian Thoại + Audio</div>
+          <button type="button" className="menu-item" onClick={handleSyncAllDialogues}>
+            🔗 Đồng bộ giữ hình nhân vật theo thời gian Vietsub &amp; Audio nói
+          </button>
+        </Menu>
 
         <span className="wf-v2-stats" title="Số cảnh / layer / node logic trong toàn dự án">
           <b>{props.stats.shots}</b> cảnh · <b>{props.stats.layers}</b> layer · <b>{props.stats.logic}</b> logic

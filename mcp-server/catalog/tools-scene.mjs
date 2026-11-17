@@ -86,7 +86,7 @@ export const SCENE_TOOLS = [
         'active',
         'left_panel', 'left_tabs', 'assets', 'asset_subtabs', 'asset_grid', 'asset_bar', 'asset_delete_confirm', 'music', 'shots', 'topview',
         'viewer', 'viewer_canvas', 'viewport', 'camera_frame', 'viewer_hud', 'viewer_tools', 'viewer_3d_presets', 'viewer_touch_nav', 'animate_camera_stage', 'animate_camera_toolbar', 'animate_camera_route', 'animate_camera_inspector',
-        'inspector', 'inspector_tabs', 'inspector_bottom_tabs', 'inspector_body', 'inspector_composite', 'inspector_physics', 'inspector_virtual_light', 'virtual_light_pad', 'composite_swap', 'effect_stack', 'effect_editor', 'timeline_effects', 'fx_presets', 'motion', 'motion_preview', 'motion_parameters', 'motion_timing',
+        'inspector', 'inspector_tabs', 'inspector_bottom_tabs', 'inspector_body', 'inspector_composite', 'inspector_physics', 'inspector_text_section', 'subtitle_node_inspector', 'inspector_virtual_light', 'virtual_light_pad', 'composite_swap', 'effect_stack', 'effect_editor', 'timeline_effects', 'fx_presets', 'motion', 'motion_preview', 'motion_parameters', 'motion_timing',
         'timeline', 'mobile_timeline', 'mobile_transport', 'mobile_action_strip', 'mobile_quick_sheet', 'timeline_toolbar', 'timeline_batch_timing', 'timeline_tabs', 'timeline_ruler', 'timeline_tracks',
         'timeline_workflow', 'workflow_toolbar', 'workflow_palette', 'workflow_canvas', 'workflow_mobile_cards', 'workflow_canvas_hud', 'workflow_quick_connect', 'workflow_inspector', 'workflow_ruler', 'workflow_time_lanes', 'workflow_selection_bar', 'workflow_time_group', 'workflow_spawn_menu', 'workflow_legend', 'workflow_target_binder', 'workflow_action_builder', 'workflow_preview', 'workflow_part_preview', 'workflow_part_stage', 'workflow_part_cues', 'workflow_part_hub', 'workflow_part_editor', 'workflow_part_trigger_picker', 'workflow_part_asset_grid', 'workflow_shot_spatial_pad', 'workflow_cam_bbox_guard', 'workflow_light_behavior', 'workflow_light_rays', 'viewer_camera_status', 'workflow_motion_panel', 'workflow_motion_ghost', 'workflow_node_card', 'viewer_layer_gizmo', 'workflow_motion_entity_tags', 'workflow_motion_path', 'workflow_motion_target', 'workflow_motion_timing', 'workflow_motion_depth', 'workflow_motion_tools', 'workflow_motion_draw', 'workflow_collision_preview', 'workflow_bbox_steps', 'workflow_json_panel', 'workflow_node_config', 'workflow_node_input', 'workflow_node_output', 'workflow_node_connections', 'workflow_node_operation', 'workflow_node_scope_picker', 'workflow_node_edit_context', 'workflow_node_advanced', 'workflow_node_preview_controls', 'workflow_node_preset_picker', 'workflow_node_rule_picker', 'workflow_node_camera_preview', 'workflow_node_settings',
         'toolbar', 'toolbar_left', 'toolbar_doc', 'toolbar_actions', 'studio_menu', 'mcp_chip', 'remote_chip', 'manifest_chip', 'responsive_dock',
@@ -304,11 +304,11 @@ export const SCENE_TOOLS = [
   {
     name: 'new_project', cat: 'project',
     doc: L(
-      'Start an empty project or load a built-in demo (`three_scenes`, `donghua_guofeng`, `action_combat_25d`, `immortal_sword_25d`, `story_west_skeleton`, or alias `hanbeta_quaidam`), discarding unsaved changes without asking.',
-      'Tạo dự án trống hoặc mở cảnh mẫu dựng sẵn (`three_scenes`, `donghua_guofeng`, `action_combat_25d`, `immortal_sword_25d`, `story_west_skeleton` hoặc alias `hanbeta_quaidam`), bỏ thay đổi chưa lưu mà không hỏi.'
+      'Start an empty project or load a built-in demo (`three_scenes`, `donghua_guofeng`, `action_combat_25d`, `immortal_sword_25d`, `story_west_skeleton`, `story_west_drama_v2`, or alias `hanbeta_quaidam`), discarding unsaved changes without asking.',
+      'Tạo dự án trống hoặc mở cảnh mẫu dựng sẵn (`three_scenes`, `donghua_guofeng`, `action_combat_25d`, `immortal_sword_25d`, `story_west_skeleton`, `story_west_drama_v2` hoặc alias `hanbeta_quaidam`), bỏ thay đổi chưa lưu mà không hỏi.'
     ),
     shape: () => ({
-      demo: z.enum(['three_scenes', 'donghua_guofeng', 'hanbeta_quaidam', 'action_combat_25d', 'immortal_sword_25d', 'story_west_skeleton']).optional(),
+      demo: z.enum(['three_scenes', 'donghua_guofeng', 'hanbeta_quaidam', 'action_combat_25d', 'immortal_sword_25d', 'story_west_skeleton', 'story_west_drama_v2']).optional(),
       name: z.string().optional(),
       width: z.number().int().optional(),
       height: z.number().int().optional(),
@@ -656,7 +656,11 @@ export const SCENE_TOOLS = [
         'pop_up_bottom',
         'slide_in_side',
         'pendulum_question',
-        'anger_vein_throb'
+        'anger_vein_throb',
+        'fade_materialize_in',
+        'thought_vision_manifest',
+        'oppressive_tower_grow',
+        'oppressed_shrink_tremble'
       ]).describe(d('Motion preset ID.', 'Mã mẫu chuyển động.')),
       time: z.number().optional().describe(d('Start time in seconds (default: current playhead time).', 'Thời điểm bắt đầu tính bằng giây (mặc định: vị trí playhead).')),
       duration: z.number().positive().optional().describe(d('Duration of the motion in seconds.', 'Thời lượng chuyển động tính bằng giây.')),
@@ -698,7 +702,11 @@ export const SCENE_TOOLS = [
           'pop_up_bottom',
           'slide_in_side',
           'pendulum_question',
-          'anger_vein_throb'
+          'anger_vein_throb',
+          'fade_materialize_in',
+          'thought_vision_manifest',
+          'oppressive_tower_grow',
+          'oppressed_shrink_tremble'
         ]).optional().describe(d('After Effects spatial motion trajectory preset.', 'Mẫu quỹ đạo chuyển động không gian After Effects.')),
         action_clip: z.string().optional().describe(d('Skeletal clip name from get_character_actions (e.g. "walk", "jump", "fall", "idle", "action").', 'Tên clip hành động xương từ get_character_actions (vd: "walk", "jump", "fall", "idle", "action").')),
         delta_x: z.number().optional().describe(d('Horizontal displacement in pixels.', 'Độ dời ngang tính bằng pixel.')),
@@ -723,6 +731,12 @@ export const SCENE_TOOLS = [
       end_time: z.number().positive().optional().describe(d('Beat end time in seconds (overrides duration).', 'Thời điểm kết thúc nhịp (giây).')),
       duration: z.number().positive().optional().describe(d('Beat duration in seconds (default 2.8s).', 'Thời lượng nhịp thoại (mặc định 2.8s).')),
       narration: z.string().optional().describe(d('Narrator / dialogue sentence rendered as outlined comic subtitle.', 'Câu dẫn truyện / thoại hiển thị thành phụ đề hoạt ảnh viền đôi.')),
+      speaker_name: z.string().optional().describe(d('Speaker display name attached to the character Vietsub node.', 'Tên nhân vật nói hiển thị kèm Node Vietsub.')),
+      subtitle_style_preset: z.enum(['lugia_cyan', 'cinema_gold', 'netflix_box', 'comic_shout', 'inner_thought', 'system_hologram']).optional().describe(d('Subtitle style preset for this dialogue line.', 'Mẫu phong cách Vietsub cho câu thoại này.')),
+      subtitle_position_preset: z.enum(['bottom_center', 'top_center', 'above_speaker', 'below_speaker', 'speech_left', 'speech_right', 'custom']).optional().describe(d('On-screen subtitle placement preset.', 'Vị trí xuất hiện của phụ đề Vietsub trên màn hình.')),
+      preserve_subtitle_settings: z.boolean().optional().describe(d('Lock this subtitle cue so Apply-to-All will not overwrite its custom style.', 'Khoá cấu hình đặc biệt của câu thoại này để khi bấm Áp dụng cho tất cả Vietsub sẽ không bị ghi đè.')),
+      apply_subtitle_defaults_to_all: z.boolean().optional().describe(d('Apply this subtitle style to all unprotected Vietsub cues in the project.', 'Áp dụng cấu hình Vietsub này cho toàn bộ các node không khoá trong dự án.')),
+      sync_dialogue_continuity: z.boolean().optional().describe(d('Automatically hold speaker layer and scene duration to match dialogue/audio end time (default true).', 'Tự động giữ thời gian hiển thị của nhân vật và cảnh khớp với thời điểm kết thúc câu thoại/audio (mặc định true).')),
       mood: z.enum(['world', 'question_sky', 'speedlines_radial', 'horror_bw_speedlines', 'spotlight_stage', 'anger_veins', 'comic_burst']).optional().describe(d('Keep world plate ("world") or inject psychological comic mood backdrop.', 'Giữ bối cảnh thế giới ("world") hoặc bật nền tâm lý truyện tranh.')),
       camera_grammar: z.enum([
         'cold_open_shock',
@@ -734,7 +748,9 @@ export const SCENE_TOOLS = [
         'rage_punch_shake',
         'confrontation_push',
         'three_plane_escape',
-        'foreground_weapon_slam'
+        'foreground_weapon_slam',
+        'thought_contemplation',
+        'oppressive_low_push'
       ]).optional().describe(d('Snappy story-beat camera move.', 'Kiểu máy quay theo nhịp cốt truyện.')),
       subject_id: z.string().optional().describe(d('Primary character layer/instance ID to frame.', 'ID layer hoặc nhân vật chính cần lấy nét.')),
       secondary_subject_id: z.string().optional().describe(d('Secondary character/prop ID.', 'ID nhân vật hoặc đạo cụ phụ.')),

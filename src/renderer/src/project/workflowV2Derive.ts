@@ -1,6 +1,7 @@
 import { resolveMotionMode } from './workflowMotionMode'
-import type { AudioTrackItem, Layer, Project, WorkflowEdge, WorkflowNode, WorkflowNodeParams } from '@shared/types'
+import type { AudioTrackItem, Layer, Project, TextLayer, WorkflowEdge, WorkflowNode, WorkflowNodeParams } from '@shared/types'
 import { getProjectAudioTracks } from './audioTracks'
+import { findTargetSubtitleLayers } from './subtitleAndDialogueSync'
 import { WORKFLOW_V2_RIG_PRESET_OPTIONS } from './workflowV2ClusterRigAndSwap'
 import { extractCompositeDynamicParts } from './workflowV2CompositeParts'
 import {
@@ -29,7 +30,7 @@ import { resolveFxAtomicRole } from './workflowV2Pipeline'
  * - Node có mà hiệu ứng không còn trên Layer → Node chuyển sang trạng thái tắt (không mất cấu hình).
  * - Thông số đổi ở Inspector / Timeline → cập nhật ngược vào Node.
  */
-export type DerivedCategory = 'loop_anim' | 'action' | 'anim_fx' | 'fx' | 'light' | 'cave' | 'audio'
+export type DerivedCategory = 'loop_anim' | 'action' | 'anim_fx' | 'fx' | 'light' | 'cave' | 'audio' | 'subtitle'
 
 interface Derived {
   present: boolean
@@ -281,6 +282,46 @@ function deriveAudio(track: AudioTrackItem | undefined, layer: Layer, compDur: n
   }
 }
 
+function deriveSubtitle(sub: TextLayer | undefined, layer: Layer, compDur: number): Derived {
+  const range = resolveLayerNodeTimeRange(layer, compDur)
+  const start = sub?.inPoint ?? range.start
+  const end = sub?.outPoint ?? range.end
+  const cleanText = (sub?.props.text ?? '').replace(/\n/g, ' ').trim()
+  return {
+    present: Boolean(sub),
+    enabled: Boolean(sub) && sub?.visible !== false,
+    params: {
+      subtitleLayerId: sub?.id,
+      subtitleText: sub?.props.text,
+      subtitleSpeakerName: sub?.props.speakerName,
+      subtitleStylePreset: sub?.props.subtitleStylePreset ?? 'lugia_cyan',
+      subtitleFontFamily: sub?.props.fontFamily,
+      subtitleFontSize: sub?.props.fontSize,
+      subtitleFontWeight: sub?.props.fontWeight,
+      subtitleColor: sub?.props.color,
+      subtitleStrokeColor: sub?.props.strokeColor,
+      subtitleStrokeWidth: sub?.props.strokeWidth,
+      subtitleGlowColor: sub?.props.glowColor,
+      subtitleBoxColor: sub?.props.boxColor,
+      subtitleBoxOpacity: sub?.props.boxOpacity,
+      subtitleAlign: sub?.props.align ?? 'center',
+      subtitlePositionPreset: sub?.props.subtitlePositionPreset ?? 'bottom_center',
+      subtitleOffsetX: sub?.props.subtitleOffsetX ?? 0,
+      subtitleOffsetY: sub?.props.subtitleOffsetY ?? -390,
+      subtitleEnterEffect: sub?.props.subtitleEnterEffect ?? 'fade',
+      subtitleExitEffect: sub?.props.subtitleExitEffect ?? 'fade',
+      subtitleFadeIn: sub?.fadeIn ?? 0.14,
+      subtitleFadeOut: sub?.fadeOut ?? 0.14,
+      preserveCustomSettings: Boolean(sub?.props.preserveCustomSettings),
+      lockedSubtitleFields: sub?.props.lockedSubtitleFields,
+      syncHoldTargetLayer: sub?.props.holdSpeakerTiming ?? true,
+      timeStart: r2(start),
+      timeEnd: r2(end)
+    },
+    title: `Vietsub: ${(cleanText || layer.name).slice(0, 26)}`
+  }
+}
+
 /** Giữ nguyên giá trị cũ khi chênh lệch số rất nhỏ (tránh dao động số thực làm đồ thị đổi liên tục) */
 function mergeDerivedParams(current: WorkflowNodeParams, derived: Partial<WorkflowNodeParams>): WorkflowNodeParams {
   const next: WorkflowNodeParams = { ...current }
@@ -300,7 +341,8 @@ const NODE_META: Record<DerivedCategory, Pick<WorkflowNode, 'type' | 'preset' | 
   fx: { type: 'physics_fx', preset: 'rim_glow_particles', aiAgentRole: 'PhysicsLightFxAgent' },
   light: { type: 'physics_fx', preset: 'rim_glow_particles', aiAgentRole: 'PhysicsLightFxAgent' },
   cave: { type: 'physics_fx', preset: 'rim_glow_particles', aiAgentRole: 'PhysicsLightFxAgent' },
-  audio: { type: 'audio_lipsync', preset: 'auto_dialogue_lipsync', aiAgentRole: 'AudioLipSyncAgent' }
+  audio: { type: 'audio_lipsync', preset: 'auto_dialogue_lipsync', aiAgentRole: 'AudioLipSyncAgent' },
+  subtitle: { type: 'audio_lipsync', preset: 'auto_dialogue_lipsync', aiAgentRole: 'AudioLipSyncAgent' }
 }
 
 function createDerivedNode(id: string, cat: DerivedCategory, layerNode: WorkflowNode, d: Derived): WorkflowNode {
@@ -456,16 +498,18 @@ export function deriveLogicFromLayers(
     const fxGlow =
       downstream.some((n) => n.params?.logicCategory === 'fx' && resolveFxAtomicRole(n) === 'glow' && n.enabled) ||
       (layer.appliedEffects ?? []).some((f) => f.category === 'glow' && f.enabled !== false)
-    for (const cat of ['loop_anim', 'action', 'anim_fx', 'light', 'cave', 'audio'] as DerivedCategory[]) {
+    for (const cat of ['loop_anim', 'action', 'anim_fx', 'light', 'cave', 'audio', 'subtitle'] as DerivedCategory[]) {
       const current = downstream.find((n) => n.params?.logicCategory === cat)
       if (!current && instId && clusterOwnedCats.has(`${instId}:${cat}`)) continue
+      const targetSub = cat === 'subtitle' ? findTargetSubtitleLayers(project, layer.id, memberIds)[0] : undefined
       const d =
         cat === 'loop_anim' ? deriveLoopAnim(layer, project, compDur, current)
           : cat === 'action' ? deriveAction(layer, compDur, current)
             : cat === 'anim_fx' ? deriveAnimFx(layer, compDur, current)
               : cat === 'light' ? deriveLight(layer, compDur, fxGlow, current)
                 : cat === 'cave' ? deriveCave(layer, compDur)
-                  : deriveAudio(findLayerAudioTrack(project, layer, memberIds, !instId), layer, compDur)
+                  : cat === 'audio' ? deriveAudio(findLayerAudioTrack(project, layer, memberIds, !instId), layer, compDur)
+                    : deriveSubtitle(targetSub, layer, compDur)
       if (!current) {
         if (!d.present) continue
         let id = `v2-${cat}-${layer.id}`

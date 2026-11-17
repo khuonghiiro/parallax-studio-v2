@@ -1,4 +1,9 @@
-import type { AssetMeta, ImageLayer, ParticleLayer, Project, Shot } from '@shared/types'
+import type { AssetMeta, AudioTrackItem, ImageLayer, ParticleLayer, Project, Shot } from '@shared/types'
+import {
+  applyNormalizedCharacterStaging,
+  type CharacterBodyClass,
+  type ShotFramingKind
+} from '../animation/characterScaleNormalizer'
 import { generatePresetSpatialTracks } from '../animation/motionPresets'
 import {
   anchorBustLayerToFrameBottom,
@@ -7,6 +12,7 @@ import {
   type StoryComicBeatSpec
 } from '../animation/storyComicDirector'
 import { createImageLayer, createParticleLayer, createProject, createShot, shotSpacing } from './factory'
+import { validateAndRepairDialogueContinuity } from './subtitleAndDialogueSync'
 
 export interface StoryWestAssetDef {
   id: string
@@ -77,6 +83,8 @@ function addPlate(
     fadeIn?: number
     fadeOut?: number
     anchorBustBottom?: boolean
+    bodyClass?: CharacterBodyClass
+    framing?: ShotFramingKind
   }
 ): ImageLayer {
   const meta = assets.get(assetId)
@@ -87,14 +95,21 @@ function addPlate(
   layer.inPoint = opts.inPoint
   layer.outPoint = opts.outPoint
   layer.autoScale = opts.autoScale ?? false
-  if (opts.fadeIn !== undefined) layer.fadeIn = opts.fadeIn
-  if (opts.fadeOut !== undefined) layer.fadeOut = opts.fadeOut
+  layer.fadeIn = opts.fadeIn ?? 0.2
+  layer.fadeOut = opts.fadeOut ?? 0.2
   layer.transform.position.value = [opts.x, opts.y, opts.z]
   layer.transform.rotation.value = [0, 0, opts.rotationZ ?? 0]
   layer.transform.scale.value = [opts.scale, opts.scale, 1]
   layer.transform.opacity.value = opts.opacity ?? 1
-  if (opts.anchorBustBottom) {
-    anchorBustLayerToFrameBottom(layer, project.comp, 1.04)
+  if (opts.bodyClass) {
+    applyNormalizedCharacterStaging(layer, project.comp, {
+      bodyClass: opts.bodyClass,
+      framing: opts.framing ?? 'MS',
+      anchorBustBottom: opts.anchorBustBottom,
+      maxCamScale: 1.0
+    })
+  } else if (opts.anchorBustBottom) {
+    anchorBustLayerToFrameBottom(layer, project.comp, 1.0)
   }
   project.layers.push(layer)
   return layer
@@ -193,60 +208,80 @@ export function populateStoryWestStage(): { project: Project; handles: StoryWest
 
   // --- CẢNH 1 (0.0s .. 8.8s): Rừng cổ thụ + Văng khỏi Cự Thú toàn thân + Gãi đầu ? + Bảng Hệ Thống ---
   addPlate(project, assets, 'asset-s5-bg-forest', s1.id, {
-    id: 's5-s1-bg', name: 'Nền Rừng Cổ Thụ Tây Du', x: 0, y: 0, z: 1180, scale: 1.08, inPoint: 0, outPoint: 8.8, autoScale: true
+    id: 's5-s1-bg', name: 'Nền Rừng Cổ Thụ Tây Du', x: 0, y: 0, z: 1180, scale: 1.08, inPoint: 0, outPoint: 8.8, autoScale: true, fadeIn: 0.15, fadeOut: 0.15
   })
   // Nhịp 1 (0.0 .. 2.8s): Cự thú toàn thân đứng trên cỏ + Tiểu Khô Lâu văng nhào từ làn khói phía sau
   const s1Beast = addPlate(project, assets, 'asset-s5-beast', s1.id, {
-    id: 's5-s1-beast', name: 'Thanh Lân Cự Thú Toàn Thân', x: 245, y: 15, z: 190, scale: 1.92, inPoint: 0, outPoint: 2.8, autoScale: true
+    id: 's5-s1-beast', name: 'Thanh Lân Cự Thú Toàn Thân', x: 245, y: 15, z: 190, scale: 1.8, inPoint: 0, outPoint: 2.8, autoScale: true, bodyClass: 'boss_imposing', framing: 'WS'
   })
   const s1SkelHook = addPlate(project, assets, 'asset-s5-skel-shock', s1.id, {
-    id: 's5-s1-skel-hook', name: 'Tiểu Khô Lâu Văng Xuất Thế', x: -210, y: -65, z: 80, scale: 0.96, inPoint: 0, outPoint: 2.8
+    id: 's5-s1-skel-hook', name: 'Tiểu Khô Lâu Văng Xuất Thế', x: -210, y: -115, z: 80, scale: 0.88, inPoint: 0, outPoint: 2.8, bodyClass: 'petite_chibi', framing: 'MS'
   })
-  applyPresetToLayer(s1SkelHook, 'comedic_tumble_out', 0, 2.75, { deltaX: -390, deltaY: -85, jumpHeight: 115 })
+  applyPresetToLayer(s1SkelHook, 'comedic_tumble_out', 0, 2.75, { deltaX: -360, deltaY: -75, jumpHeight: 105 })
 
   // Nhịp 2 (2.8 .. 5.5s): Ngồi gốc cây gãi đầu + Dấu ? khổng lồ bật lên PHÍA SAU lưng + lắc quả lắc
   const s1SkelConfused = addPlate(project, assets, 'asset-s5-skel-shock', s1.id, {
-    id: 's5-s1-skel-confused', name: 'Tiểu Khô Lâu Gãi Đầu Ngơ Ngác', x: -35, y: -180, z: 110, scale: 1.24, inPoint: 2.8, outPoint: 5.5, anchorBustBottom: true
+    id: 's5-s1-skel-confused', name: 'Tiểu Khô Lâu Gãi Đầu Ngơ Ngác', x: -35, y: -235, z: 110, scale: 0.9, inPoint: 2.8, outPoint: 5.5, anchorBustBottom: true, bodyClass: 'petite_chibi', framing: 'MS'
   })
-  applyPresetToLayer(s1SkelConfused, 'pop_up_bottom', 2.8, 2.65, { deltaY: 85 })
+  applyPresetToLayer(s1SkelConfused, 'pop_up_bottom', 2.8, 2.65, { deltaY: 75 })
   addPlate(project, assets, 'asset-s5-cloud', s1.id, {
     id: 's5-s1-fg-bush', name: 'Tán Mây Cỏ Tiền Cảnh', x: 610, y: -350, z: -90, scale: 0.92, inPoint: 2.8, outPoint: 5.5, opacity: 0.82
   })
 
   // Nhịp 3 (5.5 .. 8.8s): Góc nhìn qua vai (đầu lâu quay lưng) + Màn hình Hệ Thống Đoàn Thỉnh Kinh + Robot vàng lướt vào
   addPlate(project, assets, 'asset-s5-skel-back', s1.id, {
-    id: 's5-s1-skel-ots', name: 'Tiểu Khô Lâu Quay Lưng Nhìn Hệ Thống', x: -455, y: -230, z: 45, scale: 1.75, inPoint: 5.5, outPoint: 8.8, anchorBustBottom: true
+    id: 's5-s1-skel-ots', name: 'Tiểu Khô Lâu Quay Lưng Nhìn Hệ Thống', x: -455, y: -265, z: 45, scale: 1.4, inPoint: 5.5, outPoint: 8.8, anchorBustBottom: true, bodyClass: 'ots_foreground', framing: 'OTS'
   })
   const s1SysScreen = addPlate(project, assets, 'asset-s5-sys-screen', s1.id, {
     id: 's5-s1-sys-screen', name: 'Bảng Hệ Thống — Đoàn Thỉnh Kinh', x: 18, y: 78, z: 155, scale: 1.54, inPoint: 5.5, outPoint: 8.8
   })
   applyPresetToLayer(s1SysScreen, 'system_pop_bounce', 5.5, 3.25)
   const s1Robot = addPlate(project, assets, 'asset-s5-robot', s1.id, {
-    id: 's5-s1-robot', name: 'Robot Hệ Thống Tấu Hài', x: 545, y: -15, z: 65, scale: 1.02, inPoint: 5.5, outPoint: 8.8
+    id: 's5-s1-robot', name: 'Robot Hệ Thống Tấu Hài', x: 545, y: -15, z: 65, scale: 0.95, inPoint: 5.5, outPoint: 8.8, bodyClass: 'petite_chibi', framing: 'WS'
   })
-  applyPresetToLayer(s1Robot, 'slide_in_side', 5.5, 3.25, { deltaX: 260, deltaY: 22 })
+  applyPresetToLayer(s1Robot, 'slide_in_side', 5.5, 3.25, { deltaX: 240, deltaY: 18 })
 
-  // --- CẢNH 2 (8.8s .. 15.6s): Nền Tâm Lý Ngơ Ngác (?) -> Uy Áp Đoàn Đường Tăng ---
+  // --- CẢNH 2 (8.8s .. 15.6s): Tiểu Khô Lâu Suy Nghĩ Tưởng Tượng 4 Thầy Trò -> Áp Bức Dâng Cao To Dần ---
   const s2SkelQuestion = addPlate(project, assets, 'asset-s5-skel-shock', s2.id, {
-    id: 's5-s2-skel-q', name: 'Tiểu Khô Lâu — Ai Cơ Tôi Á?', x: 0, y: -195, z: 110, scale: 1.32, inPoint: 8.8, outPoint: 11.6, anchorBustBottom: true
+    id: 's5-s2-skel-q', name: 'Tiểu Khô Lâu Suy Nghĩ — Ai Cơ Tôi Á?', x: -165, y: -235, z: 110, scale: 0.9, inPoint: 8.8, outPoint: 11.6, anchorBustBottom: true, bodyClass: 'petite_chibi', framing: 'MS'
   })
-  applyPresetToLayer(s2SkelQuestion, 'pop_up_bottom', 8.8, 2.75, { deltaY: 80 })
+  applyPresetToLayer(s2SkelQuestion, 'fade_materialize_in', 8.8, 2.75, { deltaY: 22, fadeOpacity: false })
+  // Hư ảnh 4 thầy trò hiện từ mờ sang đậm trên đám mây suy nghĩ của Tiểu Khô Lâu rồi tan dần
+  const s2ThoughtCrew = addPlate(project, assets, 'asset-s5-crew', s2.id, {
+    id: 's5-s2-thought-crew', name: 'Hư Ảnh Suy Nghĩ 4 Thầy Trò (Mờ → Đậm → Tan)', x: 165, y: 115, z: 195, scale: 0.72, inPoint: 8.8, outPoint: 11.6, opacity: 0.88, autoScale: true, fadeIn: 0.4, fadeOut: 0.4
+  })
+  applyPresetToLayer(s2ThoughtCrew, 'thought_vision_manifest', 8.8, 2.75, { deltaY: 32, endScaleMultiplier: 1.06, fadeOpacity: true })
+  const s2ThoughtCloudL = addPlate(project, assets, 'asset-s5-cloud', s2.id, {
+    id: 's5-s2-thought-cloud-l', name: 'Mây Suy Nghĩ Tưởng Tượng (Trái)', x: -20, y: -172, z: 185, scale: 0.86, inPoint: 8.8, outPoint: 11.6, opacity: 0.96, autoScale: true, fadeIn: 0.35, fadeOut: 0.35
+  })
+  applyPresetToLayer(s2ThoughtCloudL, 'thought_vision_manifest', 8.8, 2.75, { deltaY: 32, endScaleMultiplier: 1.06, fadeOpacity: true })
+  const s2ThoughtCloudM = addPlate(project, assets, 'asset-s5-cloud', s2.id, {
+    id: 's5-s2-thought-cloud-m', name: 'Mây Suy Nghĩ Tưởng Tượng (Giữa)', x: 175, y: -176, z: 184, scale: 0.88, inPoint: 8.8, outPoint: 11.6, opacity: 0.96, autoScale: true, fadeIn: 0.35, fadeOut: 0.35
+  })
+  applyPresetToLayer(s2ThoughtCloudM, 'thought_vision_manifest', 8.8, 2.75, { deltaY: 32, endScaleMultiplier: 1.06, fadeOpacity: true })
+  const s2ThoughtCloudR = addPlate(project, assets, 'asset-s5-cloud', s2.id, {
+    id: 's5-s2-thought-cloud-r', name: 'Mây Suy Nghĩ Tưởng Tượng (Phải)', x: 375, y: -172, z: 183, scale: 0.86, inPoint: 8.8, outPoint: 11.6, opacity: 0.96, autoScale: true, fadeIn: 0.35, fadeOut: 0.35
+  })
+  applyPresetToLayer(s2ThoughtCloudR, 'thought_vision_manifest', 8.8, 2.75, { deltaY: 32, endScaleMultiplier: 1.06, fadeOpacity: true })
 
+  // Nhịp 5 (11.6 .. 15.6s): ÁP BỨC TĂNG DẦN — 4 thầy trò dâng cao & phình to dần, Tiểu Khô Lâu co nhỏ dần & run rẩy!
   const s2CrewMenace = addPlate(project, assets, 'asset-s5-crew', s2.id, {
-    id: 's5-s2-crew', name: 'Đoàn Đội Đường Tăng Áp Bức', x: 0, y: -60, z: 185, scale: 1.52, inPoint: 11.6, outPoint: 15.6, autoScale: true, anchorBustBottom: true
+    id: 's5-s2-crew', name: 'Đoàn Đội Đường Tăng Áp Bức (Dâng Cao To Dần)', x: 0, y: -45, z: 185, scale: 1.25, inPoint: 11.6, outPoint: 15.6, autoScale: true, anchorBustBottom: true, bodyClass: 'boss_imposing', framing: 'MCU'
   })
+  applyPresetToLayer(s2CrewMenace, 'oppressive_tower_grow', 11.6, 3.95, { deltaY: 72, endScaleMultiplier: 1.26 })
   const s2SkelCower = addPlate(project, assets, 'asset-s5-skel-cry', s2.id, {
-    id: 's5-s2-skel-cower', name: 'Tiểu Khô Lâu Ôm Đầu Run Rẩy', x: 0, y: -335, z: 35, scale: 1.12, inPoint: 11.6, outPoint: 15.6, anchorBustBottom: true
+    id: 's5-s2-skel-cower', name: 'Tiểu Khô Lâu Bị Áp Bức (Co Nhỏ Dần & Run)', x: 0, y: -275, z: 35, scale: 0.9, inPoint: 11.6, outPoint: 15.6, anchorBustBottom: true, bodyClass: 'petite_chibi', framing: 'MS'
   })
-  applyPresetToLayer(s2SkelCower, 'comic_shiver', 11.6, 3.95, { deltaX: 8 })
+  applyPresetToLayer(s2SkelCower, 'oppressed_shrink_tremble', 11.6, 3.95, { deltaX: 6, deltaY: -46, endScaleMultiplier: 0.74 })
   addSparkParticles(project, s2.id, 's5-s2-aura-sparks', 'Hạt Sát Khí Đỏ Tím', '#ff2e93', 11.6, 15.6)
 
   // --- CẢNH 3 (15.6s .. 21.8s): Spotlight Bi Kịch Hài -> Ngộ Không Vò Đầu Phát Điên ---
   const s3SkelSpotlight = addPlate(project, assets, 'asset-s5-skel-cry', s3.id, {
-    id: 's5-s3-skel-pity', name: 'Tiểu Khô Lâu Khóc Dưới Đèn Spotlight', x: 0, y: -190, z: 110, scale: 1.38, inPoint: 15.6, outPoint: 18.7, anchorBustBottom: true
+    id: 's5-s3-skel-pity', name: 'Tiểu Khô Lâu Khóc Dưới Đèn Spotlight', x: 0, y: -235, z: 110, scale: 0.9, inPoint: 15.6, outPoint: 18.7, anchorBustBottom: true, bodyClass: 'petite_chibi', framing: 'MS'
   })
+  applyPresetToLayer(s3SkelSpotlight, 'fade_materialize_in', 15.6, 3.05, { deltaY: 16, fadeOpacity: false })
   const s3WukongRage = addPlate(project, assets, 'asset-s5-wukong-rage', s3.id, {
-    id: 's5-s3-wukong-rage', name: 'Hầu Vương Vò Đầu Tức Giận Phát Điên', x: 0, y: -195, z: 105, scale: 1.68, inPoint: 18.7, outPoint: 21.8, anchorBustBottom: true
+    id: 's5-s3-wukong-rage', name: 'Hầu Vương Vò Đầu Tức Giận Phát Điên', x: 0, y: -195, z: 105, scale: 1.5, inPoint: 18.7, outPoint: 21.8, anchorBustBottom: true, bodyClass: 'hero_warrior', framing: 'MCU'
   })
   applyPresetToLayer(s3WukongRage, 'anger_vein_throb', 18.7, 3.05)
 
@@ -255,10 +290,11 @@ export function populateStoryWestStage(): { project: Project; handles: StoryWest
     id: 's5-s4-bg', name: 'Nền Đèo Thông Núi Hoang', x: 0, y: 0, z: 1180, scale: 1.08, inPoint: 21.8, outPoint: 24.9, autoScale: true
   })
   const s4WukongPoint = addPlate(project, assets, 'asset-s5-wukong', s4.id, {
-    id: 's5-s4-wukong-point', name: 'Hầu Vương Chỉ Bổng Quát Mắng', x: -115, y: -195, z: 120, scale: 1.66, inPoint: 21.8, outPoint: 24.9, anchorBustBottom: true
+    id: 's5-s4-wukong-point', name: 'Hầu Vương Chỉ Bổng Quát Mắng', x: -115, y: -195, z: 120, scale: 1.5, inPoint: 21.8, outPoint: 24.9, anchorBustBottom: true, bodyClass: 'hero_warrior', framing: 'MS'
   })
+  applyPresetToLayer(s4WukongPoint, 'fade_materialize_in', 21.8, 3.05, { deltaY: 18, fadeOpacity: false })
   const s4MaidenFear = addPlate(project, assets, 'asset-s5-maiden-fear', s4.id, {
-    id: 's5-s4-maiden-fear', name: 'Bạch Cốt Tinh Kinh Hoàng Che Ngực', x: 0, y: -195, z: 110, scale: 1.24, inPoint: 24.9, outPoint: 27.8, anchorBustBottom: true
+    id: 's5-s4-maiden-fear', name: 'Bạch Cốt Tinh Kinh Hoàng Che Ngực', x: 0, y: -210, z: 110, scale: 1.0, inPoint: 24.9, outPoint: 27.8, anchorBustBottom: true, bodyClass: 'standard_human', framing: 'MCU'
   })
   applyPresetToLayer(s4MaidenFear, 'comic_shiver', 24.9, 2.85, { deltaX: 7 })
 
@@ -272,21 +308,21 @@ export function populateStoryWestStage(): { project: Project; handles: StoryWest
   })
   // Tầng Trung (Z = 220): Chân linh Bạch Cốt Tinh bay vút từ biển mây trắng lên chín tầng mây
   const s5SoulEscape = addPlate(project, assets, 'asset-s5-maiden-soul', s5.id, {
-    id: 's5-s5-soul-escape', name: 'Chân Linh Bạch Cốt Vút Lên Chín Tầng Mây', x: 55, y: -75, z: 220, scale: 0.94, inPoint: 27.8, outPoint: 31.0
+    id: 's5-s5-soul-escape', name: 'Chân Linh Bạch Cốt Vút Lên Chín Tầng Mây', x: 55, y: -75, z: 220, scale: 0.94, inPoint: 27.8, outPoint: 31.0, bodyClass: 'standard_human', framing: 'WS'
   })
   applyPresetToLayer(s5SoulEscape, 'soul_escape_ascend', 27.8, 3.15, { deltaX: 165, deltaY: 195, depthZ: 120, fadeOpacity: false })
   // Biển Mây Trắng trải ngang toàn bộ đáy màn hình (Z = 120) che kín tự nhiên chân hồn phách
   addPlate(project, assets, 'asset-s5-cloud-bank', s5.id, {
     id: 's5-s5-mid-cloud', name: 'Biển Mây Giải Thi Thuật Trải Đáy Khung Hình', x: 0, y: -355, z: 120, scale: 2.18, inPoint: 27.8, outPoint: 31.0, autoScale: true
   })
-  // Tầng Tiền Cảnh (Z = 40): Tiểu Khô Lâu thò đầu góc phải hóng biến (neo đáy không hở bụng!)
+  // Tầng Tiền Cảnh (Z = 40): Tiểu Khô Lâu thò đầu góc phải hóng biến (kích thước chuẩn hoá petite_chibi nhất quán!)
   const s5SkelObserver = addPlate(project, assets, 'asset-s5-skel-shock', s5.id, {
-    id: 's5-s5-fg-observer', name: 'Tiểu Khô Lâu Tiền Cảnh Hóng Chuyện', x: 470, y: -260, z: 40, scale: 1.18, inPoint: 27.8, outPoint: 31.0, anchorBustBottom: true
+    id: 's5-s5-fg-observer', name: 'Tiểu Khô Lâu Tiền Cảnh Hóng Chuyện', x: 470, y: -255, z: 40, scale: 0.88, inPoint: 27.8, outPoint: 31.0, anchorBustBottom: true, bodyClass: 'petite_chibi', framing: 'MS'
   })
-  applyPresetToLayer(s5SkelObserver, 'pop_up_bottom', 27.8, 3.1, { deltaY: 70 })
+  applyPresetToLayer(s5SkelObserver, 'pop_up_bottom', 27.8, 3.1, { deltaY: 65 })
 
   // Nửa sau Cảnh 5 (31.0s .. 34.0s): Bạch Cốt Tinh TOÀN THÂN nằm sấp trên cỏ + Kim Cô Bổng bổ chéo xuyên tiền cảnh!
-  addPlate(project, assets, 'asset-s5-maiden-prone', s5.id, {
+  const s5MaidenProne = addPlate(project, assets, 'asset-s5-maiden-prone', s5.id, {
     id: 's5-s5-empty-shell', name: 'Bạch Cốt Tinh Toàn Thân Nằm Sấp Trên Cỏ', x: 45, y: -145, z: 180, scale: 1.62, inPoint: 31.0, outPoint: 34.0
   })
   const s5StaffFg = addPlate(project, assets, 'asset-s5-staff-fg', s5.id, {
@@ -295,64 +331,75 @@ export function populateStoryWestStage(): { project: Project; handles: StoryWest
   applyPresetToLayer(s5StaffFg, 'foreground_weapon_slam', 31.0, 2.95, { deltaX: 195, deltaY: -145, depthZ: -85, endScaleMultiplier: 1.14 })
   addSparkParticles(project, s5.id, 's5-s5-impact-sparks', 'Tia Lửa Chấn Động Kim Cô Bổng', '#facc15', 31.1, 34.0)
 
-  // --- DÀN DỰNG 11 NHỊP CỐT TRUYỆN LIỀN MẠCH 0ms GAP & CAMERA 2D MƯỢT CHUẨN LUGIA MEDIA ---
+  // --- DÀN DỰNG 11 NHỊP CỐT TRUYỆN LIỀN MẠCH 0ms GAP, NODE VIETSUB GẮN ĐỐI TƯỢNG & ĐỒNG BỘ THOẠI ---
   const beats: StoryComicBeatSpec[] = [
     {
       shotId: s1.id, start: 0.0, end: 2.8,
       narration: 'Xuyên không vào thế giới Tây Du trở thành một tiểu khô lâu mới ra lò!',
+      speakerName: 'Dẫn truyện', subjectId: s1SkelHook.id, subtitleStylePreset: 'lugia_cyan',
       mood: 'world', cameraGrammar: 'cold_open_shock', focusOffset: [0, 0], transitionAtEnd: 'cut'
     },
     {
       shotId: s1.id, start: 2.8, end: 5.5,
       narration: 'Chưa kịp nhìn rõ hoàn cảnh xung quanh...',
-      mood: 'world', cameraGrammar: 'confused_push', subjectId: s1SkelConfused.id,
+      speakerName: 'Tiểu Khô Lâu', subjectId: s1SkelConfused.id, subtitleStylePreset: 'lugia_cyan',
+      mood: 'world', cameraGrammar: 'confused_push',
       emoteBadge: 'question_giant', emotePosition: [75, 55, 165], transitionAtEnd: 'cut'
     },
     {
       shotId: s1.id, start: 5.5, end: 8.8,
       narration: 'Hệ thống đã bắt bạn đi chặn đường Đường Tăng thỉnh kinh!',
+      speakerName: 'Hệ Thống', subjectId: s1Robot.id, subtitleStylePreset: 'system_hologram', preserveSubtitleSettings: true,
       mood: 'world', cameraGrammar: 'over_shoulder_system', focusOffset: [0, 0], transitionAtEnd: 'cut'
     },
     {
       shotId: s2.id, start: 8.8, end: 11.6,
-      narration: 'Ai cơ, tôi á?! Một bộ xương nhỏ xíu thế này?!',
-      mood: 'question_sky', cameraGrammar: 'snap_reaction_zoom', subjectId: s2SkelQuestion.id, transitionAtEnd: 'cut'
+      narration: 'Ai cơ, tôi á?! Bắt bộ xương nhỏ này chặn 4 thầy trò Đường Tăng?!',
+      speakerName: 'Tiểu Khô Lâu (Suy nghĩ)', subjectId: s2SkelQuestion.id, subtitleStylePreset: 'inner_thought', preserveSubtitleSettings: true,
+      mood: 'question_sky', cameraGrammar: 'thought_contemplation', transitionAtEnd: 'cut'
     },
     {
       shotId: s2.id, start: 11.6, end: 15.6,
-      narration: 'Đi chặn đường đoàn đội Đường Tăng? Chê mệnh mình quá dài sao?!',
-      mood: 'speedlines_radial', cameraGrammar: 'low_angle_menace', subjectId: s2CrewMenace.id,
+      narration: 'Đoàn đội Đường Tăng sát khí ngút trời, chê mệnh mình quá dài sao?!',
+      speakerName: 'Tiểu Khô Lâu', subjectId: s2SkelCower.id, secondarySubjectId: s2CrewMenace.id, subtitleStylePreset: 'lugia_cyan',
+      mood: 'speedlines_radial', cameraGrammar: 'oppressive_low_push',
       emoteBadge: 'red_eye_flare', emotePosition: [-165, 155, 45], transitionAtEnd: 'cut'
     },
     {
       shotId: s3.id, start: 15.6, end: 18.7,
       narration: 'Bắt một bộ xương nhỏ yếu ớt đáng thương đi làm chuyện đó sao...',
-      mood: 'spotlight_stage', cameraGrammar: 'spotlight_pity_pull', subjectId: s3SkelSpotlight.id, transitionAtEnd: 'cut'
+      speakerName: 'Tiểu Khô Lâu', subjectId: s3SkelSpotlight.id, subtitleStylePreset: 'lugia_cyan',
+      mood: 'spotlight_stage', cameraGrammar: 'spotlight_pity_pull', transitionAtEnd: 'cut'
     },
     {
       shotId: s3.id, start: 18.7, end: 21.8,
       narration: 'Con khỉ tức giận đến phát điên, vung bổng quát lớn!',
-      mood: 'anger_veins', cameraGrammar: 'rage_punch_shake', subjectId: s3WukongRage.id, transitionAtEnd: 'cut'
+      speakerName: 'Tôn Ngộ Không', subjectId: s3WukongRage.id, subtitleStylePreset: 'comic_shout', preserveSubtitleSettings: true,
+      mood: 'anger_veins', cameraGrammar: 'rage_punch_shake', transitionAtEnd: 'cut'
     },
     {
       shotId: s4.id, start: 21.8, end: 24.9,
       narration: 'Yêu quái đáng chết nhà ngươi, dám đến lừa gạt bọn ta, muốn đòn à!',
-      mood: 'world', cameraGrammar: 'confrontation_push', subjectId: s4WukongPoint.id, transitionAtEnd: 'cut'
+      speakerName: 'Tôn Ngộ Không', subjectId: s4WukongPoint.id, subtitleStylePreset: 'comic_shout', preserveSubtitleSettings: true,
+      mood: 'world', cameraGrammar: 'confrontation_push', transitionAtEnd: 'cut'
     },
     {
       shotId: s4.id, start: 24.9, end: 27.8,
       narration: 'Cảm giác sợ hãi tột độ ập đến với Bạch Cốt Tinh!',
-      mood: 'horror_bw_speedlines', cameraGrammar: 'snap_reaction_zoom', subjectId: s4MaidenFear.id,
+      speakerName: 'Bạch Cốt Tinh', subjectId: s4MaidenFear.id, subtitleStylePreset: 'lugia_cyan',
+      mood: 'horror_bw_speedlines', cameraGrammar: 'snap_reaction_zoom',
       emoteBadge: 'sweat_drop', emotePosition: [120, 145, 45], transitionAtEnd: 'cut'
     },
     {
       shotId: s5.id, start: 27.8, end: 31.0,
       narration: 'Liền vội vàng thi triển Giải Thi Thuật, bản thể bay thẳng lên chín tầng mây!',
-      mood: 'world', cameraGrammar: 'three_plane_escape', subjectId: s5SoulEscape.id, transitionAtEnd: 'cut'
+      speakerName: 'Bạch Cốt Tinh', subjectId: s5SoulEscape.id, subtitleStylePreset: 'lugia_cyan',
+      mood: 'world', cameraGrammar: 'three_plane_escape', transitionAtEnd: 'cut'
     },
     {
       shotId: s5.id, start: 31.0, end: 34.0,
       narration: 'Cùng lúc đó, Kim Cô Bổng của con khỉ giáng thẳng xuống đất!',
+      speakerName: 'Dẫn truyện', subjectId: s5MaidenProne.id, subtitleStylePreset: 'cinema_gold',
       mood: 'world', cameraGrammar: 'foreground_weapon_slam', focusOffset: [0, 0], transitionAtEnd: 'flash_dissolve'
     }
   ]
@@ -361,6 +408,26 @@ export function populateStoryWestStage(): { project: Project; handles: StoryWest
     stageStoryComicBeat(project, beat)
   }
   applyStoryComicCamera(project, beats)
+
+  // Gắn AudioTrack hội thoại đồng bộ 1:1 với thời gian Vietsub & nhân vật nói
+  project.audioTracks = beats
+    .filter((b) => Boolean(b.subjectId))
+    .map((b, idx): AudioTrackItem => ({
+      id: `voice-s5-b${idx + 1}`,
+      assetId: 'builtin-voice-cue',
+      name: `Thoại #${idx + 1} · ${b.speakerName || 'Nhân vật'}`,
+      offset: b.start,
+      duration: Number((b.end - b.start).toFixed(2)),
+      volume: 1.0,
+      targetType: 'layer',
+      targetId: b.subjectId,
+      targetName: b.speakerName || 'Nhân vật',
+      targetShotId: b.shotId,
+      characterRole: 'voice',
+      lipSyncEnabled: true
+    }))
+
+  validateAndRepairDialogueContinuity(project, true)
 
   const handles: StoryWestStageHandles = {
     shots: [s1, s2, s3, s4, s5],

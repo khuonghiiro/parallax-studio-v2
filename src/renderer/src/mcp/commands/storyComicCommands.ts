@@ -1,4 +1,8 @@
-import type { Project } from '@shared/types'
+import type {
+  Project,
+  SubtitlePositionPreset,
+  SubtitleStylePresetId
+} from '@shared/types'
 import {
   choreographCinematicCameraRoute,
   type ShotTransitionStyle
@@ -10,6 +14,10 @@ import {
   type StoryEmoteBadge,
   type StoryMoodBackdrop
 } from '../../animation/storyComicDirector'
+import {
+  applySubtitleDefaultsToAllNodes,
+  validateAndRepairDialogueContinuity
+} from '../../project/subtitleAndDialogueSync'
 import { syncWorkflowV2Graph } from '../../project/workflowV2Sync'
 import { bool, num, str, vec3 } from '../params'
 import { ParamError, ed, type Handler } from '../types'
@@ -25,6 +33,12 @@ export const storyComicCommands: Record<string, Handler> = {
     if (end <= start) throw new ParamError('"end_time" must be greater than "start_time"')
 
     const narration = str(p, 'narration') ?? str(p, 'subtitle')
+    const speakerName = str(p, 'speaker_name')
+    const subtitleStylePreset = str(p, 'subtitle_style_preset') as SubtitleStylePresetId | undefined
+    const subtitlePositionPreset = str(p, 'subtitle_position_preset') as SubtitlePositionPreset | undefined
+    const preserveSubtitleSettings = bool(p, 'preserve_subtitle_settings')
+    const applyDefaultsAll = bool(p, 'apply_subtitle_defaults_to_all') ?? false
+    const syncContinuity = bool(p, 'sync_dialogue_continuity') ?? true
     const mood = (str(p, 'mood') ?? 'world') as StoryMoodBackdrop
     const cameraGrammar = (str(p, 'camera_grammar') ?? 'confused_push') as StoryCameraGrammar
     const subjectId = str(p, 'subject_id')
@@ -42,6 +56,10 @@ export const storyComicCommands: Record<string, Handler> = {
       start,
       end,
       narration,
+      speakerName,
+      subtitleStylePreset,
+      subtitlePositionPreset,
+      preserveSubtitleSettings,
       mood,
       cameraGrammar,
       subjectId,
@@ -54,6 +72,8 @@ export const storyComicCommands: Record<string, Handler> = {
 
     let createdLayerIds: string[] = []
     let keyframeCount = 0
+    let applyAllStats: { updatedCount: number; skippedProtectedCount: number } | undefined
+    let continuityStats: { repairedCount: number; issuesCount: number } | undefined
 
     ed().update((d) => {
       const project = d as Project
@@ -67,6 +87,25 @@ export const storyComicCommands: Record<string, Handler> = {
       const staged = stageStoryComicBeat(project, spec)
       createdLayerIds = staged.createdLayerIds
 
+      if (applyDefaultsAll && subtitleStylePreset) {
+        const res = applySubtitleDefaultsToAllNodes(project, {
+          presetId: subtitleStylePreset,
+          ...(subtitlePositionPreset ? { positionPreset: subtitlePositionPreset } : {})
+        })
+        applyAllStats = {
+          updatedCount: res.updatedCount,
+          skippedProtectedCount: res.skippedProtectedCount
+        }
+      }
+
+      if (syncContinuity) {
+        const cRes = validateAndRepairDialogueContinuity(project, true)
+        continuityStats = {
+          repairedCount: cRes.repairedCount,
+          issuesCount: cRes.issues.length
+        }
+      }
+
       if (applyCamera) {
         const camRes = choreographCinematicCameraRoute(project, [staged.cameraBeat], {
           clearExisting: clearCamera
@@ -74,7 +113,7 @@ export const storyComicCommands: Record<string, Handler> = {
         keyframeCount = camRes.keyframeCount
       }
 
-      syncWorkflowV2Graph(project)
+      project.workflow = syncWorkflowV2Graph(project, project.workflow)
     }, `Dàn dựng nhịp cốt truyện (${cameraGrammar}) cho cảnh ${shotId}`)
 
     return {
@@ -85,7 +124,9 @@ export const storyComicCommands: Record<string, Handler> = {
       mood,
       camera_grammar: cameraGrammar,
       created_layers: createdLayerIds,
-      camera_keyframes: keyframeCount
+      camera_keyframes: keyframeCount,
+      ...(applyAllStats ? { subtitle_apply_all: applyAllStats } : {}),
+      ...(continuityStats ? { dialogue_continuity: continuityStats } : {})
     }
   }
 }

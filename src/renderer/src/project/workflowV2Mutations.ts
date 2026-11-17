@@ -5,6 +5,7 @@ import { syncTimeGroupConsumers } from './workflowTimeGroupSync'
 import { createDefaultVirtualLight, WIND_STRENGTH_VALUES } from '../engine/virtualLight'
 import type { GlowSide, Layer, LayerGlow, LayerMotionType, Project, WorkflowEdge, WorkflowGraph, WorkflowNode, WorkflowNodeParams } from '@shared/types'
 import { getProjectAudioTracks } from './audioTracks'
+import { enforceSpeakerAndSceneContinuity, syncSubtitleNodeToProject } from './subtitleAndDialogueSync'
 import { applyAnimFxPresetToLayer } from './workflowV2AnimFxApply'
 import { clearLoopLifecycle, isLoopComboFxId } from './workflowV2LoopCombo'
 import {
@@ -72,6 +73,7 @@ const NODE_TYPE: Record<WorkflowV2SpawnCategory, WorkflowNode['type']> = {
   rig_bone: 'layer_transform',
   part_swap: 'layer_transform',
   audio: 'audio_lipsync',
+  subtitle: 'audio_lipsync',
   material: 'physics_fx',
   collision: 'physics_fx',
   light: 'physics_fx',
@@ -86,6 +88,7 @@ const AGENT: Record<WorkflowV2SpawnCategory, WorkflowNode['aiAgentRole']> = {
   rig_bone: 'LayerTransformAgent',
   part_swap: 'LayerTransformAgent',
   audio: 'AudioLipSyncAgent',
+  subtitle: 'AudioLipSyncAgent',
   material: 'PhysicsLightFxAgent',
   collision: 'PhysicsLightFxAgent',
   light: 'PhysicsLightFxAgent',
@@ -405,9 +408,10 @@ export function attachLogicNodeToLayerV2(
   }
 }
 
-/** Đồng bộ Node Âm thanh xuống các track đang gắn vào Layer đích (âm lượng, tắt tiếng, nhép môi, mốc bắt đầu) */
+/** Đồng bộ Node Âm thanh xuống các track đang gắn vào Layer đích (âm lượng, tắt tiếng, nhép môi, mốc bắt đầu & giữ hình nhân vật nói) */
 function syncAudioNodeToProject(project: Project, node: WorkflowNode, params: WorkflowNodeParams, timeEdited: boolean): void {
   const targets = new Set(params.targetLayerIds ?? [])
+  const speakerLayer = project.layers.find((l) => targets.has(l.id))
   const instanceIds = new Set(
     project.layers
       .filter((l) => targets.has(l.id))
@@ -420,6 +424,12 @@ function syncAudioNodeToProject(project: Project, node: WorkflowNode, params: Wo
     if (typeof params.intensity === 'number') tr.volume = Math.max(0, Math.min(2, params.intensity))
     tr.lipSyncEnabled = Boolean(params.autoLipSync)
     if (timeEdited && typeof params.timeStart === 'number') tr.offset = Math.max(0, params.timeStart)
+    if (timeEdited && typeof params.timeStart === 'number' && typeof params.timeEnd === 'number' && params.timeEnd > params.timeStart) {
+      tr.duration = Number((params.timeEnd - params.timeStart).toFixed(2))
+    }
+  }
+  if (timeEdited && speakerLayer && params.syncHoldTargetLayer !== false && typeof params.timeStart === 'number' && typeof params.timeEnd === 'number') {
+    enforceSpeakerAndSceneContinuity(project, speakerLayer, params.timeStart, params.timeEnd)
   }
 }
 
@@ -791,9 +801,15 @@ function syncSingleWorkflowV2NodeToProject(
     return
   }
 
-  // 4b. Node Âm thanh — ghi xuống track âm thanh đang gắn vào Layer
+  // 4b. Node Phụ đề Vietsub gắn cho đối tượng (`subtitle`) — tạo/cập nhật TextLayer phụ đề & giữ nhịp nhân vật nói
+  if (params.logicCategory === 'subtitle') {
+    syncSubtitleNodeToProject(project, node, params, patch)
+    return
+  }
+
+  // 4c. Node Âm thanh — ghi xuống track âm thanh đang gắn vào Layer
   if (node.type === 'audio_lipsync' || params.logicCategory === 'audio') {
-    syncAudioNodeToProject(project, node, params, !patch || 'timeStart' in patch)
+    syncAudioNodeToProject(project, node, params, !patch || 'timeStart' in patch || 'timeEnd' in patch)
     return
   }
 

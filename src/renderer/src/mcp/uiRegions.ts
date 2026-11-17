@@ -102,6 +102,8 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   inspector_body: ['aside.right .panel-body'],
   inspector_composite: region('inspector_composite', '.composite-section'),
   inspector_physics: region('inspector_physics', '.layer-physics-section'),
+  inspector_text_section: region('inspector_text_section', '.section'),
+  subtitle_node_inspector: region('subtitle_node_inspector', '.vl-section-card'),
   virtual_light_pad: region('virtual_light_pad', '.vl-pad-card'),
   inspector_virtual_light: region('inspector_virtual_light', '.layer-virtual-light-section'),
   composite_swap: region('composite_swap', '.composite-swap-modal'),

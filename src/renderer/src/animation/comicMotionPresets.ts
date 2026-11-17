@@ -12,6 +12,10 @@ export type ComicMotionPresetId =
   | 'slide_in_side'
   | 'pendulum_question'
   | 'anger_vein_throb'
+  | 'fade_materialize_in'
+  | 'thought_vision_manifest'
+  | 'oppressive_tower_grow'
+  | 'oppressed_shrink_tremble'
 
 export const COMIC_MOTION_PRESETS_CATALOG: MotionPresetDef[] = [
   {
@@ -121,6 +125,54 @@ export const COMIC_MOTION_PRESETS_CATALOG: MotionPresetDef[] = [
     defaultDuration: 2.6,
     recommendedClips: ['idle'],
     paramsGuide: { deltaX: 4, endScale: 1.06 }
+  },
+  {
+    id: 'fade_materialize_in',
+    name: { en: 'Smooth Fade Materialize In/Out', vi: 'Hiện hình mờ → đậm & Ẩn đậm → nhạt' },
+    category: 'ambient',
+    description: {
+      en: 'Character materializes smoothly from transparent to solid (0 -> 100% opacity) with a subtle breathing lift, and optionally dissolves out at the end.',
+      vi: 'Nhân vật xuất hiện mượt mà từ mờ sang đậm (0 -> 100% opacity) kèm nhịp thở sống động, và mờ dần từ đậm sang nhạt khi rời cảnh.'
+    },
+    defaultDuration: 2.8,
+    recommendedClips: ['idle', 'talk'],
+    paramsGuide: { deltaY: 16, endScale: 1.0, fadeOpacity: true }
+  },
+  {
+    id: 'thought_vision_manifest',
+    name: { en: 'Thought Vision / Imagination Manifest', vi: 'Hư ảnh suy nghĩ / Tưởng tượng (Mờ → Đậm → Tan)' },
+    category: 'dramatic',
+    description: {
+      en: 'Imagined group (e.g. Tang Sanzang & disciples in Skeletons mind) materializes from mist (0 -> 90% opacity), floats above in contemplation, and dissolves out (90 -> 0%).',
+      vi: 'Hình ảnh trong suy nghĩ (VD: Tiểu Khô Lâu tưởng tượng ra 4 thầy trò Đường Tăng) hiện dần từ mờ sang đậm (0 -> 90%), lơ lửng phía trên rồi tan dần từ đậm sang nhạt.'
+    },
+    defaultDuration: 3.0,
+    recommendedClips: ['idle'],
+    paramsGuide: { deltaY: 36, endScale: 1.08, fadeOpacity: true }
+  },
+  {
+    id: 'oppressive_tower_grow',
+    name: { en: 'Progressive Oppression Tower Grow', vi: 'Áp bức dâng cao & Phóng to dần' },
+    category: 'dramatic',
+    description: {
+      en: 'Overwhelming villain/boss group fades in and progressively rises higher while growing larger (scale 0.88x -> 1.28x), crushing the viewer with intimidation.',
+      vi: 'Nhóm nhân vật áp bức (VD: 4 thầy trò sát khí) hiện từ mờ sang đậm, dâng cao dần lên và phình to dần (0.88x -> 1.28x) tạo bóng đè nghẹt thở.'
+    },
+    defaultDuration: 3.6,
+    recommendedClips: ['idle', 'action'],
+    paramsGuide: { deltaY: 75, endScale: 1.28, fadeOpacity: false }
+  },
+  {
+    id: 'oppressed_shrink_tremble',
+    name: { en: 'Oppressed Cower Shrink & Tremble', vi: 'Bị áp bức nhỏ dần & Run cầm cập' },
+    category: 'dramatic',
+    description: {
+      en: 'Terrified protagonist progressively shrinks smaller (scale 1.05x -> 0.74x) and sinks lower in the frame while shivering under overwhelming pressure.',
+      vi: 'Nhân vật yếu thế (VD: Tiểu Khô Lâu) vừa run cầm cập vừa co rúm nhỏ dần đi (1.05x -> 0.74x) và tụt thấp xuống dưới sức ép của đối phương.'
+    },
+    defaultDuration: 3.6,
+    recommendedClips: ['idle'],
+    paramsGuide: { deltaX: 6, deltaY: -48, endScale: 0.74 }
   }
 ]
 
@@ -283,6 +335,11 @@ export function generateComicPresetSpatialTracks(
         { id: nanoid(8), t: tSettle, value: sc0, ease: 'easeOut' },
         { id: nanoid(8), t: t1, value: sc0, ease: 'linear' }
       )
+      res.opacity.push(
+        { id: nanoid(8), t: t0, value: 0, ease: 'easeOut' },
+        { id: nanoid(8), t: Math.min(t1, t0 + 0.2), value: op0, ease: 'linear' },
+        { id: nanoid(8), t: t1, value: op0, ease: 'linear' }
+      )
       break
     }
 
@@ -298,6 +355,11 @@ export function generateComicPresetSpatialTracks(
         { id: nanoid(8), t: tSettle, value: pos0, ease: 'easeInOut' },
         { id: nanoid(8), t: tMidBob, value: [pos0[0], pos0[1] + bobY, pos0[2]], ease: 'easeInOut' },
         { id: nanoid(8), t: t1, value: pos0, ease: 'easeInOut' }
+      )
+      res.opacity.push(
+        { id: nanoid(8), t: t0, value: 0, ease: 'easeOut' },
+        { id: nanoid(8), t: Math.min(t1, t0 + 0.22), value: op0, ease: 'linear' },
+        { id: nanoid(8), t: t1, value: op0, ease: 'linear' }
       )
       break
     }
@@ -337,6 +399,111 @@ export function generateComicPresetSpatialTracks(
       }
       res.scale.push({ id: nanoid(8), t: t1, value: sc0, ease: 'easeOut' })
       res.position.push({ id: nanoid(8), t: t1, value: pos0, ease: 'easeOut' })
+      break
+    }
+
+    case 'fade_materialize_in': {
+      const liftY = opts.deltaY ?? 18
+      const fadeInEnd = Math.min(t1 - 0.1, t0 + Math.min(0.36, duration * 0.22))
+      const fadeOutStart = Math.max(fadeInEnd + 0.05, t1 - Math.min(0.32, duration * 0.2))
+      const midT = Number(((t0 + t1) * 0.5).toFixed(3))
+      res.position.push(
+        { id: nanoid(8), t: t0, value: [pos0[0], pos0[1] - liftY, pos0[2]], ease: 'easeOut' },
+        { id: nanoid(8), t: fadeInEnd, value: pos0, ease: 'easeInOut' },
+        { id: nanoid(8), t: midT, value: [pos0[0], pos0[1] + 8, pos0[2]], ease: 'easeInOut' },
+        { id: nanoid(8), t: t1, value: pos0, ease: 'easeOut' }
+      )
+      res.scale.push(
+        { id: nanoid(8), t: t0, value: [sc0[0] * 0.94, sc0[1] * 0.94, sc0[2]], ease: 'easeOut' },
+        { id: nanoid(8), t: fadeInEnd, value: sc0, ease: 'easeInOut' },
+        { id: nanoid(8), t: midT, value: [sc0[0] * 1.02, sc0[1] * 1.02, sc0[2]], ease: 'easeInOut' },
+        { id: nanoid(8), t: t1, value: sc0, ease: 'easeOut' }
+      )
+      res.opacity.push(
+        { id: nanoid(8), t: t0, value: 0, ease: 'easeOut' },
+        { id: nanoid(8), t: fadeInEnd, value: op0, ease: 'linear' },
+        { id: nanoid(8), t: fadeOutStart, value: op0, ease: 'easeIn' },
+        { id: nanoid(8), t: t1, value: opts.fadeOpacity ? 0 : op0, ease: 'linear' }
+      )
+      break
+    }
+
+    case 'thought_vision_manifest': {
+      const riseY = opts.deltaY ?? 36
+      const endMul = opts.endScaleMultiplier ?? 1.08
+      const tAppear = Math.min(t1 - 0.2, t0 + Math.min(0.45, duration * 0.25))
+      const tFadeStart = Math.max(tAppear + 0.1, t1 - Math.min(0.42, duration * 0.24))
+      res.position.push(
+        { id: nanoid(8), t: t0, value: [pos0[0], pos0[1] - riseY * 0.6, pos0[2]], ease: 'easeOut' },
+        { id: nanoid(8), t: tAppear, value: pos0, ease: 'easeInOut' },
+        { id: nanoid(8), t: tFadeStart, value: [pos0[0], pos0[1] + riseY * 0.4, pos0[2]], ease: 'easeInOut' },
+        { id: nanoid(8), t: t1, value: [pos0[0], pos0[1] + riseY * 0.65, pos0[2]], ease: 'easeIn' }
+      )
+      res.scale.push(
+        { id: nanoid(8), t: t0, value: [sc0[0] * 0.84, sc0[1] * 0.84, sc0[2]], ease: 'easeOut' },
+        { id: nanoid(8), t: tAppear, value: sc0, ease: 'easeInOut' },
+        { id: nanoid(8), t: t1, value: [sc0[0] * endMul, sc0[1] * endMul, sc0[2]], ease: 'easeInOut' }
+      )
+      res.opacity.push(
+        { id: nanoid(8), t: t0, value: 0, ease: 'easeOut' },
+        { id: nanoid(8), t: tAppear, value: Math.min(0.92, op0), ease: 'linear' },
+        { id: nanoid(8), t: tFadeStart, value: Math.min(0.92, op0), ease: 'easeIn' },
+        { id: nanoid(8), t: t1, value: opts.fadeOpacity === false ? Math.min(0.92, op0) : 0, ease: 'linear' }
+      )
+      break
+    }
+
+    case 'oppressive_tower_grow': {
+      const riseY = opts.deltaY ?? 72
+      const endMul = opts.endScaleMultiplier ?? 1.28
+      const tFadeIn = Math.min(t1 - 0.15, t0 + 0.28)
+      res.position.push(
+        { id: nanoid(8), t: t0, value: [pos0[0], pos0[1] - riseY * 0.45, pos0[2]], ease: 'easeOut' },
+        { id: nanoid(8), t: tFadeIn, value: pos0, ease: 'easeInOut' },
+        { id: nanoid(8), t: t1, value: [pos0[0], pos0[1] + riseY, pos0[2]], ease: 'easeInOut' }
+      )
+      res.scale.push(
+        { id: nanoid(8), t: t0, value: [sc0[0] * 0.88, sc0[1] * 0.88, sc0[2]], ease: 'easeOut' },
+        { id: nanoid(8), t: tFadeIn, value: sc0, ease: 'easeInOut' },
+        { id: nanoid(8), t: t1, value: [sc0[0] * endMul, sc0[1] * endMul, sc0[2]], ease: 'easeInOut' }
+      )
+      res.opacity.push(
+        { id: nanoid(8), t: t0, value: 0, ease: 'easeOut' },
+        { id: nanoid(8), t: tFadeIn, value: op0, ease: 'linear' },
+        { id: nanoid(8), t: t1, value: op0, ease: 'linear' }
+      )
+      break
+    }
+
+    case 'oppressed_shrink_tremble': {
+      const ampX = opts.deltaX ?? 6
+      const sinkY = Math.abs(opts.deltaY ?? 48)
+      const endMul = opts.endScaleMultiplier ?? 0.74
+      const stepSec = 1 / 16
+      const steps = Math.max(6, Math.min(90, Math.floor(duration / stepSec)))
+      res.position.push({ id: nanoid(8), t: t0, value: [pos0[0], pos0[1] + 18, pos0[2]], ease: 'linear' })
+      for (let i = 1; i < steps; i++) {
+        const ratio = i / steps
+        const curT = Number((t0 + duration * ratio).toFixed(3))
+        const dir = i % 2 === 0 ? 1 : -1
+        const curY = Math.round(pos0[1] + 18 - (sinkY + 18) * ratio)
+        res.position.push({
+          id: nanoid(8),
+          t: curT,
+          value: [pos0[0] + dir * ampX, curY, pos0[2]],
+          ease: 'linear'
+        })
+      }
+      res.position.push({ id: nanoid(8), t: t1, value: [pos0[0], pos0[1] - sinkY, pos0[2]], ease: 'easeOut' })
+      res.scale.push(
+        { id: nanoid(8), t: t0, value: [sc0[0] * 1.05, sc0[1] * 1.05, sc0[2]], ease: 'easeOut' },
+        { id: nanoid(8), t: t1, value: [sc0[0] * endMul, sc0[1] * endMul, sc0[2]], ease: 'easeInOut' }
+      )
+      res.opacity.push(
+        { id: nanoid(8), t: t0, value: 0, ease: 'easeOut' },
+        { id: nanoid(8), t: Math.min(t1, t0 + 0.18), value: op0, ease: 'linear' },
+        { id: nanoid(8), t: t1, value: op0, ease: 'linear' }
+      )
       break
     }
   }

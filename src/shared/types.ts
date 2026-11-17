@@ -268,6 +268,50 @@ export type SolidPattern =
   | 'anger_veins'
   | 'hologram_panel'
 
+export type SubtitlePositionPreset =
+  | 'bottom_center'
+  | 'top_center'
+  | 'above_speaker'
+  | 'below_speaker'
+  | 'speech_left'
+  | 'speech_right'
+  | 'custom'
+
+export type SubtitleEnterEffect = 'fade' | 'pop_bounce' | 'slide_up' | 'typewriter_scale' | 'none'
+export type SubtitleExitEffect = 'fade' | 'slide_down' | 'scale_out' | 'none'
+export type SubtitleStylePresetId =
+  | 'cinema_gold'
+  | 'lugia_cyan'
+  | 'netflix_box'
+  | 'comic_shout'
+  | 'inner_thought'
+  | 'system_hologram'
+
+export type SubtitleProtectField = 'font' | 'color' | 'background' | 'position' | 'animation'
+
+export interface SubtitleDefaultsConfig {
+  presetId: SubtitleStylePresetId
+  fontFamily: string
+  fontSize: number
+  fontWeight: number
+  color: string
+  strokeColor: string
+  strokeWidth: number
+  glowColor?: string
+  boxColor?: string
+  boxOpacity: number
+  boxBorderColor?: string
+  align: 'left' | 'center' | 'right'
+  positionPreset: SubtitlePositionPreset
+  offsetX: number
+  offsetY: number
+  enterEffect: SubtitleEnterEffect
+  exitEffect: SubtitleExitEffect
+  fadeInDuration: number
+  fadeOutDuration: number
+  syncHoldTargetLayer: boolean
+}
+
 export interface TextProps {
   text: string
   fontFamily: string
@@ -284,8 +328,36 @@ export interface TextProps {
   glowColor?: string
   /** Màu nền khung chữ / bảng Hệ Thống (ví dụ 'rgba(8, 34, 62, 0.86)'). */
   boxColor?: string
+  /** Độ mờ của hộp nền phụ đề (0..1, mặc định 0.78 khi có boxColor). */
+  boxOpacity?: number
   /** Màu viền khung HUD / bảng Hệ Thống (ví dụ '#38bdf8'). */
   boxBorderColor?: string
+  /** Căn lề văn bản phụ đề ('left' | 'center' | 'right'). */
+  align?: 'left' | 'center' | 'right'
+  /** Đánh dấu đây là layer phụ đề Vietsub gắn cho đối tượng / nhân vật. */
+  isSubtitleCue?: boolean
+  /** ID của Layer nhân vật / đối tượng sở hữu câu thoại Vietsub này. */
+  speakerLayerId?: string
+  /** Tên nhân vật nói hiển thị kèm phụ đề (ví dụ 'Tiểu Khô Lâu', 'Tôn Ngộ Không'). */
+  speakerName?: string
+  /** Mã mẫu phong cách Vietsub đang áp dụng. */
+  subtitleStylePreset?: SubtitleStylePresetId
+  /** Vị trí xuất hiện mặc định trên màn hình hoặc bám theo nhân vật. */
+  subtitlePositionPreset?: SubtitlePositionPreset
+  /** Tọa độ bù ngang X trên màn hình (px). */
+  subtitleOffsetX?: number
+  /** Tọa độ bù dọc Y trên màn hình (px). */
+  subtitleOffsetY?: number
+  /** Hiệu ứng xuất hiện của Vietsub ('fade' | 'pop_bounce' | 'slide_up' | 'typewriter_scale' | 'none'). */
+  subtitleEnterEffect?: SubtitleEnterEffect
+  /** Hiệu ứng biến mất của Vietsub ('fade' | 'slide_down' | 'scale_out' | 'none'). */
+  subtitleExitEffect?: SubtitleExitEffect
+  /** Bảo vệ cấu hình đặc biệt của câu thoại này khi bấm "Áp dụng cho toàn bộ Vietsub (Apply to All)". */
+  preserveCustomSettings?: boolean
+  /** Danh sách các nhóm thuộc tính được khoá bảo vệ riêng khi kế thừa cấu hình chung. */
+  lockedSubtitleFields?: SubtitleProtectField[]
+  /** Tự động giữ thời gian hiển thị của nhân vật & phân cảnh theo thời lượng thực tế của lời thoại. */
+  holdSpeakerTiming?: boolean
 }
 
 export interface SolidProps {
@@ -862,6 +934,8 @@ export interface Project {
   assets: AssetMeta[]
   audio: AudioTrack | null
   audioTracks?: AudioTrackItem[]
+  /** Cấu hình mặc định toàn cục cho toàn bộ Node / Layer Phụ đề Vietsub trong dự án */
+  subtitleDefaults?: SubtitleDefaultsConfig
   /** Quy trình Node-Port cấu hình kịch bản tạo video và chỉ dẫn Tác nhân Logic cho AI/MCP */
   workflow?: WorkflowGraph
 }

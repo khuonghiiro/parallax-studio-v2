@@ -151,6 +151,8 @@ export function summarizeV2Node(node: WorkflowNode, childCount: number): string 
         return `${zoom}${dur}`
       }
       return `${p.childLayerCount ?? childCount} cảnh con${p.enableDof ? ' · DOF' : ''}`
+    case 'subtitle':
+      return `Cỡ ${p.subtitleFontSize ?? 36}px · ${p.preserveCustomSettings ? '🔒 Khoá riêng' : '🌐 Mặc định'}`
     default:
       return `Âm lượng ${pct(p.intensity, 1)}${p.autoLipSync ? ' · nhép môi' : ''}`
   }

@@ -402,6 +402,10 @@ export function generatePresetSpatialTracks(
     case 'slide_in_side':
     case 'pendulum_question':
     case 'anger_vein_throb':
+    case 'fade_materialize_in':
+    case 'thought_vision_manifest':
+    case 'oppressive_tower_grow':
+    case 'oppressed_shrink_tremble':
       return generateComicPresetSpatialTracks(
         presetId,
         { position: pos0, rotation: rot0, scale: sc0, opacity: op0 },

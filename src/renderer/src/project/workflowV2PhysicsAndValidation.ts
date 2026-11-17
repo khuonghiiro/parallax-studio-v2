@@ -189,6 +189,7 @@ export const LOGIC_CATEGORY_LABELS: Record<string, string> = {
   cave: '🕳️ Hang động',
   fx: '✨ Hiệu ứng',
   audio: '🔊 Âm thanh',
+  subtitle: '💬 Phụ đề Vietsub',
   camera: '🎥 Camera 3D'
 }
 

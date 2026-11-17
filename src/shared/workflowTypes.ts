@@ -193,7 +193,7 @@ export interface WorkflowNodeParams {
   groupKind?: 'group_3d' | 'group_25d' | 'group_env'
   /** [Workflow V2] Trạng thái thu gọn nhánh con của Group hoặc Layer */
   collapsedGroup?: boolean
-  /** [Workflow V2] Phân loại Node Logic gắn vào Layer ('action' | 'anim_fx' | 'material' | 'collision' | 'light' | 'cave' | 'fx' | 'audio' | 'camera' | 'cluster_lock' | 'part_swap') */
+  /** [Workflow V2] Phân loại Node Logic gắn vào Layer ('action' | 'anim_fx' | 'material' | 'collision' | 'light' | 'cave' | 'fx' | 'audio' | 'subtitle' | 'camera' | 'cluster_lock' | 'part_swap') */
   logicCategory?:
     | 'time'
     | 'action'
@@ -204,6 +204,7 @@ export interface WorkflowNodeParams {
     | 'cave'
     | 'fx'
     | 'audio'
+    | 'subtitle'
     | 'camera'
     | 'cluster_lock'
     | 'part_swap'
@@ -517,6 +518,54 @@ export interface WorkflowNodeParams {
   camTransitionTargetShotId?: string
   /** [Workflow V2] ID Layer/Cụm BBox đích mà mốc Camera đang bắt khung */
   camTransitionTargetLayerId?: string
+  /** [Workflow V2 · Vietsub] ID của TextLayer phụ đề đang được Node Vietsub này quản lý */
+  subtitleLayerId?: string
+  /** [Workflow V2 · Vietsub] Nội dung câu thoại Vietsub gắn cho đối tượng / nhân vật */
+  subtitleText?: string
+  /** [Workflow V2 · Vietsub] Tên nhân vật nói hiển thị kèm phụ đề (ví dụ: 'Tiểu Khô Lâu', 'Tôn Ngộ Không') */
+  subtitleSpeakerName?: string
+  /** [Workflow V2 · Vietsub] Mã mẫu phong cách Vietsub ('cinema_gold' | 'lugia_cyan' | 'netflix_box' | 'comic_shout' | 'inner_thought' | 'system_hologram') */
+  subtitleStylePreset?: string
+  /** [Workflow V2 · Vietsub] Font chữ phụ đề */
+  subtitleFontFamily?: string
+  /** [Workflow V2 · Vietsub] Cỡ chữ phụ đề (px) */
+  subtitleFontSize?: number
+  /** [Workflow V2 · Vietsub] Độ đậm chữ phụ đề (400..900) */
+  subtitleFontWeight?: number
+  /** [Workflow V2 · Vietsub] Màu chữ phụ đề (HEX) */
+  subtitleColor?: string
+  /** [Workflow V2 · Vietsub] Màu viền chữ phụ đề (HEX) */
+  subtitleStrokeColor?: string
+  /** [Workflow V2 · Vietsub] Độ dày viền chữ phụ đề (px) */
+  subtitleStrokeWidth?: number
+  /** [Workflow V2 · Vietsub] Màu quầng sáng phụ đề (HEX) */
+  subtitleGlowColor?: string
+  /** [Workflow V2 · Vietsub] Màu nền hộp phụ đề (HEX/RGBA) */
+  subtitleBoxColor?: string
+  /** [Workflow V2 · Vietsub] Độ mờ hộp nền phụ đề (0..1) */
+  subtitleBoxOpacity?: number
+  /** [Workflow V2 · Vietsub] Căn lề văn bản phụ đề ('left' | 'center' | 'right') */
+  subtitleAlign?: 'left' | 'center' | 'right'
+  /** [Workflow V2 · Vietsub] Vị trí xuất hiện ('bottom_center' | 'top_center' | 'above_speaker' | 'below_speaker' | 'speech_left' | 'speech_right' | 'custom') */
+  subtitlePositionPreset?: string
+  /** [Workflow V2 · Vietsub] Độ lệch ngang X trên màn hình (px) */
+  subtitleOffsetX?: number
+  /** [Workflow V2 · Vietsub] Độ lệch dọc Y trên màn hình (px) */
+  subtitleOffsetY?: number
+  /** [Workflow V2 · Vietsub] Hiệu ứng xuất hiện ('fade' | 'pop_bounce' | 'slide_up' | 'typewriter_scale' | 'none') */
+  subtitleEnterEffect?: string
+  /** [Workflow V2 · Vietsub] Hiệu ứng biến mất ('fade' | 'slide_down' | 'scale_out' | 'none') */
+  subtitleExitEffect?: string
+  /** [Workflow V2 · Vietsub] Thời lượng hiện dần Fade In (giây) */
+  subtitleFadeIn?: number
+  /** [Workflow V2 · Vietsub] Thời lượng mờ dần Fade Out (giây) */
+  subtitleFadeOut?: number
+  /** [Workflow V2 · Vietsub] Khoá cấu hình đặc biệt — không bị ghi đè khi bấm "Áp dụng cho toàn bộ Vietsub" */
+  preserveCustomSettings?: boolean
+  /** [Workflow V2 · Vietsub] Các nhóm thuộc tính được bảo vệ riêng ('font' | 'color' | 'background' | 'position' | 'animation') */
+  lockedSubtitleFields?: ('font' | 'color' | 'background' | 'position' | 'animation')[]
+  /** [Workflow V2 · Vietsub & Audio] Đồng bộ giữ hình nhân vật & cảnh theo thời lượng thực tế của lời thoại (mặc định true) */
+  syncHoldTargetLayer?: boolean
 }
 export interface WorkflowNode {
   id: string
