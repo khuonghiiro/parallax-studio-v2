@@ -116,8 +116,149 @@ export function evaluateCatmullRom2D(knots: Point2D[], u: number): Point2D {
 }
 
 /**
- * Ánh xạ đồng dạng 2D (Bookstein Chord Mapping) đưa nét vẽ chuẩn hoá `[0..1]×[0..1]` trên màn hình 16:9
- * khớp chính xác lên dây cung từ `startXY` (#1 Đầu) tới `targetXY` (#2 Đích) trong không gian thế giới.
+ * Dựng chuỗi toạ độ màn hình mượt nối chính xác từ `startScreen` (#1 Đầu) tới `endScreen` (#2 Đích)
+ * từ thao tác chuột của người dùng:
+ * - Nếu người dùng kéo uốn tại bất kỳ vị trí nào (Pull-to-Bend / kéo chốt uốn): tạo vòm Bezier bậc 2 đơn điệu
+ *   đi xuyên chính xác qua vị trí con trỏ chuột hiện tại (không bao giờ gãy khúc hay vọt ra ngoài khung).
+ * - Nếu người dùng vẽ trọn vẹn nét từ sát #1 sang sát #2: chiếu lên hệ trục dây cung, khử nhiễu và giữ tiến độ đơn điệu `[0..1]`.
+ */
+export function buildBboxCurveScreenPointsFromGesture(
+  rawScreenStroke: Point2D[],
+  startScreen: Point2D,
+  endScreen: Point2D,
+  steps = 32
+): Point2D[] {
+  const count = Math.max(4, steps)
+  const cwX = endScreen[0] - startScreen[0]
+  const cwY = endScreen[1] - startScreen[1]
+  const chordLen = Math.hypot(cwX, cwY)
+
+  if (!rawScreenStroke || rawScreenStroke.length === 0 || chordLen < 8) {
+    return Array.from({ length: count + 1 }, (_, i): Point2D => {
+      const t = i / count
+      return [startScreen[0] + cwX * t, startScreen[1] + cwY * t]
+    })
+  }
+
+  const tx = cwX / chordLen
+  const ty = cwY / chordLen
+  const nx = -ty
+  const ny = tx
+
+  const pFirst = rawScreenStroke[0]
+  const pLast = rawScreenStroke[rawScreenStroke.length - 1]
+  const snapTol = Math.max(34, chordLen * 0.26)
+  const forwardSpan =
+    Math.hypot(pFirst[0] - startScreen[0], pFirst[1] - startScreen[1]) <= snapTol &&
+    Math.hypot(pLast[0] - endScreen[0], pLast[1] - endScreen[1]) <= snapTol
+  const reverseSpan =
+    Math.hypot(pLast[0] - startScreen[0], pLast[1] - startScreen[1]) <= snapTol &&
+    Math.hypot(pFirst[0] - endScreen[0], pFirst[1] - endScreen[1]) <= snapTol
+
+  if (rawScreenStroke.length >= 3 && (forwardSpan || reverseSpan)) {
+    const ordered = reverseSpan ? [...rawScreenStroke].reverse() : rawScreenStroke
+    if (ordered.length < 6) {
+      let bestIdx = 1
+      let bestAbsEta = -1
+      for (let i = 1; i < ordered.length - 1; i++) {
+        const dx = ordered[i][0] - startScreen[0]
+        const dy = ordered[i][1] - startScreen[1]
+        const absEta = Math.abs((dx * nx + dy * ny) / chordLen)
+        if (absEta > bestAbsEta) {
+          bestAbsEta = absEta
+          bestIdx = i
+        }
+      }
+      const peak = ordered[bestIdx]
+      const pdx = peak[0] - startScreen[0]
+      const pdy = peak[1] - startScreen[1]
+      const xiPeak = Math.max(0.25, Math.min(0.75, (pdx * tx + pdy * ty) / chordLen))
+      const etaPeak = Math.max(-0.82, Math.min(0.82, (pdx * nx + pdy * ny) / chordLen))
+      const ctrlXi = 2 * xiPeak - 0.5
+      const ctrlEta = 2 * etaPeak
+      return Array.from({ length: count + 1 }, (_, i): Point2D => {
+        const t = i / count
+        const mt = 1 - t
+        const xi = 2 * mt * t * ctrlXi + t * t
+        const eta = 2 * mt * t * ctrlEta
+        return [
+          startScreen[0] + xi * cwX + eta * chordLen * nx,
+          startScreen[1] + xi * cwY + eta * chordLen * ny
+        ]
+      })
+    }
+
+    const projected: Point2D[] = [[0, 0]]
+    let maxXi = 0
+    for (let i = 1; i < ordered.length - 1; i++) {
+      const dx = ordered[i][0] - startScreen[0]
+      const dy = ordered[i][1] - startScreen[1]
+      const xi = Math.max(maxXi, Math.min(1, (dx * tx + dy * ty) / chordLen))
+      const eta = Math.max(-0.82, Math.min(0.82, (dx * nx + dy * ny) / chordLen))
+      maxXi = xi
+      projected.push([xi, eta])
+    }
+    projected.push([1, 0])
+    const knots = decimateAndSmoothStroke(projected, 14, 2)
+    knots[0] = [0, 0]
+    knots[knots.length - 1] = [1, 0]
+    return Array.from({ length: count + 1 }, (_, i): Point2D => {
+      const u = i / count
+      const [xiRaw, etaRaw] = evaluateCatmullRom2D(knots, u)
+      const xi = i === 0 ? 0 : i === count ? 1 : Math.max(0, Math.min(1, xiRaw))
+      const eta = i === 0 || i === count ? 0 : Math.max(-0.82, Math.min(0.82, etaRaw))
+      return [
+        startScreen[0] + xi * cwX + eta * chordLen * nx,
+        startScreen[1] + xi * cwY + eta * chordLen * ny
+      ]
+    })
+  }
+
+  // Chế độ Kéo uốn dây cung trực quan (Bowstring / Bezier Handle): đỉnh vòm đi xuyên chính xác qua con trỏ pLast
+  const cursor = pLast
+  const dx = cursor[0] - startScreen[0]
+  const dy = cursor[1] - startScreen[1]
+  const xiCursor = Math.max(0.25, Math.min(0.75, (dx * tx + dy * ty) / chordLen))
+  const etaCursor = Math.max(-0.82, Math.min(0.82, (dx * nx + dy * ny) / chordLen))
+  const ctrlXi = 2 * xiCursor - 0.5
+  const ctrlEta = 2 * etaCursor
+
+  return Array.from({ length: count + 1 }, (_, i): Point2D => {
+    const t = i / count
+    const mt = 1 - t
+    const xi = 2 * mt * t * ctrlXi + t * t
+    const eta = 2 * mt * t * ctrlEta
+    return [
+      startScreen[0] + xi * cwX + eta * chordLen * nx,
+      startScreen[1] + xi * cwY + eta * chordLen * ny
+    ]
+  })
+}
+
+/**
+ * Chuyển đổi cử chỉ kéo uốn trên màn hình thành mảng `customMotionPath` chuẩn hoá đẳng hướng 16:9
+ * để `evaluateConformalBboxCurve2D` tái tạo chính xác 1:1 không sai lệch tỉ lệ khung nhìn.
+ */
+export function buildNormalizedBboxCurveFromGesture(
+  rawScreenStroke: Point2D[],
+  startScreen: Point2D,
+  endScreen: Point2D,
+  stageW: number,
+  sampleCount = 18
+): Point2D[] {
+  const isoW = Math.max(1, stageW)
+  const isoH = (isoW * 9) / 16
+  const pts = buildBboxCurveScreenPointsFromGesture(rawScreenStroke, startScreen, endScreen, sampleCount)
+  return pts.map(([x, y]): Point2D => [
+    Number((x / isoW).toFixed(4)),
+    Number((y / isoH).toFixed(4))
+  ])
+}
+
+/**
+ * Ánh xạ đồng dạng 2D (Bookstein Chord Mapping) đưa nét vẽ chuẩn hoá trên màn hình 16:9
+ * khớp chính xác lên dây cung từ `startXY` (#1 Đầu) tới `targetXY` (#2 Đích) trong không gian thế giới,
+ * đồng thời cưỡng chế tiến độ dọc dây cung đơn điệu `[0..1]` để không bao giờ bị thắt nút hay vọt biên.
  */
 export function evaluateConformalBboxCurve2D(
   startXY: Point2D,
@@ -136,27 +277,27 @@ export function evaluateConformalBboxCurve2D(
   if (!normalizedStroke || normalizedStroke.length < 2) {
     return [baseLineX, baseLineY]
   }
+  if (t <= 0) return [startXY[0], startXY[1]]
+  if (t >= 1) return [targetXY[0], targetXY[1]]
 
   let aspectPts: Point2D[] = normalizedStroke.map((pt) => [pt[0] * aspectW, -pt[1] * aspectH])
   const firstRaw = aspectPts[0]
   const lastRaw = aspectPts[aspectPts.length - 1]
   const rawDx = lastRaw[0] - firstRaw[0]
   const rawDy = lastRaw[1] - firstRaw[1]
-  // Nếu người dùng vẽ ngược chiều từ vùng BBox #2 về BBox #1 -> tự đảo chiều nét vẽ để đỉnh cong giữ đúng hướng
   if (rawDx * cwX + rawDy * cwY < -0.15 * Math.hypot(rawDx, rawDy) * Math.hypot(cwX, cwY)) {
     aspectPts = [...aspectPts].reverse()
   }
 
-  const knots = decimateAndSmoothStroke(aspectPts, 14, 3)
+  const knots = decimateAndSmoothStroke(aspectPts, 14, 2)
   const s0 = knots[0]
   const s1 = knots[knots.length - 1]
   const csX = s1[0] - s0[0]
   const csY = s1[1] - s0[1]
   const ls = Math.hypot(csX, csY)
   const lw = Math.hypot(cwX, cwY)
-  const pCur = evaluateCatmullRom2D(knots, t)
 
-  if (ls >= 0.45 && lw >= 24) {
+  if (ls >= 0.35 && lw >= 16) {
     const tsX = csX / ls
     const tsY = csY / ls
     const nsX = -tsY
@@ -167,10 +308,22 @@ export function evaluateConformalBboxCurve2D(
     const nwX = -twY
     const nwY = twX
 
-    const dsX = pCur[0] - s0[0]
-    const dsY = pCur[1] - s0[1]
-    const xi = Math.max(-0.35, Math.min(1.35, (dsX * tsX + dsY * tsY) / ls))
-    const eta = Math.max(-1.25, Math.min(1.25, (dsX * nsX + dsY * nsY) / ls))
+    // Chuyển toàn bộ điểm nút sang hệ toạ độ dây cung đơn điệu [0..1] chống vọt lùi ra ngoài biên
+    let prevXi = 0
+    const chordKnots: Point2D[] = knots.map((pt, idx) => {
+      if (idx === 0) return [0, 0]
+      if (idx === knots.length - 1) return [1, 0]
+      const dsX = pt[0] - s0[0]
+      const dsY = pt[1] - s0[1]
+      const xi = Math.max(prevXi, Math.min(1, (dsX * tsX + dsY * tsY) / ls))
+      const eta = Math.max(-0.85, Math.min(0.85, (dsX * nsX + dsY * nsY) / ls))
+      prevXi = xi
+      return [xi, eta]
+    })
+
+    const [xiEval, etaEval] = evaluateCatmullRom2D(chordKnots, t)
+    const xi = Math.max(0, Math.min(1, xiEval))
+    const eta = Math.max(-0.85, Math.min(0.85, etaEval))
 
     return [
       startXY[0] + xi * cwX + eta * lw * nwX,
@@ -178,40 +331,26 @@ export function evaluateConformalBboxCurve2D(
     ]
   }
 
+  const pCur = evaluateCatmullRom2D(knots, t)
   const chordSX = s0[0] + csX * t
   const chordSY = s0[1] + csY * t
-  const scaleFallback = Math.max(360, lw) / aspectW
+  const scaleFallback = Math.max(240, lw) / aspectW
   return [
-    baseLineX + (pCur[0] - chordSX) * scaleFallback,
-    baseLineY + (pCur[1] - chordSY) * scaleFallback
+    baseLineX + Math.max(-lw * 0.6, Math.min(lw * 0.6, (pCur[0] - chordSX) * scaleFallback)),
+    baseLineY + Math.max(-lw * 0.6, Math.min(lw * 0.6, (pCur[1] - chordSY) * scaleFallback))
   ]
 }
 
-/** Dựng đường xem trước mượt neo trực tiếp từ tâm BBox #1 tới tâm BBox #2 ngay trong lúc đang kéo chuột vẽ */
+/** Dựng đường xem trước mượt neo trực tiếp từ tâm BBox #1 tới tâm BBox #2 ngay trong lúc đang kéo chuột uốn */
 export function buildLiveBboxPreviewCurveScreenPoints(
   rawScreenStroke: Point2D[],
   startScreen: Point2D,
   endScreen: Point2D,
-  stageW: number,
-  stageH: number,
-  steps = 40
+  _stageW: number,
+  _stageH: number,
+  steps = 36
 ): Point2D[] {
-  const w = Math.max(1, stageW)
-  const h = Math.max(1, stageH)
-  const norm: Point2D[] = rawScreenStroke.map(([x, y]) => [x / w, y / h])
-  const out: Point2D[] = []
-  for (let i = 0; i <= steps; i++) {
-    const pt = evaluateConformalBboxCurve2D(
-      [startScreen[0], -startScreen[1]],
-      [endScreen[0], -endScreen[1]],
-      i / steps,
-      norm,
-      w / 100,
-      h / 100
-    )
-    out.push([pt[0], -pt[1]])
-  }
-  return out
+  return buildBboxCurveScreenPointsFromGesture(rawScreenStroke, startScreen, endScreen, steps)
 }
 
 /** Tính vector độ lệch đích `(dxWorld, dyWorld)` từ điểm đầu tới điểm cuối của quỹ đạo vẽ tự do (`customMotionPath`) */

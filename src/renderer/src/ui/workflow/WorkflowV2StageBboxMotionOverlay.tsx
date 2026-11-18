@@ -1,8 +1,10 @@
 import { resolveMotionEntities } from './workflowMotionEntities'
+import { WorkflowBboxTrajectorySvg } from './WorkflowBboxTrajectorySvg'
 import { WorkflowClusterGhost } from './WorkflowClusterGhost'
 import { WorkflowMotionStageTools } from './WorkflowMotionStageTools'
 import { WorkflowMotionIcon } from './WorkflowMotionIcons'
 import { WorkflowV2BboxGimbal } from './WorkflowV2BboxGimbal'
+import { StudioTooltip } from '../controls/StudioTooltip'
 import { resolveMotionMode } from '../../project/workflowMotionMode'
 import { bboxStartPosition, bboxStartScale } from '../../project/workflowMotionStart'
 import { bboxStepNumber } from '../../project/workflowBboxSteps'
@@ -636,88 +638,66 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
       )}
       {!motionNode && node.type === 'layer_assembly' && !node.params?.logicCategory && (
         <div className="wf-motion-stage-tools">
-          <button
-            type="button"
-            title="Thêm Motion BBox đích"
-            aria-label="Thêm Motion BBox đích"
-            onClick={handleSpawnOrEnableBbox2}
+          <StudioTooltip
+            title="Thêm Motion BBox Đích"
+            badge="BBox #1→#2"
+            badgeTone="cyan"
+            description="Gắn Node chuyển động kéo BBox Đầu → Đích trực tiếp trên khung"
+            placement="left"
           >
-            <WorkflowMotionIcon name="target" />
-          </button>
+            <button
+              type="button"
+              aria-label="Thêm Motion BBox đích"
+              onClick={handleSpawnOrEnableBbox2}
+            >
+              <WorkflowMotionIcon name="target" />
+            </button>
+          </StudioTooltip>
         </div>
       )}
 
-      {/* Đường nối đầu -> đích kèm mũi tên định hướng sắc nét cho từng Layer/Cụm */}
+      {/* Đường nối đầu -> đích kèm Chốt kéo uốn đường cong trực tiếp cho từng Layer/Cụm */}
       {hasBboxMotion && (
-        <svg
-          className="wf-v2-direct-cam-svg"
-          width={stageW}
-          height={stageH}
-          style={{ zIndex: 24, pointerEvents: 'none' }}
-        >
-          <defs>
-            {renderedEntities.map((item) => (
-              <marker
-                key={`arrow-${item.ent.id}`}
-                id={`wf-bbox-arrow-${item.ent.id}`}
-                viewBox="0 0 10 10"
-                refX="8"
-                refY="5"
-                markerWidth="6"
-                markerHeight="6"
-                orient="auto-start-reverse"
-              >
-                <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill={item.accentColor} />
-              </marker>
-            ))}
-          </defs>
-          {renderedEntities.map((item) => {
-            if (item.pathPts.length < 2) return null
-            const isFocused = !isMultiEntity || item.ent.id === focusedEntityId
-            return (
-              <React.Fragment key={`svg-${item.ent.id}`}>
-                <polyline
-                  fill="none"
-                  stroke={item.accentColor}
-                  strokeOpacity={isFocused ? 0.22 : 0.06}
-                  strokeWidth={isFocused ? 4.5 : 2}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  points={item.pathPts.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ')}
-                />
-                <polyline
-                  fill="none"
-                  stroke={item.accentColor}
-                  strokeWidth={isFocused ? 1.8 : 1}
-                  strokeOpacity={isFocused ? 0.95 : 0.3}
-                  strokeDasharray={isFocused ? '5 3.5' : '3 3'}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  markerEnd={isFocused ? `url(#wf-bbox-arrow-${item.ent.id})` : undefined}
-                  points={item.pathPts.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ')}
-                />
-                <circle
-                  cx={item.box1Cx}
-                  cy={item.box1Cy}
-                  r={isFocused ? 4 : 2.8}
-                  fill="#10b981"
-                  stroke="#0f172a"
-                  strokeWidth={1.5}
-                  opacity={isFocused ? 1 : 0.45}
-                />
-                <circle
-                  cx={item.box2Cx}
-                  cy={item.box2Cy}
-                  r={isFocused ? 4.5 : 3}
-                  fill={item.accentColor}
-                  stroke="#0f172a"
-                  strokeWidth={1.5}
-                  opacity={isFocused ? 1 : 0.45}
-                />
-              </React.Fragment>
-            )
+        <WorkflowBboxTrajectorySvg
+          stageW={stageW}
+          stageH={stageH}
+          items={renderedEntities.map((item) => {
+            const customTarget = mp?.layerBboxTargets?.[item.ent.id]
+            const pType =
+              customTarget?.bboxPathType ?? (item.isPrimary ? (mp?.bboxPathType ?? 'shortest') : 'shortest')
+            const cPath =
+              customTarget?.customMotionPath !== undefined
+                ? customTarget.customMotionPath
+                : item.isPrimary
+                  ? mp?.customMotionPath
+                  : undefined
+            return {
+              id: item.ent.id,
+              accentColor: item.accentColor,
+              box1Cx: item.box1Cx,
+              box1Cy: item.box1Cy,
+              box2Cx: item.box2Cx,
+              box2Cy: item.box2Cy,
+              pathPts: item.pathPts,
+              hasCustomCurve: pType === 'custom_curve' && Boolean(cPath && cPath.length >= 2)
+            }
           })}
-        </svg>
+          focusedEntityId={focusedEntityId}
+          isMultiEntity={isMultiEntity}
+          tStart={tStart}
+          onBendCurve={(nextPath) =>
+            patchMotionForTools(
+              { bboxPathType: 'custom_curve', customMotionPath: nextPath },
+              'wf-stage-curve-handle'
+            )
+          }
+          onResetStraight={() =>
+            patchMotionForTools(
+              { bboxPathType: 'shortest', customMotionPath: [] },
+              'wf-stage-curve-reset'
+            )
+          }
+        />
       )}
 
       {/* Khung BBox #1 (Xuất phát — màu lục bảo tham chiếu tinh gọn, không lẫn với khung Đích) */}

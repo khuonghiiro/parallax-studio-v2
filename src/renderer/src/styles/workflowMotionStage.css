@@ -14,3 +14,39 @@
 
 .wf-motion-toolbar-dock:empty { display: none; }
 .wf-motion-stage-tools.is-docked { position: static; flex-direction: row; align-items: center; justify-content: center; flex-wrap: nowrap; }
+
+/* Chốt kéo uốn đường cong Bezier trực tiếp trên dây cung BBox #1 → #2 */
+.wf-bbox-curve-handle {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  display: grid;
+  place-items: center;
+  cursor: grab;
+  touch-action: none;
+}
+
+.wf-bbox-curve-handle:active {
+  cursor: grabbing;
+}
+
+.wf-bbox-curve-handle-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid var(--wf-v2-accent, var(--accent-cyan));
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.55);
+  transition: transform 110ms ease, background 110ms ease;
+}
+
+.wf-bbox-curve-handle.is-curved .wf-bbox-curve-handle-dot {
+  background: var(--wf-v2-accent, var(--accent-cyan));
+  border-color: #ffffff;
+}
+
+.wf-bbox-curve-handle:hover .wf-bbox-curve-handle-dot {
+  transform: scale(1.28);
+}

@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'rea
 import type { WorkflowNodeParams } from '@shared/types'
 import {
   buildLiveBboxPreviewCurveScreenPoints,
+  buildNormalizedBboxCurveFromGesture,
   decimateAndSmoothStroke,
   evaluateCatmullRom2D
 } from '../../project/workflowCurveMath'
@@ -271,40 +272,41 @@ export function WorkflowMotionStageTools({
   const commit = (): void => {
     const points = strokeRef.current
     cancel()
-    if (!points || points.length < 2) return
+    if (!points || points.length === 0) return
+    if (mode === 'bbox') {
+      const targetEnd: StagePoint = end ?? [start[0] + 120, start[1]]
+      const normalizedArch = buildNormalizedBboxCurveFromGesture(points, start, targetEnd, width)
+      patch(
+        {
+          bboxPathType: 'custom_curve',
+          customMotionPath: normalizedArch
+        },
+        'wf-stage-curve'
+      )
+      setTool('select')
+      return
+    }
+    if (points.length < 2) return
     const chosen =
       tool === 'straight'
         ? [points[0], points[points.length - 1]]
         : decimateAndSmoothStroke(points, 16, 3)
-    if (mode === 'bbox') {
+    const worldPath = stageStrokeToMotionPath(chosen, zoom, perspective)
+    if (worldPath.length >= 2) {
+      const lastWorld = worldPath[worldPath.length - 1]
       patch(
         {
-          bboxPathType: 'custom_curve',
-          customMotionPath: chosen.map(([x, y]) => [
-            Number((x / Math.max(1, width)).toFixed(4)),
-            Number((y / Math.max(1, height)).toFixed(4))
-          ])
+          motionMode: 'path',
+          actionPreset: 'custom_draw',
+          customMotionPath: worldPath,
+          intensity: 1,
+          bboxTargetScalePct: params.bboxTargetScalePct ?? 100,
+          // Ghi nhận độ lệch đích của nét vẽ tự do để BBox Đích hiện ngay cuối đường vẽ
+          bboxTargetX: Math.round(lastWorld[0]),
+          bboxTargetY: Math.round(lastWorld[1])
         },
-        'wf-stage-curve'
+        'wf-stage-line'
       )
-    } else {
-      const worldPath = stageStrokeToMotionPath(chosen, zoom, perspective)
-      if (worldPath.length >= 2) {
-        const lastWorld = worldPath[worldPath.length - 1]
-        patch(
-          {
-            motionMode: 'path',
-            actionPreset: 'custom_draw',
-            customMotionPath: worldPath,
-            intensity: 1,
-            bboxTargetScalePct: params.bboxTargetScalePct ?? 100,
-            // Ghi nhận độ lệch đích của nét vẽ tự do để BBox Đích hiện ngay cuối đường vẽ
-            bboxTargetX: Math.round(lastWorld[0]),
-            bboxTargetY: Math.round(lastWorld[1])
-          },
-          'wf-stage-line'
-        )
-      }
     }
     // Chuyển ngay về công cụ Chọn để người dùng kéo chỉnh cỡ / góc xoay trên BBox Đích vừa hiện ra!
     setTool('select')
@@ -372,10 +374,11 @@ export function WorkflowMotionStageTools({
   })
 
   const display = useMemo<StagePoint[]>(() => {
-    if (stroke && stroke.length > 1) {
+    if (stroke && stroke.length >= 1) {
       if (mode === 'bbox' && end) {
         return buildLiveBboxPreviewCurveScreenPoints(stroke, start, end, width, height, 36)
       }
+      if (stroke.length < 2) return []
       if (tool === 'straight') {
         const p0 = stroke[0]
         const pLast = stroke[stroke.length - 1]

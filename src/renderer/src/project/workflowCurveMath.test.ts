@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
+  buildBboxCurveScreenPointsFromGesture,
   buildLiveBboxPreviewCurveScreenPoints,
+  buildNormalizedBboxCurveFromGesture,
   decimateAndSmoothStroke,
   evaluateCatmullRom2D,
   evaluateConformalBboxCurve2D
@@ -71,5 +73,36 @@ describe('workflowCurveMath (Studio Curve Algorithm)', () => {
     expect(preview[0][0]).toBeCloseTo(120, 2)
     expect(preview[preview.length - 1][0]).toBeCloseTo(420, 2)
     expect(preview[10][1]).toBeLessThan(150)
+  })
+
+  it('bends smoothly right through cursor on vertical bowstring pull without spiking off-chord', () => {
+    const startScreen: [number, number] = [160, 240]
+    const endScreen: [number, number] = [480, 240]
+    // Người dùng bấm giữa dây và kéo thẳng lên trên tới (320, 120) — thao tác kéo dây cung thực tế
+    const verticalPull: [number, number][] = [
+      [320, 238],
+      [322, 180],
+      [320, 120]
+    ]
+
+    const arch = buildBboxCurveScreenPointsFromGesture(verticalPull, startScreen, endScreen, 20)
+    expect(arch[0]).toEqual(startScreen)
+    expect(arch[arch.length - 1]).toEqual(endScreen)
+    // Điểm giữa t=0.5 đi xuyên chính xác qua con trỏ (320, 120)
+    expect(arch[10][0]).toBeCloseTo(320, 2)
+    expect(arch[10][1]).toBeCloseTo(120, 2)
+    // Không bao giờ bị vọt lùi về bên trái startScreen (x >= 160) hoặc vượt phải endScreen (x <= 480)
+    for (const [x, y] of arch) {
+      expect(x).toBeGreaterThanOrEqual(159.9)
+      expect(x).toBeLessThanOrEqual(480.1)
+      expect(y).toBeGreaterThanOrEqual(119.9)
+      expect(y).toBeLessThanOrEqual(240.1)
+    }
+
+    // Lưu sang customMotionPath và đọc lại bằng evaluateConformalBboxCurve2D vẫn khớp 1:1
+    const norm = buildNormalizedBboxCurveFromGesture(verticalPull, startScreen, endScreen, 640)
+    const worldMid = evaluateConformalBboxCurve2D([-320, 0], [320, 0], 0.5, norm)
+    expect(worldMid[0]).toBeCloseTo(0, 0)
+    expect(worldMid[1]).toBeGreaterThan(200)
   })
 })
