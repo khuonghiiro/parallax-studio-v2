@@ -44,7 +44,7 @@ const VI_COMMIT_PREFIX = /^\[(sửa lỗi|sửa|tính năng|thêm|chỉnh sửa|
 const LEGACY_CONVENTIONAL = /^(feat|fix|refactor|perf|chore|docs|test|style|build|ci|revert)(\([\w./-]+\))?!?: .+/
 const VI_DIACRITICS = /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i
 const AI_MENTION = /(co-authored-by:.*\b(claude|gpt|copilot|gemini|cursor|codex|antigravity|ai)\b|generated (with|by) .*(claude|gpt|copilot|gemini|ai)|🤖)/i
-const SECRET_FILE = /(^|\/)(\.env(\..+)?|id_rsa|id_ed25519|.*\.pem|.*\.p12|.*\.pfx|credentials\.json)$/i
+const SECRET_FILE = /(^|\/)(\.env(?!\.example$)(\..+)?|id_rsa|id_ed25519|.*\.pem|.*\.p12|.*\.pfx|credentials\.json)$/i
 const SECRET_TEXT = /(-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----|AKIA[0-9A-Z]{16}|sk-[A-Za-z0-9]{32,}|ghp_[A-Za-z0-9]{36}|AIza[0-9A-Za-z_-]{35})/
 
 /** Trả về danh sách lỗi của commit message (rỗng = hợp lệ). */

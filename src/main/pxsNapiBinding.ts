@@ -1,3 +1,4 @@
+import './envConfig'
 import { copyFileSync, existsSync, unlinkSync } from 'fs'
 import { createRequire } from 'module'
 import { dirname, join, resolve } from 'path'

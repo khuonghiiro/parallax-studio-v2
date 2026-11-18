@@ -1,3 +1,4 @@
+import './envConfig'
 import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from 'electron'
 import { join, extname, basename } from 'path'
 import { existsSync, readFileSync, writeFileSync } from 'fs'

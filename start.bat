@@ -2,8 +2,16 @@
 chcp 65001 >nul
 title Parallax Studio
 cd /d "%~dp0"
-set ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/
-set FFMPEG_BINARIES_URL=https://registry.npmmirror.com/-/binary/ffmpeg-static
+if not exist "%~dp0.env" (
+    if exist "%~dp0.env.example" copy /y "%~dp0.env.example" "%~dp0.env" >nul
+)
+if exist "%~dp0.env" (
+    for /f "usebackq eol=# tokens=1,* delims==" %%A in ("%~dp0.env") do (
+        if not "%%A"=="" if not "%%B"=="" set "%%A=%%B"
+    )
+)
+if "%ELECTRON_MIRROR%"=="" set ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/
+if "%FFMPEG_BINARIES_URL%"=="" set FFMPEG_BINARIES_URL=https://registry.npmmirror.com/-/binary/ffmpeg-static
 
 REM Bo sung cac duong dan chua binary vao PATH (dam bao chay tot ca khi mo tu Windows Explorer)
 set "PATH=%USERPROFILE%\.local\bin;%APPDATA%\npm;%ProgramFiles%\nodejs;%PATH%"
