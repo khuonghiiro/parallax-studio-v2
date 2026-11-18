@@ -4,6 +4,7 @@
    ========================================================================== */
 
 .viewer-node2d-stage {
+  container-type: inline-size;
   display: flex;
   flex-direction: column;
   width: 100%;
@@ -18,7 +19,7 @@
 
 .viewer-node2d-toolbar {
   position: relative;
-  z-index: 20;
+  z-index: 120;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -292,6 +293,8 @@
 
 /* Vùng sân khấu chính chiếm trọn chiều cao còn lại */
 .viewer-node2d-body {
+  position: relative;
+  z-index: 1;
   flex: 1 1 auto;
   min-height: 0;
   min-width: 0;
@@ -425,6 +428,7 @@
 .wf-v2-logic-pad-wrap.is-full-viewport .vl-pad-stage {
   flex: 1 1 auto;
   height: auto !important;
+  max-height: none !important;
   min-height: 220px;
 }
 
@@ -442,6 +446,29 @@
   min-height: 200px;
   max-height: none;
   height: auto;
+}
+
+/* Khi chia đôi cạnh Camera (bề rộng khung < 880px): tự động xuống 2 hàng gọn gàng để không cắt cụt nút Tạo hành động */
+@container (max-width: 880px) {
+  .viewer-node2d-toolbar {
+    flex-wrap: wrap;
+    row-gap: 4px;
+    padding: 4px 6px;
+  }
+
+  .vn2d-mid-scroll {
+    flex: 1 1 100%;
+    order: 1;
+  }
+
+  .vn2d-right-ops {
+    order: 2;
+    margin-left: auto;
+  }
+
+  .vn2d-pill-txt {
+    max-width: 110px;
+  }
 }
 
 /* Responsive 4 Breakpoints (Phone <= 768px, Tablet 769-1120px) */

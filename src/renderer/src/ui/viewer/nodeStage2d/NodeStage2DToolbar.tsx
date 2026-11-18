@@ -220,34 +220,30 @@ export const NodeStage2DToolbar: React.FC<NodeStage2DToolbarProps> = ({
               : `🎯 Riêng: ${getClusterPartShortName(ctx.activeLayer)}`}
           </button>
         )}
-
-        {hasDualStage && (
-          <>
-            <span className="vn2d-sep" />
-            <div className="vn2d-seg" role="group" aria-label="Chuyển chế độ Khung 2.5D và Cảnh 2D">
-              <button
-                type="button"
-                className={`vn2d-seg-btn${!overrideSceneView ? ' active' : ''}`}
-                onClick={() => onToggleOverrideSceneView(false)}
-                title="Chỉnh chuyên sâu tia sáng 2.5D, cửa hang, vùng UV hoặc bộ phận con"
-              >
-                {primaryMode === 'part_25d' ? '🧩 Khung Bộ phận' : '✨ Khung 2.5D'}
-              </button>
-              <button
-                type="button"
-                className={`vn2d-seg-btn${overrideSceneView ? ' active' : ''}`}
-                onClick={() => onToggleOverrideSceneView(true)}
-                title="Xem và kéo vị trí BBox trực tiếp trên toàn khung Cảnh 16:9"
-              >
-                🎬 Cảnh 2D
-              </button>
-            </div>
-          </>
-        )}
       </div>
 
-      {/* Cụm phải cố định: Phát thử ngay trên Khung 2D, Tua nhanh Đầu/Đích, Zoom & Chia đôi cùng Camera */}
+      {/* Cụm phải cố định: Chuyển Khung 2.5D/Cảnh 2D, Phát thử, Zoom & Chia đôi cùng Camera */}
       <div className="vn2d-right-ops">
+        {hasDualStage && (
+          <div className="vn2d-seg" role="group" aria-label="Chuyển chế độ Khung 2.5D và Cảnh 2D">
+            <button
+              type="button"
+              className={`vn2d-seg-btn${!overrideSceneView ? ' active' : ''}`}
+              onClick={() => onToggleOverrideSceneView(false)}
+              title="Chỉnh chuyên sâu tia sáng 2.5D, cửa hang, vùng UV hoặc bộ phận con"
+            >
+              {primaryMode === 'part_25d' ? '🧩 Bộ phận' : '✨ Khung 2.5D'}
+            </button>
+            <button
+              type="button"
+              className={`vn2d-seg-btn${overrideSceneView ? ' active' : ''}`}
+              onClick={() => onToggleOverrideSceneView(true)}
+              title="Xem và kéo vị trí BBox trực tiếp trên toàn khung Cảnh 16:9"
+            >
+              🎬 Cảnh 2D
+            </button>
+          </div>
+        )}
         {node && (
           <div className="vn2d-transport" role="group" aria-label="Phát thử và tua nhanh Node">
             <button
