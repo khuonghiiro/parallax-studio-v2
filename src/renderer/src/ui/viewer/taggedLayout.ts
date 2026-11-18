@@ -3,7 +3,7 @@ import type { Rect } from '../../engine/SceneRenderer'
 import type { DeviceBreakpoint } from '../primitives/useResponsiveViewport'
 import { fitRect, type Layout } from './viewerLayout'
 
-export const VIEW_ORDER: PrimaryView[] = ['camera', 'editor', 'animate2d', 'topview']
+export const VIEW_ORDER: PrimaryView[] = ['camera', 'node2d', 'editor', 'animate2d', 'topview']
 export function selectedViews(view: Pick<ViewState, 'activeViews' | 'primary' | 'split' | 'animate2dSplit'>): PrimaryView[] {
   const valid = VIEW_ORDER.filter((id) => view.activeViews?.includes(id))
   if (valid.length) return valid
@@ -15,7 +15,7 @@ export function selectedViews(view: Pick<ViewState, 'activeViews' | 'primary' | 
  * Clamp simultaneous active viewports to fit the device's physical ergonomics:
  * - Phone: 1 full-stage viewport (prevents crushing 3–4 sub-panes into a 240px mobile stage).
  * - Tablet / iPad: up to 2 side-by-side viewports.
- * - Laptop / Desktop: all 1..4 user-selected viewports.
+ * - Laptop / Desktop: all 1..5 user-selected viewports.
  */
 export function effectiveDeviceViews(
   view: Pick<ViewState, 'activeViews' | 'primary' | 'split' | 'animate2dSplit'>,
@@ -36,13 +36,13 @@ export function effectiveDeviceViews(
   return raw
 }
 
-/** Two balanced columns; drafting and depth always share a column when both are active. */
+/** Two balanced columns; 2D stages and depth share the right column when combined with WebGL panes. */
 export function computeTaggedLayout(w: number, h: number, aspect: number, views: PrimaryView[], dpr = 1, toolbarHeight = 34): Layout {
-  const result: Layout = { dpr, cam: null, ed: null, stage2d: null, depth: null }
+  const result: Layout = { dpr, cam: null, ed: null, node2d: null, stage2d: null, depth: null }
   const active = VIEW_ORDER.filter((id) => views.includes(id))
   if (!active.length) active.push('camera')
   const left = active.filter((id) => id === 'camera' || id === 'editor')
-  const right = active.filter((id) => id === 'animate2d' || id === 'topview')
+  const right = active.filter((id) => id === 'node2d' || id === 'animate2d' || id === 'topview')
   const columns = active.length === 2 && !(active.includes('animate2d') && active.includes('topview')) ? active.map((id) => [id])
     : left.length && right.length ? [left, right] : [active]
   // At narrow widths stack the panes instead of silently hiding enabled tags.
@@ -53,6 +53,7 @@ export function computeTaggedLayout(w: number, h: number, aspect: number, views:
       w: Math.max(1, w / groups.length - 1), h: Math.max(1, (h - top) / group.length - 1) }
     if (id === 'camera') result.cam = fitRect(area, aspect, 8)
     else if (id === 'editor') result.ed = area
+    else if (id === 'node2d') result.node2d = area
     else if (id === 'animate2d') result.stage2d = area
     else result.depth = area
   }))

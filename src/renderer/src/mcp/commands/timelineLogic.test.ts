@@ -63,6 +63,8 @@ describe('timeline logic MCP parity', () => {
     expect(project.layers.every((layer) => binding.matchesLayer(layer))).toBe(true)
   })
   it('sets independent view tags through MCP and rejects empty lists', async () => {
+    await runCommand('set_view', { active_views: ['camera', 'node2d'] })
+    expect(useView.getState().activeViews).toEqual(['camera', 'node2d'])
     await runCommand('set_view', { active_views: ['animate2d', 'topview'] })
     expect(useView.getState().activeViews).toEqual(['animate2d', 'topview'])
     await expect(runCommand('set_view', { active_views: [] })).rejects.toThrow()

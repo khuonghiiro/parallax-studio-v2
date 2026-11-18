@@ -271,14 +271,15 @@ export const systemCommands: Record<string, Handler> = {
     const mode = str(p, 'mode')
     if (mode === 'camera') v.set({ split: false, primary: 'camera' })
     else if (mode === '3d') v.set({ split: false, primary: 'editor' })
+    else if (mode === 'node2d') v.set({ split: false, primary: 'node2d', activeViews: ['node2d'] })
     else if (mode === 'topview') v.set({ split: false, primary: 'topview' })
     else if (mode === 'animate2d' || mode === '2d_3d') v.set({ split: false, primary: 'animate2d', animate2dSplit: true })
     else if (mode === '2d_only') v.set({ split: false, primary: 'animate2d', animate2dSplit: false })
     else if (mode === 'split') v.set({ split: true })
-    else if (mode) throw new ParamError('"mode" must be camera, 3d, topview, animate2d, 2d_3d, 2d_only or split')
+    else if (mode) throw new ParamError('"mode" must be camera, 3d, node2d, topview, animate2d, 2d_3d, 2d_only or split')
     if (has(p, 'active_views')) {
       if (!Array.isArray(p.active_views) || !p.active_views.length || p.active_views.some((id) => !VIEW_ORDER.includes(id as any))) {
-        throw new ParamError('active_views must contain camera, editor, animate2d or topview')
+        throw new ParamError('active_views must contain camera, node2d, editor, animate2d or topview')
       }
       v.set({ activeViews: VIEW_ORDER.filter((id) => (p.active_views as unknown[]).includes(id)) })
     }

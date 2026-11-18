@@ -463,10 +463,10 @@ export const FX_TOOLS = [
   },
   {
     name: 'set_view', cat: 'timeline',
-    doc: L("Change the app's viewer for the user: camera view, 3D view, 2.5D topview, Adobe Animate 2D & 3D camera stage, or split; frame a shot.", 'Đổi khung xem của app: camera, 3D, sơ đồ 2.5D, bàn dựng khung camera 2D & 3D (Adobe Animate) hoặc chia đôi; đóng khung một shot.'),
+    doc: L("Change the app's viewer for the user: camera view, direct 2D node & BBox stage (node2d), 3D view, 2.5D topview, Adobe Animate 2D & 3D camera stage, or split; frame a shot.", 'Đổi khung xem của app: camera, màn khung 2D chỉnh node/BBox trực tiếp (node2d), 3D, sơ đồ 2.5D, bàn dựng khung camera 2D & 3D (Adobe Animate) hoặc chia đôi; đóng khung một shot.'),
     shape: (d) => ({
-      active_views: z.array(z.enum(['camera', 'editor', 'animate2d', 'topview'])).min(1).max(4).optional().describe(d('Independent active viewer tags; overrides mode.', 'Các tag khung xem bật độc lập; ưu tiên hơn mode.')),
-      mode: z.enum(['camera', '3d', 'topview', 'animate2d', '2d_3d', '2d_only', 'split']).optional(),
+      active_views: z.array(z.enum(['camera', 'node2d', 'editor', 'animate2d', 'topview'])).min(1).max(5).optional().describe(d('Independent active viewer tags; overrides mode.', 'Các tag khung xem bật độc lập; ưu tiên hơn mode.')),
+      mode: z.enum(['camera', 'node2d', '3d', 'topview', 'animate2d', '2d_3d', '2d_only', 'split']).optional(),
       focus: z.string().optional().describe(d('"all", "selection" or a shot id; preserves active viewer tags.', '"all", "selection" hoặc id shot; giữ nguyên các khung xem đang bật.')),
       camera_only: z.boolean().optional().describe(d('3D view previews only what the camera loads.', 'View 3D chỉ hiển thị những gì camera nạp.')),
       show_path: z.boolean().optional()

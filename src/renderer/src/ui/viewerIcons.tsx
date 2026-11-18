@@ -204,3 +204,14 @@ export const IconCamOrbitTilt = (p: P) => (
   </svg>
 )
 
+/** Màn Khung 2D Chỉnh Node (Sân khấu 2D trực quan kéo BBox, Hành động & Quỹ đạo Node) */
+export const IconNodeStage2D = (p: P) => (
+  <svg {...base(p)}>
+    <rect x="2" y="3.5" width="20" height="17" rx="2" />
+    <circle cx="6.8" cy="15.2" r="1.8" fill="currentColor" stroke="none" />
+    <path d="M8.2 14c1.6-2.8 3.6-3.4 5.8-3.6" />
+    <rect x="13.5" y="6.8" width="6" height="5.2" rx="0.9" strokeDasharray="2 1.5" />
+    <rect x="18.2" y="5.8" width="2.2" height="2.2" rx="0.5" fill="currentColor" stroke="none" />
+  </svg>
+)
+

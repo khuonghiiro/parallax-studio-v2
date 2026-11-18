@@ -1,5 +1,5 @@
 import { useView, type PrimaryView } from '../../store/view'
-import { IconCamera, IconCube, IconCameraStage, IconDepth25D } from '../icons'
+import { IconCamera, IconCube, IconCameraStage, IconDepth25D, IconNodeStage2D } from '../icons'
 import { useResponsiveViewport } from '../primitives'
 import { effectiveDeviceViews, VIEW_ORDER } from './taggedLayout'
 
@@ -11,6 +11,14 @@ const tags = [
     shortPhone: 'Cam',
     hint: 'Khung nhìn Camera chính (Kết quả Render)',
     Icon: IconCamera
+  },
+  {
+    id: 'node2d',
+    dom: 'node2d',
+    label: 'Khung 2D',
+    shortPhone: 'Khung 2D',
+    hint: 'Màn Khung 2D chỉnh Node, BBox, Chuyển động & 2.5D trực tiếp',
+    Icon: IconNodeStage2D
   },
   {
     id: 'editor',
@@ -43,9 +51,13 @@ export function ViewTags() {
   const { breakpoint, isPhone, isTablet } = useResponsiveViewport()
   const active = effectiveDeviceViews(view, breakpoint)
 
-  const toggle = (id: PrimaryView) => {
-    if (isPhone) {
-      view.set({ activeViews: [id], primary: id, split: false, animate2dSplit: false })
+  const soloView = (id: PrimaryView) => {
+    view.set({ activeViews: [id], primary: id, split: false, animate2dSplit: false })
+  }
+
+  const toggle = (id: PrimaryView, solo = false) => {
+    if (solo || isPhone) {
+      soloView(id)
       return
     }
     if (isTablet) {
@@ -59,7 +71,7 @@ export function ViewTags() {
       view.set({ activeViews: next, primary: id })
       return
     }
-    const next = active.includes(id) ? active.filter((item) => item !== id) : [...active, id]
+    const next = active.includes(id) ? active.filter((item) => item !== id) : VIEW_ORDER.filter((item) => active.includes(item) || item === id)
     if (next.length) view.set({ activeViews: next, primary: next.includes(id) ? id : next[0] })
   }
 
@@ -79,9 +91,10 @@ export function ViewTags() {
             title={
               isPhone
                 ? `Chuyển sang ${hint}`
-                : `${isActive ? 'Ẩn' : 'Hiện'} ${hint} · Có thể bật nhiều khung cùng lúc`
+                : `${isActive ? 'Ẩn' : 'Hiện'} ${hint} · Có thể bật nhiều khung cùng lúc (Alt+Click hoặc nhấp đúp để chỉ mở 1 khung này)`
             }
-            onClick={() => toggle(id)}
+            onClick={(e) => toggle(id, e.altKey)}
+            onDoubleClick={() => soloView(id)}
           >
             <Icon width={14} height={14} />
             {isPhone && <span className="view-tag-phone-txt">{shortPhone}</span>}

@@ -35,11 +35,11 @@ describe('independent viewport tags', () => {
       expect(layout.depth!.h).toBe(layout.stage2d!.h)
     }
   })
-  it('keeps every enabled pane visible and non-overlapping for all 15 combinations', () => {
-    for (const width of [400, 1000]) for (let mask = 1; mask < 16; mask++) {
+  it('keeps every enabled pane visible and non-overlapping for all 31 combinations', () => {
+    for (const width of [400, 1000]) for (let mask = 1; mask < 32; mask++) {
       const views = VIEW_ORDER.filter((_, i) => mask & (1 << i))
       const layout = computeTaggedLayout(width, 700, 16 / 9, views)
-      const panes = [layout.cam, layout.ed, layout.stage2d, layout.depth].filter((p) => p != null)
+      const panes = [layout.cam, layout.ed, layout.node2d, layout.stage2d, layout.depth].filter((p) => p != null)
       expect(panes).toHaveLength(views.length)
       for (const [i, a] of panes.entries()) {
         expect(a.x).toBeGreaterThanOrEqual(0)

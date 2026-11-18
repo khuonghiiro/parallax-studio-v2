@@ -57,9 +57,9 @@ export function ViewerOverlays({
   })
   const currentFov = fov ?? evaluate(cameraFov, time)
   const showEd = !!rects.ed
-  const isAnimate2D = !!rects.stage2d
-  const isAnimateSplit = Boolean(isAnimate2D && view.animate2dSplit && rects.cam && rects.ed && rects.stage2d)
-  const isStandardSplit = Boolean(!isAnimate2D && rects.cam && rects.ed)
+  const rightColPane = rects.node2d ?? rects.stage2d ?? rects.depth
+  const hasLeftAndRightCols = Boolean((rects.cam || rects.ed) && rightColPane && rightColPane.x > 0)
+  const isStandardSplit = Boolean(!rightColPane && rects.cam && rects.ed && rects.ed.x > 0)
 
   const showBbox = view.showBbox ?? true
   const showTranslate = view.showTranslate ?? true
@@ -88,21 +88,23 @@ export function ViewerOverlays({
         <div className="pane-divider" style={{ left: rects.ed.x - 1 }} />
       )}
 
-      {/* Vách ngăn chế độ 2D & 3D (Cột 1 chia 2 hàng: Hàng 1 Camera + Hàng 2 3D | Cột 2: Mặt phẳng 2D) */}
-      {isAnimateSplit && rects.ed && rects.stage2d && (
+      {/* Vách ngăn chia đôi cột Trái (Camera / 3D) | cột Phải (Khung 2D / Cam 2D / Độ sâu 2.5D) */}
+      {hasLeftAndRightCols && rightColPane && (
         <>
           <div
             className="pane-divider"
             style={{
-              left: rects.stage2d.x - 1,
+              left: rightColPane.x - 1,
               top: 30,
               height: 'calc(100% - 30px)'
             }}
           />
-          <div
-            className="pane-divider-h"
-            style={{ top: rects.ed.y - 1, left: 0, width: rects.ed.w }}
-          />
+          {rects.cam && rects.ed && (
+            <div
+              className="pane-divider-h"
+              style={{ top: rects.ed.y - 1, left: 0, width: rects.ed.w }}
+            />
+          )}
         </>
       )}
 

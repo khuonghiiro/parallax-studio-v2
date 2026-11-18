@@ -3,7 +3,7 @@ import type { EditorViewKind } from '../engine/EditorCamera'
 import type { Model3D } from '../ui/assets/models3d/types'
 import { useEditor } from './editor'
 
-export type PrimaryView = 'camera' | 'editor' | 'topview' | 'animate2d'
+export type PrimaryView = 'camera' | 'node2d' | 'editor' | 'topview' | 'animate2d'
 export type TopViewMode = 'top' | 'side'
 export type Theme = 'dark' | 'light'
 export type LeftTab = 'shots' | 'assets' | 'topview'
@@ -99,6 +99,8 @@ export interface ViewState extends ViewPrefs {
   openLoopAnimator(imageUrl?: string): void
   photoEditorInitialImage: string | null
   openPhotoEditor(imageUrl?: string): void
+  /** Mở, tắt hoặc phóng toàn khung Màn Khung 2D Chỉnh Node ngay trên Khung nhìn chính. */
+  openNodeStage2D(mode?: 'split_or_open' | 'solo' | 'toggle'): void
   /** Frame something without changing the user-selected visible views. */
   requestFocus(kind: FocusRequest['kind'], id?: string): void
 }
@@ -343,6 +345,38 @@ export const useView = create<ViewState>((set, get) => ({
     useEditor.getState().setPlaying(false)
     closeLayerAssemblyOverlay()
     set({ dialog: 'photo_editor', photoEditorInitialImage: imageUrl ?? null, assemblyModalModel: null })
+  },
+  openNodeStage2D(mode = 'split_or_open') {
+    const cur = get()
+    const order: PrimaryView[] = ['camera', 'node2d', 'editor', 'animate2d', 'topview']
+    const raw = order.filter((id) => cur.activeViews?.includes(id))
+    const currentViews: PrimaryView[] = raw.length
+      ? raw
+      : cur.primary === 'animate2d'
+        ? cur.animate2dSplit
+          ? ['camera', 'editor', 'animate2d']
+          : ['animate2d']
+        : cur.split
+          ? ['camera', 'editor']
+          : [cur.primary]
+
+    if (mode === 'solo') {
+      get().set({ activeViews: ['node2d'], primary: 'node2d', split: false, animate2dSplit: false })
+      return
+    }
+    const hasNode2d = currentViews.includes('node2d')
+    if (mode === 'toggle' && hasNode2d) {
+      const rest = currentViews.filter((id) => id !== 'node2d')
+      const fallback: PrimaryView[] = rest.length ? rest : ['camera']
+      get().set({ activeViews: fallback, primary: fallback[0], split: false })
+      return
+    }
+    if (!hasNode2d) {
+      const next = order.filter((id) => currentViews.includes(id) || id === 'node2d')
+      get().set({ activeViews: next, primary: 'node2d' })
+    } else {
+      get().set({ activeViews: currentViews, primary: 'node2d' })
+    }
   },
   toggleTheme() {
     const next: Theme = get().theme === 'light' ? 'dark' : 'light'
