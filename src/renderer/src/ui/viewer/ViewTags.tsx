@@ -1,4 +1,5 @@
 import { useView, type PrimaryView } from '../../store/view'
+import { StudioTooltip } from '../controls/StudioTooltip'
 import { IconCamera, IconCube, IconCameraStage, IconDepth25D, IconNodeStage2D } from '../icons'
 import { useResponsiveViewport } from '../primitives'
 import { effectiveDeviceViews, VIEW_ORDER } from './taggedLayout'
@@ -79,26 +80,31 @@ export function ViewTags() {
     <div className="viewer-mode-seg viewer-view-tags" role="group" aria-label="Bật các khung xem">
       {tags.map(({ id, dom, label, shortPhone, hint, Icon }) => {
         const isActive = active.includes(id)
+        const isLockedLast = !isPhone && active.length === 1 && active[0] === id
         return (
-          <button
+          <StudioTooltip
             key={id}
-            id={`view-${dom}`}
-            type="button"
-            className={`seg-btn${isPhone ? ' phone-labeled' : ' icon-only'}${isActive ? ' active' : ''}`}
-            aria-pressed={isActive}
-            aria-label={label}
-            disabled={!isPhone && active.length === 1 && active[0] === id}
-            title={
-              isPhone
-                ? `Chuyển sang ${hint}`
-                : `${isActive ? 'Ẩn' : 'Hiện'} ${hint} · Có thể bật nhiều khung cùng lúc (Alt+Click hoặc nhấp đúp để chỉ mở 1 khung này)`
-            }
-            onClick={(e) => toggle(id, e.altKey)}
-            onDoubleClick={() => soloView(id)}
+            title={label}
+            badge={isActive ? 'Đang mở' : 'Khung xem'}
+            badgeTone={isActive ? 'green' : 'cyan'}
+            description={hint}
+            meta={isPhone ? undefined : 'Nhấp bật song song · Alt+Click hoặc Nhấp đúp để mở riêng'}
+            placement="bottom"
           >
-            <Icon width={14} height={14} />
-            {isPhone && <span className="view-tag-phone-txt">{shortPhone}</span>}
-          </button>
+            <button
+              id={`view-${dom}`}
+              type="button"
+              className={`seg-btn${isPhone ? ' phone-labeled' : ' icon-only'}${isActive ? ' active' : ''}`}
+              aria-pressed={isActive}
+              aria-label={label}
+              disabled={isLockedLast}
+              onClick={(e) => toggle(id, e.altKey)}
+              onDoubleClick={() => soloView(id)}
+            >
+              <Icon width={14} height={14} />
+              {isPhone && <span className="view-tag-phone-txt">{shortPhone}</span>}
+            </button>
+          </StudioTooltip>
         )
       })}
     </div>

@@ -1,6 +1,7 @@
 import React from 'react'
 import type { Layer } from '@shared/types'
 import { getClusterPartShortName } from '../../project/workflowV2Engine'
+import { StudioTooltip } from '../controls/StudioTooltip'
 import type { ProjectedLayer2D, ShotStageBox } from '../viewer/animateCamera/animateCameraMath'
 import type { CameraWaypointItem } from '../viewer/animateCamera/animateCameraRouteLogic'
 
@@ -150,15 +151,39 @@ export const DirectStageFooterBar: React.FC<DirectStageFooterBarProps> = ({
           <b>{Math.round(Math.abs(coordRefLayer.transform.scale.value?.[0] ?? 1) * 100)}%</b>
         </span>
         <div className="wf-v2-direct-actions">
-          <button type="button" className="wf-v2-direct-btn" onClick={onCenterLayer} title="Đặt vị trí BBox về chính giữa khung cảnh (X=0, Y=0)">
-            ⊡ Giữa khung
-          </button>
-          <button type="button" className="wf-v2-direct-btn" onClick={onResetLayerScale} title="Đặt lại tỷ lệ BBox chuẩn">
-            ↺ Chuẩn cỡ
-          </button>
-          <button type="button" className="wf-v2-direct-btn accent" onClick={onAimCameraAtLayer} title="Lia khung Camera đang chọn vào đúng BBox này">
-            🎯 Ngắm Cam
-          </button>
+          <StudioTooltip
+            title="Căn giữa khung cảnh"
+            badge="X=0, Y=0"
+            badgeTone="neutral"
+            description="Đưa vị trí BBox về ngay chính tâm khung cảnh 16:9"
+            placement="top"
+          >
+            <button type="button" className="wf-v2-direct-btn" onClick={onCenterLayer} aria-label="Giữa khung">
+              ⊡ Giữa khung
+            </button>
+          </StudioTooltip>
+          <StudioTooltip
+            title="Đặt lại tỷ lệ chuẩn"
+            badge="100%"
+            badgeTone="neutral"
+            description="Khôi phục kích thước BBox về tỷ lệ gốc không méo hình"
+            placement="top"
+          >
+            <button type="button" className="wf-v2-direct-btn" onClick={onResetLayerScale} aria-label="Chuẩn cỡ">
+              ↺ Chuẩn cỡ
+            </button>
+          </StudioTooltip>
+          <StudioTooltip
+            title="Lia Camera ngắm đối tượng"
+            badge="Camera"
+            badgeTone="cyan"
+            description="Đưa khung ngắm Camera 3D đang chọn bắt trọn vào BBox này"
+            placement="top"
+          >
+            <button type="button" className="wf-v2-direct-btn accent" onClick={onAimCameraAtLayer} aria-label="Ngắm Cam">
+              🎯 Ngắm Cam
+            </button>
+          </StudioTooltip>
         </div>
       </div>
     )
@@ -175,12 +200,28 @@ export const DirectStageFooterBar: React.FC<DirectStageFooterBarProps> = ({
           · Zoom <b>{activeWaypoint.zoomPct}%</b>
         </span>
         <div className="wf-v2-direct-actions">
-          <button type="button" className="wf-v2-direct-btn" onClick={() => onResetCameraWaypoint(1)} title="Căn BBox Camera về chuẩn 100% giữa cảnh">
-            ⊡ Chuẩn 100%
-          </button>
-          <button type="button" className="wf-v2-direct-btn accent" onClick={() => onResetCameraWaypoint(0.667)} title="Thu hẹp BBox Camera để đẩy cận 150%">
-            🔍 Đẩy cận 150%
-          </button>
+          <StudioTooltip
+            title="Khung chuẩn toàn cảnh"
+            badge="100%"
+            badgeTone="neutral"
+            description="Căn BBox Camera về chuẩn 100% bao quát giữa cảnh"
+            placement="top"
+          >
+            <button type="button" className="wf-v2-direct-btn" onClick={() => onResetCameraWaypoint(1)} aria-label="Chuẩn 100%">
+              ⊡ Chuẩn 100%
+            </button>
+          </StudioTooltip>
+          <StudioTooltip
+            title="Đẩy cận chủ thể"
+            badge="150%"
+            badgeTone="green"
+            description="Thu hẹp BBox Camera để máy quay đẩy cận cảnh 150%"
+            placement="top"
+          >
+            <button type="button" className="wf-v2-direct-btn accent" onClick={() => onResetCameraWaypoint(0.667)} aria-label="Đẩy cận 150%">
+              🔍 Đẩy cận 150%
+            </button>
+          </StudioTooltip>
         </div>
       </div>
     )

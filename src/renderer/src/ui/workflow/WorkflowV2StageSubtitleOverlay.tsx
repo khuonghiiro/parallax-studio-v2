@@ -17,6 +17,7 @@ import {
 } from '../../project/subtitleAndDialogueSync'
 import { syncWorkflowV2NodeToProject } from '../../project/workflowV2Engine'
 import { useEditor } from '../../store/editor'
+import { StudioTooltip } from '../controls/StudioTooltip'
 import type { ProjectedLayer2D } from '../viewer/animateCamera/animateCameraMath'
 import '../../styles/workflowSubtitleStage.css'
 
@@ -191,38 +192,54 @@ export const WorkflowV2StageSubtitleOverlay: React.FC<WorkflowV2StageSubtitleOve
     <div className="wf-sub-quick-bar" data-mcp-region="workflow_subtitle_stage">
       <div className="wf-sub-quick-pills" role="group" aria-label="Neo nhanh vị trí Vietsub và Hộp thoại">
         {QUICK_ANCHORS.map((anc) => (
-          <button
+          <StudioTooltip
             key={anc.id}
-            type="button"
-            className={`wf-sub-quick-pill${posPreset === anc.id ? ' active' : ''}`}
-            title={anc.title}
-            onClick={() =>
-              patchSubtitle(
-                {
-                  subtitlePositionPreset: anc.id,
-                  subtitleOffsetX: 0,
-                  subtitleOffsetY: defaultOffsetYForPreset(anc.id)
-                },
-                'wf-sub-anchor-preset'
-              )
-            }
+            title={anc.label}
+            badge={posPreset === anc.id ? 'Đang chọn' : 'Neo thoại'}
+            badgeTone={posPreset === anc.id ? 'green' : 'cyan'}
+            description={anc.title}
+            placement="top"
           >
-            {anc.label}
-          </button>
+            <button
+              type="button"
+              className={`wf-sub-quick-pill${posPreset === anc.id ? ' active' : ''}`}
+              aria-label={anc.label}
+              onClick={() =>
+                patchSubtitle(
+                  {
+                    subtitlePositionPreset: anc.id,
+                    subtitleOffsetX: 0,
+                    subtitleOffsetY: defaultOffsetYForPreset(anc.id)
+                  },
+                  'wf-sub-anchor-preset'
+                )
+              }
+            >
+              {anc.label}
+            </button>
+          </StudioTooltip>
         ))}
       </div>
       <div className="wf-sub-quick-meta">
         <span className="wf-sub-quick-coords">
           X <b>{placement.screenX}</b> · Y <b>{placement.screenY}</b> · Cỡ <b>{fontSize}px</b>
         </span>
-        <button
-          type="button"
-          className="wf-v2-direct-btn"
-          title="Đặt nhanh phụ đề về chính giữa theo chiều ngang (X = 0)"
-          onClick={() => patchSubtitle({ subtitleOffsetX: 0 }, 'wf-sub-center-x')}
+        <StudioTooltip
+          title="Căn giữa ngang X = 0"
+          badge="X=0"
+          badgeTone="neutral"
+          description="Đặt nhanh phụ đề về chính giữa theo chiều ngang"
+          placement="top"
         >
-          ⊡ Căn giữa X
-        </button>
+          <button
+            type="button"
+            className="wf-v2-direct-btn"
+            aria-label="Căn giữa X"
+            onClick={() => patchSubtitle({ subtitleOffsetX: 0 }, 'wf-sub-center-x')}
+          >
+            ⊡ Căn giữa X
+          </button>
+        </StudioTooltip>
       </div>
     </div>
   )

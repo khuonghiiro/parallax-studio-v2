@@ -50,8 +50,9 @@ import { StudioTooltip } from '../controls/StudioTooltip'
 </StudioTooltip>
 ```
 
-### 3 Quy tắc kiểm tra trước khi hoàn tất:
-1. **Xoá `title` native trên phần tử con bên trong `<StudioTooltip>`:** Tuyệt đối không để cả `<StudioTooltip>` lẫn `title="..."` cùng tồn tại làm hiện đè 2 hộp tooltip chồng nhau.
-2. **Luôn giữ `aria-label` tiếng Việt trên `<button>`:** Để `AI UI Inspector (Win + Alt)` và accessibility đọc chính xác tên nút.
-3. **Chọn đúng `placement`:**
+### 4 Quy tắc kiểm tra bắt buộc trước khi hoàn tất:
+1. **`StudioTooltip.tsx` tự nạp trực tiếp `import '../../styles/studioTooltip.css'`:** Tuyệt đối không chỉ đặt `@import './styles/studioTooltip.css'` giữa `index.css` (dễ bị trình duyệt bỏ qua nếu đứng sau rule CSS khác, khiến `.pxs-studio-tooltip` rơi xuống đáy `document.body` với `position: static`).
+2. **Xoá `title` native trên phần tử con bên trong `<StudioTooltip>`:** Tuyệt đối không để cả `<StudioTooltip>` lẫn `title="..."` cùng tồn tại làm hiện đè 2 hộp tooltip chồng nhau.
+3. **Luôn giữ `aria-label` tiếng Việt trên `<button>`:** Để `AI UI Inspector (Win + Alt)` và accessibility đọc chính xác tên nút.
+4. **Chọn đúng `placement` & kiểm tra DOM thật (`position === 'fixed'`):**
    - Rail trái → `"right"` | Rail phải → `"left"` | HUD đáy sân khấu → `"top"` | Thanh công cụ đỉnh → `"bottom"`.

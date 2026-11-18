@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import '../../styles/studioTooltip.css'
 
 export type StudioTooltipPlacement = 'top' | 'bottom' | 'left' | 'right'
 export type StudioTooltipBadgeTone = 'cyan' | 'amber' | 'green' | 'neutral'
@@ -85,13 +86,14 @@ export const StudioTooltip: React.FC<StudioTooltipProps> = ({
   badgeTone = 'cyan',
   meta,
   placement = 'top',
-  delayMs = 70,
+  delayMs = 35,
   disabled = false,
   children
 }) => {
   const wrapRef = useRef<HTMLSpanElement>(null)
   const tipRef = useRef<HTMLDivElement>(null)
   const timerRef = useRef<number | null>(null)
+  const lastTouchRef = useRef(false)
   const [open, setOpen] = useState(false)
   const [coords, setCoords] = useState<StudioTooltipCoords | null>(null)
 
@@ -107,16 +109,43 @@ export const StudioTooltip: React.FC<StudioTooltipProps> = ({
     setOpen(false)
   }, [clearTimer])
 
-  const show = useCallback(
+  const openFromAnchor = useCallback(() => {
+    const el = wrapRef.current
+    if (el) {
+      const targetEl = (el.firstElementChild as HTMLElement | null) ?? el
+      const anchor = targetEl.getBoundingClientRect()
+      setCoords(
+        computeStudioTooltipPosition(
+          anchor,
+          { width: 204, height: description ? 58 : 34 },
+          { width: window.innerWidth, height: window.innerHeight },
+          placement
+        )
+      )
+    }
+    setOpen(true)
+  }, [description, placement])
+
+  const handleMouseEnter = useCallback(() => {
+    if (disabled || lastTouchRef.current) return
+    clearTimer()
+    if (delayMs <= 0) {
+      openFromAnchor()
+      return
+    }
+    timerRef.current = window.setTimeout(() => {
+      timerRef.current = null
+      openFromAnchor()
+    }, delayMs)
+  }, [disabled, clearTimer, delayMs, openFromAnchor])
+
+  const handlePointerEnter = useCallback(
     (e: React.PointerEvent<HTMLElement>) => {
+      lastTouchRef.current = e.pointerType === 'touch'
       if (disabled || e.pointerType === 'touch') return
-      clearTimer()
-      timerRef.current = window.setTimeout(() => {
-        timerRef.current = null
-        setOpen(true)
-      }, delayMs)
+      handleMouseEnter()
     },
-    [disabled, clearTimer, delayMs]
+    [disabled, handleMouseEnter]
   )
 
   useLayoutEffect(() => {
@@ -127,7 +156,7 @@ export const StudioTooltip: React.FC<StudioTooltipProps> = ({
     setCoords(
       computeStudioTooltipPosition(
         anchor,
-        { width: tipRect.width || 180, height: tipRect.height || 52 },
+        { width: tipRect.width || 204, height: tipRect.height || 54 },
         { width: window.innerWidth, height: window.innerHeight },
         placement
       )
@@ -156,10 +185,14 @@ export const StudioTooltip: React.FC<StudioTooltipProps> = ({
     <span
       ref={wrapRef}
       className="pxs-tooltip-anchor"
-      style={{ display: 'inline-flex', alignItems: 'center' }}
-      onPointerEnter={show}
+      onPointerEnter={handlePointerEnter}
+      onMouseEnter={handleMouseEnter}
       onPointerLeave={hide}
-      onPointerDown={hide}
+      onMouseLeave={hide}
+      onPointerDown={(e) => {
+        lastTouchRef.current = e.pointerType === 'touch'
+        hide()
+      }}
     >
       {children}
       {open &&
