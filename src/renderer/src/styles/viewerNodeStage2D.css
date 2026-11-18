@@ -83,13 +83,13 @@
 }
 
 .vn2d-seg-item.active {
-  background: color-mix(in srgb, var(--accent) 20%, var(--bg-2));
-  border-color: color-mix(in srgb, var(--accent) 65%, var(--line));
-  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 78%, #0f172a);
+  border-color: var(--accent);
+  color: #ffffff;
 }
 
 .vn2d-seg-item.active > svg {
-  color: var(--accent-cyan);
+  color: #ffffff;
   opacity: 1;
 }
 
@@ -194,6 +194,8 @@
   z-index: 200;
   width: 312px;
   max-width: calc(100vw - 24px);
+  max-height: min(360px, calc(100vh - 140px));
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -347,7 +349,7 @@
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
   background: transparent;
-  color: var(--text-dim);
+  color: var(--text);
   cursor: pointer;
   transition: background 120ms ease, color 120ms ease;
 }

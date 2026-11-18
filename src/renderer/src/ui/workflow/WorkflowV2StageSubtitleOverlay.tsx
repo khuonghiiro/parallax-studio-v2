@@ -44,12 +44,12 @@ const SUB_HANDLES: { key: 'nw' | 'ne' | 'sw' | 'se'; cls: string }[] = [
 ]
 
 const QUICK_ANCHORS: { id: SubtitlePositionPreset; label: string; title: string }[] = [
-  { id: 'bottom_center', label: '⬇ Đáy chuẩn', title: 'Đặt phụ đề tại dải an toàn đáy màn hình' },
-  { id: 'top_center', label: '⬆ Đỉnh khung', title: 'Đặt phụ đề / nội tâm ở đỉnh khung hình' },
-  { id: 'speech_right', label: '💬 Thoại Phải', title: 'Đặt hộp thoại bên phải nhân vật đang nói' },
-  { id: 'speech_left', label: '💬 Thoại Trái', title: 'Đặt hộp thoại bên trái nhân vật đang nói' },
-  { id: 'above_speaker', label: '🗣️ Trên đầu NV', title: 'Neo hộp thoại ngay phía trên đầu nhân vật' },
-  { id: 'custom', label: '🎯 Tự do X/Y', title: 'Kéo đặt tự do ở bất kỳ vị trí nào trên màn hình' }
+  { id: 'bottom_center', label: 'Đáy chuẩn', title: 'Đặt phụ đề tại dải an toàn đáy màn hình' },
+  { id: 'top_center', label: 'Đỉnh khung', title: 'Đặt phụ đề / nội tâm ở đỉnh khung hình' },
+  { id: 'speech_right', label: 'Thoại Phải', title: 'Đặt hộp thoại bên phải nhân vật đang nói' },
+  { id: 'speech_left', label: 'Thoại Trái', title: 'Đặt hộp thoại bên trái nhân vật đang nói' },
+  { id: 'above_speaker', label: 'Trên đầu NV', title: 'Neo hộp thoại ngay phía trên đầu nhân vật' },
+  { id: 'custom', label: 'Tự do X/Y', title: 'Kéo đặt tự do ở bất kỳ vị trí nào trên màn hình' }
 ]
 
 export const WorkflowV2StageSubtitleOverlay: React.FC<WorkflowV2StageSubtitleOverlayProps> = ({

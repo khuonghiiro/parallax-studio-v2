@@ -178,7 +178,7 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
   const primaryEntity =
     connectedEntities.find((e) => coordRefLayer && e.rootLayer.id === coordRefLayer.id) ?? connectedEntities[0]
 
-  const ENT_ACCENTS = ['#f59e0b', '#38bdf8', '#10b981', '#ec4899', '#a855f7', '#f97316']
+  const ENT_ACCENTS = ['#38bdf8', '#f59e0b', '#a855f7', '#10b981', '#ec4899', '#f97316']
 
   const renderedEntities = useMemo(() => {
     return connectedEntities.map((ent, idx) => {
@@ -571,7 +571,7 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
         </div>
       )}
 
-      {/* Đường nối đầu -> đích và điểm va chạm trên SVG cho từng Layer/Cụm kết nối */}
+      {/* Đường nối đầu -> đích kèm mũi tên định hướng sắc nét cho từng Layer/Cụm */}
       {hasBboxMotion && (
         <svg
           className="wf-v2-direct-cam-svg"
@@ -579,6 +579,22 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
           height={stageH}
           style={{ zIndex: 24, pointerEvents: 'none' }}
         >
+          <defs>
+            {renderedEntities.map((item) => (
+              <marker
+                key={`arrow-${item.ent.id}`}
+                id={`wf-bbox-arrow-${item.ent.id}`}
+                viewBox="0 0 10 10"
+                refX="8"
+                refY="5"
+                markerWidth="6"
+                markerHeight="6"
+                orient="auto-start-reverse"
+              >
+                <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill={item.accentColor} />
+              </marker>
+            ))}
+          </defs>
           {renderedEntities.map((item) => {
             if (item.pathPts.length < 2) return null
             const isFocused = !isMultiEntity || item.ent.id === focusedEntityId
@@ -587,8 +603,8 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
                 <polyline
                   fill="none"
                   stroke={item.accentColor}
-                  strokeOpacity={isFocused ? 0.28 : 0.08}
-                  strokeWidth={isFocused ? 5 : 2}
+                  strokeOpacity={isFocused ? 0.22 : 0.06}
+                  strokeWidth={isFocused ? 4.5 : 2}
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   points={item.pathPts.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ')}
@@ -596,17 +612,18 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
                 <polyline
                   fill="none"
                   stroke={item.accentColor}
-                  strokeWidth={isFocused ? 2 : 1}
-                  strokeOpacity={isFocused ? 1 : 0.3}
-                  strokeDasharray={isFocused ? '5 3' : '3 3'}
+                  strokeWidth={isFocused ? 1.8 : 1}
+                  strokeOpacity={isFocused ? 0.95 : 0.3}
+                  strokeDasharray={isFocused ? '5 3.5' : '3 3'}
                   strokeLinecap="round"
                   strokeLinejoin="round"
+                  markerEnd={isFocused ? `url(#wf-bbox-arrow-${item.ent.id})` : undefined}
                   points={item.pathPts.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ')}
                 />
                 <circle
                   cx={item.box1Cx}
                   cy={item.box1Cy}
-                  r={isFocused ? 4.5 : 3}
+                  r={isFocused ? 4 : 2.8}
                   fill="#10b981"
                   stroke="#0f172a"
                   strokeWidth={1.5}
@@ -615,7 +632,7 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
                 <circle
                   cx={item.box2Cx}
                   cy={item.box2Cy}
-                  r={isFocused ? 5 : 3.5}
+                  r={isFocused ? 4.5 : 3}
                   fill={item.accentColor}
                   stroke="#0f172a"
                   strokeWidth={1.5}
@@ -627,7 +644,7 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
         </svg>
       )}
 
-      {/* Khung BBox #1 (Đầu) cho từng Layer/Cụm kết nối. CHỈ hiện title khi active (isFocused)! */}
+      {/* Khung BBox #1 (Xuất phát — màu lục bảo tham chiếu tinh gọn, không lẫn với khung Đích) */}
       {hasBboxMotion &&
         displayEntities.map((item) => {
           const isFocused = !isMultiEntity || item.ent.id === focusedEntityId
@@ -635,6 +652,7 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
           const isNearTarget = Math.hypot(item.box2Cx - item.box1Cx, item.box2Cy - item.box1Cy) < 45
           const box1Left = item.box1Cx - item.baseW / 2
           const box1Top = item.box1Cy - item.baseH / 2
+          const stepNo = bboxStepNumber(workflow, motionNode?.id ?? node.id)
 
           return (
             <div
@@ -654,20 +672,19 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
                 width: item.baseW,
                 height: item.baseH,
                 border: isFocused
-                  ? `1.5px dashed ${item.accentColor}`
-                  : `1px dashed color-mix(in srgb, ${item.accentColor} 30%, transparent)`,
-                background: isFocused
-                  ? `color-mix(in srgb, ${item.accentColor} 4%, transparent)`
-                  : 'transparent',
-                opacity: isFocused ? 0.78 : 0.35,
+                  ? '1.5px dashed rgba(16, 185, 129, 0.82)'
+                  : '1px dashed rgba(16, 185, 129, 0.32)',
+                background: isFocused ? 'rgba(16, 185, 129, 0.04)' : 'transparent',
+                boxShadow: 'none',
+                opacity: isFocused ? 0.9 : 0.35,
                 zIndex: isFocused ? 28 : 18,
                 cursor: isFocused ? 'default' : 'pointer',
-                ['--wf-v2-accent' as string]: item.accentColor
+                ['--wf-v2-accent' as string]: '#10b981'
               }}
               title={
                 isFocused
-                  ? `Vị trí xuất phát BBox #1 của "${item.ent.name}" (Cố định)`
-                  : `Vị trí xuất phát BBox #1 của "${item.ent.name}" — Nhấp để chọn BBox này`
+                  ? `Vị trí xuất phát #${stepNo} của "${item.ent.name}"`
+                  : `Vị trí xuất phát #${stepNo} của "${item.ent.name}" — Nhấp để chọn BBox này`
               }
               onPointerDown={(e) => {
                 if (!isFocused && e.button === 0) {
@@ -677,38 +694,39 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
                 }
               }}
             >
-              {/* CHỈ hiện title ở BBox đầu KHI active (isFocused)! Không active thì ẩn title đi cho đỡ rối */}
               {isFocused && (
                 <span
-                  className="wf-v2-direct-bbox-tag"
+                  className="wf-v2-direct-bbox-tag is-origin"
                   title={item.ent.name}
                   style={{
-                    top: isNearTarget ? 'auto' : box1Top < 18 ? 2 : -17,
-                    bottom: isNearTarget ? -17 : 'auto',
+                    top: isNearTarget ? 'auto' : box1Top < 20 ? 3 : -20,
+                    bottom: isNearTarget ? -20 : 'auto',
                     left: 0,
-                    maxWidth: 125,
+                    maxWidth: 118,
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
-                    background: `color-mix(in srgb, ${item.accentColor} 75%, #0f172a)`,
-                    color: '#ffffff',
-                    border: `1px solid color-mix(in srgb, ${item.accentColor} 45%, #ffffff)`
+                    padding: '1px 6px',
+                    borderRadius: 4,
+                    background: 'rgba(15, 23, 42, 0.9)',
+                    color: '#ecfdf5',
+                    border: '1px solid rgba(16, 185, 129, 0.68)',
+                    boxShadow: '0 2px 6px rgba(0, 0, 0, 0.35)'
                   }}
                 >
-                  #{bboxStepNumber(workflow, motionNode?.id ?? node.id)} Đầu (Cố định)
-                  {isMultiEntity ? ` · ${shortName}` : ''}
+                  #{stepNo} Đầu{isMultiEntity ? ` · ${shortName}` : ''}
                 </span>
               )}
-              {isFocused && <span className="wf-v2-direct-bbox-crosshair" />}
             </div>
           )
         })}
 
-      {/* Khung BBox đích cho từng Layer/Cụm kết nối. Dùng displayEntities để entity được focus luôn render sau cùng, nằm trên cùng */}
+      {/* Khung BBox #2 (Đích — viền liền chuẩn Figma/AE, hiển thị tỉ lệ % ngay trên nhãn) */}
       {hasBboxMotion &&
         displayEntities.map((item) => {
           const isFocused = !isMultiEntity || item.ent.id === focusedEntityId
           const shortName = item.ent.name.length > 11 ? `${item.ent.name.slice(0, 9)}…` : item.ent.name
+          const stepNo = bboxStepNumber(workflow, motionNode?.id ?? node.id)
 
           return (
             <div
@@ -729,13 +747,13 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
                 width: item.box2W,
                 height: item.box2H,
                 border: isFocused
-                  ? `2px dashed ${item.accentColor}`
-                  : `1px dashed color-mix(in srgb, ${item.accentColor} 40%, transparent)`,
+                  ? `1.5px solid ${item.accentColor}`
+                  : `1px dashed color-mix(in srgb, ${item.accentColor} 42%, transparent)`,
                 background: isFocused
-                  ? `color-mix(in srgb, ${item.accentColor} 10%, transparent)`
-                  : `color-mix(in srgb, ${item.accentColor} 3%, transparent)`,
+                  ? `color-mix(in srgb, ${item.accentColor} 8%, transparent)`
+                  : `color-mix(in srgb, ${item.accentColor} 2%, transparent)`,
                 boxShadow: isFocused
-                  ? `0 0 0 1px rgba(15, 23, 42, 0.65), 0 0 16px color-mix(in srgb, ${item.accentColor} 40%, transparent)`
+                  ? `0 0 0 1px rgba(15, 23, 42, 0.55), 0 8px 22px color-mix(in srgb, ${item.accentColor} 26%, transparent)`
                   : 'none',
                 zIndex: isFocused ? 35 : 25,
                 cursor: isFocused ? 'move' : 'pointer',
@@ -791,26 +809,28 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
                 />
               )}
 
-              {/* Tag nhãn: CHỈ hiện khi BBox ĐÍCH active (isFocused)! Không active thì ẩn title đi cho đỡ rối */}
+              {/* Tag nhãn đích sắc nét kèm % tỉ lệ đích */}
               {isFocused && (
                 <span
-                  className="wf-v2-direct-bbox-tag"
+                  className="wf-v2-direct-bbox-tag is-target"
                   title={item.ent.name}
                   style={{
-                    top: item.box2Top < 18 ? 2 : -17,
+                    top: item.box2Top < 20 ? 3 : -20,
                     right: 0,
                     left: 'auto',
-                    maxWidth: 125,
+                    maxWidth: 140,
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
-                    background: `color-mix(in srgb, ${item.accentColor} 84%, #0f172a)`,
+                    padding: '1px 7px',
+                    borderRadius: 4,
+                    background: `color-mix(in srgb, ${item.accentColor} 82%, #0f172a)`,
                     color: '#ffffff',
-                    boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
-                    border: `1px solid color-mix(in srgb, ${item.accentColor} 50%, #ffffff)`
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.42)',
+                    border: `1px solid color-mix(in srgb, ${item.accentColor} 55%, #ffffff)`
                   }}
                 >
-                  #{bboxStepNumber(workflow, motionNode?.id ?? node.id) + 1} Đích
+                  #{stepNo + 1} Đích · {item.entTargetScalePct}%
                   {isMultiEntity ? ` · ${shortName}` : ''}
                 </span>
               )}

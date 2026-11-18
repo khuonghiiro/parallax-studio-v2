@@ -160,6 +160,32 @@
   color: var(--text-dim);
 }
 
+.wf-v2-direct-stage.is-full-viewport .wf-sub-quick-bar {
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  padding: 5px 10px;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--bg-2) 92%, transparent);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--line);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.38);
+}
+
+.wf-v2-direct-stage.is-full-viewport .wf-sub-quick-pills {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.wf-v2-direct-stage.is-full-viewport .wf-sub-quick-pill {
+  min-height: 24px;
+  padding: 0 8px;
+  font-size: 10.5px;
+}
+
 .wf-sub-quick-coords b {
   color: var(--accent-cyan);
 }

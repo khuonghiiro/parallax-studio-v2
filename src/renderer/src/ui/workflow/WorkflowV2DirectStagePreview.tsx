@@ -259,20 +259,22 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
 
   const compW = Math.max(100, project.comp.width || 1920)
   const compH = Math.max(100, project.comp.height || 1080)
-  const padScale = fullViewport ? 0.9 : 0.96
+  const padScale = fullViewport ? 0.88 : 0.96
   const stageW = Math.max(200, boxWidth)
   const naturalH = fullViewport
     ? Math.max(220, viewportHeight ?? 420)
     : Math.max(195, Math.min(340, Math.round(((stageW * padScale) * compH) / compW) + 12))
   const stageH = fullViewport ? naturalH : (customStageH ?? naturalH)
-  const baseZoom = Math.min((stageW * padScale) / compW, (stageH * padScale) / compH)
+  const hudReserve = fullViewport ? 44 : 0
+  const fitAreaH = Math.max(140, stageH - hudReserve)
+  const baseZoom = Math.min((stageW * padScale) / compW, (fitAreaH * padScale) / compH)
   const zoom = baseZoom * (externalZoom ?? stageZoomBoost)
   const shotScreenW = compW * zoom
   const shotScreenH = compH * zoom
   const panX = externalPan?.x ?? 0
   const panY = externalPan?.y ?? 0
   const shotLeft = (stageW - shotScreenW) / 2 + panX
-  const shotTop = (stageH - shotScreenH) / 2 + panY
+  const shotTop = (fitAreaH - shotScreenH) / 2 + (fullViewport ? 4 : 0) + panY
   const shotCenterX = shotLeft + shotScreenW / 2
   const shotCenterY = shotTop + shotScreenH / 2
 
