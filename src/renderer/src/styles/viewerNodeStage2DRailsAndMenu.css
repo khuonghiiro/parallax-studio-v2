@@ -1,0 +1,450 @@
+/* ==========================================================================
+   Thanh Công Cụ Cạnh Trái/Phải, Khung Ngắm Camera & Menu Chuột Phải Khung 2D
+   100% Design Tokens (variables.css), 2 Theme Dark/Light & Responsive 4 Breakpoints
+   ========================================================================== */
+
+/* Cụm công cụ trên thanh đầu: Căn nhanh & Chuyển chế độ Camera */
+.vn2d-tool-btn.is-cam-switch.active {
+  background: color-mix(in srgb, #10b981 78%, #0f172a);
+  border-color: #10b981;
+  color: #ffffff;
+}
+
+.vn2d-align-strip {
+  padding: 1px;
+  gap: 1px;
+}
+
+/* Thanh Rail dọc bên Trái & bên Phải tận dụng dải lề trống của sân khấu 16:9 */
+.vn2d-side-rail {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 65;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 5px;
+  max-height: calc(100% - 20px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bg-2) 92%, transparent);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+}
+
+.vn2d-side-rail::-webkit-scrollbar {
+  display: none;
+}
+
+.vn2d-side-rail.is-left {
+  left: 8px;
+}
+
+.vn2d-side-rail.is-right {
+  right: 8px;
+}
+
+.vn2d-rail-btn {
+  position: relative;
+  width: 29px;
+  height: 29px;
+  min-width: 29px;
+  min-height: 29px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-soft);
+  background: var(--bg-3);
+  color: var(--text);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease, transform 90ms ease;
+}
+
+.vn2d-rail-btn:hover:not(:disabled) {
+  border-color: var(--line-focus);
+  background: color-mix(in srgb, var(--logic-accent, var(--accent)) 14%, var(--bg-3));
+  color: var(--text);
+}
+
+.vn2d-rail-btn:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+.vn2d-rail-btn:disabled {
+  opacity: 0.36;
+  cursor: not-allowed;
+}
+
+.vn2d-rail-btn.active {
+  background: color-mix(in srgb, var(--logic-accent, var(--accent)) 78%, #0f172a);
+  border-color: var(--logic-accent, var(--accent));
+  color: #ffffff;
+}
+
+.vn2d-rail-btn.is-cam-mode.active {
+  background: color-mix(in srgb, #10b981 78%, #0f172a);
+  border-color: #10b981;
+  color: #ffffff;
+}
+
+.vn2d-rail-dot {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-cyan);
+  box-shadow: 0 0 0 1.5px var(--bg-3);
+  pointer-events: none;
+}
+
+.vn2d-rail-sep {
+  width: 20px;
+  height: 1px;
+  margin: 2px 0;
+  background: var(--line);
+  flex-shrink: 0;
+}
+
+/* Lớp phủ Khung ngắm Camera tham chiếu & Lưới 1/3 */
+.vn2d-cam-guide-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 22;
+  pointer-events: none;
+}
+
+.vn2d-cam-guide-svg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.vn2d-cam-guide-frame {
+  position: absolute;
+  border: 1.5px dashed rgba(16, 185, 129, 0.72);
+  border-radius: var(--radius-sm);
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.35);
+  pointer-events: none;
+}
+
+.vn2d-cam-guide-badge {
+  position: absolute;
+  top: -19px;
+  right: -1px;
+  height: 17px;
+  padding: 0 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid #10b981;
+  background: color-mix(in srgb, #10b981 80%, #0f172a);
+  color: #ffffff;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.vn2d-cam-guide-badge:hover {
+  background: #059669;
+}
+
+/* ==========================================================================
+   Menu Chuột Phải Ngữ Cảnh (Context Popup Menu) thông minh theo Đối tượng / Cụm / Camera
+   ========================================================================== */
+.vn2d-context-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 49990;
+  background: transparent;
+}
+
+.vn2d-context-menu {
+  position: fixed;
+  z-index: 50000;
+  width: 316px;
+  max-width: calc(100vw - 16px);
+  max-height: min(470px, calc(100vh - 20px));
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 9px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+  color: var(--text);
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.48);
+  user-select: none;
+}
+
+.vn2d-ctx-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 5px 7px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-1);
+  border: 1px solid var(--line-soft);
+}
+
+.vn2d-ctx-title-wrap {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.vn2d-ctx-kicker {
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent-cyan);
+}
+
+.vn2d-ctx-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vn2d-ctx-coords {
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 2px 5px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-3);
+  color: var(--text-dim);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.vn2d-ctx-sec {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.vn2d-ctx-sec + .vn2d-ctx-sec {
+  padding-top: 6px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.vn2d-ctx-sec-label {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  padding: 0 2px;
+}
+
+.vn2d-ctx-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.vn2d-ctx-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 29px;
+  padding: 0 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-soft);
+  background: var(--bg-1);
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  transition: background 110ms ease, border-color 110ms ease, color 110ms ease;
+}
+
+.vn2d-ctx-btn > svg {
+  flex-shrink: 0;
+  opacity: 0.88;
+}
+
+.vn2d-ctx-btn > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vn2d-ctx-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--logic-accent, var(--accent)) 16%, var(--bg-3));
+  border-color: var(--logic-accent, var(--accent));
+}
+
+.vn2d-ctx-btn.is-primary {
+  background: color-mix(in srgb, var(--accent) 80%, #0f172a);
+  border-color: var(--accent);
+  color: #ffffff;
+}
+
+.vn2d-ctx-btn.is-primary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 92%, #0f172a);
+}
+
+.vn2d-ctx-btn.is-cam {
+  background: color-mix(in srgb, #10b981 78%, #0f172a);
+  border-color: #10b981;
+  color: #ffffff;
+}
+
+.vn2d-ctx-btn.active {
+  background: color-mix(in srgb, var(--logic-accent, var(--accent)) 78%, #0f172a);
+  border-color: var(--logic-accent, var(--accent));
+  color: #ffffff;
+}
+
+.vn2d-ctx-btn.is-danger {
+  color: #f87171;
+  border-color: color-mix(in srgb, #ef4444 35%, var(--line-soft));
+}
+
+.vn2d-ctx-btn.is-danger:hover:not(:disabled) {
+  background: color-mix(in srgb, #ef4444 78%, #0f172a);
+  border-color: #ef4444;
+  color: #ffffff;
+}
+
+.vn2d-ctx-btn.is-span-2 {
+  grid-column: 1 / -1;
+}
+
+/* ==========================================================================
+   Responsive 4 Breakpoints & Container Queries (Desktop · Laptop · Tablet · Phone)
+   ========================================================================== */
+
+/* Container vừa (Split Pane <= 740px): ẩn cụm căn nhanh phụ trên thanh top để ưu tiên chặng BBox */
+@container (max-width: 740px) {
+  .vn2d-hide-wide-only {
+    display: none;
+  }
+}
+
+@container (max-width: 610px) {
+  .vn2d-hide-compact {
+    display: none;
+  }
+
+  .vn2d-cam-switch-txt {
+    display: none;
+  }
+}
+
+@container (max-width: 520px) {
+  .vn2d-hide-narrow,
+  .vn2d-action-txt {
+    display: none;
+  }
+
+  /* Khi vùng khung 2D hẹp <= 520px: chuyển 2 thanh Rail dọc thành dải công cụ cảm ứng ngang ở đáy */
+  .viewer-node2d-body {
+    padding-bottom: 44px;
+  }
+
+  .vn2d-side-rail.is-left,
+  .vn2d-side-rail.is-right {
+    top: auto;
+    bottom: 6px;
+    transform: none;
+    flex-direction: row;
+    max-height: none;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 3px 5px;
+  }
+
+  .vn2d-side-rail.is-left {
+    left: 6px;
+    max-width: calc(56% - 8px);
+  }
+
+  .vn2d-side-rail.is-right {
+    right: 6px;
+    max-width: calc(44% - 8px);
+  }
+
+  .vn2d-rail-sep {
+    width: 1px;
+    height: 20px;
+    margin: 0 2px;
+  }
+}
+
+/* Tablet (769px – 1120px): tăng vùng bấm công thái học cảm ứng >= 36px */
+@media (max-width: 1120px) {
+  .vn2d-rail-btn {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    min-height: 36px;
+  }
+
+  .vn2d-ctx-btn {
+    min-height: 36px;
+    font-size: 12px;
+  }
+}
+
+/* Phone (<= 768px): thanh công cụ cuộn mượt + Menu ngữ cảnh dạng Bottom Sheet vừa ngón tay */
+@media (max-width: 768px) {
+  .viewer-node2d-toolbar {
+    height: 40px;
+    min-height: 40px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .viewer-node2d-toolbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .vn2d-tool-btn,
+  .vn2d-fit-btn,
+  .vn2d-seg-item {
+    min-height: 32px;
+    font-size: 12px;
+  }
+
+  .vn2d-context-backdrop {
+    background: rgba(2, 6, 23, 0.45);
+  }
+
+  .vn2d-context-menu {
+    left: 10px !important;
+    right: 10px !important;
+    bottom: 10px !important;
+    top: auto !important;
+    width: auto;
+    max-width: none;
+    max-height: 74vh;
+    padding: 12px;
+  }
+
+  .vn2d-ctx-btn {
+    min-height: 38px;
+    font-size: 12.5px;
+  }
+}

@@ -44,6 +44,8 @@ import {
 } from './WorkflowV2StageBboxMotionOverlay'
 import { WorkflowV2StageSubtitleOverlay } from './WorkflowV2StageSubtitleOverlay'
 import { resolveV2NodeLevel, resolveV2NodeTheme } from './workflowV2Theme'
+import { StageCameraGuideOverlay } from '../viewer/nodeStage2d/StageCameraGuideOverlay'
+import type { StageContextHitInfo } from '../viewer/nodeStage2d/nodeStageQuickActions'
 
 export interface WorkflowV2DirectStagePreviewProps {
   node: WorkflowNode
@@ -58,12 +60,15 @@ export interface WorkflowV2DirectStagePreviewProps {
   /** Khi hiển thị ở Màn Khung 2D lớn của Khung nhìn chính: bung 100% chiều cao, hỗ trợ pan/zoom mượt & chọn layer trực tiếp */
   fullViewport?: boolean
   viewportHeight?: number
+  railInsetX?: number
+  showCameraGuideOverlay?: boolean
   externalZoom?: number
   externalPan?: { x: number; y: number }
   scopeOverrideProp?: 'cluster' | 'part' | null
   onWheelZoom?: (e: React.WheelEvent) => void
   onCanvasPanStart?: (e: React.PointerEvent) => void
   onPickSceneLayer?: (layerId: string) => void
+  onStageContextMenu?: (hit: StageContextHitInfo) => void
 }
 
 const STEP_CIRCLES = ['①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩']
@@ -87,12 +92,15 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
   onScrubTime,
   fullViewport = false,
   viewportHeight,
+  railInsetX = 0,
+  showCameraGuideOverlay = false,
   externalZoom,
   externalPan,
   scopeOverrideProp,
   onWheelZoom,
   onCanvasPanStart,
-  onPickSceneLayer
+  onPickSceneLayer,
+  onStageContextMenu
 }) => {
   const [toolbarHost, setToolbarHost] = useState<HTMLDivElement | null>(null)
   const isMotionNode = node.params?.logicCategory === 'action'
@@ -259,15 +267,16 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
 
   const compW = Math.max(100, project.comp.width || 1920)
   const compH = Math.max(100, project.comp.height || 1080)
-  const padScale = fullViewport ? 0.88 : 0.96
+  const padScale = fullViewport ? (railInsetX > 0 ? 0.95 : 0.9) : 0.96
   const stageW = Math.max(200, boxWidth)
   const naturalH = fullViewport
     ? Math.max(220, viewportHeight ?? 420)
     : Math.max(195, Math.min(340, Math.round(((stageW * padScale) * compH) / compW) + 12))
   const stageH = fullViewport ? naturalH : (customStageH ?? naturalH)
   const hudReserve = fullViewport ? 44 : 0
+  const fitAreaW = Math.max(160, stageW - railInsetX)
   const fitAreaH = Math.max(140, stageH - hudReserve)
-  const baseZoom = Math.min((stageW * padScale) / compW, (fitAreaH * padScale) / compH)
+  const baseZoom = Math.min((fitAreaW * padScale) / compW, (fitAreaH * padScale) / compH)
   const zoom = baseZoom * (externalZoom ?? stageZoomBoost)
   const shotScreenW = compW * zoom
   const shotScreenH = compH * zoom
@@ -562,6 +571,31 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
             style={{ width: '100%', height: stageH }}
             onWheel={onWheelZoom}
             onPointerDown={onCanvasPanStart}
+            onContextMenu={(e) => {
+              if (!onStageContextMenu) return
+              e.preventDefault()
+              e.stopPropagation()
+              const rect = e.currentTarget.getBoundingClientRect()
+              const safeZoom = Math.max(0.02, zoom)
+              const screenOffsetX = (e.clientX - rect.left - shotCenterX) / safeZoom
+              const screenOffsetY = (e.clientY - rect.top - shotCenterY) / safeZoom
+              const zRef = coordRefLayer?.transform.position.value[2] ?? 0
+              const pFactor = 1483.64 / Math.max(80, 1483.64 + zRef)
+              const el = e.target as HTMLElement | null
+              const wpEl = el?.closest?.('[data-waypoint-node-id]') as HTMLElement | null
+              const layerEl = el?.closest?.('[data-scene-layer-id]') as HTMLElement | null
+              onStageContextMenu({
+                clientX: e.clientX,
+                clientY: e.clientY,
+                worldX: Math.round(screenOffsetX / pFactor),
+                worldY: Math.round(-screenOffsetY / pFactor),
+                screenOffsetX: Math.round(screenOffsetX),
+                screenOffsetY: Math.round(screenOffsetY),
+                shotId: shotBox.shotId,
+                hitLayerId: layerEl?.getAttribute('data-scene-layer-id') ?? null,
+                hitWaypointNodeId: wpEl?.getAttribute('data-waypoint-node-id') ?? null
+              })
+            }}
           >
             {/* Khung biên 16:9 của Cảnh 2D */}
             <div
@@ -605,7 +639,10 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
                       height: lh,
                       pointerEvents: isTarget || shiftToFocus || fullViewport ? 'auto' : 'none',
                       opacity: l.opacity,
-                      transform: l.rotation ? `rotate(${l.rotation}deg)` : undefined
+                      transform:
+                        [l.rotation ? `rotate(${l.rotation}deg)` : '', l.flipX ? 'scaleX(-1)' : '']
+                          .filter(Boolean)
+                          .join(' ') || undefined
                     }}
                     title={isTarget ? l.name : fullViewport ? `${l.name} — Nhấp để chọn đối tượng này` : undefined}
                     onPointerDown={(e) => {
@@ -680,6 +717,27 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
               })}
             </div>
 
+            {showCameraGuideOverlay && (
+              <StageCameraGuideOverlay
+                stageW={stageW}
+                stageH={stageH}
+                shotLeft={shotLeft}
+                shotTop={shotTop}
+                shotScreenW={shotScreenW}
+                shotScreenH={shotScreenH}
+                compW={compW}
+                compH={compH}
+                zoom={zoom}
+                shotBox={shotBox}
+                shotWaypoints={shotWaypoints}
+                isCamNode={isCamNode}
+                onSelectWaypoint={(wpNodeId, wpTime) => {
+                  onScrubTime(wpTime)
+                  onSelectNode?.(wpNodeId)
+                }}
+              />
+            )}
+
             {/* Lộ trình các cảnh con (#1 → #2...) & BBox Camera tương tác */}
             {isCamNode && shotWaypoints.length > 0 && (
               <svg className="wf-v2-direct-cam-svg" width={stageW} height={stageH}>
@@ -725,7 +783,7 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
                     data-bbox-role="camera_waypoint_bbox"
                     data-bbox-focused={isFocusedWp ? 'true' : undefined}
                     onClick={e => {
-                      if (e.detail !== 0 || isFocusedWp || !e.shiftKey) return
+                      if (e.detail !== 0 || isFocusedWp || !(fullViewport || e.shiftKey)) return
                       e.stopPropagation()
                       onScrubTime(wp.time)
                       onSelectNode?.(wpNodeId)
@@ -736,16 +794,16 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
                       top: fy,
                       width: fw,
                       height: fh,
-                      pointerEvents: isFocusedWp || shiftToFocus ? 'auto' : 'none',
+                      pointerEvents: isFocusedWp || shiftToFocus || fullViewport ? 'auto' : 'none',
                       zIndex: shiftToFocus && !isFocusedWp ? 24 : isFocusedWp ? 23 : undefined,
                       ['--cam-step-c' as string]: stepColor
                     }}
-                    title={`#${wp.displayLabel} · ${wp.tagLabel} — Giữ Shift để chọn mốc khác; kéo mốc đang chọn để lia máy`}
+                    title={`#${wp.displayLabel} · ${wp.tagLabel} — Nhấp để chọn mốc; kéo mốc đang chọn để lia máy hoặc chỉnh Zoom`}
                     onPointerDown={(e) => {
                       if (e.button !== 0) return
                       if (!isFocusedWp) {
                         e.stopPropagation()
-                        if (!e.shiftKey) return
+                        if (!fullViewport && !e.shiftKey) return
                         onScrubTime(wp.time)
                         onSelectNode?.(wpNodeId)
                         return

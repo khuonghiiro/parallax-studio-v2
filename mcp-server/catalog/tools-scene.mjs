@@ -82,7 +82,7 @@ export const SCENE_TOOLS = [
       'Chụp ảnh cửa sổ app hoặc vùng/phần tử UI cụ thể (ví dụ left_panel, timeline, inspector, viewer, dialog). Dùng region hoặc selector để chỉ chụp đúng vùng cần thiết, tối ưu token; không truyền sẽ chụp toàn bộ.'
     ),
     shape: (d) => ({
-      region: z.enum(['viewer_route', 'viewer_depth_tools', 'timeline_properties', 'timeline_key_menu', 'timeline_motion_popup', 'timeline_key_controls', 'viewer_stage2d_tools', 'viewer_depth', 'viewer_node2d', 'viewer_node2d_tools', 'viewer_stage2d', 'timeline_logic', 'timeline_logic_picker',
+      region: z.enum(['viewer_route', 'viewer_depth_tools', 'timeline_properties', 'timeline_key_menu', 'timeline_motion_popup', 'timeline_key_controls', 'viewer_stage2d_tools', 'viewer_depth', 'viewer_node2d', 'viewer_node2d_tools', 'viewer_node2d_left_rail', 'viewer_node2d_right_rail', 'viewer_stage2d', 'timeline_logic', 'timeline_logic_picker',
         'active',
         'left_panel', 'left_tabs', 'assets', 'asset_subtabs', 'asset_grid', 'asset_bar', 'asset_delete_confirm', 'music', 'shots', 'topview',
         'viewer', 'viewer_canvas', 'viewport', 'camera_frame', 'viewer_hud', 'viewer_tools', 'viewer_3d_presets', 'viewer_touch_nav', 'animate_camera_stage', 'animate_camera_toolbar', 'animate_camera_route', 'animate_camera_inspector',

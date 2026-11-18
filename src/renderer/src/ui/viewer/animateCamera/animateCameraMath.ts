@@ -35,6 +35,7 @@ export interface ProjectedLayer2D {
   width: number
   height: number
   rotation: number
+  flipX?: boolean
   opacity: number
   zDepth: number
   assetId?: string
@@ -330,6 +331,7 @@ export function projectShotLayers2D(
     const offsetX = (el.position[0] + parallaxDx) * pFactor
     const offsetY = -(el.position[1] + parallaxDy) * pFactor
     const rotation = -el.rotation[2]
+    const flipX = Math.abs(el.scale[0]) >= 0.05 ? el.scale[0] < 0 : restScale[0] < 0
 
     const base: ProjectedLayer2D = {
       id: el.layer.id,
@@ -340,6 +342,7 @@ export function projectShotLayers2D(
       width,
       height,
       rotation,
+      flipX,
       opacity: el.opacity <= 0.05 ? Math.max(0.28, el.opacity) : el.opacity,
       zDepth: lz
     }

@@ -215,3 +215,99 @@ export const IconNodeStage2D = (p: P) => (
   </svg>
 )
 
+/** Căn tâm đối tượng vào chính giữa khung cảnh 16:9 */
+export const IconAlignStageCenter = (p: P) => (
+  <svg {...base(p)}>
+    <rect x="2.5" y="4" width="19" height="16" rx="2" />
+    <rect x="8.5" y="8.5" width="7" height="7" rx="1" />
+    <line x1="12" y1="2" x2="12" y2="5.5" />
+    <line x1="12" y1="18.5" x2="12" y2="22" />
+    <line x1="2" y1="12" x2="5.5" y2="12" />
+    <line x1="18.5" y1="12" x2="22" y2="12" />
+  </svg>
+)
+
+/** Đặt chân đối tượng chạm đường mặt đất cảnh 2D */
+export const IconAlignStageGround = (p: P) => (
+  <svg {...base(p)}>
+    <rect x="7" y="4" width="10" height="9" rx="1.5" />
+    <line x1="12" y1="13" x2="12" y2="18.2" />
+    <polyline points="9.2 15.8 12 18.5 14.8 15.8" />
+    <line x1="3" y1="20.5" x2="21" y2="20.5" />
+  </svg>
+)
+
+/** Căn đối tượng sang vùng trái khung cảnh */
+export const IconAlignStageLeft = (p: P) => (
+  <svg {...base(p)}>
+    <line x1="4" y1="4" x2="4" y2="20" />
+    <rect x="7.5" y="6.5" width="9" height="5" rx="1" />
+    <rect x="7.5" y="13.5" width="12" height="4" rx="1" opacity="0.7" />
+  </svg>
+)
+
+/** Căn đối tượng sang vùng phải khung cảnh */
+export const IconAlignStageRight = (p: P) => (
+  <svg {...base(p)}>
+    <line x1="20" y1="4" x2="20" y2="20" />
+    <rect x="7.5" y="6.5" width="9" height="5" rx="1" />
+    <rect x="4.5" y="13.5" width="12" height="4" rx="1" opacity="0.7" />
+  </svg>
+)
+
+/** Đưa đối tượng lại gần Camera hơn (giảm Z — Tiền cảnh) */
+export const IconDepthBringFront = (p: P) => (
+  <svg {...base(p)}>
+    <rect x="8.5" y="3.5" width="11" height="9" rx="1.5" strokeDasharray="2.5 2" opacity="0.65" />
+    <rect x="4" y="10" width="12" height="10" rx="1.5" />
+    <polyline points="7.5 15.5 10 13 12.5 15.5" />
+    <line x1="10" y1="13.2" x2="10" y2="18" />
+  </svg>
+)
+
+/** Đẩy đối tượng lùi sâu ra xa Camera (tăng Z — Hậu cảnh) */
+export const IconDepthPushBack = (p: P) => (
+  <svg {...base(p)}>
+    <rect x="4" y="10.5" width="11" height="9" rx="1.5" strokeDasharray="2.5 2" opacity="0.65" />
+    <rect x="8" y="4" width="12" height="10" rx="1.5" />
+    <polyline points="11.5 8.5 14 11 16.5 8.5" />
+    <line x1="14" y1="6" x2="14" y2="10.8" />
+  </svg>
+)
+
+/** Thêm mốc Đẩy cận Camera (Push-In / Zoom In Viewfinder) */
+export const IconCamPushIn = (p: P) => (
+  <svg {...base(p)}>
+    <rect x="7.5" y="8" width="9" height="8" rx="1.2" />
+    <polyline points="3 4 7 8" />
+    <polyline points="4.5 8 7 8 7 5.5" />
+    <polyline points="21 4 17 8" />
+    <polyline points="19.5 8 17 8 17 5.5" />
+    <polyline points="3 20 7 16" />
+    <polyline points="21 20 17 16" />
+  </svg>
+)
+
+/** Thêm mốc Kéo rộng Camera (Pull-Out / Wide Viewfinder) */
+export const IconCamPullOut = (p: P) => (
+  <svg {...base(p)}>
+    <rect x="7.5" y="8" width="9" height="8" rx="1.2" strokeDasharray="2 1.8" />
+    <polyline points="7 8 3 4" />
+    <polyline points="3 6.8 3 4 5.8 4" />
+    <polyline points="17 8 21 4" />
+    <polyline points="18.2 4 21 4 21 6.8" />
+    <polyline points="7 16 3 20" />
+    <polyline points="17 16 21 20" />
+  </svg>
+)
+
+/** Mở Menu Ngữ Cảnh Công Cụ (3 chấm ngang trong khung vuông bo góc) */
+export const IconContextDots = (p: P) => (
+  <svg {...base(p)}>
+    <rect x="3" y="4" width="18" height="16" rx="2.5" />
+    <circle cx="8" cy="12" r="1.25" fill="currentColor" stroke="none" />
+    <circle cx="12" cy="12" r="1.25" fill="currentColor" stroke="none" />
+    <circle cx="16" cy="12" r="1.25" fill="currentColor" stroke="none" />
+  </svg>
+)
+
