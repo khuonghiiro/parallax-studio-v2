@@ -128,75 +128,47 @@ export function MobileRemoteDialog() {
         className="modal wide remote-modal"
         data-mcp-region="remote_dialog"
         data-mcp-dialog
+        data-ai-surface="dialog"
+        data-ai-surface-label="Điều khiển Đa thiết bị QR & Wi-Fi LAN"
         role="dialog"
+        aria-modal="true"
         aria-labelledby="remote-dialog-title"
         onClick={(e) => e.stopPropagation()}
-        style={{
-          maxWidth: 920,
-          width: '94vw',
-          boxSizing: 'border-box',
-          overflow: 'hidden'
-        }}
       >
         {/* Header */}
-        <div className="modal-head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <IconQrCode width={18} height={18} style={{ color: 'var(--accent-cyan)' }} />
+        <div className="modal-head modal-head-row">
+          <div className="modal-head-title-group">
+            <span className="modal-head-badge">
+              <IconQrCode width={15} height={15} />
+            </span>
             <div>
-              <h2 id="remote-dialog-title" style={{ fontSize: '14px', margin: 0 }}>
-                Điều Khiển Đa Thiết Bị Qua QR & Wi-Fi LAN (Điện thoại · iPad · Tablet · Laptop · PC)
+              <h2 id="remote-dialog-title">
+                Điều Khiển Đa Thiết Bị Qua QR &amp; Wi-Fi LAN (Điện thoại · iPad · Tablet · Laptop · PC)
               </h2>
-              <p style={{ margin: '2px 0 0', fontSize: '11px', color: 'var(--text-dim)' }}>
+              <p>
                 Truyền trực tiếp toàn bộ Parallax Studio thích ứng đúng chuẩn App Điện thoại, iPad/Tablet hoặc Desktop qua mạng LAN với đồng bộ 2 chiều thời gian thực
               </p>
             </div>
           </div>
-          <button type="button" className="btn icon ghost sm" onClick={close} title="Đóng">
+          <button type="button" className="btn icon ghost sm modal-close-btn" aria-label="Đóng hộp thoại QR Remote" onClick={close} title="Đóng">
             <IconX width={14} height={14} />
           </button>
         </div>
 
         {isLegacyMainServer && (
-          <div
-            role="status"
-            style={{
-              margin: '10px 16px 0',
-              padding: '9px 12px',
-              borderRadius: 'var(--radius)',
-              background: 'color-mix(in srgb, var(--warn) 14%, var(--bg-2))',
-              border: '1px solid color-mix(in srgb, var(--warn) 55%, var(--line))',
-              color: 'var(--text)',
-              fontSize: '11.5px',
-              lineHeight: 1.45,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 3
-            }}
-          >
-            <strong style={{ color: 'var(--warn)', fontSize: '12px' }}>
+          <div role="status" className="remote-legacy-banner">
+            <strong>
               ⚡ Cần khởi động lại `pnpm dev` 1 lần để nạp Máy chủ Full App Đa Thiết Bị trên cổng :{status.port}
             </strong>
-            <span style={{ color: 'var(--text-dim)' }}>
-              Tiến trình nền Electron đang mở từ phiên trước vẫn đang chạy máy chủ Touchpad rút gọn cũ trong bộ nhớ nên điện thoại quét QR chỉ nhận giao diện Touchpad. Hãy nhấn{' '}
-              <code style={{ color: 'var(--text)', fontFamily: 'var(--mono)' }}>Ctrl + C</code> rồi chạy lại{' '}
-              <code style={{ color: 'var(--accent-cyan)', fontFamily: 'var(--mono)' }}>pnpm dev</code> trên terminal — ngay sau đó điện thoại / iPad / Laptop quét QR sẽ nhận toàn bộ giao diện App Mobile / Tablet / Desktop.
+            <span>
+              Tiến trình nền Electron đang mở từ phiên trước vẫn đang chạy máy chủ Touchpad rút gọn cũ trong bộ nhớ. Hãy nhấn{' '}
+              <code>Ctrl + C</code> rồi chạy lại <code>pnpm dev</code> trên terminal để nhận toàn bộ giao diện App Mobile / Tablet / Desktop.
             </span>
           </div>
         )}
 
         {/* Body: 2 Columns */}
-        <div
-          className="modal-body remote-modal-body"
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))',
-            gap: 14,
-            padding: '14px 16px',
-            maxHeight: '78vh',
-            overflowY: 'auto',
-            boxSizing: 'border-box'
-          }}
-        >
+        <div className="modal-body remote-modal-body">
           {/* LEFT COLUMN: QR Code, Layout Mode Picker & Network Info */}
           <RemoteQrNetworkCard
             status={status}
@@ -207,22 +179,10 @@ export function MobileRemoteDialog() {
           />
 
           {/* RIGHT COLUMN: Connected Multi-Device Studio Manager & Live Touchpad */}
-          <section
-            className="remote-touchpad-card"
-            data-mcp-region="remote_touchpad_card"
-            style={{
-              background: 'var(--bg-0)',
-              border: '1px solid var(--line)',
-              borderRadius: 'var(--radius-md)',
-              padding: 14,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 10
-            }}
-          >
+          <section className="remote-touchpad-card" data-mcp-region="remote_touchpad_card">
             {/* Top Transport Bar */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <div className="remote-transport-bar">
+              <div className="remote-transport-btns">
                 <button
                   type="button"
                   className="btn sm primary"
@@ -234,19 +194,13 @@ export function MobileRemoteDialog() {
                 </button>
                 <button
                   type="button"
-                  className="btn sm"
+                  className="btn sm success"
                   onClick={() =>
                     execRemoteAction({
                       action: 'keyframe',
                       target_kind: activeTab === 'camera' ? 'camera' : 'layer'
                     })
                   }
-                  style={{
-                    background: 'var(--key)',
-                    color: 'var(--on-key)',
-                    borderColor: 'var(--key)',
-                    fontWeight: 700
-                  }}
                   title="Đặt Keyframe tại thời điểm hiện tại"
                 >
                   <IconKeyframeDiamond width={12} height={12} />
@@ -255,6 +209,7 @@ export function MobileRemoteDialog() {
                 <button
                   type="button"
                   className="btn sm icon ghost"
+                  aria-label="Hoàn tác từ xa"
                   disabled={!snap.canUndo}
                   onClick={() => execRemoteAction({ action: 'undo' })}
                   title="Hoàn tác (Undo)"
@@ -264,6 +219,7 @@ export function MobileRemoteDialog() {
                 <button
                   type="button"
                   className="btn sm icon ghost"
+                  aria-label="Làm lại từ xa"
                   disabled={!snap.canRedo}
                   onClick={() => execRemoteAction({ action: 'redo' })}
                   title="Làm lại (Redo)"
@@ -272,64 +228,29 @@ export function MobileRemoteDialog() {
                 </button>
               </div>
 
-              <span
-                style={{
-                  fontFamily: 'var(--mono)',
-                  fontSize: '11.5px',
-                  fontWeight: 700,
-                  color: 'var(--accent-cyan)',
-                  background: 'var(--bg-1)',
-                  padding: '3px 8px',
-                  borderRadius: 'var(--radius-sm)',
-                  border: '1px solid var(--line-soft)'
-                }}
-              >
+              <span className="remote-timecode-pill">
                 {snap.time.toFixed(2)}s / {snap.comp.duration.toFixed(1)}s
               </span>
             </div>
 
-            {/* 1-Click Right Panel Segmented Switch: Multi-Device Sessions vs Live Touchpad 3D */}
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: 4,
-                padding: 3,
-                background: 'var(--bg-2)',
-                border: '1px solid var(--line-soft)',
-                borderRadius: 'var(--radius)'
-              }}
-            >
+            {/* 1-Click Child Sub-Tabs: Multi-Device Sessions vs Live Touchpad 3D */}
+            <div className="remote-right-subtabs wf-v2-seg-tabs" role="tablist">
               <button
                 type="button"
-                className="btn sm ghost"
+                role="tab"
+                aria-selected={rightView === 'devices'}
+                className={`wf-v2-seg-tab${rightView === 'devices' ? ' active' : ''}`}
                 onClick={() => setRightView('devices')}
-                style={{
-                  justifyContent: 'center',
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  borderRadius: 'var(--radius-sm)',
-                  background: rightView === 'devices' ? 'var(--accent)' : 'transparent',
-                  color: rightView === 'devices' ? 'var(--on-accent)' : 'var(--text-dim)',
-                  borderColor: rightView === 'devices' ? 'var(--accent)' : 'transparent'
-                }}
               >
                 <IconDeviceAuto width={13} height={13} />
-                <span>Thiết bị & Đa màn hình ({devices.length})</span>
+                <span>Thiết bị &amp; Đa màn hình ({devices.length})</span>
               </button>
               <button
                 type="button"
-                className="btn sm ghost"
+                role="tab"
+                aria-selected={rightView === 'touchpad'}
+                className={`wf-v2-seg-tab${rightView === 'touchpad' ? ' active' : ''}`}
                 onClick={() => setRightView('touchpad')}
-                style={{
-                  justifyContent: 'center',
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  borderRadius: 'var(--radius-sm)',
-                  background: rightView === 'touchpad' ? 'var(--accent)' : 'transparent',
-                  color: rightView === 'touchpad' ? 'var(--on-accent)' : 'var(--text-dim)',
-                  borderColor: rightView === 'touchpad' ? 'var(--accent)' : 'transparent'
-                }}
               >
                 <IconTouchpadRemote width={13} height={13} />
                 <span>Bàn rê Touchpad 3D</span>
@@ -354,12 +275,12 @@ export function MobileRemoteDialog() {
         </div>
 
         {/* Footer */}
-        <div className="modal-foot" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-          <span style={{ fontSize: '11px', color: 'var(--text-dim)' }}>
-            Đồng bộ toàn bộ Studio (SSE + REST + Asset Binary Bridge) qua Wi-Fi LAN · Tự thích ứng Điện thoại, iPad, Tablet, Laptop & PC · Hỗ trợ Undo/Redo (Ctrl+Z)
+        <div className="modal-foot modal-foot-between">
+          <span className="modal-foot-meta">
+            Đồng bộ toàn bộ Studio (SSE + REST + Asset Binary Bridge) qua Wi-Fi LAN · Tự thích ứng Điện thoại, iPad, Tablet, Laptop &amp; PC
           </span>
-          <button type="button" className="btn" onClick={close}>
-            Đóng
+          <button type="button" className="btn primary" onClick={close}>
+            Hoàn tất &amp; Đóng
           </button>
         </div>
       </div>

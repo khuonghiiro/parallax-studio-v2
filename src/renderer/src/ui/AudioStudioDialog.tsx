@@ -149,7 +149,15 @@ export function AudioStudioDialog() {
 
   return (
     <div className="modal-backdrop" onPointerDown={(e) => e.target === e.currentTarget && close()}>
-      <div className="modal audio-studio-modal" role="dialog" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="modal audio-studio-modal"
+        role="dialog"
+        aria-modal="true"
+        data-ai-surface="dialog"
+        data-ai-surface-label="Studio Cấu hình Âm thanh & Sóng âm"
+        data-mcp-region="audio_studio"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="modal-head audio-studio-head">
           <div className="audio-studio-title-row">

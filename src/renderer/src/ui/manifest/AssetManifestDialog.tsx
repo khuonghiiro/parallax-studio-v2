@@ -207,6 +207,10 @@ export function AssetManifestDialog({ onClose }: { onClose: () => void }) {
     >
       <div
         className="modal manifest-modal"
+        role="dialog"
+        aria-modal="true"
+        data-ai-surface="dialog"
+        data-ai-surface-label="Điều phối Manifest Tài nguyên"
         data-mcp-region="manifest_dialog"
         data-mcp-dialog="manifest"
         onClick={(e) => e.stopPropagation()}
@@ -233,7 +237,7 @@ export function AssetManifestDialog({ onClose }: { onClose: () => void }) {
             <button
               id="manifest-reload-btn"
               type="button"
-              className="btn ghost sm"
+              className="btn ai sm"
               disabled={loading || saving}
               onClick={() => void refreshCatalog(true)}
               title="Đọc lại toàn bộ manifest.json và các phân hệ ngay lập tức"

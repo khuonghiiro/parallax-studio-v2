@@ -1,0 +1,361 @@
+/* ==========================================================================
+   UI-App-V2 Modals, Dialogs, Workshops & 4-Breakpoint Multi-Device Responsive
+   ========================================================================== */
+
+/* ---- 1. Unified Studio Modal Chrome ---- */
+.modal {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+
+.modal-head h2,
+.manifest-header-titles h3,
+.audio-studio-head h2 {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--text);
+}
+
+.modal-head p,
+.manifest-header-sub,
+.audio-studio-head p {
+  font-size: 11.5px;
+  color: var(--text-dim);
+  line-height: 1.4;
+}
+
+.modal-head-badge,
+.manifest-header-icon,
+.audio-studio-badge {
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--accent) 18%, var(--bg-2));
+  border: 1px solid color-mix(in srgb, var(--accent-cyan) 42%, var(--line));
+  color: var(--accent-cyan);
+}
+
+[data-theme='light'] .modal-head-badge,
+[data-theme='light'] .manifest-header-icon,
+[data-theme='light'] .audio-studio-badge {
+  color: var(--accent);
+}
+
+.modal-foot {
+  background: color-mix(in srgb, var(--bg-0) 45%, var(--bg-1));
+  border-top: 1px solid var(--line);
+}
+
+.modal-foot-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.modal-foot-meta {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+/* ---- 2. MCP Dialog Clean Layout ---- */
+.mcp-modal {
+  max-width: 780px;
+  width: min(94vw, 780px);
+  box-sizing: border-box;
+}
+
+.mcp-modal-body {
+  max-height: 74vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px;
+  box-sizing: border-box;
+}
+
+.mcp-status-card {
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+}
+
+.mcp-status-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.mcp-status-info-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.mcp-live-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.mcp-live-dot.connected {
+  background: var(--ok);
+  box-shadow: 0 0 8px var(--ok);
+}
+
+.mcp-live-dot.listening {
+  background: var(--key);
+  box-shadow: 0 0 6px var(--key);
+}
+
+.mcp-live-dot.off {
+  background: var(--danger);
+}
+
+.mcp-status-main-text {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.mcp-status-cmd-count {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-family: var(--mono);
+}
+
+.mcp-status-btn-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mcp-action-msg {
+  margin-top: 8px;
+  font-size: 11.5px;
+  color: var(--accent-cyan);
+  font-weight: 500;
+  word-break: break-word;
+}
+
+[data-theme='light'] .mcp-action-msg {
+  color: var(--accent);
+}
+
+.mcp-action-msg.is-error {
+  color: var(--danger);
+}
+
+.mcp-token-path {
+  margin-top: 8px;
+  font-size: 10.5px;
+  color: var(--text-dim);
+  font-family: var(--mono);
+  word-break: break-all;
+}
+
+.mcp-token-path span {
+  color: var(--text);
+}
+
+/* ---- 3. Mobile Remote QR Dialog Clean Layout ---- */
+.remote-modal {
+  max-width: 940px;
+  width: min(94vw, 940px);
+  box-sizing: border-box;
+}
+
+.remote-legacy-banner {
+  margin: 10px 16px 0;
+  padding: 9px 12px;
+  border-radius: var(--radius-md);
+  background: var(--btn-warn-bg);
+  border: 1px solid var(--btn-warn-border);
+  color: var(--text);
+  font-size: 11.5px;
+  line-height: 1.45;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.remote-legacy-banner strong {
+  color: var(--warn);
+  font-size: 12px;
+}
+
+.remote-modal-body {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  gap: 14px;
+  padding: 14px 16px;
+  max-height: 76vh;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.remote-touchpad-card {
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.remote-transport-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.remote-transport-btns {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.remote-timecode-pill {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  background: var(--bg-1);
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+}
+
+[data-theme='light'] .remote-timecode-pill {
+  color: var(--accent);
+}
+
+.remote-right-subtabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.remote-right-subtabs .wf-v2-seg-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* ---- 4. Parent vs Child Tabs in Audio Studio, Manifest & Creative Workshops ---- */
+/* Parent Tabs (Royal Blue + Bottom Active Bar): Audio Studio Top Tabs, Manifest Sidebar Modules, Workshop Mode Tabs */
+.audio-studio-tabs {
+  background: var(--tab-parent-strip-bg);
+  border-radius: var(--radius-md);
+  padding: 3px;
+  gap: 4px;
+  border: 1px solid var(--line);
+}
+
+.audio-tab-btn.active {
+  background: var(--accent) !important;
+  border-color: var(--tab-parent-active-border) !important;
+  color: var(--on-accent) !important;
+  box-shadow: inset 0 -2px 0 var(--accent-cyan);
+  font-weight: 700;
+}
+
+.manifest-module-btn.active {
+  background: var(--tab-parent-active-bg) !important;
+  border-color: var(--tab-parent-active-border) !important;
+  color: var(--tab-parent-active-fg) !important;
+  box-shadow: inset 3px 0 0 var(--tab-parent-active-border);
+}
+
+/* Child Sub-Tabs (Recessed Teal Track): Manifest Workspace Sub-Tabs */
+.manifest-tabs {
+  background: var(--tab-child-track-bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 3px;
+  gap: 3px;
+}
+
+.manifest-tab-btn.active {
+  background: var(--tab-child-active-bg) !important;
+  border-color: var(--tab-child-active-border) !important;
+  color: var(--tab-child-active-fg) !important;
+  font-weight: 700;
+}
+
+.path-add-step-btn {
+  align-self: flex-start;
+}
+
+/* ---- 5. Four-Breakpoint Multi-Device Responsive Polish ---- */
+/* Tablet (769px - 1120px) */
+@media (min-width: 769px) and (max-width: 1120px) {
+  .modal.wide,
+  .manifest-modal,
+  .audio-studio-modal {
+    width: min(96vw, 880px);
+    max-height: 90dvh;
+  }
+
+  .tb-center .doc-title-file,
+  .tb-center .doc-title-sep {
+    display: none;
+  }
+}
+
+/* Phone (<= 768px) */
+@media (max-width: 768px) {
+  .modal,
+  .modal.wide,
+  .perf-modal,
+  .mcp-modal,
+  .remote-modal,
+  .export-modal,
+  .camera-path-modal,
+  .audio-studio-modal,
+  .manifest-modal {
+    width: calc(100vw - 12px) !important;
+    max-width: calc(100vw - 12px) !important;
+    max-height: 92dvh !important;
+    border-radius: var(--radius-lg);
+  }
+
+  .modal-foot .btn {
+    min-height: 36px;
+    font-size: 12.5px;
+  }
+
+  .audio-studio-tabs {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .manifest-body {
+    flex-direction: column;
+  }
+
+  .manifest-sidebar {
+    width: 100% !important;
+    max-height: 180px;
+    overflow-y: auto;
+  }
+}
