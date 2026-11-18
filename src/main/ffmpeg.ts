@@ -4,7 +4,7 @@ import { join } from 'path'
 import ffmpegStatic from 'ffmpeg-static'
 import type { ExportResult, ExportStartOptions, ExportVideoEncoder } from '@shared/ipc'
 import { resolveVideoEncoder, videoCodecArgs } from './ffmpegEncoders'
-import { rgbaToYuv420pRust } from './pxsNativeAccel'
+import { rgbaToYuv420pAsyncRust } from './pxsNativeAccel'
 
 /** Resolve the ffmpeg binary from env, local project bin, ffmpeg-static, or system PATH. */
 export function ffmpegPath(): string {
@@ -117,7 +117,7 @@ export class FfmpegEncoder {
     }
     if (this.proc.exitCode !== null) throw new Error(`ffmpeg exited early:\n${this.stderrTail}`)
     const out = this.cpuYuvFallback
-      ? rgbaToYuv420pRust(frame, this.opts.width, this.opts.height, true)
+      ? await rgbaToYuv420pAsyncRust(frame, this.opts.width, this.opts.height, true)
       : frame
     const ok = this.proc.stdin.write(Buffer.from(out.buffer, out.byteOffset, out.byteLength))
     if (!ok) await this.waitDrain()

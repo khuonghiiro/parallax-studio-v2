@@ -32,6 +32,7 @@ const api: ParallaxApi = {
     togglePreview: (backupPath, mode) => ipcRenderer.invoke('aiCode:togglePreview', backupPath, mode)
   },
   pxsAccel: {
+    getBackendInfo: () => ipcRenderer.invoke('pxsAccel:getBackendInfo'),
     sha256Hex: (input) => ipcRenderer.invoke('pxsAccel:sha256Hex', input),
     hashFiles: (paths) => ipcRenderer.invoke('pxsAccel:hashFiles', paths),
     packArchive: (entries) => ipcRenderer.invoke('pxsAccel:packArchive', entries),
