@@ -45,7 +45,7 @@ const SHA256_K: [u32; 64] = [
 ];
 
 #[inline]
-pub(crate) fn crc32_slice(data: &[u8]) -> u32 {
+pub fn crc32_slice(data: &[u8]) -> u32 {
     let mut crc = 0xFFFF_FFFFu32;
     for &b in data {
         crc = CRC32_TABLE[((crc ^ b as u32) & 0xFF) as usize] ^ (crc >> 8);
@@ -107,7 +107,7 @@ fn sha256_compress(state: &mut [u32; 8], block: &[u8]) {
     }
 }
 
-pub(crate) fn sha256_bytes(data: &[u8]) -> [u8; 32] {
+pub fn sha256_bytes(data: &[u8]) -> [u8; 32] {
     let mut state = SHA256_INIT;
     let mut off = 0usize;
     while off + 64 <= data.len() {
@@ -135,6 +135,17 @@ pub(crate) fn sha256_bytes(data: &[u8]) -> [u8; 32] {
         out[i * 4..i * 4 + 4].copy_from_slice(&state[i].to_be_bytes());
     }
     out
+}
+
+pub fn sha256_hex(data: &[u8]) -> String {
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    let digest = sha256_bytes(data);
+    let mut buf = [0u8; 64];
+    for (i, &b) in digest.iter().enumerate() {
+        buf[i * 2] = HEX[(b >> 4) as usize];
+        buf[i * 2 + 1] = HEX[(b & 0x0f) as usize];
+    }
+    String::from_utf8(buf.to_vec()).unwrap_or_default()
 }
 
 #[unsafe(no_mangle)]

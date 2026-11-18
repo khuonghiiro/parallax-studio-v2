@@ -61,9 +61,11 @@ __pycache__/
 # Binaries
 bin/*.exe
 
-# Rust target directories
+# Rust target directories & local N-API binaries
 target/
 crates/**/target/
+native/*.node
+native/*.node.next
 
 # AI Agent runtime artifacts
 .claude/
