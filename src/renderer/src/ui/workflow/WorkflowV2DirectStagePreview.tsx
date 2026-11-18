@@ -150,7 +150,13 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
   const isCamNode = node.type === 'camera_director'
   const isWaypointNode = Boolean(node.params?.isCameraWaypoint)
   const isClusterLockNode = node.params?.logicCategory === 'cluster_lock'
-  const hasBboxMotion = node.params?.logicCategory === 'action' && (node.params?.motionMode === 'bbox' || node.params?.actionPreset === 'bbox_target')
+  const hasBboxMotion =
+    node.params?.logicCategory === 'action' &&
+    (node.params?.motionMode === 'bbox' || node.params?.actionPreset === 'bbox_target')
+  const hasDrawnPathMotion =
+    node.params?.logicCategory === 'action' &&
+    (node.params?.motionMode === 'path' || node.params?.actionPreset === 'custom_draw') &&
+    (node.params?.customMotionPath?.length ?? 0) >= 2
   const targetEntityParam = node.params?.activeMotionTargetEntityId as string | undefined
   const preferredEntityId = targetEntityParam && targetEntityParam !== 'all' ? targetEntityParam : undefined
   const repLayerId = preferredEntityId ?? node.params?.targetLayerIds?.[0] ?? null
@@ -827,7 +833,10 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
               })}
 
             {/* Khung BBox tương tác trực tiếp của Layer hoặc Toàn bộ Cụm */}
-            {selectedProjLayer && !isCollisionNode && !isSubtitleNode && (!isMotionNode || !hasBboxMotion) && (
+            {selectedProjLayer &&
+              !isCollisionNode &&
+              !isSubtitleNode &&
+              (!isMotionNode || (!hasBboxMotion && !hasDrawnPathMotion)) && (
               <div
                 className={`wf-v2-direct-layer-bbox${isMotionNode ? ' is-locked-start' : ''}`}
                 data-scene-layer-id={coordRefLayer?.id || selectedProjLayer.id}

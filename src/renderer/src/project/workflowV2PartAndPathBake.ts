@@ -1,15 +1,17 @@
 import type { Layer, Project, Vec3, WorkflowNode, WorkflowNodeParams } from '@shared/types'
 import { evaluate } from '../animation/keyframes'
+import { decimateAndSmoothStroke, evaluateCatmullRom2D } from './workflowCurveMath'
 import {
   clearBboxMotionKeysFromScene,
   evaluateCleanLayerPos,
-  sampleNormalizedStroke,
-  smoothNormalizedStroke
+  evaluateCleanLayerRot,
+  evaluateCleanLayerScale
 } from './workflowV2BboxMotionAndCollision'
 import {
   detectClusterExpressions,
   getClusterMemberLayers,
-  getClusterPartShortName
+  getClusterPartShortName,
+  getClusterRootLayer
 } from './workflowV2ClusterRigAndSwap'
 
 const isPartPoseKeyId = (id: string, nodeId?: string): boolean =>
@@ -271,10 +273,18 @@ export function syncPartSwapNodeToProject(
   }
 }
 
-const isMotPathKeyId = (id: string, nodeId?: string): boolean =>
-  nodeId ? id.includes(`-motpath-p-${nodeId}-`) : id.includes('-motpath-p-')
+const isMotPathKeyId = (id: string, nodeId?: string): boolean => {
+  if (nodeId) {
+    return (
+      id.includes(`-motpath-p-${nodeId}-`) ||
+      id.includes(`-motpath-s-${nodeId}-`) ||
+      id.includes(`-motpath-r-${nodeId}-`)
+    )
+  }
+  return id.includes('-motpath-p-') || id.includes('-motpath-s-') || id.includes('-motpath-r-')
+}
 
-/** Bake quỹ đạo chuyển động vẽ tay 2D (`customMotionPath`) lên các Layer mục tiêu trong khoảng `[timeStart, timeEnd]` */
+/** Bake quỹ đạo chuyển động vẽ tay 2D (`customMotionPath`) kèm Scale & Xoay đích lên các Layer / Cụm mục tiêu */
 export function bakeCustomMotionPathToScene(
   project: Project,
   targetLayerIds: string[],
@@ -285,14 +295,24 @@ export function bakeCustomMotionPathToScene(
     intensity?: number
     loop?: boolean
     cycleDuration?: number
+    targetScalePct?: number
+    targetRotZ?: number
+    targetRotY?: number
+    targetRotX?: number
     nodeId?: string
   }
 ): void {
   const idSet = new Set(targetLayerIds)
   const directLayers = project.layers.filter((l) => idSet.has(l.id))
-  const clusterInstIds = new Set(directLayers.map((l) => l.composite?.instanceId).filter((v): v is string => Boolean(v)))
+  const clusterInstIds = new Set(
+    directLayers.map((l) => l.composite?.instanceId).filter((v): v is string => Boolean(v))
+  )
   const layers = project.layers.filter(
-    (l) => idSet.has(l.id) || (l.composite?.instanceId && clusterInstIds.has(l.composite.instanceId) && l.composite.lockedGroup !== false)
+    (l) =>
+      idSet.has(l.id) ||
+      (l.composite?.instanceId &&
+        clusterInstIds.has(l.composite.instanceId) &&
+        l.composite.lockedGroup !== false)
   )
   const compDur = Math.max(1, project.comp.duration || 5)
   const tStart = Math.max(0, options?.timeStart ?? 0)
@@ -303,16 +323,26 @@ export function bakeCustomMotionPathToScene(
     clearBboxMotionKeysFromScene(project, nodeId)
   }
 
-  for (const l of layers) {
-    l.transform.position.keyframes = l.transform.position.keyframes.filter((k) => {
-      if (!isMotPathKeyId(k.id)) return true
-      if (nodeId && isMotPathKeyId(k.id, nodeId)) return false
-      if (!nodeId) return false
-      // Xoá key legacy hoặc key trùng khoảng thời gian
-      if (!k.id.includes('-motpath-p-v2-')) return false
-      return k.t < tStart - 0.01 || k.t > tEnd + 0.01
-    })
+  const keepNonMotPathKey = (k: { id: string; t: number }): boolean => {
+    if (!isMotPathKeyId(k.id)) return true
+    if (nodeId && isMotPathKeyId(k.id, nodeId)) return false
+    if (!nodeId) return false
+    if (
+      !k.id.includes('-motpath-p-v2-') &&
+      !k.id.includes('-motpath-s-v2-') &&
+      !k.id.includes('-motpath-r-v2-')
+    ) {
+      return false
+    }
+    return k.t < tStart - 0.01 || k.t > tEnd + 0.01
   }
+
+  for (const l of layers) {
+    l.transform.position.keyframes = l.transform.position.keyframes.filter(keepNonMotPathKey)
+    l.transform.scale.keyframes = l.transform.scale.keyframes.filter(keepNonMotPathKey)
+    l.transform.rotation.keyframes = l.transform.rotation.keyframes.filter(keepNonMotPathKey)
+  }
+
   const cleanPath = (path ?? []).filter(
     (pt): pt is [number, number] =>
       Array.isArray(pt) &&
@@ -340,42 +370,142 @@ export function bakeCustomMotionPathToScene(
       Math.abs(cleanPath[cleanPath.length - 1][1] - cleanPath[0][1]) > 0.02)
       ? [...cleanPath, cleanPath[0]]
       : cleanPath
-  const effectivePath = smoothNormalizedStroke(closedPath, 2)
-  const rawCycle = options?.cycleDuration && options.cycleDuration > 0.2 ? options.cycleDuration : span
+  const smoothKnots =
+    closedPath.length <= 2 ? closedPath : decimateAndSmoothStroke(closedPath, 16, 3)
+  const rawCycle =
+    options?.cycleDuration && options.cycleDuration > 0.2 ? options.cycleDuration : span
   const numCycles = isLoop ? Math.max(1, Math.min(16, Math.round(span / Math.min(span, rawCycle)))) : 1
   const cycleSpan = span / numCycles
   const tag = nodeId ? `${nodeId}-` : ''
-  const sampleCount = effectivePath.length <= 2 ? 1 : 14
+  const sampleCount = closedPath.length <= 2 ? 1 : 24
+
+  const targetScaleMul = Math.max(
+    0.15,
+    Math.min(4.0, (options?.targetScalePct ?? 100) / 100)
+  )
+  const hasScaleChange = Math.abs(targetScaleMul - 1) >= 0.01
+  const rotX = options?.targetRotX ?? 0
+  const rotY = options?.targetRotY ?? 0
+  const rotZ = options?.targetRotZ ?? 0
+  const hasRotChange =
+    Math.abs(rotX) >= 0.5 || Math.abs(rotY) >= 0.5 || Math.abs(rotZ) >= 0.5
+
+  // Ghi nhận vị trí gốc của từng Root trong Cụm 2.5D để phóng to / thu nhỏ đồng bộ không làm rời mảnh con
+  const rootBasePosByInst = new Map<string, Vec3>()
+  for (const instId of clusterInstIds) {
+    const members = layers.filter((m) => m.composite?.instanceId === instId)
+    const root = getClusterRootLayer(members) ?? members[0]
+    if (root) {
+      rootBasePosByInst.set(instId, evaluateCleanLayerPos(root, tStart))
+    }
+  }
 
   for (const l of layers) {
     const basePos: Vec3 = evaluateCleanLayerPos(l, tStart)
+    const baseScale: Vec3 = evaluateCleanLayerScale(l, tStart)
+    const baseRot: Vec3 = evaluateCleanLayerRot(l, tStart)
+    const instId = l.composite?.instanceId
+    const clusterRootBase = instId ? rootBasePosByInst.get(instId) : undefined
+
     if (tStart > 0.05) {
+      const preT = Number(Math.max(0, tStart - 0.02).toFixed(3))
       l.transform.position.keyframes.push({
         id: `${l.id}-motpath-p-${tag}pre`,
-        t: Number(Math.max(0, tStart - 0.02).toFixed(3)),
+        t: preT,
         value: [basePos[0], basePos[1], basePos[2]],
         ease: 'linear'
       })
+      if (hasScaleChange) {
+        l.transform.scale.keyframes.push({
+          id: `${l.id}-motpath-s-${tag}pre`,
+          t: preT,
+          value: [baseScale[0], baseScale[1], baseScale[2]],
+          ease: 'linear'
+        })
+      }
+      if (hasRotChange) {
+        l.transform.rotation.keyframes.push({
+          id: `${l.id}-motpath-r-${tag}pre`,
+          t: preT,
+          value: [baseRot[0], baseRot[1], baseRot[2]],
+          ease: 'linear'
+        })
+      }
     }
-    const p0 = effectivePath[0]
+
+    const p0 = smoothKnots[0]
     let keyIdx = 0
     for (let c = 0; c < numCycles; c++) {
       const cStart = tStart + c * cycleSpan
       const startStep = c === 0 ? 0 : 1
       for (let s = startStep; s <= sampleCount; s++) {
         const u = s / sampleCount
-        const pt = sampleNormalizedStroke(effectivePath, u)
+        const globalProgress = (c + u) / numCycles
+        const scaleAtU = 1 + (targetScaleMul - 1) * globalProgress
+        const pt = evaluateCatmullRom2D(smoothKnots, u)
         const t = Number((cStart + cycleSpan * u).toFixed(3))
         const dx = Math.round((pt[0] - p0[0]) * scaleX * 10) / 10
         const dy = Math.round((isNorm ? -(pt[1] - p0[1]) : pt[1] - p0[1]) * scaleY * 10) / 10
+
+        const anchorX = clusterRootBase
+          ? clusterRootBase[0] + (basePos[0] - clusterRootBase[0]) * scaleAtU
+          : basePos[0]
+        const anchorY = clusterRootBase
+          ? clusterRootBase[1] + (basePos[1] - clusterRootBase[1]) * scaleAtU
+          : basePos[1]
+
         l.transform.position.keyframes.push({
           id: `${l.id}-motpath-p-${tag}${keyIdx++}`,
           t,
-          value: [basePos[0] + dx, basePos[1] + dy, basePos[2]],
+          value: [Math.round((anchorX + dx) * 10) / 10, Math.round((anchorY + dy) * 10) / 10, basePos[2]],
           ease: sampleCount === 1 ? 'easeInOut' : 'linear'
         })
       }
     }
     l.transform.position.keyframes.sort((a, b) => a.t - b.t)
+
+    if (hasScaleChange) {
+      l.transform.scale.keyframes.push(
+        {
+          id: `${l.id}-motpath-s-${tag}0`,
+          t: Number(tStart.toFixed(3)),
+          value: [baseScale[0], baseScale[1], baseScale[2]],
+          ease: 'easeInOut'
+        },
+        {
+          id: `${l.id}-motpath-s-${tag}1`,
+          t: Number(tEnd.toFixed(3)),
+          value: [
+            Number((baseScale[0] * targetScaleMul).toFixed(3)),
+            Number((baseScale[1] * targetScaleMul).toFixed(3)),
+            baseScale[2]
+          ],
+          ease: 'easeInOut'
+        }
+      )
+      l.transform.scale.keyframes.sort((a, b) => a.t - b.t)
+    }
+
+    if (hasRotChange) {
+      l.transform.rotation.keyframes.push(
+        {
+          id: `${l.id}-motpath-r-${tag}0`,
+          t: Number(tStart.toFixed(3)),
+          value: [baseRot[0], baseRot[1], baseRot[2]],
+          ease: 'easeInOut'
+        },
+        {
+          id: `${l.id}-motpath-r-${tag}1`,
+          t: Number(tEnd.toFixed(3)),
+          value: [
+            Math.round((baseRot[0] + rotX) * 10) / 10,
+            Math.round((baseRot[1] + rotY) * 10) / 10,
+            Math.round((baseRot[2] + rotZ) * 10) / 10
+          ],
+          ease: 'easeInOut'
+        }
+      )
+      l.transform.rotation.keyframes.sort((a, b) => a.t - b.t)
+    }
   }
 }

@@ -213,3 +213,82 @@ export function buildLiveBboxPreviewCurveScreenPoints(
   }
   return out
 }
+
+/** Tính vector độ lệch đích `(dxWorld, dyWorld)` từ điểm đầu tới điểm cuối của quỹ đạo vẽ tự do (`customMotionPath`) */
+export function computeDrawnPathWorldDelta(
+  path: Point2D[] | undefined,
+  compW = 1920,
+  compH = 1080,
+  intensity = 1
+): Point2D {
+  if (!path || path.length < 2) return [0, 0]
+  const clean = path.filter(
+    (pt): pt is Point2D =>
+      Array.isArray(pt) && pt.length >= 2 && Number.isFinite(pt[0]) && Number.isFinite(pt[1])
+  )
+  if (clean.length < 2) return [0, 0]
+  const isNorm = clean.every((pt) => Math.abs(pt[0]) <= 1.2 && Math.abs(pt[1]) <= 1.2)
+  const mul = Math.max(0.1, Math.min(3.0, intensity))
+  const scaleX = (isNorm ? Math.round(compW * 0.28) : 1) * mul
+  const scaleY = (isNorm ? Math.round(compH * 0.36) : 1) * mul
+  const p0 = clean[0]
+  const pLast = clean[clean.length - 1]
+  const dx = (pLast[0] - p0[0]) * scaleX
+  const dy = (isNorm ? -(pLast[1] - p0[1]) : pLast[1] - p0[1]) * scaleY
+  return [Math.round(dx * 10) / 10, Math.round(dy * 10) / 10]
+}
+
+/**
+ * Biến đổi đồng dạng quỹ đạo vẽ tự do khi người dùng kéo dời khung BBox Đích sang vị trí mới `(nextDeltaX, nextDeltaY)`,
+ * giữ nguyên toàn bộ uốn lượn của nét vẽ tay.
+ */
+export function retargetDrawnPathEndpoint(
+  path: Point2D[],
+  nextDeltaWorld: Point2D,
+  compW = 1920,
+  compH = 1080,
+  intensity = 1
+): Point2D[] {
+  if (path.length < 2) return path
+  const isNorm = path.every((pt) => Math.abs(pt[0]) <= 1.2 && Math.abs(pt[1]) <= 1.2)
+  const mul = Math.max(0.1, Math.min(3.0, intensity))
+  const scaleX = (isNorm ? Math.round(compW * 0.28) : 1) * mul
+  const scaleY = (isNorm ? Math.round(compH * 0.36) : 1) * mul
+  const p0 = path[0]
+
+  // Đưa toàn bộ quỹ đạo về toạ độ độ lệch thế giới tính từ p0
+  const worldOffsets: Point2D[] = path.map((pt) => [
+    (pt[0] - p0[0]) * scaleX,
+    (isNorm ? -(pt[1] - p0[1]) : pt[1] - p0[1]) * scaleY
+  ])
+
+  const oldEnd = worldOffsets[worldOffsets.length - 1]
+  const oldLen = Math.hypot(oldEnd[0], oldEnd[1])
+  const newLen = Math.hypot(nextDeltaWorld[0], nextDeltaWorld[1])
+
+  if (oldLen >= 12 && newLen >= 8) {
+    const ratio = newLen / oldLen
+    const cosOld = oldEnd[0] / oldLen
+    const sinOld = oldEnd[1] / oldLen
+    const cosNew = nextDeltaWorld[0] / newLen
+    const sinNew = nextDeltaWorld[1] / newLen
+    return worldOffsets.map(([wx, wy], idx): Point2D => {
+      if (idx === 0) return [0, 0]
+      if (idx === worldOffsets.length - 1) return [Math.round(nextDeltaWorld[0] / mul), Math.round(nextDeltaWorld[1] / mul)]
+      // Tọa độ dọc cung & vuông góc trên hệ trục cũ -> xoay và giãn sang hệ trục mới
+      const along = wx * cosOld + wy * sinOld
+      const perp = -wx * sinOld + wy * cosOld
+      const nx = (along * cosNew - perp * sinNew) * ratio
+      const ny = (along * sinNew + perp * cosNew) * ratio
+      return [Math.round((nx / mul) * 10) / 10, Math.round((ny / mul) * 10) / 10]
+    })
+  }
+
+  const n = worldOffsets.length - 1
+  return worldOffsets.map(([wx, wy], idx): Point2D => {
+    const u = n > 0 ? idx / n : 1
+    const shiftX = (nextDeltaWorld[0] - oldEnd[0]) * u
+    const shiftY = (nextDeltaWorld[1] - oldEnd[1]) * u
+    return [Math.round(((wx + shiftX) / mul) * 10) / 10, Math.round(((wy + shiftY) / mul) * 10) / 10]
+  })
+}

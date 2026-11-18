@@ -11,6 +11,10 @@ import type { ImageProps, Layer, LayerBboxTargetConfig, Project, Vec3, WorkflowG
 import { evaluate } from '../../animation/keyframes'
 import { assetStore } from '../../project/assets'
 import {
+  computeDrawnPathWorldDelta,
+  retargetDrawnPathEndpoint
+} from '../../project/workflowCurveMath'
+import {
   evaluateBboxTrajectoryAt
 } from '../../project/workflowV2BboxMotionAndCollision'
 import {
@@ -68,10 +72,12 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
   const setPlaying = useEditor((s) => s.setPlaying)
   const motionNode = resolveActiveMotionNode(workflow, node, coordRefLayer?.id, clusterInstId)
   const mp = motionNode?.params
-  const hasBboxMotion = Boolean(
-    motionNode &&
-      resolveMotionMode(mp ?? {}) === 'bbox'
+  const activeMotionMode = resolveMotionMode(mp ?? {})
+  const hasBboxMotion = Boolean(motionNode && activeMotionMode === 'bbox')
+  const hasDrawnPath = Boolean(
+    motionNode && activeMotionMode === 'path' && (mp?.customMotionPath?.length ?? 0) >= 2
   )
+  const showTargetBbox = hasBboxMotion || hasDrawnPath
 
   const focusMotionForEdit = (event?: { shiftKey?: boolean }): boolean => {
     if (motionNode && motionNode.id !== node.id) {
@@ -185,6 +191,19 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
 
   const ENT_ACCENTS = ['#38bdf8', '#f59e0b', '#a855f7', '#10b981', '#ec4899', '#f97316']
 
+  const drawnPathDelta = useMemo(
+    () =>
+      hasDrawnPath
+        ? computeDrawnPathWorldDelta(
+            mp?.customMotionPath,
+            project.comp.width || 1920,
+            project.comp.height || 1080,
+            mp?.intensity ?? 1
+          )
+        : ([0, 0] as [number, number]),
+    [hasDrawnPath, mp?.customMotionPath, project.comp.width, project.comp.height, mp?.intensity]
+  )
+
   const renderedEntities = useMemo(() => {
     return connectedEntities.map((ent, idx) => {
       const isPrimary = ent.id === primaryEntity?.id
@@ -196,16 +215,19 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
       const pStart = refD / Math.max(80, refD + (entStartPos[2] ?? 0))
 
       const customTarget = mp?.layerBboxTargets?.[ent.id]
-      const entTargetX =
-        isPrimary
+      const entTargetX = hasDrawnPath
+        ? Math.round(entStartPos[0] + drawnPathDelta[0])
+        : isPrimary
           ? (mp?.bboxTargetX ?? customTarget?.targetX ?? Math.round(startPos[0] + 280))
           : (customTarget?.targetX ?? Math.round(defaultTargetX + (entStartPos[0] - startPos[0])))
-      const entTargetY =
-        isPrimary
+      const entTargetY = hasDrawnPath
+        ? Math.round(entStartPos[1] + drawnPathDelta[1])
+        : isPrimary
           ? (mp?.bboxTargetY ?? customTarget?.targetY ?? Math.round(startPos[1]))
           : (customTarget?.targetY ?? Math.round(defaultTargetY + (entStartPos[1] - startPos[1])))
-      const entTargetScalePct =
-        isPrimary
+      const entTargetScalePct = hasDrawnPath
+        ? (mp?.bboxTargetScalePct ?? customTarget?.targetScalePct ?? 100)
+        : isPrimary
           ? (mp?.bboxTargetScalePct ?? customTarget?.targetScalePct ?? 135)
           : (customTarget?.targetScalePct ?? defaultTargetScalePct)
       const entScaleRatio = Math.max(0.15, Math.min(4.0, entTargetScalePct / 100))
@@ -339,6 +361,8 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
     shotScreenH,
     project.assets,
     hasBboxMotion,
+    hasDrawnPath,
+    drawnPathDelta,
     mp?.customMotionPath,
     mp?.bboxPathType
   ])
@@ -373,6 +397,25 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
       if (dragMode === 'move') {
         const nx = Math.round(origX + dxStage / entPFactorEnd)
         const ny = Math.round(origY - dyStage / entPFactorEnd)
+        if (hasDrawnPath && mp?.customMotionPath && mp.customMotionPath.length >= 2) {
+          const entOrigin = bboxStartPosition(ent.rootLayer, tStart, motionNode?.id)
+          const nextPath = retargetDrawnPathEndpoint(
+            mp.customMotionPath,
+            [nx - entOrigin[0], ny - entOrigin[1]],
+            project.comp.width || 1920,
+            project.comp.height || 1080,
+            mp.intensity ?? 1
+          )
+          patchMotionNode(
+            {
+              customMotionPath: nextPath,
+              bboxTargetX: Math.round(nx - entOrigin[0]),
+              bboxTargetY: Math.round(ny - entOrigin[1])
+            },
+            'wf-path-target-move'
+          )
+          return
+        }
         const existing = mp?.layerBboxTargets ?? {}
         const cur = existing[ent.id]
         const updatedTargets = {
@@ -678,7 +721,7 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
       )}
 
       {/* Khung BBox #1 (Xuất phát — màu lục bảo tham chiếu tinh gọn, không lẫn với khung Đích) */}
-      {hasBboxMotion &&
+      {showTargetBbox &&
         displayEntities.map((item) => {
           const isFocused = !isMultiEntity || item.ent.id === focusedEntityId
           const shortName = item.ent.name.length > 11 ? `${item.ent.name.slice(0, 9)}…` : item.ent.name
@@ -754,8 +797,8 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
           )
         })}
 
-      {/* Khung BBox #2 (Đích — viền liền chuẩn Figma/AE, hiển thị tỉ lệ % ngay trên nhãn) */}
-      {hasBboxMotion &&
+      {/* Khung BBox #2 (Đích — hiện cả ở chế độ BBox lẫn ngay sau khi Vẽ quỹ đạo tự do xong để chỉnh Scale & Xoay) */}
+      {showTargetBbox &&
         displayEntities.map((item) => {
           const isFocused = !isMultiEntity || item.ent.id === focusedEntityId
           const shortName = item.ent.name.length > 11 ? `${item.ent.name.slice(0, 9)}…` : item.ent.name
@@ -897,8 +940,8 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
           )
         })}
 
-      {/* Vòng xoay Gimbal 3D trực quan khi bật chế độ bboxRotateGimbal */}
-      {hasBboxMotion &&
+      {/* Vòng xoay Gimbal 3D trực quan khi bật chế độ bboxRotateGimbal (cả ở BBox lẫn Quỹ đạo tự do) */}
+      {showTargetBbox &&
         Boolean(mp?.bboxRotateGimbal) &&
         (() => {
           const focusedItem =

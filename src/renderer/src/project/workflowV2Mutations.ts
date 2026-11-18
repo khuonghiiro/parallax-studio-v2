@@ -719,6 +719,12 @@ function syncSingleWorkflowV2NodeToProject(
         layer.transform.position.keyframes = layer.transform.position.keyframes.filter(
           (key) => !key.id.includes(`-motpath-p-${node.id}-`)
         )
+        layer.transform.scale.keyframes = layer.transform.scale.keyframes.filter(
+          (key) => !key.id.includes(`-motpath-s-${node.id}-`)
+        )
+        layer.transform.rotation.keyframes = layer.transform.rotation.keyframes.filter(
+          (key) => !key.id.includes(`-motpath-r-${node.id}-`)
+        )
       }
     }
     const isBboxMode = mode === 'bbox'
@@ -748,6 +754,10 @@ function syncSingleWorkflowV2NodeToProject(
           intensity: params.intensity,
           loop: params.customMotionLoop,
           cycleDuration: params.customMotionCycleSec,
+          targetScalePct: params.bboxTargetScalePct,
+          targetRotZ: params.bboxTargetRotZ,
+          targetRotY: params.bboxTargetRotY,
+          targetRotX: params.bboxTargetRotX,
           nodeId: node.id
         })
       } else {

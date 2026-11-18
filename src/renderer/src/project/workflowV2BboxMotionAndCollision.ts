@@ -19,7 +19,14 @@ const isBboxColKeyId = (id: string, nodeId?: string): boolean =>
   nodeId ? id.includes(`-bboxcol-${nodeId}-`) : id.includes('-bboxcol-')
 
 const isGeneratedMotionKeyId = (id: string): boolean =>
-  id.includes('-bboxmot-') || id.includes('-bboxcol-') || id.includes('-motpath-p-') || id.includes('-col-') || id.includes('-rig-p-') || id.includes('-rig-r-')
+  id.includes('-bboxmot-') ||
+  id.includes('-bboxcol-') ||
+  id.includes('-motpath-p-') ||
+  id.includes('-motpath-s-') ||
+  id.includes('-motpath-r-') ||
+  id.includes('-col-') ||
+  id.includes('-rig-p-') ||
+  id.includes('-rig-r-')
 
 /**
  * Chuyển đổi qua lại giữa Độ sâu 3D (`position[2]`: càng nhỏ càng gần Camera)
@@ -44,6 +51,15 @@ export function evaluateCleanLayerScale(layer: Layer, t: number): Vec3 {
     return [...(layer.transform.scale.value ?? [1, 1, 1])] as Vec3
   }
   return evaluate({ value: layer.transform.scale.value, keyframes: cleanKfs }, t)
+}
+
+/** Đọc góc xoay gốc (#1) của Layer tại mốc `t`, bỏ qua các keyframe sinh tự động bởi Node Motion/Va chạm */
+export function evaluateCleanLayerRot(layer: Layer, t: number): Vec3 {
+  const cleanKfs = layer.transform.rotation.keyframes.filter((k) => !isGeneratedMotionKeyId(k.id))
+  if (cleanKfs.length === 0) {
+    return [...(layer.transform.rotation.value ?? [0, 0, 0])] as Vec3
+  }
+  return evaluate({ value: layer.transform.rotation.value, keyframes: cleanKfs }, t)
 }
 
 /** Gỡ toàn bộ keyframe chuyển động BBox (`-bboxmot-`) và va chạm BBox (`-bboxcol-`) do Node sinh ra */
