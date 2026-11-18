@@ -259,7 +259,7 @@ export function Toolbar({ onExport }: { onExport: () => void }) {
           </button>
         </Menu>
 
-        <Menu id="menu-add" label="Thêm layer" icon={<IconPlus />}>
+        <Menu id="menu-add" label="Thêm layer" icon={<IconPlus />} btnClassName="success">
           <button id="add-image" className="menu-item" onClick={() => importImages(true)}>
             <IconImage width={15} /> Ảnh (PNG/JPG)… <span className="hint">Ctrl+I</span>
           </button>
@@ -278,7 +278,7 @@ export function Toolbar({ onExport }: { onExport: () => void }) {
           </button>
         </Menu>
 
-        <Menu id="menu-create" label="Xưởng sáng tạo" icon={<IconSparkles />}>
+        <Menu id="menu-create" label="Xưởng sáng tạo" icon={<IconSparkles />} btnClassName="ai">
           <button id="create-photo-editor" className="menu-item" onClick={() => useView.getState().openPhotoEditor()}>
             <IconImage width={15} /> Thêm ảnh (Tách nền & Chỉnh sửa)…
           </button>

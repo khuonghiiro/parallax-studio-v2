@@ -119,13 +119,13 @@ export function SceneInspector() {
       </div>
 
       <div className="section">
-        <div className="section-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+        <div className="section-title insp-sec-head-between">
+          <span className="insp-sec-title-inline">
             <IconMusic width={13} height={13} /> Nhạc nền & Âm thanh
           </span>
           <button
-            className="btn sm"
-            style={{ padding: '2px 8px', fontSize: '11px', height: '22px' }}
+            type="button"
+            className="btn sm success"
             onClick={() => importAudio(useEditor.getState().time)}
             title="Nhập thêm file âm thanh từ máy tính tại vị trí kim phát"
           >
@@ -136,22 +136,14 @@ export function SceneInspector() {
           tracks.map((track, idx) => {
             const trackAsset = assetStore.get(track.assetId)
             return (
-              <div
-                key={track.id}
-                style={{
-                  border: '1px solid var(--line-soft)',
-                  borderRadius: 'var(--radius-sm)',
-                  padding: '6px 8px',
-                  marginBottom: 8,
-                  background: 'var(--bg-1)'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4, gap: 4 }}>
-                  <span className="hint-text" style={{ overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, fontWeight: 600 }}>
+              <div key={track.id} className="insp-audio-card">
+                <div className="insp-audio-card-head">
+                  <span className="insp-audio-card-title">
                     {idx + 1}. {track.name || trackAsset?.meta.name}
                   </span>
-                  <div style={{ display: 'inline-flex', gap: 2 }}>
+                  <div className="insp-audio-card-actions">
                     <button
+                      type="button"
                       className="btn sm icon"
                       title="Nhân bản đoạn âm thanh này tại kim phát"
                       onClick={() => duplicateAudioTrack(track.id)}
@@ -159,6 +151,7 @@ export function SceneInspector() {
                       <IconCopy width={11} height={11} />
                     </button>
                     <button
+                      type="button"
                       className="btn sm icon danger"
                       title="Xoá đoạn âm thanh này"
                       onClick={() => removeAudioTrack(track.id)}

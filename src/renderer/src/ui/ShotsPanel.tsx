@@ -105,7 +105,7 @@ export function ShotsPanel() {
           <button
             id="add-shot"
             type="button"
-            className="btn sm primary"
+            className="btn sm success"
             onClick={() => setMenu((m: boolean) => !m)}
             title="Thêm cảnh mới trong không gian 3D"
           >
