@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest'
 import { computeNormalizedCharacterScale } from '../animation/characterScaleNormalizer'
 import { generatePresetSpatialTracks } from '../animation/motionPresets'
 import * as factory from './factory'
-import { createFreshStoryWestDramaV2Project } from './storyWestDramaV2Builder'
 import {
   applySubtitleDefaultsToAllNodes,
   enforceSpeakerAndSceneContinuity,
@@ -172,16 +171,5 @@ describe('subtitleAndDialogueSync & Dramatic Animation System', () => {
       { time: 9.0, duration: 3.5, deltaY: -48, endScaleMultiplier: 0.74 }
     )
     expect(shrink.scale[shrink.scale.length - 1].value[0]).toBeLessThan(shrink.scale[0].value[0])
-  })
-
-  it('builds Demo #6 (story_west_drama_v2) with 10 beats, per-character Vietsub nodes, voice tracks, and zero continuity issues', () => {
-    const project = createFreshStoryWestDramaV2Project()
-    expect(project.shots.length).toBe(5)
-    expect(project.comp.duration).toBe(32)
-    const check = validateAndRepairDialogueContinuity(project, false)
-    expect(check.ok).toBe(true)
-    expect(check.issues.length).toBe(0)
-    const subNodes = project.workflow!.nodes.filter((n) => n.params?.logicCategory === 'subtitle')
-    expect(subNodes.length).toBeGreaterThanOrEqual(8)
   })
 })

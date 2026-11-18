@@ -251,15 +251,6 @@ export function Toolbar({ onExport }: { onExport: () => void }) {
           <button className="menu-item" onClick={() => loadDemo(false, 'action_combat_25d')}>
             <IconEye width={15} /> Mẫu 3: Hàn Bối Tháp — Đại Chiến Linh Thú 2.5D
           </button>
-          <button className="menu-item" onClick={() => loadDemo(false, 'immortal_sword_25d')}>
-            <IconRoute width={15} /> Mẫu 4: Thương Lan Kiếm Cảnh — Tiên Hiệp Điện Ảnh 2.5D
-          </button>
-          <button className="menu-item" onClick={() => loadDemo(false, 'story_west_skeleton')}>
-            <IconPlay width={15} /> Mẫu 5: Tiểu Khô Lâu Tây Du — Hoạt Ảnh Kể Chuyện Hài 2.5D
-          </button>
-          <button className="menu-item" onClick={() => loadDemo(false, 'story_west_drama_v2')}>
-            <IconText width={15} /> Mẫu 6: Tây Du Phá Cục — Đối Thoại Vietsub &amp; Cảm Xúc 2.5D
-          </button>
         </Menu>
 
         <Menu id="menu-add" label="Thêm layer" icon={<IconPlus />}>

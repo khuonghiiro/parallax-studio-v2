@@ -1,16 +1,11 @@
 import { repairDonghuaTiming } from './donghuaDemoBuilder'
 import { repairHanbetaTiming } from './hanbetaDemoBuilder'
-import { repairImmortalSwordTiming } from './immortalSwordDemoBuilder'
-import { repairStoryWestTiming } from './storyWestDemoBuilder'
-import { createFreshStoryWestDramaV2Project, repairStoryWestDramaV2Timing } from './storyWestDramaV2Builder'
 import { repairThreeSceneTiming } from './demoTiming'
 import type { Project } from '@shared/types'
 import demoJson from './demoProject.json'
 import threeSceneJson from '../../../../projects/ba-canh-mau-workflow-v2.json'
 import donghuaJson from '../../../../projects/demo-2-son-thuy-kiem-hiep.json'
 import hanbetaJson from '../../../../projects/demo-3-han-boi-thap-quai-dam.json'
-import immortalSwordJson from '../../../../projects/demo-4-thuong-lan-kiem-canh.json'
-import storyWestJson from '../../../../projects/demo-5-tieu-kho-lau-tay-du.json'
 import { importProjectFromJson } from './jsonFormat'
 
 /**
@@ -48,36 +43,6 @@ export async function buildHanbetaDemoProject(): Promise<Project> {
 }
 
 export const buildActionCombat25dDemoProject = buildHanbetaDemoProject
-
-/**
- * Builds Demo #4: "Thương Lan Kiếm Cảnh — Tiên Hiệp Điện Ảnh 2.5D"
- * featuring 1:8 Xuanhuan Donghua artwork, true 1/(Z+d) perspective corridor glide,
- * 60fps lean organic cloth/wing/dragon meshes, diverse 3D camera routes, and silky transitions.
- */
-export async function buildImmortalSwordDemoProject(): Promise<Project> {
-  return repairImmortalSwordTiming(await importProjectFromJson(JSON.stringify(immortalSwordJson)))
-}
-
-/**
- * Builds Demo #5: "Tiểu Khô Lâu Tây Du — Hoạt Ảnh Kể Chuyện Hài 2.5D"
- * featuring 11 fast-paced story beats (34s), dual world-vs-emotion backdrops,
- * holographic System Quest UI, 3-plane Z escape, foreground Kim Cô Bổng slam, and outlined subtitles.
- */
-export async function buildStoryWestDemoProject(): Promise<Project> {
-  return repairStoryWestTiming(await importProjectFromJson(JSON.stringify(storyWestJson)))
-}
-
-/**
- * Builds Demo #6: "Tây Du Phá Cục — Đối Thoại Vietsub & Diễn Xuất Cảm Xúc 2.5D"
- * featuring normalized character scales across shots, per-object Vietsub nodes with
- * protected custom presets, synchronized voice audio + continuity lock, fade in/out
- * thought visions, and progressive oppression (4 pilgrims grow taller while Skeleton shrinks).
- */
-export async function buildStoryWestDramaV2DemoProject(): Promise<Project> {
-  const fresh = createFreshStoryWestDramaV2Project()
-  const imported = await importProjectFromJson(JSON.stringify(fresh))
-  return repairStoryWestDramaV2Timing(imported)
-}
 
 export * from './plateGenerators'
 export * from './jsonFormat'

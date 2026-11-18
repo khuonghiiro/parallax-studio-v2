@@ -73,26 +73,17 @@ export const projectCommands: Record<string, Handler> = {
       demo === 'three_scenes' ||
       demo === 'donghua_guofeng' ||
       demo === 'hanbeta_quaidam' ||
-      demo === 'action_combat_25d' ||
-      demo === 'immortal_sword_25d' ||
-      demo === 'story_west_skeleton' ||
-      demo === 'story_west_drama_v2'
+      demo === 'action_combat_25d'
     ) {
       ed().setPlaying(false)
       const loaded = await runWithProjectLoading(`Đang tải mẫu (${demo})…`, async (report) => {
         const demoMod = await import('../../project/demo')
         const built =
-          demo === 'story_west_drama_v2' && 'buildStoryWestDramaV2DemoProject' in demoMod
-            ? await demoMod.buildStoryWestDramaV2DemoProject()
-            : demo === 'story_west_skeleton' && 'buildStoryWestDemoProject' in demoMod
-              ? await demoMod.buildStoryWestDemoProject()
-              : demo === 'immortal_sword_25d' && 'buildImmortalSwordDemoProject' in demoMod
-                ? await (demoMod as { buildImmortalSwordDemoProject: () => Promise<Project> }).buildImmortalSwordDemoProject()
-              : demo === 'action_combat_25d' || demo === 'hanbeta_quaidam'
-                ? await demoMod.buildHanbetaDemoProject()
-                : demo === 'donghua_guofeng'
-                  ? await demoMod.buildDonghuaDemoProject()
-                  : await demoMod.buildThreeSceneDemoProject()
+          demo === 'action_combat_25d' || demo === 'hanbeta_quaidam'
+            ? await demoMod.buildHanbetaDemoProject()
+            : demo === 'donghua_guofeng'
+              ? await demoMod.buildDonghuaDemoProject()
+              : await demoMod.buildThreeSceneDemoProject()
         report({
           phase: 'gpu',
           stageLabel: `Đang nạp ${built.shots.length} cảnh · ${built.layers.length} layer…`,
