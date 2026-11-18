@@ -111,8 +111,23 @@
   border-style: dashed;
 }
 
+.vn2d-seg-item.is-add-step {
+  width: 22px;
+  padding: 0;
+  justify-content: center;
+  color: var(--accent-cyan);
+  background: color-mix(in srgb, var(--accent) 14%, var(--bg-2));
+  border-color: color-mix(in srgb, var(--accent) 32%, var(--line-soft));
+}
+
+.vn2d-seg-item.is-add-step:hover {
+  background: color-mix(in srgb, var(--accent) 82%, #0f172a);
+  border-color: var(--accent);
+  color: #ffffff;
+}
+
 .vn2d-entity-txt {
-  max-width: clamp(54px, 13cqi, 128px);
+  max-width: clamp(78px, 19cqi, 158px);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -485,7 +500,7 @@
 /* Cụm công cụ Quỹ đạo / Vietsub nổi gọn ở đáy sân khấu như Figma HUD thay vì thanh xám chiếm ngang */
 .wf-v2-direct-stage.is-full-viewport .wf-motion-toolbar-dock {
   position: absolute;
-  bottom: 12px;
+  bottom: 8px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 44;
@@ -496,33 +511,20 @@
 }
 
 .wf-v2-direct-stage.is-full-viewport .wf-motion-stage-tools.is-docked {
-  padding: 4px 6px;
-  gap: 4px;
+  padding: 3px;
+  gap: 3px;
   border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--bg-2) 92%, transparent);
+  background: color-mix(in srgb, var(--bg-2) 94%, transparent);
   backdrop-filter: blur(10px);
   border: 1px solid var(--line);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.38);
 }
 
-.wf-v2-direct-stage.is-full-viewport .wf-motion-stage-tools button {
-  width: 32px;
-  height: 32px;
-  min-width: 32px;
-  min-height: 32px;
-}
-
-.wf-v2-direct-stage.is-full-viewport .wf-motion-stage-hint {
-  bottom: 60px;
-}
-
-@media (max-width: 1120px) {
-  .wf-v2-direct-stage.is-full-viewport .wf-motion-stage-tools button {
-    width: 36px;
-    height: 36px;
-    min-width: 36px;
-    min-height: 36px;
-  }
+.wf-v2-direct-stage.is-full-viewport .wf-motion-stage-tools .wf-motion-tool-btn {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
 }
 
 .wf-v2-direct-stage.is-full-viewport .wf-v2-direct-footer {

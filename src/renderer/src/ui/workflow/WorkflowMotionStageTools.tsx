@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom'
-import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
+import React, { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
 import type { WorkflowNodeParams } from '@shared/types'
 import {
   buildLiveBboxPreviewCurveScreenPoints,
@@ -401,17 +401,18 @@ export function WorkflowMotionStageTools({
       onPointerDown={(e) => e.stopPropagation()}
     >
       {buttons.map((button) => (
-        <span key={button.id} className="wf-motion-tool-slot">
+        <React.Fragment key={button.id}>
           {button.dividerBefore && <span className="wf-motion-tool-sep" aria-hidden="true" />}
           <StudioTooltip
             title={button.title}
             description={button.description}
             badge={button.badge}
             badgeTone={button.badgeTone}
-            placement="top"
+            placement={toolbarHost ? 'top' : 'left'}
           >
             <button
               type="button"
+              className="wf-motion-tool-btn"
               data-ai-id={button.id}
               aria-label={button.title}
               aria-pressed={button.active}
@@ -423,8 +424,34 @@ export function WorkflowMotionStageTools({
               <WorkflowMotionIcon name={button.icon} />
             </button>
           </StudioTooltip>
-        </span>
+        </React.Fragment>
       ))}
+      {tool !== 'select' && toolbarHost && (
+        <>
+          <span className="wf-motion-tool-sep" aria-hidden="true" />
+          <StudioTooltip
+            title="Thoát chế độ vẽ / uốn"
+            badge="Esc"
+            badgeTone="neutral"
+            description="Hủy chế độ vẽ hiện tại và quay về công cụ Chọn & kéo BBox"
+            placement="top"
+          >
+            <button
+              type="button"
+              className="wf-motion-inline-cancel"
+              aria-label="Hủy chế độ vẽ (Esc)"
+              onClick={(e) => {
+                e.stopPropagation()
+                cancel()
+                setTool('select')
+              }}
+            >
+              <span>{mode === 'bbox' ? 'Đang uốn' : 'Đang vẽ'}</span>
+              <kbd>Esc</kbd>
+            </button>
+          </StudioTooltip>
+        </>
+      )}
     </div>
   )
 
@@ -470,7 +497,6 @@ export function WorkflowMotionStageTools({
       )}
       {tool !== 'select' && (
         <MotionStageDrawingSurface
-          mode={mode}
           width={width}
           height={height}
           strokeRef={strokeRef}
@@ -484,7 +510,6 @@ export function WorkflowMotionStageTools({
 }
 
 type SurfaceProps = {
-  mode: 'bbox' | 'path'
   width: number
   height: number
   strokeRef: MutableRefObject<StagePoint[] | null>
@@ -494,7 +519,6 @@ type SurfaceProps = {
 }
 
 function MotionStageDrawingSurface({
-  mode,
   width,
   height,
   strokeRef,
@@ -543,13 +567,6 @@ function MotionStageDrawingSurface({
       }}
       onPointerCancel={cancel}
       onLostPointerCapture={cancel}
-    >
-      <span className="wf-motion-stage-hint">
-        {mode === 'bbox'
-          ? 'Kéo chuột uốn đường cong · tự động neo khít #1 Đầu và #2 Đích'
-          : 'Kéo chuột vẽ quỹ đạo tự do · nhả chuột sẽ hiện BBox Đích để chỉnh cỡ / xoay'}{' '}
-        · Esc hủy
-      </span>
-    </div>
+    />
   )
 }

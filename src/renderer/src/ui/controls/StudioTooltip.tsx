@@ -79,6 +79,8 @@ export interface StudioTooltipProps {
  * Render qua Portal `document.body` (`z-index: 55000`), chống cắt khuất bởi `overflow: hidden`,
  * tự ẩn khi nhấn chuột/cuộn/chạm cảm ứng và không chồng đè với `title` mặc định của trình duyệt.
  */
+let activeStudioTooltipHide: (() => void) | null = null
+
 export const StudioTooltip: React.FC<StudioTooltipProps> = ({
   title,
   description,
@@ -107,9 +109,16 @@ export const StudioTooltip: React.FC<StudioTooltipProps> = ({
   const hide = useCallback(() => {
     clearTimer()
     setOpen(false)
+    if (activeStudioTooltipHide === hide) {
+      activeStudioTooltipHide = null
+    }
   }, [clearTimer])
 
   const openFromAnchor = useCallback(() => {
+    if (activeStudioTooltipHide && activeStudioTooltipHide !== hide) {
+      activeStudioTooltipHide()
+    }
+    activeStudioTooltipHide = hide
     const el = wrapRef.current
     if (el) {
       const targetEl = (el.firstElementChild as HTMLElement | null) ?? el

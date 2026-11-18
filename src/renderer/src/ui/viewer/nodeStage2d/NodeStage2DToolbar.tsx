@@ -187,15 +187,23 @@ export const NodeStage2DToolbar: React.FC<NodeStage2DToolbarProps> = ({
         {isCamDirectorMode ? (
           <>
             {lastEntityLabel && (
-              <button
-                type="button"
-                className="vn2d-tool-btn vn2d-hide-narrow"
-                onClick={onToggleCamDirectorMode}
-                title={`Quay về chỉnh BBox của "${lastEntityLabel}"`}
+              <StudioTooltip
+                title={`Quay về "${lastEntityLabel}"`}
+                badge="Đối tượng"
+                badgeTone="cyan"
+                description="Trở lại chỉnh vị trí & chuyển động BBox của đối tượng trên sân khấu"
+                placement="bottom"
               >
-                <IconLayers width={11} height={11} />
-                <span className="vn2d-entity-txt">{lastEntityLabel}</span>
-              </button>
+                <button
+                  type="button"
+                  className="vn2d-tool-btn vn2d-hide-narrow"
+                  onClick={onToggleCamDirectorMode}
+                  aria-label={`Quay về chỉnh ${lastEntityLabel}`}
+                >
+                  <IconLayers width={11} height={11} />
+                  <span className="vn2d-entity-txt">{lastEntityLabel}</span>
+                </button>
+              </StudioTooltip>
             )}
 
             {cameraWaypoints.length > 0 && (
@@ -204,126 +212,219 @@ export const NodeStage2DToolbar: React.FC<NodeStage2DToolbarProps> = ({
                   const isWpActive = node?.id === wp.id
                   const label = `#${(wp.params?.waypointLocalIndex ?? idx) + 1}`
                   return (
-                    <button
+                    <StudioTooltip
                       key={wp.id}
-                      type="button"
-                      className={`vn2d-seg-item is-step${isWpActive ? ' active' : ''}`}
-                      onClick={() => onSelectNode(wp.id)}
-                      title={`${cleanV2NodeTitle(wp.title)} — Nhấp để nhảy tới mốc và kéo khung ngắm Camera`}
+                      title={cleanV2NodeTitle(wp.title)}
+                      badge={isWpActive ? 'Đang chọn' : `Mốc ${label}`}
+                      badgeTone={isWpActive ? 'green' : 'cyan'}
+                      description="Nhấp để nhảy tới mốc và kéo khung ngắm Camera trực tiếp"
+                      placement="bottom"
                     >
-                      <span>{label}</span>
-                    </button>
+                      <button
+                        type="button"
+                        className={`vn2d-seg-item is-step${isWpActive ? ' active' : ''}`}
+                        onClick={() => onSelectNode(wp.id)}
+                        aria-label={`Mốc Camera ${label}`}
+                      >
+                        <span>{label}</span>
+                      </button>
+                    </StudioTooltip>
                   )
                 })}
               </div>
             )}
 
-            <button
-              type="button"
-              className="vn2d-tool-btn is-primary"
-              onClick={() => onSpawnCameraWaypoint('zoom-in')}
-              title="Thêm mốc Camera Đẩy cận (+ Zoom In) nối tiếp lộ trình quay"
+            <StudioTooltip
+              title="Thêm mốc Camera Đẩy cận"
+              badge="+ Zoom In"
+              badgeTone="green"
+              description="Tạo mốc khung ngắm thu hẹp nối tiếp vào lộ trình quay của cảnh"
+              placement="bottom"
             >
-              <IconCamPushIn width={12} height={12} />
-              <span>+ Đẩy cận</span>
-            </button>
+              <button
+                type="button"
+                className="vn2d-tool-btn is-primary"
+                onClick={() => onSpawnCameraWaypoint('zoom-in')}
+                aria-label="Thêm mốc Đẩy cận"
+              >
+                <IconCamPushIn width={12} height={12} />
+                <span>+ Đẩy cận</span>
+              </button>
+            </StudioTooltip>
 
-            <button
-              type="button"
-              className="vn2d-tool-btn vn2d-hide-narrow"
-              onClick={() => onSpawnCameraWaypoint('pan')}
-              title="Thêm mốc Camera Lia ngang (+ Pan) sang vùng khác trong cảnh"
+            <StudioTooltip
+              title="Thêm mốc Camera Lia ngang"
+              badge="+ Pan"
+              badgeTone="cyan"
+              description="Tạo mốc lia máy sang vị trí khác trong cảnh mà giữ nguyên độ phóng"
+              placement="bottom"
             >
-              <IconCamPanZoom2D width={12} height={12} />
-              <span>+ Lia ngang</span>
-            </button>
+              <button
+                type="button"
+                className="vn2d-tool-btn vn2d-hide-narrow"
+                onClick={() => onSpawnCameraWaypoint('pan')}
+                aria-label="Thêm mốc Lia ngang"
+              >
+                <IconCamPanZoom2D width={12} height={12} />
+                <span>+ Lia ngang</span>
+              </button>
+            </StudioTooltip>
           </>
         ) : (
           <>
             {ctx.layerOrClusterNode && (
               <div className="vn2d-seg-track" role="group" aria-label="Đối tượng và các chặng BBox">
-                <button
-                  type="button"
-                  className={`vn2d-seg-item is-entity${node?.id === ctx.layerOrClusterNode.id ? ' active' : ''}`}
-                  onClick={() => onSelectNode(ctx.layerOrClusterNode!.id)}
-                  title={`Đối tượng gốc: ${rawLabel} — Nhấp để chỉnh vị trí & cỡ BBox gốc`}
+                <StudioTooltip
+                  title={rawLabel}
+                  badge={isClusterEntity ? 'Cụm 2.5D' : 'Layer gốc'}
+                  badgeTone={node?.id === ctx.layerOrClusterNode.id ? 'green' : 'cyan'}
+                  description="Nhấp để chỉnh vị trí gốc và kích thước chuẩn của đối tượng trên cảnh"
+                  placement="bottom"
                 >
-                  {isClusterEntity ? <IconLock width={12} height={12} /> : <IconLayers width={12} height={12} />}
-                  <span className="vn2d-entity-txt">{cleanShortTarget}</span>
-                </button>
-
-                {ctx.bboxSteps.map(({ node: step, number }) => (
                   <button
-                    key={step.id}
                     type="button"
-                    className={`vn2d-seg-item is-step${node?.id === step.id ? ' active' : ''}${!step.enabled ? ' is-off' : ''}`}
-                    onClick={() => onSelectNode(step.id)}
-                    title={`${step.title} — Kéo BBox #${number} → #${number + 1} trực tiếp trên khung`}
+                    className={`vn2d-seg-item is-entity${node?.id === ctx.layerOrClusterNode.id ? ' active' : ''}`}
+                    onClick={() => onSelectNode(ctx.layerOrClusterNode!.id)}
+                    aria-label={`Đối tượng gốc ${cleanShortTarget}`}
                   >
-                    <IconGizmoBbox width={11} height={11} />
-                    <span>
-                      {number}→{number + 1}
-                    </span>
+                    {isClusterEntity ? <IconLock width={12} height={12} /> : <IconLayers width={12} height={12} />}
+                    <span className="vn2d-entity-txt">{cleanShortTarget}</span>
                   </button>
-                ))}
+                </StudioTooltip>
+
+                {ctx.bboxSteps.map(({ node: step, number }) => {
+                  const isStepActive = node?.id === step.id
+                  return (
+                    <StudioTooltip
+                      key={step.id}
+                      title={cleanV2NodeTitle(step.title)}
+                      badge={`Chặng ${number}→${number + 1}`}
+                      badgeTone={isStepActive ? 'green' : 'cyan'}
+                      description={`Kéo khung BBox #${number} → #${number + 1}, uốn đường cong hoặc xoay 3D trực tiếp`}
+                      placement="bottom"
+                    >
+                      <button
+                        type="button"
+                        className={`vn2d-seg-item is-step${isStepActive ? ' active' : ''}${!step.enabled ? ' is-off' : ''}`}
+                        onClick={() => onSelectNode(step.id)}
+                        aria-label={`Chặng BBox ${number} sang ${number + 1}`}
+                      >
+                        <IconGizmoBbox width={11} height={11} />
+                        <span>
+                          {number}→{number + 1}
+                        </span>
+                      </button>
+                    </StudioTooltip>
+                  )
+                })}
+
+                {ctx.attachTargetNodeId && ctx.bboxSteps.length > 0 && (
+                  <StudioTooltip
+                    title="Nối thêm chặng BBox kế tiếp"
+                    badge="+3s"
+                    badgeTone="cyan"
+                    description="Tạo tiếp chặng BBox mới xuất phát nối liền từ vị trí đích hiện tại"
+                    placement="bottom"
+                  >
+                    <button
+                      type="button"
+                      className="vn2d-seg-item is-add-step"
+                      onClick={isOnBboxMotion ? onSpawnFollowupStep : onQuickSpawnBboxMotion}
+                      aria-label="Nối chặng BBox kế tiếp"
+                    >
+                      <IconPlus width={11} height={11} />
+                    </button>
+                  </StudioTooltip>
+                )}
 
                 {activeLogicNode && (
-                  <button
-                    type="button"
-                    className="vn2d-seg-item active"
-                    onClick={() => onSelectNode(activeLogicNode.id)}
-                    title={`Đang chỉnh: ${activeLogicNode.title}`}
+                  <StudioTooltip
+                    title={cleanV2NodeTitle(activeLogicNode.title)}
+                    badge="Đang chỉnh"
+                    badgeTone="amber"
+                    description="Node hiệu ứng / logic đang kích hoạt trên đối tượng này"
+                    placement="bottom"
                   >
-                    <IconNodeCircuit width={12} height={12} />
-                    <span className="vn2d-logic-txt">{cleanV2NodeTitle(activeLogicNode.title)}</span>
-                  </button>
+                    <button
+                      type="button"
+                      className="vn2d-seg-item active"
+                      onClick={() => onSelectNode(activeLogicNode.id)}
+                      aria-label={`Đang chỉnh ${cleanV2NodeTitle(activeLogicNode.title)}`}
+                    >
+                      <IconNodeCircuit width={12} height={12} />
+                      <span className="vn2d-logic-txt">{cleanV2NodeTitle(activeLogicNode.title)}</span>
+                    </button>
+                  </StudioTooltip>
                 )}
               </div>
             )}
 
             {ctx.attachTargetNodeId && (
               <div className="vn2d-quick-tools" ref={menuWrapRef}>
-                <button
-                  type="button"
-                  className="vn2d-tool-btn is-primary"
-                  onClick={isOnBboxMotion ? onSpawnFollowupStep : onQuickSpawnBboxMotion}
-                  title={
-                    isOnBboxMotion
-                      ? 'Nối thêm chặng BBox kế tiếp (+3s) xuất phát từ đích hiện tại'
-                      : 'Tạo chuyển động kéo BBox Đầu → Đích (#1 → #2) trực tiếp trên khung'
-                  }
-                >
-                  <IconPlus width={12} height={12} />
-                  <span>{isOnBboxMotion ? 'Chặng tiếp' : 'BBox Đích'}</span>
-                </button>
+                {ctx.bboxSteps.length === 0 && (
+                  <StudioTooltip
+                    title="Tạo chuyển động BBox #1 → #2"
+                    badge="Motion"
+                    badgeTone="cyan"
+                    description="Đặt ngay khung BBox Đích để kéo hướng di chuyển, tỉ lệ & uốn đường cong"
+                    placement="bottom"
+                  >
+                    <button
+                      type="button"
+                      className="vn2d-tool-btn is-primary"
+                      onClick={onQuickSpawnBboxMotion}
+                      aria-label="Thêm BBox Đích"
+                    >
+                      <IconPlus width={12} height={12} />
+                      <span>BBox Đích</span>
+                    </button>
+                  </StudioTooltip>
+                )}
 
-                <button
-                  type="button"
-                  className={`vn2d-tool-btn${menuOpen ? ' active' : ''}`}
-                  onClick={() => setMenuOpen((v) => !v)}
-                  aria-haspopup="menu"
-                  aria-expanded={menuOpen}
-                  title="Chuyển nhanh giữa các Node đang gắn hoặc thêm Hành động / Hiệu ứng / Ánh sáng / Vietsub mới"
+                <StudioTooltip
+                  title="Danh sách Node & Thêm Hành động"
+                  badge={`${ctx.logicNodes.length} Node`}
+                  badgeTone="cyan"
+                  description="Chuyển nhanh giữa các Node đang gắn hoặc thêm Hành động, Hiệu ứng, Ánh sáng, Vietsub"
+                  placement="bottom"
+                  disabled={menuOpen}
                 >
-                  <IconSparkles width={12} height={12} />
-                  <span className="vn2d-action-txt">Hành động</span>
-                  {ctx.logicNodes.length > 0 && <em className="vn2d-count-badge">{ctx.logicNodes.length}</em>}
-                  <IconChevronDown width={11} height={11} />
-                </button>
+                  <button
+                    type="button"
+                    className={`vn2d-tool-btn${menuOpen ? ' active' : ''}`}
+                    onClick={() => setMenuOpen((v) => !v)}
+                    aria-haspopup="menu"
+                    aria-expanded={menuOpen}
+                    aria-label="Menu Hành động và Node"
+                  >
+                    <IconSparkles width={12} height={12} />
+                    <span className="vn2d-action-txt">Hành động</span>
+                    {ctx.logicNodes.length > 0 && <em className="vn2d-count-badge">{ctx.logicNodes.length}</em>}
+                    <IconChevronDown width={11} height={11} />
+                  </button>
+                </StudioTooltip>
 
-                <button
-                  type="button"
-                  className="vn2d-tool-btn vn2d-hide-compact"
-                  onClick={onSyncCameraToEntity}
-                  title={
+                <StudioTooltip
+                  title={isOnBboxMotion ? 'Camera bám theo BBox #1 → #2' : 'Đưa Camera bắt gọn đối tượng'}
+                  badge="Camera 3D"
+                  badgeTone="green"
+                  description={
                     isOnBboxMotion
-                      ? 'Tự động tạo lộ trình Camera 3D lia bám mượt theo BBox #1 → #2 của đối tượng này'
-                      : 'Đưa khung ngắm Camera 3D bắt gọn đối tượng đang chọn'
+                      ? 'Tự động tạo lộ trình Camera 3D lia bám mượt từ BBox #1 sang BBox #2'
+                      : 'Lia tâm khung ngắm Camera 3D hiện tại vào đúng đối tượng đang chọn'
                   }
+                  placement="bottom"
                 >
-                  <IconAim width={12} height={12} />
-                  <span>{isOnBboxMotion ? 'Cam bám #1→#2' : 'Bám Cam'}</span>
-                </button>
+                  <button
+                    type="button"
+                    className="vn2d-tool-btn vn2d-hide-compact"
+                    onClick={onSyncCameraToEntity}
+                    aria-label={isOnBboxMotion ? 'Camera bám BBox 1 sang 2' : 'Bám Camera'}
+                  >
+                    <IconAim width={12} height={12} />
+                    <span>{isOnBboxMotion ? 'Cam bám' : 'Bám Cam'}</span>
+                  </button>
+                </StudioTooltip>
 
                 {menuOpen && (
                   <div
@@ -501,19 +602,27 @@ export const NodeStage2DToolbar: React.FC<NodeStage2DToolbarProps> = ({
             )}
 
             {ctx.clusterMemberCount > 1 && level === 'layer' && ctx.activeLayer && (
-              <button
-                type="button"
-                className="vn2d-tool-btn vn2d-hide-narrow"
-                onClick={onToggleScopeOverride}
-                title="Chuyển phạm vi kéo giữa Riêng mảnh con đang chọn và Toàn bộ Cụm 2.5D"
+              <StudioTooltip
+                title="Phạm vi kéo BBox Cụm 2.5D"
+                badge={scopeOverride === 'cluster' ? 'Toàn cụm' : 'Riêng mảnh'}
+                badgeTone="amber"
+                description="Chuyển giữa kéo riêng mảnh bộ phận đang chọn hoặc kéo đồng bộ toàn bộ Cụm 2.5D"
+                placement="bottom"
               >
-                {scopeOverride === 'cluster' ? <IconLock width={11} height={11} /> : <IconLayers width={11} height={11} />}
-                <span>
-                  {scopeOverride === 'cluster'
-                    ? `Cả cụm (${ctx.clusterMemberCount})`
-                    : getClusterPartShortName(ctx.activeLayer)}
-                </span>
-              </button>
+                <button
+                  type="button"
+                  className="vn2d-tool-btn vn2d-hide-narrow"
+                  onClick={onToggleScopeOverride}
+                  aria-label="Chuyển phạm vi kéo Cụm hoặc Mảnh"
+                >
+                  {scopeOverride === 'cluster' ? <IconLock width={11} height={11} /> : <IconLayers width={11} height={11} />}
+                  <span>
+                    {scopeOverride === 'cluster'
+                      ? `Cả cụm (${ctx.clusterMemberCount})`
+                      : getClusterPartShortName(ctx.activeLayer)}
+                  </span>
+                </button>
+              </StudioTooltip>
             )}
           </>
         )}
@@ -523,24 +632,40 @@ export const NodeStage2DToolbar: React.FC<NodeStage2DToolbarProps> = ({
       <div className="vn2d-right-ops">
         {hasDualStage && (
           <div className="vn2d-seg-track" role="group" aria-label="Chuyển chế độ Khung 2.5D và Cảnh 2D">
-            <button
-              type="button"
-              className={`vn2d-seg-item${!overrideSceneView ? ' active' : ''}`}
-              onClick={() => onToggleOverrideSceneView(false)}
-              title="Chỉnh trực tiếp vùng 2.5D / tia sáng / cửa hang / bộ phận"
+            <StudioTooltip
+              title={primaryMode === 'part_25d' ? 'Khung Bộ phận 2.5D' : 'Bàn điều khiển 2.5D'}
+              badge={!overrideSceneView ? 'Đang mở' : '2.5D'}
+              badgeTone="cyan"
+              description="Chỉnh trực tiếp vùng tia sáng, cửa hang chiều sâu hoặc đổi bộ phận nhân vật"
+              placement="bottom"
             >
-              <IconPad25D width={12} height={12} />
-              <span>{primaryMode === 'part_25d' ? 'Bộ phận' : '2.5D'}</span>
-            </button>
-            <button
-              type="button"
-              className={`vn2d-seg-item${overrideSceneView ? ' active' : ''}`}
-              onClick={() => onToggleOverrideSceneView(true)}
-              title="Đặt vị trí BBox trên toàn khung Cảnh 16:9"
+              <button
+                type="button"
+                className={`vn2d-seg-item${!overrideSceneView ? ' active' : ''}`}
+                onClick={() => onToggleOverrideSceneView(false)}
+                aria-label={primaryMode === 'part_25d' ? 'Chế độ Bộ phận 2.5D' : 'Chế độ 2.5D'}
+              >
+                <IconPad25D width={12} height={12} />
+                <span>{primaryMode === 'part_25d' ? 'Bộ phận' : '2.5D'}</span>
+              </button>
+            </StudioTooltip>
+            <StudioTooltip
+              title="Đặt BBox trên toàn Cảnh 16:9"
+              badge={overrideSceneView ? 'Đang mở' : 'Cảnh'}
+              badgeTone="green"
+              description="Xem và kéo đặt vị trí đối tượng trực tiếp trên toàn khung cảnh 16:9"
+              placement="bottom"
             >
-              <IconCompFrame width={12} height={12} />
-              <span>Cảnh</span>
-            </button>
+              <button
+                type="button"
+                className={`vn2d-seg-item${overrideSceneView ? ' active' : ''}`}
+                onClick={() => onToggleOverrideSceneView(true)}
+                aria-label="Chế độ toàn Cảnh 16:9"
+              >
+                <IconCompFrame width={12} height={12} />
+                <span>Cảnh</span>
+              </button>
+            </StudioTooltip>
           </div>
         )}
 

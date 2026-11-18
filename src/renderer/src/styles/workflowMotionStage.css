@@ -1,17 +1,111 @@
-.wf-motion-stage-tools { position: absolute; right: 8px; top: 8px; z-index: 36; display: flex; flex-direction: column; gap: 3px; padding: 3px; border: 1px solid var(--line); border-radius: var(--radius); background: color-mix(in srgb, var(--bg-2) 92%, transparent); backdrop-filter: blur(8px); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3); }
-.wf-motion-tool-slot { display: inline-flex; align-items: center; gap: 3px; }
-.wf-motion-tool-sep { width: 1px; height: 16px; background: var(--line); margin: 0 2px; }
-.wf-motion-stage-tools button { width: 28px; height: 28px; display: grid; place-items: center; padding: 0; border: 1px solid transparent; border-radius: var(--radius-sm); background: transparent; color: var(--text-dim); cursor: pointer; transition: background 120ms ease, color 120ms ease, border-color 120ms ease; }
-.wf-motion-stage-tools button:hover { background: color-mix(in srgb, var(--accent) 12%, var(--bg-3)); color: var(--text); }
-.wf-motion-stage-tools button[aria-pressed='true'] { background: color-mix(in srgb, var(--accent) 82%, #0f172a); border-color: var(--accent); color: var(--on-accent); box-shadow: 0 1px 6px color-mix(in srgb, var(--accent) 35%, transparent); }
-.wf-motion-stage-tools button:focus-visible { outline: 2px solid var(--line-focus); outline-offset: 2px; }
+.wf-motion-stage-tools {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  z-index: 36;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--bg-2) 94%, transparent);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.36);
+}
+
+.wf-motion-tool-sep {
+  width: 1px;
+  height: 18px;
+  background: var(--line);
+  margin: 0 2px;
+  flex-shrink: 0;
+}
+
+.wf-motion-stage-tools .wf-motion-tool-btn {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease, transform 90ms ease;
+}
+
+.wf-motion-stage-tools .wf-motion-tool-btn:hover {
+  background: color-mix(in srgb, var(--accent) 14%, var(--bg-3));
+  border-color: var(--line-soft);
+  color: var(--text);
+}
+
+.wf-motion-stage-tools .wf-motion-tool-btn:active {
+  transform: scale(0.95);
+}
+
+.wf-motion-stage-tools .wf-motion-tool-btn[aria-pressed='true'] {
+  background: color-mix(in srgb, var(--accent) 82%, #0f172a);
+  border-color: var(--accent);
+  color: var(--on-accent);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 32%, transparent);
+}
+
+.wf-motion-stage-tools .wf-motion-tool-btn:focus-visible {
+  outline: 2px solid var(--line-focus);
+  outline-offset: 2px;
+}
+
+/* Chip huỷ nhanh gọn ngay trong thanh công cụ đáy — KHÔNG che khuất khung hình 16:9 */
+.wf-motion-inline-cancel {
+  height: 28px;
+  padding: 0 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: var(--radius-sm);
+  border: 1px solid color-mix(in srgb, var(--accent-cyan) 42%, var(--line));
+  background: color-mix(in srgb, var(--accent-cyan) 12%, var(--bg-1));
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.wf-motion-inline-cancel:hover {
+  background: color-mix(in srgb, var(--accent-cyan) 22%, var(--bg-3));
+  border-color: var(--accent-cyan);
+}
+
+.wf-motion-inline-cancel kbd {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: var(--bg-3);
+  border: 1px solid var(--line-soft);
+  color: var(--accent-cyan);
+}
+
 .wf-motion-stage-path { position: absolute; inset: 0; z-index: 33; pointer-events: none; }
 .wf-motion-stage-draw { position: absolute; inset: 0; z-index: 32; cursor: crosshair; touch-action: none; }
-.wf-motion-stage-hint { position: absolute; bottom: 48px; left: 50%; transform: translateX(-50%); white-space: nowrap; padding: 4px 10px; border: 1px solid var(--line-focus); border-radius: var(--radius-sm); background: color-mix(in srgb, var(--bg-2) 94%, transparent); color: var(--text); font-size: 11px; font-weight: 600; pointer-events: none; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35); }
 .wf-motion-path-settings { display: flex; flex-direction: column; gap: 8px; padding: 8px; border: 1px solid var(--line-soft); border-radius: var(--radius); color: var(--text); background: var(--bg-1); }
 .wf-motion-path-settings p { margin: 0; color: var(--text-dim); font-size: 11px; line-height: 1.5; }
 .wf-motion-path-settings label { display: flex; align-items: center; gap: 6px; font-size: 11px; }
 
+.wf-motion-toolbar-dock {
+  display: flex;
+  justify-content: center;
+  padding: 4px 6px;
+  background: var(--bg-1);
+  border-top: 1px solid var(--line-soft);
+}
 .wf-motion-toolbar-dock:empty { display: none; }
 .wf-motion-stage-tools.is-docked { position: static; flex-direction: row; align-items: center; justify-content: center; flex-wrap: nowrap; }
 
