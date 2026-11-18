@@ -1,6 +1,7 @@
 import { repairDonghuaTiming } from './donghuaDemoBuilder'
 import { repairHanbetaTiming } from './hanbetaDemoBuilder'
 import { repairThreeSceneTiming } from './demoTiming'
+import { buildSimLifeEp1GateProject, buildSimLifeEp1TwistProject } from './simLifeDemoBuilder'
 import type { Project } from '@shared/types'
 import demoJson from './demoProject.json'
 import threeSceneJson from '../../../../projects/ba-canh-mau-workflow-v2.json'
@@ -43,6 +44,7 @@ export async function buildHanbetaDemoProject(): Promise<Project> {
 }
 
 export const buildActionCombat25dDemoProject = buildHanbetaDemoProject
+export { buildSimLifeEp1GateProject, buildSimLifeEp1TwistProject }
 
 export * from './plateGenerators'
 export * from './jsonFormat'

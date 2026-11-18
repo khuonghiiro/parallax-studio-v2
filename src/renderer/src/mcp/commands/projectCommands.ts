@@ -73,17 +73,23 @@ export const projectCommands: Record<string, Handler> = {
       demo === 'three_scenes' ||
       demo === 'donghua_guofeng' ||
       demo === 'hanbeta_quaidam' ||
-      demo === 'action_combat_25d'
+      demo === 'action_combat_25d' ||
+      demo === 'sim_life_ep1_gate' ||
+      demo === 'sim_life_ep1_twist'
     ) {
       ed().setPlaying(false)
       const loaded = await runWithProjectLoading(`Đang tải mẫu (${demo})…`, async (report) => {
         const demoMod = await import('../../project/demo')
         const built =
-          demo === 'action_combat_25d' || demo === 'hanbeta_quaidam'
-            ? await demoMod.buildHanbetaDemoProject()
-            : demo === 'donghua_guofeng'
-              ? await demoMod.buildDonghuaDemoProject()
-              : await demoMod.buildThreeSceneDemoProject()
+          demo === 'sim_life_ep1_gate'
+            ? await demoMod.buildSimLifeEp1GateProject()
+            : demo === 'sim_life_ep1_twist'
+              ? await demoMod.buildSimLifeEp1TwistProject()
+              : demo === 'action_combat_25d' || demo === 'hanbeta_quaidam'
+                ? await demoMod.buildHanbetaDemoProject()
+                : demo === 'donghua_guofeng'
+                  ? await demoMod.buildDonghuaDemoProject()
+                  : await demoMod.buildThreeSceneDemoProject()
         report({
           phase: 'gpu',
           stageLabel: `Đang nạp ${built.shots.length} cảnh · ${built.layers.length} layer…`,

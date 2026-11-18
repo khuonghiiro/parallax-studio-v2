@@ -69,7 +69,9 @@ const DEMO_LOADING_TITLES: Record<string, string> = {
   three_scenes: 'Đang mở Mẫu 1: Hành Trình 3 Khung Cảnh (Workflow V2)…',
   donghua_guofeng: 'Đang mở Mẫu 2: Vân Sơn Kiếm Khúc — Quốc Phong 2.5D…',
   hanbeta_quaidam: 'Đang mở Mẫu 3: Hàn Bối Tháp — Đại Chiến Linh Thú 2.5D…',
-  action_combat_25d: 'Đang mở Mẫu 3: Hàn Bối Tháp — Đại Chiến Linh Thú 2.5D…'
+  action_combat_25d: 'Đang mở Mẫu 3: Hàn Bối Tháp — Đại Chiến Linh Thú 2.5D…',
+  sim_life_ep1_gate: 'Đang mở Mẫu 4: Mô Phỏng Nhân Sinh — Mở Màn Sơn Môn (2.5D)…',
+  sim_life_ep1_twist: 'Đang mở Mẫu 5: Mô Phỏng Nhân Sinh — Oan Gia Gác Cổng (2.5D)…'
 }
 
 export async function loadDemo(
@@ -78,7 +80,9 @@ export async function loadDemo(
     | 'three_scenes'
     | 'donghua_guofeng'
     | 'hanbeta_quaidam'
-    | 'action_combat_25d' = 'three_scenes'
+    | 'action_combat_25d'
+    | 'sim_life_ep1_gate'
+    | 'sim_life_ep1_twist' = 'three_scenes'
 ): Promise<void> {
   if (!force && !confirmDiscard()) return
   editor().setPlaying(false)
@@ -86,11 +90,15 @@ export async function loadDemo(
   await runWithProjectLoading(title, async (report) => {
     const demoMod = await import('./project/demo')
     const p =
-      variant === 'action_combat_25d' || variant === 'hanbeta_quaidam'
-        ? await demoMod.buildHanbetaDemoProject()
-        : variant === 'donghua_guofeng'
-          ? await demoMod.buildDonghuaDemoProject()
-          : await demoMod.buildThreeSceneDemoProject()
+      variant === 'sim_life_ep1_gate'
+        ? await demoMod.buildSimLifeEp1GateProject()
+        : variant === 'sim_life_ep1_twist'
+          ? await demoMod.buildSimLifeEp1TwistProject()
+          : variant === 'action_combat_25d' || variant === 'hanbeta_quaidam'
+            ? await demoMod.buildHanbetaDemoProject()
+            : variant === 'donghua_guofeng'
+              ? await demoMod.buildDonghuaDemoProject()
+              : await demoMod.buildThreeSceneDemoProject()
     report({
       phase: 'gpu',
       stageLabel: `Đang dựng ${p.shots.length} cảnh · ${p.layers.length} layer lên khung nhìn…`,

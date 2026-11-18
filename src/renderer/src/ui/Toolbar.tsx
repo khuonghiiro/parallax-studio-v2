@@ -251,6 +251,12 @@ export function Toolbar({ onExport }: { onExport: () => void }) {
           <button className="menu-item" onClick={() => loadDemo(false, 'action_combat_25d')}>
             <IconEye width={15} /> Mẫu 3: Hàn Bối Tháp — Đại Chiến Linh Thú 2.5D
           </button>
+          <button className="menu-item" onClick={() => loadDemo(false, 'sim_life_ep1_gate')}>
+            <IconPlay width={15} /> Mẫu 4: Mô Phỏng Nhân Sinh — Mở Màn Sơn Môn (2.5D)
+          </button>
+          <button className="menu-item" onClick={() => loadDemo(false, 'sim_life_ep1_twist')}>
+            <IconRoute width={15} /> Mẫu 5: Mô Phỏng Nhân Sinh — Oan Gia Gác Cổng (2.5D)
+          </button>
         </Menu>
 
         <Menu id="menu-add" label="Thêm layer" icon={<IconPlus />}>
