@@ -102,7 +102,7 @@ export const SCENE_TOOLS = [
         'layer_assembly_anim_tools', 'layer_assembly_anim_chips', 'layer_assembly_anim_assist', 'layer_assembly_anim_secondary',
         'layer_assembly_plant_motion', 'layer_assembly_plant_chips', 'layer_assembly_plant_panel', 'layer_assembly_pose_tools', 'layer_assembly_plant_graph', 'layer_assembly_smart_rig_25d', 'layer_assembly_creature_rig', 'layer_assembly_bone_builder', 'layer_assembly_bone_constraints', 'layer_assembly_bone_tree', 'layer_assembly_bone_inspector', 'layer_assembly_parallax_25d', 'layer_assembly_motion_harmony', 'layer_assembly_stage_guide', 'layer_assembly_cutout_stage', 'layer_assembly_cutout_rig', 'layer_assembly_cutout_hud',
         'audio_studio', 'audio_studio_sidebar', 'audio_studio_editor', 'audio_studio_waveform', 'audio_studio_tone', 'audio_studio_mixer', 'audio_studio_console',
-        'perf_dialog', 'perf_hardware', 'perf_meter', 'perf_settings',
+        'perf_dialog', 'perf_hardware', 'perf_ui_fx', 'perf_meter', 'perf_settings',
         'manifest_dialog', 'manifest_sidebar', 'manifest_categories', 'manifest_assets', 'manifest_trash', 'manifest_json_editor',
         'export', 'export_dialog', 'export_preview', 'export_encoder',
         'camera_sketch', 'camera_sketch_canvas', 'camera_sketch_sidebar', 'camera_sketch_waypoints',

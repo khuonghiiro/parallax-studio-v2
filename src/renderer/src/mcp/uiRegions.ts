@@ -288,6 +288,7 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   // 4. Hộp thoại Hiệu năng (Performance Dialog)
   perf_dialog: ['.perf-modal', '.modal:has(.hw-grid)'],
   perf_hardware: ['.hw-grid'],
+  perf_ui_fx: region('perf_ui_fx', '.perf-ui-fx-card'),
   perf_meter: ['.perf-meter'],
   perf_settings: ['.perf-auto-box', '.perf-preset-grid'],
 
