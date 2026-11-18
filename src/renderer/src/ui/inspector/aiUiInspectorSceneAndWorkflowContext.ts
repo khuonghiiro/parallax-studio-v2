@@ -291,11 +291,14 @@ export function extractDomSceneEntityInfo(el: Element): ScannedSceneEntityInfo |
     sceneEl.closest?.('[data-focus-node]')?.getAttribute?.('data-focus-node') ||
     null
 
-  const isInWorkflowPreview = Boolean(sceneEl.closest?.('[data-mcp-region="workflow_preview"]'))
+  const isInWorkflowPreview = Boolean(
+    sceneEl.closest?.('[data-mcp-region="workflow_preview"], [data-mcp-region="viewer_node2d"]')
+  )
   const isInStage2D = Boolean(sceneEl.closest?.('[data-mcp-region="viewer_stage2d"]'))
 
   const relatedFiles = isInWorkflowPreview
     ? [
+        'src/renderer/src/ui/viewer/nodeStage2d/ViewerNodeStage2D.tsx',
         'src/renderer/src/ui/workflow/WorkflowV2DirectStagePreview.tsx',
         'src/renderer/src/ui/workflow/WorkflowV2StageBboxMotionOverlay.tsx',
         'src/renderer/src/project/workflowV2BboxMotionAndCollision.ts'
@@ -409,12 +412,12 @@ export function extractDomWorkflowNodeInfo(el: Element): ScannedWorkflowNodeInfo
     (nodeCardEl?.classList?.contains?.('wf-v2-card') ? nodeCardEl.id : null) ||
     null
 
-  // Nếu quét bên trong cột Thuộc tính Node (workflow_inspector / workflow_preview / inspector_bottom_tabs)
+  // Nếu quét bên trong Màn Khung 2D hoặc cột Thuộc tính Node
   if (
     !nodeId &&
     st.selectedWorkflowNodeId &&
     el.closest?.(
-      '[data-mcp-region="workflow_inspector"], [data-mcp-region="workflow_preview"], [data-mcp-region="inspector"], [data-mcp-region="inspector_bottom_tabs"]'
+      '[data-mcp-region="viewer_node2d"], [data-mcp-region="viewer_node2d_tools"], [data-mcp-region="workflow_inspector"], [data-mcp-region="workflow_preview"], [data-mcp-region="inspector"], [data-mcp-region="inspector_bottom_tabs"]'
     )
   ) {
     nodeId = st.selectedWorkflowNodeId

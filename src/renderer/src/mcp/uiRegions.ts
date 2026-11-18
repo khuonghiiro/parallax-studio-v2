@@ -55,6 +55,8 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   timeline_motion_popup: ['.tl-motion-popup'],
   timeline_key_controls: ['.tl-range-controls'],
   viewer_depth: ['.viewer-depth-pane'],
+  viewer_node2d: region('viewer_node2d', '.viewer-node2d-stage', '.viewer-node2d-pane'),
+  viewer_node2d_tools: region('viewer_node2d_tools', '.viewer-node2d-toolbar'),
   viewer_stage2d: ['.anim2d-pane-host'],
   timeline_logic: ['.tl-logic-strip'],
   timeline_logic_picker: ['.tl-logic-picker'],

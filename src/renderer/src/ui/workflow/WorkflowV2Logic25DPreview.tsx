@@ -44,6 +44,7 @@ export interface WorkflowV2Logic25DPreviewProps {
   onToggleOpen: () => void
   onUpdateParams: (nodeId: string, patch: Partial<WorkflowNodeParams>, nextTitle?: string) => void
   onScrubTime: (t: number) => void
+  fullViewport?: boolean
 }
 
 function clamp(v: number, min: number, max: number): number {
@@ -84,7 +85,8 @@ export const WorkflowV2Logic25DPreview: React.FC<WorkflowV2Logic25DPreviewProps>
   open,
   onToggleOpen,
   onUpdateParams,
-  onScrubTime
+  onScrubTime,
+  fullViewport = false
 }) => {
   const cat = resolveV2LogicCategory(node)
   const targetIds = node.params?.targetLayerIds ?? []
@@ -538,33 +540,38 @@ export const WorkflowV2Logic25DPreview: React.FC<WorkflowV2Logic25DPreviewProps>
   const glowOn = Boolean(layer.glow?.enabled) || (cat === 'fx' && node.params?.fxKind !== 'wind_physics')
 
   return (
-    <section className="wf-v2-insp-sec wf-v2-direct-stage-sec" data-mcp-region="workflow_preview">
-      <div className="wf-v2-direct-stage-bar" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-        <button
-          type="button"
-          className={`wf-v2-direct-toggle-btn${open ? ' active' : ''}`}
-          style={{ flex: 1 }}
-          onClick={onToggleOpen}
-          title="Bật/tắt Khung chỉnh 2.5D trực tiếp cho Node Logic này"
-        >
-          <span>🎛️ {showFullCluster ? `Khung chỉnh 2.5D Cả Cụm (${clusterMembers.length} mảnh)` : 'Khung chỉnh 2.5D trực tiếp'}</span>
-          <small>{open ? 'Đang mở' : 'Đang ẩn'}</small>
-        </button>
-        {open && clusterMembers.length > 1 && (
+    <section
+      className={`wf-v2-insp-sec wf-v2-direct-stage-sec${fullViewport ? ' is-full-viewport' : ''}`}
+      data-mcp-region="workflow_preview"
+    >
+      {!fullViewport && (
+        <div className="wf-v2-direct-stage-bar" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <button
             type="button"
-            className="wf-v2-direct-btn"
-            style={{ height: 22, padding: '0 7px', flexShrink: 0 }}
-            title="Chuyển nhanh phạm vi tác động của Node Logic giữa Toàn bộ Cụm đang khoá và Riêng 1 mảnh con"
-            onClick={toggleClusterScope}
+            className={`wf-v2-direct-toggle-btn${open ? ' active' : ''}`}
+            style={{ flex: 1 }}
+            onClick={onToggleOpen}
+            title="Bật/tắt Khung chỉnh 2.5D trực tiếp cho Node Logic này"
           >
-            {showFullCluster ? `🔒 Cả cụm (${clusterMembers.length})` : `🎯 Riêng: ${getClusterPartShortName(layer)}`}
+            <span>🎛️ {showFullCluster ? `Khung chỉnh 2.5D Cả Cụm (${clusterMembers.length} mảnh)` : 'Khung chỉnh 2.5D trực tiếp'}</span>
+            <small>{open ? 'Đang mở' : 'Đang ẩn'}</small>
           </button>
-        )}
-      </div>
+          {open && clusterMembers.length > 1 && (
+            <button
+              type="button"
+              className="wf-v2-direct-btn"
+              style={{ height: 22, padding: '0 7px', flexShrink: 0 }}
+              title="Chuyển nhanh phạm vi tác động của Node Logic giữa Toàn bộ Cụm đang khoá và Riêng 1 mảnh con"
+              onClick={toggleClusterScope}
+            >
+              {showFullCluster ? `🔒 Cả cụm (${clusterMembers.length})` : `🎯 Riêng: ${getClusterPartShortName(layer)}`}
+            </button>
+          )}
+        </div>
+      )}
 
       {open && (
-        <div className="wf-v2-logic-pad-wrap">
+        <div className={`wf-v2-logic-pad-wrap${fullViewport ? ' is-full-viewport' : ''}`}>
           {cat === 'light' || cat === 'cave' ? (
             <VirtualLightInteractivePad
               sourceLayer={clusterRoot ?? layer}

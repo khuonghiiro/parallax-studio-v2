@@ -31,6 +31,7 @@ import { usePinchPanGesture } from '../hooks/usePinchPanGesture'
 import { ViewerOverlays } from './viewer/ViewerOverlays'
 import { LayerGizmo, type GizmoController, type GizmoFrame } from './viewer/LayerGizmo'
 import { AnimateCameraStage } from './viewer/animateCamera/AnimateCameraStage'
+import { ViewerNodeStage2D } from './viewer/nodeStage2d/ViewerNodeStage2D'
 import { TopView, useFocusShotId } from './TopView'
 import { queryViewerSceneLayersInBox } from './viewer/viewerSceneInspectorBridge'
 
@@ -46,12 +47,12 @@ export function Viewer() {
   const needsFrame = useRef(true)
   const pendingFocus = useRef<THREE.Box3 | null>(null)
   const pendingShotFocal = useRef<THREE.Vector3 | null>(null)
-  const layoutRef = useRef<Layout>({ dpr: 1, cam: null, ed: null, stage2d: null })
+  const layoutRef = useRef<Layout>({ dpr: 1, cam: null, ed: null, node2d: null, stage2d: null })
   const rafRef = useRef(0)
   const frameTimes = useRef<number[]>([])
   const [fps, setFps] = useState(0)
   const [stats, setStats] = useState<ResidencyStats | null>(null)
-  const [rects, setRects] = useState<Layout>({ dpr: 1, cam: null, ed: null, stage2d: null })
+  const [rects, setRects] = useState<Layout>({ dpr: 1, cam: null, ed: null, node2d: null, stage2d: null })
   const [canvasEpoch, setCanvasEpoch] = useState(0)
   const healTimerRef = useRef<number | null>(null)
   const comp = useEditor((s) => s.project.comp)
@@ -857,6 +858,13 @@ export function Viewer() {
           style={{ position: 'absolute', left: rects.depth.x, top: rects.depth.y,
             width: rects.depth.w, height: rects.depth.h, zIndex: 5, background: 'var(--bg-1)' }}>
           <TopView shotId={focusShotId} isExpanded={true} />
+        </div>
+      )}
+      {rects.node2d && (
+        <div className="viewer-node2d-pane"
+          style={{ position: 'absolute', left: rects.node2d.x, top: rects.node2d.y,
+            width: rects.node2d.w, height: rects.node2d.h, zIndex: 7, background: 'var(--bg-0)' }}>
+          <ViewerNodeStage2D />
         </div>
       )}
       {rects.stage2d && (

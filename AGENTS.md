@@ -66,7 +66,7 @@ Chi tiết tại [responsive-standard.md](./.agents/rules/responsive-standard.md
   - Tra cứu & trạng thái: `pnpm pxs --help`, `pnpm pxs help <tool>`, `pnpm pxs status`, `pnpm pxs inspect`.
   - Chụp ảnh đánh giá bằng mắt (không dùng trình duyệt ngoài):
     - `pnpm pxs review --view camera --out <path>` (chụp viewport 3D).
-    - `pnpm pxs review --view app [--region <name>] --out <path>` (tool `get_app_screenshot`): dùng `region: "active"` ngay sau khi mở dialog để chụp đúng modal nổi trên cùng, sau đó dùng sub-region cụ thể (`toolbar`, `viewer`, `inspector`, `timeline`, `workflow_canvas`, `layer_assembly`, `assembly_3d`, `loop_animator`, `audio_studio`, `manifest_dialog`...; danh sách đầy đủ trong [`src/renderer/src/mcp/uiRegions.ts`](./src/renderer/src/mcp/uiRegions.ts)) để tiết kiệm 70%–95% token ảnh. Lưu ảnh tạm vào `D:\_tmp`.
+    - `pnpm pxs review --view app [--region <name>] --out <path>` (tool `get_app_screenshot`): dùng `region: "active"` ngay sau khi mở dialog để chụp đúng modal nổi trên cùng, sau đó dùng sub-region cụ thể (`toolbar`, `viewer`, `viewer_node2d`, `viewer_node2d_tools`, `inspector`, `timeline`, `workflow_canvas`, `layer_assembly`, `assembly_3d`, `loop_animator`, `audio_studio`, `manifest_dialog`...; danh sách đầy đủ trong [`src/renderer/src/mcp/uiRegions.ts`](./src/renderer/src/mcp/uiRegions.ts)) để tiết kiệm 70%–95% token ảnh. Lưu ảnh tạm vào `D:\_tmp`.
   - Thực thi lệnh Dual-Shell:
     - **PowerShell:** `pnpm pxs call <tool> '<json>'` hoặc `'@{k=v}'`
     - **CMD:** `pnpm pxs call <tool> "{\"k\":\"v\"}"`

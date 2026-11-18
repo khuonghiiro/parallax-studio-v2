@@ -8,8 +8,15 @@ import { projectShotLayers2D } from '../viewer/animateCamera/animateCameraMath'
 import { useEditor } from '../../store/editor'
 import '../../styles/workflowPartPreview.css'
 
-type Props = { project: Project; node: WorkflowNode; currentTime: number; onScrubTime: (t: number) => void; onSelectNode?: (id: string) => void }
-export function WorkflowPartPreview({ project, node, currentTime, onScrubTime, onSelectNode }: Props) {
+type Props = {
+  project: Project
+  node: WorkflowNode
+  currentTime: number
+  onScrubTime: (t: number) => void
+  onSelectNode?: (id: string) => void
+  fullViewport?: boolean
+}
+export function WorkflowPartPreview({ project, node, currentTime, onScrubTime, onSelectNode, fullViewport = false }: Props) {
   const [closeup, setCloseup] = useState(false)
   const context = useMemo(() => partEditContext(project, node.id), [project, node.id])
   const playing = useEditor(s => s.playing)
@@ -17,7 +24,7 @@ export function WorkflowPartPreview({ project, node, currentTime, onScrubTime, o
   const start = timing.timeStart ?? 0, end = timing.timeEnd ?? project.comp.duration
   const seek = (t: number) => { useEditor.getState().setPlaying(false); onScrubTime(Math.max(0, Math.min(project.comp.duration, t))) }
   const frame = 1 / Math.max(1, project.comp.fps)
-  return <section className="wf-part-preview" data-mcp-region="workflow_part_preview">
+  return <section className={`wf-part-preview${fullViewport ? ' is-full-viewport' : ''}`} data-mcp-region="workflow_part_preview">
     <header><strong>Khung chỉnh bộ phận</strong><span>{currentTime.toFixed(2)}s</span>
       <button type="button" onClick={() => { if (!playing) onScrubTime(start); useEditor.getState().setPlaying(!playing) }}>{playing ? '■ Dừng' : '▶ Phát'}</button></header>
     <div className="wf-part-seek" aria-label="Phạm vi khung bộ phận">

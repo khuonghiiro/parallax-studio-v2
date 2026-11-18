@@ -91,6 +91,8 @@ const REGION_FRIENDLY_NAMES: Record<string, string> = {
   viewer_hud: 'HUD Thông số Khung nhìn 3D',
   viewer_tools: 'Thanh công cụ Khung nhìn 3D',
   viewer_3d_presets: 'Cụm Góc nhìn 3D nhanh',
+  viewer_node2d: 'Màn Khung 2D Chỉnh Node & Hành Động Trực Tiếp',
+  viewer_node2d_tools: 'Thanh công cụ Màn Khung 2D Chỉnh Node',
   viewer_stage2d: 'Sân khấu 2D tổng thể (Animate Camera Stage)',
   viewer_layer_gizmo: 'Khung BBox & Trục Gizmo 3D của Layer/Cụm',
   viewer_depth: 'Sơ đồ Chiều sâu 2.5D (Depth View)',

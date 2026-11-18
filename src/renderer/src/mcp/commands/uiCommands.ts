@@ -53,6 +53,8 @@ const PRIMARY_DISCOVERABLE_REGIONS = [
   'topview',
   'viewer',
   'viewer_tools',
+  'viewer_node2d',
+  'viewer_node2d_tools',
   'inspector',
   'inspector_tabs',
   'inspector_body',

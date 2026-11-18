@@ -5,10 +5,11 @@ export function workflowBboxEditTime(
   node: WorkflowNode,
   currentTime: number,
   playing: boolean,
-  workflow?: WorkflowGraph
+  workflow?: WorkflowGraph,
+  smoothPlayback = false
 ): number {
   const p = node.params
-  if (p?.isCameraWaypoint && typeof p.timeStart === 'number') return p.timeStart
+  if (p?.isCameraWaypoint && typeof p.timeStart === 'number' && !playing) return p.timeStart
   if (!playing) {
     if (p?.logicCategory === 'action' && resolveMotionMode(p) !== 'cycle') return p.timeStart ?? 0
     if (p?.logicCategory === 'subtitle' && typeof p.timeStart === 'number' && typeof p.timeEnd === 'number') {
@@ -28,5 +29,6 @@ export function workflowBboxEditTime(
       }
     }
   }
+  if (playing && smoothPlayback) return currentTime
   return playing ? Math.round(currentTime * 12) / 12 : currentTime
 }

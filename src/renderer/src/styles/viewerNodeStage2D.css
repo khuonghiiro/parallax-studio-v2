@@ -1,0 +1,469 @@
+/* ==========================================================================
+   Màn Khung 2D Chỉnh Node Trực Tiếp trong Khung Nhìn Chính (ViewerNodeStage2D)
+   Tuân thủ 100% Design Tokens (variables.css), 2 Theme Dark/Light & Hình học thống nhất
+   ========================================================================== */
+
+.viewer-node2d-stage {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  background: var(--bg-0);
+  color: var(--text);
+  overflow: hidden;
+  user-select: none;
+}
+
+.viewer-node2d-toolbar {
+  position: relative;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 4px 8px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+
+.vn2d-mid-scroll {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.vn2d-mid-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.vn2d-inline-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.vn2d-sep {
+  width: 1px;
+  height: 16px;
+  background: var(--line);
+  flex-shrink: 0;
+  margin: 0 2px;
+}
+
+/* Thống nhất bo góc chữ nhật (var(--radius-sm) = 4px) và độ cao vùng bấm an toàn */
+.vn2d-pill,
+.vn2d-action-btn,
+.vn2d-action-cta,
+.vn2d-layout-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 26px;
+  padding: 0 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-soft);
+  background: var(--bg-3);
+  color: var(--text);
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.vn2d-pill:hover,
+.vn2d-action-btn:hover,
+.vn2d-layout-btn:hover {
+  border-color: var(--line-focus);
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg-3));
+}
+
+.vn2d-pill.active,
+.vn2d-action-btn.active,
+.vn2d-layout-btn.active {
+  background: color-mix(in srgb, var(--logic-accent, var(--accent)) 78%, #0f172a);
+  border-color: var(--logic-accent, var(--accent));
+  color: #ffffff;
+}
+
+.vn2d-pill.is-bbox-step {
+  --logic-accent: #f59e0b;
+}
+
+.vn2d-pill.is-off {
+  opacity: 0.55;
+  border-style: dashed;
+}
+
+.vn2d-pill-txt {
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vn2d-action-cta {
+  background: color-mix(in srgb, var(--accent) 82%, #0f172a);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+
+.vn2d-action-cta:hover {
+  background: color-mix(in srgb, var(--accent) 92%, #0f172a);
+  border-color: var(--accent-cyan);
+}
+
+.vn2d-action-btn.is-chain {
+  border-color: color-mix(in srgb, var(--key) 55%, var(--line));
+  background: color-mix(in srgb, var(--key) 14%, var(--bg-3));
+}
+
+/* Segmented switch Khung 2.5D vs Cảnh 2D */
+.vn2d-seg {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-1);
+  border: 1px solid var(--line-soft);
+  flex-shrink: 0;
+}
+
+.vn2d-seg-btn {
+  min-height: 22px;
+  padding: 0 7px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.vn2d-seg-btn:hover {
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-3));
+}
+
+.vn2d-seg-btn.active {
+  background: color-mix(in srgb, var(--accent) 78%, #0f172a);
+  color: #ffffff;
+}
+
+/* Cụm phải cố định: Transport + Zoom + Split */
+.vn2d-right-ops {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.vn2d-transport,
+.vn2d-zoom-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-1);
+  border: 1px solid var(--line-soft);
+}
+
+.vn2d-icon-btn {
+  width: 24px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.vn2d-icon-btn:hover {
+  background: color-mix(in srgb, var(--accent) 14%, var(--bg-3));
+}
+
+.vn2d-play-btn {
+  height: 22px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, #10b981 78%, #0f172a);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.vn2d-play-btn.is-playing {
+  background: color-mix(in srgb, #f59e0b 82%, #0f172a);
+  color: #ffffff;
+}
+
+.vn2d-time-readout {
+  padding: 0 5px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.vn2d-zoom-pct {
+  min-width: 44px;
+  height: 22px;
+  padding: 0 5px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.vn2d-zoom-pct:hover {
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg-3));
+}
+
+/* Ngăn kéo chọn nhanh Node Logic gắn thêm ngay dưới thanh công cụ Màn Khung 2D */
+.vn2d-spawn-drawer {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: calc(100% + 4px);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line-focus);
+  background: var(--bg-2);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.42);
+}
+
+.vn2d-spawn-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-dim);
+  margin-right: 4px;
+}
+
+.vn2d-spawn-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid color-mix(in srgb, var(--logic-accent, var(--accent)) 45%, var(--line));
+  background: color-mix(in srgb, var(--logic-accent, var(--accent)) 14%, var(--bg-3));
+  color: var(--text);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.vn2d-spawn-chip:hover {
+  background: color-mix(in srgb, var(--logic-accent, var(--accent)) 78%, #0f172a);
+  border-color: var(--logic-accent, var(--accent));
+  color: #ffffff;
+}
+
+/* Vùng sân khấu chính chiếm trọn chiều cao còn lại */
+.viewer-node2d-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg-0);
+}
+
+.viewer-node2d-empty {
+  margin: auto;
+  max-width: 440px;
+  padding: 20px 24px;
+  border-radius: var(--radius-md);
+  border: 1px dashed var(--line);
+  background: var(--bg-1);
+  text-align: center;
+}
+
+.viewer-node2d-empty strong {
+  display: block;
+  font-size: 14px;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.viewer-node2d-empty p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+
+/* Chế độ bung toàn vùng (is-full-viewport) cho cả 3 loại Stage (BBox Cảnh, 2.5D Pad, Bộ phận) */
+.wf-v2-direct-stage-sec.is-full-viewport {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.wf-v2-direct-stage.is-full-viewport {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border: 0;
+  border-radius: 0;
+  background: var(--bg-0);
+}
+
+.wf-v2-direct-stage.is-full-viewport .wf-v2-direct-canvas {
+  flex: 1 1 auto;
+  min-height: 0;
+  border-radius: 0;
+}
+
+.wf-v2-direct-stage.is-full-viewport .wf-v2-direct-footer {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 5px 10px;
+  background: var(--bg-2);
+  border-top: 1px solid var(--line-soft);
+}
+
+.wf-v2-direct-stage.is-full-viewport .wf-v2-direct-actions {
+  flex: 0 0 auto;
+}
+
+.wf-v2-direct-stage.is-full-viewport .wf-v2-direct-btn {
+  flex: 0 0 auto;
+  height: 24px;
+  padding: 0 9px;
+  font-size: 11px;
+}
+
+.wf-v2-direct-stage.is-full-viewport .wf-v2-bbox-handle {
+  width: 10px;
+  height: 10px;
+}
+
+.wf-v2-direct-stage.is-full-viewport .wf-v2-bbox-handle.nw { left: -5px; top: -5px; }
+.wf-v2-direct-stage.is-full-viewport .wf-v2-bbox-handle.ne { right: -5px; top: -5px; }
+.wf-v2-direct-stage.is-full-viewport .wf-v2-bbox-handle.sw { left: -5px; bottom: -5px; }
+.wf-v2-direct-stage.is-full-viewport .wf-v2-bbox-handle.se { right: -5px; bottom: -5px; }
+
+/* Chỉ báo đối tượng đang di chuyển khi phát trực tiếp trên Màn Khung 2D */
+.wf-v2-live-play-bbox {
+  position: absolute;
+  border: 2px solid #10b981;
+  border-radius: var(--radius-sm);
+  box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.7), 0 0 14px rgba(16, 185, 129, 0.45);
+  pointer-events: none;
+  z-index: 38;
+}
+
+.wf-v2-live-play-tag {
+  position: absolute;
+  left: 0;
+  bottom: -19px;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, #10b981 82%, #0f172a);
+  color: #ffffff;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* Bung chiều cao cho Khung 2.5D (Ánh sáng, Cửa hang, UV) & Khung Bộ phận khi nằm ở Viewer */
+.wf-v2-logic-pad-wrap.is-full-viewport {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 10px 14px;
+}
+
+.wf-v2-logic-pad-wrap.is-full-viewport .vl-pad-card {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.wf-v2-logic-pad-wrap.is-full-viewport .vl-pad-stage {
+  flex: 1 1 auto;
+  height: auto !important;
+  min-height: 220px;
+}
+
+.wf-part-preview.is-full-viewport {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 8px 12px;
+  margin: 0;
+}
+
+.wf-part-preview.is-full-viewport .wf-part-stage {
+  flex: 1 1 auto;
+  min-height: 200px;
+  max-height: none;
+  height: auto;
+}
+
+/* Responsive 4 Breakpoints (Phone <= 768px, Tablet 769-1120px) */
+@media (max-width: 768px) {
+  .viewer-node2d-toolbar {
+    flex-wrap: wrap;
+    min-height: 40px;
+    padding: 5px 6px;
+  }
+
+  .vn2d-pill,
+  .vn2d-action-btn,
+  .vn2d-action-cta,
+  .vn2d-layout-btn {
+    min-height: 36px;
+    padding: 0 10px;
+    font-size: 12px;
+  }
+
+  .vn2d-icon-btn,
+  .vn2d-play-btn,
+  .vn2d-zoom-pct {
+    min-height: 32px;
+  }
+}
