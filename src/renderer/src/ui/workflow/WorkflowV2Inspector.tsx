@@ -212,10 +212,23 @@ function resolveLinkedEntities(node: WorkflowNode, project: Project, workflow: W
 
 const DIRECT_STAGE_KEY = 'pxs:wf-v2-direct-stage-open'
 const LOGIC_PAD_KEY = 'pxs:wf-v2-logic-pad-open'
+const NODE_SUBTAB_KEY = 'pxs:wf-v2-node-subtab'
 const INSPECTOR_WIDTH_KEY = 'pxs:wf-v2-inspector-width'
 const MIN_INSPECTOR_W = 280
 const MAX_INSPECTOR_W = 680
 const DEFAULT_INSPECTOR_W = 380
+
+export type WorkflowNodePropSubTab = 'params' | 'stage' | 'timing' | 'all'
+
+function readInitialNodeSubTab(): WorkflowNodePropSubTab {
+  try {
+    const saved = localStorage.getItem(NODE_SUBTAB_KEY)
+    if (saved === 'params' || saved === 'stage' || saved === 'timing' || saved === 'all') return saved
+  } catch {
+    /* ignore */
+  }
+  return 'params'
+}
 
 function readCachedInspectorWidth(): number {
   const raw = Number(localStorage.getItem(INSPECTOR_WIDTH_KEY))
@@ -230,6 +243,16 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
   const [resizingWidth, setResizingWidth] = useState(false)
   const [directStageOpen, setDirectStageOpen] = useState(() => localStorage.getItem(DIRECT_STAGE_KEY) !== '0')
   const [logicPadOpen, setLogicPadOpen] = useState(() => localStorage.getItem(LOGIC_PAD_KEY) !== '0')
+  const [nodeSubTab, setNodeSubTab] = useState<WorkflowNodePropSubTab>(readInitialNodeSubTab)
+
+  const selectNodeSubTab = (next: WorkflowNodePropSubTab): void => {
+    setNodeSubTab(next)
+    try {
+      localStorage.setItem(NODE_SUBTAB_KEY, next)
+    } catch {
+      /* ignore */
+    }
+  }
 
   useEffect(() => {
     if (node?.params?.logicCategory === 'action' && node.params.motionMode !== 'cycle') setDirectStageOpen(true)
@@ -457,9 +480,15 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
         {isLayerOrCamBboxNode && (
           <button
             type="button"
-            className={`wf-v2-insp-bbox-toggle${directStageOpen ? ' active' : ''}`}
-            title={directStageOpen ? 'Đang bật khung chỉnh BBox 2D cố định — nhấn để ẩn' : 'Bật khung chỉnh BBox 2D cố định trên đầu bảng'}
-            onClick={toggleDirectStage}
+            className={`wf-v2-insp-bbox-toggle${(nodeSubTab === 'stage' || (nodeSubTab === 'all' && directStageOpen)) ? ' active' : ''}`}
+            title="Mở nhanh khung chỉnh vị trí BBox 2D trực quan của Node này"
+            onClick={() => {
+              if (nodeSubTab === 'all') toggleDirectStage()
+              else {
+                setDirectStageOpen(true)
+                selectNodeSubTab(nodeSubTab === 'stage' ? 'params' : 'stage')
+              }
+            }}
           >
             <IconGizmoBbox width={12} height={12} /> <span>BBox</span>
           </button>
@@ -467,9 +496,15 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
         {show25DPreview && (
           <button
             type="button"
-            className={`wf-v2-insp-bbox-toggle${logicPadOpen ? ' active' : ''}`}
-            title={logicPadOpen ? 'Đang bật Khung chỉnh 2.5D cố định — nhấn để ẩn' : 'Bật Khung chỉnh 2.5D cố định trên đầu bảng cho Node Logic này'}
-            onClick={toggleLogicPad}
+            className={`wf-v2-insp-bbox-toggle${(nodeSubTab === 'stage' || (nodeSubTab === 'all' && logicPadOpen)) ? ' active' : ''}`}
+            title="Mở nhanh Khung chỉnh 2.5D trực quan của Node Logic này"
+            onClick={() => {
+              if (nodeSubTab === 'all') toggleLogicPad()
+              else {
+                setLogicPadOpen(true)
+                selectNodeSubTab(nodeSubTab === 'stage' ? 'params' : 'stage')
+              }
+            }}
           >
             <IconPad25D width={12} height={12} /> <span>2.5D</span>
           </button>
@@ -505,8 +540,63 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
         />
       )}
 
-      {/* Vùng ghim cố định (không cuộn theo danh sách thông số bên dưới) cho Khung BBox 2D & Khung chỉnh 2.5D */}
-      {(isLayerOrCamBboxNode || show25DPreview) && (
+      {/* Dải Tab Con (Child Sub-Tabs) phân tách rõ Thiết lập, Khung 2D/BBox, Thời gian & Tất cả */}
+      <div
+        className="wf-v2-seg-tabs wf-node-prop-subtabs"
+        role="tablist"
+        aria-label="Phân mục thuộc tính của Node"
+        data-mcp-region="workflow_node_subtabs"
+      >
+        <button
+          type="button"
+          role="tab"
+          aria-selected={nodeSubTab === 'params'}
+          className={`wf-v2-seg-tab${nodeSubTab === 'params' ? ' active' : ''}`}
+          onClick={() => selectNodeSubTab('params')}
+          title="Chỉnh trực tiếp các thông số cốt lõi của Node mà không phải cuộn dài"
+        >
+          🎛️ Thiết lập
+        </button>
+        {(isLayerOrCamBboxNode || show25DPreview || logicCat === 'part_swap') && (
+          <button
+            type="button"
+            role="tab"
+            aria-selected={nodeSubTab === 'stage'}
+            className={`wf-v2-seg-tab${nodeSubTab === 'stage' ? ' active' : ''}`}
+            onClick={() => {
+              if (isLayerOrCamBboxNode) setDirectStageOpen(true)
+              if (show25DPreview) setLogicPadOpen(true)
+              selectNodeSubTab('stage')
+            }}
+            title="Kéo thả khung vị trí BBox 2D, vùng sáng 2.5D hoặc bộ phận trực quan"
+          >
+            🎯 Khung 2D
+          </button>
+        )}
+        <button
+          type="button"
+          role="tab"
+          aria-selected={nodeSubTab === 'timing'}
+          className={`wf-v2-seg-tab${nodeSubTab === 'timing' ? ' active' : ''}`}
+          onClick={() => selectNodeSubTab('timing')}
+          title="Chỉnh khoảng thời gian chạy (Từ - Đến), Nhóm Time chung và đối tượng nối dây"
+        >
+          ⏱️ Thời gian
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={nodeSubTab === 'all'}
+          className={`wf-v2-seg-tab${nodeSubTab === 'all' ? ' active' : ''}`}
+          onClick={() => selectNodeSubTab('all')}
+          title="Hiển thị đầy đủ mọi phần trên cùng một cột"
+        >
+          📋 Tất cả
+        </button>
+      </div>
+
+      {/* Vùng ghim cho Khung BBox 2D & Khung chỉnh 2.5D (hiển thị khi ở tab Khung 2D hoặc Tất cả) */}
+      {(nodeSubTab === 'stage' || nodeSubTab === 'all') && (isLayerOrCamBboxNode || show25DPreview) && (
         <div className="wf-v2-insp-pinned-preview">
           {isLayerOrCamBboxNode && (
             <WorkflowV2DirectStagePreview
@@ -514,7 +604,7 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
               project={project}
               workflow={workflow}
               currentTime={currentTime}
-              open={directStageOpen}
+              open={nodeSubTab === 'stage' ? true : directStageOpen}
               onToggleOpen={toggleDirectStage}
               onUpdateParams={props.onUpdateParams}
               onSelectNode={props.onSelectNode}
@@ -527,7 +617,7 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
               node={node}
               project={project}
               currentTime={currentTime}
-              open={logicPadOpen}
+              open={nodeSubTab === 'stage' ? true : logicPadOpen}
               onToggleOpen={toggleLogicPad}
               onUpdateParams={props.onUpdateParams}
               onScrubTime={props.onScrubTime}
@@ -536,9 +626,43 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
         </div>
       )}
 
-      {logicCat === 'part_swap' && <WorkflowPartPreview project={project} node={node} currentTime={currentTime} onScrubTime={props.onScrubTime} onSelectNode={props.onSelectNode} />}
+      {(nodeSubTab === 'stage' || nodeSubTab === 'all') && logicCat === 'part_swap' && (
+        <WorkflowPartPreview project={project} node={node} currentTime={currentTime} onScrubTime={props.onScrubTime} onSelectNode={props.onSelectNode} />
+      )}
       <div className="wf-v2-insp-body">
-        {!node.params?.isPartHub && <section className="wf-v2-insp-sec workflow-node-timing" data-mcp-region="workflow_motion_timing">
+        {nodeSubTab === 'params' && logicCat !== 'time' && level !== 'root' && level !== 'group' && (
+          <div className="wf-quick-summary-strip">
+            <span className="wf-quick-time-pill" title="Khoảng thời gian hoạt động của Node hiện tại">
+              ⏱ {tStart.toFixed(2)}s → {tEnd.toFixed(2)}s <b>({(tEnd - tStart).toFixed(2)}s)</b>
+            </span>
+            <div className="wf-quick-summary-btns">
+              <button
+                type="button"
+                className="btn sm ghost wf-quick-jump-btn"
+                onClick={() => selectNodeSubTab('timing')}
+                title="Mở tab Thời gian để chỉnh mốc Từ/Đến hoặc Nhóm Time"
+              >
+                ⏱ Sửa giờ
+              </button>
+              {(isLayerOrCamBboxNode || show25DPreview) && (
+                <button
+                  type="button"
+                  className="btn sm ai wf-quick-jump-btn"
+                  onClick={() => {
+                    if (isLayerOrCamBboxNode) setDirectStageOpen(true)
+                    if (show25DPreview) setLogicPadOpen(true)
+                    selectNodeSubTab('stage')
+                  }}
+                  title="Mở Khung kéo thả vị trí BBox 2D trực quan"
+                >
+                  🎯 Kéo BBox
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {(nodeSubTab === 'timing' || nodeSubTab === 'all' || (nodeSubTab === 'params' && (logicCat === 'time' || level === 'root' || level === 'group'))) && !node.params?.isPartHub && <section className="wf-v2-insp-sec workflow-node-timing" data-mcp-region="workflow_motion_timing">
           <div className="wf-v2-insp-sec-title">
             <span>Tiến trình Thời gian</span>
             {timeLocked ? (
@@ -642,7 +766,8 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
           <WorkflowV2TimeGroupSection node={node} project={project} onSelectNode={props.onSelectNode} />
         </section>}
 
-        {level === 'logic' &&
+        {(nodeSubTab === 'timing' || nodeSubTab === 'all') &&
+          level === 'logic' &&
           node.type !== 'camera_director' &&
           !node.params?.isPartChild &&
           logicCat !== 'time' &&
@@ -694,9 +819,9 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
           </section>
         )}
 
-        {level !== 'group' && logicCat !== 'time' && (
+        {(nodeSubTab === 'params' || nodeSubTab === 'all') && level !== 'group' && logicCat !== 'time' && (
           <section className="wf-v2-insp-sec">
-            <div className="wf-v2-insp-sec-title">Thông số</div>
+            <div className="wf-v2-insp-sec-title">Thông số Node</div>
             <WorkflowV2NodeParams
               node={node}
               project={project}
@@ -714,7 +839,7 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
           </section>
         )}
 
-        {(level === 'layer' || isClusterLock) && (
+        {(nodeSubTab === 'params' || nodeSubTab === 'all') && (level === 'layer' || isClusterLock) && (
           <section className="wf-v2-insp-sec">
             <div className="wf-v2-insp-sec-title">
               Gắn thêm Node Logic con ({compat.parentKind === 'composite_25d' ? 'Cụm 2.5D' : compat.parentKind === 'model_3d' ? 'Khối 3D' : 'Layer 2.5D'})

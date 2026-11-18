@@ -1,0 +1,158 @@
+/* ==========================================================================
+   UI-App-V2 Workflow Node Property Sub-Tabs, Canvas Cards & Timeline UX
+   ========================================================================== */
+
+/* ---- 1. Workflow Node Inspector Child Sub-Tabs ---- */
+.wf-node-prop-subtabs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(68px, 1fr));
+  gap: 3px;
+  margin: 5px 8px 4px;
+  padding: 2px;
+  border-radius: var(--radius-md);
+  background: var(--tab-child-track-bg);
+  border: 1px solid var(--line);
+  flex-shrink: 0;
+}
+
+.wf-node-prop-subtabs .wf-v2-seg-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 25px;
+  padding: 0 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background 0.14s ease, color 0.14s ease, border-color 0.14s ease;
+}
+
+.wf-node-prop-subtabs .wf-v2-seg-tab:hover:not(.active) {
+  background: color-mix(in srgb, #14b8a6 14%, var(--bg-2));
+  color: var(--text);
+}
+
+.wf-node-prop-subtabs .wf-v2-seg-tab.active {
+  background: var(--tab-child-active-bg);
+  border-color: var(--tab-child-active-border);
+  color: var(--tab-child-active-fg);
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+
+/* ---- 2. Quick Time & Stage Jump Bar inside Node "Thiết lập" Tab ---- */
+.wf-quick-summary-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 6px 8px;
+  margin-bottom: 6px;
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--wf-v2-accent, var(--accent)) 10%, var(--bg-1));
+  border: 1px solid color-mix(in srgb, var(--wf-v2-accent, var(--accent)) 35%, var(--line));
+}
+
+.wf-quick-time-pill {
+  font-size: 11px;
+  font-family: var(--mono);
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.wf-quick-time-pill b {
+  color: var(--accent-cyan);
+}
+
+[data-theme='light'] .wf-quick-time-pill b {
+  color: var(--accent);
+}
+
+.wf-quick-summary-btns {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.wf-quick-jump-btn {
+  height: 22px;
+  padding: 0 7px;
+  font-size: 10.5px;
+}
+
+/* ---- 3. Workflow Node Inspector Sections & Delete / Chain Buttons ---- */
+.wf-v2-insp-sec {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line-soft);
+  background: color-mix(in srgb, var(--bg-1) 75%, var(--bg-2));
+}
+
+.wf-v2-insp-del {
+  background: var(--btn-danger-bg);
+  border: 1px solid var(--btn-danger-border);
+  color: var(--btn-danger-fg);
+  border-radius: var(--radius-sm);
+}
+
+.wf-v2-insp-del:hover {
+  background: var(--btn-danger-hover-bg);
+  border-color: #ef4444;
+  color: #ffffff;
+}
+
+.wf-v2-time-quick-btn.chain-cta {
+  background: var(--btn-success-bg);
+  border-color: var(--btn-success-border);
+  color: var(--btn-success-fg);
+  font-weight: 700;
+}
+
+.wf-v2-time-quick-btn.chain-cta:hover {
+  background: var(--btn-success-hover-bg);
+  border-color: #10b981;
+  color: #ffffff;
+}
+
+/* ---- 4. Timeline Role Filter Child Sub-Tabs & View Switcher ---- */
+.tl-role-filter-btn {
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 600;
+  transition: background 0.14s ease, color 0.14s ease, border-color 0.14s ease;
+}
+
+.tl-role-filter-btn:hover:not(.active) {
+  background: color-mix(in srgb, #14b8a6 14%, var(--bg-2));
+  color: var(--text);
+}
+
+.tl-role-filter-btn.active {
+  background: var(--tab-child-active-bg) !important;
+  border-color: var(--tab-child-active-border) !important;
+  color: var(--tab-child-active-fg) !important;
+  font-weight: 700;
+}
+
+.wf-v2-view-switch {
+  background: var(--tab-child-track-bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 2px;
+  gap: 2px;
+}
+
+.wf-v2-view-btn.active {
+  background: var(--tab-child-active-bg);
+  border-color: var(--tab-child-active-border);
+  color: var(--tab-child-active-fg);
+}
