@@ -267,16 +267,22 @@ export const ViewerNodeStage2D: React.FC = () => {
     if (existingMotion) {
       const t0 = existingMotion.params?.timeStart ?? ctx.activeLayer.inPoint ?? 0
       const startPos = bboxStartPosition(ctx.activeLayer, t0, existingMotion.id)
-      wfCtrl.actions.updateParams(existingMotion.id, {
-        motionMode: 'bbox',
-        actionPreset: 'bbox_target',
-        bboxPathType: existingMotion.params?.bboxPathType ?? 'shortest',
-        bboxTargetX: existingMotion.params?.bboxTargetX ?? Math.round(startPos[0] + 280),
-        bboxTargetY: existingMotion.params?.bboxTargetY ?? Math.round(startPos[1] - 20),
-        bboxTargetScalePct: existingMotion.params?.bboxTargetScalePct ?? 135,
-        bboxStartZ: Math.round(startPos[2]),
-        bboxTargetZ: existingMotion.params?.bboxTargetZ ?? Math.round(startPos[2])
-      })
+      const wasPath = existingMotion.params?.motionMode === 'path'
+      wfCtrl.actions.updateParams(
+        existingMotion.id,
+        {
+          motionMode: 'bbox',
+          actionPreset: 'bbox_target',
+          bboxPathType: wasPath ? 'shortest' : (existingMotion.params?.bboxPathType ?? 'shortest'),
+          ...(wasPath ? { customMotionPath: [] } : {}),
+          bboxTargetX: existingMotion.params?.bboxTargetX ?? Math.round(startPos[0] + 280),
+          bboxTargetY: existingMotion.params?.bboxTargetY ?? Math.round(startPos[1] - 20),
+          bboxTargetScalePct: existingMotion.params?.bboxTargetScalePct ?? 135,
+          bboxStartZ: Math.round(startPos[2]),
+          bboxTargetZ: existingMotion.params?.bboxTargetZ ?? Math.round(startPos[2])
+        },
+        wasPath ? 'Motion: Đặt BBox Đích (đầu → đích)' : undefined
+      )
       wfCtrl.activateNode(existingMotion.id, true, false)
       return
     }
@@ -327,18 +333,29 @@ export const ViewerNodeStage2D: React.FC = () => {
       ? resolveActiveMotionNode(wfCtrl.workflow, activeNode, ctx.activeLayer.id, instId)
       : undefined
     if (existingMotion) {
-      wfCtrl.actions.updateParams(existingMotion.id, {
-        motionMode: 'path',
-        actionPreset: 'custom_draw'
-      })
+      const wasNotPath = existingMotion.params?.motionMode !== 'path'
+      wfCtrl.actions.updateParams(
+        existingMotion.id,
+        {
+          motionMode: 'path',
+          actionPreset: 'custom_draw',
+          ...(wasNotPath ? { customMotionPath: [] } : {})
+        },
+        wasNotPath ? 'Motion: Vẽ đường đi tự do' : undefined
+      )
       wfCtrl.activateNode(existingMotion.id, true, false)
+      window.setTimeout(() => {
+        window.dispatchEvent(
+          new CustomEvent('pxs:vn2d-start-free-draw', { detail: { nodeId: existingMotion.id } })
+        )
+      }, 20)
       return
     }
     wfCtrl.actions.attachLogic(
       ctx.attachTargetNodeId,
       'action',
       'v2:action:custom_draw',
-      { motionMode: 'path', actionPreset: 'custom_draw' },
+      { motionMode: 'path', actionPreset: 'custom_draw', customMotionPath: [] },
       'Motion: Vẽ đường đi tự do'
     )
   }, [ctx.activeLayer, ctx.attachTargetNodeId, activeNode, wfCtrl])

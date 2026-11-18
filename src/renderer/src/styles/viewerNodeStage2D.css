@@ -496,13 +496,33 @@
 }
 
 .wf-v2-direct-stage.is-full-viewport .wf-motion-stage-tools.is-docked {
-  padding: 3px 5px;
-  gap: 3px;
+  padding: 4px 6px;
+  gap: 4px;
   border-radius: var(--radius-md);
   background: color-mix(in srgb, var(--bg-2) 92%, transparent);
   backdrop-filter: blur(10px);
   border: 1px solid var(--line);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.38);
+}
+
+.wf-v2-direct-stage.is-full-viewport .wf-motion-stage-tools button {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+}
+
+.wf-v2-direct-stage.is-full-viewport .wf-motion-stage-hint {
+  bottom: 60px;
+}
+
+@media (max-width: 1120px) {
+  .wf-v2-direct-stage.is-full-viewport .wf-motion-stage-tools button {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    min-height: 36px;
+  }
 }
 
 .wf-v2-direct-stage.is-full-viewport .wf-v2-direct-footer {

@@ -91,6 +91,11 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
           ...(target.params ?? {}),
           ...patch
         }
+        if (patch.motionMode === 'path' && /bbox/i.test(target.title)) {
+          target.title = 'Motion: Vẽ quỹ đạo tự do'
+        } else if (patch.motionMode === 'bbox' && /tự do/i.test(target.title)) {
+          target.title = 'Motion: Đặt BBox Đích (đầu → đích)'
+        }
         syncWorkflowV2NodeToProject(d, target, patch)
       }, mergeKey)
     },
@@ -488,18 +493,45 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
   const focusedCustomTarget = focusedEntityId ? mp?.layerBboxTargets?.[focusedEntityId] : undefined
   const isFocusedPrimary = !focusedEntityId || focusedEntityId === primaryEntity?.id
 
-  const activeParamsForTools: WorkflowNodeParams = useMemo(() => ({
-    ...(mp ?? {}),
-    bboxPathType: focusedCustomTarget?.bboxPathType ?? (isFocusedPrimary ? (mp?.bboxPathType ?? 'shortest') : 'shortest'),
-    customMotionPath: focusedCustomTarget?.customMotionPath !== undefined
-      ? focusedCustomTarget.customMotionPath
-      : (isFocusedPrimary ? mp?.customMotionPath : undefined)
-  }), [mp, focusedCustomTarget, isFocusedPrimary])
+  const activeParamsForTools: WorkflowNodeParams = useMemo(() => {
+    if (!hasBboxMotion) {
+      return {
+        ...(mp ?? {}),
+        customMotionPath: mp?.customMotionPath
+      }
+    }
+    return {
+      ...(mp ?? {}),
+      bboxPathType:
+        focusedCustomTarget?.bboxPathType ?? (isFocusedPrimary ? (mp?.bboxPathType ?? 'shortest') : 'shortest'),
+      customMotionPath:
+        focusedCustomTarget?.customMotionPath !== undefined
+          ? focusedCustomTarget.customMotionPath
+          : isFocusedPrimary
+            ? mp?.customMotionPath
+            : undefined
+    }
+  }, [hasBboxMotion, mp, focusedCustomTarget, isFocusedPrimary])
 
   const patchMotionForTools = useCallback(
     (patch: Partial<WorkflowNodeParams>, mergeKey = 'wf-stage-bbox2'): void => {
       if (!motionNode) return
-      if (patch.customMotionPath !== undefined || patch.bboxPathType !== undefined) {
+      const effMode = patch.motionMode ?? resolveMotionMode(mp ?? {})
+      if (patch.motionMode === 'bbox' && mp?.motionMode !== 'bbox') {
+        patchMotionNode(
+          {
+            ...patch,
+            bboxTargetX: patch.bboxTargetX ?? mp?.bboxTargetX ?? defaultTargetX,
+            bboxTargetY: patch.bboxTargetY ?? mp?.bboxTargetY ?? defaultTargetY,
+            bboxTargetScalePct: patch.bboxTargetScalePct ?? mp?.bboxTargetScalePct ?? defaultTargetScalePct,
+            bboxStartZ: patch.bboxStartZ ?? mp?.bboxStartZ ?? defaultStartZ,
+            bboxTargetZ: patch.bboxTargetZ ?? mp?.bboxTargetZ ?? defaultStartZ
+          },
+          mergeKey
+        )
+        return
+      }
+      if (effMode === 'bbox' && (patch.customMotionPath !== undefined || patch.bboxPathType !== undefined)) {
         const existing = mp?.layerBboxTargets ?? {}
         const curFocusedId = focusedEntityId ?? primaryEntity?.id
         const curTarget: Partial<LayerBboxTargetConfig> = (curFocusedId ? existing[curFocusedId] : undefined) ?? {}

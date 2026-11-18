@@ -132,6 +132,7 @@ export const NodeStage2DToolbar: React.FC<NodeStage2DToolbarProps> = ({
   const level = node ? resolveV2NodeLevel(node) : null
   const logicCat = node ? resolveV2LogicCategory(node) : undefined
   const isOnBboxMotion = Boolean(node && logicCat === 'action' && node.params?.motionMode === 'bbox')
+  const isOnPathMotion = Boolean(node && logicCat === 'action' && node.params?.motionMode === 'path')
   const canChainStep = Boolean(
     node && (node.params?.isPartChild || logicCat === 'action' || logicCat === 'anim_fx' || logicCat === 'collision')
   )
@@ -287,6 +288,18 @@ export const NodeStage2DToolbar: React.FC<NodeStage2DToolbarProps> = ({
                 >
                   <IconPlus width={12} height={12} />
                   <span>{isOnBboxMotion ? 'Chặng tiếp' : 'BBox Đích'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  className={`vn2d-tool-btn${isOnPathMotion ? ' active' : ''}`}
+                  data-ai-id="toolbar-free-draw-path"
+                  onClick={onQuickSpawnPathMotion}
+                  aria-label="Vẽ quỹ đạo tự do"
+                  title="Vẽ quỹ đạo chuyển động tự do trực tiếp bằng chuột trên Khung 2D"
+                >
+                  <IconPen width={12} height={12} />
+                  <span className="vn2d-hide-compact">Vẽ tự do</span>
                 </button>
 
                 <button
