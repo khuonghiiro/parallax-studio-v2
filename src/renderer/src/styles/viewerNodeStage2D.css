@@ -1,6 +1,6 @@
 /* ==========================================================================
-   Màn Khung 2D Chỉnh Node Trực Tiếp trong Khung Nhìn Chính (ViewerNodeStage2D)
-   Tuân thủ 100% Design Tokens (variables.css), 2 Theme Dark/Light & Hình học thống nhất
+   Màn Khung 2D Chỉnh Node Chuyên Nghiệp (After Effects / Figma Studio Grade)
+   100% Design Tokens (variables.css), 2 Theme Dark/Light & Hình học chữ nhật thống nhất
    ========================================================================== */
 
 .viewer-node2d-stage {
@@ -17,281 +17,390 @@
   user-select: none;
 }
 
+/* Thanh công cụ 1 hàng duy nhất (34px) đồng bộ tuyệt đối với Cam 2D & Viewer Header */
 .viewer-node2d-toolbar {
   position: relative;
   z-index: 120;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 6px;
-  min-height: 36px;
-  padding: 4px 8px;
+  height: 34px;
+  min-height: 34px;
+  padding: 0 8px;
   background: var(--bg-2);
   border-bottom: 1px solid var(--line);
   flex-shrink: 0;
 }
 
-.vn2d-mid-scroll {
+.vn2d-left-track {
   display: flex;
   align-items: center;
   gap: 5px;
   flex: 1 1 auto;
   min-width: 0;
-  overflow-x: auto;
-  scrollbar-width: none;
+  overflow: visible;
 }
 
-.vn2d-mid-scroll::-webkit-scrollbar {
-  display: none;
-}
-
-.vn2d-inline-group {
+/* Cụm Segmented Track trung tính, tinh gọn (không lòe loẹt cầu vồng) */
+.vn2d-seg-track {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-}
-
-.vn2d-sep {
-  width: 1px;
-  height: 16px;
-  background: var(--line);
-  flex-shrink: 0;
-  margin: 0 2px;
-}
-
-/* Thống nhất bo góc chữ nhật (var(--radius-sm) = 4px) và độ cao vùng bấm an toàn */
-.vn2d-pill,
-.vn2d-action-btn,
-.vn2d-action-cta,
-.vn2d-layout-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  min-height: 26px;
-  padding: 0 8px;
-  border-radius: var(--radius-sm);
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--radius);
+  background: var(--bg-1);
   border: 1px solid var(--line-soft);
-  background: var(--bg-3);
-  color: var(--text);
-  font-size: 11.5px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.vn2d-seg-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 7px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 11px;
   font-weight: 600;
   white-space: nowrap;
-  flex-shrink: 0;
   cursor: pointer;
-  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
 }
 
-.vn2d-pill:hover,
-.vn2d-action-btn:hover,
-.vn2d-layout-btn:hover {
-  border-color: var(--line-focus);
-  background: color-mix(in srgb, var(--accent) 12%, var(--bg-3));
+.vn2d-seg-item > svg {
+  flex-shrink: 0;
+  opacity: 0.85;
 }
 
-.vn2d-pill.active,
-.vn2d-action-btn.active,
-.vn2d-layout-btn.active {
-  background: color-mix(in srgb, var(--logic-accent, var(--accent)) 78%, #0f172a);
-  border-color: var(--logic-accent, var(--accent));
-  color: #ffffff;
+.vn2d-seg-item:hover {
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-3));
 }
 
-.vn2d-pill.is-bbox-step {
-  --logic-accent: #f59e0b;
+.vn2d-seg-item.active {
+  background: color-mix(in srgb, var(--accent) 20%, var(--bg-2));
+  border-color: color-mix(in srgb, var(--accent) 65%, var(--line));
+  color: var(--text);
 }
 
-.vn2d-pill.is-off {
-  opacity: 0.55;
+.vn2d-seg-item.active > svg {
+  color: var(--accent-cyan);
+  opacity: 1;
+}
+
+.vn2d-seg-item.is-step {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: -0.02em;
+}
+
+.vn2d-seg-item.is-off {
+  opacity: 0.45;
   border-style: dashed;
 }
 
-.vn2d-pill-txt {
-  max-width: 140px;
+.vn2d-entity-txt {
+  max-width: 116px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.vn2d-action-cta {
+.vn2d-logic-txt {
+  max-width: 96px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Cụm nút công cụ thêm BBox & Popover Hành động */
+.vn2d-quick-tools {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.vn2d-tool-btn,
+.vn2d-fit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-soft);
+  background: var(--bg-3);
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.vn2d-tool-btn:hover,
+.vn2d-fit-btn:hover {
+  border-color: var(--line-focus);
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg-3));
+}
+
+.vn2d-tool-btn.active {
+  background: color-mix(in srgb, var(--accent) 78%, #0f172a);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+
+.vn2d-tool-btn.is-primary {
   background: color-mix(in srgb, var(--accent) 82%, #0f172a);
   border-color: var(--accent);
   color: var(--on-accent);
 }
 
-.vn2d-action-cta:hover {
-  background: color-mix(in srgb, var(--accent) 92%, #0f172a);
+.vn2d-tool-btn.is-primary:hover {
+  background: color-mix(in srgb, var(--accent) 94%, #0f172a);
   border-color: var(--accent-cyan);
 }
 
-.vn2d-action-btn.is-chain {
-  border-color: color-mix(in srgb, var(--key) 55%, var(--line));
-  background: color-mix(in srgb, var(--key) 14%, var(--bg-3));
-}
-
-/* Segmented switch Khung 2.5D vs Cảnh 2D */
-.vn2d-seg {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  padding: 2px;
-  border-radius: var(--radius-sm);
-  background: var(--bg-1);
-  border: 1px solid var(--line-soft);
-  flex-shrink: 0;
-}
-
-.vn2d-seg-btn {
-  min-height: 22px;
-  padding: 0 7px;
-  border: 0;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--text-dim);
-  font-size: 11px;
-  font-weight: 600;
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-.vn2d-seg-btn:hover {
-  color: var(--text);
-  background: color-mix(in srgb, var(--accent) 10%, var(--bg-3));
-}
-
-.vn2d-seg-btn.active {
-  background: color-mix(in srgb, var(--accent) 78%, #0f172a);
-  color: #ffffff;
-}
-
-/* Cụm phải cố định: Transport + Zoom + Split */
-.vn2d-right-ops {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-  margin-left: auto;
-}
-
-.vn2d-transport,
-.vn2d-zoom-group {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  padding: 2px;
-  border-radius: var(--radius-sm);
-  background: var(--bg-1);
-  border: 1px solid var(--line-soft);
-}
-
-.vn2d-icon-btn {
-  width: 24px;
-  height: 22px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 0;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--text);
-  font-size: 11px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.vn2d-icon-btn:hover {
-  background: color-mix(in srgb, var(--accent) 14%, var(--bg-3));
-}
-
-.vn2d-play-btn {
-  height: 22px;
-  padding: 0 8px;
-  border: 0;
-  border-radius: var(--radius-sm);
-  background: color-mix(in srgb, #10b981 78%, #0f172a);
-  color: #ffffff;
-  font-size: 11px;
-  font-weight: 700;
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-.vn2d-play-btn.is-playing {
-  background: color-mix(in srgb, #f59e0b 82%, #0f172a);
-  color: #ffffff;
-}
-
-.vn2d-time-readout {
-  padding: 0 5px;
+.vn2d-count-badge {
+  font-style: normal;
   font-family: var(--mono);
-  font-size: 10.5px;
-  color: var(--text-dim);
-  white-space: nowrap;
-}
-
-.vn2d-zoom-pct {
-  min-width: 44px;
-  height: 22px;
-  padding: 0 5px;
-  border: 0;
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 0 4px;
+  height: 15px;
+  line-height: 15px;
   border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--text);
-  font-family: var(--mono);
-  font-size: 10.5px;
-  font-weight: 600;
-  cursor: pointer;
+  background: color-mix(in srgb, var(--accent) 22%, var(--bg-1));
+  color: var(--accent-cyan);
 }
 
-.vn2d-zoom-pct:hover {
-  background: color-mix(in srgb, var(--accent) 12%, var(--bg-3));
+.vn2d-tool-btn.active .vn2d-count-badge {
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
 }
 
-/* Ngăn kéo chọn nhanh Node Logic gắn thêm ngay dưới thanh công cụ Màn Khung 2D */
-.vn2d-spawn-drawer {
+/* Popover Menu neo gọn ngay dưới nút Hành động (không tràn ngang thô kệch) */
+.vn2d-popover {
   position: absolute;
-  left: 8px;
-  right: 8px;
-  top: calc(100% + 4px);
-  z-index: 60;
+  left: 0;
+  top: calc(100% + 6px);
+  z-index: 200;
+  width: 312px;
+  max-width: calc(100vw - 24px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.45);
+}
+
+.vn2d-pop-section {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.vn2d-pop-section + .vn2d-pop-section {
+  padding-top: 7px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.vn2d-pop-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.vn2d-pop-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.vn2d-pop-item {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding: 8px 10px;
-  border-radius: var(--radius);
-  border: 1px solid var(--line-focus);
-  background: var(--bg-2);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.42);
-}
-
-.vn2d-spawn-label {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--text-dim);
-  margin-right: 4px;
-}
-
-.vn2d-spawn-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
+  gap: 7px;
+  width: 100%;
   min-height: 28px;
-  padding: 0 10px;
+  padding: 0 8px;
   border-radius: var(--radius-sm);
-  border: 1px solid color-mix(in srgb, var(--logic-accent, var(--accent)) 45%, var(--line));
-  background: color-mix(in srgb, var(--logic-accent, var(--accent)) 14%, var(--bg-3));
+  border: 1px solid var(--line-soft);
+  background: var(--bg-1);
   color: var(--text);
   font-size: 11.5px;
-  font-weight: 600;
+  font-weight: 500;
+  text-align: left;
   cursor: pointer;
 }
 
-.vn2d-spawn-chip:hover {
+.vn2d-pop-item:hover {
+  background: color-mix(in srgb, var(--logic-accent, var(--accent)) 14%, var(--bg-3));
+  border-color: var(--logic-accent, var(--accent));
+}
+
+.vn2d-pop-item.active {
   background: color-mix(in srgb, var(--logic-accent, var(--accent)) 78%, #0f172a);
   border-color: var(--logic-accent, var(--accent));
   color: #ffffff;
 }
 
-/* Vùng sân khấu chính chiếm trọn chiều cao còn lại */
+.vn2d-pop-item small {
+  margin-left: auto;
+  font-size: 9.5px;
+  color: var(--text-dim);
+}
+
+.vn2d-pop-item.active small {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.vn2d-pop-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.vn2d-pop-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vn2d-pop-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.vn2d-pop-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 0 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-soft);
+  background: var(--bg-1);
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.vn2d-pop-chip > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vn2d-pop-chip:hover,
+.vn2d-pop-chip.active {
+  background: color-mix(in srgb, var(--logic-accent, var(--accent)) 78%, #0f172a);
+  border-color: var(--logic-accent, var(--accent));
+  color: #ffffff;
+}
+
+/* CỤM PHẢI: Transport SVG gọn sắc nét + Fit % + Expand Icon */
+.vn2d-right-ops {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.vn2d-transport-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  padding: 2px;
+  border-radius: var(--radius);
+  background: var(--bg-1);
+  border: 1px solid var(--line-soft);
+}
+
+.vn2d-icon-ctrl {
+  width: 24px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.vn2d-icon-ctrl:hover {
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg-3));
+}
+
+.vn2d-icon-ctrl.is-play {
+  color: var(--text);
+}
+
+.vn2d-icon-ctrl.is-play.active {
+  background: color-mix(in srgb, var(--accent) 82%, #0f172a);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+
+.vn2d-icon-ctrl.is-expand {
+  width: 26px;
+  height: 24px;
+  border-color: var(--line-soft);
+  background: var(--bg-3);
+  color: var(--text);
+}
+
+.vn2d-icon-ctrl.is-expand.active {
+  background: color-mix(in srgb, var(--accent) 20%, var(--bg-2));
+  border-color: var(--accent);
+  color: var(--accent-cyan);
+}
+
+.vn2d-timecode {
+  padding: 0 5px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.vn2d-fit-btn {
+  padding: 0 6px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--text-dim);
+}
+
+.vn2d-fit-btn:hover {
+  color: var(--text);
+}
+
+/* Vùng sân khấu chính chiếm trọn 100% diện tích còn lại, không thanh đáy thừa */
 .viewer-node2d-body {
   position: relative;
   z-index: 1;
@@ -306,7 +415,7 @@
 
 .viewer-node2d-empty {
   margin: auto;
-  max-width: 440px;
+  max-width: 420px;
   padding: 20px 24px;
   border-radius: var(--radius-md);
   border: 1px dashed var(--line);
@@ -316,7 +425,7 @@
 
 .viewer-node2d-empty strong {
   display: block;
-  font-size: 14px;
+  font-size: 13.5px;
   color: var(--text);
   margin-bottom: 6px;
 }
@@ -328,7 +437,7 @@
   color: var(--text-dim);
 }
 
-/* Chế độ bung toàn vùng (is-full-viewport) cho cả 3 loại Stage (BBox Cảnh, 2.5D Pad, Bộ phận) */
+/* Chế độ bung toàn vùng (is-full-viewport): mặt bàn dựng sạch như After Effects */
 .wf-v2-direct-stage-sec.is-full-viewport {
   flex: 1 1 auto;
   min-height: 0;
@@ -339,6 +448,7 @@
 }
 
 .wf-v2-direct-stage.is-full-viewport {
+  position: relative;
   flex: 1 1 auto;
   min-height: 0;
   display: flex;
@@ -352,16 +462,56 @@
   flex: 1 1 auto;
   min-height: 0;
   border-radius: 0;
+  background-color: var(--bg-0);
+  background-image: radial-gradient(color-mix(in srgb, var(--text) 9%, transparent) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.wf-v2-direct-stage.is-full-viewport .wf-v2-direct-shot-plane {
+  border-radius: 3px;
+  border: 1px solid color-mix(in srgb, var(--line) 85%, rgba(255, 255, 255, 0.12));
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.42);
+}
+
+/* Cụm công cụ Quỹ đạo / Vietsub nổi gọn ở đáy sân khấu như Figma HUD thay vì thanh xám chiếm ngang */
+.wf-v2-direct-stage.is-full-viewport .wf-motion-toolbar-dock {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 44;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  max-width: calc(100% - 24px);
+}
+
+.wf-v2-direct-stage.is-full-viewport .wf-motion-stage-tools.is-docked {
+  padding: 3px 5px;
+  gap: 3px;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--bg-2) 92%, transparent);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--line);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.38);
 }
 
 .wf-v2-direct-stage.is-full-viewport .wf-v2-direct-footer {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 42;
   flex-direction: row;
   align-items: center;
-  justify-content: space-between;
   gap: 10px;
-  padding: 5px 10px;
-  background: var(--bg-2);
-  border-top: 1px solid var(--line-soft);
+  padding: 4px 8px 4px 10px;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--bg-2) 92%, transparent);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--line);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  max-width: calc(100% - 20px);
 }
 
 .wf-v2-direct-stage.is-full-viewport .wf-v2-direct-actions {
@@ -370,14 +520,24 @@
 
 .wf-v2-direct-stage.is-full-viewport .wf-v2-direct-btn {
   flex: 0 0 auto;
-  height: 24px;
-  padding: 0 9px;
-  font-size: 11px;
+  height: 22px;
+  padding: 0 8px;
+  font-size: 10.5px;
 }
 
+/* Chốt kéo góc BBox sắc nét chuẩn Figma / Spine 2D */
 .wf-v2-direct-stage.is-full-viewport .wf-v2-bbox-handle {
-  width: 10px;
-  height: 10px;
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  background: #ffffff;
+  border: 1.5px solid var(--wf-v2-accent, var(--accent));
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+  transition: transform 100ms ease;
+}
+
+.wf-v2-direct-stage.is-full-viewport .wf-v2-bbox-handle:hover {
+  transform: scale(1.25);
 }
 
 .wf-v2-direct-stage.is-full-viewport .wf-v2-bbox-handle.nw { left: -5px; top: -5px; }
@@ -385,12 +545,12 @@
 .wf-v2-direct-stage.is-full-viewport .wf-v2-bbox-handle.sw { left: -5px; bottom: -5px; }
 .wf-v2-direct-stage.is-full-viewport .wf-v2-bbox-handle.se { right: -5px; bottom: -5px; }
 
-/* Chỉ báo đối tượng đang di chuyển khi phát trực tiếp trên Màn Khung 2D */
+/* Khung bám đối tượng khi đang phát thử trực tiếp */
 .wf-v2-live-play-bbox {
   position: absolute;
-  border: 2px solid #10b981;
-  border-radius: var(--radius-sm);
-  box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.7), 0 0 14px rgba(16, 185, 129, 0.45);
+  border: 1.5px solid #10b981;
+  border-radius: 3px;
+  box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.65), 0 0 14px rgba(16, 185, 129, 0.4);
   pointer-events: none;
   z-index: 38;
 }
@@ -398,10 +558,10 @@
 .wf-v2-live-play-tag {
   position: absolute;
   left: 0;
-  bottom: -19px;
+  bottom: -18px;
   padding: 1px 6px;
   border-radius: var(--radius-sm);
-  background: color-mix(in srgb, #10b981 82%, #0f172a);
+  background: color-mix(in srgb, #10b981 84%, #0f172a);
   color: #ffffff;
   font-family: var(--mono);
   font-size: 9.5px;
@@ -415,7 +575,7 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  padding: 10px 14px;
+  padding: 10px 12px;
 }
 
 .wf-v2-logic-pad-wrap.is-full-viewport .vl-pad-card {
@@ -448,49 +608,39 @@
   height: auto;
 }
 
-/* Khi chia đôi cạnh Camera (bề rộng khung < 880px): tự động xuống 2 hàng gọn gàng để không cắt cụt nút Tạo hành động */
-@container (max-width: 880px) {
-  .viewer-node2d-toolbar {
-    flex-wrap: wrap;
-    row-gap: 4px;
-    padding: 4px 6px;
+/* Tự động rút gọn thông minh trên khung hẹp (< 640px) mà VẪN GIỮ 1 HÀNG DUY NHẤT */
+@container (max-width: 660px) {
+  .vn2d-entity-txt {
+    max-width: 76px;
   }
 
-  .vn2d-mid-scroll {
-    flex: 1 1 100%;
-    order: 1;
+  .vn2d-logic-txt {
+    max-width: 64px;
   }
 
-  .vn2d-right-ops {
-    order: 2;
-    margin-left: auto;
-  }
-
-  .vn2d-pill-txt {
-    max-width: 110px;
+  .vn2d-timecode {
+    display: none;
   }
 }
 
-/* Responsive 4 Breakpoints (Phone <= 768px, Tablet 769-1120px) */
+@container (max-width: 500px) {
+  .vn2d-fit-btn span {
+    display: none;
+  }
+}
+
+/* Responsive Điện thoại (Phone <= 768px) */
 @media (max-width: 768px) {
   .viewer-node2d-toolbar {
-    flex-wrap: wrap;
+    height: 40px;
     min-height: 40px;
-    padding: 5px 6px;
+    padding: 0 6px;
   }
 
-  .vn2d-pill,
-  .vn2d-action-btn,
-  .vn2d-action-cta,
-  .vn2d-layout-btn {
-    min-height: 36px;
-    padding: 0 10px;
-    font-size: 12px;
-  }
-
-  .vn2d-icon-btn,
-  .vn2d-play-btn,
-  .vn2d-zoom-pct {
+  .vn2d-seg-item,
+  .vn2d-tool-btn,
+  .vn2d-fit-btn,
+  .vn2d-icon-ctrl {
     min-height: 32px;
   }
 }

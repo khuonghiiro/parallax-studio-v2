@@ -56,16 +56,22 @@ export function WorkflowMotionStageTools({ toolbarHost, mode, nodeId, params, wi
     }
     setTool('select')
   }
-  const buttons: { icon: MotionToolIcon; title: string; active?: boolean; click: () => void }[] = [
-    { icon: 'select', title: 'Chọn / kéo BBox', active: tool === 'select', click: () => pick('select') },
-    { icon: 'straight', title: mode === 'bbox' ? 'Đường thẳng đầu → đích' : 'Vẽ đoạn thẳng trên khung', active: mode === 'bbox' ? params.bboxPathType !== 'custom_curve' : tool === 'straight', click: () => pick('straight') },
-    { icon: 'draw', title: mode === 'bbox' ? 'Vẽ đường cong đầu → đích' : 'Vẽ line trên khung BBox', active: tool === 'draw', click: () => pick('draw') },
-    { icon: 'clear', title: mode === 'bbox' ? 'Xóa đường cong, về đường thẳng' : 'Xóa line', click: () => { cancel(); setTool('select'); patch({ customMotionPath: [], ...(mode === 'bbox' ? { bboxPathType: 'shortest' as const } : {}) }, 'wf-stage-clear') } },
+  const hasCustomCurve = Boolean(params.customMotionPath && params.customMotionPath.length > 0)
+  const buttons: { icon: MotionToolIcon; title: string; active?: boolean; dividerBefore?: boolean; click: () => void }[] = [
+    { icon: 'select', title: 'Chọn & kéo BBox trực tiếp', active: tool === 'select', click: () => pick('select') },
+    { icon: 'draw', title: mode === 'bbox' ? 'Vẽ tay đường cong quỹ đạo đầu → đích' : 'Vẽ tay quỹ đạo chuyển động', active: tool === 'draw', click: () => pick('draw') },
+    ...(mode === 'path'
+      ? [{ icon: 'straight' as const, title: 'Vẽ đoạn thẳng nối 2 điểm', active: tool === 'straight', click: () => pick('straight') }]
+      : []),
+    ...(hasCustomCurve
+      ? [{ icon: 'clear' as const, title: mode === 'bbox' ? 'Đặt lại quỹ đạo thẳng ngắn nhất' : 'Xóa đường vẽ tay', dividerBefore: true, click: () => { cancel(); setTool('select'); patch({ customMotionPath: [], ...(mode === 'bbox' ? { bboxPathType: 'shortest' as const } : {}) }, 'wf-stage-clear') } }]
+      : []),
     ...(mode === 'bbox'
       ? [
           {
             icon: 'gimbal' as const,
-            title: `Vòng xoay Gimbal 3D (${params.bboxRotateGimbal ? 'Đang bật' : 'Đang tắt'})\n• Bật vòng xoay Gimbal 3D để xoay góc BBox đích\n• Kéo vòng Z xoay phẳng, vòng X/Y xoay nghiêng 3D`,
+            dividerBefore: !hasCustomCurve,
+            title: `Vòng xoay Gimbal 3D (${params.bboxRotateGimbal ? 'Đang bật' : 'Đang tắt'}) — Xoay nghiêng BBox đích theo trục X/Y/Z`,
             active: Boolean(params.bboxRotateGimbal),
             click: () => {
               patch({ bboxRotateGimbal: !params.bboxRotateGimbal }, 'wf-stage-gimbal')
@@ -73,14 +79,21 @@ export function WorkflowMotionStageTools({ toolbarHost, mode, nodeId, params, wi
           }
         ]
       : []),
-    { icon: playing ? 'stop' : 'play', title: playing ? 'Dừng xem thử' : 'Xem thử chuyển động', active: playing, click: () => { cancel(); setTool('select'); const ed = useEditor.getState(); if (!ed.playing) ed.setTime(params.timeStart ?? 0); ed.setPlaying(!ed.playing) } }
+    ...(!toolbarHost
+      ? [{ icon: (playing ? 'stop' : 'play') as MotionToolIcon, dividerBefore: true, title: playing ? 'Dừng xem thử' : 'Xem thử chuyển động', active: playing, click: () => { cancel(); setTool('select'); const ed = useEditor.getState(); if (!ed.playing) ed.setTime(params.timeStart ?? 0); ed.setPlaying(!ed.playing) } }]
+      : [])
   ]
   const display = stroke && stroke.length > 1
     ? (tool === 'straight' ? [stroke[0], stroke[stroke.length - 1]] : stroke).map(([x, y]): StagePoint => mode === 'path' ? [x - stroke[0][0] + start[0], y - stroke[0][1] + start[1]] : [x, y])
     : mode === 'path' ? path : []
   return <>
-    {toolbarHost && createPortal(<div className="wf-motion-stage-tools is-docked" data-mcp-region="workflow_motion_tools" role="toolbar" aria-label="Chỉnh đường đi Motion" onPointerDown={e => e.stopPropagation()}>
-      {buttons.map(button => <button key={button.icon} type="button" title={button.title} aria-label={button.title} aria-pressed={button.active} onClick={e => { e.stopPropagation(); button.click() }}><WorkflowMotionIcon name={button.icon}/></button>)}
+    {toolbarHost && createPortal(<div className="wf-motion-stage-tools is-docked" data-mcp-region="workflow_motion_tools" role="toolbar" aria-label="Công cụ quỹ đạo và xoay BBox" onPointerDown={e => e.stopPropagation()}>
+      {buttons.map(button => (
+        <span key={button.icon} className="wf-motion-tool-slot">
+          {button.dividerBefore && <span className="wf-motion-tool-sep" aria-hidden="true" />}
+          <button type="button" title={button.title} aria-label={button.title} aria-pressed={button.active} onClick={e => { e.stopPropagation(); button.click() }}><WorkflowMotionIcon name={button.icon}/></button>
+        </span>
+      ))}
     </div>, toolbarHost)}
     {display.length > 1 && <svg className="wf-motion-stage-path" width={width} height={height} aria-hidden="true"><polyline points={display.map(p => p.join(',')).join(' ')} fill="none" stroke="var(--accent-cyan)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><circle cx={display[0][0]} cy={display[0][1]} r="4" fill="var(--accent)"/><circle cx={display[display.length-1][0]} cy={display[display.length-1][1]} r="4" fill="var(--key)"/></svg>}
     {tool !== 'select' && <MotionStageDrawingSurface mode={mode} width={width} height={height} strokeRef={strokeRef} setStroke={setStroke} cancel={cancel} commit={commit} />}

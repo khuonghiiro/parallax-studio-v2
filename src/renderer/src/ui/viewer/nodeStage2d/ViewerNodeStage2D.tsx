@@ -361,7 +361,7 @@ export const ViewerNodeStage2D: React.FC = () => {
         ) : (
           <WorkflowV2DirectStagePreview
             fullViewport
-            viewportHeight={Math.max(200, bodyHeight - 48)}
+            viewportHeight={Math.max(200, bodyHeight)}
             externalZoom={zoomFactor}
             externalPan={pan}
             scopeOverrideProp={scopeOverride}

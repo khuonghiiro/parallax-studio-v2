@@ -1,14 +1,16 @@
-.wf-motion-stage-tools { position: absolute; right: 7px; top: 7px; z-index: 36; display: flex; flex-direction: column; gap: 4px; padding: 4px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--bg-1); }
-.wf-motion-stage-tools button { width: 28px; height: 28px; display: grid; place-items: center; padding: 0; border: 1px solid var(--line-soft); border-radius: var(--radius-sm); background: var(--bg-2); color: var(--text-dim); cursor: pointer; }
-.wf-motion-stage-tools button:hover { background: color-mix(in srgb, var(--accent) 10%, var(--bg-3)); color: var(--text); }
-.wf-motion-stage-tools button[aria-pressed='true'] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.wf-motion-stage-tools { position: absolute; right: 8px; top: 8px; z-index: 36; display: flex; flex-direction: column; gap: 3px; padding: 3px; border: 1px solid var(--line); border-radius: var(--radius); background: color-mix(in srgb, var(--bg-2) 92%, transparent); backdrop-filter: blur(8px); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3); }
+.wf-motion-tool-slot { display: inline-flex; align-items: center; gap: 3px; }
+.wf-motion-tool-sep { width: 1px; height: 16px; background: var(--line); margin: 0 2px; }
+.wf-motion-stage-tools button { width: 28px; height: 28px; display: grid; place-items: center; padding: 0; border: 1px solid transparent; border-radius: var(--radius-sm); background: transparent; color: var(--text-dim); cursor: pointer; transition: background 120ms ease, color 120ms ease, border-color 120ms ease; }
+.wf-motion-stage-tools button:hover { background: color-mix(in srgb, var(--accent) 12%, var(--bg-3)); color: var(--text); }
+.wf-motion-stage-tools button[aria-pressed='true'] { background: color-mix(in srgb, var(--accent) 82%, #0f172a); border-color: var(--accent); color: var(--on-accent); box-shadow: 0 1px 6px color-mix(in srgb, var(--accent) 35%, transparent); }
 .wf-motion-stage-tools button:focus-visible { outline: 2px solid var(--line-focus); outline-offset: 2px; }
 .wf-motion-stage-path { position: absolute; inset: 0; z-index: 33; pointer-events: none; }
 .wf-motion-stage-draw { position: absolute; inset: 0; z-index: 32; cursor: crosshair; touch-action: none; }
-.wf-motion-stage-hint { position: absolute; bottom: 6px; left: 6px; max-width: calc(100% - 54px); padding: 4px 6px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--bg-1); color: var(--text); font-size: 10px; pointer-events: none; }
+.wf-motion-stage-hint { position: absolute; bottom: 48px; left: 50%; transform: translateX(-50%); white-space: nowrap; padding: 4px 10px; border: 1px solid var(--line-focus); border-radius: var(--radius-sm); background: color-mix(in srgb, var(--bg-2) 94%, transparent); color: var(--text); font-size: 11px; font-weight: 600; pointer-events: none; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35); }
 .wf-motion-path-settings { display: flex; flex-direction: column; gap: 8px; padding: 8px; border: 1px solid var(--line-soft); border-radius: var(--radius); color: var(--text); background: var(--bg-1); }
 .wf-motion-path-settings p { margin: 0; color: var(--text-dim); font-size: 11px; line-height: 1.5; }
 .wf-motion-path-settings label { display: flex; align-items: center; gap: 6px; font-size: 11px; }
 
 .wf-motion-toolbar-dock:empty { display: none; }
-.wf-motion-stage-tools.is-docked { position: static; flex-direction: row; justify-content: center; flex-wrap: wrap; }
+.wf-motion-stage-tools.is-docked { position: static; flex-direction: row; align-items: center; justify-content: center; flex-wrap: nowrap; }

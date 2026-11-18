@@ -1,8 +1,28 @@
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import type { Project, WorkflowGraph, WorkflowNode, WorkflowNodeParams } from '@shared/types'
 import { effectiveTimeParams } from '../../../project/workflowTiming'
 import { getClusterPartShortName, getLayerDisplayName } from '../../../project/workflowV2Engine'
 import { useView } from '../../../store/view'
+import {
+  IconCamera,
+  IconChevronDown,
+  IconCompFrame,
+  IconFitStage2D,
+  IconGizmoBbox,
+  IconLayers,
+  IconLock,
+  IconNodeCircuit,
+  IconPad25D,
+  IconPause,
+  IconPen,
+  IconPlay,
+  IconPlus,
+  IconSingle,
+  IconSkipEnd,
+  IconSkipStart,
+  IconSparkles,
+  IconSplit
+} from '../../icons'
 import { selectedViews } from '../taggedLayout'
 import {
   cleanV2NodeTitle,
@@ -64,254 +84,354 @@ export const NodeStage2DToolbar: React.FC<NodeStage2DToolbarProps> = ({
   onToggleScopeOverride,
   onScrubTime,
   onTogglePlayNode,
-  onZoomStep,
   onFitStage
 }) => {
-  const [moreActionsOpen, setMoreActionsOpen] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuWrapRef = useRef<HTMLDivElement>(null)
   const viewState = useView()
   const activeViews = selectedViews(viewState)
   const isSplitWithCam = activeViews.includes('camera') && activeViews.includes('node2d')
 
+  useEffect(() => {
+    if (!menuOpen) return
+    const onPointerDown = (e: PointerEvent) => {
+      if (!menuWrapRef.current?.contains(e.target as Node)) setMenuOpen(false)
+    }
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMenuOpen(false)
+    }
+    window.addEventListener('pointerdown', onPointerDown)
+    window.addEventListener('keydown', onKeyDown)
+    return () => {
+      window.removeEventListener('pointerdown', onPointerDown)
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [menuOpen])
+
   const level = node ? resolveV2NodeLevel(node) : null
   const logicCat = node ? resolveV2LogicCategory(node) : undefined
+  const isOnBboxMotion = Boolean(node && logicCat === 'action' && node.params?.motionMode === 'bbox')
   const canChainStep = Boolean(
     node && (node.params?.isPartChild || logicCat === 'action' || logicCat === 'anim_fx' || logicCat === 'collision')
   )
   const hasDualStage = primaryMode === 'logic_25d' || primaryMode === 'part_25d'
-  const timing = node ? effectiveTimeParams(project, node, node.params ?? {}) : { timeStart: 0, timeEnd: project.comp.duration || 5 }
+  const timing = node
+    ? effectiveTimeParams(project, node, node.params ?? {})
+    : { timeStart: 0, timeEnd: project.comp.duration || 5 }
   const tStart = timing.timeStart ?? 0
   const tEnd = timing.timeEnd ?? (project.comp.duration || 5)
 
-  const targetLabel = ctx.activeLayer ? getLayerDisplayName(ctx.activeLayer) : node ? cleanV2NodeTitle(node.title) : 'Chưa chọn đối tượng'
+  const rawLabel = ctx.activeLayer
+    ? getLayerDisplayName(ctx.activeLayer)
+    : node
+      ? cleanV2NodeTitle(node.title)
+      : 'Chưa chọn'
+  const cleanShortTarget = rawLabel.replace(/\s*—.*$/, '').trim() || rawLabel
+
+  const activeLogicNode = ctx.logicNodes.find(
+    (ln) =>
+      node?.id === ln.id ||
+      Boolean(ln.params?.isPartHub && node?.params?.isPartChild && node?.params?.hierarchyParentNodeId === ln.id)
+  )
+  const isClusterEntity = ctx.layerOrClusterNode?.params?.logicCategory === 'cluster_lock'
 
   return (
     <div className="viewer-node2d-toolbar" data-mcp-region="viewer_node2d_tools">
-      {/* Cụm trái + giữa: Chuyển nhanh Node của Layer/Cụm & Tạo nhanh Hành động/Chuyển động trực tiếp */}
-      <div className="vn2d-mid-scroll">
+      {/* CỤM TRÁI: Đối tượng đang chọn · Chặng BBox · Nút +BBox & Menu Logic gọn gàng trên 1 hàng */}
+      <div className="vn2d-left-track">
         {ctx.layerOrClusterNode && (
-          <button
-            type="button"
-            className={`vn2d-pill is-entity${node?.id === ctx.layerOrClusterNode.id ? ' active' : ''}`}
-            onClick={() => onSelectNode(ctx.layerOrClusterNode!.id)}
-            title={`Chọn gốc "${targetLabel}" để kéo vị trí & kích thước BBox gốc`}
-          >
-            <span>{ctx.layerOrClusterNode.params?.logicCategory === 'cluster_lock' ? '🔒' : '🖼'}</span>
-            <span className="vn2d-pill-txt">{targetLabel}</span>
-          </button>
-        )}
-
-        {ctx.bboxSteps.map(({ node: step, number }) => (
-          <button
-            key={step.id}
-            type="button"
-            className={`vn2d-pill is-bbox-step${node?.id === step.id ? ' active' : ''}${!step.enabled ? ' is-off' : ''}`}
-            onClick={() => onSelectNode(step.id)}
-            title={`${step.title} — Kéo BBox #${number} → #${number + 1} trực tiếp trên sân khấu`}
-          >
-            <span>▣</span>
-            <span>#{number}→#{number + 1}</span>
-          </button>
-        ))}
-
-        {ctx.logicNodes.map((ln) => {
-          const th = resolveV2NodeTheme(ln)
-          const isSel =
-            node?.id === ln.id ||
-            Boolean(ln.params?.isPartHub && node?.params?.isPartChild && node?.params?.hierarchyParentNodeId === ln.id)
-          return (
+          <div className="vn2d-seg-track" role="group" aria-label="Đối tượng và các chặng BBox">
             <button
-              key={ln.id}
               type="button"
-              className={`vn2d-pill${isSel ? ' active' : ''}${!ln.enabled ? ' is-off' : ''}`}
-              style={{ ['--logic-accent' as string]: th.accent }}
-              onClick={() => onSelectNode(ln.id)}
-              title={`${ln.title} — Nhấp để chỉnh trực tiếp trên Màn Khung 2D`}
+              className={`vn2d-seg-item is-entity${node?.id === ctx.layerOrClusterNode.id ? ' active' : ''}`}
+              onClick={() => onSelectNode(ctx.layerOrClusterNode!.id)}
+              title={`Đối tượng gốc: ${rawLabel} — Nhấp để chỉnh vị trí & cỡ BBox gốc`}
             >
-              <span>{th.icon}</span>
-              <span className="vn2d-pill-txt">{cleanV2NodeTitle(ln.title)}</span>
+              {isClusterEntity ? <IconLock width={12} height={12} /> : <IconLayers width={12} height={12} />}
+              <span className="vn2d-entity-txt">{cleanShortTarget}</span>
             </button>
-          )
-        })}
 
-        {ctx.partChildren.length > 0 && logicCat === 'part_swap' && (
-          <div className="vn2d-inline-group" role="group" aria-label="Bộ phận con">
-            {ctx.partChildren.map((ch) => (
+            {ctx.bboxSteps.map(({ node: step, number }) => (
               <button
-                key={ch.id}
+                key={step.id}
                 type="button"
-                className={`vn2d-pill${node?.id === ch.id ? ' active' : ''}`}
-                onClick={() => onSelectNode(ch.id)}
-                title={`Chỉnh tư thế / biến thể bộ phận "${ch.params?.partGroupTitle || cleanV2NodeTitle(ch.title)}"`}
+                className={`vn2d-seg-item is-step${node?.id === step.id ? ' active' : ''}${!step.enabled ? ' is-off' : ''}`}
+                onClick={() => onSelectNode(step.id)}
+                title={`${step.title} — Kéo BBox #${number} → #${number + 1} trực tiếp trên khung`}
               >
-                <span>{ch.params?.partIcon || '🧩'}</span>
-                <span className="vn2d-pill-txt">{ch.params?.partGroupTitle || cleanV2NodeTitle(ch.title)}</span>
+                <IconGizmoBbox width={11} height={11} />
+                <span>{number}→{number + 1}</span>
               </button>
             ))}
+
+            {activeLogicNode && (
+              <button
+                type="button"
+                className="vn2d-seg-item active"
+                onClick={() => onSelectNode(activeLogicNode.id)}
+                title={`Đang chỉnh: ${activeLogicNode.title}`}
+              >
+                <IconNodeCircuit width={12} height={12} />
+                <span className="vn2d-logic-txt">{cleanV2NodeTitle(activeLogicNode.title)}</span>
+              </button>
+            )}
           </div>
         )}
 
-        {/* Nút tạo nhanh Chuyển động BBox, Vẽ Quỹ đạo, Nối chặng & Hành động ngay trên Màn Khung 2D */}
+        {/* Nút thao tác nhanh tạo BBox / Chặng tiếp & Menu Node/Hành động */}
         {ctx.attachTargetNodeId && (
-          <>
-            <span className="vn2d-sep" />
+          <div className="vn2d-quick-tools" ref={menuWrapRef}>
             <button
               type="button"
-              className="vn2d-action-cta"
-              onClick={onQuickSpawnBboxMotion}
-              title="Tạo ngay chuyển động kéo BBox Đầu → Đích (#1 → #2) trực tiếp trên Màn Khung 2D"
+              className="vn2d-tool-btn is-primary"
+              onClick={isOnBboxMotion ? onSpawnFollowupStep : onQuickSpawnBboxMotion}
+              title={
+                isOnBboxMotion
+                  ? 'Nối thêm chặng BBox kế tiếp (+3s) xuất phát từ đích hiện tại'
+                  : 'Tạo chuyển động kéo BBox Đầu → Đích (#1 → #2) trực tiếp trên khung'
+              }
             >
-              🎯 + BBox Đích
+              <IconPlus width={12} height={12} />
+              <span>{isOnBboxMotion ? 'Chặng tiếp' : 'BBox Đích'}</span>
             </button>
+
             <button
               type="button"
-              className="vn2d-action-btn"
-              onClick={onQuickSpawnPathMotion}
-              title="Tạo hoặc mở công cụ vẽ tay đường bay chuyển động ngay trên Màn Khung 2D"
+              className={`vn2d-tool-btn${menuOpen ? ' active' : ''}`}
+              onClick={() => setMenuOpen((v) => !v)}
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+              title="Chuyển nhanh giữa các Node đang gắn hoặc thêm Hành động / Hiệu ứng / Ánh sáng / Vietsub mới"
             >
-              ✏️ + Vẽ đường đi
+              <IconSparkles width={12} height={12} />
+              <span>Hành động</span>
+              {ctx.logicNodes.length > 0 && <em className="vn2d-count-badge">{ctx.logicNodes.length}</em>}
+              <IconChevronDown width={11} height={11} />
             </button>
-            {canChainStep && (
-              <button
-                type="button"
-                className="vn2d-action-btn is-chain"
-                onClick={onSpawnFollowupStep}
-                title="Tạo chặng hành động nối tiếp (+3s) ngay sau mốc kết thúc hiện tại"
+
+            {menuOpen && (
+              <div
+                className="vn2d-popover"
+                role="menu"
+                data-ai-surface="popup"
+                data-ai-surface-label="Menu Node & Hành động Khung 2D"
               >
-                + Chặng tiếp
-              </button>
+                {ctx.logicNodes.length > 0 && (
+                  <div className="vn2d-pop-section">
+                    <div className="vn2d-pop-title">Đang gắn trên {cleanShortTarget}</div>
+                    <div className="vn2d-pop-list">
+                      {ctx.logicNodes.map((ln) => {
+                        const th = resolveV2NodeTheme(ln)
+                        const isSel =
+                          node?.id === ln.id ||
+                          Boolean(
+                            ln.params?.isPartHub &&
+                              node?.params?.isPartChild &&
+                              node?.params?.hierarchyParentNodeId === ln.id
+                          )
+                        return (
+                          <button
+                            key={ln.id}
+                            type="button"
+                            role="menuitem"
+                            className={`vn2d-pop-item${isSel ? ' active' : ''}`}
+                            style={{ ['--logic-accent' as string]: th.accent }}
+                            onClick={() => {
+                              onSelectNode(ln.id)
+                              setMenuOpen(false)
+                            }}
+                          >
+                            <span className="vn2d-pop-dot" style={{ background: th.accent }} />
+                            <span className="vn2d-pop-name">{cleanV2NodeTitle(ln.title)}</span>
+                            <small>{th.badge}</small>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {ctx.partChildren.length > 0 && (
+                  <div className="vn2d-pop-section">
+                    <div className="vn2d-pop-title">Bộ phận con 2.5D</div>
+                    <div className="vn2d-pop-grid">
+                      {ctx.partChildren.map((ch) => (
+                        <button
+                          key={ch.id}
+                          type="button"
+                          role="menuitem"
+                          className={`vn2d-pop-chip${node?.id === ch.id ? ' active' : ''}`}
+                          onClick={() => {
+                            onSelectNode(ch.id)
+                            setMenuOpen(false)
+                          }}
+                        >
+                          <span>{ch.params?.partGroupTitle || cleanV2NodeTitle(ch.title)}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="vn2d-pop-section">
+                  <div className="vn2d-pop-title">Tạo nhanh trên Khung 2D</div>
+                  <div className="vn2d-pop-grid">
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="vn2d-pop-chip"
+                      onClick={() => {
+                        onQuickSpawnPathMotion()
+                        setMenuOpen(false)
+                      }}
+                    >
+                      <IconPen width={12} height={12} />
+                      <span>Vẽ quỹ đạo tự do</span>
+                    </button>
+                    {canChainStep && !isOnBboxMotion && (
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className="vn2d-pop-chip"
+                        onClick={() => {
+                          onSpawnFollowupStep()
+                          setMenuOpen(false)
+                        }}
+                      >
+                        <IconPlus width={12} height={12} />
+                        <span>Nối chặng (+3s)</span>
+                      </button>
+                    )}
+                    {ctx.compatibleCategories.map((cat) => (
+                      <button
+                        key={`${cat.id}-${cat.presetId ?? ''}`}
+                        type="button"
+                        role="menuitem"
+                        className="vn2d-pop-chip"
+                        style={{ ['--logic-accent' as string]: cat.accent }}
+                        title={cat.hint}
+                        onClick={() => {
+                          onAttachLogic(ctx.attachTargetNodeId, cat.id, cat.presetId)
+                          setMenuOpen(false)
+                        }}
+                      >
+                        <span className="vn2d-pop-dot" style={{ background: cat.accent }} />
+                        <span>{cat.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
             )}
-            {ctx.compatibleCategories.length > 0 && (
-              <button
-                type="button"
-                className={`vn2d-action-btn${moreActionsOpen ? ' active' : ''}`}
-                onClick={() => setMoreActionsOpen((v) => !v)}
-                aria-expanded={moreActionsOpen}
-                title="Gắn thêm Hành động nhân vật, Hiệu ứng FX, Ánh sáng 2.5D, Cửa hang, Bộ phận, Vietsub..."
-              >
-                ⚡ + Hành động ▾
-              </button>
-            )}
-          </>
+          </div>
         )}
 
         {node?.type === 'camera_director' && node.params?.shotId && onSpawnCameraWaypoint && (
-          <>
-            <span className="vn2d-sep" />
-            <button
-              type="button"
-              className="vn2d-action-cta"
-              onClick={() => onSpawnCameraWaypoint(node.params!.shotId!)}
-              title="Thêm mốc khung ngắm Camera mới trên Màn Khung 2D"
-            >
-              🎥 + Mốc Camera
-            </button>
-          </>
+          <button
+            type="button"
+            className="vn2d-tool-btn is-primary"
+            onClick={() => onSpawnCameraWaypoint(node.params!.shotId!)}
+            title="Thêm mốc khung ngắm Camera kế tiếp trên sân khấu 2D"
+          >
+            <IconPlus width={12} height={12} />
+            <IconCamera width={12} height={12} />
+            <span>Mốc Cam</span>
+          </button>
         )}
 
         {ctx.clusterMemberCount > 1 && level === 'layer' && ctx.activeLayer && (
           <button
             type="button"
-            className="vn2d-action-btn"
+            className="vn2d-tool-btn"
             onClick={onToggleScopeOverride}
-            title="Chuyển nhanh chế độ kéo giữa Riêng mảnh con hoặc Toàn bộ Cụm 2.5D"
+            title="Chuyển phạm vi kéo giữa Riêng mảnh con đang chọn và Toàn bộ Cụm 2.5D"
           >
-            {scopeOverride === 'cluster'
-              ? `🔒 Cả cụm (${ctx.clusterMemberCount})`
-              : `🎯 Riêng: ${getClusterPartShortName(ctx.activeLayer)}`}
+            {scopeOverride === 'cluster' ? <IconLock width={11} height={11} /> : <IconLayers width={11} height={11} />}
+            <span>
+              {scopeOverride === 'cluster'
+                ? `Cả cụm (${ctx.clusterMemberCount})`
+                : getClusterPartShortName(ctx.activeLayer)}
+            </span>
           </button>
         )}
       </div>
 
-      {/* Cụm phải cố định: Chuyển Khung 2.5D/Cảnh 2D, Phát thử, Zoom & Chia đôi cùng Camera */}
+      {/* CỤM PHẢI: Chế độ 2.5D/Cảnh · Điều khiển chạy thử · Thu phóng · Chia đôi/Toàn khung */}
       <div className="vn2d-right-ops">
         {hasDualStage && (
-          <div className="vn2d-seg" role="group" aria-label="Chuyển chế độ Khung 2.5D và Cảnh 2D">
+          <div className="vn2d-seg-track" role="group" aria-label="Chuyển chế độ Khung 2.5D và Cảnh 2D">
             <button
               type="button"
-              className={`vn2d-seg-btn${!overrideSceneView ? ' active' : ''}`}
+              className={`vn2d-seg-item${!overrideSceneView ? ' active' : ''}`}
               onClick={() => onToggleOverrideSceneView(false)}
-              title="Chỉnh chuyên sâu tia sáng 2.5D, cửa hang, vùng UV hoặc bộ phận con"
+              title="Chỉnh trực tiếp vùng 2.5D / tia sáng / cửa hang / bộ phận"
             >
-              {primaryMode === 'part_25d' ? '🧩 Bộ phận' : '✨ Khung 2.5D'}
+              <IconPad25D width={12} height={12} />
+              <span>{primaryMode === 'part_25d' ? 'Bộ phận' : '2.5D'}</span>
             </button>
             <button
               type="button"
-              className={`vn2d-seg-btn${overrideSceneView ? ' active' : ''}`}
+              className={`vn2d-seg-item${overrideSceneView ? ' active' : ''}`}
               onClick={() => onToggleOverrideSceneView(true)}
-              title="Xem và kéo vị trí BBox trực tiếp trên toàn khung Cảnh 16:9"
+              title="Đặt vị trí BBox trên toàn khung Cảnh 16:9"
             >
-              🎬 Cảnh 2D
+              <IconCompFrame width={12} height={12} />
+              <span>Cảnh</span>
             </button>
           </div>
         )}
+
         {node && (
-          <div className="vn2d-transport" role="group" aria-label="Phát thử và tua nhanh Node">
+          <div className="vn2d-transport-pill" role="group" aria-label="Phát thử và nhảy mốc Node">
             <button
               type="button"
-              className="vn2d-icon-btn"
+              className="vn2d-icon-ctrl"
               onClick={() => onScrubTime(tStart)}
               title={`Về đầu khoảng chạy của Node (${tStart.toFixed(2)}s)`}
-              aria-label="Về mốc đầu Node"
+              aria-label="Về đầu Node"
             >
-              ⏮
+              <IconSkipStart width={12} height={12} />
             </button>
             <button
               type="button"
-              className={`vn2d-play-btn${playing ? ' is-playing' : ''}`}
+              className={`vn2d-icon-ctrl is-play${playing ? ' active' : ''}`}
               onClick={onTogglePlayNode}
-              title={playing ? 'Dừng phát (Space)' : `Phát thử chuyển động từ ${tStart.toFixed(2)}s → ${tEnd.toFixed(2)}s`}
+              title={playing ? 'Dừng phát (Space)' : `Phát thử chuyển động (${tStart.toFixed(2)}s → ${tEnd.toFixed(2)}s)`}
+              aria-label={playing ? 'Dừng phát' : 'Phát thử Node'}
             >
-              {playing ? '⏸ Dừng' : '▶ Chạy'}
+              {playing ? <IconPause width={12} height={12} /> : <IconPlay width={12} height={12} />}
             </button>
             <button
               type="button"
-              className="vn2d-icon-btn"
+              className="vn2d-icon-ctrl"
               onClick={() => onScrubTime(tEnd)}
               title={`Tới đích khoảng chạy của Node (${tEnd.toFixed(2)}s)`}
-              aria-label="Tới mốc đích Node"
+              aria-label="Tới đích Node"
             >
-              ⏭
+              <IconSkipEnd width={12} height={12} />
             </button>
-            <span className="vn2d-time-readout" title="Thời gian hiện tại trên Màn Khung 2D">
-              {currentTime.toFixed(2)}s
+            <span className="vn2d-timecode" title={`Playhead: ${currentTime.toFixed(2)}s (${tStart.toFixed(1)}s–${tEnd.toFixed(1)}s)`}>
+              {currentTime.toFixed(1)}s
             </span>
           </div>
         )}
 
         {(!hasDualStage || overrideSceneView) && (
-          <div className="vn2d-zoom-group" role="group" aria-label="Thu phóng Màn Khung 2D">
-            <button
-              type="button"
-              className="vn2d-icon-btn"
-              onClick={() => onZoomStep(-0.15)}
-              title="Thu nhỏ sân khấu 2D (Cuộn chuột xuống)"
-              aria-label="Thu nhỏ khung 2D"
-            >
-              −
-            </button>
-            <button
-              type="button"
-              className="vn2d-zoom-pct"
-              onClick={onFitStage}
-              title="Nhấp để căn vừa khít 100% khung cảnh (Cuộn chuột để Zoom, kéo nền trống hoặc Alt+Kéo để Lia)"
-            >
-              {zoomPct}%
-            </button>
-            <button
-              type="button"
-              className="vn2d-icon-btn"
-              onClick={() => onZoomStep(0.15)}
-              title="Phóng to sân khấu 2D (Cuộn chuột lên)"
-              aria-label="Phóng to khung 2D"
-            >
-              +
-            </button>
-          </div>
+          <button
+            type="button"
+            className="vn2d-fit-btn"
+            onClick={onFitStage}
+            title={`Đang hiển thị ${zoomPct}% — Nhấp để căn vừa khít khung 100% (Cuộn chuột để Zoom, Alt+Kéo để Lia)`}
+            aria-label="Căn vừa khung 2D"
+          >
+            <IconFitStage2D width={13} height={13} />
+            <span>{zoomPct}%</span>
+          </button>
         )}
 
         <button
           type="button"
-          className={`vn2d-layout-btn${isSplitWithCam ? ' active' : ''}`}
+          className={`vn2d-icon-ctrl is-expand${!isSplitWithCam ? ' active' : ''}`}
           onClick={() => {
             if (isSplitWithCam) {
               viewState.openNodeStage2D('solo')
@@ -319,38 +439,16 @@ export const NodeStage2DToolbar: React.FC<NodeStage2DToolbarProps> = ({
               viewState.set({ activeViews: ['camera', 'node2d'], primary: 'node2d' })
             }
           }}
+          aria-label={isSplitWithCam ? 'Phóng toàn khung 2D' : 'Chia đôi kèm Camera'}
           title={
             isSplitWithCam
-              ? 'Đang xem song song Camera Render + Khung 2D — nhấn để phóng Khung 2D toàn vùng'
-              : 'Chia đôi xem song song Camera Render thực tế + Màn Khung 2D cạnh nhau'
+              ? 'Phóng Màn Khung 2D chiếm trọn vùng Khung nhìn'
+              : 'Chia đôi xem song song Camera Render + Màn Khung 2D'
           }
         >
-          {isSplitWithCam ? '⛶ Toàn khung' : '◫ Kèm Camera'}
+          {isSplitWithCam ? <IconSingle width={13} height={13} /> : <IconSplit width={13} height={13} />}
         </button>
       </div>
-
-      {/* Dải pop-down chọn nhanh Node Logic gắn thêm trực tiếp trên Màn Khung 2D */}
-      {moreActionsOpen && ctx.attachTargetNodeId && ctx.compatibleCategories.length > 0 && (
-        <div className="vn2d-spawn-drawer" role="region" aria-label="Tạo nhanh Hành động & Logic cho đối tượng">
-          <span className="vn2d-spawn-label">Thêm cho {targetLabel}:</span>
-          {ctx.compatibleCategories.map((cat) => (
-            <button
-              key={`${cat.id}-${cat.presetId ?? ''}`}
-              type="button"
-              className="vn2d-spawn-chip"
-              style={{ ['--logic-accent' as string]: cat.accent }}
-              title={cat.hint}
-              onClick={() => {
-                onAttachLogic(ctx.attachTargetNodeId, cat.id, cat.presetId)
-                setMoreActionsOpen(false)
-              }}
-            >
-              <span aria-hidden="true">{cat.icon}</span>
-              <span>{cat.label}</span>
-            </button>
-          ))}
-        </div>
-      )}
     </div>
   )
 }
