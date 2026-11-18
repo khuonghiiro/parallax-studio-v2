@@ -61,6 +61,38 @@ const CHAIN_JOINTS: JointDef[] = [
   { id: 'tip', label: 'Ngọn uốn (Tip)', x: 0.5, y: 0.18, parent: 'mid', color: '#38bdf8' }
 ]
 
+const QUADRUPED_JOINTS: JointDef[] = [
+  { id: 'hips', label: 'Hông thú', x: 0.34, y: 0.45, color: '#f59e0b' },
+  { id: 'chest', label: 'Ức ngực', x: 0.62, y: 0.44, parent: 'hips', color: '#38bdf8' },
+  { id: 'neck', label: 'Cổ', x: 0.74, y: 0.32, parent: 'chest', color: '#a855f7' },
+  { id: 'head', label: 'Đầu', x: 0.84, y: 0.28, parent: 'neck', color: '#ec4899' },
+  { id: 'fl_paw', label: 'Chân trước T', x: 0.66, y: 0.84, parent: 'chest', color: '#10b981' },
+  { id: 'fr_paw', label: 'Chân trước P', x: 0.58, y: 0.84, parent: 'chest', color: '#06b6d4' },
+  { id: 'bl_paw', label: 'Chân sau T', x: 0.3, y: 0.84, parent: 'hips', color: '#f97316' },
+  { id: 'br_paw', label: 'Chân sau P', x: 0.38, y: 0.84, parent: 'hips', color: '#fb7185' },
+  { id: 'tail_tip', label: 'Đuôi', x: 0.14, y: 0.36, parent: 'hips', color: '#a855f7' }
+]
+
+const BIRD_JOINTS: JointDef[] = [
+  { id: 'body', label: 'Thân chim', x: 0.5, y: 0.52, color: '#f59e0b' },
+  { id: 'head', label: 'Đầu & mỏ', x: 0.72, y: 0.42, parent: 'body', color: '#ec4899' },
+  { id: 'wing_l', label: 'Cánh gần', x: 0.38, y: 0.24, parent: 'body', color: '#38bdf8' },
+  { id: 'wing_r', label: 'Cánh xa', x: 0.58, y: 0.22, parent: 'body', color: '#06b6d4' },
+  { id: 'tail', label: 'Lông đuôi', x: 0.22, y: 0.62, parent: 'body', color: '#10b981' }
+]
+
+const MONSTER_JOINTS: JointDef[] = [
+  { id: 'pelvis', label: 'Hông quái thú', x: 0.52, y: 0.56, color: '#f59e0b' },
+  { id: 'torso', label: 'Ngực giáp', x: 0.44, y: 0.38, parent: 'pelvis', color: '#38bdf8' },
+  { id: 'head', label: 'Sừng & Hàm trên', x: 0.32, y: 0.22, parent: 'torso', color: '#ec4899' },
+  { id: 'jaw', label: 'Hàm dưới', x: 0.24, y: 0.3, parent: 'head', color: '#ef4444' },
+  { id: 'arm_l', label: 'Cự trảo T', x: 0.28, y: 0.52, parent: 'torso', color: '#10b981' },
+  { id: 'arm_r', label: 'Cự trảo P', x: 0.58, y: 0.5, parent: 'torso', color: '#06b6d4' },
+  { id: 'leg_l', label: 'Chân sau T', x: 0.44, y: 0.86, parent: 'pelvis', color: '#f97316' },
+  { id: 'leg_r', label: 'Chân sau P', x: 0.6, y: 0.86, parent: 'pelvis', color: '#fb7185' },
+  { id: 'tail', label: 'Đuôi gai', x: 0.82, y: 0.52, parent: 'pelvis', color: '#a855f7' }
+]
+
 interface SpriteBox {
   id: string
   url: string
@@ -181,7 +213,17 @@ export function WorkflowV2RigBoneParams(props: WorkflowV2NodeParamsProps): React
   const preset = p.rigBonePreset ?? 'humanoid_15'
   const softBinding = p.rigSoftBinding !== false
   const baseJoints =
-    preset === 'mixamo_12' ? MIXAMO_JOINTS : preset === 'chain_3' ? CHAIN_JOINTS : HUMANOID_JOINTS
+    preset === 'mixamo_12'
+      ? MIXAMO_JOINTS
+      : preset === 'chain_3'
+        ? CHAIN_JOINTS
+        : preset === 'quadruped_12'
+          ? QUADRUPED_JOINTS
+          : preset === 'bird_8'
+            ? BIRD_JOINTS
+            : preset === 'monster_14'
+              ? MONSTER_JOINTS
+              : HUMANOID_JOINTS
 
   const [jointOffsets, setJointOffsets] = useState<Record<string, { dx: number; dy: number }>>({})
   const [activeJointId, setActiveJointId] = useState<string>(baseJoints[0].id)
@@ -256,19 +298,22 @@ export function WorkflowV2RigBoneParams(props: WorkflowV2NodeParamsProps): React
         options={[
           { id: 'humanoid_15', label: '🧍 15 khớp' },
           { id: 'mixamo_12', label: '🎯 12 mốc' },
-          { id: 'chain_3', label: '🌿 3 khớp' }
+          { id: 'chain_3', label: '🌿 3 khớp' },
+          { id: 'quadruped_12', label: '🐺 Thú 4 chân' },
+          { id: 'bird_8', label: '🦅 Cánh chim' },
+          { id: 'monster_14', label: '👹 Quái vật' }
         ]}
         value={preset}
         onPick={(nextPreset) => {
           setJointOffsets({})
-          onUpdate(
-            { rigBonePreset: nextPreset },
-            nextPreset === 'mixamo_12'
-              ? 'Khung xương: Mixamo 12 mốc'
-              : nextPreset === 'chain_3'
-                ? 'Khung xương: Chuỗi 3 khớp'
-                : 'Khung xương: Nhân vật 15 khớp'
-          )
+          const titleMap: Record<string, string> = {
+            mixamo_12: 'Khung xương: Mixamo 12 mốc',
+            chain_3: 'Khung xương: Chuỗi 3 khớp',
+            quadruped_12: 'Khung xương: Thú 4 chân (12 khớp)',
+            bird_8: 'Khung xương: Chim / Cánh bay (8 khớp)',
+            monster_14: 'Khung xương: Quái vật (14 khớp)'
+          }
+          onUpdate({ rigBonePreset: nextPreset }, titleMap[nextPreset] ?? 'Khung xương: Nhân vật 15 khớp')
         }}
       />
 

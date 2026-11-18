@@ -144,6 +144,10 @@ export const WorkflowStudioPanel: React.FC = () => {
               handleFocusShot(shotId, rootId, follow)
             }}
             onToggleGroup={(id, collapsed) => actions.updateParams(id, { collapsedGroup: collapsed })}
+            onAttachLogicToNode={(layerNodeId, cat, presetId, extraParams, customTitle) => {
+              actions.attachLogic(layerNodeId, cat, presetId, extraParams, customTitle)
+              if (inspectorTab !== 'json') setInspectorTab('node')
+            }}
             onSpawn={(cat, presetId, extraParams, customTitle) => {
               if (spawnTarget) {
                 actions.attachLogic(spawnTarget.id, cat, presetId, extraParams, customTitle)

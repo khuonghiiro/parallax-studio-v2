@@ -83,7 +83,7 @@ export const WorkflowV2SpawnMenu: React.FC<{
       </div>
       {compat.categories.map((item) => (
         <button
-          key={item.id}
+          key={item.presetId ?? item.id}
           type="button"
           role="menuitem"
           style={{ ['--wf-v2-accent' as string]: item.accent }}
@@ -103,7 +103,7 @@ export const WorkflowV2SpawnMenu: React.FC<{
               )
               return
             }
-            onPick(item.id)
+            onPick(item.id, item.presetId)
           }}
         >
           <span className="wf-v2-spawn-ico" aria-hidden="true">{item.icon}</span>

@@ -6,8 +6,32 @@ import {
   collectEvaluatedVirtualLights,
   evaluateVirtualLightAtTime,
   resolveActiveLightEmitterIds,
-  resolveReceivedVirtualLightForLayer
+  resolveReceivedVirtualLightForLayer,
+  type EvaluatedVirtualLight
 } from './virtualLight'
+
+interface SceneLightUniformCache {
+  emitterIds: Set<string>
+  lightsByShot: Map<string | null, EvaluatedVirtualLight[]>
+}
+
+const _sceneLightUniformCache = new WeakMap<EvaluatedScene, SceneLightUniformCache>()
+
+function getSceneLightUniformCache(ev: EvaluatedScene): SceneLightUniformCache {
+  let cached = _sceneLightUniformCache.get(ev)
+  if (!cached) {
+    const activeRawLayers: Layer[] = []
+    for (const e of ev.layers) {
+      if (e.active && e.layer.visible) activeRawLayers.push(e.layer)
+    }
+    cached = {
+      emitterIds: resolveActiveLightEmitterIds(activeRawLayers),
+      lightsByShot: new Map()
+    }
+    _sceneLightUniformCache.set(ev, cached)
+  }
+  return cached
+}
 
 /** Device-pixel rectangle, top-left origin. */
 export interface Rect {
@@ -216,9 +240,8 @@ export function syncLayerCaveAndLightUniforms(
 
   const worldW = Math.max(32, planeW * Math.abs(el.scale[0]))
   const worldH = Math.max(32, planeH * Math.abs(el.scale[1]))
-  const activeRawLayers = ev.layers.filter((e) => e.active && e.layer.visible).map((e) => e.layer)
-  const emitterIds = resolveActiveLightEmitterIds(activeRawLayers)
-  const evVLight = emitterIds.has(el.layer.id)
+  const cache = getSceneLightUniformCache(ev)
+  const evVLight = cache.emitterIds.has(el.layer.id)
     ? evaluateVirtualLightAtTime(el.layer, ev.t, el.position, [planeW, planeH], el.scale)
     : null
 
@@ -260,7 +283,13 @@ export function syncLayerCaveAndLightUniforms(
     return true
   }
 
-  const shotLights = collectEvaluatedVirtualLights(ev.layers, el.layer.shotId ?? null, ev.t)
+  const shotKey = el.layer.shotId ?? null
+  let shotLights = cache.lightsByShot.get(shotKey)
+  if (!shotLights) {
+    shotLights =
+      cache.emitterIds.size === 0 ? [] : collectEvaluatedVirtualLights(ev.layers, shotKey, ev.t)
+    cache.lightsByShot.set(shotKey, shotLights)
+  }
   const received = resolveReceivedVirtualLightForLayer(
     el.layer.id,
     el.position,

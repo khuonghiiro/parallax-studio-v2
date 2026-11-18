@@ -114,24 +114,26 @@ describe('layer_assembly_plant_spine', () => {
       direction: 'down'
     })) as { spineId: string; spines: Array<{ amplitude: number; lean: number; points: number[][] }> }
     expect(weatherInit.spines).toHaveLength(1)
-    expect(weatherInit.spines[0].amplitude).toBe(22)
+    expect(weatherInit.spines[0].amplitude).toBe(20)
     expect(weatherInit.spines[0].lean).toBe(7)
     expect(weatherInit.spines[0].points[0][1]).toBeLessThan(weatherInit.spines[0].points[3][1])
 
     await runCommand('layer_assembly_plant_spine', {
       action: 'add',
       direction: 'horizontal',
-      preset: 'branch'
+      preset: 'silk'
     })
     expect(ws.get().plantSpines).toHaveLength(2)
+    expect(ws.get().plantSpines![1].waveLag).toBeCloseTo(0.78, 2)
+    expect(ws.get().plantSpines![1].verticalBob).toBe(0)
 
     await runCommand('layer_assembly_plant_spine', {
       action: 'apply_weather',
       weather: 'storm',
       lean: -10
     })
-    expect(ws.get().plantSpines![0].amplitude).toBe(32)
-    expect(ws.get().plantSpines![1].amplitude).toBe(32)
+    expect(ws.get().plantSpines![0].amplitude).toBe(28)
+    expect(ws.get().plantSpines![1].amplitude).toBe(28)
     expect(ws.get().plantSpines![1].lean).toBe(-10)
 
   })

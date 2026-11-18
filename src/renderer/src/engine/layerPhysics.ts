@@ -20,7 +20,10 @@ import {
   type MaterialPhysicsPreset,
   type SubMeshPresetId
 } from './layerPhysicsPresets'
-import { evaluateCaveDepthPortalForLayer } from './virtualLight'
+import {
+  evaluateCaveDepthPortalForLayer,
+  type VirtualLightFrameCache
+} from './virtualLight'
 
 export {
   createDefaultLayerPhysics,
@@ -415,10 +418,11 @@ export function evaluateLayerPhysicsTransform(
   project: Project,
   layer: Layer,
   t: number,
-  nominalSize?: [number, number]
+  nominalSize?: [number, number],
+  lightCache?: VirtualLightFrameCache
 ): PhysicsTransformResult {
   const basePos = evaluate(layer.transform.position, t)
-  const portal = evaluateCaveDepthPortalForLayer(project, layer, basePos, t)
+  const portal = evaluateCaveDepthPortalForLayer(project, layer, basePos, t, lightCache)
 
   const cfg = layer.physics
   if (!cfg || !cfg.enabled || cfg.material === 'none') {

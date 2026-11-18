@@ -1,8 +1,9 @@
-import React, { useState } from 'react'
+import React from 'react'
 import type { GlowSide, Layer, LayerGlow, LoopEndAction } from '@shared/types'
 import {
   WORKFLOW_V2_ANIM_FX_OPTIONS,
-  WORKFLOW_V2_FX_OPTIONS
+  WORKFLOW_V2_FX_OPTIONS,
+  resolveFxAtomicRole
 } from '../../project/workflowV2Engine'
 import { useEditor } from '../../store/editor'
 import { ColorInput, NumberInput, Row } from '../controls'
@@ -40,15 +41,14 @@ export function WorkflowV2FxParams(props: WorkflowV2NodeParamsProps): React.Reac
   const presetId = p.animFxPreset ?? fxList[fxList.length - 1]?.presetId ?? 'fadeInOut'
   const opt = WORKFLOW_V2_ANIM_FX_OPTIONS.find((o) => o.id === presetId) ?? WORKFLOW_V2_ANIM_FX_OPTIONS[0]
 
-  const inferredSubTab: 'opacity' | 'pulse' | 'glow' =
-    p.fxSubTab ??
-    (GLOW_PRESET_IDS.has(presetId) || Boolean(p.fxKind)
-      ? 'glow'
-      : PULSE_PRESET_IDS.has(presetId) || (p.loopRhythmMode && p.loopRhythmMode !== 'none')
-        ? 'pulse'
-        : 'opacity')
-  const [subTab, setSubTab] = useState<'opacity' | 'pulse' | 'glow'>(inferredSubTab)
-  const activeTab = p.fxSubTab ?? subTab
+  const atomicRole = resolveFxAtomicRole(node)
+  const activeTab: 'opacity' | 'pulse' | 'glow' = atomicRole === 'fade' ? 'opacity' : atomicRole
+  const roleBadgeText =
+    atomicRole === 'fade'
+      ? '🌗 Node đơn nhiệm: Hiện / Ẩn & Mờ'
+      : atomicRole === 'pulse'
+        ? '💥 Node đơn nhiệm: Nhịp & Biến đổi'
+        : '✨ Node đơn nhiệm: Phát sáng & Quang học'
 
   const fadeInSec =
     p.loopFadeInSec ??
@@ -106,44 +106,12 @@ export function WorkflowV2FxParams(props: WorkflowV2NodeParamsProps): React.Reac
   const glowOptions = WORKFLOW_V2_ANIM_FX_OPTIONS.filter((o) => GLOW_PRESET_IDS.has(o.id))
 
   return (
-    <div className="vl-section-card" style={{ marginTop: 2 }}>
-      <div className="wf-v2-seg-tabs" role="tablist" aria-label="Nhóm Hiệu ứng">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={activeTab === 'opacity'}
-          className={`wf-v2-seg-tab${activeTab === 'opacity' ? ' active' : ''}`}
-          onClick={() => {
-            setSubTab('opacity')
-            onUpdate({ fxSubTab: 'opacity' })
-          }}
-        >
-          🌗 Hiện / Ẩn &amp; Mờ
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={activeTab === 'pulse'}
-          className={`wf-v2-seg-tab${activeTab === 'pulse' ? ' active' : ''}`}
-          onClick={() => {
-            setSubTab('pulse')
-            onUpdate({ fxSubTab: 'pulse' })
-          }}
-        >
-          💥 Nhịp &amp; Biến đổi
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={activeTab === 'glow'}
-          className={`wf-v2-seg-tab${activeTab === 'glow' ? ' active' : ''}`}
-          onClick={() => {
-            setSubTab('glow')
-            onUpdate({ fxSubTab: 'glow' })
-          }}
-        >
-          ✨ Phát sáng &amp; Quang
-        </button>
+    <div className="vl-section-card">
+      <div className="wf-v2-atomic-banner" data-role={atomicRole}>
+        <span className="wf-v2-atomic-banner-title">{roleBadgeText}</span>
+        <span className="wf-v2-atomic-banner-tip">
+          Mỗi Node đảm nhiệm 1 logic · Kéo cổng phải để nối thêm hiệu ứng khác vào chuỗi
+        </span>
       </div>
 
       {activeTab === 'opacity' && (

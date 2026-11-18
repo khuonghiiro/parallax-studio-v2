@@ -14,6 +14,7 @@ import {
 } from '../../project/jsonFormat'
 import { buildMainWorkflowJson } from '../../project/workflowV2Engine'
 import { addAudioTrackToProject, getProjectAudioTracks, syncProjectAudio } from '../../project/audioTracks'
+import { runWithProjectLoading } from '../../store/projectLoading'
 import { ParamError, ed, proj, type Handler } from '../types'
 import { bool, has, num, str } from '../params'
 import { cameraSummary, layerSummary, shotSummary } from '../summaries'
@@ -66,7 +67,49 @@ export const projectCommands: Record<string, Handler> = {
     }
   },
 
-  new_project: (p) => {
+  new_project: async (p) => {
+    const demo = str(p, 'demo')
+    if (
+      demo === 'three_scenes' ||
+      demo === 'donghua_guofeng' ||
+      demo === 'hanbeta_quaidam' ||
+      demo === 'action_combat_25d' ||
+      demo === 'sim_life_ep1_gate' ||
+      demo === 'sim_life_ep1_twist'
+    ) {
+      ed().setPlaying(false)
+      const loaded = await runWithProjectLoading(`Đang tải mẫu (${demo})…`, async (report) => {
+        const demoMod = await import('../../project/demo')
+        const built =
+          demo === 'sim_life_ep1_gate'
+            ? await demoMod.buildSimLifeEp1GateProject()
+            : demo === 'sim_life_ep1_twist'
+              ? await demoMod.buildSimLifeEp1TwistProject()
+              : demo === 'action_combat_25d' || demo === 'hanbeta_quaidam'
+                ? await demoMod.buildHanbetaDemoProject()
+                : demo === 'donghua_guofeng'
+                  ? await demoMod.buildDonghuaDemoProject()
+                  : await demoMod.buildThreeSceneDemoProject()
+        report({
+          phase: 'gpu',
+          stageLabel: `Đang nạp ${built.shots.length} cảnh · ${built.layers.length} layer…`,
+          shotCount: built.shots.length,
+          layerCount: built.layers.length,
+          percent: 95
+        })
+        ed().loadProject(built, null)
+        ed().setPlaying(false)
+        return built
+      })
+      return {
+        ok: true,
+        demo,
+        name: loaded.comp.name,
+        shots: loaded.shots.length,
+        layers: loaded.layers.length,
+        composition: proj().comp
+      }
+    }
     assetStore.clear()
     const comp: Partial<Project['comp']> = {}
     for (const k of ['name', 'background'] as const) if (has(p, k)) comp[k] = str(p, k)!
@@ -102,15 +145,20 @@ export const projectCommands: Record<string, Handler> = {
 
   open_project: async (_p, cmd) => {
     if (!cmd.file) throw new ParamError('Missing "file_path"')
-    let project: Project
-    if (cmd.file.path.endsWith('.json')) {
-      const text = new TextDecoder('utf-8').decode(cmd.file.data)
-      project = await importProjectFromJson(text)
-    } else {
-      project = await deserializeProject(cmd.file.data)
-    }
-    const safePath = isInternalSourcePath(cmd.file.path) ? null : cmd.file.path
-    ed().loadProject(project, safePath)
+    const fileLabel = cmd.file.path.split(/[\\/]/).pop() ?? 'dự án'
+    ed().setPlaying(false)
+    const project = await runWithProjectLoading(`Đang mở dự án: ${fileLabel}`, async () => {
+      let loaded: Project
+      if (cmd.file!.path.endsWith('.json')) {
+        const text = new TextDecoder('utf-8').decode(cmd.file!.data)
+        loaded = await importProjectFromJson(text)
+      } else {
+        loaded = await deserializeProject(cmd.file!.data)
+      }
+      const safePath = isInternalSourcePath(cmd.file!.path) ? null : cmd.file!.path
+      ed().loadProject(loaded, safePath)
+      return loaded
+    })
     return { path: cmd.file.path, shots: project.shots.length, layers: project.layers.length }
   },
 
@@ -124,9 +172,13 @@ export const projectCommands: Record<string, Handler> = {
     } else {
       throw new ParamError('Provide "json" string/object or "file_path"')
     }
-    const project = await importProjectFromJson(jsonStr)
-    const safePath = isInternalSourcePath(cmd.file?.path) ? null : (cmd.file?.path ?? null)
-    ed().loadProject(project, safePath)
+    ed().setPlaying(false)
+    const project = await runWithProjectLoading('Đang nhập dự án JSON…', async () => {
+      const loaded = await importProjectFromJson(jsonStr)
+      const safePath = isInternalSourcePath(cmd.file?.path) ? null : (cmd.file?.path ?? null)
+      ed().loadProject(loaded, safePath)
+      return loaded
+    })
     return {
       name: project.comp.name,
       shots: project.shots.length,

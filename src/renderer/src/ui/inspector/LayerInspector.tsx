@@ -4,6 +4,7 @@ import { anim, evaluate, setValueAt } from '../../animation/keyframes'
 import { setLayerShot } from '../../actions'
 import { ensureProjectWorkflow } from '../../project/workflowEngine'
 import { getLayerTimelineLogicBadges } from '../../project/timelineLogic'
+import { usePlaybackUiTime } from '../../hooks/usePlaybackUiTime'
 import { frameTolerance, useEditor } from '../../store/editor'
 import { AnimRow, NumberInput, Row, Select, Switch, TextInput } from '../controls'
 import { useLayerUpdater } from './useLayerUpdater'
@@ -20,7 +21,7 @@ export function LayerInspector({ layer }: { layer: Layer }) {
   const project = useEditor((s) => s.project)
   const duration = project.comp.duration
   const comp = project.comp
-  const time = useEditor((s) => s.time)
+  const time = usePlaybackUiTime(8)
   const tol = useEditor((s) => frameTolerance(s.project))
   const shots = project.shots
   const allLayers = project.layers

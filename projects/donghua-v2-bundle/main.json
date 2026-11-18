@@ -1,0 +1,273 @@
+{
+  "kind": "parallax-workflow-main",
+  "sharedTiming": {
+    "nodes": [
+      {
+        "id": "time-LuouELw1",
+        "type": "motion_choreography",
+        "title": "Cao Trào Kiếm Khí Trúc Lâm",
+        "enabled": true,
+        "position": {
+          "x": 1744,
+          "y": 1424
+        },
+        "preset": "shared_time",
+        "aiAgentRole": "MotionChoreographyAgent",
+        "aiDirective": "Chia sẻ khoảng thời gian qua cổng Time.",
+        "params": {
+          "logicCategory": "time",
+          "logicId": "logic-shared-time",
+          "timeStart": 6.3,
+          "timeEnd": 11.7,
+          "timeGroupColor": "#06b6d4"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "time-time-LuouELw1-v2-action-layer-dg-s2-cloak",
+        "fromNode": "time-LuouELw1",
+        "fromPort": "time_range",
+        "toNode": "v2-action-layer-dg-s2-cloak",
+        "toPort": "time_range"
+      },
+      {
+        "id": "time-time-LuouELw1-v2-fx_fade-layer-dg-s2-cloak",
+        "fromNode": "time-LuouELw1",
+        "fromPort": "time_range",
+        "toNode": "v2-fx_fade-layer-dg-s2-cloak",
+        "toPort": "time_range"
+      }
+    ],
+    "consumers": [
+      {
+        "id": "v2-action-layer-dg-s2-cloak",
+        "type": "motion_choreography",
+        "title": "Motion: Phi Thân Cầu Đá",
+        "enabled": true,
+        "position": {
+          "x": 2168,
+          "y": 1340
+        },
+        "preset": "organic_wind_breathe",
+        "aiAgentRole": "MotionChoreographyAgent",
+        "aiDirective": "Motion: Phi Thân Cầu Đá (bước B2 sau \"Hành động: Võ Thế & Tà Áo Khai Phong\").",
+        "params": {
+          "shotId": "shot-dg-2",
+          "logicCategory": "action",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-dg-s2-cloak",
+            "layer-dg-s2-calm",
+            "layer-dg-s2-fierce"
+          ],
+          "sharedLayerNodeIds": [
+            "v2-cluster-cluster-dg-hero-s2"
+          ],
+          "requireLayerConnection": true,
+          "timeStart": 6.3,
+          "timeEnd": 11.5,
+          "hierarchyParentNodeId": "v2-cluster-cluster-dg-hero-s2",
+          "upstreamLogicNodeId": "v2-anim_fx-cluster-dg-hero-s2",
+          "pipelineStepIndex": 2,
+          "instanceId": "cluster-dg-hero-s2",
+          "rootLayerId": "layer-dg-s2-cloak",
+          "actionPreset": "bbox_target",
+          "motionMode": "bbox",
+          "bboxPathType": "shortest",
+          "bboxTargetScalePct": 110,
+          "depthMode": "depth_z",
+          "intensity": 1,
+          "bboxTargetX": 115,
+          "bboxTargetY": 14,
+          "depthRefLayerId": "layer-dg-s2-bridge",
+          "depthRelation": "in_front",
+          "bboxStartZ": 226,
+          "bboxTargetZ": 135,
+          "localTimeRange": {
+            "start": 6.3,
+            "end": 11.5
+          }
+        }
+      },
+      {
+        "id": "v2-fx_fade-layer-dg-s2-cloak",
+        "type": "physics_fx",
+        "title": "Hiện/Ẩn: Hiện 0.5s · Ẩn 0.5s",
+        "enabled": true,
+        "position": {
+          "x": 2592,
+          "y": 1340
+        },
+        "preset": "rim_glow_particles",
+        "aiAgentRole": "PhysicsLightFxAgent",
+        "aiDirective": "FX: Kiếm Khí Thanh Ngọc (bước B3 sau \"Motion: Phi Thân Cầu Đá\").",
+        "params": {
+          "shotId": "shot-dg-2",
+          "logicCategory": "fx",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-dg-s2-cloak",
+            "layer-dg-s2-calm",
+            "layer-dg-s2-fierce"
+          ],
+          "sharedLayerNodeIds": [
+            "v2-cluster-cluster-dg-hero-s2"
+          ],
+          "requireLayerConnection": true,
+          "timeStart": 7.6,
+          "timeEnd": 11.8,
+          "hierarchyParentNodeId": "v2-cluster-cluster-dg-hero-s2",
+          "upstreamLogicNodeId": "v2-action-layer-dg-s2-cloak",
+          "pipelineStepIndex": 3,
+          "instanceId": "cluster-dg-hero-s2",
+          "rootLayerId": "layer-dg-s2-cloak",
+          "fxAtomicRole": "fade",
+          "fxSubTab": "opacity",
+          "animFxPreset": "neonBreathe",
+          "loopFadeInSec": 0.5,
+          "loopEndAction": "fade_out",
+          "loopFadeOutSec": 0.5,
+          "intensity": 0.42,
+          "animFxColor": "#2dd4bf",
+          "animFxThickness": 6,
+          "animFxSpeed": 1.5,
+          "localTimeRange": {
+            "start": 7.6,
+            "end": 11.8
+          },
+          "animMode": "keyframe_fx"
+        }
+      }
+    ]
+  },
+  "version": 2,
+  "name": "Vân Sơn Kiếm Khúc — Hoạt Ảnh Quốc Phong 2.5D",
+  "composition": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 30,
+    "duration": 18,
+    "background": "#090e1a"
+  },
+  "camera": {
+    "fov": 40,
+    "dofEnabled": false,
+    "shakeAmount": 0,
+    "shakeSpeed": 0.6
+  },
+  "look": {
+    "fogEnabled": false,
+    "fogColor": "#2a2140",
+    "fogNear": 1500,
+    "fogFar": 6000,
+    "vignette": 0,
+    "grain": 0,
+    "exposure": 0,
+    "contrast": 1,
+    "saturation": 1
+  },
+  "route": [
+    {
+      "shotId": "shot-dg-1",
+      "index": 1,
+      "name": "Vân Hải Thanh Sơn",
+      "file": "shots/shot-1.json",
+      "color": "#f59e0b",
+      "visible": true,
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "timeStart": 0,
+      "timeEnd": 5.3,
+      "cameraPreset": "dollyIn",
+      "waypointCount": 3,
+      "layerCount": 16,
+      "logicCount": 11
+    },
+    {
+      "shotId": "shot-dg-2",
+      "index": 2,
+      "name": "Trúc Lâm Nguyệt Ảnh",
+      "file": "shots/shot-2.json",
+      "color": "#14b8a6",
+      "visible": true,
+      "position": [
+        10560,
+        0,
+        0
+      ],
+      "timeStart": 5.7,
+      "timeEnd": 11.3,
+      "cameraPreset": "dollyIn",
+      "waypointCount": 3,
+      "layerCount": 12,
+      "logicCount": 9
+    },
+    {
+      "shotId": "shot-dg-3",
+      "index": 3,
+      "name": "Giang Nam Tinh Hà",
+      "file": "shots/shot-3.json",
+      "color": "#8b5cf6",
+      "visible": true,
+      "position": [
+        21120,
+        0,
+        0
+      ],
+      "timeStart": 11.7,
+      "timeEnd": 18,
+      "cameraPreset": "dollyIn",
+      "waypointCount": 3,
+      "layerCount": 8,
+      "logicCount": 9
+    }
+  ],
+  "connections": [
+    {
+      "edgeId": "e-camchain-shot-dg-1-shot-dg-2",
+      "fromShotId": "shot-dg-1",
+      "fromShotName": "Vân Hải Thanh Sơn",
+      "fromFile": "shots/shot-1.json",
+      "toShotId": "shot-dg-2",
+      "toShotName": "Trúc Lâm Nguyệt Ảnh",
+      "toFile": "shots/shot-2.json",
+      "transitionAt": 5.3
+    },
+    {
+      "edgeId": "e-camchain-shot-dg-2-shot-dg-3",
+      "fromShotId": "shot-dg-2",
+      "fromShotName": "Trúc Lâm Nguyệt Ảnh",
+      "fromFile": "shots/shot-2.json",
+      "toShotId": "shot-dg-3",
+      "toShotName": "Giang Nam Tinh Hà",
+      "toFile": "shots/shot-3.json",
+      "transitionAt": 11.3
+    }
+  ],
+  "assets": {
+    "c_nh_1_v_n_h_i_thanh_s_n_b_nh_minh": "scenes-donghua-v2/bg-s1-jade-sea-clouds.png",
+    "c_nh_2_tr_c_l_m_nguy_t_nh_s_ng_b_c": "scenes-donghua-v2/bg-s2-moonlit-bamboo-mist.png",
+    "c_nh_3_giang_nam_c_tr_n_tinh_h": "scenes-donghua-v2/bg-s3-jiangnan-starry-river.png",
+    "nh_c_v_ch_n_i_t_ng_b_ch": "scenes-donghua-v2/s1-cliff-pavilion.png",
+    "c_nh_o_c_th_ti_n_c_nh": "scenes-donghua-v2/s1-peach-branch-fg.png",
+    "ti_n_h_c_th_n_c_ng_v_n": "scenes-donghua-v2/crane-body-core.png",
+    "ti_n_h_c_c_nh_g_n_ti_n_c_nh": "scenes-donghua-v2/crane-wing-near.png",
+    "ti_n_h_c_c_nh_xa_h_u_c_nh": "scenes-donghua-v2/crane-wing-far.png",
+    "ki_m_kh_ch_o_cho_ng_l_a": "scenes-donghua-v2/hero-cloak-back.png",
+    "ki_m_kh_ch_th_n_th_i_i_m_t_nh": "scenes-donghua-v2/hero-swordsman-calm.png",
+    "ki_m_kh_ch_khai_phong_ki_m": "scenes-donghua-v2/hero-swordsman-fierce.png",
+    "linh_ki_m_c_phong": "scenes-donghua-v2/hero-spirit-sword.png",
+    "c_u_c_r_ng_tr_c": "scenes-donghua-v2/s2-stone-bridge.png",
+    "tr_c_xanh_th_i_h_ti_n_c_nh": "scenes-donghua-v2/s2-bamboo-rock-fg.png",
+    "thuy_n_g_b_ng_giang_nam": "scenes-donghua-v2/s3-gondola-boat.png",
+    "thi_u_n_h_n_ph_c_n_hoa_sen": "scenes-donghua-v2/s3-maiden-puppet.png",
+    "n_tr_i_hoa_ng": "scenes-donghua-v2/s3-sky-lanterns.png",
+    "ki_m_kh_tr_m_thanh_ng_c": "scenes-donghua-v2/fx-sword-qi-slash.png",
+    "d_i_m_y_s_ng_v_n_h_i": "scenes-donghua-v2/fx-cloud-mist.png",
+    "g_n_s_ng_ph_n_chi_u_nh_tr_ng": "scenes-donghua-v2/fx-water-shimmer.png"
+  }
+}

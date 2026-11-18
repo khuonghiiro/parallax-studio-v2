@@ -65,10 +65,16 @@ export function usePlayback(): void {
 
     let raf = 0
     let last = performance.now()
+    let smoothedDt = 1 / 60
     const tick = (now: number): void => {
       const st = useEditor.getState()
-      const dt = Math.min(0.1, (now - last) / 1000)
+      const rawDt = Math.max(0, (now - last) / 1000)
       last = now
+      // Khử giật cục (frame-pacing) khi hệ điều hành hoặc Remote Desktop (RDP/UltraViewer) nén khung hình theo cụm:
+      // chặn gai thời gian > 45ms và làm mượt gia số bước nhảy để nhân vật & camera không bị giật cóc.
+      const clampedDt = Math.min(0.045, rawDt)
+      smoothedDt = rawDt > 0.08 ? 1 / 30 : smoothedDt * 0.72 + clampedDt * 0.28
+      const dt = Math.min(0.045, smoothedDt)
       const baseTime = Number.isFinite(st.time) ? st.time : 0
       let t = baseTime + dt
 

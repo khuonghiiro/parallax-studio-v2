@@ -17,8 +17,52 @@ export {
 import type { AnimationClip, BoneKeyframe, LayerBone, LayerRig, MotionViewAngle } from '@shared/layerRig'
 import type { LayerComposite } from './types'
 import { weldConnectedLimbBones } from './mohoRigHelpers'
-import { inferHumanoidBoneRoles } from './spineRigWorkflow'
 import { isGenericClipName } from './workshopClipBiomechanics'
+import {
+  kf as k,
+  fillRestTracks,
+  resolveBodyIds,
+  generateTalkGesture,
+  generateSchemingChin,
+  generateShockRecoil,
+  generateDramaticPoint
+} from './workshopMotionComicPresets'
+export {
+  generateTalkGesture,
+  generateSchemingChin,
+  generateShockRecoil,
+  generateDramaticPoint
+} from './workshopMotionComicPresets'
+import {
+  createMonsterBones,
+  createQuadrupedRigBones,
+  createWingedRigBones,
+  generateCombatCombo,
+  generateDodgeCounter,
+  generateHitRecoil,
+  generateMartialKick,
+  generateMonsterPounce,
+  generateMonsterProwl,
+  generateMonsterRoar,
+  generateQuadrupedGallopClip,
+  generateQuadrupedWalkClip,
+  generateWingFlapClip
+} from './workshopCombatAndCreaturePresets'
+export {
+  createMonsterBones,
+  createQuadrupedRigBones,
+  createWingedRigBones,
+  generateCombatCombo,
+  generateDodgeCounter,
+  generateHitRecoil,
+  generateMartialKick,
+  generateMonsterPounce,
+  generateMonsterProwl,
+  generateMonsterRoar,
+  generateQuadrupedGallopClip,
+  generateQuadrupedWalkClip,
+  generateWingFlapClip
+} from './workshopCombatAndCreaturePresets'
 
 /** Preset humanoid 2D armature in workshop coordinates (origin 0,0 at center), with welded parent-child joints. */
 export function createHumanoidBones(): LayerBone[] {
@@ -50,9 +94,15 @@ export function createSimpleChainBones(): LayerBone[] {
   ])
 }
 
+export type MotionPresetArchetype = 'humanoid' | 'combat' | 'animal' | 'monster'
+
 export type ProceduralMotionPreset =
   | 'walk'
   | 'idle'
+  | 'talk'
+  | 'scheming'
+  | 'shock'
+  | 'point'
   | 'wave'
   | 'bow'
   | 'run'
@@ -60,12 +110,23 @@ export type ProceduralMotionPreset =
   | 'fall'
   | 'land'
   | 'action'
+  | 'combat'
+  | 'martial_kick'
+  | 'dodge_counter'
+  | 'hit_recoil'
+  | 'quadruped_walk'
+  | 'quadruped_gallop'
+  | 'wing_flap'
+  | 'monster_prowl'
+  | 'monster_roar'
+  | 'monster_pounce'
   | 'sway'
   | 'hand-clench'
   | 'foot-roll'
 
 export interface MotionPresetInfo {
   id: ProceduralMotionPreset
+  archetype: MotionPresetArchetype
   name: string
   icon: string
   duration: number
@@ -73,83 +134,35 @@ export interface MotionPresetInfo {
 }
 
 export const MOTION_PRESETS: MotionPresetInfo[] = [
-  { id: 'walk', name: 'Bước đi (Walk)', icon: '🚶', duration: 1.6, description: 'Chân trụ tiếp đất, nhịp chuyển trọng tâm, đánh tay tự nhiên theo góc nhìn' },
-  { id: 'idle', name: 'Đứng thở (Idle)', icon: '🌬️', duration: 2.4, description: 'Nhịp thở lồng ngực phồng nhẹ, vai & hai tay thả lỏng đối xứng tự nhiên' },
-  { id: 'wave', name: 'Vẫy tay chào (Wave)', icon: '👋', duration: 1.8, description: 'Đưa tay lên ngang vai vẫy chào thân thiện, đầu nghiêng mỉm cười' },
-  { id: 'bow', name: 'Cúi chào (Bow)', icon: '🙇', duration: 2.0, description: 'Gập thân & gật đầu cúi chào trang trọng (phối cảnh 2.5D chuẩn góc nhìn)' },
-  { id: 'run', name: 'Chạy nhanh (Run)', icon: '🏃', duration: 1.0, description: 'Sải chân dứt khoát, tay vung nhịp nhanh giàu năng lượng' },
-  { id: 'jump', name: 'Nhún nhảy (Jump)', icon: '🦘', duration: 1.4, description: 'Chùng hai gối đối xứng lấy đà bật nhảy vươn tay rồi tiếp đất êm ái' },
-  { id: 'fall', name: 'Vấp ngã (Trip & Fall)', icon: '💥', duration: 1.8, description: 'Khựng chân mất thăng bằng, vung hai tay và khuỵu xuống chống sàn' },
-  { id: 'land', name: 'Tiếp đất (Land)', icon: '🧘', duration: 1.2, description: 'Rơi tiếp đất giảm chấn, chùng hai gối hạ trọng tâm rồi đứng thẳng dậy' },
-  { id: 'action', name: 'Vung đòn (Action)', icon: '⚔️', duration: 1.5, description: 'Xoay vai lấy đà vung chém chéo qua thân uy lực, dứt khoát' },
-  { id: 'sway', name: 'Uốn lượn (Sway)', icon: '🌊', duration: 2.0, description: 'Lượn sóng dẻo dai cho cành lá, cây cối, tóc hoặc đuôi' },
-  { id: 'hand-clench', name: 'Nắm & Xòe bàn tay (Hand Clench)', icon: '✊', duration: 2.0, description: 'Diễn hoạt bàn tay: uốn cong các ngón thành nắm đấm rồi thả lỏng' },
-  { id: 'foot-roll', name: 'Nhón chân & Chạm gót (Heel-Toe Roll)', icon: '🩰', duration: 2.0, description: 'Diễn hoạt cổ chân & bàn chân: chạm gót, đặt phẳng và nhón mũi chân' }
+  { id: 'walk', archetype: 'humanoid', name: 'Bước đi (Walk)', icon: '🚶', duration: 1.6, description: 'Chân trụ tiếp đất, nhịp chuyển trọng tâm, đánh tay tự nhiên theo góc nhìn' },
+  { id: 'idle', archetype: 'humanoid', name: 'Đứng thở (Idle)', icon: '🌬️', duration: 2.4, description: 'Nhịp thở lồng ngực phồng nhẹ có trễ pha vai → cẳng tay → đầu chuẩn Spine/AE' },
+  { id: 'talk', archetype: 'humanoid', name: 'Thuyết thoại (Talk)', icon: '💬', duration: 2.2, description: 'Diễn xuất đàm đạo 2D Motion-Comic (Hàn Bối Tháp): gật đầu nhấn ý & vung tay giải thích mượt' },
+  { id: 'scheming', archetype: 'humanoid', name: 'Mưu tính chống cằm (Scheming)', icon: '🧠', duration: 2.6, description: 'Động tác suy luận Quy Tắc đặc trưng Hàn Bối Tháp: chống cằm nghiêng đầu giữ dáng tinh quái' },
+  { id: 'shock', archetype: 'humanoid', name: 'Giật mình Quái Đàm (Shock)', icon: '😱', duration: 1.5, description: 'Phản xạ co vai giật lùi dứt khoát (ease-out) kèm nhịp tim rung rồi bình tĩnh lại' },
+  { id: 'point', archetype: 'humanoid', name: 'Chỉ tay phá cục (Point)', icon: '👉', duration: 1.7, description: 'Lấy đà vai rồi vung tay chỉ thẳng dứt khoát kiểu cao trào hoạt ảnh 2D' },
+  { id: 'wave', archetype: 'humanoid', name: 'Vẫy tay chào (Wave)', icon: '👋', duration: 1.8, description: 'Đưa tay lên ngang vai vẫy chào thân thiện, đầu nghiêng mỉm cười' },
+  { id: 'bow', archetype: 'humanoid', name: 'Cúi chào (Bow)', icon: '🙇', duration: 2.0, description: 'Gập thân & gật đầu cúi chào trang trọng (phối cảnh 2.5D chuẩn góc nhìn)' },
+  { id: 'run', archetype: 'humanoid', name: 'Chạy nhanh (Run)', icon: '🏃', duration: 1.0, description: 'Sải chân dứt khoát, tay vung nhịp nhanh giàu năng lượng' },
+  { id: 'jump', archetype: 'humanoid', name: 'Nhún nhảy (Jump)', icon: '🦘', duration: 1.4, description: 'Chùng hai gối đối xứng lấy đà bật nhảy vươn tay rồi tiếp đất êm ái' },
+  { id: 'fall', archetype: 'humanoid', name: 'Vấp ngã (Trip & Fall)', icon: '💥', duration: 1.8, description: 'Khựng chân mất thăng bằng, vung hai tay và khuỵu xuống chống sàn' },
+  { id: 'land', archetype: 'humanoid', name: 'Tiếp đất (Land)', icon: '🧘', duration: 1.2, description: 'Rơi tiếp đất giảm chấn, chùng hai gối hạ trọng tâm rồi đứng thẳng dậy' },
+  { id: 'action', archetype: 'combat', name: 'Vung đòn (Action)', icon: '⚔️', duration: 1.5, description: 'Xoay vai lấy đà vung chém chéo qua thân uy lực, dứt khoát' },
+  { id: 'combat', archetype: 'combat', name: 'Liên hoàn trảm (Combat)', icon: '🗡️', duration: 1.5, description: 'Thủ thế lao chém liên hoàn 2 nhát chuẩn kiếm hiệp & hành động 2.5D' },
+  { id: 'martial_kick', archetype: 'combat', name: 'Tung cước (Martial Kick)', icon: '🥋', duration: 1.2, description: 'Nhún lấy đà co gối tung cước tống thẳng rồi tiếp đất thăng bằng' },
+  { id: 'dodge_counter', archetype: 'combat', name: 'Né đòn phản kích (Dodge)', icon: '⚡', duration: 1.25, description: 'Ngả người né đòn hiểm rồi bật lò xo đâm kiếm phản công dứt khoát' },
+  { id: 'hit_recoil', archetype: 'combat', name: 'Trúng đòn bật lùi (Hit Recoil)', icon: '💢', duration: 1.0, description: 'Khựng giật nảy về sau khi trúng chiêu, dùng được cho cả Người, Thú và Quái vật' },
+  { id: 'quadruped_walk', archetype: 'animal', name: 'Thú 4 chân đi bước (Walk)', icon: '🐺', duration: 1.4, description: 'Nhịp bước chéo 4 chân tự nhiên kèm gật đầu và đuôi lượn sóng cho Sói / Chó / Ngựa' },
+  { id: 'quadruped_gallop', archetype: 'animal', name: 'Thú phi nước đại (Gallop)', icon: '🐎', duration: 0.85, description: 'Bật phóng tốc độ cao: vươn 2 chân trước đón đất, đạp mạnh 2 chân sau lao tới' },
+  { id: 'wing_flap', archetype: 'animal', name: 'Linh cầm vỗ cánh (Wing Flap)', icon: '🕊️', duration: 1.1, description: 'Sải cánh vỗ nhịp mạnh nâng thân bay bổng tự nhiên cho Chim / Hạc / Linh cầm' },
+  { id: 'monster_prowl', archetype: 'monster', name: 'Quái vật rình bước (Prowl)', icon: '🐾', duration: 1.8, description: 'Bước chân nặng nề áp đảo, gù vai lắc song trảo & quất đuôi gai chuẩn bị vồ mồi' },
+  { id: 'monster_roar', archetype: 'monster', name: 'Quái vật gầm rống (Roar)', icon: '👹', duration: 1.6, description: 'Ưỡn ngực ngửa đầu há to hàm nanh gầm rống uy áp, giương rộng hai cự trảo' },
+  { id: 'monster_pounce', archetype: 'monster', name: 'Quái vật vồ song trảo (Pounce)', icon: '🦁', duration: 1.3, description: 'Co người dồn lực nhảy vồ lên cao bổ tát song trảo chéo xuống cực mạnh' },
+  { id: 'sway', archetype: 'humanoid', name: 'Uốn lượn (Sway)', icon: '🌊', duration: 2.0, description: 'Lượn sóng dẻo dai cho cành lá, cây cối, tóc hoặc đuôi' },
+  { id: 'hand-clench', archetype: 'humanoid', name: 'Nắm & Xòe bàn tay (Hand Clench)', icon: '✊', duration: 2.0, description: 'Diễn hoạt bàn tay: uốn cong các ngón thành nắm đấm rồi thả lỏng' },
+  { id: 'foot-roll', archetype: 'humanoid', name: 'Nhón chân & Chạm gót (Heel-Toe Roll)', icon: '🩰', duration: 2.0, description: 'Diễn hoạt cổ chân & bàn chân: chạm gót, đặt phẳng và nhón mũi chân' }
 ]
 
-function k(
-  time: number,
-  rotation: number,
-  x = 0,
-  y = 0,
-  scaleX = 1,
-  scaleY = 1,
-  zOrder?: number
-): BoneKeyframe {
-  return {
-    time: Number(time.toFixed(3)),
-    rotation: Number(rotation.toFixed(2)),
-    x: Number(x.toFixed(2)),
-    y: Number(y.toFixed(2)),
-    scaleX: Number(scaleX.toFixed(3)),
-    scaleY: Number(scaleY.toFixed(3)),
-    ...(zOrder !== undefined && Math.abs(zOrder) > 1e-4 ? { zOrder: Number(zOrder.toFixed(1)) } : {}),
-    easing: 'smooth'
-  }
-}
-
-function findBoneId(bones: LayerBone[], keywords: string[]): string | undefined {
-  for (const b of bones) {
-    const idLow = b.id.toLowerCase()
-    const nameLow = (b.name || '').toLowerCase()
-    for (const kw of keywords) {
-      if (idLow.includes(kw) || nameLow.includes(kw)) return b.id
-    }
-  }
-  return undefined
-}
-
-function fillRestTracks(bones: LayerBone[], tracks: Record<string, BoneKeyframe[]>, d: number) {
-  for (const b of bones) {
-    if (!tracks[b.id]) {
-      tracks[b.id] = [k(0, 0), k(d * 0.5, 0), k(d, 0)]
-    }
-  }
-  return tracks
-}
-
-function resolveBodyIds(bones: LayerBone[]) {
-  const inferred = inferHumanoidBoneRoles(bones)
-  return {
-    pelvis: findBoneId(bones, ['pelvis', 'hông', 'root']) ?? inferred.pelvis,
-    torso: findBoneId(bones, ['torso', 'thân', 'ngực']) ?? inferred.torso,
-    head: findBoneId(bones, ['head', 'đầu']) ?? inferred.head,
-    armL: findBoneId(bones, ['arm-l', 'arm_l', 'bắp tay trái', 'upperarm-l']) ?? inferred.armL,
-    armR: findBoneId(bones, ['arm-r', 'arm_r', 'bắp tay phải', 'upperarm-r']) ?? inferred.armR,
-    forearmL: findBoneId(bones, ['forearm-l', 'forearm_l', 'cẳng tay trái', 'lowerarm-l']) ?? inferred.forearmL,
-    forearmR: findBoneId(bones, ['forearm-r', 'forearm_r', 'cẳng tay phải', 'lowerarm-r']) ?? inferred.forearmR,
-    handL: findBoneId(bones, ['hand-l', 'hand_l', 'bàn tay trái']) ?? inferred.handL,
-    handR: findBoneId(bones, ['hand-r', 'hand_r', 'bàn tay phải']) ?? inferred.handR,
-    thighL: findBoneId(bones, ['thigh-l', 'thigh_l', 'đùi trái']) ?? inferred.thighL,
-    thighR: findBoneId(bones, ['thigh-r', 'thigh_r', 'đùi phải']) ?? inferred.thighR,
-    shinL: findBoneId(bones, ['shin-l', 'shin_l', 'cẳng chân trái']) ?? inferred.shinL,
-    shinR: findBoneId(bones, ['shin-r', 'shin_r', 'cẳng chân phải']) ?? inferred.shinR,
-    footL: findBoneId(bones, ['foot-l', 'foot_l', 'bàn chân trái']) ?? inferred.footL,
-    footR: findBoneId(bones, ['foot-r', 'foot_r', 'bàn chân phải']) ?? inferred.footR
-  }
-}
-
-/** 1. Đứng thở tự nhiên (Idle Breathe) — đối xứng chính diện 0°, lồng ngực phồng nhẹ, hai tay mở nhịp thở. */
+/** 1. Đứng thở tự nhiên (Idle Breathe) — hít thở bất đối xứng & trễ pha truyền khớp cha → con chuẩn Spine/AE. */
 export function generateIdleBreathe(
   bones: LayerBone[],
   duration = 2.4,
@@ -163,41 +176,42 @@ export function generateIdleBreathe(
   if (!isHumanoid) {
     for (const [idx, b] of bones.entries()) {
       const amp = !b.parentId ? 1.2 : 2.2 + (idx % 2)
-      tracks[b.id] = [k(0, 0), k(d * 0.5, amp, 0, !b.parentId ? -2 : 0), k(d, 0)]
+      tracks[b.id] = [k(0, 0), k(d * (0.44 + (idx % 3) * 0.06), amp, 0, !b.parentId ? -2 : 0), k(d, 0)]
     }
     return tracks
   }
 
-  // Hông (pelvis) và toàn bộ hai chân (đùi, cẳng chân, bàn chân) giữ cố định bám mặt đất 100%,
-  // chỉ phần thân trên (ngực torso, đầu, hai vai/tay) nở nhẹ theo nhịp hít thở để không bị cảm giác bay bổng.
+  // Hông (pelvis) và toàn bộ hai chân giữ cố định bám mặt đất 100%,
+  // phần thân trên áp dụng hít vào (0.42*d) -> thở ra êm (0.78*d -> d) + trễ pha vai → cẳng tay → bàn tay & đầu.
   const sideLean = viewAngle === 'side' ? 2.2 : viewAngle === 'diagonal' ? 1.1 : 0.75
   if (ids.pelvis) {
     tracks[ids.pelvis] = [k(0, 0, 0, 0), k(d * 0.5, 0, 0, 0), k(d, 0, 0, 0)]
   }
   if (ids.torso) {
     tracks[ids.torso] = [
-      k(0, 0, 0, 0, 1, 1),
-      k(d * 0.25, sideLean * 0.5, 0, -1.6, 1.012, 1.01),
-      k(d * 0.5, sideLean, 0, -3.4, 1.026, 1.022),
-      k(d * 0.75, -sideLean * 0.35, 0, -1.4, 1.01, 1.008),
-      k(d, 0, 0, 0, 1, 1)
+      k(0, 0, 0, 0, 1, 1, undefined, 'ease-in-out'),
+      k(d * 0.20, sideLean * 0.45, 0, -1.5, 1.011, 1.010, undefined, 'ease-out'),
+      k(d * 0.42, sideLean, 0, -3.4, 1.024, 1.022, undefined, 'ease-in-out'),
+      k(d * 0.74, -sideLean * 0.3, 0, -1.1, 1.007, 1.007, undefined, 'ease-in-out'),
+      k(d, 0, 0, 0, 1, 1, undefined, 'ease-in-out')
     ]
   }
   if (ids.head) {
     tracks[ids.head] = [
-      k(0, 0, 0, 0),
-      k(d * 0.55, viewAngle === 'side' ? -1.8 : -1.1, 0, -2.0),
-      k(d, 0, 0, 0)
+      k(0, 0, 0, 0, 1, 1, undefined, 'ease-in-out'),
+      k(d * 0.14, 0.4, 0, 0.4, 1, 1, undefined, 'ease-in-out'),
+      k(d * 0.50, viewAngle === 'side' ? -2.0 : -1.2, 0, -2.0, 1, 1, undefined, 'ease-in-out'),
+      k(d, 0, 0, 0, 1, 1, undefined, 'ease-in-out')
     ]
   }
-  // Hai vai/tay nâng mở nhẹ khi ngực hít vào, hạ mềm khi thở ra
+  // Hai vai/tay nâng mở nhẹ theo độ trễ nối tiếp từ lồng ngực
   const armOpen = viewAngle === 'side' ? -2.6 : 2.8
-  if (ids.armL) tracks[ids.armL] = [k(0, 0, 0, 0), k(d * 0.5, armOpen, 0, -1.5), k(d, 0, 0, 0)]
-  if (ids.armR) tracks[ids.armR] = [k(0, 0, 0, 0), k(d * 0.5, viewAngle === 'side' ? -2.6 : -armOpen, 0, -1.5), k(d, 0, 0, 0)]
-  if (ids.forearmL) tracks[ids.forearmL] = [k(0, 0), k(d * 0.55, -2.0), k(d, 0)]
-  if (ids.forearmR) tracks[ids.forearmR] = [k(0, 0), k(d * 0.55, viewAngle === 'side' ? -2.0 : 2.0), k(d, 0)]
-  if (ids.handL) tracks[ids.handL] = [k(0, 0), k(d * 0.55, 2.2), k(d, 0)]
-  if (ids.handR) tracks[ids.handR] = [k(0, 0), k(d * 0.55, -2.2), k(d, 0)]
+  if (ids.armL) tracks[ids.armL] = [k(0, 0, 0, 0), k(d * 0.48, armOpen, 0, -1.5), k(d, 0, 0, 0)]
+  if (ids.armR) tracks[ids.armR] = [k(0, 0, 0, 0), k(d * 0.48, viewAngle === 'side' ? -2.6 : -armOpen, 0, -1.5), k(d, 0, 0, 0)]
+  if (ids.forearmL) tracks[ids.forearmL] = [k(0, 0), k(d * 0.14, 0.8), k(d * 0.54, -2.2), k(d, 0)]
+  if (ids.forearmR) tracks[ids.forearmR] = [k(0, 0), k(d * 0.14, -0.8), k(d * 0.54, viewAngle === 'side' ? -2.2 : 2.2), k(d, 0)]
+  if (ids.handL) tracks[ids.handL] = [k(0, 0), k(d * 0.18, -1.0), k(d * 0.58, 2.4), k(d, 0)]
+  if (ids.handR) tracks[ids.handR] = [k(0, 0), k(d * 0.18, 1.0), k(d * 0.58, -2.4), k(d, 0)]
 
   return fillRestTracks(bones, tracks, d)
 }
@@ -663,6 +677,18 @@ export function createClipFromPreset(
     case 'idle':
       tracks = generateIdleBreathe(bones, duration, viewAngle)
       break
+    case 'talk':
+      tracks = generateTalkGesture(bones, duration, viewAngle)
+      break
+    case 'scheming':
+      tracks = generateSchemingChin(bones, duration, viewAngle)
+      break
+    case 'shock':
+      tracks = generateShockRecoil(bones, duration, viewAngle)
+      break
+    case 'point':
+      tracks = generateDramaticPoint(bones, duration, viewAngle)
+      break
     case 'wave':
       tracks = generateWaveHand(bones, duration, viewAngle)
       break
@@ -683,6 +709,36 @@ export function createClipFromPreset(
       break
     case 'action':
       tracks = generateActionSlash(bones, duration, viewAngle)
+      break
+    case 'combat':
+      tracks = generateCombatCombo(bones, duration, viewAngle)
+      break
+    case 'martial_kick':
+      tracks = generateMartialKick(bones, duration, viewAngle)
+      break
+    case 'dodge_counter':
+      tracks = generateDodgeCounter(bones, duration, viewAngle)
+      break
+    case 'hit_recoil':
+      tracks = generateHitRecoil(bones, duration, viewAngle)
+      break
+    case 'quadruped_walk':
+      tracks = generateQuadrupedWalkClip(bones, duration)
+      break
+    case 'quadruped_gallop':
+      tracks = generateQuadrupedGallopClip(bones, duration)
+      break
+    case 'wing_flap':
+      tracks = generateWingFlapClip(bones, duration)
+      break
+    case 'monster_prowl':
+      tracks = generateMonsterProwl(bones, duration)
+      break
+    case 'monster_roar':
+      tracks = generateMonsterRoar(bones, duration)
+      break
+    case 'monster_pounce':
+      tracks = generateMonsterPounce(bones, duration)
       break
     case 'sway':
       tracks = generateSway(bones, duration)
@@ -716,7 +772,7 @@ export function createClipFromPreset(
   const angleSuffix =
     viewAngle === 'side' ? ' (90°)' : viewAngle === 'diagonal' ? ' (45°)' : viewAngle === 'back' ? ' (180°)' : ''
   const name = customName || `${meta?.name || `Động tác ${preset}`}${angleSuffix}`
-  const isOneShot = preset === 'bow' || preset === 'fall' || preset === 'land'
+  const isOneShot = preset === 'bow' || preset === 'fall' || preset === 'land' || preset === 'hit_recoil'
   return {
     id: `clip-${preset}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
     name,

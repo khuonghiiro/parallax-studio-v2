@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { usePlaybackUiTime } from '../../hooks/usePlaybackUiTime'
 import { useEditor } from '../../store/editor'
 import { useView } from '../../store/view'
 import { computeShotRoute, v2RootId } from '../../project/workflowV2Engine'
@@ -13,7 +14,7 @@ export const focusWorkflowCluster = (rootId: string): void => {
 /** Cảnh camera đang quay tại mốc `t` theo lộ trình camera (cùng nguồn với dải "Cảnh đang quay" của Timeline) */
 export function useActiveShotId(): string | null {
   const project = useEditor((s) => s.project)
-  const time = useEditor((s) => s.time)
+  const time = usePlaybackUiTime(8)
   const route = useMemo(() => computeShotRoute(project), [project])
   return useMemo(() => {
     for (const shot of route.order) {
@@ -35,7 +36,7 @@ export function useWorkflowV2Controller() {
   const selectedNodeId = useEditor((s) => s.selectedWorkflowNodeId)
   const focusedShotId = useEditor((s) => s.focusedWorkflowShotId)
   const playing = useEditor((s) => s.playing)
-  const currentTime = useEditor((s) => (Number.isFinite(s.time) ? s.time : 0))
+  const currentTime = usePlaybackUiTime(8)
   const setTime = useEditor((s) => s.setTime)
   const setPlaying = useEditor((s) => s.setPlaying)
   const setSelectedNodeId = useEditor((s) => s.setSelectedWorkflowNodeId)

@@ -14,6 +14,7 @@ export type WorkflowV2LogicCategory =
   | 'cave'
   | 'fx'
   | 'audio'
+  | 'subtitle'
   | 'camera'
 
 export interface WorkflowV2AnimFxOption {
@@ -126,6 +127,8 @@ export interface WorkflowV2CameraOption {
 
 export const WORKFLOW_V2_CAMERA_OPTIONS: WorkflowV2CameraOption[] = [
   { id: 'dollyIn', label: 'Đẩy cận (Dolly In)' },
+  { id: 'comicPunchIn', label: 'Đẩy gấp Motion-Comic' },
+  { id: 'suspenseDrift', label: 'Trôi sương Quái Đàm' },
   { id: 'fly', label: 'Bay xuyên cảnh 3D' },
   { id: 'orbitRight', label: 'Xoay quỹ đạo' },
   { id: 'truckRight', label: 'Lia máy ngang' }
@@ -223,13 +226,23 @@ export function collectRepresentativeLayers(layers: Layer[]): {
   isCluster: boolean
   instanceId?: string
 }[] {
-  return layers.map((l) => {
-    const instId = l.composite?.instanceId || l.model3d?.instanceId
-    return {
-      layer: l,
-      memberIds: [l.id],
-      isCluster: Boolean(instId),
-      instanceId: instId
-    }
-  })
+  const layerIds = new Set(layers.map((l) => l.id))
+  return layers
+    .filter((l) => {
+      // Các câu thoại Vietsub đã gắn trực tiếp vào một nhân vật/đối tượng cụ thể sẽ hiển thị thành Node `💬 Vietsub`
+      // nối thẳng từ Node nhân vật đó thay vì lặp lại ở cột Layer.
+      if (l.type === 'text' && l.props.speakerLayerId && layerIds.has(l.props.speakerLayerId)) {
+        return false
+      }
+      return true
+    })
+    .map((l) => {
+      const instId = l.composite?.instanceId || l.model3d?.instanceId
+      return {
+        layer: l,
+        memberIds: [l.id],
+        isCluster: Boolean(instId),
+        instanceId: instId
+      }
+    })
 }

@@ -1,0 +1,2333 @@
+{
+  "kind": "parallax-workflow-shot",
+  "version": 2,
+  "file": "shots/shot-1.json",
+  "mainFile": "main.json",
+  "shot": {
+    "id": "shot-dg-1",
+    "index": 1,
+    "name": "Vân Hải Thanh Sơn",
+    "color": "#f59e0b",
+    "visible": true,
+    "position": [
+      0,
+      0,
+      0
+    ],
+    "rotation": [
+      0,
+      0,
+      0
+    ],
+    "timeStart": 0,
+    "timeEnd": 5.3
+  },
+  "links": {
+    "prevShotId": null,
+    "prevShotFile": null,
+    "nextShotId": "shot-dg-2",
+    "nextShotFile": "shots/shot-2.json",
+    "cameraInEdgeId": null,
+    "cameraOutEdgeId": "e-camchain-shot-dg-1-shot-dg-2"
+  },
+  "camera": {
+    "nodeId": "v2-camera-shot-dg-1",
+    "enabled": true,
+    "preset": "dollyIn",
+    "enableDof": false,
+    "timeStart": 0,
+    "timeEnd": 6,
+    "waypoints": [
+      {
+        "nodeId": "v2-cam-wp-shot-dg-1-0",
+        "index": 1,
+        "label": "1",
+        "isSubWaypoint": false,
+        "actionMode": "pan",
+        "tagLabel": "Khung gốc (Bắt đầu)",
+        "timeStart": 0,
+        "timeEnd": 2.6,
+        "stepDuration": 2.6,
+        "zoomPct": 100,
+        "stageX": 0,
+        "stageY": 0,
+        "scale": 1.0000014784568676,
+        "yaw": 0,
+        "pitch": 0,
+        "roll": 0,
+        "ease": "easeInOut"
+      },
+      {
+        "nodeId": "v2-cam-wp-shot-dg-1-1",
+        "index": 2,
+        "label": "2",
+        "isSubWaypoint": false,
+        "actionMode": "push-in",
+        "tagLabel": "Đẩy cận (114%)",
+        "timeStart": 2.6,
+        "timeEnd": 5,
+        "stepDuration": 2.4,
+        "zoomPct": 114,
+        "stageX": 55,
+        "stageY": -18,
+        "scale": 0.8800013010420433,
+        "yaw": 0,
+        "pitch": 0,
+        "roll": 0,
+        "ease": "hold"
+      },
+      {
+        "nodeId": "v2-cam-wp-shot-dg-1-2",
+        "index": 3,
+        "label": "3",
+        "isSubWaypoint": false,
+        "actionMode": "cut",
+        "tagLabel": "Cắt cảnh tức thì",
+        "timeStart": 5,
+        "timeEnd": 6,
+        "stepDuration": 1,
+        "zoomPct": 114,
+        "stageX": 55,
+        "stageY": -18,
+        "scale": 0.8800013010420433,
+        "yaw": 0,
+        "pitch": 0,
+        "roll": 0,
+        "ease": "easeInOut"
+      }
+    ]
+  },
+  "groups": [
+    {
+      "id": "v2-group-3d-shot-dg-1",
+      "kind": "group_3d",
+      "title": "Nhóm 3D & Lắp ráp",
+      "enabled": true,
+      "timeStart": 0,
+      "timeEnd": 6,
+      "layerCount": 9
+    },
+    {
+      "id": "v2-group-25d-shot-dg-1",
+      "kind": "group_25d",
+      "title": "Nhóm Layer 2.5D",
+      "enabled": true,
+      "timeStart": 0,
+      "timeEnd": 6,
+      "layerCount": 5
+    },
+    {
+      "id": "v2-group-env-shot-dg-1",
+      "kind": "group_env",
+      "title": "Nhóm Không gian & Bầu trời",
+      "enabled": true,
+      "timeStart": 0,
+      "timeEnd": 6,
+      "layerCount": 2
+    }
+  ],
+  "layers": [
+    {
+      "id": "layer-dg-s1-bg",
+      "nodeId": "v2-layer-layer-dg-s1-bg",
+      "name": "Nền Vân Hải Thanh Sơn",
+      "type": "image",
+      "groupKind": "group_25d",
+      "asset": "@c_nh_1_v_n_h_i_thanh_s_n_b_nh_minh",
+      "visible": true,
+      "position": [
+        0,
+        0,
+        1200
+      ],
+      "scale": [
+        1.68,
+        1.68,
+        1
+      ],
+      "opacity": 1,
+      "timeStart": 0,
+      "timeEnd": 6
+    },
+    {
+      "id": "layer-dg-s1-mist-far",
+      "nodeId": "v2-layer-layer-dg-s1-mist-far",
+      "name": "Mây Trôi Đỉnh Núi",
+      "type": "image",
+      "groupKind": "group_25d",
+      "asset": "@d_i_m_y_s_ng_v_n_h_i",
+      "visible": true,
+      "position": [
+        -340,
+        -115,
+        740
+      ],
+      "scale": [
+        1.15,
+        1.15,
+        1
+      ],
+      "opacity": 0.85,
+      "timeStart": 0,
+      "timeEnd": 6
+    },
+    {
+      "id": "layer-dg-s1-mist",
+      "nodeId": "v2-layer-layer-dg-s1-mist",
+      "name": "Kim Quang Vân Hải",
+      "type": "particles",
+      "groupKind": "group_env",
+      "visible": true,
+      "position": [
+        0,
+        0,
+        580
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "opacity": 1,
+      "timeStart": 0,
+      "timeEnd": 6
+    },
+    {
+      "id": "layer-dg-s1-crane2-wing-far",
+      "nodeId": "v2-layer-layer-dg-s1-crane2-wing-far",
+      "name": "Hạc Đôi Tầng Xa — Cánh Xa",
+      "type": "image",
+      "groupKind": "group_3d",
+      "asset": "@ti_n_h_c_c_nh_xa_h_u_c_nh",
+      "visible": true,
+      "position": [
+        -515,
+        354,
+        544
+      ],
+      "scale": [
+        0.135,
+        0.135,
+        1
+      ],
+      "opacity": 1,
+      "timeStart": 0,
+      "timeEnd": 6
+    },
+    {
+      "id": "layer-dg-s1-crane2-body",
+      "nodeId": "v2-layer-layer-dg-s1-crane2-body",
+      "name": "Hạc Đôi Tầng Xa — Thân Hạc",
+      "type": "image",
+      "groupKind": "group_3d",
+      "asset": "@ti_n_h_c_th_n_c_ng_v_n",
+      "visible": true,
+      "position": [
+        -560,
+        315,
+        540
+      ],
+      "scale": [
+        0.135,
+        0.135,
+        1
+      ],
+      "opacity": 1,
+      "timeStart": 0,
+      "timeEnd": 6
+    },
+    {
+      "id": "layer-dg-s1-crane2-wing-near",
+      "nodeId": "v2-layer-layer-dg-s1-crane2-wing-near",
+      "name": "Hạc Đôi Tầng Xa — Cánh Gần",
+      "type": "image",
+      "groupKind": "group_3d",
+      "asset": "@ti_n_h_c_c_nh_g_n_ti_n_c_nh",
+      "visible": true,
+      "position": [
+        -621,
+        352,
+        536
+      ],
+      "scale": [
+        0.135,
+        0.135,
+        1
+      ],
+      "opacity": 1,
+      "timeStart": 0,
+      "timeEnd": 6
+    },
+    {
+      "id": "layer-dg-s1-crane-wing-far",
+      "nodeId": "v2-layer-layer-dg-s1-crane-wing-far",
+      "name": "Tiên Hạc Ngự Vân — Cánh Xa",
+      "type": "image",
+      "groupKind": "group_3d",
+      "asset": "@ti_n_h_c_c_nh_xa_h_u_c_nh",
+      "visible": true,
+      "position": [
+        -180,
+        261,
+        434
+      ],
+      "scale": [
+        0.195,
+        0.195,
+        1
+      ],
+      "opacity": 1,
+      "timeStart": 0,
+      "timeEnd": 6
+    },
+    {
+      "id": "layer-dg-s1-crane-body",
+      "nodeId": "v2-layer-layer-dg-s1-crane-body",
+      "name": "Tiên Hạc Ngự Vân — Thân Hạc",
+      "type": "image",
+      "groupKind": "group_3d",
+      "asset": "@ti_n_h_c_th_n_c_ng_v_n",
+      "visible": true,
+      "position": [
+        -245,
+        205,
+        430
+      ],
+      "scale": [
+        0.195,
+        0.195,
+        1
+      ],
+      "opacity": 1,
+      "timeStart": 0,
+      "timeEnd": 6
+    },
+    {
+      "id": "layer-dg-s1-crane-wing-near",
+      "nodeId": "v2-layer-layer-dg-s1-crane-wing-near",
+      "name": "Tiên Hạc Ngự Vân — Cánh Gần",
+      "type": "image",
+      "groupKind": "group_3d",
+      "asset": "@ti_n_h_c_c_nh_g_n_ti_n_c_nh",
+      "visible": true,
+      "position": [
+        -333,
+        258,
+        426
+      ],
+      "scale": [
+        0.195,
+        0.195,
+        1
+      ],
+      "opacity": 1,
+      "timeStart": 0,
+      "timeEnd": 6
+    },
+    {
+      "id": "layer-dg-s1-mist-mid",
+      "nodeId": "v2-layer-layer-dg-s1-mist-mid",
+      "name": "Sương Mù Khe Núi",
+      "type": "image",
+      "groupKind": "group_25d",
+      "asset": "@d_i_m_y_s_ng_v_n_h_i",
+      "visible": true,
+      "position": [
+        260,
+        -235,
+        325
+      ],
+      "scale": [
+        1.25,
+        1.25,
+        1
+      ],
+      "opacity": 0.78,
+      "timeStart": 0,
+      "timeEnd": 6
+    },
+    {
+      "id": "layer-dg-s1-cliff",
+      "nodeId": "v2-layer-layer-dg-s1-cliff",
+      "name": "Đình Cổ & Vách Đá Tùng",
+      "type": "image",
+      "groupKind": "group_25d",
+      "asset": "@nh_c_v_ch_n_i_t_ng_b_ch",
+      "visible": true,
+      "position": [
+        255,
+        -215,
+        260
+      ],
+      "scale": [
+        0.9,
+        0.9,
+        1
+      ],
+      "opacity": 1,
+      "timeStart": 0,
+      "timeEnd": 6
+    },
+    {
+      "id": "layer-dg-s1-cloak",
+      "nodeId": "v2-layer-layer-dg-s1-cloak",
+      "name": "Kiếm Khách — Áo Choàng Lụa Đỏ",
+      "type": "image",
+      "groupKind": "group_3d",
+      "asset": "@ki_m_kh_ch_o_cho_ng_l_a",
+      "visible": true,
+      "position": [
+        112,
+        -135,
+        196
+      ],
+      "scale": [
+        0.36,
+        0.36,
+        1
+      ],
+      "opacity": 1,
+      "timeStart": 0,
+      "timeEnd": 6
+    },
+    {
+      "id": "layer-dg-s1-calm",
+      "nodeId": "v2-layer-layer-dg-s1-calm",
+      "name": "Kiếm Khách — Điềm Tĩnh",
+      "type": "image",
+      "groupKind": "group_3d",
+      "asset": "@ki_m_kh_ch_th_n_th_i_i_m_t_nh",
+      "visible": true,
+      "position": [
+        145,
+        -120,
+        190
+      ],
+      "scale": [
+        0.34,
+        0.34,
+        1
+      ],
+      "opacity": 1,
+      "timeStart": 0,
+      "timeEnd": 6
+    },
+    {
+      "id": "layer-dg-s1-sword",
+      "nodeId": "v2-layer-layer-dg-s1-sword",
+      "name": "Linh Kiếm Hộ Thân (Đạo Cụ)",
+      "type": "image",
+      "groupKind": "group_3d",
+      "asset": "@linh_ki_m_c_phong",
+      "visible": true,
+      "position": [
+        230,
+        -77,
+        204
+      ],
+      "scale": [
+        0.16,
+        0.16,
+        1
+      ],
+      "opacity": 1,
+      "timeStart": 0,
+      "timeEnd": 6
+    },
+    {
+      "id": "layer-dg-s1-peach",
+      "nodeId": "v2-layer-layer-dg-s1-peach",
+      "name": "Cành Đào Tiền Cảnh",
+      "type": "image",
+      "groupKind": "group_25d",
+      "asset": "@c_nh_o_c_th_ti_n_c_nh",
+      "visible": true,
+      "position": [
+        -535,
+        245,
+        -185
+      ],
+      "scale": [
+        0.74,
+        0.74,
+        1
+      ],
+      "opacity": 1,
+      "timeStart": 0,
+      "timeEnd": 6
+    },
+    {
+      "id": "layer-dg-s1-petals",
+      "nodeId": "v2-layer-layer-dg-s1-petals",
+      "name": "Cánh Hoa Đào Bay",
+      "type": "particles",
+      "groupKind": "group_env",
+      "visible": true,
+      "position": [
+        0,
+        0,
+        -90
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "opacity": 1,
+      "timeStart": 0,
+      "timeEnd": 6
+    }
+  ],
+  "logic": [
+    {
+      "id": "v2-anim_fx-cluster-dg-hero-s1",
+      "category": "anim_fx",
+      "presetId": "v2:anim_fx:rig_idle",
+      "title": "Hành động Nhân vật: Đứng thở",
+      "enabled": true,
+      "timeStart": 0.1,
+      "timeEnd": 5.9,
+      "targetLayerIds": [
+        "layer-dg-s1-cloak",
+        "layer-dg-s1-calm",
+        "layer-dg-s1-sword"
+      ],
+      "targetLayerNames": [
+        "Kiếm Khách — Áo Choàng Lụa Đỏ",
+        "Kiếm Khách — Điềm Tĩnh",
+        "Linh Kiếm Hộ Thân (Đạo Cụ)"
+      ],
+      "params": {
+        "animFxPreset": "popIn",
+        "intensity": 1
+      }
+    },
+    {
+      "id": "v2-action-layer-dg-s1-cloak",
+      "category": "action",
+      "presetId": "v2:action:bbox_target",
+      "title": "Motion: Ngự Phong Đỉnh Mây",
+      "enabled": true,
+      "timeStart": 0.3,
+      "timeEnd": 5.6,
+      "targetLayerIds": [
+        "layer-dg-s1-cloak",
+        "layer-dg-s1-calm",
+        "layer-dg-s1-sword"
+      ],
+      "targetLayerNames": [
+        "Kiếm Khách — Áo Choàng Lụa Đỏ",
+        "Kiếm Khách — Điềm Tĩnh",
+        "Linh Kiếm Hộ Thân (Đạo Cụ)"
+      ],
+      "params": {
+        "actionPreset": "bbox_target",
+        "intensity": 1
+      }
+    },
+    {
+      "id": "v2-fx_fade-layer-dg-s1-cloak",
+      "category": "fx",
+      "presetId": "v2:fx:fadeInOut",
+      "title": "Hiện/Ẩn: Hiện 0.5s · Ẩn 0.3s",
+      "enabled": true,
+      "timeStart": 0,
+      "timeEnd": 6,
+      "targetLayerIds": [
+        "layer-dg-s1-cloak",
+        "layer-dg-s1-calm",
+        "layer-dg-s1-sword"
+      ],
+      "targetLayerNames": [
+        "Kiếm Khách — Áo Choàng Lụa Đỏ",
+        "Kiếm Khách — Điềm Tĩnh",
+        "Linh Kiếm Hộ Thân (Đạo Cụ)"
+      ],
+      "params": {
+        "fxKind": "wind_physics",
+        "intensity": 1
+      }
+    },
+    {
+      "id": "v2-anim_fx-cluster-dg-crane-s1",
+      "category": "anim_fx",
+      "presetId": "v2:anim_fx:rig_action",
+      "title": "Hành động Nhân vật: Vung đòn",
+      "enabled": true,
+      "timeStart": 0,
+      "timeEnd": 5.9,
+      "targetLayerIds": [
+        "layer-dg-s1-crane-wing-far",
+        "layer-dg-s1-crane-body",
+        "layer-dg-s1-crane-wing-near"
+      ],
+      "targetLayerNames": [
+        "Tiên Hạc Ngự Vân — Cánh Xa",
+        "Tiên Hạc Ngự Vân — Thân Hạc",
+        "Tiên Hạc Ngự Vân — Cánh Gần"
+      ],
+      "params": {
+        "animFxPreset": "popIn",
+        "intensity": 1
+      }
+    },
+    {
+      "id": "v2-action-layer-dg-s1-crane-wing-far",
+      "category": "action",
+      "presetId": "v2:action:bbox_target",
+      "title": "Motion: Tiên Hạc Lướt Biển Mây",
+      "enabled": true,
+      "timeStart": 0.05,
+      "timeEnd": 5.85,
+      "targetLayerIds": [
+        "layer-dg-s1-crane-wing-far",
+        "layer-dg-s1-crane-body",
+        "layer-dg-s1-crane-wing-near"
+      ],
+      "targetLayerNames": [
+        "Tiên Hạc Ngự Vân — Cánh Xa",
+        "Tiên Hạc Ngự Vân — Thân Hạc",
+        "Tiên Hạc Ngự Vân — Cánh Gần"
+      ],
+      "params": {
+        "actionPreset": "bbox_target",
+        "intensity": 1
+      }
+    },
+    {
+      "id": "v2-fx_fade-layer-dg-s1-crane-wing-far",
+      "category": "fx",
+      "presetId": "v2:fx:fadeInOut",
+      "title": "Hiện/Ẩn: Hiện 0.3s · Ẩn 0.4s",
+      "enabled": true,
+      "timeStart": 0.05,
+      "timeEnd": 5.95,
+      "targetLayerIds": [
+        "layer-dg-s1-crane-wing-far",
+        "layer-dg-s1-crane-body",
+        "layer-dg-s1-crane-wing-near"
+      ],
+      "targetLayerNames": [
+        "Tiên Hạc Ngự Vân — Cánh Xa",
+        "Tiên Hạc Ngự Vân — Thân Hạc",
+        "Tiên Hạc Ngự Vân — Cánh Gần"
+      ],
+      "params": {
+        "fxKind": "wind_physics",
+        "intensity": 1
+      }
+    },
+    {
+      "id": "v2-anim_fx-cluster-dg-crane2-s1",
+      "category": "anim_fx",
+      "presetId": "v2:anim_fx:rig_action",
+      "title": "Hành động Nhân vật: Vung đòn",
+      "enabled": true,
+      "timeStart": 0,
+      "timeEnd": 5.9,
+      "targetLayerIds": [
+        "layer-dg-s1-crane2-wing-far",
+        "layer-dg-s1-crane2-body",
+        "layer-dg-s1-crane2-wing-near"
+      ],
+      "targetLayerNames": [
+        "Hạc Đôi Tầng Xa — Cánh Xa",
+        "Hạc Đôi Tầng Xa — Thân Hạc",
+        "Hạc Đôi Tầng Xa — Cánh Gần"
+      ],
+      "params": {
+        "animFxPreset": "popIn",
+        "intensity": 1
+      }
+    },
+    {
+      "id": "v2-action-layer-dg-s1-crane2-wing-far",
+      "category": "action",
+      "presetId": "v2:action:bbox_target",
+      "title": "Motion: Hạc Đôi Tầng Xa",
+      "enabled": true,
+      "timeStart": 0,
+      "timeEnd": 5.9,
+      "targetLayerIds": [
+        "layer-dg-s1-crane2-wing-far",
+        "layer-dg-s1-crane2-body",
+        "layer-dg-s1-crane2-wing-near"
+      ],
+      "targetLayerNames": [
+        "Hạc Đôi Tầng Xa — Cánh Xa",
+        "Hạc Đôi Tầng Xa — Thân Hạc",
+        "Hạc Đôi Tầng Xa — Cánh Gần"
+      ],
+      "params": {
+        "actionPreset": "bbox_target",
+        "intensity": 1
+      }
+    },
+    {
+      "id": "v2-action-layer-dg-s1-mist-far",
+      "category": "action",
+      "presetId": "v2:action:bbox_target",
+      "title": "Motion: Mây Trôi Đỉnh Núi",
+      "enabled": true,
+      "timeStart": 0,
+      "timeEnd": 6,
+      "targetLayerIds": [
+        "layer-dg-s1-mist-far"
+      ],
+      "targetLayerNames": [
+        "Mây Trôi Đỉnh Núi"
+      ],
+      "params": {
+        "actionPreset": "bbox_target",
+        "intensity": 1
+      }
+    },
+    {
+      "id": "v2-action-layer-dg-s1-mist-mid",
+      "category": "action",
+      "presetId": "v2:action:bbox_target",
+      "title": "Motion: Sương Mù Khe Núi",
+      "enabled": true,
+      "timeStart": 0,
+      "timeEnd": 6,
+      "targetLayerIds": [
+        "layer-dg-s1-mist-mid"
+      ],
+      "targetLayerNames": [
+        "Sương Mù Khe Núi"
+      ],
+      "params": {
+        "actionPreset": "bbox_target",
+        "intensity": 1
+      }
+    },
+    {
+      "id": "v2-material-layer-dg-s1-peach",
+      "category": "material",
+      "presetId": "v2:material:foliage_bush",
+      "title": "Vật liệu: 🍃 Lá cây / Cỏ mềm",
+      "enabled": true,
+      "timeStart": 0,
+      "timeEnd": 6,
+      "targetLayerIds": [
+        "layer-dg-s1-peach"
+      ],
+      "targetLayerNames": [
+        "Cành Đào Tiền Cảnh"
+      ],
+      "params": {
+        "materialTag": "foliage_bush",
+        "materialStiffness": 0.75,
+        "materialBounciness": 1.1,
+        "materialGravity": 0
+      }
+    }
+  ],
+  "graph": {
+    "nodes": [
+      {
+        "id": "v2-root-shot-dg-1",
+        "type": "scene_shot",
+        "title": "#1 Vân Hải Thanh Sơn",
+        "enabled": true,
+        "position": {
+          "x": 48,
+          "y": 96
+        },
+        "preset": "deep_parallax_stage",
+        "aiAgentRole": "SceneLayoutAgent",
+        "aiDirective": "Cảnh \"#1 Vân Hải Thanh Sơn\" [0s – 5.3s] điều phối Camera và các nhóm Layer.",
+        "params": {
+          "shotId": "shot-dg-1",
+          "timeStart": 0,
+          "timeEnd": 5.3,
+          "childLayerCount": 16
+        }
+      },
+      {
+        "id": "v2-camera-shot-dg-1",
+        "type": "camera_director",
+        "title": "Camera · Vân Hải Thanh Sơn",
+        "enabled": true,
+        "position": {
+          "x": 48,
+          "y": 202
+        },
+        "preset": "cinematic_fly_push",
+        "aiAgentRole": "CameraDirectorAgent",
+        "aiDirective": "Camera quay cảnh \"Vân Hải Thanh Sơn\" gồm 3 mốc lộ trình trong [0s – 6s].",
+        "params": {
+          "shotId": "shot-dg-1",
+          "logicCategory": "camera",
+          "camPreset": "dollyIn",
+          "enableDof": false,
+          "childLayerCount": 3,
+          "timeStart": 0,
+          "timeEnd": 6,
+          "hierarchyParentNodeId": "v2-root-shot-dg-1"
+        }
+      },
+      {
+        "id": "v2-cam-wp-shot-dg-1-0",
+        "type": "camera_director",
+        "title": "#1 · Khung gốc (Bắt đầu)",
+        "enabled": true,
+        "position": {
+          "x": 48,
+          "y": 334
+        },
+        "preset": "cinematic_fly_push",
+        "aiAgentRole": "CameraDirectorAgent",
+        "aiDirective": "Cảnh con #1 (Khung gốc (Bắt đầu), Zoom 100%) thuộc \"Vân Hải Thanh Sơn\" [0s – 2.6s].",
+        "params": {
+          "shotId": "shot-dg-1",
+          "logicCategory": "camera",
+          "isCameraWaypoint": true,
+          "waypointIndex": 0,
+          "waypointLocalIndex": 0,
+          "waypointLabel": "1",
+          "isSubWaypoint": false,
+          "isFirstOfShot": true,
+          "camActionMode": "pan",
+          "camTagLabel": "Khung gốc (Bắt đầu)",
+          "camZoomPct": 100,
+          "camStageX": 0,
+          "camStageY": 0,
+          "camScale": 1.0000014784568676,
+          "camYaw": 0,
+          "camPitch": 0,
+          "camRoll": 0,
+          "camEase": "easeInOut",
+          "camStepDuration": 2.6,
+          "timeStart": 0,
+          "timeEnd": 2.6,
+          "hierarchyParentNodeId": "v2-camera-shot-dg-1"
+        }
+      },
+      {
+        "id": "v2-cam-wp-shot-dg-1-1",
+        "type": "camera_director",
+        "title": "#2 · Đẩy cận (114%)",
+        "enabled": true,
+        "position": {
+          "x": 48,
+          "y": 466
+        },
+        "preset": "cinematic_fly_push",
+        "aiAgentRole": "CameraDirectorAgent",
+        "aiDirective": "Cảnh con #2 (Đẩy cận (114%), Zoom 114%) thuộc \"Vân Hải Thanh Sơn\" [2.6s – 5s].",
+        "params": {
+          "shotId": "shot-dg-1",
+          "logicCategory": "camera",
+          "isCameraWaypoint": true,
+          "waypointIndex": 1,
+          "waypointLocalIndex": 1,
+          "waypointLabel": "2",
+          "isSubWaypoint": false,
+          "isFirstOfShot": false,
+          "camActionMode": "push-in",
+          "camTagLabel": "Đẩy cận (114%)",
+          "camZoomPct": 114,
+          "camStageX": 55,
+          "camStageY": -18,
+          "camScale": 0.8800013010420433,
+          "camYaw": 0,
+          "camPitch": 0,
+          "camRoll": 0,
+          "camEase": "hold",
+          "camStepDuration": 2.4,
+          "timeStart": 2.6,
+          "timeEnd": 5,
+          "hierarchyParentNodeId": "v2-camera-shot-dg-1"
+        }
+      },
+      {
+        "id": "v2-cam-wp-shot-dg-1-2",
+        "type": "camera_director",
+        "title": "#3 · Cắt cảnh tức thì",
+        "enabled": true,
+        "position": {
+          "x": 48,
+          "y": 598
+        },
+        "preset": "cinematic_fly_push",
+        "aiAgentRole": "CameraDirectorAgent",
+        "aiDirective": "Cảnh con #3 (Cắt cảnh tức thì, Zoom 114%) thuộc \"Vân Hải Thanh Sơn\" [5s – 6s].",
+        "params": {
+          "shotId": "shot-dg-1",
+          "logicCategory": "camera",
+          "isCameraWaypoint": true,
+          "waypointIndex": 2,
+          "waypointLocalIndex": 2,
+          "waypointLabel": "3",
+          "isSubWaypoint": false,
+          "isFirstOfShot": false,
+          "camActionMode": "cut",
+          "camTagLabel": "Cắt cảnh tức thì",
+          "camZoomPct": 114,
+          "camStageX": 55,
+          "camStageY": -18,
+          "camScale": 0.8800013010420433,
+          "camYaw": 0,
+          "camPitch": 0,
+          "camRoll": 0,
+          "camEase": "easeInOut",
+          "camStepDuration": 1,
+          "timeStart": 5,
+          "timeEnd": 6,
+          "hierarchyParentNodeId": "v2-camera-shot-dg-1"
+        }
+      },
+      {
+        "id": "v2-group-3d-shot-dg-1",
+        "type": "layer_assembly",
+        "title": "Nhóm 3D & Lắp ráp",
+        "enabled": true,
+        "position": {
+          "x": 472,
+          "y": 202
+        },
+        "preset": "character_prop_cluster",
+        "aiAgentRole": "AssemblyRigAgent",
+        "aiDirective": "Nhóm 3D & Lắp ráp gồm 9 đối tượng.",
+        "params": {
+          "shotId": "shot-dg-1",
+          "groupKind": "group_3d",
+          "isAssemblyRoot": true,
+          "childLayerCount": 9,
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-dg-s1-crane2-wing-far",
+            "layer-dg-s1-crane2-body",
+            "layer-dg-s1-crane2-wing-near",
+            "layer-dg-s1-crane-wing-far",
+            "layer-dg-s1-crane-body",
+            "layer-dg-s1-crane-wing-near",
+            "layer-dg-s1-cloak",
+            "layer-dg-s1-calm",
+            "layer-dg-s1-sword"
+          ],
+          "timeStart": 0,
+          "timeEnd": 6,
+          "hierarchyParentNodeId": "v2-root-shot-dg-1"
+        }
+      },
+      {
+        "id": "v2-layer-layer-dg-s1-crane2-wing-far",
+        "type": "layer_assembly",
+        "title": "Hạc Đôi Tầng Xa — Cánh Xa",
+        "enabled": true,
+        "position": {
+          "x": 896,
+          "y": 96
+        },
+        "preset": "character_prop_cluster",
+        "aiAgentRole": "AssemblyRigAgent",
+        "aiDirective": "Layer \"Hạc Đôi Tầng Xa — Cánh Xa\" hoạt động từ 0s đến 6s.",
+        "params": {
+          "shotId": "shot-dg-1",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-dg-s1-crane2-wing-far"
+          ],
+          "requireLayerConnection": true,
+          "assemblyKind": "composite",
+          "instanceId": "cluster-dg-crane2-s1",
+          "compositeId": "comp-dg-crane",
+          "lockedGroup": true,
+          "childLayerCount": 1,
+          "transformX": -515,
+          "transformY": 354,
+          "transformZ": 544,
+          "timeStart": 0,
+          "timeEnd": 6,
+          "hierarchyParentNodeId": "v2-group-3d-shot-dg-1"
+        }
+      },
+      {
+        "id": "v2-layer-layer-dg-s1-crane2-body",
+        "type": "layer_assembly",
+        "title": "Hạc Đôi Tầng Xa — Thân Hạc",
+        "enabled": true,
+        "position": {
+          "x": 896,
+          "y": 96
+        },
+        "preset": "character_prop_cluster",
+        "aiAgentRole": "AssemblyRigAgent",
+        "aiDirective": "Layer \"Hạc Đôi Tầng Xa — Thân Hạc\" hoạt động từ 0s đến 6s.",
+        "params": {
+          "shotId": "shot-dg-1",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-dg-s1-crane2-body"
+          ],
+          "requireLayerConnection": true,
+          "assemblyKind": "composite",
+          "instanceId": "cluster-dg-crane2-s1",
+          "compositeId": "comp-dg-crane",
+          "lockedGroup": true,
+          "rootLayerId": "layer-dg-s1-crane2-body",
+          "childLayerCount": 1,
+          "transformX": -560,
+          "transformY": 315,
+          "transformZ": 540,
+          "timeStart": 0,
+          "timeEnd": 6,
+          "hierarchyParentNodeId": "v2-group-3d-shot-dg-1"
+        }
+      },
+      {
+        "id": "v2-layer-layer-dg-s1-crane2-wing-near",
+        "type": "layer_assembly",
+        "title": "Hạc Đôi Tầng Xa — Cánh Gần",
+        "enabled": true,
+        "position": {
+          "x": 896,
+          "y": 202
+        },
+        "preset": "character_prop_cluster",
+        "aiAgentRole": "AssemblyRigAgent",
+        "aiDirective": "Layer \"Hạc Đôi Tầng Xa — Cánh Gần\" hoạt động từ 0s đến 6s.",
+        "params": {
+          "shotId": "shot-dg-1",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-dg-s1-crane2-wing-near"
+          ],
+          "requireLayerConnection": true,
+          "assemblyKind": "composite",
+          "instanceId": "cluster-dg-crane2-s1",
+          "compositeId": "comp-dg-crane",
+          "lockedGroup": true,
+          "childLayerCount": 1,
+          "transformX": -621,
+          "transformY": 352,
+          "transformZ": 536,
+          "timeStart": 0,
+          "timeEnd": 6,
+          "hierarchyParentNodeId": "v2-group-3d-shot-dg-1"
+        }
+      },
+      {
+        "id": "v2-layer-layer-dg-s1-crane-wing-far",
+        "type": "layer_assembly",
+        "title": "Tiên Hạc Ngự Vân — Cánh Xa",
+        "enabled": true,
+        "position": {
+          "x": 896,
+          "y": 202
+        },
+        "preset": "character_prop_cluster",
+        "aiAgentRole": "AssemblyRigAgent",
+        "aiDirective": "Layer \"Tiên Hạc Ngự Vân — Cánh Xa\" hoạt động từ 0s đến 6s.",
+        "params": {
+          "shotId": "shot-dg-1",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-dg-s1-crane-wing-far"
+          ],
+          "requireLayerConnection": true,
+          "assemblyKind": "composite",
+          "instanceId": "cluster-dg-crane-s1",
+          "compositeId": "comp-dg-crane",
+          "lockedGroup": true,
+          "childLayerCount": 1,
+          "transformX": -180,
+          "transformY": 261,
+          "transformZ": 434,
+          "timeStart": 0,
+          "timeEnd": 6,
+          "hierarchyParentNodeId": "v2-group-3d-shot-dg-1"
+        }
+      },
+      {
+        "id": "v2-layer-layer-dg-s1-crane-body",
+        "type": "layer_assembly",
+        "title": "Tiên Hạc Ngự Vân — Thân Hạc",
+        "enabled": true,
+        "position": {
+          "x": 896,
+          "y": 202
+        },
+        "preset": "character_prop_cluster",
+        "aiAgentRole": "AssemblyRigAgent",
+        "aiDirective": "Layer \"Tiên Hạc Ngự Vân — Thân Hạc\" hoạt động từ 0s đến 6s.",
+        "params": {
+          "shotId": "shot-dg-1",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-dg-s1-crane-body"
+          ],
+          "requireLayerConnection": true,
+          "assemblyKind": "composite",
+          "instanceId": "cluster-dg-crane-s1",
+          "compositeId": "comp-dg-crane",
+          "lockedGroup": true,
+          "rootLayerId": "layer-dg-s1-crane-body",
+          "childLayerCount": 1,
+          "transformX": -245,
+          "transformY": 205,
+          "transformZ": 430,
+          "timeStart": 0,
+          "timeEnd": 6,
+          "hierarchyParentNodeId": "v2-group-3d-shot-dg-1"
+        }
+      },
+      {
+        "id": "v2-layer-layer-dg-s1-crane-wing-near",
+        "type": "layer_assembly",
+        "title": "Tiên Hạc Ngự Vân — Cánh Gần",
+        "enabled": true,
+        "position": {
+          "x": 896,
+          "y": 308
+        },
+        "preset": "character_prop_cluster",
+        "aiAgentRole": "AssemblyRigAgent",
+        "aiDirective": "Layer \"Tiên Hạc Ngự Vân — Cánh Gần\" hoạt động từ 0s đến 6s.",
+        "params": {
+          "shotId": "shot-dg-1",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-dg-s1-crane-wing-near"
+          ],
+          "requireLayerConnection": true,
+          "assemblyKind": "composite",
+          "instanceId": "cluster-dg-crane-s1",
+          "compositeId": "comp-dg-crane",
+          "lockedGroup": true,
+          "childLayerCount": 1,
+          "transformX": -333,
+          "transformY": 258,
+          "transformZ": 426,
+          "timeStart": 0,
+          "timeEnd": 6,
+          "hierarchyParentNodeId": "v2-group-3d-shot-dg-1"
+        }
+      },
+      {
+        "id": "v2-layer-layer-dg-s1-cloak",
+        "type": "layer_assembly",
+        "title": "Kiếm Khách — Áo Choàng Lụa Đỏ",
+        "enabled": true,
+        "position": {
+          "x": 896,
+          "y": 308
+        },
+        "preset": "character_prop_cluster",
+        "aiAgentRole": "AssemblyRigAgent",
+        "aiDirective": "Layer \"Kiếm Khách — Áo Choàng Lụa Đỏ\" hoạt động từ 0s đến 6s.",
+        "params": {
+          "shotId": "shot-dg-1",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-dg-s1-cloak"
+          ],
+          "requireLayerConnection": true,
+          "assemblyKind": "composite",
+          "instanceId": "cluster-dg-hero-s1",
+          "compositeId": "comp-dg-hero",
+          "lockedGroup": true,
+          "rootLayerId": "layer-dg-s1-cloak",
+          "childLayerCount": 1,
+          "transformX": 112,
+          "transformY": -135,
+          "transformZ": 196,
+          "timeStart": 0,
+          "timeEnd": 6,
+          "hierarchyParentNodeId": "v2-group-3d-shot-dg-1"
+        }
+      },
+      {
+        "id": "v2-layer-layer-dg-s1-calm",
+        "type": "layer_assembly",
+        "title": "Kiếm Khách — Điềm Tĩnh",
+        "enabled": true,
+        "position": {
+          "x": 896,
+          "y": 414
+        },
+        "preset": "character_prop_cluster",
+        "aiAgentRole": "AssemblyRigAgent",
+        "aiDirective": "Layer \"Kiếm Khách — Điềm Tĩnh\" hoạt động từ 0s đến 6s.",
+        "params": {
+          "shotId": "shot-dg-1",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-dg-s1-calm"
+          ],
+          "requireLayerConnection": true,
+          "assemblyKind": "composite",
+          "instanceId": "cluster-dg-hero-s1",
+          "compositeId": "comp-dg-hero",
+          "lockedGroup": true,
+          "childLayerCount": 1,
+          "transformX": 145,
+          "transformY": -120,
+          "transformZ": 190,
+          "timeStart": 0,
+          "timeEnd": 6,
+          "hierarchyParentNodeId": "v2-group-3d-shot-dg-1"
+        }
+      },
+      {
+        "id": "v2-layer-layer-dg-s1-sword",
+        "type": "layer_assembly",
+        "title": "Linh Kiếm Hộ Thân (Đạo Cụ)",
+        "enabled": true,
+        "position": {
+          "x": 896,
+          "y": 414
+        },
+        "preset": "character_prop_cluster",
+        "aiAgentRole": "AssemblyRigAgent",
+        "aiDirective": "Layer \"Linh Kiếm Hộ Thân (Đạo Cụ)\" hoạt động từ 0s đến 6s.",
+        "params": {
+          "shotId": "shot-dg-1",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-dg-s1-sword"
+          ],
+          "requireLayerConnection": true,
+          "assemblyKind": "composite",
+          "instanceId": "cluster-dg-hero-s1",
+          "compositeId": "comp-dg-hero",
+          "lockedGroup": true,
+          "childLayerCount": 1,
+          "transformX": 230,
+          "transformY": -77,
+          "transformZ": 204,
+          "timeStart": 0,
+          "timeEnd": 6,
+          "hierarchyParentNodeId": "v2-group-3d-shot-dg-1"
+        }
+      },
+      {
+        "id": "v2-cluster-cluster-dg-crane2-s1",
+        "type": "layer_transform",
+        "title": "Khoá cụm: Hạc Đôi Tầng Xa",
+        "enabled": true,
+        "position": {
+          "x": 1320,
+          "y": 96
+        },
+        "preset": "character_prop_cluster",
+        "aiAgentRole": "LayerTransformAgent",
+        "aiDirective": "Node Khoá Cụm \"Hạc Đôi Tầng Xa\" (3/3 lớp đang khoá theo cụm).",
+        "params": {
+          "shotId": "shot-dg-1",
+          "logicCategory": "cluster_lock",
+          "assemblyKind": "composite",
+          "instanceId": "cluster-dg-crane2-s1",
+          "compositeId": "comp-dg-crane",
+          "lockedGroup": true,
+          "rootLayerId": "layer-dg-s1-crane2-body",
+          "collapsedSubLayers": true,
+          "childLayerCount": 3,
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-dg-s1-crane2-wing-far",
+            "layer-dg-s1-crane2-body",
+            "layer-dg-s1-crane2-wing-near"
+          ],
+          "sharedLayerNodeIds": [
+            "v2-layer-layer-dg-s1-crane2-wing-far",
+            "v2-layer-layer-dg-s1-crane2-body",
+            "v2-layer-layer-dg-s1-crane2-wing-near"
+          ],
+          "requireLayerConnection": true,
+          "transformX": -560,
+          "transformY": 315,
+          "transformZ": 540,
+          "clusterScalePct": 14,
+          "timeStart": 0,
+          "timeEnd": 6,
+          "hierarchyParentNodeId": "v2-layer-layer-dg-s1-crane2-body"
+        }
+      },
+      {
+        "id": "v2-cluster-cluster-dg-crane-s1",
+        "type": "layer_transform",
+        "title": "Khoá cụm: Tiên Hạc Ngự Vân",
+        "enabled": true,
+        "position": {
+          "x": 1320,
+          "y": 202
+        },
+        "preset": "character_prop_cluster",
+        "aiAgentRole": "LayerTransformAgent",
+        "aiDirective": "Node Khoá Cụm \"Tiên Hạc Ngự Vân\" (3/3 lớp đang khoá theo cụm).",
+        "params": {
+          "shotId": "shot-dg-1",
+          "logicCategory": "cluster_lock",
+          "assemblyKind": "composite",
+          "instanceId": "cluster-dg-crane-s1",
+          "compositeId": "comp-dg-crane",
+          "lockedGroup": true,
+          "rootLayerId": "layer-dg-s1-crane-body",
+          "collapsedSubLayers": true,
+          "childLayerCount": 3,
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-dg-s1-crane-wing-far",
+            "layer-dg-s1-crane-body",
+            "layer-dg-s1-crane-wing-near"
+          ],
+          "sharedLayerNodeIds": [
+            "v2-layer-layer-dg-s1-crane-wing-far",
+            "v2-layer-layer-dg-s1-crane-body",
+            "v2-layer-layer-dg-s1-crane-wing-near"
+          ],
+          "requireLayerConnection": true,
+          "transformX": -245,
+          "transformY": 205,
+          "transformZ": 430,
+          "clusterScalePct": 20,
+          "timeStart": 0,
+          "timeEnd": 6,
+          "hierarchyParentNodeId": "v2-layer-layer-dg-s1-crane-body"
+        }
+      },
+      {
+        "id": "v2-cluster-cluster-dg-hero-s1",
+        "type": "layer_transform",
+        "title": "Khoá cụm: Kiếm Khách Vân Sơn",
+        "enabled": true,
+        "position": {
+          "x": 1320,
+          "y": 308
+        },
+        "preset": "character_prop_cluster",
+        "aiAgentRole": "LayerTransformAgent",
+        "aiDirective": "Node Khoá Cụm \"Kiếm Khách Vân Sơn\" (3/3 lớp đang khoá theo cụm).",
+        "params": {
+          "shotId": "shot-dg-1",
+          "logicCategory": "cluster_lock",
+          "assemblyKind": "composite",
+          "instanceId": "cluster-dg-hero-s1",
+          "compositeId": "comp-dg-hero",
+          "lockedGroup": true,
+          "rootLayerId": "layer-dg-s1-cloak",
+          "collapsedSubLayers": true,
+          "childLayerCount": 3,
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-dg-s1-cloak",
+            "layer-dg-s1-calm",
+            "layer-dg-s1-sword"
+          ],
+          "sharedLayerNodeIds": [
+            "v2-layer-layer-dg-s1-cloak",
+            "v2-layer-layer-dg-s1-calm",
+            "v2-layer-layer-dg-s1-sword"
+          ],
+          "requireLayerConnection": true,
+          "transformX": 112,
+          "transformY": -135,
+          "transformZ": 196,
+          "clusterScalePct": 36,
+          "timeStart": 0,
+          "timeEnd": 6,
+          "hierarchyParentNodeId": "v2-layer-layer-dg-s1-cloak"
+        }
+      },
+      {
+        "id": "v2-group-25d-shot-dg-1",
+        "type": "layer_assembly",
+        "title": "Nhóm Layer 2.5D",
+        "enabled": true,
+        "position": {
+          "x": 472,
+          "y": 636
+        },
+        "preset": "character_prop_cluster",
+        "aiAgentRole": "AssemblyRigAgent",
+        "aiDirective": "Nhóm Layer 2.5D gồm 5 đối tượng.",
+        "params": {
+          "shotId": "shot-dg-1",
+          "groupKind": "group_25d",
+          "isAssemblyRoot": true,
+          "childLayerCount": 5,
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-dg-s1-peach",
+            "layer-dg-s1-cliff",
+            "layer-dg-s1-mist-mid",
+            "layer-dg-s1-mist-far",
+            "layer-dg-s1-bg"
+          ],
+          "timeStart": 0,
+          "timeEnd": 6,
+          "hierarchyParentNodeId": "v2-root-shot-dg-1"
+        }
+      },
+      {
+        "id": "v2-layer-layer-dg-s1-peach",
+        "type": "layer_assembly",
+        "title": "Cành Đào Tiền Cảnh",
+        "enabled": true,
+        "position": {
+          "x": 896,
+          "y": 424
+        },
+        "preset": "character_prop_cluster",
+        "aiAgentRole": "AssemblyRigAgent",
+        "aiDirective": "Layer \"Cành Đào Tiền Cảnh\" hoạt động từ 0s đến 6s.",
+        "params": {
+          "shotId": "shot-dg-1",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-dg-s1-peach"
+          ],
+          "requireLayerConnection": true,
+          "childLayerCount": 1,
+          "transformX": -535,
+          "transformY": 245,
+          "transformZ": -185,
+          "timeStart": 0,
+          "timeEnd": 6,
+          "hierarchyParentNodeId": "v2-group-25d-shot-dg-1"
+        }
+      },
+      {
+        "id": "v2-layer-layer-dg-s1-cliff",
+        "type": "layer_assembly",
+        "title": "Đình Cổ & Vách Đá Tùng",
+        "enabled": true,
+        "position": {
+          "x": 896,
+          "y": 530
+        },
+        "preset": "character_prop_cluster",
+        "aiAgentRole": "AssemblyRigAgent",
+        "aiDirective": "Layer \"Đình Cổ & Vách Đá Tùng\" hoạt động từ 0s đến 6s.",
+        "params": {
+          "shotId": "shot-dg-1",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-dg-s1-cliff"
+          ],
+          "requireLayerConnection": true,
+          "childLayerCount": 1,
+          "transformX": 255,
+          "transformY": -215,
+          "transformZ": 260,
+          "timeStart": 0,
+          "timeEnd": 6,
+          "hierarchyParentNodeId": "v2-group-25d-shot-dg-1"
+        }
+      },
+      {
+        "id": "v2-layer-layer-dg-s1-mist-mid",
+        "type": "layer_assembly",
+        "title": "Sương Mù Khe Núi",
+        "enabled": true,
+        "position": {
+          "x": 896,
+          "y": 636
+        },
+        "preset": "character_prop_cluster",
+        "aiAgentRole": "AssemblyRigAgent",
+        "aiDirective": "Layer \"Sương Mù Khe Núi\" hoạt động từ 0s đến 6s.",
+        "params": {
+          "shotId": "shot-dg-1",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-dg-s1-mist-mid"
+          ],
+          "requireLayerConnection": true,
+          "childLayerCount": 1,
+          "transformX": 260,
+          "transformY": -235,
+          "transformZ": 325,
+          "timeStart": 0,
+          "timeEnd": 6,
+          "hierarchyParentNodeId": "v2-group-25d-shot-dg-1"
+        }
+      },
+      {
+        "id": "v2-layer-layer-dg-s1-mist-far",
+        "type": "layer_assembly",
+        "title": "Mây Trôi Đỉnh Núi",
+        "enabled": true,
+        "position": {
+          "x": 896,
+          "y": 742
+        },
+        "preset": "character_prop_cluster",
+        "aiAgentRole": "AssemblyRigAgent",
+        "aiDirective": "Layer \"Mây Trôi Đỉnh Núi\" hoạt động từ 0s đến 6s.",
+        "params": {
+          "shotId": "shot-dg-1",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-dg-s1-mist-far"
+          ],
+          "requireLayerConnection": true,
+          "childLayerCount": 1,
+          "transformX": -340,
+          "transformY": -115,
+          "transformZ": 740,
+          "timeStart": 0,
+          "timeEnd": 6,
+          "hierarchyParentNodeId": "v2-group-25d-shot-dg-1"
+        }
+      },
+      {
+        "id": "v2-layer-layer-dg-s1-bg",
+        "type": "layer_assembly",
+        "title": "Nền Vân Hải Thanh Sơn",
+        "enabled": true,
+        "position": {
+          "x": 896,
+          "y": 848
+        },
+        "preset": "character_prop_cluster",
+        "aiAgentRole": "AssemblyRigAgent",
+        "aiDirective": "Layer \"Nền Vân Hải Thanh Sơn\" hoạt động từ 0s đến 6s.",
+        "params": {
+          "shotId": "shot-dg-1",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-dg-s1-bg"
+          ],
+          "requireLayerConnection": true,
+          "childLayerCount": 1,
+          "transformX": 0,
+          "transformY": 0,
+          "transformZ": 1200,
+          "timeStart": 0,
+          "timeEnd": 6,
+          "hierarchyParentNodeId": "v2-group-25d-shot-dg-1"
+        }
+      },
+      {
+        "id": "v2-group-env-shot-dg-1",
+        "type": "layer_assembly",
+        "title": "Nhóm Không gian & Bầu trời",
+        "enabled": true,
+        "position": {
+          "x": 472,
+          "y": 1017
+        },
+        "preset": "character_prop_cluster",
+        "aiAgentRole": "AssemblyRigAgent",
+        "aiDirective": "Nhóm Không gian & Bầu trời gồm 2 đối tượng.",
+        "params": {
+          "shotId": "shot-dg-1",
+          "groupKind": "group_env",
+          "isAssemblyRoot": true,
+          "childLayerCount": 2,
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-dg-s1-mist",
+            "layer-dg-s1-petals"
+          ],
+          "timeStart": 0,
+          "timeEnd": 6,
+          "hierarchyParentNodeId": "v2-root-shot-dg-1"
+        }
+      },
+      {
+        "id": "v2-layer-layer-dg-s1-mist",
+        "type": "layer_assembly",
+        "title": "Kim Quang Vân Hải",
+        "enabled": true,
+        "position": {
+          "x": 896,
+          "y": 964
+        },
+        "preset": "character_prop_cluster",
+        "aiAgentRole": "AssemblyRigAgent",
+        "aiDirective": "Layer \"Kim Quang Vân Hải\" hoạt động từ 0s đến 6s.",
+        "params": {
+          "shotId": "shot-dg-1",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-dg-s1-mist"
+          ],
+          "requireLayerConnection": true,
+          "childLayerCount": 1,
+          "transformX": 0,
+          "transformY": 0,
+          "transformZ": 580,
+          "timeStart": 0,
+          "timeEnd": 6,
+          "hierarchyParentNodeId": "v2-group-env-shot-dg-1"
+        }
+      },
+      {
+        "id": "v2-layer-layer-dg-s1-petals",
+        "type": "layer_assembly",
+        "title": "Cánh Hoa Đào Bay",
+        "enabled": true,
+        "position": {
+          "x": 896,
+          "y": 1070
+        },
+        "preset": "character_prop_cluster",
+        "aiAgentRole": "AssemblyRigAgent",
+        "aiDirective": "Layer \"Cánh Hoa Đào Bay\" hoạt động từ 0s đến 6s.",
+        "params": {
+          "shotId": "shot-dg-1",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-dg-s1-petals"
+          ],
+          "requireLayerConnection": true,
+          "childLayerCount": 1,
+          "transformX": 0,
+          "transformY": 0,
+          "transformZ": -90,
+          "timeStart": 0,
+          "timeEnd": 6,
+          "hierarchyParentNodeId": "v2-group-env-shot-dg-1"
+        }
+      },
+      {
+        "id": "v2-anim_fx-cluster-dg-hero-s1",
+        "type": "motion_choreography",
+        "title": "Hành động Nhân vật: Đứng thở",
+        "enabled": true,
+        "position": {
+          "x": 1744,
+          "y": 308
+        },
+        "preset": "organic_wind_breathe",
+        "aiAgentRole": "MotionChoreographyAgent",
+        "aiDirective": "Hành động: Tụ Khí & Tay Áo Mềm cho \"Khoá cụm: Kiếm Khách Vân Sơn\".",
+        "params": {
+          "shotId": "shot-dg-1",
+          "logicCategory": "anim_fx",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-dg-s1-cloak",
+            "layer-dg-s1-calm",
+            "layer-dg-s1-sword"
+          ],
+          "sharedLayerNodeIds": [
+            "v2-cluster-cluster-dg-hero-s1"
+          ],
+          "requireLayerConnection": true,
+          "timeStart": 0.1,
+          "timeEnd": 5.9,
+          "hierarchyParentNodeId": "v2-cluster-cluster-dg-hero-s1",
+          "instanceId": "cluster-dg-hero-s1",
+          "animMode": "rig_clip",
+          "rigActionPreset": "idle",
+          "intensity": 1,
+          "rootLayerId": "layer-dg-s1-cloak",
+          "pipelineStepIndex": 1
+        }
+      },
+      {
+        "id": "v2-action-layer-dg-s1-cloak",
+        "type": "motion_choreography",
+        "title": "Motion: Ngự Phong Đỉnh Mây",
+        "enabled": true,
+        "position": {
+          "x": 2168,
+          "y": 308
+        },
+        "preset": "organic_wind_breathe",
+        "aiAgentRole": "MotionChoreographyAgent",
+        "aiDirective": "Motion: Ngự Phong Đỉnh Mây (bước B2 sau \"Hành động: Tụ Khí & Tay Áo Mềm\").",
+        "params": {
+          "shotId": "shot-dg-1",
+          "logicCategory": "action",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-dg-s1-cloak",
+            "layer-dg-s1-calm",
+            "layer-dg-s1-sword"
+          ],
+          "sharedLayerNodeIds": [
+            "v2-cluster-cluster-dg-hero-s1"
+          ],
+          "requireLayerConnection": true,
+          "timeStart": 0.3,
+          "timeEnd": 5.6,
+          "hierarchyParentNodeId": "v2-cluster-cluster-dg-hero-s1",
+          "upstreamLogicNodeId": "v2-anim_fx-cluster-dg-hero-s1",
+          "pipelineStepIndex": 2,
+          "instanceId": "cluster-dg-hero-s1",
+          "rootLayerId": "layer-dg-s1-cloak",
+          "actionPreset": "bbox_target",
+          "motionMode": "bbox",
+          "bboxPathType": "shortest",
+          "bboxTargetScalePct": 105,
+          "depthMode": "depth_z",
+          "intensity": 1,
+          "bboxTargetX": 145,
+          "bboxTargetY": -135,
+          "depthRefLayerId": "layer-dg-s1-cliff",
+          "depthRelation": "in_front",
+          "bboxStartZ": 196,
+          "bboxTargetZ": 175
+        }
+      },
+      {
+        "id": "v2-fx_fade-layer-dg-s1-cloak",
+        "type": "physics_fx",
+        "title": "Hiện/Ẩn: Hiện 0.5s · Ẩn 0.3s",
+        "enabled": true,
+        "position": {
+          "x": 2592,
+          "y": 308
+        },
+        "preset": "rim_glow_particles",
+        "aiAgentRole": "PhysicsLightFxAgent",
+        "aiDirective": "FX: Hiện/Ẩn Mở Cảnh (bước B3 sau \"Motion: Ngự Phong Đỉnh Mây\").",
+        "params": {
+          "shotId": "shot-dg-1",
+          "logicCategory": "fx",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-dg-s1-cloak",
+            "layer-dg-s1-calm",
+            "layer-dg-s1-sword"
+          ],
+          "sharedLayerNodeIds": [
+            "v2-cluster-cluster-dg-hero-s1"
+          ],
+          "requireLayerConnection": true,
+          "timeStart": 0,
+          "timeEnd": 6,
+          "hierarchyParentNodeId": "v2-cluster-cluster-dg-hero-s1",
+          "upstreamLogicNodeId": "v2-action-layer-dg-s1-cloak",
+          "pipelineStepIndex": 3,
+          "instanceId": "cluster-dg-hero-s1",
+          "rootLayerId": "layer-dg-s1-cloak",
+          "fxAtomicRole": "fade",
+          "fxSubTab": "opacity",
+          "animFxPreset": "fadeInOut",
+          "loopFadeInSec": 0.45,
+          "loopEndAction": "fade_out",
+          "loopFadeOutSec": 0.35,
+          "intensity": 1,
+          "animMode": "keyframe_fx",
+          "animFxCount": 2
+        }
+      },
+      {
+        "id": "v2-anim_fx-cluster-dg-crane-s1",
+        "type": "motion_choreography",
+        "title": "Hành động Nhân vật: Vung đòn",
+        "enabled": true,
+        "position": {
+          "x": 1744,
+          "y": 202
+        },
+        "preset": "organic_wind_breathe",
+        "aiAgentRole": "MotionChoreographyAgent",
+        "aiDirective": "Hành động: Đập Cánh Lướt Mây cho \"Khoá cụm: Tiên Hạc Ngự Vân\".",
+        "params": {
+          "shotId": "shot-dg-1",
+          "logicCategory": "anim_fx",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-dg-s1-crane-wing-far",
+            "layer-dg-s1-crane-body",
+            "layer-dg-s1-crane-wing-near"
+          ],
+          "sharedLayerNodeIds": [
+            "v2-cluster-cluster-dg-crane-s1"
+          ],
+          "requireLayerConnection": true,
+          "timeStart": 0,
+          "timeEnd": 5.9,
+          "hierarchyParentNodeId": "v2-cluster-cluster-dg-crane-s1",
+          "instanceId": "cluster-dg-crane-s1",
+          "animMode": "rig_clip",
+          "rigActionPreset": "action",
+          "intensity": 1,
+          "rootLayerId": "layer-dg-s1-crane-body",
+          "pipelineStepIndex": 1
+        }
+      },
+      {
+        "id": "v2-action-layer-dg-s1-crane-wing-far",
+        "type": "motion_choreography",
+        "title": "Motion: Tiên Hạc Lướt Biển Mây",
+        "enabled": true,
+        "position": {
+          "x": 2168,
+          "y": 202
+        },
+        "preset": "organic_wind_breathe",
+        "aiAgentRole": "MotionChoreographyAgent",
+        "aiDirective": "Motion: Tiên Hạc Lướt Biển Mây (bước B2 sau \"Hành động: Đập Cánh Lướt Mây\").",
+        "params": {
+          "shotId": "shot-dg-1",
+          "logicCategory": "action",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-dg-s1-crane-wing-far",
+            "layer-dg-s1-crane-body",
+            "layer-dg-s1-crane-wing-near"
+          ],
+          "sharedLayerNodeIds": [
+            "v2-cluster-cluster-dg-crane-s1"
+          ],
+          "requireLayerConnection": true,
+          "timeStart": 0.05,
+          "timeEnd": 5.85,
+          "hierarchyParentNodeId": "v2-cluster-cluster-dg-crane-s1",
+          "upstreamLogicNodeId": "v2-anim_fx-cluster-dg-crane-s1",
+          "pipelineStepIndex": 2,
+          "instanceId": "cluster-dg-crane-s1",
+          "rootLayerId": "layer-dg-s1-crane-body",
+          "actionPreset": "bbox_target",
+          "motionMode": "bbox",
+          "bboxPathType": "curved_arc",
+          "bboxTargetScalePct": 92,
+          "depthMode": "keep",
+          "intensity": 1,
+          "bboxTargetX": 390,
+          "bboxTargetY": 245,
+          "bboxStartZ": 430,
+          "bboxTargetZ": 475
+        }
+      },
+      {
+        "id": "v2-fx_fade-layer-dg-s1-crane-wing-far",
+        "type": "physics_fx",
+        "title": "Hiện/Ẩn: Hiện 0.3s · Ẩn 0.4s",
+        "enabled": true,
+        "position": {
+          "x": 2592,
+          "y": 202
+        },
+        "preset": "rim_glow_particles",
+        "aiAgentRole": "PhysicsLightFxAgent",
+        "aiDirective": "FX: Hoà Sương Biển Mây (bước B3 sau \"Motion: Tiên Hạc Lướt Biển Mây\").",
+        "params": {
+          "shotId": "shot-dg-1",
+          "logicCategory": "fx",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-dg-s1-crane-wing-far",
+            "layer-dg-s1-crane-body",
+            "layer-dg-s1-crane-wing-near"
+          ],
+          "sharedLayerNodeIds": [
+            "v2-cluster-cluster-dg-crane-s1"
+          ],
+          "requireLayerConnection": true,
+          "timeStart": 0.05,
+          "timeEnd": 5.95,
+          "hierarchyParentNodeId": "v2-cluster-cluster-dg-crane-s1",
+          "upstreamLogicNodeId": "v2-action-layer-dg-s1-crane-wing-far",
+          "pipelineStepIndex": 3,
+          "instanceId": "cluster-dg-crane-s1",
+          "rootLayerId": "layer-dg-s1-crane-body",
+          "fxAtomicRole": "fade",
+          "fxSubTab": "opacity",
+          "animFxPreset": "fadeInOut",
+          "loopFadeInSec": 0.35,
+          "loopEndAction": "fade_out",
+          "loopFadeOutSec": 0.4,
+          "intensity": 1,
+          "animMode": "keyframe_fx",
+          "animFxCount": 2
+        }
+      },
+      {
+        "id": "v2-anim_fx-cluster-dg-crane2-s1",
+        "type": "motion_choreography",
+        "title": "Hành động Nhân vật: Vung đòn",
+        "enabled": true,
+        "position": {
+          "x": 1744,
+          "y": 96
+        },
+        "preset": "organic_wind_breathe",
+        "aiAgentRole": "MotionChoreographyAgent",
+        "aiDirective": "Hành động: Đập Cánh Tầng Xa cho \"Khoá cụm: Hạc Đôi Tầng Xa\".",
+        "params": {
+          "shotId": "shot-dg-1",
+          "logicCategory": "anim_fx",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-dg-s1-crane2-wing-far",
+            "layer-dg-s1-crane2-body",
+            "layer-dg-s1-crane2-wing-near"
+          ],
+          "sharedLayerNodeIds": [
+            "v2-cluster-cluster-dg-crane2-s1"
+          ],
+          "requireLayerConnection": true,
+          "timeStart": 0,
+          "timeEnd": 5.9,
+          "hierarchyParentNodeId": "v2-cluster-cluster-dg-crane2-s1",
+          "instanceId": "cluster-dg-crane2-s1",
+          "animMode": "rig_clip",
+          "rigActionPreset": "action",
+          "intensity": 1,
+          "rootLayerId": "layer-dg-s1-crane2-body",
+          "pipelineStepIndex": 1
+        }
+      },
+      {
+        "id": "v2-action-layer-dg-s1-crane2-wing-far",
+        "type": "motion_choreography",
+        "title": "Motion: Hạc Đôi Tầng Xa",
+        "enabled": true,
+        "position": {
+          "x": 2168,
+          "y": 96
+        },
+        "preset": "organic_wind_breathe",
+        "aiAgentRole": "MotionChoreographyAgent",
+        "aiDirective": "Motion: Hạc Đôi Tầng Xa (bước B2 sau \"Hành động: Đập Cánh Tầng Xa\").",
+        "params": {
+          "shotId": "shot-dg-1",
+          "logicCategory": "action",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-dg-s1-crane2-wing-far",
+            "layer-dg-s1-crane2-body",
+            "layer-dg-s1-crane2-wing-near"
+          ],
+          "sharedLayerNodeIds": [
+            "v2-cluster-cluster-dg-crane2-s1"
+          ],
+          "requireLayerConnection": true,
+          "timeStart": 0,
+          "timeEnd": 5.9,
+          "hierarchyParentNodeId": "v2-cluster-cluster-dg-crane2-s1",
+          "upstreamLogicNodeId": "v2-anim_fx-cluster-dg-crane2-s1",
+          "pipelineStepIndex": 2,
+          "instanceId": "cluster-dg-crane2-s1",
+          "rootLayerId": "layer-dg-s1-crane2-body",
+          "actionPreset": "bbox_target",
+          "motionMode": "bbox",
+          "bboxPathType": "curved_arc",
+          "bboxTargetScalePct": 90,
+          "depthMode": "keep",
+          "intensity": 1,
+          "bboxTargetX": -65,
+          "bboxTargetY": 345,
+          "bboxStartZ": 540,
+          "bboxTargetZ": 590
+        }
+      },
+      {
+        "id": "v2-action-layer-dg-s1-mist-far",
+        "type": "motion_choreography",
+        "title": "Motion: Mây Trôi Đỉnh Núi",
+        "enabled": true,
+        "position": {
+          "x": 1320,
+          "y": 742
+        },
+        "preset": "organic_wind_breathe",
+        "aiAgentRole": "MotionChoreographyAgent",
+        "aiDirective": "Motion: Mây Trôi Đỉnh Núi cho \"Mây Trôi Đỉnh Núi\".",
+        "params": {
+          "shotId": "shot-dg-1",
+          "logicCategory": "action",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-dg-s1-mist-far"
+          ],
+          "sharedLayerNodeIds": [
+            "v2-layer-layer-dg-s1-mist-far"
+          ],
+          "requireLayerConnection": true,
+          "timeStart": 0,
+          "timeEnd": 6,
+          "hierarchyParentNodeId": "v2-layer-layer-dg-s1-mist-far",
+          "actionPreset": "bbox_target",
+          "motionMode": "bbox",
+          "bboxPathType": "shortest",
+          "bboxTargetScalePct": 105,
+          "depthMode": "keep",
+          "intensity": 1,
+          "bboxTargetX": 240,
+          "bboxTargetY": -102,
+          "bboxStartZ": 740,
+          "bboxTargetZ": 740,
+          "pipelineStepIndex": 1
+        }
+      },
+      {
+        "id": "v2-action-layer-dg-s1-mist-mid",
+        "type": "motion_choreography",
+        "title": "Motion: Sương Mù Khe Núi",
+        "enabled": true,
+        "position": {
+          "x": 1320,
+          "y": 636
+        },
+        "preset": "organic_wind_breathe",
+        "aiAgentRole": "MotionChoreographyAgent",
+        "aiDirective": "Motion: Sương Mù Khe Núi cho \"Sương Mù Khe Núi\".",
+        "params": {
+          "shotId": "shot-dg-1",
+          "logicCategory": "action",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-dg-s1-mist-mid"
+          ],
+          "sharedLayerNodeIds": [
+            "v2-layer-layer-dg-s1-mist-mid"
+          ],
+          "requireLayerConnection": true,
+          "timeStart": 0,
+          "timeEnd": 6,
+          "hierarchyParentNodeId": "v2-layer-layer-dg-s1-mist-mid",
+          "actionPreset": "bbox_target",
+          "motionMode": "bbox",
+          "bboxPathType": "shortest",
+          "bboxTargetScalePct": 106,
+          "depthMode": "keep",
+          "intensity": 1,
+          "bboxTargetX": -195,
+          "bboxTargetY": -220,
+          "bboxStartZ": 325,
+          "bboxTargetZ": 325,
+          "pipelineStepIndex": 1
+        }
+      },
+      {
+        "id": "v2-material-layer-dg-s1-peach",
+        "type": "physics_fx",
+        "title": "Vật liệu: 🍃 Lá cây / Cỏ mềm",
+        "enabled": true,
+        "position": {
+          "x": 1320,
+          "y": 424
+        },
+        "preset": "rim_glow_particles",
+        "aiAgentRole": "PhysicsLightFxAgent",
+        "aiDirective": "Vật liệu: 🍃 Lá cây / Cỏ mềm cho \"Cành Đào Tiền Cảnh\".",
+        "params": {
+          "shotId": "shot-dg-1",
+          "logicCategory": "material",
+          "targetMode": "custom",
+          "targetLayerIds": [
+            "layer-dg-s1-peach"
+          ],
+          "sharedLayerNodeIds": [
+            "v2-layer-layer-dg-s1-peach"
+          ],
+          "requireLayerConnection": true,
+          "timeStart": 0,
+          "timeEnd": 6,
+          "hierarchyParentNodeId": "v2-layer-layer-dg-s1-peach",
+          "materialTag": "foliage_bush",
+          "materialStiffness": 0.75,
+          "materialBounciness": 1.1,
+          "materialGravity": 0,
+          "intensity": 1.1,
+          "pipelineStepIndex": 1
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-v2-root-shot-dg-1-v2-camera-shot-dg-1",
+        "fromNode": "v2-root-shot-dg-1",
+        "fromPort": "scene_ctx",
+        "toNode": "v2-camera-shot-dg-1",
+        "toPort": "scene_ctx"
+      },
+      {
+        "id": "e-v2-camera-shot-dg-1-v2-cam-wp-shot-dg-1-0",
+        "fromNode": "v2-camera-shot-dg-1",
+        "fromPort": "camera_cut",
+        "toNode": "v2-cam-wp-shot-dg-1-0",
+        "toPort": "camera_cut"
+      },
+      {
+        "id": "e-v2-cam-wp-shot-dg-1-0-v2-cam-wp-shot-dg-1-1",
+        "fromNode": "v2-cam-wp-shot-dg-1-0",
+        "fromPort": "camera_cut",
+        "toNode": "v2-cam-wp-shot-dg-1-1",
+        "toPort": "camera_cut"
+      },
+      {
+        "id": "e-v2-cam-wp-shot-dg-1-1-v2-cam-wp-shot-dg-1-2",
+        "fromNode": "v2-cam-wp-shot-dg-1-1",
+        "fromPort": "camera_cut",
+        "toNode": "v2-cam-wp-shot-dg-1-2",
+        "toPort": "camera_cut"
+      },
+      {
+        "id": "e-v2-root-shot-dg-1-v2-group-3d-shot-dg-1",
+        "fromNode": "v2-root-shot-dg-1",
+        "fromPort": "scene_ctx",
+        "toNode": "v2-group-3d-shot-dg-1",
+        "toPort": "scene_ctx"
+      },
+      {
+        "id": "e-v2-group-3d-shot-dg-1-v2-layer-layer-dg-s1-crane2-wing-far",
+        "fromNode": "v2-group-3d-shot-dg-1",
+        "fromPort": "layers_tree",
+        "toNode": "v2-layer-layer-dg-s1-crane2-wing-far",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-group-3d-shot-dg-1-v2-layer-layer-dg-s1-crane2-body",
+        "fromNode": "v2-group-3d-shot-dg-1",
+        "fromPort": "layers_tree",
+        "toNode": "v2-layer-layer-dg-s1-crane2-body",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-group-3d-shot-dg-1-v2-layer-layer-dg-s1-crane2-wing-near",
+        "fromNode": "v2-group-3d-shot-dg-1",
+        "fromPort": "layers_tree",
+        "toNode": "v2-layer-layer-dg-s1-crane2-wing-near",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-group-3d-shot-dg-1-v2-layer-layer-dg-s1-crane-wing-far",
+        "fromNode": "v2-group-3d-shot-dg-1",
+        "fromPort": "layers_tree",
+        "toNode": "v2-layer-layer-dg-s1-crane-wing-far",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-group-3d-shot-dg-1-v2-layer-layer-dg-s1-crane-body",
+        "fromNode": "v2-group-3d-shot-dg-1",
+        "fromPort": "layers_tree",
+        "toNode": "v2-layer-layer-dg-s1-crane-body",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-group-3d-shot-dg-1-v2-layer-layer-dg-s1-crane-wing-near",
+        "fromNode": "v2-group-3d-shot-dg-1",
+        "fromPort": "layers_tree",
+        "toNode": "v2-layer-layer-dg-s1-crane-wing-near",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-group-3d-shot-dg-1-v2-layer-layer-dg-s1-cloak",
+        "fromNode": "v2-group-3d-shot-dg-1",
+        "fromPort": "layers_tree",
+        "toNode": "v2-layer-layer-dg-s1-cloak",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-group-3d-shot-dg-1-v2-layer-layer-dg-s1-calm",
+        "fromNode": "v2-group-3d-shot-dg-1",
+        "fromPort": "layers_tree",
+        "toNode": "v2-layer-layer-dg-s1-calm",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-group-3d-shot-dg-1-v2-layer-layer-dg-s1-sword",
+        "fromNode": "v2-group-3d-shot-dg-1",
+        "fromPort": "layers_tree",
+        "toNode": "v2-layer-layer-dg-s1-sword",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-layer-layer-dg-s1-crane2-wing-far-v2-cluster-cluster-dg-crane2-s1",
+        "fromNode": "v2-layer-layer-dg-s1-crane2-wing-far",
+        "fromPort": "layers_tree",
+        "toNode": "v2-cluster-cluster-dg-crane2-s1",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-layer-layer-dg-s1-crane2-body-v2-cluster-cluster-dg-crane2-s1",
+        "fromNode": "v2-layer-layer-dg-s1-crane2-body",
+        "fromPort": "layers_tree",
+        "toNode": "v2-cluster-cluster-dg-crane2-s1",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-layer-layer-dg-s1-crane2-wing-near-v2-cluster-cluster-dg-crane2-s1",
+        "fromNode": "v2-layer-layer-dg-s1-crane2-wing-near",
+        "fromPort": "layers_tree",
+        "toNode": "v2-cluster-cluster-dg-crane2-s1",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-layer-layer-dg-s1-crane-wing-far-v2-cluster-cluster-dg-crane-s1",
+        "fromNode": "v2-layer-layer-dg-s1-crane-wing-far",
+        "fromPort": "layers_tree",
+        "toNode": "v2-cluster-cluster-dg-crane-s1",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-layer-layer-dg-s1-crane-body-v2-cluster-cluster-dg-crane-s1",
+        "fromNode": "v2-layer-layer-dg-s1-crane-body",
+        "fromPort": "layers_tree",
+        "toNode": "v2-cluster-cluster-dg-crane-s1",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-layer-layer-dg-s1-crane-wing-near-v2-cluster-cluster-dg-crane-s1",
+        "fromNode": "v2-layer-layer-dg-s1-crane-wing-near",
+        "fromPort": "layers_tree",
+        "toNode": "v2-cluster-cluster-dg-crane-s1",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-layer-layer-dg-s1-cloak-v2-cluster-cluster-dg-hero-s1",
+        "fromNode": "v2-layer-layer-dg-s1-cloak",
+        "fromPort": "layers_tree",
+        "toNode": "v2-cluster-cluster-dg-hero-s1",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-layer-layer-dg-s1-calm-v2-cluster-cluster-dg-hero-s1",
+        "fromNode": "v2-layer-layer-dg-s1-calm",
+        "fromPort": "layers_tree",
+        "toNode": "v2-cluster-cluster-dg-hero-s1",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-layer-layer-dg-s1-sword-v2-cluster-cluster-dg-hero-s1",
+        "fromNode": "v2-layer-layer-dg-s1-sword",
+        "fromPort": "layers_tree",
+        "toNode": "v2-cluster-cluster-dg-hero-s1",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-root-shot-dg-1-v2-group-25d-shot-dg-1",
+        "fromNode": "v2-root-shot-dg-1",
+        "fromPort": "scene_ctx",
+        "toNode": "v2-group-25d-shot-dg-1",
+        "toPort": "scene_ctx"
+      },
+      {
+        "id": "e-v2-group-25d-shot-dg-1-v2-layer-layer-dg-s1-peach",
+        "fromNode": "v2-group-25d-shot-dg-1",
+        "fromPort": "layers_tree",
+        "toNode": "v2-layer-layer-dg-s1-peach",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-group-25d-shot-dg-1-v2-layer-layer-dg-s1-cliff",
+        "fromNode": "v2-group-25d-shot-dg-1",
+        "fromPort": "layers_tree",
+        "toNode": "v2-layer-layer-dg-s1-cliff",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-group-25d-shot-dg-1-v2-layer-layer-dg-s1-mist-mid",
+        "fromNode": "v2-group-25d-shot-dg-1",
+        "fromPort": "layers_tree",
+        "toNode": "v2-layer-layer-dg-s1-mist-mid",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-group-25d-shot-dg-1-v2-layer-layer-dg-s1-mist-far",
+        "fromNode": "v2-group-25d-shot-dg-1",
+        "fromPort": "layers_tree",
+        "toNode": "v2-layer-layer-dg-s1-mist-far",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-group-25d-shot-dg-1-v2-layer-layer-dg-s1-bg",
+        "fromNode": "v2-group-25d-shot-dg-1",
+        "fromPort": "layers_tree",
+        "toNode": "v2-layer-layer-dg-s1-bg",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-root-shot-dg-1-v2-group-env-shot-dg-1",
+        "fromNode": "v2-root-shot-dg-1",
+        "fromPort": "scene_ctx",
+        "toNode": "v2-group-env-shot-dg-1",
+        "toPort": "scene_ctx"
+      },
+      {
+        "id": "e-v2-group-env-shot-dg-1-v2-layer-layer-dg-s1-mist",
+        "fromNode": "v2-group-env-shot-dg-1",
+        "fromPort": "layers_tree",
+        "toNode": "v2-layer-layer-dg-s1-mist",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-group-env-shot-dg-1-v2-layer-layer-dg-s1-petals",
+        "fromNode": "v2-group-env-shot-dg-1",
+        "fromPort": "layers_tree",
+        "toNode": "v2-layer-layer-dg-s1-petals",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-cluster-cluster-dg-hero-s1-v2-anim_fx-cluster-dg-hero-s1",
+        "fromNode": "v2-cluster-cluster-dg-hero-s1",
+        "fromPort": "layers_tree",
+        "toNode": "v2-anim_fx-cluster-dg-hero-s1",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-anim_fx-cluster-dg-hero-s1-v2-action-layer-dg-s1-cloak",
+        "fromNode": "v2-anim_fx-cluster-dg-hero-s1",
+        "fromPort": "layers_tree",
+        "toNode": "v2-action-layer-dg-s1-cloak",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-action-layer-dg-s1-cloak-v2-fx_fade-layer-dg-s1-cloak",
+        "fromNode": "v2-action-layer-dg-s1-cloak",
+        "fromPort": "layers_tree",
+        "toNode": "v2-fx_fade-layer-dg-s1-cloak",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-cluster-cluster-dg-crane-s1-v2-anim_fx-cluster-dg-crane-s1",
+        "fromNode": "v2-cluster-cluster-dg-crane-s1",
+        "fromPort": "layers_tree",
+        "toNode": "v2-anim_fx-cluster-dg-crane-s1",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-anim_fx-cluster-dg-crane-s1-v2-action-layer-dg-s1-crane-wing-far",
+        "fromNode": "v2-anim_fx-cluster-dg-crane-s1",
+        "fromPort": "layers_tree",
+        "toNode": "v2-action-layer-dg-s1-crane-wing-far",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-action-layer-dg-s1-crane-wing-far-v2-fx_fade-layer-dg-s1-crane-wing-far",
+        "fromNode": "v2-action-layer-dg-s1-crane-wing-far",
+        "fromPort": "layers_tree",
+        "toNode": "v2-fx_fade-layer-dg-s1-crane-wing-far",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-cluster-cluster-dg-crane2-s1-v2-anim_fx-cluster-dg-crane2-s1",
+        "fromNode": "v2-cluster-cluster-dg-crane2-s1",
+        "fromPort": "layers_tree",
+        "toNode": "v2-anim_fx-cluster-dg-crane2-s1",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-anim_fx-cluster-dg-crane2-s1-v2-action-layer-dg-s1-crane2-wing-far",
+        "fromNode": "v2-anim_fx-cluster-dg-crane2-s1",
+        "fromPort": "layers_tree",
+        "toNode": "v2-action-layer-dg-s1-crane2-wing-far",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-layer-layer-dg-s1-mist-far-v2-action-layer-dg-s1-mist-far",
+        "fromNode": "v2-layer-layer-dg-s1-mist-far",
+        "fromPort": "layers_tree",
+        "toNode": "v2-action-layer-dg-s1-mist-far",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-layer-layer-dg-s1-mist-mid-v2-action-layer-dg-s1-mist-mid",
+        "fromNode": "v2-layer-layer-dg-s1-mist-mid",
+        "fromPort": "layers_tree",
+        "toNode": "v2-action-layer-dg-s1-mist-mid",
+        "toPort": "layers_tree"
+      },
+      {
+        "id": "e-v2-layer-layer-dg-s1-peach-v2-material-layer-dg-s1-peach",
+        "fromNode": "v2-layer-layer-dg-s1-peach",
+        "fromPort": "layers_tree",
+        "toNode": "v2-material-layer-dg-s1-peach",
+        "toPort": "layers_tree"
+      }
+    ]
+  }
+}

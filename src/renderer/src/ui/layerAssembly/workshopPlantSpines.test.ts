@@ -109,7 +109,7 @@ describe('workshop plant spines', () => {
 
   it('adds a spine from a preset and mutes the legacy sway of bound layers', () => {
     const spine = createPlantSpine({ points: stem, layerIds: ['trunk'], preset: 'grass', id: 's1' })
-    expect(spine.amplitude).toBe(16)
+    expect(spine.amplitude).toBe(15)
     const next = applyPlantSpineAction(composite(), { action: 'add', spine })
     expect(next.plantSpines).toHaveLength(1)
     expect(next.layers.find((l) => l.id === 'trunk')!.motion.type).toBe('none')

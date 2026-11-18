@@ -216,6 +216,7 @@ function clusterLockNode(inst: LayerClusterInstanceInfo, ctx: ClusterCtx): Workf
       modelId: root.model3d?.modelId,
       lockedGroup: inst.lockedGroup,
       rootLayerId: root.id,
+      collapsedSubLayers: inst.memberIds.length > 1,
       childLayerCount: inst.memberIds.length,
       targetMode: 'custom',
       targetLayerIds: [...activeMemberIds],

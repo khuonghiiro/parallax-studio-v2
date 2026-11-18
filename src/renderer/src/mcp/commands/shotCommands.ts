@@ -1,12 +1,35 @@
 import { nextShotPosition, SHOT_DIRECTIONS, type ShotDirection } from '../../actions'
 import * as factory from '../../project/factory'
 import { exportShotToJson, importShotFromJson } from '../../project/jsonFormat'
+import { analyzeShotDepthCorridor, projectCorridorFootToWorld } from '../../project/sceneDepthCorridor'
 import { buildShotWorkflowJson } from '../../project/workflowV2Engine'
 import { ParamError, ed, proj, type Handler } from '../types'
 import { bool, has, num, requireShot, setAnim, str, toPlain, vec3 } from '../params'
 import { layerSummary, shotSummary } from '../summaries'
 
 export const shotCommands: Record<string, Handler> = {
+  analyze_scene_depth: async (p) => {
+    const project = proj()
+    const shotId = has(p, 'shot_id') ? requireShot(project, str(p, 'shot_id')).id : ed().selectedShotId
+    const layerId = str(p, 'layer_id')
+    const footOffsetY = num(p, 'foot_offset_y') ?? 160
+    const analysis = await analyzeShotDepthCorridor(project, shotId, layerId)
+    const worldSamples = analysis.corridorSpine.map((sp) => ({
+      depthRatio: sp.depthRatio,
+      screenFootXY: sp.screenXY,
+      apparentScaleRatio: sp.apparentScaleRatio,
+      worldPose: projectCorridorFootToWorld(
+        project.comp,
+        sp.screenXY[0],
+        sp.screenXY[1],
+        sp.recommendedZ,
+        sp.apparentScaleRatio,
+        footOffsetY
+      )
+    }))
+    return { ...analysis, worldSamples }
+  },
+
   get_shot_info: (p) => {
     const project = proj()
     const s = requireShot(project, str(p, 'shot_id', true))

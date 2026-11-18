@@ -373,6 +373,35 @@ describe('plantSpine engine', () => {
     const arcRight = plantTipTransformToward(s, { x: 60, y: -100 })
     expect(arcRight.angle).toBeGreaterThan(10) // xoay vòng cung
   })
+
+  it('propagates a traveling S-wave from root to tip while staying at rest at t=0', () => {
+    const silk = spine({
+      amplitude: 16,
+      speed: 0.7,
+      stiffness: 0.16,
+      flexibility: 0.78,
+      waveLag: 0.85,
+      turbulence: 0.15,
+      verticalBob: 0
+    })
+    // Ở t = 0 với phaseOffset = 0, mọi vị trí dọc thân phải ở nguyên tư thế nghỉ
+    expect(plantBendAngle(silk, 0.35, 0)).toBe(0)
+    expect(plantBendAngle(silk, 1.0, 0)).toBe(0)
+    expect(deformPlantSpines(mesh, binding, [silk], 0)).toEqual(mesh)
+
+    // Sau khởi động (t > 0.3s), thân giữa và ngọn phải lệch pha tạo sóng chữ S (có thời điểm ngược dấu)
+    let sawOppositeSign = false
+    for (let step = 5; step < 30; step++) {
+      const t = step * 0.05
+      const midAngle = plantBendAngle(silk, 0.35, t)
+      const tipAngle = plantBendAngle(silk, 1.0, t)
+      if (midAngle * tipAngle < -2) {
+        sawOppositeSign = true
+        break
+      }
+    }
+    expect(sawOppositeSign).toBe(true)
+  })
 })
 
 

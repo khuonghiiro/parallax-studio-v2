@@ -41,6 +41,7 @@ import {
   resolveActiveMotionNode,
   WorkflowV2StageBboxMotionOverlay
 } from './WorkflowV2StageBboxMotionOverlay'
+import { WorkflowV2StageSubtitleOverlay } from './WorkflowV2StageSubtitleOverlay'
 import { resolveV2NodeLevel, resolveV2NodeTheme } from './workflowV2Theme'
 
 export interface WorkflowV2DirectStagePreviewProps {
@@ -77,6 +78,7 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
 }) => {
   const [toolbarHost, setToolbarHost] = useState<HTMLDivElement | null>(null)
   const isMotionNode = node.params?.logicCategory === 'action'
+  const isSubtitleNode = node.params?.logicCategory === 'subtitle'
   const shiftToFocus = useShiftToFocus()
   const update = useEditor((s) => s.update)
   const selectLayer = useEditor((s) => s.selectLayer)
@@ -512,7 +514,7 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
         >
           <span>{open ? '▾' : '▸'}</span>
           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            Khung chỉnh BBox
+            {isSubtitleNode ? 'Khung chỉnh Vị trí Vietsub' : 'Khung chỉnh BBox'}
           </span>
         </button>
         {open && (
@@ -605,7 +607,11 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
                 const lh = l.height * zoom
                 const lx = shotScreenW / 2 + l.offsetX * zoom - lw / 2
                 const ly = shotScreenH / 2 + l.offsetY * zoom - lh / 2
-                const isTarget = useClusterBbox ? clusterMemberIds.has(l.id) : l.id === repLayerId
+                const isTarget = isSubtitleNode
+                  ? false
+                  : useClusterBbox
+                    ? clusterMemberIds.has(l.id)
+                    : l.id === repLayerId
                 const runtimeAsset = l.assetId ? assetStore.get(l.assetId) : undefined
                 const projAsset = l.assetId ? project.assets.find((a) => a.id === l.assetId) : undefined
                 const imgUrl = runtimeAsset?.url || runtimeAsset?.thumbUrl || projAsset?.dataUrl || projAsset?.path
@@ -673,8 +679,19 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
                           justifyContent: 'center',
                           color: l.textColor ?? '#ffffff',
                           fontSize: Math.max(7, (l.fontSize ?? 36) * zoom),
-                          fontWeight: 700,
-                          textAlign: 'center'
+                          fontWeight: l.fontWeight ?? 700,
+                          fontStyle: l.italic ? 'italic' : 'normal',
+                          textAlign: l.align ?? 'center',
+                          whiteSpace: 'pre-line',
+                          lineHeight: 1.24,
+                          borderRadius: l.boxColor ? 6 : undefined,
+                          background:
+                            l.boxColor && (l.boxOpacity ?? 0) > 0.02 ? l.boxColor : undefined,
+                          border: l.boxBorderColor ? `1px solid ${l.boxBorderColor}` : undefined,
+                          textShadow:
+                            l.strokeColor && (l.strokeWidth ?? 0) > 0
+                              ? `0 0 2px ${l.strokeColor}, 0 1px 2px rgba(0,0,0,0.85)`
+                              : undefined
                         }}
                       >
                         {l.text}
@@ -774,7 +791,7 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
               })}
 
             {/* Khung BBox tương tác trực tiếp của Layer hoặc Toàn bộ Cụm */}
-            {selectedProjLayer && !isCollisionNode && (!isMotionNode || !hasBboxMotion) && (
+            {selectedProjLayer && !isCollisionNode && !isSubtitleNode && (!isMotionNode || !hasBboxMotion) && (
               <div
                 className={`wf-v2-direct-layer-bbox${isMotionNode ? ' is-locked-start' : ''}`}
                 data-scene-layer-id={coordRefLayer?.id || selectedProjLayer.id}
@@ -817,8 +834,24 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
               </div>
             )}
 
-            {/* Lớp phủ Ghost BBox #2 (Đích) & Quỹ đạo #1 -> #2 & Điểm Va Chạm */}
-            {isCollisionNode ? <WorkflowCollisionPreviewOverlay project={project} node={node}
+            {/* Lớp phủ Ghost BBox #2 (Đích) & Quỹ đạo #1 -> #2 & Điểm Va Chạm & Khung Vị Trí Vietsub */}
+            {isSubtitleNode ? (
+              <WorkflowV2StageSubtitleOverlay
+                toolbarHost={toolbarHost}
+                project={project}
+                node={node}
+                speakerLayer={activeLayerObj}
+                layers2D={layers2D}
+                stageW={stageW}
+                stageH={stageH}
+                shotLeft={shotLeft}
+                shotTop={shotTop}
+                shotScreenW={shotScreenW}
+                shotScreenH={shotScreenH}
+                zoom={zoom}
+                sampleTime={sampleTime}
+              />
+            ) : isCollisionNode ? <WorkflowCollisionPreviewOverlay project={project} node={node}
               stageW={stageW} stageH={stageH} centerX={shotLeft + shotScreenW / 2}
               centerY={shotTop + shotScreenH / 2} zoom={zoom} /> : <WorkflowV2StageBboxMotionOverlay
               toolbarHost={toolbarHost}
@@ -842,7 +875,7 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
             />}
           </div>
 
-          {isMotionNode && <div className="wf-motion-toolbar-dock" ref={setToolbarHost} />}
+          {(isMotionNode || isSubtitleNode) && <div className="wf-motion-toolbar-dock" ref={setToolbarHost} />}
 
           {/* Thanh nắm kéo dãn chiều cao khung BBox 2D trực tiếp */}
           <div
@@ -871,7 +904,7 @@ export const WorkflowV2DirectStagePreview: React.FC<WorkflowV2DirectStagePreview
           </div>
 
           {/* Thanh thông số toạ độ BBox & thao tác nhanh */}
-          {!isMotionNode && selectedProjLayer && coordRefLayer ? (
+          {!isMotionNode && !isSubtitleNode && selectedProjLayer && coordRefLayer ? (
             <div className="wf-v2-direct-footer">
               <span className="wf-v2-direct-coords">
                 {useClusterBbox ? 'Cụm ' : ''}X <b>{Math.round(coordRefLayer.transform.position.value?.[0] ?? 0)}</b> · Y{' '}

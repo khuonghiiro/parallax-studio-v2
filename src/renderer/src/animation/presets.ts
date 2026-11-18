@@ -14,6 +14,11 @@ export type CameraPreset =
   | 'orbitRight'
   | 'zoomIn'
   | 'dollyZoom'
+  | 'comicPunchIn'
+  | 'suspenseDrift'
+  | 'whipPan'
+  | 'impactZoomPunch'
+  | 'corridorFollow'
   | 'reset'
 
 export const CAMERA_PRESETS: { id: CameraPreset; label: string; hint: string }[] = [
@@ -27,6 +32,11 @@ export const CAMERA_PRESETS: { id: CameraPreset; label: string; hint: string }[]
   { id: 'orbitRight', label: 'Orbit Right', hint: 'Xoay quanh tâm cảnh' },
   { id: 'zoomIn', label: 'Zoom In (FOV)', hint: 'Phóng to bằng ống kính' },
   { id: 'dollyZoom', label: 'Dolly Zoom', hint: 'Hiệu ứng Vertigo' },
+  { id: 'comicPunchIn', label: 'Đẩy gấp Motion-Comic', hint: 'Đẩy cận nhanh dứt khoát (easeOut) rồi trượt chậm kiểu Hàn Bối Tháp' },
+  { id: 'suspenseDrift', label: 'Trôi sương Quái Đàm', hint: 'Lướt sương mù chậm rãi lệch tâm tạo nhịp hồi hộp 2.5D' },
+  { id: 'whipPan', label: 'Lia nhanh đối tượng (Whip Pan)', hint: 'Lia máy gấp bám hướng đối tượng với giảm tốc mượt' },
+  { id: 'impactZoomPunch', label: 'Thu phóng chấn động (Impact Punch)', hint: 'Phóng cận tốc độ cao đúng nhịp va chạm kèm khựng hitstop rồi kéo giãn' },
+  { id: 'corridorFollow', label: 'Bám trục chiều sâu ngõ (Corridor Follow)', hint: 'Đẩy máy dọc hành lang phối cảnh điểm tụ tôn lớp parallax' },
   { id: 'reset', label: 'Reset camera', hint: 'Xoá keyframe camera' }
 ]
 
@@ -124,6 +134,68 @@ export function applyCameraPreset(
         addKeyframe(cam.position, t, W([0, 0, -dist]), 'linear')
         addKeyframe(cam.fov, t, fov, 'linear')
       }
+      break
+    }
+    case 'comicPunchIn': {
+      const span = Math.max(0.2, t1 - t0)
+      const tSnap = t0 + span * 0.28
+      const punchPos: Vec3 = [0, -comp.height * 0.015 * k, -d * (1 - 0.34 * k)]
+      const endPos: Vec3 = [0, -comp.height * 0.02 * k, -d * (1 - 0.42 * k)]
+      addKeyframe(cam.position, t0, W(p0), 'easeOut')
+      addKeyframe(cam.position, tSnap, W(punchPos), 'easeOut')
+      addKeyframe(cam.position, t1, W(endPos), 'easeInOut')
+      addKeyframe(cam.target, t0, W(tg0), 'easeOut')
+      addKeyframe(cam.target, tSnap, W([0, -comp.height * 0.015 * k, 0]), 'easeOut')
+      addKeyframe(cam.target, t1, W([0, -comp.height * 0.02 * k, 0]), 'easeInOut')
+      addKeyframe(cam.fov, t0, 40, 'easeOut')
+      addKeyframe(cam.fov, tSnap, 40 - 4 * k, 'easeOut')
+      addKeyframe(cam.fov, t1, 40 - 5.5 * k, 'easeInOut')
+      break
+    }
+    case 'suspenseDrift': {
+      const steps = 6
+      for (let i = 0; i <= steps; i++) {
+        const u = i / steps
+        const t = t0 + (t1 - t0) * u
+        const dx = Math.sin(u * Math.PI * 1.5 - 0.4) * comp.width * 0.032 * k
+        const dy = Math.sin(u * Math.PI) * comp.height * 0.014 * k
+        const dz = d * 0.14 * k * ease('easeInOut', u)
+        addKeyframe(cam.position, t, W([dx, dy, -d + dz]), 'easeInOut')
+        addKeyframe(cam.target, t, W([dx * 0.45, dy * 0.4, 0]), 'easeInOut')
+      }
+      break
+    }
+    case 'whipPan': {
+      const panX = comp.width * 0.18 * k
+      addKeyframe(cam.position, t0, W([-panX * 0.65, 0, -d * 0.92]), 'easeOut')
+      addKeyframe(cam.position, t1, W([panX * 0.65, 0, -d * 0.88]), 'easeOut')
+      addKeyframe(cam.target, t0, W([-panX, 0, 0]), 'easeOut')
+      addKeyframe(cam.target, t1, W([panX, 0, 0]), 'easeOut')
+      break
+    }
+    case 'impactZoomPunch': {
+      const span = Math.max(0.3, t1 - t0)
+      const tHit = t0 + span * 0.36
+      const tHold = Math.min(t1 - 0.06, tHit + Math.min(0.14, span * 0.14))
+      addKeyframe(cam.position, t0, W(p0), 'easeOut')
+      addKeyframe(cam.position, tHit, W([14 * k, -10 * k, -d * (1 - 0.34 * k)]), 'easeOut')
+      addKeyframe(cam.position, tHold, W([0, -6 * k, -d * (1 - 0.33 * k)]), 'easeInOut')
+      addKeyframe(cam.position, t1, W([0, 0, -d * (1 - 0.14 * k)]), 'easeInOut')
+      addKeyframe(cam.target, t0, W(tg0), 'easeOut')
+      addKeyframe(cam.target, tHit, W([12 * k, -8 * k, 0]), 'easeOut')
+      addKeyframe(cam.target, tHold, W([0, -4 * k, 0]), 'easeInOut')
+      addKeyframe(cam.target, t1, W(tg0), 'easeInOut')
+      addKeyframe(cam.fov, t0, 41, 'easeOut')
+      addKeyframe(cam.fov, tHit, 40 - 5.5 * k, 'easeOut')
+      addKeyframe(cam.fov, tHold, 40 - 5 * k, 'easeInOut')
+      addKeyframe(cam.fov, t1, 39.5, 'easeInOut')
+      break
+    }
+    case 'corridorFollow': {
+      addKeyframe(cam.position, t0, W([-comp.width * 0.03 * k, comp.height * 0.04 * k, -d * 0.72]), 'easeInOut')
+      addKeyframe(cam.position, t1, W([comp.width * 0.02 * k, -comp.height * 0.02 * k, -d * 0.94]), 'easeInOut')
+      addKeyframe(cam.target, t0, W([-comp.width * 0.03 * k, comp.height * 0.05 * k, 180]), 'easeInOut')
+      addKeyframe(cam.target, t1, W([0, -comp.height * 0.04 * k, 40]), 'easeInOut')
       break
     }
     case 'reset':

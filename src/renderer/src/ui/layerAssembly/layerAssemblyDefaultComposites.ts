@@ -15,9 +15,20 @@ const HUMAN_QUARTER_COMPOSITE: LayerComposite = {
  * - 2 mẫu nhân vật Anime 2.5D bóc tách 13 mảnh tỉ lệ gốc 1:1 (Mẫu minh hoạ kính cận & Nam sinh học viện tương tự)
  * - 3 mẫu thiên nhiên bóc tách được giữ lại theo yêu cầu: Cây Đại Thụ Bóc Tách, Cụm Đá Rêu Phong & Tinh Thể Bóc Tách, Cây Bonsai Cổ Thụ Đung Đưa
  */
+import {
+  SWORD_HUNTER_25D_COMPOSITE,
+  SPIRIT_WOLF_25D_COMPOSITE,
+  SHADOW_MONSTER_25D_COMPOSITE,
+  SPIRIT_EAGLE_25D_COMPOSITE
+} from './action25dComposites'
+
 const RAW_BUILTIN_COMPOSITES: LayerComposite[] = [
   CUTOUT_HERO_COMPOSITE,
   HUMAN_QUARTER_COMPOSITE,
+  SWORD_HUNTER_25D_COMPOSITE,
+  SPIRIT_WOLF_25D_COMPOSITE,
+  SHADOW_MONSTER_25D_COMPOSITE,
+  SPIRIT_EAGLE_25D_COMPOSITE,
   {
     id: 'comp-modular-tree',
     name: 'Cây Đại Thụ Bóc Tách (Đổi Tán Lá Xanh / Vàng / Hoa / Quả)',

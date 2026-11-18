@@ -33,6 +33,8 @@ import { ensureProjectWorkflow, resolveConnectedWorkflowNodes } from '../../proj
 import { TimelineModeTabs } from '../workflow/TimelineModeTabs'
 import { activeTimelineRef, addTimelineKey } from './timelineKeyEditing'
 
+export type TimelineRoleFilter = 'all' | 'scene' | 'character' | 'dialogue'
+
 export interface TimelineToolbarProps {
   time?: number
   fps: number
@@ -41,6 +43,8 @@ export interface TimelineToolbarProps {
   loop: boolean
   zoom: number
   hasSelectedLayer: boolean
+  roleFilter?: TimelineRoleFilter
+  onChangeRoleFilter?: (filter: TimelineRoleFilter) => void
   setTime: (t: number) => void
   setPlaying: (playing: boolean) => void
   setLoop: (loop: boolean) => void
@@ -55,6 +59,8 @@ export function TimelineToolbar({
   loop,
   zoom,
   hasSelectedLayer,
+  roleFilter = 'all',
+  onChangeRoleFilter,
   setTime,
   setPlaying,
   setLoop,
@@ -232,6 +238,28 @@ export function TimelineToolbar({
       </div>
 
       <div style={{ flex: 1 }} />
+
+      {onChangeRoleFilter && (
+        <div className="tl-role-filter" role="group" aria-label="Lọc nhanh Cảnh, Nhân vật và Hộp thoại trên Timeline" data-mcp-region="timeline_role_filter">
+          {([
+            { id: 'all', label: 'Tất cả' },
+            { id: 'scene', label: '🎬 Cảnh' },
+            { id: 'character', label: '🧍 Nhân vật' },
+            { id: 'dialogue', label: '💬 Thoại' }
+          ] as { id: TimelineRoleFilter; label: string }[]).map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              className={`tl-role-filter-btn${roleFilter === item.id ? ' active' : ''}`}
+              aria-pressed={roleFilter === item.id}
+              onClick={() => onChangeRoleFilter(item.id)}
+              title={`Chỉ hiển thị nhóm "${item.label}" trên Timeline để dễ kéo sửa`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* 4. Timeline Zoom & View Controls */}
       <div className="tl-tool-group tl-zoom-group">

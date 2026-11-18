@@ -31,6 +31,7 @@ const LOGIC_THEMES: Record<string, WorkflowV2NodeTheme> = {
   fx: { badge: 'HIỆU ỨNG', icon: '✨', accent: '#a855f7', portIn: 'layers_tree', portOut: 'vfx_stage', levelClass: 'level-logic' },
   anim_fx: { badge: 'HÀNH ĐỘNG', icon: '🎞️', accent: '#e11d48', portIn: 'layers_tree', portOut: 'motion_stream', levelClass: 'level-logic' },
   audio: { badge: 'ÂM THANH', icon: '🔊', accent: '#ec4899', portIn: 'layers_tree', portOut: 'audio_mix', levelClass: 'level-logic' },
+  subtitle: { badge: 'VIETSUB', icon: '💬', accent: '#fbbf24', portIn: 'layers_tree', portOut: 'audio_mix', levelClass: 'level-logic' },
   camera: { badge: 'CAMERA 3D', icon: '🎥', accent: '#0284c7', portIn: 'scene_ctx', portOut: 'camera_cut', levelClass: 'level-logic is-cam-parent' },
   action: { badge: 'MOTION', icon: '🏃', accent: '#10b981', portIn: 'layers_tree', portOut: 'motion_stream', levelClass: 'level-logic' }
 }
@@ -187,7 +188,7 @@ export function resolveV2NodeTheme(node: WorkflowNode): WorkflowV2NodeTheme {
 /** Tiêu đề hiển thị gọn (bỏ tiền tố loại như "Hành động: ", "Bộ phận: ", "[Tên Cụm] " và icon trùng...) */
 export function cleanV2NodeTitle(title: string): string {
   return title
-    .replace(/^(Hành động Nhân vật|Hành động|Motion|Animation Loop|Loop|Hoạt ảnh Xương|Hoạt ảnh FX|Hoạt ảnh|Animation|Thay bộ phận|Bộ phận|Gắn xương|Khoá cụm|Khoá khối 3D|Vật liệu|Va chạm|Ánh sáng|Hang động|Hiệu ứng|Âm thanh|Cảnh|Camera):\s*/i, '')
+    .replace(/^(Hành động Nhân vật|Hành động|Motion|Animation Loop|Loop|Hoạt ảnh Xương|Hoạt ảnh FX|Hoạt ảnh|Animation|Thay bộ phận|Bộ phận|Gắn xương|Khoá cụm|Khoá khối 3D|Vật liệu|Va chạm|Ánh sáng|Hang động|Hiệu ứng|Âm thanh|Phụ đề Vietsub|Vietsub|Phụ đề|Cảnh|Camera):\s*/i, '')
     .replace(/^\[[^\]]+\]\s+/, '')
     .replace(/^[\p{Extended_Pictographic}\u2600-\u27BF\uFE0F]+\s*/u, '')
 }

@@ -25,14 +25,28 @@ export type WorkflowV2SpawnCategory =
   | 'cave'
   | 'fx'
   | 'audio'
+  | 'subtitle'
 
 export interface WorkflowV2LogicCategoryItem {
   id: WorkflowV2SpawnCategory
+  presetId?: string
   icon: string
   label: string
   hint: string
   accent: string
 }
+
+const ATOMIC_FX_ITEMS: WorkflowV2LogicCategoryItem[] = [
+  { id: 'fx', presetId: 'v2:fx:fadeInOut', icon: '🌓', label: 'Hiện / Ẩn mờ dần', hint: 'Chỉ điều khiển Opacity vào/ra độc lập', accent: '#a855f7' },
+  { id: 'fx', presetId: 'v2:fx:pulse', icon: '💓', label: 'Nhịp thở / Co giãn', hint: 'Chỉ điều khiển nhịp Scale thở độc lập', accent: '#c084fc' },
+  { id: 'fx', presetId: 'v2:fx:shake', icon: '⚡', label: 'Rung chấn cảm xúc', hint: 'Chỉ điều khiển rung sợ hãi / giận dữ', accent: '#f43f5e' },
+  { id: 'fx', presetId: 'v2:fx:neonSolid', icon: '✨', label: 'Viền sáng / Hào quang', hint: 'Chỉ điều khiển quầng sáng Neon độc lập', accent: '#e879f9' }
+]
+
+const ATOMIC_SUBTITLE_ITEMS: WorkflowV2LogicCategoryItem[] = [
+  { id: 'subtitle', presetId: 'v2:subtitle:lugia_cyan', icon: '💬', label: 'Phụ đề Vietsub', hint: 'Phụ đề chuẩn 2.5D đáy màn hình & giữ thời gian nói', accent: '#fbbf24' },
+  { id: 'subtitle', presetId: 'v2:subtitle:comic_bubble', icon: '💭', label: 'Hộp Thoại Comic', hint: 'Bong bóng thoại có đuôi trỏ thẳng vào nhân vật', accent: '#38bdf8' }
+]
 
 /**
  * Nhóm logic gắn vào Layer / Cụm — tuân thủ Nguyên Tắc Đơn Trách Nhiệm Của Node:
@@ -49,7 +63,8 @@ export const WORKFLOW_V2_LOGIC_CATEGORIES: WorkflowV2LogicCategoryItem[] = [
   { id: 'collision', icon: '💥', label: 'Va chạm', hint: 'Nối 2 Layer / Cụm va đập vật lý', accent: '#f43f5e' },
   { id: 'light', icon: '💡', label: 'Ánh sáng', hint: 'Đèn viền, nến, glow, nguồn sáng ảo 2.5D', accent: '#eab308' },
   { id: 'cave', icon: '🕳️', label: 'Hang động', hint: 'Vòm cổng độ sâu 2.5D', accent: '#14b8a6' },
-  { id: 'audio', icon: '🔊', label: 'Âm thanh', hint: 'Thoại, nhép môi & SFX', accent: '#ec4899' }
+  { id: 'audio', icon: '🔊', label: 'Âm thanh', hint: 'Thoại, nhép môi & SFX', accent: '#ec4899' },
+  { id: 'subtitle', icon: '💬', label: 'Phụ đề Vietsub', hint: 'Lời thoại Vietsub gắn riêng từng đối tượng & đồng bộ thời gian nói', accent: '#fbbf24' }
 ]
 
 /** Kiểm tra xem Layer có phải tài nguyên Hoạt ảnh Lặp (Animate Loop / GIF) hay không */
@@ -110,12 +125,13 @@ export function getCompatibleLogicCatalogForNode(
       })
     }
     categories.push(
-      { id: 'action', icon: '🔄', label: 'Motion 3D', hint: 'Xoay 3D & vẽ quỹ đạo chuyển động', accent: '#10b981' },
-      { id: 'fx', icon: '✨', label: 'Hiệu ứng 3D', hint: 'Hiện/ẩn mờ dần, nhịp đập, rung chấn & phát sáng', accent: '#a855f7' },
+      { id: 'action', presetId: 'v2:action:bbox_target', icon: '🔄', label: 'Motion 3D BBox', hint: 'Đặt BBox Đích & xoay 3D độc lập', accent: '#10b981' },
+      ...ATOMIC_FX_ITEMS,
       { id: 'material', icon: '🏷️', label: 'Vật liệu 3D', hint: 'Đá cứng, kim loại, gỗ, đàn hồi', accent: '#f97316' },
       { id: 'collision', icon: '💥', label: 'Va chạm 3D', hint: 'Tương tác va đập vật lý 3D', accent: '#f43f5e' },
       { id: 'light', icon: '💡', label: 'Ánh sáng 3D', hint: 'Chiếu sáng khối 3D, Rim & Point', accent: '#eab308' },
-      { id: 'audio', icon: '🔊', label: 'Âm thanh 3D', hint: 'Âm thanh gắn theo khối 3D', accent: '#ec4899' }
+      { id: 'audio', presetId: 'v2:audio:voice', icon: '🔊', label: 'Âm thanh 3D', hint: 'Âm thanh gắn theo khối 3D', accent: '#ec4899' },
+      ...ATOMIC_SUBTITLE_ITEMS
     )
     return { categories, dynamicParts, parentKind: 'model_3d' }
   }
@@ -126,19 +142,21 @@ export function getCompatibleLogicCatalogForNode(
       categories.push({
         id: 'part_swap',
         icon: '🧩',
-        label: 'Bộ phận',
-        hint: 'Chỉnh bộ phận lắp ráp từ Xưởng 2.5D',
+        label: 'Bộ phận & Biểu cảm',
+        hint: 'Đổi mặt / tay / đạo cụ từ Xưởng 2.5D',
         accent: '#06b6d4'
       })
     }
     categories.push(
-      { id: 'anim_fx', icon: '🎞️', label: 'Hành động Nhân vật', hint: 'Động tác nhép miệng, nháy mắt & Clip xương 2.5D', accent: '#6366f1' },
-      { id: 'action', icon: '🏃', label: 'Motion', hint: 'Đặt BBox Đích & vẽ quỹ đạo chuyển động', accent: '#10b981' },
-      { id: 'fx', icon: '✨', label: 'Hiệu ứng', hint: 'Hiện/ẩn mờ dần, nhịp đập, rung chấn & Neon', accent: '#a855f7' },
+      { id: 'anim_fx', presetId: 'v2:anim_fx:rig_idle', icon: '🎞️', label: 'Hành động Xương', hint: 'Clip cử động xương & động tác nhân vật 2.5D', accent: '#6366f1' },
+      { id: 'action', presetId: 'v2:action:bbox_target', icon: '🏃', label: 'Di chuyển BBox', hint: 'Chỉ chỉnh vị trí Đích (#1→#2) & Chiều sâu Z', accent: '#10b981' },
+      { id: 'action', presetId: 'v2:action:float', icon: '🌊', label: 'Nhấp nhô / Lơ lửng', hint: 'Dao động bay lơ lửng độc lập với BBox', accent: '#14b8a6' },
+      ...ATOMIC_FX_ITEMS,
       { id: 'material', icon: '🏷️', label: 'Vật liệu', hint: 'Đàn hồi chất liệu cho cụm 2.5D', accent: '#f97316' },
       { id: 'collision', icon: '💥', label: 'Va chạm', hint: 'Nối 2 Cụm / Layer va đập vật lý', accent: '#f43f5e' },
       { id: 'light', icon: '💡', label: 'Ánh sáng', hint: 'Đèn viền, glow, nguồn sáng cụm', accent: '#eab308' },
-      { id: 'audio', icon: '🔊', label: 'Âm thanh', hint: 'Thoại & nhép môi nhân vật', accent: '#ec4899' }
+      { id: 'audio', presetId: 'v2:audio:voice', icon: '🔊', label: 'Giọng nói / SFX', hint: 'Thoại & nhép môi nhân vật độc lập', accent: '#ec4899' },
+      ...ATOMIC_SUBTITLE_ITEMS
     )
     return { categories, dynamicParts, parentKind: 'composite_25d' }
   }
@@ -148,6 +166,7 @@ export function getCompatibleLogicCatalogForNode(
   if (isAnimatedLoopLayer(firstLayer, project)) {
     singleCategories.push({
       id: 'loop_anim',
+      presetId: 'v2:loop_anim:loop',
       icon: '🔁',
       label: 'Animation Loop',
       hint: 'Chu kỳ phát lặp, tốc độ & số vòng riêng cho item Loop',
@@ -155,14 +174,16 @@ export function getCompatibleLogicCatalogForNode(
     })
   }
   singleCategories.push(
-    { id: 'action', icon: '🏃', label: 'Motion', hint: 'Đặt BBox Đích & vẽ quỹ đạo di chuyển Layer', accent: '#10b981' },
-    { id: 'fx', icon: '✨', label: 'Hiệu ứng', hint: 'Hiện/ẩn mờ dần, nhịp đập, rung chấn, phát sáng Neon & quang học', accent: '#a855f7' },
-    { id: 'rig_bone', icon: '🦴', label: 'Gắn xương', hint: 'Chuỗi xương uốn dẻo cho Layer', accent: '#f59e0b' },
+    { id: 'action', presetId: 'v2:action:bbox_target', icon: '🏃', label: 'Di chuyển BBox', hint: 'Chỉ chỉnh vị trí Đích (#1→#2) & Chiều sâu Z', accent: '#10b981' },
+    { id: 'action', presetId: 'v2:action:float', icon: '🌊', label: 'Nhấp nhô / Lơ lửng', hint: 'Dao động bay lơ lửng độc lập với BBox', accent: '#14b8a6' },
+    ...ATOMIC_FX_ITEMS,
+    { id: 'rig_bone', presetId: 'v2:rig_bone:humanoid_15', icon: '🦴', label: 'Gắn xương', hint: 'Chuỗi xương uốn dẻo cho Layer', accent: '#f59e0b' },
     { id: 'material', icon: '🏷️', label: 'Vật liệu', hint: 'Cao su, gỗ, đá, lá, kim loại & đàn hồi Mesh', accent: '#f97316' },
     { id: 'collision', icon: '💥', label: 'Va chạm', hint: 'Nối 2 Layer va đập vật lý', accent: '#f43f5e' },
     { id: 'light', icon: '💡', label: 'Ánh sáng', hint: 'Đèn viền, nến, glow, nguồn sáng', accent: '#eab308' },
     { id: 'cave', icon: '🕳️', label: 'Hang động', hint: 'Vòm cổng độ sâu 2.5D', accent: '#14b8a6' },
-    { id: 'audio', icon: '🔊', label: 'Âm thanh', hint: 'Thoại, nhép môi & SFX', accent: '#ec4899' }
+    { id: 'audio', presetId: 'v2:audio:voice', icon: '🔊', label: 'Giọng nói / SFX', hint: 'Thoại, nhép môi & SFX độc lập', accent: '#ec4899' },
+    ...ATOMIC_SUBTITLE_ITEMS
   )
   return { categories: singleCategories, dynamicParts: [], parentKind: 'single_25d' }
 }
@@ -187,7 +208,8 @@ const prefix: Record<WorkflowV2SpawnCategory, string> = {
   light: 'Ánh sáng',
   cave: 'Hang động',
   fx: 'Hiệu ứng',
-  audio: 'Âm thanh'
+  audio: 'Âm thanh',
+  subtitle: 'Vietsub'
 }
 
 function preset(category: WorkflowV2SpawnCategory, optionId: string, label: string, params: Partial<WorkflowNodeParams>): WorkflowV2LogicPreset {
@@ -240,9 +262,29 @@ export const WORKFLOW_V2_LOGIC_PRESETS: WorkflowV2LogicPreset[] = [
   preset('rig_bone', 'humanoid_15', '🦴 Khung xương Nhân vật 2.5D (15 khớp)', { rigBonePreset: 'humanoid_15', rigSoftBinding: true, intensity: 1 }),
   preset('rig_bone', 'mixamo_12', '🕺 Auto-Rig 12 điểm mốc Mixamo 2.5D', { rigBonePreset: 'mixamo_12', rigSoftBinding: true, intensity: 1 }),
   preset('rig_bone', 'chain_3', '🌿 Chuỗi xương uốn 3 khớp (Cây / Đạo cụ)', { rigBonePreset: 'chain_3', rigSoftBinding: true, intensity: 1 }),
+  preset('rig_bone', 'quadruped_12', '🐺 Khung xương Thú 4 chân 2.5D (12 khớp)', { rigBonePreset: 'quadruped_12', rigSoftBinding: true, intensity: 1 }),
+  preset('rig_bone', 'bird_8', '🦅 Khung xương Chim / Cánh bay 2.5D (8 khớp)', { rigBonePreset: 'bird_8', rigSoftBinding: true, intensity: 1 }),
+  preset('rig_bone', 'monster_14', '👹 Khung xương Quái vật 2.5D (14 khớp)', { rigBonePreset: 'monster_14', rigSoftBinding: true, intensity: 1 }),
 
   // 4. Node Hành động Nhân vật (anim_fx) — chỉ phục vụ Clip cử động xương & động tác nhân vật 2.5D
   preset('anim_fx', 'rig_idle', '🌬️ Đứng thở tự nhiên (Idle)', { animMode: 'rig_clip', rigActionPreset: 'idle', intensity: 1 }),
+  preset('anim_fx', 'rig_run', '🏃 Chạy bứt tốc (Run)', { animMode: 'rig_clip', rigActionPreset: 'run', intensity: 1 }),
+  preset('anim_fx', 'rig_jump', '🦘 Bật nhảy lên cao (Jump)', { animMode: 'rig_clip', rigActionPreset: 'jump', intensity: 1 }),
+  preset('anim_fx', 'rig_land', '🦶 Tiếp đất chắc chắn (Land)', { animMode: 'rig_clip', rigActionPreset: 'land', intensity: 1 }),
+  preset('anim_fx', 'rig_combat', '⚔️ Combo chém kiếm 2.5D (Combat)', { animMode: 'rig_clip', rigActionPreset: 'combat', intensity: 1 }),
+  preset('anim_fx', 'rig_martial_kick', '🥋 Đá xoáy võ thuật (Martial Kick)', { animMode: 'rig_clip', rigActionPreset: 'martial_kick', intensity: 1 }),
+  preset('anim_fx', 'rig_dodge_counter', '💨 Né đòn & Phản công (Dodge Counter)', { animMode: 'rig_clip', rigActionPreset: 'dodge_counter', intensity: 1 }),
+  preset('anim_fx', 'rig_hit_recoil', '💥 Trúng đòn giật lùi (Hit Recoil)', { animMode: 'rig_clip', rigActionPreset: 'hit_recoil', intensity: 1 }),
+  preset('anim_fx', 'rig_quadruped_walk', '🐾 Thú 4 chân đi bộ (Quadruped Walk)', { animMode: 'rig_clip', rigActionPreset: 'quadruped_walk', intensity: 1 }),
+  preset('anim_fx', 'rig_quadruped_gallop', '🐺 Thú 4 chân phi nước đại (Gallop)', { animMode: 'rig_clip', rigActionPreset: 'quadruped_gallop', intensity: 1 }),
+  preset('anim_fx', 'rig_wing_flap', '🦅 Chim vỗ cánh bay lượn (Wing Flap)', { animMode: 'rig_clip', rigActionPreset: 'wing_flap', intensity: 1 }),
+  preset('anim_fx', 'rig_monster_prowl', '🕷️ Quái vật rình mồi (Monster Prowl)', { animMode: 'rig_clip', rigActionPreset: 'monster_prowl', intensity: 1 }),
+  preset('anim_fx', 'rig_monster_roar', '🦁 Quái vật gầm rú (Monster Roar)', { animMode: 'rig_clip', rigActionPreset: 'monster_roar', intensity: 1 }),
+  preset('anim_fx', 'rig_monster_pounce', '👹 Quái vật vồ mồi (Monster Pounce)', { animMode: 'rig_clip', rigActionPreset: 'monster_pounce', intensity: 1 }),
+  preset('anim_fx', 'rig_talk', '💬 Thuyết thoại 2D (Talk)', { animMode: 'rig_clip', rigActionPreset: 'talk', intensity: 1 }),
+  preset('anim_fx', 'rig_scheming', '🧠 Mưu tính chống cằm (Scheming)', { animMode: 'rig_clip', rigActionPreset: 'scheming', intensity: 1 }),
+  preset('anim_fx', 'rig_shock', '😱 Giật mình Quái Đàm (Shock)', { animMode: 'rig_clip', rigActionPreset: 'shock', intensity: 1 }),
+  preset('anim_fx', 'rig_point', '👉 Chỉ tay phá cục (Point)', { animMode: 'rig_clip', rigActionPreset: 'point', intensity: 1 }),
   preset('anim_fx', 'rig_walk', '🚶 Bước đi (Walk)', { animMode: 'rig_clip', rigActionPreset: 'walk', intensity: 1 }),
   preset('anim_fx', 'rig_wave', '👋 Vẫy tay chào (Wave)', { animMode: 'rig_clip', rigActionPreset: 'wave', intensity: 1 }),
   preset('anim_fx', 'rig_bow', '🙇 Cúi chào (Bow)', { animMode: 'rig_clip', rigActionPreset: 'bow', intensity: 1 }),
@@ -275,42 +317,250 @@ export const WORKFLOW_V2_LOGIC_PRESETS: WorkflowV2LogicPreset[] = [
     preset('cave', o.id, o.label, { caveArchShape: o.id, caveDarkness: o.defaultDarkness, caveMinScale: o.defaultMinScale, intensity: o.defaultDarkness })
   ),
 
-  // 7. Node Hiệu ứng (fx) — hội tụ đầy đủ Hiện/Ẩn mờ dần, Nhịp biến đổi Keyframe FX, Nhịp Beat và Quang học/Neon
-  ...WORKFLOW_V2_ANIM_FX_OPTIONS.filter((o) => o.id !== 'loop_rhythm' && o.id !== 'loop_flicker').map((o) =>
-    preset('fx', o.id, o.label, {
-      fxSubTab: o.fxCategory === 'opacity' ? 'opacity' : o.fxCategory === 'transform' ? 'pulse' : 'glow',
-      animFxPreset: o.id,
-      intensity: o.defaultIntensity,
-      animFxCount: o.defaultCount,
-      animFxColor: o.defaultColor,
-      ...(o.id === 'fadeIn' ? { loopFadeInSec: 0.6 } : {}),
-      ...(o.id === 'fadeOut' ? { loopEndAction: 'fade_out', loopFadeOutSec: 0.6 } : {})
-    })
-  ),
-  preset('fx', 'fadeInOut', '🌗 Hiện mờ → nét & Ẩn mờ dần', {
-    fxSubTab: 'opacity',
-    animFxPreset: 'fadeIn',
-    loopFadeInSec: 0.5,
-    loopEndAction: 'fade_out',
-    loopFadeOutSec: 0.5,
-    intensity: 1
+  // 7. Node Hiệu ứng nguyên tử (`fx`) — tách bạch 3 vai trò đơn nhiệm: Hiện/Ẩn (`fade`), Nhịp/Rung (`pulse`), Phát sáng (`glow`)
+  ...WORKFLOW_V2_ANIM_FX_OPTIONS.filter((o) => o.id !== 'loop_rhythm' && o.id !== 'loop_flicker').map((o) => {
+    const role = o.fxCategory === 'opacity' ? 'fade' : o.fxCategory === 'transform' ? 'pulse' : 'glow'
+    const roleTitlePrefix = role === 'fade' ? 'Hiện/Ẩn' : role === 'pulse' ? 'Nhịp/Rung' : 'Phát sáng'
+    return {
+      ...preset('fx', o.id, o.label, {
+        fxAtomicRole: role,
+        fxSubTab: role === 'fade' ? 'opacity' : role,
+        animFxPreset: o.id,
+        intensity: o.defaultIntensity,
+        animFxCount: o.defaultCount,
+        animFxColor: o.defaultColor,
+        ...(o.id === 'fadeIn' ? { loopFadeInSec: 0.6 } : {}),
+        ...(o.id === 'fadeOut' ? { loopEndAction: 'fade_out', loopFadeOutSec: 0.6 } : {})
+      }),
+      title: `${roleTitlePrefix}: ${o.label}`
+    }
   }),
-  preset('fx', 'rhythm_beat', '🔥 Nhịp đập & Nháy sáng liên tục (Rhythm Beat)', {
-    fxSubTab: 'pulse',
-    animFxPreset: 'loop_rhythm',
-    loopRhythmMode: 'sync_both',
-    loopRhythmRateHz: 2.5,
-    loopRhythmIntensity: 0.45,
-    loopMinOpacity: 0.55,
-    loopScaleBeatPct: 12,
-    intensity: 0.45
+  {
+    ...preset('fx', 'fadeInOut', '🌗 Hiện mờ → nét & Ẩn mờ dần', {
+      fxAtomicRole: 'fade',
+      fxSubTab: 'opacity',
+      animFxPreset: 'fadeIn',
+      loopFadeInSec: 0.5,
+      loopEndAction: 'fade_out',
+      loopFadeOutSec: 0.5,
+      intensity: 1
+    }),
+    title: 'Hiện/Ẩn: Hiện mờ → nét & Ẩn mờ dần'
+  },
+  {
+    ...preset('fx', 'rhythm_beat', '🔥 Nhịp đập & Nháy sáng liên tục (Rhythm Beat)', {
+      fxAtomicRole: 'pulse',
+      fxSubTab: 'pulse',
+      animFxPreset: 'loop_rhythm',
+      loopRhythmMode: 'sync_both',
+      loopRhythmRateHz: 2.5,
+      loopRhythmIntensity: 0.45,
+      loopMinOpacity: 0.55,
+      loopScaleBeatPct: 12,
+      intensity: 0.45
+    }),
+    title: 'Nhịp/Rung: Nhịp đập & Nháy sáng liên tục'
+  },
+  ...WORKFLOW_V2_FX_OPTIONS.map((o) => {
+    const role = o.id === 'wind_physics' || o.id === 'particles' ? 'pulse' : 'glow'
+    const roleTitlePrefix = role === 'pulse' ? 'Nhịp/Hạt' : 'Phát sáng'
+    return {
+      ...preset('fx', o.id, o.label, {
+        fxAtomicRole: role,
+        fxSubTab: role,
+        fxKind: o.id,
+        intensity: o.defaultIntensity
+      }),
+      title: `${roleTitlePrefix}: ${o.label}`
+    }
   }),
-  ...WORKFLOW_V2_FX_OPTIONS.map((o) =>
-    preset('fx', o.id, o.label, { fxSubTab: 'glow', fxKind: o.id, intensity: o.defaultIntensity })
-  ),
 
   // 8. Node Âm thanh
-  preset('audio', 'voice', 'Thoại & nhép môi', { intensity: 1, autoLipSync: true })
+  preset('audio', 'voice', 'Thoại & nhép môi', { intensity: 1, autoLipSync: true }),
+
+  // 9. Node Phụ đề Vietsub gắn từng đối tượng (kèm chế độ bảo vệ cấu hình đặc biệt)
+  preset('subtitle', 'lugia_cyan', '💎 Phụ đề Trắng Nghiêng Viền Xanh (Mặc định)', {
+    subtitleStylePreset: 'lugia_cyan',
+    subtitleFontFamily: 'Montserrat',
+    subtitleFontSize: 36,
+    subtitleFontWeight: 900,
+    subtitleItalic: true,
+    subtitleColor: '#ffffff',
+    subtitleStrokeColor: '#072a4d',
+    subtitleStrokeWidth: 7,
+    subtitleGlowColor: '#38bdf8',
+    subtitleBoxColor: '',
+    subtitleBoxOpacity: 0,
+    subtitleBubbleTail: 'none',
+    subtitleAlign: 'center',
+    subtitlePositionPreset: 'bottom_center',
+    subtitleOffsetX: 0,
+    subtitleOffsetY: -405,
+    subtitleEnterEffect: 'fade',
+    subtitleExitEffect: 'fade',
+    subtitleFadeIn: 0.14,
+    subtitleFadeOut: 0.14,
+    preserveCustomSettings: false,
+    syncHoldTargetLayer: true
+  }),
+  preset('subtitle', 'dino_white_pill', '⬜ Phụ đề Hộp Trắng Shadiao', {
+    subtitleStylePreset: 'dino_white_pill',
+    subtitleFontFamily: 'Be Vietnam Pro',
+    subtitleFontSize: 34,
+    subtitleFontWeight: 800,
+    subtitleItalic: false,
+    subtitleColor: '#0f172a',
+    subtitleStrokeColor: '',
+    subtitleStrokeWidth: 0,
+    subtitleBoxColor: '#ffffff',
+    subtitleBoxOpacity: 0.96,
+    subtitleBoxBorderColor: '#cbd5e1',
+    subtitleBubbleTail: 'none',
+    subtitleAlign: 'center',
+    subtitlePositionPreset: 'bottom_center',
+    subtitleOffsetX: 0,
+    subtitleOffsetY: -415,
+    subtitleEnterEffect: 'fade',
+    subtitleExitEffect: 'fade',
+    subtitleFadeIn: 0.12,
+    subtitleFadeOut: 0.12,
+    preserveCustomSettings: false,
+    syncHoldTargetLayer: true
+  }),
+  preset('subtitle', 'comic_bubble', '💬 Hộp Thoại Truyện Tranh (Có Đuôi Trỏ)', {
+    subtitleStylePreset: 'comic_bubble',
+    subtitleFontFamily: 'Be Vietnam Pro',
+    subtitleFontSize: 32,
+    subtitleFontWeight: 800,
+    subtitleItalic: false,
+    subtitleColor: '#0f172a',
+    subtitleStrokeColor: '',
+    subtitleStrokeWidth: 0,
+    subtitleBoxColor: '#ffffff',
+    subtitleBoxOpacity: 0.98,
+    subtitleBoxBorderColor: '#0f172a',
+    subtitleBubbleTail: 'left',
+    subtitleMaxChars: 28,
+    subtitleAlign: 'center',
+    subtitlePositionPreset: 'speech_right',
+    subtitleOffsetX: 0,
+    subtitleOffsetY: 110,
+    subtitleEnterEffect: 'pop_bounce',
+    subtitleExitEffect: 'scale_out',
+    subtitleFadeIn: 0.16,
+    subtitleFadeOut: 0.14,
+    preserveCustomSettings: true,
+    syncHoldTargetLayer: true
+  }),
+  preset('subtitle', 'cinema_gold', '🌟 Phụ đề Vàng Kim Điện Ảnh', {
+    subtitleStylePreset: 'cinema_gold',
+    subtitleFontFamily: 'Montserrat',
+    subtitleFontSize: 38,
+    subtitleFontWeight: 900,
+    subtitleColor: '#fde047',
+    subtitleStrokeColor: '#1c1917',
+    subtitleStrokeWidth: 7,
+    subtitleGlowColor: '#f59e0b',
+    subtitleBoxColor: '',
+    subtitleBoxOpacity: 0,
+    subtitleAlign: 'center',
+    subtitlePositionPreset: 'bottom_center',
+    subtitleOffsetX: 0,
+    subtitleOffsetY: -390,
+    subtitleEnterEffect: 'fade',
+    subtitleExitEffect: 'fade',
+    subtitleFadeIn: 0.15,
+    subtitleFadeOut: 0.15,
+    preserveCustomSettings: false,
+    syncHoldTargetLayer: true
+  }),
+  preset('subtitle', 'netflix_box', '🎬 Phụ đề Hộp Đen Mờ', {
+    subtitleStylePreset: 'netflix_box',
+    subtitleFontFamily: 'Montserrat',
+    subtitleFontSize: 35,
+    subtitleFontWeight: 800,
+    subtitleColor: '#f8fafc',
+    subtitleStrokeColor: '#020617',
+    subtitleStrokeWidth: 3,
+    subtitleBoxColor: '#090d16',
+    subtitleBoxOpacity: 0.78,
+    subtitleAlign: 'center',
+    subtitlePositionPreset: 'bottom_center',
+    subtitleOffsetX: 0,
+    subtitleOffsetY: -395,
+    subtitleEnterEffect: 'slide_up',
+    subtitleExitEffect: 'fade',
+    subtitleFadeIn: 0.16,
+    subtitleFadeOut: 0.14,
+    preserveCustomSettings: false,
+    syncHoldTargetLayer: true
+  }),
+  preset('subtitle', 'comic_shout', '💢 Thoại Quát Lớn Nổi Giận (Khoá Đặc Biệt 🔒)', {
+    subtitleStylePreset: 'comic_shout',
+    subtitleFontFamily: 'Montserrat',
+    subtitleFontSize: 42,
+    subtitleFontWeight: 900,
+    subtitleColor: '#fef08a',
+    subtitleStrokeColor: '#7f1d1d',
+    subtitleStrokeWidth: 8,
+    subtitleGlowColor: '#ef4444',
+    subtitleBoxColor: '#450a0a',
+    subtitleBoxOpacity: 0.76,
+    subtitleAlign: 'center',
+    subtitlePositionPreset: 'bottom_center',
+    subtitleOffsetX: 0,
+    subtitleOffsetY: -385,
+    subtitleEnterEffect: 'pop_bounce',
+    subtitleExitEffect: 'scale_out',
+    subtitleFadeIn: 0.18,
+    subtitleFadeOut: 0.16,
+    preserveCustomSettings: true,
+    syncHoldTargetLayer: true
+  }),
+  preset('subtitle', 'inner_thought', '💭 Độc Thoại Nội Tâm (Khoá Đặc Biệt 🔒)', {
+    subtitleStylePreset: 'inner_thought',
+    subtitleFontFamily: 'Montserrat',
+    subtitleFontSize: 34,
+    subtitleFontWeight: 700,
+    subtitleColor: '#e9d5ff',
+    subtitleStrokeColor: '#2e1065',
+    subtitleStrokeWidth: 5,
+    subtitleGlowColor: '#a855f7',
+    subtitleBoxColor: '#1e1b4b',
+    subtitleBoxOpacity: 0.74,
+    subtitleAlign: 'center',
+    subtitlePositionPreset: 'top_center',
+    subtitleOffsetX: 0,
+    subtitleOffsetY: 360,
+    subtitleEnterEffect: 'fade',
+    subtitleExitEffect: 'fade',
+    subtitleFadeIn: 0.25,
+    subtitleFadeOut: 0.25,
+    preserveCustomSettings: true,
+    syncHoldTargetLayer: true
+  }),
+  preset('subtitle', 'system_hologram', '🤖 Thông Báo Hệ Thống (Khoá Đặc Biệt 🔒)', {
+    subtitleStylePreset: 'system_hologram',
+    subtitleFontFamily: 'Montserrat',
+    subtitleFontSize: 35,
+    subtitleFontWeight: 900,
+    subtitleColor: '#7dd3fc',
+    subtitleStrokeColor: '#082f49',
+    subtitleStrokeWidth: 6,
+    subtitleGlowColor: '#38bdf8',
+    subtitleBoxColor: '#082f49',
+    subtitleBoxOpacity: 0.85,
+    subtitleAlign: 'center',
+    subtitlePositionPreset: 'bottom_center',
+    subtitleOffsetX: 0,
+    subtitleOffsetY: -385,
+    subtitleEnterEffect: 'pop_bounce',
+    subtitleExitEffect: 'fade',
+    subtitleFadeIn: 0.16,
+    subtitleFadeOut: 0.14,
+    preserveCustomSettings: true,
+    syncHoldTargetLayer: true
+  })
 ]
 
 /** Ánh xạ mã logic cũ (hoặc mã gọi trước khi tách `loop_anim` / `fx`) sang mẫu V2 đơn trách nhiệm */
@@ -346,6 +596,9 @@ const LEGACY_TO_V2: Record<string, string> = {
   'v2:anim_fx:breathe': 'v2:fx:breathe',
   'v2:anim_fx:neonBreathe': 'v2:fx:neonBreathe',
   'v2:anim_fx:neonBlink': 'v2:fx:neonBlink',
+  'v2:fx:fade_in_out': 'v2:fx:fadeInOut',
+  'v2:fx:pulse_beat': 'v2:fx:pulse',
+  'v2:fx:glow': 'v2:fx:neonSolid',
   'v2:anim_fx:neonFlicker': 'v2:fx:neonFlicker',
   'v2:anim_fx:neonSolid': 'v2:fx:neonSolid'
 }

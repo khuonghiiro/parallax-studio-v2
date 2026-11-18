@@ -8,6 +8,12 @@ import { syncWorkflowV2Graph } from './workflowV2Sync'
  */
 export * from './workflowV2Options'
 export {
+  isComposableLogicNode,
+  resolveFxAtomicRole,
+  resolveNodeAtomicSignature,
+  type FxAtomicRole
+} from './workflowV2Pipeline'
+export {
   WORKFLOW_V2_COLLISION_OPTIONS,
   WORKFLOW_V2_MATERIAL_OPTIONS,
   applyCollisionNodeToProject,

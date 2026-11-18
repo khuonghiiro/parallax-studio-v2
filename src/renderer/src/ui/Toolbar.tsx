@@ -19,6 +19,7 @@ import {
   IconAssetManifest,
   IconCode,
   IconExport,
+  IconEye,
   IconFile,
   IconFolder,
   IconImage,
@@ -27,10 +28,12 @@ import {
   IconLoopAnimate,
   IconMoon,
   IconMusic,
+  IconPlay,
   IconPlug,
   IconPlus,
   IconQrCode,
   IconRedo,
+  IconRoute,
   IconSave,
   IconSettings,
   IconSparkles,
@@ -239,8 +242,20 @@ export function Toolbar({ onExport }: { onExport: () => void }) {
             <IconSave width={15} /> Xuất ra JSON…
           </button>
           <div className="menu-label">Mẫu dựng sẵn</div>
-          <button className="menu-item" onClick={() => loadDemo()}>
-            <IconWand width={15} /> Mở cảnh mẫu “Parallax Journey” (4 cảnh)
+          <button className="menu-item" onClick={() => loadDemo(false, 'three_scenes')}>
+            <IconWand width={15} /> Mẫu 1: Hành Trình 3 Khung Cảnh (Workflow V2)
+          </button>
+          <button className="menu-item" onClick={() => loadDemo(false, 'donghua_guofeng')}>
+            <IconSparkles width={15} /> Mẫu 2: Vân Sơn Kiếm Khúc — Quốc Phong 2.5D
+          </button>
+          <button className="menu-item" onClick={() => loadDemo(false, 'action_combat_25d')}>
+            <IconEye width={15} /> Mẫu 3: Hàn Bối Tháp — Đại Chiến Linh Thú 2.5D
+          </button>
+          <button className="menu-item" onClick={() => loadDemo(false, 'sim_life_ep1_gate')}>
+            <IconPlay width={15} /> Mẫu 4: Mô Phỏng Nhân Sinh — Mở Màn Sơn Môn (2.5D)
+          </button>
+          <button className="menu-item" onClick={() => loadDemo(false, 'sim_life_ep1_twist')}>
+            <IconRoute width={15} /> Mẫu 5: Mô Phỏng Nhân Sinh — Oan Gia Gác Cổng (2.5D)
           </button>
         </Menu>
 

@@ -12,7 +12,7 @@ import { AudioRow } from './timeline/AudioRow'
 import { addAudioTrackToProject, getProjectAudioTracks } from '../project/audioTracks'
 import { isMouthLayer } from '../project/lipSync'
 import { AudioTargetModal } from './timeline/AudioTargetModal'
-import { TimelineToolbar } from './timeline/TimelineToolbar'
+import { TimelineToolbar, type TimelineRoleFilter } from './timeline/TimelineToolbar'
 import { TimelineLayerRow } from './timeline/TimelineLayerRow'
 import { TimelineClusterRow } from './timeline/TimelineClusterRow'
 import { buildTimelineClusters, type TimelineClusterGroup } from './timeline/timelineClusters'
@@ -77,6 +77,7 @@ export function Timeline() {
   const [zoom, setZoom] = useState<number>(1)
   const [modalTrack, setModalTrack] = useState<AudioTrackItem | null>(null)
   const [compactNames, setCompactNames] = useState<boolean>(false)
+  const [roleFilter, setRoleFilter] = useState<TimelineRoleFilter>('all')
 
   const trackRef = useRef<HTMLDivElement>(null)
   const rulerScrollRef = useRef<HTMLDivElement>(null)
@@ -377,13 +378,26 @@ export function Timeline() {
   const camOpen = expanded.has('camera')
   const shotById = useMemo(() => new Map(project.shots.map((s) => [s.id, s])), [project.shots])
 
+  const filterLayerByRole = useCallback(
+    (l: Layer): boolean => {
+      if (roleFilter === 'all') return true
+      const isDialogue = l.type === 'text' && Boolean(l.props.isSubtitleCue || l.props.speakerLayerId || l.name.startsWith('Vietsub:') || l.name.startsWith('Phụ đề:'))
+      const isSceneBg = l.type === 'solid' || l.type === 'particles' || ((l.transform.position.value?.[2] ?? 0) >= 950)
+      if (roleFilter === 'dialogue') return isDialogue
+      if (roleFilter === 'scene') return isSceneBg && !isDialogue
+      if (roleFilter === 'character') return !isSceneBg && !isDialogue
+      return true
+    },
+    [roleFilter]
+  )
+
   const groups = useMemo(() => {
     const out: { shot: Shot | null; layers: Layer[] }[] = []
-    const globals = project.layers.filter((l) => !l.shotId || !shotById.has(l.shotId))
+    const globals = project.layers.filter((l) => (!l.shotId || !shotById.has(l.shotId)) && filterLayerByRole(l))
     if (globals.length || project.shots.length === 0) out.push({ shot: null, layers: globals })
-    for (const s of project.shots) out.push({ shot: s, layers: project.layers.filter((l) => l.shotId === s.id) })
+    for (const s of project.shots) out.push({ shot: s, layers: project.layers.filter((l) => l.shotId === s.id && filterLayerByRole(l)) })
     return out
-  }, [project.layers, project.shots, shotById])
+  }, [project.layers, project.shots, shotById, filterLayerByRole])
 
   const allAudioTracks = useMemo(
     () => getProjectAudioTracks(project),
@@ -527,6 +541,8 @@ export function Timeline() {
         loop={loop}
         zoom={zoom}
         hasSelectedLayer={!!selectedLayerId}
+        roleFilter={roleFilter}
+        onChangeRoleFilter={setRoleFilter}
         setTime={setTime}
         setPlaying={setPlaying}
         setLoop={setLoop}

@@ -193,7 +193,7 @@ export interface WorkflowNodeParams {
   groupKind?: 'group_3d' | 'group_25d' | 'group_env'
   /** [Workflow V2] Trạng thái thu gọn nhánh con của Group hoặc Layer */
   collapsedGroup?: boolean
-  /** [Workflow V2] Phân loại Node Logic gắn vào Layer ('action' | 'anim_fx' | 'material' | 'collision' | 'light' | 'cave' | 'fx' | 'audio' | 'camera' | 'cluster_lock' | 'part_swap') */
+  /** [Workflow V2] Phân loại Node Logic gắn vào Layer ('action' | 'anim_fx' | 'material' | 'collision' | 'light' | 'cave' | 'fx' | 'audio' | 'subtitle' | 'camera' | 'cluster_lock' | 'part_swap') */
   logicCategory?:
     | 'time'
     | 'action'
@@ -204,6 +204,7 @@ export interface WorkflowNodeParams {
     | 'cave'
     | 'fx'
     | 'audio'
+    | 'subtitle'
     | 'camera'
     | 'cluster_lock'
     | 'part_swap'
@@ -287,12 +288,18 @@ export interface WorkflowNodeParams {
   bboxTargetY?: number
   /** [Workflow V2] Tỉ lệ kích thước % của BBox #2 so với BBox #1 (ví dụ: 160 = to dần lên 160%, 55 = nhỏ dần về 55%) */
   bboxTargetScalePct?: number
-  /** [Workflow V2] Chế độ chiều sâu khi di chuyển BBox ('flat_2d' = Không đi theo chiều sâu / giữ nguyên Z, 'depth_z' = Đi theo chiều sâu Z / vượt trước hoặc bị cây che) */
-  depthMode?: 'flat_2d' | 'depth_z'
+  /** [Workflow V2] Chế độ chiều sâu khi di chuyển BBox ('flat_2d' | 'keep' = giữ phẳng, 'depth_z' = đi theo chiều sâu Z, 'depth_corridor' = đi theo hành lang phối cảnh điểm tụ 1/Z) */
+  depthMode?: 'flat_2d' | 'depth_z' | 'depth_corridor' | 'keep'
   /** [Workflow V2] Tọa độ chiều sâu Z tại điểm xuất phát BBox #1 */
   bboxStartZ?: number
   /** [Workflow V2] Tọa độ chiều sâu Z tại điểm đích BBox #2 */
   bboxTargetZ?: number
+  /** [Workflow V2] Đường trục mặt đất hành lang phối cảnh [screenX, screenY][] nối từ sâu ra gần hoặc gần vào sâu */
+  corridorWaypoints?: [number, number][]
+  /** [Workflow V2] Khoảng cách từ tâm gốc (root) xuống lòng bàn chân (px chưa nhân scale) để ghim chân bám sát bậc thang/mặt ngõ khi thu phóng 1/Z */
+  corridorFootOffsetY?: number
+  /** [Workflow V2] Góc nhìn diễn hoạt khung xương ưu tiên ('front' | 'diagonal' | 'side' | 'back') cho Node Hành động 2.5D */
+  rigViewAngle?: 'front' | 'diagonal' | 'side' | 'back'
   /** [Workflow V2] ID Layer vật cản tham chiếu chiều sâu (ví dụ: cái cây, tảng đá) để vượt lên trước (z > z_cây) hoặc đi sau bị che (z < z_cây) */
   depthRefLayerId?: string
   /** [Workflow V2] Quan hệ chiều sâu so với Layer vật cản ('in_front' = z lớn hơn xuất hiện qua cây, 'behind' = z nhỏ hơn bị cây che) */
@@ -309,7 +316,7 @@ export interface WorkflowNodeParams {
   partGroupTitle?: string
   targetSlotId?: string
   /** [Workflow V2] Chế độ khung xương của Node Gắn xương ('humanoid_15' | 'chain_3' | 'mixamo_12' | 'custom') */
-  rigBonePreset?: 'humanoid_15' | 'chain_3' | 'mixamo_12' | 'custom'
+  rigBonePreset?: 'humanoid_15' | 'chain_3' | 'mixamo_12' | 'quadruped_12' | 'bird_8' | 'monster_14' | 'custom'
   /** [Workflow V2] Chế độ ràng buộc mềm đàn hồi (Soft Skinning) cho các mảnh gắn xương */
   rigSoftBinding?: boolean
   /** [Workflow V2] Quỹ đạo chuyển động 2D vẽ trực tiếp trong khung chỉnh sửa của Node Motion */
@@ -465,6 +472,12 @@ export interface WorkflowNodeParams {
   /** [Workflow V2] Loại hiệu ứng của Node Hiệu ứng */
   fxKind?: 'wind_physics' | 'bloom' | 'blur' | 'chromatic' | 'vignette' | 'particles'
   fxSubTab?: 'opacity' | 'pulse' | 'glow'
+  /** [Workflow V2] Vai trò nguyên tử duy nhất của Node Hiệu ứng: mỗi node chỉ đảm nhiệm 1 miền logic */
+  fxAtomicRole?: 'fade' | 'pulse' | 'glow'
+  /** [Workflow V2] Thứ tự bước (B1, B2, B3...) suy ra tự động trong chuỗi logic nối tiếp */
+  pipelineStepIndex?: number
+  /** [Workflow V2] ID Node logic đứng ngay trước trong chuỗi pipeline (nếu được nối từ Logic -> Logic) */
+  upstreamLogicNodeId?: string
   /** [Workflow V2] Node đã được người dùng kéo đặt tay — giữ nguyên vị trí khi tự xếp lại cây (nút "Sắp xếp" sẽ bỏ ghim) */
   pinned?: boolean
   /** [Workflow V2] Đánh dấu Node con lộ trình quay / cảnh con thuộc Node Camera của một Cảnh */
@@ -505,6 +518,62 @@ export interface WorkflowNodeParams {
   camTransitionTargetShotId?: string
   /** [Workflow V2] ID Layer/Cụm BBox đích mà mốc Camera đang bắt khung */
   camTransitionTargetLayerId?: string
+  /** [Workflow V2 · Vietsub] ID của TextLayer phụ đề đang được Node Vietsub này quản lý */
+  subtitleLayerId?: string
+  /** [Workflow V2 · Vietsub] Nội dung câu thoại Vietsub gắn cho đối tượng / nhân vật */
+  subtitleText?: string
+  /** [Workflow V2 · Vietsub] Tên nhân vật nói hiển thị kèm phụ đề (ví dụ: 'Tiểu Khô Lâu', 'Tôn Ngộ Không') */
+  subtitleSpeakerName?: string
+  /** [Workflow V2 · Vietsub] Mã mẫu phong cách Vietsub ('cinema_gold' | 'lugia_cyan' | 'netflix_box' | 'comic_shout' | 'inner_thought' | 'system_hologram') */
+  subtitleStylePreset?: string
+  /** [Workflow V2 · Vietsub] Font chữ phụ đề */
+  subtitleFontFamily?: string
+  /** [Workflow V2 · Vietsub] Cỡ chữ phụ đề (px) */
+  subtitleFontSize?: number
+  /** [Workflow V2 · Vietsub] Độ đậm chữ phụ đề (400..900) */
+  subtitleFontWeight?: number
+  /** [Workflow V2 · Vietsub] Chữ in nghiêng (Italic) kiểu hoạt ảnh 2.5D */
+  subtitleItalic?: boolean
+  /** [Workflow V2 · Vietsub] Màu chữ phụ đề (HEX) */
+  subtitleColor?: string
+  /** [Workflow V2 · Vietsub] Màu viền chữ phụ đề (HEX) */
+  subtitleStrokeColor?: string
+  /** [Workflow V2 · Vietsub] Độ dày viền chữ phụ đề (px) */
+  subtitleStrokeWidth?: number
+  /** [Workflow V2 · Vietsub] Màu quầng sáng phụ đề (HEX) */
+  subtitleGlowColor?: string
+  /** [Workflow V2 · Vietsub] Màu nền hộp phụ đề (HEX/RGBA) */
+  subtitleBoxColor?: string
+  /** [Workflow V2 · Vietsub] Độ mờ hộp nền phụ đề (0..1) */
+  subtitleBoxOpacity?: number
+  /** [Workflow V2 · Vietsub] Màu viền hộp thoại / bảng phụ đề */
+  subtitleBoxBorderColor?: string
+  /** [Workflow V2 · Vietsub] Đuôi trỏ hộp thoại truyện tranh ('none' | 'left' | 'right' | 'bottom') */
+  subtitleBubbleTail?: 'none' | 'left' | 'right' | 'bottom'
+  /** [Workflow V2 · Vietsub] Giới hạn ký tự tối đa mỗi dòng để tự ngắt dòng cân đối */
+  subtitleMaxChars?: number
+  /** [Workflow V2 · Vietsub] Căn lề văn bản phụ đề ('left' | 'center' | 'right') */
+  subtitleAlign?: 'left' | 'center' | 'right'
+  /** [Workflow V2 · Vietsub] Vị trí xuất hiện ('bottom_center' | 'top_center' | 'above_speaker' | 'below_speaker' | 'speech_left' | 'speech_right' | 'custom') */
+  subtitlePositionPreset?: string
+  /** [Workflow V2 · Vietsub] Độ lệch ngang X trên màn hình (px) */
+  subtitleOffsetX?: number
+  /** [Workflow V2 · Vietsub] Độ lệch dọc Y trên màn hình (px) */
+  subtitleOffsetY?: number
+  /** [Workflow V2 · Vietsub] Hiệu ứng xuất hiện ('fade' | 'pop_bounce' | 'slide_up' | 'typewriter_scale' | 'none') */
+  subtitleEnterEffect?: string
+  /** [Workflow V2 · Vietsub] Hiệu ứng biến mất ('fade' | 'slide_down' | 'scale_out' | 'none') */
+  subtitleExitEffect?: string
+  /** [Workflow V2 · Vietsub] Thời lượng hiện dần Fade In (giây) */
+  subtitleFadeIn?: number
+  /** [Workflow V2 · Vietsub] Thời lượng mờ dần Fade Out (giây) */
+  subtitleFadeOut?: number
+  /** [Workflow V2 · Vietsub] Khoá cấu hình đặc biệt — không bị ghi đè khi bấm "Áp dụng cho toàn bộ Vietsub" */
+  preserveCustomSettings?: boolean
+  /** [Workflow V2 · Vietsub] Các nhóm thuộc tính được bảo vệ riêng ('font' | 'color' | 'background' | 'position' | 'animation') */
+  lockedSubtitleFields?: ('font' | 'color' | 'background' | 'position' | 'animation')[]
+  /** [Workflow V2 · Vietsub & Audio] Đồng bộ giữ hình nhân vật & cảnh theo thời lượng thực tế của lời thoại (mặc định true) */
+  syncHoldTargetLayer?: boolean
 }
 export interface WorkflowNode {
   id: string

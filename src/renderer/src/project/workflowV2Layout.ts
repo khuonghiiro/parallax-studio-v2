@@ -1,23 +1,23 @@
 import type { WorkflowEdge, WorkflowGraph, WorkflowNode } from '@shared/types'
 
-/** Khoảng cách tiêu chuẩn giữa các cột (thẻ 236px + hành lang dây nối 180px = 416px, rộng rãi và thoáng đãng) */
-export const WF_V2_COL_STEP = 416
+/** Khoảng cách tiêu chuẩn giữa các cột (thẻ 252px + hành lang dây nối 172px = 424px, rộng rãi và thoáng đãng) */
+export const WF_V2_COL_STEP = 424
 
-/** Trục X của 4 cột phân cấp: Root/Camera → Nhóm → Layer → Logic (khoảng hở 180px để dây nối thông thoáng) */
+/** Trục X của 4 cột phân cấp: Root/Camera → Nhóm → Layer → Logic (khoảng hở 172px để dây nối thông thoáng) */
 export const WF_V2_COL_X = {
   ROOT: 48,
-  GROUP: 48 + WF_V2_COL_STEP, // 464
-  LAYER: 48 + WF_V2_COL_STEP * 2, // 880
-  LOGIC: 48 + WF_V2_COL_STEP * 3 // 1296
+  GROUP: 48 + WF_V2_COL_STEP, // 472
+  LAYER: 48 + WF_V2_COL_STEP * 2, // 896
+  LOGIC: 48 + WF_V2_COL_STEP * 3 // 1320
 } as const
 
 /** Làn dọc bên trái cột Root dành riêng cho dây Camera chuyển cảnh */
 export const WF_V2_CAMERA_LANE_X = -18
 /** Cột riêng cho các Node Time chung độc lập (chia hết cho 8px) */
-export const WF_V2_TIME_COL_X = -336
+export const WF_V2_TIME_COL_X = -352
 
 /** Kích thước thẻ Node cố định (CSS `.wf-v2-card` dùng đúng các giá trị này) */
-export const WF_V2_NODE_W = 236
+export const WF_V2_NODE_W = 252
 export const WF_V2_NODE_H = 64
 /** Khoảng đệm tối thiểu giữa 2 thẻ (dùng cho tự xếp & chống đè khi kéo thả) */
 export const WF_V2_NODE_GAP = 16
@@ -106,34 +106,28 @@ export function resolveHiddenV2NodeIds(nodes: WorkflowNode[], edges: WorkflowEdg
 function childrenOf(id: string, edges: WorkflowEdge[], byId: Map<string, WorkflowNode>, pick: (n: WorkflowNode) => boolean): WorkflowNode[] {
   const out: WorkflowNode[] = []
   for (const e of edges) {
+    if (e.fromPort === 'time_range') continue
     const c = byId.get(e.toNode)
     if (e.fromNode === id && c && pick(c) && !out.includes(c)) out.push(c)
   }
   return out
 }
 
-/** Gán mỗi Node Logic cho đúng 1 Layer "chủ" hiển thị đầu tiên để xếp hàng không trùng lặp */
+/** Gán mỗi Node Logic cho đúng 1 Layer "chủ" hiển thị đầu tiên (hỗ trợ chuỗi nối tiếp B1 -> B2 -> B3... không giới hạn độ sâu) */
 function assignLogicOwners(layers: WorkflowNode[], edges: WorkflowEdge[], byId: Map<string, WorkflowNode>, hidden: Set<string>): Map<string, WorkflowNode[]> {
   const owned = new Map<string, WorkflowNode[]>()
   const taken = new Set<string>()
   for (const layer of layers) {
     if (hidden.has(layer.id)) continue
-    const direct = childrenOf(layer.id, edges, byId, isLogic).filter((c) => !taken.has(c.id))
     const list: WorkflowNode[] = []
-    for (const c of direct) {
+    const queue = childrenOf(layer.id, edges, byId, isLogic).filter((c) => !taken.has(c.id))
+    while (queue.length > 0) {
+      const c = queue.shift()!
+      if (taken.has(c.id)) continue
       taken.add(c.id)
       list.push(c)
-      for (const downstream of childrenOf(c.id, edges, byId, isLogic)) {
-        if (!taken.has(downstream.id)) {
-          taken.add(downstream.id)
-          list.push(downstream)
-        }
-        for (const subChild of childrenOf(downstream.id, edges, byId, isLogic)) {
-          if (!taken.has(subChild.id)) {
-            taken.add(subChild.id)
-            list.push(subChild)
-          }
-        }
+      for (const nxt of childrenOf(c.id, edges, byId, isLogic)) {
+        if (!taken.has(nxt.id)) queue.push(nxt)
       }
     }
     owned.set(layer.id, list)
@@ -148,7 +142,7 @@ function buildLogicChildrenMap(logics: WorkflowNode[], edges: WorkflowEdge[]): M
   const visited = new Set<string>()
 
   for (const e of edges) {
-    if (!byId.has(e.fromNode) || !byId.has(e.toNode)) continue
+    if (e.fromPort === 'time_range' || !byId.has(e.fromNode) || !byId.has(e.toNode)) continue
     const child = byId.get(e.toNode)!
     const list = childMap.get(e.fromNode) ?? []
     if (!list.includes(child)) {

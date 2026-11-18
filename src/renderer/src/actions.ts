@@ -30,6 +30,7 @@ import { PARTICLE_PRESETS } from './animation/presets'
 import { referenceDistance } from './animation/math'
 import { evaluate, setValueAt } from './animation/keyframes'
 import { frameTolerance, getDraftAnimatable, useEditor } from './store/editor'
+import { runWithProjectLoading } from './store/projectLoading'
 import { useView } from './store/view'
 
 // ------------------------------------------------------------------ toast
@@ -64,27 +65,78 @@ export async function newProject(): Promise<void> {
   toast('Đã tạo dự án mới')
 }
 
-export async function loadDemo(force = false): Promise<void> {
+const DEMO_LOADING_TITLES: Record<string, string> = {
+  three_scenes: 'Đang mở Mẫu 1: Hành Trình 3 Khung Cảnh (Workflow V2)…',
+  donghua_guofeng: 'Đang mở Mẫu 2: Vân Sơn Kiếm Khúc — Quốc Phong 2.5D…',
+  hanbeta_quaidam: 'Đang mở Mẫu 3: Hàn Bối Tháp — Đại Chiến Linh Thú 2.5D…',
+  action_combat_25d: 'Đang mở Mẫu 3: Hàn Bối Tháp — Đại Chiến Linh Thú 2.5D…',
+  sim_life_ep1_gate: 'Đang mở Mẫu 4: Mô Phỏng Nhân Sinh — Mở Màn Sơn Môn (2.5D)…',
+  sim_life_ep1_twist: 'Đang mở Mẫu 5: Mô Phỏng Nhân Sinh — Oan Gia Gác Cổng (2.5D)…'
+}
+
+export async function loadDemo(
+  force = false,
+  variant:
+    | 'three_scenes'
+    | 'donghua_guofeng'
+    | 'hanbeta_quaidam'
+    | 'action_combat_25d'
+    | 'sim_life_ep1_gate'
+    | 'sim_life_ep1_twist' = 'three_scenes'
+): Promise<void> {
   if (!force && !confirmDiscard()) return
-  const { buildThreeSceneDemoProject } = await import('./project/demo')
-  const p = await buildThreeSceneDemoProject()
-  editor().loadProject(p, null)
   editor().setPlaying(false)
+  const title = DEMO_LOADING_TITLES[variant] ?? 'Đang tải cảnh mẫu…'
+  await runWithProjectLoading(title, async (report) => {
+    const demoMod = await import('./project/demo')
+    const p =
+      variant === 'sim_life_ep1_gate'
+        ? await demoMod.buildSimLifeEp1GateProject()
+        : variant === 'sim_life_ep1_twist'
+          ? await demoMod.buildSimLifeEp1TwistProject()
+          : variant === 'action_combat_25d' || variant === 'hanbeta_quaidam'
+            ? await demoMod.buildHanbetaDemoProject()
+            : variant === 'donghua_guofeng'
+              ? await demoMod.buildDonghuaDemoProject()
+              : await demoMod.buildThreeSceneDemoProject()
+    report({
+      phase: 'gpu',
+      stageLabel: `Đang dựng ${p.shots.length} cảnh · ${p.layers.length} layer lên khung nhìn…`,
+      shotCount: p.shots.length,
+      layerCount: p.layers.length,
+      percent: 95
+    })
+    editor().loadProject(p, null)
+    editor().setPlaying(false)
+    useView.getState().set({ split: false, primary: 'camera', activeViews: ['camera'] })
+  })
+  toast('Đã tải xong cảnh mẫu')
 }
 
 export async function openProject(): Promise<void> {
   if (!confirmDiscard()) return
   const res = await window.api.openProject()
   if (!res) return
+  const fileLabel = res.path.split(/[\\/]/).pop() ?? 'dự án'
   try {
-    let p: Project
-    if (res.path.endsWith('.json')) {
-      const text = new TextDecoder('utf-8').decode(res.data)
-      p = await importProjectFromJson(text)
-    } else {
-      p = await deserializeProject(res.data)
-    }
-    editor().loadProject(p, res.path)
+    editor().setPlaying(false)
+    await runWithProjectLoading(`Đang mở dự án: ${fileLabel}`, async (report) => {
+      let p: Project
+      if (res.path.endsWith('.json')) {
+        const text = new TextDecoder('utf-8').decode(res.data)
+        p = await importProjectFromJson(text)
+      } else {
+        p = await deserializeProject(res.data)
+      }
+      report({
+        phase: 'gpu',
+        stageLabel: `Đang nạp ${p.shots.length} cảnh · ${p.layers.length} layer lên GPU…`,
+        shotCount: p.shots.length,
+        layerCount: p.layers.length,
+        percent: 96
+      })
+      editor().loadProject(p, res.path)
+    })
     toast('Đã mở dự án')
   } catch (err) {
     window.alert(`Không mở được dự án:\n${String(err)}`)
@@ -107,9 +159,20 @@ export async function openProjectJson(): Promise<void> {
   try {
     const res = await window.api.openJson()
     if (!res) return
-    const p = await importProjectFromJson(res.content)
-    const safePath = isInternalSourcePath(res.path) ? null : res.path
-    editor().loadProject(p, safePath)
+    const fileLabel = res.path.split(/[\\/]/).pop() ?? 'JSON'
+    editor().setPlaying(false)
+    await runWithProjectLoading(`Đang nhập JSON: ${fileLabel}`, async (report) => {
+      const p = await importProjectFromJson(res.content)
+      report({
+        phase: 'gpu',
+        stageLabel: `Đang nạp ${p.shots.length} cảnh · ${p.layers.length} layer lên GPU…`,
+        shotCount: p.shots.length,
+        layerCount: p.layers.length,
+        percent: 96
+      })
+      const safePath = isInternalSourcePath(res.path) ? null : res.path
+      editor().loadProject(p, safePath)
+    })
     toast('Đã mở dự án từ JSON')
   } catch (err) {
     window.alert(`Không mở được file JSON:\n${String(err)}`)

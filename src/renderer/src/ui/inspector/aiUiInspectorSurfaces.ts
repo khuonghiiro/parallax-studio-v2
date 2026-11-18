@@ -50,6 +50,7 @@ export const POPUP_CONTAINER_SELECTORS = [
 
 export const NESTED_MODAL_SELECTORS = [
   '[data-ai-surface="dialog"]',
+  '.project-loading-card',
   '.lw-mixamo-motion-modal',
   '.lw-clip-json-modal',
   '.lw-swap-modal',

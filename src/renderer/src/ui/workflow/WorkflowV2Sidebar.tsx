@@ -1,6 +1,12 @@
-import React, { useMemo } from 'react'
+import React, { useMemo, useState } from 'react'
 import type { Project, WorkflowGraph, WorkflowNode, WorkflowNodeParams } from '@shared/types'
 import { getCompatibleLogicCatalogForNode } from '../../project/workflowV2Engine'
+import {
+  WorkflowCharacterQuickList,
+  WorkflowDialogueQuickList,
+  WorkflowSceneMoodStrip,
+  type WorkflowDirectorTab
+} from './WorkflowV2QuickDirectorTabs'
 import {
   cleanV2NodeTitle,
   resolveV2NodeTheme,
@@ -18,6 +24,13 @@ export interface WorkflowV2SidebarProps {
   onSelectNode: (nodeId: string) => void
   onFocusShot: (shotId: string | null, rootId: string) => void
   onToggleGroup: (groupNodeId: string, collapsed: boolean) => void
+  onAttachLogicToNode?: (
+    layerNodeId: string,
+    category: WorkflowV2SpawnCategory,
+    presetId?: string,
+    extraParams?: Partial<WorkflowNodeParams>,
+    customTitle?: string
+  ) => void
   onSpawn: (
     category: WorkflowV2SpawnCategory,
     presetId?: string,
@@ -96,67 +109,136 @@ const GroupRows: React.FC<{
 
 /** Cột trái: cây đề cương Cảnh → Nhóm → Layer (điều hướng trong không gian chung) + lưới gắn Node Logic ngữ cảnh */
 export const WorkflowV2Sidebar: React.FC<WorkflowV2SidebarProps> = (props) => {
+  const [directorTab, setDirectorTab] = useState<WorkflowDirectorTab>('scene')
   const outline = useMemo(() => buildOutline(props.workflow), [props.workflow])
   const { collapsed, spawnTarget, project } = props
   const compat = useMemo(() => getCompatibleLogicCatalogForNode(spawnTarget, project), [spawnTarget, project])
   return (
     <aside className={`wf-node-palette wf-v2-sidebar${collapsed ? ' collapsed' : ''}`} data-mcp-region="workflow_palette">
       <div className="wf-v2-sidebar-head">
-        {!collapsed && <span>Cấu trúc dự án</span>}
+        {!collapsed && <span>Đạo diễn nhanh 2.5D</span>}
         <button type="button" className="wf-v2-collapse-btn" onClick={props.onToggleCollapsed} aria-label={collapsed ? 'Mở cột cấu trúc' : 'Thu gọn cột cấu trúc'}>
           {collapsed ? '›' : '‹'}
         </button>
       </div>
       {!collapsed && (
-        <div className="wf-v2-sidebar-content">
-          <section className="wf-v2-sidebar-sec">
-            <div className="wf-v2-sec-title">Cảnh · Nhóm · Layer</div>
-            <div className="wf-v2-outline" role="tree" aria-label="Cấu trúc dự án">
-              {outline.map(({ root, groups }) => {
-                const live = Boolean(root.params?.shotId) && root.params?.shotId === props.activeShotId
-                return (
-                  <div key={root.id} className="wf-v2-outline-cluster" style={{ ['--shot-accent' as string]: project?.shots.find((shot) => shot.id === root.params?.shotId)?.color ?? 'var(--accent)' }}>
-                    <button
-                      type="button"
-                      className={`wf-v2-outline-shot${props.selectedNodeId === root.id ? ' active' : ''}${live ? ' live' : ''}`}
-                      onClick={() => props.onFocusShot(root.params?.shotId ?? null, root.id)}
-                      title={`${root.title} · ${(root.params?.timeStart ?? 0).toFixed(1)}s – ${(root.params?.timeEnd ?? 0).toFixed(1)}s`}
-                    >
-                      <span className="wf-v2-shot-marker" aria-hidden="true">▣</span>
-                      <span className="txt">{root.title}</span>
-                      <span className="range">{(root.params?.timeStart ?? 0).toFixed(1)}s</span>
-                      {live && <span className="wf-v2-shot-live-label">Đang quay</span>}
-                    </button>
-                    {groups.map(({ group, layers }) => (
-                      <GroupRows key={group.id} group={group} layers={layers} selectedNodeId={props.selectedNodeId} onSelectNode={props.onSelectNode} onToggleGroup={props.onToggleGroup} />
-                    ))}
+        <>
+          <div className="wf-director-tabs" role="tablist" aria-label="Chuyển nhanh Cảnh, Nhân vật và Hộp thoại" data-mcp-region="workflow_director_tabs">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={directorTab === 'scene'}
+              className={`wf-director-tab${directorTab === 'scene' ? ' active' : ''}`}
+              onClick={() => setDirectorTab('scene')}
+            >
+              🎬 Cảnh
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={directorTab === 'character'}
+              className={`wf-director-tab${directorTab === 'character' ? ' active' : ''}`}
+              onClick={() => setDirectorTab('character')}
+            >
+              🧍 Nhân vật
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={directorTab === 'dialogue'}
+              className={`wf-director-tab${directorTab === 'dialogue' ? ' active' : ''}`}
+              onClick={() => setDirectorTab('dialogue')}
+            >
+              💬 Thoại
+            </button>
+          </div>
+          <div className="wf-v2-sidebar-content">
+            {directorTab === 'scene' && (
+              <>
+                <WorkflowSceneMoodStrip project={project} activeShotId={props.activeShotId} />
+                <section className="wf-v2-sidebar-sec">
+                  <div className="wf-v2-sec-title">Cảnh · Nhóm · Layer</div>
+                  <div className="wf-v2-outline" role="tree" aria-label="Cấu trúc dự án">
+                    {outline.map(({ root, groups }) => {
+                      const live = Boolean(root.params?.shotId) && root.params?.shotId === props.activeShotId
+                      return (
+                        <div key={root.id} className="wf-v2-outline-cluster" style={{ ['--shot-accent' as string]: project?.shots.find((shot) => shot.id === root.params?.shotId)?.color ?? 'var(--accent)' }}>
+                          <button
+                            type="button"
+                            className={`wf-v2-outline-shot${props.selectedNodeId === root.id ? ' active' : ''}${live ? ' live' : ''}`}
+                            onClick={() => props.onFocusShot(root.params?.shotId ?? null, root.id)}
+                            title={`${root.title} · ${(root.params?.timeStart ?? 0).toFixed(1)}s – ${(root.params?.timeEnd ?? 0).toFixed(1)}s`}
+                          >
+                            <span className="wf-v2-shot-marker" aria-hidden="true">▣</span>
+                            <span className="txt">{root.title}</span>
+                            <span className="range">{(root.params?.timeStart ?? 0).toFixed(1)}s</span>
+                            {live && <span className="wf-v2-shot-live-label">Đang quay</span>}
+                          </button>
+                          {groups.map(({ group, layers }) => (
+                            <GroupRows key={group.id} group={group} layers={layers} selectedNodeId={props.selectedNodeId} onSelectNode={props.onSelectNode} onToggleGroup={props.onToggleGroup} />
+                          ))}
+                        </div>
+                      )
+                    })}
                   </div>
-                )
-              })}
-            </div>
-          </section>
+                </section>
+              </>
+            )}
 
-          <section className="wf-v2-sidebar-sec">
-            <div className="wf-v2-sec-title">Gắn logic</div>
+            {directorTab === 'character' && (
+              <section className="wf-v2-sidebar-sec">
+                <div className="wf-v2-sec-title">Nhân vật &amp; Chuỗi Node Đơn Nhiệm</div>
+                <WorkflowCharacterQuickList
+                  workflow={props.workflow}
+                  project={project}
+                  activeShotId={props.activeShotId}
+                  selectedNodeId={props.selectedNodeId}
+                  onSelectNode={props.onSelectNode}
+                  onAttachLogic={(layerNodeId, cat, presetId, extraParams, customTitle) => {
+                    if (props.onAttachLogicToNode) {
+                      props.onAttachLogicToNode(layerNodeId, cat, presetId, extraParams, customTitle)
+                    } else {
+                      props.onSelectNode(layerNodeId)
+                      props.onSpawn(cat, presetId, extraParams, customTitle)
+                    }
+                  }}
+                />
+              </section>
+            )}
+
+            {directorTab === 'dialogue' && (
+              <section className="wf-v2-sidebar-sec">
+                <div className="wf-v2-sec-title">Sửa Nhanh Kịch Bản Thoại &amp; Vietsub</div>
+                <WorkflowDialogueQuickList
+                  workflow={props.workflow}
+                  project={project}
+                  selectedNodeId={props.selectedNodeId}
+                  onSelectNode={props.onSelectNode}
+                />
+              </section>
+            )}
+
+            <section className="wf-v2-sidebar-sec">
+              <div className="wf-v2-sec-title">Gắn node đơn nhiệm</div>
             <div className={`wf-v2-spawn-target${spawnTarget ? '' : ' empty'}`}>
               {spawnTarget ? (
                 <>
                   Đích: <strong title={spawnTarget.title}>{cleanV2NodeTitle(spawnTarget.title)}</strong>
                 </>
               ) : (
-                'Chọn một Layer trên sơ đồ để gắn logic'
+                'Chọn Layer, Khoá Cụm hoặc Node Logic để nối tiếp'
               )}
             </div>
             <div className="wf-v2-add-grid">
               {compat.categories.map((item) => (
                 <button
-                  key={item.id}
+                  key={item.presetId ?? item.id}
                   type="button"
                   className="wf-v2-add-card"
                   disabled={!spawnTarget}
                   style={{ ['--wf-v2-accent' as string]: item.accent }}
-                  title={spawnTarget ? `Gắn ${item.label} cho "${cleanV2NodeTitle(spawnTarget.title)}"` : 'Chọn một Layer hoặc Khoá Cụm trước'}
-                  onClick={() => props.onSpawn(item.id)}
+                  title={spawnTarget ? `Gắn ${item.label} cho "${cleanV2NodeTitle(spawnTarget.title)}"` : 'Chọn một Layer, Khoá Cụm hoặc Node Logic trước'}
+                  onClick={() => props.onSpawn(item.id, item.presetId)}
                 >
                   <span className="wf-v2-add-icon" aria-hidden="true">{item.icon}</span>
                   <span className="wf-v2-add-info">
@@ -195,9 +277,10 @@ export const WorkflowV2Sidebar: React.FC<WorkflowV2SidebarProps> = (props) => {
                   ))}
                 </div>
               </div>
-            )}
-          </section>
-        </div>
+              )}
+            </section>
+          </div>
+        </>
       )}
     </aside>
   )

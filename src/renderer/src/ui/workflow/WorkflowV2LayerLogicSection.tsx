@@ -209,12 +209,12 @@ export const WorkflowV2NodeSwitcherBar: React.FC<{
         <div className="wf-v2-node-switch-spawn">
           {compat.categories.map((item) => (
             <button
-              key={item.id}
+              key={item.presetId ?? item.id}
               type="button"
               className="wf-v2-spawn-chip"
               style={{ ['--wf-v2-accent' as string]: item.accent }}
               onClick={() => {
-                onAttachLogic(attachTargetNodeId, item.id)
+                onAttachLogic(attachTargetNodeId, item.id, item.presetId)
                 setQuickAddOpen(false)
               }}
             >

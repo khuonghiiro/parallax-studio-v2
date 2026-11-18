@@ -24,6 +24,7 @@ import {
   WorkflowV2MaterialParams,
   WorkflowV2ShotParams
 } from './WorkflowV2SceneAndLayerParams'
+import { WorkflowV2SubtitleParams } from './WorkflowV2SubtitleParams'
 import { resolveV2LogicCategory, type WorkflowV2SpawnCategory } from './workflowV2Theme'
 
 type UpdateFn = (patch: Partial<WorkflowNodeParams>, nextTitle?: string) => void
@@ -317,6 +318,7 @@ const LOGIC_EDITORS: Record<string, React.FC<WorkflowV2NodeParamsProps>> = {
   light: WorkflowV2LightParams,
   fx: WorkflowV2FxParams,
   audio: WorkflowV2AudioParams,
+  subtitle: WorkflowV2SubtitleParams,
   camera: WorkflowV2CameraParams
 }
 

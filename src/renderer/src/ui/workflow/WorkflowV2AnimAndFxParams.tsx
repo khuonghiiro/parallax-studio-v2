@@ -12,6 +12,7 @@ import { useEditor } from '../../store/editor'
 import { WorkflowV2BboxMotionPanel } from './WorkflowV2BboxMotionPanel'
 import { resolveActionTargetLayerIds } from './WorkflowV2MotionAndRigEditors'
 import { OptionPills, ParamSlider, type WorkflowV2NodeParamsProps } from './WorkflowV2NodeParams'
+import { WorkflowV2RigPresetPicker } from './WorkflowV2RigPresetPicker'
 import '../../styles/virtualLightInspector.css'
 
 export { WorkflowV2FxParams } from './WorkflowV2FxParams'
@@ -154,37 +155,26 @@ export function WorkflowV2AnimFxParams(props: WorkflowV2NodeParamsProps): React.
         </span>
       </div>
 
-      <div className="vl-pill-grid" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
-        {WORKFLOW_V2_RIG_PRESET_OPTIONS.map((ro) => {
-          const active = p.rigActionPreset === ro.id
-          return (
-            <button
-              key={ro.id}
-              type="button"
-              className={`vl-pill-btn ${active ? 'active-amber' : ''}`}
-              title={`${ro.description} (${ro.duration}s)`}
-              onClick={() => {
-                const start = p.timeStart ?? layer?.inPoint ?? 0
-                const cleanName = ro.shortLabel.replace(/^[^\w\p{L}]+\s*/u, '')
-                onUpdate(
-                  {
-                    animMode: 'rig_clip',
-                    customActionId: undefined,
-                    customActionName: undefined,
-                    rigActionPreset: ro.id,
-                    intensity: p.intensity ?? 1.0,
-                    timeEnd: Number((start + ro.duration).toFixed(2))
-                  },
-                  `Hành động Nhân vật: ${cleanName}`
-                )
-              }}
-            >
-              <span>{ro.shortLabel}</span>
-              <small className="wf-v2-pill-dur">{ro.duration}s</small>
-            </button>
+      <WorkflowV2RigPresetPicker
+        value={p.rigActionPreset}
+        variant="amber"
+        cols={2}
+        onPick={(ro) => {
+          const start = p.timeStart ?? layer?.inPoint ?? 0
+          const cleanName = ro.shortLabel.replace(/^[^\w\p{L}]+\s*/u, '')
+          onUpdate(
+            {
+              animMode: 'rig_clip',
+              customActionId: undefined,
+              customActionName: undefined,
+              rigActionPreset: ro.id,
+              intensity: p.intensity ?? 1.0,
+              timeEnd: Number((start + ro.duration).toFixed(2))
+            },
+            `Hành động Nhân vật: ${cleanName}`
           )
-        })}
-      </div>
+        }}
+      />
 
       <div className="vl-subcard">
         <ParamSlider

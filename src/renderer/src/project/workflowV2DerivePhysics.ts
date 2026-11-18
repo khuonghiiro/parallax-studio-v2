@@ -1,4 +1,5 @@
 import type { Layer, PhysicsImpactPulse, Project, WorkflowEdge, WorkflowNode, WorkflowNodeParams } from '@shared/types'
+import { collectDownstreamLogicNodes } from './workflowV2AtomicDerive'
 import { WF_V2_COL_X } from './workflowV2Layout'
 import { WORKFLOW_V2_COLLISION_OPTIONS, WORKFLOW_V2_MATERIAL_OPTIONS } from './workflowV2PhysicsAndValidation'
 
@@ -37,6 +38,7 @@ function edge(from: string, to: string): WorkflowEdge {
 }
 
 function deriveCollisions(project: Project, nodes: WorkflowNode[], edges: WorkflowEdge[], out: { added: WorkflowNode[]; edges: WorkflowEdge[] }): void {
+  const byId = new Map(nodes.map((n) => [n.id, n]))
   const ids = new Set(nodes.map((n) => n.id))
   for (const target of project.layers) {
     for (const pulse of target.physics?.impacts ?? []) {
@@ -45,7 +47,8 @@ function deriveCollisions(project: Project, nodes: WorkflowNode[], edges: Workfl
       const a = layerNodeIdOf(pulse.sourceLayerId)
       const b = layerNodeIdOf(target.id)
       if (!ids.has(a) || !ids.has(b)) continue
-      if (!ids.has(nodeId)) {
+      const wasPresent = ids.has(nodeId)
+      if (!wasPresent) {
         const opt = WORKFLOW_V2_COLLISION_OPTIONS.find((o) => o.id === collisionParamsFromPulse(pulse, target).collisionMode)!
         out.added.push({
           id: nodeId,
@@ -69,6 +72,8 @@ function deriveCollisions(project: Project, nodes: WorkflowNode[], edges: Workfl
         ids.add(nodeId)
       }
       for (const from of [a, b]) {
+        const reachable = wasPresent && collectDownstreamLogicNodes(from, edges, byId).some((n) => n.id === nodeId)
+        if (reachable) continue
         const e = edge(from, nodeId)
         if (!edges.some((x) => x.fromNode === from && x.toNode === nodeId) && !out.edges.some((x) => x.id === e.id)) out.edges.push(e)
       }
@@ -90,10 +95,7 @@ function deriveMaterials(project: Project, nodes: WorkflowNode[], edges: Workflo
     const memberLayers = memberIds.map((id) => layersById.get(id)).filter((l): l is Layer => Boolean(l))
     if (!instId || memberLayers.length === 0) continue
 
-    const attached = edges
-      .filter((e) => e.fromNode === clusterNode.id)
-      .map((e) => byId.get(e.toNode))
-      .filter((n): n is WorkflowNode => Boolean(n))
+    const attached = collectDownstreamLogicNodes(clusterNode.id, edges, byId)
     const windOwned = attached.some((n) => n.params?.logicCategory === 'fx' && n.params?.fxKind === 'wind_physics')
     const current = attached.find((n) => n.params?.logicCategory === 'material')
     const withMat = memberLayers.filter((ml) => ml.physics?.material && ml.physics.material !== 'none')
@@ -149,10 +151,7 @@ function deriveMaterials(project: Project, nodes: WorkflowNode[], edges: Workflo
     const layerNodeId = layerNodeIdOf(layer.id)
     const layerNode = byId.get(layerNodeId)
     if (!layerNode) continue
-    const attached = edges
-      .filter((e) => e.fromNode === layerNodeId && byId.get(e.toNode)?.params?.logicCategory !== 'cluster_lock')
-      .map((e) => byId.get(e.toNode))
-      .filter((n): n is WorkflowNode => Boolean(n))
+    const attached = collectDownstreamLogicNodes(layerNodeId, edges, byId)
     const windOwned = attached.some((n) => n.params?.logicCategory === 'fx' && n.params?.fxKind === 'wind_physics')
     const tag = layer.physics?.material
     const present = Boolean(tag && tag !== 'none') && !windOwned

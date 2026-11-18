@@ -13,6 +13,7 @@ import {
   WF_V2_NODE_W,
   WF_V2_TIME_COL_X,
   computeV2Clusters,
+  isComposableLogicNode,
   resolveHiddenV2NodeIds,
   v2RootId,
   validateWorkflowV2Connection
@@ -67,10 +68,11 @@ export interface WorkflowCanvasV2Props {
 const COLUMN_BANNERS = [
   { x: WF_V2_COL_X.ROOT, step: '01', label: 'CẢNH & CAMERA', minX: -Infinity },
   { x: WF_V2_COL_X.GROUP, step: '02', label: 'NHÓM LAYER', minX: -Infinity },
-  { x: WF_V2_COL_X.LAYER, step: '03', label: 'LAYER 2.5D / 3D', minX: -Infinity },
-  { x: WF_V2_COL_X.LOGIC, step: '04', label: 'LOGIC CỦA LAYER', minX: -Infinity },
-  { x: WF_V2_COL_X.LOGIC + WF_V2_COL_STEP, step: '05', label: 'HOẠT ẢNH & NHÁNH CỤM', minX: WF_V2_COL_X.LOGIC + Math.round(WF_V2_COL_STEP * 0.75) },
-  { x: WF_V2_COL_X.LOGIC + WF_V2_COL_STEP * 2, step: '06', label: 'BỘ PHẬN CHI TIẾT', minX: WF_V2_COL_X.LOGIC + Math.round(WF_V2_COL_STEP * 1.75) }
+  { x: WF_V2_COL_X.LAYER, step: '03', label: 'LAYER / KHOÁ CỤM', minX: -Infinity },
+  { x: WF_V2_COL_X.LOGIC, step: '04', label: 'CHUỖI LOGIC · B1', minX: -Infinity },
+  { x: WF_V2_COL_X.LOGIC + WF_V2_COL_STEP, step: '05', label: 'CHUỖI LOGIC · B2', minX: WF_V2_COL_X.LOGIC + Math.round(WF_V2_COL_STEP * 0.75) },
+  { x: WF_V2_COL_X.LOGIC + WF_V2_COL_STEP * 2, step: '06', label: 'CHUỖI LOGIC · B3', minX: WF_V2_COL_X.LOGIC + Math.round(WF_V2_COL_STEP * 1.75) },
+  { x: WF_V2_COL_X.LOGIC + WF_V2_COL_STEP * 3, step: '07', label: 'CHUỖI LOGIC · B4', minX: WF_V2_COL_X.LOGIC + Math.round(WF_V2_COL_STEP * 2.75) }
 ]
 const CULL_MARGIN = 240
 
@@ -383,7 +385,10 @@ export const WorkflowCanvasV2: React.FC<WorkflowCanvasV2Props> = (props) => {
           const sel = selectedNodeId ? graph.nodes.find((n) => n.id === selectedNodeId) : undefined
           if (!sel || multiIds.length > 0) return null
           const selTheme = resolveV2NodeTheme(sel)
-          const canSpawnLogic = resolveV2NodeLevel(sel) === 'layer' || sel.params?.logicCategory === 'cluster_lock'
+          const canSpawnLogic =
+            resolveV2NodeLevel(sel) === 'layer' ||
+            sel.params?.logicCategory === 'cluster_lock' ||
+            isComposableLogicNode(sel)
           const camShotId = sel.type === 'camera_director' ? sel.params?.shotId : undefined
           return (
             <div

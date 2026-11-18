@@ -25,6 +25,8 @@ export interface PlantSpine {
   stiffness: number
   /** 0..1 — độ rung phụ ở ngọn (lá/cành non phất theo nhịp đôi). */
   flexibility: number
+  /** 0..1.2 — độ trễ truyền sóng chữ S từ gốc tới ngọn (0 = uốn chữ C đồng pha · 0.6–0.9 = sóng truyền mượt như lụa/tóc). */
+  waveLag?: number
   /** 0..1 — gió giật thất thường. */
   turbulence: number
   /** Độ nghiêng cố định theo hướng gió (độ, dương = nghiêng phải). */
@@ -66,19 +68,21 @@ export interface PlantSpineMotion {
   verticalBob?: number
 }
 
-export type PlantSpinePresetId = 'grass' | 'sapling' | 'branch' | 'canopy' | 'flower' | 'seaweed'
+export type PlantSpinePresetId = 'grass' | 'sapling' | 'branch' | 'canopy' | 'flower' | 'seaweed' | 'silk' | 'cloak'
 
 export type PlantSpineParams = Pick<
   PlantSpine,
-  'amplitude' | 'speed' | 'stiffness' | 'flexibility' | 'turbulence' | 'lean' | 'reach' | 'verticalBob'
+  'amplitude' | 'speed' | 'stiffness' | 'flexibility' | 'waveLag' | 'turbulence' | 'lean' | 'reach' | 'verticalBob'
 >
 
 export const PLANT_SPINE_PRESETS: Array<{ id: PlantSpinePresetId; label: string; params: PlantSpineParams }> = [
-  { id: 'grass', label: 'Cỏ lau / Lúa', params: { amplitude: 16, speed: 0.9, stiffness: 0.15, flexibility: 0.55, turbulence: 0.35, lean: 3, reach: 0, verticalBob: 0.12 } },
-  { id: 'sapling', label: 'Cây non', params: { amplitude: 9, speed: 0.6, stiffness: 0.35, flexibility: 0.35, turbulence: 0.25, lean: 1, reach: 0, verticalBob: 0.08 } },
-  { id: 'branch', label: 'Cành cây', params: { amplitude: 7, speed: 0.7, stiffness: 0.45, flexibility: 0.45, turbulence: 0.3, lean: 0, reach: 0, verticalBob: 0.15 } },
-  { id: 'canopy', label: 'Đại thụ / Tán lớn', params: { amplitude: 3.5, speed: 0.35, stiffness: 0.7, flexibility: 0.25, turbulence: 0.2, lean: 0, reach: 0, verticalBob: 0.05 } },
-  { id: 'flower', label: 'Hoa thân mềm', params: { amplitude: 12, speed: 0.8, stiffness: 0.25, flexibility: 0.6, turbulence: 0.3, lean: 2, reach: 0, verticalBob: 0.18 } },
-  { id: 'seaweed', label: 'Rong biển / Dây leo', params: { amplitude: 22, speed: 0.45, stiffness: 0.05, flexibility: 0.8, turbulence: 0.15, lean: 0, reach: 0, verticalBob: 0.20 } }
+  { id: 'silk', label: 'Tóc & Dải lụa (S-Wave)', params: { amplitude: 13, speed: 0.68, stiffness: 0.16, flexibility: 0.78, waveLag: 0.78, turbulence: 0.22, lean: 2, reach: 0, verticalBob: 0 } },
+  { id: 'cloak', label: 'Áo choàng bay gió', params: { amplitude: 15, speed: 0.58, stiffness: 0.22, flexibility: 0.72, waveLag: 0.72, turbulence: 0.26, lean: 3, reach: 0, verticalBob: 0 } },
+  { id: 'grass', label: 'Cỏ lau / Lúa', params: { amplitude: 15, speed: 0.75, stiffness: 0.15, flexibility: 0.55, waveLag: 0.52, turbulence: 0.3, lean: 3, reach: 0, verticalBob: 0.03 } },
+  { id: 'sapling', label: 'Cây non', params: { amplitude: 8.5, speed: 0.55, stiffness: 0.35, flexibility: 0.35, waveLag: 0.42, turbulence: 0.22, lean: 1, reach: 0, verticalBob: 0 } },
+  { id: 'branch', label: 'Cành cây', params: { amplitude: 6.5, speed: 0.48, stiffness: 0.45, flexibility: 0.45, waveLag: 0.48, turbulence: 0.25, lean: 0, reach: 0, verticalBob: 0 } },
+  { id: 'canopy', label: 'Đại thụ / Tán lớn', params: { amplitude: 3.5, speed: 0.32, stiffness: 0.7, flexibility: 0.25, waveLag: 0.35, turbulence: 0.18, lean: 0, reach: 0, verticalBob: 0 } },
+  { id: 'flower', label: 'Hoa thân mềm', params: { amplitude: 11, speed: 0.65, stiffness: 0.25, flexibility: 0.58, waveLag: 0.55, turbulence: 0.25, lean: 2, reach: 0, verticalBob: 0.02 } },
+  { id: 'seaweed', label: 'Rong biển / Dây leo', params: { amplitude: 20, speed: 0.42, stiffness: 0.05, flexibility: 0.82, waveLag: 0.85, turbulence: 0.15, lean: 0, reach: 0, verticalBob: 0 } }
 ]
 

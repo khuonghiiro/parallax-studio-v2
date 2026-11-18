@@ -15,6 +15,7 @@ export const ACTIVE_REGION = 'active'
 /** Các selector nhận diện dialog/modal nổi (không bao giờ đưa lớp phủ backdrop toàn màn hình vào đây). */
 export const DIALOG_SELECTORS = [
   '[data-mcp-dialog]',
+  '.project-loading-card',
   '.ps-modal-container',
   '.ps-save-modal',
   '.c3d-modal',
@@ -42,6 +43,7 @@ export const DIALOG_SELECTORS = [
 const region = (name: string, ...classes: string[]): string[] => [`[data-mcp-region="${name}"]`, ...classes]
 
 export const UI_REGION_SELECTORS: Record<string, string[]> = {
+  project_loading: ['.project-loading-card'],
   ai_code_handoff: ['.ai-code-handoff-modal'],
   ai_code_preview_bar: ['.ai-code-preview-bar'],
   timeline_batch_timing: ['.tl-batch-timing'],
@@ -100,6 +102,8 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   inspector_body: ['aside.right .panel-body'],
   inspector_composite: region('inspector_composite', '.composite-section'),
   inspector_physics: region('inspector_physics', '.layer-physics-section'),
+  inspector_text_section: region('inspector_text_section', '.section'),
+  subtitle_node_inspector: region('subtitle_node_inspector', '.vl-section-card'),
   virtual_light_pad: region('virtual_light_pad', '.vl-pad-card'),
   inspector_virtual_light: region('inspector_virtual_light', '.layer-virtual-light-section'),
   composite_swap: region('composite_swap', '.composite-swap-modal'),
@@ -120,11 +124,13 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   mobile_quick_sheet: region('mobile_quick_sheet', '.cc-quick-sheet'),
   timeline_tabs: region('timeline_tabs', '.tl-mode-tabs'),
   timeline_toolbar: ['.timeline-toolbar', '.tl-toolbar'],
+  timeline_role_filter: region('timeline_role_filter', '.tl-role-filter'),
   timeline_ruler: ['.tl-header', '.tl-ruler-wrap'],
   timeline_tracks: ['.tl-scroll', '.tl-body', '.tl-rows-scroll'],
   timeline_workflow: region('timeline_workflow', '.wf-studio-panel'),
   workflow_toolbar: region('workflow_toolbar', '.wf-toolbar'),
   workflow_palette: region('workflow_palette', '.wf-node-palette'),
+  workflow_director_tabs: region('workflow_director_tabs', '.wf-director-tabs'),
   workflow_canvas: region('workflow_canvas', '.wf-canvas-viewport'),
   workflow_mobile_cards: region('workflow_mobile_cards', '.wf-mobile-cards-view'),
   workflow_quick_connect: region('workflow_quick_connect', '.wf-quick-connect-menu'),
@@ -164,6 +170,7 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   workflow_light_behavior: region('workflow_light_behavior', '.vl-physics-behavior-panel'),
   workflow_light_rays: region('workflow_light_rays', '.vl-physics-rays-panel'),
   workflow_preview: region('workflow_preview', '.wf-inspector-preview-box'),
+  workflow_subtitle_stage: region('workflow_subtitle_stage', '.wf-sub-quick-bar'),
   workflow_json_panel: region('workflow_json_panel', '.wf-json-panel'),
   workflow_node_camera_preview: region('workflow_node_camera_preview', '.wf-camera-preview'),
   workflow_node_settings: region('workflow_node_settings', '.wf-node-dialog-settings'),

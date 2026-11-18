@@ -67,81 +67,107 @@ export function generateWalkCycle(
   const unit = (pelvis?.length ?? 50) / 50
 
   if (viewAngle === 'side') {
-    // === GÓC NHÌN NGHIÊNG 90° (Side Profile) ===
+    // === GÓC NHÌN NGHIÊNG 90° (Side Profile — Chu kỳ tiếp đất C1 mượt, không giật gối) ===
     assign(pelvis, (p) => ({
-      y: Number((-4 * Math.abs(Math.sin(p))).toFixed(2)),
-      rotation: Number((1.5 * Math.sin(p)).toFixed(2))
+      x: Number((1.8 * Math.sin(p)).toFixed(2)),
+      y: Number((4.8 * Math.cos(2 * p - 0.72 * Math.PI)).toFixed(2)),
+      rotation: Number((1.8 * Math.sin(p - 0.25)).toFixed(2))
     }))
-    assign(roleBone(bones, 'torso', 'thân'), (p) => ({ rotation: Number((3 + 1.5 * Math.sin(p)).toFixed(2)) }))
-    assign(roleBone(bones, 'head', 'đầu'), (p) => ({ rotation: Number((-1.5 * Math.sin(p)).toFixed(2)) }))
+    assign(roleBone(bones, 'torso', 'thân'), (p) => ({
+      rotation: Number((3.5 + 2.2 * Math.sin(p - 0.18)).toFixed(2))
+    }))
+    assign(roleBone(bones, 'head', 'đầu'), (p) => ({
+      rotation: Number((-1.6 * Math.sin(p - 0.35)).toFixed(2))
+    }))
+    const capeBone = bones.find((b) => b.id.includes('cape') || b.name.toLocaleLowerCase('vi').includes('áo choàng'))
+    assign(capeBone, (p) => ({
+      rotation: Number((8 + 10 * Math.sin(p - 0.75) + 4 * Math.sin(2 * p - 0.4)).toFixed(2))
+    }))
 
-    for (const [side, label, sign, offset] of [['l', 'trái', 1, 0], ['r', 'phải', -1, Math.PI]] as const) {
+    for (const [side, label, _sign, offset] of [['l', 'trái', 1, 0], ['r', 'phải', -1, Math.PI]] as const) {
       const thigh = roleBone(bones, `thigh-${side}`, `đùi ${label}`)
       const shin = roleBone(bones, `shin-${side}`, `cẳng chân ${label}`)
       if (thigh) {
-        assign(thigh, (p) => ({
-          rotation: Number((26 * Math.sin(p + offset)).toFixed(2))
-        }))
-      }
-      if (shin) {
-        assign(shin, (p) => {
+        // ph = 0: chân chạm đất phía trước (-25°); ph = π/2: trụ giữa; ph = π: đạp sau (+24°); ph = 3π/2: nhấc qua trụ
+        assign(thigh, (p) => {
           const ph = p + offset
-          const backFold = Math.cos(ph) > 0 ? 32 * Math.sin(ph) : 0
-          return { rotation: Number(Math.max(-2, backFold).toFixed(2)) }
+          const stride = -25 * Math.cos(ph) + 3.2 * Math.sin(2 * ph)
+          return { rotation: Number(stride.toFixed(2)) }
         })
       }
-      // Bàn chân hơi duỗi/gập theo cẳng chân
+      if (shin) {
+        // Gối gập mượt C1 ở pha co chân vung tới (ph ~ 1.4π) và nhún nhẹ giảm chấn ở pha trụ (ph ~ 0.42π)
+        assign(shin, (p) => {
+          const ph = p + offset
+          const swingLift = 36 * Math.pow(0.5 - 0.5 * Math.cos(ph - 0.38 * Math.PI), 1.65)
+          const stanceCushion = 11 * Math.pow(Math.max(0, Math.sin(ph)), 2.2)
+          return { rotation: Number((2 + swingLift + stanceCushion).toFixed(2)) }
+        })
+      }
       assign(roleBone(bones, `foot-${side}`, `bàn chân ${label}`), (p) => {
         const ph = p + offset
-        const ankleBend = Math.cos(ph) > 0 ? 10 * Math.sin(ph) : -5
-        return { rotation: Number(ankleBend.toFixed(2)) }
+        const ankle = -9 * Math.cos(ph + 0.3) + 6 * Math.sin(2 * ph)
+        return { rotation: Number(ankle.toFixed(2)) }
       })
 
-      // Tay vung ngược pha với chân
+      // Tay vung ngược pha với chân cùng bên (chân trước -> tay sau)
       assign(roleBone(bones, `arm-${side}`, `bắp tay ${label}`), (p) => ({
-        rotation: Number((-28 * Math.sin(p + offset)).toFixed(2))
+        rotation: Number((26 * Math.cos(p + offset + 0.12)).toFixed(2))
       }))
       assign(roleBone(bones, `forearm-${side}`, `cẳng tay ${label}`), (p) => ({
-        rotation: Number((-14 - 16 * Math.sin(p + offset - 0.3)).toFixed(2))
+        rotation: Number((-16 + 15 * Math.cos(p + offset - 0.25)).toFixed(2))
       }))
-      // Bàn tay hơi vung nhẹ
       assign(roleBone(bones, `hand-${side}`, `bàn tay ${label}`), (p) => ({
-        rotation: Number((-10 * Math.sin(p + offset - 0.4)).toFixed(2))
+        rotation: Number((9 * Math.cos(p + offset - 0.4)).toFixed(2))
       }))
     }
   } else if (viewAngle === 'diagonal') {
-    // === GÓC NHÌN CHÉO 3/4 (45° Diagonal) ===
+    // === GÓC NHÌN CHÉO 3/4 (45° Diagonal — Chuyên dụng khi đi dọc hành lang chiều sâu 1/Z) ===
+    const capeBone = bones.find((b) => b.id.includes('cape') || b.name.toLocaleLowerCase('vi').includes('áo choàng'))
+    assign(capeBone, (p) => ({
+      rotation: Number((6 + 9 * Math.sin(p - 0.7) + 3.5 * Math.sin(2 * p - 0.35)).toFixed(2))
+    }))
     assign(pelvis, (p) => {
       const f = walkRoot(p, unit)
-      return { x: f.x * 0.6, y: f.y, rotation: f.rotation * 0.7 }
+      return { x: f.x * 0.55, y: Number((4.4 * Math.cos(2 * p - 0.72 * Math.PI)).toFixed(2)), rotation: f.rotation * 0.65 }
     })
-    assign(roleBone(bones, 'torso', 'thân'), (p) => ({ rotation: -2 * Math.sin(p - 0.2) }))
-    assign(roleBone(bones, 'head', 'đầu'), (p) => ({ rotation: 1 * Math.sin(p - 0.4) }))
+    assign(roleBone(bones, 'torso', 'thân'), (p) => ({ rotation: Number((2 - 2.4 * Math.sin(p - 0.2)).toFixed(2)) }))
+    assign(roleBone(bones, 'head', 'đầu'), (p) => ({ rotation: Number((1.2 * Math.sin(p - 0.4)).toFixed(2)) }))
 
     for (const [side, label, sign, offset] of [['l', 'trái', 1, 0], ['r', 'phải', -1, Math.PI]] as const) {
       const thigh = roleBone(bones, `thigh-${side}`, `đùi ${label}`)
       const shin = roleBone(bones, `shin-${side}`, `cẳng chân ${label}`)
       if (thigh && shin) {
         assign(thigh, (p) => {
+          const ph = p + offset
           const solved = solveWalkLeg(thigh, shin, p, offset, sign, unit)
-          return { rotation: Number((solved.thigh * 0.6 + 14 * Math.sin(p + offset)).toFixed(2)) }
+          const depthStride = -18 * Math.cos(ph) + 2.5 * Math.sin(2 * ph)
+          return {
+            rotation: Number((solved.thigh * 0.35 + depthStride).toFixed(2)),
+            scaleY: Number((1 + 0.04 * Math.cos(ph)).toFixed(3))
+          }
         })
         assign(shin, (p) => {
-          const solved = solveWalkLeg(thigh, shin, p, offset, sign, unit)
-          return { rotation: Number((solved.shin * 0.7 + Math.max(0, 18 * Math.sin(p + offset))).toFixed(2)) }
+          const ph = p + offset
+          const swingLift = 28 * Math.pow(0.5 - 0.5 * Math.cos(ph - 0.38 * Math.PI), 1.65)
+          const cushion = 8 * Math.pow(Math.max(0, Math.sin(ph)), 2.2)
+          return {
+            rotation: Number((2 + swingLift + cushion).toFixed(2)),
+            scaleY: Number((1 + 0.05 * Math.cos(ph)).toFixed(3))
+          }
         })
       }
       assign(roleBone(bones, `foot-${side}`, `bàn chân ${label}`), (p) => ({
-        rotation: Number((5 * Math.sin(p + offset)).toFixed(2))
+        rotation: Number((-6 * Math.cos(p + offset + 0.25)).toFixed(2))
       }))
       assign(roleBone(bones, `arm-${side}`, `bắp tay ${label}`), (p) => ({
-        rotation: Number((sign * 3 - 18 * Math.sin(p + offset + 0.2)).toFixed(2))
+        rotation: Number((sign * 2 + 20 * Math.cos(p + offset + 0.15)).toFixed(2))
       }))
       assign(roleBone(bones, `forearm-${side}`, `cẳng tay ${label}`), (p) => ({
-        rotation: Number((-sign * 3 - 10 * Math.sin(p + offset - 0.2)).toFixed(2))
+        rotation: Number((-12 + 12 * Math.cos(p + offset - 0.2)).toFixed(2))
       }))
       assign(roleBone(bones, `hand-${side}`, `bàn tay ${label}`), (p) => ({
-        rotation: Number((-8 * Math.sin(p + offset - 0.3)).toFixed(2))
+        rotation: Number((7 * Math.cos(p + offset - 0.35)).toFixed(2))
       }))
     }
   } else {
@@ -360,36 +386,50 @@ export function generateRunCycle(
 
   if (viewAngle === 'side') {
     assign(pelvis, (p) => ({
-      y: Number((-8 * Math.abs(Math.sin(p))).toFixed(2)),
-      rotation: Number((3 * Math.sin(p)).toFixed(2))
+      x: Number((3.5 * Math.sin(p)).toFixed(2)),
+      y: Number((7.5 * Math.cos(2 * p - 0.68 * Math.PI)).toFixed(2)),
+      rotation: Number((3.2 * Math.sin(p - 0.2)).toFixed(2))
     }))
-    assign(roleBone(bones, 'torso', 'thân'), () => ({ rotation: 8 })) // Ngả nhiều về trước
-    assign(roleBone(bones, 'head', 'đầu'), () => ({ rotation: -5 }))
+    assign(roleBone(bones, 'torso', 'thân'), (p) => ({
+      rotation: Number((10 + 3.2 * Math.sin(2 * p - 0.3)).toFixed(2))
+    }))
+    assign(roleBone(bones, 'head', 'đầu'), (p) => ({
+      rotation: Number((-6 - 1.8 * Math.sin(2 * p - 0.45)).toFixed(2))
+    }))
+    const capeBone = bones.find((b) => b.id.includes('cape') || b.name.toLocaleLowerCase('vi').includes('áo choàng'))
+    assign(capeBone, (p) => ({
+      rotation: Number((22 + 14 * Math.sin(2 * p - 0.85)).toFixed(2))
+    }))
 
-    for (const [side, label, sign, offset] of [['l', 'trái', 1, 0], ['r', 'phải', -1, Math.PI]] as const) {
+    for (const [side, label, _sign, offset] of [['l', 'trái', 1, 0], ['r', 'phải', -1, Math.PI]] as const) {
       const thigh = roleBone(bones, `thigh-${side}`, `đùi ${label}`)
       const shin = roleBone(bones, `shin-${side}`, `cẳng chân ${label}`)
-      if (thigh) assign(thigh, (p) => ({ rotation: Number((42 * Math.sin(p + offset)).toFixed(2)) }))
+      if (thigh) {
+        assign(thigh, (p) => {
+          const ph = p + offset
+          return { rotation: Number((-42 * Math.cos(ph) + 5 * Math.sin(2 * ph)).toFixed(2)) }
+        })
+      }
       if (shin) {
         assign(shin, (p) => {
           const ph = p + offset
-          const backFold = Math.cos(ph) > 0 ? 55 * Math.sin(ph) : 0
-          return { rotation: Number(Math.max(-4, backFold).toFixed(2)) }
+          const swingFold = 62 * Math.pow(0.5 - 0.5 * Math.cos(ph - 0.36 * Math.PI), 1.55)
+          const driveCushion = 16 * Math.pow(Math.max(0, Math.sin(ph)), 2.2)
+          return { rotation: Number((4 + swingFold + driveCushion).toFixed(2)) }
         })
       }
       assign(roleBone(bones, `foot-${side}`, `bàn chân ${label}`), (p) => {
         const ph = p + offset
-        const ankleBend = Math.cos(ph) > 0 ? 15 * Math.sin(ph) : -10
-        return { rotation: Number(ankleBend.toFixed(2)) }
+        return { rotation: Number((-14 * Math.cos(ph + 0.3) + 8 * Math.sin(2 * ph)).toFixed(2)) }
       })
       assign(roleBone(bones, `arm-${side}`, `bắp tay ${label}`), (p) => ({
-        rotation: Number((-48 * Math.sin(p + offset)).toFixed(2))
+        rotation: Number((46 * Math.cos(p + offset + 0.14)).toFixed(2))
       }))
       assign(roleBone(bones, `forearm-${side}`, `cẳng tay ${label}`), (p) => ({
-        rotation: Number((-35 - 25 * Math.sin(p + offset - 0.2)).toFixed(2))
+        rotation: Number((-38 + 24 * Math.cos(p + offset - 0.2)).toFixed(2))
       }))
       assign(roleBone(bones, `hand-${side}`, `bàn tay ${label}`), (p) => ({
-        rotation: Number((-15 * Math.sin(p + offset - 0.4)).toFixed(2))
+        rotation: Number((14 * Math.cos(p + offset - 0.35)).toFixed(2))
       }))
     }
   } else {

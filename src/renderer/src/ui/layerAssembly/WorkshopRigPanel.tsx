@@ -222,6 +222,9 @@ function HierarchySplit({ tree, inspector }: { tree: ReactNode; inspector: React
 const TEMPLATES = [
   { id: 'humanoid', label: 'Người 2D (15 khớp)', desc: 'Thân, đầu, tay, chân chuẩn' },
   { id: 'humanoid-full', label: 'Người chi tiết (19 khớp)', desc: 'Thêm bàn tay & mũi chân' },
+  { id: 'quadruped', label: 'Thú 4 chân (15 khớp)', desc: 'Sói / ngựa / linh thú kèm đuôi & hàm' },
+  { id: 'bird', label: 'Linh cầm / Chim (10 khớp)', desc: 'Hai cánh sải bay, cổ & đuôi xoè' },
+  { id: 'monster', label: 'Quái vật 2.5D (14 khớp)', desc: 'Hàm nanh tách rời, song trảo & đuôi gai' },
   { id: 'hand-detailed', label: 'Bàn tay (12 khớp)', desc: 'Cổ tay & 5 ngón độc lập' },
   { id: 'foot-detailed', label: 'Bàn chân (8 khớp)', desc: 'Cổ chân, gót & mũi nhón' },
   { id: 'simple-chain', label: 'Chuỗi uốn (3 khớp)', desc: 'Đuôi, áo choàng, thân cây' }

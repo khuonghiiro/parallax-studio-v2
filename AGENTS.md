@@ -58,11 +58,11 @@ Tuân thủ kỹ năng `code-modularization`:
 ### 2.3b. Quy Chuẩn Responsive 4 Breakpoints & Chống "Sa Mạc Trống Trải" (BẮT BUỘC)
 Chi tiết tại [responsive-standard.md](./.agents/rules/responsive-standard.md):
 - **4 Breakpoints:** **Phone** (`<= 768px`, 1 cột `1fr`, drawer trượt, nút `>= 36–44px`) | **Tablet** (`769–1120px`, lưới 2 cột `minmax(280px, 1fr)`) | **Laptop** (`1121–1366px`, lưới 2–3 cột) | **Desktop** (`> 1366px`, lưới 3–4 cột, `max-width: 1400px–1680px`).
-- **Triệt tiêu "Sa Mạc Trống Trải" (Anti-Empty Desert):** Cấm trải dài 1 dòng đơn lẻ 100% trên màn hình rộng 1920px làm nhãn bên trái và nút bên phải cách nhau hàng nghìn pixel. Bắt buộc dùng lưới Card đa cột tự co giãn (`display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 8px–10px;`).
+- **Triệt tiêu "Sa Mạc Trống Trải":** Cấm trải dài 1 dòng đơn lẻ 100% trên màn rộng 1920px làm nhãn trái và nút phải xa nhau hàng nghìn pixel; bắt buộc dùng lưới Card đa cột (`display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 8px–10px;`).
 - **Typography & Vùng bấm:** Badges/Tags `10–11px`; Labels phụ `11–12px`; Controls/Buttons/Inputs `12–14px`; Tiêu đề thẻ `14–16px`; Tiêu đề dialog `16–18px` (tối đa `20px`). **CẤM `font-size > 20px` cho controls/cards** hoặc gán pixel width cố định lớn (`width: 800px`, `100vw`). Vùng bấm tối thiểu `36px × 36px`, `gap >= 6px–8px`.
 
 ### 2.4. Giao Thức MCP, CLI (`pnpm pxs`) & Cấm Can Thiệp Tiến Trình Người Dùng (BẮT BUỘC)
-- **Điều khiển trực tiếp qua TCP `127.0.0.1:9877` (146 tools — xem [mcp-server/README.md](./mcp-server/README.md)):**
+- **Điều khiển trực tiếp qua TCP `127.0.0.1:9877` (169 tools — xem [mcp-server/README.md](./mcp-server/README.md)):**
   - Tra cứu & trạng thái: `pnpm pxs --help`, `pnpm pxs help <tool>`, `pnpm pxs status`, `pnpm pxs inspect`.
   - Chụp ảnh đánh giá bằng mắt (không dùng trình duyệt ngoài):
     - `pnpm pxs review --view camera --out <path>` (chụp viewport 3D).
@@ -137,16 +137,18 @@ Khi làm việc sâu với từng phân hệ, AI **chủ động đọc tài li�
 - **Gizmo 3D & Xưởng Lắp Ráp Mô Hình 3D (`models3d/`):** [docs/architecture/gizmo-and-assembly-3d.md](./docs/architecture/gizmo-and-assembly-3d.md) & [docs/image-mesh-templates.md](./docs/image-mesh-templates.md)
 - **Xưởng Lắp Ráp Layer 2.5D, Hệ Thống Xương Blender, Uốn Mềm & Atlas Nhân Vật:** [docs/architecture/layer-assembly-and-rigging.md](./docs/architecture/layer-assembly-and-rigging.md), [docs/layer-workshop-tools.md](./docs/layer-workshop-tools.md) & [docs/design/character-cutout-prompt.md](./docs/design/character-cutout-prompt.md)
 - **Đồng Bộ Timeline ⇄ Workflow V2, Nhóm Time Chung, Chuỗi Motion BBox, Va Chạm & Bộ Phận 2.5D:** [docs/architecture/workflow-v2-and-timeline.md](./docs/architecture/workflow-v2-and-timeline.md), [docs/workflow-node-semantics.md](./docs/workflow-node-semantics.md), [docs/motion-controls.md](./docs/motion-controls.md) & [docs/timing-workflow.md](./docs/timing-workflow.md)
-- **Danh mục 146 MCP Tools & CLI `pnpm pxs`:** [mcp-server/README.md](./mcp-server/README.md)
+- **Danh mục 169 MCP Tools & CLI `pnpm pxs`:** [mcp-server/README.md](./mcp-server/README.md)
 
 ---
 
 ## 4. Danh Mục Skills Trọng Tâm (`.agents/skills/`)
 
 Kích hoạt và đọc `SKILL.md` tương ứng khi thực hiện tác vụ chuyên biệt:
-- **Quét & Định vị giao diện tức thì (`Win + Alt` / `Win + Ctrl`):** `ai-ui-inspector` ([SKILL.md](./.agents/skills/ai-ui-inspector/SKILL.md))
+- **Đạo diễn điện ảnh & hành lang chiều sâu 2.5D:** `cinematic-25d-director` ([SKILL.md](./.agents/skills/cinematic-25d-director/SKILL.md))
+- **Hoạt ảnh kể chuyện, xuyên không & hài kịch 2.5D (`stage_story_beat`):** `story-comic-animation` ([SKILL.md](./.agents/skills/story-comic-animation/SKILL.md))
+- **Quét & Định vị giao diện (`Win + Alt` / `Win + Ctrl`):** `ai-ui-inspector` ([SKILL.md](./.agents/skills/ai-ui-inspector/SKILL.md))
 - **Đăng ký vùng chụp MCP cho UI mới/sửa:** `mcp-ui-region` ([SKILL.md](./.agents/skills/mcp-ui-region/SKILL.md))
-- **Quản lý Manifest tài nguyên & khôi phục xoá tạm:** `manifest-assets` ([SKILL.md](./.agents/skills/manifest-assets/SKILL.md))
+- **Quản lý Manifest tài nguyên & xoá tạm:** `manifest-assets` ([SKILL.md](./.agents/skills/manifest-assets/SKILL.md))
 - **Quy trình Git theo Session & Commit tiếng Việt:** `ak:git` ([SKILL.md](./.agents/skills/ak-git/SKILL.md))
 - **Đồ họa 3D, WebGL & Shaders:** `ak:threejs`, `ak:shader`
 - **React 19, Frontend & Tối ưu hiệu năng:** `ak:frontend-development`, `ak:react-best-practices`, `code-modularization`

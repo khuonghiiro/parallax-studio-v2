@@ -1,7 +1,12 @@
+import { repairDonghuaTiming } from './donghuaDemoBuilder'
+import { repairHanbetaTiming } from './hanbetaDemoBuilder'
 import { repairThreeSceneTiming } from './demoTiming'
+import { buildSimLifeEp1GateProject, buildSimLifeEp1TwistProject } from './simLifeDemoBuilder'
 import type { Project } from '@shared/types'
 import demoJson from './demoProject.json'
 import threeSceneJson from '../../../../projects/ba-canh-mau-workflow-v2.json'
+import donghuaJson from '../../../../projects/demo-2-son-thuy-kiem-hiep.json'
+import hanbetaJson from '../../../../projects/demo-3-han-boi-thap-quai-dam.json'
 import { importProjectFromJson } from './jsonFormat'
 
 /**
@@ -19,6 +24,27 @@ export async function buildDemoProject(): Promise<Project> {
 export async function buildThreeSceneDemoProject(): Promise<Project> {
   return repairThreeSceneTiming(await importProjectFromJson(JSON.stringify(threeSceneJson)))
 }
+
+/**
+ * Builds Demo #2: "Vân Sơn Kiếm Khúc — Hoạt Ảnh Quốc Phong 2.5D"
+ * with alpha-matte cutout artwork & chained atomic Workflow V2 nodes.
+ */
+export async function buildDonghuaDemoProject(): Promise<Project> {
+  return repairDonghuaTiming(await importProjectFromJson(JSON.stringify(donghuaJson)))
+}
+
+/**
+ * Builds Demo #3: "Hàn Bối Tháp — Đại Chiến Linh Thú 2.5D"
+ * featuring multi-part anatomical sprite-atlas characters & creatures (Hero, Spirit Wolf,
+ * Shadow Monster, Spirit Eagle), atomic Workflow V2 combat/locomotion choreography,
+ * expression swaps, and VFX collision impacts.
+ */
+export async function buildHanbetaDemoProject(): Promise<Project> {
+  return repairHanbetaTiming(await importProjectFromJson(JSON.stringify(hanbetaJson)))
+}
+
+export const buildActionCombat25dDemoProject = buildHanbetaDemoProject
+export { buildSimLifeEp1GateProject, buildSimLifeEp1TwistProject }
 
 export * from './plateGenerators'
 export * from './jsonFormat'

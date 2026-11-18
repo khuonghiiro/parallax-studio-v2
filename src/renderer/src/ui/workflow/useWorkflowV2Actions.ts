@@ -10,6 +10,7 @@ import {
   attachExternalLayerToClusterV2,
   attachLogicNodeToLayerV2,
   findFreeV2Spot,
+  isComposableLogicNode,
   layoutWorkflowV2Tree,
   recomputeSharedLogicTargets,
   spawnWorkflowV2CameraWaypoint,
@@ -32,11 +33,13 @@ const fitSoon = (delay = 40): void => {
   window.setTimeout(() => window.dispatchEvent(new CustomEvent('pxs:wf-fit-view')), delay)
 }
 
-/** Layer hoặc Khoá Cụm đích để gắn Node Logic: Layer / Khoá Cụm đang chọn, hoặc chủ của Node Logic đang chọn */
+/** Layer, Khoá Cụm hoặc Node Logic đích để gắn/nối tiếp Node Logic */
 export function resolveV2SpawnTarget(workflow: WorkflowGraph, selectedNodeId: string | null): WorkflowNode | undefined {
   const sel = workflow.nodes.find((n) => n.id === selectedNodeId)
   if (!sel) return undefined
-  if (resolveV2NodeLevel(sel) === 'layer' || sel.params?.logicCategory === 'cluster_lock') return sel
+  if (resolveV2NodeLevel(sel) === 'layer' || sel.params?.logicCategory === 'cluster_lock' || isComposableLogicNode(sel)) {
+    return sel
+  }
   const parentId = sel.params?.sharedLayerNodeIds?.[0] ?? sel.params?.hierarchyParentNodeId
   const parent = workflow.nodes.find((n) => n.id === parentId)
   return parent && (resolveV2NodeLevel(parent) === 'layer' || parent.params?.logicCategory === 'cluster_lock') ? parent : undefined

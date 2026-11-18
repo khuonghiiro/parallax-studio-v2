@@ -1,5 +1,10 @@
 import type { EaseName, Keyframe, Vec3 } from '@shared/types'
 import { nanoid } from 'nanoid'
+import {
+  COMIC_MOTION_PRESETS_CATALOG,
+  generateComicPresetSpatialTracks,
+  type ComicMotionPresetId
+} from './comicMotionPresets'
 
 export type MotionPresetId =
   | 'walk_into_depth'
@@ -10,6 +15,7 @@ export type MotionPresetId =
   | 'floating_hover'
   | 'dramatic_zoom_in'
   | 'retreat_disappear'
+  | ComicMotionPresetId
 
 export interface MotionPresetDef {
   id: MotionPresetId
@@ -124,7 +130,8 @@ export const MOTION_PRESETS_CATALOG: MotionPresetDef[] = [
     defaultDuration: 2.5,
     recommendedClips: ['walk', 'idle'],
     paramsGuide: { depthZ: 800, deltaX: -40, endScale: 0.6, fadeOpacity: true }
-  }
+  },
+  ...COMIC_MOTION_PRESETS_CATALOG
 ]
 
 export interface SpatialMotionOptions {
@@ -151,6 +158,8 @@ export interface GeneratedTransformTracks {
   scale: Keyframe<Vec3>[]
   opacity: Keyframe<number>[]
 }
+
+export type SpatialMotionTracks = GeneratedTransformTracks
 
 /**
  * Sinh keyframes After Effects cho chuyển động không gian theo preset.
@@ -383,6 +392,28 @@ export function generatePresetSpatialTracks(
       )
       break
     }
+
+    case 'comic_shiver':
+    case 'system_pop_bounce':
+    case 'comedic_tumble_out':
+    case 'soul_escape_ascend':
+    case 'foreground_weapon_slam':
+    case 'pop_up_bottom':
+    case 'slide_in_side':
+    case 'pendulum_question':
+    case 'anger_vein_throb':
+    case 'fade_materialize_in':
+    case 'thought_vision_manifest':
+    case 'oppressive_tower_grow':
+    case 'oppressed_shrink_tremble':
+      return generateComicPresetSpatialTracks(
+        presetId,
+        { position: pos0, rotation: rot0, scale: sc0, opacity: op0 },
+        opts,
+        t0,
+        t1,
+        duration
+      )
   }
 
   return res

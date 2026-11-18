@@ -523,7 +523,8 @@ export function Viewer() {
       const c = canvasRef.current!
       c.style.width = `${W}px`
       c.style.height = `${H}px`
-      const dpr = Math.min(window.devicePixelRatio || 1, 2)
+      const baseDpr = Math.min(window.devicePixelRatio || 1, 1.5)
+      const dpr = playing ? Math.min(baseDpr, 1.15) : baseDpr
       rendererRef.current?.setSize(W * dpr, H * dpr)
       const toolbarHeight = (wrap.querySelector('.viewer-tools')?.getBoundingClientRect().height ?? 32) + 2
       const L = computeTaggedLayout(W, H, comp.width / comp.height, effectiveDeviceViews(view, breakpoint), dpr, toolbarHeight)
@@ -538,7 +539,7 @@ export function Viewer() {
     fit()
     return () => ro.disconnect()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [comp.width, comp.height, view.split, view.primary, view.animate2dSplit, view.activeViews, breakpoint, canvasEpoch])
+  }, [comp.width, comp.height, view.split, view.primary, view.animate2dSplit, view.activeViews, breakpoint, canvasEpoch, playing])
 
   // F = frame selection in the 3D view.
   useEffect(() => {

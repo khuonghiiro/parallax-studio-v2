@@ -34,26 +34,59 @@ export function plantEnvelope(stiffness: number, u: number): number {
   return Math.pow(Math.min(1, Math.max(0, u)), 0.65 + s * 1.15)
 }
 
-/** Sóng nhún lên xuống tự nhiên theo gió: 2nd harmonic của nhịp lắc + nhịp thở dọc. */
-function windStretch(spine: PlantSpine, _u: number, t: number, bendAngle = 0): number {
+const clamp01 = (v: number): number => Math.min(1, Math.max(0, v))
+
+/** Khởi động mượt từ 0 tại t = 0..0.22s khi không có phaseOffset để giữ đúng tư thế nghỉ ở Frame 0. */
+function windRestRamp(spine: PlantSpine, rawTime: number): number {
+  if (Math.abs(spine.phaseOffset ?? 0) > 1e-4) return 1
+  if (rawTime <= 0) return 0
+  const r = clamp01(rawTime / 0.22)
+  return r * r * (3 - 2 * r)
+}
+
+function resolveWaveLag(spine: PlantSpine): number {
+  const raw = spine.waveLag ?? clamp01(spine.flexibility) * 0.72
+  return Math.min(1.2, Math.max(0, raw))
+}
+
+/** Sóng nhún lên xuống tự nhiên theo gió (đồng pha trễ S-wave; tắt mặc định trên tóc/lụa/gỗ). */
+function windStretch(spine: PlantSpine, u: number, t: number, bendAngle = 0, rawTime = t): number {
   const bob = spine.verticalBob ?? 0
   if (Math.abs(bob) <= 1e-4) return 0
   if (spine.amplitude === 0 && spine.motion === undefined) return bob
   const w = Math.PI * 2 * Math.max(0, spine.speed)
   const rad = (bendAngle * Math.PI) / 180
-  const bendDip = -(1 - Math.cos(rad)) * 0.4
-  const bounce = Math.sin(2 * w * t) * 0.7 + Math.sin(w * 0.5 * t) * 0.3
+  const bendDip = -(1 - Math.cos(rad)) * 0.35
+  const ramp = windRestRamp(spine, rawTime)
+  const lagAmount = resolveWaveLag(spine)
+  const phaseShift = lagAmount * Math.PI * 0.55 * Math.pow(clamp01(u), 0.85) * ramp
+  const bounce = Math.sin(2 * w * t - phaseShift) * 0.55 + Math.sin(w * 0.5 * t - phaseShift * 0.4) * 0.25
   return bob * (bounce + bendDip)
 }
 
-/** Sóng gió tự nhiên chuẩn hoá (≈ -1..1): nhịp chính + phất ngọn + gió giật. */
-function windWave(spine: PlantSpine, u: number, t: number): number {
+/**
+ * Sóng gió truyền dẫn chữ S (Traveling S-Wave) chuẩn hoá (≈ -1..1):
+ * gốc dẫn nhịp -> thân giữa uốn tiếp -> ngọn vẫy trễ pha tạo đường cong chữ S mềm mại.
+ */
+function windWave(spine: PlantSpine, u: number, t: number, rawTime = t): number {
   const w = Math.PI * 2 * Math.max(0, spine.speed)
-  const turbulence = Math.min(1, Math.max(0, spine.turbulence))
-  const main = Math.sin(w * t)
-  const flutter = Math.min(1, Math.max(0, spine.flexibility)) * 0.5 * u * Math.sin(2 * w * t)
-  const gust = turbulence * 0.9 * Math.sin(w * 0.43 * t) * Math.sin(w * 1.7 * t + u * 1.3)
-  return main * (1 - turbulence * 0.35) + flutter + gust
+  const turbulence = clamp01(spine.turbulence)
+  const flex = clamp01(spine.flexibility)
+  const uClamped = clamp01(u)
+  const ramp = windRestRamp(spine, rawTime)
+  const lagAmount = resolveWaveLag(spine)
+  const phaseShift = lagAmount * Math.PI * 1.15 * Math.pow(uClamped, 0.85) * ramp
+
+  const main = Math.sin(w * t - phaseShift)
+  const flutter = flex * 0.36 * uClamped * uClamped * Math.sin(2 * w * t - phaseShift * 1.65)
+  const breezeEnv = 1 + turbulence * 0.34 * Math.sin(w * 0.37 * t + 0.6) * ramp
+  const gust =
+    turbulence *
+    0.42 *
+    (0.5 + 0.5 * Math.sin(w * 0.29 * t)) *
+    Math.sin(w * 1.27 * t - phaseShift * 1.2) *
+    ramp
+  return main * (1 - turbulence * 0.2) * breezeEnv + flutter + gust
 }
 
 /**
@@ -66,11 +99,11 @@ export function plantBendAngle(spine: PlantSpine, u: number, time: number): numb
   const motion = spine.motion
   if (motion && motion.keys.length) {
     const local = t * (motion.speed ?? 1) - (motion.lag ?? 0) * u
-    const mix = Math.min(1, Math.max(0, motion.windMix ?? 0))
-    const wind = mix > 0 ? mix * spine.amplitude * windWave(spine, u, t) : 0
+    const mix = clamp01(motion.windMix ?? 0)
+    const wind = mix > 0 ? mix * spine.amplitude * windWave(spine, u, t, time) : 0
     return envelope * (samplePlantMotion(motion, local) + wind)
   }
-  return envelope * (spine.amplitude * windWave(spine, u, t) + (spine.lean ?? 0))
+  return envelope * (spine.amplitude * windWave(spine, u, t, time) + (spine.lean ?? 0))
 }
 
 /** Hệ số co giãn dọc thân (-0.5..1) tại vị trí u ∈ [0,1] ở thời điểm t. */
@@ -85,12 +118,12 @@ export function plantStretchFactor(
   const motion = spine.motion
   if (motion && motion.keys.length) {
     const local = t * (motion.speed ?? 1) - (motion.lag ?? 0) * u
-    const mix = Math.min(1, Math.max(0, motion.windMix ?? 0))
+    const mix = clamp01(motion.windMix ?? 0)
     const sample = samplePlantMotionStretch(motion, local)
-    const wind = mix > 0 ? mix * windStretch(spine, u, t, bendAngle) : 0
+    const wind = mix > 0 ? mix * windStretch(spine, u, t, bendAngle, time) : 0
     return envelope * (sample + wind)
   }
-  return envelope * windStretch(spine, u, t, bendAngle)
+  return envelope * windStretch(spine, u, t, bendAngle, time)
 }
 
 function integrateBend(

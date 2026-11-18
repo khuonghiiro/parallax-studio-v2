@@ -360,6 +360,41 @@ export function evaluateVirtualLightAtTime(
   }
 }
 
+export interface VirtualLightFrameCache {
+  lightsByShot: Map<string | null, EvaluatedVirtualLight[]>
+  portalsByShot: Map<string | null, Layer[]>
+}
+
+/**
+ * Pre-collects active virtual lights and depth-portal layers once per frame (`O(N)`),
+ * eliminating repeated `O(N^2)` full-project layer scans inside `evaluateScene`.
+ */
+export function buildVirtualLightFrameCache(project: Project, t: number): VirtualLightFrameCache {
+  const emitterIds = resolveActiveLightEmitterIds(project.layers)
+  const lightsByShot = new Map<string | null, EvaluatedVirtualLight[]>()
+  const portalsByShot = new Map<string | null, Layer[]>()
+
+  for (const layer of project.layers) {
+    if (!layer.visible || t < layer.inPoint || t > layer.outPoint) continue
+    const key = layer.shotId ?? null
+    if (emitterIds.has(layer.id)) {
+      const evLight = evaluateVirtualLightAtTime(layer, t)
+      if (evLight) {
+        const list = lightsByShot.get(key)
+        if (list) list.push(evLight)
+        else lightsByShot.set(key, [evLight])
+      }
+    }
+    if (layer.physics?.depthPortal?.enabled) {
+      const pList = portalsByShot.get(key)
+      if (pList) pList.push(layer)
+      else portalsByShot.set(key, [layer])
+    }
+  }
+
+  return { lightsByShot, portalsByShot }
+}
+
 export function collectActiveVirtualLights(
   project: Project,
   shotId: string | null,
@@ -581,7 +616,8 @@ function findDeepestCavePortalHit(
   targetLayer: Layer,
   shotId: string | null,
   pos: Vec3,
-  t: number
+  t: number,
+  portalCandidates?: ReadonlyArray<Layer>
 ): {
   penetration: number
   scale: number
@@ -599,7 +635,8 @@ function findDeepestCavePortalHit(
   let rawDarkness = 0
   let shadowRgb: [number, number, number] = [0.02, 0.03, 0.07]
 
-  for (const other of project.layers) {
+  const candidates = portalCandidates ?? project.layers
+  for (const other of candidates) {
     if (other.id === targetLayer.id || !other.visible) continue
     if ((other.shotId ?? null) !== shotId) continue
     const portal = other.physics?.depthPortal
@@ -648,10 +685,33 @@ export function evaluateCaveDepthPortalForLayer(
   project: Project,
   targetLayer: Layer,
   pos: Vec3,
-  t: number
+  t: number,
+  frameCache?: VirtualLightFrameCache
 ): CavePortalInfluence {
   const shotId = targetLayer.shotId ?? null
-  const lights = collectActiveVirtualLights(project, shotId, t)
+  const lights = frameCache
+    ? (frameCache.lightsByShot.get(shotId) ?? [])
+    : collectActiveVirtualLights(project, shotId, t)
+  const portalCandidates = frameCache ? (frameCache.portalsByShot.get(shotId) ?? []) : undefined
+  if (
+    lights.length === 0 &&
+    portalCandidates !== undefined &&
+    portalCandidates.length === 0 &&
+    !targetLayer.physics?.depthPortal?.enabled
+  ) {
+    return {
+      penetration: 0,
+      scaleMultiplier: 1,
+      xDelta: 0,
+      yDelta: 0,
+      zDelta: 0,
+      effectiveDarkness: 0,
+      rawCaveDarkness: 0,
+      lightIllumination: 0,
+      lightTintRgb: [1, 0.92, 0.78],
+      shadowTintRgb: [0.02, 0.03, 0.07]
+    }
+  }
   const tScale = evaluate(targetLayer.transform.scale, t)
   const tSize = layerNominalSize(targetLayer)
   const targetHalfW = Math.max(16, tSize[0] * Math.abs(tScale[0]) * 0.5)
@@ -690,7 +750,7 @@ export function evaluateCaveDepthPortalForLayer(
     }
   }
 
-  const hit = findDeepestCavePortalHit(project, targetLayer, shotId, pos, t)
+  const hit = findDeepestCavePortalHit(project, targetLayer, shotId, pos, t, portalCandidates)
   const evalPos: Vec3 = [pos[0] + hit.xDelta, pos[1] + hit.yDelta, pos[2] + hit.zDelta]
 
   let externalLight = 0

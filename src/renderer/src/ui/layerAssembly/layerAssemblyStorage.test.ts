@@ -314,6 +314,31 @@ describe('Layer Assembly Workshop Storage System', () => {
     expect(replaced.assets?.torso).toBe('character_cutout_demo/torso_hd.png')
     expect(replaced.layers.find((l) => l.id === 'l2')?.assetPath).toBe('character_cutout_demo/torso_hd.png')
   })
+
+  it('automatically merges newly seeded 2.5D action composites when migrating from v31 seed while preserving custom composites', () => {
+    const customSaved: LayerComposite = {
+      id: 'comp-user-saved-custom',
+      name: 'Cụm Tự Tạo Của Người Dùng',
+      category: 'custom',
+      width: 400,
+      height: 500,
+      layers: []
+    }
+    localStorage.setItem('pxs.layerComposites', JSON.stringify([customSaved]))
+    localStorage.setItem('pxs.layerComposites.seeded_version', 'v31_monotone_smooth_clips_rigid_sync')
+
+    const migrated = getStoredComposites()
+    const ids = new Set(migrated.map((c) => c.id))
+    expect(ids.has('comp-user-saved-custom')).toBe(true)
+    for (const id of [
+      'comp-action-sword-hunter-25d',
+      'comp-action-spirit-wolf-25d',
+      'comp-action-shadow-monster-25d',
+      'comp-action-spirit-eagle-25d'
+    ]) {
+      expect(ids.has(id), `Missing migrated composite ${id}`).toBe(true)
+    }
+  })
 })
 
 

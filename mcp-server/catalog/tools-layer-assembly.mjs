@@ -400,13 +400,13 @@ export const LAYER_ASSEMBLY_TOOLS = [
       hold_frames: z.number().min(1).max(300).optional().describe(d('hold-frames (Adobe Animate F5): number of frames to insert/hold at time, shifting subsequent keys forward.', 'hold-frames (Adobe Animate F5): số khung giữ dáng chèn thêm tại time, tự đẩy các keyframe phía sau lùi lại.')),
       hold_seconds: z.number().min(0.01).max(30).optional().describe(d('hold-frames: hold duration in seconds (alternative to hold_frames).', 'hold-frames: thời gian giữ dáng tính bằng giây (thay cho hold_frames).')),
       template: z
-        .enum(['humanoid', 'humanoid-full', 'hand-detailed', 'foot-detailed', 'simple-chain'])
+        .enum(['humanoid', 'humanoid-full', 'hand-detailed', 'foot-detailed', 'simple-chain', 'quadruped', 'bird', 'monster'])
         .optional()
-        .describe(d('Skeleton template to apply (humanoid, humanoid-full, hand-detailed, foot-detailed, simple-chain).', 'Mẫu khung xương áp dụng (humanoid, humanoid-full, hand-detailed, foot-detailed, simple-chain).')),
+        .describe(d('Skeleton template to apply (humanoid, humanoid-full, hand-detailed, foot-detailed, simple-chain, quadruped, bird, monster).', 'Mẫu khung xương áp dụng (humanoid, humanoid-full, hand-detailed, foot-detailed, simple-chain, quadruped, bird, monster).')),
       preset: z
-        .enum(['walk', 'idle', 'wave', 'bow', 'run', 'jump', 'fall', 'land', 'action', 'sway', 'hand-clench', 'foot-roll'])
+        .enum(['walk', 'idle', 'talk', 'scheming', 'shock', 'point', 'wave', 'bow', 'run', 'jump', 'fall', 'land', 'action', 'sway', 'hand-clench', 'foot-roll', 'combat', 'martial_kick', 'dodge_counter', 'hit_recoil', 'quadruped_walk', 'quadruped_gallop', 'wing_flap', 'monster_prowl', 'monster_roar', 'monster_pounce'])
         .optional()
-        .describe(d('Procedural motion preset to generate.', 'Chuyển động mẫu tự động sinh.')),
+        .describe(d('Procedural motion preset to generate (includes combat, quadruped, bird wing_flap, and monster clips).', 'Chuyển động mẫu tự động sinh (gồm chiến đấu, thú 4 chân, cánh chim và quái vật).')),
       view_angle: z.enum(['front', 'diagonal', 'side', 'back']).optional().describe(d('Character facing view angle for procedural motion presets ("front" = 0° front-facing default, "diagonal" = 45° 3/4 view, "side" = 90° profile).', 'Góc nhìn nhân vật khi sinh chuyển động mẫu ("front" = 0° chính diện mặc định, "diagonal" = 45° chéo 3/4, "side" = 90° ngang).')),
       clip_id: z.string().optional().describe(d('Animation clip ID to switch, duplicate, rename or delete.', 'ID clip động tác cần chuyển, nhân bản, đổi tên hoặc xóa.')),
       clip_name: z.string().optional().describe(d('New clip name when adding, duplicating or inheriting.', 'Tên clip mới khi thêm, nhân bản hoặc kế thừa.')),
@@ -494,15 +494,16 @@ export const LAYER_ASSEMBLY_TOOLS = [
       points: z.array(z.array(z.number()).length(2)).optional().describe(d('Spine points [[x,y],...] in composite coordinates (X right, Y down, origin at frame center), ordered from ROOT (fixed) to TIP (bends most). At least 2 points.', 'Các điểm xương [[x,y],...] theo toạ độ cụm (X sang phải, Y xuống, gốc ở tâm khung), xếp từ GỐC (đứng yên) tới NGỌN (uốn nhiều nhất). Tối thiểu 2 điểm.')),
       layer_ids: z.array(z.string()).optional().describe(d('Layer IDs that bend with this spine.', 'Danh sách ID layer uốn theo xương.')),
       apply_to: z.enum(['selected', 'all']).optional().describe(d('When layer_ids is omitted on add: bind to the selected layers or all visible layers. Default "selected".', 'Khi không truyền layer_ids lúc add: gắn vào layer đang chọn hoặc toàn bộ layer đang hiện. Mặc định "selected".')),
-      preset: z.enum(['grass', 'sapling', 'branch', 'canopy', 'flower', 'seaweed']).optional().describe(d('Plant motion preset (grass, sapling, branch, canopy = big tree, flower, seaweed/vine).', 'Kiểu cây mẫu (grass = cỏ lau, sapling = cây non, branch = cành, canopy = đại thụ, flower = hoa, seaweed = rong biển/dây leo).')),
+      preset: z.enum(['grass', 'sapling', 'branch', 'canopy', 'flower', 'seaweed', 'silk', 'cloak']).optional().describe(d('Plant/cloth motion preset (silk = 2D hair/ribbons S-wave, cloak = wind-blown cloak, grass, sapling, branch, canopy = big tree, flower, seaweed/vine).', 'Kiểu vật chất gió mẫu (silk = tóc & dải lụa sóng S, cloak = áo choàng bay gió, grass = cỏ lau, sapling = cây non, branch = cành, canopy = đại thụ, flower = hoa, seaweed = rong biển/dây leo).')),
       direction: z.enum(['up', 'horizontal', 'down']).optional().describe(d('Auto-generated spine growth direction when points is omitted on add/apply_weather: "up" (bottom root to top tip), "horizontal" (left root to right tip), "down" (top root hanging down for vines/hair/capes).', 'Hướng mọc tự động khi không truyền points lúc add/apply_weather: "up" (gốc dưới mọc lên), "horizontal" (vươn ngang trái sang phải), "down" (gốc trên rủ xuống cho dây leo/tóc/áo choàng).')),
-      weather: z.enum(['breeze', 'moderate', 'strong', 'storm']).optional().describe(d('apply_weather: Beaufort wind level preset ("breeze" = gentle ±6°, "moderate" = ±13°, "strong" = gusty ±22°, "storm" = gale ±32°).', 'apply_weather: cấp độ gió Beaufort mẫu ("breeze" = hiu hiu ±6°, "moderate" = gió vừa ±13°, "strong" = gió mạnh ±22°, "storm" = gió lốc ±32°).')),
+      weather: z.enum(['breeze', 'moderate', 'strong', 'storm']).optional().describe(d('apply_weather: Beaufort wind level preset ("breeze" = gentle ±6°, "moderate" = ±12°, "strong" = gusty ±20°, "storm" = gale ±28°).', 'apply_weather: cấp độ gió Beaufort mẫu ("breeze" = hiu hiu ±6°, "moderate" = gió vừa ±12°, "strong" = gió mạnh ±20°, "storm" = gió lốc ±28°).')),
       stagger_phase: z.boolean().optional().describe(d('apply_weather: automatically stagger golden-ratio phase offsets across multiple spines (default true).', 'apply_weather: tự động rải lệch pha tỉ lệ vàng khi có nhiều trục gió (mặc định true).')),
       name: z.string().optional().describe(d('Spine display name.', 'Tên hiển thị của xương.')),
       amplitude: z.number().optional().describe(d('Max bend at the tip in degrees.', 'Góc uốn tối đa tại ngọn (độ).')),
       speed: z.number().optional().describe(d('Sway cycles per second.', 'Số nhịp đung đưa mỗi giây.')),
       stiffness: z.number().optional().describe(d('0 = whole stem bends · 1 = only the tip bends.', '0 = cả thân cong · 1 = chỉ ngọn cong.')),
       flexibility: z.number().optional().describe(d('0..1 extra tip flutter.', '0..1 độ rung phụ ở ngọn.')),
+      wave_lag: z.number().min(0).max(1.2).optional().describe(d('0..1.2 S-wave traveling delay from root to tip (0 = rigid C-bend · 0.6–0.9 = fluid 2D silk/hair S-wave).', '0..1.2 độ trễ truyền sóng chữ S từ gốc tới ngọn (0 = uốn chữ C cứng · 0.6–0.9 = sóng truyền lụa/tóc 2D mượt).')),
       turbulence: z.number().optional().describe(d('0..1 gusty wind.', '0..1 gió giật thất thường.')),
       lean: z.number().optional().describe(d('Constant wind lean in degrees (positive = right).', 'Độ nghiêng cố định theo gió (độ, dương = sang phải).')),
       phase_offset: z.number().optional().describe(d('Phase offset in seconds so several plants sway out of sync.', 'Lệch pha (giây) để nhiều cây đung đưa so le.')),

@@ -306,10 +306,19 @@ export function getCharacterActionCatalog(project: Project, targetId: string): {
 
   const rigClips = comp?.rig?.clips || [
     { id: 'walk', name: 'Bước đi (Walk)', duration: 1.6, description: 'Chân bước đi tự nhiên' },
+    { id: 'run', name: 'Chạy bứt tốc (Run)', duration: 0.72, description: 'Chạy nhanh dứt khoát' },
     { id: 'jump', name: 'Nhảy (Jump)', duration: 1.4, description: 'Bật nhảy lên cao' },
-    { id: 'fall', name: 'Vấp ngã (Fall)', duration: 1.8, description: 'Vấp ngã sấp xuống sàn' },
     { id: 'idle', name: 'Đứng thở (Idle)', duration: 2.4, description: 'Đứng yên thở nhẹ nhàng' },
-    { id: 'wave', name: 'Vẫy tay (Wave)', duration: 1.8, description: 'Vẫy tay chào' }
+    { id: 'combat', name: 'Combo chiến đấu (Combat)', duration: 1.25, description: 'Combo chém kiếm / tung đòn 2.5D' },
+    { id: 'martial_kick', name: 'Đá xoáy (Martial Kick)', duration: 1.1, description: 'Đá cao xoay hông võ thuật' },
+    { id: 'dodge_counter', name: 'Né & Phản đòn', duration: 1.15, description: 'Lướt lùi né rồi lao phản công' },
+    { id: 'hit_recoil', name: 'Trúng đòn giật lùi', duration: 0.65, description: 'Phản lực khi va chạm' },
+    { id: 'quadruped_walk', name: 'Thú 4 chân đi bộ', duration: 1.2, description: 'Chuyển động 4 chân lệch pha' },
+    { id: 'quadruped_gallop', name: 'Thú 4 chân phi nước đại', duration: 0.7, description: 'Phi tốc lực 4 chân co duỗi' },
+    { id: 'wing_flap', name: 'Chim vỗ cánh (Wing Flap)', duration: 0.9, description: 'Đập cánh 3 pha lượn 2.5D' },
+    { id: 'monster_prowl', name: 'Quái vật rình mồi', duration: 1.5, description: 'Bước nặng rình rập' },
+    { id: 'monster_roar', name: 'Quái vật gầm rú', duration: 1.4, description: 'Há hàm ngửa đầu gầm uy lực' },
+    { id: 'monster_pounce', name: 'Quái vật vồ mồi', duration: 1.1, description: 'Ép thấp rồi bật vồ cào' }
   ]
 
   const motionPresets = MOTION_PRESETS_CATALOG.map((m) => ({

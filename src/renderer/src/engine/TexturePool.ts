@@ -307,10 +307,14 @@ export class TexturePool {
       node.planeH = r.height
       node.alpha = canvasAlpha(r.canvas)
     } else {
-      const r = renderSolidCanvas((layer as Layer & { type: 'solid' }).props)
+      const sp = (layer as Layer & { type: 'solid' }).props
+      const r = renderSolidCanvas(sp)
       canvas = r.canvas
       node.planeW = r.width
       node.planeH = r.height
+      if (sp.pattern === 'hologram_panel') {
+        node.alpha = canvasAlpha(r.canvas)
+      }
     }
     const tex = this.configureTexture(new THREE.CanvasTexture(canvas))
     const e: TexEntry = {
