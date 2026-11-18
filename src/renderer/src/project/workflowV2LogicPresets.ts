@@ -37,9 +37,15 @@ export interface WorkflowV2LogicCategoryItem {
 }
 
 const ATOMIC_FX_ITEMS: WorkflowV2LogicCategoryItem[] = [
-  { id: 'fx', presetId: 'v2:fx:fade_in_out', icon: '🌓', label: 'Hiện / Ẩn mờ dần', hint: 'Fade In / Out độ mờ Opacity độc lập', accent: '#a855f7' },
-  { id: 'fx', presetId: 'v2:fx:pulse_beat', icon: '💓', label: 'Nhịp thở / Rung', hint: 'Nhịp co giãn Scale hoặc rung nhẹ', accent: '#c084fc' },
-  { id: 'fx', presetId: 'v2:fx:glow', icon: '✨', label: 'Phát sáng Neon', hint: 'Hào quang viền sáng tách biệt hoàn toàn', accent: '#e879f9' }
+  { id: 'fx', presetId: 'v2:fx:fadeInOut', icon: '🌓', label: 'Hiện / Ẩn mờ dần', hint: 'Chỉ điều khiển Opacity vào/ra độc lập', accent: '#a855f7' },
+  { id: 'fx', presetId: 'v2:fx:pulse', icon: '💓', label: 'Nhịp thở / Co giãn', hint: 'Chỉ điều khiển nhịp Scale thở độc lập', accent: '#c084fc' },
+  { id: 'fx', presetId: 'v2:fx:shake', icon: '⚡', label: 'Rung chấn cảm xúc', hint: 'Chỉ điều khiển rung sợ hãi / giận dữ', accent: '#f43f5e' },
+  { id: 'fx', presetId: 'v2:fx:neonSolid', icon: '✨', label: 'Viền sáng / Hào quang', hint: 'Chỉ điều khiển quầng sáng Neon độc lập', accent: '#e879f9' }
+]
+
+const ATOMIC_SUBTITLE_ITEMS: WorkflowV2LogicCategoryItem[] = [
+  { id: 'subtitle', presetId: 'v2:subtitle:lugia_cyan', icon: '💬', label: 'Phụ đề Vietsub', hint: 'Phụ đề chuẩn 2.5D đáy màn hình & giữ thời gian nói', accent: '#fbbf24' },
+  { id: 'subtitle', presetId: 'v2:subtitle:comic_bubble', icon: '💭', label: 'Hộp Thoại Comic', hint: 'Bong bóng thoại có đuôi trỏ thẳng vào nhân vật', accent: '#38bdf8' }
 ]
 
 /**
@@ -119,13 +125,13 @@ export function getCompatibleLogicCatalogForNode(
       })
     }
     categories.push(
-      { id: 'action', icon: '🔄', label: 'Motion 3D', hint: 'Xoay 3D & vẽ quỹ đạo chuyển động', accent: '#10b981' },
+      { id: 'action', presetId: 'v2:action:bbox_target', icon: '🔄', label: 'Motion 3D BBox', hint: 'Đặt BBox Đích & xoay 3D độc lập', accent: '#10b981' },
       ...ATOMIC_FX_ITEMS,
       { id: 'material', icon: '🏷️', label: 'Vật liệu 3D', hint: 'Đá cứng, kim loại, gỗ, đàn hồi', accent: '#f97316' },
       { id: 'collision', icon: '💥', label: 'Va chạm 3D', hint: 'Tương tác va đập vật lý 3D', accent: '#f43f5e' },
       { id: 'light', icon: '💡', label: 'Ánh sáng 3D', hint: 'Chiếu sáng khối 3D, Rim & Point', accent: '#eab308' },
-      { id: 'audio', icon: '🔊', label: 'Âm thanh 3D', hint: 'Âm thanh gắn theo khối 3D', accent: '#ec4899' },
-      { id: 'subtitle', icon: '💬', label: 'Phụ đề Vietsub', hint: 'Phụ đề thoại gắn theo đối tượng 3D', accent: '#fbbf24' }
+      { id: 'audio', presetId: 'v2:audio:voice', icon: '🔊', label: 'Âm thanh 3D', hint: 'Âm thanh gắn theo khối 3D', accent: '#ec4899' },
+      ...ATOMIC_SUBTITLE_ITEMS
     )
     return { categories, dynamicParts, parentKind: 'model_3d' }
   }
@@ -136,20 +142,21 @@ export function getCompatibleLogicCatalogForNode(
       categories.push({
         id: 'part_swap',
         icon: '🧩',
-        label: 'Bộ phận',
-        hint: 'Chỉnh bộ phận lắp ráp từ Xưởng 2.5D',
+        label: 'Bộ phận & Biểu cảm',
+        hint: 'Đổi mặt / tay / đạo cụ từ Xưởng 2.5D',
         accent: '#06b6d4'
       })
     }
     categories.push(
-      { id: 'anim_fx', icon: '🎞️', label: 'Hành động Nhân vật', hint: 'Động tác nhép miệng, nháy mắt & Clip xương 2.5D', accent: '#6366f1' },
-      { id: 'action', icon: '🏃', label: 'Motion', hint: 'Đặt BBox Đích & vẽ quỹ đạo chuyển động', accent: '#10b981' },
+      { id: 'anim_fx', presetId: 'v2:anim_fx:rig_idle', icon: '🎞️', label: 'Hành động Xương', hint: 'Clip cử động xương & động tác nhân vật 2.5D', accent: '#6366f1' },
+      { id: 'action', presetId: 'v2:action:bbox_target', icon: '🏃', label: 'Di chuyển BBox', hint: 'Chỉ chỉnh vị trí Đích (#1→#2) & Chiều sâu Z', accent: '#10b981' },
+      { id: 'action', presetId: 'v2:action:float', icon: '🌊', label: 'Nhấp nhô / Lơ lửng', hint: 'Dao động bay lơ lửng độc lập với BBox', accent: '#14b8a6' },
       ...ATOMIC_FX_ITEMS,
       { id: 'material', icon: '🏷️', label: 'Vật liệu', hint: 'Đàn hồi chất liệu cho cụm 2.5D', accent: '#f97316' },
       { id: 'collision', icon: '💥', label: 'Va chạm', hint: 'Nối 2 Cụm / Layer va đập vật lý', accent: '#f43f5e' },
       { id: 'light', icon: '💡', label: 'Ánh sáng', hint: 'Đèn viền, glow, nguồn sáng cụm', accent: '#eab308' },
-      { id: 'audio', icon: '🔊', label: 'Âm thanh', hint: 'Thoại & nhép môi nhân vật', accent: '#ec4899' },
-      { id: 'subtitle', icon: '💬', label: 'Phụ đề Vietsub', hint: 'Lời thoại Vietsub gắn riêng nhân vật & đồng bộ thời gian nói', accent: '#fbbf24' }
+      { id: 'audio', presetId: 'v2:audio:voice', icon: '🔊', label: 'Giọng nói / SFX', hint: 'Thoại & nhép môi nhân vật độc lập', accent: '#ec4899' },
+      ...ATOMIC_SUBTITLE_ITEMS
     )
     return { categories, dynamicParts, parentKind: 'composite_25d' }
   }
@@ -159,6 +166,7 @@ export function getCompatibleLogicCatalogForNode(
   if (isAnimatedLoopLayer(firstLayer, project)) {
     singleCategories.push({
       id: 'loop_anim',
+      presetId: 'v2:loop_anim:loop',
       icon: '🔁',
       label: 'Animation Loop',
       hint: 'Chu kỳ phát lặp, tốc độ & số vòng riêng cho item Loop',
@@ -166,15 +174,16 @@ export function getCompatibleLogicCatalogForNode(
     })
   }
   singleCategories.push(
-    { id: 'action', icon: '🏃', label: 'Motion', hint: 'Đặt BBox Đích & vẽ quỹ đạo di chuyển Layer', accent: '#10b981' },
+    { id: 'action', presetId: 'v2:action:bbox_target', icon: '🏃', label: 'Di chuyển BBox', hint: 'Chỉ chỉnh vị trí Đích (#1→#2) & Chiều sâu Z', accent: '#10b981' },
+    { id: 'action', presetId: 'v2:action:float', icon: '🌊', label: 'Nhấp nhô / Lơ lửng', hint: 'Dao động bay lơ lửng độc lập với BBox', accent: '#14b8a6' },
     ...ATOMIC_FX_ITEMS,
-    { id: 'rig_bone', icon: '🦴', label: 'Gắn xương', hint: 'Chuỗi xương uốn dẻo cho Layer', accent: '#f59e0b' },
+    { id: 'rig_bone', presetId: 'v2:rig_bone:humanoid_15', icon: '🦴', label: 'Gắn xương', hint: 'Chuỗi xương uốn dẻo cho Layer', accent: '#f59e0b' },
     { id: 'material', icon: '🏷️', label: 'Vật liệu', hint: 'Cao su, gỗ, đá, lá, kim loại & đàn hồi Mesh', accent: '#f97316' },
     { id: 'collision', icon: '💥', label: 'Va chạm', hint: 'Nối 2 Layer va đập vật lý', accent: '#f43f5e' },
     { id: 'light', icon: '💡', label: 'Ánh sáng', hint: 'Đèn viền, nến, glow, nguồn sáng', accent: '#eab308' },
     { id: 'cave', icon: '🕳️', label: 'Hang động', hint: 'Vòm cổng độ sâu 2.5D', accent: '#14b8a6' },
-    { id: 'audio', icon: '🔊', label: 'Âm thanh', hint: 'Thoại, nhép môi & SFX', accent: '#ec4899' },
-    { id: 'subtitle', icon: '💬', label: 'Phụ đề Vietsub', hint: 'Lời thoại Vietsub gắn riêng từng đối tượng & đồng bộ thời gian nói', accent: '#fbbf24' }
+    { id: 'audio', presetId: 'v2:audio:voice', icon: '🔊', label: 'Giọng nói / SFX', hint: 'Thoại, nhép môi & SFX độc lập', accent: '#ec4899' },
+    ...ATOMIC_SUBTITLE_ITEMS
   )
   return { categories: singleCategories, dynamicParts: [], parentKind: 'single_25d' }
 }
@@ -370,26 +379,77 @@ export const WORKFLOW_V2_LOGIC_PRESETS: WorkflowV2LogicPreset[] = [
   preset('audio', 'voice', 'Thoại & nhép môi', { intensity: 1, autoLipSync: true }),
 
   // 9. Node Phụ đề Vietsub gắn từng đối tượng (kèm chế độ bảo vệ cấu hình đặc biệt)
-  preset('subtitle', 'lugia_cyan', '💎 Phụ đề Trắng Viền Xanh (Mặc định)', {
+  preset('subtitle', 'lugia_cyan', '💎 Phụ đề Trắng Nghiêng Viền Xanh (Mặc định)', {
     subtitleStylePreset: 'lugia_cyan',
     subtitleFontFamily: 'Montserrat',
     subtitleFontSize: 36,
     subtitleFontWeight: 900,
+    subtitleItalic: true,
     subtitleColor: '#ffffff',
-    subtitleStrokeColor: '#0a3d6e',
-    subtitleStrokeWidth: 6,
+    subtitleStrokeColor: '#072a4d',
+    subtitleStrokeWidth: 7,
     subtitleGlowColor: '#38bdf8',
     subtitleBoxColor: '',
     subtitleBoxOpacity: 0,
+    subtitleBubbleTail: 'none',
     subtitleAlign: 'center',
     subtitlePositionPreset: 'bottom_center',
     subtitleOffsetX: 0,
-    subtitleOffsetY: -390,
+    subtitleOffsetY: -405,
     subtitleEnterEffect: 'fade',
     subtitleExitEffect: 'fade',
     subtitleFadeIn: 0.14,
     subtitleFadeOut: 0.14,
     preserveCustomSettings: false,
+    syncHoldTargetLayer: true
+  }),
+  preset('subtitle', 'dino_white_pill', '⬜ Phụ đề Hộp Trắng Shadiao', {
+    subtitleStylePreset: 'dino_white_pill',
+    subtitleFontFamily: 'Be Vietnam Pro',
+    subtitleFontSize: 34,
+    subtitleFontWeight: 800,
+    subtitleItalic: false,
+    subtitleColor: '#0f172a',
+    subtitleStrokeColor: '',
+    subtitleStrokeWidth: 0,
+    subtitleBoxColor: '#ffffff',
+    subtitleBoxOpacity: 0.96,
+    subtitleBoxBorderColor: '#cbd5e1',
+    subtitleBubbleTail: 'none',
+    subtitleAlign: 'center',
+    subtitlePositionPreset: 'bottom_center',
+    subtitleOffsetX: 0,
+    subtitleOffsetY: -415,
+    subtitleEnterEffect: 'fade',
+    subtitleExitEffect: 'fade',
+    subtitleFadeIn: 0.12,
+    subtitleFadeOut: 0.12,
+    preserveCustomSettings: false,
+    syncHoldTargetLayer: true
+  }),
+  preset('subtitle', 'comic_bubble', '💬 Hộp Thoại Truyện Tranh (Có Đuôi Trỏ)', {
+    subtitleStylePreset: 'comic_bubble',
+    subtitleFontFamily: 'Be Vietnam Pro',
+    subtitleFontSize: 32,
+    subtitleFontWeight: 800,
+    subtitleItalic: false,
+    subtitleColor: '#0f172a',
+    subtitleStrokeColor: '',
+    subtitleStrokeWidth: 0,
+    subtitleBoxColor: '#ffffff',
+    subtitleBoxOpacity: 0.98,
+    subtitleBoxBorderColor: '#0f172a',
+    subtitleBubbleTail: 'left',
+    subtitleMaxChars: 28,
+    subtitleAlign: 'center',
+    subtitlePositionPreset: 'speech_right',
+    subtitleOffsetX: 0,
+    subtitleOffsetY: 110,
+    subtitleEnterEffect: 'pop_bounce',
+    subtitleExitEffect: 'scale_out',
+    subtitleFadeIn: 0.16,
+    subtitleFadeOut: 0.14,
+    preserveCustomSettings: true,
     syncHoldTargetLayer: true
   }),
   preset('subtitle', 'cinema_gold', '🌟 Phụ đề Vàng Kim Điện Ảnh', {
@@ -536,6 +596,9 @@ const LEGACY_TO_V2: Record<string, string> = {
   'v2:anim_fx:breathe': 'v2:fx:breathe',
   'v2:anim_fx:neonBreathe': 'v2:fx:neonBreathe',
   'v2:anim_fx:neonBlink': 'v2:fx:neonBlink',
+  'v2:fx:fade_in_out': 'v2:fx:fadeInOut',
+  'v2:fx:pulse_beat': 'v2:fx:pulse',
+  'v2:fx:glow': 'v2:fx:neonSolid',
   'v2:anim_fx:neonFlicker': 'v2:fx:neonFlicker',
   'v2:anim_fx:neonSolid': 'v2:fx:neonSolid'
 }

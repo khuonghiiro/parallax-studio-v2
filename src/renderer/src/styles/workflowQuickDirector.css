@@ -1,0 +1,243 @@
+/* ==========================================================================
+   Workflow V2 & Timeline — 3-Pillar Quick Director Hub (Cảnh · Nhân vật · Thoại)
+   ========================================================================== */
+
+.wf-director-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 3px;
+  padding: 4px;
+  background: var(--bg-0);
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.wf-director-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 27px;
+  padding: 0 5px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+
+.wf-director-tab:hover {
+  background: var(--bg-2);
+  color: var(--text);
+}
+
+.wf-director-tab.active {
+  background: color-mix(in srgb, var(--accent-cyan) 18%, var(--bg-2));
+  border-color: color-mix(in srgb, var(--accent-cyan) 52%, var(--line));
+  color: var(--text);
+  font-weight: 700;
+}
+
+.wf-director-mood-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.wf-director-mood-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 27px;
+  padding: 0 7px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-soft);
+  background: var(--bg-2);
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.wf-director-mood-btn:hover {
+  background: color-mix(in srgb, var(--accent) 14%, var(--bg-3));
+  border-color: var(--accent);
+}
+
+.wf-director-mood-btn.active {
+  background: color-mix(in srgb, var(--accent) 78%, #0f172a);
+  border-color: var(--accent);
+  color: #ffffff;
+}
+
+.wf-director-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.wf-director-card {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 7px 8px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+
+.wf-director-card:hover {
+  border-color: color-mix(in srgb, var(--accent) 42%, var(--line));
+}
+
+.wf-director-card.active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-2));
+}
+
+.wf-director-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 0;
+}
+
+.wf-director-card-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  padding: 0;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+}
+
+.wf-director-card-title span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wf-director-time-tag {
+  flex-shrink: 0;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--accent-cyan);
+  background: var(--bg-1);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  padding: 1px 5px;
+}
+
+.wf-director-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.wf-director-atom-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  min-height: 22px;
+  padding: 0 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-soft);
+  background: var(--bg-1);
+  color: var(--text-dim);
+  font-size: 10.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+
+.wf-director-atom-chip:hover {
+  background: var(--bg-3);
+  border-color: var(--line);
+  color: var(--text);
+}
+
+.wf-director-atom-chip.active {
+  background: color-mix(in srgb, var(--logic-c, var(--accent)) 78%, #0f172a);
+  border-color: var(--logic-c, var(--accent));
+  color: #ffffff;
+}
+
+.wf-director-atom-chip.add {
+  border-style: dashed;
+  color: var(--accent-cyan);
+}
+
+.wf-director-sub-input {
+  width: 100%;
+  min-height: 26px;
+  padding: 3px 7px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--bg-1);
+  color: var(--text);
+  font-size: 11.5px;
+  line-height: 1.35;
+  outline: none;
+}
+
+.wf-director-sub-input:focus {
+  border-color: var(--accent);
+}
+
+/* Timeline Role Filter Strip */
+.tl-role-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--radius);
+  background: var(--bg-1);
+  border: 1px solid var(--line-soft);
+  flex-shrink: 0;
+}
+
+.tl-role-filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+
+.tl-role-filter-btn:hover {
+  background: var(--bg-3);
+  color: var(--text);
+}
+
+.tl-role-filter-btn.active {
+  background: color-mix(in srgb, var(--accent-cyan) 22%, var(--bg-3));
+  border-color: color-mix(in srgb, var(--accent-cyan) 55%, var(--line));
+  color: var(--text);
+}
