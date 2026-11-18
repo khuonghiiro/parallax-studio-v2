@@ -106,8 +106,16 @@ echo [OK] Thu vien MCP Server san sang.
 echo.
 
 REM 5. FFmpeg cho chuc nang xuat video (tuy chon, KHONG lam hong cai dat)
-echo [3/3] Dang kiem tra FFmpeg cho chuc nang xuat video MP4...
+echo [3/4] Dang kiem tra FFmpeg cho chuc nang xuat video MP4...
 node "%~dp0scripts\ensure-ffmpeg.mjs"
+echo.
+
+REM 6. Addon Rust NAPI-RS 64-bit da luong (tuy chon neu may co cargo, neu khong tu dung WASM fallback)
+echo [4/4] Dang kiem tra addon tang toc Rust Native (napi-rs)...
+node "%~dp0scripts\build-napi-accel.mjs" --if-rust
+if errorlevel 1 (
+    echo [CANH BAO] Khong bien dich duoc addon Rust native - he thong tu dong dung WASM fallback.
+)
 echo.
 
 echo ============================================================

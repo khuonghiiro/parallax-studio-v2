@@ -1,13 +1,13 @@
 # AGENTS.md — Quy Chuẩn Kỹ Thuật & Hướng Dẫn Phát Triển (Parallax Studio V2)
 
-Tài liệu này là **nguồn quy chuẩn trung tâm (Single Source of Truth)** dành cho mọi AI Agent (Antigravity, Claude Code, Cursor, Codex, Copilot, Windsurf, Cline) khi phát triển dự án **Parallax Studio V2**. Giữ file này dưới **22 KB** để hệ thống AI luôn nạp trọn vẹn 100% vào System Prompt mà không bị cắt cụt (truncate).
+Tài liệu này là **nguồn quy chuẩn trung tâm (Single Source of Truth)** cho mọi AI Agent khi phát triển dự án **Parallax Studio V2**. Giữ file này dưới **22 KB** để hệ thống AI luôn nạp trọn vẹn 100% vào System Prompt không bị cắt cụt.
 
 ---
 
 ## 1. Tổng Quan Dự Án (Project Overview)
 
 - **Mục tiêu:** Ứng dụng Desktop dựng video hiệu ứng **Parallax 2.5D** (tương tự 3D Camera trong After Effects): sắp xếp layer ảnh theo chiều sâu, phân cảnh (shots), tạo đường bay camera 3D, gắn xương 2.5D / mô hình 3D / Workflow V2 và xuất video MP4 (CPU/GPU YUV420p).
-- **Tech Stack:** Electron + Vite (`electron-vite`), TypeScript, React 19, Vanilla CSS + Design Tokens (`variables.css`), Three.js (WebGL, Custom Shaders), Rust/WASM (`crates/pxs_core_accel`), Vitest, MCP Server nội bộ (`mcp-server/index.mjs`, TCP `127.0.0.1:9877`).
+- **Tech Stack:** Electron + Vite (`electron-vite`), TypeScript, React 19, Vanilla CSS + Design Tokens (`variables.css`), Three.js (WebGL, Custom Shaders), Rust/WASM (`crates/pxs_core_accel`) + Rust NAPI-RS 64-bit (`crates/pxs_native_napi`), Vitest, MCP Server (`mcp-server/index.mjs`, TCP `127.0.0.1:9877`).
 
 ---
 
