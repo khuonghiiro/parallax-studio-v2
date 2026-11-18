@@ -11,6 +11,12 @@ export function workflowBboxEditTime(
   if (p?.isCameraWaypoint && typeof p.timeStart === 'number') return p.timeStart
   if (!playing) {
     if (p?.logicCategory === 'action' && resolveMotionMode(p) !== 'cycle') return p.timeStart ?? 0
+    if (p?.logicCategory === 'subtitle' && typeof p.timeStart === 'number' && typeof p.timeEnd === 'number') {
+      if (currentTime < p.timeStart || currentTime > p.timeEnd) {
+        return Number(((p.timeStart + p.timeEnd) * 0.5).toFixed(2))
+      }
+      return currentTime
+    }
     if (workflow) {
       const edge = workflow.edges.find((e) => (e.fromNode === node.id || e.toNode === node.id) && !e.disabled)
       if (edge) {

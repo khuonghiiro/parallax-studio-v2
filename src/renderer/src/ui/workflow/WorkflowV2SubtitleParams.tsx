@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import type {
+  SubtitleBubbleTail,
   SubtitleEnterEffect,
   SubtitleExitEffect,
   SubtitlePositionPreset,
@@ -10,6 +11,7 @@ import { toast } from '../../actions'
 import {
   SUBTITLE_STYLE_PRESETS,
   applySubtitleDefaultsToAllNodes,
+  defaultOffsetYForPreset,
   getProjectSubtitleDefaults,
   resetSubtitleNodeToDefaults,
   validateAndRepairDialogueContinuity
@@ -39,6 +41,13 @@ const ALIGN_OPTIONS: { id: 'left' | 'center' | 'right'; label: string }[] = [
   { id: 'left', label: '⬅ Trái' },
   { id: 'center', label: '✦ Giữa' },
   { id: 'right', label: '➡ Phải' }
+]
+
+const BUBBLE_TAIL_OPTIONS: { id: SubtitleBubbleTail; label: string }[] = [
+  { id: 'none', label: '▭ Không đuôi' },
+  { id: 'left', label: '◣ Trỏ Trái' },
+  { id: 'right', label: '◢ Trỏ Phải' },
+  { id: 'bottom', label: '▼ Trỏ Dưới' }
 ]
 
 const POSITION_PRESET_OPTIONS: { id: SubtitlePositionPreset; label: string }[] = [
@@ -84,15 +93,17 @@ export function WorkflowV2SubtitleParams({ node, project, onUpdate }: WorkflowV2
   const curFont = p.subtitleFontFamily ?? defaults.fontFamily
   const curSize = p.subtitleFontSize ?? defaults.fontSize
   const curWeight = String(p.subtitleFontWeight ?? defaults.fontWeight)
+  const curItalic = p.subtitleItalic ?? defaults.italic ?? false
   const curColor = p.subtitleColor ?? defaults.color
   const curStroke = p.subtitleStrokeColor ?? defaults.strokeColor
   const curStrokeW = p.subtitleStrokeWidth ?? defaults.strokeWidth
   const curBoxColor = p.subtitleBoxColor || '#090d16'
   const curBoxOp = p.subtitleBoxOpacity ?? defaults.boxOpacity
+  const curBubbleTail = (p.subtitleBubbleTail ?? defaults.bubbleTail ?? 'none') as SubtitleBubbleTail
   const curAlign = (p.subtitleAlign ?? defaults.align) as 'left' | 'center' | 'right'
   const curPosPreset = (p.subtitlePositionPreset ?? defaults.positionPreset) as SubtitlePositionPreset
-  const curOffX = p.subtitleOffsetX ?? defaults.offsetX
-  const curOffY = p.subtitleOffsetY ?? defaults.offsetY
+  const curOffX = typeof p.subtitleOffsetX === 'number' ? p.subtitleOffsetX : defaults.offsetX
+  const curOffY = typeof p.subtitleOffsetY === 'number' ? p.subtitleOffsetY : defaultOffsetYForPreset(curPosPreset)
   const curEnter = (p.subtitleEnterEffect ?? defaults.enterEffect) as SubtitleEnterEffect
   const curExit = (p.subtitleExitEffect ?? defaults.exitEffect) as SubtitleExitEffect
   const curFadeIn = p.subtitleFadeIn ?? defaults.fadeInDuration
@@ -117,11 +128,13 @@ export function WorkflowV2SubtitleParams({ node, project, onUpdate }: WorkflowV2
         fontFamily: curFont,
         fontSize: curSize,
         fontWeight: Number(curWeight),
+        italic: curItalic,
         color: curColor,
         strokeColor: curStroke,
         strokeWidth: curStrokeW,
         boxColor: curBoxOp > 0.01 ? curBoxColor : '',
         boxOpacity: curBoxOp,
+        bubbleTail: curBubbleTail,
         align: curAlign,
         positionPreset: curPosPreset,
         offsetX: curOffX,
@@ -209,9 +222,9 @@ export function WorkflowV2SubtitleParams({ node, project, onUpdate }: WorkflowV2
         />
       </label>
 
-      <div className="wf-v2-insp-subhead">Mẫu Phong Cách Vietsub</div>
+      <div className="wf-v2-insp-subhead">Mẫu Phong Cách Vietsub &amp; Hộp Thoại</div>
       <OptionPills
-        cols={3}
+        cols={2}
         options={SUBTITLE_STYLE_PRESETS.map((pr) => ({ id: pr.id, label: pr.shortLabel }))}
         value={curPreset}
         onPick={(presetId) => onUpdate({ subtitleStylePreset: presetId })}
@@ -265,12 +278,21 @@ export function WorkflowV2SubtitleParams({ node, project, onUpdate }: WorkflowV2
             format={(v) => `${Math.round(v)}px`}
             onChange={(v) => onUpdate({ subtitleFontSize: Math.round(v) })}
           />
-          <div className="wf-v2-insp-subhead">Độ đậm &amp; Căn lề</div>
+          <div className="wf-v2-insp-subhead">Độ đậm · Kiểu nghiêng &amp; Căn lề</div>
           <OptionPills
             cols={2}
             options={FONT_WEIGHT_OPTIONS}
             value={curWeight}
             onPick={(w) => onUpdate({ subtitleFontWeight: Number(w) })}
+          />
+          <OptionPills
+            cols={2}
+            options={[
+              { id: 'normal', label: 'T Chữ đứng' },
+              { id: 'italic', label: '𝑰 Chữ nghiêng (2.5D)' }
+            ]}
+            value={curItalic ? 'italic' : 'normal'}
+            onPick={(st) => onUpdate({ subtitleItalic: st === 'italic' })}
           />
           <OptionPills
             cols={3}
@@ -311,6 +333,20 @@ export function WorkflowV2SubtitleParams({ node, project, onUpdate }: WorkflowV2
             value={curBoxOp}
             onChange={(v) => onUpdate({ subtitleBoxOpacity: Number(v.toFixed(2)), subtitleBoxColor: v > 0.02 ? curBoxColor : '' })}
           />
+          <div className="wf-v2-insp-subhead">Đuôi Hộp Thoại Truyện Tranh</div>
+          <OptionPills
+            cols={2}
+            options={BUBBLE_TAIL_OPTIONS}
+            value={curBubbleTail}
+            onPick={(tail) =>
+              onUpdate({
+                subtitleBubbleTail: tail,
+                ...(tail !== 'none' && curBoxOp < 0.1
+                  ? { subtitleBoxColor: '#ffffff', subtitleBoxOpacity: 0.96, subtitleBoxBorderColor: '#0f172a', subtitleColor: '#0f172a', subtitleStrokeWidth: 0 }
+                  : {})
+              })
+            }
+          />
         </>
       )}
 
@@ -322,8 +358,7 @@ export function WorkflowV2SubtitleParams({ node, project, onUpdate }: WorkflowV2
             options={POSITION_PRESET_OPTIONS}
             value={curPosPreset}
             onPick={(pos) => {
-              const defY = pos === 'bottom_center' ? -390 : pos === 'top_center' ? 360 : pos === 'above_speaker' ? 190 : pos === 'below_speaker' ? -230 : 80
-              onUpdate({ subtitlePositionPreset: pos, subtitleOffsetY: defY })
+              onUpdate({ subtitlePositionPreset: pos, subtitleOffsetX: 0, subtitleOffsetY: defaultOffsetYForPreset(pos) })
             }}
           />
           <ParamSlider

@@ -43,6 +43,13 @@ export interface ProjectedLayer2D {
   font?: string
   fontSize?: number
   fontWeight?: number
+  italic?: boolean
+  strokeColor?: string
+  strokeWidth?: number
+  boxColor?: string
+  boxOpacity?: number
+  boxBorderColor?: string
+  isSubtitleCue?: boolean
   align?: 'left' | 'center' | 'right'
   solidColor?: string
   solidColor2?: string
@@ -345,6 +352,14 @@ export function projectShotLayers2D(
       base.font = el.layer.props.fontFamily
       base.fontSize = el.layer.props.fontSize * el.scale[1] * pFactor
       base.fontWeight = el.layer.props.fontWeight
+      base.italic = el.layer.props.italic
+      base.strokeColor = el.layer.props.strokeColor
+      base.strokeWidth = el.layer.props.strokeWidth
+      base.boxColor = el.layer.props.boxColor
+      base.boxOpacity = el.layer.props.boxOpacity
+      base.boxBorderColor = el.layer.props.boxBorderColor
+      base.isSubtitleCue = el.layer.props.isSubtitleCue
+      base.align = el.layer.props.align
     } else if (el.layer.type === 'solid') {
       base.solidColor = el.layer.props.color
       base.solidColor2 = el.layer.props.color2

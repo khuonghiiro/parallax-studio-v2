@@ -279,10 +279,13 @@ export type SubtitlePositionPreset =
 
 export type SubtitleEnterEffect = 'fade' | 'pop_bounce' | 'slide_up' | 'typewriter_scale' | 'none'
 export type SubtitleExitEffect = 'fade' | 'slide_down' | 'scale_out' | 'none'
+export type SubtitleBubbleTail = 'none' | 'left' | 'right' | 'bottom'
 export type SubtitleStylePresetId =
   | 'cinema_gold'
   | 'lugia_cyan'
+  | 'dino_white_pill'
   | 'netflix_box'
+  | 'comic_bubble'
   | 'comic_shout'
   | 'inner_thought'
   | 'system_hologram'
@@ -294,6 +297,7 @@ export interface SubtitleDefaultsConfig {
   fontFamily: string
   fontSize: number
   fontWeight: number
+  italic?: boolean
   color: string
   strokeColor: string
   strokeWidth: number
@@ -301,6 +305,8 @@ export interface SubtitleDefaultsConfig {
   boxColor?: string
   boxOpacity: number
   boxBorderColor?: string
+  bubbleTail?: SubtitleBubbleTail
+  maxCharsPerLine?: number
   align: 'left' | 'center' | 'right'
   positionPreset: SubtitlePositionPreset
   offsetX: number
@@ -317,6 +323,8 @@ export interface TextProps {
   fontFamily: string
   fontSize: number
   fontWeight: number
+  /** Chữ in nghiêng kiểu Vietsub hoạt ảnh 2.5D (mặc định true cho mẫu Lugia Cyan / Nội tâm). */
+  italic?: boolean
   color: string
   letterSpacing: number
   shadow: boolean
@@ -332,6 +340,10 @@ export interface TextProps {
   boxOpacity?: number
   /** Màu viền khung HUD / bảng Hệ Thống (ví dụ '#38bdf8'). */
   boxBorderColor?: string
+  /** Đuôi trỏ hộp thoại truyện tranh ('none' | 'left' | 'right' | 'bottom'). */
+  bubbleTail?: SubtitleBubbleTail
+  /** Giới hạn số ký tự tối đa mỗi dòng để cân bằng 2 dòng tự động. */
+  maxCharsPerLine?: number
   /** Căn lề văn bản phụ đề ('left' | 'center' | 'right'). */
   align?: 'left' | 'center' | 'right'
   /** Đánh dấu đây là layer phụ đề Vietsub gắn cho đối tượng / nhân vật. */

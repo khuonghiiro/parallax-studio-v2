@@ -233,6 +233,7 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
 
   useEffect(() => {
     if (node?.params?.logicCategory === 'action' && node.params.motionMode !== 'cycle') setDirectStageOpen(true)
+    if (node?.params?.logicCategory === 'subtitle') setDirectStageOpen(true)
   }, [node?.id, node?.params?.logicCategory, node?.params?.motionMode])
 
   const activeLayer = resolveActiveLayerForInspector(project, node, props.selectedLayerId ?? null)
@@ -385,6 +386,7 @@ export const WorkflowV2Inspector: React.FC<WorkflowV2InspectorProps> = (props) =
     isClusterLock ||
     logicCat === 'action' ||
     logicCat === 'collision' ||
+    logicCat === 'subtitle' ||
     node.type === 'camera_director' ||
     Boolean(node.params?.isCameraWaypoint)
   const isLayerLogicNode = level === 'logic' && !isClusterLock && node.type !== 'camera_director' && !node.params?.isCameraWaypoint

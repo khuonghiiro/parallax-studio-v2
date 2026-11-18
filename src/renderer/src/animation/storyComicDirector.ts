@@ -20,7 +20,8 @@ import {
   applySubtitleEnterExitKeyframes,
   computeSubtitlePlacement,
   enforceSpeakerAndSceneContinuity,
-  getProjectSubtitleDefaults
+  getProjectSubtitleDefaults,
+  wrapBalancedSubtitle
 } from '../project/subtitleAndDialogueSync'
 import {
   type CinematicCameraBeat,
@@ -125,22 +126,7 @@ export function anchorBustLayerToFrameBottom(
 }
 
 export function wrapStorySubtitle(raw: string, maxCharsPerLine = 42): string {
-  const clean = raw.trim().replace(/\s+/g, ' ')
-  if (clean.length <= maxCharsPerLine || clean.includes('\n')) return clean
-  const words = clean.split(' ')
-  const lines: string[] = []
-  let cur = ''
-  for (const w of words) {
-    const next = cur ? `${cur} ${w}` : w
-    if (next.length > maxCharsPerLine && cur.length > 0) {
-      lines.push(cur)
-      cur = w
-    } else {
-      cur = next
-    }
-  }
-  if (cur) lines.push(cur)
-  return lines.join('\n')
+  return wrapBalancedSubtitle(raw, maxCharsPerLine)
 }
 
 function insertBeatLayerTop(project: Project, shotId: string, layer: Layer): void {

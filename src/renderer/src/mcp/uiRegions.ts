@@ -168,6 +168,7 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   workflow_light_behavior: region('workflow_light_behavior', '.vl-physics-behavior-panel'),
   workflow_light_rays: region('workflow_light_rays', '.vl-physics-rays-panel'),
   workflow_preview: region('workflow_preview', '.wf-inspector-preview-box'),
+  workflow_subtitle_stage: region('workflow_subtitle_stage', '.wf-sub-quick-bar'),
   workflow_json_panel: region('workflow_json_panel', '.wf-json-panel'),
   workflow_node_camera_preview: region('workflow_node_camera_preview', '.wf-camera-preview'),
   workflow_node_settings: region('workflow_node_settings', '.wf-node-dialog-settings'),

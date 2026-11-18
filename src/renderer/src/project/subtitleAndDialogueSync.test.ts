@@ -4,11 +4,14 @@ import { generatePresetSpatialTracks } from '../animation/motionPresets'
 import * as factory from './factory'
 import {
   applySubtitleDefaultsToAllNodes,
+  computeSubtitlePlacement,
   enforceSpeakerAndSceneContinuity,
   resetSubtitleNodeToDefaults,
   syncSubtitleNodeToProject,
-  validateAndRepairDialogueContinuity
+  validateAndRepairDialogueContinuity,
+  wrapBalancedSubtitle
 } from './subtitleAndDialogueSync'
+import { workflowBboxEditTime } from '../ui/workflow/workflowBboxEditTime'
 import { attachLogicNodeToLayerV2, syncWorkflowV2NodeToProject } from './workflowV2Mutations'
 import { v2LayerNodeId } from './workflowV2Scope'
 import { syncWorkflowV2Graph } from './workflowV2Sync'
@@ -171,5 +174,25 @@ describe('subtitleAndDialogueSync & Dramatic Animation System', () => {
       { time: 9.0, duration: 3.5, deltaY: -48, endScaleMultiplier: 0.74 }
     )
     expect(shrink.scale[shrink.scale.length - 1].value[0]).toBeLessThan(shrink.scale[0].value[0])
+  })
+
+  it('places Vietsub accurately at Y=0 without falsy jump, wraps balanced lines, and samples subtitle stage time inside active window', () => {
+    const project = factory.createProject({ duration: 20 })
+    const centerPlacement = computeSubtitlePlacement(project, undefined, 'custom', 0, 0, 2)
+    expect(centerPlacement.screenX).toBe(0)
+    expect(centerPlacement.screenY).toBe(0)
+    expect(centerPlacement.position[1]).toBe(0)
+
+    const wrapped = wrapBalancedSubtitle('Lúc này ngươi vừa bị đệ tử gác cổng của Thanh Huyền Tông đuổi đi.', 42)
+    const lines = wrapped.split('\n')
+    expect(lines.length).toBe(2)
+    expect(lines[1].split(' ').length).toBeGreaterThanOrEqual(3)
+
+    const subNode = {
+      id: 'v2-sub-test',
+      params: { logicCategory: 'subtitle', timeStart: 10, timeEnd: 14 }
+    } as unknown as Parameters<typeof workflowBboxEditTime>[0]
+    expect(workflowBboxEditTime(subNode, 0, false)).toBe(12)
+    expect(workflowBboxEditTime(subNode, 11.5, false)).toBe(11.5)
   })
 })

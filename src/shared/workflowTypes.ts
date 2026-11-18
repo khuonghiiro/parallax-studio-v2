@@ -532,6 +532,8 @@ export interface WorkflowNodeParams {
   subtitleFontSize?: number
   /** [Workflow V2 · Vietsub] Độ đậm chữ phụ đề (400..900) */
   subtitleFontWeight?: number
+  /** [Workflow V2 · Vietsub] Chữ in nghiêng (Italic) kiểu hoạt ảnh 2.5D */
+  subtitleItalic?: boolean
   /** [Workflow V2 · Vietsub] Màu chữ phụ đề (HEX) */
   subtitleColor?: string
   /** [Workflow V2 · Vietsub] Màu viền chữ phụ đề (HEX) */
@@ -544,6 +546,12 @@ export interface WorkflowNodeParams {
   subtitleBoxColor?: string
   /** [Workflow V2 · Vietsub] Độ mờ hộp nền phụ đề (0..1) */
   subtitleBoxOpacity?: number
+  /** [Workflow V2 · Vietsub] Màu viền hộp thoại / bảng phụ đề */
+  subtitleBoxBorderColor?: string
+  /** [Workflow V2 · Vietsub] Đuôi trỏ hộp thoại truyện tranh ('none' | 'left' | 'right' | 'bottom') */
+  subtitleBubbleTail?: 'none' | 'left' | 'right' | 'bottom'
+  /** [Workflow V2 · Vietsub] Giới hạn ký tự tối đa mỗi dòng để tự ngắt dòng cân đối */
+  subtitleMaxChars?: number
   /** [Workflow V2 · Vietsub] Căn lề văn bản phụ đề ('left' | 'center' | 'right') */
   subtitleAlign?: 'left' | 'center' | 'right'
   /** [Workflow V2 · Vietsub] Vị trí xuất hiện ('bottom_center' | 'top_center' | 'above_speaker' | 'below_speaker' | 'speech_left' | 'speech_right' | 'custom') */

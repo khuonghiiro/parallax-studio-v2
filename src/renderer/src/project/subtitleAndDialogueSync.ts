@@ -1,7 +1,7 @@
 import type {
-  AudioTrackItem,
   Layer,
   Project,
+  SubtitleBubbleTail,
   SubtitleDefaultsConfig,
   SubtitleEnterEffect,
   SubtitleExitEffect,
@@ -14,182 +14,27 @@ import type {
   WorkflowNodeParams
 } from '@shared/types'
 import { nanoid } from 'nanoid'
-import { evaluate } from '../animation/keyframes'
-import { autoScaleFactor } from '../animation/math'
-import { wrapStorySubtitle } from '../animation/storyComicDirector'
 import { getProjectAudioTracks } from './audioTracks'
 import * as factory from './factory'
+import {
+  SUBTITLE_STYLE_PRESETS,
+  computeSubtitlePlacement,
+  defaultOffsetYForPreset,
+  projectSpeakerScreenCenter,
+  resolveBubbleTailForPreset,
+  wrapBalancedSubtitle,
+  type SubtitlePresetOption
+} from './subtitlePlacementAndPresets'
 
-export interface SubtitlePresetOption {
-  id: SubtitleStylePresetId
-  label: string
-  shortLabel: string
-  badge: string
-  preserveByDefault?: boolean
-  config: Omit<SubtitleDefaultsConfig, 'presetId' | 'syncHoldTargetLayer'>
+export {
+  SUBTITLE_STYLE_PRESETS,
+  computeSubtitlePlacement,
+  defaultOffsetYForPreset,
+  projectSpeakerScreenCenter,
+  resolveBubbleTailForPreset,
+  wrapBalancedSubtitle,
+  type SubtitlePresetOption
 }
-
-export const SUBTITLE_STYLE_PRESETS: SubtitlePresetOption[] = [
-  {
-    id: 'lugia_cyan',
-    label: 'Trắng Viền Xanh Ngọc (Hoạt Ảnh 2.5D)',
-    shortLabel: '💎 Trắng Viền Xanh',
-    badge: '💎',
-    config: {
-      fontFamily: 'Montserrat',
-      fontSize: 36,
-      fontWeight: 900,
-      color: '#ffffff',
-      strokeColor: '#0a3d6e',
-      strokeWidth: 6,
-      glowColor: '#38bdf8',
-      boxColor: '',
-      boxOpacity: 0,
-      boxBorderColor: '',
-      align: 'center',
-      positionPreset: 'bottom_center',
-      offsetX: 0,
-      offsetY: -390,
-      enterEffect: 'fade',
-      exitEffect: 'fade',
-      fadeInDuration: 0.14,
-      fadeOutDuration: 0.14
-    }
-  },
-  {
-    id: 'cinema_gold',
-    label: 'Vàng Kim Điện Ảnh (Viền Đen Đậm)',
-    shortLabel: '🌟 Vàng Điện Ảnh',
-    badge: '🌟',
-    config: {
-      fontFamily: 'Montserrat',
-      fontSize: 38,
-      fontWeight: 900,
-      color: '#fde047',
-      strokeColor: '#1c1917',
-      strokeWidth: 7,
-      glowColor: '#f59e0b',
-      boxColor: '',
-      boxOpacity: 0,
-      boxBorderColor: '',
-      align: 'center',
-      positionPreset: 'bottom_center',
-      offsetX: 0,
-      offsetY: -390,
-      enterEffect: 'fade',
-      exitEffect: 'fade',
-      fadeInDuration: 0.15,
-      fadeOutDuration: 0.15
-    }
-  },
-  {
-    id: 'netflix_box',
-    label: 'Hộp Nền Đen Mờ (Chuẩn Phim Phụ Đề)',
-    shortLabel: '🎬 Hộp Đen Mờ',
-    badge: '🎬',
-    config: {
-      fontFamily: 'Montserrat',
-      fontSize: 35,
-      fontWeight: 800,
-      color: '#f8fafc',
-      strokeColor: '#020617',
-      strokeWidth: 3,
-      glowColor: '',
-      boxColor: '#090d16',
-      boxOpacity: 0.78,
-      boxBorderColor: '#334155',
-      align: 'center',
-      positionPreset: 'bottom_center',
-      offsetX: 0,
-      offsetY: -395,
-      enterEffect: 'slide_up',
-      exitEffect: 'fade',
-      fadeInDuration: 0.16,
-      fadeOutDuration: 0.14
-    }
-  },
-  {
-    id: 'comic_shout',
-    label: 'Quát Lớn Nổi Giận (Đặc Biệt · Khoá 🔒)',
-    shortLabel: '💢 Quát Lớn 🔒',
-    badge: '💢',
-    preserveByDefault: true,
-    config: {
-      fontFamily: 'Montserrat',
-      fontSize: 42,
-      fontWeight: 900,
-      color: '#fef08a',
-      strokeColor: '#7f1d1d',
-      strokeWidth: 8,
-      glowColor: '#ef4444',
-      boxColor: '#450a0a',
-      boxOpacity: 0.76,
-      boxBorderColor: '#f87171',
-      align: 'center',
-      positionPreset: 'bottom_center',
-      offsetX: 0,
-      offsetY: -385,
-      enterEffect: 'pop_bounce',
-      exitEffect: 'scale_out',
-      fadeInDuration: 0.18,
-      fadeOutDuration: 0.16
-    }
-  },
-  {
-    id: 'inner_thought',
-    label: 'Độc Thoại Nội Tâm (Đặc Biệt · Khoá 🔒)',
-    shortLabel: '💭 Nội Tâm 🔒',
-    badge: '💭',
-    preserveByDefault: true,
-    config: {
-      fontFamily: 'Montserrat',
-      fontSize: 34,
-      fontWeight: 700,
-      color: '#e9d5ff',
-      strokeColor: '#2e1065',
-      strokeWidth: 5,
-      glowColor: '#a855f7',
-      boxColor: '#1e1b4b',
-      boxOpacity: 0.74,
-      boxBorderColor: '#c084fc',
-      align: 'center',
-      positionPreset: 'top_center',
-      offsetX: 0,
-      offsetY: 360,
-      enterEffect: 'fade',
-      exitEffect: 'fade',
-      fadeInDuration: 0.25,
-      fadeOutDuration: 0.25
-    }
-  },
-  {
-    id: 'system_hologram',
-    label: 'Thông Báo Hệ Thống (Đặc Biệt · Khoá 🔒)',
-    shortLabel: '🤖 Hệ Thống 🔒',
-    badge: '🤖',
-    preserveByDefault: true,
-    config: {
-      fontFamily: 'Montserrat',
-      fontSize: 35,
-      fontWeight: 900,
-      color: '#7dd3fc',
-      strokeColor: '#082f49',
-      strokeWidth: 6,
-      glowColor: '#38bdf8',
-      boxColor: '#082f49',
-      boxOpacity: 0.85,
-      boxBorderColor: '#38bdf8',
-      align: 'center',
-      positionPreset: 'bottom_center',
-      offsetX: 0,
-      offsetY: -385,
-      enterEffect: 'pop_bounce',
-      exitEffect: 'fade',
-      fadeInDuration: 0.16,
-      fadeOutDuration: 0.14
-    }
-  }
-]
 
 export function getDefaultSubtitleConfig(presetId: SubtitleStylePresetId = 'lugia_cyan'): SubtitleDefaultsConfig {
   const found = SUBTITLE_STYLE_PRESETS.find((p) => p.id === presetId) ?? SUBTITLE_STYLE_PRESETS[0]
@@ -205,76 +50,6 @@ export function getProjectSubtitleDefaults(project: Project): SubtitleDefaultsCo
     project.subtitleDefaults = getDefaultSubtitleConfig('lugia_cyan')
   }
   return project.subtitleDefaults
-}
-
-/** Tính tọa độ không gian (X, Y, Z) của phụ đề theo vị trí màn hình hoặc bám theo nhân vật nói */
-export function computeSubtitlePlacement(
-  project: Project,
-  speakerLayer: Layer | undefined,
-  positionPreset: SubtitlePositionPreset,
-  offsetX: number,
-  offsetY: number,
-  atTime: number
-): { position: Vec3; scale: number } {
-  const subZ = -320
-  const perspK = autoScaleFactor(subZ, project.comp)
-  const safeScale = 0.88
-  const spPos: Vec3 = speakerLayer ? evaluate(speakerLayer.transform.position, atTime) : [0, 0, 100]
-
-  switch (positionPreset) {
-    case 'top_center':
-      return {
-        position: [Math.round(offsetX), Math.round((offsetY || 365) * safeScale * perspK), subZ],
-        scale: safeScale
-      }
-    case 'above_speaker':
-      return {
-        position: [
-          Math.round(spPos[0] * 0.55 + offsetX),
-          Math.round(Math.min(395, Math.max(120, spPos[1] + (offsetY || 210))) * safeScale * perspK),
-          subZ
-        ],
-        scale: safeScale
-      }
-    case 'below_speaker':
-      return {
-        position: [
-          Math.round(spPos[0] * 0.55 + offsetX),
-          Math.round(Math.max(-425, Math.min(-180, spPos[1] + (offsetY || -240))) * safeScale * perspK),
-          subZ
-        ],
-        scale: safeScale
-      }
-    case 'speech_left':
-      return {
-        position: [
-          Math.round(Math.max(-560, spPos[0] - 280 + offsetX) * safeScale * perspK),
-          Math.round((spPos[1] * 0.4 + (offsetY || 90)) * safeScale * perspK),
-          subZ
-        ],
-        scale: safeScale
-      }
-    case 'speech_right':
-      return {
-        position: [
-          Math.round(Math.min(560, spPos[0] + 280 + offsetX) * safeScale * perspK),
-          Math.round((spPos[1] * 0.4 + (offsetY || 90)) * safeScale * perspK),
-          subZ
-        ],
-        scale: safeScale
-      }
-    case 'custom':
-      return {
-        position: [Math.round(offsetX * perspK), Math.round(offsetY * perspK), subZ],
-        scale: safeScale
-      }
-    case 'bottom_center':
-    default:
-      return {
-        position: [Math.round(offsetX), Math.round((offsetY || -390) * safeScale * perspK), subZ],
-        scale: safeScale
-      }
-  }
 }
 
 /** Áp dụng hiệu ứng xuất hiện (từ mờ sang đậm / bật nảy / trượt lên) & biến mất (từ đậm sang nhạt) cho layer Vietsub */
@@ -311,9 +86,9 @@ export function applySubtitleEnterExitKeyframes(
   )
 
   if (enterEffect === 'pop_bounce' || exitEffect === 'scale_out' || enterEffect === 'typewriter_scale') {
-    const startSc = enterEffect === 'pop_bounce' ? baseScale * 0.25 : enterEffect === 'typewriter_scale' ? baseScale * 0.86 : baseScale
-    const overSc = enterEffect === 'pop_bounce' ? baseScale * 1.08 : baseScale
-    const endSc = exitEffect === 'scale_out' ? baseScale * 0.65 : baseScale
+    const startSc = enterEffect === 'pop_bounce' ? baseScale * 0.28 : enterEffect === 'typewriter_scale' ? baseScale * 0.86 : baseScale
+    const overSc = enterEffect === 'pop_bounce' ? baseScale * 1.07 : baseScale
+    const endSc = exitEffect === 'scale_out' ? baseScale * 0.68 : baseScale
     sub.transform.scale.keyframes.push(
       { id: nanoid(8), t: Number(t0.toFixed(3)), value: [startSc, startSc, 1], ease: 'easeOut' },
       { id: nanoid(8), t: Number((t0 + fIn * 0.75).toFixed(3)), value: [overSc, overSc, 1], ease: 'easeInOut' },
@@ -324,8 +99,8 @@ export function applySubtitleEnterExitKeyframes(
   }
 
   if (enterEffect === 'slide_up' || exitEffect === 'slide_down') {
-    const startY = enterEffect === 'slide_up' ? basePos[1] - 32 : basePos[1]
-    const endY = exitEffect === 'slide_down' ? basePos[1] - 28 : basePos[1]
+    const startY = enterEffect === 'slide_up' ? basePos[1] - 30 : basePos[1]
+    const endY = exitEffect === 'slide_down' ? basePos[1] - 26 : basePos[1]
     sub.transform.position.keyframes.push(
       { id: nanoid(8), t: Number(t0.toFixed(3)), value: [basePos[0], startY, basePos[2]], ease: 'easeOut' },
       { id: nanoid(8), t: Number((t0 + fIn).toFixed(3)), value: [...basePos], ease: 'linear' },
@@ -339,8 +114,6 @@ export function applySubtitleEnterExitKeyframes(
  * ĐỒNG BỘ THỜI LƯỢNG THOẠI (VIETSUB & AUDIO) VỚI HÌNH ẢNH NHÂN VẬT & CHUYỂN CẢNH:
  * - Khi nhân vật đang nói (Vietsub hoặc Audio thoại kéo dài tới `dialogueEnd`), đảm bảo nhân vật đó
  *   cùng các mảnh composite con và lớp nền cùng nhịp KHÔNG biến mất sớm trước `dialogueEnd`.
- * - Nếu nhân vật có keyframe mờ dần (fade out) ở cuối nhịp cũ, tự động dời mốc fade out sang `dialogueEnd`.
- * - Đồng bộ độ dài AudioTrack gắn cùng nhân vật trong nhịp đó để âm thanh và phụ đề không lệch nhau.
  */
 export function enforceSpeakerAndSceneContinuity(
   project: Project,
@@ -358,7 +131,6 @@ export function enforceSpeakerAndSceneContinuity(
   const oldOut = speakerLayer.outPoint
   const instId = speakerLayer.composite?.instanceId ?? speakerLayer.model3d?.instanceId
 
-  // Tìm toàn bộ các layer thuộc cùng nhân vật / cùng nhịp trong cảnh đang hiển thị với nhân vật
   for (const l of project.layers) {
     if (l.shotId !== speakerLayer.shotId) continue
     const isSameEntity = l.id === speakerLayer.id || (instId && (l.composite?.instanceId === instId || l.model3d?.instanceId === instId))
@@ -377,7 +149,6 @@ export function enforceSpeakerAndSceneContinuity(
     if (safeEnd > l.outPoint) {
       const prevOut = l.outPoint
       l.outPoint = safeEnd
-      // Dời các keyframe nằm ở sát cuối nhịp cũ (`prevOut`) về `safeEnd` để nhân vật không bị đứng đơ hoặc tắt sớm
       for (const track of [l.transform.position, l.transform.scale, l.transform.rotation, l.transform.opacity]) {
         for (const kf of track.keyframes) {
           if (Math.abs(kf.t - prevOut) <= 0.15) {
@@ -390,7 +161,6 @@ export function enforceSpeakerAndSceneContinuity(
     if (changed) extendedLayerIds.push(l.id)
   }
 
-  // Đồng bộ với AudioTrack giọng nói gắn vào nhân vật trong cùng nhịp
   for (const tr of getProjectAudioTracks(project)) {
     const matchesTarget =
       tr.targetId === speakerLayer.id || (instId && tr.targetId === instId)
@@ -441,7 +211,6 @@ export function syncSubtitleNodeToProject(
   const tStart = Math.max(0, Number((params.timeStart ?? speakerLayer?.inPoint ?? 0).toFixed(2)))
   const tEnd = Math.max(tStart + 0.25, Number((params.timeEnd ?? speakerLayer?.outPoint ?? (tStart + 2.8)).toFixed(2)))
 
-  // Nếu người dùng vừa chọn 1 mẫu Preset trên Node (mà không truyền màu lẻ), nạp thông số preset đó
   const chosenPreset =
     patch && 'subtitleStylePreset' in patch && patch.subtitleStylePreset
       ? SUBTITLE_STYLE_PRESETS.find((p) => p.id === patch.subtitleStylePreset)
@@ -457,11 +226,17 @@ export function syncSubtitleNodeToProject(
       )
   )
 
+  const styleCfg = chosenPreset?.config
+  const activePresetId = ((patch?.subtitleStylePreset ??
+    params.subtitleStylePreset ??
+    subLayer?.props.subtitleStylePreset ??
+    defaults.presetId) as SubtitleStylePresetId)
+  const maxChars = patch?.subtitleMaxChars ?? styleCfg?.maxCharsPerLine ?? params.subtitleMaxChars ?? subLayer?.props.maxCharsPerLine ?? defaults.maxCharsPerLine ?? 42
   const rawText =
     params.subtitleText ??
     subLayer?.props.text ??
     `Lời thoại của ${params.subtitleSpeakerName || speakerLayer?.name || 'Nhân vật'}`
-  const wrappedText = wrapStorySubtitle(rawText, 42)
+  const wrappedText = wrapBalancedSubtitle(rawText, maxChars)
 
   if (!subLayer) {
     subLayer = factory.createTextLayer(project.comp, wrappedText)
@@ -478,16 +253,17 @@ export function syncSubtitleNodeToProject(
   subLayer.outPoint = tEnd
   subLayer.autoScale = true
 
-  const styleCfg = chosenPreset?.config
   const fontFamily = patch?.subtitleFontFamily ?? styleCfg?.fontFamily ?? params.subtitleFontFamily ?? subLayer.props.fontFamily ?? defaults.fontFamily
   const fontSize = patch?.subtitleFontSize ?? styleCfg?.fontSize ?? params.subtitleFontSize ?? subLayer.props.fontSize ?? defaults.fontSize
   const fontWeight = patch?.subtitleFontWeight ?? styleCfg?.fontWeight ?? params.subtitleFontWeight ?? subLayer.props.fontWeight ?? defaults.fontWeight
+  const italic = patch?.subtitleItalic ?? styleCfg?.italic ?? params.subtitleItalic ?? subLayer.props.italic ?? defaults.italic ?? false
   const color = patch?.subtitleColor ?? styleCfg?.color ?? params.subtitleColor ?? subLayer.props.color ?? defaults.color
   const strokeColor = patch?.subtitleStrokeColor ?? styleCfg?.strokeColor ?? params.subtitleStrokeColor ?? subLayer.props.strokeColor ?? defaults.strokeColor
   const strokeWidth = patch?.subtitleStrokeWidth ?? styleCfg?.strokeWidth ?? params.subtitleStrokeWidth ?? subLayer.props.strokeWidth ?? defaults.strokeWidth
   const glowColor = patch?.subtitleGlowColor ?? styleCfg?.glowColor ?? params.subtitleGlowColor ?? subLayer.props.glowColor ?? defaults.glowColor
   const boxColor = patch?.subtitleBoxColor ?? styleCfg?.boxColor ?? params.subtitleBoxColor ?? subLayer.props.boxColor ?? defaults.boxColor
   const boxOpacity = patch?.subtitleBoxOpacity ?? styleCfg?.boxOpacity ?? params.subtitleBoxOpacity ?? subLayer.props.boxOpacity ?? defaults.boxOpacity
+  const boxBorderColor = patch?.subtitleBoxBorderColor ?? styleCfg?.boxBorderColor ?? params.subtitleBoxBorderColor ?? subLayer.props.boxBorderColor ?? defaults.boxBorderColor
   const align = patch?.subtitleAlign ?? styleCfg?.align ?? params.subtitleAlign ?? subLayer.props.align ?? defaults.align
   const posPreset = (patch?.subtitlePositionPreset ??
     styleCfg?.positionPreset ??
@@ -495,7 +271,9 @@ export function syncSubtitleNodeToProject(
     subLayer.props.subtitlePositionPreset ??
     defaults.positionPreset) as SubtitlePositionPreset
   const offsetX = patch?.subtitleOffsetX ?? styleCfg?.offsetX ?? params.subtitleOffsetX ?? subLayer.props.subtitleOffsetX ?? defaults.offsetX
-  const offsetY = patch?.subtitleOffsetY ?? styleCfg?.offsetY ?? params.subtitleOffsetY ?? subLayer.props.subtitleOffsetY ?? defaults.offsetY
+  const offsetY = patch?.subtitleOffsetY ?? styleCfg?.offsetY ?? params.subtitleOffsetY ?? subLayer.props.subtitleOffsetY ?? defaultOffsetYForPreset(posPreset)
+  const rawTail = (patch?.subtitleBubbleTail ?? styleCfg?.bubbleTail ?? params.subtitleBubbleTail ?? subLayer.props.bubbleTail ?? defaults.bubbleTail ?? 'none') as SubtitleBubbleTail
+  const bubbleTail = activePresetId === 'comic_bubble' ? resolveBubbleTailForPreset(posPreset, rawTail === 'none' ? undefined : rawTail) : rawTail
   const enterEffect = (patch?.subtitleEnterEffect ??
     styleCfg?.enterEffect ??
     params.subtitleEnterEffect ??
@@ -524,19 +302,23 @@ export function syncSubtitleNodeToProject(
     fontFamily,
     fontSize,
     fontWeight,
+    italic,
     color,
-    letterSpacing: 1,
+    letterSpacing: 0.8,
     shadow: true,
     strokeColor,
     strokeWidth,
     glowColor,
     boxColor,
     boxOpacity,
+    boxBorderColor,
+    bubbleTail,
+    maxCharsPerLine: maxChars,
     align,
     isSubtitleCue: true,
     speakerLayerId: speakerId,
     speakerName,
-    subtitleStylePreset: (params.subtitleStylePreset as SubtitleStylePresetId | undefined) ?? defaults.presetId,
+    subtitleStylePreset: activePresetId,
     subtitlePositionPreset: posPreset,
     subtitleOffsetX: offsetX,
     subtitleOffsetY: offsetY,
@@ -550,7 +332,6 @@ export function syncSubtitleNodeToProject(
   const placement = computeSubtitlePlacement(project, speakerLayer, posPreset, offsetX, offsetY, tStart)
   applySubtitleEnterExitKeyframes(subLayer, placement.position, placement.scale, enterEffect, exitEffect, fadeInSec, fadeOutSec)
 
-  // Ghi ngược thông số chuẩn hoá lên Node Workflow để UI Inspector đồng bộ tức thì
   if (project.workflow) {
     const idx = project.workflow.nodes.findIndex((n) => n.id === node.id)
     if (idx >= 0) {
@@ -563,15 +344,20 @@ export function syncSubtitleNodeToProject(
           subtitleLayerId: subLayer.id,
           subtitleText: rawText,
           subtitleSpeakerName: speakerName,
+          subtitleStylePreset: activePresetId,
           subtitleFontFamily: fontFamily,
           subtitleFontSize: fontSize,
           subtitleFontWeight: fontWeight,
+          subtitleItalic: italic,
           subtitleColor: color,
           subtitleStrokeColor: strokeColor,
           subtitleStrokeWidth: strokeWidth,
           subtitleGlowColor: glowColor,
           subtitleBoxColor: boxColor,
           subtitleBoxOpacity: boxOpacity,
+          subtitleBoxBorderColor: boxBorderColor,
+          subtitleBubbleTail: bubbleTail,
+          subtitleMaxChars: maxChars,
           subtitleAlign: align,
           subtitlePositionPreset: posPreset,
           subtitleOffsetX: offsetX,
@@ -598,9 +384,7 @@ export function syncSubtitleNodeToProject(
 
 /**
  * ÁP DỤNG CẤU HÌNH VIETSUB CHUNG CHO TOÀN BỘ NODE / LAYER TRONG DỰ ÁN (APPLY TO ALL):
- * - Những Node / Layer có `preserveCustomSettings === true` sẽ ĐƯỢC BẢO VỆ (không bị ghi đè),
- *   tránh làm hỏng các câu thoại đặc biệt (quát mắng, hệ thống, nội tâm).
- * - Nếu Node có `lockedSubtitleFields` (khoá riêng màu hoặc vị trí), chỉ kế thừa những thuộc tính không bị khoá.
+ * - Những Node / Layer có `preserveCustomSettings === true` sẽ ĐƯỢC BẢO VỆ (không bị ghi đè).
  */
 export function applySubtitleDefaultsToAllNodes(
   project: Project,
@@ -649,7 +433,12 @@ export function applySubtitleDefaultsToAllNodes(
       sub.props.fontFamily = nextDefaults.fontFamily
       sub.props.fontSize = nextDefaults.fontSize
       sub.props.fontWeight = nextDefaults.fontWeight
+      sub.props.italic = nextDefaults.italic ?? false
       sub.props.align = nextDefaults.align
+      if (nextDefaults.maxCharsPerLine) {
+        sub.props.maxCharsPerLine = nextDefaults.maxCharsPerLine
+        sub.props.text = wrapBalancedSubtitle(sub.props.text.replace(/\n/g, ' '), nextDefaults.maxCharsPerLine)
+      }
     }
     if (!locked.has('color')) {
       sub.props.color = nextDefaults.color
@@ -661,6 +450,7 @@ export function applySubtitleDefaultsToAllNodes(
       sub.props.boxColor = nextDefaults.boxColor
       sub.props.boxOpacity = nextDefaults.boxOpacity
       sub.props.boxBorderColor = nextDefaults.boxBorderColor
+      sub.props.bubbleTail = nextDefaults.bubbleTail ?? 'none'
     }
     const speaker = sub.props.speakerLayerId ? project.layers.find((l) => l.id === sub.props.speakerLayerId) : undefined
     const posPreset = locked.has('position')
@@ -692,7 +482,6 @@ export function applySubtitleDefaultsToAllNodes(
     updatedLayerIds.push(sub.id)
   }
 
-  // Đồng bộ các Node Vietsub trên đồ thị Workflow
   if (project.workflow) {
     project.workflow.nodes = project.workflow.nodes.map((n) => {
       if (n.params?.logicCategory !== 'subtitle') return n
@@ -709,6 +498,7 @@ export function applySubtitleDefaultsToAllNodes(
                 subtitleFontFamily: nextDefaults.fontFamily,
                 subtitleFontSize: nextDefaults.fontSize,
                 subtitleFontWeight: nextDefaults.fontWeight,
+                subtitleItalic: nextDefaults.italic ?? false,
                 subtitleAlign: nextDefaults.align
               }
             : {}),
@@ -723,7 +513,9 @@ export function applySubtitleDefaultsToAllNodes(
           ...(!locked.has('background')
             ? {
                 subtitleBoxColor: nextDefaults.boxColor,
-                subtitleBoxOpacity: nextDefaults.boxOpacity
+                subtitleBoxOpacity: nextDefaults.boxOpacity,
+                subtitleBoxBorderColor: nextDefaults.boxBorderColor,
+                subtitleBubbleTail: nextDefaults.bubbleTail ?? 'none'
               }
             : {}),
           ...(!locked.has('position')
@@ -755,7 +547,6 @@ export function applySubtitleDefaultsToAllNodes(
   }
 }
 
-/** Khôi phục cấu hình của 1 Node Vietsub về đúng bộ Mặc định chung (và bỏ khoá đặc biệt) */
 export function resetSubtitleNodeToDefaults(project: Project, nodeId: string): void {
   const defaults = getProjectSubtitleDefaults(project)
   const node = project.workflow?.nodes.find((n) => n.id === nodeId)
@@ -767,12 +558,15 @@ export function resetSubtitleNodeToDefaults(project: Project, nodeId: string): v
     subtitleFontFamily: defaults.fontFamily,
     subtitleFontSize: defaults.fontSize,
     subtitleFontWeight: defaults.fontWeight,
+    subtitleItalic: defaults.italic ?? false,
     subtitleColor: defaults.color,
     subtitleStrokeColor: defaults.strokeColor,
     subtitleStrokeWidth: defaults.strokeWidth,
     subtitleGlowColor: defaults.glowColor,
     subtitleBoxColor: defaults.boxColor,
     subtitleBoxOpacity: defaults.boxOpacity,
+    subtitleBoxBorderColor: defaults.boxBorderColor,
+    subtitleBubbleTail: defaults.bubbleTail ?? 'none',
     subtitleAlign: defaults.align,
     subtitlePositionPreset: defaults.positionPreset,
     subtitleOffsetX: defaults.offsetX,
@@ -797,10 +591,6 @@ export interface DialogueContinuityIssue {
   description: string
 }
 
-/**
- * KIỂM TRA & ĐỒNG BỘ TOÀN DIỆN HỘI THOẠI (VIETSUB + AUDIO + HÌNH ẢNH NHÂN VẬT) TRƯỚC KHI RENDER:
- * Phát hiện và tự động sửa mọi trường hợp nhân vật đang nói mà bị nhảy hình sớm hoặc Audio lệch Vietsub.
- */
 export function validateAndRepairDialogueContinuity(
   project: Project,
   autoRepair = true

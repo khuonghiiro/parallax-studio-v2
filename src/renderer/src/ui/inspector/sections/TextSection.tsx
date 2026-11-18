@@ -4,6 +4,7 @@ import {
   SUBTITLE_STYLE_PRESETS,
   applySubtitleDefaultsToAllNodes,
   computeSubtitlePlacement,
+  defaultOffsetYForPreset,
   enforceSpeakerAndSceneContinuity
 } from '../../../project/subtitleAndDialogueSync'
 import { syncWorkflowV2Graph } from '../../../project/workflowV2Sync'
@@ -105,12 +106,15 @@ export function TextSection({ props, set }: { props: TextProps; set: Setter }) {
               t.fontFamily = pr.config.fontFamily
               t.fontSize = pr.config.fontSize
               t.fontWeight = pr.config.fontWeight
+              t.italic = pr.config.italic
               t.color = pr.config.color
               t.strokeColor = pr.config.strokeColor
               t.strokeWidth = pr.config.strokeWidth
               t.glowColor = pr.config.glowColor
               t.boxColor = pr.config.boxColor
               t.boxOpacity = pr.config.boxOpacity
+              t.boxBorderColor = pr.config.boxBorderColor
+              t.bubbleTail = pr.config.bubbleTail
               t.align = pr.config.align
               t.subtitlePositionPreset = pr.config.positionPreset
               t.subtitleOffsetX = pr.config.offsetX
@@ -179,7 +183,7 @@ export function TextSection({ props, set }: { props: TextProps; set: Setter }) {
               const cur = d.layers.find((l) => l.id === selectedLayerId)
               if (!cur || cur.type !== 'text') return
               cur.props.subtitlePositionPreset = posPreset
-              const defY = posPreset === 'bottom_center' ? -390 : posPreset === 'top_center' ? 360 : posPreset === 'above_speaker' ? 190 : posPreset === 'below_speaker' ? -230 : 80
+              const defY = defaultOffsetYForPreset(posPreset)
               cur.props.subtitleOffsetY = defY
               const sp = cur.props.speakerLayerId ? d.layers.find((l) => l.id === cur.props.speakerLayerId) : undefined
               const pl = computeSubtitlePlacement(d, sp, posPreset, cur.props.subtitleOffsetX ?? 0, defY, cur.inPoint)
