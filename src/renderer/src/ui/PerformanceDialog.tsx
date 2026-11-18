@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { usePerformance } from '../store/performance'
+import { usePerformance, type UiEffectsMode } from '../store/performance'
 import { useView } from '../store/view'
 import { getLiveRenderer } from '../engine/liveRenderer'
 import type { ResidencyStats } from '../engine/renderTypes'
@@ -20,6 +20,19 @@ const TEXTURE_SIZE_OPTIONS = [
   { value: 16384, label: '16384px (Siêu phân giải)' }
 ]
 
+const UI_FX_OPTIONS: { id: UiEffectsMode; icon: string; label: string; desc: string }[] = [
+  { id: 'auto', icon: '⚡', label: 'Theo cấu hình máy', desc: 'Mạnh bật Ultra · Yếu tự giảm' },
+  { id: 'ultra', icon: '💎', label: 'Ultra Xịn Sò', desc: 'Kính mờ, hào quang & nhịp sáng' },
+  { id: 'balanced', icon: '⚖️', label: 'Cân bằng mượt', desc: 'Bo bóng sắc nét · Nhẹ GPU' },
+  { id: 'lite', icon: '🪶', label: 'Siêu nhẹ (Lite)', desc: 'Tắt kính mờ · Tối đa FPS' }
+]
+
+const TIER_LABELS = {
+  ultra: '💎 Đang chạy: ULTRA XỊN SÒ',
+  balanced: '⚖️ Đang chạy: CÂN BẰNG',
+  lite: '🪶 Đang chạy: SIÊU NHẸ'
+} as const
+
 export function PerformanceDialog() {
   const perf = usePerformance()
   const [stats, setStats] = useState<ResidencyStats | null>(null)
@@ -28,9 +41,7 @@ export function PerformanceDialog() {
   useEffect(() => {
     const timer = setInterval(() => {
       const live = getLiveRenderer()
-      if (live) {
-        setStats(live.stats())
-      }
+      if (live) setStats(live.stats())
     }, 500)
     const live = getLiveRenderer()
     if (live) setStats(live.stats())
@@ -70,25 +81,39 @@ export function PerformanceDialog() {
 
   return (
     <div className="modal-backdrop" onPointerDown={(e) => e.target === e.currentTarget && close()}>
-      <div className="modal perf-modal" role="dialog" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="modal perf-modal"
+        role="dialog"
+        aria-modal="true"
+        data-ai-surface="dialog"
+        data-ai-surface-label="Cấu hình Hiệu năng & Hiệu ứng Giao diện"
+        data-mcp-region="perf_dialog"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="modal-head modal-head-row">
           <div className="modal-head-title-group">
             <span className="modal-head-badge">
               <IconSparkles width={15} height={15} />
             </span>
             <div>
-              <h2>Cấu hình Hiệu năng, RAM & VRAM GPU</h2>
-              <p>Tối ưu hóa bộ nhớ đệm và sức mạnh đồ họa dựa trên cấu hình phần cứng thực tế của bạn.</p>
+              <h2>Cấu hình Hiệu năng, VRAM & Hiệu ứng Giao diện</h2>
+              <p>Tự động phân bổ bộ nhớ đệm GPU và điều chỉnh độ xịn sò của hiệu ứng UI theo cấu hình máy.</p>
             </div>
           </div>
-          <button type="button" className="btn icon ghost sm modal-close-btn" onClick={close} title="Đóng (Esc)">
+          <button
+            type="button"
+            className="btn icon ghost sm modal-close-btn"
+            aria-label="Đóng hộp thoại hiệu năng"
+            onClick={close}
+            title="Đóng (Esc)"
+          >
             <IconX width={14} height={14} />
           </button>
         </div>
 
         <div className="modal-body">
           {/* Hardware Specs Overview */}
-          <div className="hw-grid">
+          <div className="hw-grid" data-mcp-region="perf_hardware">
             <div className="hw-card">
               <span className="hw-icon">🎮</span>
               <div className="hw-info">
@@ -96,7 +121,7 @@ export function PerformanceDialog() {
                 <span className="hw-val" title={gpuName}>
                   {gpuName}
                 </span>
-                <span style={{ fontSize: '10.5px', color: 'var(--accent)', fontWeight: 600 }}>
+                <span className="hw-sub-accent">
                   {vramGB ? `${vramGB} GB VRAM chuyên dụng` : 'GPU chia sẻ bộ nhớ'}
                 </span>
               </div>
@@ -107,7 +132,7 @@ export function PerformanceDialog() {
               <div className="hw-info">
                 <span className="hw-label">Bộ nhớ hệ thống (RAM)</span>
                 <span className="hw-val">{totalRamGB} GB RAM</span>
-                <span style={{ fontSize: '10.5px', color: 'var(--text-dim)' }}>Khả dụng: ~{freeRamGB} GB</span>
+                <span className="hw-sub-dim">Khả dụng: ~{freeRamGB} GB</span>
               </div>
             </div>
 
@@ -132,34 +157,66 @@ export function PerformanceDialog() {
             </div>
           </div>
 
-          {/* Mode Switch Tabs */}
-          <div className="perf-tabs">
+          {/* Hardware-Adaptive UI Effects Card */}
+          <div className="perf-ui-fx-card" data-mcp-region="perf_ui_fx">
+            <div className="perf-ui-fx-head">
+              <div>
+                <div className="perf-section-title">✨ Hiệu ứng Giao diện Studio (Adaptive UI FX)</div>
+                <p className="perf-ui-fx-desc">
+                  Cấu hình mạnh hiển thị kính mờ Acrylic, viền ánh kim & hào quang node; máy yếu tự tắt hiệu ứng nặng.
+                </p>
+              </div>
+              <span className={`perf-tier-pill tier-${perf.resolvedUiEffectsTier}`}>
+                {TIER_LABELS[perf.resolvedUiEffectsTier]}
+              </span>
+            </div>
+            <div className="perf-ui-fx-grid" role="radiogroup" aria-label="Mức độ hiệu ứng giao diện">
+              {UI_FX_OPTIONS.map((opt) => {
+                const active = perf.uiEffectsMode === opt.id
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    className={`perf-fx-option${active ? ' active' : ''}`}
+                    onClick={() => perf.setUiEffectsMode(opt.id)}
+                  >
+                    <span className="perf-fx-opt-title">
+                      <span>{opt.icon}</span> {opt.label}
+                    </span>
+                    <span className="perf-fx-opt-desc">{opt.desc}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Child Mode Switch Tabs */}
+          <div className="perf-tabs child-subtabs">
             <button
               type="button"
               className={`perf-tab${perf.mode === 'auto' ? ' active' : ''}`}
               onClick={() => perf.setMode('auto')}
             >
-              ⚡ Tự động tính toán (Khuyên dùng)
+              ⚡ Tự động phân bổ VRAM (Khuyên dùng)
             </button>
             <button
               type="button"
               className={`perf-tab${perf.mode === 'manual' ? ' active' : ''}`}
               onClick={() => perf.setMode('manual')}
             >
-              🛠 Cấu hình thủ công
+              🛠 Cấu hình VRAM thủ công
             </button>
           </div>
 
-          {/* Content based on Mode */}
           {perf.mode === 'auto' ? (
-            <div className="perf-auto-box highlight">
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div className="perf-auto-box highlight" data-mcp-region="perf_settings">
+              <div className="perf-auto-head-row">
                 <span className="perf-badge">
                   <IconCheck width={12} height={12} /> ĐÃ TỰ ĐỘNG TỐI ƯU
                 </span>
-                <span style={{ fontSize: '11px', color: 'var(--text-dim)', fontWeight: 600 }}>
-                  {perf.optimal.summary}
-                </span>
+                <span className="perf-auto-summary">{perf.optimal.summary}</span>
               </div>
 
               <div className="perf-stats-row">
@@ -180,7 +237,7 @@ export function PerformanceDialog() {
               <p className="perf-reason">{perf.optimal.reason}</p>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div className="perf-manual-stack" data-mcp-region="perf_settings">
               <div>
                 <div className="perf-section-title">Chọn nhanh mức VRAM:</div>
                 <div className="perf-preset-grid">
@@ -199,28 +256,26 @@ export function PerformanceDialog() {
               </div>
 
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className="perf-slider-head-row">
                   <span className="perf-section-title">Ngân sách bộ đệm VRAM chi tiết:</span>
-                  <b style={{ color: 'var(--accent)', fontFamily: 'var(--mono)', fontSize: '13px' }}>
+                  <b className="perf-slider-val">
                     {perf.budgetMB} MB ({(perf.budgetMB / 1024).toFixed(1)} GB)
                   </b>
                 </div>
                 <input
                   type="range"
+                  className="perf-budget-range"
                   min={512}
                   max={Math.max(8192, (hw?.gpuVramMB ?? 0) > 8000 ? 12288 : 8192)}
                   step={256}
                   value={perf.budgetMB}
                   onChange={(e) => perf.setBudget(Number(e.target.value))}
-                  style={{ width: '100%', accentColor: 'var(--accent)', marginTop: 6 }}
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div className="perf-selects-two-col">
                 <div>
-                  <span className="perf-section-title" style={{ display: 'block', marginBottom: 4 }}>
-                    Lọc bề mặt nghiêng (Anisotropic):
-                  </span>
+                  <span className="perf-field-block-label">Lọc bề mặt nghiêng (Anisotropic):</span>
                   <Select
                     size="sm"
                     value={perf.maxAnisotropy}
@@ -230,9 +285,7 @@ export function PerformanceDialog() {
                 </div>
 
                 <div>
-                  <span className="perf-section-title" style={{ display: 'block', marginBottom: 4 }}>
-                    Kích thước ảnh tối đa (Texture):
-                  </span>
+                  <span className="perf-field-block-label">Kích thước ảnh tối đa (Texture):</span>
                   <Select
                     size="sm"
                     value={perf.maxTextureSize}
@@ -245,10 +298,10 @@ export function PerformanceDialog() {
           )}
 
           {/* Live VRAM Meter */}
-          <div className="perf-meter">
+          <div className="perf-meter" data-mcp-region="perf_meter">
             <div className="perf-meter-head">
               <span>Đang chiếm dụng GPU:</span>
-              <span style={{ fontFamily: 'var(--mono)' }}>
+              <span className="perf-meter-mono">
                 {usedMB.toFixed(0)} / {curBudgetMB} MB ({percentUsed}%) · {stats?.textures ?? 0} texture
               </span>
             </div>
@@ -258,19 +311,24 @@ export function PerformanceDialog() {
                 style={{ width: `${percentUsed}%` }}
               />
             </div>
-            <div style={{ fontSize: '10.5px', color: 'var(--text-dim)', lineHeight: 1.4 }}>
+            <div className="perf-meter-note">
               💡 Khi làm việc với nhiều layer ảnh, app chỉ nạp các layer trong khung nhìn camera vào VRAM và tự động giải phóng ảnh ở cảnh xa.
             </div>
           </div>
         </div>
 
         <div className="modal-foot">
-          {perf.mode === 'manual' && (
-            <button type="button" className="btn ghost" onClick={() => perf.resetToAuto()} title="Quay về mức tự động tính toán">
+          {(perf.mode === 'manual' || perf.uiEffectsMode !== 'auto') && (
+            <button
+              type="button"
+              className="btn warn"
+              onClick={() => perf.resetToAuto()}
+              title="Quay về mức tự động tính toán theo phần cứng"
+            >
               <IconRedo /> Khôi phục Tự động
             </button>
           )}
-          <span style={{ flex: 1 }} />
+          <span className="modal-foot-spacer" />
           <button type="button" className="btn primary" onClick={close}>
             <IconCheck /> Áp dụng & Đóng
           </button>
@@ -279,4 +337,3 @@ export function PerformanceDialog() {
     </div>
   )
 }
-

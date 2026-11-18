@@ -284,7 +284,7 @@ export const WorkflowV2Toolbar: React.FC<WorkflowV2ToolbarProps> = (props) => {
 
         <button
           type="button"
-          className="btn ghost sm wf-v2-tool-btn wf-v2-time-btn"
+          className="btn success sm wf-v2-tool-btn wf-v2-time-btn"
           onClick={props.onAddTime}
           title="Tạo nguồn thời gian chung rồi kéo dây tới các node"
         >
@@ -295,6 +295,7 @@ export const WorkflowV2Toolbar: React.FC<WorkflowV2ToolbarProps> = (props) => {
         <Menu
           id="wf-v2-subtitle-global-menu"
           label="Vietsub All"
+          btnClassName="sm ai"
           icon={<IconText width={13} height={13} />}
         >
           <div className="menu-label">Cấu hình mặc định toàn bộ Vietsub (Bỏ qua node khoá 🔒)</div>

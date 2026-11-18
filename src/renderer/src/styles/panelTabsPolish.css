@@ -1,54 +1,101 @@
-/* Match the workshop's recessed tab track without changing tab layout. */
-.pxs-tabs:is([data-mcp-region='left_tabs'], [data-mcp-region='inspector_tabs'], [data-mcp-region='asset_subtabs'], .lw-sidebar-source-tabs) {
-  background: var(--bg-1);
-  border-bottom-color: var(--line-soft);
-}
+/* ==========================================================================
+   Parent Tabs vs Child Sub-Tabs Hierarchy (UI-App-V2)
+   - Parent Tabs (Khu vực chính): Royal Blue header bar + bottom active indicator
+   - Child Sub-Tabs (Phân mục con): Recessed inset track + Emerald-Teal active pill
+   ========================================================================== */
 
+/* 1. PARENT TABS: Left Panel Main Tabs & Right Inspector Main Tabs */
 .pxs-tabs:is([data-mcp-region='left_tabs'], [data-mcp-region='inspector_tabs']) {
-  padding-top: 1px;
-  padding-bottom: 1px;
+  background: var(--tab-parent-strip-bg);
+  border-bottom: 1px solid var(--line);
+  padding: 3px 5px 0 5px;
 }
 
 .pxs-tabs:is([data-mcp-region='left_tabs'], [data-mcp-region='inspector_tabs']) .pxs-tabs-track {
-  padding: 2px;
+  padding: 0;
   gap: 3px;
-  border: 1px solid var(--line-soft);
-  border-radius: var(--radius-md);
-  background: var(--bg-2);
+  border: none;
+  border-radius: 0;
+  background: transparent;
 }
 
-.pxs-tabs:is([data-mcp-region='asset_subtabs'], .lw-sidebar-source-tabs) .pxs-tabs-track {
-  gap: 3px;
-  background: var(--bg-2);
-  border-color: var(--line-soft);
-  border-radius: var(--radius-md);
+.pxs-tabs:is([data-mcp-region='left_tabs'], [data-mcp-region='inspector_tabs']) .pxs-tab {
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  border: 1px solid transparent;
+  border-bottom: none;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-dim);
+  padding-bottom: 5px;
+}
+
+.pxs-tabs:is([data-mcp-region='left_tabs'], [data-mcp-region='inspector_tabs']) .pxs-tab:hover:not(.active) {
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-2));
+  color: var(--text);
 }
 
 .pxs-tabs:is([data-mcp-region='left_tabs'], [data-mcp-region='inspector_tabs']) .pxs-tab.active {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--on-accent);
-  box-shadow: none;
+  background: var(--tab-parent-active-bg);
+  border-color: color-mix(in srgb, var(--accent) 42%, var(--line));
+  color: var(--tab-parent-active-fg);
+  font-weight: 700;
+  box-shadow: inset 0 -2px 0 var(--tab-parent-active-border);
 }
 
 .pxs-tabs:is([data-mcp-region='left_tabs'], [data-mcp-region='inspector_tabs']) .pxs-tab.active .pxs-tab-icon {
-  color: inherit;
+  color: var(--accent-cyan);
+}
+
+[data-theme='light'] .pxs-tabs:is([data-mcp-region='left_tabs'], [data-mcp-region='inspector_tabs']) .pxs-tab.active .pxs-tab-icon {
+  color: var(--accent);
 }
 
 .pxs-tabs:is([data-mcp-region='left_tabs'], [data-mcp-region='inspector_tabs']) .pxs-tab.active .pxs-tab-badge {
-  background: color-mix(in srgb, var(--on-accent) 18%, var(--accent));
+  background: var(--accent);
   color: var(--on-accent);
 }
 
-.pxs-tabs:is([data-mcp-region='asset_subtabs'], .lw-sidebar-source-tabs) .pxs-tab.active {
-  box-shadow: none;
+/* 2. CHILD SUB-TABS: Asset Sub-Tabs & Workshop Source Sub-Tabs */
+.pxs-tabs:is([data-mcp-region='asset_subtabs'], .lw-sidebar-source-tabs) {
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--line-soft);
+  padding: 5px 6px;
 }
 
-.pxs-tabs.lw-sidebar-source-tabs {
-  padding: 6px;
-}
-
-.pxs-tabs.lw-sidebar-source-tabs .pxs-tabs-track {
+.pxs-tabs:is([data-mcp-region='asset_subtabs'], .lw-sidebar-source-tabs) .pxs-tabs-track {
   padding: 2px;
-  gap: 2px;
+  gap: 3px;
+  background: var(--tab-child-track-bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.16);
+}
+
+.pxs-tabs:is([data-mcp-region='asset_subtabs'], .lw-sidebar-source-tabs) .pxs-tab {
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.pxs-tabs:is([data-mcp-region='asset_subtabs'], .lw-sidebar-source-tabs) .pxs-tab:hover:not(.active) {
+  background: color-mix(in srgb, #14b8a6 14%, var(--bg-2));
+  color: var(--text);
+}
+
+.pxs-tabs:is([data-mcp-region='asset_subtabs'], .lw-sidebar-source-tabs) .pxs-tab.active {
+  background: var(--tab-child-active-bg);
+  border-color: var(--tab-child-active-border);
+  color: var(--tab-child-active-fg);
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+
+.pxs-tabs:is([data-mcp-region='asset_subtabs'], .lw-sidebar-source-tabs) .pxs-tab.active .pxs-tab-icon {
+  color: #99f6e4;
+}
+
+.pxs-tabs:is([data-mcp-region='asset_subtabs'], .lw-sidebar-source-tabs) .pxs-tab.active .pxs-tab-badge {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
 }

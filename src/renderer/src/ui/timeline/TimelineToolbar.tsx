@@ -169,7 +169,7 @@ export function TimelineToolbar({
       <div className="tl-tool-group">
         <button
           type="button"
-          className="btn ghost sm tl-action-btn tl-btn-split"
+          className="btn warn sm tl-action-btn tl-btn-split"
           title="Tách / Cắt layer tại Playhead (Ctrl+Shift+D hoặc S)"
           disabled={!hasSelectedLayer}
           onClick={() => splitSelectedLayer()}
@@ -202,7 +202,7 @@ export function TimelineToolbar({
 
         <button
           type="button"
-          className="btn ghost sm tl-action-btn tl-btn-key"
+          className="btn success sm tl-action-btn tl-btn-key"
           title="Thêm mốc cho thuộc tính đang chọn tại đầu phát (K); mặc định là Vị trí"
           disabled={!hasSelectedLayer}
           onClick={() => { const ref = activeTimelineRef(); if (ref) addTimelineKey(ref) }}
@@ -225,7 +225,7 @@ export function TimelineToolbar({
 
         <button
           type="button"
-          className="btn ghost icon sm danger"
+          className="btn danger icon sm"
           title={selectedAudioTrackId ? 'Xoá đoạn âm thanh đã chọn (Del)' : 'Xoá layer đã chọn (Del)'}
           disabled={!canDelete}
           onClick={() => {

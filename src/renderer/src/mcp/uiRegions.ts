@@ -136,6 +136,7 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   workflow_quick_connect: region('workflow_quick_connect', '.wf-quick-connect-menu'),
   workflow_canvas_hud: region('workflow_canvas_hud', '.wf-canvas-hud'),
   workflow_inspector: region('workflow_inspector', '.wf-v2-inspector', '.wf-side-panel'),
+  workflow_node_subtabs: region('workflow_node_subtabs', '.wf-node-prop-subtabs'),
   workflow_ruler: region('workflow_ruler', '.wf-v2-ruler-bar'),
   workflow_time_lanes: region('workflow_time_lanes', '.wf-v2-time-lanes'),
   workflow_selection_bar: region('workflow_selection_bar', '.wf-v2-selection-bar'),
@@ -288,6 +289,7 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   // 4. Hộp thoại Hiệu năng (Performance Dialog)
   perf_dialog: ['.perf-modal', '.modal:has(.hw-grid)'],
   perf_hardware: ['.hw-grid'],
+  perf_ui_fx: region('perf_ui_fx', '.perf-ui-fx-card'),
   perf_meter: ['.perf-meter'],
   perf_settings: ['.perf-auto-box', '.perf-preset-grid'],
 

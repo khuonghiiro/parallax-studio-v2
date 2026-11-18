@@ -311,7 +311,7 @@ export function AssetPanel() {
         {subTab === 'builtin' ? (
           <button
             type="button"
-            className="btn sm asset-action-btn-highlight"
+            className="btn sm success asset-action-btn-highlight"
             onClick={() => publicFileInputRef.current?.click()}
             title="Thêm tệp ảnh hoặc âm thanh vào kho tài nguyên Công khai (dùng chung cho mọi dự án)"
           >
@@ -320,7 +320,7 @@ export function AssetPanel() {
         ) : subTab === '3d' ? (
           <button
             type="button"
-            className="btn sm asset-action-btn-highlight"
+            className="btn sm ai asset-action-btn-highlight"
             onClick={() => window.dispatchEvent(new CustomEvent('assembly:open'))}
             title="Mở xưởng tạo mô hình 3D từ các diện ảnh phẳng"
           >
@@ -329,7 +329,7 @@ export function AssetPanel() {
         ) : subTab === 'assembly' ? (
           <button
             type="button"
-            className="btn sm asset-action-btn-highlight"
+            className="btn sm ai asset-action-btn-highlight"
             onClick={() => window.dispatchEvent(new CustomEvent('layerAssembly:open'))}
             title="Mở xưởng lắp ráp layer xếp chồng 2.5D"
           >
@@ -338,7 +338,7 @@ export function AssetPanel() {
         ) : subTab === 'loop' ? (
           <button
             type="button"
-            className="btn sm asset-action-btn-highlight"
+            className="btn sm ai asset-action-btn-highlight"
             onClick={openLoopAnimatorBlank}
             title="Mở Xưởng Tách Hoạt Ảnh Loop trống để tạo hoạt ảnh lặp mới từ ảnh sprite sheet"
           >
@@ -348,7 +348,7 @@ export function AssetPanel() {
           <button
             type="button"
             id="music-tab-add-btn"
-            className="btn sm asset-action-btn-highlight"
+            className="btn sm success asset-action-btn-highlight"
             onClick={() => importAudio(useEditor.getState().time, useView.getState().audioSelectedCategory)}
             title="Thêm tệp âm thanh (mp3, wav, ogg, aac...) từ máy tính vào dự án"
           >
@@ -359,7 +359,7 @@ export function AssetPanel() {
             <button
               type="button"
               id="import-images"
-              className="btn sm asset-action-btn-highlight"
+              className="btn sm success asset-action-btn-highlight"
               onClick={() => importImages(false)}
               title="Nhập ảnh riêng cho dự án hiện tại (tài nguyên nội bộ)"
             >
@@ -368,7 +368,7 @@ export function AssetPanel() {
             <button
               type="button"
               id="import-audio"
-              className="btn sm icon asset-action-btn-highlight"
+              className="btn sm icon success asset-action-btn-highlight"
               onClick={() => importAudio(useEditor.getState().time, useView.getState().audioSelectedCategory)}
               title="Nhập nhạc nền từ máy tính vào mốc thời gian hiện tại"
             >

@@ -141,7 +141,15 @@ export function CameraPathDialog() {
 
   return (
     <div className="modal-backdrop" onPointerDown={(e) => e.target === e.currentTarget && close()}>
-      <div className="modal wide camera-path-modal" role="dialog" aria-labelledby="path-title">
+      <div
+        className="modal wide camera-path-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="path-title"
+        data-ai-surface="dialog"
+        data-ai-surface-label="Đạo diễn lộ trình Camera Tour"
+        data-mcp-region="camera_path"
+      >
         <div className="modal-head modal-head-row">
           <div className="modal-head-title-group">
             <span className="modal-head-badge">
@@ -165,7 +173,7 @@ export function CameraPathDialog() {
             <span className="path-preset-label">Mẫu đạo diễn nhanh:</span>
             <button
               type="button"
-              className="btn xs"
+              className="btn xs ai"
               onClick={() => applyPresetStyle('cinematic')}
               disabled={steps.length === 0}
               title="Bay vòng cung 3D kết hợp đẩy chậm Ken Burns"
@@ -174,7 +182,7 @@ export function CameraPathDialog() {
             </button>
             <button
               type="button"
-              className="btn xs"
+              className="btn xs ai"
               onClick={() => applyPresetStyle('fly')}
               disabled={steps.length === 0}
               title="Bay thẳng mượt mà kết hợp lướt ngang nhẹ"
@@ -183,7 +191,7 @@ export function CameraPathDialog() {
             </button>
             <button
               type="button"
-              className="btn xs"
+              className="btn xs ai"
               onClick={() => applyPresetStyle('cut')}
               disabled={steps.length === 0}
               title="Chuyển cảnh cắt trực tiếp nhịp độ nhanh"
@@ -193,7 +201,7 @@ export function CameraPathDialog() {
             <span className="spacer" />
             <button
               type="button"
-              className="btn xs"
+              className="btn xs warn"
               onClick={reverseSteps}
               disabled={steps.length < 2}
               title="Đảo ngược thứ tự các trạm dừng"
@@ -202,7 +210,7 @@ export function CameraPathDialog() {
             </button>
             <button
               type="button"
-              className="btn xs"
+              className="btn xs warn"
               onClick={() => setSteps(createDefaultSteps(shots))}
               disabled={shots.length === 0}
               title="Khôi phục danh sách trạm theo toàn bộ các cảnh đang hiển thị"
@@ -309,8 +317,7 @@ export function CameraPathDialog() {
 
           <button
             type="button"
-            className="btn sm"
-            style={{ justifySelf: 'start' }}
+            className="btn sm success path-add-step-btn"
             disabled={shots.length === 0}
             onClick={() =>
               setSteps((a) => {
