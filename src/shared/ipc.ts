@@ -197,7 +197,17 @@ export interface PxsZipEntry {
   data: Uint8Array
 }
 
+export interface PxsAccelBackendInfo {
+  backend: 'napi-rs' | 'wasm-fallback'
+  arch: string
+  os: string
+  rayonThreads: number
+  simdLevel: string
+  addonPath?: string | null
+}
+
 export interface PxsAccelApi {
+  getBackendInfo?(): Promise<PxsAccelBackendInfo>
   sha256Hex(input: string | Uint8Array): Promise<string>
   hashFiles(paths: string[]): Promise<Record<string, string>>
   packArchive(entries: PxsZipEntry[]): Promise<Uint8Array>

@@ -2,9 +2,17 @@
 chcp 65001 >nul
 title Parallax Studio - Cai dat thu vien
 cd /d "%~dp0"
-set ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/
-set FFMPEG_BINARIES_URL=https://registry.npmmirror.com/-/binary/ffmpeg-static
-set "PATH=%USERPROFILE%\.local\bin;%APPDATA%\npm;%ProgramFiles%\nodejs;%PATH%"
+if not exist "%~dp0.env" (
+    if exist "%~dp0.env.example" copy /y "%~dp0.env.example" "%~dp0.env" >nul
+)
+if exist "%~dp0.env" (
+    for /f "usebackq eol=# tokens=1,* delims==" %%A in ("%~dp0.env") do (
+        if not "%%A"=="" if not "%%B"=="" set "%%A=%%B"
+    )
+)
+if "%ELECTRON_MIRROR%"=="" set ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/
+if "%FFMPEG_BINARIES_URL%"=="" set FFMPEG_BINARIES_URL=https://registry.npmmirror.com/-/binary/ffmpeg-static
+set "PATH=%USERPROFILE%\.cargo\bin;%USERPROFILE%\.local\bin;%APPDATA%\npm;%ProgramFiles%\nodejs;%PATH%"
 
 echo ============================================================
 echo      Parallax Studio - Cai dat moi truong va thu vien
@@ -106,8 +114,16 @@ echo [OK] Thu vien MCP Server san sang.
 echo.
 
 REM 5. FFmpeg cho chuc nang xuat video (tuy chon, KHONG lam hong cai dat)
-echo [3/3] Dang kiem tra FFmpeg cho chuc nang xuat video MP4...
+echo [3/4] Dang kiem tra FFmpeg cho chuc nang xuat video MP4...
 node "%~dp0scripts\ensure-ffmpeg.mjs"
+echo.
+
+REM 6. Addon Rust NAPI-RS 64-bit da luong (tuy chon neu may co cargo, neu khong tu dung WASM fallback)
+echo [4/4] Dang kiem tra addon tang toc Rust Native (napi-rs)...
+node "%~dp0scripts\build-napi-accel.mjs" --if-rust
+if errorlevel 1 (
+    echo [CANH BAO] Khong bien dich duoc addon Rust native - he thong tu dong dung WASM fallback.
+)
 echo.
 
 echo ============================================================

@@ -3,6 +3,8 @@ import { cpus } from 'os'
 import { Worker } from 'worker_threads'
 import {
   getNativeWasmBytes,
+  hashFilesParallelNativeRust,
+  packPxsZipAsyncRust,
   packPxsZipRust,
   sha256HexRust,
   unpackPxsZipRust
@@ -131,6 +133,13 @@ async function hashFilesDirect(filePaths: string[]): Promise<Record<string, stri
 
 export async function hashFilesParallel(filePaths: string[]): Promise<Record<string, string>> {
   if (filePaths.length === 0) return {}
+
+  // Ưu tiên chạy thẳng trên Rayon threadpool 64-bit qua NAPI-RS AsyncTask (không cần worker_threads).
+  const nativeTask = hashFilesParallelNativeRust(filePaths)
+  if (nativeTask) {
+    return nativeTask
+  }
+
   if (filePaths.length <= 2) return hashFilesDirect(filePaths)
 
   try {
@@ -155,6 +164,10 @@ export async function disposeHashWorkerPool(): Promise<void> {
 
 export function packPxsArchive(entries: PxsArchiveEntry[]): Uint8Array {
   return packPxsZipRust(entries)
+}
+
+export function packPxsArchiveAsync(entries: PxsArchiveEntry[]): Promise<Uint8Array> {
+  return packPxsZipAsyncRust(entries)
 }
 
 export function unpackPxsArchive(zipBytes: Uint8Array): PxsArchiveEntry[] {

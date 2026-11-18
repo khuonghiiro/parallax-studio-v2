@@ -2,8 +2,16 @@
 chcp 65001 >nul
 title Parallax Studio - Build Production
 cd /d "%~dp0"
+if not exist "%~dp0.env" (
+    if exist "%~dp0.env.example" copy /y "%~dp0.env.example" "%~dp0.env" >nul
+)
+if exist "%~dp0.env" (
+    for /f "usebackq eol=# tokens=1,* delims==" %%A in ("%~dp0.env") do (
+        if not "%%A"=="" if not "%%B"=="" set "%%A=%%B"
+    )
+)
 
-set "PATH=%USERPROFILE%\.local\bin;%APPDATA%\npm;%ProgramFiles%\nodejs;%PATH%"
+set "PATH=%USERPROFILE%\.cargo\bin;%USERPROFILE%\.local\bin;%APPDATA%\npm;%ProgramFiles%\nodejs;%PATH%"
 
 echo ============================================================
 echo      Parallax Studio - Build Production Bundle

@@ -5,9 +5,9 @@
  * Docs language: env PARALLAX_MCP_LANG  >  "docsLang" in <userData>/mcp.json (toggle in the
  * app's MCP dialog)  >  "en" (default — English gives AI agents the most precise tool calls).
  */
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
-import { dirname, join } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describer, pick, z } from './shared.mjs'
 import { SCENE_TOOLS } from './tools-scene.mjs'
@@ -21,6 +21,37 @@ import { LOOP_ANIMATOR_TOOLS } from './tools-loop-animator.mjs'
 import { LOOP_LIBRARY_TOOLS } from './tools-loop-library.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
+
+function loadRootDotEnvOnce() {
+  const envFile = resolve(here, '..', '..', '.env')
+  if (!existsSync(envFile)) return
+  try {
+    const text = readFileSync(envFile, 'utf8').replace(/^\uFEFF/, '')
+    for (const rawLine of text.split(/\r?\n/)) {
+      const line = rawLine.trim()
+      if (!line || line.startsWith('#')) continue
+      const body = line.startsWith('export ') ? line.slice(7).trim() : line
+      const eq = body.indexOf('=')
+      if (eq <= 0) continue
+      const key = body.slice(0, eq).trim()
+      if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) continue
+      let val = body.slice(eq + 1).trim()
+      if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+        val = val.slice(1, -1)
+      } else {
+        const cIdx = val.search(/\s+#/)
+        if (cIdx >= 0) val = val.slice(0, cIdx).trim()
+      }
+      if (val !== '' && (process.env[key] === undefined || process.env[key] === '')) {
+        process.env[key] = val
+      }
+    }
+  } catch {
+    /* ignore unreadable .env */
+  }
+}
+
+loadRootDotEnvOnce()
 
 export const GUIDE = JSON.parse(readFileSync(join(here, 'guide.json'), 'utf8'))
 export const TOOLS = [...SCENE_TOOLS, ...AI_CODE_TOOLS, ...FX_TOOLS, ...ASSEMBLY_TOOLS, ...LAYER_ASSEMBLY_TOOLS, ...LAYER_ANIM_TOOLS, ...LAYER_PARTS_TOOLS, ...LOOP_ANIMATOR_TOOLS, ...LOOP_LIBRARY_TOOLS]

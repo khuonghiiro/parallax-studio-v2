@@ -1,7 +1,10 @@
 import { resolve } from 'path'
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
 import react from '@vitejs/plugin-react'
+import { loadAppDotEnv } from './src/main/envConfig'
 import { aiSourceBabelOptions } from './scripts/vite/aiSourceLocatorBabel.mjs'
+
+loadAppDotEnv()
 
 /**
  * AI UI Inspector (Win + Shift): khi chạy dev, gắn `data-ai-src="file:dòng:cột"` vào JSX để bản quét

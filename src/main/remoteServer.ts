@@ -108,6 +108,10 @@ export class RemoteControlServer {
   }
 
   start(): void {
+    if (process.env.PARALLAX_REMOTE === '0') {
+      this.error = 'Remote Studio bị tắt (PARALLAX_REMOTE=0)'
+      return
+    }
     if (this.listening) return
     void this.listen(this.port, 0)
   }

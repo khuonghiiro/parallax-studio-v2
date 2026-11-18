@@ -43,8 +43,10 @@ describe('agent-guard pre-commit', () => {
     expect(checkStagedFile('docs/a.md', big)).toEqual([])
   })
 
-  it('blocks secret files and private keys', () => {
+  it('blocks secret files and private keys while allowing .env.example template', () => {
     expect(checkStagedFile('.env', 'A=1')).toHaveLength(1)
+    expect(checkStagedFile('.env.local', 'A=1')).toHaveLength(1)
+    expect(checkStagedFile('.env.example', 'PARALLAX_MCP_PORT=9877\n')).toEqual([])
     const fakeKey = `export const k = "${['-----BEGIN', 'PRIVATE KEY-----'].join(' ')}"\n`
     expect(checkStagedFile('src/k.ts', fakeKey)).toHaveLength(1)
   })

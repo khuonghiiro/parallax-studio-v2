@@ -8,9 +8,10 @@
   "private": true,
   "scripts": {
     "dev": "electron-vite dev",
-    "build": "electron-vite build",
-    "cargo:build": "cargo build --release --manifest-path crates/pxs_core_accel/Cargo.toml && node scripts/build-wasm-accel.mjs",
-    "cargo:test": "cargo test --manifest-path crates/pxs_core_accel/Cargo.toml",
+    "build": "node scripts/build-napi-accel.mjs --if-rust && electron-vite build && node scripts/build-napi-accel.mjs --promote-only",
+    "cargo:build": "cargo build --release --manifest-path crates/pxs_core_accel/Cargo.toml && node scripts/build-wasm-accel.mjs && node scripts/build-napi-accel.mjs",
+    "cargo:test": "cargo test --manifest-path crates/pxs_core_accel/Cargo.toml && cargo test --manifest-path crates/pxs_native_napi/Cargo.toml",
+    "napi:build": "node scripts/build-napi-accel.mjs",
     "wasm:build": "node scripts/build-wasm-accel.mjs",
     "preview": "electron-vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",

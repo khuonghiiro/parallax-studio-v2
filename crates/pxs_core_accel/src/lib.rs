@@ -40,7 +40,7 @@ pub use pixel_isolation::{
     rust_box_blur3, rust_compute_chroma_zone, rust_dilate_mask_box, rust_flood_from_border,
     rust_grow_mask_within,
 };
-pub use sha256_crc32::{rust_crc32, rust_sha256};
+pub use sha256_crc32::{crc32_slice, rust_crc32, rust_sha256, sha256_bytes, sha256_hex};
 pub use skin_deform::{rust_deform_plant_spines, rust_deform_skin, rust_scale_unit_space};
 pub use wasm_mem::{
     wasm_scratch_alloc, wasm_scratch_capacity, wasm_scratch_reserve, wasm_scratch_reset,
@@ -288,7 +288,7 @@ pub extern "C" fn rust_chroma_despill(
     true
 }
 
-fn convert_rgba_to_yuv420p_impl(
+pub fn convert_rgba_to_yuv420p_slice(
     rgba: &[u8],
     w: usize,
     h: usize,
@@ -384,7 +384,7 @@ pub extern "C" fn rust_rgba_to_yuv420p_ex(
 
     let rgba = unsafe { std::slice::from_raw_parts(rgba_in, expected_rgba) };
     let yuv = unsafe { std::slice::from_raw_parts_mut(yuv_out, expected_yuv) };
-    convert_rgba_to_yuv420p_impl(rgba, w, h, flip_y != 0, yuv);
+    convert_rgba_to_yuv420p_slice(rgba, w, h, flip_y != 0, yuv);
     1
 }
 
