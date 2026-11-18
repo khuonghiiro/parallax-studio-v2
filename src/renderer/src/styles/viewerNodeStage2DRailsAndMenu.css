@@ -172,7 +172,7 @@
 .vn2d-context-menu {
   position: fixed;
   z-index: 50000;
-  width: 316px;
+  width: 348px;
   max-width: calc(100vw - 16px);
   max-height: min(470px, calc(100vh - 20px));
   overflow-y: auto;

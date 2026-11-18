@@ -13,6 +13,7 @@ import {
   IconCameraStage,
   IconChevronDown,
   IconCompFrame,
+  IconContextDots,
   IconFitStage2D,
   IconGizmoBbox,
   IconLayers,
@@ -74,6 +75,7 @@ export interface NodeStage2DToolbarProps {
   onScrubTime: (t: number) => void
   onTogglePlayNode: () => void
   onFitStage: () => void
+  onOpenContextMenuAtButton?: (e: React.MouseEvent<HTMLButtonElement>) => void
 }
 
 export const NodeStage2DToolbar: React.FC<NodeStage2DToolbarProps> = ({
@@ -102,7 +104,8 @@ export const NodeStage2DToolbar: React.FC<NodeStage2DToolbarProps> = ({
   onToggleScopeOverride,
   onScrubTime,
   onTogglePlayNode,
-  onFitStage
+  onFitStage,
+  onOpenContextMenuAtButton
 }) => {
   const [menuOpen, setMenuOpen] = useState(false)
   const menuWrapRef = useRef<HTMLDivElement>(null)
@@ -553,6 +556,18 @@ export const NodeStage2DToolbar: React.FC<NodeStage2DToolbarProps> = ({
           >
             <IconFitStage2D width={13} height={13} />
             <span>{zoomPct}%</span>
+          </button>
+        )}
+
+        {onOpenContextMenuAtButton && (
+          <button
+            type="button"
+            className="vn2d-icon-ctrl is-expand"
+            onClick={onOpenContextMenuAtButton}
+            aria-label="Mở menu công cụ ngữ cảnh (Chuột phải)"
+            title="Mở Menu Công Cụ Ngữ Cảnh (hoặc nhấp Chuột phải / Nhấn giữ trực tiếp lên Khung 2D)"
+          >
+            <IconContextDots width={13} height={13} />
           </button>
         )}
 

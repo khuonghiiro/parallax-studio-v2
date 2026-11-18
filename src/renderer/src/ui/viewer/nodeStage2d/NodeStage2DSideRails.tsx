@@ -9,7 +9,6 @@ import {
   IconCamPullOut,
   IconCamPushIn,
   IconCinematicClapper,
-  IconContextDots,
   IconDepth25D,
   IconDepthBringFront,
   IconDepthPushBack,
@@ -67,7 +66,6 @@ export interface NodeStage2DSideRailsProps {
   onSpawnCameraWaypoint: (mode: 'pan' | 'zoom-in' | 'zoom-out' | 'hold') => void
   onRotateCameraYaw: (yawDeg: number) => void
   onZoomStep: (delta: number) => void
-  onOpenContextMenuAtButton: (e: React.MouseEvent<HTMLButtonElement>) => void
 }
 
 function renderCategoryIcon(catId: WorkflowV2SpawnCategory): React.ReactNode {
@@ -118,8 +116,7 @@ export const NodeStage2DSideRails: React.FC<NodeStage2DSideRailsProps> = ({
   onOpenLayerWorkshop,
   onSpawnCameraWaypoint,
   onRotateCameraYaw,
-  onZoomStep,
-  onOpenContextMenuAtButton
+  onZoomStep
 }) => {
   const level = node ? resolveV2NodeLevel(node) : null
   const logicCat = node ? resolveV2LogicCategory(node) : undefined
@@ -133,13 +130,24 @@ export const NodeStage2DSideRails: React.FC<NodeStage2DSideRailsProps> = ({
   const hasEntity = Boolean(ctx.activeLayer)
   const hasComposite = Boolean(ctx.activeLayer?.composite?.compositeId)
 
-  // Mỗi miền Logic giữ đúng 1 icon đại diện duy nhất trên thanh Rail phải (tránh lặp nhiều preset cùng miền `fx`/`subtitle`)
+  // Ưu tiên 6 miền trực quan nhất trên thanh Rail phải để vừa khít chiều cao không cuộn (đầy đủ 100% miền nằm trong Menu Chuột Phải & Hành động)
+  const PRIORITY_STAGE_CATS: WorkflowV2SpawnCategory[] = [
+    'loop_anim',
+    'part_swap',
+    'anim_fx',
+    'fx',
+    'light',
+    'cave',
+    'subtitle'
+  ]
   const seenCats = new Set<WorkflowV2SpawnCategory>(['action'])
-  const rightCategories = (ctx.compatibleCategories ?? []).filter((c) => {
-    if (seenCats.has(c.id)) return false
-    seenCats.add(c.id)
-    return true
-  })
+  const rightCategories = (ctx.compatibleCategories ?? [])
+    .filter((c) => {
+      if (seenCats.has(c.id) || !PRIORITY_STAGE_CATS.includes(c.id)) return false
+      seenCats.add(c.id)
+      return true
+    })
+    .slice(0, 6)
 
   return (
     <>
@@ -412,16 +420,6 @@ export const NodeStage2DSideRails: React.FC<NodeStage2DSideRailsProps> = ({
           aria-label="Thu nhỏ khung 2D"
         >
           <IconZoomOut width={15} height={15} />
-        </button>
-
-        <button
-          type="button"
-          className="vn2d-rail-btn"
-          onClick={onOpenContextMenuAtButton}
-          title="Mở Menu Công Cụ Ngữ Cảnh (hoặc nhấp Chuột phải trực tiếp lên Khung 2D)"
-          aria-label="Mở menu công cụ ngữ cảnh"
-        >
-          <IconContextDots width={15} height={15} />
         </button>
       </aside>
     </>

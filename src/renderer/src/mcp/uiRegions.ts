@@ -59,6 +59,7 @@ export const UI_REGION_SELECTORS: Record<string, string[]> = {
   viewer_node2d_tools: region('viewer_node2d_tools', '.viewer-node2d-toolbar'),
   viewer_node2d_left_rail: region('viewer_node2d_left_rail', '.vn2d-side-rail.is-left'),
   viewer_node2d_right_rail: region('viewer_node2d_right_rail', '.vn2d-side-rail.is-right'),
+  viewer_node2d_context_menu: region('viewer_node2d_context_menu', '.vn2d-context-menu'),
   viewer_stage2d: ['.anim2d-pane-host'],
   timeline_logic: ['.tl-logic-strip'],
   timeline_logic_picker: ['.tl-logic-picker'],

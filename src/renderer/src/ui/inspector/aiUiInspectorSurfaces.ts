@@ -44,6 +44,8 @@ export const POPUP_CONTAINER_SELECTORS = [
   '.tl-logic-picker',
   '.wf-quick-connect-menu',
   '.wf-v2-quick-spawn-menu',
+  '.vn2d-context-menu',
+  '.vn2d-popover',
   '.ah-help-pop',
   '[popover]'
 ]

@@ -7,6 +7,7 @@ import { patchPartCue } from '../../../project/workflowPartEditing'
 import { effectiveTimeParams } from '../../../project/workflowTiming'
 import {
   attachLogicNodeToLayerV2,
+  getClusterMemberLayers,
   getLayerDisplayName,
   spawnTimedFollowupNodeV2,
   syncWorkflowV2NodeToProject,
@@ -19,13 +20,18 @@ import { WorkflowV2DirectStagePreview } from '../../workflow/WorkflowV2DirectSta
 import { WorkflowV2Logic25DPreview } from '../../workflow/WorkflowV2Logic25DPreview'
 import { resolveActiveMotionNode } from '../../workflow/WorkflowV2StageBboxHelpers'
 import { useWorkflowV2Controller } from '../../workflow/useWorkflowV2Controller'
+import { NodeStage2DContextMenu } from './NodeStage2DContextMenu'
 import { NodeStage2DSideRails } from './NodeStage2DSideRails'
 import { NodeStage2DToolbar } from './NodeStage2DToolbar'
 import {
+  aimCameraAtStagePointInDraft,
   alignEntityOnStageInDraft,
   flipEntityHorizontalInDraft,
+  placeBbox2TargetAtWorldXYInDraft,
+  resetEntityScaleInDraft,
   resolveShotCameraRouteNodes,
   setCameraWaypointYawInDraft,
+  setEntityWorldPositionInDraft,
   stepEntityDepthZInDraft,
   syncCamera3DToEntityOrMotionInDraft,
   type StageContextHitInfo,
@@ -44,6 +50,7 @@ export const ViewerNodeStage2D: React.FC = () => {
   const layerSelectionScope = useEditor((s) => s.layerSelectionScope)
   const bodyRef = useRef<HTMLDivElement>(null)
   const lastEntityNodeRef = useRef<{ id: string; label: string } | null>(null)
+  const touchHoldTimerRef = useRef<number | null>(null)
 
   const [bodySize, setBodySize] = useState({ w: 620, h: 420 })
   const [zoomFactor, setZoomFactor] = useState(1)
@@ -51,7 +58,7 @@ export const ViewerNodeStage2D: React.FC = () => {
   const [overrideSceneView, setOverrideSceneView] = useState(false)
   const [scopeOverride, setScopeOverride] = useState<'cluster' | 'part' | null>(null)
   const [showCameraGuide, setShowCameraGuide] = useState(false)
-  const [, setPendingContextHit] = useState<StageContextHitInfo | null>(null)
+  const [contextHit, setContextHit] = useState<StageContextHitInfo | null>(null)
 
   const activeNode = useMemo(
     () =>
@@ -151,6 +158,28 @@ export const ViewerNodeStage2D: React.FC = () => {
       }
     },
     [wfCtrl]
+  )
+
+  /** Mở Menu Chuột Phải thông minh: nếu chuột phải trúng Layer / Cụm / Mốc Cam khác thì tự Focus vào đối tượng đó ngay */
+  const handleOpenStageContextMenu = useCallback(
+    (hit: StageContextHitInfo) => {
+      if (hit.hitWaypointNodeId && hit.hitWaypointNodeId !== activeNode?.id) {
+        wfCtrl.activateNode(hit.hitWaypointNodeId, true, false)
+      } else if (hit.hitLayerId) {
+        const curInstId = ctx.activeLayer?.composite?.instanceId ?? ctx.activeLayer?.model3d?.instanceId
+        const curMembers = curInstId
+          ? getClusterMemberLayers(wfCtrl.project, curInstId, ctx.activeLayer)
+          : ctx.activeLayer
+            ? [ctx.activeLayer]
+            : []
+        const alreadyInFocusedEntity = curMembers.some((m) => m.id === hit.hitLayerId)
+        if (!alreadyInFocusedEntity) {
+          handlePickSceneLayer(hit.hitLayerId)
+        }
+      }
+      setContextHit(hit)
+    },
+    [activeNode?.id, ctx.activeLayer, wfCtrl, handlePickSceneLayer]
   )
 
   const handleToggleCamDirectorMode = useCallback(() => {
@@ -391,6 +420,66 @@ export const ViewerNodeStage2D: React.FC = () => {
     }
   }, [ctx.activeLayer, activeNode, useClusterTransform, liveTime, wfCtrl, showToast])
 
+  const handlePlaceBbox2Here = useCallback(
+    (hit: StageContextHitInfo) => {
+      if (!ctx.activeLayer) return
+      let placed: { nodeId: string; startTime: number } | null = null
+      useEditor.getState().update((draft) => {
+        placed = placeBbox2TargetAtWorldXYInDraft(draft, {
+          workflow: wfCtrl.workflow,
+          activeNode,
+          attachTargetNodeId: ctx.attachTargetNodeId,
+          layer: ctx.activeLayer!,
+          worldX: hit.worldX,
+          worldY: hit.worldY,
+          currentTime: liveTime
+        })
+      }, 'vn2d-ctx-place-bbox2')
+      if (placed) {
+        const res = placed as { nodeId: string; startTime: number }
+        wfCtrl.setTime(res.startTime)
+        wfCtrl.activateNode(res.nodeId, true, false)
+        showToast(`Đã đặt BBox Đích #2 tới (${hit.worldX}, ${hit.worldY})`)
+      }
+    },
+    [ctx.activeLayer, ctx.attachTargetNodeId, wfCtrl, activeNode, liveTime, showToast]
+  )
+
+  const handleMoveEntityHere = useCallback(
+    (hit: StageContextHitInfo) => {
+      if (!ctx.activeLayer) return
+      useEditor.getState().update((draft) => {
+        setEntityWorldPositionInDraft(
+          draft,
+          ctx.activeLayer!.id,
+          { x: hit.worldX, y: hit.worldY },
+          useClusterTransform,
+          activeNode
+        )
+      }, 'vn2d-ctx-move-entity')
+    },
+    [ctx.activeLayer, useClusterTransform, activeNode]
+  )
+
+  const handleAimCameraHere = useCallback(
+    (hit: StageContextHitInfo) => {
+      let targetTime = liveTime
+      useEditor.getState().update((draft) => {
+        targetTime = aimCameraAtStagePointInDraft(
+          draft,
+          hit.shotId ?? camRoute.shotId,
+          hit.screenOffsetX,
+          hit.screenOffsetY,
+          liveTime,
+          ctx.activeLayer?.transform.position.value[2] ?? 0
+        )
+      }, 'vn2d-ctx-aim-cam')
+      wfCtrl.setTime(targetTime)
+      showToast('Đã lia tâm khung ngắm Camera tới vị trí vừa chọn')
+    },
+    [liveTime, camRoute.shotId, ctx.activeLayer, wfCtrl, showToast]
+  )
+
   const handleTogglePlayNode = useCallback(() => {
     const ed = useEditor.getState()
     if (ed.playing) {
@@ -407,6 +496,13 @@ export const ViewerNodeStage2D: React.FC = () => {
     }
     ed.setPlaying(true)
   }, [activeNode, wfCtrl.project])
+
+  const clearTouchHold = useCallback(() => {
+    if (touchHoldTimerRef.current !== null) {
+      window.clearTimeout(touchHoldTimerRef.current)
+      touchHoldTimerRef.current = null
+    }
+  }, [])
 
   const hasAnySceneContent = wfCtrl.project.shots.length > 0 || wfCtrl.project.layers.length > 0
   const showSceneStage = Boolean(activeNode && hasAnySceneContent && !showPart25D && !showLogic25D)
@@ -453,9 +549,67 @@ export const ViewerNodeStage2D: React.FC = () => {
         }}
         onTogglePlayNode={handleTogglePlayNode}
         onFitStage={handleFitStage}
+        onOpenContextMenuAtButton={(e) => {
+          const rect = e.currentTarget.getBoundingClientRect()
+          setContextHit({
+            clientX: rect.right - 290,
+            clientY: rect.bottom + 6,
+            worldX: Math.round(ctx.activeLayer?.transform.position.value[0] ?? 0),
+            worldY: Math.round(ctx.activeLayer?.transform.position.value[1] ?? 0),
+            screenOffsetX: 0,
+            screenOffsetY: 0,
+            shotId: camRoute.shotId,
+            hitLayerId: ctx.activeLayer?.id ?? null,
+            hitWaypointNodeId: isCamDirectorMode ? (activeNode?.id ?? null) : null
+          })
+        }}
       />
 
-      <div ref={bodyRef} className="viewer-node2d-body">
+      <div
+        ref={bodyRef}
+        className="viewer-node2d-body"
+        onContextMenu={(e) => {
+          if (showSceneStage) return
+          e.preventDefault()
+          setContextHit({
+            clientX: e.clientX,
+            clientY: e.clientY,
+            worldX: Math.round(ctx.activeLayer?.transform.position.value[0] ?? 0),
+            worldY: Math.round(ctx.activeLayer?.transform.position.value[1] ?? 0),
+            screenOffsetX: 0,
+            screenOffsetY: 0,
+            shotId: camRoute.shotId,
+            hitLayerId: ctx.activeLayer?.id ?? null,
+            hitWaypointNodeId: null
+          })
+        }}
+        onPointerDownCapture={(e) => {
+          if (e.pointerType !== 'touch') return
+          clearTouchHold()
+          const cx = e.clientX
+          const cy = e.clientY
+          const targetEl = e.target as HTMLElement | null
+          touchHoldTimerRef.current = window.setTimeout(() => {
+            touchHoldTimerRef.current = null
+            const layerEl = targetEl?.closest?.('[data-scene-layer-id]') as HTMLElement | null
+            const wpEl = targetEl?.closest?.('[data-waypoint-node-id]') as HTMLElement | null
+            handleOpenStageContextMenu({
+              clientX: cx,
+              clientY: cy,
+              worldX: Math.round(ctx.activeLayer?.transform.position.value[0] ?? 0),
+              worldY: Math.round(ctx.activeLayer?.transform.position.value[1] ?? 0),
+              screenOffsetX: 0,
+              screenOffsetY: 0,
+              shotId: camRoute.shotId,
+              hitLayerId: layerEl?.getAttribute('data-scene-layer-id') ?? null,
+              hitWaypointNodeId: wpEl?.getAttribute('data-waypoint-node-id') ?? null
+            })
+          }, 460)
+        }}
+        onPointerMoveCapture={clearTouchHold}
+        onPointerUpCapture={clearTouchHold}
+        onPointerCancelCapture={clearTouchHold}
+      >
         {showSceneStage && (
           <NodeStage2DSideRails
             node={activeNode}
@@ -497,20 +651,6 @@ export const ViewerNodeStage2D: React.FC = () => {
             onZoomStep={(delta) =>
               setZoomFactor((z) => Math.max(0.4, Math.min(3.2, Number((z + delta).toFixed(2)))))
             }
-            onOpenContextMenuAtButton={(e) => {
-              const rect = e.currentTarget.getBoundingClientRect()
-              setPendingContextHit({
-                clientX: rect.left - 8,
-                clientY: rect.top,
-                worldX: Math.round(ctx.activeLayer?.transform.position.value[0] ?? 0),
-                worldY: Math.round(ctx.activeLayer?.transform.position.value[1] ?? 0),
-                screenOffsetX: 0,
-                screenOffsetY: 0,
-                shotId: camRoute.shotId,
-                hitLayerId: ctx.activeLayer?.id ?? null,
-                hitWaypointNodeId: isCamDirectorMode ? (activeNode?.id ?? null) : null
-              })
-            }}
           />
         )}
 
@@ -562,10 +702,50 @@ export const ViewerNodeStage2D: React.FC = () => {
             onWheelZoom={handleWheelZoom}
             onCanvasPanStart={handleCanvasPanStart}
             onPickSceneLayer={handlePickSceneLayer}
-            onStageContextMenu={setPendingContextHit}
+            onStageContextMenu={handleOpenStageContextMenu}
           />
         )}
       </div>
+
+      {contextHit && (
+        <NodeStage2DContextMenu
+          hit={contextHit}
+          node={activeNode}
+          ctx={ctx}
+          isCamDirectorMode={isCamDirectorMode}
+          useClusterTransform={useClusterTransform}
+          onClose={() => setContextHit(null)}
+          onPlaceBbox2Here={handlePlaceBbox2Here}
+          onMoveEntityHere={handleMoveEntityHere}
+          onAimCameraHere={handleAimCameraHere}
+          onSyncCameraToEntity={handleSyncCameraToEntity}
+          onQuickSpawnPathMotion={handleQuickSpawnPathMotion}
+          onToggleCamDirectorMode={handleToggleCamDirectorMode}
+          onSpawnCameraWaypoint={(mode) => {
+            if (camRoute.shotId) {
+              wfCtrl.actions.spawnCameraWaypoint(camRoute.shotId, mode, activeNode?.params?.timeStart)
+            }
+          }}
+          onFlipHorizontal={handleFlipHorizontal}
+          onQuickAlign={handleQuickAlign}
+          onResetScale={() => {
+            if (!ctx.activeLayer) return
+            useEditor.getState().update((draft) => {
+              resetEntityScaleInDraft(draft, ctx.activeLayer!.id, useClusterTransform)
+            }, 'vn2d-ctx-reset-scale')
+          }}
+          onStepDepthZ={handleStepDepthZ}
+          onToggleScopeOverride={() => setScopeOverride((prev) => (prev === 'cluster' ? 'part' : 'cluster'))}
+          onOpenLayerWorkshop={() => {
+            const compId = ctx.activeLayer?.composite?.compositeId
+            if (compId) requestOpenLayerAssembly(compId)
+          }}
+          onSelectNode={(id) => wfCtrl.activateNode(id, true, false)}
+          onAttachLogic={wfCtrl.actions.attachLogic}
+          onToggleEnableNode={wfCtrl.actions.toggleEnable}
+          onDeleteNode={wfCtrl.actions.deleteNode}
+        />
+      )}
     </div>
   )
 }
