@@ -73,10 +73,11 @@ Chuyên trách viết và chỉnh sửa CSS, Design Tokens, độ tương phản
 
 ## 4. Bộ Điều Khiển 60fps & Cấm Combobox Trên Canvas
 
-- **Cấm dùng `<select>` native và `<input type="color">`:** Bắt buộc dùng:
+- **Tuyệt đối CẤM dùng `<select>` native và `<input type="color">`:** Bắt buộc dùng:
   - `<Menu>` (`src/renderer/src/ui/controls/Menu.tsx`) cho menu thao tác.
   - `<Select>` (`src/renderer/src/ui/controls/CustomSelect.tsx`, portal `z-index: 50000`, prop `size="sm"`) cho bảng thuộc tính.
   - `<ColorPickerCustom>` (`src/renderer/src/ui/controls/ColorPickerCustom.tsx`) cho bộ chọn màu.
+  - `<StudioTooltip>` (`src/renderer/src/ui/controls/StudioTooltip.tsx`, portal `z-index: 55000`) cho mọi nút chỉ có Icon / dải Rail dọc / cụm HUD nổi (bỏ `title` native để cấm hiện đè 2 tooltip, giữ `aria-label`; chỉ dùng `title` mặc định cho nút đã có chữ hoặc nhãn bị cắt `ellipsis` — xem [`ui-tooltip`](../ui-tooltip/SKILL.md)).
 - **Cấm dùng Combobox (`<Select>`) trên Canvas có CSS `zoom` / kéo thả hoặc tập lựa chọn nhỏ (`<= 5` mục):** Bắt buộc dùng **1-Click Segmented Pills** (`.wf-preset-pill`), **Option Cards** hoặc **Icon Chip Grid**.
 - **Dock Inspector thấp (`240px–350px`):** Chia theo **Segmented Sub-Tabs** gọn gàng thay vì xếp chồng dài.
 

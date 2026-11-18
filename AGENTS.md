@@ -107,10 +107,11 @@ Chi tiết kiến trúc tại [docs/architecture/workflow-v2-and-timeline.md](./
 - **Nguyên tắc Node Đơn Trách Nhiệm (Single-Responsibility Node):** Mỗi Node chỉ sở hữu 1 miền logic duy nhất (`loop_anim` cho chu kỳ lặp; `fx` cho Fade/Pulse/Shake/Glow; `action` cho quỹ đạo Motion; `anim_fx` cho hành động xương 2.5D; `time` cho nhóm thời gian chung `workflowTimeGroups.ts` / MCP `time_group`). Tuyệt đối không gộp logic của Node khác vào chung một Node; phối hợp nhiều hiệu ứng bằng cách nối nhiều Node vào cùng `Node Layer 2.5D`. Tài nguyên có cơ chế riêng khi thêm vào cảnh tự động sinh Node mặc định nối sẵn.
 - **Modular JSON:** Xuất/nhập tách biệt `main.json` (`buildMainWorkflowJson`) và từng cảnh `shots/shot-N.json` (`buildShotWorkflowJson` / `applyShotWorkflowJson`).
 
-### 2.6. Quy Chuẩn Custom UI Controls, Chống Combobox Trên Canvas & Dock Gọn Gàng (BẮT BUỘC)
-- **Tuyệt đối CẤM dùng thẻ native `<select>` hay `<input type="color">`:** Bắt buộc dùng bộ điều khiển 60fps trong `src/renderer/src/ui/controls/`: `<Menu>` (menu thao tác), `<Select>` (`CustomSelect.tsx`, portal `z-index: 50000`, hỗ trợ `size="sm"`), `<ColorPickerCustom>`. Thanh công cụ chứa menu con phải giữ `overflow: visible; position: relative; z-index: 5000;`.
-- **Cấm dùng Combobox trên Canvas có Zoom/Drag hoặc tập chọn nhỏ (`<= 5` mục):** Trên thẻ Node kéo thả / có CSS `zoom` (như Workflow Canvas) hoặc bảng có `2–5` lựa chọn, **CẤM dùng `<Select>`** (do lệch toạ độ dưới `zoom` và xung đột `pointerdown`); bắt buộc dùng **1-Click Segmented Pills**, **Option Cards** hoặc **Icon Chip Grid**.
-- **Dock Inspector gọn gàng & Kéo thả 4 hướng:** Các cột cấu hình trong dock thấp (`height: 240px–350px`) phải chia thành **Segmented Sub-Tabs** thay vì xếp chồng dài; cụm HUD trên canvas dùng dạng dọc chỉ gồm Icon (`.wf-canvas-hud.vertical`); node kéo tự do 4 hướng (`Left/Right/Top/Bottom`); chiều cao thanh kéo `.splitter` lưu vào `localStorage` (`pxs:timeline-dock-height`).
+### 2.6. Quy Chuẩn Custom UI Controls, Tooltip Chuẩn Studio & Chống Combobox Trên Canvas (BẮT BUỘC)
+- **Cấm `<select>` & `<input type="color">` native:** Bắt buộc dùng `src/renderer/src/ui/controls/`: `<Menu>`, `<Select>` (`CustomSelect.tsx`, portal `z-index: 50000`, `size="sm"`), `<ColorPickerCustom>`. Toolbar chứa menu con giữ `overflow: visible; position: relative; z-index: 5000;`.
+- **Quy chuẩn `<StudioTooltip>` vs `title` mặc định ([tooltip-standard.md](./.agents/rules/tooltip-standard.md) & skill [ui-tooltip](./.agents/skills/ui-tooltip/SKILL.md)):** Mọi nút chỉ có Icon (Rail dọc, HUD nổi, nút icon trên Toolbar) bắt buộc bọc `<StudioTooltip>` (`StudioTooltip.tsx`, bỏ `title` native chống đè 2 lớp, giữ `aria-label`); chỉ dùng `title` mặc định cho nút đã có chữ hoặc văn bản bị cắt `ellipsis`.
+- **Cấm Combobox trên Canvas có Zoom/Drag hoặc tập chọn `<= 5` mục:** Bắt buộc dùng **1-Click Segmented Pills**, **Option Cards** hoặc **Icon Chip Grid**.
+- **Dock Inspector gọn gàng:** Chia cột thấp (`240px–350px`) thành **Segmented Sub-Tabs**; HUD canvas dạng dọc chỉ gồm Icon; lưu chiều cao `.splitter` vào `localStorage` (`pxs:timeline-dock-height`).
 
 ### 2.7. Quy Chuẩn Tính Duy Nhất Của Biểu Tượng (Icon Uniqueness Standard - BẮT BUỘC)
 - Trong cùng một dải tab ngang hoặc dọc, mỗi mục bắt buộc có icon SVG riêng biệt, đúng ngữ nghĩa; cấm dùng trùng lặp icon:
@@ -152,5 +153,5 @@ Kích hoạt và đọc `SKILL.md` tương ứng khi thực hiện tác vụ chu
 - **Quy trình Git theo Session & Commit tiếng Việt:** `ak:git` ([SKILL.md](./.agents/skills/ak-git/SKILL.md))
 - **Đồ họa 3D, WebGL & Shaders:** `ak:threejs`, `ak:shader`
 - **React 19, Frontend & Tối ưu hiệu năng:** `ak:frontend-development`, `ak:react-best-practices`, `code-modularization`
-- **Thiết kế Giao diện, CSS Tokens & Audit UI/UX:** `ak:ui-styling`, `ak:frontend-design`, `ak:ui-ux-pro-max`
+- **Thiết kế Giao diện, CSS Tokens, Tooltip & Audit UI/UX:** `ak:ui-styling`, `ui-tooltip` ([SKILL.md](./.agents/skills/ui-tooltip/SKILL.md)), `ak:frontend-design`, `ak:ui-ux-pro-max`
 - **Kiểm thử, Debug, Sửa lỗi & Xử lý Media (FFmpeg):** `ak:test`, `ak:debug`, `ak:fix`, `ak:code-review`, `ak:media-processing`
