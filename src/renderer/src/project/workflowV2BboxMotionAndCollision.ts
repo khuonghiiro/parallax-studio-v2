@@ -1,4 +1,5 @@
 import { findWorkflowContact } from './workflowBboxContact'
+import { evaluateConformalBboxCurve2D } from './workflowCurveMath'
 import { evaluatePerspectiveCorridorAt } from './sceneDepthCorridor'
 import { bboxStartPosition, bboxStartScale } from './workflowMotionStart'
 import { layerNominalSize } from '../engine/spatial'
@@ -142,18 +143,15 @@ export function evaluateBboxTrajectoryAt(
   const scaleRatio = 1 + (targetScaleRatio - 1) * t
 
   if (pathType === 'custom_curve' && customPath && customPath.length >= 2) {
-    const smoothPath = smoothNormalizedStroke(customPath, 2)
-    const pFirst = smoothPath[0]
-    const pLast = smoothPath[smoothPath.length - 1]
-    const pCur = sampleNormalizedStroke(smoothPath, t)
-    const chordX = pFirst[0] + (pLast[0] - pFirst[0]) * t
-    const chordY = pFirst[1] + (pLast[1] - pFirst[1]) * t
-    const devNormX = pCur[0] - chordX
-    const devNormY = pCur[1] - chordY
-    const worldDist = Math.max(320, Math.hypot(targetX - startPos[0], targetY - startPos[1]))
+    const [cx, cy] = evaluateConformalBboxCurve2D(
+      [startPos[0], startPos[1]],
+      [targetX, targetY],
+      t,
+      customPath
+    )
     return {
-      x: baseLineX + devNormX * worldDist * 1.15,
-      y: baseLineY - devNormY * worldDist * 1.15,
+      x: cx,
+      y: cy,
       z,
       scaleRatio
     }

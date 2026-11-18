@@ -251,7 +251,7 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
 
       const pathPts: [number, number][] = []
       if (hasBboxMotion) {
-        const steps = 24
+        const steps = 44
         const activeStroke = customTarget?.customMotionPath !== undefined
           ? customTarget.customMotionPath
           : (isPrimary ? mp?.customMotionPath : undefined)
@@ -578,6 +578,7 @@ export const WorkflowV2StageBboxMotionOverlay: React.FC<StageBboxMotionOverlayPr
           zoom={zoom}
           perspective={pFactorStart}
           start={[focusedItem?.box1Cx ?? 0, focusedItem?.box1Cy ?? 0]}
+          end={[focusedItem?.box2Cx ?? 0, focusedItem?.box2Cy ?? 0]}
           path={coordRefLayer.transform.position.keyframes
             .filter((k) => k.id.includes(`-motpath-p-${node.id}-`) && !k.id.endsWith('-pre'))
             .map((k) => {

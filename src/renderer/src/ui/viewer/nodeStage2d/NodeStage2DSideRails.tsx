@@ -1,5 +1,6 @@
 import React from 'react'
 import type { WorkflowNode, WorkflowNodeParams } from '@shared/types'
+import { StudioTooltip, type StudioTooltipBadgeTone } from '../../controls/StudioTooltip'
 import {
   IconAim,
   IconAlignStageCenter,
@@ -97,6 +98,52 @@ function renderCategoryIcon(catId: WorkflowV2SpawnCategory): React.ReactNode {
   }
 }
 
+interface RailIconButtonProps {
+  side: 'right' | 'left'
+  title: string
+  description: string
+  badge?: string
+  badgeTone?: StudioTooltipBadgeTone
+  active?: boolean
+  disabled?: boolean
+  style?: React.CSSProperties
+  onClick: () => void
+  children: React.ReactNode
+}
+
+const RailIconButton: React.FC<RailIconButtonProps> = ({
+  side,
+  title,
+  description,
+  badge,
+  badgeTone = 'cyan',
+  active = false,
+  disabled = false,
+  style,
+  onClick,
+  children
+}) => (
+  <StudioTooltip
+    title={title}
+    description={description}
+    badge={badge}
+    badgeTone={badgeTone}
+    placement={side}
+    disabled={disabled}
+  >
+    <button
+      type="button"
+      className={`vn2d-rail-btn${active ? ' active' : ''}`}
+      disabled={disabled}
+      style={style}
+      onClick={onClick}
+      aria-label={title}
+    >
+      {children}
+    </button>
+  </StudioTooltip>
+)
+
 export const NodeStage2DSideRails: React.FC<NodeStage2DSideRailsProps> = ({
   node,
   ctx,
@@ -106,7 +153,6 @@ export const NodeStage2DSideRails: React.FC<NodeStage2DSideRailsProps> = ({
   onSelectEntityRoot,
   onQuickSpawnBboxMotion,
   onQuickSpawnPathMotion,
-  onToggleCamDirectorMode,
   onToggleCameraGuide,
   onFlipHorizontal,
   onQuickAlign,
@@ -121,16 +167,13 @@ export const NodeStage2DSideRails: React.FC<NodeStage2DSideRailsProps> = ({
   const level = node ? resolveV2NodeLevel(node) : null
   const logicCat = node ? resolveV2LogicCategory(node) : undefined
   const isStandingOnEntityRoot = Boolean(
-    !isCamDirectorMode &&
-      node &&
-      (level === 'layer' || logicCat === 'cluster_lock')
+    !isCamDirectorMode && node && (level === 'layer' || logicCat === 'cluster_lock')
   )
   const isBboxMode = Boolean(node && logicCat === 'action' && node.params?.motionMode === 'bbox')
   const isPathMode = Boolean(node && logicCat === 'action' && node.params?.motionMode === 'path')
   const hasEntity = Boolean(ctx.activeLayer)
   const hasComposite = Boolean(ctx.activeLayer?.composite?.compositeId)
 
-  // Ưu tiên 6 miền trực quan nhất trên thanh Rail phải để vừa khít chiều cao không cuộn (đầy đủ 100% miền nằm trong Menu Chuột Phải & Hành động)
   const PRIORITY_STAGE_CATS: WorkflowV2SpawnCategory[] = [
     'loop_anim',
     'part_swap',
@@ -151,120 +194,133 @@ export const NodeStage2DSideRails: React.FC<NodeStage2DSideRailsProps> = ({
 
   return (
     <>
-      {/* THANH CÔNG CỤ DỌC BÊN TRÁI: Chế độ thao tác · Lộ trình Camera · Biến đổi không gian nhanh */}
+      {/* THANH CÔNG CỤ DỌC BÊN TRÁI (placement="right" đồng bộ với thanh Icon Tài nguyên) */}
       <aside
         className="vn2d-side-rail is-left"
         data-mcp-region="viewer_node2d_left_rail"
         role="toolbar"
         aria-label="Công cụ thao tác và biến đổi nhanh Khung 2D"
       >
-        <button
-          type="button"
-          className={`vn2d-rail-btn${isStandingOnEntityRoot ? ' active' : ''}`}
+        <RailIconButton
+          side="right"
+          title="Chọn & kéo BBox gốc"
+          badge={isStandingOnEntityRoot ? 'Đang chọn' : 'Gốc'}
+          badgeTone={isStandingOnEntityRoot ? 'green' : 'cyan'}
+          description="Di chuyển vị trí hoặc nắm 4 góc chỉnh kích thước gốc của Đối tượng / Cụm 2.5D"
+          active={isStandingOnEntityRoot}
           disabled={!ctx.layerOrClusterNode && !isCamDirectorMode}
           onClick={onSelectEntityRoot}
-          title="Chọn & Kéo BBox gốc của Đối tượng / Cụm 2.5D"
-          aria-label="Chọn và kéo BBox gốc"
         >
           <IconSelectPointer width={15} height={15} />
-        </button>
+        </RailIconButton>
 
-        <button
-          type="button"
-          className={`vn2d-rail-btn${isBboxMode ? ' active' : ''}`}
+        <RailIconButton
+          side="right"
+          title={isBboxMode ? 'Nối chặng BBox kế tiếp' : 'Chuyển động BBox #1 → #2'}
+          badge={ctx.bboxSteps.length > 0 ? `${ctx.bboxSteps.length} chặng` : 'BBox'}
+          badgeTone="cyan"
+          description={
+            isBboxMode
+              ? 'Nối thêm chặng BBox kế tiếp (+3s) xuất phát từ đích hiện tại'
+              : 'Tạo hoặc chuyển sang kéo khung BBox Đầu → Đích trực tiếp trên sân khấu'
+          }
+          active={isBboxMode}
           disabled={!hasEntity}
           onClick={onQuickSpawnBboxMotion}
-          title={
-            isBboxMode
-              ? 'Đang chỉnh BBox Đầu → Đích (#1→#2) — Nhấp để nối thêm chặng BBox kế tiếp (+3s)'
-              : 'Tạo hoặc chuyển sang kéo BBox Đầu → Đích (#1→#2)'
-          }
-          aria-label="Chuyển động BBox Đầu tới Đích"
         >
           <IconGizmoBbox width={15} height={15} />
           {ctx.bboxSteps.length > 0 && <span className="vn2d-rail-dot" />}
-        </button>
+        </RailIconButton>
 
-        <button
-          type="button"
-          className={`vn2d-rail-btn${isPathMode ? ' active' : ''}`}
+        <RailIconButton
+          side="right"
+          title="Vẽ quỹ đạo tự do"
+          badge={isPathMode ? 'Đang vẽ' : 'Tự do'}
+          badgeTone="amber"
+          description="Kéo chuột vẽ đường đi tự do; vẽ xong sẽ hiện BBox Đích để chỉnh cỡ & góc xoay"
+          active={isPathMode}
           disabled={!hasEntity}
           onClick={onQuickSpawnPathMotion}
-          title="Vẽ tay quỹ đạo chuyển động tự do trực tiếp trên khung 2D"
-          aria-label="Vẽ tay quỹ đạo chuyển động"
         >
           <IconPen width={14} height={14} />
-        </button>
+        </RailIconButton>
 
-        <button
-          type="button"
-          className={`vn2d-rail-btn${showCameraGuide ? ' active' : ''}`}
+        <RailIconButton
+          side="right"
+          title="Lưới 1/3 & Khung ngắm Camera"
+          badge={showCameraGuide ? 'Đang bật' : 'Tham chiếu'}
+          badgeTone={showCameraGuide ? 'green' : 'neutral'}
+          description="Hiển thị lưới bố cục 1/3 và khung hình thực tế mà Camera 3D sẽ ghi lại"
+          active={showCameraGuide}
           onClick={onToggleCameraGuide}
-          title="Bật/Tắt Lưới bố cục 1/3 & Khung ngắm Camera tham chiếu trên sân khấu"
-          aria-label="Khung ngắm Camera và lưới bố cục 1/3"
         >
           <IconRuleOfThirds width={14} height={14} />
-        </button>
+        </RailIconButton>
 
         <span className="vn2d-rail-sep" aria-hidden="true" />
 
-        <button
-          type="button"
-          className="vn2d-rail-btn"
+        <RailIconButton
+          side="right"
+          title="Lật ngang hướng nhìn"
+          badge="Flip X"
+          badgeTone="neutral"
+          description="Đảo chiều quay mặt trái ⇄ phải của Layer hoặc toàn bộ Cụm 2.5D quanh tâm gốc"
           disabled={!hasEntity}
           onClick={onFlipHorizontal}
-          title="Lật ngang hướng nhìn của Đối tượng / Toàn bộ Cụm 2.5D (Flip X)"
-          aria-label="Lật ngang đối tượng"
         >
           <IconFlipHorizontal width={15} height={15} />
-        </button>
+        </RailIconButton>
 
-        <button
-          type="button"
-          className="vn2d-rail-btn"
+        <RailIconButton
+          side="right"
+          title="Căn giữa khung 16:9"
+          badge="X=0, Y=0"
+          badgeTone="neutral"
+          description="Đưa đối tượng về ngay chính tâm khung cảnh hiện tại"
           disabled={!hasEntity}
           onClick={() => onQuickAlign('center')}
-          title="Căn tâm đối tượng vào chính giữa khung cảnh 16:9"
-          aria-label="Căn giữa khung cảnh"
         >
           <IconAlignStageCenter width={15} height={15} />
-        </button>
+        </RailIconButton>
 
-        <button
-          type="button"
-          className="vn2d-rail-btn"
+        <RailIconButton
+          side="right"
+          title="Đặt chân chạm mặt đất"
+          badge="Đặt đáy"
+          badgeTone="neutral"
+          description="Hạ đối tượng xuống đường mặt đất tiền cảnh chuẩn tỉ lệ 1/3 dưới"
           disabled={!hasEntity}
           onClick={() => onQuickAlign('ground')}
-          title="Đặt đối tượng xuống đường mặt đất tiền cảnh (Đặt Đáy)"
-          aria-label="Đặt chạm đường mặt đất"
         >
           <IconAlignStageGround width={15} height={15} />
-        </button>
+        </RailIconButton>
 
-        <button
-          type="button"
-          className="vn2d-rail-btn"
+        <RailIconButton
+          side="right"
+          title="Đưa lại gần Camera"
+          badge="Z -80"
+          badgeTone="cyan"
+          description="Kéo đối tượng tiến lên lớp tiền cảnh gần ống kính hơn (tăng hiệu ứng Parallax)"
           disabled={!hasEntity}
           onClick={() => onStepDepthZ(-80)}
-          title="Đưa đối tượng lại gần Camera hơn (Z -80 · Tiền cảnh 2.5D)"
-          aria-label="Đưa lại gần Camera"
         >
           <IconDepthBringFront width={15} height={15} />
-        </button>
+        </RailIconButton>
 
-        <button
-          type="button"
-          className="vn2d-rail-btn"
+        <RailIconButton
+          side="right"
+          title="Đẩy lùi sâu hậu cảnh"
+          badge="Z +80"
+          badgeTone="neutral"
+          description="Đẩy đối tượng ra xa ống kính về lớp hậu cảnh phía sau"
           disabled={!hasEntity}
           onClick={() => onStepDepthZ(80)}
-          title="Đẩy đối tượng lùi sâu ra hậu cảnh (Z +80 · Hậu cảnh 2.5D)"
-          aria-label="Đẩy lùi ra hậu cảnh"
         >
           <IconDepthPushBack width={15} height={15} />
-        </button>
+        </RailIconButton>
       </aside>
 
-      {/* THANH CÔNG CỤ DỌC BÊN PHẢI: Node Logic 2.5D 1 chạm (hoặc Đạo diễn Camera) + Thu phóng & Menu Chuột Phải */}
+      {/* THANH CÔNG CỤ DỌC BÊN PHẢI (placement="left" mở vào trong sân khấu không bao giờ tràn mép phải) */}
       <aside
         className="vn2d-side-rail is-right"
         data-mcp-region="viewer_node2d_right_rail"
@@ -273,76 +329,83 @@ export const NodeStage2DSideRails: React.FC<NodeStage2DSideRailsProps> = ({
       >
         {isCamDirectorMode ? (
           <>
-            <button
-              type="button"
-              className="vn2d-rail-btn"
+            <RailIconButton
+              side="left"
+              title="Thêm mốc Camera Đẩy cận"
+              badge="+ Zoom In"
+              badgeTone="green"
+              description="Tạo mốc khung ngắm thu hẹp để máy quay đẩy cận cảnh vào chủ thể"
               disabled={!activeShotId}
               onClick={() => onSpawnCameraWaypoint('zoom-in')}
-              title="Thêm mốc Camera Đẩy cận (+ Zoom In) nối tiếp lộ trình"
-              aria-label="Thêm mốc Camera đẩy cận"
             >
               <IconCamPushIn width={15} height={15} />
-            </button>
-            <button
-              type="button"
-              className="vn2d-rail-btn"
+            </RailIconButton>
+            <RailIconButton
+              side="left"
+              title="Thêm mốc Camera Lia ngang"
+              badge="+ Pan"
+              badgeTone="cyan"
+              description="Tạo mốc lia máy sang vị trí khác trong cảnh mà giữ nguyên độ phóng đại"
               disabled={!activeShotId}
               onClick={() => onSpawnCameraWaypoint('pan')}
-              title="Thêm mốc Camera Lia ngang (+ Pan) sang vùng mới"
-              aria-label="Thêm mốc Camera lia ngang"
             >
               <IconCamPanZoom2D width={15} height={15} />
-            </button>
-            <button
-              type="button"
-              className="vn2d-rail-btn"
+            </RailIconButton>
+            <RailIconButton
+              side="left"
+              title="Thêm mốc Camera Kéo rộng"
+              badge="+ Pull Out"
+              badgeTone="amber"
+              description="Tạo mốc mở rộng khung ngắm bao quát toàn bộ bối cảnh"
               disabled={!activeShotId}
               onClick={() => onSpawnCameraWaypoint('zoom-out')}
-              title="Thêm mốc Camera Kéo rộng (+ Pull Out) mở toàn cảnh"
-              aria-label="Thêm mốc Camera kéo rộng"
             >
               <IconCamPullOut width={15} height={15} />
-            </button>
-            <button
-              type="button"
-              className="vn2d-rail-btn"
+            </RailIconButton>
+            <RailIconButton
+              side="left"
+              title="Thêm mốc Giữ khung dừng ngắm"
+              badge="+ Hold"
+              badgeTone="neutral"
+              description="Giữ yên khung hình Camera trong một nhịp thoại hoặc hành động"
               disabled={!activeShotId}
               onClick={() => onSpawnCameraWaypoint('hold')}
-              title="Thêm mốc Camera Giữ khung dừng ngắm (+ Hold)"
-              aria-label="Thêm mốc Camera giữ khung"
             >
               <IconEaseHold width={15} height={15} />
-            </button>
+            </RailIconButton>
 
             <span className="vn2d-rail-sep" aria-hidden="true" />
 
-            <button
-              type="button"
-              className="vn2d-rail-btn"
+            <RailIconButton
+              side="left"
+              title="Nghiêng máy sang trái"
+              badge="-20°"
+              badgeTone="cyan"
+              description="Xoay góc nhìn 3D của Camera sang trái tạo chiều sâu Parallax 2.5D"
               onClick={() => onRotateCameraYaw(-20)}
-              title="Xoay góc máy 3D nghiêng trái -20° (Parallax 2.5D)"
-              aria-label="Nghiêng máy sang trái 20 độ"
             >
               <IconOrbitLeft25 width={15} height={15} />
-            </button>
-            <button
-              type="button"
-              className="vn2d-rail-btn"
+            </RailIconButton>
+            <RailIconButton
+              side="left"
+              title="Góc máy chính diện"
+              badge="0°"
+              badgeTone="neutral"
+              description="Đặt lại góc xoay ngang của Camera về thẳng chính diện"
               onClick={() => onRotateCameraYaw(0)}
-              title="Đặt góc máy 3D về chính diện 0°"
-              aria-label="Góc máy chính diện 0 độ"
             >
               <IconOrbitCenter0 width={15} height={15} />
-            </button>
-            <button
-              type="button"
-              className="vn2d-rail-btn"
+            </RailIconButton>
+            <RailIconButton
+              side="left"
+              title="Nghiêng máy sang phải"
+              badge="+20°"
+              badgeTone="cyan"
+              description="Xoay góc nhìn 3D của Camera sang phải tạo chiều sâu Parallax 2.5D"
               onClick={() => onRotateCameraYaw(20)}
-              title="Xoay góc máy 3D nghiêng phải +20° (Parallax 2.5D)"
-              aria-label="Nghiêng máy sang phải 20 độ"
             >
               <IconOrbitRight25 width={15} height={15} />
-            </button>
+            </RailIconButton>
           </>
         ) : (
           <>
@@ -356,17 +419,15 @@ export const NodeStage2DSideRails: React.FC<NodeStage2DSideRailsProps> = ({
                       node?.params?.hierarchyParentNodeId === attached.id))
               )
               return (
-                <button
+                <RailIconButton
                   key={`${cat.id}-${cat.presetId ?? ''}`}
-                  type="button"
-                  className={`vn2d-rail-btn${isActive ? ' active' : ''}`}
+                  side="left"
+                  title={cat.label}
+                  badge={attached ? 'Đã gắn' : 'Gắn mới'}
+                  badgeTone={attached ? 'green' : 'cyan'}
+                  description={attached ? `Nhấp để chỉnh "${attached.title}"` : cat.hint}
+                  active={isActive}
                   style={{ ['--logic-accent' as string]: cat.accent }}
-                  title={
-                    attached
-                      ? `Chuyển sang chỉnh "${attached.title}" (${cat.label})`
-                      : `Gắn mới ${cat.label} — ${cat.hint}`
-                  }
-                  aria-label={attached ? `Mở ${cat.label}` : `Gắn ${cat.label}`}
                   onClick={() => {
                     if (attached) {
                       onSelectNode(attached.id)
@@ -382,45 +443,48 @@ export const NodeStage2DSideRails: React.FC<NodeStage2DSideRailsProps> = ({
                       style={{ background: isActive ? '#ffffff' : cat.accent }}
                     />
                   )}
-                </button>
+                </RailIconButton>
               )
             })}
 
             {hasComposite && (
-              <button
-                type="button"
-                className="vn2d-rail-btn"
+              <RailIconButton
+                side="left"
+                title="Xưởng Lắp Ráp & Xương 2.5D"
+                badge="Xưởng"
+                badgeTone="amber"
+                description="Mở Xưởng 2.5D để tinh chỉnh các mảnh bộ phận, gắn xương và tạo động tác"
                 onClick={onOpenLayerWorkshop}
-                title="Mở Xưởng Lắp Ráp & Gắn Xương 2.5D cho nhân vật/cụm này"
-                aria-label="Mở Xưởng Lắp Ráp 2.5D"
               >
                 <IconLayerAssembly width={15} height={15} />
-              </button>
+              </RailIconButton>
             )}
           </>
         )}
 
         <span className="vn2d-rail-sep" aria-hidden="true" />
 
-        <button
-          type="button"
-          className="vn2d-rail-btn"
+        <RailIconButton
+          side="left"
+          title="Phóng to Khung 2D"
+          badge="+15%"
+          badgeTone="neutral"
+          description="Phóng to mặt bàn dựng 2D để căn chỉnh BBox chi tiết (hoặc cuộn chuột)"
           onClick={() => onZoomStep(0.15)}
-          title="Phóng to Màn Khung 2D (+15%)"
-          aria-label="Phóng to khung 2D"
         >
           <IconZoomIn width={15} height={15} />
-        </button>
+        </RailIconButton>
 
-        <button
-          type="button"
-          className="vn2d-rail-btn"
+        <RailIconButton
+          side="left"
+          title="Thu nhỏ Khung 2D"
+          badge="-15%"
+          badgeTone="neutral"
+          description="Thu nhỏ mặt bàn dựng 2D để bao quát khoảng ngoài rìa khung 16:9"
           onClick={() => onZoomStep(-0.15)}
-          title="Thu nhỏ Màn Khung 2D (-15%)"
-          aria-label="Thu nhỏ khung 2D"
         >
           <IconZoomOut width={15} height={15} />
-        </button>
+        </RailIconButton>
       </aside>
     </>
   )

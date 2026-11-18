@@ -28,7 +28,6 @@ describe('buildMotionStageToolButtons (workflow_motion_tools)', () => {
       'motion-tool-gimbal'
     ])
 
-    // Đảm bảo mọi icon trong thanh công cụ đều duy nhất, không trùng lặp
     const uniqueIcons = new Set(buttons.map((b) => b.icon))
     expect(uniqueIcons.size).toBe(buttons.length)
 
@@ -38,29 +37,36 @@ describe('buildMotionStageToolButtons (workflow_motion_tools)', () => {
     expect(onSwitchToFreeDraw).toHaveBeenCalledTimes(1)
   })
 
-  it('highlights free-draw tool in path mode and provides 1-click button back to BBox #1->#2', () => {
+  it('enables Gimbal 3D and Clear tools in path mode once a freehand path is drawn', () => {
     const onSwitchToBboxMode = vi.fn()
+    const onToggleGimbal = vi.fn()
     const buttons = buildMotionStageToolButtons({
       mode: 'path',
-      tool: 'draw',
-      hasCustomCurve: false,
-      bboxRotateGimbal: false,
+      tool: 'select',
+      hasCustomCurve: true,
+      bboxRotateGimbal: true,
       hasToolbarHost: true,
       playing: false,
       onPickTool: vi.fn(),
       onSwitchToFreeDraw: vi.fn(),
       onSwitchToBboxMode,
       onClearCurve: vi.fn(),
-      onToggleGimbal: vi.fn(),
+      onToggleGimbal,
       onTogglePlay: vi.fn()
     })
 
-    const freeDrawBtn = buttons.find((b) => b.id === 'motion-tool-free-draw')!
-    expect(freeDrawBtn.active).toBe(true)
+    expect(buttons.map((b) => b.id)).toEqual([
+      'motion-tool-select',
+      'motion-tool-free-draw',
+      'motion-tool-straight-line',
+      'motion-tool-bbox-mode',
+      'motion-tool-clear',
+      'motion-tool-gimbal'
+    ])
 
-    const backToBboxBtn = buttons.find((b) => b.id === 'motion-tool-bbox-mode')!
-    expect(backToBboxBtn.icon).toBe('target')
-    backToBboxBtn.click()
-    expect(onSwitchToBboxMode).toHaveBeenCalledTimes(1)
+    const gimbalBtn = buttons.find((b) => b.id === 'motion-tool-gimbal')!
+    expect(gimbalBtn.active).toBe(true)
+    gimbalBtn.click()
+    expect(onToggleGimbal).toHaveBeenCalledTimes(1)
   })
 })

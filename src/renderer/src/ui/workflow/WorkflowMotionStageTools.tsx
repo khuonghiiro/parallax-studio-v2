@@ -1,7 +1,13 @@
 import { createPortal } from 'react-dom'
-import { useEffect, useRef, useState, type MutableRefObject } from 'react'
+import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
 import type { WorkflowNodeParams } from '@shared/types'
+import {
+  buildLiveBboxPreviewCurveScreenPoints,
+  decimateAndSmoothStroke,
+  evaluateCatmullRom2D
+} from '../../project/workflowCurveMath'
 import { useEditor } from '../../store/editor'
+import { StudioTooltip, type StudioTooltipBadgeTone } from '../controls/StudioTooltip'
 import { WorkflowMotionIcon, type MotionToolIcon } from './WorkflowMotionIcons'
 import { stageStrokeToMotionPath, type StagePoint } from './workflowStageStroke'
 import '../../styles/workflowMotionStage.css'
@@ -12,6 +18,9 @@ export interface MotionStageToolButtonSpec {
   id: string
   icon: MotionToolIcon
   title: string
+  description: string
+  badge?: string
+  badgeTone?: StudioTooltipBadgeTone
   active?: boolean
   dividerBefore?: boolean
   click: () => void
@@ -32,11 +41,18 @@ export function buildMotionStageToolButtons(opts: {
   onTogglePlay: () => void
 }): MotionStageToolButtonSpec[] {
   const { mode, tool, hasCustomCurve, bboxRotateGimbal, hasToolbarHost, playing } = opts
+  const canUseGimbal = mode === 'bbox' || (mode === 'path' && hasCustomCurve)
   return [
     {
       id: 'motion-tool-select',
       icon: 'select',
-      title: mode === 'bbox' ? 'Chọn & kéo BBox trực tiếp' : 'Chọn & kéo BBox xuất phát',
+      title: mode === 'bbox' ? 'Chọn & kéo BBox trực tiếp' : 'Chọn & kéo BBox đầu / đích',
+      description:
+        mode === 'bbox'
+          ? 'Kéo dời vị trí BBox #2 hoặc nắm 4 góc trắng để phóng to / thu nhỏ tại đích'
+          : 'Kéo chỉnh BBox đích hoặc nắm 4 góc trắng để đổi kích thước kết thúc đường vẽ',
+      badge: 'Chọn',
+      badgeTone: 'cyan',
       active: tool === 'select',
       click: () => opts.onPickTool('select')
     },
@@ -45,14 +61,20 @@ export function buildMotionStageToolButtons(opts: {
           {
             id: 'motion-tool-bbox-curve',
             icon: 'draw' as const,
-            title: 'Vẽ tay đường cong quỹ đạo đầu → đích',
+            title: 'Uốn đường cong đầu → đích',
+            description: 'Kéo chuột vẽ dáng cong mượt nối tự động từ tâm BBox #1 sang tâm BBox #2',
+            badge: 'Cong #1→#2',
+            badgeTone: 'cyan' as const,
             active: tool === 'draw',
             click: () => opts.onPickTool('draw')
           },
           {
             id: 'motion-tool-free-draw',
             icon: 'free_draw' as const,
-            title: 'Vẽ quỹ đạo tự do (không khoá BBox đích)',
+            title: 'Vẽ quỹ đạo tự do',
+            description: 'Kéo chuột vẽ đường đi bất kỳ; vẽ xong sẽ hiện BBox Đích để chỉnh cỡ & xoay',
+            badge: 'Tự do',
+            badgeTone: 'amber' as const,
             active: false,
             click: opts.onSwitchToFreeDraw
           }
@@ -61,14 +83,20 @@ export function buildMotionStageToolButtons(opts: {
           {
             id: 'motion-tool-free-draw',
             icon: 'free_draw' as const,
-            title: 'Vẽ quỹ đạo tự do (kéo chuột để vẽ đường đi)',
+            title: 'Vẽ quỹ đạo tự do',
+            description: 'Kéo chuột từ vị trí xuất phát; nhả chuột sẽ hiện BBox Đích để chỉnh cỡ & xoay',
+            badge: 'Đang dùng',
+            badgeTone: 'amber' as const,
             active: tool === 'draw',
             click: () => opts.onPickTool('draw')
           },
           {
             id: 'motion-tool-straight-line',
             icon: 'straight' as const,
-            title: 'Vẽ đoạn thẳng nối 2 điểm',
+            title: 'Vẽ đoạn thẳng 2 điểm',
+            description: 'Kéo một đường thẳng dứt khoát từ điểm xuất phát tới điểm kết thúc',
+            badge: 'Thẳng',
+            badgeTone: 'neutral' as const,
             active: tool === 'straight',
             click: () => opts.onPickTool('straight')
           },
@@ -76,7 +104,10 @@ export function buildMotionStageToolButtons(opts: {
             id: 'motion-tool-bbox-mode',
             icon: 'target' as const,
             dividerBefore: true,
-            title: 'Chuyển về BBox Đầu → Đích (#1 → #2)',
+            title: 'Chuyển về BBox #1 → #2',
+            description: 'Quay lại chế độ đặt khung BBox Đầu → Đích tiêu chuẩn',
+            badge: 'BBox',
+            badgeTone: 'cyan' as const,
             active: false,
             click: opts.onSwitchToBboxMode
           }
@@ -86,19 +117,28 @@ export function buildMotionStageToolButtons(opts: {
           {
             id: 'motion-tool-clear',
             icon: 'clear' as const,
-            title: mode === 'bbox' ? 'Đặt lại quỹ đạo thẳng ngắn nhất' : 'Xóa đường vẽ tự do',
+            title: mode === 'bbox' ? 'Đặt lại đường thẳng ngắn nhất' : 'Xóa đường vẽ tự do',
+            description:
+              mode === 'bbox'
+                ? 'Xoá độ uốn cong để đối tượng đi thẳng trực tiếp từ #1 sang #2'
+                : 'Xoá đường đi hiện tại để vẽ lại nét mới từ đầu',
+            badge: 'Reset',
+            badgeTone: 'neutral' as const,
             dividerBefore: mode === 'bbox',
             click: opts.onClearCurve
           }
         ]
       : []),
-    ...(mode === 'bbox'
+    ...(canUseGimbal
       ? [
           {
             id: 'motion-tool-gimbal',
             icon: 'gimbal' as const,
-            dividerBefore: !hasCustomCurve,
-            title: `Vòng xoay Gimbal 3D (${bboxRotateGimbal ? 'Đang bật' : 'Đang tắt'}) — Xoay nghiêng BBox đích theo trục X/Y/Z`,
+            dividerBefore: mode === 'bbox' ? !hasCustomCurve : false,
+            title: 'Vòng xoay Gimbal 3D tại Đích',
+            description: 'Mở vòng xoay trực quan trên BBox Đích để nghiêng / xoay đối tượng theo trục X, Y, Z',
+            badge: bboxRotateGimbal ? 'Đang bật' : '3D',
+            badgeTone: (bboxRotateGimbal ? 'green' : 'neutral') as StudioTooltipBadgeTone,
             active: bboxRotateGimbal,
             click: opts.onToggleGimbal
           }
@@ -111,12 +151,28 @@ export function buildMotionStageToolButtons(opts: {
             icon: (playing ? 'stop' : 'play') as MotionToolIcon,
             dividerBefore: true,
             title: playing ? 'Dừng xem thử' : 'Xem thử chuyển động',
+            description: 'Phát thử hành trình chuyển động ngay trên khung 2D',
+            badge: 'Space',
+            badgeTone: 'green' as const,
             active: playing,
             click: opts.onTogglePlay
           }
         ]
       : [])
   ]
+}
+
+function smoothFreehandScreenStroke(raw: StagePoint[], start: StagePoint): StagePoint[] {
+  if (raw.length < 2) return []
+  const anchored = raw.map(([x, y]): StagePoint => [x - raw[0][0] + start[0], y - raw[0][1] + start[1]])
+  if (anchored.length === 2) return anchored
+  const knots = decimateAndSmoothStroke(anchored, 14, 3)
+  const out: StagePoint[] = []
+  const steps = 36
+  for (let i = 0; i <= steps; i++) {
+    out.push(evaluateCatmullRom2D(knots, i / steps))
+  }
+  return out
 }
 
 type Props = {
@@ -129,6 +185,7 @@ type Props = {
   zoom: number
   perspective: number
   start: StagePoint
+  end?: StagePoint
   path: StagePoint[]
   patch: (patch: Partial<WorkflowNodeParams>, mergeKey?: string) => void
 }
@@ -143,6 +200,7 @@ export function WorkflowMotionStageTools({
   zoom,
   perspective,
   start,
+  end,
   path,
   patch
 }: Props) {
@@ -214,29 +272,41 @@ export function WorkflowMotionStageTools({
     const points = strokeRef.current
     cancel()
     if (!points || points.length < 2) return
-    const chosen = tool === 'straight' ? [points[0], points[points.length - 1]] : points
+    const chosen =
+      tool === 'straight'
+        ? [points[0], points[points.length - 1]]
+        : decimateAndSmoothStroke(points, 16, 3)
     if (mode === 'bbox') {
       patch(
         {
           bboxPathType: 'custom_curve',
-          customMotionPath: chosen.map(([x, y]) => [x / width, y / height])
+          customMotionPath: chosen.map(([x, y]) => [
+            Number((x / Math.max(1, width)).toFixed(4)),
+            Number((y / Math.max(1, height)).toFixed(4))
+          ])
         },
         'wf-stage-curve'
       )
     } else {
       const worldPath = stageStrokeToMotionPath(chosen, zoom, perspective)
       if (worldPath.length >= 2) {
+        const lastWorld = worldPath[worldPath.length - 1]
         patch(
           {
             motionMode: 'path',
             actionPreset: 'custom_draw',
             customMotionPath: worldPath,
-            intensity: 1
+            intensity: 1,
+            bboxTargetScalePct: params.bboxTargetScalePct ?? 100,
+            // Ghi nhận độ lệch đích của nét vẽ tự do để BBox Đích hiện ngay cuối đường vẽ
+            bboxTargetX: Math.round(lastWorld[0]),
+            bboxTargetY: Math.round(lastWorld[1])
           },
           'wf-stage-line'
         )
       }
     }
+    // Chuyển ngay về công cụ Chọn để người dùng kéo chỉnh cỡ / góc xoay trên BBox Đích vừa hiện ra!
     setTool('select')
   }
 
@@ -284,7 +354,7 @@ export function WorkflowMotionStageTools({
       patch(
         {
           customMotionPath: [],
-          ...(mode === 'bbox' ? { bboxPathType: 'shortest' as const } : {})
+          ...(mode === 'bbox' ? { bboxPathType: 'shortest' as const } : { bboxRotateGimbal: false })
         },
         'wf-stage-clear'
       )
@@ -301,15 +371,23 @@ export function WorkflowMotionStageTools({
     }
   })
 
-  const display =
-    stroke && stroke.length > 1
-      ? (tool === 'straight' ? [stroke[0], stroke[stroke.length - 1]] : stroke).map(
-          ([x, y]): StagePoint =>
-            mode === 'path' ? [x - stroke[0][0] + start[0], y - stroke[0][1] + start[1]] : [x, y]
-        )
-      : mode === 'path'
-        ? path
-        : []
+  const display = useMemo<StagePoint[]>(() => {
+    if (stroke && stroke.length > 1) {
+      if (mode === 'bbox' && end) {
+        return buildLiveBboxPreviewCurveScreenPoints(stroke, start, end, width, height, 36)
+      }
+      if (tool === 'straight') {
+        const p0 = stroke[0]
+        const pLast = stroke[stroke.length - 1]
+        return [
+          [start[0], start[1]],
+          [pLast[0] - p0[0] + start[0], pLast[1] - p0[1] + start[1]]
+        ]
+      }
+      return smoothFreehandScreenStroke(stroke, start)
+    }
+    return mode === 'path' ? path : []
+  }, [stroke, mode, end, start, width, height, tool, path])
 
   const toolbarEl = (
     <div
@@ -322,19 +400,26 @@ export function WorkflowMotionStageTools({
       {buttons.map((button) => (
         <span key={button.id} className="wf-motion-tool-slot">
           {button.dividerBefore && <span className="wf-motion-tool-sep" aria-hidden="true" />}
-          <button
-            type="button"
-            data-ai-id={button.id}
+          <StudioTooltip
             title={button.title}
-            aria-label={button.title}
-            aria-pressed={button.active}
-            onClick={(e) => {
-              e.stopPropagation()
-              button.click()
-            }}
+            description={button.description}
+            badge={button.badge}
+            badgeTone={button.badgeTone}
+            placement="top"
           >
-            <WorkflowMotionIcon name={button.icon} />
-          </button>
+            <button
+              type="button"
+              data-ai-id={button.id}
+              aria-label={button.title}
+              aria-pressed={button.active}
+              onClick={(e) => {
+                e.stopPropagation()
+                button.click()
+              }}
+            >
+              <WorkflowMotionIcon name={button.icon} />
+            </button>
+          </StudioTooltip>
         </span>
       ))}
     </div>
@@ -345,21 +430,39 @@ export function WorkflowMotionStageTools({
       {toolbarHost ? createPortal(toolbarEl, toolbarHost) : toolbarEl}
       {display.length > 1 && (
         <svg className="wf-motion-stage-path" width={width} height={height} aria-hidden="true">
+          <defs>
+            <marker
+              id={`wf-free-path-arrow-${nodeId}`}
+              viewBox="0 0 10 10"
+              refX="8"
+              refY="5"
+              markerWidth="6"
+              markerHeight="6"
+              orient="auto-start-reverse"
+            >
+              <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="var(--accent-cyan)" />
+            </marker>
+          </defs>
           <polyline
-            points={display.map((p) => p.join(',')).join(' ')}
+            points={display.map((p) => `${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ')}
             fill="none"
             stroke="var(--accent-cyan)"
-            strokeWidth="2.2"
+            strokeOpacity={0.22}
+            strokeWidth="5"
             strokeLinecap="round"
             strokeLinejoin="round"
           />
-          <circle cx={display[0][0]} cy={display[0][1]} r="4" fill="var(--accent)" />
-          <circle
-            cx={display[display.length - 1][0]}
-            cy={display[display.length - 1][1]}
-            r="4"
-            fill="var(--key)"
+          <polyline
+            points={display.map((p) => `${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ')}
+            fill="none"
+            stroke="var(--accent-cyan)"
+            strokeWidth="2"
+            strokeDasharray={stroke ? 'none' : '5 3.5'}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            markerEnd={`url(#wf-free-path-arrow-${nodeId})`}
           />
+          <circle cx={display[0][0]} cy={display[0][1]} r="4" fill="#10b981" />
         </svg>
       )}
       {tool !== 'select' && (
@@ -440,8 +543,8 @@ function MotionStageDrawingSurface({
     >
       <span className="wf-motion-stage-hint">
         {mode === 'bbox'
-          ? 'Vẽ đường cong · tự nối đầu và đích'
-          : 'Vẽ quỹ đạo tự do · kéo chuột từ vị trí xuất phát'}{' '}
+          ? 'Kéo chuột uốn đường cong · tự động neo khít #1 Đầu và #2 Đích'
+          : 'Kéo chuột vẽ quỹ đạo tự do · nhả chuột sẽ hiện BBox Đích để chỉnh cỡ / xoay'}{' '}
         · Esc hủy
       </span>
     </div>

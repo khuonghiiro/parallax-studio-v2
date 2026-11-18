@@ -25,13 +25,17 @@ const paths: Record<MotionToolIcon, ReactElement> = {
       <path d="m7 16 10-8" />
     </>
   ),
+  /* Đường cong Bezier chuẩn Studio nối 2 chốt neo #1 → #2 kèm thanh tiếp tuyến đỉnh */
   draw: (
     <>
-      <circle cx="4.5" cy="18" r="2" />
-      <circle cx="19.5" cy="6" r="2" />
-      <path d="M4.5 16C4.5 6 19.5 18 19.5 8" />
+      <path d="M4.8 17.5C5.2 6.8 18.8 6.8 19.2 17.5" />
+      <line x1="7" y1="6.8" x2="17" y2="6.8" strokeDasharray="1.8 1.8" opacity="0.7" />
+      <circle cx="12" cy="6.8" r="1.7" fill="currentColor" stroke="none" />
+      <rect x="2.8" y="16.2" width="3.8" height="3.8" rx="0.8" fill="currentColor" stroke="none" />
+      <rect x="17.4" y="16.2" width="3.8" height="3.8" rx="0.8" />
     </>
   ),
+  /* Ngòi bút vẽ quỹ đạo tự do */
   free_draw: (
     <>
       <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L9 17l-4 1 1-4Z" />

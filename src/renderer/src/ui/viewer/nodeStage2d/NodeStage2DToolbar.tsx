@@ -3,6 +3,7 @@ import type { Project, WorkflowGraph, WorkflowNode, WorkflowNodeParams } from '@
 import { effectiveTimeParams } from '../../../project/workflowTiming'
 import { getClusterPartShortName, getLayerDisplayName } from '../../../project/workflowV2Engine'
 import { useView } from '../../../store/view'
+import { StudioTooltip } from '../../controls/StudioTooltip'
 import {
   IconAim,
   IconAlignStageCenter,
@@ -132,7 +133,6 @@ export const NodeStage2DToolbar: React.FC<NodeStage2DToolbarProps> = ({
   const level = node ? resolveV2NodeLevel(node) : null
   const logicCat = node ? resolveV2LogicCategory(node) : undefined
   const isOnBboxMotion = Boolean(node && logicCat === 'action' && node.params?.motionMode === 'bbox')
-  const isOnPathMotion = Boolean(node && logicCat === 'action' && node.params?.motionMode === 'path')
   const canChainStep = Boolean(
     node && (node.params?.isPartChild || logicCat === 'action' || logicCat === 'anim_fx' || logicCat === 'collision')
   )
@@ -159,23 +159,30 @@ export const NodeStage2DToolbar: React.FC<NodeStage2DToolbarProps> = ({
 
   return (
     <div className="viewer-node2d-toolbar" data-mcp-region="viewer_node2d_tools">
-      {/* CỤM TRÁI & GIỮA: Đối tượng / Lộ trình Camera · Chặng BBox · Căn nhanh */}
+      {/* CỤM TRÁI & GIỮA: Chuyển Lộ trình Camera · Đối tượng & Chặng BBox · Thao tác chính */}
       <div className="vn2d-left-track">
-        {/* Nút chuyển nhanh Đối tượng ⇄ Lộ trình Camera ngay trên thanh đầu */}
-        <button
-          type="button"
-          className={`vn2d-tool-btn is-cam-switch${isCamDirectorMode ? ' active' : ''}`}
-          onClick={onToggleCamDirectorMode}
-          title={
+        <StudioTooltip
+          title={isCamDirectorMode ? 'Quay về chỉnh Đối tượng' : 'Đạo diễn Lộ trình Camera'}
+          badge={cameraWaypoints.length > 0 ? `${cameraWaypoints.length} mốc` : 'Camera'}
+          badgeTone="green"
+          description={
             isCamDirectorMode
-              ? `Quay lại chỉnh "${lastEntityLabel || 'Đối tượng'}" trên Khung 2D`
-              : 'Chuyển sang đạo diễn Lộ trình Camera (#1 → #2 → #3) trực tiếp trên Khung 2D'
+              ? `Trở lại chỉnh BBox của "${lastEntityLabel || 'Đối tượng'}" trên Khung 2D`
+              : 'Chuyển sang chỉnh các mốc khung ngắm Camera (#1 → #2 → #3) trực tiếp trên Khung 2D'
           }
+          placement="bottom"
         >
-          <IconCameraStage width={12} height={12} />
-          <span className="vn2d-cam-switch-txt">Lộ trình Cam</span>
-          {cameraWaypoints.length > 0 && <em className="vn2d-count-badge">{cameraWaypoints.length}</em>}
-        </button>
+          <button
+            type="button"
+            className={`vn2d-tool-btn is-cam-switch${isCamDirectorMode ? ' active' : ''}`}
+            onClick={onToggleCamDirectorMode}
+            aria-label="Đạo diễn Lộ trình Camera"
+          >
+            <IconCameraStage width={12} height={12} />
+            <span className="vn2d-cam-switch-txt">Lộ trình Cam</span>
+            {cameraWaypoints.length > 0 && <em className="vn2d-count-badge">{cameraWaypoints.length}</em>}
+          </button>
+        </StudioTooltip>
 
         {isCamDirectorMode ? (
           <>
@@ -288,18 +295,6 @@ export const NodeStage2DToolbar: React.FC<NodeStage2DToolbarProps> = ({
                 >
                   <IconPlus width={12} height={12} />
                   <span>{isOnBboxMotion ? 'Chặng tiếp' : 'BBox Đích'}</span>
-                </button>
-
-                <button
-                  type="button"
-                  className={`vn2d-tool-btn${isOnPathMotion ? ' active' : ''}`}
-                  data-ai-id="toolbar-free-draw-path"
-                  onClick={onQuickSpawnPathMotion}
-                  aria-label="Vẽ quỹ đạo tự do"
-                  title="Vẽ quỹ đạo chuyển động tự do trực tiếp bằng chuột trên Khung 2D"
-                >
-                  <IconPen width={12} height={12} />
-                  <span className="vn2d-hide-compact">Vẽ tự do</span>
                 </button>
 
                 <button
@@ -447,36 +442,61 @@ export const NodeStage2DToolbar: React.FC<NodeStage2DToolbarProps> = ({
               </div>
             )}
 
-            {/* Cụm Căn Nhanh Trái · Giữa · Phải trên màn rộng để lấp khoảng trống thanh trên hữu ích */}
+            {/* Cụm Căn Nhanh chỉ gồm Icon -> bọc StudioTooltip theo chuẩn tooltip-standard */}
             {ctx.activeLayer && (
-              <div className="vn2d-seg-track vn2d-align-strip vn2d-hide-wide-only" role="group" aria-label="Căn vị trí nhanh trên khung 16:9">
-                <button
-                  type="button"
-                  className="vn2d-icon-ctrl"
-                  onClick={() => onQuickAlign('left')}
-                  title="Đặt đối tượng sang vùng 1/3 Trái khung hình"
-                  aria-label="Căn vùng trái"
+              <div
+                className="vn2d-seg-track vn2d-align-strip vn2d-hide-wide-only"
+                role="group"
+                aria-label="Căn vị trí nhanh trên khung 16:9"
+              >
+                <StudioTooltip
+                  title="Căn vùng 1/3 Trái"
+                  badge="Trái"
+                  badgeTone="neutral"
+                  description="Đặt đối tượng sang đường bố cục 1/3 bên trái khung hình"
+                  placement="bottom"
                 >
-                  <IconAlignStageLeft width={12} height={12} />
-                </button>
-                <button
-                  type="button"
-                  className="vn2d-icon-ctrl"
-                  onClick={() => onQuickAlign('center')}
-                  title="Đặt đối tượng vào Chính giữa khung hình"
-                  aria-label="Căn chính giữa"
+                  <button
+                    type="button"
+                    className="vn2d-icon-ctrl"
+                    onClick={() => onQuickAlign('left')}
+                    aria-label="Căn vùng trái"
+                  >
+                    <IconAlignStageLeft width={12} height={12} />
+                  </button>
+                </StudioTooltip>
+                <StudioTooltip
+                  title="Căn chính giữa khung"
+                  badge="Giữa"
+                  badgeTone="neutral"
+                  description="Đưa đối tượng về ngay tâm khung cảnh 16:9"
+                  placement="bottom"
                 >
-                  <IconAlignStageCenter width={12} height={12} />
-                </button>
-                <button
-                  type="button"
-                  className="vn2d-icon-ctrl"
-                  onClick={() => onQuickAlign('right')}
-                  title="Đặt đối tượng sang vùng 1/3 Phải khung hình"
-                  aria-label="Căn vùng phải"
+                  <button
+                    type="button"
+                    className="vn2d-icon-ctrl"
+                    onClick={() => onQuickAlign('center')}
+                    aria-label="Căn chính giữa"
+                  >
+                    <IconAlignStageCenter width={12} height={12} />
+                  </button>
+                </StudioTooltip>
+                <StudioTooltip
+                  title="Căn vùng 1/3 Phải"
+                  badge="Phải"
+                  badgeTone="neutral"
+                  description="Đặt đối tượng sang đường bố cục 1/3 bên phải khung hình"
+                  placement="bottom"
                 >
-                  <IconAlignStageRight width={12} height={12} />
-                </button>
+                  <button
+                    type="button"
+                    className="vn2d-icon-ctrl"
+                    onClick={() => onQuickAlign('right')}
+                    aria-label="Căn vùng phải"
+                  >
+                    <IconAlignStageRight width={12} height={12} />
+                  </button>
+                </StudioTooltip>
               </div>
             )}
 
@@ -499,7 +519,7 @@ export const NodeStage2DToolbar: React.FC<NodeStage2DToolbarProps> = ({
         )}
       </div>
 
-      {/* CỤM PHẢI: Chế độ 2.5D/Cảnh · Điều khiển chạy thử · Thu phóng · Chia đôi/Toàn khung */}
+      {/* CỤM PHẢI: Các nút điều khiển Icon bọc StudioTooltip chuẩn Studio */}
       <div className="vn2d-right-ops">
         {hasDualStage && (
           <div className="vn2d-seg-track" role="group" aria-label="Chuyển chế độ Khung 2.5D và Cảnh 2D">
@@ -526,33 +546,55 @@ export const NodeStage2DToolbar: React.FC<NodeStage2DToolbarProps> = ({
 
         {node && (
           <div className="vn2d-transport-pill" role="group" aria-label="Phát thử và nhảy mốc Node">
-            <button
-              type="button"
-              className="vn2d-icon-ctrl"
-              onClick={() => onScrubTime(tStart)}
-              title={`Về đầu khoảng chạy của Node (${tStart.toFixed(2)}s)`}
-              aria-label="Về đầu Node"
+            <StudioTooltip
+              title="Về đầu khoảng chạy Node"
+              badge={`${tStart.toFixed(2)}s`}
+              badgeTone="cyan"
+              description="Đưa đầu đọc Playhead về đúng mốc bắt đầu của Node đang chọn"
+              placement="bottom"
             >
-              <IconSkipStart width={12} height={12} />
-            </button>
-            <button
-              type="button"
-              className={`vn2d-icon-ctrl is-play${playing ? ' active' : ''}`}
-              onClick={onTogglePlayNode}
-              title={playing ? 'Dừng phát (Space)' : `Phát thử chuyển động (${tStart.toFixed(2)}s → ${tEnd.toFixed(2)}s)`}
-              aria-label={playing ? 'Dừng phát' : 'Phát thử Node'}
+              <button
+                type="button"
+                className="vn2d-icon-ctrl"
+                onClick={() => onScrubTime(tStart)}
+                aria-label="Về đầu Node"
+              >
+                <IconSkipStart width={12} height={12} />
+              </button>
+            </StudioTooltip>
+            <StudioTooltip
+              title={playing ? 'Dừng phát thử' : 'Phát thử chuyển động'}
+              badge="Space"
+              badgeTone="green"
+              description="Xem trực tiếp hành trình chuyển động trên cả Khung 2D và Camera 3D"
+              meta={`Khoảng chạy: ${tStart.toFixed(2)}s → ${tEnd.toFixed(2)}s`}
+              placement="bottom"
             >
-              {playing ? <IconPause width={12} height={12} /> : <IconPlay width={12} height={12} />}
-            </button>
-            <button
-              type="button"
-              className="vn2d-icon-ctrl"
-              onClick={() => onScrubTime(tEnd)}
-              title={`Tới đích khoảng chạy của Node (${tEnd.toFixed(2)}s)`}
-              aria-label="Tới đích Node"
+              <button
+                type="button"
+                className={`vn2d-icon-ctrl is-play${playing ? ' active' : ''}`}
+                onClick={onTogglePlayNode}
+                aria-label={playing ? 'Dừng phát' : 'Phát thử Node'}
+              >
+                {playing ? <IconPause width={12} height={12} /> : <IconPlay width={12} height={12} />}
+              </button>
+            </StudioTooltip>
+            <StudioTooltip
+              title="Tới đích khoảng chạy Node"
+              badge={`${tEnd.toFixed(2)}s`}
+              badgeTone="amber"
+              description="Nhảy nhanh tới thời điểm kết thúc để kiểm tra tư thế & vị trí đích"
+              placement="bottom"
             >
-              <IconSkipEnd width={12} height={12} />
-            </button>
+              <button
+                type="button"
+                className="vn2d-icon-ctrl"
+                onClick={() => onScrubTime(tEnd)}
+                aria-label="Tới đích Node"
+              >
+                <IconSkipEnd width={12} height={12} />
+              </button>
+            </StudioTooltip>
             <span className="vn2d-timecode" title={`Playhead: ${currentTime.toFixed(2)}s (${tStart.toFixed(1)}s–${tEnd.toFixed(1)}s)`}>
               {currentTime.toFixed(1)}s
             </span>
@@ -560,49 +602,70 @@ export const NodeStage2DToolbar: React.FC<NodeStage2DToolbarProps> = ({
         )}
 
         {(!hasDualStage || overrideSceneView) && (
-          <button
-            type="button"
-            className="vn2d-fit-btn"
-            onClick={onFitStage}
-            title={`Đang hiển thị ${zoomPct}% — Nhấp để căn vừa khít khung 100% (Cuộn chuột để Zoom, Alt+Kéo để Lia)`}
-            aria-label="Căn vừa khung 2D"
+          <StudioTooltip
+            title="Căn vừa khít khung 100%"
+            badge={`${zoomPct}%`}
+            badgeTone="neutral"
+            description="Đặt lại độ thu phóng & vị trí lia bàn dựng (Cuộn chuột để Zoom, Alt+Kéo để Lia)"
+            placement="bottom"
           >
-            <IconFitStage2D width={13} height={13} />
-            <span>{zoomPct}%</span>
-          </button>
+            <button
+              type="button"
+              className="vn2d-fit-btn"
+              onClick={onFitStage}
+              aria-label="Căn vừa khung 2D"
+            >
+              <IconFitStage2D width={13} height={13} />
+              <span>{zoomPct}%</span>
+            </button>
+          </StudioTooltip>
         )}
 
         {onOpenContextMenuAtButton && (
-          <button
-            type="button"
-            className="vn2d-icon-ctrl is-expand"
-            onClick={onOpenContextMenuAtButton}
-            aria-label="Mở menu công cụ ngữ cảnh (Chuột phải)"
-            title="Mở Menu Công Cụ Ngữ Cảnh (hoặc nhấp Chuột phải / Nhấn giữ trực tiếp lên Khung 2D)"
+          <StudioTooltip
+            title="Menu công cụ ngữ cảnh"
+            badge="Chuột phải"
+            badgeTone="cyan"
+            description="Mở bảng thao tác nhanh theo Đối tượng / Cụm / Camera (hoặc Chuột phải lên sân khấu)"
+            placement="bottom"
           >
-            <IconContextDots width={13} height={13} />
-          </button>
+            <button
+              type="button"
+              className="vn2d-icon-ctrl is-expand"
+              onClick={onOpenContextMenuAtButton}
+              aria-label="Mở menu công cụ ngữ cảnh (Chuột phải)"
+            >
+              <IconContextDots width={13} height={13} />
+            </button>
+          </StudioTooltip>
         )}
 
-        <button
-          type="button"
-          className={`vn2d-icon-ctrl is-expand${!isSplitWithCam ? ' active' : ''}`}
-          onClick={() => {
-            if (isSplitWithCam) {
-              viewState.openNodeStage2D('solo')
-            } else {
-              viewState.set({ activeViews: ['camera', 'node2d'], primary: 'node2d' })
-            }
-          }}
-          aria-label={isSplitWithCam ? 'Phóng toàn khung 2D' : 'Chia đôi kèm Camera'}
-          title={
+        <StudioTooltip
+          title={isSplitWithCam ? 'Phóng toàn vùng Khung nhìn' : 'Chia đôi kèm Camera 3D'}
+          badge={isSplitWithCam ? 'Toàn khung' : 'Chia đôi'}
+          badgeTone="cyan"
+          description={
             isSplitWithCam
-              ? 'Phóng Màn Khung 2D chiếm trọn vùng Khung nhìn'
-              : 'Chia đôi xem song song Camera Render + Màn Khung 2D'
+              ? 'Mở rộng Màn Khung 2D chiếm trọn khu vực trung tâm để chỉnh sửa rộng rãi'
+              : 'Xem song song kết quả Camera 3D bên trái và Màn Khung 2D bên phải'
           }
+          placement="bottom"
         >
-          {isSplitWithCam ? <IconSingle width={13} height={13} /> : <IconSplit width={13} height={13} />}
-        </button>
+          <button
+            type="button"
+            className={`vn2d-icon-ctrl is-expand${!isSplitWithCam ? ' active' : ''}`}
+            onClick={() => {
+              if (isSplitWithCam) {
+                viewState.openNodeStage2D('solo')
+              } else {
+                viewState.set({ activeViews: ['camera', 'node2d'], primary: 'node2d' })
+              }
+            }}
+            aria-label={isSplitWithCam ? 'Phóng toàn khung 2D' : 'Chia đôi kèm Camera'}
+          >
+            {isSplitWithCam ? <IconSingle width={13} height={13} /> : <IconSplit width={13} height={13} />}
+          </button>
+        </StudioTooltip>
       </div>
     </div>
   )
