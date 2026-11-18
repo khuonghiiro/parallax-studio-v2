@@ -66,6 +66,7 @@ target/
 crates/**/target/
 native/*.node
 native/*.node.next
+out/native/
 
 # AI Agent runtime artifacts
 .claude/

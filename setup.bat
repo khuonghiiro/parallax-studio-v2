@@ -12,7 +12,7 @@ if exist "%~dp0.env" (
 )
 if "%ELECTRON_MIRROR%"=="" set ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/
 if "%FFMPEG_BINARIES_URL%"=="" set FFMPEG_BINARIES_URL=https://registry.npmmirror.com/-/binary/ffmpeg-static
-set "PATH=%USERPROFILE%\.local\bin;%APPDATA%\npm;%ProgramFiles%\nodejs;%PATH%"
+set "PATH=%USERPROFILE%\.cargo\bin;%USERPROFILE%\.local\bin;%APPDATA%\npm;%ProgramFiles%\nodejs;%PATH%"
 
 echo ============================================================
 echo      Parallax Studio - Cai dat moi truong va thu vien

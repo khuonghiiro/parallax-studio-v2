@@ -13,8 +13,8 @@ if exist "%~dp0.env" (
 if "%ELECTRON_MIRROR%"=="" set ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/
 if "%FFMPEG_BINARIES_URL%"=="" set FFMPEG_BINARIES_URL=https://registry.npmmirror.com/-/binary/ffmpeg-static
 
-REM Bo sung cac duong dan chua binary vao PATH (dam bao chay tot ca khi mo tu Windows Explorer)
-set "PATH=%USERPROFILE%\.local\bin;%APPDATA%\npm;%ProgramFiles%\nodejs;%PATH%"
+REM Bo sung cac duong dan chua binary (bao gom Rust cargo) vao PATH
+set "PATH=%USERPROFILE%\.cargo\bin;%USERPROFILE%\.local\bin;%APPDATA%\npm;%ProgramFiles%\nodejs;%PATH%"
 
 echo ============================================================
 echo      Parallax Studio - Khoi dong ung dung
@@ -81,6 +81,9 @@ if %errorlevel% equ 0 (
     taskkill /f /im electron.exe >nul 2>nul
     timeout /t 1 /nobreak >nul
 )
+
+REM 4b. Nang cap ban cho *.next.node (hoac bien dich addon .node neu chua co va may co Rust)
+node "%~dp0scripts\build-napi-accel.mjs" --if-rust --only-if-missing
 
 REM 5. Khoi chay ung dung
 echo Dang khoi dong Parallax Studio (%PKG_MGR%)...

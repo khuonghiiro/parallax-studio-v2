@@ -85,14 +85,42 @@ function candidateNativeDirs(): string[] {
   return Array.from(dirs)
 }
 
-function tryPromoteStagedAddon(addonPath: string): string {
-  const staged = `${addonPath}.next`
-  if (!existsSync(staged)) return addonPath
+export function toStagedAddonPath(addonPath: string): string {
+  return addonPath.endsWith('.node')
+    ? `${addonPath.slice(0, -5)}.next.node`
+    : `${addonPath}.next.node`
+}
+
+export function promoteStagedAddonFile(
+  addonPath: string,
+  copyImpl: (src: string, dest: string) => void = copyFileSync,
+  unlinkImpl: (p: string) => void = unlinkSync
+): string {
+  const staged = toStagedAddonPath(addonPath)
+  const legacyStaged = `${addonPath}.next`
+  const pending = existsSync(staged) ? staged : existsSync(legacyStaged) ? legacyStaged : null
+  if (!pending) return addonPath
+
   try {
-    copyFileSync(staged, addonPath)
-    unlinkSync(staged)
+    copyImpl(pending, addonPath)
+    try {
+      if (existsSync(staged)) unlinkImpl(staged)
+      if (existsSync(legacyStaged)) unlinkImpl(legacyStaged)
+    } catch {
+      /* Bỏ qua nếu không xoá được file tạm */
+    }
     return addonPath
   } catch {
+    // Nếu file .node gốc vẫn đang bị tiến trình khác khoá, nạp thẳng *.next.node (giữ đuôi .node cho dlopen)
+    if (pending === legacyStaged) {
+      try {
+        copyImpl(legacyStaged, staged)
+        unlinkImpl(legacyStaged)
+        return staged
+      } catch {
+        return addonPath
+      }
+    }
     return staged
   }
 }
@@ -125,7 +153,7 @@ export function getPxsNapiAddon(): PxsNapiAddon | null {
 
   for (const dir of candidateNativeDirs()) {
     const baseAddonPath = join(dir, fileName)
-    const loadPath = tryPromoteStagedAddon(baseAddonPath)
+    const loadPath = promoteStagedAddonFile(baseAddonPath)
     if (!existsSync(loadPath)) continue
     try {
       const loaded: unknown = req(loadPath)
